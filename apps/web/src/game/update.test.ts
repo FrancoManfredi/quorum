@@ -2,7 +2,7 @@ import { ResearchMessage } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
 import { GlossaryMessage } from './glossary.ts'
-import { InboxMessage } from './inbox.ts'
+import { EMPTY_INBOX, InboxMessage, mailed, reading } from './inbox.ts'
 import { PrefsMessage } from './prefs.ts'
 import { describe, expect, test } from 'vitest'
 import { Option } from 'effect'
@@ -12,10 +12,13 @@ import { newGame, preseedGame } from '@quorum/simulation/company'
 import { SIZES } from '@quorum/simulation/catalog'
 import { COMPONENTS, researchList } from '@quorum/simulation/catalog'
 import { researchReady } from '@quorum/simulation/lookups'
+import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
+import type { WorkItem } from '@quorum/simulation/state'
 import { SHARED } from '@quorum/simulation/playbook'
 import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
+import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
 import { titleIsOpen } from './boot-machine.ts'
 import { boardChallenge, boardSandbox, type Mail, type Model } from './model.ts'
 import { init, initialModel, update } from './update.ts'
@@ -1255,4 +1258,220 @@ test('buying ten sizes grows a Node once, and Max reaches the largest size', () 
   expect(ten.board.game.cash).toBeLessThan(placed.board.game.cash)
   const max = update(placed, Message.BulkResizeChosen({ nodeId: id, mode: 'max' })).model
   expect(sizeOf(max)).toBe(SIZES.length - 1)
+})
+
+describe('Mail actions (GDD 18)', () => {
+  const send = (model: Model, ...messages: ReadonlyArray<Message>): Model =>
+    messages.reduce((current, message) => update(current, message).model, model)
+
+  /** A board with one piece of Mail in its Inbox, open on the reader, its card still waiting. */
+  const withMail = (fact: Fact, game: Model['board']['game']): Model => {
+    const start = inLab()
+    const sent = mailed(EMPTY_INBOX, fact, game.time, false)
+    return {
+      ...start,
+      panel: 'inbox',
+      board: {
+        ...start.board,
+        game,
+        // Reading the panel clears the card, so put back what arrived with the Mail.
+        inbox: { ...reading(sent), peek: sent.peek },
+      },
+    }
+  }
+
+  /** What the Simulation says about `node` now, as Mail. */
+  const about = (node: string): readonly [Model['board']['game'], Fact] => {
+    const game = preseedGame()
+    return [game, factOf(nextAdvice(game, { ...solveFlow(game), bottleneck: node }), game)]
+  }
+
+  const press = (model: Model, action: string): ReturnType<typeof update> =>
+    update(
+      model,
+      Message.InboxChanged({
+        message: InboxMessage.Acted({ id: model.board.inbox.mail[0]?.id ?? 0, action }),
+      }),
+    )
+
+  test('a capacity warning offers Show on Board, Resize and Raise quota', () => {
+    const [, fact] = about('server')
+    expect(fact.actions).toEqual([
+      { id: 'show:server', label: 'Show on Board' },
+      { id: 'resize:server', label: 'Resize' },
+      { id: 'quota:server', label: 'Raise quota' },
+    ])
+  })
+
+  test.each(['resize:server', 'quota:server'])(
+    '%s opens the Inspector on the Node and changes nothing else',
+    (action) => {
+      const [game, fact] = about('server')
+      const acted = press(withMail(fact, game), action)
+      expect(acted.model.panel).toBe('none')
+      expect(acted.model.board.selected).toBe('server')
+      expect(acted.model.board.region).toBe(game.nodes.find((node) => node.id === 'server')?.region)
+      expect(acted.commands?.map((command) => command.name)).toContain('FocusInspector')
+      expect(acted.model.board.game).toBe(game)
+      expect(acted.model.board.inbox.mail[0]?.answer).toBeNull()
+    },
+  )
+
+  test('Switch to Reserved is offered once a compute Node has a pricing model', () => {
+    const game = { ...preseedGame(), stage: 3 }
+    const fact = factOf(nextAdvice(game, { ...solveFlow(game), bottleneck: 'server' }), game)
+    expect(fact.actions.map((action) => action.id)).toEqual([
+      'show:server',
+      'resize:server',
+      'quota:server',
+      'reserved:server',
+    ])
+    const acted = press(withMail(fact, game), 'reserved:server')
+    expect(acted.model.panel).toBe('none')
+    expect(acted.model.board.selected).toBe('server')
+    expect(acted.commands?.map((command) => command.name)).toContain('FocusInspector')
+    expect(acted.model.board.game).toBe(game)
+  })
+
+  test('an alert offers Acknowledge, which reads it and clears the card', () => {
+    const [game, fact] = about('analytics')
+    expect(fact.actions.map((action) => action.id)).toEqual(['show:analytics', 'ack', 'mute'])
+    const started = withMail(fact, game)
+    expect(started.board.inbox.peek).toBe(started.board.inbox.mail[0]?.id)
+    const acted = press(started, 'ack')
+    expect(acted.model.board.inbox.mail[0]?.answer).toBe('You acknowledged it.')
+    expect(acted.model.board.inbox.mail[0]?.read).toBe(true)
+    expect(acted.model.board.inbox.peek).toBeNull()
+    expect(acted.model.board.game).toBe(game)
+  })
+
+  test('Mute for 1 h silences the sender for one calendar hour', () => {
+    const [game, fact] = about('analytics')
+    const acted = press(withMail(fact, game), 'mute')
+    expect(acted.model.board.inbox.mutes).toEqual([{ sender: fact.sender, until: game.time + 60 }])
+    expect(acted.model.board.inbox.mail[0]?.answer).toBe('You muted this sender for an hour.')
+    expect(acted.model.board.game).toBe(game)
+    const later = (time: number) =>
+      mailed(
+        acted.model.board.inbox,
+        { ...fact, key: 'event:workers:server', text: 'Every worker is busy.' },
+        time,
+        false,
+      )
+    // Inside the hour the next letter lands read, with no card above the Inbox button.
+    const quiet = later(game.time + 59)
+    expect(quiet.mail.at(-1)?.read).toBe(true)
+    expect(quiet.peek).toBeNull()
+    // An hour later the sender is heard again.
+    const loud = later(game.time + 60)
+    expect(loud.mail.at(-1)?.read).toBe(false)
+    expect(loud.peek).toBe(loud.mail.at(-1)?.id)
+  })
+
+  test('Add to backlog queues the Feature the customer asks for', () => {
+    const start: Model = {
+      ...inLab(),
+      panel: 'inbox',
+      board: { ...inLab().board, game: preseedGame() },
+    }
+    const mailed = send(
+      start,
+      Message.InboxChanged({ message: InboxMessage.SampleChosen({ id: 'request' }) }),
+      Message.InboxChanged({ message: InboxMessage.Generated({ count: 1 }) }),
+    )
+    const mail = mailed.board.inbox.mail.at(-1)!
+    expect(mail.actions).toHaveLength(1)
+    const action = mail.actions[0]!
+    expect(action.label).toBe('Add to backlog')
+    const feature = action.id.replace('backlog:', '')
+    expect(mailed.board.game.backlog.some((item) => item.ref === feature)).toBe(false)
+    const queued = send(
+      mailed,
+      Message.InboxChanged({
+        message: InboxMessage.Acted({ id: mail.id, action: action.id }),
+      }),
+    )
+    expect(
+      queued.board.game.backlog.some((item) => item.kind === 'feature' && item.ref === feature),
+    ).toBe(true)
+    expect(queued.board.game.cash).toBe(mailed.board.game.cash)
+    expect(queued.board.inbox.mail.at(-1)?.answer).toBe('You added it to the backlog.')
+  })
+
+  test('the CVE advisory names the exposed Nodes only once Dependency scanning is researched', () => {
+    const game = preseedGame()
+    const item: WorkItem = {
+      id: 8,
+      kind: 'patch',
+      ref: 'CVE-2026-0451',
+      cost: 4,
+      spent: 0,
+      due: game.time + 180,
+      target: 'server',
+    }
+    expect(game.researched).not.toContain('dependency-scanning')
+    const hidden = disclosureFact(item, game)
+    expect(hidden.text).toMatch(/check whether (you|they) run (this|it)/i)
+    expect(hidden.actions.map((action) => action.id)).not.toContain('show:server')
+    const scanned = disclosureFact(item, {
+      ...game,
+      researched: [...game.researched, 'dependency-scanning' as const],
+    })
+    expect(scanned.text).toContain('App Server')
+    expect(scanned.text).not.toMatch(/check whether/i)
+    expect(scanned.actions.map((action) => action.id)).toContain('show:server')
+  })
+
+  test('a Step event that names a Node carries that Node’s buttons', () => {
+    const game = preseedGame()
+    const before = JSON.stringify(game)
+    const oom = eventFact(
+      { _tag: 'OutOfMemory', nodeId: 'server' },
+      { topic: 'oom', vars: { node: 'App Server' } },
+      game,
+    )
+    expect(oom.actions.map((action) => action.id)).toEqual([
+      'show:server',
+      'resize:server',
+      'quota:server',
+    ])
+    const incident = eventFact(
+      { _tag: 'IncidentStarted', incident: { nodeId: 'database' } },
+      { topic: 'incident-instance', vars: { node: 'Database' } },
+      game,
+    )
+    expect(incident.actions.map((action) => action.id)).toEqual(['show:database', 'ack', 'mute'])
+    expect(JSON.stringify(game)).toBe(before)
+  })
+
+  test('the fourth button on an advisory is reachable with its own key', () => {
+    // Dependency scanning names the Node, so the advisory carries all four of its buttons.
+    const game = {
+      ...preseedGame(),
+      researched: [...preseedGame().researched, 'dependency-scanning' as const],
+    }
+    const fact = disclosureFact(
+      {
+        id: 9,
+        kind: 'patch',
+        ref: 'CVE-2026-0451',
+        cost: 4,
+        spent: 0,
+        due: game.time + 180,
+        target: 'server',
+      },
+      game,
+    )
+    expect(fact.actions.map((action) => action.id)).toEqual([
+      'first:9',
+      'rush:9',
+      'show:server',
+      'team',
+    ])
+    const started = withMail(fact, game)
+    const pressed = update(started, Message.KeyPressed({ key: '4' })).model
+    expect(pressed.panel).toBe('team')
+    expect(pressed.board.inbox.mail[0]?.answer).toBe('You opened Team.')
+    expect(pressed.board.game).toBe(game)
+  })
 })

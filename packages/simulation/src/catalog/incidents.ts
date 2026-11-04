@@ -35,6 +35,7 @@ export const INCIDENT_IDS = [
   'breach',
   'cluster-upgrade',
   'config',
+  'spot-reclaim',
 ] as const
 export type IncidentId = (typeof INCIDENT_IDS)[number]
 
@@ -55,6 +56,14 @@ export type IncidentDef = Readonly<{
   /** Research that prevents it, in order. The postmortem opens the first one not yet owned. */
   actions: ReadonlyArray<ResearchId>
 }>
+
+/**
+ * A spot reclaim's warning, in sim seconds: the provider announces it, then takes
+ * the Node (09 "Pricing models"). The real notice is two minutes; this one is 10 s.
+ */
+export const SPOT_WARNING = 10
+/** Sim seconds a reclaimed Spot Node stays down before it comes back. */
+export const SPOT_DOWN = 20
 
 export const INCIDENTS: Record<IncidentId, IncidentDef> = {
   spike: {
@@ -413,6 +422,18 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     duration: 120,
     cause: 'A disclosed vulnerability stayed unpatched past its deadline, and someone used it.',
     prevention: 'Patch the ticket before it expires. The Team backlog shows the deadline.',
+    actions: [],
+  },
+  'spot-reclaim': {
+    id: 'spot-reclaim',
+    name: 'Spot reclaim',
+    era: 3,
+    severity: 3,
+    escalatesTo: 2,
+    duration: SPOT_WARNING + SPOT_DOWN,
+    cause:
+      'The provider needed the capacity back. It reclaimed a Spot Node after a 10-second warning.',
+    prevention: 'Mixed fleets, graceful shutdown, and on-demand copies behind a Load Balancer.',
     actions: [],
   },
 }

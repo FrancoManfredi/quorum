@@ -13,6 +13,7 @@ import {
   INSIGHT_POOLS,
   LANGUAGE_IDS,
   POLICY_IDS,
+  PRICING_IDS,
   REQUEST_KINDS,
   REGIONS,
   RESEARCH_IDS,
@@ -91,6 +92,10 @@ export type Fanout = typeof Fanout.Type
 export const ScaleSignal = Schema.Literals(['cpu', 'load'])
 export type ScaleSignal = typeof ScaleSignal.Type
 
+/** A compute Node's pricing model. */
+export const Pricing = Schema.Literals(PRICING_IDS)
+export type Pricing = typeof Pricing.Type
+
 const NODE_FIELDS = {
   id: Schema.String,
   type: ComponentId,
@@ -159,6 +164,12 @@ const NODE_FIELDS = {
   zone: Zone.pipe(Schema.withDecodingDefaultKey(Effect.succeed('a' as const))),
   /** A data Node keeps a standby in another zone and fails over to it. */
   standby: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** How a compute Node pays for its box (09 "Pricing models"). */
+  pricing: Pricing.pipe(Schema.withDecodingDefaultKey(Effect.succeed('on-demand' as const))),
+  /** Sim time a reserved term ends; null for every other model. */
+  pricingUntil: Schema.NullOr(Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(null)),
+  ),
   /** Copies of an App Server or Worker that serve now. */
   replicas: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
   /** Copies an Autoscaler has asked for that are still booting, and the seconds until they serve. */

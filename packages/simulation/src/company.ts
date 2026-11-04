@@ -69,6 +69,8 @@ export const node = (
   underAttack: false,
   zone: 'a',
   standby: false,
+  pricing: 'on-demand',
+  pricingUntil: null,
   replicas: 1,
   pending: 0,
   readyIn: 0,

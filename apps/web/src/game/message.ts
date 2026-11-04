@@ -17,6 +17,7 @@ import {
   LbPolicy,
   PmMode,
   PoolerMode,
+  Pricing,
   RequestKindId,
   ResearchId,
   Retries,
@@ -175,6 +176,7 @@ export const Message = defineMessageUnion({
   /** Buy several sizes at once: `ten` stops after ten steps or the first refusal, `max` at the top size. */
   BulkResizeChosen: { nodeId: Schema.String, mode: Schema.Literals(['ten', 'max']) },
   FamilyChosen: { nodeId: Schema.String, family: FamilyId },
+  PricingChosen: { nodeId: Schema.String, pricing: Pricing },
   RuntimeChosen: { nodeId: Schema.String, runtime: RuntimeId },
   FrameworkChosen: { nodeId: Schema.String, framework: FrameworkId },
   WorkersChosen: { nodeId: Schema.String, workers: Schema.Finite },

@@ -146,6 +146,8 @@ export const LOOKS: Record<ResearchId, Look> = {
   'tiered-caching': { group: 'edge', glyph: Layers, hue: 170 },
   'multi-az': { group: 'edge', glyph: CloudOff, hue: 345 },
   autoscaling: { component: 'autoscaler' },
+  'reserved-instances': { group: 'ops', glyph: Landmark, hue: 45 },
+  'spot-instances': { group: 'ops', glyph: Timer, hue: 20 },
   containers: { component: 'cluster' },
   'slo-dashboards': { group: 'ops', glyph: Target, hue: 140 },
   'error-budgets': { group: 'ops', glyph: Gauge, hue: 95 },
@@ -241,4 +243,5 @@ export const TRACK_ICONS: Record<ResearchTrack, IconNode> = {
   frameworks: Boxes,
   security: ShieldCheck,
   product: Rocket,
+  cost: Landmark,
 }

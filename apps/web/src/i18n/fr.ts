@@ -2198,6 +2198,37 @@ export const fr: Readonly<Record<string, string>> = {
     "Atteignez le 90e centile sur n'importe quel axe de n'importe quel défi",
   'Reach the 70th percentile on all three axes of one Challenge':
     "Atteindre le 70e centile sur les trois axes d'un défi",
+  'Reach Seed with only PHP-FPM servers and no memory incident':
+    'Atteignez l’amorçage avec uniquement des serveurs PHP-FPM et aucun incident de mémoire',
+  'Shared Nothing': 'Rien de partagé',
+  'Have a Node.js service whose p99 rises by 100 ms from one kind':
+    'Ayez un service Node.js dont le p99 augmente de 100 ms à cause d’un seul type de requête',
+  'Serve a user from a region more than 150 ms away':
+    'Servez un utilisateur d’une région à plus de 150 ms',
+  'Off by One Region': 'Une région de trop',
+  'Fix an app server bottleneck by fixing the database':
+    'Corrigez un goulot d’étranglement de serveur d’application en corrigeant la base de données',
+  "Little's Law": 'Loi de Little',
+  'Migrate every service to a new language in one company':
+    'Migrez chaque service vers un nouveau langage dans une même entreprise',
+  'Big Rewrite': 'Grande réécriture',
+  'Run a wide-column store with R + W > N across three regions':
+    'Exécutez un stockage à colonnes larges avec R + W > N sur trois régions',
+  'Run R = 1, W = 1 at a billion users': 'Exécutez R = 1, W = 1 avec un milliard d’utilisateurs',
+  Eventually: 'À terme',
+  'Serve a 10-million-follower post with no hot key errors':
+    'Servez une publication à 10 millions d’abonnés sans erreur de clé chaude',
+  'Serve four regions with no Node above 70% at its local peak':
+    'Servez quatre régions sans nœud au-dessus de 70 % à son pic local',
+  'Have egress be the largest line on the bill':
+    'Faites de l’egress la plus grosse ligne de la facture',
+  'Egress Shock': 'Choc d’egress',
+  'Complete the Five Nines Challenge': 'Terminez le défi Cinq neuf',
+  'Reach 6 billion users': 'Atteignez 6 milliards d’utilisateurs',
+  'Everyone Online': 'Tout le monde en ligne',
+  'Scale a JVM service during a spike with no p99 regression':
+    'Mettez à l’échelle un service JVM pendant un pic sans dégradation du p99',
+  'Warm Start': 'Démarrage à chaud',
   'The internet': 'Internet',
   Invoices: 'Factures',
   OpenTelemetry: 'OpenTelemetry',
@@ -3219,4 +3250,26 @@ export const fr: Readonly<Record<string, string>> = {
   'Terraform refreshes on every plan.': 'Terraform relit l’état à chaque plan.',
   'Pulumi has no repair.': 'Pulumi n’a pas de réparation.',
   'Terraform has no repair.': 'Terraform n’a pas de réparation.',
+  'On-demand': 'À la demande',
+  'Full rate. Remove the Node at any time.':
+    'Tarif plein. Vous pouvez retirer le nœud à tout moment.',
+  Reserved: 'Réservé',
+  '0.6×, for a commitment of one calendar week. Selling before the term ends owes the Burn.':
+    '0,6×, pour un engagement d’une semaine calendaire. Vendre avant la fin du terme doit le Burn restant.',
+  Spot: 'Spot',
+  '0.3×. The provider can reclaim the Node after 10 s of warning.':
+    '0,3×. Le fournisseur peut récupérer le nœud après 10 s de préavis.',
+  'Spot pricing runs a Node at 0.3× the on-demand price, and the provider can reclaim it: a Spot reclaim Incident warns for 10 sim seconds and then takes the Node down. Switching the Node to on-demand inside the warning cancels it. A reserved Node costs 0.6× and holds for a calendar week. The GPU shortage Incident is separate: the provider reclaims a GPU Node, H100s first, and an LLM API as a fallback makes it a quarter as likely.':
+    'Le tarif Spot fait tourner un nœud à 0,3× le prix à la demande, et le fournisseur peut le récupérer : un incident de récupération Spot prévient pendant 10 secondes simulées puis met le nœud hors service. Repasser le nœud à la demande pendant le préavis l’annule. Un nœud réservé coûte 0,6× et tient une semaine calendaire. L’incident de pénurie de GPU est distinct : le fournisseur récupère un nœud GPU, les H100 en premier, et une API LLM de secours le rend quatre fois moins probable.',
+  'Spot reclaim': 'Récupération Spot',
+  'The provider needed the capacity back. It reclaimed a Spot Node after a 10-second warning.':
+    'Le fournisseur avait besoin de la capacité. Il a récupéré un nœud Spot après un préavis de 10 secondes.',
+  'Mixed fleets, graceful shutdown, and on-demand copies behind a Load Balancer.':
+    'Flottes mixtes, arrêt gracieux et copies à la demande derrière un répartiteur.',
+  'Reserved instances': 'Instances réservées',
+  'Reserved pricing: 0.6× for a calendar-week commitment.':
+    'Tarif réservé : 0,6× pour un engagement d’une semaine calendaire.',
+  'Spot instances': 'Instances Spot',
+  'Spot pricing: 0.3×, until the provider reclaims the Node.':
+    'Tarif Spot : 0,3×, jusqu’à ce que le fournisseur récupère le nœud.',
 }

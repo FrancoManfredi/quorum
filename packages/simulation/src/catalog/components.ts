@@ -787,3 +787,49 @@ export const BACKUPS = {
 
 /** During a hot key, this share of reads asks for one key, which lives on one shard (07 "Fan-out"). */
 export const HOT_KEY_SHARE = 0.3
+
+/* ---------- pricing models (09 "Pricing models") ---------- */
+
+/**
+ * How a compute Node pays for its box. On-demand is the full rate, reserved a
+ * discount for a calendar week's commitment, and spot a deeper one on capacity
+ * the provider can take back. Serverless prices each use, and the build has no
+ * Serverless Function to bill.
+ */
+export const PRICING_IDS = ['on-demand', 'reserved', 'spot'] as const
+export type PricingId = (typeof PRICING_IDS)[number]
+
+export type PricingDef = Readonly<{
+  id: PricingId
+  name: string
+  /** Share of the on-demand box price this model bills at. */
+  price: number
+  blurb: string
+}>
+
+export const PRICINGS: Record<PricingId, PricingDef> = {
+  'on-demand': {
+    id: 'on-demand',
+    name: 'On-demand',
+    price: 1,
+    blurb: 'Full rate. Remove the Node at any time.',
+  },
+  reserved: {
+    id: 'reserved',
+    name: 'Reserved',
+    price: 0.6,
+    blurb:
+      '0.6×, for a commitment of one calendar week. Selling before the term ends owes the Burn.',
+  },
+  spot: {
+    id: 'spot',
+    name: 'Spot',
+    price: 0.3,
+    blurb: '0.3×. The provider can reclaim the Node after 10 s of warning.',
+  },
+}
+
+/** From Series A, each compute Node has a pricing model. */
+export const PRICING_FROM_STAGE = 3
+/** A reserved term: one calendar week, in sim seconds (one sim second is one calendar minute). */
+export const RESERVED_SECONDS = 7 * 1_440

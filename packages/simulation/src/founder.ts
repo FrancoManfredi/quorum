@@ -193,9 +193,9 @@ export const recordEra = (founder: Founder, stage: number): Founder =>
     ? founder
     : { ...founder, erasReached: [...founder.erasReached, stage] }
 
-/** A Challenge completed: its badge, and its Legacy the first time only. */
-export const completeChallenge = (founder: Founder, id: string, legacy: number): Founder =>
-  founder.completed.includes(id)
+/** A Challenge completed: its badge, its Legacy the first time only, and Five Nines. */
+export const completeChallenge = (founder: Founder, id: string, legacy: number): Founder => {
+  const done = founder.completed.includes(id)
     ? founder
     : {
         ...founder,
@@ -203,3 +203,5 @@ export const completeChallenge = (founder: Founder, id: string, legacy: number):
         legacy: founder.legacy + legacy,
         earned: founder.earned + legacy,
       }
+  return id === 'five-nines' ? earnAchievements(done, ['five-nines']) : done
+}

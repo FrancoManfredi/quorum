@@ -351,7 +351,7 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
     mail.answer !== null
       ? [h.p([h.Class('flex-1 text-[12px] text-muted-foreground')], [mail.answer])]
       : mail.resolved === null
-        ? mail.actions.slice(0, 3).map((action, index) =>
+        ? mail.actions.map((action, index) =>
             button(
               {
                 onClick: Message.InboxChanged({
@@ -435,7 +435,7 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
         ],
       ),
       h.div(
-        [h.Class('flex items-center gap-2 border-t border-hairline bg-nested px-3 py-2')],
+        [h.Class('flex flex-wrap items-center gap-2 border-t border-hairline bg-nested px-3 py-2')],
         [
           ...buttons,
           h.span([h.Class('flex-1')], []),

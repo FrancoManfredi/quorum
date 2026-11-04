@@ -1,4 +1,4 @@
-import { test } from 'vitest'
+import { expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
 import type { HtmlBuilder } from 'foldkit/html'
 import { link, node, preseedGame } from '@quorum/simulation/company'
@@ -147,4 +147,62 @@ test('the inbound route is configuration, not live traffic, so it survives zero 
     Scene.given(routed(0)),
     Scene.expect(Scene.role('button', { name: 'Open Load Balancer' })).toExist(),
   )
+})
+
+/** A Series A board with the App Server selected: the only Node with a pricing model. */
+const seriesA = (): Model => {
+  const start = initialModel()
+  const game: Game = {
+    ...preseedGame(7),
+    stage: 3,
+    // Pricing waits for its Cost-track research (10 "Track: Cost").
+    researched: [...preseedGame(7).researched, 'reserved-instances', 'spot-instances'],
+  }
+  return { ...start, board: { ...start.board, game, selected: 'server' } }
+}
+
+/** The Series A board with its App Server reserved for a calendar week. */
+const reserved = (): Model => {
+  const model = seriesA()
+  const game = model.board.game
+  return {
+    ...model,
+    board: {
+      ...model.board,
+      game: {
+        ...game,
+        nodes: game.nodes.map((node) =>
+          node.id === 'server'
+            ? { ...node, pricing: 'reserved' as const, pricingUntil: game.time + 7 * 1_440 }
+            : node,
+        ),
+      },
+    },
+  }
+}
+
+test('a pricing model is offered from Series A, and a reserved Node shows its term', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.expect(Scene.role('button', { name: 'Reserved' })).toBeAbsent(),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(reserved()),
+    Scene.expect(Scene.role('button', { name: 'On-demand' })).toExist(),
+    Scene.expect(Scene.text('Pricing · reserved for 7 more d')).toExist(),
+  )
+})
+
+test('choosing a pricing model reserves the Node for a calendar week, and undoes', () => {
+  const before = seriesA()
+  const chosen = Message.PricingChosen({ nodeId: 'server', pricing: 'reserved' })
+  const after = update(before, chosen).model
+  expect(after.board.game.nodes.find((node) => node.id === 'server')?.pricing).toBe('reserved')
+  expect(after.board.game.nodes.find((node) => node.id === 'server')?.pricingUntil).toBe(
+    before.board.game.time + 7 * 1_440,
+  )
+  const undone = update(after, Message.UndoChosen()).model
+  expect(undone.board.game.nodes.find((node) => node.id === 'server')?.pricing).toBe('on-demand')
 })

@@ -68,43 +68,46 @@ export const GOLDEN_STEPS = 10_000
 // save gains each region's share of the users, its steady share, and its Apdex.
 // SIM_VERSION 17: a Node's lifecycle is one tagged state (`life`) instead of the
 // `down`, `warm` and `downCause` fields. Old saves derive it when they decode.
-export const GOLDEN_HASH = '0cb85ad1'
+// SIM_VERSION 18: the save gains each Node's pricing model and the sim time a
+// reserved term ends. The replay's values are unchanged; the encoded Game carries
+// the new fields, so its hash and every Challenge's move.
+export const GOLDEN_HASH = '11d59a55'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-  'hello-world': '3b8862aa',
-  'split-the-box': '04fde6c0',
-  slashdotted: '00394b5e',
-  c10k: 'be3a3db4',
-  'event-loop': 'ebd62033',
-  'too-many-connections': '8c506384',
-  shoestring: '89700903',
-  'n-plus-one': '6a6e6f4f',
-  'thirteen-engineers': '61fea056',
-  'credential-stuffing': 'c30255b6',
-  'black-friday': '48eb6eda',
-  'us-east-1': 'f38d67b6',
-  'exactly-once': 'fa73df0e',
-  'two-million-sockets': 'f8565e8f',
-  'pokemon-go': 'c35f928f',
-  'healthcare-launch': 'c6ee97c7',
-  'thundering-herd': 'fda63bf0',
-  'read-states': '7baddbc8',
-  'fail-whale': 'a72a03a4',
-  'reports-at-noon': 'fd6f2b27',
-  'gpu-economics': 'c44b4a7c',
-  metastable: 'ddfbc164',
-  'regex-of-doom': 'bce3beb5',
-  'forty-three-seconds': '838edaa9',
-  'follow-the-sun': 'e678f7c2',
-  celebrity: '0267e0cc',
-  'gone-from-the-internet': '30f6d354',
-  'the-typo': '4bcdef62',
-  'leap-second': 'fdc21ddb',
-  'rule-of-40': '19cae235',
-  'postgres-for-everything': '136c3065',
-  'five-nines': 'ecd5e62f',
+  'hello-world': '65da732e',
+  'split-the-box': '20660f24',
+  slashdotted: '5b0c2de6',
+  c10k: '77e66964',
+  'event-loop': '4aa62beb',
+  'too-many-connections': '037f411c',
+  shoestring: '01da118f',
+  'n-plus-one': 'fa7cad63',
+  'thirteen-engineers': '08dd8b3a',
+  'credential-stuffing': '1b6dbc26',
+  'black-friday': '87e4d3da',
+  'us-east-1': '30638aba',
+  'exactly-once': '46960102',
+  'two-million-sockets': 'eb8445a7',
+  'pokemon-go': 'a844585f',
+  'healthcare-launch': '1c3ccf2b',
+  'thundering-herd': '515b72dc',
+  'read-states': '34607534',
+  'fail-whale': '63be0d20',
+  'reports-at-noon': '6198f09b',
+  'gpu-economics': 'd7f7539c',
+  metastable: '607b4118',
+  'regex-of-doom': 'c96109b9',
+  'forty-three-seconds': '4d944895',
+  'follow-the-sun': 'e2bc5d9a',
+  celebrity: '4e20afbc',
+  'gone-from-the-internet': 'a514306c',
+  'the-typo': 'bc0a57c6',
+  'leap-second': 'd4c69c47',
+  'rule-of-40': '16db3ee9',
+  'postgres-for-everything': '5875cf05',
+  'five-nines': '31ed2603',
 }

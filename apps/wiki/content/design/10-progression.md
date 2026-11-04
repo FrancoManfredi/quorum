@@ -559,7 +559,8 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `cost-allocation`     | Cost allocation     | Series B | 10,000  | `unit-economics`     | Cost per service and team                 |
 | `savings-plans`       | Savings plans       | Pre-IPO  | 250,000 | `reserved-instances` | −20% compute with no per-Node lock        |
 
-**Built: 0 of 7.** The whole Cost track is not built yet: `reserved-instances`, `spot-instances`,
+**Built: 2 of 7.** `reserved-instances` and `spot-instances` unlock the two pricing models on a
+compute Node from Series A ([Economy](/design/09-economy#pricing-models)). Not built yet:
 `rightsizing`, `egress-optimization`, `unit-economics`, `cost-allocation`, `savings-plans`.
 
 ### Track: Product and business

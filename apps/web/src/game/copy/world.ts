@@ -204,6 +204,30 @@ export const TICKETS: Letters = [
   }),
 ]
 
+/** A big customer asks for a Feature the Design has not built. `feature` is its catalog name. */
+export const REQUESTS: Letters<{ readonly feature: string }> = [
+  ({ from, feature }) => ({
+    subject: `Feature request: ${feature}`,
+    body: `Hello,\n\nPassing this one up from a customer who pays us more than most:\n\n> We love the product. Genuinely. But every week our team asks whether it can do ${feature}, and every week I have to say no and change the subject. Could it?\n\nIt is a small thing for you, I think, and a large thing for us.\n\n${from}`,
+  }),
+  ({ from, feature }) => ({
+    subject: `"Do you have ${feature}?" (asked 41 times)`,
+    body: `Hi,\n\nOur search logs show the same question over and over: does it do ${feature}?\n\nThe people asking are not tourists. They are on the paid plan, they open the app daily, and one of them has our logo on a hoodie.\n\nWe are not saying build it. We are saying we would stop hearing about it.\n\nRegards,\n${from}`,
+  }),
+  ({ from, feature }) => ({
+    subject: `Renewal blocked on ${feature}`,
+    body: `Hello,\n\nA customer with a renewal on the table has one condition before signing: ${feature}.\n\nWhat they said, verbatim: "We're not asking for a roadmap. We're asking whether this is on one."\n\nA yes would help. A maybe would also help.\n\n${from}`,
+  }),
+  ({ from, feature }) => ({
+    subject: `The one thing they all want: ${feature}`,
+    body: `Hi,\n\nWe tag every ticket, and one tag has quietly become the biggest:\n\n${feature} — 41 tickets, no duplicates, no bots.\n\nThe customers are polite about it, which is worse. "Whenever it's possible." "No rush, but soon."\n\nAdding it to the backlog would let us tell them something true.\n\nBest,\n${from}`,
+  }),
+  ({ from, feature }) => ({
+    subject: `A customer wrote us a spec for ${feature}`,
+    body: `Hello,\n\nA customer liked the product enough to write us a spec: three pages, wireframes, one hand-drawn diagram of a flow they would like to see called ${feature}.\n\nThey ended it with "even a rough version would change our week".\n\nWe cannot build it for them. You can decide whether it belongs on the backlog.\n\n${from}`,
+  }),
+]
+
 /** What a falling region's churn Mail says (GDD 12 "The Churn breakdown"). */
 export type ChurnVars = Readonly<{
   region: string

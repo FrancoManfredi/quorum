@@ -103,19 +103,19 @@ finds a weakness, and a Failure grant when a DR drill passes.
 
 ## The visibility ladder
 
-| Step | Research            | Era      | What the player can now see                                                                                                                                                         |
-| ---- | ------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Starting view       | Garage   | Load bars, inbound rps, mean latency, a red "Stranded" row, the bottleneck marker. Errors as one number.                                                                            |
-| 1    | `logs`              | Garage   | The error breakdown by cause: `timeout`, `refused`, `oom`, and the rest ([Simulation](/design/04-simulation#errors)).                                                               |
-| 2    | `metrics`           | Garage   | A history graph on each Node card for the last calendar day, and [the Dashboard](#the-dashboard). Before this, the player sees only "now".                                          |
-| 3    | `percentiles`       | Pre-seed | p99 on cards and the HUD, next to the mean. The mean is still shown, so the player sees how much it hides.                                                                          |
-| 4    | `alerting`          | Pre-seed | A pager banner when thresholds are crossed ([Alerting](#alerting)).                                                                                                                 |
-| 5    | `tracing`           | Seed     | Not built yet: a waterfall of a request kind's path, time per hop, waiting versus working, and a bottleneck marker per kind.                                                        |
-| 6    | `slo-dashboards`    | Series A | The error budget panel and burn rate.                                                                                                                                               |
-| 7    | `profiling`         | Series A | Not built yet: each card naming its limiting resource: CPU, workers, memory, connections, network, GC, or event-loop blocking ([Runtimes](/design/06-runtimes#the-capacity-model)). |
-| 8    | `tail-sampling`     | Series B | Not built yet: slow and failed traces are kept, and Failure Insight doubles.                                                                                                        |
-| 9    | `rum`               | Series C | Not built yet: latency per region and device, from the user's side, including the internet hop.                                                                                     |
-| 10   | `anomaly-detection` | Series C | Not built yet: warnings before an incident peaks, and a forecast of tomorrow's peak.                                                                                                |
+| Step | Research            | Era      | What the player can now see                                                                                                                                                                                                |
+| ---- | ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Starting view       | Garage   | Load bars, inbound rps, mean latency, a red "Stranded" row, the bottleneck marker. Errors as one number.                                                                                                                   |
+| 1    | `logs`              | Garage   | The error breakdown by cause: `timeout`, `refused`, `oom`, and the rest ([Simulation](/design/04-simulation#errors)).                                                                                                      |
+| 2    | `metrics`           | Garage   | A history graph on each Node card for the last calendar day, and [the Dashboard](#the-dashboard). Before this, the player sees only "now".                                                                                 |
+| 3    | `percentiles`       | Pre-seed | p99 on cards and the HUD, next to the mean. The mean is still shown, so the player sees how much it hides.                                                                                                                 |
+| 4    | `alerting`          | Pre-seed | A pager banner when thresholds are crossed ([Alerting](#alerting)).                                                                                                                                                        |
+| 5    | `tracing`           | Seed     | Not built yet: a waterfall of a request kind's path, time per hop, waiting versus working, and a bottleneck marker per kind. The Dashboard's Services and Resources rows come with it.                                     |
+| 6    | `slo-dashboards`    | Series A | The error budget panel and burn rate.                                                                                                                                                                                      |
+| 7    | `profiling`         | Series A | Not built as a Research. The Dashboard's Resources row names the resource that limits each Node ([Runtimes](/design/06-runtimes#the-capacity-model)), and it arrives with `tracing`.                                       |
+| 8    | `tail-sampling`     | Series B | Not built yet: slow and failed traces are kept, and Failure Insight doubles.                                                                                                                                               |
+| 9    | `rum`               | Series C | Not built yet: latency per region and device, from the user's side, including the internet hop. The Dashboard's Users row draws Users against the market, with each region's churn, from Multiple regions in the same Era. |
+| 10   | `anomaly-detection` | Series C | Not built yet: warnings before an incident peaks, and a forecast of tomorrow's peak.                                                                                                                                       |
 
 ### What the player sees at each step: an example
 
@@ -273,53 +273,63 @@ The Dashboard copies the methods that real teams use, so that what the player le
 
 Each visibility step adds a row. A row appears only when its research is owned.
 
-| Research            | Row             | Charts                                                                                                                                                                                                                                                                    |
-| ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `metrics`           | Overview        | Stats for Users, Apdex, and Cash per second, each with a sparkline. Time series: demand against served (traffic), mean latency, errors, and utilization per Node with lines at 70% and 90% (saturation). Revenue against Burn. From Series C, Users and Apdex per region. |
-| `logs`              | Errors          | Errors per second as a stacked area by cause: `timeout`, `refused`, `oom`, and the rest.                                                                                                                                                                                  |
-| `percentiles`       | Latency         | p99 with the mean. Latency per Node as a bar gauge for the selected moment.                                                                                                                                                                                               |
-| `alerting`          | Alerts          | Not built yet: a state timeline per alert rule, OK, pending, firing and ignored, and threshold lines on the Charts each rule watches.                                                                                                                                     |
-| `tracing`           | Services (RED)  | Not built yet: one row per Service, with rate, errors and p99 per Request kind, and exemplar dots on the latency Charts.                                                                                                                                                  |
-| `slo-dashboards`    | SLO             | Availability this calendar week as a stat, error budget left as a gauge, and burn rate over the last day. The HUD keeps availability and the budget left.                                                                                                                 |
-| `profiling`         | Resources (USE) | Not built yet: a state timeline per Node that colours its limiting resource: CPU, workers, memory, connections, network, GC, or event-loop blocking, with pool waits and queue depths.                                                                                    |
-| `tail-sampling`     | —               | Not built yet: exemplars that prefer slow and failed requests, so the dots sit in the tail.                                                                                                                                                                               |
-| `rum`               | Users           | Not built yet: latency per region and device from the user's side, including the internet hop.                                                                                                                                                                            |
-| `anomaly-detection` | —               | Not built yet: a forecast band on the traffic and latency Charts, and a line at tomorrow's predicted peak.                                                                                                                                                                |
+| Research            | Row             | Charts                                                                                                                                                                                                                                                                                            |
+| ------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `metrics`           | Overview        | Stats for Users, Apdex, and Cash per second, each with a sparkline. Time series: demand against served (traffic), mean latency, errors, and utilization per Node with lines at 70% and 90% (saturation). Revenue against Burn. From Series C, Users and Apdex per region.                         |
+| `logs`              | Errors          | Errors per second as a stacked area by cause: `timeout`, `refused`, `oom`, and the rest.                                                                                                                                                                                                          |
+| `percentiles`       | Latency         | p99 with the mean. Latency per Node as a bar gauge for the selected moment.                                                                                                                                                                                                                       |
+| `alerting`          | Alerts          | A state timeline per rule, OK, pending, firing and ignored, from the pages the Inbox kept and the seconds each rule has held; a table of each rule's threshold, its value now, and its state; and the threshold on the Errors and Latency Charts.                                                 |
+| `tracing`           | Services (RED)  | One row per Request kind, with its rate, its share of the traffic, its errors, and its mean and p99 duration. Not built yet: exemplar dots on the latency Charts.                                                                                                                                 |
+| `slo-dashboards`    | SLO             | Availability this calendar week as a stat, error budget left as a gauge, and burn rate over the last day. The HUD keeps availability and the budget left.                                                                                                                                         |
+| `profiling`         | Resources (USE) | A state timeline per Node that colours the resource that limited it: CPU, workers, memory, connections, network, disk, or throughput. Not built yet: pool waits and queue depths, which the Queue row carries instead. The build has no `profiling` Research, so this row arrives with `tracing`. |
+| `tail-sampling`     | —               | Not built yet: exemplars that prefer slow and failed requests, so the dots sit in the tail.                                                                                                                                                                                                       |
+| `rum`               | Users           | Users by region against the region's market, with its Apdex and its churn per hour. Not built yet: latency per region and device from the user's side, including the internet hop. The build has no `rum` Research, so this row arrives with Multiple regions, in the same Era.                   |
+| `anomaly-detection` | —               | Not built yet: a forecast band on the traffic and latency Charts, and a line at tomorrow's predicted peak.                                                                                                                                                                                        |
 
-The Dashboard has four of these rows: Overview, Errors, Latency and SLO.
+The Dashboard has eight of these rows: Overview, Errors, Latency, Alerts, Services, Resources, Users
+and SLO.
 
 ### Component rows
 
-Not built yet: the Dashboard has no per-Component rows. Each Component was to add its own row of the
-numbers that matter for it, the way the community dashboards for Postgres, Redis, nginx, or the JVM
-do. A row would appear the first time the Board holds that Component, after `metrics`, and each Chart
-would read a number the Ledger already holds.
+Each Component adds its own row of the numbers that matter for it, the way the community dashboards
+for Postgres, Redis, nginx, or the JVM do. A row appears the first time the Board holds that
+Component, after `metrics`, and each Chart reads a number the Ledger already holds.
 
-| Component         | Charts                                                                             |
-| ----------------- | ---------------------------------------------------------------------------------- |
-| Load Balancer     | Requests per backend Node, which shows uneven balancing                            |
-| App Server        | Copies, busy workers against the pool, and with `profiling`, GC or event-loop time |
-| Database          | Connections used against the limit, buffer cache hit ratio, and replication lag    |
-| Cache             | Hit ratio and evictions                                                            |
-| Queue             | Queue depth and the age of the oldest Task                                         |
-| CDN               | Hit ratio and Egress                                                               |
-| Managed Component | Calls, cost per hour, and outage state                                             |
+| Component         | Charts                                                                          |
+| ----------------- | ------------------------------------------------------------------------------- |
+| Load Balancer     | Requests per backend Node, which shows uneven balancing                         |
+| App Server        | Not built yet: copies and busy workers against the pool, which the Ledger holds |
+| Database          | Connections used against the limit, refused queries, and replica lag            |
+| Cache             | Hit ratio. Not built yet: evictions                                             |
+| Queue             | Queue depth and the age of the oldest Task                                      |
+| CDN               | Hit ratio, beside the Design's Egress. Not built yet: Egress per CDN            |
+| Managed Component | Calls, latency and outage state. Not built yet: cost per hour                   |
+
+The Ledger holds no per-Component cost, no Cache evictions, no Database buffer cache hit ratio and no
+per-CDN Egress, so those Charts wait for a field the Simulation would have to derive.
 
 ### Annotations
 
 Every time series shows vertical markers for the events that change a system. The design let the
-player turn each group on and off; the build draws both groups it has, with no toggle.
+player turn each group on and off; the build draws every group it has, with no toggle, and the bar
+above the rows names each one in its colour.
 
 | Group          | Marks                                                           | Colour |
 | -------------- | --------------------------------------------------------------- | ------ |
-| Deploys        | Not built yet                                                   | —      |
+| Deploys        | A deploy of Shipped Features, and a bad one                     | Purple |
 | Design changes | Nodes placed, resized, or removed; Links drawn; options changed | Blue   |
-| Incidents      | A marker where the open Incident started                        | Red    |
+| Incidents      | Where an Incident started, with its SEV                         | Red    |
 | Research       | Not built yet                                                   | —      |
-| Company        | Not built yet                                                   | —      |
+| Company        | A funding round, the IPO, and a hire                            | Pink   |
 
-Not built yet: deploy, research and Era markers. An incident is marked once, where it started, with no
-band to its end and no SEV.
+The Deploy, Incident and Company marks come from the Inbox, which is the only record the client keeps
+of when an event happened: the Game holds no Deploy, Study or round time. That bounds them to the
+Threads the Inbox still keeps, and it is why a mark names its kind rather than its detail. The running
+Incident is marked once, with the SEV it holds now; every other Incident is marked where its Thread
+started. An Incident has no band to its end.
+
+Not built yet: Research marks, which need the sim second each Study finished, and the per-group
+toggles, which need a field on the Dashboard's model.
 
 Design changes are the most important group. The player changes the Board to fix a problem, and
 the marker shows whether the line moved after the change. This closes the loop that the

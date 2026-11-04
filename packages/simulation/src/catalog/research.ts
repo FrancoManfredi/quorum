@@ -106,6 +106,8 @@ export const RESEARCH_IDS = [
   'security-team',
   'investor-relations',
   'guidance-modeling',
+  'reserved-instances',
+  'spot-instances',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -119,6 +121,7 @@ export type ResearchTrack =
   | 'frameworks'
   | 'security'
   | 'product'
+  | 'cost'
 
 export const RESEARCH_TRACKS: ReadonlyArray<Readonly<{ key: ResearchTrack; label: string }>> = [
   { key: 'infrastructure', label: 'Infrastructure' },
@@ -130,6 +133,7 @@ export const RESEARCH_TRACKS: ReadonlyArray<Readonly<{ key: ResearchTrack; label
   { key: 'frameworks', label: 'Frameworks' },
   { key: 'security', label: 'Security' },
   { key: 'product', label: 'Product' },
+  { key: 'cost', label: 'Cost' },
 ]
 
 export type ResearchDef = Readonly<{
@@ -722,6 +726,24 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     era: 3,
     requires: ['autoscaling'],
     blurb: 'Unlocks the Kubernetes Cluster: 15% less Burn, scaling in 30 s.',
+  }),
+  research({
+    id: 'reserved-instances',
+    name: 'Reserved instances',
+    track: 'cost',
+    cost: 2_000,
+    era: 3,
+    requires: ['autoscaling'],
+    blurb: 'Reserved pricing: 0.6× for a calendar-week commitment.',
+  }),
+  research({
+    id: 'spot-instances',
+    name: 'Spot instances',
+    track: 'cost',
+    cost: 3_000,
+    era: 3,
+    requires: ['autoscaling'],
+    blurb: 'Spot pricing: 0.3×, until the provider reclaims the Node.',
   }),
   research({
     id: 'slo-dashboards',

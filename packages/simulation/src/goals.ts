@@ -1,9 +1,14 @@
 import { canRaise } from './actions.ts'
 import type { Limit } from './capacity.ts'
-import { KINDS, RUNTIMES, type RequestKind } from './catalog.ts'
+import {
+  KINDS,
+  PRICING_FROM_STAGE,
+  RUNTIMES,
+  type RequestKind,
+} from './catalog.ts'
 import { nodeLabel } from './labels.ts'
 import type { Ledger } from './ledger.ts'
-import { drawerSize, eraOf, has, nextEra, researchAffordable } from './lookups.ts'
+import { drawerSize, eraOf, has, hasPricing, nextEra, researchAffordable } from './lookups.ts'
 import type { Game, GameNode } from './state.ts'
 
 /* ==========================================================================
@@ -96,6 +101,9 @@ const advice = <T extends AdviceTopic>(
 const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
   const name = nodeLabel(game, node)
   const key = (kind: string) => `${kind}:${limit}:${node.id}`
+  // A capacity fact names a Node, so its Sender offers that Node's buttons (GDD 18 "Senders").
+  const cloud = cloudActions(game, node.id)
+  const alerts = alertActions(node.id)
   switch (limit) {
     case 'credits':
       return advice(
@@ -105,6 +113,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         `${name} ran out of CPU credits and is throttled to 20%. Resize it, or switch it off Burstable.`,
         'credits',
         { node: name },
+        cloud,
       )
     case 'memory':
       return advice(
@@ -116,6 +125,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
           : `${name} is out of RAM and swapping. Resize it, pick the Memory family, or shrink the pool.`,
         node.localDb ? 'memory-shared' : 'memory',
         { node: name },
+        cloud,
       )
     case 'workers':
       return RUNTIMES[node.runtime].pool
@@ -126,6 +136,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
             `Every ${RUNTIMES[node.runtime].name} worker on ${name} is busy, mostly waiting. Raise the pool, or speed up the database.`,
             'workers-pool',
             { node: name, runtime: RUNTIMES[node.runtime].name },
+            alerts,
           )
         : advice(
             key('monitoring'),
@@ -134,6 +145,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
             `Every worker on ${name} is busy, mostly waiting on the database.`,
             'workers',
             { node: name },
+            alerts,
           )
     case 'connections':
       return advice(
@@ -143,6 +155,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         'Postgres is refusing connections: too many app processes hold pools. Shrink pools or add a Connection Pooler.',
         'connections',
         {},
+        alertActions(),
       )
     case 'network':
       return advice(
@@ -152,6 +165,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         `${name} is sending as many bytes as its network card moves. Resize it, or add a copy behind a Load Balancer.`,
         'network',
         { node: name },
+        cloud,
       )
     case 'disk':
       return advice(
@@ -161,6 +175,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         `The ${name} working set no longer fits in RAM, so reads hit disk. Resize it or pick the Memory family.`,
         'disk',
         { node: name },
+        cloud,
       )
     case 'cpu':
       return advice(
@@ -170,6 +185,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         `${name} is out of CPU. Resize it, or add a copy behind a Load Balancer.`,
         'cpu',
         { node: name },
+        cloud,
       )
     case 'throughput':
       return advice(
@@ -179,6 +195,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         `${name} is past its throughput.`,
         'throughput',
         { node: name },
+        alerts,
       )
     case 'none':
       return advice(
@@ -188,6 +205,7 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
         `${name} limits the design.`,
         'limit',
         { node: name },
+        alerts,
       )
   }
 }
@@ -202,6 +220,30 @@ const strandedHint = (kind: RequestKind): string => {
 }
 
 const SHOW = (id: string): AdviceAction => ({ id: `show:${id}`, label: 'Show on Board' })
+
+/**
+ * Cloud Mail about a Node (GDD 18 "Senders"): the Inspector is where a Node is resized, where its
+ * limit is raised, and where its pricing model is chosen, so every button selects the Node and
+ * opens it. Switch to Reserved needs a pricing model to switch: a sized compute Node from Series A.
+ */
+export const cloudActions = (game: Game, nodeId: string): ReadonlyArray<AdviceAction> => {
+  const node = game.nodes.find((entry) => entry.id === nodeId)
+  return [
+    SHOW(nodeId),
+    { id: `resize:${nodeId}`, label: 'Resize' },
+    { id: `quota:${nodeId}`, label: 'Raise quota' },
+    ...(node && hasPricing(node) && game.stage >= PRICING_FROM_STAGE
+      ? [{ id: `reserved:${nodeId}`, label: 'Switch to Reserved' }]
+      : []),
+  ]
+}
+
+/** Alerts Mail: Show on Board where it names a Node, and the pager's own two buttons. */
+export const alertActions = (nodeId: string | null = null): ReadonlyArray<AdviceAction> => [
+  ...(nodeId === null ? [] : [SHOW(nodeId)]),
+  { id: 'ack', label: 'Acknowledge' },
+  { id: 'mute', label: 'Mute for 1 h' },
+]
 
 export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
   const stripe = has(game, 'stripe')
@@ -233,7 +275,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       `${name} failed. Select it and click Replace, or wait for the provider.`,
       'failed',
       { node: name },
-      [SHOW(failed.id)],
+      alertActions(failed.id),
     )
   }
   const restarting = game.nodes.find((node) => node.life._tag === 'Restarting')
@@ -246,7 +288,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       `${name} is restarting. Requests fail until it is up.`,
       'restarting',
       { node: name },
-      [SHOW(restarting.id)],
+      alertActions(restarting.id),
     )
   }
   if (game.incident?.kind === 'slow-query')
@@ -258,6 +300,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
           'A query has no index and the Database scans whole tables. Select it and click Add index.',
           'slow-query-fix',
           {},
+          alertActions(),
         )
       : advice(
           'monitoring:slow-query',
@@ -266,6 +309,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
           'A query has no index and the Database scans whole tables. Research Query analysis, or put a Cache in front.',
           'slow-query',
           {},
+          alertActions(),
         )
   const failing = ledger.failing[0]
   if (failing)
@@ -276,6 +320,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       `${KINDS[failing].label} requests fail. ${strandedHint(failing)}`,
       failing === 'write' ? 'failing-writes' : 'failing',
       { kind: KINDS[failing].label },
+      alertActions(),
     )
   const stranded = game.nodes.find((node) => (ledger.nodes[node.id]?.stranded ?? 0) > 0.01)
   if (stranded) {
@@ -287,7 +332,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       `${name} has requests with nowhere to go. Link it to something that takes them.`,
       'stranded',
       { node: name },
-      [SHOW(stranded.id)],
+      alertActions(stranded.id),
     )
   }
   const draining = game.nodes.find((node) => {
@@ -303,15 +348,11 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       `${name} runs out of CPU credits soon and drops to 20% CPU. Switch it to General or resize it.`,
       'draining',
       { node: name },
-      [SHOW(draining.id)],
+      cloudActions(game, draining.id),
     )
   }
   const bottleneck = game.nodes.find((node) => node.id === ledger.bottleneck)
-  if (bottleneck)
-    return {
-      ...limitAdvice(game, bottleneck, ledger.nodes[bottleneck.id]?.limit ?? 'none'),
-      actions: [SHOW(bottleneck.id)],
-    }
+  if (bottleneck) return limitAdvice(game, bottleneck, ledger.nodes[bottleneck.id]?.limit ?? 'none')
   if (game.cash < 0)
     return advice(
       'finance:negative',

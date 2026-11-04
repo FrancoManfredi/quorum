@@ -32,6 +32,9 @@ import {
   MAX_ATTEMPTS,
   PM_MODES,
   PREFETCH,
+  PRICING_FROM_STAGE,
+  PRICING_IDS,
+  PRICINGS,
   QUEUE_LENGTHS,
   OS_RAM,
   PARANOIA,
@@ -43,6 +46,7 @@ import {
   SCALE_MAXIMA,
   SCALE_TARGETS,
   SIZES,
+  SPOT_WARNING,
   STANDBY_TYPES,
   TASKS,
   ZONES,
@@ -61,6 +65,8 @@ import {
   eraOf,
   frameworkReady,
   has,
+  hasPricing,
+  pricingOf,
   ramOf,
   refundOf,
   replacePrice,
@@ -420,6 +426,31 @@ const warnings = (
         h,
       ),
     )
+  // A spot reclaim warns before it takes the Node (09 "Pricing models").
+  if (game.incident?.kind === 'spot-reclaim' && game.incident.nodeId === node.id) {
+    const left = Math.max(0, Math.ceil(SPOT_WARNING - (game.time - game.incident.startedAt)))
+    list.push(
+      callout(
+        isDown(node.life)
+          ? 'The provider reclaimed this Spot Node.'
+          : `The provider reclaims this Spot Node in ${left} s. Replace it with on-demand.`,
+        'danger',
+        node.pricing === 'spot'
+          ? button(
+              {
+                onClick: Message.PricingChosen({ nodeId: node.id, pricing: 'on-demand' }),
+                variant: 'outline',
+                size: 'sm',
+                className: 'self-start text-danger',
+              },
+              ['Switch to on-demand'],
+              h,
+            )
+          : null,
+        h,
+      ),
+    )
+  }
   const fix = (text: string, label: string, message: Message) =>
     list.push(
       callout(
@@ -710,6 +741,39 @@ const sparkline = (
 
 /* ---------- instance and Stack ---------- */
 
+/** A compute Node's pricing model, from Series A on (09 "Pricing models"). */
+const pricing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const current = pricingOf(game, node)
+  const term =
+    current === 'reserved' && node.pricingUntil !== null
+      ? Math.ceil((node.pricingUntil - game.time) / 1_440)
+      : null
+  return h.div(
+    [h.Class('flex flex-col gap-1.5 pt-1')],
+    [
+      h.span(
+        [h.Class(cn(EYEBROW, 'px-1 text-muted-foreground'))],
+        [term === null ? 'Pricing' : `Pricing · reserved for ${term} more d`],
+      ),
+      segmented(
+        'grid-cols-3',
+        PRICING_IDS.map((id) =>
+          choice(
+            id,
+            current === id,
+            true,
+            Message.PricingChosen({ nodeId: node.id, pricing: id }),
+            [h.span([h.Class('w-full text-center')], [PRICINGS[id].name])],
+            PRICINGS[id].blurb,
+            h,
+          ),
+        ),
+        h,
+      ),
+    ],
+  )
+}
+
 const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
   const price = resizePrice(game, node)
   return section(
@@ -773,6 +837,7 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
         ),
         h,
       ),
+      ...(hasPricing(node) && game.stage >= PRICING_FROM_STAGE ? [pricing(game, node, h)] : []),
     ],
     h,
   )

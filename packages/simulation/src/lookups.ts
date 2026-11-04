@@ -24,6 +24,7 @@ import {
   HOP_MS,
   POD_BURN,
   PROFILES,
+  PRICINGS,
   RESTART_SECONDS,
   SELL_REFUND,
   SIZES,
@@ -46,7 +47,7 @@ import {
   SPREAD_REGIONS,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
-import type { Game, GameNode } from './state.ts'
+import type { Game, GameNode, Pricing } from './state.ts'
 
 /* ==========================================================================
    Small facts about a Game that the solver, the actions and the UI all ask:
@@ -116,6 +117,10 @@ export const sizeLabel = (node: GameNode, size = node.size): string =>
 
 /** Capacity and Burn multiplier of a flat Component's size: each step doubles both. */
 export const flatScale = (node: GameNode): number => grown(1, 2, node.size - 1)
+
+/** A Node whose box carries a pricing model: a sized compute Node (09 "Pricing models"). */
+export const hasPricing = (node: GameNode): boolean =>
+  COMPONENTS[node.type].sized && COMPONENTS[node.type].group === 'compute'
 
 /** Where an Analytics Node's sample rate sits on the ladder of rates. */
 export const sampleIndex = (node: GameNode): number => {
@@ -254,12 +259,27 @@ export const spreadCount = (game: Game): number =>
     ]).size,
   )
 
+/**
+ * The pricing model a Node bills at now: a reserved term that has run out bills
+ * on-demand again until the player reserves it once more (09 "Pricing models").
+ */
+export const pricingOf = (game: Game, node: GameNode): Pricing =>
+  node.pricing === 'reserved' && !(node.pricingUntil !== null && node.pricingUntil > game.time)
+    ? 'on-demand'
+    : node.pricing
+
 /** Dollars per second a Node costs while it exists, down or not. */
 export const burnOf = (game: Game, node: GameNode): number => {
   const def = COMPONENTS[node.type]
   const index = eraOf(game).costIndex
   if (def.sized) {
-    const box = vcpuOf(node) * VCPU_PRICE * FAMILIES[node.family].price * index
+    // The pricing model discounts the box, before copies and standbys (09 "Pricing models").
+    const box =
+      vcpuOf(node) *
+      VCPU_PRICE *
+      FAMILIES[node.family].price *
+      PRICINGS[pricingOf(game, node)].price *
+      index
     // Backups store snapshots or the WAL on top of the box (07 "Backups").
     const one =
       node.type === 'database' && node.backup !== 'none'
@@ -337,6 +357,12 @@ export const refundOf = (game: Game, node: GameNode): number => {
   const count = game.nodes.filter((entry) => entry.type === node.type).length
   return Math.round(copyPrice(game, node.type, Math.max(0, count - 1)) * SELL_REFUND)
 }
+
+/** The Burn a reserved Node still owes: selling it before the term ends does not stop the bill. */
+export const owedOf = (game: Game, node: GameNode): number =>
+  game.sandbox || node.pricing !== 'reserved' || node.pricingUntil === null
+    ? 0
+    : burnOf(game, node) * Math.max(0, node.pricingUntil - game.time)
 
 export const maxSize = (node: GameNode): number =>
   COMPONENTS[node.type].sized ? SIZES.length - 1 : Math.max(node.size, COMPONENTS[node.type].steps)

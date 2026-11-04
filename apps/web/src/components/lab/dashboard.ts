@@ -2,17 +2,33 @@ import { DashboardMessage } from '@/game/dashboard.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChevronDown, Clock3, LayoutGrid, RefreshCw, Star, X } from 'lucide'
 import { clockOf } from '@quorum/simulation/calendar'
-import { INCIDENTS, KINDS, type Kind, type ResearchId } from '@quorum/simulation/catalog'
+import type { Limit } from '@quorum/simulation/capacity'
+import {
+  ALERT_RULES,
+  COMPONENTS,
+  ERAS,
+  INCIDENTS,
+  KINDS,
+  PROFILES,
+  REGION_INFO,
+  type ComponentId,
+  type Kind,
+  type RequestKind,
+  type ResearchId,
+} from '@quorum/simulation/catalog'
+import { churnOf, type RegionChurn } from '@quorum/simulation/churn'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
-import type { Ledger } from '@quorum/simulation/ledger'
+import type { KindLedger, Ledger } from '@quorum/simulation/ledger'
 import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
+import { regional } from '@quorum/simulation/regions'
 import { budgetOf } from '@quorum/simulation/slo'
-import type { Sample } from '@quorum/simulation/state'
+import type { Game, Sample } from '@quorum/simulation/state'
+import { ignored } from '@quorum/simulation/step'
 import { type Field, TIERS, type Tier, startOf } from '@/game/history.ts'
-import { compact, money, ms } from '@quorum/ui/game/format'
+import { alertText, compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { type Model, ledgerOf, boardSandbox } from '@/game/model.ts'
+import { type Mail, type Model, ledgerOf, boardSandbox } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
 import { button } from '@quorum/ui/primitives/button'
@@ -34,7 +50,9 @@ import { FIGURE, PANEL, SCROLL, WELL } from '@quorum/ui/game/bits'
    The Dashboard (12 "The Dashboard"): the Design over time, as a full page
    like Research, styled after a Grafana board in the game's own tokens, so
    it follows the theme. Panels vary the way Grafana's do: stats, gauges, LCD bar gauges, a state timeline, time
-   series with gradient fills, a pie, and a table with coloured cells.
+   series with gradient fills, a pie, and a table with coloured cells. Rows follow the visibility
+   ladder, then each Component the Board holds, and every time series carries a marker for a deploy, a
+   Design change, an Incident and a Company event (12 "Annotations").
    ========================================================================== */
 
 /** Time ranges in calendar minutes: up to 10 hours read the Game's one-minute Samples, longer
@@ -144,6 +162,19 @@ const labelAt = (rows: ReadonlyArray<Row>, time: number): string | null => {
     (entry) => Number(entry.at) <= time && time < Number(entry.at) + Number(entry.span),
   )
   return row ? String(row.t) : null
+}
+
+/** Each Node's name, numbered when the Board holds more than one of its type. */
+const namesOf = (game: Game): ReadonlyMap<string, string> => {
+  const counts = new Map<string, number>()
+  const names = new Map<string, string>()
+  for (const node of game.nodes) {
+    const base = COMPONENTS[node.type].name
+    const count = (counts.get(base) ?? 0) + 1
+    counts.set(base, count)
+    names.set(node.id, count > 1 ? `${base} ${count}` : base)
+  }
+  return names
 }
 
 type NodeTrack = Readonly<{ id: string; name: string; values: ReadonlyArray<number> }>
@@ -265,7 +296,11 @@ const locked = (
 /** A Grafana row header. */
 const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html =>
   h.div(
-    [h.Key(`row-${label}`), h.Class('col-span-24 flex items-center gap-1.5 pt-3 pb-0.5')],
+    [
+      h.Key(`row-${label}`),
+      h.DataAttribute('row', label),
+      h.Class('col-span-24 flex items-center gap-1.5 pt-3 pb-0.5'),
+    ],
     [
       icon(h, ChevronDown, 'size-3.5 text-muted-foreground'),
       h.span([h.Class('text-[13px] font-semibold')], [label]),
@@ -284,41 +319,114 @@ const PLOT =
 /** Lifts a marker's label from the bottom of the plot to its top. */
 const TOP_OF_PLOT = -150
 
-/** Design changes from the undo stack and the open Incident, as labelled vertical markers. */
-const markersOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<CartesianChild> => {
-  const changes = model.board.undo
-    .flatMap((entry) => {
-      const t = labelAt(rows, Math.floor(entry.at))
-      return t === null ? [] : [{ t, label: entry.label }]
-    })
-    .map((mark) =>
-      ReferenceLine({
-        x: mark.t,
-        stroke: BLUE,
-        strokeDasharray: '3 3',
-        label: { value: mark.label, dx: 4, dy: TOP_OF_PLOT, fill: BLUE },
-      }),
-    )
-  const incident = model.board.game.incident
-  const at = incident ? labelAt(rows, Math.floor(incident.startedAt)) : null
-  const open =
-    incident && at !== null
-      ? [
-          ReferenceLine({
-            x: at,
-            stroke: RED,
-            strokeDasharray: '3 3',
-            label: {
-              value: `▲ ${INCIDENTS[incident.kind].name}`,
-              dx: 4,
-              dy: TOP_OF_PLOT,
-              fill: RED,
-            },
-          }),
-        ]
-      : []
-  return [...changes, ...open]
+/** The groups the build draws. Research has no mark: the Game keeps no time for a Study. */
+type AnnotationGroup = 'design' | 'deploys' | 'incidents' | 'company'
+
+const ANNOTATION_GROUPS: ReadonlyArray<AnnotationGroup> = [
+  'design',
+  'deploys',
+  'incidents',
+  'company',
+]
+
+const ANNOTATION_COLOR: Record<AnnotationGroup, string> = {
+  design: BLUE,
+  deploys: PURPLE,
+  incidents: RED,
+  company: PINK,
 }
+
+const ANNOTATION_NAME: Record<AnnotationGroup, string> = {
+  design: 'Design change',
+  deploys: 'Deploy',
+  incidents: 'Incident',
+  company: 'Company',
+}
+
+/** One mark on the timeline: its group, the sim second it happened, and its label. */
+type Annotation = Readonly<{ group: AnnotationGroup; at: number; label: string }>
+
+/** A Thread's key, as `mail.ts` writes it: `event:<topic>:<about>`, or a sender's own key. */
+const keyParts = (mail: Mail): ReadonlyArray<string> => mail.key.split(':')
+
+/** The Incident kind a Thread's topic names, when the two spell it the same way. */
+const incidentNameOf = (topic: string): string =>
+  (INCIDENTS as Readonly<Record<string, Readonly<{ name: string }> | undefined>>)[topic]?.name ??
+  'Incident'
+
+/**
+ * What a Thread marks, if anything. The Inbox is the only record of when an
+ * event happened that the Model keeps: the Game holds no deploy, hire or round
+ * time. It keeps only its last Threads, so the marks reach as far back as its
+ * Mail does.
+ */
+const markOfMail = (mail: Mail): Readonly<{ group: AnnotationGroup; label: string }> | null => {
+  const [from, topic, about] = keyParts(mail)
+  if (from === 'event' && topic !== undefined) {
+    if (topic === 'deployed') return { group: 'deploys', label: '⇢ Deploy' }
+    if (topic === 'deployed-bad') return { group: 'deploys', label: '⇢ Bad deploy' }
+    if (topic.startsWith('incident-'))
+      return {
+        group: 'incidents',
+        label: `▲ ${incidentNameOf(topic.slice('incident-'.length))}`,
+      }
+    if (topic === 'hired') return { group: 'company', label: '◆ Hired' }
+  }
+  if (mail.key === 'mentor:ipo') return { group: 'company', label: '◆ IPO' }
+  // The round a Stage's term sheet offers, which opens the next Era.
+  if (from === 'investor' && topic === 'round') {
+    const stage = Number(about)
+    const era = ERAS[Number.isFinite(stage) ? stage + 1 : 0]?.name
+    return { group: 'company', label: `◆ ${era ?? 'Funding'} round` }
+  }
+  return null
+}
+
+/** Every mark the history holds, in the order the groups are drawn. */
+const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
+  const incident = model.board.game.incident
+  const open: ReadonlyArray<Annotation> = incident
+    ? [
+        {
+          group: 'incidents',
+          at: incident.startedAt,
+          label: `▲ SEV${incident.severity} ${INCIDENTS[incident.kind].name}`,
+        },
+      ]
+    : []
+  const design: ReadonlyArray<Annotation> = model.board.undo.map((entry) => ({
+    group: 'design',
+    at: entry.at,
+    label: entry.label,
+  }))
+  // The open Incident has its own Thread: it is one mark, with the SEV the Game holds.
+  const marked = new Set(open.map((mark) => `${mark.group}:${Math.floor(mark.at)}`))
+  const mail: Array<Annotation> = []
+  for (const thread of model.board.inbox.mail) {
+    const mark = markOfMail(thread)
+    if (mark === null) continue
+    for (const entry of thread.entries)
+      if (!marked.has(`${mark.group}:${Math.floor(entry.time)}`))
+        mail.push({ ...mark, at: entry.time })
+  }
+  return [...design, ...open, ...mail]
+}
+
+/** The annotations, as labelled vertical markers on every time series. */
+const markersOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<CartesianChild> =>
+  annotationsOf(model).flatMap((mark) => {
+    const t = labelAt(rows, Math.floor(mark.at))
+    if (t === null) return []
+    const color = ANNOTATION_COLOR[mark.group]
+    return [
+      ReferenceLine({
+        x: t,
+        stroke: color,
+        strokeDasharray: '3 3',
+        label: { value: mark.label, dx: 4, dy: TOP_OF_PLOT, fill: color },
+      }),
+    ]
+  })
 
 type Series = Readonly<{
   key: string
@@ -779,42 +887,63 @@ const barGauge = (
 
 const STATE_LABEL: Record<Level, string> = { ok: 'OK', warn: 'HIGH', danger: 'SATURATED' }
 
-/** Grafana's state timeline: one lane per Node, a block per run of the same state. */
-const stateTimeline = (
-  model: Model,
-  tracks: ReadonlyArray<NodeTrack>,
+/** A run of one state in a lane: the columns it covers, and how it draws. */
+type Run = Readonly<{ from: number; to: number; color: string; label: string }>
+
+/** One lane of a state timeline: its name, and its runs. */
+type Lane = Readonly<{ key: string; name: string; runs: ReadonlyArray<Run> }>
+
+/** Runs of the same state, one column per entry, starting at `offset`. */
+const runsOf = <S extends string>(
+  states: ReadonlyArray<S>,
+  offset: number,
+  describe: (state: S) => Readonly<{ color: string; label: string }>,
+): ReadonlyArray<Run> => {
+  const out: Array<{ state: S; from: number; to: number }> = []
+  states.forEach((state, index) => {
+    const run = out[out.length - 1]
+    if (run && run.state === state) run.to = offset + index + 1
+    else out.push({ state, from: offset + index, to: offset + index + 1 })
+  })
+  return out.map((run) => ({ from: run.from, to: run.to, ...describe(run.state) }))
+}
+
+/** A colour swatch and a name, for a timeline's legend. */
+const swatch = (name: string, color: string, h: HtmlBuilder<Message>): Html =>
+  h.span(
+    [h.Key(name), h.Class('flex items-center gap-1.5')],
+    [h.span([h.Class('h-2 w-2.5 rounded-[2px]'), h.Style({ background: color })], []), name],
+  )
+
+/** Grafana's state timeline: one lane per series, a block per run of the same state. */
+const laneTimeline = (
+  key: string,
+  span: string,
+  title: string,
+  unit: string,
+  lanes: ReadonlyArray<Lane>,
+  length: number,
+  first: number,
+  last: number,
   h: HtmlBuilder<Message>,
-): Html => {
-  const length = Math.max(1, ...tracks.map((track) => track.values.length))
-  const last = Math.floor(model.board.game.time / NODE_EVERY) * NODE_EVERY
-  const first = last - (length - 1) * NODE_EVERY
-  const runs = (values: ReadonlyArray<number>) => {
-    const out: Array<{ level: Level; from: number; to: number }> = []
-    const offset = length - values.length
-    values.forEach((value, index) => {
-      const level = levelOf(value, UTILIZATION)
-      const run = out[out.length - 1]
-      if (run && run.level === level) run.to = offset + index + 1
-      else out.push({ level, from: offset + index, to: offset + index + 1 })
-    })
-    return out
-  }
-  return panel(
-    'state-timeline',
-    'col-span-16',
-    'Node state',
-    'utilization · last 24 h',
+  legend: ReadonlyArray<Html> = [],
+): Html =>
+  panel(
+    key,
+    span,
+    title,
+    unit,
     [
       h.div(
         [h.Class(cn(SCREEN, 'flex flex-1 flex-col justify-center gap-1.5 p-3'))],
         [
-          ...tracks.map((track) =>
+          ...lanes.map((lane) =>
             h.div(
-              [h.Key(track.id), h.Class('flex items-center gap-3')],
+              [h.Key(lane.key), h.Class('flex items-center gap-3')],
               [
                 h.span(
                   [h.Class('w-28 shrink-0 truncate text-[11.5px] text-muted-foreground')],
-                  [track.name],
+                  [lane.name],
                 ),
                 h.div(
                   [
@@ -822,7 +951,7 @@ const stateTimeline = (
                       'relative h-7 min-w-0 flex-1 overflow-hidden rounded-md bg-card shadow-[inset_0_0_0_1px_var(--hairline)]',
                     ),
                   ],
-                  runs(track.values).map((run, index) =>
+                  lane.runs.map((run, index) =>
                     h.div(
                       [
                         h.Key(String(index)),
@@ -835,11 +964,11 @@ const stateTimeline = (
                         h.Style({
                           left: `calc(${(run.from / length) * 100}% + 1px)`,
                           width: `calc(${((run.to - run.from) / length) * 100}% - 2px)`,
-                          background: LEVEL_COLOR[run.level],
+                          background: run.color,
                         }),
-                        h.Title(`${track.name}: ${STATE_LABEL[run.level]}`),
+                        h.Title(`${lane.name}: ${run.label}`),
                       ],
-                      [(run.to - run.from) / length > 0.08 ? STATE_LABEL[run.level] : ''],
+                      [(run.to - run.from) / length > 0.08 ? run.label : ''],
                     ),
                   ),
                 ),
@@ -858,9 +987,42 @@ const stateTimeline = (
               h.span([], [hhmm(last)]),
             ],
           ),
+          ...(legend.length === 0
+            ? []
+            : [h.div([h.Class('flex flex-wrap gap-x-3 gap-y-1 pl-[124px] text-[10px]')], legend)]),
         ],
       ),
     ],
+    h,
+  )
+
+/** Grafana's state timeline of Node utilization: one lane per Node. */
+const stateTimeline = (
+  model: Model,
+  tracks: ReadonlyArray<NodeTrack>,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const length = Math.max(1, ...tracks.map((track) => track.values.length))
+  const last = Math.floor(model.board.game.time / NODE_EVERY) * NODE_EVERY
+  const first = last - (length - 1) * NODE_EVERY
+  const lanes = tracks.map((track) => ({
+    key: track.id,
+    name: track.name,
+    runs: runsOf(
+      track.values.map((value) => levelOf(value, UTILIZATION)),
+      length - track.values.length,
+      (level) => ({ color: LEVEL_COLOR[level], label: STATE_LABEL[level] }),
+    ),
+  }))
+  return laneTimeline(
+    'state-timeline',
+    'col-span-16',
+    'Node state',
+    'utilization · last 24 h',
+    lanes,
+    length,
+    first,
+    last,
     h,
   )
 }
@@ -1136,6 +1298,666 @@ const nodeTable = (
 }
 
 /* ==========================================================================
+   Tables and bars
+   ========================================================================== */
+
+/** One cell of a table: its text, and optionally a colour, a fill, or a gauge bar. */
+type Cell = Readonly<{
+  text: string
+  /** The text's colour, as Grafana's cell colour mode. */
+  color?: string | undefined
+  /** A background fill in this colour, as the Node table's status cell. */
+  fill?: string | undefined
+  /** A gauge bar in the cell, 0 to 1. */
+  bar?: Readonly<{ share: number; color: string }> | undefined
+  /** A tooltip, as the lane blocks' titles. */
+  hint?: string | undefined
+}>
+
+/** Grafana's table: hairline rows, figures to the right, coloured and filled cells. */
+const tablePanel = (
+  key: string,
+  span: string,
+  title: string,
+  unit: string,
+  head: ReadonlyArray<string>,
+  rows: ReadonlyArray<Readonly<{ key: string; cells: ReadonlyArray<Cell> }>>,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const border = 'border-b border-hairline px-2 py-1.5'
+  return panel(
+    key,
+    span,
+    title,
+    unit,
+    [
+      h.div(
+        [h.Class(cn(SCREEN, 'px-1 pb-1', SCROLL))],
+        rows.length === 0
+          ? [
+              h.span(
+                [h.Key('none'), h.Class(cn(FIGURE, 'px-2 py-3 text-[12px] text-muted-foreground'))],
+                ['Nothing to show yet.'],
+              ),
+            ]
+          : [
+              h.table(
+                [h.Class('w-full border-collapse text-[12px]')],
+                [
+                  h.thead(
+                    [],
+                    [
+                      h.tr(
+                        [h.Class('text-[11px] text-muted-foreground')],
+                        head.map((label, index) =>
+                          h.th(
+                            [
+                              h.Key(label),
+                              h.Class(
+                                cn(border, 'font-medium', index === 0 ? 'text-left' : 'text-right'),
+                              ),
+                            ],
+                            [label],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  h.tbody(
+                    [],
+                    rows.map((row) =>
+                      h.tr(
+                        [h.Key(row.key), h.Class('hover:bg-foreground/[0.03]')],
+                        row.cells.map((cell, index) =>
+                          h.td(
+                            [
+                              h.Key(head[index] ?? String(index)),
+                              h.Class(
+                                cn(
+                                  border,
+                                  index === 0 ? 'font-medium' : cn(FIGURE, 'text-right'),
+                                  cell.fill === undefined
+                                    ? undefined
+                                    : 'text-[11px] font-medium text-black/75',
+                                ),
+                              ),
+                              ...(cell.fill === undefined
+                                ? []
+                                : [
+                                    h.Style({
+                                      background: `color-mix(in oklab, ${cell.fill} 85%, transparent)`,
+                                    }),
+                                  ]),
+                              ...(cell.hint === undefined ? [] : [h.Title(cell.hint)]),
+                            ],
+                            cell.bar === undefined
+                              ? [
+                                  h.span(
+                                    cell.color === undefined
+                                      ? []
+                                      : [h.Style({ color: cell.color })],
+                                    [cell.text],
+                                  ),
+                                ]
+                              : [
+                                  h.div(
+                                    [h.Class('flex h-3.5 items-center gap-2')],
+                                    [
+                                      lcd(cell.bar.share, h, 24),
+                                      h.span([h.Class(cn(FIGURE, 'w-11 text-right'))], [cell.text]),
+                                    ],
+                                  ),
+                                ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+      ),
+    ],
+    h,
+  )
+}
+
+/** Grafana's basic bar gauge: a labelled row, a bar scaled to the largest, and its figure. */
+const barList = (
+  key: string,
+  span: string,
+  title: string,
+  unit: string,
+  entries: ReadonlyArray<
+    Readonly<{ key: string; name: string; value: number; text: string; color?: string }>
+  >,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const widest = Math.max(...entries.map((entry) => Math.abs(entry.value)), 1e-9)
+  return panel(
+    key,
+    span,
+    title,
+    unit,
+    [
+      h.div(
+        [h.Class(cn(SCREEN, 'flex flex-1 flex-col justify-center gap-1.5 p-3'))],
+        entries.length === 0
+          ? [
+              h.span(
+                [h.Key('none'), h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
+                ['No Node to show.'],
+              ),
+            ]
+          : entries.map((entry) => {
+              const color = entry.color ?? BLUE
+              return h.div(
+                [
+                  h.Key(entry.key),
+                  h.Class('grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_60px] items-center gap-2'),
+                ],
+                [
+                  h.span([h.Class('truncate text-[11.5px] text-muted-foreground')], [entry.name]),
+                  h.div(
+                    [
+                      h.Class(
+                        'h-3.5 rounded-[3px] bg-card shadow-[inset_0_0_0_1px_var(--hairline)]',
+                      ),
+                    ],
+                    [
+                      h.div(
+                        [
+                          h.Class('h-full rounded-[2px]'),
+                          h.Style({
+                            width: `${Math.max(2, (Math.abs(entry.value) / widest) * 100)}%`,
+                            background: `linear-gradient(90deg, color-mix(in oklab, ${color} 35%, transparent), ${color})`,
+                          }),
+                        ],
+                        [],
+                      ),
+                    ],
+                  ),
+                  h.span([h.Class(cn(FIGURE, 'text-right text-[11.5px]'))], [entry.text]),
+                ],
+              )
+            }),
+      ),
+    ],
+    h,
+  )
+}
+
+/* ==========================================================================
+   Rows by research (12 "Charts by research")
+   ========================================================================== */
+
+const RULES = ['errors', 'latency', 'saturation'] as const
+type Rule = (typeof RULES)[number]
+const RULE_NAME: Record<Rule, string> = {
+  errors: 'Error rate',
+  latency: 'Latency',
+  saturation: 'Saturation',
+}
+
+type AlertState = 'ok' | 'pending' | 'firing' | 'ignored'
+const ALERT_STATE: Record<AlertState, Readonly<{ color: string; label: string }>> = {
+  ok: { color: GREEN, label: 'OK' },
+  pending: { color: AMBER, label: 'PENDING' },
+  firing: { color: RED, label: 'FIRING' },
+  ignored: { color: MUTED, label: 'IGNORED' },
+}
+
+/** A rule's state now, from what the Simulation counts: held seconds, and the false alarms. */
+const alertStateOf = (game: Game, rule: Rule): AlertState =>
+  ignored(game, rule)
+    ? 'ignored'
+    : game.alarms[rule] >= ALERT_RULES[rule].seconds
+      ? 'firing'
+      : game.alarms[rule] > 0
+        ? 'pending'
+        : 'ok'
+
+/** What each rule watches now, read the way `step.ts` reads it, so panel and pager agree. */
+const watchedOf = (game: Game, ledger: Ledger): Record<Rule, number> => {
+  const slowest = Object.entries(ledger.kinds).reduce(
+    (most, [kind, entry]) =>
+      entry === undefined ? most : Math.max(most, entry.p99 / PROFILES[kind as RequestKind].apdex),
+    0,
+  )
+  const hottest = Math.max(
+    0,
+    ...game.nodes
+      .filter((node) => node.type !== 'users' && node.type !== 'analytics')
+      .map((node) => ledger.nodes[node.id]?.utilization ?? 0),
+  )
+  return { errors: ledger.errorShare, latency: slowest, saturation: hottest }
+}
+
+const asRule = (value: string | undefined): Rule | null =>
+  value === 'errors' || value === 'latency' || value === 'saturation' ? value : null
+
+/** The alerts the Inbox records: the rule, when, and whether the team has given up on it. */
+const alertMarks = (
+  model: Model,
+): ReadonlyArray<Readonly<{ rule: Rule; at: number; ignored: boolean }>> =>
+  model.board.inbox.mail.flatMap((mail) => {
+    const [, topic, about] = keyParts(mail)
+    if (topic !== 'alert' && topic !== 'alert-ignored') return []
+    const rule = asRule(about)
+    if (rule === null) return []
+    return mail.entries.map((entry) => ({
+      rule,
+      at: entry.time,
+      ignored: topic === 'alert-ignored',
+    }))
+  })
+
+/** Grafana's state timeline of the alert rules: firing where the Inbox recorded a page. */
+const alertTimeline = (model: Model, rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
+  const game = model.board.game
+  const marks = alertMarks(model)
+  const last = rows.length - 1
+  const lanes = RULES.map((rule) => {
+    // An ignored rule stays ignored until the player tunes it, which the Game does not date:
+    // a lane carries the state to the end only while the team still ignores the rule.
+    const given = ignored(game, rule)
+    const states = rows.map(() => 'ok' as AlertState)
+    for (const mark of marks) {
+      if (mark.rule !== rule) continue
+      const index = rows.findIndex(
+        (row) => Number(row.at) <= mark.at && mark.at < Number(row.at) + Number(row.span),
+      )
+      if (index < 0) continue
+      if (mark.ignored)
+        for (let at = index; at < (given ? states.length : index + 1); at += 1)
+          states[at] = 'ignored'
+      else if (states[index] === 'ok') states[index] = 'firing'
+    }
+    // The Game holds what is true now: a rule that has held for a while is pending or firing.
+    const now = alertStateOf(game, rule)
+    if (now !== 'ok' && last >= 0) states[last] = now
+    return {
+      key: rule,
+      name: RULE_NAME[rule],
+      runs: runsOf(states, 0, (state) => ALERT_STATE[state]),
+    }
+  })
+  const first = Number(rows[0]?.at ?? 0)
+  const end = Number(rows[last]?.at ?? first) + Number(rows[last]?.span ?? 1)
+  return laneTimeline(
+    'alert-state',
+    'col-span-12',
+    'Alert state',
+    'pages the Inbox kept',
+    lanes,
+    Math.max(1, rows.length),
+    first,
+    end,
+    h,
+    Object.values(ALERT_STATE).map((state) => swatch(state.label, state.color, h)),
+  )
+}
+
+/** The alert rules and their thresholds, with what each watches now. */
+const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const watched = watchedOf(game, ledger)
+  const limit = (rule: Rule): string =>
+    rule === 'errors'
+      ? percent(game.alertRules.errors, 1)
+      : rule === 'latency'
+        ? `${game.alertRules.latency}× T`
+        : percent(game.alertRules.saturation)
+  const seen = (rule: Rule): string =>
+    rule === 'errors'
+      ? percent(watched.errors, 2)
+      : rule === 'latency'
+        ? `${watched.latency.toFixed(1)}× T`
+        : percent(watched.saturation)
+  return tablePanel(
+    'alert-rules',
+    'col-span-12',
+    'Alert rules',
+    'the pager’s conditions',
+    ['Rule', 'Threshold', 'Now', 'Held', 'State'],
+    RULES.map((rule) => {
+      const state = ALERT_STATE[alertStateOf(game, rule)]
+      return {
+        key: rule,
+        cells: [
+          {
+            text: RULE_NAME[rule],
+            hint: alertText(rule, game.alertRules[rule]),
+          },
+          { text: limit(rule) },
+          { text: seen(rule) },
+          { text: `${Math.round(game.alarms[rule])}s / ${ALERT_RULES[rule].seconds}s` },
+          { text: state.label, fill: state.color },
+        ],
+      }
+    }),
+    h,
+  )
+}
+
+/** The RED method: rate, errors and duration for each Service the Design serves. */
+const servicesTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const kinds = (
+    Object.entries(ledger.kinds) as ReadonlyArray<[RequestKind, KindLedger | undefined]>
+  )
+    .flatMap(([kind, entry]) => (entry === undefined || entry.rate <= 0 ? [] : [{ kind, entry }]))
+    .sort((left, right) => right.entry.rate - left.entry.rate)
+  const total = kinds.reduce((sum, { entry }) => sum + entry.rate, 0)
+  return tablePanel(
+    'services',
+    'col-span-24',
+    'Services',
+    'Rate, Errors, Duration · now',
+    ['Service', 'Rate', 'Share', 'Errors', 'Mean', 'p99'],
+    kinds.map(({ kind, entry }) => {
+      const failed = 1 - entry.success
+      return {
+        key: kind,
+        cells: [
+          { text: KINDS[kind].label },
+          { text: `${rateText(entry.rate)}/s` },
+          { text: percent(total > 0 ? entry.rate / total : 0) },
+          { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
+          { text: ms(entry.mean) },
+          { text: ms(entry.p99) },
+        ],
+      }
+    }),
+    h,
+  )
+}
+
+const LIMIT_NAME: Record<Limit, string> = {
+  cpu: 'CPU',
+  credits: 'CPU credits',
+  memory: 'Memory',
+  workers: 'Workers',
+  connections: 'Connections',
+  network: 'Network',
+  disk: 'Disk',
+  throughput: 'Throughput',
+  none: 'No limit',
+}
+
+const LIMIT_COLOR: Record<Limit, string> = {
+  cpu: RED,
+  credits: AMBER,
+  memory: PINK,
+  workers: PURPLE,
+  connections: TEAL,
+  network: BLUE,
+  disk: AMBER,
+  throughput: GREEN,
+  none: MUTED,
+}
+
+/** The USE method: which resource limits each Node, over the session's Node history. */
+const resourceTimeline = (
+  model: Model,
+  tracks: ReadonlyArray<NodeTrack>,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const history = model.board.nodeHistory
+  const length = Math.max(1, ...tracks.map((track) => (history[track.id] ?? []).length))
+  const last = Math.floor(model.board.game.time / NODE_EVERY) * NODE_EVERY
+  const first = last - (length - 1) * NODE_EVERY
+  const lanes = tracks.map((track) => {
+    const limits = (history[track.id] ?? []).map((sample) => sample.limit)
+    return {
+      key: track.id,
+      name: track.name,
+      runs: runsOf(limits, length - limits.length, (limit) => ({
+        color: LIMIT_COLOR[limit],
+        label: LIMIT_NAME[limit],
+      })),
+    }
+  })
+  const present = [
+    ...new Set(tracks.flatMap((track) => (history[track.id] ?? []).map((sample) => sample.limit))),
+  ]
+  return laneTimeline(
+    'resources',
+    'col-span-24',
+    'Resources',
+    'the limiting resource · last 24 min',
+    lanes,
+    length,
+    first,
+    last,
+    h,
+    present.map((limit) => swatch(LIMIT_NAME[limit], LIMIT_COLOR[limit], h)),
+  )
+}
+
+/** The churn breakdown runs a day's forecast, so each Game computes it once, not every frame. */
+const churnCache = new WeakMap<Game, ReadonlyArray<RegionChurn>>()
+
+/** Users by region against the market, with the rate at which each region loses them. */
+const usersTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const regions = churnCache.get(game) ?? churnOf(game, ledger)
+  churnCache.set(game, regions)
+  const split = regional(game)
+  return tablePanel(
+    'users',
+    'col-span-24',
+    'Users',
+    'by region · market and churn',
+    ['Region', 'Users', 'Market', 'Share', 'Apdex', 'Churn'],
+    regions.map((region) => {
+      const market = ledger.market * (split ? REGION_INFO[region.region].share : 1)
+      const share = market > 0 ? region.users / market : 0
+      return {
+        key: region.region,
+        cells: [
+          { text: REGION_INFO[region.region].name },
+          { text: compact(region.users) },
+          { text: compact(market) },
+          {
+            text: percent(share, share < 0.1 ? 1 : 0),
+            bar: { share: Math.min(1, share), color: TEAL },
+          },
+          {
+            text: `${region.now.toFixed(2)} / ${region.target.toFixed(2)}`,
+            color: region.now >= region.target ? GREEN : RED,
+          },
+          {
+            text: `${region.perHour >= 0 ? '+' : ''}${compact(region.perHour)}/h`,
+            color: region.perHour < 0 ? RED : GREEN,
+          },
+        ],
+      }
+    }),
+    h,
+  )
+}
+
+/* ==========================================================================
+   Component rows (12 "Component rows")
+   ========================================================================== */
+
+/** The Load Balancer's traffic per backend, which shows an uneven split. */
+const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const names = namesOf(game)
+  const balancers = game.nodes.filter((node) => node.type === 'lb')
+  const entries = balancers.flatMap((balancer) =>
+    ledger.links
+      .filter((link) => link.from === balancer.id)
+      .map((link) => ({
+        key: `${link.from}>${link.to}`,
+        name:
+          balancers.length > 1
+            ? `${names.get(link.from) ?? link.from} → ${names.get(link.to) ?? link.to}`
+            : (names.get(link.to) ?? link.to),
+        value: link.rate,
+        text: `${rateText(link.rate)}/s`,
+      })),
+  )
+  return barList(
+    'load-balancer',
+    'col-span-24',
+    'Load Balancer',
+    entries.length === 0
+      ? 'no backend'
+      : `req/s per backend · even split ${percent(1 / entries.length)}`,
+    entries,
+    h,
+  )
+}
+
+/** Connections used against the limit, refused queries, and how far a replica lags. */
+const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const names = namesOf(game)
+  return tablePanel(
+    'database',
+    'col-span-24',
+    'Database',
+    'connections · refused · replica lag',
+    ['Node', 'Connections', 'Queries', 'Refused', 'Lag'],
+    game.nodes
+      .filter((node) => node.type === 'database' || node.type === 'replica')
+      .map((node) => {
+        const own = ledger.nodes[node.id]
+        const connections = own?.connections ?? null
+        const share = connections === null ? 0 : connections.used / Math.max(1, connections.max)
+        const refused = own?.refused ?? 0
+        const lag = own?.lag ?? null
+        return {
+          key: node.id,
+          cells: [
+            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            connections === null
+              ? { text: '—' }
+              : {
+                  text: `${Math.round(connections.used)}/${Math.round(connections.max)}`,
+                  bar: { share, color: LEVEL_COLOR[levelOf(share, UTILIZATION)] },
+                },
+            { text: `${compact(own?.inbound ?? 0)}/s` },
+            {
+              text: refused > 0.0005 ? `${compact(refused)}/s` : '—',
+              color: refused > 0.0005 ? RED : undefined,
+            },
+            { text: lag === null ? '—' : ms(lag) },
+          ],
+        }
+      }),
+    h,
+  )
+}
+
+/** A Cache's or a CDN's hit ratio: the share of the queries it answers itself. */
+const hits = (
+  key: string,
+  title: string,
+  unit: string,
+  type: 'cache' | 'cdn',
+  game: Game,
+  ledger: Ledger,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const names = namesOf(game)
+  return barList(
+    key,
+    'col-span-24',
+    title,
+    unit,
+    game.nodes
+      .filter((node) => node.type === type)
+      .map((node) => {
+        const hit = ledger.nodes[node.id]?.hitRatio ?? null
+        return {
+          key: node.id,
+          name: names.get(node.id) ?? COMPONENTS[node.type].name,
+          value: hit ?? 0,
+          text: hit === null ? '—' : percent(hit, 1),
+          color: TEAL,
+        }
+      }),
+    h,
+  )
+}
+
+/** A Queue's depth and the age of the oldest task in it. */
+const queues = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const names = namesOf(game)
+  return tablePanel(
+    'queue',
+    'col-span-24',
+    'Queue',
+    'depth · age of the oldest task',
+    ['Queue', 'Depth', 'Oldest task', 'Drained', 'State'],
+    game.nodes
+      .filter((node) => node.type === 'queue')
+      .map((node) => {
+        const own = ledger.nodes[node.id]
+        const age = own?.age ?? null
+        const stalled = age === Number.POSITIVE_INFINITY
+        const down = own?.status === 'down'
+        const level: Level = down || stalled ? 'danger' : age !== null && age > 0 ? 'warn' : 'ok'
+        const label = down
+          ? 'DOWN'
+          : stalled
+            ? 'STALLED'
+            : age !== null && age > 0
+              ? 'WAITING'
+              : 'CLEAR'
+        const drained = Object.values(own?.out ?? {}).reduce((sum, rate) => sum + rate, 0)
+        return {
+          key: node.id,
+          cells: [
+            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            { text: compact(node.depth) },
+            { text: queueWait(age) },
+            { text: `${compact(drained)}/s` },
+            { text: label, fill: LEVEL_COLOR[level] },
+          ],
+        }
+      }),
+    h,
+  )
+}
+
+/** 05 "Managed Components": third-party services, which bill per use and have their own outages. */
+const MANAGED: ReadonlyArray<ComponentId> = ['psp', 'llm', 'msgp', 'auth']
+
+/** Calls into and out of each Managed Component, and whether it is up. */
+const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const names = namesOf(game)
+  return tablePanel(
+    'managed',
+    'col-span-24',
+    'Managed Components',
+    'calls · latency · outage',
+    ['Component', 'Calls', 'Sent', 'Latency', 'State'],
+    game.nodes
+      .filter((node) => MANAGED.includes(node.type))
+      .map((node) => {
+        const own = ledger.nodes[node.id]
+        const down = own?.status === 'down'
+        const throttled = own?.throttled ?? false
+        const sent = Object.values(own?.out ?? {}).reduce((sum, rate) => sum + rate, 0)
+        return {
+          key: node.id,
+          cells: [
+            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            { text: `${compact(own?.inbound ?? 0)}/s` },
+            { text: sent > 0 ? `${compact(sent)}/s` : '—' },
+            { text: ms(own?.latency ?? 0) },
+            {
+              text: down ? 'DOWN' : throttled ? 'THROTTLED' : 'UP',
+              fill: LEVEL_COLOR[down ? 'danger' : throttled ? 'warn' : 'ok'],
+            },
+          ],
+        }
+      }),
+    h,
+  )
+}
+
+/* ==========================================================================
    The page
    ========================================================================== */
 
@@ -1273,24 +2095,23 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
       chip('region', model.board.region),
       chip('slo', percent(slo, slo >= 0.999 ? 1 : 0)),
       h.span([h.Class('flex-1')], []),
-      h.span(
-        [h.Class('flex items-center gap-3 text-[11px] text-muted-foreground')],
-        [
+      h.div(
+        [h.Class('flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground')],
+        ANNOTATION_GROUPS.map((group) =>
           h.span(
-            [h.Class('flex items-center gap-1.5')],
+            [h.Key(group), h.Class('flex items-center gap-1.5')],
             [
-              h.span([h.Class('h-3 border-l border-dashed'), h.Style({ borderColor: BLUE })], []),
-              'Design change',
+              h.span(
+                [
+                  h.Class('h-3 border-l border-dashed'),
+                  h.Style({ borderColor: ANNOTATION_COLOR[group] }),
+                ],
+                [],
+              ),
+              ANNOTATION_NAME[group],
             ],
           ),
-          h.span(
-            [h.Class('flex items-center gap-1.5')],
-            [
-              h.span([h.Class('h-3 border-l border-dashed'), h.Style({ borderColor: RED })], []),
-              'Incident',
-            ],
-          ),
-        ],
+        ),
       ),
     ],
   )
@@ -1306,6 +2127,18 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const tracks = tracksOf(model)
   const latest = game.history[game.history.length - 1]
   const percentiles = has(game, 'percentiles')
+  const alerting = has(game, 'alerting')
+  const hasNode = (type: ComponentId): boolean => game.nodes.some((node) => node.type === type)
+  /** The p99 the Latency rule pages at: the rule's multiple of the busiest kind's Apdex T. */
+  const latencyRule = ((): number | null => {
+    if (!alerting) return null
+    const busiest = (
+      Object.entries(ledger.kinds) as ReadonlyArray<[RequestKind, KindLedger | undefined]>
+    )
+      .filter(([, entry]) => entry !== undefined && entry.rate > 0)
+      .sort((left, right) => (right[1]?.rate ?? 0) - (left[1]?.rate ?? 0))[0]
+    return busiest ? game.alertRules.latency * PROFILES[busiest[0]].apdex : null
+  })()
   const bottleneck = tracks.reduce<NodeTrack | null>(
     (best, track) =>
       (ledger.nodes[track.id]?.utilization ?? 0) >
@@ -1405,6 +2238,11 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ]
               : [{ key: 'latency', name: 'Mean', color: BLUE, fill: true }],
             format: ms,
+            ...(latencyRule === null
+              ? {}
+              : {
+                  rules: [{ y: latencyRule, label: `alert > ${ms(latencyRule)}`, color: AMBER }],
+                }),
           }),
           has(game, 'logs')
             ? series({
@@ -1414,12 +2252,29 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 unit: '% failed',
                 series: [{ key: 'errors', name: 'Failed', color: RED, fill: true }],
                 format: (value) => `${value.toFixed(value < 1 ? 2 : 1)}%`,
-                rules: [{ y: 1, label: 'alert > 1%', color: AMBER }],
+                rules: [
+                  {
+                    y: (alerting ? game.alertRules.errors : 0.01) * 100,
+                    label: `alert > ${percent(alerting ? game.alertRules.errors : 0.01, 1)}`,
+                    color: AMBER,
+                  },
+                ],
                 width: 500,
               })
             : locked('errors-series', 'col-span-8', 'Errors', 'logs', h),
           causes(ledger, h),
           mix(ledger, h),
+
+          ...(alerting
+            ? [
+                rowHeader('Alerts', 2, h),
+                alertTable(game, ledger, h),
+                alertTimeline(model, rows, h),
+              ]
+            : []),
+          ...(has(game, 'tracing')
+            ? [rowHeader('Services (RED)', 1, h), servicesTable(ledger, h)]
+            : []),
 
           rowHeader('Saturation', 3, h),
           barGauge(ledger, tracks, h),
@@ -1452,11 +2307,50 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ],
               })
             : locked('burn-rate', 'col-span-12', 'Error budget burn rate', 'slo-dashboards', h),
+
+          ...(has(game, 'tracing')
+            ? [rowHeader('Resources (USE)', 1, h), resourceTimeline(model, tracks, h)]
+            : []),
+          ...(hasNode('lb')
+            ? [rowHeader('Load Balancer', 1, h), loadBalancer(game, ledger, h)]
+            : []),
+          ...(hasNode('database') || hasNode('replica')
+            ? [rowHeader('Database', 1, h), databases(game, ledger, h)]
+            : []),
+          ...(hasNode('cache')
+            ? [
+                rowHeader('Cache', 1, h),
+                hits('cache', 'Cache', 'hit ratio · now', 'cache', game, ledger, h),
+              ]
+            : []),
+          ...(hasNode('queue') ? [rowHeader('Queue', 1, h), queues(game, ledger, h)] : []),
+          ...(hasNode('cdn')
+            ? [
+                rowHeader('CDN', 1, h),
+                hits(
+                  'cdn',
+                  'CDN',
+                  `hit ratio · Design egress ${money(ledger.egress)}/s`,
+                  'cdn',
+                  game,
+                  ledger,
+                  h,
+                ),
+              ]
+            : []),
+          ...(game.nodes.some((node) => MANAGED.includes(node.type))
+            ? [rowHeader('Managed Components', 1, h), managed(game, ledger, h)]
+            : []),
+
+          ...(has(game, 'multi-region')
+            ? [rowHeader('Users', 1, h), usersTable(game, ledger, h)]
+            : []),
         ]
 
   return h.div(
     [
       h.Key('dashboard'),
+      h.DataAttribute('dashboard', ''),
       h.DataAttribute('exit', 'gesture'),
       h.Class('absolute inset-0 z-30 flex flex-col bg-canvas text-foreground enter-backdrop'),
     ],

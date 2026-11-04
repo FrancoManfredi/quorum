@@ -14,6 +14,9 @@ import { Folder, type Inbox, type Mail } from './model.ts'
 const MAIL_KEPT = 40
 const THREAD_ENTRIES = 20
 
+/** Sim seconds in one calendar hour: one sim second is one calendar minute. */
+export const CALENDAR_HOUR = 60
+
 /** Senders whose Mail is about the Design now: a Thread resolves when its cause is gone. */
 const ADVISING = new Set(['cloud', 'monitoring', 'vendor', 'investor', 'finance', 'mentor'])
 
@@ -24,7 +27,22 @@ export const EMPTY_INBOX: Inbox = {
   bucket: 0,
   sample: 'random',
   folder: 'action',
+  mutes: [],
 }
+
+/** True while the player has this Sender muted: their Mail lands for the record, not the badge. */
+export const muted = (inbox: Inbox, sender: string, time: number): boolean =>
+  inbox.mutes.some((mute) => mute.sender === sender && mute.until > time)
+
+/** The Inbox with `sender` silenced for one calendar hour from `time`. */
+export const muting = (inbox: Inbox, sender: string, time: number): Inbox => ({
+  ...inbox,
+  peek: inbox.mail.find((mail) => mail.id === inbox.peek)?.sender === sender ? null : inbox.peek,
+  mutes: [
+    ...inbox.mutes.filter((mute) => mute.sender !== sender && mute.until > time),
+    { sender, until: time + CALENDAR_HOUR },
+  ],
+})
 
 /** Mail waits for a decision (Needs action), or only informs (FYI), or the filter caught it (Spam). */
 export const folderHolds = (mail: Mail, folder: Folder): boolean =>
@@ -51,11 +69,13 @@ export const mailed = (
   )
     return inbox
   const others = inbox.mail.filter((mail) => mail !== existing)
+  // A muted Sender lands for the record: no dot on the row and no card above the Inbox button.
+  const quiet = muted(inbox, fact.sender, time)
   const thread: Mail = existing
     ? {
         ...existing,
         time,
-        read: false,
+        read: quiet,
         answer: null,
         resolved: null,
         actions: fact.actions,
@@ -70,7 +90,7 @@ export const mailed = (
         entries: [{ time, text: fact.text }],
         actions: fact.actions,
         answer: null,
-        read: false,
+        read: quiet,
         trashed: false,
         spam: fact.spam,
         resolved: null,
@@ -80,7 +100,7 @@ export const mailed = (
   const loud =
     needsAction(thread) ||
     ['cloud', 'monitoring', 'security'].includes(senderOf(thread.sender).kind)
-  const peek = !thread.spam && loud && !open ? thread.id : inbox.peek
+  const peek = !thread.spam && loud && !open && !quiet ? thread.id : inbox.peek
   return { ...inbox, mail: [...others, thread].slice(-MAIL_KEPT), peek }
 }
 
@@ -189,6 +209,12 @@ const answerOf = (kind: string | undefined, mail: Mail): string | null => {
       return 'You moved the patch to the top.'
     case 'rush':
       return 'You rushed the patch.'
+    case 'ack':
+      return 'You acknowledged it.'
+    case 'mute':
+      return 'You muted this sender for an hour.'
+    case 'backlog':
+      return 'You added it to the backlog.'
     case 'trap':
       return 'You clicked it. It was a trap: the address was not the real sender.'
     default:
@@ -200,6 +226,9 @@ const answerOf = (kind: string | undefined, mail: Mail): string | null => {
 const answersOnly = (kind: string | undefined, mail: Mail): boolean =>
   kind === 'later' || (kind === 'decline' && mail.sender.startsWith('mate:'))
 
+/** Buttons the Inbox carries out itself: Acknowledge and Mute change no Simulation number. */
+const QUIET = new Set(['ack', 'mute'])
+
 const ACTING = new Set([
   'raise',
   'decline',
@@ -209,6 +238,10 @@ const ACTING = new Set([
   'first',
   'rush',
   'show',
+  'resize',
+  'quota',
+  'reserved',
+  'backlog',
   'trap',
   'churn',
   'research',
@@ -238,9 +271,17 @@ export const updateInbox = (
       const mail = inbox.mail.find((entry) => entry.id === id)
       if (!mail) return { model: inbox }
       const [kind, target] = action.split(':')
-      const unpeeked = { ...inbox, peek: inbox.peek === id ? null : inbox.peek }
+      // Mute silences the sender first, so the card above the button goes with it.
+      const unpeeked =
+        kind === 'mute'
+          ? muting(inbox, mail.sender, context.game.time)
+          : { ...inbox, peek: inbox.peek === id ? null : inbox.peek }
       const answer = answerOf(kind, mail)
-      const next = answer === null ? unpeeked : withMail(unpeeked, id, { answer })
+      // Acknowledge and Mute also clear the unread dot: the question is answered, not just opened.
+      const next =
+        answer === null
+          ? unpeeked
+          : withMail(unpeeked, id, QUIET.has(kind ?? '') ? { answer, read: true } : { answer })
       return kind && ACTING.has(kind) && !answersOnly(kind, mail)
         ? { model: next, outMessage: InboxOutMessage.ActionTaken({ kind, target: target ?? null }) }
         : { model: next }

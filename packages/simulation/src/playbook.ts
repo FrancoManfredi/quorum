@@ -82,6 +82,7 @@ export const NODE_SETTINGS = [
   'backup',
   'fanout',
   'split',
+  'pricing',
 ] as const
 export const STACK_SETTINGS = ['size', 'family', 'runtime', 'framework'] as const
 export const LINK_SETTINGS = ['timeout', 'retries', 'kinds', 'breaker'] as const

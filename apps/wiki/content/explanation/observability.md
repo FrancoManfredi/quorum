@@ -75,8 +75,9 @@ Each step of the [Observability track](/research) shows you more:
 | [Alerting](/research/alerting)             | A pager banner when errors, p99, or saturation cross a threshold.                   |
 | [SLO dashboards](/research/slo-dashboards) | The error budget on the HUD, and its burn rate on the Dashboard.                    |
 
-[Distributed tracing](/research/tracing) is on the track, and other items require it. It promises
-each kind's time Node by Node, but it does not change what you see in the game yet.
+[Distributed tracing](/research/tracing) is on the track, and other items require it. It adds the
+Services and Resources rows to the Dashboard: the rate, errors and duration of each request kind, and
+each Node's utilisation, saturation and limit.
 
 ::Track{track="observability"}
 

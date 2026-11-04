@@ -75,6 +75,9 @@ describe('old saves', () => {
     ).toBe(true)
     expect(game.incident?.zone).toBeNull()
     expect(game.budget).toEqual([])
+    // Pricing models (SIM_VERSION 18): every old Node bills on-demand, with no term.
+    expect(game.nodes.every((node) => node.pricing === 'on-demand')).toBe(true)
+    expect(game.nodes.every((node) => node.pricingUntil === null)).toBe(true)
     expect(solve(game).revenue).toBeGreaterThan(0)
     expect(step(game, 1).game.time).toBe(game.time + 1)
   })

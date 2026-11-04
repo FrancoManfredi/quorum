@@ -10,17 +10,21 @@ import type { Mail } from './model.ts'
 import {
   COMPONENTS,
   CVE_DEFS,
+  FEATURES,
   KINDS,
   REGION_INFO,
   RESEARCH,
   patchCost,
   patchWindow,
   type ResearchId,
+  type FeatureId,
 } from '@quorum/simulation/catalog'
 import type { ChurnCause, RegionChurn } from '@quorum/simulation/churn'
+import { alertActions, cloudActions } from '@quorum/simulation/goals'
+import { has } from '@quorum/simulation/lookups'
 import { compact } from '@quorum/ui/game/format'
 import type { WorkItem } from '@quorum/simulation/state'
-import { itemName } from '@quorum/simulation/work'
+import { featureRefusal, itemName } from '@quorum/simulation/work'
 import {
   ADVICE,
   CHURN_LETTERS,
@@ -28,6 +32,7 @@ import {
   CVES,
   EVENTS,
   HIRE,
+  REQUESTS,
   REWRITES,
   SENDERS,
   SPAM,
@@ -184,18 +189,39 @@ const severity = (score: number): CveVars['severity'] =>
 
 const minutes = (seconds: number): string => `${Math.max(1, Math.round(seconds / 60))} min`
 
+/**
+ * The Nodes that run `type`, named the way the Dashboard names them: the Component, then a number
+ * for the second and later ones. An empty list when the Design runs none of them.
+ */
+const nodesOf = (game: Game, type: string | undefined): ReadonlyArray<string> => {
+  const seen = new Map<string, number>()
+  const names: Array<string> = []
+  for (const node of game.nodes) {
+    const base = COMPONENTS[node.type].name
+    const count = (seen.get(base) ?? 0) + 1
+    seen.set(base, count)
+    if (node.type === type) names.push(count > 1 ? `${base} ${count}` : base)
+  }
+  return names
+}
+
 /** The advisory for a patch ticket the Simulation filed, which quotes the ticket and its deadline. */
 export const disclosureFact = (item: WorkItem, game: Game, spam = false, at = 0): Fact => {
   const cve = CVES.find((entry) => entry.id === item.ref) ?? CVES[0]!
   const score = CVE_DEFS.find((def) => def.id === cve.id)?.score ?? 5
   const key = `security:${cve.id}`
   const sender = senderFor('security', game, cve.id)
-  const node = game.nodes.find((entry) => entry.type === item.target)
+  // Exposure is a research gate (GDD 18 "CVEs and patches"): only Dependency scanning turns the
+  // advisory's Node list into names. Without it the Mail says to check whether the Design runs it,
+  // and it has no Node to show on the Board.
+  const exposed = has(game, 'dependency-scanning') ? nodesOf(game, item.target) : []
+  const node =
+    exposed.length > 0 ? game.nodes.find((entry) => entry.type === item.target) : undefined
   const vars: CveVars = {
     ...cve,
     score,
     severity: severity(score),
-    exposed: item.target ? COMPONENTS[item.target as keyof typeof COMPONENTS].name : null,
+    exposed: exposed.length > 0 ? exposed.join(', ') : null,
   }
   const written = write(CVE_LETTERS, vars, sender, game, key, at)
   const ticket = `${itemName(item)}, ${item.cost} DH, due in ${minutes((item.due ?? game.time) - game.time)}. Overdue, it turns red on the Team backlog; a minute later it is exploited.`
@@ -268,6 +294,27 @@ export const stallFact = (game: Game, id: ResearchId, reason: string): Fact => (
   actions: [{ id: `research:${id}`, label: 'Open Research' }],
   spam: false,
 })
+
+/**
+ * A big customer asks for a Feature the Design has not built (GDD 18 "Senders"). The ask carries
+ * one button: it queues the Feature on the Team backlog, which the Simulation can carry out.
+ */
+const requestFact = (game: Game, salt: number): Fact | null => {
+  // A Sandbox shows the same Mail: the bench is for trying the ask, and its Action refuses there.
+  const open = (Object.keys(FEATURES) as ReadonlyArray<FeatureId>).filter(
+    (id) => featureRefusal({ ...game, sandbox: false }, id) === null,
+  )
+  if (open.length === 0) return null
+  const id = pick(open, game.seed, 'feature', salt)
+  const key = `customers:feature:${id}`
+  const sender = senderFor('customers', game, key)
+  return fact(
+    key,
+    sender,
+    write(REQUESTS, { feature: FEATURES[id].name }, sender, game, key, salt),
+    [{ id: `backlog:${id}`, label: 'Add to backlog' }],
+  )
+}
 
 /** A region's users fell for a calendar hour: the Customers sender says why (GDD 12). */
 export const churnFact = (game: Game, region: RegionChurn): Fact => {
@@ -343,7 +390,8 @@ export const eventMail = (game: Game, bucket: number): Fact | null => {
     return game.backlog.length >= 3 && game.hires.length === 0
       ? hireFact(game, mate, at)
       : rewriteFact(game, mate, at)
-  if (roll < 40 && game.apdex < 0.9) return customerFact(game, at)
+  // A customer writes when a page is slow; with nothing slow, a big one asks for a Feature.
+  if (roll < 40) return game.apdex < 0.9 ? customerFact(game, at) : requestFact(game, at)
   if (roll < 85) return spamFact(pick(SPAM, at), game, at)
   return null
 }
@@ -569,6 +617,12 @@ export const SAMPLES: ReadonlyArray<Sample> = [
     label: 'Customer: it is slow',
     make: (game, n) => own(customerFact(game, n), n),
   },
+  {
+    id: 'request',
+    group: 'World',
+    label: 'Customer: asks for a feature',
+    make: (game, n) => own(requestFact(game, n) ?? customerFact(game, n), n),
+  },
   ...SPAM.map((pitch): Sample => ({
     id: pitch.sender,
     group: 'Spam',
@@ -593,6 +647,27 @@ const EVENT_FROM: Record<string, SenderKind> = {
 /** News only one party would send: the edge network sees a flood before anyone else. */
 const PINNED: Partial<Record<EventMail['topic'], string>> = { 'incident-ddos': 'cloud-cloudscare' }
 
+/** The Node a Step event names: the one an incident hit, or the one that ran out of something. */
+const eventNode = (event: { readonly [field: string]: unknown }): string | null => {
+  if (typeof event.nodeId === 'string') return event.nodeId
+  const incident = event.incident as { readonly nodeId?: unknown } | undefined
+  return typeof incident?.nodeId === 'string' ? incident.nodeId : null
+}
+
+/** The Sender's buttons (GDD 18 "Senders"). A Cloud and an alarm Mail both name the Node they mean. */
+const eventActions = (
+  game: Game,
+  from: SenderKind | undefined,
+  nodeId: string | null,
+): ReadonlyArray<AdviceAction> =>
+  from === 'cloud'
+    ? nodeId === null
+      ? []
+      : cloudActions(game, nodeId)
+    : from === 'monitoring'
+      ? alertActions(nodeId)
+      : []
+
 /** One Step event as Mail: the party that would know writes, and repeats join the Thread. */
 export const eventFact = (
   event: { readonly _tag: string; readonly [field: string]: unknown },
@@ -612,5 +687,10 @@ export const eventFact = (
       : `mate:${typeof event.engineerId === 'string' ? event.engineerId : (game.engineers[0]?.id ?? 'e0')}`)
   // Each topic carries its own vars; the record type cannot say so.
   const letters = EVENTS[mail.topic] as unknown as Letters<EventMail['vars']>
-  return fact(key, sender, write(letters, mail.vars, sender, game, key, salt))
+  return fact(
+    key,
+    sender,
+    write(letters, mail.vars, sender, game, key, salt),
+    eventActions(game, from, eventNode(event)),
+  )
 }

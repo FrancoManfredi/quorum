@@ -94,15 +94,31 @@ has a **kind**, a **name**, an **address**, and a colour.
 | Investor   | Sand Hill Road Runner Capital, Sequel Capital, Why Combinator                 | A Milestone is met ([Economy](/design/09-economy#funding)); a term sheet changes; a board update is due                                                                                                                            | Raise, Decline                                         |
 | Security   | Commonly Vulnerable & Exposed, National Vulnerability Dumpster                | A vulnerability is disclosed in something the Design runs ([CVEs](#cves-and-patches)); a patch is overdue; an audit finding                                                                                                        | Show on Board, Patch now, Rush patch                   |
 | Finance    | QuickBroke Books, Zero Accounting                                             | A Quarter closes: **Guidance** met or missed; runway under 6 months                                                                                                                                                                | None                                                   |
-| Customers  | Zenfail Support Desk, Intercomatose                                           | Users complain: slow checkout, errors, a lost region; a region's users fall for one calendar hour, with the top two rows of the [Churn breakdown](/design/12-observability#the-churn-breakdown); a big customer asks for a feature | Show on Board, Open Churn breakdown, Add to backlog    |
+| Customers  | Zenfail Support Desk, Intercomatose                                           | Users complain: slow checkout, errors, a lost region; a region's users fall for one calendar hour, with the top two rows of the [Churn breakdown](/design/12-observability#the-churn-breakdown); a big customer asks for a feature | Open Churn breakdown, Add to backlog                   |
 | Mentor     | Dr. Leslie Lamportant, Prof. Edsger Dijkstrah, Grace Hoppertunity             | A strategic nudge the other senders would not give: research to open, a shape worth trying. She is the tutorial voice in the Garage and Pre-seed Eras and speaks rarely after                                                      | None                                                   |
 | Spam       | Anyone ([Spam](#spam-and-phishing))                                           | Always                                                                                                                                                                                                                             | Usually none; a few are traps                          |
 
-Not built yet: most of the actions in that table. Resize, Raise quota, Switch to Reserved,
-Acknowledge, Mute for 1 h, Switch provider, and Add to backlog do not exist, and a hire request
-offers Later where the table says Decline. Show on Board exists only where the Simulation attaches
-it: Cloud and Monitoring Mail about a Node, and a CVE advisory that names one. Most Mail that names a
-Node has no such button.
+Every Mail that names a Node carries **Show on Board**, which selects that Node
+([Interface rule 3](/design/15-ui-ux#interface-rules)): capacity Mail, out-of-CPU-credits and
+out-of-memory Mail, an incident that names the Node it hit, and a CVE advisory. The rest of the
+buttons follow the sender:
+
+- **Resize**, **Raise quota**, and **Switch to Reserved** are Cloud's. Each selects the Node and
+  opens its Inspector, because that is the one place a Node is resized, its limit raised, and its
+  pricing model chosen. None of them answers the Mail: the warning stays in Needs action until the
+  cause is gone. Switch to Reserved appears only where that control exists, on a sized compute Node
+  from the Era that has pricing models ([Economy](/design/09-economy#pricing-models)); a Cloud Mail
+  about anything else carries three buttons.
+- **Acknowledge** marks the Mail read and dismisses its card above the Inbox button.
+- **Mute for 1 h** silences that sender for one calendar hour: their Mail lands read, with no dot,
+  no card above the Inbox button, and no chime, until the hour is up.
+- **Add to backlog** queues the Feature a customer asks for at the end of the Team backlog, which is
+  what the Team panel's own Queue does.
+
+Not built yet: **Switch provider**. No Component has a second provider, and a button whose only
+effect is a toast that the mechanic is not modelled would be worse than no button, so a vendor pitch
+carries none. A hire request offers Approve hire and Later, not Decline: Later says the same thing
+to a teammate and keeps the door open.
 
 Capacity facts that live in the Simulation today (`nextGoal`: out of CPU credits, out of RAM, workers
 busy, connections, network) belong to **Cloud** or **Monitoring**, not to the Mentor. The bottleneck
@@ -202,15 +218,17 @@ a Security sender and a spam folder together.
   bug in an HTTP proxy, a deserialization bug in a framework, a remote-code bug in a database engine.
 - **Severity.** Each CVE has a score from 1 to 10 and a class (remote code, denial of service,
   data leak). The score sets the clock: how long until it is exploited in the wild.
-- **Who tells the player.** Security mail names the CVE id, the score, the title, and the one Component
-  the vulnerability affects: an App Server, a Database, a Cache. It never lists which of the player's
-  Nodes are exposed, and it does not consult research, so the advisory reads the same with or without
-  Dependency scanning. Not built yet: the exposure gate, where the Node list is hidden until the
-  player has researched Dependency scanning and the Mail says "Check whether you run this."
+- **Who tells the player.** Security mail names the CVE id, the score, the title, and the Component
+  the vulnerability affects: an App Server, a Database, a Cache. Which of the player's Nodes run it
+  is the **exposure gate**: with Dependency scanning researched the advisory names them, as the
+  Dashboard names them (App Server, App Server 2), so a Design with two copies sees both, and Show
+  on Board selects the first. Without Dependency scanning the Mail cannot tell, says "Check whether
+  you run this", and carries no Show on Board: the gate would mean nothing if a button gave it away.
 - **The patch** is an engineering task with a DH cost ([Team and velocity](/design/08-team-and-velocity#engineering-tasks)),
   often followed by a deploy. A **Patch now** button moves it to the top of the backlog, and a
-  **Rush patch** button rushes it. The reader shows at most three buttons, so a fourth action on a
-  Mail is never rendered: an advisory that carries Show on Board hides its Open Team button.
+  **Rush patch** button rushes it, and **Open Team** opens the backlog the ticket sits on. The
+  reader shows every button a Mail carries ([Actions](#actions)), so an advisory with four of them
+  keeps all four.
 - **The ticket.** The Simulation files each disclosure as a **patch ticket** at the end of the Team
   backlog, so a team does not build it until the player moves it up ("Patch now") or rushes it: "Patch App Server, 5 DH, due in 3 min". A higher score means a bigger patch and a shorter
   deadline. The ticket turns red on the backlog and the HUD when it is overdue. A grace of 60 sim
@@ -279,11 +297,16 @@ trap. The cost is one click and one lesson.
 
 - An action is a button in the reader. Choosing it sends the Message the matching panel sends today
   and ends the question: the buttons are replaced by one line, such as "You raised $2,500 for 10%".
+  A button that opens a control instead of answering, such as Show on Board, Resize, or Raise quota,
+  leaves the question open, because the cause is still there.
+- The reader shows **every** button its Mail carries, in the order the sender offers them, and wraps
+  onto a second row when four of them do not fit. There is no third-button cap: an advisory keeps
+  Patch now, Rush patch, Show on Board, and Open Team.
 - A standing offer lasts while its condition holds. If Users fall below the Milestone, the offer
   expires and the thread says so.
 - Mail the player has answered stays in the Inbox as the record.
-- Every action has a keyboard shortcut in the reader: `1`, `2`, `3` for the buttons, `E` to delete,
-  `J` and `K` to move, `S` to mark spam.
+- Every action has a keyboard shortcut in the reader: `1` to `9` press the buttons in order, `E` to
+  delete, `J` and `K` to move, `S` to mark spam.
 
 ## What Mail replaces
 
@@ -427,22 +450,28 @@ Teammates draw a name from a pool and keep it for life.
   Inbox picks a letter by the Company's seed, the Thread, and the time, so a Company reads the same
   on every device and a Thread rarely repeats itself. Each teammate has their own footer.
 - **Folders:** Needs action, FYI, Spam, Trash, with "Report spam" and "Not spam".
-- **Actions:** Raise and Decline (investor), Approve hire and Later (teammate), Review \<language\>
-  migration and Decline (a rewrite), Patch now and Rush patch (security), Open Churn breakdown
-  (customers), Open Team, Show on Board, and the phishing traps. Raise, Decline, Approve hire, Patch
-  now, and Rush patch send the real Messages.
+- **Actions:** Show on Board wherever a Mail names a Node; Resize, Raise quota, and Switch to
+  Reserved (cloud, which open the Node's Inspector and its pricing control); Acknowledge and Mute
+  for 1 h (alerts, which the Inbox carries out itself);
+  Raise and Decline (investor); Approve hire and Later (a teammate's hire request); Review
+  \<language\> migration and Decline (a rewrite); Patch now, Rush patch, and Open Team (security);
+  Open Churn breakdown and Add to backlog (customers); and the phishing traps. Raise, Decline,
+  Approve hire, Patch now, Rush patch, and Add to backlog send the real Messages. Every button is on
+  screen and takes a number key from `1` to `9`.
 - **World events:** every 45 sim seconds from Pre-seed, the Company's seed draws spam, a
-  teammate (hire request or rewrite proposal), or a slow-page customer ticket.
+  teammate (hire request or rewrite proposal), or a customer: a slow-page ticket when a page is slow,
+  and otherwise a Feature that a big customer asks for.
 - **CVEs:** every 420 sim seconds the Simulation discloses one CVE that affects a Component the
-  Design runs, as a patch ticket. Security writes the advisory; "Rush patch" sends the rush Action.
+  Design runs, as a patch ticket. Security writes the advisory; "Rush patch" sends the rush Action,
+  and the Node list is behind Dependency scanning ("Check whether you run this" without it).
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
   The Company also has a 0.5× speed.
 
-Not built yet: the Credential leak incident (a trap only raises a toast); the Security team's
-full exposure list; Postmortem and Away mail; the spam filter research; and saving the Inbox.
-Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The reader's keys
-are built: `1` to `3` press a button, `E` deletes or restores, `J` and `K` move, `S` reports spam. The
-funding offer panel still exists beside the investor Mail.
+Not built yet: the Credential leak incident (a trap only raises a toast); a vendor's Switch provider;
+Postmortem and Away mail; the spam filter research; and saving the Inbox (a mute lasts for the
+session). Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
+reader's keys are built: `1` to `9` press a button, `E` deletes or restores, `J` and `K` move, `S`
+reports spam. The funding offer panel still exists beside the investor Mail.
 
 ## What happened in the Design
 
@@ -456,7 +485,7 @@ Challenge, which has no Inbox.
 ## Mail bench (Sandbox)
 
 Mail belongs to a Company, but a Sandbox shows the Inbox too, with a **bench** under the tabs for
-trying Mail without waiting for it. Pick a sample and Send it, or send ×10 or ×50 random samples. The picker groups one sample per advice topic, one per Step event topic, each CVE and a CVE misfiled in Spam, the hire request, each rewrite language, the customer ticket, and every spam and trap sender, plus a **repeating thread** that reuses one key and a random world event. A topic without a sample fails typecheck. Each send picks another of the topic's letters. **Resolve threads** resolves open advice; **Clear** empties
+trying Mail without waiting for it. Pick a sample and Send it, or send ×10 or ×50 random samples. The picker groups one sample per advice topic, one per Step event topic, each CVE and a CVE misfiled in Spam, the hire request, each rewrite language, the customer ticket, the customer's feature request, and every spam and trap sender, plus a **repeating thread** that reuses one key and a random world event. A topic without a sample fails typecheck. Each send picks another of the topic's letters. **Resolve threads** resolves open advice; **Clear** empties
 the Inbox. Sandbox Mail follows the same rules as a Company's, and the Inbox keeps the newest 40,
 so a ×50 burst also tests the cap. Challenges have no Inbox.
 

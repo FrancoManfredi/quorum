@@ -23,11 +23,13 @@ import {
   MAX_ATTEMPTS,
   POOL_LIMITS,
   PREFETCH,
+  PRICING_FROM_STAGE,
   QUEUE_LENGTHS,
   REQUEST_KINDS,
   RESEARCH,
   RUNTIMES,
   MAX_STUDIES,
+  RESERVED_SECONDS,
   RETENTION_WINDOWS,
   SAMPLE_RATES,
   SIZES,
@@ -54,7 +56,9 @@ import {
   isUnlocked,
   maxSize,
   nextEra,
+  owedOf,
   priceOf,
+  pricingOf,
   refundOf,
   replacePrice,
   researchReady,
@@ -90,6 +94,7 @@ import type {
   LbPolicy,
   PmMode,
   PoolerMode,
+  Pricing,
   Retries,
   ScaleSignal,
   Zone,
@@ -202,6 +207,8 @@ export const blankNode = (
     underAttack: false,
     zone: 'a',
     standby: false,
+    pricing: 'on-demand',
+    pricingUntil: null,
     replicas: 1,
     pending: 0,
     readyIn: 0,
@@ -255,7 +262,8 @@ export const sell = (game: Game, id: string): Action =>
       ? notAllowed(`${COMPONENTS[node.type].name} stays.`)
       : ok({
           ...game,
-          cash: game.cash + refundOf(game, node),
+          // A reserved Node still owes the Burn of its calendar week (09 "Pricing models").
+          cash: game.cash + refundOf(game, node) - owedOf(game, node),
           nodes: game.nodes.filter((entry) => entry.id !== id),
           links: game.links.filter((link) => link.from !== id && link.to !== id),
         }),
@@ -661,6 +669,40 @@ export const setStandby = (game: Game, id: string, standby: boolean): Action =>
     if (standby && !has(game, 'multi-az'))
       return no(Refusal.Locked({ what: 'A standby', research: RESEARCH['multi-az'].name }))
     return ok(node.standby === standby ? game : patch(game, id, { standby }))
+  })
+
+/**
+ * Sets a compute Node's pricing model (09 "Pricing models"): on-demand at the
+ * full rate, reserved at 0.6× for a commitment of one calendar week, or spot at
+ * 0.3× on capacity the provider can reclaim. From Series A.
+ */
+export const setPricing = (game: Game, id: string, pricing: Pricing): Action =>
+  withNode(game, id, (node) => {
+    if (game.stage < PRICING_FROM_STAGE)
+      return no(
+        Refusal.TooEarly({
+          what: 'A pricing model',
+          era: ERAS[PRICING_FROM_STAGE]?.name ?? 'a later Era',
+        }),
+      )
+    if (COMPONENTS[node.type].group !== 'compute')
+      return notAllowed('Only compute Nodes have a pricing model.')
+    if (!COMPONENTS[node.type].sized) return notAllowed('Only VMs have a pricing model.')
+    if (pricing === 'reserved' && !has(game, 'reserved-instances'))
+      return notAllowed('Reserved pricing needs research: Reserved instances.')
+    if (pricing === 'spot' && !has(game, 'spot-instances'))
+      return notAllowed('Spot pricing needs research: Spot instances.')
+    const current = pricingOf(game, node)
+    if (current === pricing) return ok(game)
+    // A reserved term is the commitment: it holds until its calendar week ends.
+    if (current === 'reserved')
+      return notAllowed('A reserved Node stays reserved until its calendar week ends.')
+    return ok(
+      patch(game, id, {
+        pricing,
+        pricingUntil: pricing === 'reserved' ? game.time + RESERVED_SECONDS : null,
+      }),
+    )
   })
 
 /** Sets an Autoscaler's signal, target, and copy limits. */

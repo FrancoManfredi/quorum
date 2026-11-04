@@ -259,6 +259,10 @@ export const Dashboard = Schema.Struct({
 })
 export type Dashboard = typeof Dashboard.Type
 
+/** A Sender the player silenced, until the game time the mute runs out. */
+export const MailMute = Schema.Struct({ sender: Schema.String, until: Schema.Finite })
+export type MailMute = typeof MailMute.Type
+
 /** The Inbox: the Mail the game has sent, and how the panel and its preview card show it. */
 export const Inbox = Schema.Struct({
   /** Oldest first. */
@@ -273,6 +277,8 @@ export const Inbox = Schema.Struct({
   sample: Schema.String,
   /** The folder the panel lists. */
   folder: Folder,
+  /** Senders the player muted: their Mail lands read, with no preview card, until the hour is up. */
+  mutes: Schema.Array(MailMute),
 })
 export type Inbox = typeof Inbox.Type
 

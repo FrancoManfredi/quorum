@@ -69,6 +69,7 @@ const gestureCue = (before: Model, message: Message, after: Model): Cue | null =
       // A big purchase gets the celebration; a small one keeps the quick motor-and-beeps.
       return game.cash - next.cash >= BIG_PURCHASE ? event('purchase') : gesture('upgrade')
     case 'FamilyChosen':
+    case 'PricingChosen':
     case 'RuntimeChosen':
     case 'FrameworkChosen':
     case 'WorkersChosen':

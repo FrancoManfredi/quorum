@@ -164,6 +164,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['backup'], (game, id, node) => Actions.setBackup(game, id, node.backup)],
   [['fanout'], (game, id, node) => Actions.setFanout(game, id, node.fanout)],
   [['split'], (game, id, node) => Actions.setSplit(game, id, node.split)],
+  [['pricing'], (game, id, node) => Actions.setPricing(game, id, node.pricing)],
 ]
 
 const nodeIn = (game: Game, id: string): GameNode | undefined =>

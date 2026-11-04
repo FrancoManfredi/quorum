@@ -1,4 +1,4 @@
-import { leftOf, warming, warmOf } from './life.ts'
+import { leftOf, isDown, warming, warmOf } from './life.ts'
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import * as Actions from './actions.ts'
@@ -8,6 +8,8 @@ import {
   FAILOVER_SECONDS,
   INCIDENTS,
   POD_RESCHEDULE,
+  SPOT_DOWN,
+  SPOT_WARNING,
   UPGRADE_CRASHES,
   VM_REACTION,
   type ResearchId,
@@ -312,5 +314,42 @@ describe('the error budget', () => {
     expect(recorded[0]?.requests).toBeCloseTo(ledger.demand * 60, 6)
     expect(recordBudget({ ...company, sandbox: true }, ledger, 60)).toEqual([])
     expect(recordBudget({ ...company, stage: 2 }, ledger, 60)).toEqual([])
+  })
+})
+
+describe('pricing models', () => {
+  /** A Series A board whose only App Server runs on spot capacity. */
+  const spotted = (): Game => seriesA(4_000, 'go', [], [], { pricing: 'spot' })
+
+  test('the provider reclaims a spot Node only when one serves', () => {
+    const plain = seriesA(4_000, 'go')
+    expect(weaknessOf(plain, solve(plain), 'spot-reclaim')).toBe(0)
+    expect(forceIncident(plain, solve(plain), 'spot-reclaim')).toBeNull()
+    // The incident opens in Series A, so an earlier Company never meets it either.
+    const early = { ...spotted(), stage: 2 }
+    expect(weaknessOf(early, solve(early), 'spot-reclaim')).toBe(0)
+
+    const spot = spotted()
+    expect(weaknessOf(spot, solve(spot), 'spot-reclaim')).toBeGreaterThan(0)
+    const hit = forceIncident(spot, solve(spot), 'spot-reclaim') as Game
+    expect(hit.incident?.kind).toBe('spot-reclaim')
+    expect(hit.incident?.nodeId).toBe('server')
+    // It warns first: 10 s in, the Node still serves.
+    expect(hit.incident?.remaining).toBe(SPOT_WARNING + SPOT_DOWN)
+    expect(isDown(serverOf(settle(hit, SPOT_WARNING - 1)).life)).toBe(false)
+    // Then the provider takes it, and it comes back when the reclaim ends.
+    expect(isDown(serverOf(settle(hit, SPOT_WARNING + 1)).life)).toBe(true)
+    const later = settle(hit, SPOT_WARNING + SPOT_DOWN + 2)
+    expect(isDown(serverOf(later).life)).toBe(false)
+    expect(later.incident).toBeNull()
+  })
+
+  test('a Node switched to on-demand inside the warning keeps serving', () => {
+    const spot = spotted()
+    const hit = forceIncident(spot, solve(spot), 'spot-reclaim') as Game
+    const switched = ok(Actions.setPricing(settle(hit, SPOT_WARNING - 2), 'server', 'on-demand'))
+    const later = settle(switched, SPOT_WARNING + 2)
+    expect(isDown(serverOf(later).life)).toBe(false)
+    expect(later.incident).toBeNull()
   })
 })

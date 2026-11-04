@@ -1,9 +1,20 @@
 import { leftOf, RUNNING } from './life.ts'
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { connect, decline, place, raise, resize, sell, study, type Action } from './actions.ts'
-import { newGame, preseedGame } from './company.ts'
-import { burnOf, sizeName } from './lookups.ts'
+import {
+  connect,
+  decline,
+  place,
+  raise,
+  resize,
+  sell,
+  setPricing,
+  study,
+  type Action,
+} from './actions.ts'
+import { RESERVED_SECONDS } from './catalog.ts'
+import { newGame, node as makeNode, preseedGame } from './company.ts'
+import { burnOf, refundOf, sizeName } from './lookups.ts'
 import { solve } from './solve.ts'
 import type { Game } from './state.ts'
 
@@ -92,5 +103,76 @@ describe('sizes', () => {
     )
       game = ok(resize(game, 'server', 1))
     expect(refusal(resize(game, 'server', 1))).toBe('NotAllowed')
+  })
+})
+
+describe('pricing models', () => {
+  const seriesA = (): Game => ({
+    ...preseedGame(7),
+    stage: 3,
+    // The two pricing models are Cost-track research (10 "Track: Cost").
+    researched: [...preseedGame(7).researched, 'reserved-instances', 'spot-instances'],
+  })
+  const nodeOf = (game: Game, id: string): Game['nodes'][number] =>
+    game.nodes.find((node) => node.id === id) as Game['nodes'][number]
+
+  test('a pricing model waits for Series A, and only a sized compute Node has one', () => {
+    expect(refusal(setPricing(preseedGame(7), 'server', 'spot'))).toBe('TooEarly')
+    const game: Game = {
+      ...seriesA(),
+      nodes: [
+        ...seriesA().nodes,
+        makeNode('lb', 'lb', 280, 200),
+        makeNode('queue', 'queue', 280, 400),
+      ],
+    }
+    // A Database is sized but data; a Load Balancer is edge; a Queue has no instance type.
+    expect(refusal(setPricing(game, 'database', 'reserved'))).toBe('NotAllowed')
+    expect(refusal(setPricing(game, 'lb', 'reserved'))).toBe('NotAllowed')
+    expect(refusal(setPricing(game, 'queue', 'reserved'))).toBe('NotAllowed')
+    expect(refusal(setPricing(game, 'server', 'reserved'))).toBe('accepted')
+  })
+
+  test('each model waits for its research', () => {
+    const game: Game = { ...preseedGame(7), stage: 3 }
+    expect(refusal(setPricing(game, 'server', 'reserved'))).toBe('NotAllowed')
+    expect(refusal(setPricing(game, 'server', 'spot'))).toBe('NotAllowed')
+    const reserved = { ...game, researched: [...game.researched, 'reserved-instances' as const] }
+    expect(refusal(setPricing(reserved, 'server', 'reserved'))).toBe('accepted')
+    expect(refusal(setPricing(reserved, 'server', 'spot'))).toBe('NotAllowed')
+  })
+
+  test('reserved bills 0.6× and spot 0.3× of the box, before copies and standbys', () => {
+    const game = seriesA()
+    // Three copies: the discount is on the box price, so it scales with the copies too.
+    const copied: Game = {
+      ...game,
+      nodes: game.nodes.map((node) => (node.id === 'server' ? { ...node, replicas: 3 } : node)),
+    }
+    const onDemand = burnOf(copied, nodeOf(copied, 'server'))
+    const reserved = ok(setPricing(copied, 'server', 'reserved'))
+    expect(burnOf(reserved, nodeOf(reserved, 'server'))).toBeCloseTo(onDemand * 0.6, 12)
+    const spot = ok(setPricing(copied, 'server', 'spot'))
+    expect(burnOf(spot, nodeOf(spot, 'server'))).toBeCloseTo(onDemand * 0.3, 12)
+    // A reserved term runs out: the Node bills on-demand again until it reserves once more.
+    const ended = { ...reserved, time: (nodeOf(reserved, 'server').pricingUntil ?? 0) + 1 }
+    expect(burnOf(ended, nodeOf(ended, 'server'))).toBeCloseTo(onDemand, 12)
+    expect(refusal(setPricing(reserved, 'server', 'spot'))).toBe('NotAllowed')
+    expect(refusal(setPricing(ended, 'server', 'spot'))).toBe('accepted')
+  })
+
+  test('selling a reserved Node early charges the Burn its term still owes', () => {
+    const game = { ...seriesA(), time: 600 }
+    const box = nodeOf(game, 'server')
+    // On-demand owes nothing beyond the sale: the refund, and the Burn stops.
+    const plain = ok(sell(game, 'server'))
+    expect(plain.cash).toBe(game.cash + refundOf(game, box))
+
+    const reserved = ok(setPricing(game, 'server', 'reserved'))
+    const term = nodeOf(reserved, 'server')
+    expect(term.pricingUntil).toBe(game.time + RESERVED_SECONDS)
+    const owed = burnOf(reserved, term) * RESERVED_SECONDS
+    const sold = ok(sell(reserved, 'server'))
+    expect(sold.cash).toBeCloseTo(reserved.cash + refundOf(reserved, term) - owed, 6)
   })
 })

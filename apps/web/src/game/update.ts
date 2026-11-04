@@ -30,6 +30,7 @@ import {
   KINDS,
   LB_POLICIES,
   PM_MODES,
+  PRICINGS,
   RESEARCH,
   RUNTIME_IDS,
   RUNTIMES,
@@ -468,7 +469,7 @@ const mailedTo = (model: Model, fact: Fact, time: number, repeats = false): Mode
   },
 })
 
-/** The Inbox's keys: J and K move, E deletes (or restores), S reports spam, 1 to 3 press a button. */
+/** The Inbox's keys: J and K move, E deletes (or restores), S reports spam, 1 to 9 press a button. */
 const mailKey = (model: Model, key: string): Result | null => {
   const list = folderList(model.board.inbox)
   const at = list.findIndex((mail) => mail.id === model.board.inbox.focus)
@@ -498,19 +499,18 @@ const mailKey = (model: Model, key: string): Result | null => {
         : null
     case 's':
       return current && !current.trashed ? apply(InboxMessage.MarkedSpam({ id: current.id })) : null
-    case '1':
-    case '2':
-    case '3': {
+    default: {
+      // The reader shows every button, so every one of them takes a number, in order.
+      if (!/^[1-9]$/.test(key)) return null
       const action =
         current?.answer === null && current.resolved === null
           ? current.actions[Number(key) - 1]
           : undefined
+      // The Inbox owns the number keys while it is open, so they never reach the board's shortcuts.
       return current && action
         ? foldInbox(model, InboxMessage.Acted({ id: current.id, action: action.id }))
-        : { model } // the Inbox owns 1 to 3 while open, so they never reach the build shortcuts
+        : { model }
     }
-    default:
-      return null
   }
 }
 
@@ -844,6 +844,27 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
       return route(model, Message.WorkRushed({ id: Number(target) }))
     case 'show':
       return target === null ? { model } : route(model, Message.RevealNode({ nodeId: target }))
+    case 'resize':
+    case 'quota':
+    case 'reserved': {
+      // The Inspector holds a Node's size, its limit, and its pricing model (GDD 18 "Senders").
+      const node = model.board.game.nodes.find((entry) => entry.id === target)
+      if (!node) return { model }
+      const inspected = route(model, Message.NodeTapped({ nodeId: node.id }))
+      return {
+        model: {
+          ...inspected.model,
+          panel: 'none',
+          board: { ...inspected.model.board, region: node.region },
+        },
+        commands: [...(inspected.commands ?? []), FocusInspector({})],
+      }
+    }
+    case 'backlog': {
+      const id = target as keyof typeof FEATURES | null
+      if (!id || !(id in FEATURES)) return { model }
+      return act(model, `Queued ${FEATURES[id].name}`, Work.queueFeature(model.board.game, id))
+    }
     case 'trap':
       return withToast(model, 'That was phishing. Check the sender address first.', 'danger')
     default:
@@ -1004,7 +1025,14 @@ const milestones = (
   const commands: Array<AnyCommand> = [...(result.commands ?? [])]
   const stats = countStats(after.founder.stats, events)
   const earned = detectAchievements(
-    { before: before.board.game, after: after.board.game, ledger, events, stats },
+    {
+      before: before.board.game,
+      after: after.board.game,
+      ledger,
+      events,
+      stats,
+      previousBottleneck: before.board.bottleneck,
+    },
     after.founder.achievements,
   )
   const terms = discoverTerms(after.board.game, events).filter(
@@ -3113,6 +3141,20 @@ const handle = (model: Model, message: Message): Result =>
         Actions.setFamily(model.board.game, nodeId, family),
         {
           undoable: true,
+        },
+      ),
+
+    PricingChosen: ({ nodeId, pricing }) =>
+      act(
+        model,
+        `${PRICINGS[pricing].name} pricing`,
+        Actions.setPricing(model.board.game, nodeId, pricing),
+        {
+          undoable: true,
+          note: () =>
+            pricing === 'reserved'
+              ? ['Reserved for one calendar week. Selling early owes the Burn left.', 'ok']
+              : [`Now billed ${PRICINGS[pricing].name.toLowerCase()}.`, 'ok'],
         },
       ),
 

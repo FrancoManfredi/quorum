@@ -1170,7 +1170,7 @@ An audit framework from the AICPA. An independent auditor reports on a service o
 
 Spare cloud capacity sold at a large discount, up to 90% off the on-demand price, that the provider can take back whenever it needs the capacity. AWS gives a two-minute interruption notice. Spot suits stateless, fault-tolerant work such as batch jobs and servers behind a load balancer with spare capacity, not a single database.
 
-**In the game:** Spot pricing is designed but not in the game yet. The closest is the GPU shortage Incident: the provider reclaims a GPU Node, H100s first, and it stays down for the Incident; an LLM API as a fallback makes it a quarter as likely. The Instance failure Incident also kills one Node's host, three times as often on a Node with no second copy as on others.
+**In the game:** Spot pricing runs a Node at 0.3× the on-demand price, and the provider can reclaim it: a Spot reclaim Incident warns for 10 sim seconds and then takes the Node down. Switching the Node to on-demand inside the warning cancels it. A reserved Node costs 0.6× and holds for a calendar week. The GPU shortage Incident is separate: the provider reclaims a GPU Node, H100s first, and an LLM API as a fallback makes it a quarter as likely.
 
 **Design:** [Pricing models](/design/09-economy#pricing-models).
 

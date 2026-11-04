@@ -1,8 +1,11 @@
 import {
   COMPONENTS,
+  DIURNAL_AMPLITUDE,
   ERAS,
   MIGRATION_STEPS,
+  REGIONS,
   RUNTIMES,
+  SPREAD_REGIONS,
   VENTURES,
   VENTURE_IDS,
   type AchievementId,
@@ -12,8 +15,10 @@ import {
 import type { StepEvent } from './events.ts'
 import { PRE_IPO_STAGE } from './ipo.ts'
 import type { Ledger } from './ledger.ts'
+import { isDown } from './lookups.ts'
+import { openRegions, regionDiurnal, regionUsers, spreadRegions } from './regions.ts'
 import { budgetOf, budgeted } from './slo.ts'
-import type { Game } from './state.ts'
+import type { Game, GameNode } from './state.ts'
 import { valuationOf } from './valuation.ts'
 
 /* ==========================================================================
@@ -32,13 +37,33 @@ export type Moment = Readonly<{
   events: ReadonlyArray<StepEvent>
   /** The Founder's counts, with this moment's events already added. */
   stats: AchievementStats
+  /** The Node the Bottleneck search named before this moment, so a check can see it move. */
+  previousBottleneck: string | null
 }>
 
 const SERIES_A = ERAS.findIndex((era) => era.name === 'Series A')
 const SERIES_B = ERAS.findIndex((era) => era.name === 'Series B')
+const SEED = ERAS.findIndex((era) => era.name === 'Seed')
 const PUBLIC = PRE_IPO_STAGE + 1
 const WEEK_HOURS = 7 * 24
 const POSTGRES: ReadonlySet<ComponentId> = new Set(['database', 'pooler', 'replica'])
+/** The database tier a Company fixes to take load off its App Servers. */
+const DATA_TIER: ReadonlySet<ComponentId> = new Set([
+  'database',
+  'pooler',
+  'cache',
+  'replica',
+  'wide',
+  'dsql',
+])
+/** A user hop longer than this crosses regions (05 "Zones and regions"). */
+const FAR_MS = 150
+/** A Node is busy above this share of its capacity. */
+const BUSY = 0.7
+/** Within this share of its 20:00 peak, a region counts as at its local peak: about 45 minutes. */
+const PEAK = 1 + DIURNAL_AMPLITUDE * 0.98
+const BILLION = 1e9
+const SIX_BILLION = 6e9
 
 const reached = (moment: Moment, stage: number): boolean =>
   moment.before.stage < stage && moment.after.stage >= stage
@@ -49,6 +74,9 @@ const languages = (game: Game): ReadonlySet<LanguageId> =>
       .filter((node) => COMPONENTS[node.type].group === 'compute')
       .map((node) => RUNTIMES[node.runtime].language),
   )
+
+const servers = (game: Game): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => node.type === 'server')
 
 /** Equity before any round: the Pre-seed grant's dilution, or none when bootstrapped. */
 const foundedEquity = (game: Game): number =>
@@ -68,6 +96,34 @@ export const countStats = (
   terminations: stats.terminations + events.filter(isTermination).length,
 })
 
+/** A Node that took more capacity this moment: it is new, or its size or copies grew. */
+const grew = (before: Game, node: GameNode): boolean => {
+  const was = before.nodes.find((entry) => entry.id === node.id)
+  return was === undefined || node.size > was.size || node.replicas > was.replicas
+}
+
+const anyGrew = (before: Game, after: Game, where: (node: GameNode) => boolean): boolean =>
+  after.nodes.some((node) => where(node) && grew(before, node))
+
+/** A memory incident is running, killed a Node, or is still in the last postmortems. */
+const memoryIncident = (game: Game, events: ReadonlyArray<StepEvent>): boolean =>
+  game.incident?.kind === 'leak' ||
+  game.nodes.some((node) => node.leak > 0) ||
+  game.postmortems.some((postmortem) => postmortem.kind === 'leak') ||
+  events.some(
+    (event) =>
+      event._tag === 'OutOfMemory' ||
+      (event._tag === 'IncidentResolved' && event.postmortem.kind === 'leak'),
+  )
+
+/** A region is inside its own 20:00 peak. */
+const atLocalPeak = (game: Game): boolean =>
+  REGIONS.some((region) => regionDiurnal(game.time, region) >= PEAK)
+
+/** The wide-column stores the Design runs. */
+const wideStores = (game: Game): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => node.type === 'wide' && !isDown(node))
+
 const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
   'hello-world': ({ ledger }) => ledger.served > 0,
   'works-on-my-machine': ({ events }) =>
@@ -79,10 +135,64 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
     !before.researched.includes('percentiles') &&
     after.researched.includes('percentiles') &&
     ledger.p99 > 5 * ledger.latency,
+  'shared-nothing': (moment) => {
+    const apps = servers(moment.after)
+    return (
+      reached(moment, SEED) &&
+      apps.length > 0 &&
+      apps.every((node) => node.runtime === 'php_fpm') &&
+      !memoryIncident(moment.after, moment.events)
+    )
+  },
+  // The event-loop block is a Node.js App Server stalling one kind (the login hash) for everyone.
+  blocked: ({ before, events }) =>
+    before.incident?.kind === 'loop' &&
+    before.nodes.some(
+      (node) =>
+        node.type === 'server' &&
+        RUNTIMES[node.runtime].language === 'node' &&
+        RUNTIMES[node.runtime].blocking === 'loop',
+    ) &&
+    events.some((event) => event._tag === 'IncidentResolved' && event.postmortem.kind === 'loop'),
+  // The users' hop to the Design: two round trips, so a region two hops away is over 150 ms.
+  'off-by-one-region': ({ ledger }) =>
+    Object.values(ledger.regionKinds).some((kinds) =>
+      Object.values(kinds ?? {}).some(
+        (entry) =>
+          entry !== undefined && entry.rate > 0 && entry.success > 0 && entry.hopMs > FAR_MS,
+      ),
+    ),
+  // An App Server was the bottleneck, the database tier took more capacity and nothing grew the
+  // App Servers, and the App Server is no longer what limits the Design.
+  'littles-law': ({ before, after, ledger, previousBottleneck }) => {
+    const was = before.nodes.find((node) => node.id === previousBottleneck)
+    if (was === undefined || was.type !== 'server') return false
+    if (!anyGrew(before, after, (node) => DATA_TIER.has(node.type))) return false
+    if (anyGrew(before, after, (node) => node.type === 'server')) return false
+    const now = after.nodes.find((node) => node.id === ledger.bottleneck)
+    return (
+      ledger.bottleneck !== was.id &&
+      (now === undefined || COMPONENTS[now.type].group !== 'compute')
+    )
+  },
   metastable: ({ events }) =>
     events.some(
       (event) => event._tag === 'IncidentResolved' && event.postmortem.kind === 'retry-storm',
     ),
+  // Every App Server moved off the old Stack, the migration is over, and the language changed.
+  'big-rewrite': ({ before, after }) => {
+    const moved = before.services.find(
+      (service) =>
+        service.migration !== null &&
+        RUNTIMES[service.migration.runtime].language !==
+          RUNTIMES[service.migration.fromRuntime].language,
+    )
+    if (moved === undefined || moved.migration === null) return false
+    if (after.services.some((service) => service.migration !== null)) return false
+    const target = RUNTIMES[moved.migration.runtime].language
+    const apps = servers(after)
+    return apps.length > 0 && apps.every((node) => RUNTIMES[node.runtime].language === target)
+  },
   strangler: ({ events, ledger }) =>
     events.some(
       (event) => event._tag === 'MigrationShifted' && event.step === MIGRATION_STEPS.length - 1,
@@ -113,6 +223,13 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
         event.postmortem.kind === 'spike' &&
         event.postmortem.lostUsers <= 0,
     ),
+  'egress-shock': ({ ledger }) => {
+    const lines = ledger.burnLines
+    return (
+      lines.egress > 0 &&
+      Object.entries(lines).every(([line, value]) => line === 'egress' || value < lines.egress)
+    )
+  },
   'chaos-monkey': ({ stats }) => stats.terminations >= 100,
   blameless: ({ stats }) => stats.postmortems >= 50,
   nines: ({ after }) => {
@@ -127,9 +244,52 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
     after.stage >= SERIES_A && valuationOf(after, ledger).valuation >= 1e9,
   decacorn: ({ after, ledger }) =>
     after.stage >= SERIES_A && valuationOf(after, ledger).valuation >= 1e10,
+  'everyone-online': ({ after }) => after.users >= SIX_BILLION,
   'rule-of-40': ({ after, ledger }) =>
     after.quarter !== null && valuationOf(after, ledger).ruleOf40 >= 80,
   'beat-and-raise': ({ after }) => after.quarter !== null && after.quarter.streak >= 8,
+  // Every key replicated to three regions, and a read and a write overlap at least one replica.
+  quorum: ({ after, ledger }) =>
+    openRegions(after).length >= SPREAD_REGIONS &&
+    wideStores(after).some(
+      (node) =>
+        node.spread &&
+        node.r + node.w > node.n &&
+        spreadRegions(after, node, SPREAD_REGIONS).length >= SPREAD_REGIONS &&
+        (ledger.nodes[node.id]?.inbound ?? 0) > 0,
+    ),
+  eventually: ({ after }) =>
+    after.users >= BILLION && wideStores(after).some((node) => node.r === 1 && node.w === 1),
+  // A spike is running, an Autoscaler asked its JVM service for copies or they joined, and the
+  // p99 a second earlier holds.
+  'warm-start': ({ before, after, ledger }) => {
+    const prior = before.history.at(-1)?.p99
+    if (before.incident?.kind !== 'spike' || prior === undefined || prior <= 0) return false
+    const scaled = after.nodes.some((node) => {
+      if (node.type !== 'server' || RUNTIMES[node.runtime].language !== 'java') return false
+      const was = before.nodes.find((entry) => entry.id === node.id)
+      return was !== undefined && (node.replicas > was.replicas || node.pending > was.pending)
+    })
+    return scaled && ledger.p99 <= prior
+  },
+  // A celebrity's post: a hot key resolved with no request failed on it.
+  celebrity: ({ before, events }) =>
+    before.incident?.kind === 'hot-key' &&
+    events.some(
+      (event) =>
+        event._tag === 'IncidentResolved' &&
+        event.postmortem.kind === 'hot-key' &&
+        event.postmortem.failed <= 0,
+    ),
+  // Four regions, each with its own users, all of them at home in the evening, and no Node busy.
+  'follow-the-sun': ({ after, ledger }) => {
+    if (openRegions(after).length < REGIONS.length) return false
+    const users = regionUsers(after)
+    if (!REGIONS.every((region) => users[region] > 0)) return false
+    return (
+      atLocalPeak(after) && Object.values(ledger.nodes).every((node) => node.utilization <= BUSY)
+    )
+  },
 }
 
 /** Achievements this moment earns that `owned` does not hold yet. */

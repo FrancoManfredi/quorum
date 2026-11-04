@@ -54,7 +54,7 @@ beside them. The table is the bill the build charges:
 
 | Line          | Formula                                                                                               |
 | ------------- | ----------------------------------------------------------------------------------------------------- |
-| Compute       | Σ instances `vCPU × $0.05 × family price` × cost index; RAM comes with the family                     |
+| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family     |
 | Managed data  | Σ data Nodes at their size price                                                                      |
 | Storage       | Object storage: GB stored × price ([Data tier](/design/07-data-tier#data-volume))                     |
 | Egress        | GB out × egress price ([Egress](#egress))                                                             |
@@ -107,17 +107,19 @@ controls and do not follow a real price.
 
 ## Pricing models
 
-**Not built yet.** Every Node bills at one rate: there is no on-demand, reserved, spot or serverless
-pricing model.
+Every Node bills at one rate until the Series A Era. From Series A, each compute Node — an App
+Server or a Worker — has a pricing model. The player picks it on the Node's card, and the box price
+in the cloud bill is multiplied by it.
 
-From the Series A Era, each compute Node has a pricing model.
+**Built:** On-demand, Reserved and Spot, on sized compute Nodes. **Not built yet:** Serverless, which
+needs the Serverless Function Component and a per-use price.
 
-| Model      | Price   | Condition                                                                                                                                                                                                                                          |
-| ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| On-demand  | 1.0×    | None. Remove at any time.                                                                                                                                                                                                                          |
-| Reserved   | 0.6×    | A commitment of one calendar week. Removing the Node does not stop the Burn until the term ends.                                                                                                                                                   |
-| Spot       | 0.3×    | The provider can reclaim the Node at any time. The player gets a 10-second warning (stylized; the real AWS notice is two minutes). Good for Workers and stateless servers behind a load balancer with spare capacity. Fatal for a single database. |
-| Serverless | Per use | Only for Serverless Functions and managed services.                                                                                                                                                                                                |
+| Model      | Price   | Condition                                                                                                                                                                                                                                                                                         |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| On-demand  | 1.0×    | None. Remove at any time.                                                                                                                                                                                                                                                                         |
+| Reserved   | 0.6×    | A commitment of one calendar week. Removing the Node does not stop the Burn until the term ends: selling it early charges the Burn it still owes, and it cannot change model before then.                                                                                                         |
+| Spot       | 0.3×    | The provider can reclaim the Node at any time. The player gets a 10-second warning (stylized; the real AWS notice is two minutes). A reclaimed Node goes down for 20 sim seconds. Good for Workers and stateless servers behind a load balancer with spare capacity. Fatal for a single database. |
+| Serverless | Per use | Only for Serverless Functions and managed services. **Not built yet.**                                                                                                                                                                                                                            |
 
 The real lesson: the cheapest fleet mixes all three. Reserved instances cover the base load, on-demand
 instances cover the daily peak, and spot instances run batch work.

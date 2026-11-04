@@ -13,6 +13,7 @@ import {
   POD_RESCHEDULE,
   RUNTIMES,
   SLO_FROM_STAGE,
+  SPOT_WARNING,
   STORM_TRIGGER,
   SPIKE_MAGNITUDE,
   WARMED,
@@ -29,6 +30,7 @@ import {
   has,
   isDown,
   podsOf,
+  pricingOf,
   ramOf,
   researchReady,
   restarted,
@@ -58,6 +60,9 @@ export const incidentDuration = (game: Game, kind: IncidentId): number => {
   const def = INCIDENTS[kind]
   // A retry storm ends when the backlog drains, not on the clock; a Sandbox gives it no clock.
   if (kind === 'retry-storm') return game.sandbox ? SANDBOX_STORM : def.duration
+  // A spot reclaim warns for 10 s before it takes the Node, longer than a SEV3 calendar
+  // duration, so it runs on its own clock (09 "Pricing models").
+  if (kind === 'spot-reclaim') return def.duration
   return !game.sandbox && game.stage >= SLO_FROM_STAGE
     ? Math.min(def.duration, CALENDAR_DURATION[def.severity])
     : def.duration
@@ -117,6 +122,12 @@ const gpuTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNod
   game.nodes
     .filter((node) => node.type === 'gpu' && !isDown(node) && busy(ledger, node))
     .map((node) => [node, node.gpu === 'h100' ? 3 : 1] as const)
+
+/** Spot Nodes the provider can reclaim: the ones serving now, with no spot capacity it has nothing to take. */
+const spotTargets = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
+  game.nodes.filter(
+    (node) => pricingOf(game, node) === 'spot' && !isDown(node) && busy(ledger, node),
+  )
 
 /** Nodes an instance failure can hit, weighted toward Nodes with no second copy. */
 const instanceTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNode, number]> =>
@@ -347,6 +358,8 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
         : 0,
     'gpu-shortage': () =>
       gpuTargets(game, ledger).length > 0 ? (hasNode(game, 'llm') ? 0.5 : 2) : 0,
+    // The provider reclaims spot capacity whenever it needs it: no spot Node, no reclaim.
+    'spot-reclaim': () => (spotTargets(game, ledger).length > 0 ? 1.5 : 0),
     regex: () => (hasNode(game, 'waf') ? 1 : 0),
     // 3.0 once the Company could open a second region and every region-bound Node sits in one.
     region: () => {
@@ -424,6 +437,10 @@ export const startIncident = (
       ),
     ),
     Match.when('gpu-shortage', () => pickWeighted(gpuTargets(game, ledger), roll)),
+    Match.when('spot-reclaim', () => {
+      const targets = spotTargets(game, ledger)
+      return targets[Math.floor(roll * targets.length)]
+    }),
     Match.when('cluster-upgrade', () => pickWeighted(clusterTargets(game), roll)),
     Match.when('hot-key', () => {
       const targets = hotKeyTargets(game, ledger)
@@ -449,6 +466,7 @@ export const startIncident = (
     'retry-storm',
     'gc-storm',
     'gpu-shortage',
+    'spot-reclaim',
     'hot-key',
     'cluster-upgrade',
   ] as const
@@ -692,6 +710,13 @@ export const advanceIncident = (
       }
     : counted
   const target = game.nodes.find((node) => node.id === incident.nodeId)
+  // A spot reclaim warns first: 10 s in, the provider takes the Node for the rest of it.
+  const reclaims =
+    incident.kind === 'spot-reclaim' &&
+    target !== undefined &&
+    pricingOf(game, target) === 'spot' &&
+    !isDown(target) &&
+    elapsed >= SPOT_WARNING
   const nodes =
     incident.kind === 'leak' && target
       ? game.nodes.map((node) =>
@@ -699,9 +724,20 @@ export const advanceIncident = (
             ? { ...node, leak: node.leak + ramOf(node) * LEAK_RATE * seconds }
             : node,
         )
-      : game.nodes
+      : reclaims && target
+        ? game.nodes.map((node) =>
+            node.id === target.id
+              ? {
+                  ...node,
+                  ...takeDown(node.life, tracked.remaining, 'failure'),
+                  downAt: game.time,
+                }
+              : node,
+          )
+        : game.nodes
   const next: Game = { ...game, nodes, incident: tracked }
   const elapsedAfter = game.time - incident.startedAt
+  const held = nodes.find((node) => node.id === incident.nodeId)
   const fixed =
     (incident.kind === 'instance' && (!target || target.life._tag !== 'Stopped')) ||
     (incident.kind === 'leak' &&
@@ -718,7 +754,11 @@ export const advanceIncident = (
         (link) =>
           link.retries !== 'none' &&
           game.nodes.some((node) => node.id === link.to && node.type === 'psp'),
-      ))
+      )) ||
+    // A reclaimed Node is back, sold, or no longer spot: the reclaim is over.
+    (incident.kind === 'spot-reclaim' &&
+      elapsedAfter >= SPOT_WARNING &&
+      (!held || held.life._tag !== 'Restarting'))
   return tracked.remaining <= 0 || fixed ? resolve(next) : { game: next, events: [] }
 }
 
