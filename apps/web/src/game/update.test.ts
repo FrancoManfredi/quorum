@@ -9,6 +9,7 @@ import { Option } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import { fromString } from 'foldkit/url'
 import { newGame, preseedGame } from '@quorum/simulation/company'
+import { SIZES } from '@quorum/simulation/catalog'
 import { COMPONENTS, researchList } from '@quorum/simulation/catalog'
 import { researchReady } from '@quorum/simulation/lookups'
 import { solveFlow } from '@quorum/simulation/solve'
@@ -1236,4 +1237,22 @@ test('the $ key opens the cloud bill without changing the Game', () => {
   expect(opened.model.board.game).toBe(start.board.game)
   const closed = update(opened.model, Message.KeyPressed({ key: '$' }))
   expect(closed.model.panel).toBe('none')
+})
+
+test('buying ten sizes grows a Node once, and Max reaches the largest size', () => {
+  const base = {
+    ...inLab(),
+    board: { ...inLab().board, game: { ...preseedGame(), cash: 1e9 } },
+  }
+  const picking = update(base, Message.PlacingChosen({ type: 'server' }))
+  const placed = update(picking.model, Message.NodePlaced({ x: 400, y: 300 })).model
+  const id = placed.board.game.nodes.at(-1)?.id ?? ''
+  const sizeOf = (model: typeof placed) =>
+    model.board.game.nodes.find((node) => node.id === id)?.size ?? -1
+  const before = sizeOf(placed)
+  const ten = update(placed, Message.BulkResizeChosen({ nodeId: id, mode: 'ten' })).model
+  expect(sizeOf(ten)).toBe(Math.min(before + 10, SIZES.length - 1))
+  expect(ten.board.game.cash).toBeLessThan(placed.board.game.cash)
+  const max = update(placed, Message.BulkResizeChosen({ nodeId: id, mode: 'max' })).model
+  expect(sizeOf(max)).toBe(SIZES.length - 1)
 })

@@ -738,6 +738,25 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
           ),
         ],
       ),
+      h.div(
+        [h.Class('flex items-center gap-2 px-1 pt-1')],
+        [
+          smallButton(
+            'Buy ten sizes',
+            ChevronsRight,
+            Message.BulkResizeChosen({ nodeId: node.id, mode: 'ten' }),
+            price !== null && game.cash >= price,
+            h,
+          ),
+          smallButton(
+            'Buy to the largest size',
+            ArrowUp,
+            Message.BulkResizeChosen({ nodeId: node.id, mode: 'max' }),
+            price !== null && game.cash >= price,
+            h,
+          ),
+        ],
+      ),
       segmented(
         'grid-cols-4',
         FAMILY_IDS.map((id) =>

@@ -200,16 +200,16 @@ replication mode, a deploy strategy, a pricing model.
 
 The fix for Upload Labs click fatigue ([Influences](/design/02-influences#why-players-quit)).
 
-| Tool                 | Available from | Effect                                                                                                                                                                 |
-| -------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Buy ×1, ×10, Max     | Start          | Upgrade or place several at once                                                                                                                                       |
-| Hold to repeat       | Start          | Holding Upgrade repeats it every 150 ms                                                                                                                                |
-| Upgrade all of type  | Start          | One action for every selected Node                                                                                                                                     |
-| Multi-select         | Start          | Drag a box; act on all                                                                                                                                                 |
+| Tool                 | Available from | Effect                                                                                         |
+| -------------------- | -------------- | ---------------------------------------------------------------------------------------------- |
+| Buy ×1, ×10, Max     | Start          | Buy ×1 buys one size; ×10 buys up to ten at once, and Max buys to the largest affordable size. |
+| Hold to repeat       | Start          | Not built yet. Holding a card's footer button buys one size; it does not repeat.               |
+| Upgrade all of type  | Start          | Not built yet.                                                                                 |
+| Multi-select         | Start          | Drag a box; act on all                                                                         |
 | Copy and paste       | Start          | Duplicate a selection with its links and settings, including links to Nodes outside it. A paste keeps links inside the selection and to Users, Payments, and Analytics |
-| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                                                                                                  |
-| Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"                                                                                      |
-| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))                                                                                     |
+| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                       |
+| Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"              |
+| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))          |
 
 Rule: no action needs more than five repeated clicks without a bulk alternative.
 

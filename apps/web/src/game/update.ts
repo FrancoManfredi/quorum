@@ -3047,6 +3047,36 @@ const handle = (model: Model, message: Message): Result =>
       return route(model, Message.ResizeChosen({ nodeId, direction: 1 }))
     },
 
+    BulkResizeChosen: ({ nodeId, mode }) => {
+      const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
+      if (!node) return { model }
+      let game = model.board.game
+      let steps = 0
+      for (let index = 0; index < (mode === 'ten' ? 10 : SIZES.length); index += 1) {
+        const next = Actions.resize(game, nodeId, 1)
+        if (Result.isFailure(next)) break
+        game = next.success
+        steps += 1
+      }
+      if (steps === 0) return { model }
+      return act(
+        model,
+        `Resized ${nodeName(model.board.game, nodeId)} ×${steps}`,
+        Result.succeed(game),
+        {
+          undoable: true,
+          note: (after) => {
+            const spent = model.board.game.cash - after.cash
+            return [
+              `${COMPONENTS[node.type].name} grew ${steps} size${steps === 1 ? '' : 's'} to ${SIZES[node.size]?.name ?? node.size}.` +
+                (spent > 0 ? ` Undo (Z) refunds ${money(spent)} for ${UNDO_SECONDS} s.` : ''),
+              'ok',
+            ]
+          },
+        },
+      )
+    },
+
     ResizeChosen: ({ nodeId, direction }) => {
       const logged = logRunAction(model, { _tag: 'Resize', node: nodeId, direction })
       if (logged) return logged
