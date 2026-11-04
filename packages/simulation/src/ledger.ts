@@ -9,6 +9,24 @@ import type { ErrorCause, Failures } from './distribution.ts'
 
 export type NodeStatus = 'idle' | 'ok' | 'warn' | 'danger' | 'down'
 
+/** The cloud bill by line (09 "The cloud bill"), in dollars per second. */
+export type BurnLines = Readonly<{
+  /** Compute, edge, and platform Nodes. */
+  compute: number
+  /** Data Nodes, without the GB they store. */
+  data: number
+  /** GB stored, priced per GB per second. */
+  storage: number
+  /** Egress to the internet, from the origin and the CDN. */
+  egress: number
+  /** Payment Provider fees, scans, tokens, and push messages. */
+  thirdParty: number
+  /** Analytics sampling and retention. */
+  observability: number
+  /** Payroll. */
+  salaries: number
+}>
+
 export type NodeLedger = Readonly<{
   /** Requests per second that arrive. */
   inbound: number
@@ -133,6 +151,8 @@ export type Ledger = Readonly<{
   egress: number
   /** Dollars per second to third parties (Payment Provider fees, scans, tokens), included in `burn`. */
   fees: number
+  /** The same Burn, split by the lines 09 "The cloud bill" lists. Their sum is `burn`. */
+  burnLines: BurnLines
   /** Most users the market holds: the Era's, grown by Features. */
   market: number
   /** Traffic-weighted velocity of the App Servers' Stacks: language × framework. */

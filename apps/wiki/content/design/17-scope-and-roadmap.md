@@ -74,7 +74,7 @@ status shapes on Node cards, arrow-key Node selection with a focus ring, Enter i
 Bootstrapped and six achievements opening Mutators; the 119-entry Glossary with discovery, opened
 from Tradeoff card terms. axe reports no violations on the title screen, the lab with a panel open,
 and a Challenge. Not built: text at 150%, a shape per request kind on packets, a screen-reader list
-of Nodes, the Cost (`$`), Company, and Incidents panel keys, and the 21 achievements whose content
+of Nodes, the Company and Incidents panel keys, and the 21 achievements whose content
 is missing. See [accessibility-checklist.md](https://github.com/elianiva/quorum/blob/main/docs/accessibility-checklist.md).
 
 **M8 status.** Challenge mode, server verification, histograms, the daily drill, and the

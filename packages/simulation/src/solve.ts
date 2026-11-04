@@ -79,6 +79,7 @@ import type {
 } from './ledger.ts'
 import {
   burnOf,
+  burnSharesOf,
   eraOf,
   grown,
   has,
@@ -1507,6 +1508,7 @@ const ledgerOf = (
 
   const subscriptions = subscriptionsOf(game)
   const salaries = payrollOf(game)
+  const shares = burnSharesOf(game)
   const errorTotal = ERROR_CAUSES.reduce((total, cause) => total + errors[cause], 0)
   return {
     nodes,
@@ -1542,6 +1544,15 @@ const ledgerOf = (
     salaries,
     egress,
     fees: thirdParty,
+    burnLines: {
+      compute: shares.compute,
+      data: shares.data,
+      storage: shares.storage,
+      egress,
+      thirdParty,
+      observability: shares.observability,
+      salaries,
+    },
     market: marketOf(game),
     velocity,
     failing,

@@ -288,6 +288,38 @@ export const burnOf = (game: Game, node: GameNode): number => {
   return def.burn * flatScale(node) * index * (node.standby ? 2 : 1)
 }
 
+/** Burn split the way the Cost panel reads it (09 "The cloud bill"), in dollars per second. */
+export type BurnShares = Readonly<{
+  /** Compute, edge, and platform Nodes. */
+  compute: number
+  /** Data Nodes, without the GB they store. */
+  data: number
+  /** GB stored, priced per GB per second. */
+  storage: number
+  /** Analytics, whose Burn is sampling and retention. */
+  observability: number
+}>
+
+export const burnSharesOf = (game: Game): BurnShares => {
+  const index = eraOf(game).costIndex
+  let compute = 0
+  let data = 0
+  let storage = 0
+  let observability = 0
+  for (const node of game.nodes) {
+    const burn = burnOf(game, node)
+    if (node.type === 'analytics') {
+      observability += burn
+      continue
+    }
+    if (COMPONENTS[node.type].group === 'data') {
+      data += burn
+      if (node.type === 'storage') storage += game.stored * STORAGE_PRICE * index
+    } else compute += burn
+  }
+  return { compute, data: data - storage, storage, observability }
+}
+
 /* A Sandbox has no money: every price below is 0 there. */
 
 /** What the copy after `count` copies costs: each further copy costs 25% more. */

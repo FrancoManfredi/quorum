@@ -49,8 +49,8 @@ This keeps the Garage Era active and then removes the click before it becomes a 
 ## The cloud bill
 
 **Burn** is the total Cash spent per second. The HUD shows Cash with its net change per second,
-income minus Burn. **Not built yet:** no Cost panel splits Burn into these lines, and nothing but a
-Burn chart over time breaks it down. The table is the bill the build charges:
+income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
+beside them. The table is the bill the build charges:
 
 | Line          | Formula                                                                                               |
 | ------------- | ----------------------------------------------------------------------------------------------------- |

@@ -2624,6 +2624,12 @@ const handle = (model: Model, message: Message): Result =>
             model,
             Message.PanelOpened({ panel: model.panel === 'inbox' ? 'none' : 'inbox' }),
           )
+        case '$':
+          if (offCompany(model)) return { model }
+          return route(
+            model,
+            Message.PanelOpened({ panel: model.panel === 'cost' ? 'none' : 'cost' }),
+          )
         case 'm':
           return route(model, Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }))
         case 'g':

@@ -47,6 +47,7 @@ export const Panel = Schema.Literals([
   'dashboard',
   'churn',
   'mirror',
+  'cost',
 ])
 export type Panel = typeof Panel.Type
 

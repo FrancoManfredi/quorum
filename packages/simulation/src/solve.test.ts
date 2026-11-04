@@ -660,3 +660,37 @@ describe('the bottleneck marker', () => {
     expect(solve(game).nodes.server?.limit).not.toBe('workers')
   })
 })
+
+describe('the cloud bill by line', () => {
+  test('the lines sum to Burn, and a bigger box raises only Compute', () => {
+    const game = rich(preseedGame(1))
+    const before = solve(game)
+    const lines = before.burnLines
+    expect(
+      lines.compute +
+        lines.data +
+        lines.storage +
+        lines.egress +
+        lines.thirdParty +
+        lines.observability +
+        lines.salaries,
+    ).toBeCloseTo(before.burn, 6)
+
+    const server = game.nodes.find((node) => node.type === 'server')
+    expect(server).toBeDefined()
+    const bigger = rich(tune(game, server?.id ?? '', { size: (server?.size ?? 1) + 1 }))
+    const after = solve(bigger)
+    expect(after.burnLines.compute).toBeGreaterThan(before.burnLines.compute)
+    expect(after.burnLines.data).toBeCloseTo(before.burnLines.data, 6)
+    expect(after.burnLines.salaries).toBeCloseTo(before.burnLines.salaries, 6)
+  })
+
+  test('stored GB bills through Object Storage, so it is its own line only once one is placed', () => {
+    const game = rich(preseedGame(1))
+    const full = solve({ ...game, stored: 500 })
+    // The model charges stored GB on the Object Storage Node (07 "Data volume"); with none
+    // placed, the line is zero however much is stored.
+    expect(full.burnLines.storage).toBe(0)
+    expect(full.burn).toBeCloseTo(solve({ ...game, stored: 0 }).burn, 6)
+  })
+})

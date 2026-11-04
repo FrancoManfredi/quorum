@@ -221,7 +221,7 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 | Research  | `R`          | The tree by track ([Research screen](#research-screen))                                  |
 | Dashboard | `D`          | Charts over time ([Observability](/design/12-observability#the-dashboard))               |
 | Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                                    |
-| Cost      | `C`          | Not built yet. `C` collects the Payments drawer.                                         |
+| Cost      | `$`          | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))     |
 | Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                              |
 | Incidents | —            | Not built yet. No incident history and no runbooks; a postmortem card sits on the board. |
 | Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                            |

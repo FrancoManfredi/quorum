@@ -1228,3 +1228,12 @@ test('a stalled running Study raises a teammate alert that opens Research and cl
   )
   expect(quiet.board.inbox.mail.find((mail) => mail.key === alert!.key)?.read).toBe(true)
 })
+
+test('the $ key opens the cloud bill without changing the Game', () => {
+  const start = inLab()
+  const opened = update(start, Message.KeyPressed({ key: '$' }))
+  expect(opened.model.panel).toBe('cost')
+  expect(opened.model.board.game).toBe(start.board.game)
+  const closed = update(opened.model, Message.KeyPressed({ key: '$' }))
+  expect(closed.model.panel).toBe('none')
+})
