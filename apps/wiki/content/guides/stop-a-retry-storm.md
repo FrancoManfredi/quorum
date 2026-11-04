@@ -5,7 +5,7 @@ section: guides
 order: 6
 era: 3
 aliases: retry storm, retries, metastable failure, timeout, backoff, jitter, circuit breaker, cascade
-gdd: docs/gdd/11-incidents.md
+gdd: /design/11-incidents
 ---
 
 Use this guide when a [Retry storm](/incidents/retry-storm) incident runs, or when errors stay high

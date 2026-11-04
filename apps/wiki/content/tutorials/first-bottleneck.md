@@ -5,7 +5,7 @@ section: tutorials
 order: 2
 era: 0
 aliases: first bottleneck, out of ram, swapping, split the database, cpu credits, burstable, vertical scaling
-gdd: docs/gdd/10-progression.md
+gdd: /design/10-progression
 ---
 
 In this lesson you find the Node that limits your Design, read why, and fix it. You fix two limits

@@ -4,7 +4,7 @@ summary: How latency becomes money, why a slow request earns half, and where you
 section: explanation
 order: 5
 aliases: apdex, revenue, income, satisfied, tolerating, frustrated, payments drawer, collect, value per request
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 In Quorum, speed is money. A request earns its full value only if the user gets an answer fast

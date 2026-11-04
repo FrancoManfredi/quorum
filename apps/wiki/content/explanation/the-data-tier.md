@@ -5,7 +5,7 @@ section: explanation
 order: 7
 era: 1
 aliases: database, postgres, cache, redis, replica, replication lag, stale, slow query, index, n+1, quorum, wide-column, distributed sql, warehouse, hot key
-gdd: docs/gdd/07-data-tier.md
+gdd: /design/07-data-tier
 ---
 
 App Servers are easy to copy. They hold no data, so ten copies are as correct as one. Data is

@@ -5,7 +5,7 @@ section: explanation
 order: 13
 era: 3
 aliases: exit, legacy, prestige, acqui-hire, acquisition, ipo, step down, perks, legacy shop, ventures, mutators, founder, reset, new company, playbooks
-gdd: docs/gdd/13-prestige.md
+gdd: /design/13-prestige
 ---
 
 Quorum is endless, but a single Company is not meant to be. At some point you sell it, list it, or

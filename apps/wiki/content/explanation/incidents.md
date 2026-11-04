@@ -5,7 +5,7 @@ section: explanation
 order: 11
 era: 1
 aliases: incidents, incident director, severity, sev1, sev2, sev3, escalation, postmortem, action item, mttr, error budget, slo, cve, patch, breach, outage
-gdd: docs/gdd/11-incidents.md
+gdd: /design/11-incidents
 ---
 
 An incident is an event that stresses your Design. Incidents are the game's tests: each one is a

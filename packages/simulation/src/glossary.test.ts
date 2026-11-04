@@ -23,9 +23,11 @@ const incident: Incident = {
   region: null,
 }
 
-/* The in-game glossary ships docs/gdd/glossary.md: every heading, in order, with its slug as id. */
+/* The in-game glossary ships apps/wiki/content/design/glossary.md: every heading, in order, with its slug as id. */
 
-const source = fileURLToPath(new URL('../../../docs/gdd/glossary.md', import.meta.url))
+const source = fileURLToPath(
+  new URL('../../../apps/wiki/content/design/glossary.md', import.meta.url),
+)
 
 const slug = (heading: string): string =>
   heading
@@ -34,7 +36,7 @@ const slug = (heading: string): string =>
     .replaceAll(/[^a-z0-9 -]/g, '')
     .replaceAll(' ', '-')
 
-test('the glossary catalog matches docs/gdd/glossary.md', async () => {
+test('the glossary catalog matches the design glossary page', async () => {
   const text = await readFile(source, 'utf8')
   const headings = [...text.matchAll(/^## (.+)$/gm)].map(([, heading]) => heading ?? '')
   expect(GLOSSARY.map((entry) => entry.term)).toEqual(headings.map((heading) => heading.trim()))

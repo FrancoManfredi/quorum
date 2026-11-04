@@ -4,7 +4,7 @@ summary: Why users grow on an S-curve, why they leave fast when Apdex slips, and
 section: explanation
 order: 6
 aliases: users, growth, churn, market, s-curve, fickle, steady, regions, going global, churn breakdown, word of mouth
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 Users are not a currency in Quorum. They are the state that every currency depends on: more users

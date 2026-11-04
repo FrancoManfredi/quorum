@@ -17,7 +17,10 @@ import {
   type ResearchId,
 } from './catalog.ts'
 
-const glossary = readFileSync(new URL('../../../docs/gdd/glossary.md', import.meta.url), 'utf8')
+const glossary = readFileSync(
+  new URL('../../../apps/wiki/content/design/glossary.md', import.meta.url),
+  'utf8',
+)
 
 /* The research catalog against 10 "Research": cost bands, prerequisites, and the GDD's ids. */
 

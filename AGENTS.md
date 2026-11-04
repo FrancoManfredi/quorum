@@ -7,7 +7,7 @@
 - If `vp lint` fails after an install that skipped scripts, run `pnpm exec effect-tsrs patch --oxlint`.
 - Alchemy and infrastructure live only in the root `alchemy.run.ts`; `src/worker.ts` files never import Alchemy.
 - Game rules, catalog, and Game schema live in `packages/simulation`; rendering, input, and storage live in `apps/web`.
-- Never type a catalog number into `apps/wiki/content`; wiki facts come from the catalog.
+- Never type a catalog number into `apps/wiki/content`; wiki facts come from the catalog. The exception is `apps/wiki/content/design`, the game design document (ADR 0012), which may state numbers by hand.
 - `packages/ui` views take data and Messages, never an app's Model.
 - Agent tools only read. Names and protocol live in `packages/mcp-relay`; implementation lives in `apps/web/src/game/agent-tools.ts`.
 - RPC schemas and errors live in `packages/rpc`; handlers live in `apps/backend`.

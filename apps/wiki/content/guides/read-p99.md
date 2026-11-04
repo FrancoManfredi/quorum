@@ -5,7 +5,7 @@ section: guides
 order: 2
 era: 1
 aliases: p99, p95, p50, percentile, tail latency, slow requests, mean latency, latency
-gdd: docs/gdd/12-observability.md
+gdd: /design/12-observability
 ---
 
 Use this guide when Apdex is under target but the mean latency looks fine, or when the p99 on the

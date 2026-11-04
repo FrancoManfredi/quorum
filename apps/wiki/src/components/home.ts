@@ -158,6 +158,17 @@ export const homeView = (page: Page, model: Model, h: H): Html =>
               ),
             ],
           ),
+          h.p(
+            [h.Class('mt-6 text-[13px] text-muted-foreground')],
+            [
+              'The internal design document, for readers who want the rules, formulas, and open questions behind the game: ',
+              h.a(
+                [h.Href('/design'), h.Class('text-foreground underline underline-offset-4')],
+                ['Design'],
+              ),
+              '.',
+            ],
+          ),
           h.div([h.Class('mt-8')], [counts(h)]),
         ],
       ),

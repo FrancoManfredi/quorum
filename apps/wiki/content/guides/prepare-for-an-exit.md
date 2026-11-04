@@ -5,7 +5,7 @@ section: guides
 order: 10
 era: 3
 aliases: exit, legacy, valuation, rule of 40, acqui-hire, acquisition, ipo, step down, prestige, payout
-gdd: docs/gdd/13-prestige.md
+gdd: /design/13-prestige
 ---
 
 Use this guide when the **Exit** button appears on the toolbar and you want to get the most

@@ -1,20 +1,23 @@
-# Reality check
+---
+title: Reality check
+summary: Each real-world claim, the game rule built on it, the simplification, and its source.
+section: design
+order: 20
+---
 
-[Index](./README.md) · [Engineering glossary](./glossary.md)
-
-[Pillar 1](./01-vision.md#pillar-1-every-number-is-a-real-thing) says every number is a real thing.
+[Pillar 1](/design/01-vision#pillar-1-every-number-is-a-real-thing) says every number is a real thing.
 This document lists each real-world claim the game depends on, the rule built on it, how the game
 simplifies it, and a source. A rule without a row here is a bug in the design.
 
 Facts about specific products and versions can change. Check this list again before each content
-milestone ([Roadmap](./17-scope-and-roadmap.md#milestones)).
+milestone ([Roadmap](/design/17-scope-and-roadmap#milestones)).
 
 ## Scale
 
-| Claim                                             | Game rule                               | Simplification                                          | Source                                                                                                       |
-| ------------------------------------------------- | --------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| About 6 billion people used the internet in 2025. | Users stop near 6 billion.              | Rounded; the limit does not grow during play.           | ITU, Facts and Figures 2025: <https://www.itu.int/en/mediacentre/Pages/PR-2025-11-17-Facts-and-Figures.aspx> |
-| Traffic follows a daily cycle.                    | Diurnal demand curve with a 20:00 peak. | One sine wave; real curves have two humps and holidays. | General operations knowledge                                                                                 |
+| Claim                                             | Game rule                                | Simplification                                          | Source                                                                                                       |
+| ------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| About 6 billion people used the internet in 2025. | Users stop near 6 billion.               | Rounded; the limit does not grow during play.           | ITU, Facts and Figures 2025: <https://www.itu.int/en/mediacentre/Pages/PR-2025-11-17-Facts-and-Figures.aspx> |
+| Traffic follows a daily cycle.                    | Diurnal demand curve with a 20\:00 peak. | One sine wave; real curves have two humps and holidays. | General operations knowledge                                                                                 |
 
 ## Determinism
 
@@ -103,7 +106,7 @@ milestone ([Roadmap](./17-scope-and-roadmap.md#milestones)).
 ## Prices
 
 Time-billed prices map one sim second to one real hour; per-use prices keep the real list price
-([Economy](./09-economy.md#how-prices-map-to-real-prices)). Checked on 3 November 2026.
+([Economy](/design/09-economy#how-prices-map-to-real-prices)). Checked on 3 November 2026.
 
 | Claim                                                                                                      | Game rule                                     | Simplification                                  | Source                                                                                                      |
 | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |

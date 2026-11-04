@@ -5,7 +5,7 @@ section: guides
 order: 4
 era: 1
 aliases: database, postgres, db, connections, read replica, cache, pooler, working set, scale up
-gdd: docs/gdd/07-data-tier.md
+gdd: /design/07-data-tier
 ---
 
 Use this guide when the Database is the bottleneck, or when it shows a red or amber callout in

@@ -1,6 +1,9 @@
-# 7. Data tier
-
-[Index](./README.md) · Previous: [Runtimes](./06-runtimes.md) · Next: [Team and velocity](./08-team-and-velocity.md)
+---
+title: 7. Data tier
+summary: Databases, caches, replicas, quorums, consistency, and storage.
+section: design
+order: 7
+---
 
 Stateless app servers are easy to copy. State is hard to copy. This document defines the Components
 that hold state and the mechanics that make the data tier the long-term challenge of the game:
@@ -8,13 +11,17 @@ connections, indexes, caches, replication, consistency, partitioning, and quorum
 
 ## Data volume
 
+Not built yet: only `blob-put` adds stored data. `q-write` and `rt` add nothing, so database and
+realtime growth cost no storage.
+
 The game tracks stored data in GB. Every `q-write`, `blob-put`, and `rt` message adds data. Data never
 shrinks by itself.
 
-- Storage Burn grows with volume ([Economy](./09-economy.md#the-cloud-bill)).
+- Storage Burn grows with volume ([Economy](/design/09-economy#the-cloud-bill)).
 - Table size affects query cost: an unindexed query gets slower as the table grows.
 - Backups, replicas, and migrations take longer as volume grows.
-- Research "Retention policies" deletes or archives old data, and it lowers some feature values.
+- Research "Retention policies" deletes or archives old data, and it lowers some feature values. Not
+  built yet: there is no Retention policies research, and stored data never shrinks.
 
 ## Relational database
 
@@ -26,22 +33,28 @@ built-in full-text search and `q-scan`, both badly at volume.
 ### Capacity
 
 ```text
-capacity = min(cpu_limit, iops_limit, connection_limit)
+capacity = min(cpu_limit, connection_limit)
 ```
 
-| Limit        | Detail                                                                                                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CPU          | Each query kind has a CPU cost. Missing indexes multiply it.                                                                                                             |
-| IOPS         | Reads that miss the buffer cache and every write go to disk. Storage class sets IOPS: general purpose (3,000 base) or provisioned (up to 64,000 at higher cost).         |
-| Connections  | Postgres forks one process per connection, 5 to 10 MB each. `max_connections` is 100 by default. MySQL uses a thread per connection and handles more connections per GB. |
-| Buffer cache | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database. |
+Not built yet: the IOPS and storage-class limits. A Database's capacity is its CPU and its
+connection cap.
+
+| Limit                | Detail                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CPU                  | Each query kind has a CPU cost. Missing indexes multiply it.                                                                                                             |
+| IOPS (Not built yet) | Reads that miss the buffer cache and every write go to disk. Storage class sets IOPS: general purpose (3,000 base) or provisioned (up to 64,000 at higher cost).         |
+| Connections          | Postgres forks one process per connection, 5 to 10 MB each. `max_connections` is 100 by default. MySQL uses a thread per connection and handles more connections per GB. |
+| Buffer cache         | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database. |
 
 ### Variants
 
-| Variant    | Profile                                                                                                                                                                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PostgreSQL | Rich features: JSONB, full-text search, extensions such as pgvector. Process per connection, so it needs a pooler early. MVCC leaves dead rows that `VACUUM` must clean; heavy update load without tuning causes bloat (incident "Table bloat"). |
-| MySQL      | Thread per connection, cheaper connections. Fewer built-in features: no pgvector, weaker full-text search. Replication is simple and widely used.                                                                                                |
+| Variant               | Profile                                                                                                                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PostgreSQL            | Rich features: JSONB, full-text search, extensions such as pgvector. Process per connection, so it needs a pooler early. MVCC leaves dead rows that `VACUUM` must clean; heavy update load without tuning causes bloat (incident "Table bloat"). |
+| MySQL (Not built yet) | Thread per connection, cheaper connections. Fewer built-in features: no pgvector, weaker full-text search. Replication is simple and widely used.                                                                                                |
+
+Not built yet: the MySQL variant, its thread-per-connection behaviour, and the "Table bloat" incident;
+the build's Database is PostgreSQL only.
 
 ### Indexes
 
@@ -49,8 +62,10 @@ Each feature the player ships adds query shapes. Some of them have no index.
 
 - An unindexed query costs `table_rows × 0.0001` ms of CPU instead of a constant. It is invisible at
   small scale and becomes the bottleneck as data grows. This is incident "Slow query"
-  ([Incidents](./11-incidents.md#catalog)).
-- Adding an index costs Dev Hours and adds 5% write cost per index. Too many indexes slow writes.
+  ([Incidents](/design/11-incidents#catalog)).
+- Adding an index costs 4 Dev Hours and covers one unindexed query shape, which lowers the Slow query
+  weight. Not built yet: an index's write cost; indexes add no write cost in the build, so many of
+  them cost nothing.
 - Research "Query analysis" (`EXPLAIN`) shows which query shapes lack an index.
 
 ### Schema migrations
@@ -70,14 +85,14 @@ Real products: PgBouncer, ProxySQL.
 
 Sits between app servers and the database. Many client connections share a few server connections.
 
-| Mode        | Server connections needed  | Limitation                                                                                                                                                           |
-| ----------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session     | One per client session     | Barely helps.                                                                                                                                                        |
-| Transaction | One per active transaction | Session state breaks: session-level prepared statements, advisory locks, and `SET` commands. A service that uses them gets `crash` errors until it spends Dev Hours. |
-| Statement   | One per statement          | Multi-statement transactions are impossible. `q-tx` fails.                                                                                                           |
+| Mode                      | Server connections needed  | Limitation                                                                                                                                                           |
+| ------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session                   | One per client session     | Barely helps.                                                                                                                                                        |
+| Transaction               | One per active transaction | Session state breaks: session-level prepared statements, advisory locks, and `SET` commands. A service that uses them gets `crash` errors until it spends Dev Hours. |
+| Statement (Not built yet) | One per statement          | Multi-statement transactions are impossible. `q-tx` fails.                                                                                                           |
 
-Teaches: [connection pooling](./glossary.md#connection-pooling), and why "just add more app servers"
-can take the database down ([Simulation](./04-simulation.md#connections)).
+Teaches: [connection pooling](/design/glossary#connection-pooling), and why "just add more app servers"
+can take the database down ([Simulation](/design/04-simulation#connections)).
 
 ## Cache
 
@@ -96,12 +111,14 @@ Serves `q-read` from memory. A hit costs 0.5 ms. A miss costs the cache lookup p
 ### Hit ratio
 
 ```text
-hit_ratio = working_set_coverage × (1 − invalidation_rate)
+hit_ratio = working_set_coverage × ttl_factor × (1 − invalidation_rate) × warmth
 working_set_coverage = min(1, cache_memory / hot_data_size) ^ 0.5
+invalidation_rate = min(0.5, 2 × write_share)
 ```
 
 The square root models a skewed access pattern: a small cache already holds the hottest keys, so the
-first GB of cache is worth more than the tenth.
+first GB of cache is worth more than the tenth. `ttl_factor` is the Cache's row in [TTL](#ttl), and
+`warmth` is 1 on a warm Node, falling while a restarted Cache fills.
 
 ### Strategies (a Tradeoff card)
 
@@ -114,11 +131,11 @@ first GB of cache is worth more than the tenth.
 
 ### TTL
 
-| TTL    | Hit ratio | Stale reads on `write`-heavy data |
-| ------ | --------- | --------------------------------- |
-| 10 s   | Low       | Very few                          |
-| 60 s   | Medium    | Some                              |
-| 1 hour | High      | Many                              |
+| TTL    | Hit-ratio factor | Stale reads on `write`-heavy data    |
+| ------ | ---------------- | ------------------------------------ |
+| 10 s   | 0.6×             | 0.5% of hits per unit of write share |
+| 60 s   | 0.85×            | 2% of hits per unit of write share   |
+| 1 hour | 0.97×            | 10% of hits per unit of write share  |
 
 A stale read counts as a `stale` error only for kinds that need fresh data, such as `write` followed
 by `read` of the same record (read-your-writes) and `buy`. For `page` and `feed`, staleness is
@@ -127,14 +144,14 @@ acceptable up to a limit set by the Venture.
 ### Stampedes
 
 When a hot key expires, or the cache restarts, many requests miss at once and hit the database
-together. This is a [cache stampede](./glossary.md#cache-stampede).
+together. This is a [cache stampede](/design/glossary#cache-stampede).
 
-| Protection (research)          | Effect                                                                               |
-| ------------------------------ | ------------------------------------------------------------------------------------ |
-| Request coalescing             | One request reloads the key while the others wait for it.                            |
-| Probabilistic early expiration | Keys refresh slightly before they expire, at random, so they do not expire together. |
-| Stale-while-revalidate         | Serves the old value while one request refreshes it.                                 |
-| Cache warming                  | Fills a new or restarted cache before it takes traffic.                              |
+| Protection (research)                          | Effect                                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Request coalescing                             | One request reloads the key while the others wait for it.                            |
+| Probabilistic early expiration (Not built yet) | Keys refresh slightly before they expire, at random, so they do not expire together. |
+| Stale-while-revalidate (Not built yet)         | Serves the old value while one request refreshes it.                                 |
+| Cache warming                                  | Fills a new or restarted cache before it takes traffic.                              |
 
 ## Read Replica
 
@@ -148,10 +165,17 @@ A copy of the primary that serves `q-read`. Writes still go to the primary.
 | Synchronous                         | No lag on the synchronous replica. Every write waits for it: +2 ms in the same zone, more across zones. If the replica is down, writes stall.                       |
 | Read-your-writes routing (research) | Sends a user's reads to the primary for a few seconds after that user writes. Removes most `stale` errors and keeps some read load on the primary.                  |
 
+Not built yet: synchronous replication. Research `sync-replication` only gates `consensus`; replicas
+always lag by `base_lag + write_rate × lag_factor`, and no write ever stalls.
+
 Replicas behind a misconfigured route are a common bug: sending `q-write` to a replica fails every
 write. The card shows a red "Read-only" row.
 
 ## Partitioning (sharding)
+
+Not built yet: partitioning and sharding. Research `sharding` only gates `leaderless`; there is no
+shard key choice and no resharding, and a hot shard appears only as the Hot key incident on a Cache or
+Wide-column Store.
 
 Research "Sharding" splits one database into N shards by a key.
 
@@ -171,7 +195,7 @@ Research "Sharding" splits one database into N shards by a key.
 ## Fan-out
 
 When one user request becomes many backend requests, the tail grows
-([Simulation](./04-simulation.md#percentiles)).
+([Simulation](/design/04-simulation#percentiles)).
 
 `feed` is the main example. It has two designs, which is the real Twitter timeline problem:
 
@@ -182,6 +206,9 @@ When one user request becomes many backend requests, the tail grows
 | Hybrid (research)       | Push for normal accounts, pull for celebrities | Bounded                               | Costs Dev Hours, and it is what real systems do.                                                   |
 
 ## Search Engine
+
+Not built yet: the refresh interval, shards and replicas, heap, and the Elasticsearch, OpenSearch, and
+Meilisearch variants. A Search Engine has a size and 400 queries per second per size step.
 
 Real products: Elasticsearch, OpenSearch (variant), Meilisearch (variant).
 
@@ -202,24 +229,30 @@ Feeding the index: either dual writes from the app or a CDC Connector
 
 ## Object Storage
 
+Not built yet: the R2 variant, the storage classes, and Lifecycle rules; the build has one store,
+priced as below.
+
 Real products: Amazon S3, Cloudflare R2, Google Cloud Storage.
 
-Unlimited capacity. Pay per GB stored, per request, and per GB of egress.
+Unlimited capacity. It burns a flat $0.01/s plus $0.000032 per GB stored per second, and it charges
+per request and per GB of egress.
 
-| Variant | Profile                                                                 |
-| ------- | ----------------------------------------------------------------------- |
-| S3      | Standard. Egress costs money unless it goes through a CDN.              |
-| R2      | No egress fees. Slightly higher first-byte latency outside its own CDN. |
+| Variant            | Profile                                                                 |
+| ------------------ | ----------------------------------------------------------------------- |
+| S3                 | Standard. Egress costs money unless it goes through a CDN.              |
+| R2 (Not built yet) | No egress fees. Slightly higher first-byte latency outside its own CDN. |
 
-| Storage class     | Storage price | Retrieval                                                      |
-| ----------------- | ------------- | -------------------------------------------------------------- |
-| Standard          | 1.0×          | Instant                                                        |
-| Infrequent access | 0.5×          | Instant, retrieval fee                                         |
-| Archive           | 0.1×          | Hours. A `media` request for archived data fails as `timeout`. |
+| Storage class (Not built yet) | Storage price | Retrieval                                                      |
+| ----------------------------- | ------------- | -------------------------------------------------------------- |
+| Standard                      | 1.0×          | Instant                                                        |
+| Infrequent access             | 0.5×          | Instant, retrieval fee                                         |
+| Archive                       | 0.1×          | Hours. A `media` request for archived data fails as `timeout`. |
 
 Research "Lifecycle rules" moves old objects to cheaper classes automatically.
 
 ## Document Store
+
+Not built yet: the Document Store; there is no `doc` Component in the catalog.
 
 Real products: MongoDB, Firestore, Amazon DynamoDB (AWS lists it as a key-value and document
 database).
@@ -245,10 +278,13 @@ Serves `q-scan`. Columnar storage makes scans cheap.
 
 ## Vector Index
 
+Not built yet: the Vector Index; there is no `vec` Component in the catalog, and `ai` value does not
+change with retrieval.
+
 Real products: pgvector, Pinecone, Qdrant.
 
 Holds embeddings for retrieval-augmented generation. With a Vector Index in the `ai` path, `ai` value
-rises by 30%, because answers use the company's own data.
+rises, because answers use the company's own data.
 
 | Option     | Effect                                                                                      |
 | ---------- | ------------------------------------------------------------------------------------------- |
@@ -263,10 +299,13 @@ This Component is the game's namesake. It replicates each key to N nodes and use
 and writes.
 
 ```text
-N = replication factor     W = nodes that must acknowledge a write     R = nodes asked on a read
+N = replication factor (1 to 5)     W = nodes that must acknowledge a write     R = nodes asked on a read
 R + W > N  →  every read asks at least one replica that acknowledged the latest write
 R + W ≤ N  →  a read can miss the latest write: eventual consistency
 ```
+
+At its base size the store answers 30,000 replica operations per second — three nodes at 10,000
+each — and a write costs N of them, a read R.
 
 | Setting (N = 3)   | Write latency          | Read latency           | Consistency      | Survives                             |
 | ----------------- | ---------------------- | ---------------------- | ---------------- | ------------------------------------ |
@@ -284,13 +323,14 @@ R + W ≤ N  →  a read can miss the latest write: eventual consistency
 - Writes scale linearly with nodes, until the partition key is skewed.
 - No joins and no ad hoc queries. Each query pattern needs its own table, designed for it: +Dev Hours
   per feature.
-- Across regions, `LOCAL_QUORUM` keeps latency local and gives up global consistency.
+- Across regions, `LOCAL_QUORUM` keeps latency local and gives up global consistency. Not built yet:
+  a spread Wide-column Store pays no cross-region latency.
 
 ## Distributed SQL
 
 Real products: CockroachDB, Google Spanner, YugabyteDB.
 
-SQL with transactions across shards and regions, built on consensus ([Raft](./glossary.md#raft)).
+SQL with transactions across shards and regions, built on consensus ([Raft](/design/glossary#raft)).
 
 - Every write waits for a majority of replicas. In one region that costs a few milliseconds. Across
   three regions it costs a cross-region round trip, 70 ms or more.
@@ -330,8 +370,8 @@ From the Series C Era, the player must decide where each kind of data lives.
 | Leaderless (wide-column)        | Local quorum                                    | Local quorum                  | Fine, with eventual consistency across regions.                  |
 | Consensus (distributed SQL)     | Local (follower reads, stale) or remote (fresh) | Majority across regions, slow | Fine, no data loss.                                              |
 
-[RPO and RTO](./glossary.md#rpo-and-rto) are scored in the Pre-IPO Era, when a disaster recovery audit
-is part of the IPO checklist ([Progression](./10-progression.md#era-6-pre-ipo)).
+[RPO and RTO](/design/glossary#rpo-and-rto) are scored in the Pre-IPO Era, when a disaster recovery audit
+is part of the IPO checklist ([Progression](/design/10-progression#era-6-pre-ipo)).
 
 ## Backups
 
@@ -340,6 +380,9 @@ is part of the IPO checklist ([Progression](./10-progression.md#era-6-pre-ipo)).
 | None                                   | Everything | Free until "Accidental delete" happens |
 | Nightly snapshot                       | 24 hours   | Storage                                |
 | Point-in-time recovery (WAL archiving) | Minutes    | Storage and IOPS                       |
+
+Not built yet: the 20% restore failure of untested backups, and research "Restore drills"; neither
+changes a restore.
 
 Incident "Accidental delete" (a real class of outage) deletes a table. With no backup, the company
 loses users and data. Restore time grows with data volume. Untested backups have a 20% chance to fail

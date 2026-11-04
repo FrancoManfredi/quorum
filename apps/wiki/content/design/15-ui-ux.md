@@ -1,9 +1,12 @@
-# 15. Interface and game feel
+---
+title: 15. Interface and game feel
+summary: The board, Node cards, feedback, bulk actions, and accessibility.
+section: design
+order: 15
+---
 
-[Index](./README.md) · Previous: [Sandbox, Challenges, and achievements](./14-challenges.md) · Next: [Balancing](./16-balancing.md)
-
-This document applies [pillar 4: the board is the dashboard](./01-vision.md#pillar-4-the-board-is-the-dashboard)
-and [pillar 5: respect the player](./01-vision.md#pillar-5-respect-the-player).
+This document applies [pillar 4: the board is the dashboard](/design/01-vision#pillar-4-the-board-is-the-dashboard)
+and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player).
 
 ## Interface rules
 
@@ -21,7 +24,7 @@ and [pillar 5: respect the player](./01-vision.md#pillar-5-respect-the-player).
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ HUD: $/s · Cash · Burn · Users (growth) · Apdex · p99 · Error % · Insight · DH · Date │
+│ HUD: Cash (net $/s) · Users (growth) · Apdex · p99 · Error % · Insight · DH · Date    │
 ├──────────────────────────────────────────────────────────────────────────────┬───────┤
 │                                                                              │       │
 │                                   BOARD                                       │ Inspector
@@ -31,7 +34,7 @@ and [pillar 5: respect the player](./01-vision.md#pillar-5-respect-the-player).
 │                                                                              │       │
 │   [Payments]                      [Analytics]                                │       │
 ├──────────────────────────────────────────────────────────────────────────────┴───────┤
-│ Dock: Edge · Compute · Data · Async · Platform · Managed      Research · Team · Cost  │
+│ Dock: Edge · Compute · Data · Ops                             Research · Team · Cost  │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,7 +43,7 @@ The layout shows every element. A new Company starts with fewer
 
 ## Progressive disclosure
 
-The Garage Era is the tutorial ([Progression](./10-progression.md#era-0-garage)), so its screen must
+The Garage Era is the tutorial ([Progression](/design/10-progression#era-0-garage)), so its screen must
 not show the whole game. A new Company starts with the Board, the build dock, the Inbox, pause and
 speed, and four HUD rows: Cash, Users, Apdex, and Latency. Every other element appears the first
 time the game state makes it useful.
@@ -59,7 +62,7 @@ time the game state makes it useful.
    Exit show every element in the table below. The build dock and the Research screen follow their
    own rules for every player.
 6. **How to play never opens by itself.** It stays on `H` for the player who looks for it. The
-   reveals and the mentor's Mail ([Mail](./18-mail.md)) teach the Garage.
+   reveals and the mentor's Mail ([Mail](/design/18-mail)) teach the Garage.
 
 ### Triggers
 
@@ -92,7 +95,8 @@ time the game state makes it useful.
 
 - Flow goes left to right: Users on the left, the data tier on the right, Payments and Analytics at the
   bottom. The board does not enforce this, but new Nodes snap to the matching column.
-- Pan with drag, zoom with the wheel. At low zoom, cards collapse to a chip with a load ring.
+- Pan with drag, zoom with the wheel. Not built yet: at low zoom, cards collapse to a chip with a
+  load ring; the card's rows fade out instead.
 - Cards never overlap. Each card keeps 24 px clear around it. A card dropped on others moves to the
   nearest free spot, preferring its column, and an outline shows that spot while the card is held.
 - Links are belts. They run around cards in orthogonal lanes. Links into one Node merge into one
@@ -101,7 +105,7 @@ time the game state makes it useful.
 - Chevrons on a belt point the way it runs and move at its speed. Requests ride on it as items. A
   busier belt runs faster; an idle belt is grey and still.
 - A link with errors turns red. A belt that crosses zones has orange rails: its calls pay the
-  cross-zone latency and Egress. A link that crosses regions shows its latency.
+  cross-zone latency and Egress. Not built yet: a link that crosses regions shows its latency.
 - From Series C, each region is a tab with its own board.
 - Node groups: the player can box a set of Nodes as a Service. The box shows the Service's name, team,
   and Stack.
@@ -116,30 +120,37 @@ Each card is a small window, like Upload Labs. The card is the main information 
 │ Capacity    ▓▓▓▓▓▓▓▓░░  82% of 512   │
 │ Limit       workers 20/20            │   ← after research `profiling`
 │ Latency     38 ms   p99 210 ms       │   ← p99 after research `percentiles`
-│ Out         q-read 840 · q-write 60  │
+│ Out         900/s                    │
 │ [Upgrade $1.2k]                      │
 └──────────────────────────────────────┘
 ```
 
-| Element       | Rule                                                                                                               |
-| ------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Code chip     | Three or four letters (`APP`, `SQL`, `KV`, `CDN`). Color by group.                                                 |
-| Status stripe | Left edge. Green, amber above 70%, red above 90%, grey when down, striped when warming up.                         |
-| Stack         | Runtime variant and framework for compute Nodes. Engine and mode for data Nodes.                                   |
-| Load bar      | Utilization of the limiting resource.                                                                              |
-| Stranded row  | Red, replaces Out, when requests have nowhere to go.                                                               |
-| Bottleneck    | A pulsing outline on the one Node with the highest lost revenue ([Simulation](./04-simulation.md#the-bottleneck)). |
+Not built yet: the `Limit` row (after research `profiling`); the gauges that explain the limit live
+in the Inspector.
+
+| Element      | Rule                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Code chip    | Three or four letters (`APP`, `SQL`, `KV`, `CDN`). Color by group.                                                    |
+| Status mark  | A shape on the medallion's corner: a dot when ok, a triangle above 70%, a square above 90%, a cross when down.        |
+| Stack        | Runtime variant and framework for compute Nodes. Engine and mode for data Nodes.                                      |
+| Load bar     | Utilization of the limiting resource.                                                                                 |
+| Stranded row | Red, replaces Out, when requests have nowhere to go.                                                                  |
+| Bottleneck   | A pulsing outline on the one Node with the highest lost revenue ([Simulation](/design/04-simulation#the-bottleneck)). |
 
 ## Feedback after a change
 
 The Factorio pleasure of watching a system settle is a feature
-([Influences](./02-influences.md#factorio)).
+([Influences](/design/02-influences#factorio)).
 
 1. The player makes a change.
-2. The HUD shows **Settling** while queues drain and caches warm, with a small progress ring.
-3. When rates stop changing (less than 1% change over 3 seconds), the HUD shows **Stable**.
-4. A delta toast compares before and after: "+$1.40/s (+18%) · p99 −120 ms · errors −2.1%".
-5. If the change made things worse, the toast is red and offers Undo.
+2. The HUD pill names the action, such as "Resized App Server", while queues drain and caches warm,
+   with a small progress ring. It never says "Settling".
+3. When rates stop changing (less than 1% change over 3 seconds), the pill shows **Stable** for 2
+   seconds.
+4. A delta pill compares before and after: "+$1.40/s (+18%) · p99 −120 ms · errors −2.1%", with a
+   green dot.
+5. A change that made things worse gets a red dot, not a red pill. Undo sits beside the delta for a
+   good change too.
 
 Undo and redo cover every board action for the last 50 actions. Undo refunds the full cost if the
 action was less than 30 seconds ago, so experimenting is cheap. After 30 seconds, undo settles Cash
@@ -174,21 +185,20 @@ replication mode, a deploy strategy, a pricing model.
 - **Preview** runs a ghost copy of the simulation for 10 sim seconds with the option applied and
   shows the result. The player sees the effect on their own design before they pay.
 - The card names the real behavior behind each axis and links to the
-  [engineering glossary](./glossary.md).
+  [engineering glossary](/design/glossary).
 - After the first time, the card collapses to one line with the preview numbers.
 - The preview shows the settled effect: the changed Nodes start up and warm. The restart is stated
   on its own, as "restarts cold for N s".
 - Hovering an option shows its card. Clicking pins it with Confirm and Cancel. Once an option set
   has been confirmed, a click applies the option at once.
 - The radar is drawn for Stack choices only (runtimes and frameworks), where
-  [Runtimes](./06-runtimes.md) defines the six axes. Other option sets, such as the instance family,
+  [Runtimes](/design/06-runtimes) defines the six axes. Other option sets, such as the instance family,
   show the preview and cost lines.
-- Until the in-game glossary (M9), glossary terms show as text that names their glossary entry on
-  hover.
+- Glossary terms on a card are buttons that open the glossary at that entry.
 
 ## Bulk actions
 
-The fix for Upload Labs click fatigue ([Influences](./02-influences.md#why-players-quit)).
+The fix for Upload Labs click fatigue ([Influences](/design/02-influences#why-players-quit)).
 
 | Tool                 | Available from | Effect                                                                                                                                                                 |
 | -------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -197,26 +207,26 @@ The fix for Upload Labs click fatigue ([Influences](./02-influences.md#why-playe
 | Upgrade all of type  | Start          | One action for every selected Node                                                                                                                                     |
 | Multi-select         | Start          | Drag a box; act on all                                                                                                                                                 |
 | Copy and paste       | Start          | Duplicate a selection with its links and settings, including links to Nodes outside it. A paste keeps links inside the selection and to Users, Payments, and Analytics |
-| Autoscaler           | Series A       | Capacity follows demand ([Components](./05-components.md#autoscaler))                                                                                                  |
+| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                                                                                                  |
 | Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"                                                                                      |
-| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](./13-prestige.md#playbooks))                                                                                     |
+| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))                                                                                     |
 
 Rule: no action needs more than five repeated clicks without a bulk alternative.
 
 ## Panels
 
-| Panel     | Opens with   | Contents                                                                   |
-| --------- | ------------ | -------------------------------------------------------------------------- |
-| Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards |
-| Research  | `R`          | The tree by track ([Research screen](#research-screen))                    |
-| Dashboard | `D`          | Charts over time ([Observability](./12-observability.md#the-dashboard))    |
-| Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                      |
-| Cost      | `C`          | The cloud bill by line, per service, and per kind                          |
-| Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](./18-mail.md))                   |
-| Incidents | —            | The active incident, history, postmortems, runbooks                        |
-| Glossary  | `G`          | The engineering glossary, with discovered entries highlighted              |
-| Company   | `E`          | Era, milestone, funding, Equity, valuation, the IPO checklist              |
-| Churn     | Users on HUD | The [Churn breakdown](./12-observability.md#the-churn-breakdown) by region |
+| Panel     | Opens with   | Contents                                                                                 |
+| --------- | ------------ | ---------------------------------------------------------------------------------------- |
+| Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards               |
+| Research  | `R`          | The tree by track ([Research screen](#research-screen))                                  |
+| Dashboard | `D`          | Charts over time ([Observability](/design/12-observability#the-dashboard))               |
+| Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                                    |
+| Cost      | `C`          | Not built yet. `C` collects the Payments drawer.                                         |
+| Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                              |
+| Incidents | —            | Not built yet. No incident history and no runbooks; a postmortem card sits on the board. |
+| Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                            |
+| Company   | `E`          | Not built yet. `E` is unbound; its content is split between the Exit panel and the HUD.  |
+| Churn     | Users on HUD | The [Churn breakdown](/design/12-observability#the-churn-breakdown) by region            |
 
 ## Research screen
 
@@ -242,13 +252,14 @@ glance instead of reading labels.
 
 ## Notifications
 
-Advice and offers are Mail ([Mail](./18-mail.md)). The rules below cover what stays on the Board.
+Advice and offers are Mail ([Mail](/design/18-mail)). The rules below cover what stays on the Board.
 
-- One banner at a time at the top of the board. Incidents take priority.
+- Banners share one lane at the top of the board and several can stack at once. Incidents take
+  priority.
 - No sounds or popups for routine events. A short sound for an incident and for an Era milestone,
   both mutable.
-- Era transitions use a full-screen card with an illustration, the new kinds, and the new problem in
-  one sentence. One click to continue.
+- Era transitions use a full-screen card with the new kinds and the new problem in one sentence. One
+  click to continue. Not built yet: the illustration.
 
 ## Offline return
 
@@ -257,11 +268,13 @@ its worst utilization, and one suggestion if users were lost at peak.
 
 ## Accessibility
 
-- Request kind colors pass contrast checks, and each kind also has a particle shape (circle, square,
-  triangle, diamond) for color-blind players.
-- Status uses icons and stripes as well as color.
-- Reduced motion: particles become static flow arrows with rate labels.
-- Every action has a keyboard shortcut. The board supports keyboard navigation between Nodes.
+- Request kind colors pass contrast checks. Not built yet: a particle shape per kind (circle,
+  square, triangle, diamond) for color-blind players; packets share one shape in the kind's colour.
+- Status uses icons and shapes as well as color: a dot, a triangle, a square, and a cross on the
+  medallion.
+- Reduced motion: particles stop. Not built yet: static flow arrows with rate labels.
+- Most actions have a keyboard shortcut, and the board supports keyboard navigation between Nodes.
+  Not built yet: shortcuts for placing, linking, Tidy, Fit, and confirming a Tradeoff.
 - Text scales to 150% without breaking cards.
 
 ## Save

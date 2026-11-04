@@ -4,7 +4,7 @@ summary: Why your Company moves through Eras, why each Era's Research needs that
 section: explanation
 order: 10
 aliases: eras, progression, research, studies, study, insight, recipe, pools, spike, milestone, unlock, tracks, queue
-gdd: docs/gdd/10-progression.md
+gdd: /design/10-progression
 ---
 
 A Company grows through eight Eras, from the Garage to the Public Era. Each Era brings new request

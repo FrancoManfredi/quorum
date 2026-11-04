@@ -5,7 +5,7 @@ section: explanation
 order: 4
 era: 1
 aliases: errors, timeout, retry, retry storm, backoff, jitter, circuit breaker, connections, refused, max_connections, idempotency, duplicate
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 A failed request earns nothing and counts as a frustrated user. Quorum gives every failure one cause,

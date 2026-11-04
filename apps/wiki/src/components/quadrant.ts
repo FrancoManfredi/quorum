@@ -1,5 +1,5 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { BookOpen, GraduationCap, Info, Lightbulb, Wrench, type IconNode } from 'lucide'
+import { BookOpen, FileText, GraduationCap, Info, Lightbulb, Wrench, type IconNode } from 'lucide'
 import type { BuildGroup } from '@quorum/simulation/catalog'
 import { groupBadge } from '@quorum/ui/game/bits'
 import type { Section } from '../frontmatter.ts'
@@ -28,6 +28,7 @@ export const QUADRANTS: Readonly<Record<Section, Quadrant>> = {
   guides: { label: 'How-to guides', purpose: 'Fix a problem', icon: Wrench, group: 'compute' },
   explanation: { label: 'Explanation', purpose: 'Understand why', icon: Lightbulb, group: 'data' },
   reference: { label: 'Reference', purpose: 'Look up a fact', icon: BookOpen, group: 'ops' },
+  design: { label: 'Design', purpose: 'Read the design document', icon: FileText, group: 'ops' },
   about: { label: 'About', purpose: 'The wiki itself', icon: Info, group: 'ops' },
 }
 

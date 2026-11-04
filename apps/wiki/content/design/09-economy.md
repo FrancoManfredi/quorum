@@ -1,6 +1,9 @@
-# 9. Economy
-
-[Index](./README.md) · Previous: [Team and velocity](./08-team-and-velocity.md) · Next: [Progression](./10-progression.md)
+---
+title: 9. Economy
+summary: Currencies, sources and sinks, the cloud bill, pricing models, and funding.
+section: design
+order: 9
+---
 
 ## Currencies
 
@@ -23,58 +26,62 @@ Users are not a currency. They are the state that every currency depends on.
 
 | Source            | Detail                                                                                                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Request revenue   | `value × Apdex weight` per served request ([Simulation](./04-simulation.md#apdex-and-revenue)).                                                                                      |
+| Request revenue   | `value × Apdex weight` per served request ([Simulation](/design/04-simulation#apdex-and-revenue)).                                                                                   |
 | Funding grants    | One grant per round raised ([Funding](#funding)).                                                                                                                                    |
 | Subscriptions     | From the Pre-seed Era, the "Paid plans" feature adds a fixed revenue per paying user per calendar day, independent of requests. This makes revenue less spiky and rewards retention. |
-| Challenge rewards | None. Challenges pay in Legacy and badges ([Challenges](./14-challenges.md)).                                                                                                        |
-| Sandbox rewards   | None. A Sandbox pays nothing in any currency ([Sandbox](./14-challenges.md#sandbox)).                                                                                                |
+| Challenge rewards | None. Challenges pay in Legacy and badges ([Challenges](/design/14-challenges)).                                                                                                     |
+| Sandbox rewards   | None. A Sandbox pays nothing in any currency ([Sandbox](/design/14-challenges#sandbox)).                                                                                             |
 
 ### The Payments drawer
 
 Revenue first goes to the **Payments** drawer. The player clicks Collect to move it into Cash.
 
-- The drawer holds 60 seconds of revenue at the current rate, at size 1. Each size step doubles it.
+- The drawer holds 60 seconds of revenue at the current rate, at size 1, and never less than $25.
+  Each size step doubles it.
 - Revenue beyond the drawer's size is lost while the player is playing. While the player is away, the
-  offline simulation pays revenue straight into Cash ([Simulation](./04-simulation.md#offline-progress)).
+  offline simulation pays revenue straight into Cash ([Simulation](/design/04-simulation#offline-progress)).
 - Research "Stripe Billing" (Garage, 30 ◇) collects automatically. After that, the drawer only shows
   the rate.
 
 This keeps the Garage Era active and then removes the click before it becomes a chore
-([pillar 5](./01-vision.md#pillar-5-respect-the-player)).
+([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
 
 ## The cloud bill
 
-**Burn** is the total Cash spent per second. The HUD shows it next to income. The Cost panel splits it
-into these lines, like a real cloud bill:
+**Burn** is the total Cash spent per second. The HUD shows Cash with its net change per second,
+income minus Burn. **Not built yet:** no Cost panel splits Burn into these lines, and nothing but a
+Burn chart over time breaks it down. The table is the bill the build charges:
 
-| Line          | Formula                                                                                      |
-| ------------- | -------------------------------------------------------------------------------------------- |
-| Compute       | Σ instances `vCPU × price_per_vCPU + RAM × price_per_GB`, × family factor, × pricing model   |
-| Managed data  | Σ data Nodes at their size price                                                             |
-| Storage       | GB stored × class price ([Data tier](./07-data-tier.md#data-volume))                         |
-| Egress        | GB out × egress price ([Egress](#egress))                                                    |
-| Requests      | Per-request prices: API Gateway, Serverless Functions, SQS, Object Storage                   |
-| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                              |
-| Observability | Analytics sampling and retention ([Observability](./12-observability.md#the-cost-of-seeing)) |
-| Salaries      | Σ engineers × salary × language factor                                                       |
+| Line          | Formula                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| Compute       | Σ instances `vCPU × $0.05 × family price` × cost index; RAM comes with the family                     |
+| Managed data  | Σ data Nodes at their size price                                                                      |
+| Storage       | Object storage: GB stored × price ([Data tier](/design/07-data-tier#data-volume))                     |
+| Egress        | GB out × egress price ([Egress](#egress))                                                             |
+| Requests      | **Not built yet:** no per-request prices for API Gateway, Serverless Functions, SQS or Object Storage |
+| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                       |
+| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))       |
+| Salaries      | Σ engineers × salary × language factor                                                                |
 
 Real teams are often surprised by the egress, observability, and third-party lines. The game
 surfaces them on purpose.
 
 ### Base prices
 
-| Resource                 | Price             |
-| ------------------------ | ----------------- |
-| vCPU, general family     | $0.05/s           |
-| RAM                      | $0.006/s per GB   |
-| Block storage            | $0.0001/s per GB  |
-| Object storage, standard | $0.00002/s per GB |
-| Engineer salary (base)   | $0.40/s           |
+| Resource                 | Price                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| vCPU, general family     | $0.05/s                                                                                                   |
+| vCPU, family multiplier  | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                    |
+| RAM                      | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory) |
+| Object storage, standard | $0.000032/s per GB                                                                                        |
+| Block storage            | **Not built yet:** no block-storage price and no volume model                                             |
+| Engineer salary (base)   | $0.40/s                                                                                                   |
 
 These are Garage prices. Every price in this document, including placement, Burn, egress, and
-third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee. The index keeps Burn a real share of
-revenue at every size of company. [Balancing](./16-balancing.md#cost-index) holds the index and the
-salary scale, and [Balancing](./16-balancing.md#prices) holds the full table.
+third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee and the
+Auth Provider's per-user price. The index keeps Burn a real share of revenue at every size of
+company. [Balancing](/design/16-balancing#cost-index) holds the index and the salary scale, and
+[Balancing](/design/16-balancing#prices) holds the full table.
 
 ### How prices map to real prices
 
@@ -87,11 +94,11 @@ Each price follows one of two rules, so a player who knows the real price can ch
 
 LLM tokens use the time-billed rule because they compete with GPU Nodes for the same prompts. On
 the same scale, a busy H100 is cheaper per prompt than the LLM API only while it is more than half
-busy, as in real self-hosting ([Reality check](./reality-check.md#prices)).
+busy, as in real self-hosting ([Reality check](/design/reality-check#prices)).
 
-Request values set what a user is worth. On the time-billed rule, a user sends about 0.02 requests
-an hour at about $0.25 each, so revenue is about $4 per user per month. Meta's 2025 worldwide ARPU
-was $57 a year, about $4.75 a month.
+Request values set what a user is worth. A user sends about 0.02 requests a second, which on the
+time-billed rule is 0.02 an hour in real time, at about $0.25 each, so revenue is about $4 per user
+per real month. Meta's 2025 worldwide ARPU was $57 a year, about $4.75 a month.
 
 The two rules do not agree with each other: per-use prices are about 3,600 times cheaper, relative
 to compute, than in a real bill. This is on purpose. At the time-billed rate, every page view would
@@ -99,6 +106,9 @@ pay half its value in egress. Request values, the cost index, and the salary ind
 controls and do not follow a real price.
 
 ## Pricing models
+
+**Not built yet.** Every Node bills at one rate: there is no on-demand, reserved, spot or serverless
+pricing model.
 
 From the Series A Era, each compute Node has a pricing model.
 
@@ -127,44 +137,44 @@ or R2 serves it. A player who ignores egress sees revenue rise and margin fall.
 
 ## Third-party fees
 
-| Service          | Price                                          |
-| ---------------- | ---------------------------------------------- |
-| Payment Provider | 2.9% + $0.30 per successful `buy`, not indexed |
-| Auth Provider    | $0.02 per monthly active user per calendar day |
-| LLM API          | $3.24 per 1,000 tokens                         |
-| Push and email   | $0.0001 per message                            |
-| API Gateway      | $0.002 per request (game dollars)              |
+| Service          | Price                                                      |
+| ---------------- | ---------------------------------------------------------- |
+| Payment Provider | 2.9% + $0.30 per successful `buy`, not indexed             |
+| Auth Provider    | $0.00006/s per user, $0.0864 per calendar day, not indexed |
+| LLM API          | $2.50 per 1,000 tokens                                     |
+| Push and email   | $0.0001 per message                                        |
+| API Gateway      | **Not built yet:** no per-request price                    |
 
 ## Funding
 
 When users reach an Era milestone, investors offer a round. The player can raise or decline.
 
-| Round    | Milestone (users)                | Grant         | Dilution                 | Notes                                            |
-| -------- | -------------------------------- | ------------- | ------------------------ | ------------------------------------------------ |
-| Pre-seed | 1,000                            | $2,500        | 10%                      |                                                  |
-| Seed     | 5,000                            | $15,000       | 19%                      | Carta median 19.4% (Q2 2026)                     |
-| Series A | 25,000                           | $80,000       | 19%                      | Carta median 18.7% (Q2 2026)                     |
-| Series B | 150,000                          | $1,500,000    | 13%                      | Carta median 12.9% (2025)                        |
-| Series C | 1,000,000                        | $18,000,000   | 12%                      | Carta: 16% median across seed to Series C        |
-| Pre-IPO  | 10,000,000                       | $200,000,000  | 10%                      |                                                  |
-| IPO      | 50,000,000 and the IPO checklist | Public market | 15% sold in the offering | [Progression](./10-progression.md#era-6-pre-ipo) |
+| Round    | Milestone (users)                | Grant         | Dilution                 | Notes                                               |
+| -------- | -------------------------------- | ------------- | ------------------------ | --------------------------------------------------- |
+| Pre-seed | 1,000                            | $2,500        | 10%                      |                                                     |
+| Seed     | 5,000                            | $15,000       | 19%                      | Carta median 19.4% (Q2 2026)                        |
+| Series A | 25,000                           | $80,000       | 19%                      | Carta median 18.7% (Q2 2026)                        |
+| Series B | 150,000                          | $1,500,000    | 13%                      | Carta median 12.9% (2025)                           |
+| Series C | 1,000,000                        | $18,000,000   | 12%                      | Carta: 16% median across seed to Series C           |
+| Pre-IPO  | 10,000,000                       | $150,000,000  | 12%                      |                                                     |
+| IPO      | 50,000,000 and the IPO checklist | Public market | 15% sold in the offering | [Progression](/design/10-progression#era-6-pre-ipo) |
 
 A grant is about 17 sim minutes (1,000 s) of the Burn at the milestone, so it stays worth taking
 at every size of company.
 
 **Money buys growth.** An Era that begins with a raised round runs at the full growth rate `g`. An
 Era that begins with a declined round runs at 0.7 × `g`, so it takes about 1.4 times as long
-([Simulation](./04-simulation.md#users-and-growth)). The player trades Equity for speed.
+([Simulation](/design/04-simulation#users-and-growth)). The player trades Equity for speed.
 
 **Declining** a round keeps Equity and gives no grant. The Era still advances, so the new kinds still
 arrive, and the player must pay for them from revenue. A player who declines every round and still
 reaches IPO earns the achievement "Default Alive", named after Paul Graham's essay. The pacing bots
 check that this path does not beat the raise-every-round path in Legacy per hour
-([Balancing](./16-balancing.md#pacing-model)).
+([Balancing](/design/16-balancing#pacing-model)).
 
 Dilution compounds. A founder who raises every round keeps about
-0.90 × 0.81 × 0.81 × 0.87 × 0.88 × 0.90 ≈ 41% before the IPO offering and about 35% after it, which
-is above a typical real founder stake at IPO.
+0.90 × 0.81 × 0.81 × 0.87 × 0.88 × 0.88 ≈ 39.8% before the IPO offering and about 33.8% after it,
+which is above a typical real founder stake at IPO.
 
 ## Valuation
 
@@ -175,22 +185,30 @@ ARR        = revenue per calendar day × 365 × valuation_scale
 growth     = user growth over the last calendar week, annualized, in percent
 margin     = (income − Burn) / income, in percent
 rule_of_40 = growth + margin
-multiple   = 4 + 0.15 × max(0, rule_of_40)            clamped to [2, 30]
+base       = 4 + 0.15 × max(0, rule_of_40)            clamped to [2, 30]
+multiple   = max(1, base + 2 with Investor relations + the quarter's bonus)
 valuation  = ARR × multiple
 ```
 
+The clamp applies to `base` only. Investor relations adds 2 to the multiple, and a public quarter
+adds its bonus, from −10 to +10 ([Progression](/design/10-progression#era-7-public)), so either can
+take the multiple past 30.
+
 `valuation_scale` is 1.5 × 10⁻⁴. Request values are stylized game dollars, so Cash and revenue run
 far above real figures. The scale converts a year of game revenue into the real-dollar ARR that the
-company would report ([Balancing](./16-balancing.md#valuation-scale)). The Valuation, Exit payout,
+company would report ([Balancing](/design/16-balancing#valuation-scale)). The Valuation, Exit payout,
 and Legacy use real dollars. Cash, revenue, and Burn use game dollars.
 
-The [Rule of 40](./glossary.md#rule-of-40) is a real heuristic for software companies: growth plus
+The [Rule of 40](/design/glossary#rule-of-40) is a real heuristic for software companies: growth plus
 profit margin should be at least 40%. It gives the late game a reason to care about margin, not only
 growth.
 
 ## Runway and running out of Cash
 
 **Runway** is Cash divided by net Burn. The HUD shows it when net Burn is positive.
+
+**Not built yet.** There is no runway figure, no bridge offer and no automatic shutdown: Cash goes
+negative and keeps going, and the company never ends.
 
 When Cash reaches zero:
 
@@ -202,7 +220,7 @@ When Cash reaches zero:
    first, until net Burn is zero.
 
 The company never ends. Running out of money is a setback, not a game over
-([pillar 5](./01-vision.md#pillar-5-respect-the-player)).
+([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
 
 ## Sources and sinks summary
 

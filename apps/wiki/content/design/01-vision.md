@@ -1,6 +1,9 @@
-# 1. Vision and pillars
-
-[Index](./README.md) · Next: [Influences and research](./02-influences.md)
+---
+title: 1. Vision and pillars
+summary: What the game is, who it is for, and the rules every design decision follows.
+section: design
+order: 1
+---
 
 ## The pitch
 
@@ -50,11 +53,11 @@ wins.
 
 Each mechanic models a real behavior. The game simplifies, but it never invents a behavior that
 contradicts how real systems work. If an engineer asks "why does this happen", the answer is a
-real concept, such as [Little's law](./glossary.md#littles-law), a
-[GIL](./glossary.md#gil-global-interpreter-lock), or a
-[replication lag](./glossary.md#replication-lag).
+real concept, such as [Little's law](/design/glossary#littles-law), a
+[GIL](/design/glossary#gil-global-interpreter-lock), or a
+[replication lag](/design/glossary#replication-lag).
 
-Test: every rule has a row in [Reality check](./reality-check.md).
+Test: every rule has a row in [Reality check](/design/reality-check).
 
 ### Pillar 2: Tradeoffs, not tiers
 
@@ -64,14 +67,14 @@ risk. Rust is fast and slow to write. Node.js handles many idle connections and 
 work. PHP-FPM is slow per request and cannot leak memory between requests.
 
 Test: for each runtime, framework, and Component variant, at least one realistic design exists in
-which it is the best choice. [Balancing](./16-balancing.md#the-dominance-test) defines the check.
+which it is the best choice. [Balancing](/design/16-balancing#the-dominance-test) defines the check.
 
 ### Pillar 3: The bottleneck is the content
 
 The game creates content by moving the bottleneck. Each fix shifts the constraint to a different
 place. A new unlock must introduce a new problem, not a bigger number with a new label. This pillar
 answers the main complaint about Upload Labs: "the same loop with different labels"
-([Influences](./02-influences.md#why-players-quit)).
+([Influences](/design/02-influences#why-players-quit)).
 
 Test: each Era brings at least one new failure mode that the previous Era's tools cannot solve.
 
@@ -98,9 +101,9 @@ Test: no action needs more than five repeated clicks without a bulk alternative.
 - **Not a vendor catalog.** Products appear as examples of a category, such as "Cache (Redis)".
   The game does not rank vendors.
 - **Not a Kubernetes simulator.** Quorum models the behaviors that the player optimizes, and it
-  models them directly ([ADR 0002](../adr/0002-endless-incremental-game-in-the-browser.md)).
+  models them directly ([ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)).
 - **Not an infinite number treadmill.** The user count stops at the number of people online, about
-  6 billion ([Reality check](./reality-check.md#scale)). After that, the game is about margin,
+  6 billion ([Reality check](/design/reality-check#scale)). After that, the game is about margin,
   latency, and reliability.
 - **Not a language war with a winner.** Stereotypes such as "PHP is slow" are the starting point of
   a mechanic, not its conclusion.
@@ -118,6 +121,6 @@ Test: no action needs more than five repeated clicks without a bulk alternative.
 
 ## Related documents
 
-- [Game loops](./03-game-loops.md) turns the experience goals into loops.
-- [Runtimes and frameworks](./06-runtimes.md) is the main application of pillar 2.
-- [Interface and game feel](./15-ui-ux.md) is the main application of pillar 4.
+- [Game loops](/design/03-game-loops) turns the experience goals into loops.
+- [Runtimes and frameworks](/design/06-runtimes) is the main application of pillar 2.
+- [Interface and game feel](/design/15-ui-ux) is the main application of pillar 4.

@@ -5,7 +5,7 @@ section: explanation
 order: 8
 era: 1
 aliases: team, dev hours, dh, velocity, engineers, hiring, layoff, coordination, brooks's law, tech debt, policy, deploys, backlog, migration, platform team, autopilot
-gdd: docs/gdd/08-team-and-velocity.md
+gdd: /design/08-team-and-velocity
 ---
 
 Servers are half of your Company. The other half is the people who change them. Their work is

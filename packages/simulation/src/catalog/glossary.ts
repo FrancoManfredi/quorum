@@ -1,4 +1,4 @@
-/* The engineering glossary (docs/gdd/glossary.md), shipped in the Glossary panel. `glossary.test.ts` keeps the two in sync. */
+/* The engineering glossary (apps/wiki/content/design/glossary.md), shipped in the Glossary panel. `glossary.test.ts` keeps the two in sync. */
 
 export const GLOSSARY_CATEGORIES = [
   'performance',

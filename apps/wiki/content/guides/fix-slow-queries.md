@@ -5,7 +5,7 @@ section: guides
 order: 7
 era: 1
 aliases: slow query, index, add index, explain, query analysis, n+1, eager loading, unindexed, table scan
-gdd: docs/gdd/07-data-tier.md
+gdd: /design/07-data-tier
 ---
 
 Use this guide when a [Slow query](/incidents/slow-query) incident runs, or when the Database CPU

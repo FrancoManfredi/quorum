@@ -1,6 +1,9 @@
-# 2. Influences and research
-
-[Index](./README.md) · Previous: [Vision](./01-vision.md) · Next: [Game loops](./03-game-loops.md)
+---
+title: 2. Influences and research
+summary: Why players love Upload Labs, Factorio, and Opus Magnum, and why some players quit.
+section: design
+order: 2
+---
 
 This document records what we learned from comparable games and from players, and how each lesson
 becomes a rule in Quorum. Research was done in October 2026 with web search. Sources are listed at
@@ -21,7 +24,7 @@ Steam reviews, and about 89–90% of them are positive.
 | **Income per second is the score.** Players learn to watch the rate, not the total, and to compare before and after each change.                                                          | Nub Games guide: "Income per second is the better signal because it quickly shows whether a change delivered a real improvement." |
 | **Upgrade the slowest stage.** The core skill is to find the limiting stage, not to add more Nodes. Extra branches can make the system slower because consumers share throughput.         | Nub Games guide: "upgrade the slowest stage instead of boosting the entire network at once".                                      |
 | **Stacked multipliers invite theorycrafting.** Processors such as Refiner, Pre-analyzer, and Enhancer multiply value, size, or research yield. Players discuss the best chains on forums. | Steam discussion "Best combination to get research points?" with chains like "data refiner > pre-analyzer > enhancer > data lab". |
-| **Resource ratios.** Advanced players split CPU, GPU, download, and upload by ratio to the cycles each Node needs.                                                                        | Steam guide "Full Guide 2.2": "If 1 node requires 100C and another requires 50C, split the CPU 2:1."                              |
+| **Resource ratios.** Advanced players split CPU, GPU, download, and upload by ratio to the cycles each Node needs.                                                                        | Steam guide "Full Guide 2.2": "If 1 node requires 100C and another requires 50C, split the CPU 2\:1."                             |
 | **Several currencies, several loops.** Cash, Tokens, Science, Hacker XP, and Application Points each feed a different system.                                                             | Upload Labs wiki, "Progression & Prestige".                                                                                       |
 | **A prestige portal with modifiers.** Version 3.0 reworked the portal around "universe modifiers, which change how you play in exchange for increased game speed".                        | SteamDB patch notes, 20 September 2026.                                                                                           |
 | **It runs in the background.** The game is light and can be minimized.                                                                                                                    | Getting-started guide.                                                                                                            |
@@ -73,7 +76,7 @@ Factorio is the reference for automation games and is popular with software deve
 ## Research in factory games
 
 Research done in November 2026, after the live Insight rate ran far ahead of research costs from
-the Seed Era on ([Balancing](./16-balancing.md#insight-by-kind-and-studies-not-built)).
+the Seed Era on ([Balancing](/design/16-balancing)).
 
 | Observation                                                                                                                                                                         | Evidence                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -89,35 +92,35 @@ the Seed Era on ([Balancing](./16-balancing.md#insight-by-kind-and-studies-not-b
 
 This table turns each lesson into a Quorum rule and names the document that owns it.
 
-| Lesson                           | Quorum rule                                                                                                                          | Owner                                                  |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Nodes as live windows            | Node cards show Inbound, Capacity with a load bar, Stack, Latency, and Out. No decorative art on the board.                          | [Interface](./15-ui-ux.md#node-cards)                  |
-| Left-to-right flow               | Users enter on the left. Data stores sit on the right. Payments and Analytics sit at the bottom.                                     | [Interface](./15-ui-ux.md#the-board)                   |
-| Income per second                | The HUD leads with $/s. Each change shows a delta toast after the system settles.                                                    | [Interface](./15-ui-ux.md#feedback-after-a-change)     |
-| Upgrade the slowest stage        | The simulation is a flow network. The tightest Node limits the chain, and the board marks it.                                        | [Simulation](./04-simulation.md#the-bottleneck)        |
-| Stacked multipliers              | Runtimes, frameworks, and techniques multiply different terms of one formula, so combinations matter.                                | [Runtimes](./06-runtimes.md)                           |
-| Resource ratios                  | Instance types split vCPU and RAM. Each runtime spends them in a different ratio.                                                    | [Runtimes](./06-runtimes.md#the-capacity-model)        |
-| Several currencies               | Cash, Insight, Dev Hours, and Legacy, each with one main source and one main sink.                                                   | [Economy](./09-economy.md)                             |
-| Prestige with modifiers          | Exit grants Legacy. The next company picks a Venture and optional Mutators.                                                          | [Exit and Legacy](./13-prestige.md)                    |
-| **Fix:** shallow late game       | Each Era adds a new failure mode, not a bigger number.                                                                               | [Progression](./10-progression.md#eras)                |
-| **Fix:** meaningless numbers     | Real units only: users, rps, ms, $/s. The user count stops near 6 billion.                                                           | [Balancing](./16-balancing.md#number-ranges)           |
-| **Fix:** click tedium            | Buy ×10 and Buy Max from day one, hold to repeat, policies at Series A, and Playbooks after the first Exit.                          | [Interface](./15-ui-ux.md#bulk-actions)                |
-| **Fix:** poor documentation      | Every Component, runtime, and incident has an in-game card that names the real behavior. The engineering glossary ships in the game. | [Glossary](./glossary.md)                              |
-| **Fix:** monetization pressure   | No paid currency. No timers that payment can skip.                                                                                   | [Vision](./01-vision.md#pillar-5-respect-the-player)   |
-| **Fix:** confusing tutorial      | No tutorial screens. The Garage Era is the tutorial: one box, two request kinds, one choice at a time.                               | [Progression](./10-progression.md#era-0-garage)        |
-| **Fix:** learning needs a replay | Guided Sandboxes teach each later mechanic outside the Company, like Factorio tutorial levels. The free Sandbox is a test bench.     | [Sandbox](./14-challenges.md#sandbox)                  |
-| Evenly spaced goals              | Pacing targets: a new goal every 2–5 minutes early, every 10–20 minutes late.                                                        | [Game loops](./03-game-loops.md#pacing)                |
-| Problems caused by the player    | Incidents attack weaknesses in the player's design. Random bad luck is rare and always survivable with redundancy.                   | [Incidents](./11-incidents.md#design-rules)            |
-| Lack of visibility               | Observability is a progression track. The player earns p99, traces, and profiles.                                                    | [Observability](./12-observability.md)                 |
-| Research paid in kinds           | Insight has a request kind. Each research item costs Insight of the kinds that teach it, so a new Era's research needs its traffic.  | [Observability](./12-observability.md#earning-insight) |
-| Quality beats volume             | Insight grows with the square root of sampled traffic, per Component and kind. A broad Design teaches more than a big one.           | [Observability](./12-observability.md#earning-insight) |
-| Research takes time              | Research is a Study with a duration that takes its Insight over time. A Spike or study-speed research makes it faster.               | [Progression](./10-progression.md#studies)             |
-| Watching the system settle       | After a change, the HUD shows "Settling", then "Stable" with the new rates.                                                          | [Interface](./15-ui-ux.md#feedback-after-a-change)     |
-| Refactoring is inevitable        | Migrations, service splits, and data moves are real projects that cost Dev Hours.                                                    | [Team and velocity](./08-team-and-velocity.md)         |
-| Blueprints                       | Playbooks: saved sub-designs that a player places in one action.                                                                     | [Exit and Legacy](./13-prestige.md#playbooks)          |
-| Histograms on conflicting axes   | Challenges score cost, p99, and complexity on three histograms.                                                                      | [Challenges](./14-challenges.md)                       |
-| Phase shifts                     | Each Era changes what the player optimizes: one box, then scale-out, data, availability, teams, geography, and margin.               | [Progression](./10-progression.md#eras)                |
-| A real ending                    | Each company ends at an Exit with a score. The player chooses to continue.                                                           | [Exit and Legacy](./13-prestige.md)                    |
+| Lesson                           | Quorum rule                                                                                                                          | Owner                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| Nodes as live windows            | Node cards show Inbound, Capacity with a load bar, Stack, Latency, and Out. No decorative art on the board.                          | [Interface](/design/15-ui-ux#node-cards)                  |
+| Left-to-right flow               | Users enter on the left. Data stores sit on the right. Payments and Analytics sit at the bottom.                                     | [Interface](/design/15-ui-ux#the-board)                   |
+| Income per second                | The HUD leads with $/s. Each change shows a delta toast after the system settles.                                                    | [Interface](/design/15-ui-ux#feedback-after-a-change)     |
+| Upgrade the slowest stage        | The simulation is a flow network. The tightest Node limits the chain, and the board marks it.                                        | [Simulation](/design/04-simulation#the-bottleneck)        |
+| Stacked multipliers              | Runtimes, frameworks, and techniques multiply different terms of one formula, so combinations matter.                                | [Runtimes](/design/06-runtimes)                           |
+| Resource ratios                  | Instance types split vCPU and RAM. Each runtime spends them in a different ratio.                                                    | [Runtimes](/design/06-runtimes#the-capacity-model)        |
+| Several currencies               | Cash, Insight, Dev Hours, and Legacy, each with one main source and one main sink.                                                   | [Economy](/design/09-economy)                             |
+| Prestige with modifiers          | Exit grants Legacy. The next company picks a Venture and optional Mutators.                                                          | [Exit and Legacy](/design/13-prestige)                    |
+| **Fix:** shallow late game       | Each Era adds a new failure mode, not a bigger number.                                                                               | [Progression](/design/10-progression#eras)                |
+| **Fix:** meaningless numbers     | Real units only: users, rps, ms, $/s. The user count stops near 6 billion.                                                           | [Balancing](/design/16-balancing#number-ranges)           |
+| **Fix:** click tedium            | Buy ×10 and Buy Max from day one, hold to repeat, policies at Series A, and Playbooks after the first Exit.                          | [Interface](/design/15-ui-ux#bulk-actions)                |
+| **Fix:** poor documentation      | Every Component, runtime, and incident has an in-game card that names the real behavior. The engineering glossary ships in the game. | [Glossary](/design/glossary)                              |
+| **Fix:** monetization pressure   | No paid currency. No timers that payment can skip.                                                                                   | [Vision](/design/01-vision#pillar-5-respect-the-player)   |
+| **Fix:** confusing tutorial      | No tutorial screens. The Garage Era is the tutorial: one box, two request kinds, one choice at a time.                               | [Progression](/design/10-progression#era-0-garage)        |
+| **Fix:** learning needs a replay | Guided Sandboxes teach each later mechanic outside the Company, like Factorio tutorial levels. The free Sandbox is a test bench.     | [Sandbox](/design/14-challenges#sandbox)                  |
+| Evenly spaced goals              | Pacing targets: a new goal every 2–5 minutes early, every 10–20 minutes late.                                                        | [Game loops](/design/03-game-loops#pacing)                |
+| Problems caused by the player    | Incidents attack weaknesses in the player's design. Random bad luck is rare and always survivable with redundancy.                   | [Incidents](/design/11-incidents#design-rules)            |
+| Lack of visibility               | Observability is a progression track. The player earns p99, traces, and profiles.                                                    | [Observability](/design/12-observability)                 |
+| Research paid in kinds           | Insight has a request kind. Each research item costs Insight of the kinds that teach it, so a new Era's research needs its traffic.  | [Observability](/design/12-observability#earning-insight) |
+| Quality beats volume             | Insight grows with the square root of sampled traffic, per Component and kind. A broad Design teaches more than a big one.           | [Observability](/design/12-observability#earning-insight) |
+| Research takes time              | Research is a Study with a duration that takes its Insight over time. A Spike or study-speed research makes it faster.               | [Progression](/design/10-progression#studies)             |
+| Watching the system settle       | After a change, the HUD shows "Settling", then "Stable" with the new rates.                                                          | [Interface](/design/15-ui-ux#feedback-after-a-change)     |
+| Refactoring is inevitable        | Migrations, service splits, and data moves are real projects that cost Dev Hours.                                                    | [Team and velocity](/design/08-team-and-velocity)         |
+| Blueprints                       | Playbooks: saved sub-designs that a player places in one action.                                                                     | [Exit and Legacy](/design/13-prestige#playbooks)          |
+| Histograms on conflicting axes   | Challenges score cost, p99, and complexity on three histograms.                                                                      | [Challenges](/design/14-challenges)                       |
+| Phase shifts                     | Each Era changes what the player optimizes: one box, then scale-out, data, availability, teams, geography, and margin.               | [Progression](/design/10-progression#eras)                |
+| A real ending                    | Each company ends at an Exit with a score. The player chooses to continue.                                                           | [Exit and Legacy](/design/13-prestige)                    |
 
 ## Sources
 

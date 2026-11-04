@@ -9,9 +9,9 @@ number below target.
 
 We keep a user count and an hourly Apdex per region in the Game. Growth and churn run per region on
 that region's Apdex, demand per region is that region's Users, and each region's market is the Era
-market times its share ([GDD 04](../gdd/04-simulation.md#users-and-growth)). At the Series C start,
+market times its share ([GDD 04](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#users-and-growth)). At the Series C start,
 every existing user stays in North America and each far region starts from a seed
-([Going global](../gdd/04-simulation.md#going-global)).
+([Going global](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#going-global)).
 
 Considered options:
 

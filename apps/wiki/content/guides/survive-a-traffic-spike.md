@@ -5,7 +5,7 @@ section: guides
 order: 5
 era: 1
 aliases: traffic spike, spike, hug of death, slashdot, demand, surge, viral, burst
-gdd: docs/gdd/11-incidents.md
+gdd: /design/11-incidents
 ---
 
 Use this guide when a [Traffic spike](/incidents/spike) incident starts, or when you want your

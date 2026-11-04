@@ -5,7 +5,7 @@ section: tutorials
 order: 3
 era: 1
 aliases: first incident, pre-seed, raise, funding round, postmortem, action item, replace, traffic spike, instance failure
-gdd: docs/gdd/11-incidents.md
+gdd: /design/11-incidents
 ---
 
 In this lesson you raise your first funding round and handle your first incident. Incidents start

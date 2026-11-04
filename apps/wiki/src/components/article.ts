@@ -8,7 +8,7 @@ import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { pageAt } from '../pages.ts'
 import { eraPath } from '../reference/shared.ts'
-import { VERSION, editUrl, sourceUrl } from '../site.ts'
+import { VERSION, editUrl } from '../site.ts'
 import { hides } from '../submodels/spoilers.ts'
 import { pathBar, pathNext } from './path-nav.ts'
 import { QUADRANTS, quadrantBadge } from './quadrant.ts'
@@ -119,10 +119,7 @@ const footer = (page: Page, h: H): Html => {
             : h.empty,
           page.gdd
             ? h.a(
-                [
-                  h.Href(sourceUrl(page.gdd)),
-                  h.Class('inline-flex items-center gap-1 hover:text-foreground'),
-                ],
+                [h.Href(page.gdd), h.Class('inline-flex items-center gap-1 hover:text-foreground')],
                 ['Design notes', icon(h, ArrowUpRight, 'size-3.5')],
               )
             : h.empty,

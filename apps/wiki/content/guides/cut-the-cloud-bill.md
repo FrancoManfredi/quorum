@@ -4,7 +4,7 @@ summary: Find the lines that make your Burn, remove idle capacity, pick cheaper 
 section: guides
 order: 3
 aliases: burn, cost, cloud bill, margin, save money, runway, egress, cheaper, spend less
-gdd: docs/gdd/09-economy.md
+gdd: /design/09-economy
 ---
 
 Use this guide when Burn is close to income, your runway is short, or you want a better margin

@@ -1,7 +1,7 @@
 # Regions are tabs over one Design
 
 From Series C, users live on four continents and the Company can run in more than one region
-([GDD 05](../gdd/05-components.md#zones-and-regions), [GDD 10](../gdd/10-progression.md#era-5-series-c)).
+([GDD 05](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/05-components.md#zones-and-regions), [GDD 10](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/10-progression.md#era-5-series-c)).
 The GDD says each region is "a separate board tab, like a planet in Factorio Space Age". We keep one
 Design and one graph: every Node carries a `region` (`na`, `eu`, `apac`, `sa`; default `na`), and the
 board shows one tab per open region, filtered to that region's Nodes. Opening a region adds its own

@@ -4,7 +4,7 @@ summary: How revenue becomes Cash, what your Burn pays for, what raising or decl
 section: explanation
 order: 9
 aliases: cash, burn, money, funding, raise, decline, round, equity, dilution, valuation, rule of 40, margin, payments drawer, subscriptions, ipo, quarters, guidance, negative cash
-gdd: docs/gdd/09-economy.md
+gdd: /design/09-economy
 ---
 
 Cash is what you spend on the board. It comes in from requests your users send, and it goes out as

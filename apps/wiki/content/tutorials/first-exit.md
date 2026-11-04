@@ -5,7 +5,7 @@ section: tutorials
 order: 5
 era: 3
 aliases: first exit, acqui-hire, legacy, prestige, next company, venture, found
-gdd: docs/gdd/13-prestige.md
+gdd: /design/13-prestige
 ---
 
 In this lesson you end your first Company with an Exit, earn Legacy, and start a new Company. Your

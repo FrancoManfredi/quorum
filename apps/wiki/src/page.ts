@@ -25,7 +25,7 @@ export type Page = Readonly<{
   aliases: ReadonlyArray<string>
   /** The repository file to edit, for an authored page. */
   source: string | null
-  /** The GDD file the page rewrites, for maintainers. */
+  /** The design page this page rewrites, for readers who want the source. */
   gdd: string | null
   headings: ReadonlyArray<Heading>
   /** Facts beside the text, such as a Component's infobox. */

@@ -1,0 +1,68 @@
+---
+title: Game design document
+summary: The internal design document: every system, formula, and open question behind the game.
+section: design
+order: 0
+---
+
+This is the internal design document behind Quorum. The game is the source of truth for every
+number; these pages describe what it does and what it does not have yet.
+
+Quorum is an incremental systems game in the spirit of Upload Labs
+and Factorio, built on real engineering behavior.
+
+## The game in one paragraph
+
+You are the first engineer of a startup. Users send requests. You wire Components on a board, pick
+the runtime and framework that each server runs, and watch requests flow through your design as
+particles. Served requests earn Cash. Sampled traffic earns Insight, which buys research. Each fix
+moves the bottleneck somewhere else. Funding rounds bring new kinds of requests that break your
+design in new ways. At the end of a company you Exit, earn Legacy, and found a new company with
+different rules. Every number in the game comes from a real behavior: PHP-FPM workers run out of
+memory, a Node.js event loop stalls on bcrypt, a JVM is slow until it warms up, and an average
+latency hides the p99.
+
+## Table of Contents
+
+| #   | Document                                                       | Answers                                                                                    |
+| --- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 1   | [Vision and pillars](/design/01-vision)                        | What the game is, who it is for, and the rules every design decision follows.              |
+| 2   | [Influences and research](/design/02-influences)               | Why players love Upload Labs, Factorio, and Opus Magnum, and why some players quit.        |
+| 3   | [Game loops](/design/03-game-loops)                            | The six nested loops, from a two-second glance to a hundred-hour mastery goal.             |
+| 4   | [Simulation](/design/04-simulation)                            | How requests, capacity, queues, latency, errors, and users are calculated.                 |
+| 5   | [Components](/design/05-components)                            | Every placeable Component, its real product, its stats, and its options.                   |
+| 6   | [Runtimes and frameworks](/design/06-runtimes)                 | Languages, runtime variants, and frameworks as tradeoffs, not tiers.                       |
+| 7   | [Data tier](/design/07-data-tier)                              | Databases, caches, replicas, quorums, consistency, and storage.                            |
+| 8   | [Team and velocity](/design/08-team-and-velocity)              | Engineers, Dev Hours, features, tech debt, services, and Conway's law.                     |
+| 9   | [Economy](/design/09-economy)                                  | Currencies, sources and sinks, the cloud bill, pricing models, and funding.                |
+| 10  | [Progression](/design/10-progression)                          | Eras, the research tree, product features, and pacing targets.                             |
+| 11  | [Incidents and reliability](/design/11-incidents)              | The incident catalog, the incident loop, SLOs, and error budgets.                          |
+| 12  | [Observability and Insight](/design/12-observability)          | Fog of war for systems: what the player can see and how they earn the right to see more.   |
+| 13  | [Exit and Legacy](/design/13-prestige)                         | The prestige layer: Exits, Legacy, Ventures, and Mutators.                                 |
+| 14  | [Sandbox, Challenges, and achievements](/design/14-challenges) | Guided and free Sandboxes, fixed puzzles with histograms, daily drills, and achievements.  |
+| 15  | [Interface and game feel](/design/15-ui-ux)                    | The board, Node cards, feedback, bulk actions, and accessibility.                          |
+| 16  | [Balancing](/design/16-balancing)                              | Every formula, every tunable constant, and the pacing model.                               |
+| 17  | [Scope and roadmap](/design/17-scope-and-roadmap)              | What ships first, what exists in code today, and open questions.                           |
+| 18  | [Mail](/design/18-mail)                                        | Mail: colour-coded senders, threads, teammates, CVEs, and spam as the game's main channel. |
+| —   | [Measurements](/design/measurements)                           | Balance snapshots taken at a named simulation version.                                     |
+
+## Reference documents
+
+| Document                                                                  | Use it for                                                                            |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md)     | The game vocabulary. Code, UI copy, and these documents use these words.              |
+| [Engineering glossary](/design/glossary)                                  | Real engineering terms that the game teaches, each linked to its mechanic.            |
+| [Reality check](/design/reality-check)                                    | Each real-world claim, the game rule built on it, the simplification, and its source. |
+| [Decision records](https://github.com/elianiva/quorum/tree/main/docs/adr) | The reasons behind load-bearing decisions.                                            |
+
+## Conventions in these documents
+
+- **Bold Capitalized** words, such as **Node**, **Era**, and **Insight**, are game terms defined in
+  [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md).
+- Engineering terms, such as [event loop](/design/glossary#event-loop), link to the
+  [engineering glossary](/design/glossary).
+- Every number is a balance target unless the text says otherwise. The source of truth for numbers
+  in code is `packages/simulation/src/catalog.ts`. When this document and the catalog disagree,
+  [Balancing](/design/16-balancing) records which one wins.
+- "Real" marks a behavior taken from real systems. "Stylized" marks a behavior that the game
+  simplifies or exaggerates for play. [Reality check](/design/reality-check) lists both.

@@ -4,7 +4,14 @@ import { Schema } from 'effect'
    build rejects an unknown field. An entity's prose file (content/components/lb.md) has none:
    its title and facts come from the catalog. */
 
-export const SECTIONS = ['tutorials', 'guides', 'explanation', 'reference', 'about'] as const
+export const SECTIONS = [
+  'tutorials',
+  'guides',
+  'explanation',
+  'reference',
+  'design',
+  'about',
+] as const
 export type Section = (typeof SECTIONS)[number]
 
 export const Frontmatter = Schema.Struct({
@@ -17,7 +24,7 @@ export const Frontmatter = Schema.Struct({
   era: Schema.optionalKey(Schema.String),
   /** Other words a reader may search for, comma-separated. */
   aliases: Schema.optionalKey(Schema.String),
-  /** The GDD file the page rewrites, for maintainers. */
+  /** The design page this page rewrites, for readers who want the source. */
   gdd: Schema.optionalKey(Schema.String),
 })
 export type Frontmatter = typeof Frontmatter.Type

@@ -1,6 +1,9 @@
-# 3. Game loops
-
-[Index](./README.md) · Previous: [Influences](./02-influences.md) · Next: [Simulation](./04-simulation.md)
+---
+title: 3. Game loops
+summary: The six nested loops, from a two-second glance to a hundred-hour mastery goal.
+section: design
+order: 3
+---
 
 Quorum has six nested loops. Each loop feeds the one above it. A short loop must pay off before the
 player loses interest, and a long loop must give a reason to keep playing the short loops.
@@ -23,12 +26,12 @@ The player glances at the board.
 1. **Glance.** Particles move. A card turns amber. The $/s number ticks.
 2. **Collect.** Revenue piles up in the **Payments** drawer. The player clicks to collect it.
    Research "Stripe Billing" automates this
-   ([Progression](./10-progression.md#track-product-and-business)).
+   ([Progression](/design/10-progression#track-product-and-business)).
 3. **React.** The player clicks Upgrade on a red card, or ignores it.
 
 The pulse exists so that an idle player always has a small, satisfying action available. It becomes
 automatic by the end of the Garage Era, because a pulse that never changes becomes a chore
-([pillar 5](./01-vision.md#pillar-5-respect-the-player)).
+([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
 
 ## L1: Bottleneck (30 seconds to 3 minutes)
 
@@ -40,18 +43,18 @@ OBSERVE ──► DIAGNOSE ──► CHANGE ──► SETTLE ──► MEASURE
    └──────────── the bottleneck moves ────────────┘
 ```
 
-| Step     | What the player does                                                                          | What the game provides                                                                           |
-| -------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Observe  | Reads the board: load bars, stranded requests, latency, errors.                               | Node cards and the bottleneck marker ([Interface](./15-ui-ux.md#node-cards)).                    |
-| Diagnose | Asks why. Is the box out of CPU, out of workers, out of memory, or waiting on the database?   | The diagnosis depends on how much the player can see ([Observability](./12-observability.md)).   |
-| Change   | Picks one action: upgrade, place, rewire, change runtime, change a setting, or remove a Node. | Each action has a cost and a Tradeoff card ([Interface](./15-ui-ux.md#tradeoff-cards)).          |
-| Settle   | Waits a few seconds while queues drain and caches warm.                                       | The HUD shows "Settling" and then "Stable" ([Interface](./15-ui-ux.md#feedback-after-a-change)). |
-| Measure  | Compares $/s, p99, and error rate before and after.                                           | A delta toast, for example "+$1.40/s (+18%), p99 −120 ms".                                       |
+| Step     | What the player does                                                                          | What the game provides                                                                              |
+| -------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Observe  | Reads the board: load bars, stranded requests, latency, errors.                               | Node cards and the bottleneck marker ([Interface](/design/15-ui-ux#node-cards)).                    |
+| Diagnose | Asks why. Is the box out of CPU, out of workers, out of memory, or waiting on the database?   | The diagnosis depends on how much the player can see ([Observability](/design/12-observability)).   |
+| Change   | Picks one action: upgrade, place, rewire, change runtime, change a setting, or remove a Node. | Each action has a cost and a Tradeoff card ([Interface](/design/15-ui-ux#tradeoff-cards)).          |
+| Settle   | Waits a few seconds while queues drain and caches warm.                                       | The HUD shows "Settling" and then "Stable" ([Interface](/design/15-ui-ux#feedback-after-a-change)). |
+| Measure  | Compares $/s, p99, and error rate before and after.                                           | A delta toast, for example "+$1.40/s (+18%), p99 −120 ms".                                          |
 
 Rules that keep this loop deep:
 
 - **One tightest Node.** The simulation is a flow network. At any time, one Node limits each request
-  path ([Simulation](./04-simulation.md#the-bottleneck)).
+  path ([Simulation](/design/04-simulation#the-bottleneck)).
 - **Several kinds of bottleneck.** A Node can run out of CPU, workers, memory, connections, disk
   I/O, or network. The fix differs for each. More hardware fixes only some of them.
 - **Fixes have side effects.** A cache removes database load and adds staleness. A replica adds read
@@ -71,15 +74,15 @@ Rules that keep this loop deep:
      DEV HOURS ──► FEATURES ──► more demand per user, new mix, more revenue per request ◄──┘
 ```
 
-- **Users** grow while the design keeps [Apdex](./glossary.md#apdex) above the Era target, and they
-  leave when it drops ([Simulation](./04-simulation.md#users-and-growth)).
+- **Users** grow while the design keeps [Apdex](/design/glossary#apdex) above the Era target, and they
+  leave when it drops ([Simulation](/design/04-simulation#users-and-growth)).
 - **Cash** buys capacity. **Insight** buys research. **Dev Hours** buy features, migrations, and
-  fixes ([Economy](./09-economy.md)).
+  fixes ([Economy](/design/09-economy)).
 - **Features** raise revenue and change the request mix. A successful feature creates load, so it
-  feeds the L1 loop again ([Team and velocity](./08-team-and-velocity.md#features)).
+  feeds the L1 loop again ([Team and velocity](/design/08-team-and-velocity#features)).
 - Growth follows an S-curve toward the Era's market size, so growth slows near the cap. The player
   needs a new Era, a new feature, or a new region to grow further
-  ([Balancing](./16-balancing.md#user-growth)).
+  ([Balancing](/design/16-balancing#user-growth)).
 
 ## L3: Era (30 to 120 minutes)
 
@@ -103,7 +106,7 @@ Each Era is a phase shift: it changes what the player optimizes.
 | Pre-IPO  | Can I prove reliability and make a profit?                         |
 | Public   | Can I beat the quarter, every quarter?                             |
 
-[Progression](./10-progression.md#eras) lists the milestones, grants, kinds, and unlocks.
+[Progression](/design/10-progression#eras) lists the milestones, grants, kinds, and unlocks.
 
 ## L4: Company (6 to 15 hours)
 
@@ -112,11 +115,11 @@ FOUND (pick a Venture, Mutators) ──► Eras ──► EXIT ──► LEGACY 
 ```
 
 - An **Exit** ends a company. Its payout depends on Equity and valuation
-  ([Exit and Legacy](./13-prestige.md#exits)).
+  ([Exit and Legacy](/design/13-prestige#exits)).
 - **Legacy** buys permanent perks, Playbooks, and new Ventures.
 - A **Venture** changes the rules of the next company: its request mix, its constraints, and its
   incidents. A fintech company and a game backend need different designs
-  ([Exit and Legacy](./13-prestige.md#ventures)).
+  ([Exit and Legacy](/design/13-prestige#ventures)).
 
 The first company takes 9 to 12 hours. Later companies take 3 to 6 hours, because Legacy speeds
 the early Eras and Playbooks remove repeated setup.
@@ -124,12 +127,12 @@ the early Eras and Playbooks remove repeated setup.
 ## L5: Mastery (unbounded)
 
 - **Challenges.** Fixed puzzles inspired by real events. Each one scores cost, p99, and complexity on
-  three histograms ([Challenges](./14-challenges.md)).
+  three histograms ([Challenges](/design/14-challenges)).
 - **Daily drill.** A seeded incident that every player gets on the same day.
 - **Sandbox.** Guided Sandboxes teach one mechanic each, and the free Sandbox is a test bench. Neither
-  feeds the Company ([Sandbox](./14-challenges.md#sandbox)).
+  feeds the Company ([Sandbox](/design/14-challenges#sandbox)).
 - **Public Era quarters.** An endless mode in which the player must beat growth and margin targets
-  each quarter ([Progression](./10-progression.md#era-7-public)).
+  each quarter ([Progression](/design/10-progression#era-7-public)).
 - **Achievements.** Achievements reward knowledge and unusual builds, not hours played.
 
 ## Interrupt: the incident loop
@@ -140,19 +143,19 @@ Incidents break into any loop from the Pre-seed Era on.
 SIGNAL ──► TRIAGE ──► MITIGATE ──► RESOLVE ──► POSTMORTEM ──► ACTION ITEMS
 ```
 
-| Step         | Detail                                                                                                                                                          |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signal       | Without alerting, the player notices red cards or a user drop. With alerting, a pager banner appears earlier ([Observability](./12-observability.md#alerting)). |
-| Triage       | The player finds the affected Node and the cause.                                                                                                               |
-| Mitigate     | A fast, temporary action: roll back, shed load, block traffic, fail over, or scale up.                                                                          |
-| Resolve      | The incident ends, or the cause is removed.                                                                                                                     |
-| Postmortem   | The postmortem opens an action item. Until its research is owned, the incident is twice as likely ([Incidents](./11-incidents.md#postmortems)).                 |
-| Action items | Optional Dev Hour tasks that prevent the same class of incident, such as idempotency keys or a runbook.                                                         |
+| Step         | Detail                                                                                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Signal       | Without alerting, the player notices red cards or a user drop. With alerting, a pager banner appears earlier ([Observability](/design/12-observability#alerting)). |
+| Triage       | The player finds the affected Node and the cause.                                                                                                                  |
+| Mitigate     | A fast, temporary action: roll back, shed load, block traffic, fail over, or scale up.                                                                             |
+| Resolve      | The incident ends, or the cause is removed.                                                                                                                        |
+| Postmortem   | The postmortem opens an action item. Until its research is owned, the incident is twice as likely ([Incidents](/design/11-incidents#postmortems)).                 |
+| Action items | Optional Dev Hour tasks that prevent the same class of incident, such as idempotency keys or a runbook.                                                            |
 
 ## Pacing
 
 The pacing model targets a steady stream of goals, as Factorio does
-([Influences](./02-influences.md#factorio)).
+([Influences](/design/02-influences#factorio)).
 
 | Phase                      | Time since start | A new goal every | Typical goal                                     |
 | -------------------------- | ---------------- | ---------------- | ------------------------------------------------ |
@@ -163,7 +166,7 @@ The pacing model targets a steady stream of goals, as Factorio does
 | Series C and Pre-IPO       | 6–10 h           | 10–20 min        | Regions, quorum stores, compliance, cost work    |
 | Public and later companies | 10 h+            | 10–30 min        | Quarter targets, Ventures, Challenges            |
 
-The [Balancing](./16-balancing.md#pacing-model) document holds the curves behind these targets and
+The [Balancing](/design/16-balancing#pacing-model) document holds the curves behind these targets and
 the scripted players that check them.
 
 ## Session shapes
@@ -175,4 +178,4 @@ the scripted players that check them.
 | Deep     | 2–4 h     | A full Era, a migration, or a Challenge set.                                                    |
 | Idle     | Hours     | The design runs. Users grow only while the design holds the SLO. Incidents do not fire offline. |
 
-Offline rules are in [Simulation](./04-simulation.md#offline-progress).
+Offline rules are in [Simulation](/design/04-simulation#offline-progress).

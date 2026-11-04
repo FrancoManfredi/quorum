@@ -10,5 +10,4 @@ export const REPOSITORY = 'https://github.com/elianiva/quorum'
 export const VERSION = SIM_VERSION
 
 /** A link to a file in the repository, for "Edit on GitHub" and GDD sources. */
-export const sourceUrl = (file: string): string => `${REPOSITORY}/blob/main/${file}`
 export const editUrl = (file: string): string => `${REPOSITORY}/edit/main/${file}`

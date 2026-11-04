@@ -2,7 +2,7 @@
 
 Players need one place to learn how Quorum works: what each Component does, why a Design breaks,
 and how to fix it. Upload Labs players quit partly because "this game barely has any
-documentation" ([Influences](../gdd/02-influences.md#why-players-quit)). The wiki lives in
+documentation" ([Influences](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/02-influences.md#why-players-quit)). The wiki lives in
 `apps/wiki` and is served at `https://wiki.playquorum.dev`.
 
 The wiki is a Foldkit app that Foldkit prerenders at build time (`ssr.build.prerender`). Every page
@@ -42,3 +42,9 @@ Considered options:
 - The wiki depends on `@quorum/simulation` and `@quorum/ui` ([ADR 0010](./0010-ui-package.md)),
   never on `apps/web` or `packages/rpc`.
 - What would change it: a need for reader accounts or comments, which would need an API.
+
+## Amendment
+
+[ADR 0012](./0012-the-design-document-lives-in-the-wiki.md) moved the design document into the
+wiki's `design` section. The reasoning above still holds for the four Diátaxis kinds; the sentence
+that the GDD stays outside the wiki no longer does.

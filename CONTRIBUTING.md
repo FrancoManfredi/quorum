@@ -74,7 +74,7 @@ render it again. The other images in `docs/images` are screenshots of the runnin
 
 ## Design notes
 
-- [Game design document](docs/gdd/README.md) — the full design, from simulation to balancing.
+- [Game design document](https://wiki.playquorum.dev/design) — the full design, from simulation to balancing.
 - [CONTEXT.md](CONTEXT.md) — the game vocabulary that code and UI copy use.
 - [docs/adr](docs/adr) — the decisions behind the design and the code.
 - [Architecture](docs/architecture.md) — app and RPC boundaries.

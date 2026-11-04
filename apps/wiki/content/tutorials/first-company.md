@@ -5,7 +5,7 @@ section: tutorials
 order: 1
 era: 0
 aliases: first run, start, new game, garage, collect, payments, drawer, hud
-gdd: docs/gdd/03-game-loops.md
+gdd: /design/03-game-loops
 ---
 
 In this lesson you start a Company, learn what each part of the board shows, and earn your first

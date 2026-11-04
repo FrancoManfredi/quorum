@@ -4,7 +4,7 @@ summary: See how Analytics turns your traffic into Insight, then run your first 
 section: tutorials
 order: 4
 aliases: insight, research, study, studies, pools, recipe, analytics, stripe billing, structured logs
-gdd: docs/gdd/12-observability.md
+gdd: /design/12-observability
 ---
 
 In this lesson you learn where Insight comes from and spend it on Research. You run two Studies:

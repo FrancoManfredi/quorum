@@ -4,7 +4,7 @@ summary: How the game turns your Design and your users into demand, routes it th
 section: explanation
 order: 1
 aliases: flow solve, demand, request kinds, backend kinds, stranded, simulation, ledger
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 Every number in Quorum comes from one model. The game takes your Design and the current demand and

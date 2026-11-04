@@ -4,7 +4,7 @@ summary: Where a request's time goes, why the mean hides your slowest users, and
 section: explanation
 order: 2
 aliases: latency, p99, p95, p50, percentile, tail latency, mean, fan-out, gc pause
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 Latency is the time a user waits for an answer. Quorum computes it for every request kind on every

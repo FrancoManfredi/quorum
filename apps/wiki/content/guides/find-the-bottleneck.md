@@ -4,7 +4,7 @@ summary: Find the one Node that limits your Design, learn which of its resources
 section: guides
 order: 1
 aliases: bottleneck, slow design, red node, amber node, limit, saturation, hottest node
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 Use this guide when Apdex falls under its target, users leave, and you do not know which Node to fix.

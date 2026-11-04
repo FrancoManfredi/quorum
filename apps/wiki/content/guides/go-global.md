@@ -5,7 +5,7 @@ section: guides
 order: 9
 era: 5
 aliases: regions, multi-region, geodns, latency abroad, europe, apac, region outage, mirror, anycast
-gdd: docs/gdd/10-progression.md
+gdd: /design/10-progression
 ---
 
 Use this guide when you reach the Series C Era and users abroad are slow, or when you need to

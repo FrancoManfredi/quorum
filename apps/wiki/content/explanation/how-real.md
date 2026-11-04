@@ -4,7 +4,7 @@ summary: What the Simulation models faithfully, what it simplifies on purpose, a
 section: explanation
 order: 14
 aliases: realism, accuracy, simplification, model, simulation, determinism, real world, faithful, limits, what is not modeled
-gdd: docs/gdd/reality-check.md
+gdd: /design/reality-check
 ---
 
 Quorum tries to teach real systems engineering through play. Every rule has to be true enough that

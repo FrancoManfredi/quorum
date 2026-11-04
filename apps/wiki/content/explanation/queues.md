@@ -4,7 +4,7 @@ summary: Why a Node gets slow long before it is full, what the amber and red car
 section: explanation
 order: 3
 aliases: utilization, capacity, saturation, queueing, hockey stick, backlog, queue depth, little's law, headroom
-gdd: docs/gdd/04-simulation.md
+gdd: /design/04-simulation
 ---
 
 Every Node has a capacity: the most work it can do per second. How full a Node is decides how long

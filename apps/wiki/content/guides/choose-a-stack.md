@@ -4,7 +4,7 @@ summary: Pick the runtime and framework for your App Servers from the limit your
 section: guides
 order: 8
 aliases: stack, runtime, framework, language, migration, php, node, go, java, rust, elixir, strangler
-gdd: docs/gdd/06-runtimes.md
+gdd: /design/06-runtimes
 ---
 
 Use this guide when your App Servers hit a limit that capacity does not fix, or when you want the

@@ -3,8 +3,8 @@
 The Simulation lives in `packages/simulation` (`@quorum/simulation`), not inside the website.
 The browser plays it, and from M8 the API Worker replays Challenge submissions with it to compute
 the authoritative score ([ADR 0002](./0002-endless-incremental-game-in-the-browser.md),
-[Challenges](../gdd/14-challenges.md#rules)). Two runtimes execute the same code, so it is a real
-shared boundary, and [GDD 17](../gdd/17-scope-and-roadmap.md#scope-rules) already names it: the
+[Challenges](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/14-challenges.md#rules)). Two runtimes execute the same code, so it is a real
+shared boundary, and [GDD 17](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/17-scope-and-roadmap.md#scope-rules) already names it: the
 Simulation stays a pure module that runs in tests, offline progress, the Tradeoff preview, and
 server verification. CONTEXT.md defines the word, so the package is named for it.
 
@@ -25,7 +25,7 @@ Considered options:
 - The Simulation imports only `effect` and its own files. Its tsconfig has no DOM library, and
   `src/purity.test.ts` rejects any other import, host globals such as `Date` and `window`, and the
   math that engines may compute differently (`Math.cos`, `Math.exp`, `Math.pow`, `**`, and the
-  rest), as [GDD 04](../gdd/04-simulation.md#determinism-and-randomness) requires.
+  rest), as [GDD 04](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#determinism-and-randomness) requires.
 - `src/golden.test.ts` replays one fixed Company for 10,000 Steps and checks the hash of the Game.
   A change that moves the hash bumps `SIM_VERSION`, so results from different versions are never
   compared.

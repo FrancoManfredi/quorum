@@ -1,7 +1,7 @@
 # Mail is client state, derived from the Simulation
 
 The game speaks to the player through Mail: advice, offers, and reports in an Inbox that works like
-an email app ([GDD 18](../gdd/18-mail.md)). Mail lives in the web app's `Model` (`inbox`), not in the
+an email app ([GDD 18](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/18-mail.md)). Mail lives in the web app's `Model` (`inbox`), not in the
 Simulation.
 
 The Simulation decides when something is worth saying and emits it as a **fact** (`nextGoal` today;

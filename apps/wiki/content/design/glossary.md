@@ -1,6 +1,11 @@
-# Engineering glossary
+---
+title: Engineering glossary
+summary: The engineering terms the game teaches, each linked to its mechanic.
+section: design
+order: 19
+---
 
-[Index](./README.md) · Game vocabulary: [CONTEXT.md](../../CONTEXT.md) · Sources: [Reality check](./reality-check.md)
+The engineering terms Quorum teaches, each with the mechanic it drives.
 
 Real engineering terms that Quorum teaches. Each entry gives a definition, what the term does in the
 game as built, related terms, and sources to read more. "Design" links to the design sections behind
@@ -11,7 +16,7 @@ The game ships this glossary in the Glossary panel from
 file. A term is "discovered" the first time it affects the player's design
 (`packages/simulation/src/discovery.ts`).
 
-Game terms, such as Node, Era, and Insight, are in [CONTEXT.md](../../CONTEXT.md), not here.
+Game terms, such as Node, Era, and Insight, are in [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md), not here.
 
 ## Annotation
 
@@ -19,7 +24,7 @@ A marker on a time series chart for an event, such as a deploy, a configuration 
 
 **In the game:** Each time series on the Dashboard draws a dashed blue line, with a label, for each Design change that you can still undo. A red line marks the start of the open Incident. Use them to check that a line moved after your fix, and not before it.
 
-**Design:** [The Dashboard](./12-observability.md#the-dashboard).
+**Design:** [The Dashboard](/design/12-observability#the-dashboard).
 
 **Related:** [Four golden signals](#four-golden-signals), [Observability](#observability), [MTTR](#mttr)
 
@@ -41,7 +46,7 @@ Application Performance Index: a score from 0 to 1 for how satisfied users are w
 
 **In the game:** Each Request kind has its own T: 400 ms for a page view, 200 ms for an API read, 800 ms for a login. A request earns its value times its Apdex, so a tolerating request earns half. Users grow while Apdex beats the Era's target (0.85 in Garage, up to 0.94 when Public) and leave when it falls below.
 
-**Design:** revenue and user growth ([Simulation](./04-simulation.md#apdex-and-revenue)).
+**Design:** revenue and user growth ([Simulation](/design/04-simulation#apdex-and-revenue)).
 
 **Related:** [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [SLO, SLA, SLI](#slo-sla-sli), [Tail at scale](#tail-at-scale)
 
@@ -53,7 +58,7 @@ A way to start a network or disk operation and do other work until it completes,
 
 **In the game:** Node.js, Kestrel (C#), and Tokio (Rust) hold no worker slot while a request waits for the Database, so a slow query does not use up their capacity. A PHP-FPM or Gunicorn worker is held for the whole wait. Async runtimes also keep Realtime connections open for a few KB each (Tokio 5 KB, Node.js 20 KB), while PHP and Gunicorn refuse them.
 
-**Design:** [event loops and green threads](./06-runtimes.md#concurrency-models).
+**Design:** [event loops and green threads](/design/06-runtimes#concurrency-models).
 
 **Related:** [Event loop](#event-loop), [Green threads](#green-threads), [Process per request](#process-per-request), [Little's law](#littles-law)
 
@@ -65,7 +70,7 @@ A delivery guarantee where the system resends a message or call until it is ackn
 
 **In the game:** A retried call can arrive twice. In the Double charge Incident, charges time out and retry, and some customers pay twice until you research Idempotency keys or stop retries on the charge Link. In the Poison message Incident, a task that always fails keeps coming back, and Workers spend 90% of their time on it. Turn on the Queue's dead-letter queue to prevent it, or delete the message to end it.
 
-**Design:** [Delivery semantics](./07-data-tier.md#delivery-semantics).
+**Design:** [Delivery semantics](/design/07-data-tier#delivery-semantics).
 
 **Related:** [Idempotency](#idempotency), [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [Dead-letter queue](#dead-letter-queue), [Transactional outbox](#transactional-outbox)
 
@@ -97,7 +102,7 @@ A signal from a slow consumer that tells producers to slow down or stop, so a bu
 
 **In the game:** The Queue's Max length is the closest thing to backpressure: past it, the Queue refuses new tasks, and the upload or export that sent one fails. With no limit, Queue depth grows when Workers drain tasks slower than they arrive. A new task waits behind the backlog, and users score an upload or export on when its result is ready: past 40 s for an upload, or 4 minutes for an export, they are frustrated. Add Workers or make them bigger to bring the depth down.
 
-**Design:** Queue max length ([Components](./05-components.md#queue)).
+**Design:** Queue max length ([Components](/design/05-components#queue)).
 
 **Related:** [Load shedding](#load-shedding), [Little's law](#littles-law), [Rate limiting](#rate-limiting), [Utilization](#utilization)
 
@@ -109,7 +114,7 @@ A password hashing function from 1999, based on the Blowfish cipher, with a buil
 
 **In the game:** A login costs 80 ms of CPU for the hash, and a faster runtime does not shorten it. In the Event loop block Incident the cost goes from 10 to 12 rounds, which is 4× the CPU per login. In Credential stuffing, bots send 20× the logins. An Auth Provider (Managed identity) takes the hash off your App Servers for a per-user price.
 
-**Design:** the `login` kind ([Simulation](./04-simulation.md#request-kinds)).
+**Design:** the `login` kind ([Simulation](/design/04-simulation#request-kinds)).
 
 **Related:** [Event loop](#event-loop), [Credential stuffing](#credential-stuffing), [Rate limiting](#rate-limiting)
 
@@ -131,7 +136,7 @@ The share of a system, its users, or its traffic that one failure affects. Fault
 
 **In the game:** A Zone outage takes down every Node in that zone. With Multiple zones you can spread copies across three zones and give a data Node a standby that takes over in seconds. A Bad deploy fails 8% of App Server requests for each item it shipped, up to 40%, so smaller deploys break less. On Node.js one slow request stalls every request on its event loop, while BEAM keeps each request apart.
 
-**Design:** per runtime ([Runtimes](./06-runtimes.md#language-profiles)) and per deploy strategy ([Components](./05-components.md#cicd-pipeline)).
+**Design:** per runtime ([Runtimes](/design/06-runtimes#language-profiles)) and per deploy strategy ([Components](/design/05-components#cicd-pipeline)).
 
 **Related:** [Availability zone](#availability-zone), [Bulkhead](#bulkhead), [Canary deployment](#canary-deployment), [Shared nothing](#shared-nothing)
 
@@ -143,7 +148,7 @@ A release method with two identical production environments. You deploy the new 
 
 **In the game:** The game has no blue-green option yet. The closest is the Continuous delivery research: a deploy takes 5 minutes instead of 30, and you can roll back a Bad deploy. A rollback ends the Incident at once and puts its Features back in line for the next deploy.
 
-**Design:** [CI/CD Pipeline](./05-components.md#cicd-pipeline).
+**Design:** [CI/CD Pipeline](/design/05-components#cicd-pipeline).
 
 **Related:** [Canary deployment](#canary-deployment), [Feature flag](#feature-flag), [DORA metrics](#dora-metrics), [MTTR](#mttr)
 
@@ -155,7 +160,7 @@ A release method with two identical production environments. You deploy the new 
 
 **In the game:** A Team's effective size is n / (1 + 0.08(n − 1) + 0.0004·n(n − 1)), so 8 people work like about 5, and past about 48 people a Team gets slower. A new hire also works at 30% for their first calendar week. The penalty counts inside each Team, so splitting people into up to 4 Teams helps, and Symfony lowers it by 30%.
 
-**Design:** [Coordination](./08-team-and-velocity.md#coordination).
+**Design:** [Coordination](/design/08-team-and-velocity#coordination).
 
 **Related:** [Conway's law](#conways-law), [Tech debt](#tech-debt), [DORA metrics](#dora-metrics)
 
@@ -167,7 +172,7 @@ A limit on how much of a caller's capacity, such as threads, connections, or slo
 
 **In the game:** No bulkhead setting exists yet: one slow dependency can fill every slot. On thread and process runtimes, each call holds the caller's slot until it answers or times out, 30 s by default. The closest tools are short Link timeouts (Timeouts and retries) and Circuit breakers, which stop calls to a failing Node.
 
-**Design:** [Links](./05-components.md#links).
+**Design:** [Links](/design/05-components#links).
 
 **Related:** [Circuit breaker](#circuit-breaker), [Timeout](#timeout), [Blast radius](#blast-radius), [Thread pool](#thread-pool)
 
@@ -179,7 +184,7 @@ How fast a service spends its error budget, relative to the SLO. A burn rate of 
 
 **In the game:** With SLO dashboards researched, the Dashboard (D) charts the error budget burn rate over time: your failure rate divided by the share of failures the SLO allows. Lines mark 1× and 10×; above 10×, the budget is gone long before the week ends. Fix the cause or slow your deploys until the line drops below 1×.
 
-**Design:** [The Dashboard](./12-observability.md#the-dashboard).
+**Design:** [The Dashboard](/design/12-observability#the-dashboard).
 
 **Related:** [Error budget](#error-budget), [SLO, SLA, SLI](#slo-sla-sli), [Observability](#observability), [Four golden signals](#four-golden-signals)
 
@@ -211,7 +216,7 @@ Many requests miss the same cached data at the same moment, for example after a 
 
 **In the game:** In the Cache stampede Incident a Cache restarts empty, and every miss goes to the Database at once. While the Database is 90% busy or more, refills time out and the Cache stays cold. Stampede protection lets a cold Cache send on only 25% of its extra misses. Cache warming brings it back 80% warm after a restart.
 
-**Design:** [Stampedes](./07-data-tier.md#stampedes), [incident](./11-incidents.md#cache-stampede).
+**Design:** [Stampedes](/design/07-data-tier#stampedes), [incident](/design/11-incidents#cache-stampede).
 
 **Related:** [Thundering herd](#thundering-herd), [Cache warming](#cache-warming), [Cache-aside](#cache-aside), [Metastable failure](#metastable-failure)
 
@@ -233,7 +238,7 @@ A caching pattern where the application checks the cache first. On a miss it rea
 
 **In the game:** A Cache answers read queries it holds and sends misses on to the Database. Its hit ratio is √(memory / hot data) × TTL factor × warmth, with about 200 KB of hot data per user. Writes pass through and invalidate, so a write-heavy mix lowers hits. A longer TTL (10 s, 60 s, or 1 h) keeps more hits but serves more stale reads.
 
-**Design:** [Cache strategies](./07-data-tier.md#strategies-a-tradeoff-card).
+**Design:** [Cache strategies](/design/07-data-tier#strategies-a-tradeoff-card).
 
 **Related:** [Write-through cache](#write-through-cache), [Cache stampede](#cache-stampede), [Cache hit rate](#cache-hit-rate), [Hot key](#hot-key)
 
@@ -245,7 +250,7 @@ A release method that sends a small share of traffic to a new version first and 
 
 **In the game:** The game has no canary deploy option yet: a deploy ships to every App Server at once. The closest is a Stack migration, which moves traffic to the new Stack in steps of 5%, 25%, 50%, and 100%. The new Stack fails 3% of its requests until you pay to fix its bugs, so early steps limit the damage.
 
-**Design:** [CI/CD Pipeline](./05-components.md#cicd-pipeline).
+**Design:** [CI/CD Pipeline](/design/05-components#cicd-pipeline).
 
 **Related:** [Blue-green deployment](#blue-green-deployment), [Feature flag](#feature-flag), [Strangler pattern](#strangler-pattern), [Blast radius](#blast-radius)
 
@@ -257,7 +262,7 @@ Reading a database's change log, such as the PostgreSQL write-ahead log, and pub
 
 **In the game:** There is no CDC Connector yet. The closest is the Data Warehouse: App Servers send report scans to it directly, at 1.5 s and a fee per scan. Reports then stop scanning the primary Database and evicting its buffer cache.
 
-**Design:** [CDC Connector](./05-components.md#cdc-connector).
+**Design:** [CDC Connector](/design/05-components#cdc-connector).
 
 **Related:** [OLTP and OLAP](#oltp-and-olap), [Transactional outbox](#transactional-outbox), [Eventual consistency](#eventual-consistency)
 
@@ -279,7 +284,7 @@ A switch on a call path that watches for failures. When too many calls fail, it 
 
 **In the game:** After the Circuit breakers research, you can turn on a breaker for each Link. When more than half of the Link's calls fail, it opens for 5 s: it sends nothing, and its calls fail at once as refused. Then it closes and tries again. Circuit breakers are one of the three preventions for a Retry storm.
 
-**Design:** [Links](./05-components.md#links), [Retry storm](./11-incidents.md#retry-storm).
+**Design:** [Links](/design/05-components#links), [Retry storm](/design/11-incidents#retry-storm).
 
 **Related:** [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [Metastable failure](#metastable-failure), [Bulkhead](#bulkhead), [Timeout](#timeout)
 
@@ -301,7 +306,7 @@ The delay and slow first requests when a new process, container, or function ins
 
 **In the game:** A new or restarted App Server boots, then warms up. A Java (Tomcat) copy starts at 30% speed and needs 30 s to reach full speed, while Go starts at full speed. A new copy from an Autoscaler serves after 180 s on VMs, or 30 s in a Kubernetes Cluster. A restarted Cache comes back empty with Memcached or half warm with Redis, and a cold Database runs its queries at up to twice the CPU.
 
-**Design:** [Serverless Function](./05-components.md#serverless-function), [Runtime behaviors](./06-runtimes.md#runtime-behaviors).
+**Design:** [Serverless Function](/design/05-components#serverless-function), [Runtime behaviors](/design/06-runtimes#runtime-behaviors).
 
 **Related:** [JIT warmup](#jit-warmup), [Autoscaling](#autoscaling), [Cache warming](#cache-warming), [Cache stampede](#cache-stampede)
 
@@ -323,7 +328,7 @@ Keeping a set of open database connections and sharing them among many clients, 
 
 **In the game:** The Database accepts 100 connections and refuses the rest. Every App Server process holds its own pool: 1 connection per PHP or Gunicorn worker, 5 per Puma process, 10 for Node.js or Go. A Connection Pooler in transaction mode shares 20 server connections among all of them, but fails 5% of pooled queries until you fix the code's session state. The Connection exhaustion Incident doubles every pool.
 
-**Design:** [Connection Pooler](./07-data-tier.md#connection-pooler).
+**Design:** [Connection Pooler](/design/07-data-tier#connection-pooler).
 
 **Related:** [Process per request](#process-per-request), [Little's law](#littles-law), [Thread pool](#thread-pool)
 
@@ -335,7 +340,7 @@ A way to map keys to servers on a hash ring, so that adding or removing one serv
 
 **In the game:** The game does not model consistent hashing yet. A Load Balancer splits traffic by Weighted, Round robin, Least conn, or Two choices, not by key. The closest is the Wide-column Store, which places each key on N replicas, and the Hot key Incident, where one key's shard saturates.
 
-**Design:** a [Load Balancer](./05-components.md#load-balancer) algorithm.
+**Design:** a [Load Balancer](/design/05-components#load-balancer) algorithm.
 
 **Related:** [Sharding](#sharding), [Hot key](#hot-key), [Leaderless replication](#leaderless-replication), [Power of two choices](#power-of-two-choices)
 
@@ -367,7 +372,7 @@ A practice that keeps software in a state where any change can be released safel
 
 **In the game:** Not modeled yet: the Company runs one Service, the monolith, and every Team works on it. From Pre-seed you can create up to 4 Teams, each with its own policy. Each Team pays its own coordination cost, so splitting a large group raises total Dev Hours.
 
-**Design:** [Services](./08-team-and-velocity.md#services).
+**Design:** [Services](/design/08-team-and-velocity#services).
 
 **Related:** [Brooks's law](#brookss-law), [Strangler pattern](#strangler-pattern), [Tech debt](#tech-debt)
 
@@ -437,7 +442,7 @@ Following one request across every service it touches. Each hop records a span w
 
 The daily rise and fall of demand that follows when people are awake and active. Consumer services often peak in the evening and are quietest in the early morning. Capacity planning must cover the daily peak, and the trough is a safe time for maintenance.
 
-**In the game:** Demand follows a daily cycle on the Calendar: by default it peaks at 20:00 at 1.45× the average and falls to 0.55× at 08:00. Each Venture sets its own curve; for example, Fintech peaks at 14:00 and swings ±60%. When you open more regions, each region peaks at its own local 20:00. One sim second is one calendar minute, so a full day passes in 24 minutes at 1×: size for the evening peak, or let an Autoscaler follow the curve.
+**In the game:** Demand follows a daily cycle on the Calendar: by default it peaks at 20\:00 at 1.45× the average and falls to 0.55× at 08\:00. Each Venture sets its own curve; for example, Fintech peaks at 14\:00 and swings ±60%. When you open more regions, each region peaks at its own local 20\:00. One sim second is one calendar minute, so a full day passes in 24 minutes at 1×: size for the evening peak, or let an Autoscaler follow the curve.
 
 **Related:** [Autoscaling](#autoscaling), [Utilization](#utilization), [Little's law](#littles-law), [Thundering herd](#thundering-herd)
 
@@ -459,7 +464,7 @@ Five measures of software delivery from the DORA research program: change lead t
 
 **In the game:** Two of them drive play. Deploy frequency is at most 480 work minutes / (build + deploy + 15 verify) per day, capped at 16, 8, or 4 by the Team's policy. Continuous delivery cuts a deploy from 30 to 5 minutes. Each deploy has a 10% base chance to ship a bug, raised by Move fast and tech debt and lowered by Automated tests (−30%) and Code review (−20%); the deploy card shows it.
 
-**Design:** [Deploy frequency](./08-team-and-velocity.md#deploy-frequency).
+**Design:** [Deploy frequency](/design/08-team-and-velocity#deploy-frequency).
 
 **Related:** [MTTR](#mttr), [Continuous delivery](#continuous-delivery), [Code review](#code-review), [Error budget](#error-budget)
 
@@ -471,7 +476,7 @@ Storing old metrics at a coarser resolution, such as one point per 5 minutes or 
 
 **In the game:** The Dashboard reads one-minute samples for the 1 h and 6 h ranges, 15-minute blocks (kept for 7 days) for 1 d and 7 d, and 1-hour blocks (kept for 30 days) for 30 d. Each chart draws a block as its mean. The p99 line draws the worst minute in each block instead, because an average would hide the spike.
 
-**Design:** [The Dashboard](./12-observability.md#the-dashboard).
+**Design:** [The Dashboard](/design/12-observability#the-dashboard).
 
 **Related:** [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Four golden signals](#four-golden-signals), [Observability](#observability)
 
@@ -483,7 +488,7 @@ The difference between the infrastructure a tool such as Terraform or Pulumi las
 
 **In the game:** A Mirror drifts in two ways: it is behind when its source region changed, and it has a hand change when you changed the Mirror directly. Apply brings the Mirror back to its source and reverts the hand changes its plan sees. Terraform plans see every hand change at once. Pulumi and Alchemy plan against the state they recorded, so a hand change shows only after Refresh or Check drift. Keep a correct regional difference as an override.
 
-**Design:** [Keeping a Mirror in sync](./05-components.md#keeping-a-mirror-in-sync).
+**Design:** [Keeping a Mirror in sync](/design/05-components#keeping-a-mirror-in-sync).
 
 **Related:** [IaC tool](#iac-tool), [Mirror](#mirror), [GitOps](#gitops), [Blast radius](#blast-radius)
 
@@ -495,7 +500,7 @@ Data that leaves a cloud provider's network, to the internet or to another zone 
 
 **In the game:** From Seed, Burn includes egress: $0.09 per GB that App Servers send to users, and $0.02 per GB for pages a CDN answers at the edge. A call between zones costs $0.01 per GB each way, and a call between regions $0.02 per GB, all scaled by the Era's cost index. Compression makes page and read responses 70% smaller for 10% more CPU.
 
-**Design:** [Egress](./09-economy.md#egress).
+**Design:** [Egress](/design/09-economy#egress).
 
 **Related:** [CDN (content delivery network)](#cdn-content-delivery-network), [Compression](#compression), [Availability zone](#availability-zone), [Operating margin](#operating-margin)
 
@@ -517,7 +522,7 @@ The amount of failure an SLO allows over a window: with a 99.9% SLO, 0.1% of req
 
 **In the game:** From Series A, the game counts failed requests over the last calendar week against the Era's SLO, 99.9% in Series A and up to 99.99% when Public. Bots and WAF blocks do not count. After the Error budgets research, more than half the budget left speeds your Teams up 10%, and a spent budget halves their speed. SLO dashboards put the budget on the HUD. SLO dashboards also chart the budget burn rate on the Dashboard.
 
-**Design:** [SLOs and error budgets](./11-incidents.md#slos-and-error-budgets).
+**Design:** [SLOs and error budgets](/design/11-incidents#slos-and-error-budgets).
 
 **Related:** [SLO, SLA, SLI](#slo-sla-sli), [DORA metrics](#dora-metrics), [MTTR](#mttr)
 
@@ -529,7 +534,7 @@ A single thread that waits for I/O events and runs their callbacks one at a time
 
 **In the game:** Node.js runs one event loop and uses one core; Node.js cluster runs one loop per core. A CPU-heavy request, such as an 80 ms password hash at login, stalls the requests behind it, and the stall lands on the p99. In the Event loop block Incident each login costs 4× the CPU. The libuv thread pool research or an Auth Provider takes the hash off the loop.
 
-**Design:** [Event loops and blocking](./06-runtimes.md#event-loops-and-blocking).
+**Design:** [Event loops and blocking](/design/06-runtimes#event-loops-and-blocking).
 
 **Related:** [Async I/O](#async-io), [Bcrypt](#bcrypt), [Green threads](#green-threads), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99)
 
@@ -541,7 +546,7 @@ A consistency model where replicas can return old data for a while after a write
 
 **In the game:** A Read Replica lags behind writes, so up to 15% of its reads come back stale, and up to 50% during the Replication lag Incident. A Wide-column Store whose R + W is not greater than N also serves stale reads. A stale read fails an API read and a checkout that reads its own write. Read-your-writes routing sends those reads to the primary instead.
 
-**Design:** [Wide-column Store](./07-data-tier.md#wide-column-store).
+**Design:** [Wide-column Store](/design/07-data-tier#wide-column-store).
 
 **Related:** [Replication lag](#replication-lag), [Read-your-writes consistency](#read-your-writes-consistency), [Quorum](#quorum), [Leaderless replication](#leaderless-replication)
 
@@ -553,7 +558,7 @@ Eight false assumptions that programmers new to distributed systems often make, 
 
 **In the game:** Several Incidents and costs break these assumptions. In the Network partition Incident, calls between regions time out until the partition heals or you fence the old leader. A call to another zone adds 1 ms and costs egress both ways, and a call to another region pays the round trip. Until Timeouts and retries, every Link waits 30 s for an answer.
 
-**Design:** the "Fallacies" achievement ([Challenges](./14-challenges.md#achievements)).
+**Design:** the "Fallacies" achievement ([Challenges](/design/14-challenges#achievements)).
 
 **Related:** [Network partition](#network-partition), [Egress](#egress), [Timeout](#timeout), [Quorum](#quorum)
 
@@ -565,7 +570,7 @@ One request that turns into many calls to other services or data stores. The mor
 
 **In the game:** A page view makes 2 read queries, and ORM frameworks (Laravel, Rails, Django) make 3 reads where 1 would do until Eager loading. The Activity feed Feature adds feeds: pulled, a feed makes 20 reads. With fan-out on write, a feed makes 1 read but every write fills 20 followers' timelines. Hybrid fan-out cuts that to 2 reads and 10 timeline writes.
 
-**Design:** [Fan-out](./07-data-tier.md#fan-out).
+**Design:** [Fan-out](/design/07-data-tier#fan-out).
 
 **Related:** [Fan-out on write](#fan-out-on-write), [N+1 query](#n1-query), [Tail at scale](#tail-at-scale), [Hot key](#hot-key)
 
@@ -587,7 +592,7 @@ A switch in the code, controlled at runtime, that turns a feature on or off with
 
 **In the game:** Not modeled yet: a Feature reaches every user at the next deploy, with no rollout share. The closest tool is a rollback after Continuous delivery, which takes a bad deploy's Features out again and ends the Bad deploy Incident.
 
-**Design:** [Feature Flags](./05-components.md#feature-flags).
+**Design:** [Feature Flags](/design/05-components#feature-flags).
 
 **Related:** [Canary deployment](#canary-deployment), [Blue-green deployment](#blue-green-deployment), [Continuous delivery](#continuous-delivery)
 
@@ -599,7 +604,7 @@ Latency, traffic, errors, and saturation: the four measures that the Google SRE 
 
 **In the game:** The Dashboard (D) opens after Metrics research. Its Golden signals row charts traffic (served against demand), latency (the mean, plus the p99 with Percentiles), and errors (with Structured logs). The Saturation row below shows how full each Node is, and the stats at the top name the Hottest Node.
 
-**Design:** [The Dashboard](./12-observability.md#the-dashboard).
+**Design:** [The Dashboard](/design/12-observability#the-dashboard).
 
 **Related:** [RED method](#red-method), [USE method](#use-method), [Utilization](#utilization), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99)
 
@@ -611,7 +616,7 @@ Time when a garbage collector stops or slows the application to find and free me
 
 **In the game:** When an App Server's heap is more than 70% full, its collector pauses up to 2% of requests. Java pauses 30 ms with G1, 150 ms with Parallel, or 1 ms with ZGC, which costs 10% of throughput and 15% more memory. Go pauses only 1 ms but spends up to 25% more CPU, which Go GC tuning trades against memory. In the GC pause storm Incident the heap fills further and 5× as many requests pause.
 
-**Design:** [Runtime behaviors](./06-runtimes.md#runtime-behaviors).
+**Design:** [Runtime behaviors](/design/06-runtimes#runtime-behaviors).
 
 **Related:** [Memory leak](#memory-leak), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Tail at scale](#tail-at-scale), [JIT warmup](#jit-warmup)
 
@@ -633,7 +638,7 @@ A lock in CPython's default build, and the GVL in CRuby, that lets only one thre
 
 **In the game:** Ruby's Puma must run one process per core to use every core, with 5 threads each and 180 MB per process. Python's Gunicorn runs a pool of sync workers, one request each and 120 MB per worker, and you set the pool size. Runtimes without a GIL, such as Go or Java, run one process on every core.
 
-**Design:** [Concurrency models](./06-runtimes.md#concurrency-models).
+**Design:** [Concurrency models](/design/06-runtimes#concurrency-models).
 
 **Related:** [Process per request](#process-per-request), [Green threads](#green-threads), [Vertical and horizontal scaling](#vertical-and-horizontal-scaling), [Pre-fork worker model](#pre-fork-worker-model)
 
@@ -645,7 +650,7 @@ A way to run infrastructure where the desired state lives in Git as declarative 
 
 **In the game:** GitOps is Series C Research after Infrastructure as code. It applies each source change to every Mirror on its own, so Mirrors stop falling behind. It also reverts hand changes at the next sync with every IaC tool, like Argo CD with self-heal on, so overrides are the only way to tune a region. All at once syncs within 3 calendar minutes, like Argo CD's default poll. Staged holds a change on the source for 60 minutes first. All at once trades drift for blast radius: a Bad config push reaches every Mirror together.
 
-**Design:** [GitOps](./05-components.md#gitops).
+**Design:** [GitOps](/design/05-components#gitops).
 
 **Related:** [Drift](#drift), [IaC tool](#iac-tool), [Mirror](#mirror), [Blast radius](#blast-radius), [Continuous delivery](#continuous-delivery)
 
@@ -657,7 +662,7 @@ Lightweight threads that a language runtime schedules instead of the operating s
 
 **In the game:** Go and Elixir's BEAM run green threads on every core, and a waiting request holds no worker slot. Each open Realtime connection costs 10 KB on Go and 5 KB on BEAM, against 1 MB for a Java thread on Tomcat. BEAM is preemptive, so no request stalls another, but its CPU is less than half as fast as Go's.
 
-**Design:** [Concurrency models](./06-runtimes.md#concurrency-models).
+**Design:** [Concurrency models](/design/06-runtimes#concurrency-models).
 
 **Related:** [Async I/O](#async-io), [Event loop](#event-loop), [GIL (global interpreter lock)](#gil-global-interpreter-lock), [Thread pool](#thread-pool)
 
@@ -669,7 +674,7 @@ A periodic probe, such as an HTTP request to a status endpoint, that decides whe
 
 **In the game:** A Load Balancer probes its App Servers every 10 s and stops sending traffic to a dead one at the next check. The Health checks research adds 2 s and 30 s intervals and a deep check that also removes App Servers whose Database is down or overloaded. It also lets DNS drop a dead host once its TTL runs out; without it, DNS keeps sending that host its share.
 
-**Design:** [Load Balancer](./05-components.md#load-balancer).
+**Design:** [Load Balancer](/design/05-components#load-balancer).
 
 **Related:** [Load balancer](#load-balancer), [DNS round robin](#dns-round-robin), [MTTR](#mttr), [Vertical and horizontal scaling](#vertical-and-horizontal-scaling)
 
@@ -681,7 +686,7 @@ Sending a second copy of a request to another replica when the first is slower t
 
 **In the game:** Not modeled yet: no Link or research sends a hedged copy. The closest is the Wide-column Store, where a read waits only for the fastest R of its N replicas, so a lower R gives a faster read. Percentiles shows the p99 that hedging would cut.
 
-**Design:** research `hedged-requests` ([Progression](./10-progression.md#track-reliability)).
+**Design:** research `hedged-requests` ([Progression](/design/10-progression#track-reliability)).
 
 **Related:** [Tail at scale](#tail-at-scale), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Quorum](#quorum), [Retry with backoff and jitter](#retry-with-backoff-and-jitter)
 
@@ -693,7 +698,7 @@ One key that receives a very large share of reads or writes, such as a celebrity
 
 **In the game:** In the Hot key Incident (Series C), 30% of the reads on a busy Cache or Wide-column Store ask for one key on one shard. That Node's capacity divides by 0.3 × its shards + 0.7, so a size-4 Node keeps about half. Hybrid fan-out lets you turn on key splitting for that Node, which spreads the hot key and ends the loss.
 
-**Design:** [Partitioning](./07-data-tier.md#partitioning-sharding).
+**Design:** [Partitioning](/design/07-data-tier#partitioning-sharding).
 
 **Related:** [Sharding](#sharding), [Consistent hashing](#consistent-hashing), [Fan-out on write](#fan-out-on-write), [Utilization](#utilization)
 
@@ -725,7 +730,7 @@ A tool that describes infrastructure as code and applies it: it compares the cod
 
 **In the game:** Infrastructure as code Research asks you to pick Terraform, Pulumi, or Alchemy. All three build every Component and can set any value per region. They differ in how a plan finds hand changes, as in each tool's default workflow: Terraform refreshes live state on every plan, so its plans are complete and each Apply waits for the refresh. Pulumi plans against its recorded state until you Refresh. Alchemy also plans against recorded state; Check drift reads live state, and Repair restores hand changes without taking source changes. Moving to another tool stops every sync for a calendar day.
 
-**Design:** [IaC tools](./05-components.md#iac-tools).
+**Design:** [IaC tools](/design/05-components#iac-tools).
 
 **Related:** [Drift](#drift), [Mirror](#mirror), [Continuous delivery](#continuous-delivery)
 
@@ -737,7 +742,7 @@ An operation is idempotent when doing it twice has the same effect as doing it o
 
 **In the game:** A checkout sends a charge to the Payment Provider. In the Double charge Incident the provider slows by about 1.5 s, the charge Link times out, and a retry charges a card that the first attempt already charged, so those checkouts fail as duplicate. Research Idempotency keys (it needs Checkout) so a retried charge never charges twice. Without it, set the charge Link's retries to none to end the Incident.
 
-**Design:** [Payment Provider](./05-components.md#payment-provider).
+**Design:** [Payment Provider](/design/05-components#payment-provider).
 
 **Related:** [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [At-least-once delivery](#at-least-once-delivery), [Timeout](#timeout), [Transactional outbox](#transactional-outbox)
 
@@ -759,7 +764,7 @@ A just-in-time (JIT) compiler turns frequently run code into optimized machine c
 
 **In the game:** Each runtime has a start speed and a warmup time. A cold Tomcat (Java) App Server starts at 30% CPU speed and reaches full speed after 30 s; Kestrel (C#) starts at 60% and Node.js at 80% for 15 s, while Go, BEAM and Tokio start at full speed. Every restart, resize, Stack change, and new Autoscaler copy starts cold, so add capacity before a peak, not during it. PHP warms its OPcache instead: from 1× up to 2.5× CPU speed as the cache fills.
 
-**Design:** [Runtime behaviors](./06-runtimes.md#runtime-behaviors).
+**Design:** [Runtime behaviors](/design/06-runtimes#runtime-behaviors).
 
 **Related:** [Cold start](#cold-start), [GC pause](#gc-pause), [Autoscaling](#autoscaling), [Bytecode cache](#bytecode-cache)
 
@@ -781,7 +786,7 @@ In any stable system, the average number of items inside (L) equals the average 
 
 **In the game:** An App Server that holds a worker or a thread per request has a fixed number of slots, and each request holds its slot for its CPU time plus every database call it waits on. Slots in use = arrival rate × that time, so when each request waits 10 times as long on the Database, a PHP-FPM pool of 5 workers serves up to 10 times fewer requests. Fix the slow call, add workers or threads, or move to a runtime that waits without a slot (Node.js, Go, Kestrel, BEAM, Tokio).
 
-**Design:** [The latency coupling](./04-simulation.md#the-latency-coupling).
+**Design:** [The latency coupling](/design/04-simulation#the-latency-coupling).
 
 **Related:** [Utilization](#utilization), [Thread pool](#thread-pool), [Async I/O](#async-io), [Connection pooling](#connection-pooling)
 
@@ -803,7 +808,7 @@ Rejecting some requests on purpose when a server is overloaded, so the requests 
 
 **In the game:** With Priority load shedding researched, you can turn on load shedding on an App Server. Above 90% load it drops whole request kinds, lowest value first (bots, then Realtime, then page views and up), until its load is back at 90%, so a $25 checkout survives an overload. Dropped requests count as errors and spend the error budget, but the requests it keeps stay fast.
 
-**Design:** [Mitigation toolbox](./11-incidents.md#mitigation-toolbox).
+**Design:** [Mitigation toolbox](/design/11-incidents#mitigation-toolbox).
 
 **Related:** [Backpressure](#backpressure), [Circuit breaker](#circuit-breaker), [Rate limiting](#rate-limiting), [Metastable failure](#metastable-failure)
 
@@ -815,7 +820,7 @@ Memory that a long-running process keeps allocated but no longer uses, so its me
 
 **In the game:** The Memory leak Incident hits an App Server whose runtime keeps its processes between requests (every runtime but Apache mod_php and PHP-FPM). It gains 2.5% of its RAM each second; past its RAM it swaps and slows, and at 125% of RAM the kernel kills it and it restarts cold. Restart the server to free the memory, or ship the Fix memory leak task (15 Dev Hours), which stops leaks until the next Feature ships.
 
-**Design:** [Runtime behaviors](./06-runtimes.md#runtime-behaviors).
+**Design:** [Runtime behaviors](/design/06-runtimes#runtime-behaviors).
 
 **Related:** [Shared nothing](#shared-nothing), [GC pause](#gc-pause), [Process per request](#process-per-request), [Health check](#health-check)
 
@@ -827,7 +832,7 @@ A failure that keeps itself going after its trigger is gone. A short slowdown pu
 
 **In the game:** The Retry storm Incident slows the Database to 30% of its capacity for 20 s. Links that retry at once send up to 1 + f + f² + f³ calls per call when a share f fails, they carry that failure share into the next Step, and the Database queues what it cannot take; the Incident ends only when that backlog drains. Backoff with jitter, Circuit breakers, and Priority load shedding each break the loop, and naive retries into a Database make this Incident 6 times as likely as backoff does.
 
-**Design:** [Retry storm](./11-incidents.md#retry-storm).
+**Design:** [Retry storm](/design/11-incidents#retry-storm).
 
 **Related:** [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [Circuit breaker](#circuit-breaker), [Load shedding](#load-shedding), [Thundering herd](#thundering-herd)
 
@@ -839,7 +844,7 @@ Running the same infrastructure code in another region, such as one Terraform mo
 
 **In the game:** After Infrastructure as code Research, the Mirror button beside the region tabs copies one region's Nodes and Links into another. For each Database you pick a read replica, an own primary, or calling the source, and for Object Storage, replicate or call the source. Apply pays at once and the new Nodes arrive cold after the build time. The region's Users get their Links only when the plan lands. The Mirror stays linked to its source, so it can drift; GitOps keeps it in sync on its own.
 
-**Design:** [Mirror a region](./05-components.md#mirror-a-region).
+**Design:** [Mirror a region](/design/05-components#mirror-a-region).
 
 **Related:** [Drift](#drift), [IaC tool](#iac-tool), [GitOps](#gitops), [GeoDNS](#geodns), [Read replica](#read-replica)
 
@@ -861,7 +866,7 @@ Mean time to restore (or recover): the average time from the start of a failure 
 
 **In the game:** Every Incident ends with a Postmortem that shows its MTTR: the calendar minutes in which more than 1% of requests failed. An Incident that has hurt users more than half the time by its halfway point escalates one severity and runs 1.5 times as long. Keep MTTR down by acting fast: restart, replace, or fail over the hit Node, and research the Postmortem's action item.
 
-**Design:** [The incident loop](./11-incidents.md#the-incident-loop).
+**Design:** [The incident loop](/design/11-incidents#the-incident-loop).
 
 **Related:** [SLO, SLA, SLI](#slo-sla-sli), [Error budget](#error-budget), [DORA metrics](#dora-metrics), [Blast radius](#blast-radius)
 
@@ -873,7 +878,7 @@ Loading a list with one query, then running one more query per item to load its 
 
 **In the game:** Laravel, Rails, and Django use an ORM that sends 3 read queries where 1 would do, on page views and API reads. A page view then costs the Database 6 reads instead of 2, which adds CPU there and waiting time on the App Server. Research Eager loading, then ship the Eager loading task (10 Dev Hours) to remove them; Symfony and the light frameworks never make them.
 
-**Design:** [Frameworks](./06-runtimes.md#frameworks).
+**Design:** [Frameworks](/design/06-runtimes#frameworks).
 
 **Related:** [Connection pooling](#connection-pooling), [Fan-out](#fan-out), [Distributed tracing](#distributed-tracing)
 
@@ -915,7 +920,7 @@ Online transaction processing (OLTP) runs many small, fast reads and writes on c
 
 **In the game:** Report requests send q-scan queries. On the Database a scan costs a lot of CPU and evicts its buffer cache, so other reads go to disk and writes wait; the Report kills the database Incident scans 10 times as much. A Data Warehouse (Data warehousing research) takes the scans off the primary: 1.5 s each, no capacity limit, and $0.02 per scan times the Era's cost index.
 
-**Design:** [Data Warehouse](./07-data-tier.md#data-warehouse).
+**Design:** [Data Warehouse](/design/07-data-tier#data-warehouse).
 
 **Related:** [CDC (change data capture)](#cdc-change-data-capture), [Read replica](#read-replica), [Operating margin](#operating-margin)
 
@@ -937,7 +942,7 @@ The value below which a given share of measurements fall. The p50 (median) laten
 
 **In the game:** Before Percentiles research the HUD shows mean latency; after it, the HUD shows the p99 and each request kind shows its p50, p95, and p99. Event-loop stalls and GC pauses hit about 2% of requests, so they raise the p99 while the mean and the p95 barely move. With Alerting, the latency rule pages you when a kind's p99 stays above 4 times its Apdex target for 30 s. The Latency chart on the Dashboard draws the p99 next to the mean, so you can see how much the mean hides.
 
-**Design:** [Percentiles](./04-simulation.md#percentiles).
+**Design:** [Percentiles](/design/04-simulation#percentiles).
 
 **Related:** [Tail at scale](#tail-at-scale), [Apdex](#apdex), [SLO, SLA, SLI](#slo-sla-sli), [GC pause](#gc-pause)
 
@@ -959,7 +964,7 @@ A load balancing method: pick two servers at random and send the request to the 
 
 **In the game:** With Load balancing algorithms researched, a Load Balancer can use Two choices. It keeps no global state, so the Load Balancer itself handles 1.5 times the traffic, but 10% of the traffic is split evenly whatever each server's load. Least conn splits fully by current capacity, without the capacity bonus.
 
-**Design:** [Load Balancer](./05-components.md#load-balancer).
+**Design:** [Load Balancer](/design/05-components#load-balancer).
 
 **Related:** [Load balancer](#load-balancer), [Consistent hashing](#consistent-hashing), [Health check](#health-check), [Hot key](#hot-key)
 
@@ -981,7 +986,7 @@ A server model in which each request in flight occupies a whole worker process u
 
 **In the game:** Apache mod_php, the starting runtime, runs a process per request in flight, up to 150, each 60 MB because it embeds PHP, so RAM runs out early. PHP-FPM and Gunicorn run a fixed pool that you size (PHP-FPM ships with 5 workers); a request holds its worker while it waits on the Database, and a pool too big for the box swaps until the kernel kills it. Each process also holds its own database connection, so a big pool can hit Postgres's 100-connection limit.
 
-**Design:** [Concurrency models](./06-runtimes.md#concurrency-models).
+**Design:** [Concurrency models](/design/06-runtimes#concurrency-models).
 
 **Related:** [Pre-fork worker model](#pre-fork-worker-model), [Shared nothing](#shared-nothing), [Little's law](#littles-law), [Connection pooling](#connection-pooling)
 
@@ -993,7 +998,7 @@ The number of replicas that must take part in a read or a write. With N replicas
 
 **In the game:** A Wide-column Store keeps each key on N replicas (1 to 5); you set R, the replicas a read asks, and W, the replicas a write waits for. With R + W > N reads never miss the latest write; a weaker quorum costs fewer replica operations and waits for an earlier reply, but some reads come back stale. A quorum that needs every replica fails while one replica is lost, and even a strong quorum gets 2% stale and 1% duplicate checkouts.
 
-**Design:** [Wide-column Store](./07-data-tier.md#wide-column-store).
+**Design:** [Wide-column Store](/design/07-data-tier#wide-column-store).
 
 **Related:** [Raft](#raft), [Eventual consistency](#eventual-consistency), [Leaderless replication](#leaderless-replication), [Network partition](#network-partition)
 
@@ -1005,7 +1010,7 @@ A consensus algorithm that keeps a replicated log identical on a group of server
 
 **In the game:** Distributed SQL (Consensus databases research, which needs Synchronous replication) runs SQL on Raft. Every write waits for the round trip to a majority of the regions it spreads over, while a read asks the leaseholder and costs a quarter of a write. It serves 6,000 transactions per second at size 1 and keeps one leader through a Network partition, so that Incident is a quarter as likely with it.
 
-**Design:** [Distributed SQL](./07-data-tier.md#distributed-sql).
+**Design:** [Distributed SQL](/design/07-data-tier#distributed-sql).
 
 **Related:** [Quorum](#quorum), [Synchronous replication](#synchronous-replication), [Network partition](#network-partition), [Leaderless replication](#leaderless-replication)
 
@@ -1017,7 +1022,7 @@ Capping how many requests a client can make in a period and rejecting the rest, 
 
 **In the game:** You meet rate limiting from the client side: the LLM API takes 100 prompts per second per usage tier, and past that, prompts fail at once as throttled. The game has no rate limiter you can put in front of your own App Servers. To stop abusive traffic, a WAF blocks bots by rule instead: 80% of bots at paranoia 2, with 0.5% of real users blocked too.
 
-**Design:** [API Gateway](./05-components.md#api-gateway).
+**Design:** [API Gateway](/design/05-components#api-gateway).
 
 **Related:** [Token bucket](#token-bucket), [WAF (web application firewall)](#waf-web-application-firewall), [Load shedding](#load-shedding), [Backpressure](#backpressure)
 
@@ -1039,7 +1044,7 @@ A session guarantee: after a client writes, its own later reads see that write o
 
 **In the game:** A Read Replica lags behind the primary, so some reads come back stale, and a stale read fails an API read or a checkout that reads its own write. With Read-your-writes routing researched, turn the option on an App Server: checkout reads go to the primary and are never stale, and other stale reads fall by 80%. It also makes the Replication lag Incident much rarer (weight 0.3 instead of 2).
 
-**Design:** [Read Replica](./07-data-tier.md#read-replica).
+**Design:** [Read Replica](/design/07-data-tier#read-replica).
 
 **Related:** [Replication lag](#replication-lag), [Read replica](#read-replica), [Eventual consistency](#eventual-consistency), [Synchronous replication](#synchronous-replication)
 
@@ -1051,7 +1056,7 @@ Rate, Errors, and Duration for each service: how many requests it gets, how many
 
 **In the game:** The Dashboard (D) opens after Metrics research. Its Golden signals row charts traffic, latency, and, with Structured logs, errors for your whole system over time. A per-Service RED row is not built yet; use the Golden signals row to see when users started to suffer.
 
-**Design:** [The Dashboard](./12-observability.md#the-dashboard).
+**Design:** [The Dashboard](/design/12-observability#the-dashboard).
 
 **Related:** [USE method](#use-method), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Observability](#observability), [Apdex](#apdex)
 
@@ -1073,7 +1078,7 @@ The delay between a write committing on the primary database and that write appe
 
 **In the game:** A Read Replica lags 20 ms plus 2 ms for every write per second, and the share of its reads that come back stale equals the lag in seconds, up to 15%. The Replication lag Incident multiplies the lag by 10, up to 50% stale reads. Stale reads fail API reads and checkouts, while page views accept them; Read-your-writes routing sends the reads that care to the primary.
 
-**Design:** [Read Replica](./07-data-tier.md#read-replica).
+**Design:** [Read Replica](/design/07-data-tier#read-replica).
 
 **Related:** [Read-your-writes consistency](#read-your-writes-consistency), [Read replica](#read-replica), [Synchronous replication](#synchronous-replication), [RPO and RTO](#rpo-and-rto)
 
@@ -1085,7 +1090,7 @@ Retrying a failed call after a wait that grows with each attempt (exponential ba
 
 **In the game:** Before Timeouts and retries research, every Link waits 30 s and never retries. After it, you set each Link's timeout to 1, 5, or 30 s and can turn on retries: naive retries fire at once, up to three times, so a callee where a share f fails gets 1 + f + f² + f³ calls per call. Backoff with jitter waits about 200 ms per retry and allows at most 10% extra calls, which keeps a Retry storm small.
 
-**Design:** [Retries](./04-simulation.md#retries).
+**Design:** [Retries](/design/04-simulation#retries).
 
 **Related:** [Metastable failure](#metastable-failure), [Timeout](#timeout), [Circuit breaker](#circuit-breaker), [Thundering herd](#thundering-herd)
 
@@ -1097,7 +1102,7 @@ The recovery point objective (RPO) is the most recent data you can afford to los
 
 **In the game:** A Database's backups set its RPO: None loses everything, Nightly up to 1,440 calendar minutes, and PITR (Point-in-time recovery research) 2 minutes. A Read Replica in another region lowers it to that replica's lag, and a spread Wide-column Store or Distributed SQL loses nothing. The IPO checklist's DR drill fails the home region and passes only when errors fall under 1% within 60 calendar minutes (RTO) and the RPO is under 5 minutes.
 
-**Design:** [Multi-region data](./07-data-tier.md#multi-region-data), [the IPO checklist](./10-progression.md#era-6-pre-ipo).
+**Design:** [Multi-region data](/design/07-data-tier#multi-region-data), [the IPO checklist](/design/10-progression#era-6-pre-ipo).
 
 **Related:** [Point-in-time recovery](#point-in-time-recovery), [Synchronous replication](#synchronous-replication), [Availability zone](#availability-zone), [MTTR](#mttr)
 
@@ -1109,7 +1114,7 @@ A heuristic for software-as-a-service companies: annual revenue growth rate plus
 
 **In the game:** Your Valuation is annual revenue times a multiple set by the Rule of 40: 4 + 0.15 × the score, kept between 2 and 30. The game scores user growth over the last calendar week, annualized, plus margin, which is (Revenue − Burn) / Revenue. A score of 40 or more is an IPO checklist item, so cut Burn or grow faster before you go public.
 
-**Design:** [Valuation](./09-economy.md#valuation).
+**Design:** [Valuation](/design/09-economy#valuation).
 
 **Related:** [Operating margin](#operating-margin), [Egress](#egress), [Spot instance](#spot-instance)
 
@@ -1121,7 +1126,7 @@ Splitting one dataset across several databases (shards) by a key, such as a hash
 
 **In the game:** The Sharding research exists, but today its only effect is to unlock Leaderless replication: you cannot shard the Database. The closest mechanic is the Hot key Incident, where 30% of the reads to a Cache or Wide-column Store ask for one key on one shard, so the Node's capacity falls to about 1 / (0.3 × shards + 0.7). With Hybrid fan-out you can split hot keys across the Node's shards.
 
-**Design:** [Partitioning](./07-data-tier.md#partitioning-sharding).
+**Design:** [Partitioning](/design/07-data-tier#partitioning-sharding).
 
 **Related:** [Hot key](#hot-key), [Consistent hashing](#consistent-hashing), [Leaderless replication](#leaderless-replication), [Fan-out](#fan-out)
 
@@ -1133,7 +1138,7 @@ An architecture in which nodes, or requests, share no memory or disk and coordin
 
 **In the game:** Apache mod_php and PHP-FPM are shared nothing: they free all memory after each request, so the Memory leak Incident never picks them. Every other runtime keeps its processes across requests, which avoids per-request setup but can leak. The price is speed: PHP runs at 0.15 times Go's CPU speed, or 0.375 with OPcache.
 
-**Design:** [Runtime behaviors](./06-runtimes.md#runtime-behaviors).
+**Design:** [Runtime behaviors](/design/06-runtimes#runtime-behaviors).
 
 **Related:** [Process per request](#process-per-request), [Memory leak](#memory-leak), [Vertical and horizontal scaling](#vertical-and-horizontal-scaling)
 
@@ -1145,7 +1150,7 @@ A service level indicator (SLI) is a measurement of service behavior, such as th
 
 **In the game:** The SLI is availability: the share of user requests answered over the last calendar week, without bots and WAF blocks. Each Era sets the SLO, from 99% in Garage to 99.99% in Public, and from Series A the failures it allows are your error budget. SLO dashboards put that budget on the HUD, and the IPO checklist needs 99.95%. The game has no SLA yet.
 
-**Design:** [SLOs and error budgets](./11-incidents.md#slos-and-error-budgets).
+**Design:** [SLOs and error budgets](/design/11-incidents#slos-and-error-budgets).
 
 **Related:** [Error budget](#error-budget), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [MTTR](#mttr), [Apdex](#apdex)
 
@@ -1167,7 +1172,7 @@ Spare cloud capacity sold at a large discount, up to 90% off the on-demand price
 
 **In the game:** Spot pricing is designed but not in the game yet. The closest is the GPU shortage Incident: the provider reclaims a GPU Node, H100s first, and it stays down for the Incident; an LLM API as a fallback makes it a quarter as likely. The Instance failure Incident also kills one Node's host, three times as often on a Node with no second copy as on others.
 
-**Design:** [Pricing models](./09-economy.md#pricing-models).
+**Design:** [Pricing models](/design/09-economy#pricing-models).
 
 **Related:** [Operating margin](#operating-margin), [Autoscaling](#autoscaling), [Health check](#health-check), [Model inference](#model-inference)
 
@@ -1179,7 +1184,7 @@ Replacing a legacy system piece by piece: put a routing layer in front of it, se
 
 **In the game:** Changing a Service's Stack in a Company starts a migration that runs both versions and moves App Servers over in four steps: 5%, 25%, 50%, then 100% of traffic. Each step costs its share of the migration's Dev Hours (10%, 20%, 30%, 40%), and requests on the new Stack fail 3% of the time until you ship Fix migration bugs. Features on the migrating Service build at half speed.
 
-**Design:** [Migrations](./08-team-and-velocity.md#migrations).
+**Design:** [Migrations](/design/08-team-and-velocity#migrations).
 
 **Related:** [Tech debt](#tech-debt), [Canary deployment](#canary-deployment), [Feature flag](#feature-flag), [Blue-green deployment](#blue-green-deployment)
 
@@ -1201,7 +1206,7 @@ When one request fans out to many servers or waits for many replies, the slowest
 
 **In the game:** A request collects the tail events of every Node on its path: two independent chances a and b combine to 1 − (1 − a)(1 − b), so a long chain of Nodes that each stall now and then has a worse p99 than any one of them. A Wide-column Store read waits for the R-th fastest of N replicas, and at R = N it waits for the slowest one. Percentiles research shows the p99 where this appears.
 
-**Design:** [Percentiles](./04-simulation.md#percentiles).
+**Design:** [Percentiles](/design/04-simulation#percentiles).
 
 **Related:** [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Hedged request](#hedged-request), [Fan-out](#fan-out), [Quorum](#quorum)
 
@@ -1213,7 +1218,7 @@ Shortcuts and outdated design in code that make each later change slower or risk
 
 **In the game:** Each Service has a tech debt percentage. Every shipped Feature adds 6 points under Move fast, 3 under Balanced, and 1 under Quality, plus 1 with no framework, and a task shipped during an Incident adds 2. Debt cuts velocity by up to half, raises the bad-deploy chance up to 3 times, and makes every Incident likelier. The Refactor task (10 Dev Hours) removes 20 points, and the Quality policy pays some down by itself.
 
-**Design:** [Tech debt](./08-team-and-velocity.md#tech-debt).
+**Design:** [Tech debt](/design/08-team-and-velocity#tech-debt).
 
 **Related:** [Brooks's law](#brookss-law), [Strangler pattern](#strangler-pattern), [Code review](#code-review), [DORA metrics](#dora-metrics)
 
@@ -1235,7 +1240,7 @@ Many clients or processes wake up and act at the same moment, for example after 
 
 **In the game:** The Cache stampede Incident restarts a Cache empty, and every miss goes to the Database at once; while the Database runs at 90% or more, refills time out and the Cache stays cold. Stampede protection lets a cold Cache send on only 25% of its extra misses while the rest wait on one fetch, and Cache warming brings a Cache back 80% warm. Naive retries are a herd too: every caller retries at once, and Backoff with jitter spreads them out.
 
-**Design:** [Realtime Hub](./05-components.md#realtime-hub).
+**Design:** [Realtime Hub](/design/05-components#realtime-hub).
 
 **Related:** [Cache stampede](#cache-stampede), [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [Cache warming](#cache-warming), [Metastable failure](#metastable-failure)
 
@@ -1277,7 +1282,7 @@ A rate limiting algorithm. A bucket holds up to B tokens and refills at a fixed 
 
 **In the game:** Burstable instances run on a token bucket of CPU credits. A Burstable Node earns credits while it uses less than 20% of its vCPU, banks up to 100 core-seconds per vCPU, and spends them to run above that baseline. When the bucket is empty it drops to 20% CPU, so a Burstable box that runs hot all day stalls; in exchange it costs 0.4 times a General box.
 
-**Design:** [API Gateway](./05-components.md#api-gateway).
+**Design:** [API Gateway](/design/05-components#api-gateway).
 
 **Related:** [Rate limiting](#rate-limiting), [Utilization](#utilization), [Vertical and horizontal scaling](#vertical-and-horizontal-scaling)
 
@@ -1289,7 +1294,7 @@ A way to update a database and publish an event without losing either. The servi
 
 **In the game:** The outbox is designed but not in the game yet. The closest mechanic is the Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue. The game does not model an event lost or duplicated between a database write and a publish.
 
-**Design:** [Keeping copies in sync](./07-data-tier.md#keeping-copies-in-sync).
+**Design:** [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync).
 
 **Related:** [At-least-once delivery](#at-least-once-delivery), [CDC (change data capture)](#cdc-change-data-capture), [Idempotency](#idempotency), [Dead-letter queue](#dead-letter-queue)
 
@@ -1301,7 +1306,7 @@ Utilization, Saturation, and Errors for each resource, such as CPU, memory, or a
 
 **In the game:** The Dashboard's Saturation row shows utilization for each Node as a bar gauge, a state timeline, and a table, so you can see which Node filled up first. A full per-resource USE row is not built yet. On the Board, the Load bar on each Node card shows the same utilization now.
 
-**Design:** [The Dashboard](./12-observability.md#the-dashboard).
+**Design:** [The Dashboard](/design/12-observability#the-dashboard).
 
 **Related:** [RED method](#red-method), [Utilization](#utilization), [Little's law](#littles-law), [Observability](#observability)
 
@@ -1313,7 +1318,7 @@ The share of a resource's capacity in use over a period: offered work divided by
 
 **In the game:** Each Node shows its utilization: offered work over the capacity of its tightest limit, whether CPU, slots, memory, connections, or network. Queueing delay grows as ρ / (1 − ρ), the Node warns at 70% and shows danger at 90%, and above 100% it drops the excess. The Bottleneck search weighs only Nodes above 60%, and an Autoscaler targets 40%, 60%, or 80%. The Saturation row on the Dashboard shows each Node as a gauge and as a 24-hour timeline, with the same 70% and 90% lines.
 
-**Design:** [Capacity, utilization, and queues](./04-simulation.md#capacity-utilization-and-queues).
+**Design:** [Capacity, utilization, and queues](/design/04-simulation#capacity-utilization-and-queues).
 
 **Related:** [Little's law](#littles-law), [Backpressure](#backpressure), [Autoscaling](#autoscaling), [Load shedding](#load-shedding)
 
@@ -1325,7 +1330,7 @@ Vertical scaling (scaling up) moves a workload to a bigger machine with more CPU
 
 **In the game:** Resizing a sized Node moves it one step between nano (0.5 vCPU) and metal (96 vCPU), and each step doubles vCPU and RAM, but the Node restarts and comes back cold. Some software cannot use the extra cores: Node.js runs one event loop on one core, and Redis answers on one thread. To scale out, put more App Servers behind DNS or a Load Balancer, each copy costing 25% more to place, or let an Autoscaler add copies, which take 180 s on VMs or 30 s in a Kubernetes Cluster.
 
-**Design:** [Vertical and horizontal](./16-balancing.md#vertical-and-horizontal).
+**Design:** [Vertical and horizontal](/design/16-balancing#vertical-and-horizontal).
 
 **Related:** [Load balancer](#load-balancer), [Autoscaling](#autoscaling), [Shared nothing](#shared-nothing), [Utilization](#utilization)
 
@@ -1347,7 +1352,7 @@ A caching policy in which every write goes to the cache and the database togethe
 
 **In the game:** Write-through is designed as a Cache strategy but not in the game yet. Today a Cache works like cache-aside with invalidation: writes pass through to the Database and invalidate keys, so its hit ratio falls by twice the write share, at most by half. Between invalidations some hits are stale, from 0.5% to 10% per unit of write share as the TTL grows from 10 s to 1 hour.
 
-**Design:** [Cache strategies](./07-data-tier.md#strategies-a-tradeoff-card).
+**Design:** [Cache strategies](/design/07-data-tier#strategies-a-tradeoff-card).
 
 **Related:** [Cache-aside](#cache-aside), [Cache hit rate](#cache-hit-rate), [Eventual consistency](#eventual-consistency), [Cache stampede](#cache-stampede)
 
