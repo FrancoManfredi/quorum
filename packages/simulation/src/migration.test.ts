@@ -3,7 +3,7 @@ import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import { connect, disconnect, place, type Action } from './actions.ts'
 import {
-  DESIGN_TUNING,
+  CHALLENGE_TUNING,
   LANGUAGES,
   MIGRATION_BUGS,
   RUNTIMES,
@@ -42,7 +42,7 @@ const work = (game: Game, seconds: number): Game => {
       { ...current, time: current.time + 1 },
       at(current),
       1,
-      DESIGN_TUNING,
+      CHALLENGE_TUNING,
     ).game
   return current
 }
@@ -145,7 +145,7 @@ describe('migrations', () => {
           .every((node) => node.runtime === runtime),
       ).toBe(true)
       expect(languageOfService(game)).toBe(language)
-      const hired = ok(hire(game, DESIGN_TUNING))
+      const hired = ok(hire(game, CHALLENGE_TUNING))
       expect(hired.hires.at(-1)?.language).toBe(language)
       expect(salaryOf(hired, language)).toBeCloseTo(
         salaryOf(hired, 'php') * (LANGUAGES[language].salary / LANGUAGES.php.salary),

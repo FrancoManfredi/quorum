@@ -13,7 +13,7 @@ import { newGame, preseedGame } from './company.ts'
 import { directIncidents, forceIncident } from './director.ts'
 import type { StepEvent } from './events.ts'
 import { solve } from './solve.ts'
-import { DESIGN_TUNING, ERAS } from './catalog.ts'
+import { CHALLENGE_TUNING, ERAS } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { growthOf, ignored, step } from './step.ts'
 import type { Game } from './state.ts'
@@ -110,7 +110,7 @@ describe('user growth at the design pace', () => {
     let game: Game = { ...newGame(), stage, users: from, apdex: 1 }
     let seconds = 0
     while (game.users < to) {
-      game = { ...game, users: game.users + growthOf(game, ledger, DESIGN_TUNING.pace) * 0.1 }
+      game = { ...game, users: game.users + growthOf(game, ledger, CHALLENGE_TUNING.pace) * 0.1 }
       seconds += 0.1
     }
     return seconds / 60
@@ -341,7 +341,7 @@ describe('incidents per the GDD', () => {
       const directed = directIncidents(
         { ...game, incident: null },
         ledger,
-        DESIGN_TUNING.incidentGap,
+        CHALLENGE_TUNING.incidentGap,
       )
       gaps.push(directed.game.nextIncidentAt - game.time)
       game = { ...directed.game, incident: null, time: directed.game.nextIncidentAt }

@@ -1,6 +1,6 @@
 import { Effect, Result, Schema } from 'effect'
 import type { ComponentId, IncidentId, RequestKind, ResearchId } from './catalog.ts'
-import { COMPONENTS, DESIGN_TUNING, KINDS, REQUEST_KINDS, TASKS } from './catalog.ts'
+import { COMPONENTS, CHALLENGE_TUNING, KINDS, REQUEST_KINDS, TASKS } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { stopped, warmOf } from './life.ts'
 import { isDown } from './lookups.ts'
@@ -1915,7 +1915,7 @@ export const advanceRun = (
   const scored = time >= WARMUP - 1e-9
   let next = totals
   for (let part = 0; part < parts; part += 1) {
-    const result = step(current, challenge.stepSeconds / parts, DESIGN_TUNING)
+    const result = step(current, challenge.stepSeconds / parts, CHALLENGE_TUNING)
     events.push(...result.events)
     current = result.game
     if (scored) next = addLedger(challenge, next, result.ledger, 1 / parts)

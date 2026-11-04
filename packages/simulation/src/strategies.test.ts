@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { DESIGN_TUNING } from './catalog.ts'
+import { CHALLENGE_TUNING } from './catalog.ts'
 import { runBot } from './pacing.ts'
 
 /*
@@ -28,14 +28,14 @@ const balancedSeed = (seed: number): number => {
 describe('the other pacing bots', { timeout: 60_000 }, () => {
   test('Greedy, who only buys bigger boxes, is no faster than 27 minutes', () => {
     for (const seed of SEEDS) {
-      const run = runBot(seed, LIMIT, DESIGN_TUNING, 'greedy')
+      const run = runBot(seed, LIMIT, CHALLENGE_TUNING, 'greedy')
       expect(run.milestones.seed ?? Infinity).toBeGreaterThanOrEqual(27 * 60)
     }
   })
 
   test('Stubborn, who never changes runtime or framework, reaches Seed within 96 minutes and 1.6 × Balanced', () => {
     for (const seed of SEEDS) {
-      const stubborn = runBot(seed, LIMIT, DESIGN_TUNING, 'stubborn')
+      const stubborn = runBot(seed, LIMIT, CHALLENGE_TUNING, 'stubborn')
       expect(stubborn.game.stage).toBe(2)
       const balanced = balancedSeed(seed)
       expect(stubborn.milestones.seed ?? Infinity).toBeLessThanOrEqual(1.6 * balanced)
@@ -47,7 +47,7 @@ describe('the other pacing bots', { timeout: 60_000 }, () => {
   }) => {
     const times: Array<string> = []
     for (const seed of SEEDS) {
-      const polyglot = runBot(seed, LIMIT, DESIGN_TUNING, 'polyglot')
+      const polyglot = runBot(seed, LIMIT, CHALLENGE_TUNING, 'polyglot')
       const balanced = balancedSeed(seed)
       expect(polyglot.game.stage).toBe(2)
       expect(polyglot.milestones.seed ?? 0).toBeGreaterThanOrEqual(0.7 * balanced)
@@ -62,7 +62,7 @@ describe('the other pacing bots', { timeout: 60_000 }, () => {
 
   test('Decliner, who turns every round down, still reaches Seed', () => {
     for (const seed of SEEDS) {
-      const run = runBot(seed, LIMIT, DESIGN_TUNING, 'decliner')
+      const run = runBot(seed, LIMIT, CHALLENGE_TUNING, 'decliner')
       expect(run.game.stage).toBe(2)
       expect(run.game.equity).toBe(1)
     }

@@ -184,9 +184,10 @@ not model that lag: users respond to the last calendar hour only, so a fix shows
 the hour. A lag would hide the feedback the Churn breakdown exists to give.
 
 These are lower bounds: capacity, Cash, and research make a real player slower, while Features raise
-`g` and the market, which makes growth faster still. Either way, growth alone reaches Seed 32 minutes
-after the start, so no Design can stretch the Garage and Pre-seed to the 45–60 minutes the M2 gate
-asks for ([Known balance gaps](#known-balance-gaps)).
+`g` and the market, which makes growth faster still. Growth alone sets the length of the first two
+Eras: at `g` × 1 the Garage takes 12 sim minutes to go from 150 to 1,000 users and Pre-seed 21 more to
+5,000, so Seed arrives at about 33 sim minutes whatever the Design does. At the Company pace, where
+`g` is doubled, the same growth takes half as long.
 
 ## Pacing model
 
@@ -195,15 +196,15 @@ balance change shows up as a test failure rather than in a playtest report. Ever
 Team's autopilot on, and every bot but Greedy hires while payroll, the new hire included, stays under
 25% of revenue, up to 4 engineers.
 
-| Bot      | Strategy                                                                                     | Design limit                                       | In the build                                                                                                                                                                                  |
-| -------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Balanced | Relieves the bottleneck Node, researches by a fixed priority list, builds each Era's content | Inside the targets                                 | Built. Seeds 1–5: Seed reached on every seed, Pre-seed within 20 min, positive Garage and Pre-seed margins. Seed is outside the 45–60 minute gate ([Known balance gaps](#known-balance-gaps)) |
-| Greedy   | Bigger boxes and the cheapest research; never hires                                          | Not beat a target by more than 40%                 | Built. Seeds 1–3: Seed no faster than 27 minutes                                                                                                                                              |
-| Stubborn | Never changes the starting Stack                                                             | Reach IPO within 1.6× the target time              | Built. Seeds 1–3: Seed within 1.6× Balanced on the same seed                                                                                                                                  |
-| Polyglot | Migrates to every language it researches                                                     | Not beat Balanced by more than 30%                 | Built. Seeds 1–3: Seed no faster than 0.7× Balanced                                                                                                                                           |
-| Decliner | Plays Balanced and declines every funding round                                              | Legacy per hour not beat Balanced by more than 15% | Built. Seeds 1–3: reaches Seed with Equity at 100%                                                                                                                                            |
-| Idle     | Logs in every 2 hours, spends everything, leaves                                             | Reach Series A within 24 hours of real time        | Not built                                                                                                                                                                                     |
-| Margin   | Plays like Balanced and records margin at each Era milestone                                 | Margin in 25% to 45% from Seed on                  | Not built. `pacing.test.ts` records the margin at Seed and Series A entry instead                                                                                                             |
+| Bot      | Strategy                                                                                     | Design limit                                       | In the build                                                                                                                        |
+| -------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Balanced | Relieves the bottleneck Node, researches by a fixed priority list, builds each Era's content | Inside the targets                                 | Built. Seeds 1–5: Seed reached on every seed at 26.8–35.7 sim minutes, Pre-seed within 20 min, positive Garage and Pre-seed margins |
+| Greedy   | Bigger boxes and the cheapest research; never hires                                          | Not beat a target by more than 40%                 | Built. Seeds 1–3: Seed no faster than 27 minutes                                                                                    |
+| Stubborn | Never changes the starting Stack                                                             | Reach IPO within 1.6× the target time              | Built. Seeds 1–3: Seed within 1.6× Balanced on the same seed                                                                        |
+| Polyglot | Migrates to every language it researches                                                     | Not beat Balanced by more than 30%                 | Built. Seeds 1–3: Seed no faster than 0.7× Balanced                                                                                 |
+| Decliner | Plays Balanced and declines every funding round                                              | Legacy per hour not beat Balanced by more than 15% | Built. Seeds 1–3: reaches Seed with Equity at 100%                                                                                  |
+| Idle     | Logs in every 2 hours, spends everything, leaves                                             | Reach Series A within 24 hours of real time        | Not built                                                                                                                           |
+| Margin   | Plays like Balanced and records margin at each Era milestone                                 | Margin in 25% to 45% from Seed on                  | Not built. `pacing.test.ts` records the margin at Seed and Series A entry instead                                                   |
 
 A balance change passes when the five bots meet their limits on seeds 1–5: Balanced runs on all five
 seeds, the other four on seeds 1–3.
@@ -280,19 +281,33 @@ Payout is Equity × Valuation × the Exit's multiplier, so the rounds set it
 
 ## Live tuning
 
-The knobs the build runs at, from `catalog/tuning.ts` and `ERAS` in `catalog/eras.ts`. Tests and bots
-pass the design values instead (`DESIGN_TUNING`, `DESIGN_COST_INDEX`, `DESIGN_SALARY_INDEX`, and the
-`tuning` parameter of `step`, `growthOf`, `directIncidents`, `raise`, and `decline`).
+The pacing knobs live in `catalog/tuning.ts`, and the cost and salary indexes in each Era
+(`EraDef.costIndex` and `EraDef.salaryIndex`). Two tunings read them:
 
-| Knob           | Design value                                               | Live value                                                 | Why it moved                                                                            | Constant                                                |
-| -------------- | ---------------------------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Growth pace    | `g` × 1                                                    | `g` × 2                                                    | The design pace left the slice empty in playtests                                       | `PLAYTEST_PACE`                                         |
-| Incident gap   | 720 sim s mean (12 minutes)                                | 200 sim s                                                  | Twelve minutes put one incident in a whole playtest                                     | `INCIDENT_GAP`                                          |
-| First incident | 600 sim s after the Pre-seed raise                         | 90 sim s                                                   | A playtest has to meet an incident early                                                | `FIRST_INCIDENT_AFTER`                                  |
-| Calendar pace  | 1 sim s per calendar minute, so a day takes 24 sim minutes | ÷ 24, so a day takes 1 sim minute                          | A hire took a calendar day and joined near the end of the slice                         | `CALENDAR_PACE`                                         |
-| Cost index     | 1 / 1 / 25 / 120 / 120 / 160 / 190 / 190                   | 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24                         | Pre-seed at 1 made Cash free; Seed at 25 left the bot's Designs at a −55% to 20% margin | `EraDef.costIndex`; the design's is `DESIGN_COST_INDEX` |
-| Salary index   | 1 / 1 / 12 / 100 / 400 / 1,400 / 2,700 / 2,700             | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24 | Payroll has to stay a real share of Burn at the live prices                             | `EraDef.salaryIndex`; `DESIGN_SALARY_INDEX`             |
-| Company speeds | 1×; 2× and 4× from Legacy                                  | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation          | Extra speeds read better than a scaled top speed                                        | `SPEEDS` and `DILATION_SPEEDS`                          |
+- **A Company** plays at `LIVE_TUNING`: growth × 2, an incident every 200 sim seconds, and the first
+  90 seconds after the Pre-seed raise.
+- **A Challenge and a Sandbox** replay at `CHALLENGE_TUNING`: growth × 1, an incident every 720
+  seconds, and the first after 600. The pacing bots use it too, so a run shows a whole curve inside
+  a test.
+
+Both share the calendar pace, so a calendar day lasts 60 sim seconds. The `tuning` parameter of
+`step`, `growthOf`, `directIncidents`, `raise`, and `decline` selects one.
+
+| Knob           | Challenge pace                     | Company pace                      | Why they differ                                                                                                 | Constant                                            |
+| -------------- | ---------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Growth pace    | `g` × 1                            | `g` × 2                           | A session of 15 to 30 minutes needs the faster rate; a replay keeps the slower one so a whole curve fits a test | `CHALLENGE_TUNING`, `LIVE_TUNING` (`PLAYTEST_PACE`) |
+| Incident gap   | 720 sim s mean (12 minutes)        | 200 sim s mean                    | A replay spreads incidents across the curve; a session has to meet several                                      | `INCIDENT_GAP`                                      |
+| First incident | 600 sim s after the Pre-seed raise | 90 sim s after the Pre-seed raise | A session meets an incident early; a replay does not need to                                                    | `FIRST_INCIDENT_AFTER`                              |
+| Calendar pace  | 60 sim s a day                     | 60 sim s a day                    | One value for both: a hire and a deploy have to fit inside a session                                            | `CALENDAR_PACE`                                     |
+
+The cost index, the salary index, and the speeds are one value each, set per Era or per perk rather
+than per tuning:
+
+| Knob           | Value                                                      | Why                                                                               | Constant                    |
+| -------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------- |
+| Cost index     | 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24                         | Rises with the Era so Burn stays a real share of revenue at every size of company | `EraDef.costIndex`          |
+| Salary index   | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24 | Payroll has to stay a real share of Burn at the prices the player pays            | `EraDef.salaryIndex`        |
+| Company speeds | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation          | A slower speed for watching a Design settle, faster ones for the late Eras        | `SPEEDS`, `DILATION_SPEEDS` |
 
 ## Open gaps
 
@@ -359,11 +374,10 @@ document used to carry. The last column says what closes the row; it names no ow
 
 ## Known balance gaps
 
-| Gap                                                      | Evidence                                                                                                                                                                                                                                                                                                                                                             | What closes it                                                                      |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| BEAM never beats Go or Kestrel                           | The dominance test lists both pairs as `KNOWN_GAPS`. BEAM holds a realtime connection in half the memory, and the test scores no `rt` design.                                                                                                                                                                                                                        | A reference design with `rt`, so connection memory is one of the scores             |
-| Axum and Actix each beat the other by about 5%           | Axum 1.0× CPU and 1.15× velocity, Actix 0.95× and 1.10× ([Runtimes](/design/06-runtimes#frameworks)); under the 10% bar, so neither separates.                                                                                                                                                                                                                       | A Rust framework difference above 10% on one score, or a design that separates them |
-| Seed arrives far earlier than the design's 45–60 minutes | The Balanced bot reaches Seed at 20.5–21.1 sim minutes at the live pace on seeds 1 and 3, and 26.8–29.3 at the design pace, which is also the pace a Challenge replays at. Growth alone takes the Garage from 150 to 1,000 users in 12 minutes and Pre-seed from 1,000 to 5,000 in 21, and Features raise `g` and the market, so no Design can stretch the two Eras. | A design decision, not tuning: raise the Pre-seed and Seed thresholds, or lower `g` |
-| IPO in 9–12 hours has never been measured                | No bot reaches Public; the Balanced bot ends Series B at about 92 sim minutes on seed 3.                                                                                                                                                                                                                                                                             | A bot that plays to the IPO checklist, and a measured time against the M6 gate      |
-| A second company in 3–6 hours has never been measured    | `legacy-pacing.test.ts` stops at Seed; the Balanced bot does not reach Public.                                                                                                                                                                                                                                                                                       | A measured second company against the M7 gate                                       |
-| The dominance suite does not run in CI                   | `dominance.test.ts` is `describe.skipIf(!SLOW)`, and CI runs `pnpm test` without `SLOW_TESTS=1`.                                                                                                                                                                                                                                                                     | A CI job with `SLOW_TESTS=1`, or a faster dominance run                             |
+| Gap                                                   | Evidence                                                                                                                                       | What closes it                                                                      |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| BEAM never beats Go or Kestrel                        | The dominance test lists both pairs as `KNOWN_GAPS`. BEAM holds a realtime connection in half the memory, and the test scores no `rt` design.  | A reference design with `rt`, so connection memory is one of the scores             |
+| Axum and Actix each beat the other by about 5%        | Axum 1.0× CPU and 1.15× velocity, Actix 0.95× and 1.10× ([Runtimes](/design/06-runtimes#frameworks)); under the 10% bar, so neither separates. | A Rust framework difference above 10% on one score, or a design that separates them |
+| IPO in 9–12 hours has never been measured             | No bot reaches Public; the Balanced bot ends Series B at about 92 sim minutes on seed 3.                                                       | A bot that plays to the IPO checklist, and a measured time against the M6 gate      |
+| A second company in 3–6 hours has never been measured | `legacy-pacing.test.ts` stops at Seed; the Balanced bot does not reach Public.                                                                 | A measured second company against the M7 gate                                       |
+| The dominance suite does not run in CI                | `dominance.test.ts` is `describe.skipIf(!SLOW)`, and CI runs `pnpm test` without `SLOW_TESTS=1`.                                               | A CI job with `SLOW_TESTS=1`, or a faster dominance run                             |

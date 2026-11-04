@@ -3,7 +3,7 @@ import { describe, expect, test } from 'vitest'
 import type { Action } from './actions.ts'
 import {
   CALENDAR_DAY,
-  DESIGN_TUNING,
+  CHALLENGE_TUNING,
   ERAS,
   LANGUAGES,
   LIVE_TUNING,
@@ -57,19 +57,19 @@ describe('coordination', () => {
 })
 
 /** Sim seconds in a calendar day at the design pace. */
-const DAY = CALENDAR_DAY / DESIGN_TUNING.calendarPace
+const DAY = CALENDAR_DAY / CHALLENGE_TUNING.calendarPace
 
 describe('Dev Hours', () => {
   test('the founder makes 6.4 Dev Hours per calendar day at velocity 1', () => {
     const game: Game = { ...newGame(), autopilot: false }
-    expect(devHoursRate(game, at(game), DESIGN_TUNING) * DAY).toBeCloseTo(6.4)
+    expect(devHoursRate(game, at(game), CHALLENGE_TUNING) * DAY).toBeCloseTo(6.4)
     let current = game
     for (let second = 0; second < DAY; second += 1)
       current = advanceTeam(
         { ...current, time: current.time + 1 },
         at(current),
         1,
-        DESIGN_TUNING,
+        CHALLENGE_TUNING,
       ).game
     // With nothing on the backlog, they go to the pool.
     expect(current.devHours).toBeCloseTo(6.4)
@@ -78,7 +78,7 @@ describe('Dev Hours', () => {
   test('the live game makes Dev Hours on the same calendar as the design', () => {
     const game = newGame()
     expect(devHoursRate(game, at(game), LIVE_TUNING)).toBeCloseTo(
-      devHoursRate(game, at(game), DESIGN_TUNING),
+      devHoursRate(game, at(game), CHALLENGE_TUNING),
     )
   })
 
@@ -97,7 +97,7 @@ describe('hiring', () => {
 
   test('a hire joins after the time to hire, then works at 30% for a calendar week', () => {
     const start = preseed()
-    const signed = ok(hire(start, DESIGN_TUNING))
+    const signed = ok(hire(start, CHALLENGE_TUNING))
     expect(start.cash - signed.cash).toBe(signingOf(start, 'php'))
     const offer = signed.hires[0]
     expect(offer && offer.readyAt - signed.time).toBe(DAY * LANGUAGES.php.hireTime)
@@ -105,13 +105,13 @@ describe('hiring', () => {
       { ...signed, time: offer?.readyAt ?? 0 },
       at(signed),
       0,
-      DESIGN_TUNING,
+      CHALLENGE_TUNING,
     ).game
     expect(joined.engineers).toHaveLength(1)
-    const ramping = teamOutputs(joined, at(joined), DESIGN_TUNING)[0]
+    const ramping = teamOutputs(joined, at(joined), CHALLENGE_TUNING)[0]
     expect(ramping?.effective).toBeCloseTo((effectiveEngineers(2) * (0.8 + 0.3)) / 2)
     const week: Game = { ...joined, time: joined.time + 7 * DAY }
-    const full = teamOutputs(week, at(week), DESIGN_TUNING)[0]
+    const full = teamOutputs(week, at(week), CHALLENGE_TUNING)[0]
     expect(full?.effective).toBeCloseTo((effectiveEngineers(2) * (0.8 + 1)) / 2)
   })
 
@@ -124,7 +124,7 @@ describe('hiring', () => {
       engineers: [engineer('e1', 0)],
       time: 3.6 * CALENDAR_DAY,
     }
-    const output = teamOutputs(rails, at(rails), DESIGN_TUNING)[0]
+    const output = teamOutputs(rails, at(rails), CHALLENGE_TUNING)[0]
     expect(output?.effective).toBeCloseTo((effectiveEngineers(2) * (0.8 + 1)) / 2)
   })
 
@@ -147,13 +147,13 @@ describe('hiring', () => {
 
   test('a layoff ends the salary and costs the rest of the team 10% velocity for a week', () => {
     const staffed: Game = { ...preseed(), engineers: [engineer('e1'), engineer('e2')] }
-    const after = ok(layoff(staffed, 'e2', DESIGN_TUNING))
+    const after = ok(layoff(staffed, 'e2', CHALLENGE_TUNING))
     expect(after.engineers).toHaveLength(1)
     expect(solveFlow(staffed).salaries - solveFlow(after).salaries).toBeGreaterThan(0)
-    const hurt = teamOutputs(after, at(after), DESIGN_TUNING)[0]?.velocity ?? 0
+    const hurt = teamOutputs(after, at(after), CHALLENGE_TUNING)[0]?.velocity ?? 0
     const healed: Game = { ...after, time: after.time + 7 * CALENDAR_DAY }
-    expect(hurt / (teamOutputs(healed, at(healed), DESIGN_TUNING)[0]?.velocity ?? 1)).toBeCloseTo(
-      0.9,
-    )
+    expect(
+      hurt / (teamOutputs(healed, at(healed), CHALLENGE_TUNING)[0]?.velocity ?? 1),
+    ).toBeCloseTo(0.9)
   })
 })

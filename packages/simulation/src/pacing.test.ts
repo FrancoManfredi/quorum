@@ -1,25 +1,24 @@
 import { describe, expect, test } from 'vitest'
 import { SLOW } from '../slow.ts'
-import { DESIGN_TUNING } from './catalog.ts'
+import { CHALLENGE_TUNING } from './catalog.ts'
 import { runBot } from './pacing.ts'
 import { budgetOf } from './slo.ts'
 
 /*
- * The Balanced bot at the design pace (16 "Pacing model", plan D16: five seeds).
- * It asserts what the model reaches. The GDD's 45–60 min to Seed and 15–20 min
- * to Pre-seed are not reached: growth alone takes the Company from 150 users to
- * the Seed threshold in about 34 minutes, so the bot raises Seed at 34–41 min
- * and Pre-seed at about 13 min. The measured times are in the divergence log
- * (16-balancing.md), and the annotations below report them on every run.
- * Margin is defined from Seed on and needs payroll (M4), so the Garage and
- * Pre-seed only have to pay for themselves.
+ * The Balanced bot at the Challenge pace (16 "Pacing model", plan D16: five seeds).
+ * It asserts what the model reaches: growth alone takes the Company from 150 users
+ * to the Seed threshold in about 27 minutes, so the bot raises Pre-seed at about
+ * 11 minutes and Seed at 27–36. The measured times are in 16's measurements page,
+ * and the annotations below report them on every run. Margin is defined from Seed
+ * on and needs payroll (M4), so the Garage and Pre-seed only have to pay for
+ * themselves.
  */
 
 const SEEDS = [1, 2, 3, 4, 5]
 const NINETY_MINUTES = 90 * 60
 const minutes = (seconds: number | undefined) => ((seconds ?? 0) / 60).toFixed(1)
 
-describe('the Balanced bot at the design pace', { timeout: 60_000 }, () => {
+describe('the Balanced bot at the Challenge pace', { timeout: 60_000 }, () => {
   for (const seed of SEEDS)
     test(`seed ${seed}: pays its way, raises Pre-seed within 20 min, and reaches Seed`, async ({
       annotate,
@@ -42,8 +41,7 @@ describe('the Balanced bot at the design pace', { timeout: 60_000 }, () => {
           `first incident ${minutes(milestones['first-incident'])}, first Feature live ` +
           `${minutes(milestones['first-feature'])}, first hire ${minutes(milestones['first-hire'])}, ` +
           `${run.game.engineers.length} engineers and ${run.game.shipped.length} Features at Seed; margin at Seed entry ` +
-          `${((preseed?.live ?? 0) * 100).toFixed(0)}% live, ` +
-          `${((preseed?.design ?? 0) * 100).toFixed(0)}% at cost index 25`,
+          `${((preseed?.live ?? 0) * 100).toFixed(0)}% live`,
       )
     })
 })
@@ -60,7 +58,7 @@ describe('the Balanced bot at the design pace', { timeout: 60_000 }, () => {
  * Multiple zones first, then spreads its App Servers across two zones and gives
  * every data Node a standby, and raises Series B (91–106 min on seeds 1–5). It moves each CVE patch ticket to the top of
  * the backlog, so no ticket expires into a Data breach.
- * Series C is a placeholder, so the run stops on the clock. Margins at the design's cost indexes are recorded, not asserted.
+ * Series C is a placeholder, so the run stops on the clock.
  */
 describe.skipIf(!SLOW)(
   'the Balanced bot through Seed and Series A into Series B',
@@ -70,7 +68,7 @@ describe.skipIf(!SLOW)(
       test(`seed ${seed}: plays Seed, raises Series A, spreads across zones, raises Series B`, async ({
         annotate,
       }) => {
-        const run = runBot(seed, 130 * 60, DESIGN_TUNING, 'balanced', 5)
+        const run = runBot(seed, 130 * 60, CHALLENGE_TUNING, 'balanced', 5)
         const { milestones } = run
         expect(run.game.stage).toBe(4)
         expect(milestones['series-b'] ?? Infinity).toBeLessThan(130 * 60)
@@ -86,8 +84,7 @@ describe.skipIf(!SLOW)(
           `Seed at ${minutes(milestones.seed)} min, Series A at ${minutes(milestones['series-a'])}; ` +
             `Search Engine ${minutes(milestones['search-engine'])}, WAF ${minutes(milestones.waf)}, ` +
             `second server ${minutes(milestones['second-server'])}; margin at Series A entry ` +
-            `${((seedEra?.live ?? 0) * 100).toFixed(0)}% live, ` +
-            `${((seedEra?.design ?? 0) * 100).toFixed(0)}% at cost index 120; second zone ` +
+            `${((seedEra?.live ?? 0) * 100).toFixed(0)}% live; second zone ` +
             `${minutes(milestones['second-zone'])}, standby ${minutes(milestones.standby)}; ` +
             `Series B at ${minutes(milestones['series-b'])}; at 130 min ` +
             `${Math.round(run.game.users)} users, availability ${(budget.availability * 100).toFixed(2)}% ` +

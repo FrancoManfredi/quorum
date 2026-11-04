@@ -14,9 +14,9 @@ simulation's seeds, not the random seeds of a playtest.
 
 ## Pacing
 
-### Design pace
+### Challenge pace
 
-The Balanced bot at the design tuning (`DESIGN_TUNING`, the pace a Challenge replays at), seeds 1–5,
+The Balanced bot at the Challenge pace (`CHALLENGE_TUNING`), seeds 1–5,
 until 90 sim minutes.
 
 | Milestone             | Measured (sim min)                                                |
@@ -50,7 +50,7 @@ sooner and recovers more often in the Eras after it.
 
 ## Seed
 
-The Balanced bot at the design pace, seeds 1 and 3.
+The Balanced bot at the Challenge pace, seeds 1 and 3.
 
 | Milestone            | Measured (sim min) |
 | -------------------- | ------------------ |
@@ -61,8 +61,9 @@ The Balanced bot at the design pace, seeds 1 and 3.
 | Series A             | 51.9–52.7          |
 | Seed length          | 23–25              |
 
-The M2 gate asks for Seed in 45–60 minutes ([Scope and
-roadmap](/design/17-scope-and-roadmap#milestones)); nothing else in the table has a target.
+The M2 gate asks for Seed on every seed ([Scope and
+roadmap](/design/17-scope-and-roadmap#milestones)), which the Challenge pace reaches at 26.8–35.7 sim
+minutes; nothing else in the table has a target.
 
 Seed lasts 23–25 minutes because the Team's Features raise growth and the market: 5,000 to 25,000
 users against a 35,000 market at `g` = 0.0016 takes 28 minutes on its own. The bot's autopilot builds
@@ -75,7 +76,7 @@ asserted; no bot checks the 25% to 45% target.
 
 ## Series A and Series B
 
-The Balanced bot at the design pace, seeds 1 and 3, until 130 sim minutes. Series B has no content
+The Balanced bot at the Challenge pace, seeds 1 and 3, until 130 sim minutes. Series B has no content
 after its Features, so the run stops on the clock.
 
 | Milestone                | Measured (sim min) |

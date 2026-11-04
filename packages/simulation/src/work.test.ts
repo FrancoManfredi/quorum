@@ -4,7 +4,7 @@ import { connect, place, setPoolerMode, type Action } from './actions.ts'
 import { callsOf } from './capacity.ts'
 import {
   CALENDAR_DAY,
-  DESIGN_TUNING,
+  CHALLENGE_TUNING,
   FEATURES,
   PAYING_SHARE,
   PLAN_PER_DAY,
@@ -66,7 +66,7 @@ const work = (game: Game, seconds: number): Game => {
       { ...current, time: current.time + 1 },
       at(current),
       1,
-      DESIGN_TUNING,
+      CHALLENGE_TUNING,
     ).game
   return current
 }
@@ -142,7 +142,7 @@ describe('deploys', () => {
   })
 
   test('PHP deploys more often than Node.js at the same policy, and a pipeline more still', () => {
-    const fast = ok(setTeamPolicy(preseed(), 'core', 'move-fast', DESIGN_TUNING))
+    const fast = ok(setTeamPolicy(preseed(), 'core', 'move-fast', CHALLENGE_TUNING))
     const php: Game = { ...fast, time: fast.time + CALENDAR_DAY }
     const node: Game = {
       ...php,
@@ -150,27 +150,31 @@ describe('deploys', () => {
         entry.type === 'server' ? { ...entry, runtime: 'node' } : entry,
       ),
     }
-    expect(deploysPerDay(php, DESIGN_TUNING)).toBeGreaterThan(deploysPerDay(node, DESIGN_TUNING))
+    expect(deploysPerDay(php, CHALLENGE_TUNING)).toBeGreaterThan(
+      deploysPerDay(node, CHALLENGE_TUNING),
+    )
     const piped: Game = { ...php, researched: [...php.researched, 'ci'] }
-    expect(deploysPerDay(piped, DESIGN_TUNING)).toBeGreaterThan(deploysPerDay(php, DESIGN_TUNING))
+    expect(deploysPerDay(piped, CHALLENGE_TUNING)).toBeGreaterThan(
+      deploysPerDay(php, CHALLENGE_TUNING),
+    )
     // Balanced caps the day at 8 deploys.
-    expect(deploysPerDay({ ...preseed(), researched: ['ci'] }, DESIGN_TUNING)).toBe(8)
+    expect(deploysPerDay({ ...preseed(), researched: ['ci'] }, CHALLENGE_TUNING)).toBe(8)
   })
 
   test('the bad-deploy chance follows the policy, the debt, tests, and review', () => {
     const game = preseed()
-    const base = badDeployChance(game, DESIGN_TUNING)
+    const base = badDeployChance(game, CHALLENGE_TUNING)
     expect(base).toBeCloseTo(0.1)
-    const fast = ok(setTeamPolicy(game, 'core', 'move-fast', DESIGN_TUNING))
-    expect(badDeployChance({ ...fast, time: fast.time + CALENDAR_DAY }, DESIGN_TUNING)).toBeCloseTo(
-      0.15,
-    )
-    expect(badDeployChance(withService(game, { debt: 0.5 }), DESIGN_TUNING)).toBeCloseTo(0.2)
+    const fast = ok(setTeamPolicy(game, 'core', 'move-fast', CHALLENGE_TUNING))
+    expect(
+      badDeployChance({ ...fast, time: fast.time + CALENDAR_DAY }, CHALLENGE_TUNING),
+    ).toBeCloseTo(0.15)
+    expect(badDeployChance(withService(game, { debt: 0.5 }), CHALLENGE_TUNING)).toBeCloseTo(0.2)
     const careful: Game = {
       ...game,
       researched: [...game.researched, 'ci', 'testing-culture', 'code-review'],
     }
-    expect(badDeployChance(careful, DESIGN_TUNING)).toBeCloseTo(0.1 * 0.7 * 0.8)
+    expect(badDeployChance(careful, CHALLENGE_TUNING)).toBeCloseTo(0.1 * 0.7 * 0.8)
   })
 
   test('a seeded deploy is bad exactly when its roll is under the chance', () => {
@@ -179,7 +183,7 @@ describe('deploys', () => {
         { ...preseed(), seed, awaiting: ['landing-page'] },
         { nextDeployAt: 0, debt: 1 },
       )
-      const chance = badDeployChance(ready, DESIGN_TUNING)
+      const chance = badDeployChance(ready, CHALLENGE_TUNING)
       const deployed = work(ready, 1)
       expect(deployed.badDeploys === 1).toBe(nextRandom(seed)[0] < chance)
     }
@@ -290,7 +294,7 @@ describe('Engineering tasks and tech debt', { timeout: 30_000 }, () => {
 
   test('Move fast ships with more debt than Quality', () => {
     const built = (policy: 'move-fast' | 'quality') => {
-      const set = ok(setTeamPolicy(preseed(), 'core', policy, DESIGN_TUNING))
+      const set = ok(setTeamPolicy(preseed(), 'core', policy, CHALLENGE_TUNING))
       const queued = ok(queueFeature({ ...set, time: set.time + CALENDAR_DAY }, 'pagination'))
       return serviceOf(work(queued, 30 * 60)).debt
     }
@@ -394,9 +398,9 @@ describe('Kubernetes Clusters and the Platform team (08 "Teams")', () => {
 
   test('Upgrade clusters puts every Cluster on a supported version and ends a forced upgrade', () => {
     const game = clustered()
-    const stale: Game = { ...game, time: game.time + 3 * quarterSeconds(DESIGN_TUNING) }
+    const stale: Game = { ...game, time: game.time + 3 * quarterSeconds(CHALLENGE_TUNING) }
     const cluster = stale.nodes.find((node) => node.type === 'cluster')
-    expect(quartersBehind(stale, cluster as GameNode, DESIGN_TUNING)).toBeCloseTo(2, 6)
+    expect(quartersBehind(stale, cluster as GameNode, CHALLENGE_TUNING)).toBeCloseTo(2, 6)
     const forced: Game = {
       ...stale,
       incident: {
@@ -417,7 +421,7 @@ describe('Kubernetes Clusters and the Platform team (08 "Teams")', () => {
     }
     const upgraded = work(ok(queueTask(forced, 'upgrade-cluster')), 30 * 60)
     const after = upgraded.nodes.find((node) => node.type === 'cluster') as GameNode
-    expect(quartersBehind(upgraded, after, DESIGN_TUNING)).toBe(0)
+    expect(quartersBehind(upgraded, after, CHALLENGE_TUNING)).toBe(0)
     expect(upgraded.incident?.remaining ?? 0).toBeLessThanOrEqual(0)
     expect(Result.isFailure(queueTask(preseed(), 'upgrade-cluster'))).toBe(true)
   })

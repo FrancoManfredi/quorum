@@ -25,7 +25,7 @@ One DH is one engineer-hour. An engineer works 8 hours in a calendar day (the sa
 limits deploys), so one engineer produces 8 DH per calendar day. The founder produces 0.8 of that,
 because the founder also runs the company. Dev Hours follow the Team's calendar, like hiring,
 ramp-up, and deploys. The live game runs the Team's calendar 24× faster than the board's (see the
-[divergence log](/design/16-balancing)), so an engineer produces 8 DH per real minute.
+[live tuning](/design/16-balancing#live-tuning)), so an engineer produces 8 DH per real minute.
 
 | Term                  | Source                                                                                                                  |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |

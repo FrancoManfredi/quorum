@@ -11,7 +11,7 @@ import {
   setRuntime,
 } from './actions.ts'
 import {
-  DESIGN_TUNING,
+  CHALLENGE_TUNING,
   FAMILY_IDS,
   FRAMEWORKS,
   FRAMEWORK_IDS,
@@ -116,7 +116,7 @@ const fit = (game: Game): Game => {
 const score = (game: Game): Scores => {
   let current: Game = { ...game, nextIncidentAt: Number.MAX_SAFE_INTEGER, cash: 1e9 }
   for (let elapsed = 0; elapsed < SECONDS; elapsed += STEP)
-    current = step(current, STEP, DESIGN_TUNING).game
+    current = step(current, STEP, CHALLENGE_TUNING).game
   const ledger = solveFlow(current)
   return {
     value: ledger.burn > 0 ? ledger.revenue / ledger.burn : 0,

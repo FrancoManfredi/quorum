@@ -31,19 +31,15 @@ import {
 import {
   COMPONENTS,
   CREDIT_CAP,
-  DESIGN_COST_INDEX,
-  DESIGN_SALARY_INDEX,
-  DESIGN_TUNING,
+  CHALLENGE_TUNING,
   FEATURES,
   FRAMEWORKS,
-  LANGUAGES,
   OS_RAM,
   POOL_LIMITS,
   RECIPE,
   RESEARCH,
   RESEARCH_IDS,
   RUNTIMES,
-  SALARY_BASE,
   STANDBY_TYPES,
   type ComponentId,
   type FeatureDef,
@@ -55,7 +51,7 @@ import {
 import { newGame } from './company.ts'
 import { foundCompany } from './founding.ts'
 import type { Ledger } from './ledger.ts'
-import { burnOf, eraOf, has, isDown, ramOf, researchReady } from './lookups.ts'
+import { has, isDown, ramOf, researchReady } from './lookups.ts'
 import { bottleneckOf, solveFlow } from './solve.ts'
 import type { Founding, Game, GameNode } from './state.ts'
 import { step } from './step.ts'
@@ -106,14 +102,12 @@ export type Milestone =
   | 'warehouse'
   | 'ai-serving'
 
-/** Margin when an Era ends: `live` at the build's prices, `design` at the design's cost index. */
+/** Margin when an Era ends, at the build's prices. */
 export type MarginRecord = Readonly<{
   /** The Era that just ended. */
   stage: number
   time: number
   live: number
-  /** Margin with Burn at the next Era's design cost index, as the Company enters it. */
-  design: number
 }>
 
 export type BotRun = Readonly<{
@@ -194,18 +188,6 @@ const BUSY = 0.8
 
 const tried = (game: Game, action: Action): Game =>
   Result.isSuccess(action) ? action.success : game
-
-/** Burn at a cost index and a salary index, so margins can be read at the design's prices. */
-export const burnAt = (game: Game, index: number, salaryIndex: number): number =>
-  game.nodes.reduce((total, node) => {
-    const burn = burnOf(game, node)
-    // The Auth Provider charges per user, not by the cost index.
-    return total + (node.type === 'auth' ? burn : (burn / eraOf(game).costIndex) * index)
-  }, 0) +
-  game.engineers.reduce(
-    (total, engineer) => total + SALARY_BASE * salaryIndex * LANGUAGES[engineer.language].salary,
-    0,
-  )
 
 const marginOf = (revenue: number, burn: number): number =>
   revenue > 0 ? (revenue - burn) / revenue : -1
@@ -737,7 +719,7 @@ const reached = (before: Game, after: Game): ReadonlyArray<Milestone> => {
 export const runBot = (
   seed: number,
   until: number,
-  tuning: Tuning = DESIGN_TUNING,
+  tuning: Tuning = CHALLENGE_TUNING,
   strategy: Strategy = 'balanced',
   untilStage = 2,
   /** A later Company: founded with the Founder's perks, Venture and Mutators. */
@@ -760,14 +742,6 @@ export const runBot = (
           stage: before.stage,
           time: game.time,
           live: marginOf(ledger.revenue, ledger.burn),
-          design: marginOf(
-            ledger.revenue,
-            burnAt(
-              before,
-              DESIGN_COST_INDEX[game.stage] ?? 1,
-              DESIGN_SALARY_INDEX[game.stage] ?? 1,
-            ),
-          ),
         })
     }
     const result = step(game, 1, tuning)
