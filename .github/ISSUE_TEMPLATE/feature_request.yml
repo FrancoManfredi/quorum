@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest an idea or a mechanic for Quorum.
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The game has no fixed direction yet, so an idea may not fit. Describe the
+        problem before the solution, and wait for a reply before you write code.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      placeholder: 'When I ... I cannot ..., so I ...'
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false

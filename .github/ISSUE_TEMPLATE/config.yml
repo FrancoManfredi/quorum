@@ -1,0 +1,9 @@
+# Blank issues stay on for notes that fit none of the templates.
+blank_issues_enabled: true
+contact_links:
+  - name: Contributing to Quorum
+    url: https://github.com/elianiva/quorum/blob/main/CONTRIBUTING.md
+    about: Open an issue before you write code for a feature, a mechanic, or a design change.
+  - name: Play Quorum
+    url: https://playquorum.dev
+    about: The game runs in the browser.

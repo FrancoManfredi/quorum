@@ -1,0 +1,53 @@
+name: Bug report
+description: Report something that is not working in Quorum.
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: 'Firefox 140'
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: 'macOS 15.1'
+    validations:
+      required: true
+
+  - type: input
+    id: era
+    attributes:
+      label: Era and Company
+      description: Where in the game it happened. Optional.
+      placeholder: "Series A, Company 'Acme'"
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: The steps that lead to it, what you expected, and what happened instead.
+      placeholder: |
+        1. Open ...
+        2. Place ...
+        3. The Simulation ...
+
+        Expected: ...
+        Instead: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Errors from the browser console, if any. Screenshots are welcome.
+      render: text
+    validations:
+      required: false

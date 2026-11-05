@@ -1,50 +1,18 @@
-# Repository guide
+# Quorum
 
-This repository is a pnpm monorepo for an Effect + Foldkit application deployed to Cloudflare with Alchemy.
-
-## Package boundaries
-
-- `apps/web` is the Foldkit website and its website Worker.
-- `apps/wiki` is the player wiki at `wiki.playquorum.dev` (ADR 0009): a Foldkit app prerendered at build time. Its numbers come from the catalog; its prose is Markdown in `apps/wiki/content`.
-- `apps/backend` is the API Worker and owns server-side behavior.
-- `packages/rpc` contains only the typed wire contract shared by the browser and API Worker.
-- `packages/simulation` is the Simulation, played by the browser and replayed by the API Worker (ADR 0004). It imports only `effect` and its own files: no UI, browser, Node, or Cloudflare modules, and only exact math.
-- `packages/ui` is the shared UI package (ADR 0010): design-system primitives, the Quorum theme, and the game views that the wiki embeds. Views take the data they show and the Messages they send, never an app's Model.
-- `packages/mcp-relay` is the published `quorum-mcp-relay` CLI, a read-only MCP server that lets a terminal agent read the game open in the player's browser (ADR 0007). Its `tools` and `protocol` files are pure data that the web app imports; nothing in it can change the game.
-- `examples/reference` is a maintained, separately runnable example. It is not part of the default deployment.
-- Keep Alchemy resources and deployment composition in the root `alchemy.run.ts`. App-owned `src/worker.ts` files are plain Cloudflare Worker entry modules and must not import Alchemy or declare infrastructure.
-- Do not add a domain package or product domain until the product vocabulary and boundaries are agreed.
-
-## Working agreements
-
-- Keep the browser from importing `apps/backend` or platform-specific modules.
-- Keep game rules, the catalog, and the Game schema in `packages/simulation`; keep rendering, input, and storage in `apps/web`.
-- Keep wiki facts generated from `packages/simulation`; never type a catalog number into `apps/wiki/content`.
-- Keep design tokens in `packages/ui/src/theme.css` and shared views in `packages/ui`; keep screens that exist only in the game in `apps/web`.
-- Keep the agent tool names and wire protocol in `packages/mcp-relay`; keep their implementation over the Model in `apps/web/src/game/agent-tools.ts`. Agent tools only read.
-- Keep RPC schemas and errors in `packages/rpc`; keep handlers and internal models in `apps/backend`.
-- Keep unstable Effect APIs inside the tsconfig allowlist for their file. See `docs/guardrails.md` before you widen one.
-- Use Foldkit Query for retained remote data. Loading and revalidation decisions belong in Foldkit update handlers.
-- Add a workspace package only for a real reusable or independently owned boundary.
-- Keep Cloudflare services out of the starter unless a concrete feature needs them.
-
-## Commands
-
-- `pnpm dev` runs the default Alchemy stack.
-- `pnpm dev:reference` runs the reference stack.
-- `pnpm check` runs Vite+ formatting, lint, and configured checks.
-- `pnpm typecheck`, `pnpm test`, and `pnpm build` run through Turbo.
-- `pnpm deploy` changes Cloudflare infrastructure. Do not run it without explicit approval.
-
-## Type checking
-
-- Use only `tsrs` for TypeScript diagnostics, and only `effect-tsrs` for Effect diagnostics. `pnpm typecheck` runs both.
-- To check one package, run `pnpm exec tsrs --noEmit -p tsconfig.json && pnpm exec effect-tsrs diagnostics --strict --project tsconfig.json` in its directory.
-- `vp lint` runs the Effect rules from the `effect-tsrs` Oxlint preset. The root `prepare` script runs `effect-tsrs patch --oxlint`, which replaces the tsgolint backend with `effect-tsrs`. If `vp lint` fails after an install that skipped scripts, run `pnpm exec effect-tsrs patch --oxlint`.
-- Never run `tsc`, `tsgo`, `@typescript/native-preview`, the original `oxlint-tsgolint` binary, or `vp lint --type-check`. Do not add `typescript` or `@typescript/native-preview` as a dependency, and do not turn on `typeCheck` in `vite.config.ts`.
-- Do not turn on a non-Effect type-aware Oxlint rule (such as `typescript/no-floating-promises`), because `effect-tsrs` sends those rules to tsgolint.
-
-See `docs/architecture.md` and `docs/tooling.md` before changing workspace boundaries or tool ownership. `docs/guardrails.md` lists the rules this repository enforces and the check behind each one.
+- Read `docs/guardrails.md` for the enforced rules, and `CONTEXT.md` for the vocabulary code and copy use.
+- Verify with `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
+- Never run `pnpm deploy` without explicit approval.
+- Use only `tsrs` and `effect-tsrs` for diagnostics. Never run `tsc`, `tsgo`, or `vp lint --type-check`; do not add `typescript` or turn on `typeCheck` in `vite.config.ts`.
+- If `vp lint` fails after an install that skipped scripts, run `pnpm exec effect-tsrs patch --oxlint`.
+- Alchemy and infrastructure live only in the root `alchemy.run.ts`; `src/worker.ts` files never import Alchemy.
+- Game rules, catalog, and Game schema live in `packages/simulation`; rendering, input, and storage live in `apps/web`.
+- Never type a catalog number into `apps/wiki/content`; wiki facts come from the catalog.
+- `packages/ui` views take data and Messages, never an app's Model.
+- Agent tools only read. Names and protocol live in `packages/mcp-relay`; implementation lives in `apps/web/src/game/agent-tools.ts`.
+- RPC schemas and errors live in `packages/rpc`; handlers live in `apps/backend`.
+- Retained remote data uses Foldkit Query; loading decisions belong in update handlers.
+- Do not add a workspace package, domain package, or Cloudflare service without a concrete need.
 
 <!-- BEGIN:turborepo-agent-rules -->
 
