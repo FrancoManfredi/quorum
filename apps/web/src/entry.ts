@@ -1,3 +1,4 @@
+import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
 import { init, Message, Model, subscriptions, update, view } from './app/main.ts'
 import { startMotion } from './game/motion.ts'
@@ -5,7 +6,13 @@ import { PREFS_KEY } from './game/commands.ts'
 import { publish } from './game/agent-tools.ts'
 import { observe } from './platform/analytics.ts'
 import { ApiRpc } from './platform/rpc.ts'
-import { reportCrash, reportSlow, startSentry, timedUpdate } from './platform/sentry.ts'
+import {
+  reportCrash,
+  reportSlow,
+  startSentry,
+  timedUpdate,
+  tracerLayer,
+} from './platform/sentry.ts'
 import './styles.css'
 
 // First, so errors while the app boots are caught too.
@@ -26,7 +33,7 @@ const application = Runtime.makeApplication({
     onUrlRequest: (request) => Message.ClickedLink({ request }),
     onUrlChange: (url) => Message.ChangedUrl({ url }),
   },
-  resources: ApiRpc.layer,
+  resources: Layer.mergeAll(ApiRpc.layer, tracerLayer),
   container: document.getElementById('root'),
   // The clock and its board sync fire 8 times a second and would push every gesture out of history.
   crash: { report: reportCrash },

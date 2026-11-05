@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/browser'
-import { Option } from 'effect'
+import { SentryEffectTracer } from '@sentry/effect/client'
+import { Layer, Option, Tracer } from 'effect'
 import { Runtime } from 'foldkit'
 import { API_PREFIX } from '@quorum/rpc'
 import { SIM_VERSION } from '@quorum/simulation/version'
@@ -15,8 +16,11 @@ import type { Model } from '../game/model.ts'
 const DSN = import.meta.env.VITE_SENTRY_DSN
 const RELEASE = import.meta.env.VITE_SENTRY_RELEASE
 
-/** Per-session and per-trace sampling. Review these after a week of real traffic. */
-const TRACES_SAMPLE_RATE = 0.1
+/**
+ * Per-session and per-trace sampling. Every trace is kept while there is little traffic, because the
+ * point of tracing is the breakdown of each action. Lower it when the volume costs too much.
+ */
+const TRACES_SAMPLE_RATE = 1
 const PROFILE_SESSION_SAMPLE_RATE = 0.05
 /** A tick runs eight times a second; one in this many is timed. */
 const TICK_SAMPLE_EVERY = 16
@@ -91,9 +95,34 @@ export const reportSlow = (context: Runtime.SlowContext<Model, Message>): void =
   })
 }
 
+/**
+ * Foldkit wraps every Command in an Effect span named for it, with its arguments as attributes. This
+ * tracer sends those spans to Sentry (RPC calls inherit the trace headers from them), and drops the
+ * attributes that are not plain values: a Command's arguments hold the whole Game.
+ */
+const plain = (value: unknown): boolean =>
+  typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+
+export const tracerLayer: Layer.Layer<never> = DSN
+  ? Layer.succeed(Tracer.Tracer, {
+      ...SentryEffectTracer,
+      span: (options) => {
+        const span = SentryEffectTracer.span(options)
+        const attribute = span.attribute.bind(span)
+        span.attribute = (key, value) => {
+          if (plain(value)) attribute(key, value)
+        }
+        return span
+      },
+    })
+  : Layer.empty
+
+/** The clock and its board sync send these many times a second. They are sampled, not traced. */
+const FREQUENT = new Set<string>(['Ticked', 'Synced', 'DashboardChanged'])
+
 let ticks = 0
 
-/** Times one Message's `update`. Ticks are sampled; every other Message is rare enough to time. */
+/** Times one Message's `update`. Ticks are sampled; every other Message gets a span of its own. */
 export const timedUpdate = <Result extends { readonly model: Model }>(
   message: Message,
   run: () => Result,
@@ -110,7 +139,11 @@ export const timedUpdate = <Result extends { readonly model: Model }>(
     })
     return result
   }
-  return run()
+  if (FREQUENT.has(message._tag)) return run()
+  return Sentry.startSpan(
+    { name: `update ${message._tag}`, op: 'game.update', attributes: { message: message._tag } },
+    run,
+  )
 }
 
 /** One span around work that matters to load time or smoothness. Without a DSN it just runs. */

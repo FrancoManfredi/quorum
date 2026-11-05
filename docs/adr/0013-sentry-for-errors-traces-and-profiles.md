@@ -23,9 +23,10 @@ Considered options:
 - **`@sentry/effect` everywhere.** It supports Effect 4, but its Node entry pulls in `@sentry/node`,
   and the browser has no Effect failures to report: Foldkit turns Command failures into Messages.
   The API Worker uses its tracer and logger. The browser uses `@sentry/browser`.
-- **A span per Message.** The clock sends eight Messages a second. Foldkit's `slow` option reports
-  only an update, view, or patch over its budget, and `sim.tick_ms` samples one tick in sixteen.
-  Rejected: a span per Message.
+- **A span per Message, clock included.** The clock sends eight Messages a second. Foldkit's `slow`
+  option reports only an update, view, or patch over its budget, and `sim.tick_ms` samples one tick
+  in sixteen. Rejected for `Ticked`, `Synced`, and `DashboardChanged`; every other Message gets an
+  `update <Tag>` span, and every Command gets a span from Foldkit.
 - **Session Replay.** Company names and mail are player text, and the crash tags cover most needs.
   Rejected.
 
@@ -35,6 +36,10 @@ Considered options:
   `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` uploads hidden source maps.
 - The browser follows the "Share anonymous usage data" setting and Do Not Track. The privacy page
   names Sentry as a second processor.
+- Traces are sampled at 100% in the browser and both Workers, so each action has a breakdown. Lower
+  `TRACES_SAMPLE_RATE` and the Workers' `tracesSampleRate` when the volume costs too much.
+- The browser sends Foldkit's Command spans through `SentryEffectTracer`, which drops any attribute
+  that is not a string, number, or boolean: a Command's arguments hold the whole Game.
 - Trace headers go only to `/api/`. The PostHog proxy at `/q` never receives them.
 - A Worker's clock stands still until I/O, so a CPU-bound span reads zero. The replay cost is read
   from Cloudflare's CPU time. The `challenge.replay` span carries the outcome.

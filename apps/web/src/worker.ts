@@ -51,7 +51,7 @@ export default Sentry.withSentry(
   (env: Environment) => ({
     dsn: env.SENTRY_DSN,
     release: env.SENTRY_RELEASE,
-    tracesSampleRate: 0.1,
+    tracesSampleRate: 1,
     initialScope: { tags: { service: 'website-worker' } },
   }),
   {

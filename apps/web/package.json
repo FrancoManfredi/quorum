@@ -15,6 +15,7 @@
     "@quorum/ui": "workspace:*",
     "@sentry/browser": "11.10.0",
     "@sentry/cloudflare": "11.10.0",
+    "@sentry/effect": "11.10.0",
     "cn": "0.5.0",
     "effect": "4.0.0",
     "foldkit": "0.167.0",

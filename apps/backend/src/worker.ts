@@ -61,7 +61,7 @@ export default Sentry.withSentry(
     dsn: env.SENTRY_DSN,
     release: env.SENTRY_RELEASE,
     // Sentry owns traces; Cloudflare Workers Observability keeps logs only (see `alchemy.run.ts`).
-    tracesSampleRate: 0.1,
+    tracesSampleRate: 1,
     initialScope: { tags: { service: 'api-worker' } },
   }),
   {
