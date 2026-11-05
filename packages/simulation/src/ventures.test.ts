@@ -1,15 +1,17 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { place, setLinkPolicy, setRuntime, type Action } from './actions.ts'
+import { place, resize, sell, setLinkPolicy, setRuntime, type Action } from './actions.ts'
 import {
   CALENDAR_DAY,
   DEADLINE_SURGE,
+  ERAS,
   FLASH_SALE_SURGE,
   HOME_REGION,
   KINDS,
   LAUNCH_SURGE,
   PREMIERE_SURGE,
   PROFILES,
+  SLO_LEVELS,
   VENTURES,
   VENTURE_IDS,
   type IncidentId,
@@ -29,6 +31,7 @@ import {
   signatureOf,
   signatureWeight,
 } from './founding.ts'
+import { budgetOf } from './slo.ts'
 import { demandOf, solve, solveFlow } from './solve.ts'
 import type { Founding, Game } from './state.ts'
 import { step } from './step.ts'
@@ -350,5 +353,75 @@ describe('the four Ventures', () => {
         expect([other, kind, started(stranger, 300).includes(kind)]).toEqual([other, kind, false])
       }
     }
+  })
+})
+
+/*
+ * The older Ventures' rules (13 "Ventures"). Three of the eight rows name a rule the build can
+ * enforce where the player meets it: B2B SaaS's SLA, Game backend's Hubs per region, and AI
+ * startup's scarce GPUs. Each is a refusal or a target in founding.ts, and only its own Venture
+ * meets it.
+ */
+
+/** The same Company at an Era, with the Cash and the research a Component needs. */
+const ready = (game: Game, stage: number, ...research: ReadonlyArray<ResearchId>): Game => ({
+  ...game,
+  stage,
+  cash: 100_000,
+  researched: [...game.researched, ...research] as Game['researched'],
+})
+
+describe("the older Ventures' rules", () => {
+  test('B2B SaaS signs its SLA from Series B, and no other Venture does', () => {
+    const era = (stage: number): number => ERAS[stage]?.slo ?? 1
+    const next = (slo: number): number => SLO_LEVELS.find((level) => level > slo) ?? slo
+    const budget = (venture: VentureId, stage: number, sandbox = false) =>
+      budgetOf({ ...start(venture), stage, sandbox })
+    // Before Series B the Era's own target applies, as it did.
+    expect(budget('b2b-saas', 3).slo).toBe(era(3))
+    // From Series B the contract's target is one level up: a missed week is a breach.
+    expect(budget('b2b-saas', 4).slo).toBe(next(era(4)))
+    expect(budget('b2b-saas', 4).slo).toBeGreaterThan(era(4))
+    // A Sandbox founds no Venture, so it signs no SLA.
+    expect(budget('b2b-saas', 4, true).slo).toBe(era(4))
+    // Only its own Venture: every other one keeps the Era's target at Series B.
+    for (const other of VENTURE_IDS.filter((id) => id !== 'b2b-saas'))
+      expect([other, budget(other, 4).slo]).toEqual([other, era(4)])
+  })
+
+  test('Game backend keeps one Realtime Hub per region from Series A', () => {
+    const hub = (venture: VentureId, stage: number): Game =>
+      abroad(ready(start(venture), stage, 'websockets'))
+    const seriesA = hub('game-backend', 3)
+    const first = ok(place(seriesA, 'ws', 0, 0))
+    // A second Hub in the same region is refused, and another region still gets its own.
+    expect(Result.isFailure(place(first, 'ws', 0, 0))).toBe(true)
+    expect(Result.isSuccess(place(first, 'ws', 0, 0, 'eu'))).toBe(true)
+    // Before Series A one Hub serves everyone: placing a second is allowed.
+    expect(Result.isSuccess(place(ok(place(hub('game-backend', 2), 'ws', 0, 0)), 'ws', 0, 0))).toBe(
+      true,
+    )
+    // Only its own Venture.
+    const other = hub('e-commerce', 3)
+    expect(Result.isSuccess(place(ok(place(other, 'ws', 0, 0)), 'ws', 0, 0))).toBe(true)
+  })
+
+  test('AI startup buys two GPU Nodes at most, and resizes them instead', () => {
+    const gpus = (game: Game) => game.nodes.filter((node) => node.type === 'gpu')
+    const ai = ready(start('ai-startup'), 4, 'model-serving')
+    const two = ok(place(ok(place(ai, 'gpu', 0, 0)), 'gpu', 0, 0))
+    expect(gpus(two)).toHaveLength(2)
+    // A third GPU Node is refused: the GPUs are not there to buy.
+    expect(Result.isFailure(place(two, 'gpu', 0, 0))).toBe(true)
+    // A bigger Node is a resize, not another GPU Node.
+    expect(Result.isSuccess(resize(two, gpus(two)[0]?.id ?? '', 1))).toBe(true)
+    // Selling one frees the slot.
+    const sold = ok(sell(two, gpus(two).at(-1)?.id ?? ''))
+    expect(Result.isSuccess(place(sold, 'gpu', 0, 0))).toBe(true)
+    // Only its own Venture: another one may hold three.
+    const other = ready(start('b2b-saas'), 4, 'model-serving')
+    const theirs = ok(place(ok(place(other, 'gpu', 0, 0)), 'gpu', 0, 0))
+    expect(gpus(theirs)).toHaveLength(2)
+    expect(Result.isSuccess(place(theirs, 'gpu', 0, 0))).toBe(true)
   })
 })

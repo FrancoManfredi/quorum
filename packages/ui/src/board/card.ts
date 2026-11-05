@@ -53,18 +53,22 @@ import {
   STORAGE_IOPS,
   EDGE_CPU_MS,
   VEC_INDEXES,
+  MESH_HOP_MS,
   rttOf,
 } from '@quorum/simulation/catalog'
 import { POOL_ORDER } from '../game/pools.ts'
 import type { Ledger } from '@quorum/simulation/ledger'
 import {
   burnOf,
+  certDaysLeft,
+  certDaysOf,
   coldStartMs,
   drawerSize,
   edgeBurnOf,
   eraOf,
   has,
   hasEdge,
+  meshMembers,
   replacePrice,
   resizePrice,
   serverlessBurnOf,
@@ -73,7 +77,7 @@ import {
 } from '@quorum/simulation/lookups'
 import { isGlobal, regional, regionApdexOf, regionUsers } from '@quorum/simulation/regions'
 import { distributedErlang, edgeRuns, hubConnections } from '@quorum/simulation/rules'
-import { deploysPerDay, quartersBehind } from '@quorum/simulation/team'
+import { badDeployShare, deploysPerDay, quartersBehind } from '@quorum/simulation/team'
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import { compact, money, ms, priceLabel, queueWait, rate } from '../game/format.ts'
 import { layoutOf } from './geometry.ts'
@@ -699,6 +703,85 @@ export const rowsOf = (
       ]
     case 'dsql':
       return [inbound, capacity, latency]
+    // It copies a Database's writes to an Event Stream: its lag is the stream's backlog.
+    case 'cdc': {
+      const stream = game.nodes.find(
+        (entry) =>
+          entry.type === 'log' &&
+          game.links.some((link) => link.from === node.id && link.to === entry.id),
+      )
+      const backlog = stream?.depth ?? 0
+      const read = stream ? (ledger.nodes[stream.id]?.out.task ?? 0) : 0
+      const behind = read > 0 ? backlog / read : 0
+      return [
+        { ...inbound, name: 'Changes' },
+        capacity,
+        {
+          glyph: 'lag',
+          name: 'Lag',
+          value: stream ? (backlog < 1 ? 'none' : `${compact(Math.round(behind))} s`) : 'no stream',
+          tone: stream === undefined ? 'warn' : behind > (stream.retain ?? 0) ? 'danger' : 'plain',
+        },
+        out,
+      ]
+    }
+    // It carries nothing: it puts a sidecar beside every member and watches its Links.
+    case 'mesh': {
+      const members = meshMembers(game, node)
+      return [
+        {
+          glyph: 'copies',
+          name: 'Sidecars',
+          value: `${members.length}`,
+          tone: members.length === 0 ? 'warn' : 'plain',
+        },
+        { glyph: 'latency', name: 'Per hop', value: `+${MESH_HOP_MS} ms` },
+        { glyph: 'cost', name: 'Cost', value: `${money(burnOf(game, node))}/s` },
+      ]
+    }
+    case 'ff': {
+      const service = game.services[0]
+      const batch = service?.lastDeploy ?? []
+      const rolled = batch.filter((feature) => (service?.rollouts[feature] ?? 1) < 1)
+      return [
+        {
+          glyph: 'policy',
+          name: 'Flags',
+          value: `${rolled.length} of ${batch.length}`,
+          tone: rolled.length > 0 ? 'ok' : 'plain',
+        },
+        {
+          glyph: 'apdex',
+          name: 'Blast',
+          value: `up to ${pct(badDeployShare(game))}`,
+          tone: badDeployShare(game) <= 0.1 ? 'ok' : badDeployShare(game) >= 0.4 ? 'warn' : 'plain',
+        },
+        { glyph: 'cost', name: 'Cost', value: `${money(burnOf(game, node))}/s` },
+      ]
+    }
+    // It holds the certificate and renews it: the card counts what is left of its life.
+    case 'pki': {
+      const left = certDaysLeft(game)
+      return [
+        {
+          glyph: 'policy',
+          name: 'Life',
+          value: `${Math.round(certDaysOf(game))} d`,
+        },
+        {
+          glyph: 'cost',
+          name: 'Expires',
+          value:
+            left === null
+              ? 'not issued'
+              : left <= 0
+                ? 'expired'
+                : `in ${Math.max(0, Math.round(left))} d`,
+          tone: left === null ? 'warn' : left <= 1 ? 'danger' : left < 14 ? 'warn' : 'ok',
+        },
+        { glyph: 'cost', name: 'Cost', value: `${money(burnOf(game, node))}/s` },
+      ]
+    }
   }
 }
 

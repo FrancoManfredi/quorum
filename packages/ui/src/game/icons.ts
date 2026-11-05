@@ -29,12 +29,16 @@ import {
   Cloud,
   Warehouse,
   ListOrdered,
+  Certificate,
+  Flag,
   Scaling,
   Search,
   Server,
   Shield,
   Split,
   Users,
+  Waypoints,
+  TowerControl,
   Zap,
 } from 'lucide'
 import {
@@ -104,6 +108,10 @@ export const COMPONENT_ICONS: Record<ComponentId, IconNode> = {
   msgp: BellRing,
   wide: Columns3,
   dsql: Network,
+  cdc: TowerControl,
+  mesh: Waypoints,
+  ff: Flag,
+  pki: Certificate,
 }
 
 export const GROUP_ICONS: Record<BuildGroup, IconNode> = {

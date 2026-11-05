@@ -39,6 +39,8 @@ import {
   QUEUE_LENGTHS,
   REQUEST_KINDS,
   RESEARCH,
+  ROLLOUT_ALL,
+  ROLLOUT_STEPS,
   RUNTIMES,
   MAX_STUDIES,
   RESERVED_SECONDS,
@@ -99,6 +101,7 @@ import { IPO_BURN_SECONDS, PRE_IPO_STAGE, ipoReady, newDrill } from './ipo.ts'
 import { firstQuarter, guidanceOpen } from './quarters.ts'
 import { nextRandom } from './random.ts'
 import { solveFlow } from './solve.ts'
+import { serviceOf, withService } from './team.ts'
 import type { AlertRule } from './events.ts'
 import type {
   CacheEngine,
@@ -123,6 +126,7 @@ import type {
   StorageClass,
   DbRetention,
   CacheStrategy,
+  FeatureId,
 } from './state.ts'
 
 /* ==========================================================================
@@ -369,6 +373,14 @@ export const connect = (game: Game, from: string, to: string): Action => {
         game.nodes.some((node) => node.id === entry.to && node.type === target.type),
     )
     if (taken) return notAllowed(`${sourceDef.name} already has a ${targetDef.name}.`)
+    return ok({ ...game, links: [...game.links, link(from, to)] })
+  }
+  // A CDC Connector reads one Database's write log: that Database keeps all of its traffic.
+  if (targetDef.mirror) {
+    if (source.type !== 'database')
+      return notAllowed(`Link a Database into the ${targetDef.name}: it reads its write log.`)
+    if (game.links.some((entry) => entry.from === from && entry.to === to))
+      return notAllowed('Already linked.')
     return ok({ ...game, links: [...game.links, link(from, to)] })
   }
   if (targetDef.tap) {
@@ -1213,6 +1225,28 @@ export const setSplit = (game: Game, id: string, split: boolean): Action =>
     return ok(node.split === split ? game : patch(game, id, { split }))
   })
 
+/**
+ * Sets a Feature's rollout from its flag (05 "Feature Flags", 08 "Rollout"). One of the design's
+ * steps and nothing between them: 5%, 25%, 50%, every user, or off.
+ */
+export const setRollout = (
+  game: Game,
+  id: string,
+  feature: typeof FeatureId.Type,
+  share: number,
+): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'ff') return notAllowed('Only Feature Flags roll a Feature out.')
+    if (!game.shipped.includes(feature))
+      return notAllowed('Ship the Feature before it has a rollout.')
+    if (!(ROLLOUT_STEPS as ReadonlyArray<number>).includes(share))
+      return notAllowed('A rollout is off, 5%, 25%, 50%, or every user.')
+    const rollouts = { ...serviceOf(game).rollouts }
+    if (share >= ROLLOUT_ALL) delete rollouts[feature]
+    else rollouts[feature] = share
+    return ok(withService(game, { rollouts }))
+  })
+
 /** Rolls back the routing change that withdrew the Company from the internet. */
 export const rollBackRoutes = (game: Game): Action =>
   endIncident(game, 'bgp', 'No routing change to roll back.')
@@ -1222,10 +1256,13 @@ export const PHISH_CHURN = 0.1
 
 /**
  * Acting on a phishing Mail leaks the Company's credentials and starts the Credential leak
- * (18 "Spam and phishing"). The act is the player's, so it is an Action like any other.
+ * (18 "Spam and phishing"). The act is the player's, so it is an Action like any other. With the
+ * credentials in a secrets manager there is nothing on the page to take (10 "Secrets management").
  */
 export const phished = (game: Game): Action => {
   if (game.sandbox) return notAllowed('A Sandbox has no credentials to leak.')
+  if (has(game, 'secrets-management'))
+    return notAllowed('The credentials live in the vault. The page has nothing to take.')
   if (game.incident) return notAllowed('Wait for the incident to end.')
   const started = startIncident(game, solveFlow(game), 'credential-leak', 0)
   if (!started) return notAllowed('There is nothing left to leak.')
@@ -1294,7 +1331,8 @@ export const expandVolume = (game: Game): Action => {
 /** Renews an expired certificate: the site comes back. */
 export const renewCertificate = (game: Game): Action =>
   game.incident?.kind === 'certificate'
-    ? ok({ ...game, incident: { ...game.incident, remaining: 0 } })
+    ? // The renewal restarts the clock: the certificate is issued again now (05).
+      ok({ ...game, incident: { ...game.incident, remaining: 0 }, certificate: game.time })
     : notAllowed('No certificate has expired.')
 
 /** Deletes the poison message: the Workers get back to the queue. */

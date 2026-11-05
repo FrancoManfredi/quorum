@@ -574,6 +574,13 @@ export const Service = Schema.Struct({
   nextDeployAt: Schema.Finite,
   /** What the last deploy shipped, so a rollback can take it back. */
   lastDeploy: Schema.Array(FeatureId),
+  /**
+   * Each Feature's rollout share, from its flag (05 "Feature Flags", 08 "Rollout"). A Feature not
+   * named here is live for every user; the rollouts only count while a Feature Flags Node is live.
+   */
+  rollouts: Schema.Record(Schema.String, Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
 })
 export type Service = typeof Service.Type
 
@@ -616,6 +623,7 @@ export const monolith = (fixes: ReadonlyArray<typeof FixId.Type>): Service => ({
   migration: null,
   nextDeployAt: 0,
   lastDeploy: [],
+  rollouts: {},
 })
 
 /**
@@ -881,6 +889,11 @@ export const Game = Schema.Struct({
   data: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** GB per sim second Object Storage takes in, so Lifecycle rules know an object's age. */
   uploads: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /**
+   * The sim second the Company's TLS certificate was issued, or null when it has never run a
+   * Secrets and Certificates Node (05 "Secrets and Certificates"). Absent in a save from before it.
+   */
+  certificate: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
   /** The last calendar week of requests and failures, by hour: the SLO window. */
   budget: Schema.Array(BudgetHour).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   drill: Schema.NullOr(Drill).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),

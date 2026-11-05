@@ -54,6 +54,7 @@ import {
   SERVERLESS_CONCURRENCY,
   SERVERLESS_IDLE_SECONDS,
   SERVERLESS_MS,
+  MESH_OVERHEAD,
 } from './catalog.ts'
 import { combineTail } from './distribution.ts'
 import type { Kind } from './catalog.ts'
@@ -242,6 +243,8 @@ export type ServerContext = Readonly<{
   worker?: boolean
   /** It runs as pods in a Kubernetes Cluster: neighbours on the same node steal CPU now and then. */
   pod?: boolean
+  /** A Service Mesh sidecar shares its box: it takes a share of the CPU (05 "Service Mesh"). */
+  mesh?: boolean
 }>
 
 /**
@@ -518,7 +521,9 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     ? vcpu
     : Math.min(vcpu, runtime.model === 'process' ? Math.max(1, processes) : processes)
   const throttled = node.family === 'burstable' && node.credits < 1
-  const cores = throttled ? Math.min(usable, BURST_BASELINE * vcpu) : usable
+  // A sidecar shares the box with the service it watches: it takes its share of the cores.
+  const shared = context.mesh ? usable * (1 - MESH_OVERHEAD) : usable
+  const cores = throttled ? Math.min(shared, BURST_BASELINE * vcpu) : shared
   const perRequest = Math.min(1, cores)
 
   const kinds = REQUEST_KINDS.filter((kind) => (arriving[kind] ?? 0) > 0)

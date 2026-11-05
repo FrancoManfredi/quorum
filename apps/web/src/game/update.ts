@@ -3798,6 +3798,16 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    // A rollout belongs to the Service, not to a Node, and Undo puts Nodes back only.
+    RolloutChosen: ({ nodeId, feature, share }) =>
+      act(
+        model,
+        share <= 0
+          ? `${FEATURES[feature].name}: off`
+          : `${FEATURES[feature].name}: ${Math.round(share * 100)}%`,
+        Actions.setRollout(model.board.game, nodeId, feature, share),
+      ),
+
     LogOptionsChosen: ({ nodeId, partitions, acks, retain, keyed }) =>
       act(
         model,

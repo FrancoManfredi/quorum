@@ -41,6 +41,9 @@ import {
   FOREVER_ATTEMPTS,
   TASK_RETRY_SECONDS,
   WEEKEND_FACTOR,
+  MESH_HOP_MS,
+  MESH_INSIGHT,
+  CDC_CHANGES,
   BACKEND_KINDS,
   isBackendKind,
   type BackendKind,
@@ -93,6 +96,7 @@ import {
   hopMs,
   isDown,
   languageOf,
+  meshOf,
   sampleIndex,
   serverlessBurnOf,
   zoneMs,
@@ -231,6 +235,11 @@ type Graph = Readonly<{
   edgeTo: ReadonlyMap<string, ReadonlyMap<string, Edge>>
   /** Each Node's outgoing Edges, one per routing Link, in the Design's order. */
   out: ReadonlyMap<string, ReadonlyArray<Edge>>
+  /**
+   * The Edges that copy a Node's writes to a CDC Connector. They carry no share of the traffic:
+   * the source keeps all of it, and the connector reads the changes off its log.
+   */
+  mirrors: ReadonlyMap<string, ReadonlyArray<Edge>>
   /** Every Edge, by index. */
   edges: ReadonlyArray<Edge>
   routes: ReadonlyMap<string, ReadonlyArray<GameNode>>
@@ -262,6 +271,7 @@ const buildGraph = (game: Game): Graph => {
   const parents = new Map<string, Array<GameNode>>()
   const taps = new Map<string, Array<string>>()
   const routing: Array<readonly [GameNode, GameNode]> = []
+  const mirroring: Array<readonly [GameNode, GameNode]> = []
   const last = new Map<string, GameLink>()
   for (const link of game.links) {
     const from = byId.get(link.from)
@@ -269,7 +279,11 @@ const buildGraph = (game: Game): Graph => {
     if (!from || !to) continue
     // A link into an Autoscaler or a Cluster puts the Node under its control: no traffic.
     if (COMPONENTS[to.type].control) continue
-    if (COMPONENTS[to.type].tap) {
+    // A link into a CDC Connector copies the changes the caller writes: no traffic either.
+    if (COMPONENTS[to.type].mirror) {
+      mirroring.push([from, to])
+      last.set(`${from.id}>${to.id}`, link)
+    } else if (COMPONENTS[to.type].tap) {
       taps.set(to.id, [...(taps.get(to.id) ?? []), from.id])
     } else {
       routing.push([from, to])
@@ -280,38 +294,52 @@ const buildGraph = (game: Game): Graph => {
   }
   const edgeTo = new Map<string, Map<string, Edge>>()
   const out = new Map<string, Array<Edge>>()
+  const mirrors = new Map<string, Array<Edge>>()
   const edges: Array<Edge> = []
-  for (const [from, to] of routing) {
+  const edgeOfPair = (from: GameNode, to: GameNode): Edge => {
     const byTo = edgeTo.get(from.id) ?? new Map<string, Edge>()
     edgeTo.set(from.id, byTo)
-    let edge = byTo.get(to.id)
-    if (!edge) {
-      const key = `${from.id}>${to.id}`
-      const link = last.get(key) as GameLink
-      edge = {
-        index: edges.length,
-        key,
-        from,
-        to,
-        toAt: at.get(to.id) as number,
-        link,
-        policy: policyOf(game, link),
-      }
-      byTo.set(to.id, edge)
-      edges.push(edge)
+    const existing = byTo.get(to.id)
+    if (existing) return existing
+    const key = `${from.id}>${to.id}`
+    const edge: Edge = {
+      index: edges.length,
+      key,
+      from,
+      to,
+      toAt: at.get(to.id) as number,
+      link: last.get(key) as GameLink,
+      policy: policyOf(game, last.get(key), from),
     }
-    const list = out.get(from.id) ?? []
-    list.push(edge)
-    out.set(from.id, list)
+    byTo.set(to.id, edge)
+    edges.push(edge)
+    return edge
   }
-  // Kahn's order over routing links. A Node caught in a cycle never runs.
-  const indegree = new Map(game.nodes.map((node) => [node.id, parents.get(node.id)?.length ?? 0]))
+  for (const [from, to] of routing)
+    out.set(from.id, [...(out.get(from.id) ?? []), edgeOfPair(from, to)])
+  for (const [from, to] of mirroring)
+    mirrors.set(from.id, [...(mirrors.get(from.id) ?? []), edgeOfPair(from, to)])
+  // Kahn's order over routing links. A Node caught in a cycle never runs. A CDC Connector also
+  // waits for every Node whose log it reads, so it sees this pass's writes.
+  const mirrored = new Map<string, number>()
+  for (const edges of mirrors.values())
+    for (const edge of edges) mirrored.set(edge.to.id, (mirrored.get(edge.to.id) ?? 0) + 1)
+  const indegree = new Map<string, number>(
+    game.nodes.map((node) => [
+      node.id,
+      (parents.get(node.id)?.length ?? 0) + (mirrored.get(node.id) ?? 0),
+    ]),
+  )
   const order: Array<GameNode> = []
   const ready = game.nodes.filter((node) => (indegree.get(node.id) ?? 0) === 0)
   while (ready.length > 0) {
     const node = ready.shift() as GameNode
     order.push(node)
-    for (const child of routes.get(node.id) ?? []) {
+    const children = [
+      ...(routes.get(node.id) ?? []),
+      ...(mirrors.get(node.id) ?? []).map((edge) => edge.to),
+    ]
+    for (const child of children) {
       const left = (indegree.get(child.id) ?? 0) - 1
       indegree.set(child.id, left)
       if (left === 0) ready.push(child)
@@ -322,6 +350,7 @@ const buildGraph = (game: Game): Graph => {
     at,
     edgeTo,
     out,
+    mirrors,
     edges,
     routes,
     parents,
@@ -345,15 +374,29 @@ const NO_POLICY: Policy = { timeout: LINK_TIMEOUT * 1000, retry: 'none', open: f
 /**
  * A Link's timeout in ms, its retries, and its breaker. Every Link waits 30 s and
  * never retries until Timeouts and retries; backoff and breakers need their research.
+ *
+ * A Service Mesh gives every Link out of a Node with a sidecar the retries and the breaker the
+ * sidecar runs by itself (05 "Service Mesh"), even without their research. A Link whose player set
+ * its own policy keeps it: the mesh is the default, not an override.
  */
-export const policyOf = (game: Game, link: GameLink | undefined): Policy => {
-  if (!link || !has(game, 'timeouts')) return NO_POLICY
+export const policyOf = (game: Game, link: GameLink | undefined, from?: GameNode): Policy => {
+  if (!link) return NO_POLICY
+  const meshed = from !== undefined && meshOf(game, from)
+  if (!meshed && !has(game, 'timeouts')) return NO_POLICY
   const retry =
-    link.retries === 'backoff' ? (has(game, 'backoff-jitter') ? 'backoff' : 'naive') : link.retries
+    link.retries === 'none'
+      ? meshed
+        ? 'naive'
+        : 'none'
+      : link.retries === 'backoff'
+        ? has(game, 'backoff-jitter')
+          ? 'backoff'
+          : 'naive'
+        : link.retries
   return {
     timeout: link.timeout * 1000,
     retry,
-    open: link.breaker && link.open > 0 && has(game, 'circuit-breakers'),
+    open: link.open > 0 && (has(game, 'circuit-breakers') || meshed),
   }
 }
 
@@ -649,6 +692,23 @@ const forward = (inputs: Inputs): Pass => {
       kept,
       share,
     )
+    // A CDC Connector takes a copy of the changes a Node wrote and none of its traffic: the writes
+    // stay answered by the Node, and the connector publishes what they changed (05 "CDC Connector").
+    for (const edge of graph.mirrors.get(node.id) ?? []) {
+      let carried = links[edge.index]
+      const into = arriving[edge.toAt] as Rates
+      for (const kind of CDC_CHANGES) {
+        const written = (kept[kind] ?? 0) * share
+        if (written <= 0) continue
+        into[kind] = (into[kind] ?? 0) + written
+        if (!carried) {
+          carried = {}
+          links[edge.index] = carried
+          linkOrder.push(edge.index)
+        }
+        carried[kind] = (carried[kind] ?? 0) + written
+      }
+    }
   }
 
   // Every app process holds its own pool to each database it reaches.
@@ -879,7 +939,7 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
   /** Share of attempts that fail on a Link, which drives naive retries. */
   const failureOn = (edge: Edge, kind: Kind): number => 1 - attempt(edge, kind).success
 
-  /** A call that leaves its zone or region pays the hop on top. */
+  /** A call that leaves its zone or region pays the hop on top, and a sidecar one more millisecond. */
   const placed = (edge: Edge, kind: Kind): Outcome => {
     const node = edge.from
     const child = edge.to
@@ -892,7 +952,7 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
       !isGlobal(child)
     )
       return failed('timeout')
-    const extra = placeMs(game, node, child)
+    const extra = placeMs(game, node, child) + (meshOf(game, node) ? MESH_HOP_MS : 0)
     const answer = call(edge, kind)
     return extra > 0 ? through(hop({ fixed: extra }), [[answer, 1]]) : answer
   }
@@ -914,7 +974,10 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
       if (policy.open) return total
       const attempts = policy.retry === 'none' ? 1 : amplification(policy, failureOn(edge, kind))
       const each =
-        heldFor(outcome(edge.to, kind), policy.timeout) + extraHop + placeMs(game, node, edge.to)
+        heldFor(outcome(edge.to, kind), policy.timeout) +
+        extraHop +
+        placeMs(game, node, edge.to) +
+        (meshOf(game, node) ? MESH_HOP_MS : 0)
       return total + weight * attempts * Math.min(policy.timeout, each)
     }, 0)
 
@@ -1396,6 +1459,9 @@ const ledgerOf = (
   const apdex = rateTotal > 0 ? satisfied / rateTotal : 1
   const origins = originsOf(graph, pass)
   const sampledBy = new Map<string, number>()
+  // The share of each key's samples that came from a Node a Service Mesh watches: per-Link metrics
+  // without code changes earn Insight on top of it (05 "Service Mesh": +20%).
+  const meshedBy = new Map<string, number>()
   const failedBy = new Map<string, number>()
   for (const [tapId, sources] of graph.taps) {
     const tap = graph.byId.get(tapId)
@@ -1424,6 +1490,7 @@ const ledgerOf = (
         if (samples <= 0) continue
         const key = `${from.type}:${kind}`
         sampledBy.set(key, (sampledBy.get(key) ?? 0) + samples)
+        if (meshOf(game, from)) meshedBy.set(key, (meshedBy.get(key) ?? 0) + samples)
         // A request that fails or frustrates its user teaches Failure, a tolerated one half.
         const answer = kinds[kind]
         if (answer && PROFILES[kind].scored)
@@ -1449,7 +1516,10 @@ const ledgerOf = (
   const breadth: Partial<Record<RequestKind, number>> = {}
   for (const [key, samples] of sampledBy) {
     const kind = key.slice(key.indexOf(':') + 1) as RequestKind
-    insight[kind] += INSIGHT_YIELD * Math.sqrt(samples) * perk
+    // A mesh watches each Link, so the samples from its members earn their 20% again, under the
+    // same square root: a Design where every sampled Node is meshed earns a full 20% more.
+    const watched = meshedBy.get(key) ?? 0
+    insight[kind] += INSIGHT_YIELD * (Math.sqrt(samples) + MESH_INSIGHT * Math.sqrt(watched)) * perk
     breadth[kind] = (breadth[kind] ?? 0) + 1
   }
   for (const failed of failedBy.values())

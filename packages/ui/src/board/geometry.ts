@@ -89,6 +89,16 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 4, inRow: 0, outRow: null, footer: true }
     case 'dsql':
       return { rows: 3, inRow: 0, outRow: null, footer: true }
+    // It reads a Database and publishes to a Stream: one port each way. It has one size, so it has
+    // no resize footer to click.
+    case 'cdc':
+      return { rows: 4, inRow: 0, outRow: 3, footer: false }
+    case 'mesh':
+      return { rows: 3, inRow: 0, outRow: null, footer: false }
+    case 'ff':
+      return { rows: 3, inRow: null, outRow: null, footer: false }
+    case 'pki':
+      return { rows: 3, inRow: null, outRow: null, footer: false }
   }
 }
 

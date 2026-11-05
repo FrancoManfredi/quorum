@@ -3786,4 +3786,96 @@ export const fr: Readonly<Record<string, string>> = {
   // A Vector Index's two types (07 "Vector Index").
   Exact: 'Exact',
   HNSW: 'HNSW',
+  'CDC Connector': 'Connecteur CDC',
+  Debezium: 'Debezium',
+  'Link a Database into it. It reads every change off the write log and publishes it to an Event Stream, so the app never writes twice.':
+    'Reliez-lui une base de données. Il lit chaque modification dans le journal d’écriture et la publie dans un flux d’événements, donc l’application n’écrit jamais deux fois.',
+  'Service Mesh': 'Maillage de services',
+  Istio: 'Istio',
+  'Link App Servers and Workers into it. A sidecar beside each one retries and breaks its calls, and watches them: +1 ms a hop, and 5% of its CPU.':
+    'Reliez-lui des serveurs applicatifs et des workers. Un proxy à côté de chacun réessaie et coupe ses appels, et les surveille : +1 ms par saut, et 5 % de son CPU.',
+  'Feature Flags': 'Drapeaux de fonctionnalités',
+  LaunchDarkly: 'LaunchDarkly',
+  'Rolls a Feature out to 5%, 25%, 50% or every user, and turns it off in one click. A bad deploy reaches only the share that has it.':
+    'Déploie une fonctionnalité auprès de 5 %, 25 %, 50 % ou de tous les utilisateurs, et la coupe en un clic. Un mauvais déploiement n’atteint que la part qui l’a.',
+  'Secrets and Certificates': 'Secrets et certificats',
+  "Let's Encrypt": 'Let’s Encrypt',
+  'Holds the keys and renews the TLS certificates before they run out. Without it live, the certificate expires on the calendar and the site goes down.':
+    'Garde les clés et renouvelle les certificats TLS avant leur expiration. Sans lui en marche, le certificat expire au calendrier et le site tombe.',
+  'Change data capture': 'Capture des modifications de données',
+  'Unlocks the CDC Connector: the copies follow the write log, without a second write.':
+    'Débloque le connecteur CDC : les copies suivent le journal d’écriture, sans seconde écriture.',
+  'Service mesh': 'Maillage de services',
+  'Unlocks the Service Mesh: retries, breakers and metrics on every link.':
+    'Débloque le maillage de services : nouvelles tentatives, coupe-circuits et métriques sur chaque lien.',
+  'Feature flags': 'Drapeaux de fonctionnalités',
+  'Unlocks Feature Flags: a Feature reaches a share of users, and a bad deploy with it.':
+    'Débloque les drapeaux de fonctionnalités : une fonctionnalité atteint une part des utilisateurs, et un mauvais déploiement avec elle.',
+  'Secrets management': 'Gestion des secrets',
+  'Keys live in a vault, so a phishing page has nothing to steal.':
+    'Les clés vivent dans un coffre, donc une page d’hameçonnage n’a rien à voler.',
+  // The four Components' cards and inspector sections.
+  Rollout: 'Déploiement progressif',
+  'A bad deploy of it reaches at most {0}% of users':
+    'Un mauvais déploiement l’atteint au plus chez {0} % des utilisateurs',
+  'Off: no user has the Feature, so a bad deploy of it breaks nobody':
+    'Coupé : aucun utilisateur n’a la fonctionnalité, donc un mauvais déploiement ne casse personne.',
+  'A bad deploy fails 8% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. With {0} Feature this design’s ceiling is {1}.':
+    'Un mauvais déploiement fait échouer 8 % des requêtes pour chaque fonctionnalité livrée, et un drapeau réduit cela à la part d’utilisateurs atteinte. Avec {0} fonctionnalité, le plafond de ce design est {1}.',
+  'A bad deploy fails 8% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. With {0} Features this design’s ceiling is {1}.':
+    'Un mauvais déploiement fait échouer 8 % des requêtes pour chaque fonctionnalité livrée, et un drapeau réduit cela à la part d’utilisateurs atteinte. Avec {0} fonctionnalités, le plafond de ce design est {1}.',
+  'Flags are a shield': 'Les drapeaux sont un bouclier',
+  'A Feature at 5% of users can break at most 5% of the traffic it would have, whatever the deploy strategy. Turn it Off and the next bad deploy of it breaks nobody: that is the one click an incident needs.':
+    'Une fonctionnalité chez 5 % des utilisateurs ne peut casser au plus que 5 % du trafic qu’elle aurait, quelle que soit la stratégie. Coupez-la et le prochain mauvais déploiement ne casse personne : c’est le clic qu’un incident demande.',
+  'Not built: the holdout group that measures a Feature’s lift, and the load a dark Feature no longer adds.':
+    'Non construit : le groupe témoin qui mesure le gain d’une fonctionnalité, et la charge qu’une fonctionnalité éteinte n’ajoute plus.',
+  Certificate: 'Certificat',
+  'A certificate lasts {0} calendar days, and the sidecar renews it at {1}. Renewal is automatic while this Node runs.':
+    'Un certificat dure {0} jours calendaires, et le proxy le renouvelle à {1}. Le renouvellement est automatique tant que ce nœud tourne.',
+  'The first Step with a manager issues it.': 'La première seconde avec un gestionnaire l’émet.',
+  'Expired: every browser refuses the site until one is live again, or you press Renew.':
+    'Expiré : chaque navigateur refuse le site jusqu’à ce qu’un gestionnaire tourne à nouveau, ou que vous cliquiez sur Renouveler.',
+  '{0} days left.': '{0} jours restants.',
+  'Sell it or leave it down past the expiry date and the certificate lapses: every Node that terminates TLS fails until one runs again. From Series C certificates last 45 days, so manual renewal gets harder.':
+    'Vendez-le ou laissez-le éteint au-delà de la date d’expiration et le certificat tombe : chaque nœud qui termine TLS échoue jusqu’à ce qu’un gestionnaire tourne. À partir de la série C, les certificats durent 45 jours, donc le renouvellement manuel devient plus dur.',
+  Secrets: 'Secrets',
+  'The keys live here, not in the code. Secrets management research keeps them off a phishing page too.':
+    'Les clés vivent ici, pas dans le code. La recherche Gestion des secrets les garde aussi hors d’une page d’hameçonnage.',
+  Sidecars: 'Proxys',
+  'Link App Servers or Workers into it. Nothing is under the mesh yet.':
+    'Reliez-lui des serveurs applicatifs ou des workers. Rien n’est encore sous le maillage.',
+  'Each sidecar retries and breaks the Links out of its Node, watches them for Insight (+{0}), adds {1} ms to each hop, and takes {2} of the box’s CPU. Every member’s Burn pays for its sidecar, and each mesh takes Platform Dev Hours.':
+    'Chaque proxy réessaie et coupe les liens sortants de son nœud, les surveille pour des connaissances (+{0}), ajoute {1} ms par saut et prend {2} du CPU de la machine. La dépense de chaque membre paie son proxy, et chaque maillage prend des heures de plateforme.',
+  'Mutual TLS sits on every member-to-member call. It is a property, not a figure.':
+    'Le TLS mutuel couvre chaque appel entre membres. C’est une propriété, pas un chiffre.',
+  'Change stream': 'Flux de modifications',
+  'It reads every write off the Database’s write log and publishes it to the Stream, so the Search Engine or the Warehouse follows the Database without the app writing twice.':
+    'Il lit chaque écriture dans le journal de la base de données et la publie dans le flux, donc le moteur de recherche ou l’entrepôt suit la base sans que l’application écrive deux fois.',
+  'Link a Database into it, and it into an Event Stream, before it carries anything.':
+    'Reliez-lui une base de données, et lui à un flux d’événements, avant qu’il ne transporte quoi que ce soit.',
+  'Reading {0}, publishing to {1}.': 'Lit {0}, publie vers {1}.',
+  'It adds lag: a consumer reads the Stream at its own pace, so a search result or a report is behind by the Stream’s lag. Order holds only inside a partition, and the Stream’s key decides that.':
+    'Il ajoute du retard : un consommateur lit le flux à son rythme, donc un résultat de recherche ou un rapport est en retard du retard du flux. L’ordre ne tient qu’à l’intérieur d’une partition, et la clé du flux le décide.',
+  'Not built: the dual-write inconsistency it removes, since the build never writes twice.':
+    'Non construit : l’incohérence de double écriture qu’il supprime, puisque le jeu n’écrit jamais deux fois.',
+  Changes: 'Modifications',
+  'no stream': 'aucun flux',
+  '{0} s behind': '{0} s de retard',
+  Published: 'Publiées',
+  'Per hop': 'Par saut',
+  Flags: 'Drapeaux',
+  Life: 'Durée',
+  Expires: 'Expire',
+  'not issued yet': 'pas encore émis',
+  expired: 'expiré',
+  'in {0} d': 'dans {0} j',
+  'In the batch': 'Dans le lot',
+  'Behind a flag': 'Derrière un drapeau',
+  Lifetime: 'Durée de vie',
+  'Renews at': 'Renouvelé à',
+  'Member CPU': 'CPU du membre',
+  '+{0} on its Links': '+{0} sur ses liens',
+  '{0} engineers': '{0} ingénieurs',
+  '{0} of {1}': '{0} sur {1}',
+  '{0} d': '{0} j',
 }

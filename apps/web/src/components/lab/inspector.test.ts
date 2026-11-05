@@ -432,3 +432,48 @@ test('a Database offers a Restore drill once it keeps a backup, and the drill ne
     Scene.expect(Scene.role('button', { name: 'Restore drill · 4 DH' })).toBeDisabled(),
   )
 })
+
+test('Feature Flags offer each Feature’s rollout and the blast radius the flags give it', () => {
+  const start = fixture()
+  const game: Game = {
+    ...start.board.game,
+    stage: 2,
+    nodes: [
+      ...start.board.game.nodes,
+      {
+        ...start.board.game.nodes.find((entry) => entry.id === 'server')!,
+        id: 'n9',
+        type: 'ff' as const,
+        x: 240,
+        y: 640,
+      },
+    ],
+    researched: [...start.board.game.researched, 'ci' as const, 'feature-flags' as const],
+    shipped: ['password-login' as const],
+    services: [{ ...start.board.game.services[0]!, lastDeploy: ['password-login' as const] }],
+  }
+  const model: Model = {
+    ...start,
+    board: { ...start.board, game, selected: 'n9' },
+  }
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(Scene.text('Rollout')).toExist(),
+    Scene.expect(Scene.text('Password login')).toExist(),
+    Scene.expect(Scene.text('Behind a flag')).toExist(),
+    // One Feature with no flag: a bad deploy of it breaks 8% of requests.
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('up to 8%'),
+  )
+  // Turning it Off leaves no user with the Feature, so a bad deploy of it breaks nobody.
+  const off = update(
+    model,
+    Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 0 }),
+  ).model
+  Scene.scene(
+    { update, view },
+    Scene.given(off),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('up to 0%'),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('Behind a flag'),
+  )
+})

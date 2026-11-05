@@ -216,23 +216,25 @@ learns the realized effect only by measuring it ([Measured lift](#measured-lift)
 
 ### Rollout
 
-**Not built yet.** There are no Feature Flags ([Components](/design/05-components#feature-flags)): no
-rollout steps, no turning a Feature off, and no removing one.
-
 Without Feature Flags ([Components](/design/05-components#feature-flags)), a Feature goes to every user
 in the deploy that ships it.
 
-With Feature Flags, a shipped Feature starts dark. The player moves it through the same steps as a
-migration: 5%, 25%, 50%, 100% of users. The **rollout** share scales both the Feature's effects and
-its load. At any step the player can:
+With Feature Flags, each shipped Feature has a rollout. The player moves it through the design's
+steps: dark, 5%, 25%, 50%, 100% of users.
 
-- **Shift** it to the next step.
-- **Turn it off.** Effects and load stop at once. The code stays, so upkeep continues.
-- **Remove** it. This is a backlog item of 25% of the Feature's DH. When it ships, the code is gone:
-  effects, load, and upkeep end. Deleting code is work too.
+**Built:** the `ff` Component, a rollout share per Feature, and the blast-radius rule. The steps are
+the design's four. A bad deploy that comes from a flagged Feature hits only its rollout share, so a
+Feature at 5% cannot break more than 5% of what it would have
+([Incidents](/design/11-incidents#mitigation-toolbox)). A Feature with no step set is live for every
+user, which is what a Design with no Feature Flags Node does with all of them, so an old save opens
+unchanged. One click sets a step to Off, which is the mitigation an incident needs. The share counts
+the moment it is set, and the Deploy bar and the flags card read it.
 
-A bad deploy that comes from a flagged Feature hits only its rollout share
-([Incidents](/design/11-incidents#mitigation-toolbox)).
+**Not built yet:** the rest of the lifecycle. The **rollout** share does not scale a Feature's effects
+or its load, because outcomes, adoption and upkeep are not in the build
+([Features](#features)); a dark Feature still earns and still costs its capacity. There is no
+**Shift** or **Remove** item, so code never disappears and upkeep never ends. Measured lift waits on
+`ab-testing` ([Measured lift](#measured-lift)).
 
 ### Adoption
 

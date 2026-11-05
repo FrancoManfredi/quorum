@@ -1717,3 +1717,55 @@ describe('Mail actions (GDD 18)', () => {
     expect(pressed.board.game).toBe(game)
   })
 })
+
+describe('Feature Flags (GDD 05, 08)', () => {
+  const start = (): Model => {
+    const game = preseedGame()
+    return {
+      ...inLab(),
+      board: {
+        ...inLab().board,
+        game: {
+          ...game,
+          stage: 2,
+          nodes: [
+            ...game.nodes,
+            {
+              ...game.nodes[1]!,
+              id: 'n9',
+              type: 'ff' as const,
+              x: 200,
+              y: 600,
+            },
+          ],
+          researched: [...game.researched, 'ci' as const, 'feature-flags' as const],
+          shipped: ['password-login' as const],
+        },
+      },
+    }
+  }
+
+  test('a rollout changes the Feature and says so, and every user takes it off the list', () => {
+    const model = start()
+    const rolled = update(
+      model,
+      Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 0.05 }),
+    ).model
+    expect(rolled.board.game.services[0]?.rollouts['password-login']).toBe(0.05)
+    expect(rolled.board.change?.label).toContain('5%')
+    const all = update(
+      rolled,
+      Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 1 }),
+    ).model
+    expect(all.board.game.services[0]?.rollouts['password-login']).toBe(undefined)
+  })
+
+  test('a share the design does not offer is refused, and the game is untouched', () => {
+    const model = start()
+    const refused = update(
+      model,
+      Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 0.3 }),
+    )
+    expect(refused.model.board.game).toBe(model.board.game)
+  })
+})

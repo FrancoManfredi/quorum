@@ -125,17 +125,32 @@ export const signatureWeight = (game: Game, kind: IncidentId): number =>
 export const signatureWeakness = (game: Game, kind: IncidentId): number =>
   isSignature(game, kind) ? SIGNATURE_WEAKNESS : 0
 
-/** Why the Venture keeps data out of this region, or null. Healthcare's residency. */
+/** Why the Venture keeps data out of this region, or refuses the Node, or null. */
 export const venturePlaceRefusal = (
   game: Game,
   type: ComponentId,
   region: Region,
 ): string | null => {
   const venture = ventureOf(game)
-  const from = venture.constraint.residency
-  if (from === null || game.stage < from || region === HOME_REGION) return null
+  const { residency, hubsPerRegion, gpus } = venture.constraint
+  // GPUs are scarce: the Company buys a couple and resizes them (13 "Ventures", AI startup).
+  if (gpus > 0 && type === 'gpu') {
+    const held = game.nodes.filter((node) => node.type === 'gpu').length
+    if (held >= gpus) return `${venture.name}: GPUs are scarce, ${gpus} GPU Nodes at most.`
+  }
+  // Realtime is served where the players are: one Hub per region (13 "Ventures", Game backend).
+  if (
+    hubsPerRegion !== null &&
+    game.stage >= hubsPerRegion &&
+    type === 'ws' &&
+    game.nodes.some((node) => node.type === 'ws' && node.region === region)
+  ) {
+    const from = ERAS[hubsPerRegion]?.name ?? 'here'
+    return `${venture.name}: one Realtime Hub per region from ${from}.`
+  }
+  if (residency === null || game.stage < residency || region === HOME_REGION) return null
   if (COMPONENTS[type].group !== 'data') return null
-  return `${venture.name}: data stays in the home region from ${ERAS[from]?.name ?? 'here'}.`
+  return `${venture.name}: data stays in the home region from ${ERAS[residency]?.name ?? 'here'}.`
 }
 
 /** Why the Venture refuses a retry policy, or null. Its customers already retry. */
@@ -169,10 +184,17 @@ export const runtimeRefusal = (game: Game, runtime: RuntimeId): string | null =>
     : null
 }
 
-/** Strict SLO: the Era's target moves to the next level up. */
+/** The next SLO level up: Strict SLO's step, and an SLA's target. */
+const stricterSlo = (slo: number): number => SLO_LEVELS.find((level) => level > slo) ?? slo
+
+/**
+ * Strict SLO moves the Era's target to the next level up, and so does an SLA the Venture signed
+ * from an Era on (13 "Ventures", B2B SaaS): one level, whichever of the two applies.
+ */
 export const sloOf = (game: Game, slo: number): number => {
-  if (!hasMutator(game, 'strict-slo')) return slo
-  return SLO_LEVELS.find((level) => level > slo) ?? slo
+  const sla = game.sandbox ? null : ventureOf(game).constraint.sla
+  const signed = sla !== null && game.stage >= sla
+  return hasMutator(game, 'strict-slo') || signed ? stricterSlo(slo) : slo
 }
 
 /* ---------- founding a Company ---------- */

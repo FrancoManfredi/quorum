@@ -59,6 +59,13 @@ import {
   LOG_REPLICAS,
   LOG_REPLICA_BURN,
   VEC_INDEXES,
+  CALENDAR_DAY,
+  CERT_DAYS,
+  CERT_DAYS_SHORT,
+  CERT_SHORT_FROM,
+  MESH_OVERHEAD,
+  LIVE_TUNING,
+  type Tuning,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
 import type { Game, GameNode, Pricing, StorageClass } from './state.ts'
@@ -288,6 +295,78 @@ export const vecOf = (game: Game, node: GameNode): GameNode | undefined =>
 export const logReplicas = (node: GameNode): number =>
   Math.max(1, Math.min(LOG_REPLICAS[LOG_REPLICAS.length - 1] ?? 3, Math.floor(node.n)))
 
+/* ---------- the Service Mesh ---------- */
+
+/** The live Service Mesh Nodes, and the members that link into each, found once per Game. */
+const meshed = new WeakMap<Game, ReadonlyMap<string, ReadonlyArray<GameNode>>>()
+
+const meshMembersOf = (game: Game): ReadonlyMap<string, ReadonlyArray<GameNode>> => {
+  let map = meshed.get(game)
+  if (!map) {
+    const live = new Set(
+      game.nodes
+        .filter((entry) => entry.type === 'mesh' && !isDown(entry))
+        .map((entry) => entry.id),
+    )
+    const found = new Map<string, Array<GameNode>>()
+    const byId = new Map(game.nodes.map((node) => [node.id, node]))
+    for (const link of game.links) {
+      if (!live.has(link.to)) continue
+      const member = byId.get(link.from)
+      if (!member || (member.type !== 'server' && member.type !== 'worker')) continue
+      found.set(link.to, [...(found.get(link.to) ?? []), member])
+    }
+    map = found
+    meshed.set(game, map)
+  }
+  return map
+}
+
+/**
+ * Whether a sidecar sits beside this Node: it links into a live Service Mesh (05 "Service Mesh").
+ * Its calls retry and break, each hop costs a millisecond more, and its own CPU shrinks by the
+ * sidecar's share.
+ */
+export const meshOf = (game: Game, node: GameNode): boolean => {
+  if (node.type !== 'server' && node.type !== 'worker') return false
+  for (const members of meshMembersOf(game).values())
+    if (members.some((member) => member.id === node.id)) return true
+  return false
+}
+
+/** The App Servers and Workers a Service Mesh has put a sidecar beside: its billing members. */
+export const meshMembers = (game: Game, mesh: GameNode): ReadonlyArray<GameNode> =>
+  meshMembersOf(game).get(mesh.id) ?? []
+
+/* ---------- certificates ---------- */
+
+/**
+ * Sim seconds a TLS certificate lasts: 90 calendar days, and 45 from Series C (05 "Secrets and
+ * Certificates"). The calendar is the Team's, so `calendarPace` shortens it the same way it
+ * shortens a hire.
+ */
+export const certLifeOf = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
+  ((game.stage >= CERT_SHORT_FROM ? CERT_DAYS_SHORT : CERT_DAYS) * CALENDAR_DAY) /
+  tuning.calendarPace
+
+/** Sim seconds left on the Company's certificate, or null when no secrets manager has ever run. */
+export const certLeftOf = (game: Game, tuning: Tuning = LIVE_TUNING): number | null =>
+  game.certificate == null ? null : game.certificate + certLifeOf(game, tuning) - game.time
+
+/** Calendar days a certificate lasts in this Era, for the cards: 90, or 45 from Series C. */
+export const certDaysOf = (game: Game): number =>
+  game.stage >= CERT_SHORT_FROM ? CERT_DAYS_SHORT : CERT_DAYS
+
+/** Calendar days left on the certificate, negative once it has run out; null when none is tracked. */
+export const certDaysLeft = (game: Game, tuning: Tuning = LIVE_TUNING): number | null => {
+  const left = certLeftOf(game, tuning)
+  return left === null ? null : (left * tuning.calendarPace) / CALENDAR_DAY
+}
+
+/** Whether a Secrets and Certificates Node is live to renew the certificate (05). */
+export const certManaged = (game: Game): boolean =>
+  game.nodes.some((node) => node.type === 'pki' && !isDown(node))
+
 /* ---------- money ---------- */
 
 /** base × factor^steps by repeated multiplication: `**` is not exact across engines. */
@@ -449,6 +528,13 @@ export const burnOf = (game: Game, node: GameNode): number => {
       (node.standby ? 2 : 1)
     )
   if (node.type === 'gpu') return GPU_TYPES[node.gpu].burn * flatScale(node) * index
+  // A mesh bills for its sidecars, not for a box: each member's own Burn pays the proxy's share
+  // (05 "Service Mesh": "CPU and memory per sidecar, about 5% per replica"). A member's Burn
+  // already carries the cost index, so this does not multiply it again.
+  if (node.type === 'mesh')
+    return (
+      MESH_OVERHEAD * meshMembers(game, node).reduce((sum, member) => sum + burnOf(game, member), 0)
+    )
   // A spread store runs its nodes in each region it replicates to.
   if ((node.type === 'wide' || node.type === 'dsql') && node.spread)
     return def.burn * flatScale(node) * index * spreadCount(game)

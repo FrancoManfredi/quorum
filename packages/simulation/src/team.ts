@@ -15,6 +15,7 @@ import {
   LAYOFF_MORALE,
   LIVE_TUNING,
   MANUAL_DEPLOY_MINUTES,
+  MESH_TAX,
   MORALE_DAYS,
   POLICIES,
   PLATFORM_TAX,
@@ -22,6 +23,7 @@ import {
   QUARTER_DAYS,
   RAMP_DAYS,
   RAMP_OUTPUT,
+  ROLLOUT_ALL,
   RETROGRADE,
   SALARY_BASE,
   SIGNING_BASE,
@@ -139,6 +141,10 @@ export const platformStaffed = (game: Game): boolean =>
 const liveClusters = (game: Game): number =>
   game.nodes.filter((node) => node.type === 'cluster' && !isDown(node)).length
 
+/** Live Service Mesh Nodes: each one takes Platform Dev Hours while it runs (05). */
+const liveMeshes = (game: Game): number =>
+  game.nodes.filter((node) => node.type === 'mesh' && !isDown(node) && !node.shut).length
+
 /** Sim seconds in a calendar quarter, on the Team's calendar. */
 export const quarterSeconds = (tuning: Tuning = LIVE_TUNING): number => days(QUARTER_DAYS, tuning)
 
@@ -152,10 +158,11 @@ export const quartersBehind = (
 
 /**
  * Engineers of Dev Hours the Clusters take from the product teams: 0.5 per
- * Cluster, and none with a Platform team, which does that work instead.
+ * Cluster, and none with a Platform team, which does that work instead. A
+ * Service Mesh is the same kind of work and takes the same share (05).
  */
 export const platformTax = (game: Game): number =>
-  platformStaffed(game) ? 0 : PLATFORM_TAX * liveClusters(game)
+  platformStaffed(game) ? 0 : PLATFORM_TAX * liveClusters(game) + MESH_TAX * liveMeshes(game)
 
 /* ---------- output ---------- */
 
@@ -279,13 +286,31 @@ export const badDeployChance = (game: Game, tuning: Tuning = LIVE_TUNING): numbe
   )
 }
 
-/** Share of App Server requests a bad deploy fails: bigger deploys break more, up to the ceiling. */
-export const badDeployShare = (game: Game): number =>
-  Math.min(
+/**
+ * The share of users a Feature reaches: its flag's rollout, or every user when no Feature Flags
+ * Node is live or it has no flag (05 "Feature Flags", 08 "Rollout").
+ */
+export const rolloutOf = (game: Game, feature: string): number => {
+  const flags = game.nodes.some((node) => node.type === 'ff' && !isDown(node))
+  if (!flags) return ROLLOUT_ALL
+  return Math.max(0, Math.min(ROLLOUT_ALL, serviceOf(game).rollouts[feature] ?? ROLLOUT_ALL))
+}
+
+/**
+ * Share of App Server requests a bad deploy fails: bigger deploys break more, up to the ceiling,
+ * and a Feature only breaks the share of users its flag has reached. A Feature behind a flag at
+ * 5% cannot cost more than 5% of what it would have, whatever the deploy strategy. A deploy that
+ * ships no Feature at all still breaks one Feature's worth, because it ships the code around them.
+ */
+export const badDeployShare = (game: Game): number => {
+  const batch = serviceOf(game).lastDeploy
+  const reached = batch.reduce((sum, feature) => sum + rolloutOf(game, feature), 0)
+  return Math.min(
     // Without a Pipeline the cap is 16's 40%; with one, its deploy strategy sets the cap.
     deployStrategyOf(game)?.blast ?? BAD_DEPLOY_MAX,
-    BAD_DEPLOY_ERRORS * Math.max(1, serviceOf(game).lastDeploy.length),
+    BAD_DEPLOY_ERRORS * Math.max(batch.length === 0 ? 1 : 0, reached),
   )
+}
 
 /* ---------- the backlog ---------- */
 

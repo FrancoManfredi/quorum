@@ -70,6 +70,9 @@ import {
   VEC_AI_LIFT,
   VEC_INDEXES,
   VEC_QUERIES,
+  CDC_CHANGES,
+  CDC_RATE,
+  CDC_MS,
   isBackendKind,
   type ComponentId,
   type Kind,
@@ -107,6 +110,7 @@ import {
   hasEdge,
   hopMs,
   inCluster,
+  meshOf,
   storageBands,
   transferMs,
   vecOf,
@@ -589,6 +593,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         hashing: solver.game.incident?.kind === 'loop' ? 4 : 1,
         offloaded: solver.offloads(node),
         pod: inCluster(solver.game, node),
+        mesh: meshOf(solver.game, node),
       }),
     serve: serveCalls,
     outcome: answerCalls,
@@ -892,6 +897,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         hashing: 1,
         worker: true,
         pod: inCluster(solver.game, node),
+        mesh: meshOf(solver.game, node),
       })
     },
     // It sends the async part's calls, once per attempt: an export's 50 reads.
@@ -1242,6 +1248,49 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         solver.boost(node),
       ),
     outcome: (answer, _, kind) => through({ ...answer.ownHop(kind), cause: 'throttled' }),
+    ...terminal,
+  },
+  // It reads a Database's write log and publishes every change to an Event Stream (05 "CDC
+  // Connector"). The changes come in as a copy of the Database's writes, so it never takes the
+  // app's traffic; it hands them on as `task`, one change each.
+  cdc: {
+    model: (solver, node, arriving) =>
+      flatModel(
+        CDC_RATE * flatScale(node),
+        arriving,
+        { fixed: CDC_MS, variable: 0.05 },
+        solver.boost(node),
+      ),
+    serve: (serve, node, rates, share) => {
+      let changes = 0
+      for (const kind of CDC_CHANGES) changes += (rates[kind] ?? 0) * share
+      if (changes > 0) serve.route('task', changes)
+    },
+    // The change waits for the connector's own hop and then for the stream: a consumer further
+    // behind than the retention window loses the oldest changes, as a stale copy.
+    outcome: (answer, node, kind) => relay(answer, node, kind),
+    connections: noConnections,
+    probe: noProbe,
+  },
+  // A mesh carries nothing: it puts a sidecar beside each App Server and Worker that links into it,
+  // and the solve reads that from the Design (05 "Service Mesh").
+  mesh: {
+    model: () => flatModel(Number.POSITIVE_INFINITY, {}, { fixed: 0, variable: 0 }, 1),
+    outcome: () => failed('stranded'),
+    ...terminal,
+  },
+  // Feature Flags carry nothing either: what they change is how far a bad deploy reaches, which
+  // `badDeployShare` reads from the Design (05 "Feature Flags", 08 "Rollout").
+  ff: {
+    model: () => flatModel(Number.POSITIVE_INFINITY, {}, { fixed: 0, variable: 0 }, 1),
+    outcome: () => failed('stranded'),
+    ...terminal,
+  },
+  // So do Secrets and Certificates: the Step renews the certificate while one is live, and lets it
+  // run out when none is (05 "Secrets and Certificates").
+  pki: {
+    model: () => flatModel(Number.POSITIVE_INFINITY, {}, { fixed: 0, variable: 0 }, 1),
+    outcome: () => failed('stranded'),
     ...terminal,
   },
 }

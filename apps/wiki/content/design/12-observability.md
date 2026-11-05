@@ -40,8 +40,10 @@ insight(Failure)  = 3 × yield × Σ Component types c: √failed(c) × multipli
 | `yield`          | 1 ([Balancing](/design/16-balancing#constants)).                                                                                                                                        |
 | `multipliers(c)` | The Pattern recognition Perk, +20% per level.                                                                                                                                           |
 
-Not built yet: the JVM +25% ([Runtimes](/design/06-runtimes#java)), Service Mesh +20% and `tail-sampling`
-× 2 on Failure multipliers. The Perk is the only multiplier in the build.
+A Service Mesh's +20% is built ([Components](/design/05-components#service-mesh)): the samples that come
+from a Node with a sidecar earn a fifth more, under the same square root, so a Design whose sampled
+Nodes are all meshed earns 20% more. Not built yet: the JVM +25%
+([Runtimes](/design/06-runtimes#java)) and `tail-sampling` × 2 on Failure multipliers.
 
 Analytics has a capacity in samples per second. Samples beyond it are dropped.
 

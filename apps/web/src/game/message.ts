@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
-import { EXIT_IDS, FIXES, PERK_IDS, TASK_IDS } from '@quorum/simulation/catalog'
+import { EXIT_IDS, FEATURE_IDS, FIXES, PERK_IDS, TASK_IDS } from '@quorum/simulation/catalog'
 import {
   Acks,
   CacheEngine,
@@ -259,6 +259,12 @@ export const Message = defineMessageUnion({
   },
   DocOptionsChosen: { nodeId: Schema.String, transactions: Schema.optional(Schema.Boolean) },
   VecIndexChosen: { nodeId: Schema.String, indexType: VecIndexType },
+  /** A Feature's rollout, set from its flag (05 "Feature Flags"). */
+  RolloutChosen: {
+    nodeId: Schema.String,
+    feature: Schema.Literals(FEATURE_IDS),
+    share: Schema.Finite,
+  },
   LogOptionsChosen: {
     nodeId: Schema.String,
     partitions: Schema.optional(Schema.Finite),

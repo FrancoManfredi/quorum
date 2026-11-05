@@ -100,10 +100,10 @@ or come from achievements.
 All twelve Ventures are built. The four that arrived last — Developer platform, Healthcare, Ad tech,
 and Government contract — each have their demand shape, their rule, and their signature incident. The
 eight that shipped earlier each meet the signature incident their row names, with one exception:
-Bootstrapped indie's row names Runway, which is a figure rather than an incident, so it has none. The
-eight still have no rule of their own apart from the Bootstrapped indie Venture's no-funding rule;
-their rows name the rule they ask for. Consumer social's celebrity post is the build's **Hot key**
-incident, and its own row names what the player meets.
+Bootstrapped indie's row names Runway, which is a figure rather than an incident, so it has none.
+Four of the eight now have the rule their row names: Bootstrapped indie's no-funding rule, and the
+three below. Consumer social's celebrity post is the build's **Hot key** incident, and its own row
+names what the player meets.
 
 What each Venture starts with, and the numbers the build proposed where this document states none:
 
@@ -125,19 +125,40 @@ What each Venture starts with, and the numbers the build proposed where this doc
 All twelve start in the Garage, and the Head start perk still opens Pre-seed. Cash, Equity, the demand
 curves and amplitudes, the market and value multipliers, the mix boosts, and the Legacy multipliers
 above are the build's proposals; the unlock costs, the 100 ms bid deadline, the Java-or-C# rule, the
-calendar-day procurement, the Series A residency, the no-naive-retry rule, and the signature
-incidents are this document's. Where it names an incident but no magnitude, the build proposes one:
-a hot shard costs three times the CPU per query, a premiere lifts video four times, a launch day lifts
-realtime six times, and a flash sale lifts checkouts — the ×20 this document's E-commerce row already
-gives its monthly sale — for a few minutes.
+calendar-day procurement, the Series A residency, the no-naive-retry rule, the Series B SLA, the
+realtime regions from Series A, the scarce GPUs, and the signature incidents are this document's. The
+SLA's one SLO level and the AI startup's two GPU Nodes are the build's proposals. Where it names an
+incident but no magnitude, the build proposes one: a hot shard costs three times the CPU per query, a
+premiere lifts video four times, a launch day lifts realtime six times, and a flash sale lifts
+checkouts — the ×20 this document's E-commerce row already gives its monthly sale — for a few minutes.
 
 The rule of each built Venture is enforced where the player meets it. Developer platform refuses
 `naive` retries on a Link (`retryRefusal`). Healthcare refuses to place a data Component outside the
 home region from Series A (`venturePlaceRefusal`). Ad tech's requests earn nothing once the kind's
 mean latency passes its deadline (`earnsInTime`). Government contract refuses a runtime that is not
 Java or C# (`runtimeRefusal`), and a bought Component runs a calendar day after it is paid for
-(`placedLife`). The eight older Ventures have no rule yet, so nothing of theirs is refused; their
-signatures are enforced by the director alone.
+(`placedLife`).
+
+Three of the older Ventures have their row's rule too. B2B SaaS signs its SLA from Series B: the
+availability target it is held to moves one level above the Era's (`sloOf`), so its error budget is
+the contract's and a missed week is a breach. Game backend keeps one Realtime Hub per region from
+Series A (`venturePlaceRefusal`): realtime is served where the players are. AI startup may hold two
+GPU Nodes, whatever their size, and resizes them rather than buying more
+(`venturePlaceRefusal`): GPUs are scarce.
+
+The other four rows name a rule that is not a refusal or a target, so nothing of theirs is refused, and
+two of them are already what the build does:
+
+- Consumer social's constraint is its market shape, and it is built: half the value per request and
+  twice the market (`value` 0.5 and `market` 2 in `catalog/ventures.ts`), read by `features.ts`.
+- Streaming media's egress dominance follows from its `media` ×4 mix, and it is built the same way:
+  four times the video is four times the egress, and the Egress Shock achievement asks for the bill.
+- Fintech's compliance fine needs a money penalty on a stale read of the money kinds, charged where a
+  Step counts what the Company earned (`solve.ts`, `step.ts`). The build counts that stale read as a
+  failed checkout and stops there.
+- E-commerce's monthly sale needs a scheduled-event day kept in `state.ts`, and a calendar month is
+  about 12 real hours at 1×, longer than most Companies last. The build keeps the Flash sale as the
+  Venture's signature incident, at the ×20 the row gives it.
 
 A signature incident weighs four times as much for its own Venture (`SIGNATURE_WEIGHT`) and keeps a
 weakness of 2 (`SIGNATURE_WEAKNESS`), so it can fire on a well-built Design. Six incidents exist only

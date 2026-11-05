@@ -33,46 +33,46 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
 Not built yet: the seven-group dock. The build's dock groups Components into four groups — Edge,
 Compute, Data, and Ops — and this document keeps the seven as a reading order.
 
-| Group         | Component                                                             | Code   | Unlocked by              | Era      |
-| ------------- | --------------------------------------------------------------------- | ------ | ------------------------ | -------- |
-| Edge          | [Users](#users)                                                       | `www`  | Starter                  | Garage   |
-| Edge          | [DNS](#dns)                                                           | `dns`  | DNS round robin          | Garage   |
-| Edge          | [Load Balancer](#load-balancer)                                       | `lb`   | Load balancing           | Garage   |
-| Edge          | [CDN](#cdn)                                                           | `cdn`  | Content delivery         | Seed     |
-| Edge          | [WAF](#waf)                                                           | `waf`  | Web application firewall | Seed     |
-| Edge          | [API Gateway](#api-gateway)                                           | `gw`   | API gateway              | Series A |
-| Compute       | [App Server](#app-server)                                             | `app`  | Starter                  | Garage   |
-| Compute       | [Worker](#worker)                                                     | `wrk`  | Background jobs          | Seed     |
-| Compute       | [Serverless Function](#serverless-function)                           | `fn`   | Serverless               | Series A |
-| Compute       | [Kubernetes Cluster](#kubernetes-cluster)                             | `k8s`  | Container orchestration  | Series A |
-| Compute       | [GPU Node](#gpu-node)                                                 | `gpu`  | Model serving            | Series B |
-| Compute       | [Edge Function](#edge-function)                                       | `edge` | Edge compute             | Series C |
-| Data          | [Database](/design/07-data-tier#relational-database)                  | `sql`  | Starter                  | Garage   |
-| Data          | [Connection Pooler](/design/07-data-tier#connection-pooler)           | `pool` | Connection pooling       | Pre-seed |
-| Data          | [Cache](/design/07-data-tier#cache)                                   | `kv`   | Caching                  | Pre-seed |
-| Data          | [Read Replica](/design/07-data-tier#read-replica)                     | `rep`  | Replication              | Pre-seed |
-| Data          | [Search Engine](/design/07-data-tier#search-engine)                   | `fts`  | Full-text search         | Seed     |
-| Data          | [Object Storage](/design/07-data-tier#object-storage)                 | `s3`   | Object storage           | Seed     |
-| Data          | [Document Store](/design/07-data-tier#document-store)                 | `doc`  | Document databases       | Series A |
-| Data          | [Data Warehouse](/design/07-data-tier#data-warehouse)                 | `olap` | Data warehousing         | Series B |
-| Data          | [Vector Index](/design/07-data-tier#vector-index)                     | `vec`  | Embeddings               | Series B |
-| Data          | [Wide-column Store](/design/07-data-tier#wide-column-store)           | `wide` | Leaderless replication   | Series C |
-| Data          | [Distributed SQL](/design/07-data-tier#distributed-sql)               | `dsql` | Consensus databases      | Series C |
-| Async         | [Queue](#queue)                                                       | `mq`   | Message queues           | Seed     |
-| Async         | [Realtime Hub](#realtime-hub)                                         | `ws`   | WebSockets               | Series A |
-| Async         | [Event Stream](#event-stream)                                         | `log`  | Event streaming          | Series B |
-| Async         | [CDC Connector](#cdc-connector) — Not built yet                       | `cdc`  | Change data capture      | Series B |
-| Platform      | [Autoscaler](#autoscaler)                                             | `hpa`  | Autoscaling              | Series A |
-| Platform      | [Service Mesh](#service-mesh) — Not built yet                         | `mesh` | Service mesh             | Series B |
-| Platform      | [CI/CD Pipeline](#cicd-pipeline)                                      | `ci`   | Continuous delivery      | Pre-seed |
-| Platform      | [Feature Flags](#feature-flags) — Not built yet                       | `ff`   | Feature flags            | Seed     |
-| Platform      | [Secrets and Certificates](#secrets-and-certificates) — Not built yet | `pki`  | Certificate automation   | Seed     |
-| Observability | [Analytics](#analytics)                                               | `otel` | Starter                  | Garage   |
-| Observability | [Payments](#payments)                                                 | `pay`  | Starter                  | Garage   |
-| Managed       | [Payment Provider](#payment-provider)                                 | `psp`  | Checkout                 | Series A |
-| Managed       | [Auth Provider](#auth-provider)                                       | `idp`  | Managed identity         | Pre-seed |
-| Managed       | [LLM API](#llm-api)                                                   | `llm`  | Hosted models            | Series B |
-| Managed       | [Push and Email Provider](#push-and-email-provider)                   | `msgp` | Notifications            | Series C |
+| Group         | Component                                                   | Code   | Unlocked by              | Era      |
+| ------------- | ----------------------------------------------------------- | ------ | ------------------------ | -------- |
+| Edge          | [Users](#users)                                             | `www`  | Starter                  | Garage   |
+| Edge          | [DNS](#dns)                                                 | `dns`  | DNS round robin          | Garage   |
+| Edge          | [Load Balancer](#load-balancer)                             | `lb`   | Load balancing           | Garage   |
+| Edge          | [CDN](#cdn)                                                 | `cdn`  | Content delivery         | Seed     |
+| Edge          | [WAF](#waf)                                                 | `waf`  | Web application firewall | Seed     |
+| Edge          | [API Gateway](#api-gateway)                                 | `gw`   | API gateway              | Series A |
+| Compute       | [App Server](#app-server)                                   | `app`  | Starter                  | Garage   |
+| Compute       | [Worker](#worker)                                           | `wrk`  | Background jobs          | Seed     |
+| Compute       | [Serverless Function](#serverless-function)                 | `fn`   | Serverless               | Series A |
+| Compute       | [Kubernetes Cluster](#kubernetes-cluster)                   | `k8s`  | Container orchestration  | Series A |
+| Compute       | [GPU Node](#gpu-node)                                       | `gpu`  | Model serving            | Series B |
+| Compute       | [Edge Function](#edge-function)                             | `edge` | Edge compute             | Series C |
+| Data          | [Database](/design/07-data-tier#relational-database)        | `sql`  | Starter                  | Garage   |
+| Data          | [Connection Pooler](/design/07-data-tier#connection-pooler) | `pool` | Connection pooling       | Pre-seed |
+| Data          | [Cache](/design/07-data-tier#cache)                         | `kv`   | Caching                  | Pre-seed |
+| Data          | [Read Replica](/design/07-data-tier#read-replica)           | `rep`  | Replication              | Pre-seed |
+| Data          | [Search Engine](/design/07-data-tier#search-engine)         | `fts`  | Full-text search         | Seed     |
+| Data          | [Object Storage](/design/07-data-tier#object-storage)       | `s3`   | Object storage           | Seed     |
+| Data          | [Document Store](/design/07-data-tier#document-store)       | `doc`  | Document databases       | Series A |
+| Data          | [Data Warehouse](/design/07-data-tier#data-warehouse)       | `olap` | Data warehousing         | Series B |
+| Data          | [Vector Index](/design/07-data-tier#vector-index)           | `vec`  | Embeddings               | Series B |
+| Data          | [Wide-column Store](/design/07-data-tier#wide-column-store) | `wide` | Leaderless replication   | Series C |
+| Data          | [Distributed SQL](/design/07-data-tier#distributed-sql)     | `dsql` | Consensus databases      | Series C |
+| Async         | [Queue](#queue)                                             | `mq`   | Message queues           | Seed     |
+| Async         | [Realtime Hub](#realtime-hub)                               | `ws`   | WebSockets               | Series A |
+| Async         | [Event Stream](#event-stream)                               | `log`  | Event streaming          | Series B |
+| Async         | [CDC Connector](#cdc-connector)                             | `cdc`  | Change data capture      | Series B |
+| Platform      | [Autoscaler](#autoscaler)                                   | `hpa`  | Autoscaling              | Series A |
+| Platform      | [Service Mesh](#service-mesh)                               | `mesh` | Service mesh             | Series B |
+| Platform      | [CI/CD Pipeline](#cicd-pipeline)                            | `ci`   | Continuous delivery      | Pre-seed |
+| Platform      | [Feature Flags](#feature-flags)                             | `ff`   | Feature flags            | Seed     |
+| Platform      | [Secrets and Certificates](#secrets-and-certificates)       | `pki`  | Certificate automation   | Seed     |
+| Observability | [Analytics](#analytics)                                     | `otel` | Starter                  | Garage   |
+| Observability | [Payments](#payments)                                       | `pay`  | Starter                  | Garage   |
+| Managed       | [Payment Provider](#payment-provider)                       | `psp`  | Checkout                 | Series A |
+| Managed       | [Auth Provider](#auth-provider)                             | `idp`  | Managed identity         | Pre-seed |
+| Managed       | [LLM API](#llm-api)                                         | `llm`  | Hosted models            | Series B |
+| Managed       | [Push and Email Provider](#push-and-email-provider)         | `msgp` | Notifications            | Series C |
 
 ## Stats
 
@@ -446,8 +446,6 @@ partition key skew is the Hot key incident rather than a model of the key's dist
 
 ### CDC Connector
 
-Not built yet: the CDC Connector; there is no `cdc` Component in the catalog.
-
 Real products: Debezium.
 
 Reads the database's write-ahead log and publishes every change to an Event Stream. Feeds the
@@ -456,6 +454,15 @@ Search Engine, the Data Warehouse, and caches without dual writes from the app.
 - Removes the "dual write" inconsistency risk: writing to the database and the index separately can
   leave them out of sync ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
 - Adds lag. Search results and reports are seconds behind.
+
+**Built:** the `cdc` Component, unlocked by Change data capture in Series B. Link a Database into it
+and it into an Event Stream: it copies the writes that Database processed, one change each, and
+publishes them as `task` at 20,000 changes a second. It takes none of the Database's traffic and
+adds no latency to a write: its own hop is 2 ms, and the lag it adds is the Stream's, which is the
+game stat its card shows. A Stream's key decides order, so a change reaches a consumer in order only
+inside a partition. Past its rate it drops changes, as any flat-capacity Component does. **Not built
+yet:** the "dual write" it removes, because the build's App Servers write to the Database only and no
+path writes to a second copy; and a `cdc` Node's own backlog, because it keeps none.
 
 ## Platform
 
@@ -479,8 +486,6 @@ under load can make the p99 worse at first ([Runtimes](/design/06-runtimes#runti
 
 ### Service Mesh
 
-Not built yet: the Service Mesh; there is no `mesh` Component in the catalog.
-
 Real products: Istio, Linkerd.
 
 Adds a sidecar proxy to every service in a Kubernetes Cluster.
@@ -490,6 +495,16 @@ Adds a sidecar proxy to every service in a Kubernetes Cluster.
 | Mutual TLS between services                                          | +1 ms latency per hop                             |
 | Retries, timeouts, and circuit breakers on every link                | CPU and memory per sidecar (about 5% per replica) |
 | Per-link metrics without code changes (+20% Insight on mesh traffic) | Platform Dev Hours                                |
+
+**Built:** the `mesh` Component, unlocked by Service mesh in Series B. Link App Servers and Workers
+into it: a sidecar sits beside each one, and the Design changes at every Link out of it. Those Links
+retry at once and open a breaker when half their calls fail, with no research for either, unless the
+player set a policy of its own. Each hop costs the design's 1 ms, each member loses 5% of its CPU,
+the mesh bills 5% of each member's Burn as the sidecar's share, and it takes 0.5 engineers of
+Platform Dev Hours, or none with a Platform team. A Node it watches also earns the design's 20% more
+Insight where Analytics samples it. **Not built yet:** the Cluster tie. 05 puts the sidecar on every
+service in a Cluster, and the build attaches it by Link instead, so a mesh works without one.
+Mutual TLS is a property the card reports, not a failure the build can produce.
 
 ### CI/CD Pipeline
 
@@ -531,8 +546,6 @@ multiplies feature velocity ([Team and velocity](/design/08-team-and-velocity#de
 
 ### Feature Flags
 
-Not built yet: Feature Flags; there is no `ff` Component in the catalog.
-
 Real products: LaunchDarkly, Unleash.
 
 Ships features dark and turns them on gradually, in steps of 5%, 25%, 50%, and 100% of users
@@ -543,11 +556,16 @@ do not have a feature yet form the holdout group that measures its lift
 enable graceful degradation: turning off expensive features during an incident
 ([Incidents](/design/11-incidents#mitigation-toolbox)).
 
-### Secrets and Certificates
+**Built:** the `ff` Component, unlocked by Feature flags in Seed. It carries no traffic. Each shipped
+Feature has a rollout: dark, 5%, 25%, 50%, or every user, and a Feature with none is live for
+everyone. A bad deploy fails 8% of App Servers' requests for each Feature its batch shipped, and a
+flag cuts that Feature's share to its rollout, so Recreate's 100% ceiling cannot outrun a 5% rollout:
+thirteen Features at 5% break 5.2% of traffic instead of everything. **Not built yet:** the rollout
+does not scale a Feature's effects or load, because outcomes, adoption and upkeep are not in the
+build; there is no Shift or Remove item; and the holdout that measures lift waits on `ab-testing`
+([Team and velocity](/design/08-team-and-velocity#rollout)).
 
-Not built yet: the Secrets and Certificates Component. The certificate lifetime is not modelled, so
-"Certificate expired" is an ordinary director incident that research `cert-automation` prevents, not a
-countdown to expiry.
+### Secrets and Certificates
 
 Real products: Let's Encrypt with ACME, HashiCorp Vault, AWS Secrets Manager.
 
@@ -559,6 +577,16 @@ Real lifetimes are shrinking: the industry maximum is 200 days since March 2026 
 in March 2029, and Let's Encrypt moves to 45 days by 2028. The game follows the trend. Certificates
 last 90 calendar days until Series C and 45 calendar days from Series C, so manual renewal gets
 harder with each Era.
+
+**Built:** the `pki` Component, unlocked by Certificate automation, and the countdown. The first Step
+with one live issues the certificate; it renews itself two thirds of the way through its life, which
+is where an ACME client renews with a third left. With none live, nothing renews it: when it reaches
+its expiry date the Certificate expired incident starts, every request from Users fails as `down`,
+and it starts again after the incident ends until a manager is live again or the player presses Renew.
+Selling the manager leaves the certificate it issued running down, so the Component owns the
+calendar. **Not built yet:** the per-Node certificate. One certificate covers the Company, so the
+build does not say which Nodes terminate TLS; and a certificate issued before a manager is placed is
+not tracked, so the director's own incident covers that case.
 
 ## Observability and money
 

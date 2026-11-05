@@ -28,6 +28,7 @@ import {
   Flame,
   Funnel,
   FileBadge,
+  KeySquare,
   Target,
   GitBranch,
   Copy,
@@ -227,6 +228,11 @@ export const LOOKS: Record<ResearchId, Look> = {
   'fw-nestjs': { group: 'compute', logo: 'nestjs' },
   'fw-fiber': { group: 'compute', logo: 'fiber' },
   'fw-quarkus': { group: 'compute', logo: 'quarkus' },
+  // The last four Components: each wears its own badge, but secrets management is no Component.
+  cdc: { component: 'cdc' },
+  'service-mesh': { component: 'mesh' },
+  'feature-flags': { component: 'ff' },
+  'secrets-management': { group: 'ops', glyph: KeySquare, hue: 150 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

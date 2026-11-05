@@ -260,7 +260,7 @@ A release method that sends a small share of traffic to a new version first and 
 
 Reading a database's change log, such as the PostgreSQL write-ahead log, and publishing each insert, update, and delete as an event. Other systems, such as a data warehouse or a search index, stay in sync without querying the source.
 
-**In the game:** There is no CDC Connector yet. The closest is the Data Warehouse: App Servers send report scans to it directly, at 1.5 s and a fee per scan. Reports then stop scanning the primary Database and evicting its buffer cache.
+**In the game:** There is a CDC Connector, unlocked by Change data capture in Series B. Link a Database into it, and it into an Event Stream: it reads every write off the write log and publishes each change as an event, at 20,000 changes a second, so a Search Engine or a Data Warehouse follows the Database without the app writing twice. It adds lag rather than latency: the write never waits for the copy.
 
 **Design:** [CDC Connector](/design/05-components#cdc-connector).
 
@@ -590,7 +590,7 @@ Building each user's feed when a post is written: the post is copied into the ti
 
 A switch in the code, controlled at runtime, that turns a feature on or off without a new deploy. Teams use flags to release a feature to a share of users, test it, or turn it off fast when it breaks.
 
-**In the game:** Not modeled yet: a Feature reaches every user at the next deploy, with no rollout share. The closest tool is a rollback after Continuous delivery, which takes a bad deploy's Features out again and ends the Bad deploy Incident.
+**In the game:** Feature Flags research unlocks the Feature Flags Component. Each Feature in a deploy's batch has a rollout: dark, 5%, 25%, 50%, or every user. A bad deploy fails 8% of App Server requests for each Feature in its batch, and a flag cuts that Feature's share to its rollout, so a Feature at 5% breaks at most 5% of what it would have, whatever the deploy strategy. Turning it off is the one click that stops the blast.
 
 **Design:** [Feature Flags](/design/05-components#feature-flags).
 
@@ -1270,7 +1270,7 @@ The longest time a caller waits for a response before it gives up. A timeout fre
 
 A signed file that binds a domain name to a public key, issued by a certificate authority. Browsers check it before they open an HTTPS connection, and refuse the site once it expires. Certificates are short-lived, so teams renew them automatically, for example with ACME and Let's Encrypt.
 
-**In the game:** The Certificate expired Incident can start from Seed. While it runs, every browser refuses the site: every request from Users fails as down, for up to 60 s. Press Renew to end it. Certificate automation research renews certificates before they expire, so the Incident never starts again.
+**In the game:** Certificate automation research unlocks Secrets and Certificates. While one runs it issues the certificate on the first Step and renews it two thirds of the way through its life: 90 calendar days, and 45 from Series C. With none live, the certificate runs out, the Certificate expired Incident starts, and every request from Users fails as down until one runs again or the player presses Renew.
 
 **Related:** [SOC 2](#soc-2), [MTTR](#mttr), [Blast radius](#blast-radius)
 

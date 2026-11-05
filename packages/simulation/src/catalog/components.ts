@@ -40,6 +40,10 @@ export const COMPONENT_IDS = [
   'msgp',
   'wide',
   'dsql',
+  'cdc',
+  'mesh',
+  'ff',
+  'pki',
 ] as const
 export type ComponentId = (typeof COMPONENT_IDS)[number]
 
@@ -93,6 +97,8 @@ export type ComponentDef = Readonly<{
   maxOut: number
   /** Receives a copy of its parent's traffic instead of a share of it. */
   tap: boolean
+  /** Takes a copy of the changes a Node writes, instead of a share of its traffic. */
+  mirror: boolean
   /** Takes no traffic: App Servers and Workers link into it to come under its control. */
   control: boolean
   /** Research that unlocks it, or null for the starter kit. */
@@ -106,6 +112,7 @@ const def = (
     ComponentDef,
     | 'maxOut'
     | 'tap'
+    | 'mirror'
     | 'control'
     | 'unlock'
     | 'fixed'
@@ -127,6 +134,7 @@ const def = (
   coldStart: false,
   maxOut: 99,
   tap: false,
+  mirror: false,
   control: false,
   unlock: null,
   fixed: false,
@@ -285,6 +293,56 @@ export const LOG_RETENTION = [600, 3_600, 10_080] as const
 export const LOG_REPLICA_BURN = 0.5
 /** Replicas a stream keeps of each partition: 1, 2, or 3 (07 "Event Stream"). */
 export const LOG_REPLICAS = [1, 2, 3] as const
+
+/* ---------- the CDC Connector, Service Mesh, Feature Flags and Certificates (05) ---------- */
+
+/** Changes a second a CDC Connector publishes at its one size (05 "Stats": 20,000). */
+export const CDC_RATE = 20_000
+/**
+ * What counts as a change: every write the Database takes, a checkout included, and the timeline
+ * writes a fan-out makes (07 "Fan-out"). A read changes nothing.
+ */
+export const CDC_CHANGES = ['q-write', 'q-tx', 'k-write'] as const
+/**
+ * Milliseconds a change spends in the connector before it is published. Proposed: 05 gives the
+ * connector "Lag-based" latency and no figure, so the lag is the stream's, and this is only the
+ * connector's own hop.
+ */
+export const CDC_MS = 2
+
+/** Milliseconds the sidecar adds to each hop a member of the mesh makes (05: +1 ms per hop). */
+export const MESH_HOP_MS = 1
+/** Share of a member's CPU its sidecar takes (05: "CPU and memory per sidecar, about 5%"). */
+export const MESH_OVERHEAD = 0.05
+/** Insight per-link metrics earn on top of what Analytics already samples (05: +20%). */
+export const MESH_INSIGHT = 0.2
+/**
+ * Dev Hours the mesh takes from the product teams, in engineers, the same as a Cluster's. Proposed:
+ * 05 says "Platform Dev Hours" and gives no figure.
+ */
+export const MESH_TAX = 0.5
+
+/**
+ * The shares a Feature behind a flag can sit at (05 "Feature Flags", 08 "Rollout"): dark, then 5%,
+ * 25%, 50% and every user. Dark is the "turn it off in one click" the design promises.
+ */
+export const ROLLOUT_STEPS = [0, 0.05, 0.25, 0.5, 1] as const
+/** A Feature with no flag against it is live for every user. */
+export const ROLLOUT_ALL = 1
+
+/**
+ * Calendar days a TLS certificate lasts: 90 until Series C, then 45 (05 "Secrets and Certificates",
+ * following the industry maximum as it shrinks).
+ */
+export const CERT_DAYS = 90
+export const CERT_DAYS_SHORT = 45
+/** The Era from which certificates last the shorter life: Series C. */
+export const CERT_SHORT_FROM = 5
+/**
+ * Share of a certificate's life at which it renews itself. Let's Encrypt renews with a third of
+ * the 90 days left, which is two thirds of the way through.
+ */
+export const CERT_RENEW = 2 / 3
 
 export const COMPONENTS: Record<ComponentId, ComponentDef> = {
   users: def({
@@ -877,6 +935,77 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     unlock: 'consensus',
     steps: 6,
     limiting: true,
+  }),
+  // It reads a Database's write-ahead log and publishes every change to an Event Stream, so the
+  // app writes once and the copies follow (05 "CDC Connector").
+  cdc: def({
+    id: 'cdc',
+    code: 'cdc',
+    name: 'CDC Connector',
+    product: 'Debezium',
+    group: 'compute',
+    blurb:
+      'Link a Database into it. It reads every change off the write log and publishes it to an Event Stream, so the app never writes twice.',
+    cost: 300,
+    burn: 0.05,
+    latency: CDC_MS,
+    accepts: [],
+    sends: ['task'],
+    maxOut: 1,
+    mirror: true,
+    unlock: 'cdc',
+    limiting: true,
+  }),
+  // It puts a sidecar beside every service that links into it: mutual TLS, retries and a breaker on
+  // each Link, and per-Link metrics (05 "Service Mesh").
+  mesh: def({
+    id: 'mesh',
+    code: 'mesh',
+    name: 'Service Mesh',
+    product: 'Istio',
+    group: 'ops',
+    blurb:
+      'Link App Servers and Workers into it. A sidecar beside each one retries and breaks its calls, and watches them: +1 ms a hop, and 5% of its CPU.',
+    cost: 600,
+    latency: 0,
+    accepts: [],
+    maxOut: 0,
+    control: true,
+    unlock: 'service-mesh',
+  }),
+  // It carries no traffic: it decides what share of users a Feature reaches, and so how far a bad
+  // deploy of it reaches (05 "Feature Flags", 08 "Rollout").
+  ff: def({
+    id: 'ff',
+    code: 'ff',
+    name: 'Feature Flags',
+    product: 'LaunchDarkly',
+    group: 'ops',
+    blurb:
+      'Rolls a Feature out to 5%, 25%, 50% or every user, and turns it off in one click. A bad deploy reaches only the share that has it.',
+    cost: 150,
+    burn: 0.01,
+    latency: 0,
+    accepts: [],
+    maxOut: 0,
+    unlock: 'feature-flags',
+  }),
+  // It holds the TLS certificates and renews them: without it live, they run out on the calendar,
+  // and every browser refuses the site (05 "Secrets and Certificates").
+  pki: def({
+    id: 'pki',
+    code: 'pki',
+    name: 'Secrets and Certificates',
+    product: "Let's Encrypt",
+    group: 'ops',
+    blurb:
+      'Holds the keys and renews the TLS certificates before they run out. Without it live, the certificate expires on the calendar and the site goes down.',
+    cost: 80,
+    burn: 0.005,
+    latency: 0,
+    accepts: [],
+    maxOut: 0,
+    unlock: 'cert-automation',
   }),
 }
 

@@ -148,6 +148,11 @@ export const RESEARCH_IDS = [
   'fw-nestjs',
   'fw-fiber',
   'fw-quarkus',
+  // The last four Components (05 "Catalog overview", 10 "Research").
+  'cdc',
+  'service-mesh',
+  'feature-flags',
+  'secrets-management',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -1489,6 +1494,43 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     requires: ['lang-java'],
     blurb: FRAMEWORKS.quarkus.blurb,
   }),
+  // The last four Components (05 "Catalog overview", 10 "Research").
+  research({
+    id: 'cdc',
+    name: 'Change data capture',
+    track: 'data',
+    cost: 18_000,
+    era: 4,
+    requires: ['event-streaming', 'data-warehouse'],
+    blurb: 'Unlocks the CDC Connector: the copies follow the write log, without a second write.',
+  }),
+  research({
+    id: 'service-mesh',
+    name: 'Service mesh',
+    track: 'infrastructure',
+    cost: 20_000,
+    era: 4,
+    requires: ['containers'],
+    blurb: 'Unlocks the Service Mesh: retries, breakers and metrics on every link.',
+  }),
+  research({
+    id: 'feature-flags',
+    name: 'Feature flags',
+    track: 'reliability',
+    cost: 800,
+    era: 2,
+    requires: ['ci'],
+    blurb: 'Unlocks Feature Flags: a Feature reaches a share of users, and a bad deploy with it.',
+  }),
+  research({
+    id: 'secrets-management',
+    name: 'Secrets management',
+    track: 'security',
+    cost: 400,
+    era: 2,
+    requires: [],
+    blurb: 'Keys live in a vault, so a phishing page has nothing to steal.',
+  }),
 ]
 
 export const RESEARCH: Record<ResearchId, ResearchDef> = Object.fromEntries(
@@ -1587,6 +1629,8 @@ const RECIPES: Partial<Record<ResearchId, ReadonlyArray<InsightPool>>> = {
   'sync-replication': ['write', 'buy'],
   consensus: ['write', 'buy'],
   'data-warehouse': ['report'],
+  // 10's recipe: a change stream is born of writes, and a report is the copy it feeds.
+  cdc: ['report', 'write'],
   // 10's recipe: embeddings are what an `ai` answer retrieves, and what a `search` finds.
   embeddings: ['ai', 'search'],
   'hosted-models': ['ai'],

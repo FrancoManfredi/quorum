@@ -359,7 +359,6 @@ export const zhCN: Readonly<Record<string, string>> = {
   Evictions: '淘汰',
   Stored: '已存储',
   Depth: '深度',
-  Lag: '滞后',
   Policy: '策略',
   Logins: '登录',
   Blocked: '已拦截',
@@ -657,9 +656,7 @@ export const zhCN: Readonly<Record<string, string>> = {
   Deploys: '部署次数',
   'Deploy time': '部署耗时',
   'Blast radius': '影响范围',
-  'up to {0}': '最多 {0}',
   Strategy: '策略',
-  Blast: '影响',
   'Only App Servers, Workers and Realtime Hubs run a Stack.':
     '只有应用服务器、工作进程和实时中枢可运行运行时。',
   '{0} holds no connections. Pick a runtime that does.':
@@ -1096,7 +1093,6 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Event loop block': '事件循环阻塞',
   'Memory leak': '内存泄漏',
   'Slow query': '慢查询',
-  'Bad deploy': '部署故障',
   'Bot surge': '机器人流量激增',
   'Credential stuffing': '撞库攻击',
   'Cache stampede': '缓存击穿',
@@ -1781,7 +1777,6 @@ export const zhCN: Readonly<Record<string, string>> = {
   'No ack': '不确认',
   Leader: '分区首领',
   'All replicas': '全部副本',
-  'caught up': '已跟上',
   events: '事件',
   'Multi-document transactions on': '已开启多文档事务',
   'Multi-document transactions off': '已关闭多文档事务',
@@ -1793,4 +1788,68 @@ export const zhCN: Readonly<Record<string, string>> = {
   // A Vector Index's two types (07 "Vector Index").
   Exact: '精确',
   HNSW: 'HNSW',
+  // The last four Components: the CDC Connector, the Service Mesh, Feature Flags, and Secrets and
+  // Certificates (05), and the four research items that unlock them.
+  'CDC Connector': 'CDC 连接器',
+  'Link a Database into it. It reads every change off the write log and publishes it to an Event Stream, so the app never writes twice.':
+    '把数据库连接到它。它从写入日志读取每一次变更并发布到事件流，应用因此无需写两次。',
+  'Service Mesh': '服务网格',
+  'Link App Servers and Workers into it. A sidecar beside each one retries and breaks its calls, and watches them: +1 ms a hop, and 5% of its CPU.':
+    '把应用服务器和工作进程连接到它。每个服务旁的边车会重试并断开其调用，并观测它们：每跳 +1 ms，并占用 5% 的 CPU。',
+  'Feature Flags': '功能开关',
+  'Rolls a Feature out to 5%, 25%, 50% or every user, and turns it off in one click. A bad deploy reaches only the share that has it.':
+    '把一项功能逐步开放给 5%、25%、50% 或全部用户，并可一键关闭。糟糕的部署只会波及拥有它的那部分用户。',
+  'Secrets and Certificates': '密钥与证书',
+  'Holds the keys and renews the TLS certificates before they run out. Without it live, the certificate expires on the calendar and the site goes down.':
+    '保管密钥，并在 TLS 证书到期前续期。若它没有运行，证书会按日历到期，站点随之下线。',
+  'Change data capture': '变更数据捕获',
+  'Unlocks the CDC Connector: the copies follow the write log, without a second write.':
+    '解锁 CDC 连接器：副本跟随写入日志，无需第二次写入。',
+  'Service mesh': '服务网格',
+  'Unlocks the Service Mesh: retries, breakers and metrics on every link.':
+    '解锁服务网格：每条链路上的重试、熔断与指标。',
+  'Feature flags': '功能开关',
+  'Unlocks Feature Flags: a Feature reaches a share of users, and a bad deploy with it.':
+    '解锁功能开关：功能只触达一部分用户，糟糕的部署也如此。',
+  'Secrets management': '密钥管理',
+  'Keys live in a vault, so a phishing page has nothing to steal.':
+    '密钥存放在保险库中，钓鱼页面无物可偷。',
+  Rollout: '逐步开放',
+  'Ship a Feature first: a flag has nothing to roll out yet.':
+    '先发布一项功能：开关暂时无物可开放。',
+  'A bad deploy of it reaches at most {0}% of users': '糟糕的部署最多波及 {0}% 的用户',
+  'Off: no user has the Feature, so a bad deploy of it breaks nobody':
+    '关闭：没有用户拥有该功能，糟糕的部署不会伤到任何人。',
+  'Flags are a shield': '开关是护盾',
+  Certificate: '证书',
+  'The first Step with a manager issues it.': '第一个有管理器的模拟秒会签发证书。',
+  Secrets: '密钥',
+  Sidecars: '边车',
+  'Link App Servers or Workers into it. Nothing is under the mesh yet.':
+    '把应用服务器或工作进程连接到它。目前还没有服务在网格下。',
+  'Mutual TLS sits on every member-to-member call. It is a property, not a figure.':
+    '成员之间的每次调用都有双向 TLS。这是属性，不是数字。',
+  'Change stream': '变更流',
+  'Link a Database into it, and it into an Event Stream, before it carries anything.':
+    '先把数据库连接到它，再把它连接到事件流，它才会传递数据。',
+  'Reading {0}, publishing to {1}.': '读取 {0}，发布到 {1}。',
+  Changes: '变更',
+  'no stream': '无事件流',
+  Published: '已发布',
+  'Per hop': '每跳',
+  Flags: '开关',
+  Life: '寿命',
+  Expires: '到期',
+  'not issued yet': '尚未签发',
+  expired: '已过期',
+  'in {0} d': '{0} 天后',
+  'In the batch': '本批次',
+  'Behind a flag': '在开关之后',
+  Lifetime: '有效期',
+  'Renews at': '续期于',
+  'Member CPU': '成员 CPU',
+  '+{0} on its Links': '在链路上 +{0}',
+  '{0} engineers': '{0} 名工程师',
+  '{0} of {1}': '{0} / {1}',
+  '{0} d': '{0} 天',
 }

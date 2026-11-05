@@ -27,24 +27,28 @@ import {
   STEADY_CHURN,
   UPLOAD_MB,
   VM_REACTION,
+  CERT_RENEW,
   WARMUP_SECONDS,
   type RegionId,
   type Tuning,
 } from './catalog.ts'
 import { advanceCves } from './cve.ts'
-import { advanceIncident, directIncidents } from './director.ts'
+import { advanceIncident, directIncidents, startIncident } from './director.ts'
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
 import { churnFactor, growthFactor } from './features.ts'
 import { growthPerk } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
+  certLifeOf,
+  certManaged,
   copiesOf,
   drawerSize,
   eraOf,
   has,
   inCluster,
   isDown,
+  meshOf,
   restarted,
   vcpuOf,
   warmAfterRestart,
@@ -400,8 +404,38 @@ const advanceNode = (
 }
 
 /**
+ * The certificate's clock (05 "Secrets and Certificates"). A live Secrets and Certificates Node
+ * issues the certificate on the first Step it sees, then renews it two thirds of the way through
+ * its life, which is where an ACME client renews with a third left. With none live nothing renews
+ * it: once it runs out, every Node that terminates TLS fails until one is live again or the player
+ * presses Renew, and the incident starts again if it does not.
+ */
+const advanceCertificate = (
+  game: Game,
+  ledger: Ledger,
+  tuning: Tuning,
+): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
+  const issued = game.certificate ?? null
+  const life = certLifeOf(game, tuning)
+  if (certManaged(game)) {
+    // The manager issues it the first time, and afterwards renews it before it can run out.
+    if (issued === null) return { game: { ...game, certificate: game.time }, events: [] }
+    return game.time >= issued + life * CERT_RENEW
+      ? { game: { ...game, certificate: game.time }, events: [] }
+      : { game, events: [] }
+  }
+  if (game.sandbox || issued === null || game.time < issued + life || game.incident)
+    return { game, events: [] }
+  const started = startIncident(game, ledger, 'certificate', 0)
+  return started
+    ? { game: started.game, events: [StepEvent.IncidentStarted({ incident: started.incident })] }
+    : { game, events: [] }
+}
+
+/**
  * Links that retry carry their failure share into the next Step. A breaker opens
- * when half the calls fail, stays open, then closes to try again.
+ * when half the calls fail, stays open, then closes to try again. A Service Mesh
+ * runs its own breaker on each Link out of a Node with a sidecar (05).
  */
 const advanceLinks = (game: Game, ledger: Ledger, seconds: number): ReadonlyArray<GameLink> => {
   const links = game.links.map((link, index) => {
@@ -410,8 +444,11 @@ const advanceLinks = (game: Game, ledger: Ledger, seconds: number): ReadonlyArra
       return { ...link, open, failure: open > 0 ? link.failure : 0 }
     }
     const measured = ledger.links[index]?.failure ?? 0
-    if (link.breaker && has(game, 'circuit-breakers') && measured > BREAKER_THRESHOLD)
-      return { ...link, open: BREAKER_OPEN, failure: 0 }
+    const source = game.nodes.find((node) => node.id === link.from)
+    const watched =
+      (link.breaker && has(game, 'circuit-breakers')) ||
+      (source !== undefined && meshOf(game, source))
+    if (watched && measured > BREAKER_THRESHOLD) return { ...link, open: BREAKER_OPEN, failure: 0 }
     return measured === link.failure ? link : { ...link, failure: measured }
   })
   return links.every((link, index) => link === game.links[index]) ? game.links : links
@@ -590,6 +627,9 @@ export const step = (
   events.push(...team.events)
   if (!offline) next = advanceCves(next, ledger, seconds, events)
   if (!offline) {
+    const certificates = advanceCertificate(next, ledger, tuning)
+    next = certificates.game
+    events.push(...certificates.events)
     const directed = directIncidents(next, ledger, tuning.incidentGap)
     next = directed.game
     events.push(...directed.events)

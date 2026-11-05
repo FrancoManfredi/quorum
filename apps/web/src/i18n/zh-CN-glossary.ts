@@ -1017,4 +1017,11 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
     '直写已设计为一种缓存策略，但尚未加入游戏。目前缓存采用带失效的旁路缓存模式：写入穿过缓存到达数据库，并使相关键失效，因此命中率会按写入占比的两倍下降，最多降低一半。在两次失效之间，部分命中仍会过期；随着 TTL 从 10 秒延长至 1 小时，每单位写入占比对应的过期比例从 0.5% 增至 10%。',
   'Amazon ElastiCache docs: Caching strategies': 'Amazon ElastiCache 文档：缓存策略',
   'Wikipedia: Cache write policies': '维基百科：缓存写入策略',
+  // The three glossary entries the last four Components changed.
+  'There is a CDC Connector, unlocked by Change data capture in Series B. Link a Database into it, and it into an Event Stream: it reads every write off the write log and publishes each change as an event, at 20,000 changes a second, so a Search Engine or a Data Warehouse follows the Database without the app writing twice. It adds lag rather than latency: the write never waits for the copy.':
+    '存在 CDC 连接器，由系列 B 的变更数据捕获解锁。把数据库连接到它，再把它连接到事件流：它从写入日志读取每一次写入，并以每秒 20,000 次变更的速度把每次变更发布为事件，因此搜索引擎或数据仓库无需应用写两次就能跟上数据库。它增加的是延迟（lag）而不是时延：写入从不等待副本。',
+  "Feature Flags research unlocks the Feature Flags Component. Each Feature in a deploy's batch has a rollout: dark, 5%, 25%, 50%, or every user. A bad deploy fails 8% of App Server requests for each Feature in its batch, and a flag cuts that Feature's share to its rollout, so a Feature at 5% breaks at most 5% of what it would have, whatever the deploy strategy. Turning it off is the one click that stops the blast.":
+    '功能开关研究会解锁功能开关组件。每次部署批次中的每项功能都有自己的开放比例：关闭、5%、25%、50% 或全部用户。糟糕的部署会让批次中每项功能对应的 8% 请求失败，而开关把这项功能的份额削减到它的开放比例，因此无论部署策略如何，5% 的功能最多只会破坏原本的 5%。一键关闭就能止住影响。',
+  'Certificate automation research unlocks Secrets and Certificates. While one runs it issues the certificate on the first Step and renews it two thirds of the way through its life: 90 calendar days, and 45 from Series C. With none live, the certificate runs out, the Certificate expired Incident starts, and every request from Users fails as down until one runs again or the player presses Renew.':
+    '证书自动化研究会解锁密钥与证书。只要有一个在运行，它就在第一个模拟秒签发证书，并在寿命的三分之二处续期：90 个日历天，系列 C 起为 45 天。若没有运行，证书会到期，证书过期事故随即开始，来自用户的每个请求都会以下线失败，直到有新的在运行，或玩家点击续期。',
 }

@@ -28,6 +28,7 @@ import {
   DNS_TTLS,
   FAMILIES,
   FAMILY_IDS,
+  FEATURES,
   FRAMEWORKS,
   FRAMEWORK_IDS,
   GATEWAY_LIMITS,
@@ -83,11 +84,22 @@ import {
   SERVERLESS_GB_SECOND,
   SERVERLESS_MEMORY_GB,
   SERVERLESS_REQUEST_PRICE,
+  MESH_HOP_MS,
+  MESH_OVERHEAD,
+  MESH_INSIGHT,
+  CERT_RENEW,
+  ROLLOUT_STEPS,
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
 import { distributedErlang, edgeRuns, hubConnections } from '@quorum/simulation/rules'
-import { deploysPerDay, platformTax, quartersBehind } from '@quorum/simulation/team'
+import {
+  badDeployShare,
+  deploysPerDay,
+  platformTax,
+  quartersBehind,
+  rolloutOf,
+} from '@quorum/simulation/team'
 import type { Limit } from '@quorum/simulation/capacity'
 import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
 import {
@@ -112,6 +124,9 @@ import {
   vcpuOf,
   zoned,
   agedShareOf,
+  certDaysLeft,
+  certDaysOf,
+  meshMembers,
 } from '@quorum/simulation/lookups'
 import { LINK_TIMEOUTS } from '@quorum/simulation/actions'
 import type {
@@ -764,6 +779,84 @@ const stats = (
           strategy.blast >= 1 ? 'danger' : strategy.blast <= 0.05 ? 'ok' : 'plain',
           h,
         ),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    // It reads a Database's write log; its lag is the stream's backlog behind its consumers.
+    case 'cdc': {
+      const stream = game.nodes.find(
+        (entry) =>
+          entry.type === 'log' &&
+          game.links.some((link) => link.from === node.id && link.to === entry.id),
+      )
+      const backlog = stream?.depth ?? 0
+      const read = stream ? (ledger.nodes[stream.id]?.out.task ?? 0) : 0
+      const behind = read > 0 ? backlog / read : 0
+      return [
+        row('Changes', `${rate(own.inbound)}/s`, 'plain', h),
+        row(
+          'Load',
+          own.inbound > 0
+            ? `${percent(Math.min(own.utilization, 9.99))} of ${rate(own.capacity)}/s`
+            : 'idle',
+          own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
+          h,
+        ),
+        row(
+          'Lag',
+          stream ? (backlog < 1 ? 'caught up' : `${Math.round(behind)} s behind`) : 'no stream',
+          stream === undefined ? 'warn' : behind > stream.retain ? 'danger' : 'plain',
+          h,
+        ),
+        row('Published', `${rate(own.out.task ?? 0)}/s`, 'plain', h),
+        row('Latency', ms(own.latency), 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    case 'mesh': {
+      const members = meshMembers(game, node)
+      const sidecars = members.length
+      return [
+        row('Sidecars', `${sidecars}`, sidecars === 0 ? 'warn' : 'plain', h),
+        row('Per hop', `+${MESH_HOP_MS} ms`, 'plain', h),
+        row('Member CPU', `−${percent(MESH_OVERHEAD)}`, 'plain', h),
+        row('Insight', `+${percent(MESH_INSIGHT)} on its Links`, 'ok', h),
+        row('Platform', `${platformTax(game).toFixed(1)} engineers`, 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    case 'ff': {
+      const batch = game.services[0]?.lastDeploy ?? []
+      const rolled = batch.filter((feature) => rolloutOf(game, feature) < 1)
+      const blast = badDeployShare(game)
+      return [
+        row('In the batch', `${batch.length}`, 'plain', h),
+        row('Behind a flag', `${rolled.length}`, rolled.length > 0 ? 'ok' : 'plain', h),
+        row(
+          'Bad deploy',
+          `up to ${percent(blast)}`,
+          blast >= 0.4 ? 'warn' : blast <= 0.1 ? 'ok' : 'plain',
+          h,
+        ),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    case 'pki': {
+      const left = certDaysLeft(game)
+      const life = certDaysOf(game)
+      return [
+        row('Lifetime', `${life} d`, 'plain', h),
+        row(
+          'Expires',
+          left === null
+            ? 'not issued yet'
+            : left <= 0
+              ? 'expired'
+              : `in ${Math.max(0, Math.round(left))} d`,
+          left === null ? 'warn' : left <= 1 ? 'danger' : left < 14 ? 'warn' : 'ok',
+          h,
+        ),
+        row('Renews at', `${Math.round(life * CERT_RENEW)} d`, 'plain', h),
         row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
       ]
     }
@@ -2041,6 +2134,199 @@ const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   ),
 ]
 
+/** A Feature Flags Node's rollouts: each Feature's share, and what a bad deploy of it can break. */
+const flags = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const batch = game.services[0]?.lastDeploy ?? []
+  const listed = batch.length > 0 ? batch : game.shipped
+  return [
+    section(
+      'Rollout',
+      [
+        ...(listed.length === 0
+          ? [caption('Ship a Feature first: a flag has nothing to roll out yet.', h)]
+          : listed.map((feature) =>
+              h.div(
+                [h.Key(feature), h.Class('flex flex-col gap-1.5 pb-1')],
+                [
+                  caption(FEATURES[feature].name, h),
+                  segmented(
+                    'grid-cols-5',
+                    ROLLOUT_STEPS.map((share) =>
+                      choice(
+                        `${feature}-${share}`,
+                        Math.abs(rolloutOf(game, feature) - share) < 1e-9,
+                        true,
+                        Message.RolloutChosen({ nodeId: node.id, feature, share }),
+                        [
+                          h.span(
+                            [h.Class('w-full text-center')],
+                            [share <= 0 ? 'Off' : `${Math.round(share * 100)}%`],
+                          ),
+                        ],
+                        share <= 0
+                          ? 'Off: no user has the Feature, so a bad deploy of it breaks nobody'
+                          : `A bad deploy of it reaches at most ${Math.round(share * 100)}% of users`,
+                        h,
+                      ),
+                    ),
+                    h,
+                  ),
+                ],
+              ),
+            )),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `A bad deploy fails 8% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. The last deploy shipped ${batch.length} Feature${batch.length === 1 ? '' : 's'}, so this design's ceiling is ${percent(badDeployShare(game))}.`,
+          ],
+        ),
+      ],
+      h,
+      true,
+    ),
+    section(
+      'Flags are a shield',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            'A Feature at 5% of users can break at most 5% of the traffic it would have, whatever the deploy strategy. Turn it Off and the next bad deploy of it breaks nobody: that is the one click an incident needs.',
+          ],
+        ),
+        caption(
+          'Not built: the holdout group that measures a Feature’s lift, and the load a dark Feature no longer adds.',
+          h,
+        ),
+      ],
+      h,
+    ),
+  ]
+}
+
+/** Secrets and Certificates: what is left of the certificate, and who renews it (05). */
+const secrets = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const left = certDaysLeft(game)
+  const life = certDaysOf(game)
+  return [
+    section(
+      'Certificate',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `A certificate lasts ${life} calendar days, and the sidecar renews it at ${Math.round(life * CERT_RENEW)}. Renewal is automatic while this Node runs.`,
+          ],
+        ),
+        caption(
+          left === null
+            ? 'The first Step with a manager issues it.'
+            : left <= 0
+              ? 'Expired: every browser refuses the site until one is live again, or you press Renew.'
+              : `${Math.max(0, Math.round(left))} days left.`,
+          h,
+        ),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            'Sell it or leave it down past the expiry date and the certificate lapses: every Node that terminates TLS fails until one runs again. From Series C certificates last 45 days, so manual renewal gets harder.',
+          ],
+        ),
+      ],
+      h,
+      true,
+    ),
+    section(
+      'Secrets',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            'The keys live here, not in the code. Secrets management research keeps them off a phishing page too.',
+          ],
+        ),
+      ],
+      h,
+    ),
+  ]
+}
+
+/** The Service Mesh's members and what each sidecar costs them (05 "Service Mesh"). */
+const sidecars = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const members = meshMembers(game, node)
+  return [
+    section(
+      'Sidecars',
+      [
+        ...(members.length === 0
+          ? [caption('Link App Servers or Workers into it. Nothing is under the mesh yet.', h)]
+          : members.map((member) =>
+              h.div(
+                [h.Key(member.id), h.Class('flex items-center justify-between gap-2 py-0.5')],
+                [caption(nameOf(game, member), h)],
+              ),
+            )),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `Each sidecar retries and breaks the Links out of its Node, watches them for Insight (+${percent(MESH_INSIGHT)}), adds ${MESH_HOP_MS} ms to each hop, and takes ${percent(MESH_OVERHEAD)} of the box's CPU. Every member's Burn pays for its sidecar, and each mesh takes Platform Dev Hours.`,
+          ],
+        ),
+        caption(
+          'Mutual TLS sits on every member-to-member call. It is a property, not a figure.',
+          h,
+        ),
+      ],
+      h,
+      true,
+    ),
+  ]
+}
+
+/** The CDC Connector's flow: the Database it reads, and the Stream it publishes to. */
+const changes = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const source = game.nodes.find(
+    (entry) =>
+      entry.type === 'database' &&
+      game.links.some((link) => link.from === entry.id && link.to === node.id),
+  )
+  const stream = game.nodes.find(
+    (entry) =>
+      entry.type === 'log' &&
+      game.links.some((link) => link.from === node.id && link.to === entry.id),
+  )
+  return [
+    section(
+      'Change stream',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            'It reads every write off the Database’s write log and publishes it to the Stream, so the Search Engine or the Warehouse follows the Database without the app writing twice.',
+          ],
+        ),
+        caption(
+          source === undefined || stream === undefined
+            ? 'Link a Database into it, and it into an Event Stream, before it carries anything.'
+            : `Reading ${nameOf(game, source)}, publishing to ${nameOf(game, stream)}.`,
+          h,
+        ),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            'It adds lag: a consumer reads the Stream at its own pace, so a search result or a report is behind by the Stream’s lag. Order holds only inside a partition, and the Stream’s key decides that.',
+          ],
+        ),
+        caption(
+          'Not built: the dual-write inconsistency it removes, since the build never writes twice.',
+          h,
+        ),
+      ],
+      h,
+      true,
+    ),
+  ]
+}
+
 const queue = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   section(
     'Failed tasks',
@@ -3201,6 +3487,10 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'doc' ? documents(game, node, h) : []),
           ...(node.type === 'vec' ? vector(game, node, h) : []),
           ...(node.type === 'log' ? events(node, h) : []),
+          ...(node.type === 'cdc' ? changes(game, node, h) : []),
+          ...(node.type === 'mesh' ? sidecars(game, node, h) : []),
+          ...(node.type === 'ff' ? flags(game, node, h) : []),
+          ...(node.type === 'pki' ? secrets(game, node, h) : []),
           ...(node.type === 'fn' ? serverless(game, node, ledger, h) : []),
           ...(node.type === 'edge' ? edge(game, node, h) : []),
           ...(node.type === 'ci' ? [pipeline(game, node, h)] : []),

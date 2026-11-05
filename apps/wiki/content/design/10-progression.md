@@ -357,8 +357,8 @@ range.
 | `edge-compute`        | Edge compute              | Series C | 80,000  | `cdn`             | Edge Function                                                                                 |
 | `notifications`       | Notifications             | Series C | 40,000  | —                 | Push Provider                                                                                 |
 
-**Built: 25 of 34.** Not built yet: `l4-lb`, `rate-limiting`, `esi`, `bot-management`,
-`scheduled-scaling`, `service-mesh`, `arm-instances`, `quantization`, `continuous-batching`.
+**Built: 26 of 34.** Not built yet: `l4-lb`, `rate-limiting`, `esi`, `bot-management`,
+`scheduled-scaling`, `arm-instances`, `quantization`, `continuous-batching`.
 
 ### Track: Data
 
@@ -391,7 +391,7 @@ range.
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
 | `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
 
-**Built: 22 of 26.** Not built yet: `online-migrations`, `cdc`, `outbox`, `expand-contract`.
+**Built: 23 of 26.** Not built yet: `online-migrations`, `outbox`, `expand-contract`.
 
 ### Track: Reliability
 
@@ -417,8 +417,8 @@ range.
 | `chaos-engineering`    | Chaos engineering        | Pre-IPO  | 300,000 | `runbooks`                       | Scheduled failure injection that earns Failure Insight and reveals weak spots |
 | `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                        |
 
-**Built: 12 of 19.** Not built yet: `feature-flags`, `bulkheads`,
-`graceful-degradation`, `on-call`, `runbooks`, `hedged-requests`, `chaos-engineering`.
+**Built: 13 of 19.** Not built yet: `bulkheads`, `graceful-degradation`, `on-call`, `runbooks`,
+`hedged-requests`, `chaos-engineering`.
 
 ### Track: Observability
 
@@ -543,7 +543,7 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `gdpr-residency`        | Data residency controls        | Pre-IPO  | 350,000 | `multi-region`                                                | IPO checklist item                                           |
 | `security-team`         | Security team                  | Pre-IPO  | 200,000 | —                                                             | Team type                                                    |
 
-**Built: 6 of 9.** Not built yet: `secrets-management`, `credential-protection`, `pen-testing`.
+**Built: 7 of 9.** Not built yet: `credential-protection`, `pen-testing`.
 
 ### Track: Cost
 

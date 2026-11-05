@@ -49,8 +49,9 @@ export const GARAGE_START: VentureStart = {
 }
 
 /**
- * The rule that makes a Venture hard (13 "Ventures"). Every Venture has one;
- * the default Venture's is the empty constraint. Proposed fields say so above.
+ * The rule that makes a Venture hard (13 "Ventures"). The four Ventures that arrived last each
+ * carry one of the first five fields; three of the eight older ones carry one of the last three.
+ * The rest name a rule this build has no place to enforce.
  */
 export type VentureConstraint = Readonly<{
   /** Customers write their own retry loops: no naive retries on any Link. */
@@ -63,6 +64,15 @@ export type VentureConstraint = Readonly<{
   procurement: boolean
   /** Every service runs one of these languages; null for any. */
   languages: ReadonlyArray<LanguageId> | null
+  /**
+   * From this Era (stage) on the Company runs under the SLA it signed: its availability target
+   * is one level above the Era's, so a missed week is a breach; null for none.
+   */
+  sla: number | null
+  /** Most GPU Nodes the Company may hold, whatever their size: GPUs are scarce. 0 for no limit. */
+  gpus: number
+  /** From this Era (stage) on one Realtime Hub per region: realtime runs where its players are. */
+  hubsPerRegion: number | null
 }>
 
 export const NO_CONSTRAINT: VentureConstraint = {
@@ -71,6 +81,9 @@ export const NO_CONSTRAINT: VentureConstraint = {
   deadline: null,
   procurement: false,
   languages: null,
+  sla: null,
+  gpus: 0,
+  hubsPerRegion: null,
 }
 
 export type VentureDef = Readonly<{
@@ -119,11 +132,13 @@ const venture = (
 
 export const VENTURES: Record<VentureId, VentureDef> = {
   // The slice's balance was tuned on this curve; the GDD's office hours wait for a re-tune.
+  // The SLA from Series B is the design's; the target one level up is the build's reading of it.
   'b2b-saas': venture({
     id: 'b2b-saas',
     name: 'B2B SaaS',
     cost: 0,
     legacy: 1,
+    constraint: { ...NO_CONSTRAINT, sla: 4 },
     signature: 'hot-shard',
     summary: 'Evening peak',
   }),
@@ -162,6 +177,9 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     signature: 'premiere-spike',
     summary: 'Late evening peak; media ×4',
   }),
+  // Realtime is served where the players are: one Hub per region from Series A (the design's
+  // "regions matter from Series A"). Its `rt` Apdex T 50 ms is not built: the Apdex target is
+  // per Request kind in solve.ts, which this slice does not own.
   'game-backend': venture({
     id: 'game-backend',
     name: 'Game backend',
@@ -169,9 +187,13 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     peak: 21,
     mix: { rt: 4 },
     legacy: 1.3,
+    constraint: { ...NO_CONSTRAINT, hubsPerRegion: 3 },
     signature: 'launch-day',
     summary: 'Evening peak; realtime ×4',
   }),
+  // GPUs are scarce: the Company holds two GPU Nodes, whatever their size, and resizes them.
+  // The two is proposed; the scarcity is the design's. The inference cost that decides margin
+  // is the GPU Node's own Burn (09), not a rule of this Venture.
   'ai-startup': venture({
     id: 'ai-startup',
     name: 'AI startup',
@@ -179,6 +201,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     amplitude: 0.1,
     mix: { ai: 3 },
     legacy: 1.3,
+    constraint: { ...NO_CONSTRAINT, gpus: 2 },
     signature: 'gpu-shortage',
     summary: 'Flat demand; AI ×3',
   }),
