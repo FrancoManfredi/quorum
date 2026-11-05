@@ -55,6 +55,18 @@ export type PmMode = typeof PmMode.Type
 export const CacheEngine = Schema.Literals(['redis', 'memcached'])
 export type CacheEngine = typeof CacheEngine.Type
 
+/** A relational Database's engine (07 "Variants"). */
+export const DbEngine = Schema.Literals(['postgres', 'mysql'])
+export type DbEngine = typeof DbEngine.Type
+
+/** The volume a Database's reads and writes wait on (07 "Capacity"). */
+export const IopsClass = Schema.Literals(['general', 'provisioned'])
+export type IopsClass = typeof IopsClass.Type
+
+/** The class Object Storage keeps its objects in (07 "Object Storage"). */
+export const StorageClass = Schema.Literals(['standard', 'infrequent', 'archive'])
+export type StorageClass = typeof StorageClass.Type
+
 export { DownCause } from './life.ts'
 
 export const PoolerMode = Schema.Literals(['session', 'transaction'])
@@ -143,6 +155,16 @@ const NODE_FIELDS = {
   pm: PmMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('static' as const))),
   /** The Cache's engine. */
   engine: CacheEngine.pipe(Schema.withDecodingDefaultKey(Effect.succeed('redis' as const))),
+  /** The Database's or Read Replica's engine (07 "Variants"). */
+  dbEngine: DbEngine.pipe(Schema.withDecodingDefaultKey(Effect.succeed('postgres' as const))),
+  /** The Database's volume (07 "Capacity"): general purpose, or provisioned for more IOPS. */
+  iops: IopsClass.pipe(Schema.withDecodingDefaultKey(Effect.succeed('general' as const))),
+  /** Shards the Database splits into (07 "Partitioning"): writes scale with them. */
+  shards: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
+  /** The class Object Storage keeps its objects in (07 "Object Storage"). */
+  storageClass: StorageClass.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('standard' as const)),
+  ),
   /** The Connection Pooler's mode. Saves from before modes pooled by transaction. */
   mode: PoolerMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('transaction' as const))),
   /** Tasks waiting in a Queue. */

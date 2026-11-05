@@ -46,6 +46,9 @@ import {
   REGION_INFO,
   RT_HOLD_SECONDS,
   DEPLOY_STRATEGIES,
+  DB_ENGINES,
+  STORAGE_CLASSES,
+  STORAGE_IOPS,
   rttOf,
 } from '@quorum/simulation/catalog'
 import { POOL_ORDER } from '../game/pools.ts'
@@ -256,12 +259,51 @@ export const rowsOf = (
         out,
       ]
     }
-    case 'database':
+    case 'database': {
+      const pool = own.connections
+      const engine = DB_ENGINES[node.dbEngine]
+      // Sharding (07 "Partitioning"): writes divide across the shards, and each is a copy.
+      const shards = Math.max(1, Math.floor(node.shards))
+      return [
+        inbound,
+        capacity,
+        {
+          glyph: 'stack',
+          name: 'Engine',
+          value: shards > 1 ? `${engine.name} · ${shards} shards` : engine.name,
+          tone: shards > 1 ? 'plain' : 'muted',
+        },
+        {
+          glyph: 'stored',
+          name: 'Volume',
+          value: STORAGE_IOPS[node.iops].name,
+          tone: node.iops === 'provisioned' ? 'plain' : 'muted',
+        },
+        {
+          glyph: 'connections',
+          name: 'Connections',
+          value: pool ? `${Math.round(pool.used)} / ${pool.max}` : '—',
+          tone:
+            pool && pool.used > pool.max
+              ? 'danger'
+              : pool && pool.used > pool.max * 0.8
+                ? 'warn'
+                : 'plain',
+        },
+        latency,
+      ]
+    }
     case 'replica': {
       const pool = own.connections
       return [
         inbound,
         capacity,
+        {
+          glyph: 'stack',
+          name: 'Engine',
+          value: DB_ENGINES[node.dbEngine].name,
+          tone: 'muted',
+        },
         {
           glyph: 'connections',
           name: 'Connections',
@@ -307,6 +349,12 @@ export const rowsOf = (
       return [
         inbound,
         { glyph: 'stored', name: 'Stored', value: `${compact(game.stored)} GB` },
+        {
+          glyph: 'policy',
+          name: 'Class',
+          value: STORAGE_CLASSES[node.storageClass].name,
+          tone: node.storageClass === 'archive' ? 'warn' : 'muted',
+        },
         { glyph: 'cost', name: 'Cost', value: `${money(burnOf(game, node))}/s` },
       ]
     case 'queue':

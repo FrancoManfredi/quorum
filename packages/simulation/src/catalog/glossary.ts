@@ -2098,7 +2098,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Splitting one dataset across several databases (shards) by a key, such as a hash of the user ID, so each shard stores and serves only part of the data. It scales writes and storage past one machine, but a query that spans shards must ask all of them, and one hot key can overload its shard while the others idle.',
     inGame:
-      "The Sharding research exists, but today its only effect is to unlock Leaderless replication: you cannot shard the Database. The closest mechanic is the Hot key Incident, where 30% of the reads to a Cache or Wide-column Store ask for one key on one shard, so the Node's capacity falls to about 1 / (0.3 × shards + 0.7). With Hybrid fan-out you can split hot keys across the Node's shards.",
+      "The Sharding research splits a Database into 1, 2, 4, or 8 shards by key, and it still unlocks Leaderless replication. Each shard is another box and bills like one, and the writes divide across them, so two shards answer twice the writes. Reads still ask the one shard that holds their key, which is why a Read Replica takes reads off the primary, and a transaction across shards costs three times its latency. The game does not model the shard key, a hot shard, scatter-gather, or resharding. The Hot key Incident still hits a Cache or Wide-column Store, where 30% of the reads ask for one key on one shard, so the Node's capacity falls to about 1 / (0.3 × shards + 0.7). With Hybrid fan-out you can split those keys.",
     related: ['hot-key', 'consistent-hashing', 'leaderless-replication', 'fan-out'],
     links: [
       {

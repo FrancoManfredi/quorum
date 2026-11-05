@@ -256,6 +256,8 @@ export const Dashboard = Schema.Struct({
   range: Schema.Finite,
   /** The Sample the crosshair is on. */
   hover: Schema.NullOr(Schema.Finite),
+  /** The Postmortem the Incidents row shows, or null for the list alone. */
+  postmortem: Schema.NullOr(Schema.Finite),
 })
 export type Dashboard = typeof Dashboard.Type
 

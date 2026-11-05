@@ -1399,4 +1399,33 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Terraform refreshes on every plan.': 'Terraform 每次计划都会刷新。',
   'Pulumi has no repair.': 'Pulumi 没有修复命令。',
   'Terraform has no repair.': 'Terraform 没有修复命令。',
+  'PostgreSQL or MySQL': 'PostgreSQL 或 MySQL',
+  'The source of truth. Postgres forks a process per connection; MySQL gives each a thread.':
+    '数据的唯一来源。Postgres 为每个连接创建一个进程；MySQL 为每个连接分配一个线程。',
+  'General purpose': '通用型',
+  'Provisioned IOPS': '预置 IOPS',
+  Standard: '标准',
+  'Infrequent access': '低频访问',
+  Archive: '归档',
+  Engine: '引擎',
+  Volume: '存储卷',
+  Shards: '分片',
+  Class: '类别',
+  'Storage class': '存储类别',
+  'Database engine: {0}': '数据库引擎：{0}',
+  'Database engine': '数据库引擎',
+  'Volume: {0}': '存储卷：{0}',
+  '{0} shards': '{0} 个分片',
+  'Storage class: {0}': '存储类别：{0}',
+  '{0} connections: Postgres forks a process for each, MySQL gives it a thread.':
+    '{0} 个连接：Postgres 为每个连接创建一个进程，MySQL 为每个连接分配一个线程。',
+  "{0} IOPS at {1}× the box's Burn. Reads that miss the buffer cache and every write wait on it.":
+    '{0} IOPS，消耗机器 Burn 的 {1} 倍。未命中缓冲区的读取和每次写入都要等待它。',
+  'Writes divide across {0} shards, and each one bills. A transaction across shards costs 3×.':
+    '写入分散到 {0} 个分片，每个分片都计费。跨分片事务的延迟是 3 倍。',
+  'One primary: a Read Replica is what takes the reads off it.': '单个主库：由只读副本分担读取。',
+  'Cheapest to keep. Media reads fail as timeout until the objects are restored.':
+    '保存成本最低。对象恢复前，媒体读取会以 timeout 失败。',
+  'Half the storage price, and ${0} per GB read back.': '存储价格的一半，每读回 1 GB 收 ${0}。',
+  'Full storage price. Reads come back at once.': '完整存储价格。读取立即返回。',
 }

@@ -33,28 +33,34 @@ built-in full-text search and `q-scan`, both badly at volume.
 ### Capacity
 
 ```text
-capacity = min(cpu_limit, connection_limit)
+capacity = min(cpu_limit, connection_limit, iops_limit)
 ```
 
-Not built yet: the IOPS and storage-class limits. A Database's capacity is its CPU and its
-connection cap.
+| Limit        | Detail                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CPU          | Each query kind has a CPU cost. Missing indexes multiply it.                                                                                                             |
+| IOPS         | Reads that miss the buffer cache and every write go to disk. Storage class sets IOPS: general purpose (3,000 base) or provisioned (up to 64,000 at higher cost).         |
+| Connections  | Postgres forks one process per connection, 5 to 10 MB each. `max_connections` is 100 by default. MySQL uses a thread per connection and handles more connections per GB. |
+| Buffer cache | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database. |
 
-| Limit                | Detail                                                                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CPU                  | Each query kind has a CPU cost. Missing indexes multiply it.                                                                                                             |
-| IOPS (Not built yet) | Reads that miss the buffer cache and every write go to disk. Storage class sets IOPS: general purpose (3,000 base) or provisioned (up to 64,000 at higher cost).         |
-| Connections          | Postgres forks one process per connection, 5 to 10 MB each. `max_connections` is 100 by default. MySQL uses a thread per connection and handles more connections per GB. |
-| Buffer cache         | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database. |
+**Built:** the IOPS limit. A general purpose volume answers 3,000 disk operations a second and a
+provisioned one 64,000, and provisioned storage bills 1.5× the Database's box (proposed: the design
+says "at higher cost" and gives no rate). A disk operation waits 1 / IOPS ms and queues as the volume
+fills, so a Database whose working set outgrows RAM meets the volume before its CPU: at 96 vCPU a
+general purpose volume caps reads at 3,000 a second while the CPU would answer 8,000. A shard brings
+its own volume.
 
 ### Variants
 
-| Variant               | Profile                                                                                                                                                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PostgreSQL            | Rich features: JSONB, full-text search, extensions such as pgvector. Process per connection, so it needs a pooler early. MVCC leaves dead rows that `VACUUM` must clean; heavy update load without tuning causes bloat (incident "Table bloat"). |
-| MySQL (Not built yet) | Thread per connection, cheaper connections. Fewer built-in features: no pgvector, weaker full-text search. Replication is simple and widely used.                                                                                                |
+| Variant    | Profile                                                                                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PostgreSQL | Rich features: JSONB, full-text search, extensions such as pgvector. Process per connection, so it needs a pooler early. MVCC leaves dead rows that `VACUUM` must clean; heavy update load without tuning causes bloat (incident "Table bloat"). |
+| MySQL      | Thread per connection, cheaper connections. Fewer built-in features: no pgvector, weaker full-text search. Replication is simple and widely used.                                                                                                |
 
-Not built yet: the MySQL variant, its thread-per-connection behaviour, and the "Table bloat" incident;
-the build's Database is PostgreSQL only.
+**Built:** both engines, chosen on the Database's card and on a Read Replica's. Postgres holds 100
+connections, MySQL 500, so a fleet that exhausts `max_connections` on Postgres fits on MySQL. MySQL's
+`q-search` costs twice the CPU of Postgres's (proposed: the design says the search is weaker and gives
+no ratio). Not built: the Table bloat incident, and a migration between engines.
 
 ### Indexes
 
@@ -173,10 +179,6 @@ write. The card shows a red "Read-only" row.
 
 ## Partitioning (sharding)
 
-Not built yet: partitioning and sharding. Research `sharding` only gates `leaderless`; there is no
-shard key choice and no resharding, and a hot shard appears only as the Hot key incident on a Cache or
-Wide-column Store.
-
 Research "Sharding" splits one database into N shards by a key.
 
 | Choice          | Effect                                                                                                                |
@@ -191,6 +193,17 @@ Research "Sharding" splits one database into N shards by a key.
   each shard.
 - A hot key (a celebrity, a big tenant) overloads one shard while others idle. The card shows the
   skew.
+
+**Built:** sharding the Database, as the write-side counterpart to the Read Replica. With research
+`sharding` the card offers 1, 2, 4, or 8 shards (proposed: the design says N and gives no set). Each
+shard is another box: a Database with N shards bills N times the box. The writes divide across the
+shards and the reads do not, because a read asks the one shard that holds its key; a Read Replica is
+still what takes reads off the primary. A `q-tx` across shards costs 3× its latency, the design's own
+number. Each shard brings its own volume, so sharding lifts the IOPS limit with the CPU limit.
+
+Not built: the shard key choice and its skew, so there is no hot shard on a Database (the Hot key
+incident still hits a Cache or Wide-column Store), no scatter-gather cost, the failure mode of a
+distributed transaction, and the Dev Hours resharding takes.
 
 ## Fan-out
 
@@ -229,8 +242,7 @@ Feeding the index: either dual writes from the app or a CDC Connector
 
 ## Object Storage
 
-Not built yet: the R2 variant, the storage classes, and Lifecycle rules; the build has one store,
-priced as below.
+Not built yet: the R2 variant and Lifecycle rules.
 
 Real products: Amazon S3, Cloudflare R2, Google Cloud Storage.
 
@@ -242,11 +254,17 @@ per request and per GB of egress.
 | S3                 | Standard. Egress costs money unless it goes through a CDN.              |
 | R2 (Not built yet) | No egress fees. Slightly higher first-byte latency outside its own CDN. |
 
-| Storage class (Not built yet) | Storage price | Retrieval                                                      |
-| ----------------------------- | ------------- | -------------------------------------------------------------- |
-| Standard                      | 1.0×          | Instant                                                        |
-| Infrequent access             | 0.5×          | Instant, retrieval fee                                         |
-| Archive                       | 0.1×          | Hours. A `media` request for archived data fails as `timeout`. |
+| Storage class     | Storage price | Retrieval                                                      |
+| ----------------- | ------------- | -------------------------------------------------------------- |
+| Standard          | 1.0×          | Instant                                                        |
+| Infrequent access | 0.5×          | Instant, retrieval fee                                         |
+| Archive           | 0.1×          | Hours. A `media` request for archived data fails as `timeout`. |
+
+**Built:** the three classes, chosen on the card. The class multiplies the price of the GB the store
+holds, and Infrequent access bills $0.01 per GB read back out (S3's own Standard-IA rate) on the
+Storage line of the bill. Archive bills a tenth and fails every `blob-get` as `timeout`: an archived
+object must be restored first, and the build has no restore. Every object in the store takes the same
+class, so Lifecycle rules are what is missing, not the classes.
 
 Research "Lifecycle rules" moves old objects to cheaper classes automatically.
 

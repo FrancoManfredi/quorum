@@ -215,18 +215,60 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 
 ## Panels
 
-| Panel     | Opens with   | Contents                                                                                 |
-| --------- | ------------ | ---------------------------------------------------------------------------------------- |
-| Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards               |
-| Research  | `R`          | The tree by track ([Research screen](#research-screen))                                  |
-| Dashboard | `D`          | Charts over time ([Observability](/design/12-observability#the-dashboard))               |
-| Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                                    |
-| Cost      | `$`          | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))     |
-| Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                              |
-| Incidents | —            | Not built yet. No incident history and no runbooks; a postmortem card sits on the board. |
-| Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                            |
-| Company   | `E`          | Not built yet. `E` is unbound; its content is split between the Exit panel and the HUD.  |
-| Churn     | Users on HUD | The [Churn breakdown](/design/12-observability#the-churn-breakdown) by region            |
+| Panel     | Opens with   | Contents                                                                                                                             |
+| --------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards                                                           |
+| Research  | `R`          | The tree by track ([Research screen](#research-screen))                                                                              |
+| Dashboard | `D`          | Charts over time ([Observability](/design/12-observability#the-dashboard))                                                           |
+| Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                                                                                |
+| Cost      | `$`          | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
+| Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                                                                          |
+| Incidents | `D`          | The running Incident and its Postmortems, as a Dashboard row ([below](#company-and-incidents-panels)). Runbooks are still not built. |
+| Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                                                                        |
+| Company   | `D`          | Cash, runway, the Team's shape, and the funding history, as a Dashboard row ([below](#company-and-incidents-panels))                 |
+| Churn     | Users on HUD | The [Churn breakdown](/design/12-observability#the-churn-breakdown) by region                                                        |
+
+## Company and Incidents panels
+
+Both are rows of the [Dashboard](/design/12-observability#the-dashboard), not panels with keys of
+their own. They use the Dashboard's vocabulary, a table with coloured cells and an LCD bar, so the
+player reads the Company beside the charts of its system. They add no Chart and no new
+metric: every figure comes from the Game, the Ledger, or the Inbox. The one derived figure is runway,
+Cash divided by net Burn, which [Economy](/design/09-economy#runway-and-running-out-of-cash) defines.
+
+**The Company row** does not appear in a Sandbox or a Challenge, because neither has a Company.
+
+| Panel   | Shows                                                                                                                                                               | Reads                                                                                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Money   | Cash, Revenue per second, Burn per second, their net, Payroll, Equity, and Runway in 30-day months (∞ while revenue covers the bill)                                | `Game.cash` and `Game.equity`; the Ledger's `revenue`, `burn` and `salaries`                             |
+| Team    | Each Team's kind, headcount with the founder included, effective engineers, velocity, and Dev Hours per real minute, with a layoff's morale hit named while it runs | `Game.teams`, `Game.engineers` and `Game.moraleUntil`; the Ledger's `velocity` and the Team's own output |
+| Funding | Every round the Company entered, newest first: the Users milestone, the grant and dilution after its Mutators and perks, the answer, and when it happened           | `Game.stage` and `Game.founding`; the Era catalog; the Inbox's term-sheet Thread                         |
+
+The funding row's time and answer come from the Inbox, the only record the client keeps of when a
+round happened. The Game holds no round time, and a round raised from the funding offer panel
+leaves no answer, so that row reads "—". The Game records whether the current Era began with a
+declined round and nothing about past rounds. The last row is the IPO: its grant reads "Public
+market" and its answer "Listed", because it pays Burn rather than a fixed grant and cannot be
+declined. Not built yet: the round time and answer on the Game, which would make the funding history
+independent of the Inbox.
+
+Not built yet: a Cash series. The Game's Sample holds revenue and Burn, not Cash, so the Money panel
+shows the figure now and no sparkline.
+
+**The Incidents row** appears when an Incident is running or the Game holds a Postmortem.
+
+| Panel            | Shows                                                                                                                                                           | Reads                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Running Incident | The incident's kind, SEV, target, elapsed and total run as an LCD bar, MTTR so far, users lost, revenue lost, and failed requests                               | `Game.incident`, `Game.time` and `Game.users`                           |
+| Incident history | One row per Postmortem, newest first: incident, SEV, target, run, MTTR, users lost, revenue lost, failed requests, and the action item with whether it is owned | `Game.postmortems` and `Game.researched`                                |
+| Postmortem       | The chosen row's cause, run, MTTR, cost, prevention, and the action item's state                                                                                | The chosen `Postmortem`, the incident catalog, and the research catalog |
+
+Choosing a row is Dashboard view state: it changes no Game state, adds no undo entry, and writes no
+log line. The Game keeps its last four Postmortems, so the history reaches back that far.
+
+Not built yet: MTTD, MTTA, and runbooks ([Incidents](/design/11-incidents#the-incident-loop)), and a
+chart of Incident history. The Game keeps no time for a resolved Incident, so a history row could
+only be placed on a timeline from the Inbox's Threads, and the row draws a table instead.
 
 ## Research screen
 

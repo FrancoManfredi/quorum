@@ -268,7 +268,8 @@ retries out. A circuit breaker stops them completely
 ## Connections
 
 Some Nodes have a connection limit. Postgres starts one process per connection, so its limit is low
-(100 by default) ([Data tier](/design/07-data-tier#relational-database)).
+(100 by default); MySQL gives each connection a thread and holds 500
+([Data tier](/design/07-data-tier#variants)).
 
 ```text
 connections_needed(db) = Σ_upstream_processes pool_size

@@ -36,6 +36,9 @@ import {
   FOLLOWERS,
   HYBRID_READS,
   HYBRID_WRITES,
+  DB_ENGINES,
+  STORAGE_IOPS,
+  diskMs,
 } from './catalog.ts'
 import { combineTail } from './distribution.ts'
 import type { Kind } from './catalog.ts'
@@ -598,6 +601,10 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const ram = ramOf(node) * context.boost
   const workingSet = LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER
   const disk = workingSet > ram - OS_RAM
+  // A Database's engine and volume (07 "Variants", "Capacity"), and its shards (07 "Partitioning").
+  const engine = DB_ENGINES[node.dbEngine]
+  const shards = Math.max(1, Math.floor(node.shards))
+  const iops = STORAGE_IOPS[node.iops].iops * shards
   const throttled = node.family === 'burstable' && node.credits < 1
   // A retry storm's trigger: the Database runs slow for its first seconds.
   const incident = game.incident
@@ -623,8 +630,10 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
       : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth
   const writeCpu =
     ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) * (1 + 0.5 * evicted)
-  // Postgres full-text search and files stored as rows: both work, both badly at volume.
-  const searchCpu = (QUERY_CPU['q-search'] * queryFactor(game, 'q-search')) / warmth
+  // Postgres full-text search and files stored as rows: both work, both badly at volume. MySQL's
+  // full-text search is the weaker of the two engines, so it costs it more CPU (07 "Variants").
+  const searchCpu =
+    (QUERY_CPU['q-search'] * queryFactor(game, 'q-search') * engine.searchCost) / warmth
   const putCpu = QUERY_CPU['blob-put'] / warmth
   const txCpu = QUERY_CPU['q-tx'] / warmth
   const getCpu = QUERY_CPU['blob-get'] / warmth
@@ -635,7 +644,9 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const txs = arriving['q-tx'] ?? 0
   const gets = arriving['blob-get'] ?? 0
   let rate = reads + writes + searches + puts
-  let work = reads * readCpu + writes * writeCpu + searches * searchCpu + puts * putCpu
+  // Sharding (07 "Partitioning"): each shard takes its share of the writes, so N shards answer N
+  // times the write load. Reads still ask one shard, and a transaction that crosses shards pays.
+  let work = reads * readCpu + (writes * writeCpu + puts * putCpu) / shards + searches * searchCpu
   // Checkouts and files read back from rows arrive with Series A.
   if (txs > 0 || gets > 0) {
     rate += txs + gets
@@ -646,29 +657,48 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     rate += scans
     work += scans * scanCpu
   }
-  const utilization = cores > 0 ? work / (cores * 1000) : rate > 0 ? 99 : 0
+  // IOPS (07 "Capacity"): a read that misses the buffer cache and every write wait on the volume.
+  // Past its IOPS the volume queues them, and a general purpose volume is the first limit a busy
+  // Database meets; a provisioned one answers twenty times as many.
+  const diskOps = writes + txs + puts + gets + scans + (disk ? reads : 0)
+  const ioUtilization = iops > 0 ? diskOps / iops : 0
+  const ioWait = waitFor(diskMs(node.iops), Math.min(ioUtilization, 0.98), 1)
+  const cpuUtilization = cores > 0 ? work / (cores * 1000) : rate > 0 ? 99 : 0
+  const utilization = Math.max(cpuUtilization, ioUtilization)
   // Queries in a backlog wait their turn: depth over the rate it drains.
   const capacity = rate > 0 ? rate / Math.max(utilization, 1e-9) : 0
   const backlog = node.depth > 0 && capacity > 0 ? (node.depth / capacity) * 1000 : 0
   const wait = rate > 0 ? waitFor(work / rate / perRequest, utilization, cores) + backlog : backlog
   const share = utilization > 1 ? 1 / utilization : 1
   const used = Math.min(work * share, cores * 1000) / 1000
+  // A transaction that touches two shards needs a distributed transaction: 3× its latency.
+  const txService = {
+    fixed: 2.5 * (shards > 1 ? 3 : 1),
+    variable: (txCpu / perRequest + wait + ioWait) * (shards > 1 ? 3 : 1),
+  }
   return {
     utilization,
-    limit: utilization <= 0 ? 'none' : throttled ? 'credits' : disk ? 'disk' : 'cpu',
+    limit:
+      utilization <= 0
+        ? 'none'
+        : throttled
+          ? 'credits'
+          : disk || ioUtilization >= cpuUtilization
+            ? 'disk'
+            : 'cpu',
     share,
     capacity,
     service: {
       'q-read': {
         fixed: 2.5 + (disk ? DISK_READ_MS : evicted > 0 ? DISK_READ_MS * evicted : 0),
-        variable: readCpu / perRequest + wait,
+        variable: readCpu / perRequest + wait + (disk ? ioWait : 0),
       },
-      'q-write': { fixed: 2.5, variable: writeCpu / perRequest + wait },
+      'q-write': { fixed: 2.5, variable: writeCpu / perRequest + wait + ioWait },
       'q-search': { fixed: 2.5, variable: searchCpu / perRequest + wait },
-      'blob-put': { fixed: 2.5, variable: putCpu / perRequest + wait },
-      'q-tx': { fixed: 2.5, variable: txCpu / perRequest + wait },
-      'blob-get': { fixed: 2.5 + DISK_READ_MS, variable: getCpu / perRequest + wait },
-      'q-scan': { fixed: 2.5 + DISK_READ_MS, variable: scanCpu / perRequest + wait },
+      'blob-put': { fixed: 2.5, variable: putCpu / perRequest + wait + ioWait },
+      'q-tx': txService,
+      'blob-get': { fixed: 2.5 + DISK_READ_MS, variable: getCpu / perRequest + wait + ioWait },
+      'q-scan': { fixed: 2.5 + DISK_READ_MS, variable: scanCpu / perRequest + wait + ioWait },
     },
     tailP: 0,
     tailMs: 0,

@@ -46,6 +46,8 @@ import {
   type RuntimeId,
   BACKUPS,
   SPREAD_REGIONS,
+  STORAGE_CLASSES,
+  STORAGE_IOPS,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
 import type { Game, GameNode, Pricing } from './state.ts'
@@ -282,10 +284,15 @@ export const burnOf = (game: Game, node: GameNode): number => {
       FAMILIES[node.family].price *
       PRICINGS[pricingOf(game, node)].price *
       index
-    // Backups store snapshots or the WAL on top of the box (07 "Backups").
+    // Backups store snapshots or the WAL on top of the box (07 "Backups"). A provisioned volume
+    // bills a multiple of the box (07 "Capacity"), and each shard is another copy of it (07
+    // "Partitioning").
     const one =
-      node.type === 'database' && node.backup !== 'none'
-        ? box * (1 + BACKUPS[node.backup].burn)
+      node.type === 'database'
+        ? box *
+          (node.backup !== 'none' ? 1 + BACKUPS[node.backup].burn : 1) *
+          STORAGE_IOPS[node.iops].burn *
+          Math.max(1, Math.floor(node.shards))
         : box
     // A standby is a second box; pods pack onto shared nodes.
     if (node.standby) return one * 2
@@ -311,7 +318,10 @@ export const burnOf = (game: Game, node: GameNode): number => {
       index *
       (node.standby ? 2 : 1)
     )
-  if (node.type === 'storage') return (def.burn + game.stored * STORAGE_PRICE) * index
+  if (node.type === 'storage')
+    return (
+      (def.burn + game.stored * STORAGE_PRICE * STORAGE_CLASSES[node.storageClass].price) * index
+    )
   if (node.type === 'gpu') return GPU_TYPES[node.gpu].burn * flatScale(node) * index
   // A spread store runs its nodes in each region it replicates to.
   if ((node.type === 'wide' || node.type === 'dsql') && node.spread)
@@ -345,7 +355,8 @@ export const burnSharesOf = (game: Game): BurnShares => {
     }
     if (COMPONENTS[node.type].group === 'data') {
       data += burn
-      if (node.type === 'storage') storage += game.stored * STORAGE_PRICE * index
+      if (node.type === 'storage')
+        storage += game.stored * STORAGE_PRICE * STORAGE_CLASSES[node.storageClass].price * index
     } else compute += burn
   }
   return { compute, data: data - storage, storage, observability }

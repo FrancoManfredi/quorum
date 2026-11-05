@@ -49,6 +49,7 @@ import {
   RUNTIMES,
   SESSION_STATE_CRASHES,
   UPGRADE_CRASHES,
+  STORAGE_CLASSES,
   type ComponentId,
   type Kind,
   type RequestKind,
@@ -582,9 +583,14 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     outcome: (answer, _, kind) => through(answer.ownHop(kind)),
     ...terminal,
   },
+  // Archive-class objects must be restored before they can be read, so a `media` request for one
+  // fails as `timeout` (07 "Object Storage").
   storage: {
     model: unlimited(40, 5),
-    outcome: (answer, _, kind) => through(answer.ownHop(kind)),
+    outcome: (answer, node, kind) =>
+      kind === 'blob-get' && STORAGE_CLASSES[node.storageClass].archived
+        ? failed('timeout')
+        : through(answer.ownHop(kind)),
     ...terminal,
   },
   queue: {

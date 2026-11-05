@@ -6,7 +6,19 @@ It takes object puts and object gets: uploaded files and video. It sends nothing
 
 Its Burn grows with the data it holds, and that data never shrinks. Every upload adds to it.
 
-Until you link Object Storage, the [Database](/components/database) stores files as rows. When an App Server links to both, files go to Object Storage, and Postgres stops taking them.
+## Storage class
+
+The class sets what the bytes cost to keep, and what they cost to read back.
+
+| Class             | Storage price | Reading it back                                                       |
+| ----------------- | ------------- | --------------------------------------------------------------------- |
+| Standard          | Full price    | At once.                                                              |
+| Infrequent access | Half price    | At once, and a retrieval fee per GB, on the same bill line.           |
+| Archive           | A tenth of it | Only after a restore. A `media` request fails as `timeout` meanwhile. |
+
+Infrequent access is the class for files that are written once and rarely read, and archive for the ones kept only because a rule says so. Neither is free to read: the retrieval fee and the restore are the price of the cheaper storage. The game has no Lifecycle rules, so the player picks the class and every object follows it. The Inspector and [Data tier](/design/07-data-tier#object-storage) hold the prices.
+
+Until you link Object Storage, the [Database](/components/database) stores files as rows. When an App Server links to both, files go to Object Storage, and the Database stops taking them.
 
 ## When to place it
 

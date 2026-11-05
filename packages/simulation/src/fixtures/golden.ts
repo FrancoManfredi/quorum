@@ -84,43 +84,48 @@ export const GOLDEN_STEPS = 10_000
 // deploy strategy (Recreate, Rolling, Blue-green or Canary). A Pipeline sets how long
 // a deploy takes, what it burns, and the ceiling on a bad deploy's blast radius. The
 // replay's values are unchanged; the new field moves the hash.
-export const GOLDEN_HASH = '237cf5a4'
+// SIM_VERSION 22: the data tier gains its options. A Database has an engine (Postgres
+// or MySQL), a volume (general purpose or provisioned IOPS) and shards; Object Storage
+// has a class. Writes wait on the volume's IOPS, MySQL holds more connections, shards
+// divide the writes, and an archive-class read fails. The replay's values move where a
+// volume or a shard count binds; the new fields move every hash either way.
+export const GOLDEN_HASH = '991ee87f'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-  'hello-world': '8c85d1b6',
-  'split-the-box': '57ddeb3d',
-  slashdotted: '963c8cbd',
-  c10k: 'c2f431a3',
-  'event-loop': '39660948',
-  'too-many-connections': '85a51f38',
-  shoestring: '9328f980',
-  'n-plus-one': 'f1bcc92d',
-  'thirteen-engineers': '7fdeb784',
-  'credential-stuffing': 'f3e03ce9',
-  'black-friday': 'a9b3804c',
-  'us-east-1': 'e285822d',
-  'exactly-once': 'cbd32d3e',
-  'two-million-sockets': 'd349ea2b',
-  'pokemon-go': 'ddd5cd9e',
-  'healthcare-launch': '7662111d',
-  'thundering-herd': 'c1844ef2',
-  'read-states': '69e2160c',
-  'fail-whale': 'cf31aa32',
-  'reports-at-noon': 'f234d242',
-  'gpu-economics': '3c8357ba',
-  metastable: '41fa8074',
-  'regex-of-doom': '3e74da61',
-  'forty-three-seconds': '803c2352',
-  'follow-the-sun': '297f8c0b',
-  celebrity: 'eb08a8f3',
-  'gone-from-the-internet': '979096f1',
-  'the-typo': 'e1f19035',
-  'leap-second': 'a9f665d7',
-  'rule-of-40': '39b2fe6a',
-  'postgres-for-everything': 'ed04c125',
-  'five-nines': '170438e5',
+  'hello-world': '4ba6d9ca',
+  'split-the-box': '8ccc99bd',
+  slashdotted: 'afb963e0',
+  c10k: '91e0fbef',
+  'event-loop': '90afbe63',
+  'too-many-connections': 'f6489c86',
+  shoestring: 'f57e0daa',
+  'n-plus-one': 'c4abdbeb',
+  'thirteen-engineers': '8bf2dc13',
+  'credential-stuffing': '3b414b57',
+  'black-friday': 'f323bcc1',
+  'us-east-1': 'b47f605c',
+  'exactly-once': '25d9880d',
+  'two-million-sockets': '08acd0b5',
+  'pokemon-go': 'dbc4f94f',
+  'healthcare-launch': 'b049f396',
+  'thundering-herd': '71174f81',
+  'read-states': '852c3d29',
+  'fail-whale': '495a03b3',
+  'reports-at-noon': 'c59c995a',
+  'gpu-economics': '914bd81a',
+  metastable: 'e9804f3b',
+  'regex-of-doom': '4842c85c',
+  'forty-three-seconds': '75ca2da6',
+  'follow-the-sun': '1d07be4b',
+  celebrity: 'bad41a6f',
+  'gone-from-the-internet': '3df80999',
+  'the-typo': '55dc2549',
+  'leap-second': '26beeb8f',
+  'rule-of-40': 'dc7f04be',
+  'postgres-for-everything': '81557fbb',
+  'five-nines': '38dd16cd',
 }

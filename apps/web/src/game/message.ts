@@ -31,6 +31,9 @@ import {
   IacTool,
   SyncMode,
   DataPattern,
+  DbEngine,
+  IopsClass,
+  StorageClass,
 } from '@quorum/simulation/state'
 import { MANAGED } from '@quorum/simulation/mirror'
 import { ChallengeVerdict } from '@quorum/rpc'
@@ -224,6 +227,10 @@ export const Message = defineMessageUnion({
   ParanoiaChosen: { nodeId: Schema.String, paranoia: Schema.Finite },
   UnderAttackChosen: { nodeId: Schema.String, underAttack: Schema.Boolean },
   RateLimitChosen: { nodeId: Schema.String, rateLimit: Schema.Finite },
+  DbEngineChosen: { nodeId: Schema.String, dbEngine: DbEngine },
+  StorageIopsChosen: { nodeId: Schema.String, iops: IopsClass },
+  ShardsChosen: { nodeId: Schema.String, shards: Schema.Finite },
+  StorageClassChosen: { nodeId: Schema.String, storageClass: StorageClass },
   DeployStrategyChosen: { nodeId: Schema.String, strategy: DeployStrategy },
   HubOptionsChosen: {
     nodeId: Schema.String,

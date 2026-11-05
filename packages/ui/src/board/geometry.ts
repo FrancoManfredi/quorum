@@ -31,9 +31,9 @@ export const layoutOf = (type: ComponentId): Layout => {
     case 'server':
       return { rows: 5, inRow: 0, outRow: 4, footer: true }
     case 'database':
-      return { rows: 4, inRow: 0, outRow: null, footer: true }
+      return { rows: 6, inRow: 0, outRow: null, footer: true }
     case 'replica':
-      return { rows: 5, inRow: 0, outRow: null, footer: true }
+      return { rows: 6, inRow: 0, outRow: null, footer: true }
     case 'auth':
       return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'dns':
@@ -46,7 +46,7 @@ export const layoutOf = (type: ComponentId): Layout => {
     case 'search':
       return { rows: 3, inRow: 0, outRow: null, footer: true }
     case 'storage':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
+      return { rows: 4, inRow: 0, outRow: null, footer: false }
     case 'queue':
       return { rows: 4, inRow: 0, outRow: 3, footer: true }
     case 'worker':

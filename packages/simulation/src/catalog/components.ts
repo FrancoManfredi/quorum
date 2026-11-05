@@ -1,5 +1,6 @@
 /* The Components a player can place, and how Analytics samples. */
 
+import { MAX_CONNECTIONS } from './instances.ts'
 import { REQUEST_KINDS, type Kind } from './kinds.ts'
 import type { ResearchId } from './research.ts'
 
@@ -208,9 +209,10 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     id: 'database',
     code: 'sql',
     name: 'Database',
-    product: 'PostgreSQL',
+    product: 'PostgreSQL or MySQL',
     group: 'data',
-    blurb: 'The source of truth. One process per connection, 100 connections at most.',
+    blurb:
+      'The source of truth. Postgres forks a process per connection; MySQL gives each a thread.',
     cost: 90,
     sized: true,
     latency: 2,
@@ -696,6 +698,46 @@ export const UPLOAD_MB = 2
  * a real hour: S3 Standard is $0.023 per GB-month, about $0.000032 per GB-hour.
  */
 export const STORAGE_PRICE = 0.000032
+
+/**
+ * Object Storage classes (07 "Object Storage"): the share of the standard storage price the class
+ * bills, the fee per GB read back out of it, and whether a read waits hours. Infrequent access is
+ * half the storage price and pays S3's $0.01 per GB retrieved. Archive is a tenth, and its objects
+ * must be restored before they can be read, so a `media` request for one fails as `timeout`.
+ */
+export const STORAGE_CLASSES = {
+  standard: { name: 'Standard', price: 1, retrieval: 0, archived: false },
+  infrequent: { name: 'Infrequent access', price: 0.5, retrieval: 0.01, archived: false },
+  archive: { name: 'Archive', price: 0.1, retrieval: 0, archived: true },
+} as const
+
+/**
+ * Relational database engines (07 "Variants"). Postgres forks a process for every connection, so
+ * its `max_connections` (100) is a limit it meets early; MySQL gives each connection a thread and
+ * holds more of them on one box. MySQL's full-text search is the weaker of the two, so `q-search`
+ * costs it twice the CPU. Proposed: the design names both behaviours and gives no counts.
+ */
+export const DB_ENGINES = {
+  postgres: { name: 'PostgreSQL', connections: MAX_CONNECTIONS, searchCost: 1 },
+  mysql: { name: 'MySQL', connections: 500, searchCost: 2 },
+} as const
+
+/**
+ * IOPS a Database's volume answers (07 "Capacity"): a read that misses the buffer cache and every
+ * write goes to disk, and waits on it. A general purpose volume answers 3,000; a provisioned one
+ * up to 64,000. Provisioned storage bills this multiple of the box's Burn: proposed, since the
+ * design says "at higher cost" and gives no rate.
+ */
+export const STORAGE_IOPS = {
+  general: { name: 'General purpose', iops: 3_000, burn: 1 },
+  provisioned: { name: 'Provisioned IOPS', iops: 64_000, burn: 1.5 },
+} as const
+
+/** Shard counts a Database splits into (07 "Partitioning"): writes scale with them. Proposed. */
+export const SHARD_COUNTS = [1, 2, 4, 8] as const
+/** Milliseconds one disk operation takes on a volume, before it queues: 1,000 / its IOPS. */
+export const diskMs = (volume: keyof typeof STORAGE_IOPS): number =>
+  1_000 / STORAGE_IOPS[volume].iops
 
 /** Egress price per GB (09 "Egress"). */
 export const EGRESS_ORIGIN = 0.09

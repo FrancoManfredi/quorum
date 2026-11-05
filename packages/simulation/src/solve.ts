@@ -16,16 +16,17 @@ import {
   LAG_SURGE,
   LLM_PRICE,
   SCAN_PRICE,
+  STORAGE_CLASSES,
   TOKENS_PER_PROMPT,
   STUFFING_MAGNITUDE,
   COMPONENTS,
+  DB_ENGINES,
   DIURNAL_AMPLITUDE,
   FRAMEWORKS,
   FAILURE_YIELD,
   INSIGHT_YIELD,
   KINDS,
   LANGUAGES,
-  MAX_CONNECTIONS,
   P2C_IMBALANCE,
   PROFILES,
   REQUEST_KINDS,
@@ -657,9 +658,10 @@ const forward = (inputs: Inputs): Pass => {
   for (const node of game.nodes) {
     if (node.type !== 'database' && node.type !== 'replica') continue
     const slot = at.get(node.id) as number
+    // Postgres forks a process per connection; MySQL gives each a thread and holds more (07).
     connections[slot] = {
       used: connectionsIn[slot] ?? 0,
-      max: MAX_CONNECTIONS * (inputs.boost === node.id ? 2 : 1),
+      max: DB_ENGINES[node.dbEngine].connections * (inputs.boost === node.id ? 2 : 1),
     }
     writes += arriving[slot]?.['q-write'] ?? 0
   }
@@ -1489,6 +1491,17 @@ const ledgerOf = (
     egress *= eraOf(game).costIndex
   }
 
+  // Object Storage's class (07 "Object Storage"): an infrequent-access object bills a retrieval fee
+  // per GB read back. An archive-class read has already failed as a timeout, and bills nothing.
+  let retrieval = 0
+  for (const node of game.nodes) {
+    if (node.type !== 'storage' || isDown(node)) continue
+    const fee = STORAGE_CLASSES[node.storageClass].retrieval
+    if (fee <= 0) continue
+    const reads = pass.arriving[slotOf(pass, node)]?.['blob-get'] ?? 0
+    retrieval += ((reads * PROFILES.media.payloadKB) / 1_000_000) * fee * eraOf(game).costIndex
+  }
+
   // Third parties (09 "Third-party fees"): the Payment Provider takes a share of each checkout
   // and a fixed part. Both are real dollars on a real-dollar checkout, so the cost index skips them.
   const checkouts = kinds.buy ? kinds.buy.rate * kinds.buy.success : 0
@@ -1551,11 +1564,13 @@ const ledgerOf = (
         ? game.nodes.reduce((total, node) => total + burnOf(game, node), 0) +
           salaries +
           egress +
+          retrieval +
           thirdParty +
           requests
         : game.nodes.reduce((total, node) => total + burnOf(game, node), 0) +
           salaries +
           egress +
+          retrieval +
           requests,
     salaries,
     egress,
@@ -1563,7 +1578,7 @@ const ledgerOf = (
     burnLines: {
       compute: shares.compute,
       data: shares.data,
-      storage: shares.storage,
+      storage: shares.storage + retrieval,
       egress,
       thirdParty,
       requests,

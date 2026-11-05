@@ -20,6 +20,7 @@ import {
   FRAMEWORKS,
   GATEWAY_LIMITS,
   KINDS,
+  SHARD_COUNTS,
   LANGUAGES,
   LB_POLICIES,
   MAX_ATTEMPTS,
@@ -104,6 +105,9 @@ import type {
   Backup,
   Fanout,
   DeployStrategy,
+  DbEngine,
+  IopsClass,
+  StorageClass,
 } from './state.ts'
 
 /* ==========================================================================
@@ -196,6 +200,10 @@ export const blankNode = (
     deepCheck: false,
     ttl: type === 'cache' ? 60 : 300,
     engine: 'redis',
+    dbEngine: 'postgres',
+    iops: 'general',
+    shards: 1,
+    storageClass: 'standard',
     pm: 'static',
     mode: 'transaction',
     depth: 0,
@@ -885,6 +893,45 @@ export const setBackup = (game: Game, id: string, backup: Backup): Action =>
       return no(Refusal.Locked({ what: 'Backups', research: RESEARCH.pitr.name }))
     return ok(node.backup === backup ? game : patch(game, id, { backup }))
   })
+
+/** Picks the engine a Database or Read Replica runs (07 "Variants"): Postgres forks a process per
+ * connection, MySQL gives each a thread and holds more of them. */
+export const setDbEngine = (game: Game, id: string, dbEngine: DbEngine): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database' && node.type !== 'replica')
+      return notAllowed('Only a Database or Read Replica has an engine.')
+    return ok(node.dbEngine === dbEngine ? game : patch(game, id, { dbEngine }))
+  })
+
+/** Picks the volume a Database's reads and writes wait on (07 "Capacity"). Needs no research. */
+export const setStorageIops = (game: Game, id: string, iops: IopsClass): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'database'
+      ? ok(node.iops === iops ? game : patch(game, id, { iops }))
+      : notAllowed('Only a Database has a volume.'),
+  )
+
+/**
+ * Splits a Database into shards (07 "Partitioning"). Needs Sharding. Each shard is another copy of
+ * the Database, and the writes divide across them.
+ */
+export const setShards = (game: Game, id: string, shards: number): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database') return notAllowed('Only a Database shards.')
+    if (!(SHARD_COUNTS as ReadonlyArray<number>).includes(shards))
+      return notAllowed(`Shard counts are ${SHARD_COUNTS.join(', ')}.`)
+    if (shards > 1 && !has(game, 'sharding'))
+      return no(Refusal.Locked({ what: 'Sharding', research: RESEARCH.sharding.name }))
+    return ok(node.shards === shards ? game : patch(game, id, { shards }))
+  })
+
+/** Picks the class Object Storage keeps its objects in (07 "Object Storage"). */
+export const setStorageClass = (game: Game, id: string, storageClass: StorageClass): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'storage'
+      ? ok(node.storageClass === storageClass ? game : patch(game, id, { storageClass }))
+      : notAllowed('Only Object Storage has a storage class.'),
+  )
 
 /** Pull or push feeds on an App Server (07 "Fan-out"). */
 export const setFanout = (game: Game, id: string, fanout: Fanout): Action =>

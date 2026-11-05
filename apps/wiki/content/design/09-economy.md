@@ -52,30 +52,33 @@ This keeps the Garage Era active and then removes the click before it becomes a 
 income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
 beside them. The table is the bill the build charges:
 
-| Line          | Formula                                                                                                 |
-| ------------- | ------------------------------------------------------------------------------------------------------- |
-| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family       |
-| Managed data  | Σ data Nodes at their size price                                                                        |
-| Storage       | Object storage: GB stored × price ([Data tier](/design/07-data-tier#data-volume))                       |
-| Egress        | GB out × egress price ([Egress](#egress))                                                               |
-| Requests      | API Gateway requests × $0.002 × cost index. Not built yet: Serverless Functions, SQS and Object Storage |
-| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                         |
-| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))         |
-| Salaries      | Σ engineers × salary × language factor                                                                  |
+| Line          | Formula                                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                            |
+| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                      |
+| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage)) |
+| Egress        | GB out × egress price ([Egress](#egress))                                                                                    |
+| Requests      | API Gateway requests × $0.002 × cost index. Not built yet: Serverless Functions, SQS and Object Storage                      |
+| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                              |
+| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                              |
+| Salaries      | Σ engineers × salary × language factor                                                                                       |
 
 Real teams are often surprised by the egress, observability, and third-party lines. The game
 surfaces them on purpose.
 
 ### Base prices
 
-| Resource                 | Price                                                                                                     |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| vCPU, general family     | $0.05/s                                                                                                   |
-| vCPU, family multiplier  | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                    |
-| RAM                      | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory) |
-| Object storage, standard | $0.000032/s per GB                                                                                        |
-| Block storage            | **Not built yet:** no block-storage price and no volume model                                             |
-| Engineer salary (base)   | $0.40/s                                                                                                   |
+| Resource                          | Price                                                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| vCPU, general family              | $0.05/s                                                                                                   |
+| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                    |
+| RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory) |
+| Object storage, standard          | $0.000032/s per GB                                                                                        |
+| Object storage, infrequent access | 0.5× the standard price, and $0.01 per GB read back                                                       |
+| Object storage, archive           | 0.1× the standard price. A read waits for a restore, and fails as `timeout` until then                    |
+| Database volume, provisioned IOPS | 1.5× the Database's box. Proposed: the design says "higher cost" and gives no rate                        |
+| Block storage                     | **Not built yet:** no block-storage price and no volume model                                             |
+| Engineer salary (base)            | $0.40/s                                                                                                   |
 
 These are Garage prices. Every price in this document, including placement, Burn, egress, and
 third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee and the
@@ -209,8 +212,9 @@ growth.
 
 **Runway** is Cash divided by net Burn. The HUD shows it when net Burn is positive.
 
-**Not built yet.** There is no runway figure, no bridge offer and no automatic shutdown: Cash goes
-negative and keeps going, and the company never ends.
+**Partly built.** The Dashboard's Company panel shows runway as Cash divided by net Burn. There is
+no bridge offer and no automatic shutdown: Cash goes negative and keeps going, and the company
+never ends.
 
 When Cash reaches zero:
 

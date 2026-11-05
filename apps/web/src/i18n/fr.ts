@@ -2924,7 +2924,6 @@ export const fr: Readonly<Record<string, string>> = {
   LOW: 'FAIBLE',
   'Cache strategies': 'Stratégies de cache',
   Postgres: 'Postgres',
-  MySQL: 'MySQL',
   MariaDB: 'MariaDB',
   SQLite: 'SQLite',
   Valkey: 'Valkey',
@@ -3330,4 +3329,37 @@ export const fr: Readonly<Record<string, string>> = {
   'Spot instances': 'Instances Spot',
   'Spot pricing: 0.3×, until the provider reclaims the Node.':
     'Tarif Spot : 0,3×, jusqu’à ce que le fournisseur récupère le nœud.',
+  'PostgreSQL or MySQL': 'PostgreSQL ou MySQL',
+  'The source of truth. Postgres forks a process per connection; MySQL gives each a thread.':
+    'La source de vérité. Postgres crée un processus par connexion ; MySQL donne un thread à chacune.',
+  MySQL: 'MySQL',
+  'General purpose': 'Usage général',
+  'Provisioned IOPS': 'IOPS provisionnées',
+  Standard: 'Standard',
+  'Infrequent access': 'Accès peu fréquent',
+  Archive: 'Archive',
+  Engine: 'Moteur',
+  Volume: 'Volume',
+  Shards: 'Shards',
+  Class: 'Classe',
+  'Storage class': 'Classe de stockage',
+  'Database engine: {0}': 'Moteur de base de données : {0}',
+  'Database engine': 'Moteur de base de données',
+  'Volume: {0}': 'Volume : {0}',
+  '{0} shards': '{0} shards',
+  'Storage class: {0}': 'Classe de stockage : {0}',
+  '{0} connections: Postgres forks a process for each, MySQL gives it a thread.':
+    '{0} connexions : Postgres crée un processus par connexion, MySQL donne un thread à chacune.',
+  "{0} IOPS at {1}× the box's Burn. Reads that miss the buffer cache and every write wait on it.":
+    '{0} IOPS pour {1}× le Burn de la machine. Les lectures qui ratent le cache et chaque écriture l’attendent.',
+  'Writes divide across {0} shards, and each one bills. A transaction across shards costs 3×.':
+    'Les écritures se répartissent sur {0} shards, et chacun coûte. Une transaction entre shards coûte 3×.',
+  'One primary: a Read Replica is what takes the reads off it.':
+    'Un seul primaire : c’est la réplique de lecture qui en retire les lectures.',
+  'Cheapest to keep. Media reads fail as timeout until the objects are restored.':
+    'Le moins cher à conserver. Les lectures média échouent en timeout tant que les objets ne sont pas restaurés.',
+  'Half the storage price, and ${0} per GB read back.':
+    'Moitié du prix de stockage, et ${0} par Go relu.',
+  'Full storage price. Reads come back at once.':
+    'Prix de stockage complet. Les lectures reviennent aussitôt.',
 }

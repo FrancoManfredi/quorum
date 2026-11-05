@@ -78,6 +78,11 @@ describe('old saves', () => {
     // Pricing models (SIM_VERSION 18): every old Node bills on-demand, with no term.
     expect(game.nodes.every((node) => node.pricing === 'on-demand')).toBe(true)
     expect(game.nodes.every((node) => node.pricingUntil === null)).toBe(true)
+    // The data tier's options (SIM_VERSION 22): Postgres, a general purpose volume, one shard.
+    expect(game.nodes.every((node) => node.dbEngine === 'postgres')).toBe(true)
+    expect(game.nodes.every((node) => node.iops === 'general')).toBe(true)
+    expect(game.nodes.every((node) => node.shards === 1)).toBe(true)
+    expect(game.nodes.every((node) => node.storageClass === 'standard')).toBe(true)
     expect(solve(game).revenue).toBeGreaterThan(0)
     expect(step(game, 1).game.time).toBe(game.time + 1)
   })

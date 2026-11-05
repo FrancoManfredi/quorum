@@ -9,8 +9,10 @@ import {
   ERAS,
   INCIDENTS,
   KINDS,
+  LAYOFF_MORALE,
   PROFILES,
   REGION_INFO,
+  RESEARCH,
   type ComponentId,
   type Kind,
   type RequestKind,
@@ -18,13 +20,15 @@ import {
 } from '@quorum/simulation/catalog'
 import { churnOf, type RegionChurn } from '@quorum/simulation/churn'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
+import { dilutionOf, grantOf } from '@quorum/simulation/founding'
 import type { KindLedger, Ledger } from '@quorum/simulation/ledger'
 import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { regional } from '@quorum/simulation/regions'
 import { budgetOf } from '@quorum/simulation/slo'
-import type { Game, Sample } from '@quorum/simulation/state'
+import type { Game, Postmortem, Sample } from '@quorum/simulation/state'
 import { ignored } from '@quorum/simulation/step'
+import { teamOutputs } from '@quorum/simulation/team'
 import { type Field, TIERS, type Tier, startOf } from '@/game/history.ts'
 import { alertText, compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
@@ -44,7 +48,7 @@ import {
   XAxis,
   YAxis,
 } from '@quorum/ui/primitives/composed-chart'
-import { FIGURE, PANEL, SCROLL, WELL } from '@quorum/ui/game/bits'
+import { EYEBROW, FIGURE, PANEL, SCROLL, WELL } from '@quorum/ui/game/bits'
 
 /* ==========================================================================
    The Dashboard (12 "The Dashboard"): the Design over time, as a full page
@@ -190,6 +194,100 @@ const tracksOf = (model: Model): ReadonlyArray<NodeTrack> =>
     }))
 
 /* ==========================================================================
+   The Company and Incidents panels (15 "Panels")
+   ========================================================================== */
+
+/** Calendar minutes in the 30-day month a runway figure reads in. */
+const RUNWAY_MONTH = 30 * 24 * 60
+
+/** Runway in sim seconds: Cash divided by net Burn, or null while revenue covers the bill. */
+const runwayOf = (game: Game, ledger: Ledger): number | null => {
+  const net = ledger.burn - ledger.revenue
+  return net > 0 ? Math.max(0, game.cash) / net : null
+}
+
+const runwayText = (seconds: number | null): string =>
+  seconds === null ? '∞' : `${(seconds / RUNWAY_MONTH).toFixed(1)} mo`
+
+/** A funding round the Company entered: the offer after its Mutators and perks, and the Inbox's answer. */
+type FundingRound = Readonly<{
+  key: string
+  name: string
+  users: number
+  /** The fixed grant, or null for the IPO, which pays public money rather than a round. */
+  grant: number | null
+  dilution: number
+  answer: string
+  when: string
+}>
+
+/**
+ * The rounds the Company entered, newest first. The Game keeps the Era but no round time and no
+ * answer, so the offer comes from the Era catalog and the answer from the Inbox Thread the round
+ * left (12 "Annotations" reads the Inbox for the same reason).
+ */
+const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
+  const game = model.board.game
+  const answers = new Map(model.board.inbox.mail.map((mail) => [mail.key, mail]))
+  const rounds: Array<FundingRound> = []
+  for (let index = 0; index < Math.min(game.stage, ERAS.length - 1); index += 1) {
+    const era = ERAS[index]
+    const next = ERAS[index + 1]
+    if (!era || !next) continue
+    const mail = answers.get(`investor:round:${index}`)
+    const at = mail?.entries[0]
+    // The last offer is the IPO: it sells shares to the public, pays Burn rather than a grant,
+    // and cannot be declined, so it has no term-sheet answer.
+    const ipo = index === ERAS.length - 2
+    rounds.push({
+      key: `round-${index}`,
+      name: next.name,
+      users: era.raiseAt,
+      grant: ipo ? null : grantOf(game, era.grant),
+      dilution: dilutionOf(game, era.dilution),
+      answer: ipo
+        ? 'Listed'
+        : mail?.answer === 'You raised the round.'
+          ? 'Raised'
+          : mail?.answer === 'You declined the round.'
+            ? 'Declined'
+            : '—',
+      when: at === undefined ? '—' : `D${clockOf(at.time).day} ${hhmm(at.time)}`,
+    })
+  }
+  return rounds.reverse()
+}
+
+const TEAM_KIND: Readonly<Record<'product' | 'platform', string>> = {
+  product: 'Product',
+  platform: 'Platform',
+}
+
+/** Dev Hours per real minute, as the Team panel counts them. */
+const dhPerMinute = (rate: number): string => {
+  const value = rate * 60
+  return value < 10 ? value.toFixed(1) : String(Math.round(value))
+}
+
+const minutesText = (seconds: number): string => `${Math.round(Math.max(0, seconds))}m`
+
+/** What an Incident is hitting: a Node, a zone, a region, or every region. */
+const incidentTarget = (game: Game, incident: NonNullable<Game['incident']>): string => {
+  if (incident.nodeId !== null) return namesOf(game).get(incident.nodeId) ?? incident.nodeId
+  if (incident.zone !== null) return `Zone ${incident.zone.toUpperCase()}`
+  if (incident.region !== null) return REGION_INFO[incident.region].name
+  return 'Every region'
+}
+
+/** A Postmortem's action item: its research, whether it is owned, or nothing. */
+const actionText = (game: Game, postmortem: Postmortem): string =>
+  postmortem.action === null
+    ? '—'
+    : has(game, postmortem.action)
+      ? `Owned · ${RESEARCH[postmortem.action].name}`
+      : RESEARCH[postmortem.action].name
+
+/* ==========================================================================
    Panel chrome
    ========================================================================== */
 
@@ -223,6 +321,7 @@ const panel = (
   h.div(
     [
       h.Key(key),
+      h.DataAttribute('panel', key),
       h.Class(
         cn(
           'flex min-w-0 flex-col gap-1.5 rounded-2xl bg-surface p-1.5 shadow-card compact:col-span-24',
@@ -1312,6 +1411,8 @@ type Cell = Readonly<{
   bar?: Readonly<{ share: number; color: string }> | undefined
   /** A tooltip, as the lane blocks' titles. */
   hint?: string | undefined
+  /** A button in the cell, for a row that selects something. */
+  onClick?: Message | undefined
 }>
 
 /** Grafana's table: hairline rows, figures to the right, coloured and filled cells. */
@@ -1392,12 +1493,24 @@ const tablePanel = (
                             ],
                             cell.bar === undefined
                               ? [
-                                  h.span(
-                                    cell.color === undefined
-                                      ? []
-                                      : [h.Style({ color: cell.color })],
-                                    [cell.text],
-                                  ),
+                                  cell.onClick === undefined
+                                    ? h.span(
+                                        cell.color === undefined
+                                          ? []
+                                          : [h.Style({ color: cell.color })],
+                                        [cell.text],
+                                      )
+                                    : h.button(
+                                        [
+                                          h.Type('button'),
+                                          h.OnClick(cell.onClick),
+                                          h.Class(
+                                            'text-left font-medium underline-offset-2 hover:underline',
+                                          ),
+                                          ...(cell.hint === undefined ? [] : [h.Title(cell.hint)]),
+                                        ],
+                                        [cell.text],
+                                      ),
                                 ]
                               : [
                                   h.div(
@@ -1485,6 +1598,232 @@ const barList = (
     ],
     h,
   )
+}
+
+/* ==========================================================================
+   The Company panel (15 "Panels"): money and runway, the team's shape, and
+   every round the Company entered. It reads the Game, the Ledger and the Inbox.
+   ========================================================================== */
+
+const companyPanels = (
+  model: Model,
+  ledger: Ledger,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => {
+  const game = model.board.game
+  const net = ledger.revenue - ledger.burn
+  const runway = runwayOf(game, ledger)
+  const teams = teamOutputs(game, ledger)
+  const people = teams.reduce((sum, entry) => sum + entry.headcount, 0)
+  // A layoff's morale hit is global and already inside each team's velocity (08 "Hiring").
+  const morale = game.time < game.moraleUntil
+  const teamUnit = `${people} ${people === 1 ? 'person' : 'people'} · velocity${
+    morale ? ` · morale −${Math.round((1 - LAYOFF_MORALE) * 100)}%` : ''
+  }`
+  const moneyRows: ReadonlyArray<readonly [string, string]> = [
+    ['Cash', money(game.cash)],
+    ['Revenue', `${money(ledger.revenue)}/s`],
+    ['Burn', `${money(ledger.burn)}/s`],
+    ['Net', `${net >= 0 ? '+' : ''}${money(net)}/s`],
+    ['Payroll', `${money(ledger.salaries)}/s`],
+    ['Equity', percent(game.equity)],
+    ['Runway', runwayText(runway)],
+  ]
+  return [
+    tablePanel(
+      'company-money',
+      'col-span-8',
+      'Money',
+      'now',
+      ['Line', 'Value'],
+      moneyRows.map(([name, value]) => ({ key: name, cells: [{ text: name }, { text: value }] })),
+      h,
+    ),
+    tablePanel(
+      'company-team',
+      'col-span-16',
+      'Team',
+      teamUnit,
+      ['Team', 'Kind', 'People', 'Effective', 'Velocity', 'DH/min'],
+      teams.map((entry) => ({
+        key: entry.team.id,
+        cells: [
+          { text: entry.team.name },
+          { text: TEAM_KIND[entry.team.kind] },
+          { text: String(entry.headcount) },
+          { text: entry.effective.toFixed(1) },
+          { text: `×${entry.velocity.toFixed(2)}` },
+          { text: dhPerMinute(entry.rate) },
+        ],
+      })),
+      h,
+    ),
+    tablePanel(
+      'company-funding',
+      'col-span-24',
+      'Funding',
+      'rounds · from the Inbox',
+      ['Round', 'At users', 'Grant', 'Dilution', 'Answer', 'When'],
+      fundingOf(model).map((round) => ({
+        key: round.key,
+        cells: [
+          { text: round.name },
+          { text: round.users.toLocaleString('en-US') },
+          { text: round.grant === null ? 'Public market' : money(round.grant) },
+          { text: percent(round.dilution) },
+          {
+            text: round.answer,
+            color: round.answer === 'Raised' ? GREEN : round.answer === 'Declined' ? AMBER : MUTED,
+          },
+          { text: round.when },
+        ],
+      })),
+      h,
+    ),
+  ]
+}
+
+/* ==========================================================================
+   The Incidents panel (15 "Panels"): the running Incident and the Postmortems
+   the Game keeps. The chosen row opens its Postmortem below the list.
+   ========================================================================== */
+
+/** The action item's state in the Dashboard's status colours: done, open, or none. */
+const actionColor = (game: Game, postmortem: Postmortem): string =>
+  postmortem.action === null ? MUTED : has(game, postmortem.action) ? GREEN : AMBER
+
+const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const incident = game.incident
+  if (incident === null)
+    return tablePanel(
+      'incident-running',
+      'col-span-8',
+      'Running Incident',
+      'none',
+      ['Fact', 'Value'],
+      [{ key: 'none', cells: [{ text: 'State' }, { text: 'No incident running' }] }],
+      h,
+    )
+  const elapsed = Math.max(0, game.time - incident.startedAt)
+  const total = elapsed + Math.max(0, incident.remaining)
+  const facts: ReadonlyArray<readonly [string, Cell]> = [
+    ['Severity', { text: `SEV${incident.severity}` }],
+    ['Target', { text: incidentTarget(game, incident) }],
+    [
+      'Run',
+      {
+        text: `${minutesText(elapsed)} / ${minutesText(total)}`,
+        bar: { share: total > 0 ? Math.min(1, elapsed / total) : 0, color: RED },
+      },
+    ],
+    ['MTTR so far', { text: minutesText(incident.impaired) }],
+    ['Users lost', { text: `−${compact(Math.max(0, incident.usersAtStart - game.users))}` }],
+    ['Revenue lost', { text: `−${money(incident.lostRevenue)}` }],
+    ['Failed', { text: compact(incident.failed) }],
+  ]
+  return tablePanel(
+    'incident-running',
+    'col-span-8',
+    'Running Incident',
+    INCIDENTS[incident.kind].name,
+    ['Fact', 'Value'],
+    facts.map(([name, cell]) => ({ key: name, cells: [{ text: name }, cell] })),
+    h,
+  )
+}
+
+const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
+  tablePanel(
+    'incident-history',
+    'col-span-16',
+    'Incident history',
+    `${game.postmortems.length} postmortems`,
+    ['Incident', 'SEV', 'Target', 'Run', 'MTTR', 'Users', 'Revenue', 'Failed', 'Action'],
+    [...game.postmortems].reverse().map((postmortem) => ({
+      key: `pm-${postmortem.id}`,
+      cells: [
+        {
+          text: INCIDENTS[postmortem.kind].name,
+          onClick: Message.DashboardChanged({
+            message: DashboardMessage.PostmortemChosen({ id: postmortem.id }),
+          }),
+          hint: 'Show this postmortem',
+        },
+        { text: `SEV${postmortem.severity}` },
+        { text: postmortem.target ?? '—' },
+        { text: minutesText(postmortem.duration) },
+        { text: minutesText(postmortem.mttr) },
+        { text: `−${compact(postmortem.lostUsers)}` },
+        { text: `−${money(postmortem.lostRevenue)}` },
+        { text: compact(postmortem.failed) },
+        { text: actionText(game, postmortem), color: actionColor(game, postmortem) },
+      ],
+    })),
+    h,
+  )
+
+const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
+  const def = INCIDENTS[postmortem.kind]
+  const facts: ReadonlyArray<readonly [string, string]> = [
+    ['Run', minutesText(postmortem.duration)],
+    ['MTTR', minutesText(postmortem.mttr)],
+    ['Users lost', `−${compact(postmortem.lostUsers)}`],
+    ['Revenue lost', `−${money(postmortem.lostRevenue)}`],
+    ['Failed', compact(postmortem.failed)],
+  ]
+  const open = postmortem.action !== null && !has(game, postmortem.action)
+  return panel(
+    `pm-detail-${postmortem.id}`,
+    'col-span-24',
+    `Postmortem · ${def.name}`,
+    `SEV${postmortem.severity}${postmortem.target === null ? '' : ` · ${postmortem.target}`}`,
+    [
+      h.div(
+        [h.Class(cn(SCREEN, 'flex flex-col gap-3 p-3'))],
+        [
+          h.p([h.Class('text-[12px] leading-snug text-muted-foreground')], [def.cause]),
+          h.div(
+            [h.Class('grid grid-cols-5 divide-x divide-hairline')],
+            facts.map(([name, value]) =>
+              h.div(
+                [h.Key(name), h.Class('flex flex-col gap-1 px-2.5 py-1.5')],
+                [
+                  h.span([h.Class(EYEBROW)], [name]),
+                  h.span([h.Class(cn(FIGURE, 'text-[12.5px]'))], [value]),
+                ],
+              ),
+            ),
+          ),
+          h.p([h.Class('text-[12px] leading-snug')], [def.prevention]),
+          h.p(
+            [h.Class(cn('text-[12px] leading-snug', open ? 'text-warn' : 'text-muted-foreground'))],
+            [
+              postmortem.action === null
+                ? 'No action item: the Design already owns every prevention.'
+                : has(game, postmortem.action)
+                  ? `Action item done: ${RESEARCH[postmortem.action].name}.`
+                  : `Action item open: ${RESEARCH[postmortem.action].name}.`,
+            ],
+          ),
+        ],
+      ),
+    ],
+    h,
+    null,
+    actionColor(game, postmortem),
+  )
+}
+
+const incidentPanels = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const game = model.board.game
+  const chosen = game.postmortems.find(
+    (postmortem) => postmortem.id === model.board.dashboard.postmortem,
+  )
+  return [
+    runningIncident(game, h),
+    incidentHistory(game, h),
+    ...(chosen === undefined ? [] : [postmortemDetail(game, chosen, h)]),
+  ]
 }
 
 /* ==========================================================================
@@ -2345,6 +2684,22 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ...(has(game, 'multi-region')
             ? [rowHeader('Users', 1, h), usersTable(game, ledger, h)]
             : []),
+
+          ...(game.sandbox ? [] : [rowHeader('Company', 3, h), ...companyPanels(model, ledger, h)]),
+          ...(game.incident === null && game.postmortems.length === 0
+            ? []
+            : [
+                rowHeader(
+                  'Incidents',
+                  game.postmortems.some(
+                    (postmortem) => postmortem.id === model.board.dashboard.postmortem,
+                  )
+                    ? 3
+                    : 2,
+                  h,
+                ),
+                ...incidentPanels(model, h),
+              ]),
         ]
 
   return h.div(

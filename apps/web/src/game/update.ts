@@ -23,6 +23,9 @@ import {
   BACKUPS,
   COLLECTORS,
   DEPLOY_STRATEGIES,
+  DB_ENGINES,
+  STORAGE_CLASSES,
+  STORAGE_IOPS,
   LANGUAGES,
   REGION_INFO,
   IAC_TOOL_INFO,
@@ -329,7 +332,7 @@ export const freshBoard = (game: Game): Board => ({
   nodeHistory: {},
   nodeSample: null,
   inbox: EMPTY_INBOX,
-  dashboard: { history: EMPTY_HISTORY, range: 360, hover: null },
+  dashboard: { history: EMPTY_HISTORY, range: 360, hover: null, postmortem: null },
   lastGoal: '',
   lastBottleneck: '',
 })
@@ -3388,6 +3391,38 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    DbEngineChosen: ({ nodeId, dbEngine }) =>
+      act(
+        model,
+        `Database engine: ${DB_ENGINES[dbEngine].name}`,
+        Actions.setDbEngine(model.board.game, nodeId, dbEngine),
+        { undoable: true },
+      ),
+
+    StorageIopsChosen: ({ nodeId, iops }) =>
+      act(
+        model,
+        `Volume: ${STORAGE_IOPS[iops].name}`,
+        Actions.setStorageIops(model.board.game, nodeId, iops),
+        { undoable: true },
+      ),
+
+    ShardsChosen: ({ nodeId, shards }) =>
+      act(
+        model,
+        shards > 1 ? `${shards} shards` : 'One shard',
+        Actions.setShards(model.board.game, nodeId, shards),
+        { undoable: true },
+      ),
+
+    StorageClassChosen: ({ nodeId, storageClass }) =>
+      act(
+        model,
+        `Storage class: ${STORAGE_CLASSES[storageClass].name}`,
+        Actions.setStorageClass(model.board.game, nodeId, storageClass),
+        { undoable: true },
+      ),
+
     DeployStrategyChosen: ({ nodeId, strategy }) =>
       act(
         model,
@@ -4079,8 +4114,10 @@ const QUIET = new Set([
 /** A team drag sends a Message per pointer move; only the drop that moves someone is a gesture. */
 const quiet = (model: Model, message: Message, after: Model): boolean =>
   QUIET.has(message._tag) ||
-  // The Dashboard crosshair sends a Message on every pointer move.
-  (message._tag === 'DashboardChanged' && message.message._tag === 'Hovered') ||
+  // The Dashboard crosshair sends a Message on every pointer move, and choosing a
+  // Postmortem reads the Game without changing it, as the Inspector's sample does.
+  (message._tag === 'DashboardChanged' &&
+    (message.message._tag === 'Hovered' || message.message._tag === 'PostmortemChosen')) ||
   (message._tag === 'TeamChanged' &&
     message.message._tag === 'DragChanged' &&
     after.board.game === model.board.game)

@@ -1,13 +1,23 @@
-import { test } from 'vitest'
+import { expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
 import type { HtmlBuilder } from 'foldkit/html'
-import { KINDS, REGION_INFO, type ComponentId, type ResearchId } from '@quorum/simulation/catalog'
+import {
+  ERAS,
+  INCIDENTS,
+  KINDS,
+  REGION_INFO,
+  RESEARCH,
+  type ComponentId,
+  type ResearchId,
+} from '@quorum/simulation/catalog'
 import { churnOf } from '@quorum/simulation/churn'
 import { preseedGame } from '@quorum/simulation/company'
 import type { KindLedger } from '@quorum/simulation/ledger'
 import { regionUsers } from '@quorum/simulation/regions'
-import type { Game, GameLink, GameNode, Sample } from '@quorum/simulation/state'
-import { compact, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
+import type { Game, GameLink, GameNode, Postmortem, Sample } from '@quorum/simulation/state'
+import { teamOutputs } from '@quorum/simulation/team'
+import { compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
+import { DashboardMessage } from '@/game/dashboard.ts'
 import { initialModel, update } from '@/game/update.ts'
 import { ledgerOf, type Mail, type Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
@@ -20,7 +30,7 @@ import { dashboardPanel } from './dashboard.ts'
    test asserts the figures a panel draws, read back from the same Ledger.
    ========================================================================== */
 
-const RESEARCH: ReadonlyArray<ResearchId> = [
+const RESEARCHED: ReadonlyArray<ResearchId> = [
   'metrics',
   'logs',
   'percentiles',
@@ -64,8 +74,12 @@ const linkOf = (base: Game, from: string, to: string): GameLink => ({
   to,
 })
 
-/** A Thread of Mail, one entry per time. */
-const threadOf = (key: string, times: ReadonlyArray<number>): Mail => ({
+/** A Thread of Mail, one entry per time, with the answer a button wrote when it has one. */
+const threadOf = (
+  key: string,
+  times: ReadonlyArray<number>,
+  answer: string | null = null,
+): Mail => ({
   id: times.length,
   key,
   sender: 'monitoring',
@@ -73,7 +87,7 @@ const threadOf = (key: string, times: ReadonlyArray<number>): Mail => ({
   time: times[times.length - 1] ?? 0,
   entries: times.map((time) => ({ time, text: '…' })),
   actions: [],
-  answer: null,
+  answer,
   read: true,
   trashed: false,
   spam: false,
@@ -107,7 +121,7 @@ const fixture = (options: Fixture = {}): Model => {
   const game: Game = {
     ...base,
     time: 1_000,
-    researched: [...new Set([...base.researched, ...RESEARCH])],
+    researched: [...new Set([...base.researched, ...RESEARCHED])],
     history: [sampleOf(), sampleOf(), sampleOf()],
     nodes: [...built.nodes],
     links: [...built.links],
@@ -414,5 +428,195 @@ test('a Design change in the undo stack marks the timeline', () => {
     { update, view },
     Scene.given(model),
     Scene.expect(Scene.text('Placed Cache')).toExist(),
+  )
+})
+
+const panelOf = (key: string) => Scene.selector(`[data-panel="${key}"]`)
+
+test('the Company row draws Cash, Burn, Equity, runway and each team’s velocity', () => {
+  const model = fixture({
+    game: {
+      cash: 12_000,
+      equity: 0.81,
+      moraleUntil: 2_000,
+      engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: 0 }],
+    },
+  })
+  const game = model.board.game
+  const ledger = ledgerOf(model)
+  const net = ledger.burn - ledger.revenue
+  const runway = net > 0 ? `${(Math.max(0, game.cash) / net / (30 * 24 * 60)).toFixed(1)} mo` : '∞'
+  const core = teamOutputs(game, ledger)[0]
+  if (core === undefined) throw new Error('the fixture Company has no team')
+  const perMinute =
+    core.rate * 60 < 10 ? (core.rate * 60).toFixed(1) : String(Math.round(core.rate * 60))
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(row('Company')).toExist(),
+    Scene.expect(panelOf('company-money')).toContainText(money(game.cash)),
+    Scene.expect(panelOf('company-money')).toContainText(`${money(ledger.revenue)}/s`),
+    Scene.expect(panelOf('company-money')).toContainText(`${money(ledger.burn)}/s`),
+    Scene.expect(panelOf('company-money')).toContainText(`${money(ledger.salaries)}/s`),
+    Scene.expect(panelOf('company-money')).toContainText('81%'),
+    Scene.expect(panelOf('company-money')).toContainText('Runway'),
+    Scene.expect(panelOf('company-money')).toContainText(runway),
+    Scene.expect(panelOf('company-team')).toContainText(core.team.name),
+    Scene.expect(panelOf('company-team')).toContainText('Product'),
+    Scene.expect(panelOf('company-team')).toContainText('morale −10%'),
+    Scene.expect(panelOf('company-team')).toContainText(String(core.headcount)),
+    Scene.expect(panelOf('company-team')).toContainText(core.effective.toFixed(1)),
+    Scene.expect(panelOf('company-team')).toContainText(`×${core.velocity.toFixed(2)}`),
+    Scene.expect(panelOf('company-team')).toContainText(perMinute),
+  )
+})
+
+test('the Company row lists each funding round with the Inbox’s answer', () => {
+  const model = fixture({
+    game: { stage: 2 },
+    board: {
+      inbox: {
+        ...initialModel().board.inbox,
+        mail: [threadOf('investor:round:0', [998], 'You raised the round.')],
+      },
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(row('Company')).toExist(),
+    Scene.expect(panelOf('company-funding')).toContainText(ERAS[1]?.name ?? 'Pre-seed'),
+    Scene.expect(panelOf('company-funding')).toContainText(
+      (ERAS[0]?.raiseAt ?? 0).toLocaleString('en-US'),
+    ),
+    Scene.expect(panelOf('company-funding')).toContainText(money(ERAS[0]?.grant ?? 0)),
+    Scene.expect(panelOf('company-funding')).toContainText(
+      `${Math.round((ERAS[0]?.dilution ?? 0) * 100)}%`,
+    ),
+    Scene.expect(panelOf('company-funding')).toContainText('Raised'),
+    Scene.expect(panelOf('company-funding')).toContainText(ERAS[2]?.name ?? 'Seed'),
+    Scene.expect(panelOf('company-funding')).toContainText(money(ERAS[1]?.grant ?? 0)),
+    Scene.expect(panelOf('company-funding')).toContainText('—'),
+  )
+})
+
+test('the Incidents row draws the running Incident’s severity, run, MTTR and cost', () => {
+  const model = fixture({
+    game: {
+      time: 1_000,
+      users: 900,
+      incident: {
+        kind: 'zone',
+        remaining: 12,
+        nodeId: null,
+        startedAt: 960,
+        baseline: 1,
+        usersAtStart: 1_200,
+        impaired: 25,
+        lostRevenue: 340,
+        failed: 900,
+        severity: 2,
+        magnitude: 3,
+        zone: 'b',
+        region: null,
+      },
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(row('Incidents')).toExist(),
+    Scene.expect(panelOf('incident-running')).toContainText(INCIDENTS.zone.name),
+    Scene.expect(panelOf('incident-running')).toContainText('SEV2'),
+    Scene.expect(panelOf('incident-running')).toContainText('Zone B'),
+    Scene.expect(panelOf('incident-running')).toContainText('40m / 52m'),
+    Scene.expect(panelOf('incident-running')).toContainText('25m'),
+    Scene.expect(panelOf('incident-running')).toContainText('−300'),
+    Scene.expect(panelOf('incident-running')).toContainText('−$340'),
+    Scene.expect(panelOf('incident-running')).toContainText('900'),
+  )
+})
+
+const POSTMORTEMS: ReadonlyArray<Postmortem> = [
+  {
+    id: 1,
+    kind: 'instance',
+    target: 'App Server',
+    duration: 90,
+    mttr: 42,
+    lostUsers: 1_200,
+    lostRevenue: 5_000,
+    failed: 800,
+    action: 'health-checks',
+    severity: 3,
+  },
+  {
+    id: 2,
+    kind: 'leak',
+    target: null,
+    duration: 30,
+    mttr: 12,
+    lostUsers: 300,
+    lostRevenue: 750,
+    failed: 90,
+    action: null,
+    severity: 2,
+  },
+]
+
+test('the Incidents row lists each Postmortem’s run, MTTR, cost and action item', () => {
+  const model = fixture({ game: { postmortems: [...POSTMORTEMS] } })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(row('Incidents')).toExist(),
+    Scene.expect(panelOf('incident-running')).toContainText('No incident running'),
+    Scene.expect(panelOf('incident-history')).toContainText(INCIDENTS.instance.name),
+    Scene.expect(panelOf('incident-history')).toContainText('SEV3'),
+    Scene.expect(panelOf('incident-history')).toContainText('App Server'),
+    Scene.expect(panelOf('incident-history')).toContainText('90m'),
+    Scene.expect(panelOf('incident-history')).toContainText('42m'),
+    Scene.expect(panelOf('incident-history')).toContainText(`−${compact(1_200)}`),
+    Scene.expect(panelOf('incident-history')).toContainText(`−${money(5_000)}`),
+    Scene.expect(panelOf('incident-history')).toContainText('800'),
+    Scene.expect(panelOf('incident-history')).toContainText(RESEARCH['health-checks'].name),
+    Scene.expect(panelOf('incident-history')).toContainText(INCIDENTS.leak.name),
+    Scene.expect(panelOf('incident-history')).toContainText('—'),
+  )
+})
+
+test('choosing a Postmortem opens it without touching the Game or the undo stack', () => {
+  const model = fixture({ game: { postmortems: [...POSTMORTEMS] } })
+  const chosen = update(
+    model,
+    Message.DashboardChanged({ message: DashboardMessage.PostmortemChosen({ id: 1 }) }),
+  )
+  expect(chosen.model.board.dashboard.postmortem).toBe(1)
+  expect(chosen.model.board.game).toBe(model.board.game)
+  expect(chosen.model.board.undo).toEqual(model.board.undo)
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.click(Scene.role('button', { name: INCIDENTS.instance.name })),
+    Scene.expect(panelOf('pm-detail-1')).toExist(),
+    Scene.expect(panelOf('pm-detail-1')).toContainText(
+      `Action item open: ${RESEARCH['health-checks'].name}.`,
+    ),
+    Scene.expect(panelOf('pm-detail-1')).toContainText(INCIDENTS.instance.prevention),
+    Scene.expect(panelOf('pm-detail-1')).toContainText(`−${money(5_000)}`),
+  )
+})
+
+test('the funding history reads the IPO as a public listing, not a grant', () => {
+  const model = fixture({ game: { stage: 7 } })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(panelOf('company-funding')).toContainText(ERAS[7]?.name ?? 'Public'),
+    Scene.expect(panelOf('company-funding')).toContainText('Public market'),
+    Scene.expect(panelOf('company-funding')).toContainText('Listed'),
+    Scene.expect(panelOf('company-funding')).toContainText(
+      `${Math.round((ERAS[6]?.dilution ?? 0) * 100)}%`,
+    ),
   )
 })

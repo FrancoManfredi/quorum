@@ -57,7 +57,11 @@ import {
   type RequestKind,
   type RuntimeId,
   BACKUPS,
+  DB_ENGINES,
   REGION_INFO,
+  SHARD_COUNTS,
+  STORAGE_CLASSES,
+  STORAGE_IOPS,
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
@@ -84,11 +88,14 @@ import {
 import { LINK_TIMEOUTS } from '@quorum/simulation/actions'
 import type {
   CacheEngine,
+  DbEngine,
   Game,
   GameLink,
   GameNode,
+  IopsClass,
   LbPolicy,
   PmMode,
+  StorageClass,
 } from '@quorum/simulation/state'
 import { compact, duration, money, ms, priceLabel, queueWait, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
@@ -1409,6 +1416,110 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
+/** A Database's or Read Replica's engine (07 "Variants"). */
+const engine = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+  section(
+    'Engine',
+    [
+      picker(
+        'db-engine',
+        (Object.keys(DB_ENGINES) as ReadonlyArray<DbEngine>).map(
+          (id) => [id, DB_ENGINES[id].name] as const,
+        ),
+        node.dbEngine,
+        (dbEngine) => Message.DbEngineChosen({ nodeId: node.id, dbEngine }),
+        h,
+        () => true,
+        'grid-cols-2',
+      ),
+      caption(
+        `${DB_ENGINES[node.dbEngine].connections} connections: Postgres forks a process for each, MySQL gives it a thread.`,
+        h,
+      ),
+    ],
+    h,
+  )
+
+/** A Database's engine, its volume, and its shards (07 "Variants", "Capacity", "Partitioning"). */
+const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const volume = STORAGE_IOPS[node.iops]
+  const iops = `${volume.iops / 1_000}k`
+  const shards = Math.max(1, Math.floor(node.shards))
+  return [
+    engine(node, h),
+    section(
+      'Volume',
+      [
+        picker(
+          'volume',
+          (Object.keys(STORAGE_IOPS) as ReadonlyArray<IopsClass>).map(
+            (id) => [id, STORAGE_IOPS[id].name] as const,
+          ),
+          node.iops,
+          (chosen) => Message.StorageIopsChosen({ nodeId: node.id, iops: chosen }),
+          h,
+          () => true,
+          'grid-cols-2',
+        ),
+        caption(
+          `${iops} IOPS at ${volume.burn}× the box's Burn. Reads that miss the buffer cache and every write wait on it.`,
+          h,
+        ),
+      ],
+      h,
+    ),
+    section(
+      'Shards',
+      [
+        picker(
+          'shards',
+          SHARD_COUNTS.map((count) => [count, `${count}`] as const),
+          shards,
+          (chosen) => Message.ShardsChosen({ nodeId: node.id, shards: chosen }),
+          h,
+          (count) => count === 1 || has(game, 'sharding'),
+          'grid-cols-4',
+        ),
+        caption(
+          shards > 1
+            ? `Writes divide across ${shards} shards, and each one bills. A transaction across shards costs 3×.`
+            : 'One primary: a Read Replica is what takes the reads off it.',
+          h,
+        ),
+      ],
+      h,
+    ),
+  ]
+}
+
+/** Object Storage's class (07 "Object Storage"): price against retrieval. */
+const storage = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+  section(
+    'Storage class',
+    [
+      picker(
+        'storage-class',
+        (Object.keys(STORAGE_CLASSES) as ReadonlyArray<StorageClass>).map(
+          (id) => [id, STORAGE_CLASSES[id].name] as const,
+        ),
+        node.storageClass,
+        (storageClass) => Message.StorageClassChosen({ nodeId: node.id, storageClass }),
+        h,
+        () => true,
+        'grid-cols-3',
+      ),
+      caption(
+        STORAGE_CLASSES[node.storageClass].archived
+          ? 'Cheapest to keep. Media reads fail as timeout until the objects are restored.'
+          : STORAGE_CLASSES[node.storageClass].retrieval > 0
+            ? `Half the storage price, and $${STORAGE_CLASSES[node.storageClass].retrieval} per GB read back.`
+            : 'Full storage price. Reads come back at once.',
+        h,
+      ),
+    ],
+    h,
+  )
+
 const queue = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   section(
     'Failed tasks',
@@ -2421,6 +2532,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'analytics' ? [sampler(game, node, h)] : []),
           ...(node.type === 'lb' ? loadBalancer(game, node, h) : []),
           ...(node.type === 'cache' ? [cache(game, node, h)] : []),
+          ...(node.type === 'database' ? database(game, node, h) : []),
+          ...(node.type === 'replica' ? [engine(node, h)] : []),
+          ...(node.type === 'storage' ? [storage(node, h)] : []),
           ...(node.type === 'queue' ? queue(node, h) : []),
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),

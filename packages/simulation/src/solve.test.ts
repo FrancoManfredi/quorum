@@ -4,23 +4,26 @@ import {
   connect,
   disconnect,
   place,
+  setDbEngine,
   setFamily,
   setHealthCheck,
   setLinkKinds,
   setLinkPolicy,
   setPolicy,
   setRateLimit,
+  setShards,
+  setStorageIops,
   setTtl,
   setRuntime,
   setWorkers,
   type Action,
 } from './actions.ts'
 import { newGame, preseedGame } from './company.ts'
-import { serverModel } from './capacity.ts'
+import { databaseModel, serverModel } from './capacity.ts'
 import { BACKEND_KINDS, GATEWAY_PRICE, REQUEST_KINDS, type Kind } from './catalog.ts'
 import { RUNNING, stopped, warmOf } from './life.ts'
 import type { Ledger } from './ledger.ts'
-import { restarted, eraOf } from './lookups.ts'
+import { burnOf, restarted, eraOf } from './lookups.ts'
 import { hitRatioOf } from './rules.ts'
 import { cosTurns, diurnal, solve, weekly } from './solve.ts'
 import type { Game, GameNode } from './state.ts'
@@ -693,6 +696,145 @@ describe('the cloud bill by line', () => {
     // placed, the line is zero however much is stored.
     expect(full.burnLines.storage).toBe(0)
     expect(full.burn).toBeCloseTo(solve({ ...game, stored: 0 }).burn, 6)
+  })
+})
+
+describe('the data tier options', () => {
+  /** The Pre-seed Database as a metal box: 96 vCPU and 384 GB, with the working set over its RAM. */
+  const metalDatabase = (users: number, change: Partial<GameNode> = {}) => {
+    const game = preseed(users)
+    const node = game.nodes.find((entry) => entry.type === 'database')
+    if (!node) throw new Error('Missing database')
+    return { game, node: { ...node, size: 8, ...change } }
+  }
+
+  test('a general purpose volume runs out of IOPS where a provisioned one does not', () => {
+    const { game, node } = metalDatabase(400_000)
+    // The working set is far over RAM, so every read misses the buffer cache and waits on disk.
+    const arriving = { 'q-read': 4_000 }
+    const general = databaseModel({ game, node, arriving, boost: 1 })
+    const provisioned = databaseModel({
+      game,
+      node: { ...node, iops: 'provisioned' },
+      arriving,
+      boost: 1,
+    })
+    expect(general.disk).toBe(true)
+    expect(general.limit).toBe('disk')
+    expect(general.share).toBeLessThan(1)
+    expect(provisioned.utilization).toBeLessThan(1)
+    expect(provisioned.share).toBe(1)
+    const read = (model: typeof general) =>
+      (model.service['q-read']?.fixed ?? 0) + (model.service['q-read']?.variable ?? 0)
+    expect(read(provisioned)).toBeLessThan(read(general))
+  })
+
+  test('provisioned IOPS bills 1.5× the box, and a shard is another copy of it', () => {
+    const { game, node } = metalDatabase(1_000)
+    expect(burnOf(game, { ...node, iops: 'provisioned' })).toBeCloseTo(burnOf(game, node) * 1.5, 6)
+    expect(burnOf(game, { ...node, shards: 4 })).toBeCloseTo(burnOf(game, node) * 4, 6)
+  })
+
+  test('MySQL holds more connections on the same box, so the same fleet fits', () => {
+    let game = tune(preseed(2_000, ['pooling']), 'server', { workers: 70, life: RUNNING })
+    game = ok(place(game, 'server', 440, 120))
+    const second = last(game)
+    game = tune(game, second, { runtime: 'php_fpm', workers: 70, life: RUNNING, size: 2 })
+    game = ok(place(game, 'lb', 280, 200))
+    const lb = last(game)
+    game = ok(connect(disconnect(game, 'users', 'server'), 'users', lb))
+    game = ok(connect(game, lb, 'server'))
+    game = ok(connect(game, lb, second))
+    game = ok(connect(game, second, 'database'))
+    const postgres = solve(game)
+    const mysql = solve(tune(game, 'database', { dbEngine: 'mysql' }))
+    expect(postgres.nodes.database?.connections?.max).toBe(100)
+    expect(postgres.errors.refused).toBeGreaterThan(0)
+    expect(mysql.nodes.database?.connections?.max).toBe(500)
+    expect(mysql.errors.refused).toBeCloseTo(0, 6)
+  })
+
+  test('MySQL full-text search costs twice the CPU of Postgres', () => {
+    const { game, node } = metalDatabase(1_000)
+    const arriving = { 'q-search': 100 }
+    const postgres = databaseModel({ game, node, arriving, boost: 1 })
+    const mysql = databaseModel({ game, node: { ...node, dbEngine: 'mysql' }, arriving, boost: 1 })
+    expect(mysql.capacity).toBeCloseTo(postgres.capacity / 2, 6)
+  })
+
+  test('only a Database or Read Replica takes an engine or a volume', () => {
+    const game = rich(preseed(1_000))
+    const at = (changed: Game) => changed.nodes.find((node) => node.id === 'database')
+    expect(at(ok(setDbEngine(game, 'database', 'mysql')))?.dbEngine).toBe('mysql')
+    expect(Result.isFailure(setDbEngine(game, 'server', 'mysql'))).toBe(true)
+    expect(at(ok(setStorageIops(game, 'database', 'provisioned')))?.iops).toBe('provisioned')
+    expect(Result.isFailure(setStorageIops(game, 'server', 'provisioned'))).toBe(true)
+  })
+
+  test('sharding divides the writes and bills for each shard, and leaves reads alone', () => {
+    const { game, node } = metalDatabase(1_000)
+    const writes = (shards: number) =>
+      databaseModel({ game, node: { ...node, shards }, arriving: { 'q-write': 100 }, boost: 1 })
+    expect(writes(4).capacity).toBeCloseTo(writes(1).capacity * 4, 6)
+    // A read asks one shard, so it is the Read Replica that takes reads off the primary.
+    const reads = (shards: number) =>
+      databaseModel({ game, node: { ...node, shards }, arriving: { 'q-read': 100 }, boost: 1 })
+    expect(reads(4).capacity).toBeCloseTo(reads(1).capacity, 6)
+  })
+
+  test('a transaction across shards costs three times the latency', () => {
+    const { game, node } = metalDatabase(1_000)
+    const tx = (shards: number) =>
+      databaseModel({ game, node: { ...node, shards }, arriving: { 'q-tx': 10 }, boost: 1 })
+    const one = tx(1).service['q-tx'] ?? { fixed: 0, variable: 0 }
+    const four = tx(4).service['q-tx'] ?? { fixed: 0, variable: 0 }
+    expect(four.fixed).toBeCloseTo(one.fixed * 3, 6)
+    expect(four.variable / one.variable).toBeCloseTo(3, 2)
+  })
+
+  test('sharding needs its research, and one shard needs nothing', () => {
+    const game = rich(preseed(1_000))
+    const at = (changed: Game) => changed.nodes.find((node) => node.id === 'database')
+    expect(Result.isFailure(setShards(game, 'database', 4))).toBe(true)
+    const ready = rich(preseed(1_000, ['sharding']))
+    expect(at(ok(setShards(ready, 'database', 4)))?.shards).toBe(4)
+    expect(at(ok(setShards(game, 'database', 1)))?.shards).toBe(1)
+    expect(Result.isFailure(setShards(ready, 'database', 3))).toBe(true)
+    expect(Result.isFailure(setShards(ready, 'server', 4))).toBe(true)
+  })
+
+  /** A Series A Sandbox: an App Server, its Database, and Object Storage for video. */
+  const storageBoard = (users: number): Game => {
+    const base: Game = { ...rich(preseed(users, ['object-storage'])), sandbox: true, stage: 3 }
+    const placed = ok(place(base, 'storage', 760, 360))
+    return ok(connect(placed, 'server', last(placed)))
+  }
+
+  test('an Object Storage class trades the storage price for retrieval', () => {
+    const board: Game = { ...storageBoard(8_000), stored: 500 }
+    const node = board.nodes.find((entry) => entry.type === 'storage')
+    if (!node) throw new Error('Missing Object Storage')
+    const infrequentBoard = tune(board, node.id, { storageClass: 'infrequent' })
+    const infrequentNode = infrequentBoard.nodes.find((entry) => entry.id === node.id)
+    if (!infrequentNode) throw new Error('Missing Object Storage')
+    const standard = solve(board)
+    const infrequent = solve(infrequentBoard)
+    // Half the price to keep the bytes, and $0.01 per GB read back on top of it.
+    expect(burnOf(infrequentBoard, infrequentNode)).toBeLessThan(burnOf(board, node))
+    expect(standard.nodes[node.id]?.inbound ?? 0).toBeGreaterThan(0)
+    expect(infrequent.burnLines.storage).toBeGreaterThan(standard.burnLines.storage * 0.5)
+    expect(infrequent.burnLines.storage).toBeLessThan(standard.burnLines.storage)
+  })
+
+  test('an archived object fails a media read as a timeout', () => {
+    const board = storageBoard(8_000)
+    const node = board.nodes.find((entry) => entry.type === 'storage')
+    if (!node) throw new Error('Missing Object Storage')
+    const before = solve(board)
+    const after = solve(tune(board, node.id, { storageClass: 'archive' }))
+    expect(before.nodes[node.id]?.traffic['blob-get'] ?? 0).toBeGreaterThan(0)
+    expect(after.errors.timeout).toBeGreaterThan(0)
+    expect(after.kinds.media?.success ?? 1).toBeLessThan(before.kinds.media?.success ?? 0)
   })
 })
 

@@ -20,14 +20,20 @@ files as rows, and runs report scans. Each of these costs it far more CPU than a
 [Search Engine](/components/search), [Object Storage](/components/storage), and a
 [Data Warehouse](/components/warehouse) take those jobs away.
 
-Three limits cap a Database:
+Four limits cap a Database:
 
 - **CPU.** Every query costs CPU. A cold Database, just restarted, needs more of it per query.
-- **Connections.** Postgres runs one process per connection and accepts a fixed number. Read
+- **Connections.** Postgres runs one process per connection and accepts a fixed number; MySQL gives
+  each connection a thread and holds several times as many. Read
   [Errors and retries](/explanation/errors-and-retries) for why more App Servers make this worse.
+- **The volume's IOPS.** Every write and every read that misses the buffer cache waits on the disk.
+  A general purpose volume answers 3,000 of those a second, a provisioned one 64,000.
 - **The buffer cache.** Report scans fill memory with cold data. Other reads then go to disk, and
   writes wait behind the scans. This is why analytics and transactions should not share a Database.
   See [OLTP and OLAP](/glossary/oltp-and-olap).
+
+A bigger box lifts the first two. Sharding lifts the CPU limit on writes: each shard takes its share
+of them, and bills like a Database of its own.
 
 ## Slow queries hide until you grow
 
