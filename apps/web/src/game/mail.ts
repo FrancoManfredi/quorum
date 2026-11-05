@@ -12,8 +12,10 @@ import {
   CVE_DEFS,
   KINDS,
   REGION_INFO,
+  RESEARCH,
   patchCost,
   patchWindow,
+  type ResearchId,
 } from '@quorum/simulation/catalog'
 import type { ChurnCause, RegionChurn } from '@quorum/simulation/churn'
 import { compact } from '@quorum/ui/game/format'
@@ -253,6 +255,19 @@ const customerFact = (game: Game, n: number): Fact => {
   const sender = senderFor('customers', game, `slow:${n}`)
   return fact(key, sender, write(TICKETS, {}, sender, game, key, n))
 }
+
+/**
+ * The running Study stalled and holds the queue (10 "Studies"): a teammate says why, with a
+ * button to Research. It waits in Needs action until the Study moves or leaves the queue.
+ */
+export const stallFact = (game: Game, id: ResearchId, reason: string): Fact => ({
+  key: `research:stalled:${id}`,
+  sender: mateOf(game, hashOf(id)),
+  subject: `${RESEARCH[id].name} is stalled`,
+  text: `${reason}\n\nEvery Study behind it waits until it moves. Fix the cause, or open Research to move another Study up or cancel this one.`,
+  actions: [{ id: `research:${id}`, label: 'Open Research' }],
+  spam: false,
+})
 
 /** A region's users fell for a calendar hour: the Customers sender says why (GDD 12). */
 export const churnFact = (game: Game, region: RegionChurn): Fact => {

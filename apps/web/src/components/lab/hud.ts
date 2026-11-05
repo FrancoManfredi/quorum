@@ -47,7 +47,7 @@ import { tabDrift } from './mirror.ts'
 import { canRaise } from '@quorum/simulation/actions'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has, nextEra, researchReady } from '@quorum/simulation/lookups'
-import { limitingPool } from '@quorum/simulation/studies'
+import { limitingPool, studyStall } from '@quorum/simulation/studies'
 import { PRE_IPO_STAGE, checklistOf } from '@quorum/simulation/ipo'
 import {
   GUIDANCE_GROWTH,
@@ -65,7 +65,7 @@ import { describeDelta, redoAvailable, settleProgress, undoAvailable } from '@/g
 import { clock as mmss, compact, money, ms, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { exitLegacy, offCompany, type Board, type Model } from '@/game/model.ts'
-import { POOL_ICONS, POOL_ORDER, poolColor } from '@quorum/ui/game/pools'
+import { POOL_ICONS, POOL_ORDER, poolColor, stallReason } from '@quorum/ui/game/pools'
 import { moreMenu, type MoreItem } from '@/game/more.ts'
 import { glowing, playbooksShown, shown } from '@/game/reveal.ts'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -287,6 +287,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
   const running = game.studies[0]
   const recipe = running ? RECIPE[running.id] : {}
   const limit = running ? limitingPool(game) : null
+  const stall = running ? studyStall(game, ledger, running.id) : null
   const pools = POOL_ORDER.filter(
     (pool) => game.pools[pool] >= 1 || ledger.insight[pool] > 0 || (recipe[pool] ?? 0) > 0,
   )
@@ -308,7 +309,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
           h.button(
             [
               h.Type('button'),
-              h.Title('Research (R)'),
+              h.Title(stall ? `Research (R). ${stallReason(stall)}` : 'Research (R)'),
               h.OnClick(
                 Message.PanelOpened({ panel: model.panel === 'research' ? 'none' : 'research' }),
               ),
@@ -331,8 +332,17 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
               ),
               running
                 ? h.span(
-                    [h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))],
                     [
+                      h.Class(
+                        cn(
+                          FIGURE,
+                          'flex items-center gap-1 text-[10.5px]',
+                          stall ? 'text-warn' : 'text-muted-foreground',
+                        ),
+                      ),
+                    ],
+                    [
+                      stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
                       game.studies.length > 1
                         ? `${Math.floor(running.progress * 100)}% · +${game.studies.length - 1}`
                         : `${Math.floor(running.progress * 100)}%`,
@@ -361,7 +371,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
           ),
         ],
       ),
-      running ? meter(running.progress, 'bg-ok', h) : h.empty,
+      running ? meter(running.progress, stall ? 'bg-warn' : 'bg-ok', h) : h.empty,
       pools.length > 0
         ? h.div(
             [

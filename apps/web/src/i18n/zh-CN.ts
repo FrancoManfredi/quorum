@@ -434,6 +434,26 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Study now': '立即研究',
   'Studying now: {0}.': '正在研究：{0}。',
   'Study cancelled: {0}.': '已取消研究：{0}。',
+  'Study queued: {0}.': '已加入研究队列：{0}。',
+  'Study queued: {0}. {1}': '已加入研究队列：{0}。{1}',
+  'Study queued: {0}. Not enough {1} yet: it runs at their earn rate.':
+    '已加入研究队列：{0}。{1}暂时不足：它会按产出速度推进。',
+  'Stalled: nothing earns {0}. Ship {1} to earn it.':
+    '已停滞：没有任何来源产出{0}。上线{1}即可获得。',
+  'Stalled: nothing earns {0} yet.': '已停滞：目前没有任何来源产出{0}。',
+  'Stalled: nothing earns Failure Insight. Failed requests earn it.':
+    '已停滞：没有任何来源产出失败洞察。失败的请求会产出它。',
+  'Stalled: Analytics must sample its request kinds at {0} Component types.':
+    '已停滞：Analytics 必须在 {0} 种组件类型上采样它的请求类型。',
+  '{0} Every Study behind it waits.': '{0}排在它后面的研究都会等待。',
+  '{0} At the front of the queue, it holds every Study behind it.':
+    '{0}排到队首时，它会卡住后面的所有研究。',
+  'Research (R). {0}': '研究（R）。{0}',
+  '{0} is stalled': '{0}已停滞',
+  'Every Study behind it waits until it moves. Fix the cause, or open Research to move another Study up or cancel this one.':
+    '排在它后面的研究都会等它推进。解决原因，或打开研究，把其他研究上移或取消这一项。',
+  'Open Research': '打开研究',
+  '{0} no longer holds the queue.': '{0}不再卡住队列。',
   'Move up': '上移',
   'Move down': '下移',
   'Speed (S)': '速度（S）',

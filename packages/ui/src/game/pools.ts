@@ -19,12 +19,14 @@ import {
   Webhook,
 } from 'lucide'
 import {
+  FEATURES,
   INSIGHT_POOLS,
   POOLS,
   RECIPE,
   type InsightPool,
   type ResearchId,
 } from '@quorum/simulation/catalog'
+import type { StudyStall } from '@quorum/simulation/studies'
 
 /*
  * Insight pools as the player sees them (15 "Insight pools"): each has its own
@@ -67,3 +69,13 @@ export const recipeOf = (id: ResearchId): ReadonlyArray<readonly [InsightPool, n
     const cost = RECIPE[id][pool]
     return cost ? [[pool, cost] as const] : []
   })
+
+/** Why a Study stalls, in one sentence (10 "Studies"). */
+export const stallReason = (stall: StudyStall): string =>
+  stall._tag === 'Breadth'
+    ? `Stalled: Analytics must sample its request kinds at ${stall.types} Component types.`
+    : stall.feature
+      ? `Stalled: nothing earns ${poolName(stall.pool)}. Ship ${FEATURES[stall.feature].name} to earn it.`
+      : stall.pool === 'failure'
+        ? 'Stalled: nothing earns Failure Insight. Failed requests earn it.'
+        : `Stalled: nothing earns ${poolName(stall.pool)} yet.`

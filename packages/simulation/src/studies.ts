@@ -1,6 +1,7 @@
 import {
   BREADTH,
   ERA_RECIPES,
+  FEATURES,
   INSIGHT_POOLS,
   POOL_FLOOR,
   RECIPE,
@@ -13,6 +14,7 @@ import {
   researchList,
   type InsightPool,
   type RequestKind,
+  type FeatureId,
   type ResearchId,
 } from './catalog.ts'
 import { StepEvent } from './events.ts'
@@ -136,6 +138,30 @@ export const limitingPool = (game: Game): InsightPool | null => {
     }
   }
   return worst
+}
+
+/** Why a Study cannot finish on the Design as it is. */
+export type StudyStall =
+  | Readonly<{ _tag: 'Breadth'; types: number }>
+  | Readonly<{ _tag: 'Pool'; pool: InsightPool; feature: FeatureId | null }>
+
+/**
+ * Whether a Study stalls, or null when it can finish: the Design samples its kinds at too few
+ * Component types, or a recipe pool earns nothing and holds less than the Study still draws.
+ * A stalled first Study holds the whole queue. `feature` names the unshipped Feature that brings
+ * the pool's kind, when one does.
+ */
+export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
+  if (!broadEnough(id, ledger)) return { _tag: 'Breadth', types: BREADTH[id] ?? 0 }
+  const left = 1 - (game.studies.find((item) => item.id === id)?.progress ?? 0)
+  for (const [pool, cost] of Object.entries(RECIPE[id]) as Array<[InsightPool, number]>) {
+    if (ledger.insight[pool] > 0 || game.pools[pool] >= cost * left) continue
+    const feature = Object.values(FEATURES).find(
+      (entry) => entry.unlocks?.kind === pool && !game.shipped.includes(entry.id),
+    )
+    return { _tag: 'Pool', pool, feature: feature?.id ?? null }
+  }
+  return null
 }
 
 /** Advances the running Study by some seconds, and completes it when done. */

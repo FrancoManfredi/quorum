@@ -1151,3 +1151,59 @@ test('the Inbox opens on unread FYI Mail when nothing needs action, and on Needs
   expect(opened([{ ...letter, read: true }]).folder).toBe('action')
   expect(opened([letter, offer])).toMatchObject({ folder: 'action', focus: 2 })
 })
+
+test('a stalled running Study raises a teammate alert that opens Research and closes when it moves', () => {
+  // Pre-seed earns no `login` Insight before Password login ships, so Managed identity stalls.
+  const start: Model = {
+    ...inLab(),
+    board: {
+      ...inLab().board,
+      game: {
+        ...preseedGame(),
+        nextIncidentAt: Number.MAX_SAFE_INTEGER,
+        studies: [{ id: 'auth-provider', progress: 0 }],
+      },
+    },
+  }
+  const stalled = tick(start, 8)
+  const alert = stalled.board.inbox.mail.find(
+    (mail) => mail.key === 'research:stalled:auth-provider',
+  )
+  expect(alert?.subject).toBe('Managed identity is stalled')
+  expect(alert?.entries).toHaveLength(1)
+  expect(alert?.actions[0]?.id).toBe('research:auth-provider')
+  const opened = update(
+    stalled,
+    Message.InboxChanged({
+      message: InboxMessage.Acted({ id: alert!.id, action: 'research:auth-provider' }),
+    }),
+  ).model
+  expect(opened.panel).toBe('research')
+  expect(opened.board.research.focus).toBe('auth-provider')
+  const cancelled = tick(
+    update(
+      stalled,
+      Message.ResearchChanged({ message: ResearchMessage.StudyCancelled({ id: 'auth-provider' }) }),
+    ).model,
+  )
+  const after = cancelled.board.inbox.mail.find((mail) => mail.key === alert!.key)
+  expect(after?.resolved).not.toBeNull()
+  // A player who read the alert and then cancelled gets no fresh unread Mail for it.
+  const seen: Model = {
+    ...stalled,
+    board: {
+      ...stalled.board,
+      inbox: {
+        ...stalled.board.inbox,
+        mail: stalled.board.inbox.mail.map((mail) => ({ ...mail, read: true })),
+      },
+    },
+  }
+  const quiet = tick(
+    update(
+      seen,
+      Message.ResearchChanged({ message: ResearchMessage.StudyCancelled({ id: 'auth-provider' }) }),
+    ).model,
+  )
+  expect(quiet.board.inbox.mail.find((mail) => mail.key === alert!.key)?.read).toBe(true)
+})

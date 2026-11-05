@@ -1255,6 +1255,23 @@ export const fr: Readonly<Record<string, string>> = {
   'Study queued: {0}.': "Étude en file d'attente : {0}.",
   'Study queued: {0}. Not enough {1} yet: it runs at their earn rate.':
     "Étude en file d'attente : {0}. Pas encore assez de {1} : elle avance au rythme de leurs gains.",
+  'Study queued: {0}. {1}': "Étude en file d'attente : {0}. {1}",
+  'Stalled: nothing earns {0}. Ship {1} to earn it.':
+    'Bloquée : rien ne rapporte de {0}. Livrez {1} pour en gagner.',
+  'Stalled: nothing earns {0} yet.': 'Bloquée : rien ne rapporte encore de {0}.',
+  'Stalled: nothing earns Failure Insight. Failed requests earn it.':
+    'Bloquée : rien ne rapporte de connaissances Échec. Les requêtes échouées en rapportent.',
+  'Stalled: Analytics must sample its request kinds at {0} Component types.':
+    'Bloquée : Analytics doit échantillonner ses types de requêtes sur {0} types de Composants.',
+  '{0} Every Study behind it waits.': '{0} Toutes les études derrière elle attendent.',
+  '{0} At the front of the queue, it holds every Study behind it.':
+    '{0} En tête de file, elle bloque toutes les études derrière elle.',
+  'Research (R). {0}': 'Recherche (R). {0}',
+  '{0} is stalled': '{0} est bloquée',
+  'Every Study behind it waits until it moves. Fix the cause, or open Research to move another Study up or cancel this one.':
+    'Toutes les études derrière elle attendent qu’elle avance. Corrigez la cause, ou ouvrez la Recherche pour faire monter une autre étude ou annuler celle-ci.',
+  'Open Research': 'Ouvrir la Recherche',
+  '{0} no longer holds the queue.': '{0} ne bloque plus la file.',
   'Study {0} now': 'Étudier {0} maintenant',
   'Studying now: {0}.': 'Étude en cours : {0}.',
   'Cancelled {0}': 'Annulé {0}',

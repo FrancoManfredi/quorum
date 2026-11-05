@@ -7,6 +7,7 @@ import { solve } from './solve.ts'
 import { NO_INSIGHT, type Game } from './state.ts'
 import { step } from './step.ts'
 import { queueSpike } from './work.ts'
+import { studyStall } from './studies.ts'
 
 /* 12 "Earning Insight" and 10 "Studies": Insight by kind, and research that takes time. */
 
@@ -101,5 +102,37 @@ describe('Studies', () => {
     expect(done.researched).toContain('caching')
     // The Spike ends with its Study.
     expect(done.backlog.some((item) => item.kind === 'spike')).toBe(false)
+  })
+})
+
+describe('a Study that stalls', () => {
+  // Pre-seed earns no `login` Insight until Password login ships: no user logs in before.
+  const auth = (pools: Game['pools'], progress = 0): Game => {
+    const game = ok(study(quiet({ pools }), 'auth-provider'))
+    return { ...game, studies: [{ id: 'auth-provider', progress }] }
+  }
+  const cost = RECIPE['auth-provider'].login ?? 0
+
+  test('names the pool that earns nothing, and the Feature that brings its kind', () => {
+    const game = auth(NO_INSIGHT)
+    expect(studyStall(game, solve(game), 'auth-provider')).toEqual({
+      _tag: 'Pool',
+      pool: 'login',
+      feature: 'password-login',
+    })
+    // And it holds the queue: nothing moves in a minute.
+    expect(run(game, 60).studies[0]?.progress).toBe(0)
+  })
+
+  test('does not stall while the pool holds what the rest of the Study draws', () => {
+    const half = auth({ ...NO_INSIGHT, login: cost / 2 }, 0.5)
+    expect(studyStall(half, solve(half), 'auth-provider')).toBeNull()
+    const short = auth({ ...NO_INSIGHT, login: cost / 2 }, 0.4)
+    expect(studyStall(short, solve(short), 'auth-provider')?._tag).toBe('Pool')
+  })
+
+  test('a Study whose pools earn does not stall, even with nothing saved', () => {
+    const game = quiet({ pools: NO_INSIGHT })
+    expect(studyStall(game, solve(game), 'caching')).toBeNull()
   })
 })

@@ -25,11 +25,11 @@ import { BY_RESEARCH } from '@quorum/simulation/discovery'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { has, researchReady } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
-import { limitingPool, studySeconds, studySpeed } from '@quorum/simulation/studies'
+import { limitingPool, studySeconds, studySpeed, studyStall } from '@quorum/simulation/studies'
 import { compact } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
-import { POOL_ORDER, recipeOf } from '@quorum/ui/game/pools'
+import { POOL_ORDER, recipeOf, stallReason } from '@quorum/ui/game/pools'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
@@ -585,7 +585,9 @@ const queueButton = (
 
 /** The Study queue, in order: the first one runs. */
 const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): Html => {
-  const studies = model.board.game.studies
+  const game = model.board.game
+  const studies = game.studies
+  const ledger = ledgerOf(model)
   if (studies.length === 0) return h.empty
   return h.section(
     [
@@ -599,6 +601,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
       h.span([h.Class(cn(EYEBROW, 'px-2 pt-1 pb-0.5'))], ['Queue']),
       ...studies.map((item, index) => {
         const entry = RESEARCH[item.id]
+        const stall = studyStall(game, ledger, item.id)
         return h.div(
           [
             h.Key(item.id),
@@ -621,8 +624,20 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                 researchMark(entry, 'sm', false, h),
                 h.span([h.Class('truncate font-medium')], [entry.name]),
                 h.span(
-                  [h.Class(cn(FIGURE, 'ml-auto shrink-0 text-[11.5px] text-muted-foreground'))],
-                  [`${Math.floor(Math.min(1, item.progress) * 100)}%`],
+                  [
+                    ...(stall ? [h.Title(stallReason(stall))] : []),
+                    h.Class(
+                      cn(
+                        FIGURE,
+                        'ml-auto flex shrink-0 items-center gap-1 text-[11.5px]',
+                        stall ? 'text-warn' : 'text-muted-foreground',
+                      ),
+                    ),
+                  ],
+                  [
+                    stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
+                    `${Math.floor(Math.min(1, item.progress) * 100)}%`,
+                  ],
                 ),
               ],
             ),
@@ -665,6 +680,8 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
   const open = state !== 'owned' && game.openActions.includes(entry.id)
   const track = RESEARCH_TRACKS.find((item) => item.key === entry.track)?.label ?? ''
   const missing = entry.requires.filter((id) => !has(game, id))
+  const stall =
+    state === 'buy' || state === 'saving' ? studyStall(game, ledgerOf(model), entry.id) : null
   const label =
     state === 'owned'
       ? 'Researched'
@@ -721,6 +738,21 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 [
                   icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
                   'Open action item. The incident it prevents is twice as likely until you research it.',
+                ],
+              )
+            : h.empty,
+          stall
+            ? h.div(
+                [
+                  h.Class(
+                    'flex items-start gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-[12px] leading-snug text-warn',
+                  ),
+                ],
+                [
+                  icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
+                  queued === 0
+                    ? `${stallReason(stall)} Every Study behind it waits.`
+                    : `${stallReason(stall)} At the front of the queue, it holds every Study behind it.`,
                 ],
               )
             : h.empty,

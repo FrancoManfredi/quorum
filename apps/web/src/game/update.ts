@@ -112,6 +112,7 @@ import { nextAdvice } from '@quorum/simulation/goals'
 import {
   EVENT_EVERY,
   churnFact,
+  stallFact,
   disclosureFact,
   eventFact,
   eventMail,
@@ -126,6 +127,7 @@ import {
   InboxMessage,
   InboxOutMessage,
   closed,
+  withMail,
   folderList,
   mailed,
   openingFolder,
@@ -253,7 +255,8 @@ import {
   SaveIndex,
 } from './saves.ts'
 import { DEFAULT_LOGO } from './logos.ts'
-import { poolName, recipeOf } from '@quorum/ui/game/pools'
+import { poolName, recipeOf, stallReason } from '@quorum/ui/game/pools'
+import { studyStall } from '@quorum/simulation/studies'
 import { bootStep } from './boot-machine.ts'
 import { sessionStep } from './session-machine.ts'
 import { stepOf } from '@quorum/simulation/migration'
@@ -825,6 +828,14 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
     }
     case 'churn':
       return route(model, Message.PanelOpened({ panel: 'churn' }))
+    case 'research': {
+      const opened = route(model, Message.PanelOpened({ panel: 'research' }))
+      const focused = route(
+        opened.model,
+        Message.ResearchChanged({ message: ResearchMessage.Focused({ id: target as ResearchId }) }),
+      )
+      return { ...focused, commands: [...(opened.commands ?? []), ...(focused.commands ?? [])] }
+    }
     case 'first':
       return route(model, Message.WorkPrioritized({ id: Number(target) }))
     case 'rush':
@@ -887,7 +898,10 @@ const foldResearch = (model: Model, message: ResearchMessage): Result =>
         Study: ({ id }) =>
           act(parent, `Study ${RESEARCH[id].name}`, Actions.study(parent.board.game, id), {
             note: (game) => {
-              // Warn when the pools hold less than the recipe: the Study waits on their rates.
+              // A Study that cannot finish holds the queue: say why. Short pools only slow it.
+              const stall = studyStall(game, ledgerOf(parent), id)
+              if (stall)
+                return [`Study queued: ${RESEARCH[id].name}. ${stallReason(stall)}`, 'warn']
               const short = recipeOf(id)
                 .filter(([pool, cost]) => game.pools[pool] < cost)
                 .map(([pool]) => poolName(pool))
@@ -1441,6 +1455,31 @@ const tick = (model: Model): Result => {
             ),
           },
         }
+    }
+  }
+  // A stalled running Study holds the queue: a teammate writes once, and the Thread waits in Needs
+  // action until the Study moves or leaves the queue (10 "Studies").
+  if (!offCompany(next)) {
+    const running = game.studies[0]
+    const stall = running ? studyStall(game, ledger, running.id) : null
+    const key = running && stall ? `research:stalled:${running.id}` : null
+    if (running && stall)
+      next = mailedTo(next, stallFact(game, running.id, stallReason(stall)), game.time)
+    for (const mail of next.board.inbox.mail) {
+      if (!mail.key.startsWith('research:stalled:') || mail.key === key) continue
+      if (mail.resolved !== null || mail.trashed) continue
+      const name = RESEARCH[mail.key.slice('research:stalled:'.length) as ResearchId]?.name
+      // The player usually caused this, by cancelling or by shipping the fix: no new unread Mail.
+      const inbox = closed(
+        next.board.inbox,
+        mail.key,
+        game.time,
+        `${name} no longer holds the queue.`,
+      )
+      next = {
+        ...next,
+        board: { ...next.board, inbox: withMail(inbox, mail.id, { read: mail.read }) },
+      }
     }
   }
   // The world writes too: teammates, CVEs, customers, and spam.

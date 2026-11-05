@@ -211,6 +211,7 @@ const ACTING = new Set([
   'show',
   'trap',
   'churn',
+  'research',
 ])
 
 export const updateInbox = (
