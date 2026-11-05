@@ -38,8 +38,43 @@ export const INCIDENT_IDS = [
   'cluster-upgrade',
   'config',
   'spot-reclaim',
+  'stale-read',
+  'reconnect',
+  'runaway-bill',
+  'mtu',
 ] as const
 export type IncidentId = (typeof INCIDENT_IDS)[number]
+
+/**
+ * The eight fallacies of distributed computing (glossary), and the incident that breaks each
+ * one in the build. The Fallacies achievement needs every one of them.
+ */
+export const FALLACY_IDS = [
+  'reliable',
+  'latency',
+  'bandwidth',
+  'secure',
+  'topology',
+  'administrator',
+  'transport-cost',
+  'homogeneous',
+] as const
+export type FallacyId = (typeof FALLACY_IDS)[number]
+
+export const FALLACY_INCIDENTS: Readonly<Record<FallacyId, IncidentId>> = {
+  reliable: 'partition',
+  latency: 'slow-query',
+  bandwidth: 'ddos',
+  secure: 'breach',
+  topology: 'bgp',
+  administrator: 'config',
+  'transport-cost': 'runaway-bill',
+  homogeneous: 'mtu',
+}
+
+/** The fallacy an incident breaks, or null when it breaks none of the eight. */
+export const fallacyOf = (kind: IncidentId): FallacyId | null =>
+  FALLACY_IDS.find((id) => FALLACY_INCIDENTS[id] === kind) ?? null
 
 export type IncidentDef = Readonly<{
   id: IncidentId
@@ -467,6 +502,53 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     prevention: 'Mixed fleets, graceful shutdown, and on-demand copies behind a Load Balancer.',
     actions: [],
   },
+  'stale-read': {
+    id: 'stale-read',
+    name: 'Stale reads',
+    era: 2,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 60,
+    cause:
+      'A Cache served values past their TTL: a write-heavy table outran its invalidation, and reads of the same rows came back old.',
+    prevention: 'A shorter TTL, a Cache that writes through, or read-your-writes routing.',
+    actions: ['caching'],
+  },
+  reconnect: {
+    id: 'reconnect',
+    name: 'Reconnect storm',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 20,
+    cause: 'A Realtime Hub restarted. Every client reconnected in the same second.',
+    prevention: 'Reconnect jitter spreads the wave, and Clustering gives it more than one box.',
+    actions: ['websockets'],
+  },
+  'runaway-bill': {
+    id: 'runaway-bill',
+    name: 'Runaway bill',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 60,
+    cause:
+      'An Autoscaler grew to its ceiling without a spike to serve, and Burn rose with no extra revenue.',
+    prevention: 'Lower the Autoscaler ceiling, and read the cloud bill line by line.',
+    actions: ['autoscaling'],
+  },
+  mtu: {
+    id: 'mtu',
+    name: 'MTU mismatch',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 60,
+    cause:
+      'A partner network uses a smaller packet size. Uploads larger than its MTU time out on the way in.',
+    prevention: 'Clamp the packet size, or keep large uploads on one network.',
+    actions: [],
+  },
 }
 
 /** A quarter-end report scans this many times what a report usually does. */
@@ -479,6 +561,10 @@ export const GC_STORM_HEAP = 0.2
 export const GC_STORM = 5
 /** During a replication lag incident, replicas lag this many times as far. */
 export const LAG_SURGE = 10
+/** A stale-read incident serves this many times as many of a Cache's hits stale. */
+export const STALE_SURGE = 10
+/** Share of uploads a mismatched MTU times out. */
+export const MTU_LOSS = 0.5
 /** A slow Payment Provider during a Double charge adds this many ms to each charge, on average. */
 export const SLOW_CHARGE_MS = 1_500
 /** A backtracking WAF rule leaves this share of the WAF's capacity. */

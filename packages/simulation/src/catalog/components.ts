@@ -735,6 +735,68 @@ export const STORAGE_IOPS = {
 
 /** Shard counts a Database splits into (07 "Partitioning"): writes scale with them. Proposed. */
 export const SHARD_COUNTS = [1, 2, 4, 8] as const
+
+/**
+ * Retention policies (07 "Data volume", "Relational database"): what a Database does with rows
+ * older than its window. Keep everything bills every GB and answers a report from the table;
+ * archive moves old rows to cheap storage and a report waits on the restore; delete drops them,
+ * so a report rebuilds its figures from the event log at three times the scan. The 30-day window
+ * and the three prices are proposed: the design names the trade and gives no numbers.
+ */
+export const DB_RETENTIONS = {
+  keep: { name: 'Keep everything', days: 0, price: 1, scanMs: 0, rebuild: 1 },
+  archive: { name: 'Archive after 30 d', days: 30, price: 0.1, scanMs: 200, rebuild: 1 },
+  delete: { name: 'Delete after 30 d', days: 30, price: 0, scanMs: 0, rebuild: 3 },
+} as const
+/** KB one row costs the Database: the row, its indexes, and its share of the WAL. Proposed. */
+export const ROW_KB = 10
+/**
+ * How much dearer a Database's GB are than Object Storage's, per GB per second: gp3 is $0.08 per
+ * GB-month and S3 Standard $0.023, so about 3.5×. Proposed: the design bills the rows only as
+ * "Storage Burn grows with volume".
+ */
+export const DB_STORAGE_MULT = 3.5
+
+/**
+ * Cache strategies (07 "Strategies"): what the Cache does on a write. `stale` multiplies the
+ * TTL's stale share of hits, `write` says where a write goes (`bypass` the Cache, `through` it,
+ * or `ahead` of it), and `flush` is the share a write-behind Cache passes on to the Database.
+ * Cache-aside keeps the TTL's own stale share; read-through removes the race between a write and
+ * a concurrent miss, so it serves three quarters of it; write-through and write-behind keep the
+ * Cache's copy fresh. Proposed: the design names the four strategies and their risks, not their
+ * numbers. Read-through's own cost, the cache library owning loading, is not modelled.
+ */
+export const CACHE_STRATEGIES = {
+  aside: { name: 'Cache-aside', stale: 1, write: 'bypass', writeMs: 0, flush: 1 },
+  'read-through': { name: 'Read-through', stale: 0.75, write: 'bypass', writeMs: 0, flush: 1 },
+  'write-through': { name: 'Write-through', stale: 0, write: 'through', writeMs: 0.5, flush: 1 },
+  'write-behind': { name: 'Write-behind', stale: 0.5, write: 'ahead', writeMs: 0, flush: 0.5 },
+} as const
+
+/**
+ * A Search Engine's refresh interval (07 "Search Engine"): how long a new document waits to
+ * become searchable. A longer interval saves indexing CPU, so the Node answers more queries, and
+ * a bigger share of its answers are staler than the index. 1 s is the design's default and fresh
+ * enough to serve nothing stale; 5 s and 60 s, their capacity and their stale shares are proposed.
+ */
+export const SEARCH_REFRESH = [
+  { seconds: 1, capacity: 1, stale: 0 },
+  { seconds: 5, capacity: 1.1, stale: 0.05 },
+  { seconds: 60, capacity: 1.3, stale: 0.25 },
+] as const
+
+/**
+ * Lifecycle rules (07 "Object Storage"): an object older than this many calendar days moves one
+ * class cheaper, so Standard becomes Infrequent access and Infrequent access becomes Archive.
+ * Days offered, and the age model below, are proposed: the design says "moves old objects to
+ * cheaper classes automatically" and gives no rule.
+ */
+export const LIFECYCLE_DAYS = [0, 30, 90, 365] as const
+
+/** Share of backups an untested restore fails (07 "Backups"): the design's own 20%. */
+export const RESTORE_FAILURE = 0.2
+/** Dev Hours a manual restore drill costs: a half day of an engineer. Proposed. */
+export const RESTORE_DRILL_DH = 4
 /** Milliseconds one disk operation takes on a volume, before it queues: 1,000 / its IOPS. */
 export const diskMs = (volume: keyof typeof STORAGE_IOPS): number =>
   1_000 / STORAGE_IOPS[volume].iops

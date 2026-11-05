@@ -47,6 +47,8 @@ import {
   RT_HOLD_SECONDS,
   DEPLOY_STRATEGIES,
   DB_ENGINES,
+  DB_RETENTIONS,
+  CACHE_STRATEGIES,
   STORAGE_CLASSES,
   STORAGE_IOPS,
   rttOf,
@@ -139,6 +141,13 @@ export type Footer = Readonly<{
   enabled: boolean
   tone: 'accent' | 'ok' | 'muted' | 'danger'
 }>
+
+/** A Connection Pooler's mode, as its card names it. */
+export const POOLER_MODES: Readonly<Record<GameNode['mode'], string>> = {
+  session: 'Session',
+  transaction: 'Transaction',
+  statement: 'Statement',
+}
 
 export const pct = (value: number): string => `${Math.round(value * 100)}%`
 
@@ -290,6 +299,25 @@ export const rowsOf = (
                 ? 'warn'
                 : 'plain',
         },
+        ...(node.keep === 'keep'
+          ? []
+          : [
+              {
+                glyph: 'stored' as const,
+                name: 'Retention',
+                value: DB_RETENTIONS[node.keep].name,
+              },
+            ]),
+        ...(node.backup === 'none'
+          ? []
+          : [
+              {
+                glyph: 'policy' as const,
+                name: 'Restore',
+                value: node.restore === 'failed' ? 'failed' : 'drilled',
+                tone: node.restore === 'failed' ? ('danger' as const) : ('muted' as const),
+              },
+            ]),
         latency,
       ]
     }
@@ -323,11 +351,26 @@ export const rowsOf = (
       return [
         inbound,
         { glyph: 'hits', name: 'Hit ratio', value: pct(own.hitRatio ?? 0), bar: own.hitRatio ?? 0 },
+        ...(node.cacheStrategy === 'aside'
+          ? []
+          : [
+              {
+                glyph: 'policy' as const,
+                name: 'Strategy',
+                value: CACHE_STRATEGIES[node.cacheStrategy].name,
+              },
+            ]),
         latency,
         out,
       ]
     case 'pooler':
-      return [inbound, capacity, latency, out]
+      return [
+        inbound,
+        capacity,
+        { glyph: 'policy', name: 'Pooling', value: POOLER_MODES[node.mode] },
+        latency,
+        out,
+      ]
     case 'lb':
       return [
         inbound,
@@ -344,7 +387,12 @@ export const rowsOf = (
         latency,
       ]
     case 'search':
-      return [inbound, capacity, latency]
+      return [
+        inbound,
+        capacity,
+        { glyph: 'policy', name: 'Refresh', value: `${node.refresh} s` },
+        latency,
+      ]
     case 'storage':
       return [
         inbound,
@@ -355,6 +403,15 @@ export const rowsOf = (
           value: STORAGE_CLASSES[node.storageClass].name,
           tone: node.storageClass === 'archive' ? 'warn' : 'muted',
         },
+        ...(node.lifecycle > 0
+          ? [
+              {
+                glyph: 'policy' as const,
+                name: 'Lifecycle',
+                value: `${node.lifecycle} d`,
+              },
+            ]
+          : []),
         { glyph: 'cost', name: 'Cost', value: `${money(burnOf(game, node))}/s` },
       ]
     case 'queue':

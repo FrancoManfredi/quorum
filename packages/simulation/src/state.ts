@@ -63,13 +63,30 @@ export type DbEngine = typeof DbEngine.Type
 export const IopsClass = Schema.Literals(['general', 'provisioned'])
 export type IopsClass = typeof IopsClass.Type
 
+/** What a Database does with rows older than its window (07 "Data volume"). */
+export const DbRetention = Schema.Literals(['keep', 'archive', 'delete'])
+export type DbRetention = typeof DbRetention.Type
+
+/** What a Cache does on a write (07 "Strategies"). */
+export const CacheStrategy = Schema.Literals([
+  'aside',
+  'read-through',
+  'write-through',
+  'write-behind',
+])
+export type CacheStrategy = typeof CacheStrategy.Type
+
+/** A Search Engine's refresh interval, in seconds (07 "Search Engine"). */
+export const SearchRefresh = Schema.Finite
+export type SearchRefresh = typeof SearchRefresh.Type
+
 /** The class Object Storage keeps its objects in (07 "Object Storage"). */
 export const StorageClass = Schema.Literals(['standard', 'infrequent', 'archive'])
 export type StorageClass = typeof StorageClass.Type
 
 export { DownCause } from './life.ts'
 
-export const PoolerMode = Schema.Literals(['session', 'transaction'])
+export const PoolerMode = Schema.Literals(['session', 'transaction', 'statement'])
 export type PoolerMode = typeof PoolerMode.Type
 
 export const Zone = Schema.Literals(ZONES)
@@ -139,6 +156,8 @@ const NODE_FIELDS = {
   credits: Schema.Finite,
   /** GB leaked by a memory leak. */
   leak: Schema.Finite,
+  /** Supervised process crashes a BEAM App Server has absorbed (06 "Fault isolation"). */
+  crashes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** The App Server gzips page and read responses. */
   compress: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Sim time the Node last went down, so health checks and DNS notice it late. */
@@ -164,6 +183,20 @@ const NODE_FIELDS = {
   /** The class Object Storage keeps its objects in (07 "Object Storage"). */
   storageClass: StorageClass.pipe(
     Schema.withDecodingDefaultKey(Effect.succeed('standard' as const)),
+  ),
+  /** What a Database does with rows past its window (07 "Data volume"). */
+  keep: DbRetention.pipe(Schema.withDecodingDefaultKey(Effect.succeed('keep' as const))),
+  /** The class an object older than this many calendar days moves to (07 "Object Storage"). */
+  lifecycle: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** What a Cache does on a write (07 "Strategies"). */
+  cacheStrategy: CacheStrategy.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('aside' as const)),
+  ),
+  /** Seconds a Search Engine waits before a new document is searchable (07 "Search Engine"). */
+  refresh: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
+  /** A backup that a restore drill found broken (07 "Backups"). */
+  restore: Schema.Literals(['ok', 'failed']).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('ok' as const)),
   ),
   /** The Connection Pooler's mode. Saves from before modes pooled by transaction. */
   mode: PoolerMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('transaction' as const))),
@@ -336,6 +369,8 @@ export const Postmortem = Schema.Struct({
   action: Schema.NullOr(ResearchId),
   /** The SEV level it ended at. */
   severity: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
+  /** The Design resolved it by itself, with no player action (11 "Runbooks"). */
+  auto: Schema.optionalKey(Schema.Boolean),
 })
 export type Postmortem = typeof Postmortem.Type
 
@@ -791,6 +826,10 @@ export const Game = Schema.Struct({
   badDeploys: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** GB held in Object Storage. */
   stored: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** GB of rows the Databases hold: every write and realtime message adds some (07 "Data volume"). */
+  data: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** GB per sim second Object Storage takes in, so Lifecycle rules know an object's age. */
+  uploads: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** The last calendar week of requests and failures, by hour: the SLO window. */
   budget: Schema.Array(BudgetHour).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   drill: Schema.NullOr(Drill).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),

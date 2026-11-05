@@ -129,6 +129,22 @@ const spotTargets = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
     (node) => pricingOf(game, node) === 'spot' && !isDown(node) && busy(ledger, node),
   )
 
+/** Realtime Hubs serving now: a restart only strands clients if they are connected. */
+const wsTargets = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => node.type === 'ws' && !isDown(node) && busy(ledger, node))
+
+/** App Servers and Workers an Autoscaler runs, which a runaway bill can grow. */
+const autoscaled = (game: Game): ReadonlyArray<GameNode> =>
+  game.nodes.filter(
+    (node) =>
+      (node.type === 'server' || node.type === 'worker') &&
+      game.links.some((link) => {
+        if (link.from !== node.id) return false
+        const target = game.nodes.find((entry) => entry.id === link.to)
+        return target?.type === 'autoscaler' && !isDown(target)
+      }),
+  )
+
 /** Nodes an instance failure can hit, weighted toward Nodes with no second copy. */
 const instanceTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNode, number]> =>
   game.nodes
@@ -364,6 +380,24 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
       gpuTargets(game, ledger).length > 0 ? (hasNode(game, 'llm') ? 0.5 : 2) : 0,
     // The provider reclaims spot capacity whenever it needs it: no spot Node, no reclaim.
     'spot-reclaim': () => (spotTargets(game, ledger).length > 0 ? 1.5 : 0),
+    // A Cache with writes to invalidate and a long TTL has the most to serve stale.
+    'stale-read': () => {
+      const targets = cacheTargets(game, ledger).filter(
+        (node) => (ledger.nodes[node.id]?.traffic['q-write'] ?? 0) > 0,
+      )
+      if (targets.length === 0) return 0
+      return targets.some((node) => node.ttl >= 3_600) ? 2 : 1
+    },
+    // A Hub that just came back takes every client at once; jittered backoff spreads it.
+    reconnect: () => {
+      const targets = wsTargets(game, ledger)
+      if (targets.length === 0) return 0
+      return targets.some((node) => !node.backoff) ? 2 : 0.5
+    },
+    // An Autoscaler with no ceiling grows every copy it can.
+    'runaway-bill': () => (autoscaled(game).length > 0 ? 2 : 0),
+    // A partner path with a smaller MTU times out the large uploads.
+    mtu: () => ((ledger.kinds.upload?.rate ?? 0) > 0 ? 1.5 : 0),
     regex: () => (hasNode(game, 'waf') ? 1 : 0),
     // 3.0 once the Company could open a second region and every region-bound Node sits in one.
     region: () => {
@@ -445,6 +479,13 @@ export const startIncident = (
       const targets = spotTargets(game, ledger)
       return targets[Math.floor(roll * targets.length)]
     }),
+    Match.when('stale-read', () => {
+      const targets = cacheTargets(game, ledger).filter(
+        (node) => (ledger.nodes[node.id]?.traffic['q-write'] ?? 0) > 0,
+      )
+      return targets[Math.floor(roll * targets.length)]
+    }),
+    Match.when('reconnect', () => busiest(game, ledger, 'ws')),
     Match.when('cluster-upgrade', () => pickWeighted(clusterTargets(game), roll)),
     Match.when('hot-key', () => {
       const targets = hotKeyTargets(game, ledger)
@@ -471,6 +512,8 @@ export const startIncident = (
     'gc-storm',
     'gpu-shortage',
     'spot-reclaim',
+    'stale-read',
+    'reconnect',
     'hot-key',
     'cluster-upgrade',
   ] as const
@@ -536,40 +579,43 @@ export const startIncident = (
             }
           : node.id !== target?.id
             ? node
-            : kind === 'instance' && node.type === 'wide'
-              ? // A Wide-column Store loses one replica and keeps serving the quorums it can still form.
-                { ...node, lost: incidentDuration(game, kind) }
-              : kind === 'instance'
-                ? {
-                    ...node,
-                    // A standby takes over: the Node is back once failover finishes. A Cluster
-                    // reschedules a pod on another host by itself (self-healing).
-                    ...takeDown(
-                      node.life,
-                      node.standby
-                        ? failoverSeconds(game)
-                        : clusterOf(game, node) !== undefined
-                          ? rescheduleSeconds(game)
-                          : -1,
-                      'failure',
-                    ),
-                    downAt: game.time,
-                  }
-                : kind === 'stampede'
+            : kind === 'reconnect'
+              ? // The Hub restarted: it is back, cold, and every client reconnects at once.
+                { ...node, life: withWarm(node.life, 0) }
+              : kind === 'instance' && node.type === 'wide'
+                ? // A Wide-column Store loses one replica and keeps serving the quorums it can still form.
+                  { ...node, lost: incidentDuration(game, kind) }
+                : kind === 'instance'
                   ? {
                       ...node,
-                      life: withWarm(
+                      // A standby takes over: the Node is back once failover finishes. A Cluster
+                      // reschedules a pod on another host by itself (self-healing).
+                      ...takeDown(
                         node.life,
-                        node.warming && has(game, 'cache-warming') ? WARMED : 0,
+                        node.standby
+                          ? failoverSeconds(game)
+                          : clusterOf(game, node) !== undefined
+                            ? rescheduleSeconds(game)
+                            : -1,
+                        'failure',
                       ),
+                      downAt: game.time,
                     }
-                  : kind === 'gpu-shortage'
+                  : kind === 'stampede'
                     ? {
                         ...node,
-                        ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
-                        downAt: game.time,
+                        life: withWarm(
+                          node.life,
+                          node.warming && has(game, 'cache-warming') ? WARMED : 0,
+                        ),
                       }
-                    : node,
+                    : kind === 'gpu-shortage'
+                      ? {
+                          ...node,
+                          ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
+                          downAt: game.time,
+                        }
+                      : node,
   )
   // An audit finding resets the DR drill: it must pass again.
   const drill = kind === 'audit' ? null : game.drill
@@ -618,7 +664,7 @@ export const directIncidents = (
   return { game: started.game, events: [StepEvent.IncidentStarted({ incident: started.incident })] }
 }
 
-const postmortemOf = (game: Game, incident: Incident): Postmortem => {
+const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem => {
   const target = game.nodes.find((node) => node.id === incident.nodeId)
   return {
     id: game.postmortemSeq + 1,
@@ -634,14 +680,37 @@ const postmortemOf = (game: Game, incident: Incident): Postmortem => {
       ? null
       : (INCIDENTS[incident.kind].actions.find((id) => !has(game, id) && researchReady(game, id)) ??
         null),
+    ...(auto ? { auto: true } : {}),
   }
 }
 
+/**
+ * The incidents the Design ends by itself, with no player action (11 "Runbooks"): a Cluster
+ * reschedules a pod or a standby fails over, a Spot Node comes back, or a retry storm drains
+ * behind backoff. The postmortem records it, so the Runbook achievement can see it.
+ */
+const resolvesItself = (game: Game, incident: Incident, target: GameNode | undefined): boolean => {
+  if (incident.kind === 'instance')
+    return target !== undefined && (target.standby || clusterOf(game, target) !== undefined)
+  if (incident.kind === 'spot-reclaim')
+    return target !== undefined && pricingOf(game, target) === 'spot'
+  if (incident.kind === 'retry-storm')
+    return game.links.some(
+      (link) =>
+        link.retries === 'backoff' &&
+        game.nodes.some((node) => node.id === link.to && node.type === 'database'),
+    )
+  return false
+}
+
 /** Ends the running incident: undoes its effect and files a postmortem to write. */
-const resolve = (game: Game): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
+const resolve = (
+  game: Game,
+  auto = false,
+): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
   const incident = game.incident
   if (!incident) return { game, events: [] }
-  const postmortem = postmortemOf(game, incident)
+  const postmortem = postmortemOf(game, incident, auto)
   const killed = game.nodes.find(
     (node) => node.id === incident.nodeId && incident.kind === 'leak' && node.leak > 0,
   )
@@ -764,8 +833,12 @@ export const advanceIncident = (
     // A reclaimed Node is back, sold, or no longer spot: the reclaim is over.
     (incident.kind === 'spot-reclaim' &&
       elapsedAfter >= SPOT_WARNING &&
-      (!held || held.life._tag !== 'Restarting'))
-  return tracked.remaining <= 0 || fixed ? resolve(next) : { game: next, events: [] }
+      (!held || held.life._tag !== 'Restarting')) ||
+    // The Hub is warm again: the reconnect wave is over.
+    (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running'))
+  // Fixed before its clock ran out, by a path the Design takes on its own: record that.
+  const healed = fixed && tracked.remaining > 0 && resolvesItself(game, incident, target)
+  return tracked.remaining <= 0 || fixed ? resolve(next, healed) : { game: next, events: [] }
 }
 
 /** Starts an incident on demand, for the playtest panel and Sandbox scripts. */

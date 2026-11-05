@@ -4,6 +4,7 @@ import {
   BREAKER_OPEN,
   BREAKER_THRESHOLD,
   APDEX_WINDOW,
+  BEAM_CRASHES_PER_REQUESTS,
   BORDER_MIXING,
   CHURN,
   CREDIT_CAP,
@@ -19,6 +20,8 @@ import {
   REQUEST_KINDS,
   POD_REACTION,
   RUNTIMES,
+  ROW_KB,
+  DB_RETENTIONS,
   SCALE_COOLDOWN,
   SCALE_IN,
   STEADY_CHURN,
@@ -294,10 +297,14 @@ const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): Gam
   const load =
     scaler.signal === 'cpu' ? (cpu && cpu.total > 0 ? cpu.used / cpu.total : 0) : own.utilization
   const most = scaler.maxCopies > 0 ? scaler.maxCopies : Number.POSITIVE_INFINITY
-  const wanted = Math.min(
-    most,
-    Math.max(scaler.minCopies, Math.ceil((node.replicas * load) / scaler.target)),
-  )
+  // A runaway bill is an Autoscaler with no ceiling: it grows every copy it can, and Burn rises.
+  const wanted =
+    game.incident?.kind === 'runaway-bill'
+      ? Math.max(node.replicas, most === Number.POSITIVE_INFINITY ? 16 : most)
+      : Math.min(
+          most,
+          Math.max(scaler.minCopies, Math.ceil((node.replicas * load) / scaler.target)),
+        )
   if (wanted > node.replicas)
     return {
       ...node,
@@ -338,6 +345,13 @@ const advanceNode = (
     next = { ...next, life: warming(Math.min(1, life.warm + seconds / warmupOf(node))) }
   }
   if (node.type === 'server' || node.type === 'worker') next = scale(game, next, ledger, seconds)
+  // BEAM supervisors restart a process now and then, and the request is retried inside the VM:
+  // the crash is absorbed, so it counts without failing anyone (06 "Fault isolation").
+  if (next.type === 'server' && RUNTIMES[next.runtime].language === 'elixir' && !isDown(next)) {
+    const inbound = ledger.nodes[next.id]?.inbound ?? 0
+    if (inbound > 0)
+      next = { ...next, crashes: next.crashes + (inbound * seconds) / BEAM_CRASHES_PER_REQUESTS }
+  }
   if (node.type === 'queue') next = { ...next, depth: depthAfter(game, ledger, node, seconds) }
   if (node.lost > 0) next = { ...next, lost: Math.max(0, node.lost - seconds) }
   // A Database in a retry storm queues what it cannot take, and drains once it can.
@@ -482,6 +496,25 @@ export const step = (
       node.type === 'storage' ? total + (ledger.nodes[node.id]?.inbound ?? 0) : total,
     0,
   )
+  // Rows: every write to a Database and every realtime message it holds adds data, and data never
+  // shrinks by itself. A retention window caps it at what the Company writes in its window.
+  const rows = game.nodes.reduce((sum, node) => {
+    const own = ledger.nodes[node.id]?.traffic
+    if (!own) return sum
+    const writes = node.type === 'database' || node.type === 'wide' ? (own['q-write'] ?? 0) : 0
+    const messages = node.type === 'ws' ? (own.rt ?? 0) : 0
+    return sum + writes + messages
+  }, 0)
+  const added = ((rows * ROW_KB) / 1_000_000) * seconds
+  const windows = game.nodes
+    .filter((node) => node.type === 'database')
+    .map((node) => DB_RETENTIONS[node.keep].days)
+  const keptDays =
+    windows.length === 0 || windows.some((days) => days === 0) ? 0 : Math.max(...windows)
+  // Calendar days of writes the retention window keeps: one sim second is one calendar minute.
+  const kept =
+    keptDays > 0 ? ((rows * ROW_KB) / 1_000_000) * keptDays * 1_440 : Number.POSITIVE_INFINITY
+  const data = Math.min(kept, game.data + added)
   const { users, userShares, steady } = grow(game, ledger, seconds, tuning.pace, offline)
   const apdex = game.apdex + (ledger.apdex - game.apdex) * Math.min(1, seconds / APDEX_WINDOW)
   // Sim time stays on a microsecond grid, so ten 0.1 s Steps make exactly one second.
@@ -528,6 +561,8 @@ export const step = (
     pools: accrue(game, ledger, seconds, firsts, FIRST_KIND_INSIGHT),
     servedKinds: firsts.length > 0 ? [...game.servedKinds, ...firsts] : game.servedKinds,
     stored: puts > 0 ? game.stored + (puts * UPLOAD_MB * seconds) / 1_000 : game.stored,
+    data,
+    uploads: (puts * UPLOAD_MB) / 1_000,
     budget: recordBudget(game, ledger, seconds),
     drill: advanceDrill({ ...game, time }, ledger),
     quarter: advanceQuarter({ ...game, time }, ledger),

@@ -39,6 +39,14 @@ export const ACHIEVEMENT_IDS = [
   'serial-founder',
   'histogram',
   'pareto',
+  'two-hard-things',
+  'conways-law',
+  'fallacies',
+  'thundering-herd',
+  'runbook',
+  'finops',
+  'spot-the-difference',
+  'let-it-crash',
 ] as const
 export type AchievementId = (typeof ACHIEVEMENT_IDS)[number]
 
@@ -238,6 +246,46 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'pareto',
     name: 'Pareto',
     condition: 'Reach the 70th percentile on all three axes of one Challenge',
+  }),
+  'two-hard-things': achievement({
+    id: 'two-hard-things',
+    name: 'Two Hard Things',
+    condition: 'Have a stale-read incident on a cache',
+  }),
+  'conways-law': achievement({
+    id: 'conways-law',
+    name: "Conway's Law",
+    condition: 'Have more teams than Services, then fix it',
+  }),
+  fallacies: achievement({
+    id: 'fallacies',
+    name: 'Fallacies',
+    condition: 'Experience all eight fallacies of distributed computing in incidents',
+  }),
+  'thundering-herd': achievement({
+    id: 'thundering-herd',
+    name: 'Thundering Herd',
+    condition: 'Survive a reconnect storm with no errors',
+  }),
+  runbook: achievement({
+    id: 'runbook',
+    name: 'Runbook',
+    condition: 'Have an incident resolve with no player action',
+  }),
+  finops: achievement({
+    id: 'finops',
+    name: 'FinOps',
+    condition: 'Run a fleet with reserved, on-demand, and spot Nodes at once',
+  }),
+  'spot-the-difference': achievement({
+    id: 'spot-the-difference',
+    name: 'Spot the Difference',
+    condition: 'Survive a spot reclaim with no errors',
+  }),
+  'let-it-crash': achievement({
+    id: 'let-it-crash',
+    name: 'Let It Crash',
+    condition: 'Have an Elixir service survive 1,000 crashes with no failed requests',
   }),
 }
 

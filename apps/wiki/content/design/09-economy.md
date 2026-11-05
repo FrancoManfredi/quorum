@@ -68,17 +68,18 @@ surfaces them on purpose.
 
 ### Base prices
 
-| Resource                          | Price                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| vCPU, general family              | $0.05/s                                                                                                   |
-| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                    |
-| RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory) |
-| Object storage, standard          | $0.000032/s per GB                                                                                        |
-| Object storage, infrequent access | 0.5× the standard price, and $0.01 per GB read back                                                       |
-| Object storage, archive           | 0.1× the standard price. A read waits for a restore, and fails as `timeout` until then                    |
-| Database volume, provisioned IOPS | 1.5× the Database's box. Proposed: the design says "higher cost" and gives no rate                        |
-| Block storage                     | **Not built yet:** no block-storage price and no volume model                                             |
-| Engineer salary (base)            | $0.40/s                                                                                                   |
+| Resource                          | Price                                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| vCPU, general family              | $0.05/s                                                                                                                               |
+| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                                                |
+| RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory)                             |
+| Object storage, standard          | $0.000032/s per GB                                                                                                                    |
+| Object storage, infrequent access | 0.5× the standard price, and $0.01 per GB read back                                                                                   |
+| Object storage, archive           | 0.1× the standard price. A read waits for a restore, and fails as `timeout` until then                                                |
+| Database volume, provisioned IOPS | 1.5× the Database's box. Proposed: the design says "higher cost" and gives no rate                                                    |
+| Database rows                     | 3.5× the Object Storage price: gp3 is $0.08 per GB-month against S3 Standard's $0.023. Proposed, and a retention policy multiplies it |
+| Block storage                     | **Not built yet:** no block-storage price and no volume model                                                                         |
+| Engineer salary (base)            | $0.40/s                                                                                                                               |
 
 These are Garage prices. Every price in this document, including placement, Burn, egress, and
 third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee and the

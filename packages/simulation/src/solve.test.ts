@@ -4,7 +4,14 @@ import {
   connect,
   disconnect,
   place,
+  runRestoreDrill,
+  setBackup,
+  setCacheStrategy,
   setDbEngine,
+  setDbRetention,
+  setLifecycle,
+  setPoolerMode,
+  setSearchRefresh,
   setFamily,
   setHealthCheck,
   setLinkKinds,
@@ -20,10 +27,19 @@ import {
 } from './actions.ts'
 import { newGame, preseedGame } from './company.ts'
 import { databaseModel, serverModel } from './capacity.ts'
-import { BACKEND_KINDS, GATEWAY_PRICE, REQUEST_KINDS, type Kind } from './catalog.ts'
+import {
+  BACKEND_KINDS,
+  GATEWAY_PRICE,
+  REQUEST_KINDS,
+  RESTORE_FAILURE,
+  type Kind,
+} from './catalog.ts'
 import { RUNNING, stopped, warmOf } from './life.ts'
 import type { Ledger } from './ledger.ts'
-import { burnOf, restarted, eraOf } from './lookups.ts'
+import { agedShareOf, burnOf, restarted, eraOf } from './lookups.ts'
+import { brokenRestore, rpoOf } from './ipo.ts'
+import { nextRandom } from './random.ts'
+import { step } from './step.ts'
 import { hitRatioOf } from './rules.ts'
 import { cosTurns, diurnal, solve, weekly } from './solve.ts'
 import type { Game, GameNode } from './state.ts'
@@ -903,5 +919,304 @@ describe('the API Gateway', () => {
     expect(Result.isFailure(place(preseed(1_000), 'gw', 240, 280))).toBe(true)
     const placed = ok(place(preseed(1_000, ['api-gateway']), 'gw', 240, 280))
     expect(placed.nodes.some((node) => node.type === 'gw')).toBe(true)
+  })
+})
+
+/*
+ * The rest of the data tier (07): a Database's retention window and its rows, statement pooling,
+ * the Cache's strategies, the Search Engine's refresh, restore drills, and Object Storage's
+ * lifecycle rules. Each test is the mechanic's effect and the research that gates it.
+ */
+describe('retention and the rows a Database holds', () => {
+  const rows = (users: number) => {
+    const game = preseed(users)
+    const node = game.nodes.find((entry) => entry.type === 'database') as GameNode
+    return { game, node: { ...node, size: 8 } }
+  }
+
+  test('every write adds rows, and a retention window caps them', () => {
+    const base = preseed(2_000)
+    expect(step(base, 120).game.data).toBeGreaterThan(0)
+    // A store already past its window loses what ages out; one that keeps everything keeps it.
+    const archiving = {
+      ...ok(setDbRetention(rich(preseed(2_000, ['retention'])), 'database', 'archive')),
+      data: 100,
+    }
+    const keeping = tune(archiving, 'database', { keep: 'keep' })
+    const windowed = step(archiving, 120).game.data
+    const forever = step(keeping, 120).game.data
+    expect(windowed).toBeGreaterThan(0)
+    expect(windowed).toBeLessThan(100)
+    expect(forever).toBeGreaterThan(100)
+  })
+
+  test('archiving bills a tenth of the rows and makes a report wait on the restore', () => {
+    const { game } = rows(1_000)
+    const keepingGame = { ...game, data: 500 }
+    const archivedGame = tune(keepingGame, 'database', { keep: 'archive' })
+    const keeping = burnOf(
+      keepingGame,
+      keepingGame.nodes.find((node) => node.id === 'database') as GameNode,
+    )
+    const archived = burnOf(
+      archivedGame,
+      archivedGame.nodes.find((node) => node.id === 'database') as GameNode,
+    )
+    expect(archived).toBeLessThan(keeping)
+    const node = game.nodes.find((entry) => entry.id === 'database') as GameNode
+    const scan = (keep: GameNode['keep']) =>
+      databaseModel({
+        game,
+        node: { ...node, keep },
+        arriving: { 'q-scan': 10 },
+        boost: 1,
+      })
+    expect(scan('archive').service['q-scan']?.fixed ?? 0).toBeGreaterThan(
+      scan('keep').service['q-scan']?.fixed ?? 0,
+    )
+    // Deleting them means the report rebuilds its figures: three times the scan CPU.
+    expect(scan('delete').capacity).toBeLessThan(scan('keep').capacity)
+    expect(scan('delete').service['q-scan']?.fixed ?? 0).toBe(
+      scan('keep').service['q-scan']?.fixed ?? 0,
+    )
+  })
+
+  test('retention needs its research, and keeping everything needs nothing', () => {
+    const game = rich(preseed(1_000))
+    const at = (changed: Game) => changed.nodes.find((node) => node.id === 'database')
+    expect(Result.isFailure(setDbRetention(game, 'database', 'archive'))).toBe(true)
+    expect(at(ok(setDbRetention(game, 'database', 'keep')))?.keep).toBe('keep')
+    const ready = rich(preseed(1_000, ['retention']))
+    expect(at(ok(setDbRetention(ready, 'database', 'delete')))?.keep).toBe('delete')
+    expect(Result.isFailure(setDbRetention(ready, 'server', 'archive'))).toBe(true)
+  })
+})
+
+describe('statement pooling', () => {
+  test('a statement pooler shares server connections like a transaction pooler', () => {
+    const pooled = (mode: 'session' | 'transaction' | 'statement'): Game => {
+      let game = tune(preseed(2_000, ['pooling']), 'server', { workers: 70, life: RUNNING })
+      game = ok(place(game, 'pooler', 600, 200))
+      const pooler = last(game)
+      game = tune(game, pooler, { mode })
+      game = disconnect(game, 'server', 'database')
+      game = ok(connect(game, 'server', pooler))
+      return ok(connect(game, pooler, 'database'))
+    }
+    const used = (mode: 'session' | 'transaction' | 'statement') =>
+      solve(pooled(mode)).nodes.database?.connections?.used ?? 0
+    expect(used('statement')).toBe(used('transaction'))
+    expect(used('statement')).toBeLessThan(used('session'))
+  })
+
+  test('a multi-statement transaction cannot run through a statement pooler', () => {
+    /** A Sandbox charging cards: the App Server reaches the Payment Provider and its Database. */
+    const checkout = (mode: 'transaction' | 'statement'): Ledger => {
+      let game: Game = {
+        ...rich(preseed(200, ['pooling', 'checkout'])),
+        sandbox: true,
+        stage: 3,
+        scenario: { mix: { buy: 1 } },
+      }
+      game = ok(place(game, 'psp', 500, 300))
+      game = ok(connect(game, 'server', last(game)))
+      game = ok(place(game, 'pooler', 600, 200))
+      const pooler = last(game)
+      game = tune(game, pooler, { mode })
+      game = disconnect(game, 'server', 'database')
+      game = ok(connect(game, 'server', pooler))
+      game = ok(connect(game, pooler, 'database'))
+      return solve(game)
+    }
+    expect(checkout('transaction').kinds.buy?.success ?? 0).toBeCloseTo(1, 6)
+    expect(checkout('statement').kinds.buy?.success ?? 0).toBe(0)
+    expect(checkout('statement').errors.refused).toBeGreaterThan(0)
+  })
+
+  test('a Pooler takes all three modes and no other Node takes a mode', () => {
+    let game = rich(preseed(1_000, ['pooling']))
+    game = ok(place(game, 'pooler', 600, 200))
+    const pooler = last(game)
+    const at = (changed: Game) => changed.nodes.find((node) => node.id === pooler)?.mode
+    expect(at(ok(setPoolerMode(game, pooler, 'statement')))).toBe('statement')
+    expect(at(ok(setPoolerMode(game, pooler, 'session')))).toBe('session')
+    expect(Result.isFailure(setPoolerMode(game, 'database', 'statement'))).toBe(true)
+  })
+})
+
+describe('cache strategies', () => {
+  const cached = (strategy: 'aside' | 'read-through' | 'write-through' | 'write-behind') => {
+    let game = rich(preseed(1_500, ['caching', 'cache-strategies']))
+    game = ok(place(game, 'cache', 600, 160))
+    const cache = last(game)
+    game = tune(game, cache, { life: RUNNING })
+    game = disconnect(game, 'server', 'database')
+    game = ok(connect(game, 'server', cache))
+    game = ok(connect(game, cache, 'database'))
+    game = ok(setCacheStrategy(game, cache, strategy))
+    return { game, cache, ledger: solve(game) }
+  }
+
+  test('read-through removes the cache-aside race, so fewer hits come back stale', () => {
+    expect(cached('read-through').ledger.errors.stale).toBeLessThan(
+      cached('aside').ledger.errors.stale,
+    )
+    const through = cached('read-through')
+    const aside = cached('aside')
+    // The same Cache answers the same share: only its staleness changes.
+    expect(through.ledger.nodes[through.cache]?.hitRatio).toBeCloseTo(
+      aside.ledger.nodes[aside.cache]?.hitRatio ?? 0,
+      6,
+    )
+  })
+
+  test('write-through pays a cache write and has nothing stale behind it', () => {
+    const through = cached('write-through')
+    expect(through.ledger.errors.stale).toBeCloseTo(0, 6)
+    expect(through.ledger.kinds.write?.mean ?? 0).toBeGreaterThan(
+      cached('aside').ledger.kinds.write?.mean ?? 0,
+    )
+  })
+
+  test('write-behind answers the write at the cache and flushes half of it to the Database', () => {
+    const behind = cached('write-behind')
+    const aside = cached('aside')
+    const databaseWrites = (run: ReturnType<typeof cached>) =>
+      run.ledger.nodes.database?.traffic['q-write'] ?? 0
+    expect(databaseWrites(behind)).toBeLessThan(databaseWrites(aside) * 0.75)
+    expect(behind.ledger.kinds.write?.mean ?? 0).toBeLessThan(aside.ledger.kinds.write?.mean ?? 0)
+  })
+
+  test('the strategies need Cache strategies research; cache-aside needs nothing', () => {
+    let game = rich(preseed(1_500, ['caching']))
+    game = ok(place(game, 'cache', 600, 160))
+    const cache = last(game)
+    expect(Result.isFailure(setCacheStrategy(game, cache, 'write-through'))).toBe(true)
+    expect(
+      Result.isFailure(
+        setCacheStrategy(rich(preseed(1_500, ['caching', 'cache-strategies'])), 'server', 'aside'),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe('the Search Engine refresh interval', () => {
+  const searching = (refresh: number) => {
+    let game: Game = {
+      ...rich(preseed(2_000, ['full-text-search'])),
+      sandbox: true,
+      stage: 3,
+      scenario: { mix: { search: 1 } },
+    }
+    game = ok(place(game, 'search', 600, 300))
+    const id = last(game)
+    game = ok(connect(game, 'server', id))
+    game = ok(setSearchRefresh(game, id, refresh))
+    return { game, id, ledger: solve(game) }
+  }
+
+  test('a longer interval saves indexing CPU and answers staler', () => {
+    const second = searching(1)
+    const minute = searching(60)
+    expect(minute.ledger.nodes[minute.id]?.capacity ?? 0).toBeGreaterThan(
+      (second.ledger.nodes[second.id]?.capacity ?? 0) * 1.25,
+    )
+    expect(minute.ledger.errors.stale).toBeGreaterThan(second.ledger.errors.stale)
+  })
+
+  test('the interval is one of the three it offers', () => {
+    const { game, id } = searching(1)
+    expect(Result.isFailure(setSearchRefresh(game, id, 7))).toBe(true)
+    expect(Result.isFailure(setSearchRefresh(game, 'database', 5))).toBe(true)
+  })
+})
+
+describe('restore drills', () => {
+  /** The first seed whose roll fails an untested restore. */
+  const failingSeed = (() => {
+    for (let seed = 1; seed < 1_000; seed += 1)
+      if (nextRandom(seed)[0] < RESTORE_FAILURE) return seed
+    throw new Error('No failing seed')
+  })()
+
+  const backed = (researched: Game['researched'] = [], seed = failingSeed) => {
+    const game: Game = { ...rich(preseed(1_000, ['pitr', ...researched])), seed, devHours: 10 }
+    return ok(setBackup(game, 'database', 'nightly'))
+  }
+
+  test('a backup nobody has restored can be broken, and a drill finds out', () => {
+    const broken = backed()
+    expect(broken.nodes.find((node) => node.id === 'database')?.restore).toBe('failed')
+    expect(rpoOf(broken, null)).toBe(Number.POSITIVE_INFINITY)
+    expect(brokenRestore(broken)).toBe(true)
+    const drilled = ok(runRestoreDrill({ ...broken, devHours: 10 }, 'database'))
+    const node = drilled.nodes.find((entry) => entry.id === 'database')
+    // The drill costs Dev Hours and writes a fresh backup: this one may work.
+    expect(drilled.devHours).toBeLessThan(10)
+    expect(node?.restore === 'failed' || node?.restore === 'ok').toBe(true)
+  })
+
+  test('Restore drills remove the roll: the backup restores and the drill costs Dev Hours', () => {
+    const tested = backed(['restore-drills'])
+    expect(tested.nodes.find((node) => node.id === 'database')?.restore).toBe('ok')
+    expect(rpoOf(tested, null)).toBeLessThan(Number.POSITIVE_INFINITY)
+    const drilled = ok(runRestoreDrill({ ...tested, devHours: 10 }, 'database'))
+    expect(drilled.nodes.find((node) => node.id === 'database')?.restore).toBe('ok')
+    expect(Result.isFailure(runRestoreDrill({ ...tested, devHours: 0 }, 'database'))).toBe(true)
+  })
+
+  test('a drill needs a backup, and only a Database keeps one', () => {
+    const game: Game = { ...rich(preseed(1_000, ['pitr'])), devHours: 10 }
+    expect(Result.isFailure(runRestoreDrill(game, 'database'))).toBe(true)
+    expect(Result.isFailure(runRestoreDrill(game, 'server'))).toBe(true)
+  })
+})
+
+describe('lifecycle rules on Object Storage', () => {
+  const store = (
+    lifecycle: number,
+    storageClass: GameNode['storageClass'] = 'standard',
+    researched: Game['researched'] = ['object-storage', 'lifecycle-rules'],
+  ) => {
+    let game: Game = {
+      ...rich(preseed(8_000, researched)),
+      sandbox: true,
+      stage: 3,
+      stored: 500,
+      uploads: 0.01,
+    }
+    game = ok(place(game, 'storage', 760, 360))
+    const id = last(game)
+    game = tune(game, id, { storageClass })
+    game = ok(connect(game, 'server', id))
+    if (lifecycle > 0) game = ok(setLifecycle(game, id, lifecycle))
+    return { game, id, ledger: solve(game) }
+  }
+
+  test('old objects move one class cheaper, so the store bills less', () => {
+    const flat = store(0)
+    const ruled = store(30)
+    const node = (run: ReturnType<typeof store>) =>
+      run.game.nodes.find((entry) => entry.id === run.id) as GameNode
+    // About a seventh of a 35-day-old store is past 30 days: it moves from Standard to IA.
+    expect(agedShareOf(ruled.game, 30)).toBeGreaterThan(0.1)
+    expect(burnOf(ruled.game, node(ruled))).toBeLessThan(burnOf(flat.game, node(flat)))
+  })
+
+  test('an archived object fails its read, so lifecycle costs reads', () => {
+    // From Infrequent access, the oldest share crosses into Archive, where a read must restore it.
+    const flat = store(0, 'infrequent')
+    const ruled = store(30, 'infrequent')
+    expect(ruled.ledger.nodes[ruled.id]?.traffic['blob-get'] ?? 0).toBeGreaterThan(0)
+    expect(ruled.ledger.errors.timeout).toBeGreaterThan(flat.ledger.errors.timeout)
+  })
+
+  test('lifecycle rules need their research; off needs nothing', () => {
+    const game = rich(preseed(8_000, ['object-storage']))
+    const storage = ok(place(game, 'storage', 760, 360))
+    const id = last(storage)
+    expect(Result.isFailure(setLifecycle(storage, id, 30))).toBe(true)
+    const open = store(0)
+    expect(Result.isFailure(setLifecycle(open.game, open.id, 7))).toBe(true)
   })
 })

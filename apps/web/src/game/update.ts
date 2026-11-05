@@ -26,6 +26,8 @@ import {
   DB_ENGINES,
   STORAGE_CLASSES,
   STORAGE_IOPS,
+  DB_RETENTIONS,
+  CACHE_STRATEGIES,
   LANGUAGES,
   REGION_INFO,
   IAC_TOOL_INFO,
@@ -3489,6 +3491,55 @@ const handle = (model: Model, message: Message): Result =>
         Actions.setStorageClass(model.board.game, nodeId, storageClass),
         { undoable: true },
       ),
+
+    LifecycleChosen: ({ nodeId, lifecycle }) =>
+      act(
+        model,
+        lifecycle > 0 ? `Lifecycle after ${lifecycle} days` : 'Lifecycle off',
+        Actions.setLifecycle(model.board.game, nodeId, lifecycle),
+        { undoable: true },
+      ),
+
+    DbRetentionChosen: ({ nodeId, keep }) =>
+      act(
+        model,
+        `Retention: ${DB_RETENTIONS[keep].name}`,
+        Actions.setDbRetention(model.board.game, nodeId, keep),
+        { undoable: true },
+      ),
+
+    CacheStrategyChosen: ({ nodeId, cacheStrategy }) =>
+      act(
+        model,
+        `Cache: ${CACHE_STRATEGIES[cacheStrategy].name}`,
+        Actions.setCacheStrategy(model.board.game, nodeId, cacheStrategy),
+        { undoable: true },
+      ),
+
+    SearchRefreshChosen: ({ nodeId, refresh }) =>
+      act(
+        model,
+        `Refresh: ${refresh} s`,
+        Actions.setSearchRefresh(model.board.game, nodeId, refresh),
+        { undoable: true },
+      ),
+
+    RestoreDrilled: ({ nodeId }) => {
+      const drill = Actions.runRestoreDrill(model.board.game, nodeId)
+      const restore = Result.isSuccess(drill)
+        ? drill.success.nodes.find((entry) => entry.id === nodeId)?.restore
+        : undefined
+      return act(
+        model,
+        restore === 'failed'
+          ? 'The restore failed: the backup is broken'
+          : restore === 'ok'
+            ? 'The restore worked'
+            : 'Restore drill',
+        drill,
+        { undoable: true },
+      )
+    },
 
     DeployStrategyChosen: ({ nodeId, strategy }) =>
       act(

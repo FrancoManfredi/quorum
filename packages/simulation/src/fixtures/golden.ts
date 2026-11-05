@@ -89,43 +89,53 @@ export const GOLDEN_STEPS = 10_000
 // has a class. Writes wait on the volume's IOPS, MySQL holds more connections, shards
 // divide the writes, and an archive-class read fails. The replay's values move where a
 // volume or a shard count binds; the new fields move every hash either way.
-export const GOLDEN_HASH = '991ee87f'
+// SIM_VERSION 23: the achievements with no detector get their mechanic. Four incident
+// kinds land (stale reads, reconnect storm, runaway bill, MTU mismatch), a BEAM App
+// Server counts the process crashes its supervisor absorbs, and a postmortem records
+// when the Design ended an incident on its own. The save gains each Node's crash count,
+// the optional postmortem marker, and the Founder's fallacies met, so every hash moves.
+// The rest of the data tier lands under the same version: a Database's retention policy and
+// the rows every write adds, statement pooling, the Cache's four strategies, the Search
+// Engine's refresh interval, a broken backup and its restore drill, and Object Storage's
+// lifecycle rules. The save gains each Node's policy, strategy, refresh and restore state,
+// and the Game's rows and upload rate.
+export const GOLDEN_HASH = 'a6512ed7'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-  'hello-world': '4ba6d9ca',
-  'split-the-box': '8ccc99bd',
-  slashdotted: 'afb963e0',
-  c10k: '91e0fbef',
-  'event-loop': '90afbe63',
-  'too-many-connections': 'f6489c86',
-  shoestring: 'f57e0daa',
-  'n-plus-one': 'c4abdbeb',
-  'thirteen-engineers': '8bf2dc13',
-  'credential-stuffing': '3b414b57',
-  'black-friday': 'f323bcc1',
-  'us-east-1': 'b47f605c',
-  'exactly-once': '25d9880d',
-  'two-million-sockets': '08acd0b5',
-  'pokemon-go': 'dbc4f94f',
-  'healthcare-launch': 'b049f396',
-  'thundering-herd': '71174f81',
-  'read-states': '852c3d29',
-  'fail-whale': '495a03b3',
-  'reports-at-noon': 'c59c995a',
-  'gpu-economics': '914bd81a',
-  metastable: 'e9804f3b',
-  'regex-of-doom': '4842c85c',
-  'forty-three-seconds': '75ca2da6',
-  'follow-the-sun': '1d07be4b',
-  celebrity: 'bad41a6f',
-  'gone-from-the-internet': '3df80999',
-  'the-typo': '55dc2549',
-  'leap-second': '26beeb8f',
-  'rule-of-40': 'dc7f04be',
-  'postgres-for-everything': '81557fbb',
-  'five-nines': '38dd16cd',
+  'hello-world': 'd3fac186',
+  'split-the-box': '5a50a82d',
+  slashdotted: 'c4ddf538',
+  c10k: '405411bb',
+  'event-loop': '246466e5',
+  'too-many-connections': 'a5c621d8',
+  shoestring: '3c8c3d24',
+  'n-plus-one': '8b8ad872',
+  'thirteen-engineers': '3d5b658f',
+  'credential-stuffing': '84145729',
+  'black-friday': '1906d71d',
+  'us-east-1': '77c0113f',
+  'exactly-once': 'e3c6aaf6',
+  'two-million-sockets': 'ba7cfe30',
+  'pokemon-go': '8393c58b',
+  'healthcare-launch': '732c52c0',
+  'thundering-herd': '75f5902b',
+  'read-states': 'b1f3772e',
+  'fail-whale': '5f30874f',
+  'reports-at-noon': '904b7555',
+  'gpu-economics': '13c00f80',
+  metastable: '068e9698',
+  'regex-of-doom': 'e52dd01c',
+  'forty-three-seconds': 'f8db0476',
+  'follow-the-sun': 'a3c5b786',
+  celebrity: '8094b99c',
+  'gone-from-the-internet': 'f80fe125',
+  'the-typo': '6a165a65',
+  'leap-second': 'f6f20992',
+  'rule-of-40': '453ee95a',
+  'postgres-for-everything': '1d5ccb7b',
+  'five-nines': '44ac4e97',
 }

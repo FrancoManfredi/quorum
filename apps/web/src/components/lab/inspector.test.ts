@@ -331,3 +331,46 @@ test('Upgrade all is offered once a kind has two Nodes, and goes dead when nothi
     Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeAbsent(),
   )
 })
+
+/** The Database with a nightly backup and Dev Hours to spend on a drill. */
+const backed = (): Model => {
+  const model = fixture()
+  const game = model.board.game
+  return {
+    ...model,
+    board: {
+      ...model.board,
+      game: {
+        ...game,
+        devHours: 10,
+        researched: [...game.researched, 'pitr'],
+        nodes: game.nodes.map((node) =>
+          node.id === 'database' ? { ...node, backup: 'nightly' as const } : node,
+        ),
+      },
+    },
+  }
+}
+
+test('a Database offers a Restore drill once it keeps a backup, and the drill needs Dev Hours', () => {
+  // No backup, no drill: the Backups section itself waits for Point-in-time recovery.
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.expect(Scene.role('button', { name: 'Restore drill · 4 DH' })).toBeAbsent(),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(backed()),
+    Scene.expect(Scene.role('button', { name: 'Restore drill · 4 DH' })).toBeEnabled(),
+  )
+  const broke = backed()
+  Scene.scene(
+    { update, view },
+    Scene.given({
+      ...broke,
+      board: { ...broke.board, game: { ...broke.board.game, devHours: 0 } },
+    }),
+    Scene.expect(Scene.role('button', { name: 'Restore drill · 4 DH' })).toBeDisabled(),
+  )
+})

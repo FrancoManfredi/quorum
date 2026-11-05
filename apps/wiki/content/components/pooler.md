@@ -7,7 +7,10 @@ Place it between your App Servers or Workers and the [Database](/components/data
 Its mode sets how many Database connections it opens:
 
 - **Transaction** (the default): every client shares 20 server connections. Code that keeps session state breaks, and a share of requests crash until your team finishes the "Drop session state" task on the [Team](/team#tasks) page.
+- **Statement**: one server connection per statement, the fewest of the three. A transaction that spans several statements cannot run through it, so every checkout fails. Only choose it in a Design whose writes are single statements.
 - **Session**: one server connection per client. Nothing breaks, and it barely helps.
+
+Both pooled modes break session state the same way: prepared statements and `SET` at session level belong to a connection the client no longer holds.
 
 See [connection pooling](/glossary/connection-pooling).
 

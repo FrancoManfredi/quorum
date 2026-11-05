@@ -3388,4 +3388,104 @@ export const fr: Readonly<Record<string, string>> = {
     'Moitié du prix de stockage, et ${0} par Go relu.',
   'Full storage price. Reads come back at once.':
     'Prix de stockage complet. Les lectures reviennent aussitôt.',
+  'Read-through, write-through and write-behind: the Cache owns the load and the write.':
+    'Lecture traversante, écriture traversante et écriture différée : le cache prend en charge la lecture et l’écriture.',
+  'Storage lifecycle rules': 'Règles de cycle de vie du stockage',
+  'Old objects move to a cheaper storage class on their own.':
+    'Les objets anciens passent seuls dans une classe de stockage moins chère.',
+  'Retention policies': 'Politiques de rétention',
+  'A Database archives or deletes old rows: cheaper storage, slower reports.':
+    'La base archive ou supprime les vieilles lignes : stockage moins cher, rapports plus lents.',
+  'Keep everything': 'Tout conserver',
+  'Archive after 30 d': 'Archiver après 30 j',
+  'Delete after 30 d': 'Supprimer après 30 j',
+  'Cache-aside': 'Cache-aside',
+  'Read-through': 'Lecture traversante',
+  'Write-through': 'Écriture traversante',
+  'Write-behind': 'Écriture différée',
+  Statement: 'Instruction',
+  Retention: 'Rétention',
+  Lifecycle: 'Cycle de vie',
+  Pooling: 'Mutualisation',
+  'Retention: {0}': 'Rétention : {0}',
+  'Cache: {0}': 'Cache : {0}',
+  'Refresh: {0} s': 'Rafraîchissement : {0} s',
+  'Lifecycle after {0} days': 'Cycle de vie après {0} jours',
+  'Lifecycle off': 'Cycle de vie désactivé',
+  'The restore worked': 'La restauration a réussi',
+  'The restore failed: the backup is broken': 'La restauration a échoué : la sauvegarde est cassée',
+  'Restore drill': 'Exercice de restauration',
+  'Restore drill · {0} DH': 'Exercice de restauration · {0} h dev',
+  'A write returns from the Cache and reaches the Database late. A crash loses what has not flushed.':
+    'Une écriture revient du cache et atteint la base plus tard. Un plantage perd ce qui n’a pas été vidé.',
+  'Every write goes to the Cache and the Database together: fresher, and a write longer.':
+    'Chaque écriture va au cache et à la base ensemble : plus frais, et une écriture plus longue.',
+  'Reads come from the Cache, writes go around it. A miss can store an old row until the TTL.':
+    'Les lectures viennent du cache, les écritures le contournent. Un défaut peut y déposer une vieille ligne jusqu’au TTL.',
+  'Old rows move to cheap storage: the bill falls, and a report waits on the restore.':
+    'Les vieilles lignes passent en stockage bon marché : la facture baisse et un rapport attend la restauration.',
+  'Old rows are gone: the bill falls, and a report rebuilds its figures at three times the scan.':
+    'Les vieilles lignes ont disparu : la facture baisse et un rapport reconstruit ses chiffres pour trois fois le coût du balayage.',
+  'Every row stays on the fast tier and bills for it.':
+    'Chaque ligne reste sur le niveau rapide et se paie.',
+  '{0}% of the store is older than {1} days and moves one class cheaper. A read of an archived object fails.':
+    '{0} % du stock est plus ancien que {1} jours et passe une classe moins chère. La lecture d’un objet archivé échoue.',
+  'Every object keeps the class above, however old it is.':
+    'Chaque objet garde la classe ci-dessus, quel que soit son âge.',
+  'One server connection per statement: a transaction that spans statements fails.':
+    'Une connexion serveur par instruction : une transaction sur plusieurs instructions échoue.',
+  'One server connection per client: barely smaller than no pooler at all.':
+    'Une connexion serveur par client : à peine moins qu’aucun pool.',
+  'One server connection per active transaction. Session state breaks.':
+    'Une connexion serveur par transaction active. L’état de session casse.',
+  'No backup: a lost table is lost for good.':
+    'Aucune sauvegarde : une table perdue l’est pour de bon.',
+  'A restore failed: this backup would lose everything. Drill it again.':
+    'Une restauration a échoué : cette sauvegarde perdrait tout. Refaites un exercice.',
+  'This backup restores. Drill it again after a change, or research Restore drills.':
+    'Cette sauvegarde se restaure. Refaites un exercice après un changement, ou recherchez Exercices de restauration.',
+  'A new document is searchable within a second, at the cost of indexing CPU.':
+    'Un nouveau document est cherchable en une seconde, au prix de CPU d’indexation.',
+  'A new document waits up to {0} s: indexing is cheaper, and answers are staler.':
+    'Un nouveau document attend jusqu’à {0} s : l’indexation coûte moins, les réponses sont plus périmées.',
+  'Two Hard Things': 'Deux choses difficiles',
+  'Have a stale-read incident on a cache': 'Vivre un incident de lecture périmée sur un cache',
+  "Conway's Law": 'Loi de Conway',
+  'Have more teams than Services, then fix it':
+    'Avoir plus d’équipes que de services, puis corriger',
+  Fallacies: 'Sophismes',
+  'Experience all eight fallacies of distributed computing in incidents':
+    'Vivre les huit idées reçues de l’informatique distribuée dans des incidents',
+  'Survive a reconnect storm with no errors': 'Survivre à une tempête de reconnexions sans erreur',
+  Runbook: 'Procédure',
+  'Have an incident resolve with no player action':
+    'Faire résoudre un incident de lui-même, sans action du joueur',
+  FinOps: 'FinOps',
+  'Run a fleet with reserved, on-demand, and spot Nodes at once':
+    'Exploiter une flotte avec des nœuds réservés, à la demande et spot à la fois',
+  'Spot the Difference': 'Cherchez la différence',
+  'Survive a spot reclaim with no errors': 'Survivre à une reprise de nœud spot sans erreur',
+  'Let It Crash': 'Laissez-le planter',
+  'Have an Elixir service survive 1,000 crashes with no failed requests':
+    'Faire survivre un service Elixir à 1 000 plantages sans requête en échec',
+  'Stale reads': 'Lectures périmées',
+  'A Cache served values past their TTL: a write-heavy table outran its invalidation, and reads of the same rows came back old.':
+    'Un cache a servi des valeurs au-delà de leur TTL : une table à forte écriture a dépassé son invalidation, et les lectures des mêmes lignes sont revenues anciennes.',
+  'A shorter TTL, a Cache that writes through, or read-your-writes routing.':
+    'Un TTL plus court, un cache en écriture directe, ou le routage lecture-après-écriture.',
+  'Reconnect storm': 'Tempête de reconnexions',
+  'A Realtime Hub restarted. Every client reconnected in the same second.':
+    'Un concentrateur temps réel a redémarré. Tous les clients se sont reconnectés dans la même seconde.',
+  'Reconnect jitter spreads the wave, and Clustering gives it more than one box.':
+    'Le jitter de reconnexion étale la vague, et le clustering lui donne plus d’une machine.',
+  'Runaway bill': 'Facture emballée',
+  'An Autoscaler grew to its ceiling without a spike to serve, and Burn rose with no extra revenue.':
+    'Un autoscaler a atteint son plafond sans pic à servir, et la dépense a grimpé sans revenu supplémentaire.',
+  'Lower the Autoscaler ceiling, and read the cloud bill line by line.':
+    'Baissez le plafond de l’autoscaler et lisez la facture cloud ligne par ligne.',
+  'MTU mismatch': 'MTU incompatible',
+  'A partner network uses a smaller packet size. Uploads larger than its MTU time out on the way in.':
+    'Un réseau partenaire utilise une taille de paquet plus petite. Les envois plus grands que son MTU expirent à l’arrivée.',
+  'Clamp the packet size, or keep large uploads on one network.':
+    'Limitez la taille des paquets, ou gardez les gros envois sur un seul réseau.',
 }

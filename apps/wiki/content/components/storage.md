@@ -16,7 +16,11 @@ The class sets what the bytes cost to keep, and what they cost to read back.
 | Infrequent access | Half price    | At once, and a retrieval fee per GB, on the same bill line.           |
 | Archive           | A tenth of it | Only after a restore. A `media` request fails as `timeout` meanwhile. |
 
-Infrequent access is the class for files that are written once and rarely read, and archive for the ones kept only because a rule says so. Neither is free to read: the retrieval fee and the restore are the price of the cheaper storage. The game has no Lifecycle rules, so the player picks the class and every object follows it. The Inspector and [Data tier](/design/07-data-tier#object-storage) hold the prices.
+Infrequent access is the class for files that are written once and rarely read, and archive for the ones kept only because a rule says so. Neither is free to read: the retrieval fee and the restore are the price of the cheaper storage. The Inspector and [Data tier](/design/07-data-tier#object-storage) hold the prices.
+
+## Lifecycle
+
+[Lifecycle rules](/research/lifecycle-rules) move objects on their own once they are old enough: each object past the window drops one class, from Standard to Infrequent access and from Infrequent access to Archive. A store that has been filling for a while holds most of its bytes in the cheaper class, and the oldest share of its reads fails as a timeout until those objects are restored. The Inspector shows how much of the store is past the window; [Data tier](/design/07-data-tier#object-storage) holds the rule.
 
 Until you link Object Storage, the [Database](/components/database) stores files as rows. When an App Server links to both, files go to Object Storage, and the Database stops taking them.
 

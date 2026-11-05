@@ -3,6 +3,7 @@ import {
   BACKLOG_MS,
   CACHE_ENGINES,
   CACHE_OPS,
+  CACHE_STRATEGIES,
   CACHE_TTLS,
   CDN_HIT,
   CDN_TTLS,
@@ -17,13 +18,16 @@ import {
   PRESENCE_VALUE,
   REGEX_CAPACITY,
   RT_HOLD_SECONDS,
+  SEARCH_REFRESH,
   SLOW_CHARGE_MS,
   TOKENS_PER_PROMPT,
   DSQL_READ_COST,
   DSQL_TX,
   HOT_KEY_SHARE,
   MSGP_RATE,
+  MTU_LOSS,
   SPREAD_REGIONS,
+  STALE_SURGE,
   WIDE_OPS,
   WIDE_STALE,
   WIDE_TX_DUPLICATE,
@@ -76,7 +80,16 @@ import {
   type Outcome,
 } from './distribution.ts'
 import { mixOf, payloadFactor, queryFactor } from './features.ts'
-import { clusterOf, flatScale, grown, has, hopMs, inCluster, transferMs } from './lookups.ts'
+import {
+  clusterOf,
+  flatScale,
+  grown,
+  has,
+  hopMs,
+  inCluster,
+  storageBands,
+  transferMs,
+} from './lookups.ts'
 import { buggy } from './migration.ts'
 import { spreadRegions } from './regions.ts'
 import type { Game, GameNode } from './state.ts'
@@ -276,6 +289,13 @@ const flat =
 
 /* ---------- the Cache ---------- */
 
+/**
+ * The strategy a Cache runs (07 "Strategies"). The three that change the write path need their
+ * research; without it the Cache is cache-aside.
+ */
+export const cacheStrategyOf = (game: Game, node: GameNode) =>
+  has(game, 'cache-strategies') ? CACHE_STRATEGIES[node.cacheStrategy] : CACHE_STRATEGIES.aside
+
 /** Redis answers on one main thread; Memcached on every core of its box. */
 const cacheCapacity = (node: GameNode): number =>
   CACHE_OPS * (CACHE_ENGINES[node.engine].scales ? Math.max(1, grown(1, 2, node.size - 3)) : 1)
@@ -283,6 +303,11 @@ const cacheCapacity = (node: GameNode): number =>
 /** The TTL class a Cache's TTL falls in. */
 export const cacheTtlOf = (ttl: number) =>
   ttl <= 10 ? CACHE_TTLS[0] : ttl < 3_600 ? CACHE_TTLS[1] : CACHE_TTLS[2]
+
+/** A Search Engine's refresh interval: how fresh its answers are and what indexing costs. */
+export const refreshOf = (node: GameNode) =>
+  SEARCH_REFRESH.find((entry) => entry.seconds === node.refresh) ??
+  (SEARCH_REFRESH[0] as (typeof SEARCH_REFRESH)[number])
 
 /** Share of read queries a Cache answers: sqrt(memory / hot data) × TTL × invalidation × warmth. */
 export const hitRatioOf = (game: Game, node: GameNode, writeShare: number): number => {
@@ -445,7 +470,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
           : outcome
       // A call to a Queue returns once the task is enqueued: what happens after is async.
       // A stale read fails an API read, and a checkout that reads its own write.
-      return failSome(
+      const relayed = failSome(
         through(
           own,
           BACKEND_KINDS.flatMap((backend, index) =>
@@ -453,11 +478,16 @@ export const RULES: Record<ComponentId, ComponentRule> = {
               ? [[fresh(backend, answer.downstream(backend, hop)), calls[backend] ?? 0] as const]
               : [],
           ),
-          requestKind === 'read' || requestKind === 'buy',
+          // A stale read fails an API read, a checkout that reads its own write, and a search.
+          requestKind === 'read' || requestKind === 'buy' || requestKind === 'search',
         ),
         crashes,
         'crash',
       )
+      // A path with a smaller MTU drops an upload larger than it: the request times out.
+      return game.incident?.kind === 'mtu' && requestKind === 'upload'
+        ? failSome(relayed, MTU_LOSS, 'timeout')
+        : relayed
     },
     // Every app process holds its own pool to each database it reaches.
     connections: (solver, node, model) => {
@@ -505,16 +535,20 @@ export const RULES: Record<ComponentId, ComponentRule> = {
   pooler: {
     model: flat({ fixed: 0.3, variable: 0 }),
     serve: passOn,
-    // Transaction pooling breaks code that keeps session state, until a task removes it.
+    // Transaction pooling breaks code that keeps session state, until a task removes it. Statement
+    // pooling shares the fewest server connections of all, and cannot run a multi-statement
+    // transaction: a checkout through it fails.
     outcome: (answer, node, kind) =>
-      failSome(
-        relay(answer, node, kind),
-        node.mode === 'transaction' && !fixed(answer.game, 'session-state')
-          ? SESSION_STATE_CRASHES
-          : 0,
-        'crash',
-      ),
-    // Session mode holds a server connection per client; transaction mode shares a few.
+      node.mode === 'statement' && kind === 'q-tx'
+        ? failed('refused')
+        : failSome(
+            relay(answer, node, kind),
+            node.mode !== 'session' && !fixed(answer.game, 'session-state')
+              ? SESSION_STATE_CRASHES
+              : 0,
+            'crash',
+          ),
+    // Session mode holds a server connection per client; transaction and statement modes share a few.
     connections: (_, node, __, inbound) =>
       node.mode === 'session' ? inbound : Math.min(POOLER_CONNECTIONS, inbound),
     probe: noProbe,
@@ -532,19 +566,40 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       const writes = rates['q-write'] ?? 0
       const writeShare = reads + writes > 0 ? writes / (reads + writes) : 0
       const { game } = serve.solver
+      const strategy = cacheStrategyOf(game, node)
       const hit = hitRatioOf(game, node, writeShare)
-      serve.setHits(hit, cacheTtlOf(node.ttl).stale * writeShare)
+      // A write-behind Cache keeps its own copy fresh but the Database lags; cache-aside's race
+      // stores old data now and then; write-through has nothing stale behind it. A stale-read
+      // incident is an invalidation bug on top: the Cache keeps serving old rows (07 "TTL").
+      const surge = game.incident?.kind === 'stale-read' && game.incident.nodeId === node.id
+      serve.setHits(
+        hit,
+        cacheTtlOf(node.ttl).stale * writeShare * strategy.stale * (surge ? STALE_SURGE : 1),
+      )
       // Stampede protection: misses only a cold Cache has wait on one fetch per key.
       const warmHit = hitRatioOf(game, { ...node, life: RUNNING }, writeShare)
       const sent =
         node.coalesce && has(game, 'stampede-protection')
           ? 1 - warmHit + (warmHit - hit) * COALESCED
           : 1 - hit
-      each(rates, share, (kind, processed) =>
-        serve.route(kind, kind === 'q-read' ? processed * sent : processed),
-      )
+      each(rates, share, (kind, processed) => {
+        if (kind === 'q-read') return serve.route(kind, processed * sent)
+        // Write-behind answers the write here and flushes only its share to the Database.
+        if (kind === 'q-write' && strategy.write === 'ahead')
+          return serve.route(kind, processed * strategy.flush)
+        serve.route(kind, processed)
+      })
     },
     outcome: (answer, node, kind) => {
+      const strategy = cacheStrategyOf(answer.game, node)
+      // Write-through pays one more cache write; write-behind answers before the Database sees it.
+      if (kind === 'q-write' && strategy.write === 'through') {
+        const own = answer.ownHop(kind)
+        return through({ ...own, fixed: own.fixed + strategy.writeMs }, [
+          [answer.downstream(kind, hopMs(answer.game)), 1],
+        ])
+      }
+      if (kind === 'q-write' && strategy.write === 'ahead') return through(answer.ownHop(kind))
       if (kind !== 'q-read') return relay(answer, node, kind)
       const hit = answer.pass.hits[slotOf(answer.pass, node)] ?? 0
       const mixed = blend([
@@ -575,22 +630,33 @@ export const RULES: Record<ComponentId, ComponentRule> = {
   search: {
     model: (solver, node, arriving) =>
       flatModel(
-        (SEARCH_QPS * flatScale(node)) / queryFactor(solver.game, 'q-search'),
+        (SEARCH_QPS * flatScale(node) * refreshOf(node).capacity) /
+          queryFactor(solver.game, 'q-search'),
         arriving,
         { fixed: 15, variable: 2 },
         solver.boost(node),
       ),
-    outcome: (answer, _, kind) => through(answer.ownHop(kind)),
+    // A slower refresh saves indexing CPU and answers staler: a new document waits to be seen.
+    outcome: (answer, node, kind) => {
+      const own = through(answer.ownHop(kind))
+      return kind === 'q-search' ? { ...own, stale: refreshOf(node).stale } : own
+    },
     ...terminal,
   },
   // Archive-class objects must be restored before they can be read, so a `media` request for one
   // fails as `timeout` (07 "Object Storage").
   storage: {
     model: unlimited(40, 5),
-    outcome: (answer, node, kind) =>
-      kind === 'blob-get' && STORAGE_CLASSES[node.storageClass].archived
-        ? failed('timeout')
-        : through(answer.ownHop(kind)),
+    // A read of an archived object waits hours for its restore, so it fails as a timeout. Lifecycle
+    // rules put the oldest share of the store in Archive, and that share of reads fails with it.
+    outcome: (answer, node, kind) => {
+      if (kind !== 'blob-get') return through(answer.ownHop(kind))
+      const bands = storageBands(answer.game, node)
+      const all = bands.reduce((sum, band) => sum + band.gb, 0)
+      const archived = bands.reduce((sum, band) => sum + (band.archived ? band.gb : 0), 0)
+      const share = all > 0 ? archived / all : STORAGE_CLASSES[node.storageClass].archived ? 1 : 0
+      return failSome(through(answer.ownHop(kind)), share, 'timeout')
+    },
     ...terminal,
   },
   queue: {

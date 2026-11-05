@@ -54,6 +54,11 @@ export const rpoOf = (game: Game, ledger: Ledger | null): number => {
       continue
     }
     if (node.type !== 'database') continue
+    // A backup a restore drill found broken restores nothing (07 "Backups").
+    if (node.backup !== 'none' && node.restore === 'failed') {
+      worst = Number.POSITIVE_INFINITY
+      continue
+    }
     const remote = game.nodes.some(
       (other) => other.type === 'replica' && other.region !== node.region,
     )
@@ -133,6 +138,16 @@ export const residencyMet = (game: Game): boolean => {
   )
 }
 
+/** Whether a home Database's backup is one a drill found broken. */
+export const brokenRestore = (game: Game): boolean =>
+  game.nodes.some(
+    (node) =>
+      node.type === 'database' &&
+      node.region === HOME_REGION &&
+      node.backup !== 'none' &&
+      node.restore === 'failed',
+  )
+
 export const checklistOf = (game: Game, ledger: Ledger): ReadonlyArray<ChecklistItem> => {
   const era = ERAS[PRE_IPO_STAGE]
   const target = era?.raiseAt ?? 50_000_000
@@ -169,11 +184,13 @@ export const checklistOf = (game: Game, ledger: Ledger): ReadonlyArray<Checklist
           ? 'Running'
           : drill.passed
             ? `RTO ${Math.round(drill.rto ?? 0)} min`
-            : drill.rto === null
-              ? 'Not recovered'
-              : drill.rpo >= DRILL_RPO
-                ? 'Data lost'
-                : `RTO ${Math.round(drill.rto)} min`,
+            : brokenRestore(game)
+              ? 'Restore failed'
+              : drill.rto === null
+                ? 'Not recovered'
+                : drill.rpo >= DRILL_RPO
+                  ? 'Data lost'
+                  : `RTO ${Math.round(drill.rto)} min`,
     },
     {
       id: 'residency',

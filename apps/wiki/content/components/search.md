@@ -4,6 +4,10 @@ The Search Engine stands for Elasticsearch: a separate index built for full-text
 
 It takes search queries and sends nothing on. It answers each one in a fixed time, and it answers a fixed number per second per size step. Features that make searches heavier lower that number. See [inverted index](/glossary/inverted-index).
 
+## Refresh
+
+The refresh interval decides how long a new document waits before it is searchable, and how much indexing CPU the Node spends. A long interval answers more queries a second and staler results; a short one is fresher and answers fewer. The Inspector offers the intervals, and [Data tier](/design/07-data-tier#search-engine) says what each costs. A stale result fails a search that needed the new document.
+
 Until you link a Search Engine, the [Database](/components/database) answers searches with built-in full-text search. When an App Server links to both, searches go to the Search Engine, and Postgres stops answering them.
 
 ## When to place it

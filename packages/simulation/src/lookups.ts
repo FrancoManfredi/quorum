@@ -45,12 +45,14 @@ import {
   type ResearchId,
   type RuntimeId,
   BACKUPS,
+  DB_RETENTIONS,
+  DB_STORAGE_MULT,
   SPREAD_REGIONS,
   STORAGE_CLASSES,
   STORAGE_IOPS,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
-import type { Game, GameNode, Pricing } from './state.ts'
+import type { Game, GameNode, Pricing, StorageClass } from './state.ts'
 
 /* ==========================================================================
    Small facts about a Game that the solver, the actions and the UI all ask:
@@ -272,6 +274,75 @@ export const pricingOf = (game: Game, node: GameNode): Pricing =>
     ? 'on-demand'
     : node.pricing
 
+/** The classes in price order, so Lifecycle rules can step an object one class cheaper. */
+const CLASS_ORDER: ReadonlyArray<StorageClass> = ['standard', 'infrequent', 'archive']
+
+/**
+ * The share of a store's GB an object older than `days` calendar days makes up: the store holds
+ * its uploads, so its oldest object is `stored / uploads` long, and everything past the window is
+ * the older share. Proposed: the design gives no age model, only "moves old objects".
+ */
+export const agedShareOf = (game: Game, days: number): number => {
+  if (days <= 0) return 0
+  // One sim second bills a calendar minute, so a calendar day is 1,440 sim seconds of uploads.
+  const perDay = game.uploads * 1_440
+  if (perDay <= 0 || game.stored <= 0) return 0
+  return Math.max(0, Math.min(1, 1 - days / (game.stored / perDay)))
+}
+
+/** One band of a store's GB that shares a storage class. */
+export type StorageBand = Readonly<{
+  gb: number
+  /** Share of the Standard price it bills. */
+  price: number
+  /** Dollars per GB read back out of it. */
+  retrieval: number
+  /** A read has to restore it first, so it fails as a timeout. */
+  archived: boolean
+}>
+
+/**
+ * A store's GB by class (07 "Object Storage"): everything in the class the card shows, or, with
+ * Lifecycle rules, the older share one class cheaper.
+ */
+export const storageBands = (game: Game, node: GameNode): ReadonlyArray<StorageBand> => {
+  const mine = STORAGE_CLASSES[node.storageClass]
+  const share = node.lifecycle > 0 ? agedShareOf(game, node.lifecycle) : 0
+  if (share <= 0) return [{ gb: game.stored, ...mine }]
+  const older =
+    CLASS_ORDER[Math.min(CLASS_ORDER.length - 1, CLASS_ORDER.indexOf(node.storageClass) + 1)] ??
+    node.storageClass
+  return [
+    { gb: game.stored * (1 - share), ...mine },
+    { gb: game.stored * share, ...STORAGE_CLASSES[older] },
+  ]
+}
+
+/** Dollars per second a store's GB bill at the classes it holds them in, before the cost index. */
+export const storageBurnOf = (game: Game, node: GameNode): number =>
+  storageBands(game, node).reduce((sum, band) => sum + band.gb * STORAGE_PRICE * band.price, 0)
+
+/** Dollars per GB per second a Database's rows bill: gp3 against S3 Standard, about 3.5×. */
+export const DB_GB_PRICE = STORAGE_PRICE * DB_STORAGE_MULT
+
+/** GB of the Company's rows one Database holds: the figure split over the Databases it lives in. */
+export const dataOf = (game: Game, node: GameNode): number => {
+  if (node.type !== 'database') return 0
+  const databases = game.nodes.filter((entry) => entry.type === 'database').length
+  return game.data / Math.max(1, databases)
+}
+
+/**
+ * Dollars per second a Database's rows bill (07 "Data volume"): its share of the GB at the
+ * Database price, times what its retention policy keeps on the fast tier. A policy that deletes
+ * old rows bills nothing for them, and the cost index scales the line with the Era.
+ */
+export const dataBurnOf = (game: Game, node: GameNode): number =>
+  dataOf(game, node) *
+  DB_GB_PRICE *
+  (node.type === 'database' ? DB_RETENTIONS[node.keep].price : 1) *
+  eraOf(game).costIndex
+
 /** Dollars per second a Node costs while it exists, down or not. */
 export const burnOf = (game: Game, node: GameNode): number => {
   const def = COMPONENTS[node.type]
@@ -287,12 +358,14 @@ export const burnOf = (game: Game, node: GameNode): number => {
     // Backups store snapshots or the WAL on top of the box (07 "Backups"). A provisioned volume
     // bills a multiple of the box (07 "Capacity"), and each shard is another copy of it (07
     // "Partitioning").
+    // The rows the Database holds bill on the Storage line, at its retention policy's price.
     const one =
       node.type === 'database'
         ? box *
-          (node.backup !== 'none' ? 1 + BACKUPS[node.backup].burn : 1) *
-          STORAGE_IOPS[node.iops].burn *
-          Math.max(1, Math.floor(node.shards))
+            (node.backup !== 'none' ? 1 + BACKUPS[node.backup].burn : 1) *
+            STORAGE_IOPS[node.iops].burn *
+            Math.max(1, Math.floor(node.shards)) +
+          dataBurnOf(game, node)
         : box
     // A standby is a second box; pods pack onto shared nodes.
     if (node.standby) return one * 2
@@ -318,10 +391,7 @@ export const burnOf = (game: Game, node: GameNode): number => {
       index *
       (node.standby ? 2 : 1)
     )
-  if (node.type === 'storage')
-    return (
-      (def.burn + game.stored * STORAGE_PRICE * STORAGE_CLASSES[node.storageClass].price) * index
-    )
+  if (node.type === 'storage') return (def.burn + storageBurnOf(game, node)) * index
   if (node.type === 'gpu') return GPU_TYPES[node.gpu].burn * flatScale(node) * index
   // A spread store runs its nodes in each region it replicates to.
   if ((node.type === 'wide' || node.type === 'dsql') && node.spread)
@@ -355,8 +425,8 @@ export const burnSharesOf = (game: Game): BurnShares => {
     }
     if (COMPONENTS[node.type].group === 'data') {
       data += burn
-      if (node.type === 'storage')
-        storage += game.stored * STORAGE_PRICE * STORAGE_CLASSES[node.storageClass].price * index
+      if (node.type === 'database') storage += dataBurnOf(game, node)
+      if (node.type === 'storage') storage += storageBurnOf(game, node) * index
     } else compute += burn
   }
   return { compute, data: data - storage, storage, observability }

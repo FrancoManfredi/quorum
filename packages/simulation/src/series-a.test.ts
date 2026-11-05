@@ -25,7 +25,7 @@ import { company, link, node } from './company.ts'
 import { forceIncident, weaknessOf } from './director.ts'
 import { burnOf } from './lookups.ts'
 import { budgetOf, budgetVelocity, recordBudget } from './slo.ts'
-import { solve } from './solve.ts'
+import { solve, solveFlow } from './solve.ts'
 import type { Game, GameNode } from './state.ts'
 import { step } from './step.ts'
 import { quarterSeconds } from './team.ts'
@@ -216,6 +216,53 @@ describe('the Realtime Hub', () => {
       6,
     )
     expect(solve(hubBoard('beam', { life: warming(0), backoff: true })).kinds.rt?.success).toBe(1)
+  })
+
+  test('the reconnect storm restarts a Hub, and backoff keeps every client', () => {
+    const plain = hubBoard('beam')
+    const started = forceIncident(plain, solve(plain), 'reconnect')
+    if (!started) throw new Error('no reconnect')
+    expect(started.incident?.kind).toBe('reconnect')
+    expect(started.nodes.find((node) => node.id === 'hub')?.life._tag).toBe('Warming')
+    // Without backoff the whole wave arrives in one second and half of it is refused.
+    expect(solveFlow(settle(started, 2)).errors.refused).toBeGreaterThan(0)
+    const calm = hubBoard('beam', { backoff: true })
+    const withBackoff = forceIncident(calm, solve(calm), 'reconnect')
+    if (!withBackoff) throw new Error('no reconnect')
+    expect(solveFlow(settle(withBackoff, 2)).errors.refused).toBe(0)
+  })
+
+  test('an incident the Design heals itself files an automatic postmortem', () => {
+    const board = seriesA(200_000, 'go', [], [], { standby: true })
+    const started = forceIncident(board, solve(board), 'instance', 'server')
+    if (!started) throw new Error('no instance')
+    const resolved = step(started, 1).events.find((event) => event._tag === 'IncidentResolved')
+    expect(resolved?._tag === 'IncidentResolved' && resolved.postmortem.auto).toBe(true)
+  })
+
+  test('a runaway bill grows every copy the Autoscaler can, and Burn rises', () => {
+    const board = seriesA(
+      200_000,
+      'go',
+      [node('scaler', 'autoscaler', 600, 400)],
+      [['server', 'scaler']],
+    )
+    const before = solve(board)
+    const started = forceIncident(board, before, 'runaway-bill')
+    if (!started) throw new Error('no runaway bill')
+    const after = settle(started, 60)
+    const server = after.nodes.find((entry) => entry.id === 'server')
+    expect((server?.replicas ?? 1) + (server?.pending ?? 0)).toBeGreaterThan(1)
+    expect(solve(after).burn).toBeGreaterThan(before.burn)
+  })
+
+  test('an MTU mismatch times out uploads', () => {
+    const board = seriesA(200_000, 'go')
+    const before = solve(board)
+    expect(before.kinds.upload?.rate ?? 0).toBeGreaterThan(0)
+    const started = forceIncident(board, before, 'mtu')
+    if (!started) throw new Error('no MTU mismatch')
+    expect(solve(started).errors.timeout).toBeGreaterThan(before.errors.timeout)
   })
 
   test('it is placeable only with WebSockets researched', () => {

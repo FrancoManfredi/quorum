@@ -8,6 +8,17 @@ The hit ratio grows with memory compared to your hot data, which grows with user
 
 Two engines are on offer. Redis runs on one main thread and reloads part of its data after a restart. Memcached uses every core and comes back empty.
 
+## Strategy
+
+[Cache strategies](/research/cache-strategies) adds the three strategies a Cache can run besides cache-aside:
+
+- **Cache-aside** (the default): reads come from the Cache, writes go around it. A write and a concurrent miss can race, and the Cache keeps an old row until its TTL.
+- **Read-through**: the Cache loads a miss itself, so that race is gone. The TTL's own staleness is what is left.
+- **Write-through**: every write goes to the Cache and the Database together. Nothing behind the Cache is stale, and each write waits for one more cache write.
+- **Write-behind**: the write returns from the Cache and reaches the Database late, so writes are fast and the Database takes less write load. A miss reads a Database that lags, and a Cache crash loses what it has not flushed.
+
+The Inspector names which way a write travels; [Data tier](/design/07-data-tier#strategies-a-tradeoff-card) holds the table.
+
 ## When to place it
 
 Place it when reads dominate and the Database CPU is high. The [Read Mostly](/sandboxes/read-mostly) Sandbox shows the symptom. Resize it when the hit ratio falls as users grow.

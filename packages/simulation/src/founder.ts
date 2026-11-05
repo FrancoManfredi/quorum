@@ -3,6 +3,7 @@ import {
   ACHIEVEMENTS,
   ACHIEVEMENT_IDS,
   EXIT_MUTATORS,
+  FALLACY_IDS,
   PERKS,
   PLAYBOOK_SLOTS,
   VENTURES,
@@ -56,10 +57,16 @@ export const Founder = Schema.Struct({
   /** Achievements earned in any Company or Challenge (14 "Achievements"). */
   achievements: withDefault(Schema.Array(Schema.Literals(ACHIEVEMENT_IDS)), []),
   /** Counts the counting achievements need, across Companies. */
-  stats: withDefault(Schema.Struct({ postmortems: Schema.Finite, terminations: Schema.Finite }), {
-    postmortems: 0,
-    terminations: 0,
-  }),
+  stats: withDefault(
+    Schema.Struct({
+      postmortems: Schema.Finite,
+      terminations: Schema.Finite,
+      fallacies: Schema.Array(Schema.Literals(FALLACY_IDS)).pipe(
+        Schema.withDecodingDefaultKey(Effect.succeed([])),
+      ),
+    }),
+    { postmortems: 0, terminations: 0, fallacies: [] },
+  ),
   /** Glossary entries the player has met in play. */
   glossary: withDefault(Schema.Array(Schema.String), []),
 })

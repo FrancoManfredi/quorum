@@ -389,8 +389,8 @@ range.
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
 | `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
 
-**Built: 16 of 26.** Not built yet: `cache-strategies`, `lifecycle-rules`, `document-db`,
-`online-migrations`, `event-streaming`, `cdc`, `outbox`, `expand-contract`, `embeddings`, `retention`.
+**Built: 19 of 26.** Not built yet: `document-db`, `online-migrations`, `event-streaming`, `cdc`,
+`outbox`, `expand-contract`, `embeddings`.
 
 ### Track: Reliability
 

@@ -1454,4 +1454,101 @@ export const zhCN: Readonly<Record<string, string>> = {
     '保存成本最低。对象恢复前，媒体读取会以 timeout 失败。',
   'Half the storage price, and ${0} per GB read back.': '存储价格的一半，每读回 1 GB 收 ${0}。',
   'Full storage price. Reads come back at once.': '完整存储价格。读取立即返回。',
+  'Cache strategies': '缓存策略',
+  'Read-through, write-through and write-behind: the Cache owns the load and the write.':
+    '穿透读、穿透写和异步写：由缓存负责加载和写入。',
+  'Storage lifecycle rules': '存储生命周期规则',
+  'Old objects move to a cheaper storage class on their own.':
+    '旧对象会自动迁移到更便宜的存储类别。',
+  'Retention policies': '保留策略',
+  'A Database archives or deletes old rows: cheaper storage, slower reports.':
+    '数据库归档或删除旧行：存储更便宜，报表更慢。',
+  'Keep everything': '全部保留',
+  'Archive after 30 d': '30 天后归档',
+  'Delete after 30 d': '30 天后删除',
+  'Cache-aside': '旁路缓存',
+  'Read-through': '穿透读',
+  'Write-through': '穿透写',
+  'Write-behind': '异步写',
+  Statement: '语句',
+  Retention: '保留',
+  Lifecycle: '生命周期',
+  Pooling: '连接池',
+  'Retention: {0}': '保留：{0}',
+  'Cache: {0}': '缓存：{0}',
+  'Refresh: {0} s': '刷新：{0} 秒',
+  'Lifecycle after {0} days': '生命周期：{0} 天后',
+  'Lifecycle off': '生命周期关闭',
+  'The restore worked': '恢复成功',
+  'The restore failed: the backup is broken': '恢复失败：备份已损坏',
+  'Restore drill': '恢复演练',
+  'Restore drill · {0} DH': '恢复演练 · {0} 工时',
+  'A write returns from the Cache and reaches the Database late. A crash loses what has not flushed.':
+    '写入由缓存返回，稍后才到达数据库。崩溃会丢失尚未刷盘的数据。',
+  'Every write goes to the Cache and the Database together: fresher, and a write longer.':
+    '每次写入同时进入缓存和数据库：更及时，写入更慢。',
+  'Reads come from the Cache, writes go around it. A miss can store an old row until the TTL.':
+    '读取来自缓存，写入绕过缓存。未命中时可能把旧行存到 TTL 到期。',
+  'Old rows move to cheap storage: the bill falls, and a report waits on the restore.':
+    '旧行迁到廉价存储：账单下降，报表要等恢复。',
+  'Old rows are gone: the bill falls, and a report rebuilds its figures at three times the scan.':
+    '旧行已删除：账单下降，报表要以三倍扫描成本重建数据。',
+  'Every row stays on the fast tier and bills for it.': '每一行都留在快速层并计费。',
+  '{0}% of the store is older than {1} days and moves one class cheaper. A read of an archived object fails.':
+    '{0}% 的存储早于 {1} 天，会降到便宜一档的类别。读取已归档对象会失败。',
+  'Every object keeps the class above, however old it is.': '无论多旧，每个对象都保持上面的类别。',
+  'One server connection per statement: a transaction that spans statements fails.':
+    '每条语句占用一个服务器连接：跨语句的事务会失败。',
+  'One server connection per client: barely smaller than no pooler at all.':
+    '每个客户端一个服务器连接：比没有连接池好不了多少。',
+  'One server connection per active transaction. Session state breaks.':
+    '每个活动事务一个服务器连接。会话状态会失效。',
+  'No backup: a lost table is lost for good.': '没有备份：丢失的表就永久丢失。',
+  'A restore failed: this backup would lose everything. Drill it again.':
+    '恢复失败：这份备份会丢失一切。请重新演练。',
+  'This backup restores. Drill it again after a change, or research Restore drills.':
+    '这份备份可以恢复。变更后请再次演练，或研究恢复演练。',
+  'A new document is searchable within a second, at the cost of indexing CPU.':
+    '新文档在一秒内可被搜索，代价是索引 CPU。',
+  'A new document waits up to {0} s: indexing is cheaper, and answers are staler.':
+    '新文档最多等待 {0} 秒：索引更便宜，结果更陈旧。',
+  'Two Hard Things': '两件难事',
+  'Have a stale-read incident on a cache': '在缓存上经历一次陈旧读取事件',
+  "Conway's Law": '康威定律',
+  'Have more teams than Services, then fix it': '团队数多于服务数，然后修正',
+  Fallacies: '谬误',
+  'Experience all eight fallacies of distributed computing in incidents':
+    '在事件中经历分布式计算的八个谬误',
+  'Thundering Herd': '惊群',
+  'Survive a reconnect storm with no errors': '在没有错误的情况下度过重连风暴',
+  Runbook: '运行手册',
+  'Have an incident resolve with no player action': '让事件在没有玩家操作的情况下自行解决',
+  FinOps: 'FinOps',
+  'Run a fleet with reserved, on-demand, and spot Nodes at once':
+    '同时运行预留、按需和竞价节点组成的集群',
+  'Spot the Difference': '找不同',
+  'Survive a spot reclaim with no errors': '在没有错误的情况下度过竞价实例回收',
+  'Let It Crash': '让它崩溃',
+  'Have an Elixir service survive 1,000 crashes with no failed requests':
+    '让一个 Elixir 服务承受 1,000 次崩溃且没有失败请求',
+  'Stale reads': '陈旧读取',
+  'A Cache served values past their TTL: a write-heavy table outran its invalidation, and reads of the same rows came back old.':
+    '缓存返回了超过 TTL 的值：写密集的表超过了失效速度，同一行的读取返回了旧值。',
+  'A shorter TTL, a Cache that writes through, or read-your-writes routing.':
+    '缩短 TTL、使用写穿透缓存，或采用写后读路由。',
+  'Reconnect storm': '重连风暴',
+  'A Realtime Hub restarted. Every client reconnected in the same second.':
+    '实时中心重启。所有客户端在同一秒重连。',
+  'Reconnect jitter spreads the wave, and Clustering gives it more than one box.':
+    '重连抖动可以分散洪峰，集群则让它拥有多台机器。',
+  'Runaway bill': '失控账单',
+  'An Autoscaler grew to its ceiling without a spike to serve, and Burn rose with no extra revenue.':
+    '自动扩缩容在没有流量高峰时达到上限，支出上升却没有额外收入。',
+  'Lower the Autoscaler ceiling, and read the cloud bill line by line.':
+    '降低自动扩缩容上限，并逐行查看云账单。',
+  'MTU mismatch': 'MTU 不匹配',
+  'A partner network uses a smaller packet size. Uploads larger than its MTU time out on the way in.':
+    '合作方网络使用更小的数据包尺寸。大于其 MTU 的上传在途中超时。',
+  'Clamp the packet size, or keep large uploads on one network.':
+    '限制数据包大小，或让大文件上传留在同一网络。',
 }

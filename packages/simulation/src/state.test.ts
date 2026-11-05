@@ -83,6 +83,19 @@ describe('old saves', () => {
     expect(game.nodes.every((node) => node.iops === 'general')).toBe(true)
     expect(game.nodes.every((node) => node.shards === 1)).toBe(true)
     expect(game.nodes.every((node) => node.storageClass === 'standard')).toBe(true)
+    // Retention, strategies, refresh and restores (SIM_VERSION 23): each decodes to its default.
+    expect(
+      game.nodes.every(
+        (node) =>
+          node.keep === 'keep' &&
+          node.lifecycle === 0 &&
+          node.cacheStrategy === 'aside' &&
+          node.refresh === 1 &&
+          node.restore === 'ok',
+      ),
+    ).toBe(true)
+    expect(game.data).toBe(0)
+    expect(game.uploads).toBe(0)
     expect(solve(game).revenue).toBeGreaterThan(0)
     expect(step(game, 1).game.time).toBe(game.time + 1)
   })

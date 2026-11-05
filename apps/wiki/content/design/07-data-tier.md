@@ -11,17 +11,23 @@ connections, indexes, caches, replication, consistency, partitioning, and quorum
 
 ## Data volume
 
-Not built yet: only `blob-put` adds stored data. `q-write` and `rt` add nothing, so database and
-realtime growth cost no storage.
+The game tracks stored data in GB, in two places. Object Storage holds the files it is sent
+([Object Storage](#object-storage)); the Databases hold rows, and every `q-write` and every `rt`
+message a Realtime Hub carries adds one. Data never shrinks by itself.
 
-The game tracks stored data in GB. Every `q-write`, `blob-put`, and `rt` message adds data. Data never
-shrinks by itself.
+- The rows bill on the Storage line of the cloud bill at 3.5× the Object Storage price, the price of
+  gp3 against S3 Standard (proposed: the design says only that Storage Burn grows with volume).
+- A Database answers an unindexed query or a report from its rows, so more rows mean a slower scan.
+- Research "Retention policies" puts a window on the Database and archives or deletes what passes
+  it, which trades cheap storage for slower reads or a rebuild (see [Rows and retention](#rows-and-retention),
+  built below).
 
-- Storage Burn grows with volume ([Economy](/design/09-economy#the-cloud-bill)).
-- Table size affects query cost: an unindexed query gets slower as the table grows.
-- Backups, replicas, and migrations take longer as volume grows.
-- Research "Retention policies" deletes or archives old data, and it lowers some feature values. Not
-  built yet: there is no Retention policies research, and stored data never shrinks.
+**Built:** data volume, and the two figures it lives in — `stored` for Object Storage and `data` for
+the Databases. A row costs 10 KB, its indexes and its share of the WAL included (proposed). Growth
+bills, and it is what a retention window caps.
+
+Not built: backups, replicas, and migrations taking longer as volume grows. They read no volume, so
+a large Company backs up as fast as a small one.
 
 ## Relational database
 
@@ -85,17 +91,43 @@ fail or queue while the lock is held.
 | Online migration tool (research) | Copies the table in the background. Costs Dev Hours and extra IOPS for a while.     |
 | Expand and contract (research)   | Adds the new shape, backfills, then removes the old shape. No lock, more Dev Hours. |
 
+## Rows and retention
+
+Research "Retention policies" (Pre-IPO, 250,000 ◇) puts a window on the Database's card.
+
+| Policy             | Storage             | A report                                        |
+| ------------------ | ------------------- | ----------------------------------------------- |
+| Keep everything    | Every GB, full rate | Reads the table.                                |
+| Archive after 30 d | A tenth of the rate | Waits on a restore of the archived rows.        |
+| Delete after 30 d  | Nothing             | Rebuilds its figures from the event log, at 3×. |
+
+The window is the trade: a Database that keeps everything grows without bound and bills for it; one
+that archives or deletes stops growing at the rows it writes inside its window, and the history it
+gave up is what a report over that range costs. Archive adds 200 ms to a report's scan; delete makes
+it rebuild, at three times the scan CPU (both proposed: the design names the trade and, for the
+report, only that it loses some feature values). The window is 30 calendar days (proposed: the design
+says "old data" and gives no period).
+
+**Built:** the three policies and the window that caps the rows. The `data` figure never grows past
+the window's worth of writes, and a Database whose Company has not researched Retention policies
+stays on Keep everything.
+
 ## Connection Pooler
 
 Real products: PgBouncer, ProxySQL.
 
 Sits between app servers and the database. Many client connections share a few server connections.
 
-| Mode                      | Server connections needed  | Limitation                                                                                                                                                           |
-| ------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Session                   | One per client session     | Barely helps.                                                                                                                                                        |
-| Transaction               | One per active transaction | Session state breaks: session-level prepared statements, advisory locks, and `SET` commands. A service that uses them gets `crash` errors until it spends Dev Hours. |
-| Statement (Not built yet) | One per statement          | Multi-statement transactions are impossible. `q-tx` fails.                                                                                                           |
+| Mode        | Server connections needed  | Limitation                                                                                                                                                           |
+| ----------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Session     | One per client session     | Barely helps.                                                                                                                                                        |
+| Transaction | One per active transaction | Session state breaks: session-level prepared statements, advisory locks, and `SET` commands. A service that uses them gets `crash` errors until it spends Dev Hours. |
+| Statement   | One per statement          | Multi-statement transactions are impossible. `q-tx` fails.                                                                                                           |
+
+**Built:** all three modes, chosen on the card. Transaction and Statement modes share the same 20
+server connections, so Statement's extra packing buys nothing in the game; what it costs is every
+`q-tx` through it, which fails as `refused`. Session mode holds one server connection per arriving
+client. Session state breaks in both pooled modes, until the task removes it.
 
 Teaches: [connection pooling](/design/glossary#connection-pooling), and why "just add more app servers"
 can take the database down ([Simulation](/design/04-simulation#connections)).
@@ -134,6 +166,15 @@ first GB of cache is worth more than the tenth. `ttl_factor` is the Cache's row 
 | Read-through  | Same as cache-aside | Unchanged         | Until TTL                               | The cache library owns loading.                                |
 | Write-through | Hit fast            | +1 cache write    | None for keys written through the cache | Write latency up; caches data that may never be read.          |
 | Write-behind  | Hit fast            | Fast (cache only) | None in cache; the database lags        | A cache crash loses writes not yet flushed.                    |
+
+**Built:** all four, on the Cache's card, with research "Cache strategies" (Seed, 600 ◇). Cache-aside
+is the default and keeps the TTL's own stale share of hits. The rest are four numbers, all proposed:
+read-through removes the aside race, so it serves three quarters of that share; write-through has no
+stale hits and adds half a millisecond to each write; write-behind halves the stale share, answers the
+write at the Cache's own hop, and flushes half of each write to the Database. Read-through's own cost,
+the library that owns loading, is not modelled; write-behind caches nothing across a restart, so a
+crash still loses what it had not flushed, and the build counts only the slower reads of a lagging
+Database, not the loss.
 
 ### TTL
 
@@ -220,8 +261,13 @@ When one user request becomes many backend requests, the tail grows
 
 ## Search Engine
 
-Not built yet: the refresh interval, shards and replicas, heap, and the Elasticsearch, OpenSearch, and
-Meilisearch variants. A Search Engine has a size and 400 queries per second per size step.
+Not built yet: shards and replicas, heap, and the Elasticsearch, OpenSearch, and Meilisearch variants.
+A Search Engine has a size and 400 queries per second per size step.
+
+**Built:** the refresh interval, as 1 s, 5 s, or 60 s on the card. A longer interval answers 1.1× or
+1.3× the queries and serves 5% or 25% of them staler than the index; 1 s serves nothing stale. The
+capacity multipliers and the stale shares are proposed: the design gives the default and the
+direction only.
 
 Real products: Elasticsearch, OpenSearch (variant), Meilisearch (variant).
 
@@ -242,7 +288,7 @@ Feeding the index: either dual writes from the app or a CDC Connector
 
 ## Object Storage
 
-Not built yet: the R2 variant and Lifecycle rules.
+Not built yet: the R2 variant.
 
 Real products: Amazon S3, Cloudflare R2, Google Cloud Storage.
 
@@ -263,10 +309,17 @@ per request and per GB of egress.
 **Built:** the three classes, chosen on the card. The class multiplies the price of the GB the store
 holds, and Infrequent access bills $0.01 per GB read back out (S3's own Standard-IA rate) on the
 Storage line of the bill. Archive bills a tenth and fails every `blob-get` as `timeout`: an archived
-object must be restored first, and the build has no restore. Every object in the store takes the same
-class, so Lifecycle rules are what is missing, not the classes.
+object must be restored first, and the build has no restore.
 
-Research "Lifecycle rules" moves old objects to cheaper classes automatically.
+Research "Lifecycle rules" (Series A, 1,500 ◇) moves old objects to cheaper classes automatically.
+
+**Built:** the rule, on the card: Off, or after 30, 90, or 365 calendar days (proposed; the design
+gives no thresholds). An object past the window drops one class, so Standard becomes Infrequent
+access and Infrequent access becomes Archive. The build ages the store from its GB and its upload rate:
+a store that fills at a steady rate holds its oldest object for `stored / uploads`, and the share past
+the window is the older share. That share bills at the cheaper class, and a read of it into Archive
+fails as `timeout`, so the cheaper bill costs the oldest reads. A store in Standard needs two windows
+before a read fails; one in Infrequent access needs only one.
 
 ## Document Store
 
@@ -399,9 +452,16 @@ is part of the IPO checklist ([Progression](/design/10-progression#era-6-pre-ipo
 | Nightly snapshot                       | 24 hours   | Storage                                |
 | Point-in-time recovery (WAL archiving) | Minutes    | Storage and IOPS                       |
 
-Not built yet: the 20% restore failure of untested backups, and research "Restore drills"; neither
-changes a restore.
-
 Incident "Accidental delete" (a real class of outage) deletes a table. With no backup, the company
 loses users and data. Restore time grows with data volume. Untested backups have a 20% chance to fail
 on restore until research "Restore drills".
+
+**Built:** the 20%, and the drill that finds it. A backup written without research "Restore drills"
+(Series A, 2,000 ◇) rolls the design's own 20% as it is taken: it either restores or it does not, and
+the card says which. A broken backup restores nothing, so the DR drill reads an infinite RPO and the
+checklist names "Restore failed". A **Restore drill** button on the card costs 4 Dev Hours (proposed)
+and writes a new backup and tests it: 20% broken without the research, never broken with it, and the
+research also tests every new backup as it is taken.
+
+Not built: "Accidental delete" itself (an incident this build does not have), so a broken backup
+currently shows up only in the DR drill, and a restore's time does not grow with data volume.

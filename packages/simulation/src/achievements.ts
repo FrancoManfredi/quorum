@@ -2,20 +2,24 @@ import {
   COMPONENTS,
   DIURNAL_AMPLITUDE,
   ERAS,
+  FALLACY_IDS,
+  LET_IT_CRASH,
   MIGRATION_STEPS,
   REGIONS,
   RUNTIMES,
   SPREAD_REGIONS,
   VENTURES,
   VENTURE_IDS,
+  fallacyOf,
   type AchievementId,
   type ComponentId,
+  type FallacyId,
   type LanguageId,
 } from './catalog.ts'
 import type { StepEvent } from './events.ts'
 import { PRE_IPO_STAGE } from './ipo.ts'
 import type { Ledger } from './ledger.ts'
-import { isDown } from './lookups.ts'
+import { isDown, pricingOf } from './lookups.ts'
 import { openRegions, regionDiurnal, regionUsers, spreadRegions } from './regions.ts'
 import { budgetOf, budgeted } from './slo.ts'
 import type { Game, GameNode } from './state.ts'
@@ -28,7 +32,12 @@ import { valuationOf } from './valuation.ts'
    ========================================================================== */
 
 /** Counts the Founder keeps across Companies for the counting achievements. */
-export type AchievementStats = Readonly<{ postmortems: number; terminations: number }>
+export type AchievementStats = Readonly<{
+  postmortems: number
+  terminations: number
+  /** The fallacies the Founder has met in an incident, one entry each. */
+  fallacies: ReadonlyArray<FallacyId>
+}>
 
 export type Moment = Readonly<{
   before: Game
@@ -90,11 +99,17 @@ export const isTermination = (event: StepEvent): boolean =>
 export const countStats = (
   stats: AchievementStats,
   events: ReadonlyArray<StepEvent>,
-): AchievementStats => ({
-  postmortems:
-    stats.postmortems + events.filter((event) => event._tag === 'IncidentResolved').length,
-  terminations: stats.terminations + events.filter(isTermination).length,
-})
+): AchievementStats => {
+  const met = events.flatMap((event) =>
+    event._tag === 'IncidentResolved' ? (fallacyOf(event.postmortem.kind) ?? []) : [],
+  )
+  return {
+    postmortems:
+      stats.postmortems + events.filter((event) => event._tag === 'IncidentResolved').length,
+    terminations: stats.terminations + events.filter(isTermination).length,
+    fallacies: [...new Set([...stats.fallacies, ...met])],
+  }
+}
 
 /** A Node that took more capacity this moment: it is new, or its size or copies grew. */
 const grew = (before: Game, node: GameNode): boolean => {
@@ -290,6 +305,54 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
       atLocalPeak(after) && Object.values(ledger.nodes).every((node) => node.utilization <= BUSY)
     )
   },
+  // The Cache's TTL serves stale reads, and an incident makes enough of them to fail requests.
+  'two-hard-things': ({ events }) =>
+    events.some(
+      (event) => event._tag === 'IncidentResolved' && event.postmortem.kind === 'stale-read',
+    ),
+  // The slice has one Service: more teams than Services is the mismatch, and one team is the fix.
+  'conways-law': ({ before, after }) =>
+    before.teams.length > before.services.length &&
+    after.services.length > 0 &&
+    after.teams.length <= after.services.length,
+  fallacies: ({ stats }) => new Set(stats.fallacies).size >= FALLACY_IDS.length,
+  // The Hub came back, every client reconnected, and nothing was refused.
+  'thundering-herd': ({ events }) =>
+    events.some(
+      (event) =>
+        event._tag === 'IncidentResolved' &&
+        event.postmortem.kind === 'reconnect' &&
+        event.postmortem.failed <= 0,
+    ),
+  // The Design ended the incident by itself: a Cluster rescheduled a pod, a standby failed over,
+  // a Spot Node came back, or a retry storm drained behind backoff.
+  runbook: ({ events }) =>
+    events.some((event) => event._tag === 'IncidentResolved' && event.postmortem.auto === true),
+  finops: ({ after }) => {
+    const models = new Set(
+      after.nodes
+        .filter((node) => COMPONENTS[node.type].group === 'compute')
+        .map((node) => pricingOf(after, node)),
+    )
+    return models.has('reserved') && models.has('on-demand') && models.has('spot')
+  },
+  'spot-the-difference': ({ events }) =>
+    events.some(
+      (event) =>
+        event._tag === 'IncidentResolved' &&
+        event.postmortem.kind === 'spot-reclaim' &&
+        event.postmortem.failed <= 0,
+    ),
+  // The supervisor restarts the process and the request is retried inside the VM: no request fails.
+  'let-it-crash': ({ after, ledger }) =>
+    ledger.errorShare === 0 &&
+    after.nodes.some(
+      (node) =>
+        node.type === 'server' &&
+        RUNTIMES[node.runtime].language === 'elixir' &&
+        node.crashes >= LET_IT_CRASH &&
+        (ledger.nodes[node.id]?.inbound ?? 0) > 0,
+    ),
 }
 
 /** Achievements this moment earns that `owned` does not hold yet. */

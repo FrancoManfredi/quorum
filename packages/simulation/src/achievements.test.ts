@@ -6,7 +6,14 @@ import {
   everyVenture,
   type Moment,
 } from './achievements.ts'
-import { ACHIEVEMENTS, ACHIEVEMENT_IDS, MUTATOR_IDS, VENTURE_IDS } from './catalog.ts'
+import {
+  ACHIEVEMENTS,
+  ACHIEVEMENT_IDS,
+  FALLACY_IDS,
+  FALLACY_INCIDENTS,
+  MUTATOR_IDS,
+  VENTURE_IDS,
+} from './catalog.ts'
 import { newGame } from './company.ts'
 import { NO_FAILURES } from './distribution.ts'
 import { StepEvent } from './events.ts'
@@ -35,7 +42,7 @@ const moment = (change: Partial<Moment> = {}): Moment => ({
   after: base,
   ledger: ledgerOf(base),
   events: [],
-  stats: { postmortems: 0, terminations: 0 },
+  stats: { postmortems: 0, terminations: 0, fallacies: [] },
   previousBottleneck: null,
   ...change,
 })
@@ -182,12 +189,102 @@ describe('achievements', () => {
   })
 
   test('the counting achievements count across Companies', () => {
-    const stats = countStats({ postmortems: 49, terminations: 99 }, [
+    const stats = countStats({ postmortems: 49, terminations: 99, fallacies: [] }, [
       resolved({ kind: 'instance' }),
     ])
-    expect(stats).toEqual({ postmortems: 50, terminations: 100 })
+    expect(stats).toEqual({ postmortems: 50, terminations: 100, fallacies: [] })
     expect(earned({ stats })).toEqual(expect.arrayContaining(['blameless', 'chaos-monkey']))
-    expect(earned({ stats: { postmortems: 49, terminations: 99 } })).not.toContain('blameless')
+    expect(earned({ stats: { postmortems: 49, terminations: 99, fallacies: [] } })).not.toContain(
+      'blameless',
+    )
+  })
+
+  test('Two Hard Things needs a stale-read incident resolved', () => {
+    expect(earned({ events: [resolved({ kind: 'stale-read' })] })).toContain('two-hard-things')
+    expect(earned({ events: [resolved({ kind: 'stampede' })] })).not.toContain('two-hard-things')
+  })
+
+  test("Conway's Law needs more teams than Services, then fewer teams again", () => {
+    const second = { ...base.teams[0]!, id: 't2', name: 'Team 2' }
+    const mismatched = { ...base, teams: [...base.teams, second] }
+    expect(earned({ before: mismatched, after: base })).toContain('conways-law')
+    expect(earned({ before: mismatched, after: mismatched })).not.toContain('conways-law')
+    expect(earned({ before: base, after: base })).not.toContain('conways-law')
+  })
+
+  test('Fallacies needs all eight fallacies, each broken by an incident', () => {
+    expect(new Set(Object.values(FALLACY_INCIDENTS)).size).toBe(FALLACY_IDS.length)
+    const seven = FALLACY_IDS.slice(0, 7)
+    expect(earned({ stats: { postmortems: 0, terminations: 0, fallacies: seven } })).not.toContain(
+      'fallacies',
+    )
+    expect(
+      earned({ stats: { postmortems: 0, terminations: 0, fallacies: FALLACY_IDS } }),
+    ).toContain('fallacies')
+    const met = countStats({ postmortems: 0, terminations: 0, fallacies: [] }, [
+      resolved({ kind: FALLACY_INCIDENTS.reliable }),
+      resolved({ kind: FALLACY_INCIDENTS.administrator }),
+      resolved({ kind: FALLACY_INCIDENTS.administrator }),
+    ])
+    expect(met.fallacies).toEqual(['reliable', 'administrator'])
+  })
+
+  test('Thundering Herd needs a reconnect storm resolved with no errors', () => {
+    expect(earned({ events: [resolved({ kind: 'reconnect', failed: 0 })] })).toContain(
+      'thundering-herd',
+    )
+    expect(earned({ events: [resolved({ kind: 'reconnect', failed: 5 })] })).not.toContain(
+      'thundering-herd',
+    )
+    expect(earned({ events: [resolved({ kind: 'spike', failed: 0 })] })).not.toContain(
+      'thundering-herd',
+    )
+  })
+
+  test('Runbook needs a postmortem the Design ended on its own', () => {
+    expect(earned({ events: [resolved({ kind: 'instance', auto: true })] })).toContain('runbook')
+    expect(earned({ events: [resolved({ kind: 'instance' })] })).not.toContain('runbook')
+  })
+
+  test('FinOps needs reserved, on-demand, and spot compute at once', () => {
+    const priced = (models: ReadonlyArray<GameNode['pricing']>): Game =>
+      withNodes(
+        base,
+        models.map((pricing) => ({
+          type: 'server' as const,
+          pricing,
+          pricingUntil: pricing === 'reserved' ? 1_000 : null,
+        })),
+      )
+    expect(earned({ after: priced(['reserved', 'on-demand', 'spot']) })).toContain('finops')
+    expect(earned({ after: priced(['reserved', 'on-demand']) })).not.toContain('finops')
+    // A reserved term that has ended bills on-demand, so the fleet no longer has all three.
+    const expired = {
+      ...priced(['reserved', 'on-demand', 'spot']),
+      time: 2_000,
+    }
+    expect(earned({ after: expired })).not.toContain('finops')
+  })
+
+  test('Spot the Difference needs a spot reclaim resolved with no errors', () => {
+    expect(earned({ events: [resolved({ kind: 'spot-reclaim', failed: 0 })] })).toContain(
+      'spot-the-difference',
+    )
+    expect(earned({ events: [resolved({ kind: 'spot-reclaim', failed: 2 })] })).not.toContain(
+      'spot-the-difference',
+    )
+  })
+
+  test('Let It Crash needs 1,000 absorbed BEAM crashes and no failed request', () => {
+    const beam = (crashes: number, runtime: 'beam' | 'go' = 'beam'): Game =>
+      withNodes(base, [{ type: 'server', runtime, crashes }])
+    const ledger = nodeAt(ledgerOf(base, { errorShare: 0 }), 'n0', { inbound: 10 })
+    expect(earned({ after: beam(1_000), ledger })).toContain('let-it-crash')
+    expect(earned({ after: beam(999), ledger })).not.toContain('let-it-crash')
+    expect(earned({ after: beam(1_000, 'go'), ledger })).not.toContain('let-it-crash')
+    expect(earned({ after: beam(1_000), ledger: { ...ledger, errorShare: 0.01 } })).not.toContain(
+      'let-it-crash',
+    )
   })
 
   test('Shared Nothing needs the Seed Era, PHP-FPM only, and no memory incident', () => {

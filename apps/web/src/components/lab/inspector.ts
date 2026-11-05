@@ -63,6 +63,11 @@ import {
   SHARD_COUNTS,
   STORAGE_CLASSES,
   STORAGE_IOPS,
+  DB_RETENTIONS,
+  CACHE_STRATEGIES,
+  SEARCH_REFRESH,
+  LIFECYCLE_DAYS,
+  RESTORE_DRILL_DH,
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
@@ -86,6 +91,7 @@ import {
   sizeLabel as sizeLabelOf,
   vcpuOf,
   zoned,
+  agedShareOf,
 } from '@quorum/simulation/lookups'
 import { LINK_TIMEOUTS } from '@quorum/simulation/actions'
 import type {
@@ -98,6 +104,8 @@ import type {
   LbPolicy,
   PmMode,
   StorageClass,
+  CacheStrategy,
+  DbRetention,
 } from '@quorum/simulation/state'
 import { compact, duration, money, ms, priceLabel, queueWait, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
@@ -1430,6 +1438,25 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'Cache',
     [
+      picker(
+        'strategy',
+        (Object.keys(CACHE_STRATEGIES) as ReadonlyArray<CacheStrategy>).map(
+          (id) => [id, CACHE_STRATEGIES[id].name] as const,
+        ),
+        node.cacheStrategy,
+        (cacheStrategy) => Message.CacheStrategyChosen({ nodeId: node.id, cacheStrategy }),
+        h,
+        (id) => id === 'aside' || has(game, 'cache-strategies'),
+        'grid-cols-2',
+      ),
+      caption(
+        CACHE_STRATEGIES[node.cacheStrategy].write === 'ahead'
+          ? 'A write returns from the Cache and reaches the Database late. A crash loses what has not flushed.'
+          : CACHE_STRATEGIES[node.cacheStrategy].write === 'through'
+            ? 'Every write goes to the Cache and the Database together: fresher, and a write longer.'
+            : 'Reads come from the Cache, writes go around it. A miss can store an old row until the TTL.',
+        h,
+      ),
       ...(has(game, 'stampede-protection')
         ? [
             picker(
@@ -1551,11 +1578,36 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
       ],
       h,
     ),
+    section(
+      'Retention',
+      [
+        picker(
+          'retention-policy',
+          (Object.keys(DB_RETENTIONS) as ReadonlyArray<DbRetention>).map(
+            (id) => [id, DB_RETENTIONS[id].name] as const,
+          ),
+          node.keep,
+          (keep) => Message.DbRetentionChosen({ nodeId: node.id, keep }),
+          h,
+          (id) => id === 'keep' || has(game, 'retention'),
+          'grid-cols-3',
+        ),
+        caption(
+          node.keep === 'archive'
+            ? 'Old rows move to cheap storage: the bill falls, and a report waits on the restore.'
+            : node.keep === 'delete'
+              ? 'Old rows are gone: the bill falls, and a report rebuilds its figures at three times the scan.'
+              : 'Every row stays on the fast tier and bills for it.',
+          h,
+        ),
+      ],
+      h,
+    ),
   ]
 }
 
-/** Object Storage's class (07 "Object Storage"): price against retrieval. */
-const storage = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+/** Object Storage's class and lifecycle (07 "Object Storage"): price against retrieval. */
+const storage = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   section(
     'Storage class',
     [
@@ -1576,6 +1628,49 @@ const storage = (node: GameNode, h: HtmlBuilder<Message>): Html =>
           : STORAGE_CLASSES[node.storageClass].retrieval > 0
             ? `Half the storage price, and $${STORAGE_CLASSES[node.storageClass].retrieval} per GB read back.`
             : 'Full storage price. Reads come back at once.',
+        h,
+      ),
+    ],
+    h,
+  ),
+  section(
+    'Lifecycle',
+    [
+      picker(
+        'lifecycle',
+        LIFECYCLE_DAYS.map((days) => [days, days === 0 ? 'Off' : `${days} d`] as const),
+        node.lifecycle,
+        (lifecycle) => Message.LifecycleChosen({ nodeId: node.id, lifecycle }),
+        h,
+        (days) => days === 0 || has(game, 'lifecycle-rules'),
+      ),
+      caption(
+        node.lifecycle > 0
+          ? `${Math.round(agedShareOf(game, node.lifecycle) * 100)}% of the store is older than ${node.lifecycle} days and moves one class cheaper. A read of an archived object fails.`
+          : 'Every object keeps the class above, however old it is.',
+        h,
+      ),
+    ],
+    h,
+  ),
+]
+
+/** A Search Engine's refresh interval (07 "Search Engine"): fresher answers cost indexing CPU. */
+const search = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+  section(
+    'Refresh',
+    [
+      picker(
+        'refresh',
+        SEARCH_REFRESH.map((entry) => [entry.seconds, `${entry.seconds} s`] as const),
+        node.refresh,
+        (refresh) => Message.SearchRefreshChosen({ nodeId: node.id, refresh }),
+        h,
+      ),
+      caption(
+        node.refresh <= 1
+          ? 'A new document is searchable within a second, at the cost of indexing CPU.'
+          : `A new document waits up to ${node.refresh} s: indexing is cheaper, and answers are staler.`,
         h,
       ),
     ],
@@ -1761,7 +1856,7 @@ const wide = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArra
   ...spreading(game, node, h),
 ]
 
-const backups = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+const backups = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'Backups',
     [
@@ -1774,6 +1869,29 @@ const backups = (node: GameNode, h: HtmlBuilder<Message>): Html =>
         (backup) => Message.BackupChosen({ nodeId: node.id, backup }),
         h,
       ),
+      caption(
+        node.backup === 'none'
+          ? 'No backup: a lost table is lost for good.'
+          : node.restore === 'failed'
+            ? 'A restore failed: this backup would lose everything. Drill it again.'
+            : 'This backup restores. Drill it again after a change, or research Restore drills.',
+        h,
+      ),
+      ...(node.backup === 'none'
+        ? []
+        : [
+            button(
+              {
+                onClick: Message.RestoreDrilled({ nodeId: node.id }),
+                variant: 'outline',
+                size: 'sm',
+                className: 'self-start',
+                isDisabled: game.devHours < RESTORE_DRILL_DH,
+              },
+              [`Restore drill · ${RESTORE_DRILL_DH} DH`],
+              h,
+            ),
+          ]),
     ],
     h,
   )
@@ -2088,9 +2206,20 @@ const pooler = (node: GameNode, h: HtmlBuilder<Message>): Html =>
         [
           ['session', 'Session'],
           ['transaction', 'Transaction'],
+          ['statement', 'Statement'],
         ],
         node.mode,
         (mode) => Message.PoolerModeChosen({ nodeId: node.id, mode }),
+        h,
+        () => true,
+        'grid-cols-3',
+      ),
+      caption(
+        node.mode === 'statement'
+          ? 'One server connection per statement: a transaction that spans statements fails.'
+          : node.mode === 'session'
+            ? 'One server connection per client: barely smaller than no pooler at all.'
+            : 'One server connection per active transaction. Session state breaks.',
         h,
       ),
     ],
@@ -2596,7 +2725,8 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'cache' ? [cache(game, node, h)] : []),
           ...(node.type === 'database' ? database(game, node, h) : []),
           ...(node.type === 'replica' ? [engine(node, h)] : []),
-          ...(node.type === 'storage' ? [storage(node, h)] : []),
+          ...(node.type === 'storage' ? storage(game, node, h) : []),
+          ...(node.type === 'search' ? [search(node, h)] : []),
           ...(node.type === 'queue' ? queue(node, h) : []),
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
@@ -2610,7 +2740,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...regionSection(game, node, h),
           ...(node.type === 'wide' ? wide(game, node, h) : []),
           ...(node.type === 'dsql' ? spreading(game, node, h) : []),
-          ...(node.type === 'database' && has(game, 'pitr') ? [backups(node, h)] : []),
+          ...(node.type === 'database' && has(game, 'pitr') ? [backups(game, node, h)] : []),
           ...(node.type === 'server' && regional(game) ? [fanout(node, h)] : []),
           ...(node.type === 'cache' && has(game, 'hybrid-fanout') ? [splitting(node, h)] : []),
           ...(node.type === 'dns' && has(game, 'health-checks') ? [dnsTtl(node, h)] : []),

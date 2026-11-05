@@ -338,19 +338,19 @@ instead of containers.
 
 The data tier has its own document: [Data tier](/design/07-data-tier). This table is a summary.
 
-| Component         | Serves                                                       | The tradeoff it teaches                                                                                           |
-| ----------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Database          | `q-read`, `q-write`, `q-tx`, small `q-search`, slow `q-scan` | One source of truth with a hard vertical limit, a connection limit, and a volume's IOPS; shards scale the writes. |
-| Connection Pooler | Database connections                                         | Fewer connections, and some session features stop working.                                                        |
-| Cache             | `q-read`                                                     | Speed against staleness and stampedes.                                                                            |
-| Read Replica      | `q-read`                                                     | Read capacity against replication lag.                                                                            |
-| Search Engine     | `q-search`                                                   | Fast search against indexing lag and heap memory.                                                                 |
-| Object Storage    | `blob-get`, `blob-put`                                       | Unlimited storage against egress cost, first-byte latency, and the class's retrieval price.                       |
-| Document Store    | `q-read`, `q-write`                                          | Developer velocity against joins and transactions.                                                                |
-| Data Warehouse    | `q-scan`                                                     | Cheap scans against freshness.                                                                                    |
-| Vector Index      | Embedding lookups for `ai`                                   | Better AI answers against memory and recall.                                                                      |
-| Wide-column Store | `q-read`, `q-write` at very high volume                      | Linear write scaling against partition design and eventual consistency. The game's namesake: quorums.             |
-| Distributed SQL   | `q-tx` across regions                                        | Global consistency against write latency.                                                                         |
+| Component         | Serves                                                       | The tradeoff it teaches                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Database          | `q-read`, `q-write`, `q-tx`, small `q-search`, slow `q-scan` | One source of truth with a hard vertical limit, a connection limit, and a volume's IOPS; shards scale the writes, and retention trades storage for history. |
+| Connection Pooler | Database connections                                         | Fewer connections, and some session features stop working; statement mode also breaks transactions.                                                         |
+| Cache             | `q-read`                                                     | Speed against staleness and stampedes; the write strategy trades freshness against write latency.                                                           |
+| Read Replica      | `q-read`                                                     | Read capacity against replication lag.                                                                                                                      |
+| Search Engine     | `q-search`                                                   | Fast search against indexing lag and heap memory; a longer refresh is cheaper and staler.                                                                   |
+| Object Storage    | `blob-get`, `blob-put`                                       | Unlimited storage against egress cost, first-byte latency, the class's retrieval price, and a lifecycle that archives the oldest objects.                   |
+| Document Store    | `q-read`, `q-write`                                          | Developer velocity against joins and transactions.                                                                                                          |
+| Data Warehouse    | `q-scan`                                                     | Cheap scans against freshness.                                                                                                                              |
+| Vector Index      | Embedding lookups for `ai`                                   | Better AI answers against memory and recall.                                                                                                                |
+| Wide-column Store | `q-read`, `q-write` at very high volume                      | Linear write scaling against partition design and eventual consistency. The game's namesake: quorums.                                                       |
+| Distributed SQL   | `q-tx` across regions                                        | Global consistency against write latency.                                                                                                                   |
 
 ## Async
 

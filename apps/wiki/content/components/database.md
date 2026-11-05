@@ -22,6 +22,20 @@ With [Sharding](/research/sharding) the Database splits into shards by key: the 
 
 Not modelled: a hot shard, scatter-gather across shards, and the Dev Hours resharding takes.
 
+## Rows and retention
+
+Every write the Database answers adds rows, and every realtime message its Hub holds adds some too, so a Company's data grows with its users. The GB bill on the Storage line of the cloud bill, at a higher price than Object Storage's. Backups, replicas and migrations are not slowed by it: only the bill and the rows a report reads are.
+
+[Retention policies](/research/retention) adds a window to the card:
+
+| Policy             | Storage | A report                                         |
+| ------------------ | ------- | ------------------------------------------------ |
+| Keep everything    | Full    | Reads the table.                                 |
+| Archive after 30 d | A tenth | Waits on a restore of the archived rows.         |
+| Delete after 30 d  | Nothing | Rebuilds its figures from the event log, slower. |
+
+A window caps the rows at what the Company writes inside it, so an old Company that archives stops growing. What it costs is the history: a report over the window is slow or has to be rebuilt. The card says which policy is on, and [Data tier](/design/07-data-tier#data-volume) holds the trade.
+
 ## When to place it
 
 Split Postgres off the Garage box when the shared box runs out of memory or CPU. Resize it when its CPU stays high and query latency rises. When errors show refused connections, add a [Connection Pooler](/components/pooler) or switch the engine to MySQL, not a bigger box. See [Scale the database](/guides/scale-the-database).
@@ -40,4 +54,4 @@ Split Postgres off the Garage box when the shared box runs out of memory or CPU.
 - Put a [Cache](/components/cache) and [Read Replicas](/components/replica) in front to take reads off it.
 - Use a Memory instance when the working set outgrows RAM, or provision the volume when reads go to disk.
 - Shard when the Database is out of CPU on writes: each shard is another primary, and it costs like one.
-- Research [Point-in-time recovery](/research/pitr) to turn on backups.
+- Research [Point-in-time recovery](/research/pitr) to turn on backups, and [Restore drills](/research/restore-drills) so a backup is tested before you need it.

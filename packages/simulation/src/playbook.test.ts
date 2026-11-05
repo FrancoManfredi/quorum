@@ -40,7 +40,12 @@ describe('Playbooks', () => {
       researched: [...source.researched, 'caching'],
       nodes: [
         ...source.nodes,
-        { ...(source.nodes[1] as Game['nodes'][number]), id: 'c', type: 'cache' },
+        {
+          ...(source.nodes[1] as Game['nodes'][number]),
+          id: 'c',
+          type: 'cache',
+          cacheStrategy: 'write-through' as const,
+        },
       ],
     }
     const playbook = capture(withCache, [...ids, 'c'], 'Cached')
@@ -117,4 +122,29 @@ describe('Duplicate', () => {
       false,
     )
   })
+})
+
+test('a Playbook carries the data tier options, and a placed Cache keeps its strategy', () => {
+  const hosted: Game = {
+    ...source,
+    researched: [...source.researched, 'retention', 'caching', 'cache-strategies'],
+    nodes: [
+      ...source.nodes.map((node) =>
+        node.id === 'database' ? { ...node, keep: 'archive' as const } : node,
+      ),
+      {
+        ...(source.nodes[1] as Game['nodes'][number]),
+        id: 'c',
+        type: 'cache',
+        cacheStrategy: 'write-through' as const,
+      },
+    ],
+  }
+  const playbook = capture(hosted, [...ids, 'c'], 'Retained')
+  if (!playbook) throw new Error('no playbook')
+  const placed = Result.getOrThrow(placePlaybook(hosted, playbook, 440, 280))
+  const database = placed.game.nodes.at(-2)
+  const cache = placed.game.nodes.at(-1)
+  expect(database?.keep).toBe('archive')
+  expect(cache?.cacheStrategy).toBe('write-through')
 })

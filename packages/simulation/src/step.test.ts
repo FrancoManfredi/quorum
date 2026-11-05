@@ -55,6 +55,19 @@ describe('a Garage minute', () => {
     expect(game.cash).toBeGreaterThan(start.cash)
   })
 
+  test('only a BEAM App Server counts the process crashes its supervisor absorbs', () => {
+    const start = newGame()
+    const beam = {
+      ...start,
+      nodes: start.nodes.map((node) =>
+        node.type === 'server' ? { ...node, runtime: 'beam' as const } : node,
+      ),
+    }
+    const after = run(beam, 60).game
+    expect(after.nodes.find((node) => node.type === 'server')?.crashes ?? 0).toBeGreaterThan(0)
+    expect(run(start, 60).game.nodes.find((node) => node.type === 'server')?.crashes).toBe(0)
+  })
+
   test('a busy Burstable box spends its credits, says so once, then loses users', () => {
     const busy = { ...newGame(), users: 700, credits: 0 }
     const { game, events } = run(

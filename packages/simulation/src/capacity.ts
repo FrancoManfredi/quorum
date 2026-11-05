@@ -37,6 +37,7 @@ import {
   HYBRID_READS,
   HYBRID_WRITES,
   DB_ENGINES,
+  DB_RETENTIONS,
   STORAGE_IOPS,
   diskMs,
 } from './catalog.ts'
@@ -621,8 +622,14 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   // Report scans fill the buffer cache with cold pages: a share of reads go to disk, and writes
   // wait on the scans' locks (07 "Data Warehouse"). A quarter-end report scans ten times as much.
   const scans = arriving['q-scan'] ?? 0
+  // Retention (07 "Data volume"): rows older than the window are archived or gone, so a report
+  // either restores them first or rebuilds the figures from the event log, at a multiple of the scan.
+  const retention = DB_RETENTIONS[node.keep]
   const scanCpu =
-    (QUERY_CPU['q-scan'] * (game.incident?.kind === 'report-db' ? REPORT_SURGE : 1)) / warmth
+    (QUERY_CPU['q-scan'] *
+      (game.incident?.kind === 'report-db' ? REPORT_SURGE : 1) *
+      retention.rebuild) /
+    warmth
   const evicted = scans > 0 ? scanEviction(scans * scanCpu, cores) : 0
   const readCpu =
     evicted > 0
@@ -698,7 +705,10 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
       'blob-put': { fixed: 2.5, variable: putCpu / perRequest + wait + ioWait },
       'q-tx': txService,
       'blob-get': { fixed: 2.5 + DISK_READ_MS, variable: getCpu / perRequest + wait + ioWait },
-      'q-scan': { fixed: 2.5 + DISK_READ_MS, variable: scanCpu / perRequest + wait + ioWait },
+      'q-scan': {
+        fixed: 2.5 + DISK_READ_MS + retention.scanMs,
+        variable: scanCpu / perRequest + wait + ioWait,
+      },
     },
     tailP: 0,
     tailMs: 0,

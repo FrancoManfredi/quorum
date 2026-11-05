@@ -22,6 +22,10 @@ import {
   KINDS,
   SHARD_COUNTS,
   LANGUAGES,
+  LIFECYCLE_DAYS,
+  SEARCH_REFRESH,
+  RESTORE_FAILURE,
+  RESTORE_DRILL_DH,
   LB_POLICIES,
   MAX_ATTEMPTS,
   POOL_LIMITS,
@@ -87,6 +91,7 @@ import {
 import { startIncident, zoned } from './director.ts'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE, ipoReady, newDrill } from './ipo.ts'
 import { firstQuarter, guidanceOpen } from './quarters.ts'
+import { nextRandom } from './random.ts'
 import { solveFlow } from './solve.ts'
 import type { AlertRule } from './events.ts'
 import type {
@@ -110,6 +115,8 @@ import type {
   DbEngine,
   IopsClass,
   StorageClass,
+  DbRetention,
+  CacheStrategy,
 } from './state.ts'
 
 /* ==========================================================================
@@ -206,6 +213,12 @@ export const blankNode = (
     iops: 'general',
     shards: 1,
     storageClass: 'standard',
+    crashes: 0,
+    keep: 'keep',
+    lifecycle: 0,
+    cacheStrategy: 'aside',
+    refresh: 1,
+    restore: 'ok',
     pm: 'static',
     mode: 'transaction',
     depth: 0,
@@ -666,6 +679,20 @@ export const setCacheGuard = (
     return ok(patch(game, id, change))
   })
 
+/**
+ * Picks what a Cache does on a write (07 "Strategies"): cache-aside, read-through,
+ * write-through or write-behind. Every strategy but cache-aside needs Cache strategies.
+ */
+export const setCacheStrategy = (game: Game, id: string, cacheStrategy: CacheStrategy): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'cache') return notAllowed('Only a Cache has a strategy.')
+    if (cacheStrategy !== 'aside' && !has(game, 'cache-strategies'))
+      return no(
+        Refusal.Locked({ what: 'Cache strategies', research: RESEARCH['cache-strategies'].name }),
+      )
+    return ok(node.cacheStrategy === cacheStrategy ? game : patch(game, id, { cacheStrategy }))
+  })
+
 /** Turns a Queue's dead-letter queue on or off. */
 export const setDlq = (game: Game, id: string, dlq: boolean): Action =>
   withNode(game, id, (node) =>
@@ -948,13 +975,44 @@ export const setSpread = (game: Game, id: string, spread: boolean): Action =>
     return ok(node.spread === spread ? game : patch(game, id, { spread }))
   })
 
-/** Sets a Database's backups. Needs Point-in-time recovery. */
+/**
+ * Sets a Database's backups. Needs Point-in-time recovery. A backup nobody has restored is
+ * untested, so writing one rolls the design's 20% chance that it would not restore; with
+ * Restore drills the Company tests every backup as it takes it, so the roll never fails
+ * (07 "Backups").
+ */
 export const setBackup = (game: Game, id: string, backup: Backup): Action =>
   withNode(game, id, (node) => {
     if (node.type !== 'database') return notAllowed('Only a Database keeps backups.')
     if (backup !== 'none' && !has(game, 'pitr'))
       return no(Refusal.Locked({ what: 'Backups', research: RESEARCH.pitr.name }))
-    return ok(node.backup === backup ? game : patch(game, id, { backup }))
+    if (node.backup === backup) return ok(game)
+    if (backup === 'none') return ok(patch(game, id, { backup, restore: 'ok' }))
+    return ok(rollRestore(patch(game, id, { backup }), id))
+  })
+
+/**
+ * Tests a backup nobody has restored: rolls the design's 20% chance that it would not restore and
+ * advances the seed, so the same save always finds the same answer. Restore drills remove the roll.
+ */
+export const rollRestore = (game: Game, id: string): Game => {
+  const [roll, seed] = nextRandom(game.seed)
+  const failed = !has(game, 'restore-drills') && roll < RESTORE_FAILURE
+  return { ...patch(game, id, { restore: failed ? 'failed' : 'ok' }), seed }
+}
+
+/**
+ * Runs a restore drill on a Database's backup (07 "Backups"). It costs Dev Hours, and an untested
+ * restore fails on the design's 20% until Restore drills; a backup that fails is broken, and the
+ * drill writes a new one. With the research the drill always restores.
+ */
+export const runRestoreDrill = (game: Game, id: string): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database') return notAllowed('Only a Database keeps backups.')
+    if (node.backup === 'none') return notAllowed('Take a backup before drilling a restore.')
+    if (game.devHours < RESTORE_DRILL_DH)
+      return notAllowed(`A restore drill needs ${RESTORE_DRILL_DH} Dev Hours.`)
+    return ok({ ...rollRestore(game, id), devHours: game.devHours - RESTORE_DRILL_DH })
   })
 
 /** Picks the engine a Database or Read Replica runs (07 "Variants"): Postgres forks a process per
@@ -988,6 +1046,18 @@ export const setShards = (game: Game, id: string, shards: number): Action =>
     return ok(node.shards === shards ? game : patch(game, id, { shards }))
   })
 
+/**
+ * What a Database does with rows past its window (07 "Data volume"). Needs Retention policies.
+ * Keeping everything is the default, so it needs nothing.
+ */
+export const setDbRetention = (game: Game, id: string, keep: DbRetention): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database') return notAllowed('Only a Database keeps rows.')
+    if (keep !== 'keep' && !has(game, 'retention'))
+      return no(Refusal.Locked({ what: 'Retention', research: RESEARCH.retention.name }))
+    return ok(node.keep === keep ? game : patch(game, id, { keep }))
+  })
+
 /** Picks the class Object Storage keeps its objects in (07 "Object Storage"). */
 export const setStorageClass = (game: Game, id: string, storageClass: StorageClass): Action =>
   withNode(game, id, (node) =>
@@ -995,6 +1065,37 @@ export const setStorageClass = (game: Game, id: string, storageClass: StorageCla
       ? ok(node.storageClass === storageClass ? game : patch(game, id, { storageClass }))
       : notAllowed('Only Object Storage has a storage class.'),
   )
+
+/**
+ * Picks how many calendar days an object stays in its class before Lifecycle rules move it one
+ * class cheaper (07 "Object Storage"). Needs Lifecycle rules; 0 turns them off.
+ */
+export const setLifecycle = (game: Game, id: string, lifecycle: number): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'storage')
+      return notAllowed('Only Object Storage moves objects between classes.')
+    if (!(LIFECYCLE_DAYS as ReadonlyArray<number>).includes(lifecycle))
+      return notAllowed(`Lifecycle windows are ${LIFECYCLE_DAYS.join(', ')} days.`)
+    if (lifecycle > 0 && !has(game, 'lifecycle-rules'))
+      return no(
+        Refusal.Locked({ what: 'Lifecycle rules', research: RESEARCH['lifecycle-rules'].name }),
+      )
+    return ok(node.lifecycle === lifecycle ? game : patch(game, id, { lifecycle }))
+  })
+
+/**
+ * Picks a Search Engine's refresh interval (07 "Search Engine"): a longer interval saves indexing
+ * CPU, so the Node answers more queries and a bigger share of its answers are staler.
+ */
+export const setSearchRefresh = (game: Game, id: string, refresh: number): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'search') return notAllowed('Only a Search Engine has a refresh interval.')
+    if (!SEARCH_REFRESH.some((entry) => entry.seconds === refresh))
+      return notAllowed(
+        `Refresh intervals are ${SEARCH_REFRESH.map((entry) => entry.seconds).join(', ')} s.`,
+      )
+    return ok(node.refresh === refresh ? game : patch(game, id, { refresh }))
+  })
 
 /** Pull or push feeds on an App Server (07 "Fan-out"). */
 export const setFanout = (game: Game, id: string, fanout: Fanout): Action =>

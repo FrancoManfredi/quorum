@@ -396,4 +396,14 @@ describe('a Cache stampede', () => {
     const preseed = { ...game, stage: 1 }
     expect(weaknessOf(preseed, solve(preseed), 'stampede')).toBe(0)
   })
+
+  test('a stale-read incident multiplies the Cache’s stale hits', () => {
+    const game = { ...nodes(cached(4_000, false)), sandbox: false }
+    const before = solveFlow(game)
+    expect(weaknessOf(game, before, 'stale-read')).toBeGreaterThan(0)
+    const started = forceIncident(game, before, 'stale-read')
+    if (!started) throw new Error('no stale read')
+    expect(started.incident?.nodeId).toBe('cache')
+    expect(solveFlow(started).errors.stale).toBeGreaterThan(before.errors.stale)
+  })
 })

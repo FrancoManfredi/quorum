@@ -731,3 +731,12 @@ export const PM_MODES = {
   dynamic: { label: 'Dynamic', spares: 2, spawnShare: 0.02, spawnMs: 20 },
   ondemand: { label: 'On demand', spares: 0, spawnShare: 0.1, spawnMs: 50 },
 } as const
+
+/**
+ * The BEAM's supervisors restart one process per this many requests (06 "Fault isolation").
+ * The request is retried inside the VM, so the user sees no failure. Proposed: the design
+ * says a crash affects one request and the supervisor restarts it, but gives no rate.
+ */
+export const BEAM_CRASHES_PER_REQUESTS = 100
+/** The Let It Crash milestone: supervised crashes one service survives (14 "Achievements"). */
+export const LET_IT_CRASH = 1_000

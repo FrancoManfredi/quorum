@@ -34,6 +34,8 @@ import {
   DbEngine,
   IopsClass,
   StorageClass,
+  DbRetention,
+  CacheStrategy,
 } from '@quorum/simulation/state'
 import { MANAGED } from '@quorum/simulation/mirror'
 import { ChallengeVerdict } from '@quorum/rpc'
@@ -241,6 +243,11 @@ export const Message = defineMessageUnion({
   StorageIopsChosen: { nodeId: Schema.String, iops: IopsClass },
   ShardsChosen: { nodeId: Schema.String, shards: Schema.Finite },
   StorageClassChosen: { nodeId: Schema.String, storageClass: StorageClass },
+  LifecycleChosen: { nodeId: Schema.String, lifecycle: Schema.Finite },
+  DbRetentionChosen: { nodeId: Schema.String, keep: DbRetention },
+  CacheStrategyChosen: { nodeId: Schema.String, cacheStrategy: CacheStrategy },
+  SearchRefreshChosen: { nodeId: Schema.String, refresh: Schema.Finite },
+  RestoreDrilled: { nodeId: Schema.String },
   DeployStrategyChosen: { nodeId: Schema.String, strategy: DeployStrategy },
   HubOptionsChosen: {
     nodeId: Schema.String,

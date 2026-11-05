@@ -6,6 +6,7 @@ import {
   place,
   resize,
   setFamily,
+  rollRestore,
   setFramework,
   setRuntime,
   type Action,
@@ -60,6 +61,10 @@ export const NODE_SETTINGS = [
   'iops',
   'shards',
   'storageClass',
+  'keep',
+  'lifecycle',
+  'cacheStrategy',
+  'refresh',
   'pm',
   'mode',
   'dlq',
@@ -182,6 +187,9 @@ const configure = (game: Game, id: string, settings: Record<string, unknown>): G
   const merged = decodeNode({ ...current, ...pick(settings, NODE_SETTINGS) })
   if (merged._tag === 'Some')
     next = { ...next, nodes: next.nodes.map((entry) => (entry.id === id ? merged.value : entry)) }
+  // A placed backup is as untested as one taken by hand: placing a Playbook rolls its restore.
+  if (typeof settings.backup === 'string' && settings.backup !== 'none')
+    next = rollRestore(next, id)
   return next
 }
 
