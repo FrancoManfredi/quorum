@@ -45,7 +45,7 @@ export type EraDef = Readonly<{
 
 /** Series B's mix (10 "Request mix by Era"). */
 const SERIES_B_MIX: Partial<Record<RequestKind, number>> = {
-  page: 0.18,
+  page: 0.17,
   read: 0.22,
   write: 0.09,
   login: 0.03,
@@ -58,11 +58,12 @@ const SERIES_B_MIX: Partial<Record<RequestKind, number>> = {
   job: 0.02,
   report: 0.03,
   ai: 0.05,
+  bid: 0.01,
 }
 
 /** The mix from Series C on (10 "Request mix by Era": Series C+). */
 const SERIES_C_MIX: Partial<Record<RequestKind, number>> = {
-  page: 0.14,
+  page: 0.13,
   read: 0.18,
   write: 0.08,
   login: 0.02,
@@ -78,6 +79,7 @@ const SERIES_C_MIX: Partial<Record<RequestKind, number>> = {
   feed: 0.08,
   hook: 0.02,
   push: 0.02,
+  bid: 0.01,
 }
 
 export const ERAS: ReadonlyArray<EraDef> = [
@@ -154,7 +156,7 @@ export const ERAS: ReadonlyArray<EraDef> = [
     costIndex: 12,
     salaryIndex: 12,
     mix: {
-      page: 0.22,
+      page: 0.21,
       read: 0.25,
       write: 0.1,
       login: 0.03,
@@ -164,9 +166,10 @@ export const ERAS: ReadonlyArray<EraDef> = [
       media: 0.1,
       rt: 0.08,
       buy: 0.03,
+      bid: 0.01,
     },
     question: 'What happens when a whole zone fails?',
-    arrivals: 'Video, chat and checkout. Zones, autoscaling and an error budget.',
+    arrivals: 'Video, chat, checkout and bids. Zones, autoscaling and an error budget.',
   },
   {
     name: 'Series B',

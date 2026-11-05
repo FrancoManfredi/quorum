@@ -168,7 +168,7 @@ const segmented = <A>(
           h.OnClick(message(value)),
           h.Class(
             cn(
-              'h-7 rounded-lg px-2 text-[12px] font-medium transition-colors',
+              'h-7 rounded-lg px-2 text-[calc(12px*var(--type-scale))] font-medium transition-colors',
               value === current
                 ? 'bg-raised text-foreground shadow-raised'
                 : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
@@ -219,16 +219,22 @@ const toolCards = (game: Game, h: HtmlBuilder<Message>): Html => {
               h.span(
                 [h.Class('flex items-baseline justify-between gap-2')],
                 [
-                  h.span([h.Class('text-[14px] font-semibold')], [IAC_TOOL_INFO[tool].name]),
                   h.span(
-                    [h.Class('text-[11.5px] text-muted-foreground')],
+                    [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
+                    [IAC_TOOL_INFO[tool].name],
+                  ),
+                  h.span(
+                    [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
                     [IAC_TOOL_INFO[tool].language],
                   ),
                 ],
               ),
               ...TOOL_FACTS[tool].map(([name, value]) =>
                 h.span(
-                  [h.Key(name), h.Class('flex justify-between gap-2 text-[12px]')],
+                  [
+                    h.Key(name),
+                    h.Class('flex justify-between gap-2 text-[calc(12px*var(--type-scale))]'),
+                  ],
                   [
                     h.span([h.Class('text-muted-foreground')], [name]),
                     h.span([h.Class('font-medium')], [value]),
@@ -322,7 +328,9 @@ const changeRow = (
   return h.div(
     [
       h.Key(`${index}`),
-      h.Class('grid grid-cols-[16px_1fr_auto] items-center gap-2 px-3 py-1 text-[12.5px]'),
+      h.Class(
+        'grid grid-cols-[16px_1fr_auto] items-center gap-2 px-3 py-1 text-[calc(12.5px*var(--type-scale))]',
+      ),
     ],
     [
       h.span([h.Class(cn(FIGURE, hand ? 'text-danger' : 'text-muted-foreground'))], [mark]),
@@ -347,7 +355,10 @@ const dataChoices = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html 
         h.div(
           [h.Key(node.id), h.Class('grid grid-cols-[140px_1fr] items-center gap-3')],
           [
-            h.span([h.Class('text-[12.5px] font-medium')], [COMPONENTS[node.type].name]),
+            h.span(
+              [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
+              [COMPONENTS[node.type].name],
+            ),
             segmented(
               node.id,
               patternsFor(node.type).map((pattern) => [pattern, PATTERN_LABEL[pattern]] as const),
@@ -380,7 +391,9 @@ const overrides = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html =>
         h.div(
           [
             h.Key(`${nodeId}:${field}`),
-            h.Class('flex items-center justify-between gap-2 px-1 text-[12.5px]'),
+            h.Class(
+              'flex items-center justify-between gap-2 px-1 text-[calc(12.5px*var(--type-scale))]',
+            ),
           ],
           [
             h.span(
@@ -434,7 +447,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
         [h.Class('flex flex-wrap items-baseline gap-x-3 gap-y-1')],
         [
           h.span(
-            [h.Class('text-[14px] font-semibold')],
+            [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
             [`${REGION_INFO[mirror.region].name} · Mirror of ${REGION_INFO[mirror.source].name}`],
           ),
           h.span(
@@ -442,7 +455,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
               h.Class(
                 cn(
                   FIGURE,
-                  'text-[12.5px]',
+                  'text-[calc(12.5px*var(--type-scale))]',
                   drift.hand > 0 ? 'text-danger' : drift.behind > 0 ? 'text-warn' : 'text-ok',
                 ),
               ),
@@ -456,7 +469,10 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
         ? h.div(
             [h.Key('computed'), h.Class('grid grid-cols-[140px_1fr] items-center gap-3')],
             [
-              h.span([h.Class('text-[12.5px] font-medium')], ['Computed sizes']),
+              h.span(
+                [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
+                ['Computed sizes'],
+              ),
               segmented(
                 'computed',
                 [
@@ -491,7 +507,10 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
           ),
           Math.abs(burn) >= 0.01
             ? h.span(
-                [h.Key('burn'), h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
+                [
+                  h.Key('burn'),
+                  h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground')),
+                ],
                 [`Burn ${burn > 0 ? '+' : ''}${money(burn)}/s`],
               )
             : h.empty,
@@ -567,7 +586,10 @@ const startSection = (game: Game, region: RegionId, h: HtmlBuilder<Message>): Ht
         h,
       ),
       targets.length === 0
-        ? h.span([h.Class('px-1 text-[12.5px] text-muted-foreground')], ['No region to pick.'])
+        ? h.span(
+            [h.Class('px-1 text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+            ['No region to pick.'],
+          )
         : h.div(
             [h.Class('flex flex-wrap gap-2')],
             targets.map((other) =>

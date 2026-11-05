@@ -36,13 +36,23 @@ const row = (line: Line, value: number, total: number, h: HtmlBuilder<Message>):
       h.div(
         [h.Class('min-w-0')],
         [
-          h.div([h.Class('text-[13.5px] text-foreground')], [line.label]),
-          h.div([h.Class('text-[12px] leading-snug text-muted-foreground')], [line.note]),
+          h.div([h.Class('text-[calc(13.5px*var(--type-scale))] text-foreground')], [line.label]),
+          h.div(
+            [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+            [line.note],
+          ),
         ],
       ),
-      h.span([h.Class(cn(FIGURE, 'text-[13.5px] text-foreground'))], [`${money(value)}/s`]),
       h.span(
-        [h.Class(cn(FIGURE, 'text-right text-[12px] text-muted-foreground'))],
+        [h.Class(cn(FIGURE, 'text-[calc(13.5px*var(--type-scale))] text-foreground'))],
+        [`${money(value)}/s`],
+      ),
+      h.span(
+        [
+          h.Class(
+            cn(FIGURE, 'text-right text-[calc(12px*var(--type-scale))] text-muted-foreground'),
+          ),
+        ],
         [total > 0 ? `${Math.round((value / total) * 100)}%` : '—'],
       ),
     ],
@@ -65,30 +75,51 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [h.Class('flex flex-col')],
             [
               h.span(
-                [h.Class(cn(FIGURE, 'text-[20px] leading-none font-medium'))],
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(20px*var(--type-scale))] leading-none font-medium'),
+                  ),
+                ],
                 [`${money(total)}/s`],
               ),
-              h.span([h.Class('text-[12px] text-muted-foreground')], ['Burn']),
+              h.span(
+                [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
+                ['Burn'],
+              ),
             ],
           ),
           h.div(
             [h.Class('flex flex-col')],
             [
               h.span(
-                [h.Class(cn(FIGURE, 'text-[20px] leading-none font-medium'))],
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(20px*var(--type-scale))] leading-none font-medium'),
+                  ),
+                ],
                 [`${money(revenue)}/s`],
               ),
-              h.span([h.Class('text-[12px] text-muted-foreground')], ['Revenue']),
+              h.span(
+                [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
+                ['Revenue'],
+              ),
             ],
           ),
           h.div(
             [h.Class('flex flex-col')],
             [
               h.span(
-                [h.Class(cn(FIGURE, 'text-[20px] leading-none font-medium'))],
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(20px*var(--type-scale))] leading-none font-medium'),
+                  ),
+                ],
                 [margin === null ? '—' : `${Math.round(margin * 100)}%`],
               ),
-              h.span([h.Class('text-[12px] text-muted-foreground')], ['Margin']),
+              h.span(
+                [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
+                ['Margin'],
+              ),
             ],
           ),
         ],
@@ -98,7 +129,11 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         LINES.map((line) => row(line, lines[line.key], total, h)),
       ),
       h.p(
-        [h.Class('px-5 pb-4 text-[12.5px] leading-snug text-muted-foreground')],
+        [
+          h.Class(
+            'px-5 pb-4 text-[calc(12.5px*var(--type-scale))] leading-snug text-muted-foreground',
+          ),
+        ],
         [
           'The bill follows the Era’s cost index, so it rises with the Company. An API Gateway is billed per request; the Requests line is what it serves.',
         ],

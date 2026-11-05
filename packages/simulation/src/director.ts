@@ -356,6 +356,11 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     // A signature-only incident: its weakness is the Venture's floor, and no one else's (13).
     'latency-regression': () => 0,
     'deadline-day': () => 0,
+    // The older Ventures' signatures exist for them alone (13 "Ventures").
+    'hot-shard': () => 0,
+    'premiere-spike': () => 0,
+    'launch-day': () => 0,
+    'flash-sale': () => 0,
     // Naive retries into a Database turn a slowdown into a storm; backoff contains it.
     'retry-storm': () => {
       if (!busiest(game, ledger, 'database')) return 0
@@ -487,6 +492,7 @@ export const startIncident = (
     }),
     Match.when('reconnect', () => busiest(game, ledger, 'ws')),
     Match.when('cluster-upgrade', () => pickWeighted(clusterTargets(game), roll)),
+    Match.when('hot-shard', () => busiest(game, ledger, 'database')),
     Match.when('hot-key', () => {
       const targets = hotKeyTargets(game, ledger)
       return targets[Math.floor(roll * targets.length)]
@@ -516,6 +522,7 @@ export const startIncident = (
     'reconnect',
     'hot-key',
     'cluster-upgrade',
+    'hot-shard',
   ] as const
   if ((targeted as ReadonlyArray<IncidentId>).includes(kind) && !target) return null
   // A Region outage strikes the region most of the Design depends on; the DR drill, home.

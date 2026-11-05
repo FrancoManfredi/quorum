@@ -70,7 +70,7 @@ const figureRow = (
       h.span(
         [
           h.Class(
-            'min-w-[52px] shrink-0 whitespace-nowrap text-[11.5px] text-muted-foreground compact:hidden',
+            'min-w-[52px] shrink-0 whitespace-nowrap text-[calc(11.5px*var(--type-scale))] text-muted-foreground compact:hidden',
           ),
         ],
         [name],
@@ -80,7 +80,7 @@ const figureRow = (
           h.Class(
             cn(
               FIGURE,
-              'ml-auto text-[13.5px] leading-none whitespace-nowrap compact:ml-0',
+              'ml-auto text-[calc(13.5px*var(--type-scale))] leading-none whitespace-nowrap compact:ml-0',
               toneText(tone),
             ),
           ),
@@ -167,7 +167,7 @@ const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html =>
         icon(h, Menu, 'size-4'),
         h,
       ),
-      h.span([h.Class('truncate text-[13px] font-semibold')], [title]),
+      h.span([h.Class('truncate text-[calc(13px*var(--type-scale))] font-semibold')], [title]),
       h.span([h.Class('ml-auto')], [aside]),
     ],
   )
@@ -214,7 +214,7 @@ export const objectiveBar = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.Key(`objective-${run.progress.objective}`),
       h.DataAttribute('exit', 'notice'),
       h.Class(
-        'enter-down flex w-[420px] flex-col gap-2 compact:w-auto rounded-xl bg-surface px-3 py-2.5 text-[12.5px] shadow-card',
+        'enter-down flex w-[420px] flex-col gap-2 compact:w-auto rounded-xl bg-surface px-3 py-2.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
       ),
     ],
     [
@@ -224,7 +224,7 @@ export const objectiveBar = (model: Model, h: HtmlBuilder<Message>): Html => {
           icon(h, Flag, 'mt-0.5 size-3.5 shrink-0 text-primary-strong'),
           h.span([h.Class('flex-1 leading-snug')], [objective.goal]),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+            [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
             [`${clock(run.progress.held)} / ${clock(objective.hold)}`],
           ),
         ],
@@ -242,7 +242,8 @@ const tiny = (label: string, message: Message, h: HtmlBuilder<Message>, active =
       onClick: message,
       variant: active ? 'default' : 'outline',
       size: 'sm',
-      className: 'h-auto min-h-7 px-2 py-1 text-[11.5px] leading-tight whitespace-normal',
+      className:
+        'h-auto min-h-7 px-2 py-1 text-[calc(11.5px*var(--type-scale))] leading-tight whitespace-normal',
       attributes: [h.Key(label)],
     },
     label,
@@ -261,7 +262,7 @@ const controls = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.summary(
         [
           h.Class(
-            'hidden h-9 cursor-pointer list-none items-center gap-2 px-2.5 text-[12.5px] font-medium compact:flex [&::-webkit-details-marker]:hidden',
+            'hidden h-9 cursor-pointer list-none items-center gap-2 px-2.5 text-[calc(12.5px*var(--type-scale))] font-medium compact:flex [&::-webkit-details-marker]:hidden',
           ),
         ],
         [
@@ -296,7 +297,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
             h,
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'w-14 text-center text-[13px]'))],
+            [h.Class(cn(FIGURE, 'w-14 text-center text-[calc(13px*var(--type-scale))]'))],
             [model.board.game.users.toLocaleString('en-US')],
           ),
           button(
@@ -331,7 +332,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
             Schema.is(IncidentId)(kind) ? Message.IncidentForced({ kind }) : Message.Synced(),
           wrapperClass: 'flex-row items-center gap-1.5 [&>div]:flex-1',
           labelClass: cn(EYEBROW, 'mr-auto p-0'),
-          className: 'text-[11.5px]',
+          className: 'text-[calc(11.5px*var(--type-scale))]',
           options: [
             nativeSelectOption({ value: '', label: 'None' }, h),
             ...INCIDENT_IDS.map((kind) =>
@@ -441,7 +442,10 @@ export const passedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
             [icon(h, Check, 'size-6')],
           ),
-          h.span([h.Class('text-[26px] font-semibold tracking-[-0.035em]')], ['Passed']),
+          h.span(
+            [h.Class('text-[calc(26px*var(--type-scale))] font-semibold tracking-[-0.035em]')],
+            ['Passed'],
+          ),
         ],
       ),
       h.div(

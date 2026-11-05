@@ -47,7 +47,10 @@ export const shell = (
           h.div(
             [h.Class('flex items-center justify-between gap-4 px-5 pt-4 pb-3')],
             [
-              h.span([h.Class('text-[17px] font-semibold tracking-[-0.025em]')], [title]),
+              h.span(
+                [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
+                [title],
+              ),
               h.div(
                 [h.Class('flex items-center gap-3')],
                 [
@@ -94,7 +97,10 @@ const footer = (children: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
 const stat = (name: string, value: string, h: HtmlBuilder<Message>) =>
   h.div(
     [h.Key(name), h.Class('flex flex-col gap-1 px-4 py-3')],
-    [h.span([h.Class(EYEBROW)], [name]), h.span([h.Class(cn(FIGURE, 'text-[18px]'))], [value])],
+    [
+      h.span([h.Class(EYEBROW)], [name]),
+      h.span([h.Class(cn(FIGURE, 'text-[calc(18px*var(--type-scale))]'))], [value]),
+    ],
   )
 
 const stats = (columns: string, children: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
@@ -177,11 +183,22 @@ export const helpPanel = (h: HtmlBuilder<Message>): Html =>
                 ],
                 [
                   h.span(
-                    [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+                    [
+                      h.Class(
+                        cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'),
+                      ),
+                    ],
                     [String(index + 1).padStart(2, '0')],
                   ),
-                  h.span([h.Class('text-[15px] font-semibold')], [title]),
-                  h.span([h.Class('text-[13px] leading-relaxed text-muted-foreground')], [body]),
+                  h.span([h.Class('text-[calc(15px*var(--type-scale))] font-semibold')], [title]),
+                  h.span(
+                    [
+                      h.Class(
+                        'text-[calc(13px*var(--type-scale))] leading-relaxed text-muted-foreground',
+                      ),
+                    ],
+                    [body],
+                  ),
                 ],
               ),
             ),
@@ -196,7 +213,9 @@ export const helpPanel = (h: HtmlBuilder<Message>): Html =>
                   h.div(
                     [
                       h.Key(key),
-                      h.Class('flex items-center justify-between gap-2 px-3 py-1.5 text-[12.5px]'),
+                      h.Class(
+                        'flex items-center justify-between gap-2 px-3 py-1.5 text-[calc(12.5px*var(--type-scale))]',
+                      ),
                     ],
                     [h.span([h.Class('text-muted-foreground')], [action]), Kbd({}, [key], h)],
                   ),
@@ -273,7 +292,7 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
       ),
     ],
-    'max-w-[320px]',
+    'max-w-[calc(320px*var(--type-scale))]',
     h,
   )
 }
@@ -326,6 +345,15 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           ),
           switch_(
             {
+              id: 'setting-text',
+              label: 'Text at 150%',
+              isChecked: model.prefs.text === 'large',
+              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
+            },
+            h,
+          ),
+          switch_(
+            {
               id: 'setting-agent-access',
               label: 'Agent access',
               isChecked: model.prefs.agentAccess,
@@ -359,7 +387,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
         ],
       ),
     ],
-    'max-w-[360px]',
+    'max-w-[calc(360px*var(--type-scale))]',
     h,
   )
 
@@ -379,9 +407,16 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div(
             [h.Class('flex flex-col gap-3 rounded-xl bg-raised p-4 shadow-raised')],
             [
-              h.span([h.Class('text-[15px] font-semibold')], [ipo ? 'Go public' : 'Raise']),
+              h.span(
+                [h.Class('text-[calc(15px*var(--type-scale))] font-semibold')],
+                [ipo ? 'Go public' : 'Raise'],
+              ),
               h.div(
-                [h.Class('flex flex-1 flex-col gap-0.5 text-[13px] text-muted-foreground')],
+                [
+                  h.Class(
+                    'flex flex-1 flex-col gap-0.5 text-[calc(13px*var(--type-scale))] text-muted-foreground',
+                  ),
+                ],
                 [
                   h.span([], [`+${money(deal.grant)} Cash`]),
                   h.span(
@@ -405,9 +440,16 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ],
                 [
-                  h.span([h.Class('text-[15px] font-semibold')], ['Decline']),
+                  h.span(
+                    [h.Class('text-[calc(15px*var(--type-scale))] font-semibold')],
+                    ['Decline'],
+                  ),
                   h.div(
-                    [h.Class('flex flex-1 flex-col gap-0.5 text-[13px] text-muted-foreground')],
+                    [
+                      h.Class(
+                        'flex flex-1 flex-col gap-0.5 text-[calc(13px*var(--type-scale))] text-muted-foreground',
+                      ),
+                    ],
                     [
                       h.span([], ['No Cash']),
                       h.span([], [`Equity stays ${Math.round(model.board.game.equity * 100)}%`]),
@@ -435,10 +477,17 @@ export const eraPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.Class('stagger flex flex-col gap-4 px-5 pt-1 pb-5')],
         [
           h.span(
-            [h.Class('text-[26px] font-semibold leading-tight tracking-[-0.035em]')],
+            [
+              h.Class(
+                'text-[calc(26px*var(--type-scale))] font-semibold leading-tight tracking-[-0.035em]',
+              ),
+            ],
             [era.question],
           ),
-          h.p([h.Class('text-[14px] leading-relaxed text-muted-foreground')], [era.arrivals]),
+          h.p(
+            [h.Class('text-[calc(14px*var(--type-scale))] leading-relaxed text-muted-foreground')],
+            [era.arrivals],
+          ),
           stats(
             'grid-cols-3',
             [
@@ -479,7 +528,7 @@ export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
             h.Class('w-full max-w-[520px] short:max-h-[30dvh] short:w-auto'),
           ]),
           h.span(
-            [h.Class('text-[30px] font-semibold tracking-[-0.035em]')],
+            [h.Class('text-[calc(30px*var(--type-scale))] font-semibold tracking-[-0.035em]')],
             ['The company is public.'],
           ),
           stats(

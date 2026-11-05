@@ -13,6 +13,7 @@ import {
   PAYING_SHARE,
   PLAN_PER_DAY,
   POOLER_CONNECTIONS,
+  STRATEGY_RESEARCH,
   type DeployStrategyId,
   type FeatureId,
 } from './catalog.ts'
@@ -168,10 +169,12 @@ describe('deploys', () => {
     expect(deploysPerDay({ ...preseed(), researched: ['ci'] }, CHALLENGE_TUNING)).toBe(8)
   })
 
-  /** Pre-seed with a placed Pipeline on `strategy`: the research alone leaves the old path. */
+  /** Pre-seed with a placed Pipeline on `strategy`, and the research that strategy needs. */
   const piped = (strategy: DeployStrategyId): Game => {
     const base = preseed()
-    const placed = ok(place({ ...base, researched: [...base.researched, 'ci'] }, 'ci', 520, 80))
+    const needs = STRATEGY_RESEARCH[strategy]
+    const researched = [...base.researched, 'ci', ...(needs ? [needs] : [])] as Game['researched']
+    const placed = ok(place({ ...base, researched }, 'ci', 520, 80))
     const pipeline = placed.nodes.find((entry) => entry.type === 'ci') as GameNode
     return ok(setDeployStrategy(placed, pipeline.id, strategy))
   }
@@ -256,6 +259,27 @@ describe('deploys', () => {
     // Nothing routes into it: it ships deploys, and the solve leaves it alone.
     expect(ledger.nodes[pipeline.id]?.inbound).toBe(0)
     expect(ledger.nodes[pipeline.id]?.stranded).toBe(0)
+  })
+
+  test('Blue-green and Canary wait for their own research; Rolling and Recreate do not', () => {
+    const base = preseed()
+    const placed = ok(place({ ...base, researched: [...base.researched, 'ci'] }, 'ci', 520, 80))
+    const id = pipelineIn(placed).id
+    // The Pipeline alone ships Recreate and Rolling.
+    expect(Result.isSuccess(setDeployStrategy(placed, id, 'recreate'))).toBe(true)
+    expect(Result.isSuccess(setDeployStrategy(placed, id, 'rolling'))).toBe(true)
+    const refused = setDeployStrategy(placed, id, 'blue-green')
+    expect(Result.isFailure(refused)).toBe(true)
+    if (Result.isFailure(refused)) expect(refused.failure._tag).toBe('Locked')
+    expect(Result.isFailure(setDeployStrategy(placed, id, 'canary'))).toBe(true)
+    // Blue-green's research opens Blue-green only.
+    const green: Game = { ...placed, researched: [...placed.researched, 'blue-green'] }
+    expect(Result.isSuccess(setDeployStrategy(green, id, 'blue-green'))).toBe(true)
+    expect(Result.isFailure(setDeployStrategy(green, id, 'canary'))).toBe(true)
+    // Canary also asks for Percentiles.
+    const canary: Game = { ...placed, researched: [...placed.researched, 'canary'] }
+    expect(Result.isSuccess(setDeployStrategy(canary, id, 'canary'))).toBe(true)
+    expect(STRATEGY_RESEARCH.canary).toBe('canary')
   })
 
   test('a save from before the strategy opens on Rolling', () => {

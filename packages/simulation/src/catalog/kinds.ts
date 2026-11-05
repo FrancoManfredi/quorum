@@ -18,6 +18,8 @@ export const REQUEST_KINDS = [
   'feed',
   'hook',
   'push',
+  // Ad tech's bid request (13 "Ventures"): cheap, enormous, and gone in 100 ms.
+  'bid',
 ] as const
 export type RequestKind = (typeof REQUEST_KINDS)[number]
 
@@ -81,6 +83,8 @@ export const KINDS: Record<Kind, KindInfo> = {
   feed: { label: 'Feed', value: 0.3, color: 0xc9a227 },
   hook: { label: 'Webhook', value: 0.4, color: 0x6d8f3a },
   push: { label: 'Notify', value: 0.05, color: 0xd96b9a },
+  // The design's number for the bid kind is $0.001 (13 "Ventures"); the colour is proposed.
+  bid: { label: 'Bid request', value: 0.001, color: 0x8e7cc3 },
   notify: { label: 'Push message', value: 0, color: 0xd96b9a },
   callout: { label: 'Customer call', value: 0, color: 0x6d8f3a },
   'k-write': { label: 'Timeline write', value: 0, color: 0xc9a227 },
@@ -389,6 +393,23 @@ export const PROFILES: Record<RequestKind, RequestProfile> = {
     compressible: false,
     inKB: 0,
     offload: 0.9,
+    scored: true,
+  },
+  // A bid request (13 "Ventures", Ad tech): the design gives its value, its 100 ms target and
+  // its volume; the rest is proposed. It reads the campaign before it answers, and nothing else.
+  bid: {
+    cpu: 0.5,
+    native: false,
+    apdex: 100,
+    calls: { 'q-read': 1 },
+    asyncCalls: {},
+    orm: false,
+    payloadKB: 1,
+    asyncKB: 1,
+    stream: false,
+    compressible: false,
+    inKB: 0,
+    offload: 0,
     scored: true,
   },
 }

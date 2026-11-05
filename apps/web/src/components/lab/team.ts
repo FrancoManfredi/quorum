@@ -230,8 +230,21 @@ const seat = (
     ],
     [
       face,
-      h.span([h.Class('mt-1 w-full truncate text-[12.5px] font-medium')], [name]),
-      h.span([h.Class(cn(FIGURE, 'w-full truncate text-[10.5px] text-muted-foreground'))], [note]),
+      h.span(
+        [h.Class('mt-1 w-full truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
+        [name],
+      ),
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'w-full truncate text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+            ),
+          ),
+        ],
+        [note],
+      ),
       ...corners,
     ],
   )
@@ -260,7 +273,7 @@ const face = (
     [
       h.Class(
         cn(
-          'relative grid size-11 shrink-0 place-items-center rounded-full text-[17px] font-semibold text-white shadow-[inset_0_-2px_0_oklch(0_0_0/0.12),0_1px_2px_oklch(0_0_0/0.12)]',
+          'relative grid size-11 shrink-0 place-items-center rounded-full text-[calc(17px*var(--type-scale))] font-semibold text-white shadow-[inset_0_-2px_0_oklch(0_0_0/0.12),0_1px_2px_oklch(0_0_0/0.12)]',
           hue === null && 'bg-primary-fill text-on-primary-fill',
         ),
       ),
@@ -395,11 +408,18 @@ const hireSeat = (game: Game, h: HtmlBuilder<Message>): Html => {
         ],
       ),
       h.span(
-        [h.Class('mt-1 w-full truncate text-[12.5px] font-medium')],
+        [h.Class('mt-1 w-full truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
         [open ? 'Hire' : 'Locked'],
       ),
       h.span(
-        [h.Class(cn(FIGURE, 'w-full truncate text-[10.5px] text-muted-foreground'))],
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'w-full truncate text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+            ),
+          ),
+        ],
         [open ? money(price) : (ERAS[1]?.name ?? '')],
       ),
     ],
@@ -441,7 +461,7 @@ const policySwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
           ),
           h.Class(
             cn(
-              'press flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[12px] font-medium',
+              'press flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[calc(12px*var(--type-scale))] font-medium',
               selected
                 ? 'bg-raised text-foreground shadow-raised'
                 : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
@@ -477,7 +497,7 @@ const kindSwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
           ),
           h.Class(
             cn(
-              'press flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[12px] font-medium',
+              'press flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[calc(12px*var(--type-scale))] font-medium',
               selected
                 ? 'bg-raised text-foreground shadow-raised'
                 : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
@@ -519,11 +539,15 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
             [h.Class('flex min-w-0 flex-1 flex-col')],
             [
               h.span(
-                [h.Class('truncate text-[15px] font-semibold tracking-[-0.02em]')],
+                [
+                  h.Class(
+                    'truncate text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]',
+                  ),
+                ],
                 [team.name],
               ),
               h.span(
-                [h.Class('text-[11.5px] text-muted-foreground')],
+                [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
                 [
                   `${output?.headcount ?? 0} ${(output?.headcount ?? 0) === 1 ? 'person' : 'people'}`,
                 ],
@@ -534,10 +558,17 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
             [h.Class('flex flex-col items-end')],
             [
               h.span(
-                [h.Class(cn(FIGURE, 'text-[22px] leading-none font-medium'))],
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(22px*var(--type-scale))] leading-none font-medium'),
+                  ),
+                ],
                 [perMinute(output?.rate ?? 0)],
               ),
-              h.span([h.Class(cn(EYEBROW, 'mt-1 text-[9.5px]'))], ['DH / min']),
+              h.span(
+                [h.Class(cn(EYEBROW, 'mt-1 text-[calc(9.5px*var(--type-scale))]'))],
+                ['DH / min'],
+              ),
             ],
           ),
           index > 0
@@ -555,7 +586,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
       team.kind === 'platform' ? h.empty : policySwitch(team, h),
       team.kind !== 'platform' && now.id !== team.policy
         ? h.span(
-            [h.Class('-mt-1.5 px-1 text-[11px] text-muted-foreground')],
+            [h.Class('-mt-1.5 px-1 text-[calc(11px*var(--type-scale))] text-muted-foreground')],
             [`${now.label} until tomorrow`],
           )
         : h.empty,
@@ -623,7 +654,10 @@ const platformWork = (h: HtmlBuilder<Message>): Html =>
     [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
     [
       icon(h, Container, 'size-3.5 text-muted-foreground'),
-      h.span([h.Class('text-[12.5px] text-muted-foreground')], ['Runs Clusters and deploys']),
+      h.span(
+        [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+        ['Runs Clusters and deploys'],
+      ),
     ],
   )
 
@@ -634,18 +668,24 @@ const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html =>
       ? [
           statusMark('building', item.spent / item.cost, h),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+            [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
             [codeOf(item.kind, item.ref)],
           ),
-          h.span([h.Class('min-w-0 flex-1 truncate text-[12.5px] font-medium')], [itemName(item)]),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))],
+            [h.Class('min-w-0 flex-1 truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
+            [itemName(item)],
+          ),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'))],
             [`${Math.floor(clamp(item.spent / item.cost) * 100)}%`],
           ),
         ]
       : [
           statusMark('queued', 0, h),
-          h.span([h.Class('text-[12.5px] text-muted-foreground')], ['Nothing assigned']),
+          h.span(
+            [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+            ['Nothing assigned'],
+          ),
         ],
   )
 
@@ -662,7 +702,7 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       game.teams.length > 1 && game.engineers.length > 0
         ? h.p(
-            [h.Class('px-1 text-[11.5px] text-muted-foreground')],
+            [h.Class('px-1 text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
             ['Drag an engineer to another team, or use the move button.'],
           )
         : h.empty,
@@ -689,7 +729,7 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.Type('button'),
               h.OnClick(Message.TeamChanged({ message: TeamMessage.Created() })),
               h.Class(
-                'press flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-foreground/20 text-[13px] font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground',
+                'press flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dashed border-foreground/20 text-[calc(13px*var(--type-scale))] font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground',
               ),
             ],
             [icon(h, Plus, 'size-4'), 'New team'],
@@ -733,7 +773,7 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
               h.span(
                 [
                   h.Class(
-                    'truncate text-[13px] text-muted-foreground line-through decoration-foreground/25',
+                    'truncate text-[calc(13px*var(--type-scale))] text-muted-foreground line-through decoration-foreground/25',
                   ),
                 ],
                 [stackName(migration.fromRuntime, migration.fromFramework)],
@@ -741,7 +781,11 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
               icon(h, ArrowRight, 'size-3.5 shrink-0 text-muted-foreground'),
               stackLogo(language, 'size-5', h),
               h.span(
-                [h.Class('truncate text-[15px] font-semibold tracking-[-0.02em]')],
+                [
+                  h.Class(
+                    'truncate text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]',
+                  ),
+                ],
                 [stackName(migration.runtime, migration.framework)],
               ),
               migration.bugs
@@ -755,7 +799,11 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
                 [h.Class('flex items-center gap-2')],
                 [
                   h.span(
-                    [h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))],
+                    [
+                      h.Class(
+                        cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'),
+                      ),
+                    ],
                     [
                       isReady(migration)
                         ? 'Ready'
@@ -828,7 +876,7 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
                   h.Class(
                     cn(
                       FIGURE,
-                      'absolute inset-y-0 right-2.5 flex items-center text-[11px] text-muted-foreground',
+                      'absolute inset-y-0 right-2.5 flex items-center text-[calc(11px*var(--type-scale))] text-muted-foreground',
                     ),
                   ),
                 ],
@@ -845,7 +893,7 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
                   h.Class(
                     cn(
                       FIGURE,
-                      'absolute top-0 text-[10px]',
+                      'absolute top-0 text-[calc(10px*var(--type-scale))]',
                       at < shifted ? 'text-foreground' : 'text-muted-foreground',
                       share >= 1 ? '-translate-x-full' : '-translate-x-1/2',
                     ),
@@ -926,7 +974,7 @@ const label = (kind: WorkKind, h: HtmlBuilder<Message>): Html =>
   h.span(
     [
       h.Class(
-        'inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[10.5px] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
+        'inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[calc(10.5px*var(--type-scale))] font-medium text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
       ),
     ],
     [h.span([h.Class(cn('size-1.5 rounded-full', KIND[kind].fill))], []), KIND[kind].label],
@@ -941,7 +989,7 @@ const deadline = (game: Game, item: WorkItem, h: HtmlBuilder<Message>): Html => 
       h.Class(
         cn(
           FIGURE,
-          'inline-flex h-5 items-center rounded-full px-1.5 text-[10.5px] font-medium whitespace-nowrap',
+          'inline-flex h-5 items-center rounded-full px-1.5 text-[calc(10.5px*var(--type-scale))] font-medium whitespace-nowrap',
           late > 0
             ? 'bg-danger text-white'
             : 'text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
@@ -958,7 +1006,7 @@ const estimate = (text: string, h: HtmlBuilder<Message>): Html =>
       h.Class(
         cn(
           FIGURE,
-          'inline-flex h-5 items-center rounded-full px-1.5 text-[10.5px] whitespace-nowrap text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
+          'inline-flex h-5 items-center rounded-full px-1.5 text-[calc(10.5px*var(--type-scale))] whitespace-nowrap text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
         ),
       ),
     ],
@@ -973,7 +1021,7 @@ const mini = (id: string | null, h: HtmlBuilder<Message>): Html =>
       h.Title(id ? nameOf(id) : 'You'),
       h.Class(
         cn(
-          'grid size-5 shrink-0 place-items-center rounded-full text-[9.5px] font-semibold text-white ring-2 ring-[var(--card)] not-first:-ml-1.5',
+          'grid size-5 shrink-0 place-items-center rounded-full text-[calc(9.5px*var(--type-scale))] font-semibold text-white ring-2 ring-[var(--card)] not-first:-ml-1.5',
           id === null && 'bg-primary-fill text-on-primary-fill',
         ),
       ),
@@ -994,7 +1042,11 @@ const assignees = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
       ...shown.map((id) => mini(id, h)),
       people.length > shown.length
         ? h.span(
-            [h.Class(cn(FIGURE, 'ml-1 text-[10.5px] text-muted-foreground'))],
+            [
+              h.Class(
+                cn(FIGURE, 'ml-1 text-[calc(10.5px*var(--type-scale))] text-muted-foreground'),
+              ),
+            ],
             [`+${people.length - shown.length}`],
           )
         : h.empty,
@@ -1037,7 +1089,17 @@ const card = (
     [
       h.div(
         [h.Class('flex items-center gap-2')],
-        [h.span([h.Class(cn(FIGURE, 'flex-1 text-[11px] text-muted-foreground'))], [code]), owner],
+        [
+          h.span(
+            [
+              h.Class(
+                cn(FIGURE, 'flex-1 text-[calc(11px*var(--type-scale))] text-muted-foreground'),
+              ),
+            ],
+            [code],
+          ),
+          owner,
+        ],
       ),
       h.div(
         [h.Class('flex items-start gap-2')],
@@ -1047,7 +1109,7 @@ const card = (
             [
               h.Class(
                 cn(
-                  'line-clamp-2 text-[13px] leading-[1.35] font-medium',
+                  'line-clamp-2 text-[calc(13px*var(--type-scale))] leading-[1.35] font-medium',
                   status === 'live' && 'text-muted-foreground',
                 ),
               ),
@@ -1148,7 +1210,7 @@ const idleCard = (game: Game, team: Team, h: HtmlBuilder<Message>): Html =>
     [
       assignees(game, team, h),
       h.span(
-        [h.Class('flex-1 truncate text-[12.5px] text-muted-foreground')],
+        [h.Class('flex-1 truncate text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
         [`${team.name} idle`],
       ),
     ],
@@ -1173,8 +1235,11 @@ const column = (
         [h.Class('flex items-center gap-2 px-1.5 pt-1 pb-1')],
         [
           statusMark(status, status === 'building' ? 0.5 : 1, h),
-          h.span([h.Class('text-[12.5px] font-medium')], [title]),
-          h.span([h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))], [String(count)]),
+          h.span([h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')], [title]),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
+            [String(count)],
+          ),
         ],
       ),
       top,
@@ -1227,13 +1292,19 @@ const deployPill = (game: Game, h: HtmlBuilder<Message>): Html => {
         [h.Class('flex min-w-0 flex-col')],
         [
           h.span(
-            [h.Class('truncate text-[12.5px] font-medium')],
+            [h.Class('truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
             [built === 0 ? 'Nothing to ship' : stalled ? 'Held' : `Deploy in ${wait(left)}`],
           ),
           chance > 0
             ? h.span(
                 [
-                  h.Class(cn(FIGURE, 'text-[10.5px]', chance >= 0.15 ? 'text-warn' : 'opacity-60')),
+                  h.Class(
+                    cn(
+                      FIGURE,
+                      'text-[calc(10.5px*var(--type-scale))]',
+                      chance >= 0.15 ? 'text-warn' : 'opacity-60',
+                    ),
+                  ),
                   h.Title('Chance a deploy ships a bug'),
                 ],
                 [`${Math.round(chance * 100)}% bad deploys`],
@@ -1323,7 +1394,15 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
             ),
           live.length > LIVE_SHOWN
             ? h.span(
-                [h.Key('more'), h.Class(cn(FIGURE, 'px-2 py-1 text-[11px] text-muted-foreground'))],
+                [
+                  h.Key('more'),
+                  h.Class(
+                    cn(
+                      FIGURE,
+                      'px-2 py-1 text-[calc(11px*var(--type-scale))] text-muted-foreground',
+                    ),
+                  ),
+                ],
                 [`+${live.length - LIVE_SHOWN} more`],
               )
             : h.empty,
@@ -1344,7 +1423,7 @@ const autopilot = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.OnClick(Message.AutopilotToggled()),
       h.Class(
         cn(
-          'press enter-pop inline-flex h-7 items-center gap-1.5 rounded-full pr-1 pl-2.5 text-[11.5px] font-medium',
+          'press enter-pop inline-flex h-7 items-center gap-1.5 rounded-full pr-1 pl-2.5 text-[calc(11.5px*var(--type-scale))] font-medium',
           glowing(model, 'autopilot') && 'cue-glow',
           !shown(model, 'autopilot') && 'hidden',
           game.autopilot
@@ -1361,7 +1440,7 @@ const autopilot = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.Class(
             cn(
               FIGURE,
-              'rounded-full px-1.5 py-0.5 text-[10px]',
+              'rounded-full px-1.5 py-0.5 text-[calc(10px*var(--type-scale))]',
               game.autopilot ? 'bg-white/20' : 'bg-well',
             ),
           ),
@@ -1380,7 +1459,7 @@ const costPill = (cost: number, h: HtmlBuilder<Message>): Html =>
       h.Class(
         cn(
           FIGURE,
-          'shrink-0 rounded-full bg-primary-fill px-2 py-0.5 text-[10.5px] text-on-primary-fill shadow-primary',
+          'shrink-0 rounded-full bg-primary-fill px-2 py-0.5 text-[calc(10.5px*var(--type-scale))] text-on-primary-fill shadow-primary',
         ),
       ),
     ],
@@ -1421,18 +1500,34 @@ const tile = (
           h.div(
             [h.Class('flex min-w-0 flex-1 flex-col')],
             [
-              h.span([h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))], [code]),
-              h.span([h.Class('truncate text-[13px] font-semibold')], [name]),
+              h.span(
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-muted-foreground'),
+                  ),
+                ],
+                [code],
+              ),
+              h.span(
+                [h.Class('truncate text-[calc(13px*var(--type-scale))] font-semibold')],
+                [name],
+              ),
             ],
           ),
           state === 'done' ? h.empty : costPill(cost, h),
         ],
       ),
       h.span(
-        [h.Class('line-clamp-2 min-h-[2lh] text-[11.5px] leading-snug text-muted-foreground')],
+        [
+          h.Class(
+            'line-clamp-2 min-h-[2lh] text-[calc(11.5px*var(--type-scale))] leading-snug text-muted-foreground',
+          ),
+        ],
         [effect],
       ),
-      extra ? h.span([h.Class('truncate text-[11.5px] text-warn')], [extra]) : h.empty,
+      extra
+        ? h.span([h.Class('truncate text-[calc(11.5px*var(--type-scale))] text-warn')], [extra])
+        : h.empty,
       h.div([h.Class('mt-auto flex justify-end pt-0.5')], [status]),
     ],
   )
@@ -1539,7 +1634,7 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
       heading(
         'Features',
         h.span(
-          [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+          [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
           [`${live} / ${features.length} live`],
         ),
         h,
@@ -1574,7 +1669,10 @@ export const teamPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         ? h.span(
             [
               h.Class(
-                cn(FIGURE, 'text-[12px] whitespace-nowrap text-muted-foreground compact:hidden'),
+                cn(
+                  FIGURE,
+                  'text-[calc(12px*var(--type-scale))] whitespace-nowrap text-muted-foreground compact:hidden',
+                ),
               ),
             ],
             [`${money(payroll)}/s payroll`],
@@ -1585,11 +1683,17 @@ export const teamPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.Class(
             cn(
               FIGURE,
-              'flex items-baseline gap-1.5 rounded-full bg-well px-3 py-1 text-[15px] whitespace-nowrap shadow-well',
+              'flex items-baseline gap-1.5 rounded-full bg-well px-3 py-1 text-[calc(15px*var(--type-scale))] whitespace-nowrap shadow-well',
             ),
           ),
         ],
-        [dh(game.devHours), h.span([h.Class('text-[11px] text-ok')], [`+${perMinute(rate)}/min`])],
+        [
+          dh(game.devHours),
+          h.span(
+            [h.Class('text-[calc(11px*var(--type-scale))] text-ok')],
+            [`+${perMinute(rate)}/min`],
+          ),
+        ],
       ),
     ],
     [

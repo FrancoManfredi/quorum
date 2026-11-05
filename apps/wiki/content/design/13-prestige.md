@@ -82,58 +82,75 @@ A **Venture** is the kind of company the player founds. Each Venture changes the
 shape, constraints, and incidents. The default Venture is unlocked from the start. Others cost Legacy
 or come from achievements.
 
-| Venture             | Unlock                      | Demand shape                                           | Mix changes                                       | Constraint                                                                                                     | Signature incident          |
-| ------------------- | --------------------------- | ------------------------------------------------------ | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| B2B SaaS (default)  | Start                       | Evening peak (20\:00), weekend 1×                      | None: the default mix                             | SLA credits from Series B                                                                                      | Big tenant hot shard        |
-| Consumer social     | 5 ★                         | Evening peak, weekend 1.15×, viral spikes              | `media` +50% from Series A                        | Very low value per request; huge volume                                                                        | Celebrity post              |
-| Fintech             | 10 ★                        | Business hours, month-end peaks                        | `buy` ×4, `write` +50%                            | Any `stale` on money kinds is a compliance fine                                                                | Double charge               |
-| Streaming media     | 10 ★                        | Evening peak, premieres                                | `media` ×4                                        | Egress dominates the bill                                                                                      | Premiere spike              |
-| Game backend        | 15 ★                        | Evening peak by region                                 | `rt` ×4                                           | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
-| AI startup          | 15 ★                        | Flat, with launch spikes                               | `ai` ×3 from Series B                             | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
-| E-commerce          | 20 ★                        | Daily, with a yearly event                             | `buy` ×2, `search` ×2                             | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
-| Developer platform  | 20 ★ — built                | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C                | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
-| Healthcare          | 30 ★ — built                | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                                      | Data Components stay in the home region from Series A                                                          | Audit finding               |
-| Ad tech             | 30 ★ — built                | Flat, enormous (peak 20\:00, ±5%)                      | `page` ×1.5, `read` ×2: the bid kind is not built | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
-| Bootstrapped indie  | Achievement "Default Alive" | Any                                                    | Default                                           | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
-| Government contract | 40 ★ — built                | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                                           | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
+| Venture             | Unlock                      | Demand shape                                           | Mix changes                        | Constraint                                                                                                     | Signature incident          |
+| ------------------- | --------------------------- | ------------------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| B2B SaaS (default)  | Start                       | Evening peak (20\:00), weekend 1×                      | None: the default mix              | SLA credits from Series B                                                                                      | Big tenant hot shard        |
+| Consumer social     | 5 ★                         | Evening peak, weekend 1.15×, viral spikes              | `media` +50% from Series A         | Very low value per request; huge volume                                                                        | Celebrity post              |
+| Fintech             | 10 ★                        | Business hours, month-end peaks                        | `buy` ×4, `write` +50%             | Any `stale` on money kinds is a compliance fine                                                                | Double charge               |
+| Streaming media     | 10 ★                        | Evening peak, premieres                                | `media` ×4                         | Egress dominates the bill                                                                                      | Premiere spike              |
+| Game backend        | 15 ★                        | Evening peak by region                                 | `rt` ×4                            | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
+| AI startup          | 15 ★                        | Flat, with launch spikes                               | `ai` ×3 from Series B              | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
+| E-commerce          | 20 ★                        | Daily, with a yearly event                             | `buy` ×2, `search` ×2              | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
+| Developer platform  | 20 ★ — built                | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
+| Healthcare          | 30 ★ — built                | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                       | Data Components stay in the home region from Series A                                                          | Audit finding               |
+| Ad tech             | 30 ★ — built                | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
+| Bootstrapped indie  | Achievement "Default Alive" | Any                                                    | Default                            | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
+| Government contract | 40 ★ — built                | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
 
-Four Ventures are built in full: Developer platform, Healthcare, Ad tech, and Government contract.
-Each has its demand shape, its rule, and its signature incident. The eight Ventures that shipped
-earlier still have no rule and no signature incident, apart from the Bootstrapped indie Venture's
-no-funding rule; their rows name the rule they ask for.
+All twelve Ventures are built. The four that arrived last — Developer platform, Healthcare, Ad tech,
+and Government contract — each have their demand shape, their rule, and their signature incident. The
+eight that shipped earlier each meet the signature incident their row names, with one exception:
+Bootstrapped indie's row names Runway, which is a figure rather than an incident, so it has none. The
+eight still have no rule of their own apart from the Bootstrapped indie Venture's no-funding rule;
+their rows name the rule they ask for. Consumer social's celebrity post is the build's **Hot key**
+incident, and its own row names what the player meets.
 
-What each built Venture starts with, and the numbers the build proposed where this document states
-none:
+What each Venture starts with, and the numbers the build proposed where this document states none:
 
-| Venture             | Cash | Equity | Stack and research                 | Legacy × | Signature incident |
-| ------------------- | ---- | ------ | ---------------------------------- | -------- | ------------------ |
-| Developer platform  | $300 | 100%   | The Garage's                       | 1.35×    | Retry storm        |
-| Healthcare          | $300 | 100%   | The Garage's                       | 1.4×     | Audit finding      |
-| Ad tech             | $400 | 100%   | The Garage's                       | 1.3×     | Latency regression |
-| Government contract | $900 | 100%   | Tomcat, and `lang-java` researched | 1.5×     | Deadline day       |
+| Venture             | Cash | Equity | Stack and research                 | Legacy × | Signature incident   |
+| ------------------- | ---- | ------ | ---------------------------------- | -------- | -------------------- |
+| B2B SaaS            | $300 | 100%   | The Garage's                       | 1.0×     | Big tenant hot shard |
+| Consumer social     | $300 | 100%   | The Garage's                       | 1.1×     | Hot key              |
+| Fintech             | $300 | 100%   | The Garage's                       | 1.3×     | Double charge        |
+| Streaming media     | $300 | 100%   | The Garage's                       | 1.2×     | Premiere spike       |
+| Game backend        | $300 | 100%   | The Garage's                       | 1.3×     | Launch day           |
+| AI startup          | $300 | 100%   | The Garage's                       | 1.3×     | GPU shortage         |
+| E-commerce          | $300 | 100%   | The Garage's                       | 1.2×     | Flash sale           |
+| Developer platform  | $300 | 100%   | The Garage's                       | 1.35×    | Retry storm          |
+| Healthcare          | $300 | 100%   | The Garage's                       | 1.4×     | Audit finding        |
+| Ad tech             | $400 | 100%   | The Garage's                       | 1.3×     | Latency regression   |
+| Bootstrapped indie  | $300 | 100%   | The Garage's                       | 1.4×     | —                    |
+| Government contract | $900 | 100%   | Tomcat, and `lang-java` researched | 1.5×     | Deadline day         |
 
-All four start in the Garage, and the Head start perk still opens Pre-seed. Cash, Equity, the demand
+All twelve start in the Garage, and the Head start perk still opens Pre-seed. Cash, Equity, the demand
 curves and amplitudes, the market and value multipliers, the mix boosts, and the Legacy multipliers
 above are the build's proposals; the unlock costs, the 100 ms bid deadline, the Java-or-C# rule, the
 calendar-day procurement, the Series A residency, the no-naive-retry rule, and the signature
-incidents are this document's.
+incidents are this document's. Where it names an incident but no magnitude, the build proposes one:
+a hot shard costs three times the CPU per query, a premiere lifts video four times, a launch day lifts
+realtime six times, and a flash sale lifts checkouts — the ×20 this document's E-commerce row already
+gives its monthly sale — for a few minutes.
 
 The rule of each built Venture is enforced where the player meets it. Developer platform refuses
 `naive` retries on a Link (`retryRefusal`). Healthcare refuses to place a data Component outside the
 home region from Series A (`venturePlaceRefusal`). Ad tech's requests earn nothing once the kind's
 mean latency passes its deadline (`earnsInTime`). Government contract refuses a runtime that is not
 Java or C# (`runtimeRefusal`), and a bought Component runs a calendar day after it is paid for
-(`placedLife`).
+(`placedLife`). The eight older Ventures have no rule yet, so nothing of theirs is refused; their
+signatures are enforced by the director alone.
 
 A signature incident weighs four times as much for its own Venture (`SIGNATURE_WEIGHT`) and keeps a
-weakness of 2 (`SIGNATURE_WEAKNESS`), so it can fire on a well-built Design. Latency regression and
-Deadline day exist only as signatures: no other Venture's weakness can start them. Retry storm and
-Audit finding stay general incidents, and Developer platform and Healthcare simply meet them four
-times as often.
+weakness of 2 (`SIGNATURE_WEAKNESS`), so it can fire on a well-built Design. Six incidents exist only
+as signatures — Latency regression, Deadline day, Big tenant hot shard, Premiere spike, Launch day and
+Flash sale — so no other Venture's weakness can start them. Retry storm, Audit finding, Hot key,
+Double charge and GPU shortage stay general incidents, and Developer platform, Healthcare, Consumer
+social, Fintech and AI startup simply meet theirs four times as often.
 
-Ad tech's bid request kind (value $0.001, Apdex T 100 ms, 10× volume) is still not built, so the
-Venture boosts `page` and `read` instead, and its 100 ms deadline applies to the mean latency of
-every kind it serves.
+Ad tech serves the bid request kind the design names (value $0.001, Apdex T 100 ms, ×10 volume). The
+kind arrives with the Series A mix at a 1% share and Ad tech multiplies it tenfold, so its Earn per
+request follows from the kind rather than from a `page`/`read` stand-in. Its 100 ms deadline is still
+checked against the mean latency of every kind it serves, and the bid kind's own Apdex target is that
+same 100 ms.
 
 Each Venture has its own Legacy multiplier (1.0× to 1.5×), shown before founding.
 

@@ -146,17 +146,17 @@ browser times for the newer Challenges are not measured.
 
 Recorded state of the interface at this version.
 
-| Topic          | Recorded                                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------------------------------- |
-| Settings       | Mute and Reduce motion in `quorum.prefs.v1`; `M` toggles mute. No text scale: card text is fixed           |
-| Sound          | Incident, Era, and achievement sounds, skipped when muted                                                  |
-| Status         | Node cards mark ok, warn, danger, and down with a dot, a triangle, a square, and a cross as well as colour |
-| Request kinds  | Packets are circles in the kind's colour                                                                   |
-| Reduced motion | Packets hold still and the Bottleneck stops pulsing; panels and toasts appear at once                      |
-| Keyboard       | Arrows select the nearest Node, Enter moves focus into the Inspector, `G` opens the Glossary, `C` collects |
-| Contrast       | Light `--ok` at L 0.50 and `--danger` at L 0.52, so status text is at least 4.5\:1 on wells                |
-| Achievements   | 23 of the 44 are detected, each tick in a Company, never in a Sandbox or Challenge                         |
-| Glossary       | All 119 entries of `glossary.md`, kept in sync by a test; met entries carry a check; card terms open it    |
+| Topic          | Recorded                                                                                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Settings       | Mute, Reduce motion, and Text at 150% in `quorum.prefs.v1`; `M` toggles mute. The text scale is `--type-scale` on the interface; board cards scale with the board's zoom |
+| Sound          | Incident, Era, and achievement sounds, skipped when muted                                                                                                                |
+| Status         | Node cards mark ok, warn, danger, and down with a dot, a triangle, a square, and a cross as well as colour                                                               |
+| Request kinds  | Packets are one of four shapes in the kind's colour; kinds that share a colour share a shape                                                                             |
+| Reduced motion | Packets hold still and become arrows under the rate each belt carries; the Bottleneck stops pulsing; panels and toasts appear at once                                    |
+| Keyboard       | Arrows select the nearest Node, Enter moves focus into the Inspector, `G` opens the Glossary, `C` collects, Tab reaches a Node list that opens any Node                  |
+| Contrast       | Light `--ok` at L 0.50 and `--danger` at L 0.52, so status text is at least 4.5\:1 on wells                                                                              |
+| Achievements   | 23 of the 44 are detected, each tick in a Company, never in a Sandbox or Challenge                                                                                       |
+| Glossary       | All 119 entries of `glossary.md`, kept in sync by a test; met entries carry a check; card terms open it                                                                  |
 
 axe-core 4.11 (WCAG 2.0/2.1 A and AA plus best practices), before and after the contrast fix:
 

@@ -373,6 +373,7 @@ export const initialModel = (): Model =>
       autoPause: false,
       blurPause: true,
       motion: 'system',
+      text: 'normal',
       agentAccess: false,
       analytics: true,
     },
@@ -750,6 +751,7 @@ const savePrefs = (model: Model): Result => ({
       locale: model.prefs.locale,
       agentAccess: model.prefs.agentAccess,
       analytics: model.prefs.analytics,
+      text: model.prefs.text,
     }),
   ],
 })
@@ -2387,6 +2389,7 @@ const handle = (model: Model, message: Message): Result =>
               locale: prefs.locale,
               agentAccess: prefs.agentAccess,
               analytics: prefs.analytics,
+              text: prefs.text,
             }),
           ],
         }),

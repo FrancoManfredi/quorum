@@ -117,6 +117,8 @@ export const LOOKS: Record<ResearchId, Look> = {
   timeouts: { group: 'edge', glyph: Timer, hue: 60 },
   'lb-algorithms': { group: 'edge', glyph: Shuffle, hue: 240 },
   ci: { component: 'ci' },
+  'blue-green': { group: 'edge', glyph: GitBranch, hue: 165 },
+  canary: { group: 'edge', glyph: Split, hue: 285 },
   'code-review': { group: 'ops', glyph: ScanEye, hue: 300 },
   'testing-culture': { group: 'ops', glyph: TestTube, hue: 110 },
   'full-text-search': { component: 'search' },

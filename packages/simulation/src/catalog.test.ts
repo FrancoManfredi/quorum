@@ -44,6 +44,8 @@ const GDD_IDS: ReadonlyArray<string> = [
   'replication',
   'timeouts',
   'ci',
+  'blue-green',
+  'canary',
   'logs',
   'metrics',
   'percentiles',

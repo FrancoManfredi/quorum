@@ -475,8 +475,10 @@ Adds a sidecar proxy to every service in a Kubernetes Cluster.
 ### CI/CD Pipeline
 
 Built: the `ci` Component, unlocked by research `ci` (Continuous delivery), and its four deploy
-strategies. The research alone still cuts a deploy from 30 minutes to 5 and lets a bad deploy roll
-back; the Pipeline is what picks a strategy. Without one placed, the Company keeps the old path: a
+strategies. Recreate and Rolling come with the Pipeline; Blue-green needs the `blue-green` research
+and Canary needs `canary` ([Progression](/design/10-progression#track-reliability)). The research
+alone still cuts a deploy from 30 minutes to 5 and lets a bad deploy roll back; the Pipeline is what
+picks a strategy. Without one placed, the Company keeps the old path: a
 5-minute deploy with research `ci`, 30 minutes by hand, and the 40% ceiling on a bad deploy.
 
 Real products: GitHub Actions, GitLab CI, Argo CD.

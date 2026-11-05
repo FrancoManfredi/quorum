@@ -20,6 +20,7 @@ import {
   TOKENS_PER_PROMPT,
   STUFFING_MAGNITUDE,
   DEADLINE_SURGE,
+  KIND_SURGE,
   LATENCY_REGRESSION_MS,
   COMPONENTS,
   DB_ENGINES,
@@ -171,6 +172,8 @@ export const demandOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const spike = game.incident?.kind === 'spike' ? game.incident.magnitude : 1
   // A Government contract's deadline day lands every agency's work at once (13).
   const deadline = game.incident?.kind === 'deadline-day' ? DEADLINE_SURGE : 1
+  // A Venture's signature surge lifts one kind: a premiere, a launch, or a flash sale (13).
+  const surge = game.incident ? KIND_SURGE[game.incident.kind] : undefined
   const cycle = game.sandbox
     ? game.scenario?.daily && regional(game)
       ? regionalCycle(game.time, userSharesOf(game))
@@ -182,7 +185,7 @@ export const demandOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const demand: Partial<Record<RequestKind, number>> = {}
   for (const kind of REQUEST_KINDS) {
     const share = mix[kind] ?? 0
-    if (share > 0) demand[kind] = total * share
+    if (share > 0) demand[kind] = total * share * (surge?.[0] === kind ? surge[1] : 1)
   }
   // Attacks add bots on top of the users: scrapers, a flood, or leaked passwords tried on login.
   const attack =

@@ -123,7 +123,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.span(
                 [
                   h.Class(
-                    'line-clamp-2 text-[14.5px] leading-snug font-semibold tracking-[-0.01em]',
+                    'line-clamp-2 text-[calc(14.5px*var(--type-scale))] leading-snug font-semibold tracking-[-0.01em]',
                   ),
                 ],
                 [mail.subject],
@@ -148,7 +148,11 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.Class(cn(WELL, 'px-3 py-2 short:hidden'))],
         [
           h.p(
-            [h.Class('line-clamp-2 text-[12px] leading-snug text-muted-foreground')],
+            [
+              h.Class(
+                'line-clamp-2 text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground',
+              ),
+            ],
             [gist(mail)],
           ),
         ],
@@ -220,7 +224,7 @@ const inboxToggle = (
               h.Class(
                 cn(
                   FIGURE,
-                  'enter-badge absolute -top-1.5 -right-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10.5px] font-medium shadow-raised',
+                  'enter-badge absolute -top-1.5 -right-1.5 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[calc(10.5px*var(--type-scale))] font-medium shadow-raised',
                   waiting ? 'bg-danger text-white' : 'bg-primary-fill text-on-primary-fill',
                 ),
               ),
@@ -270,19 +274,33 @@ const row = (mail: Mail, open: boolean, h: HtmlBuilder<Message>): Html => {
                   h.span(
                     [
                       h.Class(
-                        cn('flex-1 truncate text-[12.5px]', mail.read ? '' : 'font-semibold'),
+                        cn(
+                          'flex-1 truncate text-[calc(12.5px*var(--type-scale))]',
+                          mail.read ? '' : 'font-semibold',
+                        ),
                       ),
                     ],
                     [sender.name],
                   ),
                   mail.entries.length > 1
                     ? h.span(
-                        [h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))],
+                        [
+                          h.Class(
+                            cn(
+                              FIGURE,
+                              'text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+                            ),
+                          ),
+                        ],
                         [`×${mail.entries.length}`],
                       )
                     : h.empty,
                   h.span(
-                    [h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))],
+                    [
+                      h.Class(
+                        cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-muted-foreground'),
+                      ),
+                    ],
                     [clock(mail.time)],
                   ),
                 ],
@@ -291,7 +309,7 @@ const row = (mail: Mail, open: boolean, h: HtmlBuilder<Message>): Html => {
                 [
                   h.Class(
                     cn(
-                      'truncate text-[12px]',
+                      'truncate text-[calc(12px*var(--type-scale))]',
                       mail.read ? 'text-muted-foreground' : 'text-foreground/85',
                     ),
                   ),
@@ -321,14 +339,19 @@ const folderTab = (
       h.OnClick(Message.InboxChanged({ message: InboxMessage.FolderChosen({ folder }) })),
       h.Class(
         cn(
-          'press flex h-6 items-center gap-1.5 rounded-lg px-2.5 text-[12px]',
+          'press flex h-6 items-center gap-1.5 rounded-lg px-2.5 text-[calc(12px*var(--type-scale))]',
           active
             ? 'bg-raised font-medium text-foreground shadow-raised'
             : 'text-muted-foreground hover:text-foreground',
         ),
       ),
     ],
-    [label, count > 0 ? h.span([h.Class(cn(FIGURE, 'text-[10.5px]'))], [String(count)]) : h.empty],
+    [
+      label,
+      count > 0
+        ? h.span([h.Class(cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))]'))], [String(count)])
+        : h.empty,
+    ],
   )
 
 const tool = (label: string, glyph: IconNode, message: Message, h: HtmlBuilder<Message>): Html =>
@@ -349,7 +372,12 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
   const threaded = mail.entries.length > 1
   const buttons =
     mail.answer !== null
-      ? [h.p([h.Class('flex-1 text-[12px] text-muted-foreground')], [mail.answer])]
+      ? [
+          h.p(
+            [h.Class('flex-1 text-[calc(12px*var(--type-scale))] text-muted-foreground')],
+            [mail.answer],
+          ),
+        ]
       : mail.resolved === null
         ? mail.actions.map((action, index) =>
             button(
@@ -379,13 +407,21 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
               mail.resolved === null
                 ? h.empty
                 : h.span(
-                    [h.Class('flex items-center gap-1 text-[11.5px] font-medium text-ok')],
+                    [
+                      h.Class(
+                        'flex items-center gap-1 text-[calc(11.5px*var(--type-scale))] font-medium text-ok',
+                      ),
+                    ],
                     [icon(h, CircleCheck, 'size-3.5'), `Resolved ${clock(mail.resolved)}`],
                   ),
             ],
           ),
           h.h2(
-            [h.Class('text-[16px] leading-snug font-semibold tracking-[-0.02em]')],
+            [
+              h.Class(
+                'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
+              ),
+            ],
             [mail.subject],
           ),
           h.div(
@@ -395,9 +431,19 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
               h.div(
                 [h.Class('flex min-w-0 flex-col')],
                 [
-                  h.span([h.Class('truncate text-[12.5px] font-medium')], [sender.name]),
                   h.span(
-                    [h.Class(cn(FIGURE, 'truncate text-[11px] text-muted-foreground'))],
+                    [h.Class('truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
+                    [sender.name],
+                  ),
+                  h.span(
+                    [
+                      h.Class(
+                        cn(
+                          FIGURE,
+                          'truncate text-[calc(11px*var(--type-scale))] text-muted-foreground',
+                        ),
+                      ),
+                    ],
                     [sender.address],
                   ),
                 ],
@@ -405,7 +451,7 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
             ],
           ),
           h.div(
-            [h.Class('flex flex-col gap-3 text-[13px] leading-relaxed')],
+            [h.Class('flex flex-col gap-3 text-[calc(13px*var(--type-scale))] leading-relaxed')],
             mail.entries.map((entry, index) =>
               h.div(
                 [
@@ -419,7 +465,14 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
                 [
                   threaded
                     ? h.span(
-                        [h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))],
+                        [
+                          h.Class(
+                            cn(
+                              FIGURE,
+                              'text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+                            ),
+                          ),
+                        ],
                         [clock(entry.time)],
                       )
                     : h.empty,
@@ -431,7 +484,10 @@ const letter = (mail: Mail, h: HtmlBuilder<Message>): Html => {
               ),
             ),
           ),
-          h.p([h.Class('text-[11.5px] text-muted-foreground')], [sender.sign]),
+          h.p(
+            [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+            [sender.sign],
+          ),
         ],
       ),
       h.div(
@@ -628,7 +684,11 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             newest.length === 0
               ? [
                   h.li(
-                    [h.Class('px-4 py-4 text-[12.5px] text-muted-foreground')],
+                    [
+                      h.Class(
+                        'px-4 py-4 text-[calc(12.5px*var(--type-scale))] text-muted-foreground',
+                      ),
+                    ],
                     [EMPTY[model.board.inbox.folder]],
                   ),
                 ]

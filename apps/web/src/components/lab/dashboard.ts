@@ -341,9 +341,26 @@ const panel = (
         [h.Class('flex h-6 shrink-0 items-center gap-2 px-1.5')],
         [
           led(tint ? LEVEL_COLOR[tint] : accent, h),
-          h.span([h.Class('truncate text-[12.5px] font-semibold tracking-[-0.01em]')], [title]),
+          h.span(
+            [
+              h.Class(
+                'truncate text-[calc(12.5px*var(--type-scale))] font-semibold tracking-[-0.01em]',
+              ),
+            ],
+            [title],
+          ),
           unit
-            ? h.span([h.Class(cn(FIGURE, 'truncate text-[10.5px] text-muted-foreground'))], [unit])
+            ? h.span(
+                [
+                  h.Class(
+                    cn(
+                      FIGURE,
+                      'truncate text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+                    ),
+                  ),
+                ],
+                [unit],
+              )
             : h.empty,
         ],
       ),
@@ -380,7 +397,7 @@ const locked = (
               h.Class(
                 cn(
                   FIGURE,
-                  'rounded-lg bg-raised px-2.5 py-1 text-[11px] text-muted-foreground shadow-raised',
+                  'rounded-lg bg-raised px-2.5 py-1 text-[calc(11px*var(--type-scale))] text-muted-foreground shadow-raised',
                 ),
               ),
             ],
@@ -402,8 +419,11 @@ const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html 
     ],
     [
       icon(h, ChevronDown, 'size-3.5 text-muted-foreground'),
-      h.span([h.Class('text-[13px] font-semibold')], [label]),
-      h.span([h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))], [`(${count} panels)`]),
+      h.span([h.Class('text-[calc(13px*var(--type-scale))] font-semibold')], [label]),
+      h.span(
+        [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
+        [`(${count} panels)`],
+      ),
     ],
   )
 
@@ -413,7 +433,7 @@ const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html 
 
 /** Chart text in the game's figure face; only foldcn's hover bands take the pointer, not the fills drawn over them. */
 const PLOT =
-  '[&_text]:font-mono [&_text]:text-[10px] [&_text]:fill-[var(--muted-foreground)] [&_text]:tracking-[-0.01em] [&_path]:pointer-events-none [&_line]:pointer-events-none [&_text]:pointer-events-none'
+  '[&_text]:font-mono [&_text]:text-[calc(10px*var(--type-scale))] [&_text]:fill-[var(--muted-foreground)] [&_text]:tracking-[-0.01em] [&_path]:pointer-events-none [&_line]:pointer-events-none [&_text]:pointer-events-none'
 
 /** Lifts a marker's label from the bottom of the plot to its top. */
 const TOP_OF_PLOT = -150
@@ -585,7 +605,7 @@ const seriesLegend = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
-    [h.Class('flex flex-wrap gap-x-4 gap-y-0.5 px-1.5 pb-0.5 text-[11px]')],
+    [h.Class('flex flex-wrap gap-x-4 gap-y-0.5 px-1.5 pb-0.5 text-[calc(11px*var(--type-scale))]')],
     [
       ...(hovered
         ? [h.span([h.Key('at'), h.Class(cn(FIGURE, 'text-muted-foreground'))], [String(hovered.t)])]
@@ -803,7 +823,7 @@ const stat = (
               h.Class(
                 cn(
                   FIGURE,
-                  'relative px-3 pb-7 text-[30px] leading-none font-medium tracking-[-0.03em] [text-shadow:0_1px_0_var(--highlight)]',
+                  'relative px-3 pb-7 text-[calc(30px*var(--type-scale))] leading-none font-medium tracking-[-0.03em] [text-shadow:0_1px_0_var(--highlight)]',
                 ),
               ),
               h.Style({ color: level === 'plain' ? 'var(--foreground)' : LEVEL_COLOR[level] }),
@@ -900,7 +920,9 @@ const gauge = (
                   h.Attribute('y', '100'),
                   h.Attribute('text-anchor', 'middle'),
                   h.Attribute('fill', LEVEL_COLOR[level]),
-                  h.Class('font-mono text-[30px] font-medium tracking-[-0.03em]'),
+                  h.Class(
+                    'font-mono text-[calc(30px*var(--type-scale))] font-medium tracking-[-0.03em]',
+                  ),
                 ],
                 [label],
               ),
@@ -963,12 +985,16 @@ const barGauge = (
             [h.Key(track.id), h.Class('flex flex-col gap-1')],
             [
               h.div(
-                [h.Class('flex items-baseline justify-between text-[11.5px]')],
+                [
+                  h.Class(
+                    'flex items-baseline justify-between text-[calc(11.5px*var(--type-scale))]',
+                  ),
+                ],
                 [
                   h.span([h.Class('text-muted-foreground')], [track.name]),
                   h.span(
                     [
-                      h.Class(cn(FIGURE, 'text-[13px]')),
+                      h.Class(cn(FIGURE, 'text-[calc(13px*var(--type-scale))]')),
                       h.Style({ color: LEVEL_COLOR[levelOf(share, UTILIZATION)] }),
                     ],
                     [percent(Math.min(share, 9.99))],
@@ -1041,7 +1067,11 @@ const laneTimeline = (
               [h.Key(lane.key), h.Class('flex items-center gap-3')],
               [
                 h.span(
-                  [h.Class('w-28 shrink-0 truncate text-[11.5px] text-muted-foreground')],
+                  [
+                    h.Class(
+                      'w-28 shrink-0 truncate text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                    ),
+                  ],
                   [lane.name],
                 ),
                 h.div(
@@ -1057,7 +1087,7 @@ const laneTimeline = (
                         h.Class(
                           cn(
                             FIGURE,
-                            'absolute inset-y-[3px] flex items-center overflow-hidden rounded-[3px] px-1.5 text-[10px] font-medium whitespace-nowrap text-black/70 shadow-[inset_0_1px_0_oklch(1_0_0/0.35)]',
+                            'absolute inset-y-[3px] flex items-center overflow-hidden rounded-[3px] px-1.5 text-[calc(10px*var(--type-scale))] font-medium whitespace-nowrap text-black/70 shadow-[inset_0_1px_0_oklch(1_0_0/0.35)]',
                           ),
                         ),
                         h.Style({
@@ -1077,7 +1107,10 @@ const laneTimeline = (
           h.div(
             [
               h.Class(
-                cn(FIGURE, 'flex justify-between pl-[124px] text-[10px] text-muted-foreground'),
+                cn(
+                  FIGURE,
+                  'flex justify-between pl-[124px] text-[calc(10px*var(--type-scale))] text-muted-foreground',
+                ),
               ),
             ],
             [
@@ -1088,7 +1121,16 @@ const laneTimeline = (
           ),
           ...(legend.length === 0
             ? []
-            : [h.div([h.Class('flex flex-wrap gap-x-3 gap-y-1 pl-[124px] text-[10px]')], legend)]),
+            : [
+                h.div(
+                  [
+                    h.Class(
+                      'flex flex-wrap gap-x-3 gap-y-1 pl-[124px] text-[calc(10px*var(--type-scale))]',
+                    ),
+                  ],
+                  legend,
+                ),
+              ]),
         ],
       ),
     ],
@@ -1171,7 +1213,7 @@ const mix = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
             ],
           ),
           h.table(
-            [h.Class('w-full text-[11.5px]')],
+            [h.Class('w-full text-[calc(11.5px*var(--type-scale))]')],
             [
               h.tbody(
                 [],
@@ -1192,7 +1234,10 @@ const mix = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
                                 ],
                                 [],
                               ),
-                              h.span([h.Class('font-mono text-[11px]')], [kind]),
+                              h.span(
+                                [h.Class('font-mono text-[calc(11px*var(--type-scale))]')],
+                                [kind],
+                              ),
                             ],
                           ),
                         ],
@@ -1234,7 +1279,12 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class(cn(SCREEN, 'flex flex-1 flex-col justify-center gap-1.5 p-3'))],
         entries.length === 0
-          ? [h.span([h.Key('none'), h.Class(cn(FIGURE, 'text-[28px] text-ok'))], ['0 errors'])]
+          ? [
+              h.span(
+                [h.Key('none'), h.Class(cn(FIGURE, 'text-[calc(28px*var(--type-scale))] text-ok'))],
+                ['0 errors'],
+              ),
+            ]
           : entries.map(([cause, rate]) =>
               h.div(
                 [
@@ -1242,7 +1292,14 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
                   h.Class('grid grid-cols-[72px_minmax(0,1fr)_56px] items-center gap-2'),
                 ],
                 [
-                  h.span([h.Class('font-mono text-[11px] text-muted-foreground')], [cause]),
+                  h.span(
+                    [
+                      h.Class(
+                        'font-mono text-[calc(11px*var(--type-scale))] text-muted-foreground',
+                      ),
+                    ],
+                    [cause],
+                  ),
                   h.div(
                     [
                       h.Class(
@@ -1262,7 +1319,10 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
                       ),
                     ],
                   ),
-                  h.span([h.Class(cn(FIGURE, 'text-right text-[11.5px]'))], [`${compact(rate)}/s`]),
+                  h.span(
+                    [h.Class(cn(FIGURE, 'text-right text-[calc(11.5px*var(--type-scale))]'))],
+                    [`${compact(rate)}/s`],
+                  ),
                 ],
               ),
             ),
@@ -1292,13 +1352,13 @@ const nodeTable = (
         [h.Class(cn(SCREEN, 'px-1 pb-1', SCROLL))],
         [
           h.table(
-            [h.Class('w-full min-w-[720px] border-collapse text-[12px]')],
+            [h.Class('w-full min-w-[720px] border-collapse text-[calc(12px*var(--type-scale))]')],
             [
               h.thead(
                 [],
                 [
                   h.tr(
-                    [h.Class('text-[11px] text-muted-foreground')],
+                    [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
                     head.map((label, index) =>
                       h.th(
                         [
@@ -1375,7 +1435,11 @@ const nodeTable = (
                       h.td(
                         [
                           h.Class(
-                            cn(cell, FIGURE, 'text-right text-[11px] font-medium text-black/75'),
+                            cn(
+                              cell,
+                              FIGURE,
+                              'text-right text-[calc(11px*var(--type-scale))] font-medium text-black/75',
+                            ),
                           ),
                           h.Style({
                             background: `color-mix(in oklab, ${LEVEL_COLOR[level]} 85%, transparent)`,
@@ -1437,19 +1501,27 @@ const tablePanel = (
         rows.length === 0
           ? [
               h.span(
-                [h.Key('none'), h.Class(cn(FIGURE, 'px-2 py-3 text-[12px] text-muted-foreground'))],
+                [
+                  h.Key('none'),
+                  h.Class(
+                    cn(
+                      FIGURE,
+                      'px-2 py-3 text-[calc(12px*var(--type-scale))] text-muted-foreground',
+                    ),
+                  ),
+                ],
                 ['Nothing to show yet.'],
               ),
             ]
           : [
               h.table(
-                [h.Class('w-full border-collapse text-[12px]')],
+                [h.Class('w-full border-collapse text-[calc(12px*var(--type-scale))]')],
                 [
                   h.thead(
                     [],
                     [
                       h.tr(
-                        [h.Class('text-[11px] text-muted-foreground')],
+                        [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
                         head.map((label, index) =>
                           h.th(
                             [
@@ -1479,7 +1551,7 @@ const tablePanel = (
                                   index === 0 ? 'font-medium' : cn(FIGURE, 'text-right'),
                                   cell.fill === undefined
                                     ? undefined
-                                    : 'text-[11px] font-medium text-black/75',
+                                    : 'text-[calc(11px*var(--type-scale))] font-medium text-black/75',
                                 ),
                               ),
                               ...(cell.fill === undefined
@@ -1558,7 +1630,10 @@ const barList = (
         entries.length === 0
           ? [
               h.span(
-                [h.Key('none'), h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
+                [
+                  h.Key('none'),
+                  h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground')),
+                ],
                 ['No Node to show.'],
               ),
             ]
@@ -1570,7 +1645,14 @@ const barList = (
                   h.Class('grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_60px] items-center gap-2'),
                 ],
                 [
-                  h.span([h.Class('truncate text-[11.5px] text-muted-foreground')], [entry.name]),
+                  h.span(
+                    [
+                      h.Class(
+                        'truncate text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                      ),
+                    ],
+                    [entry.name],
+                  ),
                   h.div(
                     [
                       h.Class(
@@ -1590,7 +1672,10 @@ const barList = (
                       ),
                     ],
                   ),
-                  h.span([h.Class(cn(FIGURE, 'text-right text-[11.5px]'))], [entry.text]),
+                  h.span(
+                    [h.Class(cn(FIGURE, 'text-right text-[calc(11.5px*var(--type-scale))]'))],
+                    [entry.text],
+                  ),
                 ],
               )
             }),
@@ -1781,7 +1866,10 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
       h.div(
         [h.Class(cn(SCREEN, 'flex flex-col gap-3 p-3'))],
         [
-          h.p([h.Class('text-[12px] leading-snug text-muted-foreground')], [def.cause]),
+          h.p(
+            [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+            [def.cause],
+          ),
           h.div(
             [h.Class('grid grid-cols-5 divide-x divide-hairline')],
             facts.map(([name, value]) =>
@@ -1789,14 +1877,21 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
                 [h.Key(name), h.Class('flex flex-col gap-1 px-2.5 py-1.5')],
                 [
                   h.span([h.Class(EYEBROW)], [name]),
-                  h.span([h.Class(cn(FIGURE, 'text-[12.5px]'))], [value]),
+                  h.span([h.Class(cn(FIGURE, 'text-[calc(12.5px*var(--type-scale))]'))], [value]),
                 ],
               ),
             ),
           ),
-          h.p([h.Class('text-[12px] leading-snug')], [def.prevention]),
+          h.p([h.Class('text-[calc(12px*var(--type-scale))] leading-snug')], [def.prevention]),
           h.p(
-            [h.Class(cn('text-[12px] leading-snug', open ? 'text-warn' : 'text-muted-foreground'))],
+            [
+              h.Class(
+                cn(
+                  'text-[calc(12px*var(--type-scale))] leading-snug',
+                  open ? 'text-warn' : 'text-muted-foreground',
+                ),
+              ),
+            ],
             [
               postmortem.action === null
                 ? 'No action item: the Design already owns every prevention.'
@@ -2316,14 +2411,22 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           icon(h, LayoutGrid, 'size-4 text-muted-foreground'),
           h.span(
-            [h.Class('flex items-center gap-1.5 text-[13px] text-muted-foreground')],
+            [
+              h.Class(
+                'flex items-center gap-1.5 text-[calc(13px*var(--type-scale))] text-muted-foreground',
+              ),
+            ],
             [
               'Dashboards',
               h.span([], ['/']),
               place,
               h.span([], ['/']),
               h.span(
-                [h.Class('text-[15px] font-semibold tracking-[-0.02em] text-foreground')],
+                [
+                  h.Class(
+                    'text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em] text-foreground',
+                  ),
+                ],
                 ['Overview'],
               ),
             ],
@@ -2354,7 +2457,7 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                   h.Class(
                     cn(
-                      'h-6 rounded-md px-2.5 text-[12px]',
+                      'h-6 rounded-md px-2.5 text-[calc(12px*var(--type-scale))]',
                       minutes === model.board.dashboard.range
                         ? 'bg-raised text-foreground shadow-raised'
                         : 'text-muted-foreground hover:text-foreground',
@@ -2370,7 +2473,7 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.Class(
                 cn(
                   FIGURE,
-                  'flex h-7 items-center gap-2 rounded-lg bg-raised px-2.5 text-[12px] shadow-raised',
+                  'flex h-7 items-center gap-2 rounded-lg bg-raised px-2.5 text-[calc(12px*var(--type-scale))] shadow-raised',
                   model.board.clock.paused ? 'text-muted-foreground' : 'text-foreground',
                 ),
               ),
@@ -2412,7 +2515,7 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
       [
         h.Key(name),
         h.Class(
-          'flex h-7 items-stretch overflow-hidden rounded-lg bg-raised text-[12px] shadow-raised',
+          'flex h-7 items-stretch overflow-hidden rounded-lg bg-raised text-[calc(12px*var(--type-scale))] shadow-raised',
         ),
       ],
       [
@@ -2424,7 +2527,10 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
           ],
           [name],
         ),
-        h.span([h.Class('grid place-items-center px-2 font-mono text-[11.5px]')], [value]),
+        h.span(
+          [h.Class('grid place-items-center px-2 font-mono text-[calc(11.5px*var(--type-scale))]')],
+          [value],
+        ),
       ],
     )
   return h.div(
@@ -2435,7 +2541,11 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
       chip('slo', percent(slo, slo >= 0.999 ? 1 : 0)),
       h.span([h.Class('flex-1')], []),
       h.div(
-        [h.Class('flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground')],
+        [
+          h.Class(
+            'flex flex-wrap items-center gap-3 text-[calc(11px*var(--type-scale))] text-muted-foreground',
+          ),
+        ],
         ANNOTATION_GROUPS.map((group) =>
           h.span(
             [h.Key(group), h.Class('flex items-center gap-1.5')],
@@ -2494,7 +2604,12 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div(
             [
               h.Key('empty'),
-              h.Class(cn(PANEL, 'col-span-24 px-4 py-6 text-[13px] text-muted-foreground')),
+              h.Class(
+                cn(
+                  PANEL,
+                  'col-span-24 px-4 py-6 text-[calc(13px*var(--type-scale))] text-muted-foreground',
+                ),
+              ),
             ],
             ['Charts fill in as the clock runs.'],
           ),

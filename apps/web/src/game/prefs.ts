@@ -13,6 +13,7 @@ export const PrefsMessage = defineMessageUnion({
   AgentAccessToggled: {},
   MotionToggled: {},
   AnalyticsToggled: {},
+  TextToggled: {},
 })
 export type PrefsMessage = typeof PrefsMessage.Type
 
@@ -30,4 +31,7 @@ export const updatePrefs = (
       model: { ...prefs, motion: prefs.motion === 'reduce' ? 'system' : 'reduce' },
     }),
     AnalyticsToggled: () => ({ model: { ...prefs, analytics: !prefs.analytics } }),
+    TextToggled: () => ({
+      model: { ...prefs, text: prefs.text === 'large' ? 'normal' : 'large' },
+    }),
   })

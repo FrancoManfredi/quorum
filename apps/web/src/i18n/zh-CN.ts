@@ -128,8 +128,10 @@ export const zhCN: Readonly<Record<string, string>> = {
   Menu: '菜单',
   'Main menu': '主菜单',
   Title: '标题',
+  Nodes: '节点',
   'Mute sound (M)': '静音（M）',
   'Reduce motion': '减少动态效果',
+  'Text at 150%': '文字放大到 150%',
   Sound: '声音',
   Motion: '动态效果',
   'Start building': '开始搭建',
@@ -816,8 +818,8 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Search, uploads and bots. Queues, Workers, a CDN and a WAF.':
     '搜索、上传与机器人流量。队列、工作进程、CDN 和 WAF。',
   'What happens when a whole zone fails?': '整个可用区故障时怎么办？',
-  'Video, chat and checkout. Zones, autoscaling and an error budget.':
-    '视频、聊天与结账。可用区、自动扩缩容与错误预算。',
+  'Video, chat, checkout and bids. Zones, autoscaling and an error budget.':
+    '视频、聊天、结账与竞价。可用区、自动扩缩容与错误预算。',
   'What happens when analytics and AI share a database built for checkouts?':
     '分析和 AI 共用为交易设计的数据库时会怎样？',
   'Exports, reports and AI prompts. Warehouses, GPUs, retries and breakers.':
@@ -894,8 +896,14 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Load balancing algorithms': '负载均衡算法',
   'Least connections and power of two choices.': '最少连接与随机二选一算法。',
   'Continuous delivery': '持续交付',
-  'A pipeline deploys in 5 minutes, not 30, and can roll a bad deploy back.':
-    '流水线将部署从 30 分钟缩短到 5 分钟，并能回滚错误部署。',
+  'A pipeline deploys in 5 minutes, not 30, and can roll a bad deploy back. Recreate and Rolling come with it.':
+    '流水线将部署从 30 分钟缩短到 5 分钟，并能回滚错误部署。包含 Recreate 与 Rolling。',
+  'Blue-green deploys': '蓝绿部署',
+  'Blue-green: the new version comes up beside the old one, so a bad deploy breaks 10% of requests.':
+    '蓝绿部署：新版本在旧版本旁启动，错误部署最多影响 10% 的请求。',
+  'Canary deploys': '金丝雀部署',
+  'Canary: 5% of traffic meets the new version first. The smallest blast radius, the slowest deploy.':
+    '金丝雀部署：5% 的流量先接触新版本。影响面最小，部署最慢。',
   'Code review': '代码审查',
   'Shows the hidden costs of a Feature before it ships. Bad deploys −20%.':
     '发布前显示功能的隐藏成本，错误部署概率降低 20%。',
@@ -1079,8 +1087,8 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Business hours; writes +50%; data stays in the home region from Series A':
     '工作时间高峰；写入 +50%；A 轮起数据留在主区域',
   'Ad tech': '广告科技',
-  'Flat and enormous; page ×1.5, reads ×2; a request over 100 ms earns nothing':
-    '需求平稳且巨大；页面 ×1.5，读取 ×2；超过 100 毫秒的请求不赚钱',
+  'Flat and enormous; bids ×10; a request over 100 ms earns nothing':
+    '需求平稳且巨大；竞价 ×10；超过 100 毫秒的请求不赚钱',
   'Government contract': '政府合同',
   'Business hours, deadline spikes; Java or C# only; a placement takes a day':
     '工作时间高峰与截止日峰值；只能用 Java 或 C#；部署需等待一天',
@@ -1252,6 +1260,7 @@ export const zhCN: Readonly<Record<string, string>> = {
   dropped: '丢弃',
   refused: '拒绝连接',
   down: '宕机',
+  'no load': '无负载',
   stale: '数据过期',
   oom: '内存耗尽',
   timeout: '超时',
@@ -1322,6 +1331,7 @@ export const zhCN: Readonly<Record<string, string>> = {
   Checkout: '结账',
   Export: '导出',
   'AI prompt': 'AI 提示',
+  'Bid request': '竞价请求',
   Webhook: 'Webhook',
   Notify: '通知',
   'Hi,': '你好，',

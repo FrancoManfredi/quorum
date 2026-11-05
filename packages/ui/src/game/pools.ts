@@ -6,6 +6,7 @@ import {
   Clapperboard,
   FileText,
   Flame,
+  Gavel,
   type IconNode,
   KeyRound,
   Package,
@@ -50,6 +51,7 @@ export const POOL_ICONS: Record<InsightPool, IconNode> = {
   feed: Rss,
   hook: Webhook,
   push: Bell,
+  bid: Gavel,
   failure: Flame,
 }
 

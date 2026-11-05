@@ -1,5 +1,6 @@
 /* Incidents, postmortems and the alert rules. */
 
+import type { RequestKind } from './kinds.ts'
 import type { ResearchId } from './research.ts'
 
 export const INCIDENT_IDS = [
@@ -42,6 +43,10 @@ export const INCIDENT_IDS = [
   'reconnect',
   'runaway-bill',
   'mtu',
+  'hot-shard',
+  'premiere-spike',
+  'launch-day',
+  'flash-sale',
 ] as const
 export type IncidentId = (typeof INCIDENT_IDS)[number]
 
@@ -106,6 +111,23 @@ export const SPOT_DOWN = 20
 export const LATENCY_REGRESSION_MS = 150
 /** A deadline day multiplies demand by this much (13 "Ventures", Government contract). */
 export const DEADLINE_SURGE = 3
+/**
+ * The signature incidents of the older Ventures (13 "Ventures"). The design names each one and
+ * gives two numbers: a flash sale is "×20 demand" and a hot shard is one tenant on one shard.
+ * The rest are proposed: a hot shard costs three times the CPU per query, a premiere lifts video
+ * four times, and a launch day lifts realtime six times.
+ */
+export const HOT_SHARD_CPU = 3
+export const PREMIERE_SURGE = 4
+export const LAUNCH_SURGE = 6
+export const FLASH_SALE_SURGE = 20
+
+/** The kind a signature surge lifts, and by how much (13 "Ventures"). */
+export const KIND_SURGE: Partial<Record<IncidentId, readonly [RequestKind, number]>> = {
+  'premiere-spike': ['media', PREMIERE_SURGE],
+  'launch-day': ['rt', LAUNCH_SURGE],
+  'flash-sale': ['buy', FLASH_SALE_SURGE],
+}
 
 export const INCIDENTS: Record<IncidentId, IncidentDef> = {
   spike: {
@@ -548,6 +570,54 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
       'A partner network uses a smaller packet size. Uploads larger than its MTU time out on the way in.',
     prevention: 'Clamp the packet size, or keep large uploads on one network.',
     actions: [],
+  },
+  // B2B SaaS's signature (13 "Ventures"): one big tenant's key lands on one shard.
+  'hot-shard': {
+    id: 'hot-shard',
+    name: 'Big tenant hot shard',
+    era: 4,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 90,
+    cause: `The biggest tenant's key landed on one shard. Its reads and writes cost ${HOT_SHARD_CPU}× the CPU, and everything else on that shard waits behind it.`,
+    prevention: 'Shard the tenant by key, and keep its reads in a Cache in front of the Database.',
+    actions: ['sharding', 'caching'],
+  },
+  // Streaming media's signature (13 "Ventures"): a premiere lands at one minute.
+  'premiere-spike': {
+    id: 'premiere-spike',
+    name: 'Premiere spike',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 90,
+    cause: `A premiere dropped: ${PREMIERE_SURGE}× the usual video demand, all in the same minute.`,
+    prevention: 'Tiered caching at the CDN, reserved capacity, and load shedding.',
+    actions: ['tiered-caching', 'load-shedding'],
+  },
+  // Game backend's signature (13 "Ventures"): everyone logs in on launch day.
+  'launch-day': {
+    id: 'launch-day',
+    name: 'Launch day',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 90,
+    cause: `The game launched: ${LAUNCH_SURGE}× the usual realtime messages, and every client connects at once.`,
+    prevention: 'Realtime Hubs sized for the peak, reconnect jitter, and load shedding.',
+    actions: ['websockets', 'load-shedding'],
+  },
+  // E-commerce's signature (13 "Ventures"): the monthly sale event at ×20 demand.
+  'flash-sale': {
+    id: 'flash-sale',
+    name: 'Flash sale',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 90,
+    cause: `A flash sale: ${FLASH_SALE_SURGE}× the usual checkouts for a few minutes.`,
+    prevention: 'A Queue for the checkout work, an Autoscaler, and load shedding.',
+    actions: ['autoscaling', 'load-shedding'],
   },
 }
 

@@ -48,9 +48,11 @@ import {
   type Route,
 } from './geometry.ts'
 import { compute } from './compute.ts'
+import { flowMarks } from './flows.ts'
 import { HOP, type RoutedLink, type RoutedNode, type Wire } from './routing.ts'
 import { FOOT_ICONS, ROW_ICONS, footerOf, levelOf, rowsOf, sizePips, type RowTone } from './card.ts'
 import { COMPONENT_ICONS, GROUP_SHAPES, STACK_LOGOS, type StackLogoId } from '../game/icons.ts'
+import { packetShapeOf, type PacketShape } from '../game/packets.ts'
 
 /* ==========================================================================
    The board: a PixiJS plane the player builds on. Foldkit owns the Model;
@@ -621,6 +623,72 @@ const CHEVRON_HALF = 2.2
 const CHEVRON_DEPTH = 2
 /** Belt speed in world pixels per second. */
 const beltSpeed = (rate: number): number => 22 + 16 * Math.log2(1 + rate)
+
+/** A packet at (x, y), `r` from its centre to its edge, in the kind's shape: colour is not the
+ *  only cue (15 "Accessibility"). */
+const packetAt = (g: Graphics, shape: PacketShape, x: number, y: number, r: number): Graphics => {
+  switch (shape) {
+    case 'circle':
+      return g.circle(x, y, r)
+    case 'square':
+      return g.rect(x - r, y - r, r * 2, r * 2)
+    case 'triangle':
+      return g.poly([x, y - r * 1.3, x + r * 1.2, y + r, x - r * 1.2, y + r])
+    case 'diamond':
+      return g.poly([x, y - r * 1.35, x + r * 1.1, y, x, y + r * 1.35, x - r * 1.1, y])
+  }
+}
+
+/** A still arrow at (x, y) pointing along (ux, uy): the flow a belt carries under reduced motion. */
+const arrowAt = (
+  g: Graphics,
+  x: number,
+  y: number,
+  ux: number,
+  uy: number,
+  size: number,
+): Graphics => {
+  const nx = -uy
+  const ny = ux
+  return g.poly([
+    x + ux * size,
+    y + uy * size,
+    x - ux * size * 0.7 + nx * size * 0.85,
+    y - uy * size * 0.7 + ny * size * 0.85,
+    x - ux * size * 0.7 - nx * size * 0.85,
+    y - uy * size * 0.7 - ny * size * 0.85,
+  ])
+}
+
+/** The point and the direction at `t` of the way along a path, by length. */
+const pointAndDirection = (
+  path: Route,
+  t: number,
+): Readonly<{ x: number; y: number; ux: number; uy: number }> => {
+  const length = lengthOf(path)
+  let left = length * Math.max(0, Math.min(1, t))
+  for (let index = 1; index < path.length; index += 1) {
+    const a = path[index - 1]
+    const b = path[index]
+    if (!a || !b) continue
+    const span = gap(a, b)
+    if (span === 0) continue
+    if (left <= span) {
+      const k = left / span
+      return {
+        x: a.x + (b.x - a.x) * k,
+        y: a.y + (b.y - a.y) * k,
+        ux: (b.x - a.x) / span,
+        uy: (b.y - a.y) / span,
+      }
+    }
+    left -= span
+  }
+  const last = path[path.length - 1] ?? { x: 0, y: 0 }
+  const before = path[path.length - 2] ?? last
+  const span = gap(before, last) || 1
+  return { x: last.x, y: last.y, ux: (last.x - before.x) / span, uy: (last.y - before.y) / span }
+}
 
 /** Calls `visit` every `step` pixels along a path, starting `offset` in. */
 const walk = (
@@ -1495,6 +1563,66 @@ class ChevronLayer {
   }
 }
 
+/**
+ * The rate a still belt carries (15 "Accessibility"): one pooled Text per label, on a small plate,
+ * so reduced motion names the traffic the arrows stand for instead of moving packets through it.
+ */
+class NoteLayer {
+  readonly root = new Container()
+  /** The plates behind the labels, cleared and drawn each frame. */
+  private readonly backs = new Graphics()
+  private readonly pool: Array<Text> = []
+  private used = 0
+
+  constructor() {
+    this.root.addChild(this.backs)
+  }
+
+  begin(): void {
+    this.used = 0
+    this.backs.clear()
+  }
+
+  /** A label whose bottom edge sits `lift` pixels above (x, y). */
+  add(x: number, y: number, text: string, tint: number, plate: number, lift: number): void {
+    let view = this.pool[this.used]
+    if (!view) {
+      view = new Text({
+        text: '',
+        style: {
+          fontFamily: MONO,
+          fontSize: 10,
+          fontWeight: '600',
+          fill: 0xffffff,
+        },
+        resolution: 3,
+      })
+      view.anchor.set(0.5, 1)
+      this.pool.push(view)
+      this.root.addChild(view)
+    }
+    view.text = text
+    view.tint = tint
+    view.position.set(x, y - lift)
+    view.visible = true
+    this.backs
+      .roundRect(
+        x - view.width / 2 - 3.5,
+        y - lift - view.height - 2,
+        view.width + 7,
+        view.height + 4,
+        3,
+      )
+      .fill({ color: plate, alpha: 0.88 })
+    this.used += 1
+  }
+
+  end(): void {
+    for (let index = this.used; index < this.pool.length; index += 1)
+      (this.pool[index] as Text).visible = false
+  }
+}
+
 /* ---------- the controller ---------- */
 
 type Gesture =
@@ -1540,6 +1668,8 @@ class BoardController {
   private readonly splitters = new Graphics()
   private splittersKey = ''
   private readonly packets = new Graphics()
+  /** The rate labels on still belts: reduced motion's stand-in for moving packets. */
+  private readonly notes = new NoteLayer()
   private readonly cards = new Container()
   private readonly overlay = new Graphics()
   /** The "!" badges on links that cross zones: they move only with the links, so they
@@ -1656,6 +1786,7 @@ class BoardController {
     this.world.addChild(
       this.wires,
       this.packets,
+      this.notes.root,
       this.cards,
       this.badges,
       this.overlay,
@@ -2645,6 +2776,7 @@ class BoardController {
     const badges: Array<number> = []
     const focus = this.pathOf(state)
     this.packets.clear()
+    this.notes.begin()
     this.overlay.clear()
     this.syncBelts(state.game.links)
     const picked = this.selectedLink
@@ -2701,7 +2833,8 @@ class BoardController {
           ? mix(zoneHue[from.zone], colors.canvas, busy ? 0.75 : 0.85)
           : mix(packet, colors.canvas, hovered ? 0.6 : busy ? 0.8 : 0.92)
       belt.draw(pieces, rail, body, busy)
-      if (detailed && seen)
+      // A still, busy belt shows its arrows and rate instead of chevrons: one read, not two.
+      if (detailed && seen && !(still && busy))
         this.chevrons.add(
           pieces,
           this.phase * speed,
@@ -2741,22 +2874,35 @@ class BoardController {
       }
       if (!flow || !busy || off || !seen) continue
       const length = lengthOf(path)
-      const count = Math.max(
-        1,
-        Math.min(9, Math.round(Math.log2(1 + flow.rate) * 1.4), Math.floor(length / 20)),
-      )
-      // Items ride the belt at its speed, and are out of sight while it runs underground.
-      const along = speed / Math.max(1, length)
-      for (let index = 0; index < count; index += 1) {
-        const t = (this.phase * along + (index + 0.5) / count) % 1
-        const at = pointOn(path, t, length)
-        if (wire.hops.some((hop) => Math.abs(hop.x - at.x) < 1 && Math.abs(hop.y - at.y) < HOP))
-          continue
-        this.packets.roundRect(at.x - 2.5, at.y - 2.5, 5, 5, 1.5)
+      const marks = flowMarks(still, flow.rate, length)
+      const shape = packetShapeOf(flow.kind)
+      const alpha = tap ? 0.6 : 0.95
+      // Under a passing belt, a hop marks where it runs underground: nothing shows there.
+      const underground = (at: Readonly<{ x: number; y: number }>): boolean =>
+        wire.hops.some((hop) => Math.abs(hop.x - at.x) < 1 && Math.abs(hop.y - at.y) < HOP)
+      if (marks.label === null) {
+        // Items ride the belt at its speed, each in its kind's shape.
+        const along = speed / Math.max(1, length)
+        for (let index = 0; index < marks.packets; index += 1) {
+          const t = (this.phase * along + (index + 0.5) / marks.packets) % 1
+          const at = pointOn(path, t, length)
+          if (underground(at)) continue
+          packetAt(this.packets, shape, at.x, at.y, 3.1)
+        }
+      } else {
+        // Reduced motion: still arrows along the belt, under the rate they stand for.
+        for (const t of marks.arrows) {
+          const at = pointAndDirection(path, t)
+          if (underground(at)) continue
+          arrowAt(this.packets, at.x, at.y, at.ux, at.uy, 4.2)
+        }
+        const mid = midOf(path)
+        this.notes.add(mid.x, mid.y, marks.label, packet, colors.card, tap ? 12 : 11)
       }
-      this.packets.fill({ color: packet, alpha: tap ? 0.6 : 0.95 })
+      this.packets.fill({ color: packet, alpha })
     }
 
+    this.notes.end()
     this.chevrons.end()
     this.drawBadges(badges, colors)
 

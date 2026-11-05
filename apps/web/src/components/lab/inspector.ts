@@ -112,6 +112,7 @@ import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
 import { hasTraffic, hintOf, sampleNode, TRAFFIC_KINDS } from '@/game/node-metrics.ts'
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
+import { packetMark } from '@quorum/ui/game/packets'
 import { icon } from '@quorum/ui/primitives/icon'
 import { badge } from '@quorum/ui/primitives/badge'
 import { button } from '@quorum/ui/primitives/button'
@@ -151,13 +152,13 @@ const gauge = (
       h.div(
         [h.Class('flex items-baseline justify-between')],
         [
-          h.span([h.Class('text-[12.5px] text-muted-foreground')], [name]),
+          h.span([h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')], [name]),
           h.span(
             [
               h.Class(
                 cn(
                   FIGURE,
-                  'text-[12px]',
+                  'text-[calc(12px*var(--type-scale))]',
                   level >= 0.9 ? 'text-danger' : level >= 0.7 ? 'text-warn' : '',
                 ),
               ),
@@ -233,7 +234,7 @@ const choice = (
         ? [h.OnMouseEnter(hover), h.OnMouseLeave(Message.OptionLeft())]
         : []),
       h.Class(
-        `flex h-8 min-w-0 items-center gap-2 rounded-lg px-2 text-left text-[12px] font-medium transition-colors ${
+        `flex h-8 min-w-0 items-center gap-2 rounded-lg px-2 text-left text-[calc(12px*var(--type-scale))] font-medium transition-colors ${
           selected
             ? 'bg-raised text-foreground shadow-raised'
             : ready
@@ -326,7 +327,7 @@ const callout = (
       h.Key(text),
       h.Class(
         cn(
-          'mx-4 mb-3 flex flex-col gap-2 rounded-xl px-3 py-2.5 text-[12px] leading-snug',
+          'mx-4 mb-3 flex flex-col gap-2 rounded-xl px-3 py-2.5 text-[calc(12px*var(--type-scale))] leading-snug',
           tone === 'danger'
             ? 'bg-danger/8 text-danger shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--danger)_25%,transparent)]'
             : 'bg-warn/10 text-warn shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--warn)_28%,transparent)]',
@@ -902,7 +903,7 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
             h,
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'flex-1 text-center text-[12.5px]'))],
+            [h.Class(cn(FIGURE, 'flex-1 text-center text-[calc(12.5px*var(--type-scale))]'))],
             [`${SIZES[node.size]?.name ?? ''} · ${vcpuOf(node)} vCPU · ${ramOf(node)} GB`],
           ),
           smallButton(
@@ -989,7 +990,12 @@ const stack = (
                 stackLogo(RUNTIMES[id].language, 'size-4', h),
                 h.span([h.Class('truncate')], [RUNTIMES[id].name]),
                 ...(reviewingRuntime === id
-                  ? [h.span([h.Class('text-[10px] text-group-compute')], ['Proposed'])]
+                  ? [
+                      h.span(
+                        [h.Class('text-[calc(10px*var(--type-scale))] text-group-compute')],
+                        ['Proposed'],
+                      ),
+                    ]
                   : []),
               ],
               runtimeReady(game, id)
@@ -1001,7 +1007,10 @@ const stack = (
           ),
           h,
         ),
-        h.p([h.Class('text-[12px] leading-snug text-muted-foreground')], [runtime.blurb]),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [runtime.blurb],
+        ),
       ],
       h,
       reviewingRuntime !== null,
@@ -1025,7 +1034,7 @@ const stack = (
                     h,
                   ),
                   h.span(
-                    [h.Class(cn(FIGURE, 'w-12 text-center text-[13px]'))],
+                    [h.Class(cn(FIGURE, 'w-12 text-center text-[calc(13px*var(--type-scale))]'))],
                     [String(node.workers)],
                   ),
                   smallButton(
@@ -1041,7 +1050,7 @@ const stack = (
                   h.span(
                     [
                       h.Class(
-                        `ml-auto ${FIGURE} text-[11.5px] ${node.workers > fit ? 'text-danger' : 'text-muted-foreground'}`,
+                        `ml-auto ${FIGURE} text-[calc(11.5px*var(--type-scale))] ${node.workers > fit ? 'text-danger' : 'text-muted-foreground'}`,
                       ),
                     ],
                     [`RAM fits ${fit}`],
@@ -1078,7 +1087,7 @@ const stack = (
           h,
         ),
         h.p(
-          [h.Class('text-[12px] leading-snug text-muted-foreground')],
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [FRAMEWORKS[node.framework].blurb],
         ),
       ],
@@ -1140,7 +1149,10 @@ const hubStack = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
         h,
         (id) => runtimeReady(game, id),
       ),
-      h.p([h.Class('text-[12px] leading-snug text-muted-foreground')], [runtime.blurb]),
+      h.p(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [runtime.blurb],
+      ),
       caption(
         runtime.connectionKB === null
           ? `${runtime.name} holds no connections. Pick a runtime that does.`
@@ -1216,7 +1228,7 @@ const outbound = (game: Game, node: GameNode): ReadonlyArray<readonly [GameLink,
   })
 
 const caption = (text: string, h: HtmlBuilder<Message>): Html =>
-  h.span([h.Class('text-[12px] font-medium text-muted-foreground')], [text])
+  h.span([h.Class('text-[calc(12px*var(--type-scale))] font-medium text-muted-foreground')], [text])
 
 const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const checked = has(game, 'health-checks')
@@ -1307,6 +1319,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
 
 const KIND_SHORT: Record<RequestKind, string> = {
   page: 'Page',
+  bid: 'Bid',
   read: 'Read',
   write: 'Write',
   login: 'Login',
@@ -2290,20 +2303,15 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
         const failing = (entry?.success ?? 1) < 0.95
         const slow = (entry?.p99 ?? 0) > PROFILES[kind].apdex
         const line = h.div(
-          [h.Key(kind), h.Class('flex items-center gap-2 text-[12px]')],
+          [h.Key(kind), h.Class('flex items-center gap-2 text-[calc(12px*var(--type-scale))]')],
           [
-            h.span(
-              [
-                h.Class('size-2 rounded-full'),
-                h.Style({ background: `#${KINDS[kind].color.toString(16).padStart(6, '0')}` }),
-              ],
-              [],
-            ),
+            // The kind's packet shape, so the legend teaches what the belts carry (15).
+            packetMark(kind, 8, h),
             h.span([h.Class('flex-1')], [KINDS[kind].label]),
             h.span(
               [
                 h.Class(
-                  `${FIGURE} text-[11.5px] ${failing ? 'text-danger' : slow ? 'text-warn' : 'text-muted-foreground'}`,
+                  `${FIGURE} text-[calc(11.5px*var(--type-scale))] ${failing ? 'text-danger' : slow ? 'text-warn' : 'text-muted-foreground'}`,
                 ),
               ],
               [
@@ -2322,7 +2330,7 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
             h.span(
               [
                 h.Class(
-                  `${FIGURE} pl-4 text-[11.5px] ${slow ? 'text-warn' : 'text-muted-foreground'}`,
+                  `${FIGURE} pl-4 text-[calc(11.5px*var(--type-scale))] ${slow ? 'text-warn' : 'text-muted-foreground'}`,
                 ),
               ],
               [
@@ -2379,13 +2387,24 @@ const breakdown = (
     ],
     [
       h.span(
-        [h.Class('min-w-0 break-words text-[12.5px] text-muted-foreground')],
+        [h.Class('min-w-0 break-words text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
         typeof label === 'string' ? [label] : label,
       ),
       h.span(
         [
           h.Class(
-            cn(FIGURE, 'flex items-baseline justify-end gap-1.5 text-[12px] whitespace-nowrap'),
+            'min-w-0 break-words text-[calc(12.5px*var(--type-scale))] text-muted-foreground',
+          ),
+        ],
+        [label],
+      ),
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'flex items-baseline justify-end gap-1.5 text-[calc(12px*var(--type-scale))] whitespace-nowrap',
+            ),
           ),
         ],
         [
@@ -2394,7 +2413,7 @@ const breakdown = (
             ? []
             : [
                 h.span(
-                  [h.Class('text-[11.5px] text-muted-foreground')],
+                  [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
                   [difference(value - previous)],
                 ),
               ]),
@@ -2471,7 +2490,7 @@ const trafficBreakdown = (
                   h,
                 ),
                 h.span(
-                  [h.Class(cn(FIGURE, 'flex-1 text-center text-[12.5px]'))],
+                  [h.Class(cn(FIGURE, 'flex-1 text-center text-[calc(12.5px*var(--type-scale))]'))],
                   [when(sample.time)],
                 ),
                 smallButton(
@@ -2489,7 +2508,7 @@ const trafficBreakdown = (
           ]
         : [
             h.p(
-              [h.Class('text-[12px] leading-snug text-muted-foreground')],
+              [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
               [
                 has(game, 'metrics')
                   ? 'History appears after two recorded samples.'
@@ -2567,12 +2586,16 @@ const trafficBreakdown = (
               ]
             : [
                 h.p(
-                  [h.Class('px-3 text-[12px] text-muted-foreground')],
+                  [h.Class('px-3 text-[calc(12px*var(--type-scale))] text-muted-foreground')],
                   ['No incoming traffic at this sample.'],
                 ),
               ]),
           h.p(
-            [h.Class('px-3 text-[12px] leading-snug text-muted-foreground')],
+            [
+              h.Class(
+                'px-3 text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground',
+              ),
+            ],
             ['Shares describe incoming traffic, not CPU usage.'],
           ),
         ],
@@ -2649,10 +2672,10 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
             [h.Class('flex min-w-0 flex-1 flex-col')],
             [
               h.span(
-                [h.Class('text-[17px] font-semibold tracking-[-0.025em]')],
+                [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
                 [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])],
               ),
-              h.span([h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))], [def.product]),
+              h.span([h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'))], [def.product]),
             ],
           ),
           sizeLabel
@@ -2671,7 +2694,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ),
         ],
       ),
-      h.p([h.Class('px-4 pb-3 text-[12.5px] leading-snug text-muted-foreground')], [def.blurb]),
+      h.p([h.Class('px-4 pb-3 text-[calc(12.5px*var(--type-scale))] leading-snug text-muted-foreground')], [def.blurb]),
       ...inboundSummary(game, node, ledger, h),
       ...warnings(game, node, ledger, h),
       h.div(
@@ -2757,7 +2780,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   h.Type('button'),
                   h.OnClick(Message.Collected()),
                   h.Class(
-                    'flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-ok text-[13px] font-medium text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--ok),black_25%),0_2px_6px_-2px_color-mix(in_oklch,var(--ok)_50%,transparent)] transition-[filter] hover:brightness-105 active:translate-y-px',
+                    'flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-ok text-[calc(13px*var(--type-scale))] font-medium text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--ok),black_25%),0_2px_6px_-2px_color-mix(in_oklch,var(--ok)_50%,transparent)] transition-[filter] hover:brightness-105 active:translate-y-px',
                   ),
                 ],
                 ['Collect', h.span([h.Class(FIGURE)], [money(game.pending)])],

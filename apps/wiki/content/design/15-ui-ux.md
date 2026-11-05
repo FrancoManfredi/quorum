@@ -266,6 +266,10 @@ shows the figure now and no sparkline.
 Choosing a row is Dashboard view state: it changes no Game state, adds no undo entry, and writes no
 log line. The Game keeps its last four Postmortems, so the history reaches back that far.
 
+Neither row needs a key of its own, and neither is a panel: `D` opens the Dashboard that holds them,
+beside the charts of the system. Not built yet: the Dashboard's scroll area does not take focus, so
+a keyboard-only player cannot scroll down to these last rows without a pointing device.
+
 Not built yet: MTTD, MTTA, and runbooks ([Incidents](/design/11-incidents#the-incident-loop)), and a
 chart of Incident history. The Game keeps no time for a resolved Incident, so a history row could
 only be placed on a timeline from the Inbox's Threads, and the row draws a table instead.
@@ -310,14 +314,24 @@ its worst utilization, and one suggestion if users were lost at peak.
 
 ## Accessibility
 
-- Request kind colors pass contrast checks. Not built yet: a particle shape per kind (circle,
-  square, triangle, diamond) for color-blind players; packets share one shape in the kind's colour.
+- Request kind colors pass contrast checks, and each kind's packets also carry one of four shapes
+  (circle, square, triangle, diamond), so colour is not the only cue. Kinds that share a colour
+  share a shape, and the Inspector's request list draws the same mark beside each name.
 - Status uses icons and shapes as well as color: a dot, a triangle, a square, and a cross on the
   medallion.
-- Reduced motion: particles stop. Not built yet: static flow arrows with rate labels.
+- Reduced motion: particles stop, and every busy link shows still arrows with the rate it carries
+  ("420/s") on a small plate. A still belt draws the arrows in place of its chevrons, so its flow
+  is read once, not twice.
 - Most actions have a keyboard shortcut, and the board supports keyboard navigation between Nodes.
+  A list that the canvas cannot give names every Node on the board — its kind, its size, and its
+  load — in board order; it stays hidden until a keyboard player tabs into it, and each entry is a
+  button that opens that Node's Inspector. So the board is usable without seeing the canvas.
   Not built yet: shortcuts for placing, linking, Tidy, Fit, and confirming a Tradeoff.
-- Text scales to 150% without breaking cards.
+- Text at 150%. Settings › Text at 150% multiplies the interface's type by 1.5 through the
+  `--type-scale` token, so rows, panels, and the HUD keep their boxes while their text grows. The
+  board's cards scale with the board's zoom instead, because they are drawn on the canvas.
+  Not built yet: the Research tree keeps its fixed node boxes, so at 150% a long item name ellipsizes
+  in the tree; its side pane reads it in full.
 
 ## Save
 

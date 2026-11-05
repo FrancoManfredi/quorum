@@ -91,13 +91,16 @@ const NODE_CLASS: Record<State, string> = {
 const price = (entry: ResearchDef, state: State, grey: boolean, h: HtmlBuilder<Message>): Html =>
   state === 'owned'
     ? h.span(
-        [h.Class('flex items-center gap-1 text-[11px] text-ok')],
+        [h.Class('flex items-center gap-1 text-[calc(11px*var(--type-scale))] text-ok')],
         [icon(h, Check, 'size-3'), 'Researched'],
       )
     : h.span(
         [
           h.Class(
-            cn('flex w-fit items-center gap-2 text-[11px]', grey ? 'text-muted-foreground' : ''),
+            cn(
+              'flex w-fit items-center gap-2 text-[calc(11px*var(--type-scale))]',
+              grey ? 'text-muted-foreground' : '',
+            ),
           ),
         ],
         [
@@ -127,7 +130,10 @@ const costRows = (
       h.span([h.Class(cn(EYEBROW, 'px-2'))], [`Cost · ${duration(game, entry)}`]),
       ...recipeOf(entry.id).map(([pool, cost]) =>
         h.div(
-          [h.Key(pool), h.Class(cn(FIGURE, 'flex items-center gap-2 px-2 text-[12px]'))],
+          [
+            h.Key(pool),
+            h.Class(cn(FIGURE, 'flex items-center gap-2 px-2 text-[calc(12px*var(--type-scale))]')),
+          ],
           [
             insightChip(pool, compact(cost), h),
             h.span(
@@ -175,7 +181,7 @@ const face = (
           [
             h.Class(
               cn(
-                'flex items-center gap-1 truncate text-[12.5px] leading-tight font-semibold',
+                'flex items-center gap-1 truncate text-[calc(12.5px*var(--type-scale))] leading-tight font-semibold',
                 grey ? 'text-muted-foreground' : '',
               ),
             ),
@@ -336,7 +342,10 @@ const progressBar = (
           ),
         ],
       ),
-      h.span([h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))], [`${owned}/${total}`]),
+      h.span(
+        [h.Class(cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-muted-foreground'))],
+        [`${owned}/${total}`],
+      ),
     ],
   )
 }
@@ -403,7 +412,7 @@ const backdrop = (model: Model, layout: Layout, h: HtmlBuilder<Message>) => {
           [h.Class('grid size-14 place-items-center rounded-2xl bg-surface shadow-card')],
           [icon(h, TRACK_ICONS[track.track], 'size-6')],
         ),
-        h.span([h.Class('text-[14px] font-semibold')], [track.label]),
+        h.span([h.Class('text-[calc(14px*var(--type-scale))] font-semibold')], [track.label]),
         progressBar(game, track.track, 'w-28', h),
       ],
     ),
@@ -524,7 +533,7 @@ const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html 
       h.Type('button'),
       h.OnClick(Message.ResearchChanged({ message: ResearchMessage.Focused({ id: entry.id }) })),
       h.Class(
-        'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[12.5px] hover:bg-foreground/5',
+        'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[calc(12.5px*var(--type-scale))] hover:bg-foreground/5',
       ),
     ],
     [
@@ -552,7 +561,7 @@ const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
               h.Title(`Glossary: ${term.term}`),
               h.OnClick(Message.GlossaryOpened({ id: term.id })),
               h.Class(
-                'flex items-center gap-1 rounded-md bg-nested px-1.5 py-0.5 text-[11.5px] text-muted-foreground hover:text-foreground',
+                'flex items-center gap-1 rounded-md bg-nested px-1.5 py-0.5 text-[calc(11.5px*var(--type-scale))] text-muted-foreground hover:text-foreground',
               ),
             ],
             [icon(h, CircleHelp, 'size-3 shrink-0'), term.term],
@@ -617,7 +626,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                   Message.ResearchChanged({ message: ResearchMessage.Focused({ id: item.id }) }),
                 ),
                 h.Class(
-                  'flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 text-left text-[12.5px] hover:text-foreground',
+                  'flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 text-left text-[calc(12.5px*var(--type-scale))] hover:text-foreground',
                 ),
               ],
               [
@@ -629,7 +638,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                     h.Class(
                       cn(
                         FIGURE,
-                        'ml-auto flex shrink-0 items-center gap-1 text-[11.5px]',
+                        'ml-auto flex shrink-0 items-center gap-1 text-[calc(11.5px*var(--type-scale))]',
                         stall ? 'text-warn' : 'text-muted-foreground',
                       ),
                     ),
@@ -718,7 +727,11 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 [h.Class('flex min-w-0 flex-col gap-1')],
                 [
                   h.span(
-                    [h.Class('text-[16px] leading-tight font-semibold tracking-[-0.02em]')],
+                    [
+                      h.Class(
+                        'text-[calc(16px*var(--type-scale))] leading-tight font-semibold tracking-[-0.02em]',
+                      ),
+                    ],
                     [entry.name],
                   ),
                   h.span([h.Class(EYEBROW)], [`${track} · ${eraName(entry.era)}`]),
@@ -726,13 +739,16 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
               ),
             ],
           ),
-          h.p([h.Class('text-[13px] leading-relaxed text-foreground/85')], [entry.blurb]),
+          h.p(
+            [h.Class('text-[calc(13px*var(--type-scale))] leading-relaxed text-foreground/85')],
+            [entry.blurb],
+          ),
           terms(entry, h),
           open
             ? h.div(
                 [
                   h.Class(
-                    'flex items-start gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-[12px] leading-snug text-warn',
+                    'flex items-start gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-[calc(12px*var(--type-scale))] leading-snug text-warn',
                   ),
                 ],
                 [
@@ -865,9 +881,16 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div(
             [h.Class(cn(PANEL, 'pointer-events-auto flex items-baseline gap-4 px-4 py-2.5'))],
             [
-              h.span([h.Class('text-[17px] font-semibold tracking-[-0.025em]')], ['Research']),
               h.span(
-                [h.Class('flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px]')],
+                [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
+                ['Research'],
+              ),
+              h.span(
+                [
+                  h.Class(
+                    'flex flex-wrap items-center gap-x-3 gap-y-1 text-[calc(12.5px*var(--type-scale))]',
+                  ),
+                ],
                 POOL_ORDER.filter((pool) => model.board.game.pools[pool] >= 1).map((pool) =>
                   insightChip(pool, compact(model.board.game.pools[pool]), h),
                 ),

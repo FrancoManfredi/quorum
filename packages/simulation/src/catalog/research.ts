@@ -38,6 +38,8 @@ export const RESEARCH_IDS = [
   'timeouts',
   'lb-algorithms',
   'ci',
+  'blue-green',
+  'canary',
   'code-review',
   'testing-culture',
   'full-text-search',
@@ -460,7 +462,28 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     cost: 100,
     era: 1,
     requires: [],
-    blurb: 'A pipeline deploys in 5 minutes, not 30, and can roll a bad deploy back.',
+    blurb:
+      'A pipeline deploys in 5 minutes, not 30, and can roll a bad deploy back. Recreate and Rolling come with it.',
+  }),
+  research({
+    id: 'blue-green',
+    name: 'Blue-green deploys',
+    track: 'reliability',
+    cost: 900,
+    era: 2,
+    requires: ['ci'],
+    blurb:
+      'Blue-green: the new version comes up beside the old one, so a bad deploy breaks 10% of requests.',
+  }),
+  research({
+    id: 'canary',
+    name: 'Canary deploys',
+    track: 'reliability',
+    cost: 3_000,
+    era: 3,
+    requires: ['ci', 'percentiles'],
+    blurb:
+      'Canary: 5% of traffic meets the new version first. The smallest blast radius, the slowest deploy.',
   }),
   research({
     id: 'code-review',

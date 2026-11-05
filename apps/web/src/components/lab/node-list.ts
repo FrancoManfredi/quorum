@@ -1,0 +1,62 @@
+import type { Html, HtmlBuilder } from 'foldkit/html'
+import { COMPONENTS } from '@quorum/simulation/catalog'
+import type { Ledger } from '@quorum/simulation/ledger'
+import { sizeLabel } from '@quorum/simulation/lookups'
+import { regionView } from '@quorum/simulation/regions'
+import { rate } from '@quorum/ui/game/format'
+import { Message } from '@/game/message.ts'
+import type { Model } from '@/game/model.ts'
+
+/* ==========================================================================
+   The board for a screen reader (15 "Accessibility"): the canvas says nothing,
+   so this list names every Node on the board in board order, with its kind,
+   its size, and its load. Each entry is a button, so the keyboard reaches the
+   Nodes and Enter opens the Inspector on the one it names. It stays `sr-only`
+   until a sighted keyboard player tabs into it, then it shows as a list.
+   ========================================================================== */
+
+/** A Node's load as the cards show it: the share of its limiting resource in use. */
+const loadOf = (ledger: Ledger, id: string): string => {
+  const own = ledger.nodes[id]
+  if (!own) return 'no load'
+  if (own.status === 'down') return 'down'
+  return `${Math.round(own.utilization * 100)}%`
+}
+
+export const nodeList = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const game = model.board.game
+  const nodes = regionView(game, model.board.region).nodes
+  return h.section(
+    [
+      h.Key('node-list'),
+      h.DataAttribute('node-list', ''),
+      h.Class('node-list sr-only'),
+      h.AriaLabel('Nodes'),
+    ],
+    [
+      h.h2([h.Class('node-list-title')], ['Nodes']),
+      h.ul(
+        [],
+        nodes.map((node) =>
+          h.li(
+            [h.Key(node.id)],
+            [
+              h.button(
+                [h.Type('button'), h.OnClick(Message.NodeTapped({ nodeId: node.id }))],
+                [
+                  h.span([], [COMPONENTS[node.type].name]),
+                  h.span([], [' · ']),
+                  h.span([], [sizeLabel(node)]),
+                  h.span([], [' · ']),
+                  h.span([], [loadOf(ledger, node.id)]),
+                  h.span([], [' · ']),
+                  h.span([], [`${rate(ledger.nodes[node.id]?.inbound ?? 0)}/s`]),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ],
+  )
+}

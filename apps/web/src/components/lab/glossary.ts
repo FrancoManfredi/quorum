@@ -74,7 +74,7 @@ const filter = (
       h.OnClick(Message.GlossaryChanged({ message: GlossaryMessage.Filtered({ category }) })),
       h.Class(
         cn(
-          'h-7 shrink-0 rounded-lg px-2.5 text-[12px] font-medium transition-colors',
+          'h-7 shrink-0 rounded-lg px-2.5 text-[calc(12px*var(--type-scale))] font-medium transition-colors',
           chosen
             ? 'bg-raised text-foreground shadow-raised'
             : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
@@ -120,7 +120,7 @@ const row = (entry: GlossaryEntry, open: boolean, met: boolean, h: HtmlBuilder<M
           h.OnClick(Message.GlossaryOpened({ id: entry.id })),
           h.Class(
             cn(
-              'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors',
+              'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[calc(13px*var(--type-scale))] transition-colors',
               open
                 ? 'bg-primary-fill text-on-primary-fill'
                 : met
@@ -160,7 +160,7 @@ const related = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuil
                 h.Type('button'),
                 h.OnClick(Message.GlossaryOpened({ id })),
                 h.Class(
-                  'flex h-7 items-center gap-1.5 rounded-lg bg-well px-2.5 text-[12.5px] shadow-well transition-colors hover:bg-foreground/10',
+                  'flex h-7 items-center gap-1.5 rounded-lg bg-well px-2.5 text-[calc(12.5px*var(--type-scale))] shadow-well transition-colors hover:bg-foreground/10',
                 ),
               ],
               [
@@ -187,7 +187,7 @@ const links = (entry: GlossaryEntry, h: HtmlBuilder<Message>) =>
               h.Target('_blank'),
               h.Rel('noreferrer noopener'),
               h.Class(
-                'group inline-flex items-center gap-1 py-1 text-[13px] text-foreground underline decoration-foreground/25 underline-offset-[3px] transition-colors hover:decoration-foreground',
+                'group inline-flex items-center gap-1 py-1 text-[calc(13px*var(--type-scale))] text-foreground underline decoration-foreground/25 underline-offset-[3px] transition-colors hover:decoration-foreground',
               ),
             ],
             [
@@ -212,15 +212,24 @@ const detail = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuild
         [h.Class('flex flex-col gap-1.5')],
         [
           h.span([h.Class(EYEBROW)], [CATEGORY_NAMES[entry.category]]),
-          h.h2([h.Class('text-[20px] font-semibold tracking-[-0.02em]')], [entry.term]),
-          h.p([h.Class('text-[14px] leading-relaxed text-pretty')], [entry.definition]),
+          h.h2(
+            [h.Class('text-[calc(20px*var(--type-scale))] font-semibold tracking-[-0.02em]')],
+            [entry.term],
+          ),
+          h.p(
+            [h.Class('text-[calc(14px*var(--type-scale))] leading-relaxed text-pretty')],
+            [entry.definition],
+          ),
         ],
       ),
       h.div(
         [h.Class(cn(WELL, 'flex flex-col gap-2 p-3.5'))],
         [
           h.span([h.Class(EYEBROW)], ['In the game']),
-          h.p([h.Class('text-[13.5px] leading-relaxed text-pretty')], [entry.inGame]),
+          h.p(
+            [h.Class('text-[calc(13.5px*var(--type-scale))] leading-relaxed text-pretty')],
+            [entry.inGame],
+          ),
         ],
       ),
       ...(entry.related.length > 0 ? [section('Related', [related(entry, met, h)], h)] : []),
@@ -244,7 +253,10 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.span(
         [
           h.Class(
-            cn(FIGURE, 'flex items-center gap-1 text-[12px] text-muted-foreground compact:hidden'),
+            cn(
+              FIGURE,
+              'flex items-center gap-1 text-[calc(12px*var(--type-scale))] text-muted-foreground compact:hidden',
+            ),
           ),
           h.AriaLabel(`${metCount} of ${GLOSSARY.length} terms met`),
         ],
@@ -261,7 +273,9 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             h.OnInput((query) =>
               Message.GlossaryChanged({ message: GlossaryMessage.Searched({ query }) }),
             ),
-            h.Class('w-full min-w-0 bg-transparent text-[13px] outline-none'),
+            h.Class(
+              'w-full min-w-0 bg-transparent text-[calc(13px*var(--type-scale))] outline-none',
+            ),
           ]),
         ],
       ),
@@ -283,7 +297,14 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ],
                 shown.map((entry) => row(entry, entry.id === open?.id, met(entry.id), h)),
               )
-            : h.p([h.Class('px-2.5 py-1.5 text-[13px] text-muted-foreground')], ['No matches']),
+            : h.p(
+                [
+                  h.Class(
+                    'px-2.5 py-1.5 text-[calc(13px*var(--type-scale))] text-muted-foreground',
+                  ),
+                ],
+                ['No matches'],
+              ),
           h.div(
             [h.Class(cn('min-h-0 pr-1 compact:max-h-[50vh]', SCROLL))],
             open ? [detail(open, met, h)] : [],

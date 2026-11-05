@@ -69,10 +69,25 @@ const figureRow = (
     [
       icon(h, glyph, 'size-3.5 shrink-0 text-muted-foreground'),
       h.span(
-        [h.Class('w-[72px] shrink-0 text-[11.5px] text-muted-foreground compact:hidden')],
+        [
+          h.Class(
+            'w-[72px] shrink-0 text-[calc(11.5px*var(--type-scale))] text-muted-foreground compact:hidden',
+          ),
+        ],
         [name],
       ),
-      h.span([h.Class(cn(FIGURE, 'ml-auto text-[13.5px] leading-none', toneText(tone)))], [value]),
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'ml-auto text-[calc(13.5px*var(--type-scale))] leading-none',
+              toneText(tone),
+            ),
+          ),
+        ],
+        [value],
+      ),
     ],
   )
 
@@ -189,9 +204,12 @@ const fixes = (model: Model, h: HtmlBuilder<Message>): Html => {
             active ? Check : Hammer,
             cn('size-3.5 shrink-0', active ? 'text-ok' : 'text-muted-foreground'),
           ),
-          h.span([h.Class('flex-1 truncate text-[11.5px]')], [TASKS[fix].name]),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
+            [h.Class('flex-1 truncate text-[calc(11.5px*var(--type-scale))]')],
+            [TASKS[fix].name],
+          ),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
             [`${TASKS[fix].dh} DH`],
           ),
         ],
@@ -267,7 +285,10 @@ export const challengeHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Messag
             icon(h, Menu, 'size-4'),
             h,
           ),
-          h.span([h.Class('truncate text-[13px] font-semibold')], [challenge.name]),
+          h.span(
+            [h.Class('truncate text-[calc(13px*var(--type-scale))] font-semibold')],
+            [challenge.name],
+          ),
           model.founder.completed.includes(challenge.id)
             ? h.span([h.Class('ml-auto')], [icon(h, Check, 'size-3.5 text-ok')])
             : h.empty,
@@ -291,7 +312,7 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key(`challenge-${run._tag}`),
       h.Class(
-        'enter-down flex w-[420px] flex-col gap-2 compact:w-auto rounded-xl bg-surface px-3 py-2.5 text-[12.5px] shadow-card',
+        'enter-down flex w-[420px] flex-col gap-2 compact:w-auto rounded-xl bg-surface px-3 py-2.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
       ),
     ],
     [
@@ -300,7 +321,7 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.span([h.Class('flex-1 leading-snug')], [challenge.brief]),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+            [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
             [
               running
                 ? `${clock(elapsed)} / ${clock(challenge.duration)}`
@@ -309,7 +330,10 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      h.span([h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))], [targetText(challenge)]),
+      h.span(
+        [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
+        [targetText(challenge)],
+      ),
       running ? meter(run.totals.step / stepsOf(challenge), 'bg-primary-fill', h) : h.empty,
     ],
   )
@@ -352,15 +376,18 @@ const axisRow = (
       h.div(
         [h.Class('flex items-baseline justify-between gap-3')],
         [
-          h.span([h.Class('text-[13px] font-medium')], [AXIS_NAMES[axis]]),
-          h.span([h.Class(cn(FIGURE, 'text-[13px]'))], [axisValue(axis, value)]),
+          h.span([h.Class('text-[calc(13px*var(--type-scale))] font-medium')], [AXIS_NAMES[axis]]),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(13px*var(--type-scale))]'))],
+            [axisValue(axis, value)],
+          ),
         ],
       ),
       data ? strip(data[axis], value, h) : h.empty,
       share === undefined
         ? h.empty
         : h.span(
-            [h.Class('text-[12px] text-muted-foreground')],
+            [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
             [`Better than ${Math.round(share * 100)}% of players`],
           ),
     ],
@@ -392,7 +419,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.Class(
             cn(
-              'font-mono text-[11px] uppercase tracking-[0.08em]',
+              'font-mono text-[calc(11px*var(--type-scale))] uppercase tracking-[0.08em]',
               run.verification === 'verified' ? 'text-ok' : 'text-muted-foreground',
             ),
           ),
@@ -409,7 +436,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.Class(
                 cn(
-                  'text-[22px] font-semibold tracking-[-0.03em]',
+                  'text-[calc(22px*var(--type-scale))] font-semibold tracking-[-0.03em]',
                   passed ? 'text-ok' : 'text-danger',
                 ),
               ),
@@ -421,7 +448,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           histograms
             ? h.span(
-                [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+                [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
                 [`${histograms.players} players`],
               )
             : h.empty,

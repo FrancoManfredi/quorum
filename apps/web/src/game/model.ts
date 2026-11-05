@@ -211,6 +211,10 @@ export type RevealCue = typeof RevealCue.Type
 export const Motion = Schema.Literals(['system', 'reduce'])
 export type Motion = typeof Motion.Type
 
+/** Interface text: its own size, or 150% (15 "Accessibility"). The board's cards scale with its zoom. */
+export const TextSize = Schema.Literals(['normal', 'large'])
+export type TextSize = typeof TextSize.Type
+
 /** What the player's browser remembers apart from saves: settings, and the option sets confirmed once. */
 export const Prefs = Schema.Struct({
   locale: Locale.pipe(Schema.withDecodingDefaultKey(Effect.succeed('en' as const))),
@@ -219,6 +223,7 @@ export const Prefs = Schema.Struct({
   autoPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   blurPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   motion: Motion.pipe(Schema.withDecodingDefaultKey(Effect.succeed('system' as const))),
+  text: TextSize.pipe(Schema.withDecodingDefaultKey(Effect.succeed('normal' as const))),
   agentAccess: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Share anonymous usage data. Off stops capture and persists the choice. */
   analytics: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),

@@ -138,7 +138,7 @@ const stat = (
       h.span(
         [
           h.Class(
-            'w-[var(--hud-label-width,46px)] shrink-0 text-[11.5px] text-muted-foreground compact:hidden',
+            'w-[var(--hud-label-width,calc(46px*var(--type-scale)))] shrink-0 text-[calc(11.5px*var(--type-scale))] text-muted-foreground compact:hidden',
           ),
         ],
         [name],
@@ -149,7 +149,7 @@ const stat = (
           h.Class(
             cn(
               FIGURE,
-              'text-[13.5px] leading-none whitespace-nowrap',
+              'text-[calc(13.5px*var(--type-scale))] leading-none whitespace-nowrap',
               note || tone === 'plain' ? '' : toneText(tone),
             ),
           ),
@@ -162,7 +162,7 @@ const stat = (
               h.Class(
                 cn(
                   FIGURE,
-                  'ml-auto text-[10px] leading-none whitespace-nowrap compact:ml-0.5',
+                  'ml-auto text-[calc(10px*var(--type-scale))] leading-none whitespace-nowrap compact:ml-0.5',
                   tone === 'plain' ? 'text-muted-foreground' : toneText(tone),
                 ),
               ),
@@ -211,7 +211,7 @@ const insightHelp = (h: HtmlBuilder<Message>): Html =>
       h.div(
         [h.Class('flex items-center justify-between')],
         [
-          h.span([h.Class('text-[13px] font-semibold')], ['About Insight']),
+          h.span([h.Class('text-[calc(13px*var(--type-scale))] font-semibold')], ['About Insight']),
           h.button(
             [
               h.Type('button'),
@@ -233,7 +233,10 @@ const insightHelp = (h: HtmlBuilder<Message>): Html =>
             [h.Key(term), h.Class('flex flex-col gap-0.5')],
             [
               h.dt([h.Class(EYEBROW)], [term]),
-              h.dd([h.Class('text-[12px] leading-snug text-foreground/85')], [text]),
+              h.dd(
+                [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-foreground/85')],
+                [text],
+              ),
             ],
           ),
         ),
@@ -253,7 +256,12 @@ const poolRow = (
   h.div(
     [
       h.Key(pool),
-      h.Class(cn('flex items-center gap-2 text-[12px] leading-none', inStudy && 'font-semibold')),
+      h.Class(
+        cn(
+          'flex items-center gap-2 text-[calc(12px*var(--type-scale))] leading-none',
+          inStudy && 'font-semibold',
+        ),
+      ),
     ],
     [
       h.span(
@@ -267,7 +275,7 @@ const poolRow = (
           h.Class(
             cn(
               FIGURE,
-              'w-[52px] text-right text-[10.5px] font-normal',
+              'w-[52px] text-right text-[calc(10.5px*var(--type-scale))] font-normal',
               perSecond > 0 ? 'text-ok' : limiting ? 'text-danger' : 'text-muted-foreground',
             ),
           ),
@@ -314,7 +322,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
                 Message.PanelOpened({ panel: model.panel === 'research' ? 'none' : 'research' }),
               ),
               h.Class(
-                'flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[12px] hover:bg-foreground/5',
+                'flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left text-[calc(12px*var(--type-scale))] hover:bg-foreground/5',
               ),
             ],
             [
@@ -336,7 +344,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
                       h.Class(
                         cn(
                           FIGURE,
-                          'flex items-center gap-1 text-[10.5px]',
+                          'flex items-center gap-1 text-[calc(10.5px*var(--type-scale))]',
                           stall ? 'text-warn' : 'text-muted-foreground',
                         ),
                       ),
@@ -451,10 +459,18 @@ const funding = (model: Model, h: HtmlBuilder<Message>): Html => {
             icon(h, Menu, 'size-4'),
             h,
           ),
-          h.span([h.Class('text-[13px] font-semibold compact:shrink-0')], [era.name]),
+          h.span(
+            [h.Class('text-[calc(13px*var(--type-scale))] font-semibold compact:shrink-0')],
+            [era.name],
+          ),
           h.span(
             [
-              h.Class(cn(FIGURE, 'ml-auto text-[10.5px] text-muted-foreground compact:hidden')),
+              h.Class(
+                cn(
+                  FIGURE,
+                  'ml-auto text-[calc(10.5px*var(--type-scale))] text-muted-foreground compact:hidden',
+                ),
+              ),
               h.Title('Calendar: one second is one minute'),
             ],
             [
@@ -506,7 +522,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
     ],
     [
       h.div(
-        [h.Class('flex items-center gap-2 text-[12px]')],
+        [h.Class('flex items-center gap-2 text-[calc(12px*var(--type-scale))]')],
         [
           icon(h, Hammer, 'size-3.5 shrink-0 text-muted-foreground'),
           h.span(
@@ -527,7 +543,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
                   h.Class(
                     cn(
                       FIGURE,
-                      'text-[10.5px]',
+                      'text-[calc(10.5px*var(--type-scale))]',
                       late > 0 ? 'font-medium text-danger' : 'text-muted-foreground',
                     ),
                   ),
@@ -536,11 +552,19 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
               )
             : ready > 0
               ? h.span(
-                  [h.Class(cn(FIGURE, 'text-[10.5px] text-primary-strong'))],
+                  [
+                    h.Class(
+                      cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-primary-strong'),
+                    ),
+                  ],
                   [`${ready} to deploy`],
                 )
               : h.span(
-                  [h.Class(cn(FIGURE, 'text-[10.5px] text-muted-foreground'))],
+                  [
+                    h.Class(
+                      cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-muted-foreground'),
+                    ),
+                  ],
                   [`${rate < 10 ? rate.toFixed(1) : Math.round(rate)} DH/min`],
                 ),
         ],
@@ -635,8 +659,15 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   // On a phone the wrapper dissolves, so both cards stack with the rest of the top.
   return h.div(
     [
-      h.Class('absolute top-3 left-3 z-20 flex w-[248px] flex-col gap-2 compact:contents'),
-      h.Style({ '--hud-label-width': model.prefs.locale === 'fr' ? '64px' : '46px' }),
+      h.Class(
+        'absolute top-3 left-3 z-20 flex w-[calc(248px*var(--type-scale))] flex-col gap-2 compact:contents',
+      ),
+      h.Style({
+        '--hud-label-width':
+          model.prefs.locale === 'fr'
+            ? 'calc(64px*var(--type-scale))'
+            : 'calc(46px*var(--type-scale))',
+      }),
     ],
     [header, shown(model, 'research') ? insightCard(model, ledger, h) : h.empty],
   )
@@ -645,7 +676,10 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
 /** One line of the IPO checklist or the quarter: a mark, a name and its figure. */
 const line = (name: string, value: string, tone: Tone, h: HtmlBuilder<Message>, mark?: boolean) =>
   h.div(
-    [h.Key(name), h.Class('flex h-6 items-center gap-2 px-2.5 text-[11.5px]')],
+    [
+      h.Key(name),
+      h.Class('flex h-6 items-center gap-2 px-2.5 text-[calc(11.5px*var(--type-scale))]'),
+    ],
     [
       mark === undefined
         ? h.empty
@@ -656,7 +690,15 @@ const line = (name: string, value: string, tone: Tone, h: HtmlBuilder<Message>, 
           ),
       h.span([h.Class('text-muted-foreground')], [name]),
       h.span(
-        [h.Class(cn(FIGURE, 'ml-auto text-[10.5px] whitespace-nowrap', toneText(tone)))],
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'ml-auto text-[calc(10.5px*var(--type-scale))] whitespace-nowrap',
+              toneText(tone),
+            ),
+          ),
+        ],
         [value],
       ),
     ],
@@ -705,7 +747,10 @@ const guidance = (
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
-    [h.Key(label), h.Class('flex h-7 items-center gap-1 px-2.5 text-[11.5px]')],
+    [
+      h.Key(label),
+      h.Class('flex h-7 items-center gap-1 px-2.5 text-[calc(11.5px*var(--type-scale))]'),
+    ],
     [
       h.span([h.Class('mr-auto text-muted-foreground')], [label]),
       ...values.map((value, level) =>
@@ -719,7 +764,7 @@ const guidance = (
             h.Class(
               cn(
                 FIGURE,
-                'h-6 min-w-9 rounded-md px-1.5 text-[10.5px] disabled:opacity-35',
+                'h-6 min-w-9 rounded-md px-1.5 text-[calc(10.5px*var(--type-scale))] disabled:opacity-35',
                 level === chosen ? 'bg-foreground text-background' : 'hover:bg-foreground/5',
               ),
             ),
@@ -853,7 +898,7 @@ const exitButton = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.Class(
         cn(
           tool(model.panel === 'exit'),
-          'enter-pop flex w-auto gap-2 px-3 text-[13px] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
+          'enter-pop flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
         ),
       ),
     ],
@@ -867,7 +912,7 @@ const exitButton = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.Class(
                 cn(
                   FIGURE,
-                  'enter-badge absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-ok px-1 text-[9.5px] leading-none font-semibold text-white shadow-raised',
+                  'enter-badge absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-ok px-1 text-[calc(9.5px*var(--type-scale))] leading-none font-semibold text-white shadow-raised',
                 ),
               ),
             ],
@@ -941,7 +986,7 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
         (item === 'redo' && !redoAvailable(model.board)),
       itemToConfig: (item, { isActive, isDisabled }) => ({
         className: cn(
-          'flex h-10 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 text-[13px] outline-none',
+          'flex h-10 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 text-[calc(13px*var(--type-scale))] outline-none',
           isActive && 'bg-well',
           isDisabled && 'opacity-35',
           item === 'fullscreen' && 'narrow:hidden',
@@ -952,7 +997,10 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
             icon(h, MORE[item].glyph, 'size-[18px] text-muted-foreground'),
             h.span([h.Class('flex-1')], [MORE[item].label]),
             item === 'exit' && (legacy ?? 0) > 0
-              ? h.span([h.Class(cn(FIGURE, 'text-[11.5px] text-ok'))], [`+${legacy} Legacy`])
+              ? h.span(
+                  [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-ok'))],
+                  [`+${legacy} Legacy`],
+                )
               : h.empty,
           ],
         ),
@@ -992,7 +1040,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
                   tool(model.panel === 'research'),
                   'enter-pop',
                   glowing(model, 'research') && 'cue-glow',
-                  'flex w-auto gap-2 px-3 text-[13px] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
+                  'flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
                 ),
               ),
             ],
@@ -1007,7 +1055,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
                       h.Class(
                         cn(
                           FIGURE,
-                          'enter-badge absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-ok px-1 text-[9.5px] leading-none font-semibold text-white shadow-raised',
+                          'enter-badge absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-ok px-1 text-[calc(9.5px*var(--type-scale))] leading-none font-semibold text-white shadow-raised',
                         ),
                       ),
                     ],
@@ -1031,7 +1079,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
                   tool(model.panel === 'team'),
                   'enter-pop',
                   glowing(model, 'team') && 'cue-glow',
-                  'flex w-auto gap-2 px-3 text-[13px] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
+                  'flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
                 ),
               ),
             ],
@@ -1132,7 +1180,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             cn(
               tool(model.board.clock.speed > 1),
               FIGURE,
-              'text-[12.5px] font-medium compact:size-9',
+              'text-[calc(12.5px*var(--type-scale))] font-medium compact:size-9',
             ),
           ),
         ],
@@ -1152,7 +1200,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const pill = `flex max-w-[480px] compact:max-w-none items-center gap-2.5 rounded-xl bg-surface px-3 py-2 text-[12.5px] shadow-card`
+const pill = `flex max-w-[480px] compact:max-w-none items-center gap-2.5 rounded-xl bg-surface px-3 py-2 text-[calc(12.5px*var(--type-scale))] shadow-card`
 
 /** Settling while the Design settles, then what the change did, with Undo. */
 const undoButton = (danger: boolean, h: HtmlBuilder<Message>): Html =>
@@ -1210,12 +1258,15 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
             [],
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[11.5px]'))],
+            [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))]'))],
             [delta ? describeDelta(delta, has(model.board.game, 'percentiles')) : ''],
           ),
           model.board.stableTicks > 0
             ? h.span(
-                [h.Key('stable'), h.Class('enter-badge text-[11.5px] font-medium text-ok')],
+                [
+                  h.Key('stable'),
+                  h.Class('enter-badge text-[calc(11.5px*var(--type-scale))] font-medium text-ok'),
+                ],
                 ['Stable'],
               )
             : h.empty,
@@ -1265,7 +1316,7 @@ export const regionTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.Class(
             cn(
               FIGURE,
-              'h-7 rounded-lg px-2.5 text-[11.5px] font-medium',
+              'h-7 rounded-lg px-2.5 text-[calc(11.5px*var(--type-scale))] font-medium',
               model.board.region === region
                 ? 'bg-foreground text-background'
                 : isOpen
@@ -1300,7 +1351,7 @@ export const regionTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ),
                 h.Class(
                   cn(
-                    'ml-0.5 h-7 rounded-lg px-2.5 text-[11.5px] font-medium shadow-[inset_1px_0_0_var(--hairline-soft)] hover:bg-foreground/5',
+                    'ml-0.5 h-7 rounded-lg px-2.5 text-[calc(11.5px*var(--type-scale))] font-medium shadow-[inset_1px_0_0_var(--hairline-soft)] hover:bg-foreground/5',
                     model.panel === 'mirror' && 'bg-foreground/5',
                   ),
                 ),

@@ -21,7 +21,7 @@ import { shell } from './panels.ts'
 /** The button that applies a row's fix, or its advice as text. */
 const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
   if (fix._tag === 'advice')
-    return h.span([h.Class('text-[12px] leading-snug text-muted-foreground')], [fix.text])
+    return h.span([h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')], [fix.text])
   const shown = fix._tag === 'node' ? game.nodes.find((node) => node.id === fix.nodeId) : undefined
   const [label, message] =
     fix._tag === 'region'
@@ -70,12 +70,15 @@ const row = (
       ),
     ],
     [
-      h.span([h.Class('truncate text-[12.5px] font-medium')], [KINDS[entry.kind].label]),
+      h.span(
+        [h.Class('truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
+        [KINDS[entry.kind].label],
+      ),
       h.span(
         [
           h.Class(
             cn(
-              'text-[12px]',
+              'text-[calc(12px*var(--type-scale))]',
               entry.cause === 'slow' || entry.cause === 'far' ? 'text-warn' : 'text-danger',
             ),
           ),
@@ -99,7 +102,10 @@ const row = (
           ),
         ],
       ),
-      h.span([h.Class(cn(FIGURE, 'text-right text-[12px]'))], [entry.points.toFixed(3)]),
+      h.span(
+        [h.Class(cn(FIGURE, 'text-right text-[calc(12px*var(--type-scale))]'))],
+        [entry.points.toFixed(3)],
+      ),
       h.div([h.Class('compact:col-span-4')], fixed ? [fixOf(game, entry.fix, h)] : []),
     ],
   )
@@ -114,14 +120,20 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
       h.div(
         [h.Class('flex flex-wrap items-baseline gap-x-4 gap-y-1 px-3 pt-2 pb-1.5')],
         [
-          h.span([h.Class('text-[14px] font-semibold')], [REGION_INFO[region.region].name]),
-          h.span([h.Class(cn(FIGURE, 'text-[12.5px]'))], [`${compact(region.users)} users`]),
+          h.span(
+            [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
+            [REGION_INFO[region.region].name],
+          ),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(12.5px*var(--type-scale))]'))],
+            [`${compact(region.users)} users`],
+          ),
           h.span(
             [
               h.Class(
                 cn(
                   FIGURE,
-                  'text-[12.5px]',
+                  'text-[calc(12.5px*var(--type-scale))]',
                   toneText(region.now >= region.target ? 'ok' : 'danger'),
                 ),
               ),
@@ -129,11 +141,23 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
             [`Apdex ${region.now.toFixed(2)} / ${region.target.toFixed(2)}`],
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[12.5px]', toneText(falling ? 'danger' : 'ok')))],
+            [
+              h.Class(
+                cn(
+                  FIGURE,
+                  'text-[calc(12.5px*var(--type-scale))]',
+                  toneText(falling ? 'danger' : 'ok'),
+                ),
+              ),
+            ],
             [`${share >= 0 ? '+' : '−'}${Math.abs(share).toFixed(1)}%/h`],
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'ml-auto text-[12.5px] text-muted-foreground'))],
+            [
+              h.Class(
+                cn(FIGURE, 'ml-auto text-[calc(12.5px*var(--type-scale))] text-muted-foreground'),
+              ),
+            ],
             [`1 day: ${compact(region.inADay)}`],
           ),
         ],

@@ -4,7 +4,12 @@ import { place, setLinkPolicy, setRuntime, type Action } from './actions.ts'
 import {
   CALENDAR_DAY,
   DEADLINE_SURGE,
+  FLASH_SALE_SURGE,
   HOME_REGION,
+  KINDS,
+  LAUNCH_SURGE,
+  PREMIERE_SURGE,
+  PROFILES,
   VENTURES,
   VENTURE_IDS,
   type IncidentId,
@@ -12,8 +17,11 @@ import {
   type ResearchId,
   type VentureId,
 } from './catalog.ts'
-import { forceIncident, weaknessOf } from './director.ts'
+import { link, preseedGame } from './company.ts'
+import { forceIncident, directIncidents, weaknessOf } from './director.ts'
+import { mixOf } from './features.ts'
 import {
+  SIGNATURE_WEIGHT,
   SIGNATURE_WEAKNESS,
   earnsInTime,
   foundCompany,
@@ -26,8 +34,8 @@ import type { Founding, Game } from './state.ts'
 import { step } from './step.ts'
 
 /*
- * The four Ventures the design promises (13 "Ventures"): their start, the rule
- * that makes each hard, and the signature incident only it suffers.
+ * The Ventures the design names (13 "Ventures"): their start, the rule that
+ * makes each hard, and the signature incident only it suffers.
  */
 
 const founding = (over: Partial<Founding> = {}): Founding => ({
@@ -184,6 +192,13 @@ describe('the four Ventures', () => {
 
   test('each Venture has its own signature incident, and no other Company suffers it', () => {
     const signatures: ReadonlyArray<readonly [VentureId, IncidentId]> = [
+      ['b2b-saas', 'hot-shard'],
+      ['consumer-social', 'hot-key'],
+      ['fintech', 'double-charge'],
+      ['streaming', 'premiere-spike'],
+      ['game-backend', 'launch-day'],
+      ['ai-startup', 'gpu-shortage'],
+      ['e-commerce', 'flash-sale'],
       ['developer-platform', 'retry-storm'],
       ['healthcare', 'audit'],
       ['ad-tech', 'latency-regression'],
@@ -193,24 +208,147 @@ describe('the four Ventures', () => {
       const game = start(venture)
       expect([venture, signatureOf(game)]).toEqual([venture, kind])
       expect([venture, isSignature(game, kind)]).toEqual([venture, true])
-      expect(signatureWeight(game, kind)).toBeGreaterThan(1)
-      expect(signatureWeight(start('fintech'), kind)).toBe(1)
+      expect([venture, signatureWeight(game, kind)]).toEqual([venture, SIGNATURE_WEIGHT])
+      // Only its Venture weighs it four times: everyone else meets it as the incident it is.
+      for (const other of VENTURE_IDS.filter((id) => id !== venture)) {
+        const theirs = start(other)
+        expect([other, kind, signatureWeight(theirs, kind)]).toEqual([other, kind, 1])
+        expect([other, signatureOf(theirs)]).not.toEqual([other, kind])
+      }
     }
-    // The signature-only incidents never weigh for a Venture that is not theirs.
-    const plain = { ...start('b2b-saas'), stage: 3, users: 5_000 }
-    expect(weaknessOf(plain, solve(plain), 'latency-regression')).toBe(0)
-    expect(weaknessOf(plain, solve(plain), 'deadline-day')).toBe(0)
-    const ads = { ...start('ad-tech'), stage: 3, users: 5_000 }
-    expect(weaknessOf(ads, solve(ads), 'latency-regression')).toBeGreaterThanOrEqual(
-      SIGNATURE_WEAKNESS,
-    )
-    expect(weaknessOf(ads, solve(ads), 'deadline-day')).toBe(0)
-    const government = { ...start('government'), stage: 3, users: 5_000 }
-    expect(weaknessOf(government, solve(government), 'deadline-day')).toBeGreaterThanOrEqual(
-      SIGNATURE_WEAKNESS,
-    )
-    expect(weaknessOf(government, solve(government), 'latency-regression')).toBe(0)
+    // The Bootstrapped indie row names Runway, a figure rather than an incident: it has none.
+    expect(VENTURES.bootstrapped.signature).toBeNull()
     // A Sandbox founds no Venture: it has no signature.
     expect(isSignature({ ...start('ad-tech'), sandbox: true }, 'latency-regression')).toBe(false)
+  })
+
+  test('a signature-only incident weighs nothing for every other Venture', () => {
+    const others: ReadonlyArray<readonly [VentureId, IncidentId]> = [
+      ['b2b-saas', 'hot-shard'],
+      ['streaming', 'premiere-spike'],
+      ['game-backend', 'launch-day'],
+      ['e-commerce', 'flash-sale'],
+      ['ad-tech', 'latency-regression'],
+      ['government', 'deadline-day'],
+    ]
+    for (const [venture, kind] of others) {
+      const game = { ...start(venture), stage: 5, users: 5_000 }
+      expect([venture, kind, weaknessOf(game, solve(game), kind) >= SIGNATURE_WEAKNESS]).toEqual([
+        venture,
+        kind,
+        true,
+      ])
+      // Every other Venture's design never starts it, however weak that design is.
+      for (const [other] of others.filter(([id]) => id !== venture)) {
+        const stranger = { ...start(other), stage: 5, users: 5_000 }
+        expect([other, kind, weaknessOf(stranger, solve(stranger), kind)]).toEqual([other, kind, 0])
+      }
+    }
+  })
+
+  test("a Venture's signature surge lifts one kind and leaves the rest of the mix alone", () => {
+    const surges: ReadonlyArray<readonly [VentureId, IncidentId, RequestKind, number]> = [
+      ['streaming', 'premiere-spike', 'media', PREMIERE_SURGE],
+      ['game-backend', 'launch-day', 'rt', LAUNCH_SURGE],
+      ['e-commerce', 'flash-sale', 'buy', FLASH_SALE_SURGE],
+    ]
+    for (const [venture, kind, lifted, factor] of surges) {
+      const game = { ...start(venture), stage: 3, users: 2_000 }
+      const plain = demandOf(game)
+      const surged = forceIncident(game, solve(game), kind)
+      expect([venture, surged !== null]).toEqual([venture, true])
+      const busy = demandOf(surged as Game)
+      for (const request of Object.keys(plain) as Array<RequestKind>)
+        expect([venture, request, busy[request] ?? 0]).toEqual([
+          venture,
+          request,
+          (plain[request] ?? 0) * (request === lifted ? factor : 1),
+        ])
+    }
+  })
+
+  test('a big tenant hot shard costs its Database more CPU per query', () => {
+    const garage = start('b2b-saas')
+    const game: Game = {
+      ...garage,
+      stage: 4,
+      users: 1_500,
+      cash: 100_000,
+      nodes: garage.nodes.map((node) =>
+        node.type === 'server' ? { ...node, localDb: false } : node,
+      ),
+    }
+    const placed = ok(place(game, 'database', 0, 0))
+    const database = placed.nodes.find((node) => node.type === 'database')?.id ?? ''
+    const linked: Game = { ...placed, links: [...placed.links, link('server', database)] }
+    const plain = solve(linked)
+    expect(plain.nodes[database]?.inbound ?? 0).toBeGreaterThan(0)
+    const shard = forceIncident(linked, plain, 'hot-shard')
+    expect(shard).not.toBeNull()
+    expect(solve(shard as Game).nodes[database]?.utilization).toBeGreaterThan(
+      plain.nodes[database]?.utilization ?? 0,
+    )
+  })
+
+  test("Ad tech serves the bid kind at the design's value, target and volume", () => {
+    // 13 "Ventures": value $0.001, Apdex T 100 ms, 10× volume.
+    expect(KINDS.bid.value).toBe(0.001)
+    expect(PROFILES.bid.apdex).toBe(100)
+    const base: Game = {
+      ...preseedGame(5),
+      stage: 3,
+      users: 150,
+      founding: founding({ venture: 'ad-tech' }),
+    }
+    const plain: Game = { ...base, founding: founding({ venture: 'b2b-saas' }) }
+    const share = (game: Game): number => mixOf(game).bid ?? 0
+    expect(share(base)).toBeGreaterThan(0)
+    // Ten times the volume of the same kind for the default Venture at the same Era.
+    expect(share(base) / share(plain)).toBeGreaterThan(8)
+    // The bid kind is in every Era mix from Series A: Ad tech simply serves it ten times as often.
+    const ledger = solveFlow(base)
+    expect(ledger.kinds.bid?.rate ?? 0).toBeGreaterThan(0)
+    expect(ledger.revenue).toBeGreaterThan(0)
+    // The design's deadline is the bid kind's own target: a bid at 101 ms earns nothing.
+    expect(earnsInTime(base, PROFILES.bid.apdex)).toBe(true)
+    expect(earnsInTime(base, 101)).toBe(false)
+  })
+
+  test('the director starts a signature only for its own Venture', () => {
+    /** The incidents the director picks over `rolls` tries, each on the same intact board. */
+    const started = (game: Game, rolls: number): ReadonlyArray<IncidentId> => {
+      const ledger = solve(game)
+      let seed = game.seed
+      const kinds: Array<IncidentId> = []
+      for (let index = 0; index < rolls; index += 1) {
+        const result = directIncidents(
+          { ...game, seed, incident: null, nextIncidentAt: 0, lastIncident: null },
+          ledger,
+        )
+        for (const event of result.events)
+          if (event._tag === 'IncidentStarted') kinds.push(event.incident.kind)
+        seed = result.game.seed
+      }
+      return kinds
+    }
+    const owners: ReadonlyArray<readonly [VentureId, IncidentId]> = [
+      ['b2b-saas', 'hot-shard'],
+      ['streaming', 'premiere-spike'],
+      ['game-backend', 'launch-day'],
+      ['e-commerce', 'flash-sale'],
+    ]
+    for (const [venture, kind] of owners) {
+      const board: Game = {
+        ...preseedGame(9),
+        stage: 4,
+        users: 4_000,
+        founding: founding({ venture }),
+      }
+      expect([venture, started(board, 300).includes(kind)]).toEqual([venture, true])
+      for (const [other] of owners.filter(([id]) => id !== venture)) {
+        const stranger: Game = { ...board, founding: founding({ venture: other }) }
+        expect([other, kind, started(stranger, 300).includes(kind)]).toEqual([other, kind, false])
+      }
+    }
   })
 })

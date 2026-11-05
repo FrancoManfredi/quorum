@@ -48,9 +48,16 @@ const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Mess
       h.span(
         [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
         [
-          h.span([h.Class('text-[13px] leading-none font-medium')], [def.name]),
           h.span(
-            [h.Class('truncate text-[11.5px] leading-tight text-muted-foreground')],
+            [h.Class('text-[calc(13px*var(--type-scale))] leading-none font-medium')],
+            [def.name],
+          ),
+          h.span(
+            [
+              h.Class(
+                'truncate text-[calc(11.5px*var(--type-scale))] leading-tight text-muted-foreground',
+              ),
+            ],
             [def.blurb],
           ),
         ],
@@ -59,13 +66,21 @@ const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Mess
         ? h.span(
             [
               h.Class(
-                cn(FIGURE, 'text-[12.5px]', model.board.game.cash >= price ? '' : 'text-danger'),
+                cn(
+                  FIGURE,
+                  'text-[calc(12.5px*var(--type-scale))]',
+                  model.board.game.cash >= price ? '' : 'text-danger',
+                ),
               ),
             ],
             [model.board.game.sandbox ? '' : money(price)],
           )
         : h.span(
-            [h.Class('flex items-center gap-1 text-[11px] text-muted-foreground')],
+            [
+              h.Class(
+                'flex items-center gap-1 text-[calc(11px*var(--type-scale))] text-muted-foreground',
+              ),
+            ],
             [icon(h, Lock, 'size-3'), RESEARCH[def.unlock ?? 'stripe'].name],
           ),
       Kbd({}, [String(index + 1)], h),
@@ -80,7 +95,9 @@ const armed = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
       h.Key('armed'),
       h.DataAttribute('exit', 'gesture'),
       h.DataAttribute('exit-anchor', 'bottom'),
-      h.Class('swap flex items-center gap-2 pr-1 pb-1.5 pl-2 text-[12.5px] whitespace-nowrap'),
+      h.Class(
+        'swap flex items-center gap-2 pr-1 pb-1.5 pl-2 text-[calc(12.5px*var(--type-scale))] whitespace-nowrap',
+      ),
     ],
     [
       groupBadge(COMPONENTS[type].group, COMPONENT_ICONS[type], 'size-5', h),

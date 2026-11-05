@@ -11,7 +11,7 @@ import { regionView } from '@quorum/simulation/regions'
 import { ComponentId, Game, Region } from '@quorum/simulation/state'
 import { Message } from './message.ts'
 import { Founder } from '@quorum/simulation/founder'
-import { Motion, Prefs, Reveal, SandboxStore, TradeoffOption } from './model.ts'
+import { Motion, Prefs, Reveal, SandboxStore, TextSize, TradeoffOption } from './model.ts'
 import { refreshed, SaveIndex } from './saves.ts'
 import { History } from './history.ts'
 import { play, setMuted, SOUND_NAMES } from './sound.ts'
@@ -355,7 +355,31 @@ export const WritePrefs = Command.define('WritePrefs', {
     }),
 })
 
-/** Applies the settings: mute for every sound, reduced motion on the root, and analytics consent. */
+/** What Settings apply to the page: mute, motion, language, agent access, and text size. */
+export type Settings = Readonly<{
+  muted: boolean
+  motion: Motion
+  locale: Locale
+  agentAccess: boolean
+  text: TextSize
+  analytics: boolean
+}>
+
+/** Applies the settings to a root element. Pure DOM, so the Settings test reads it back. */
+export const applySettings = (root: HTMLElement, settings: Settings): void => {
+  setMuted(settings.muted)
+  setAgentAccess(settings.agentAccess)
+  setAnalyticsEnabled(settings.analytics)
+  setSentryConsent(settings.analytics)
+  root.lang = settings.locale
+  if (settings.motion === 'reduce') root.dataset['motion'] = 'reduce'
+  else delete root.dataset['motion']
+  // 150% text is a scale on the type, not on the boxes: styles.css reads `data-text`.
+  if (settings.text === 'large') root.dataset['text'] = '150'
+  else delete root.dataset['text']
+}
+
+/** Applies the settings: mute for every sound, reduced motion as `data-motion`, and text as `data-text`. */
 export const ApplySettings = Command.define('ApplySettings', {
   args: {
     muted: Schema.Boolean,
@@ -363,17 +387,12 @@ export const ApplySettings = Command.define('ApplySettings', {
     locale: Locale,
     agentAccess: Schema.Boolean,
     analytics: Schema.Boolean,
+    text: TextSize,
   },
   messages: [Message.Synced],
-  execute: ({ muted, motion, locale, agentAccess, analytics }) =>
+  execute: (settings) =>
     Effect.sync(() => {
-      setMuted(muted)
-      setAgentAccess(agentAccess)
-      setAnalyticsEnabled(analytics)
-      setSentryConsent(analytics)
-      document.documentElement.lang = locale
-      if (motion === 'reduce') document.documentElement.dataset.motion = 'reduce'
-      else delete document.documentElement.dataset.motion
+      applySettings(document.documentElement, settings)
       return Message.Synced()
     }),
 })

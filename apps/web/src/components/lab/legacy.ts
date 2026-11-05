@@ -23,7 +23,10 @@ import { shell } from './panels.ts'
 const stat = (name: string, value: string, h: HtmlBuilder<Message>) =>
   h.div(
     [h.Key(name), h.Class('flex flex-col gap-1 px-4 py-3')],
-    [h.span([h.Class(EYEBROW)], [name]), h.span([h.Class(cn(FIGURE, 'text-[18px]'))], [value])],
+    [
+      h.span([h.Class(EYEBROW)], [name]),
+      h.span([h.Class(cn(FIGURE, 'text-[calc(18px*var(--type-scale))]'))], [value]),
+    ],
   )
 
 const stats = (columns: string, children: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
@@ -63,9 +66,19 @@ export const exitPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   h.div(
                     [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
                     [
-                      h.span([h.Class('text-[14px] font-semibold')], [EXITS[offer.id].name]),
                       h.span(
-                        [h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))],
+                        [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
+                        [EXITS[offer.id].name],
+                      ),
+                      h.span(
+                        [
+                          h.Class(
+                            cn(
+                              FIGURE,
+                              'text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                            ),
+                          ),
+                        ],
                         [`${money(offer.payout)} payout · ×${offer.multiplier.toFixed(1)}`],
                       ),
                     ],
@@ -161,7 +174,11 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             'h-[180px] w-full max-w-[520px] rounded-xl bg-well shadow-well p-2',
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[30px] font-semibold tracking-[-0.035em]'))],
+            [
+              h.Class(
+                cn(FIGURE, 'text-[calc(30px*var(--type-scale))] font-semibold tracking-[-0.035em]'),
+              ),
+            ],
             [`+${row.legacy} Legacy`],
           ),
           stats(
@@ -240,14 +257,14 @@ export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             h,
           ),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[12.5px] text-muted-foreground'))],
+            [h.Class(cn(FIGURE, 'text-[calc(12.5px*var(--type-scale))] text-muted-foreground'))],
             [
               `Peak ${Math.round(away.peak * 100)}% load${away.peakNode ? ` on ${away.peakNode}` : ''} at ${String(away.peakHour).padStart(2, '0')}:00${capped ? ` · capped at ${Math.round(away.seconds / 3_600)} h` : ''}`,
             ],
           ),
           away.lost
             ? h.span(
-                [h.Class('text-[12.5px] text-warn')],
+                [h.Class('text-[calc(12.5px*var(--type-scale))] text-warn')],
                 ['Users left at peak. Add capacity before you go.'],
               )
             : h.empty,
@@ -270,7 +287,7 @@ export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html =>
           [
             h.Key('selection'),
             h.Class(
-              'pointer-events-auto enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface py-1.5 pr-1.5 pl-3.5 text-[12.5px] shadow-card',
+              'pointer-events-auto enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface py-1.5 pr-1.5 pl-3.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
             ),
           ],
           [
@@ -309,7 +326,7 @@ export const sellBar = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key('sell'),
       h.Class(
-        'pointer-events-auto enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface py-1.5 pr-1.5 pl-3.5 text-[12.5px] shadow-card',
+        'pointer-events-auto enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface py-1.5 pr-1.5 pl-3.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
       ),
     ],
     [
@@ -337,7 +354,7 @@ export const stampBar = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.Key('stamp'),
           h.Class(
-            'enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface px-3.5 text-[12.5px] shadow-card',
+            'enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface px-3.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
           ),
         ],
         [icon(h, Stamp, 'size-3.5 text-primary-strong'), `Click to place ${playbook.name} · Esc`],
@@ -351,7 +368,7 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     'Playbooks',
     [
       h.span(
-        [h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
+        [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
         [`${founder.playbooks.length}/${playbookSlots(founder)}`],
       ),
       button(
@@ -366,7 +383,10 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         founder.playbooks.length === 0
           ? [
               h.span(
-                [h.Key('empty'), h.Class('text-[12.5px] text-muted-foreground')],
+                [
+                  h.Key('empty'),
+                  h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground'),
+                ],
                 ['Shift-click or shift-drag Nodes, then Save Playbook.'],
               ),
             ]
@@ -375,11 +395,19 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 [h.Key(`p${index}`), h.Class(cn(NESTED, 'flex items-center gap-2 px-3 py-2'))],
                 [
                   h.span(
-                    [h.Class('min-w-0 flex-1 truncate text-[13px] font-medium')],
+                    [
+                      h.Class(
+                        'min-w-0 flex-1 truncate text-[calc(13px*var(--type-scale))] font-medium',
+                      ),
+                    ],
                     [playbook.name],
                   ),
                   h.span(
-                    [h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))],
+                    [
+                      h.Class(
+                        cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'),
+                      ),
+                    ],
                     [`${playbook.nodes.length} Nodes`],
                   ),
                   button(

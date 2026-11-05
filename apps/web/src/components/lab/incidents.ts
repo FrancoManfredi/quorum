@@ -53,7 +53,7 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.DataAttribute('morph', 'notice'),
               h.DataAttribute('exit', 'notice'),
               h.Class(
-                'enter-down flex items-center gap-2.5 rounded-xl bg-danger px-3.5 py-2 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
+                'enter-down flex items-center gap-2.5 rounded-xl bg-danger px-3.5 py-2 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
               ),
             ],
             [
@@ -74,7 +74,12 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
         h.div(
           [
             h.Key(`ignored-${rule}`),
-            h.Class(cn('flex items-center gap-2 py-1 pr-1 pl-3 text-[12.5px]', PANEL)),
+            h.Class(
+              cn(
+                'flex items-center gap-2 py-1 pr-1 pl-3 text-[calc(12.5px*var(--type-scale))]',
+                PANEL,
+              ),
+            ),
           ],
           [
             icon(h, BellOff, 'size-3.5 text-muted-foreground'),
@@ -92,7 +97,7 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
                     h.Class(
                       cn(
                         FIGURE,
-                        'h-6 rounded-md px-2 text-[11.5px]',
+                        'h-6 rounded-md px-2 text-[calc(11.5px*var(--type-scale))]',
                         threshold === game.alertRules[rule]
                           ? 'bg-raised text-foreground shadow-raised'
                           : 'text-muted-foreground hover:text-foreground',
@@ -119,7 +124,7 @@ export const badDeploy = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key('bad-deploy'),
       h.Class(
-        'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
+        'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
       ),
     ],
     [
@@ -157,7 +162,7 @@ export const expiredCertificate = (model: Model, h: HtmlBuilder<Message>): Html 
     [
       h.Key(kind),
       h.Class(
-        'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[13px] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
+        'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
       ),
     ],
     [
@@ -249,7 +254,14 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
             [`SEV${postmortem.severity}`],
             h,
           ),
-          h.span([h.Class('min-w-0 flex-1 truncate text-[12.5px] font-semibold')], [def.name]),
+          h.span(
+            [
+              h.Class(
+                'min-w-0 flex-1 truncate text-[calc(12.5px*var(--type-scale))] font-semibold',
+              ),
+            ],
+            [def.name],
+          ),
           actionButtons(game, postmortem, h),
         ],
       ),
@@ -257,7 +269,7 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
         [h.Class('flex flex-col gap-2.5 px-3 pt-1 pb-3')],
         [
           h.p(
-            [h.Class('text-[12px] leading-snug text-muted-foreground')],
+            [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
             [postmortem.target ? `${postmortem.target}: ${def.cause}` : def.cause],
           ),
           h.div(
@@ -276,12 +288,12 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
                     [h.Class(cn(EYEBROW, 'flex items-center gap-1'))],
                     [icon(h, glyph, 'size-3 shrink-0'), name],
                   ),
-                  h.span([h.Class(`${FIGURE} text-[12.5px]`)], [value]),
+                  h.span([h.Class(`${FIGURE} text-[calc(12.5px*var(--type-scale))]`)], [value]),
                 ],
               ),
             ),
           ),
-          h.p([h.Class('text-[12px] leading-snug')], [def.prevention]),
+          h.p([h.Class('text-[calc(12px*var(--type-scale))] leading-snug')], [def.prevention]),
         ],
       ),
     ],

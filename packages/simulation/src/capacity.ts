@@ -25,6 +25,7 @@ import {
   ROWS_PER_USER,
   UNINDEXED_MS_PER_ROW,
   REPORT_SURGE,
+  HOT_SHARD_CPU,
   STORM_SLOWDOWN,
   STORM_TRIGGER,
   RT_HOLD_SECONDS,
@@ -631,12 +632,15 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
       retention.rebuild) /
     warmth
   const evicted = scans > 0 ? scanEviction(scans * scanCpu, cores) : 0
+  // A big tenant's key lands on one shard: every read and write that shard answers costs more
+  // CPU, while the Cache and the other shards serve theirs as usual (13 "Ventures").
+  const shard = incident?.kind === 'hot-shard' && incident.nodeId === node.id ? HOT_SHARD_CPU : 1
   const readCpu =
-    evicted > 0
+    (evicted > 0
       ? ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1 + 0.5 * evicted)) / warmth
-      : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth
+      : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth) * shard
   const writeCpu =
-    ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) * (1 + 0.5 * evicted)
+    ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) * (1 + 0.5 * evicted) * shard
   // Postgres full-text search and files stored as rows: both work, both badly at volume. MySQL's
   // full-text search is the weaker of the two engines, so it costs it more CPU (07 "Variants").
   const searchCpu =

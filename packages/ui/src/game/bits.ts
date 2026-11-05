@@ -13,7 +13,7 @@ import { POOL_ICONS, poolColor, poolName } from './pools.ts'
    ========================================================================== */
 
 export const EYEBROW =
-  'font-mono text-[10.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground'
+  'font-mono text-[calc(10.5px*var(--type-scale))] font-medium uppercase tracking-[0.08em] text-muted-foreground'
 export const SCROLL = 'overflow-auto [scrollbar-width:thin]'
 /** A panel resting on the board. */
 export const PANEL = 'rounded-2xl bg-surface shadow-card'
@@ -199,7 +199,10 @@ export const figure = <M>(
       h.span(
         [
           h.Class(
-            cn(FIGURE, 'flex items-baseline gap-1.5 text-[15px] leading-none whitespace-nowrap'),
+            cn(
+              FIGURE,
+              'flex items-baseline gap-1.5 text-[calc(15px*var(--type-scale))] leading-none whitespace-nowrap',
+            ),
           ),
         ],
         [
@@ -209,7 +212,7 @@ export const figure = <M>(
                 [
                   h.Class(
                     cn(
-                      'text-[10.5px]',
+                      'text-[calc(10.5px*var(--type-scale))]',
                       noteTone === 'plain' ? 'text-muted-foreground' : toneText(noteTone),
                     ),
                   ),
@@ -227,8 +230,15 @@ export const row = <M>(name: string, value: string, tone: Tone, h: HtmlBuilder<M
   h.div(
     [h.Key(name), h.Class('flex items-baseline justify-between gap-3 px-3 py-1.5')],
     [
-      h.span([h.Class('text-[12.5px] text-muted-foreground')], [name]),
-      h.span([h.Class(cn(FIGURE, 'text-[12px] whitespace-nowrap', toneText(tone)))], [value]),
+      h.span([h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')], [name]),
+      h.span(
+        [
+          h.Class(
+            cn(FIGURE, 'text-[calc(12px*var(--type-scale))] whitespace-nowrap', toneText(tone)),
+          ),
+        ],
+        [value],
+      ),
     ],
   )
 

@@ -28,6 +28,10 @@
 :root {
   --radius: 10px;
 
+  /* Interface text at its own size, or 150% (15 "Accessibility"). Every text size in the
+     interface multiplies its px value by this, so type grows and boxes keep their size. */
+  --type-scale: 1;
+
   --sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
   --heading: var(--sans);
   --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -303,7 +307,7 @@
   body {
     color: var(--foreground);
     font-family: var(--sans);
-    font-size: 13px;
+    font-size: calc(13px * var(--type-scale));
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }

@@ -45,24 +45,25 @@ updates queues, and accrues money. The UI reads the Ledger four times a second.
 A **Request kind** is a class of work that Users send. Each kind has a value, a cost profile, and a
 patience target. Kinds arrive by Era ([Progression](/design/10-progression#eras)).
 
-| Kind       | Code     | Era      | Value ($) | App CPU (ref ms) | Downstream calls                              | Payload   | Apdex T  | Traits                                            |
-| ---------- | -------- | -------- | --------- | ---------------- | --------------------------------------------- | --------- | -------- | ------------------------------------------------- |
-| Page view  | `page`   | Garage   | 0.10      | 4                | 2 × `q-read`                                  | 80 KB     | 400 ms   | Cacheable at the edge for anonymous users (70%)   |
-| API read   | `read`   | Garage   | 0.20      | 1.5              | 1 × `q-read`                                  | 4 KB      | 200 ms   | Cacheable                                         |
-| API write  | `write`  | Pre-seed | 0.50      | 2                | 1 × `q-write`                                 | 2 KB      | 300 ms   | Invalidates cached reads; needs read-your-writes  |
-| Login      | `login`  | Pre-seed | 0.25      | 80               | 1 × `q-read`                                  | 1 KB      | 800 ms   | CPU-heavy (password hash); bot target             |
-| Search     | `search` | Seed     | 0.60      | 3                | 1 × `q-search`                                | 8 KB      | 300 ms   | Fan-out inside the search engine                  |
-| Upload     | `upload` | Seed     | 0.75      | 120              | 1 × `blob-put`, 1 × `q-write`                 | 2 MB in   | 1,500 ms | CPU-heavy (image resize); can go async            |
-| Bot        | `bot`    | Seed     | 0         | 2                | 1 × `q-read`                                  | 4 KB      | —        | Earns nothing; WAF target                         |
-| Video      | `media`  | Series A | 1.00      | 1                | 1 × `blob-get`                                | 5 MB      | 1,000 ms | Egress-heavy; CDN-cacheable                       |
-| Realtime   | `rt`     | Series A | 0.025     | 0.3              | 1 × `ws` (connection)                         | 1 KB      | 100 ms   | Holds a long-lived connection                     |
-| Checkout   | `buy`    | Series A | 25.00     | 5                | 1 × `q-read` (cart), 1 × `q-tx`, 1 × `charge` | 2 KB      | 2,000 ms | Needs strong consistency and idempotency          |
-| Export job | `job`    | Series B | 1.60      | 400              | 50 × `q-read`                                 | 10 MB out | 1,000 ms | Long-running; should go through a queue           |
-| Report     | `report` | Series B | 2.00      | 20               | 1 × `q-scan`                                  | 50 KB     | 3,000 ms | Analytical scan; harms the transactional database |
-| AI prompt  | `ai`     | Series B | 4.00      | 5                | 1 × `infer`                                   | 4 KB      | 4,000 ms | GPU-bound; streams tokens                         |
-| Feed       | `feed`   | Series C | 0.30      | 6                | 20 × `q-read` (pull) or 1 × cache read (push) | 30 KB     | 300 ms   | Fan-out; celebrity accounts create hot keys       |
-| Webhook    | `hook`   | Series C | 0.40      | 2                | 1 × `callout` (customer endpoint)             | 2 KB      | 1,000 ms | Bursty; the far end is slow and unreliable        |
-| Notify     | `push`   | Series C | 0.05      | 0.5              | 1 × `notify` (push provider)                  | 1 KB      | 1,000 ms | Fan-out on write                                  |
+| Kind        | Code     | Era      | Value ($) | App CPU (ref ms) | Downstream calls                              | Payload   | Apdex T  | Traits                                                                                                |
+| ----------- | -------- | -------- | --------- | ---------------- | --------------------------------------------- | --------- | -------- | ----------------------------------------------------------------------------------------------------- |
+| Page view   | `page`   | Garage   | 0.10      | 4                | 2 × `q-read`                                  | 80 KB     | 400 ms   | Cacheable at the edge for anonymous users (70%)                                                       |
+| API read    | `read`   | Garage   | 0.20      | 1.5              | 1 × `q-read`                                  | 4 KB      | 200 ms   | Cacheable                                                                                             |
+| API write   | `write`  | Pre-seed | 0.50      | 2                | 1 × `q-write`                                 | 2 KB      | 300 ms   | Invalidates cached reads; needs read-your-writes                                                      |
+| Login       | `login`  | Pre-seed | 0.25      | 80               | 1 × `q-read`                                  | 1 KB      | 800 ms   | CPU-heavy (password hash); bot target                                                                 |
+| Search      | `search` | Seed     | 0.60      | 3                | 1 × `q-search`                                | 8 KB      | 300 ms   | Fan-out inside the search engine                                                                      |
+| Upload      | `upload` | Seed     | 0.75      | 120              | 1 × `blob-put`, 1 × `q-write`                 | 2 MB in   | 1,500 ms | CPU-heavy (image resize); can go async                                                                |
+| Bot         | `bot`    | Seed     | 0         | 2                | 1 × `q-read`                                  | 4 KB      | —        | Earns nothing; WAF target                                                                             |
+| Video       | `media`  | Series A | 1.00      | 1                | 1 × `blob-get`                                | 5 MB      | 1,000 ms | Egress-heavy; CDN-cacheable                                                                           |
+| Realtime    | `rt`     | Series A | 0.025     | 0.3              | 1 × `ws` (connection)                         | 1 KB      | 100 ms   | Holds a long-lived connection                                                                         |
+| Checkout    | `buy`    | Series A | 25.00     | 5                | 1 × `q-read` (cart), 1 × `q-tx`, 1 × `charge` | 2 KB      | 2,000 ms | Needs strong consistency and idempotency                                                              |
+| Export job  | `job`    | Series B | 1.60      | 400              | 50 × `q-read`                                 | 10 MB out | 1,000 ms | Long-running; should go through a queue                                                               |
+| Report      | `report` | Series B | 2.00      | 20               | 1 × `q-scan`                                  | 50 KB     | 3,000 ms | Analytical scan; harms the transactional database                                                     |
+| AI prompt   | `ai`     | Series B | 4.00      | 5                | 1 × `infer`                                   | 4 KB      | 4,000 ms | GPU-bound; streams tokens                                                                             |
+| Feed        | `feed`   | Series C | 0.30      | 6                | 20 × `q-read` (pull) or 1 × cache read (push) | 30 KB     | 300 ms   | Fan-out; celebrity accounts create hot keys                                                           |
+| Webhook     | `hook`   | Series C | 0.40      | 2                | 1 × `callout` (customer endpoint)             | 2 KB      | 1,000 ms | Bursty; the far end is slow and unreliable                                                            |
+| Notify      | `push`   | Series C | 0.05      | 0.5              | 1 × `notify` (push provider)                  | 1 KB      | 1,000 ms | Fan-out on write                                                                                      |
+| Bid request | `bid`    | Series A | 0.001     | 0.5              | 1 × `q-read` (campaign)                       | 1 KB      | 100 ms   | Must answer inside its deadline; Ad tech serves 10× ([Exit and Legacy](/design/13-prestige#ventures)) |
 
 "App CPU (ref ms)" is CPU time on a runtime with speed 1.0 (Go). Each runtime divides it by its
 speed factor ([Runtimes](/design/06-runtimes#language-profiles)). Values are game dollars and are

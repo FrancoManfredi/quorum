@@ -721,6 +721,7 @@ export const fr: Readonly<Record<string, string>> = {
   'Mute sound (M)': 'Couper le son (M)',
   'Pause on SEV1 and SEV2': 'Mettre en pause lors des incidents SEV1 et SEV2',
   'Reduce motion': 'Réduire les animations',
+  'Text at 150%': 'Texte à 150 %',
   'Agent access': 'Accès des agents',
   Language: 'Langue',
   'Copy state as JSON': 'Copier l’état au format JSON',
@@ -1629,8 +1630,8 @@ export const fr: Readonly<Record<string, string>> = {
     "Recherche, téléchargements et robots. Files d'attente, processus, un CDN et un WAF.",
   'What happens when a whole zone fails?':
     "Que se passe-t-il lorsqu'une zone entière tombe en panne ?",
-  'Video, chat and checkout. Zones, autoscaling and an error budget.':
-    "Vidéo, chat et paiement. Zones, mise à l'échelle automatique et budget d'erreur.",
+  'Video, chat, checkout and bids. Zones, autoscaling and an error budget.':
+    "Vidéo, chat, paiement et enchères. Zones, mise à l'échelle automatique et budget d'erreur.",
   'What happens when analytics and AI share a database built for checkouts?':
     "Que se passe-t-il lorsque l'analyse et l'IA partagent une base de données conçue pour les caisses ?",
   'Exports, reports and AI prompts. Warehouses, GPUs, retries and breakers.':
@@ -1708,8 +1709,14 @@ export const fr: Readonly<Record<string, string>> = {
   'Load balancing algorithms': "Algorithmes d'équilibrage de charge",
   'Least connections and power of two choices.': 'Moins de connexions et puissance de deux choix.',
   'Continuous delivery': 'Livraison continue',
-  'A pipeline deploys in 5 minutes, not 30, and can roll a bad deploy back.':
-    'Un pipeline se déploie en 5 minutes, et non en 30, et peut annuler un mauvais déploiement.',
+  'A pipeline deploys in 5 minutes, not 30, and can roll a bad deploy back. Recreate and Rolling come with it.':
+    'Un pipeline se déploie en 5 minutes, et non en 30, et peut annuler un mauvais déploiement. Recreate et Rolling sont inclus.',
+  'Blue-green deploys': 'Déploiements bleu-vert',
+  'Blue-green: the new version comes up beside the old one, so a bad deploy breaks 10% of requests.':
+    "Bleu-vert : la nouvelle version démarre à côté de l'ancienne, si bien qu'un mauvais déploiement casse 10 % des requêtes.",
+  'Canary deploys': 'Déploiements canari',
+  'Canary: 5% of traffic meets the new version first. The smallest blast radius, the slowest deploy.':
+    'Canari : 5 % du trafic rencontre la nouvelle version en premier. Le plus petit rayon d’impact, le déploiement le plus lent.',
   'Code review': 'Revue de code',
   'Shows the hidden costs of a Feature before it ships. Bad deploys −20%.':
     'Affiche les coûts cachés d’une fonctionnalité avant sa mise en production. Déploiements défectueux −20%.',
@@ -1901,8 +1908,8 @@ export const fr: Readonly<Record<string, string>> = {
   'Business hours; writes +50%; data stays in the home region from Series A':
     "Heures d'ouverture ; écritures +50 % ; les données restent dans la région d'origine à partir de la série A",
   'Ad tech': 'Publicité en ligne',
-  'Flat and enormous; page ×1.5, reads ×2; a request over 100 ms earns nothing':
-    'Demande stable et énorme ; pages ×1,5, lectures ×2 ; une requête de plus de 100 ms ne rapporte rien',
+  'Flat and enormous; bids ×10; a request over 100 ms earns nothing':
+    'Demande stable et énorme ; enchères ×10 ; une requête de plus de 100 ms ne rapporte rien',
   'Government contract': 'Marché public',
   'Business hours, deadline spikes; Java or C# only; a placement takes a day':
     "Heures d'ouverture, pics d'échéance ; Java ou C# uniquement ; un placement prend un jour",
@@ -2459,6 +2466,26 @@ export const fr: Readonly<Record<string, string>> = {
     "Un changement d'itinéraire a retiré l'entreprise d'Internet. Aucune région n'était accessible.",
   'Review routing changes. Roll back to end it.':
     'Examinez les modifications d’itinéraire. Revenez en arrière pour y mettre fin.',
+  'Big tenant hot shard': 'Partition chaude d’un gros client',
+  "The biggest tenant's key landed on one shard. Its reads and writes cost 3× the CPU, and everything else on that shard waits behind it.":
+    'La clé du plus gros client est tombée sur une seule partition. Ses lectures et écritures coûtent 3× plus de CPU, et tout le reste de cette partition attend derrière.',
+  'Shard the tenant by key, and keep its reads in a Cache in front of the Database.':
+    'Partitionnez le client par clé et gardez ses lectures dans un Cache devant la base de données.',
+  'Premiere spike': 'Pic de première',
+  'A premiere dropped: 4× the usual video demand, all in the same minute.':
+    'Une première a été diffusée : 4× la demande vidéo habituelle, dans la même minute.',
+  'Tiered caching at the CDN, reserved capacity, and load shedding.':
+    'Cache hiérarchisé au CDN, capacité réservée et délestage.',
+  'Launch day': 'Jour de lancement',
+  'The game launched: 6× the usual realtime messages, and every client connects at once.':
+    'Le jeu est sorti : 6× les messages temps réel habituels, et chaque client se connecte en même temps.',
+  'Realtime Hubs sized for the peak, reconnect jitter, and load shedding.':
+    'Des Realtime Hubs dimensionnés pour la pointe, une gigue de reconnexion et du délestage.',
+  'Flash sale': 'Vente flash',
+  'A flash sale: 20× the usual checkouts for a few minutes.':
+    'Une vente flash : 20× les paiements habituels pendant quelques minutes.',
+  'A Queue for the checkout work, an Autoscaler, and load shedding.':
+    'Une file pour le travail de paiement, un autoscaler et du délestage.',
   'A SOC 2 auditor found a gap. The DR drill no longer counts.':
     'Un auditeur SOC 2 a trouvé une lacune. L’exercice DR ne compte plus.',
   'A Security team fixes findings before they reset anything.':
@@ -2486,6 +2513,7 @@ export const fr: Readonly<Record<string, string>> = {
   'API write': 'Écriture API',
   Video: 'Vidéo',
   'AI prompt': 'Requête IA',
+  'Bid request': 'Requête d’enchère',
   'Read query': 'Requête de lecture',
   'Write query': 'Requête d’écriture',
   'Auth call': 'Appel d’authentification',
@@ -3058,6 +3086,7 @@ export const fr: Readonly<Record<string, string>> = {
   'Default Dead': 'Dépendante des financements',
   'default alive': 'viable sans financement',
   down: 'en panne',
+  'no load': 'aucune charge',
   cold: 'à froid',
   warm: 'à chaud',
   idle: 'inactif',

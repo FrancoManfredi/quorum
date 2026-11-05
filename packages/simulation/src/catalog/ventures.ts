@@ -94,7 +94,7 @@ export type VentureDef = Readonly<{
   start: VentureStart
   /** The rule that makes it hard, enforced in founding.ts. */
   constraint: VentureConstraint
-  /** The incident that recurs for it, or null for the default Venture's none. */
+  /** The incident that recurs for it, or null when the design gives the Venture none. */
   signature: IncidentId | null
   legacy: number
   /** The shape and rule, in one line. */
@@ -124,6 +124,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     name: 'B2B SaaS',
     cost: 0,
     legacy: 1,
+    signature: 'hot-shard',
     summary: 'Evening peak',
   }),
   'consumer-social': venture({
@@ -135,6 +136,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     value: 0.5,
     market: 2,
     legacy: 1.1,
+    signature: 'hot-key',
     summary: 'Twice the users, half the value each; media +50%',
   }),
   fintech: venture({
@@ -146,6 +148,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     weekend: 0.4,
     mix: { buy: 4, write: 1.5 },
     legacy: 1.3,
+    signature: 'double-charge',
     summary: 'Business hours; buy ×4, write +50%',
   }),
   streaming: venture({
@@ -156,6 +159,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     amplitude: 0.55,
     mix: { media: 4 },
     legacy: 1.2,
+    signature: 'premiere-spike',
     summary: 'Late evening peak; media ×4',
   }),
   'game-backend': venture({
@@ -165,6 +169,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     peak: 21,
     mix: { rt: 4 },
     legacy: 1.3,
+    signature: 'launch-day',
     summary: 'Evening peak; realtime ×4',
   }),
   'ai-startup': venture({
@@ -174,6 +179,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     amplitude: 0.1,
     mix: { ai: 3 },
     legacy: 1.3,
+    signature: 'gpu-shortage',
     summary: 'Flat demand; AI ×3',
   }),
   'e-commerce': venture({
@@ -182,6 +188,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     cost: 20,
     mix: { buy: 2, search: 2 },
     legacy: 1.2,
+    signature: 'flash-sale',
     summary: 'Buy ×2, search ×2',
   }),
   // Flat, bursty API clients. The no-naive-retries rule and the Series C
@@ -214,21 +221,21 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     signature: 'audit',
     summary: 'Business hours; writes +50%; data stays in the home region from Series A',
   }),
-  // Flat, enormous, and cheap per request. The 100 ms deadline is the design's;
-  // the mix (its bid kind is not built), the market and the value are proposed.
+  // Flat, enormous, and cheap per request. The 100 ms deadline, the bid kind's value, its 100 ms
+  // Apdex target and its ×10 volume are the design's; the market and the value are proposed.
   'ad-tech': venture({
     id: 'ad-tech',
     name: 'Ad tech',
     cost: 30,
     amplitude: 0.05,
-    mix: { page: 1.5, read: 2 },
+    mix: { bid: 10 },
     value: 0.4,
     market: 3,
     start: { ...GARAGE_START, cash: 400 },
     legacy: 1.3,
     constraint: { ...NO_CONSTRAINT, deadline: 100 },
     signature: 'latency-regression',
-    summary: 'Flat and enormous; page ×1.5, reads ×2; a request over 100 ms earns nothing',
+    summary: 'Flat and enormous; bids ×10; a request over 100 ms earns nothing',
   }),
   // Business hours and deadline spikes, on a Java or C# service bought through a
   // procurement cycle. The rule is the design's; the curve, the contract cash
@@ -258,6 +265,8 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     cost: 0,
     bootstrapped: true,
     legacy: 1.4,
+    // The design's row names Runway, which is a figure rather than an incident: no Cash-versus-Burn
+    // rule and no incident is built for it (16 "Open gaps").
     summary: 'No funding rounds; Equity stays 100%',
   }),
 }

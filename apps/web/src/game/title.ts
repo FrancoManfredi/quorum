@@ -750,6 +750,12 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
       Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
     ),
     toggle(
+      'text',
+      'Text at 150%',
+      model.prefs.text === 'large',
+      Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
+    ),
+    toggle(
       'agent',
       'Agent access',
       model.prefs.agentAccess,

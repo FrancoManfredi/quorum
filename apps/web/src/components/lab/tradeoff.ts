@@ -157,7 +157,7 @@ const radar = (now: Axes, next: Axes, h: HtmlBuilder<Message>): Html =>
             h.Attribute('text-anchor', anchor),
             h.Class(
               cn(
-                'text-[10.5px] font-medium',
+                'text-[calc(10.5px*var(--type-scale))] font-medium',
                 up ? 'fill-ok' : down ? 'fill-danger' : 'fill-muted-foreground',
               ),
             ),
@@ -217,19 +217,26 @@ const effect = (model: Model, card: Tradeoff, h: HtmlBuilder<Message>): Html =>
                 ],
                 [],
               ),
-              h.span([h.Class(cn(FIGURE, 'text-[12px]'))], [previewLine(model, card.preview)]),
+              h.span(
+                [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))]'))],
+                [previewLine(model, card.preview)],
+              ),
             ],
           ),
           costLine(model, card.preview)
             ? h.span(
-                [h.Class(cn(FIGURE, 'pl-4 text-[11.5px] text-muted-foreground'))],
+                [
+                  h.Class(
+                    cn(FIGURE, 'pl-4 text-[calc(11.5px*var(--type-scale))] text-muted-foreground'),
+                  ),
+                ],
                 [costLine(model, card.preview)],
               )
             : h.empty,
         ],
       )
     : card.refusal
-      ? h.span([h.Class('text-[12px] text-warn')], [card.refusal])
+      ? h.span([h.Class('text-[calc(12px*var(--type-scale))] text-warn')], [card.refusal])
       : h.empty
 
 /* ---------- the card ---------- */
@@ -253,7 +260,10 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
         h.Class(cn(PLACE, PANEL, 'enter-panel flex flex-col gap-1 px-3.5 py-2.5')),
       ],
       [
-        h.span([h.Class('text-[12.5px] font-semibold')], [nameOf(card.option)]),
+        h.span(
+          [h.Class('text-[calc(12.5px*var(--type-scale))] font-semibold')],
+          [nameOf(card.option)],
+        ),
         effect(model, card, h),
       ],
     )
@@ -282,7 +292,10 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.Class('flex items-center gap-2')],
         [
           icon(h, Sparkles, 'size-4 shrink-0 text-group-compute'),
-          h.span([h.Class('min-w-0 flex-1 text-[13.5px] font-semibold')], [title]),
+          h.span(
+            [h.Class('min-w-0 flex-1 text-[calc(13.5px*var(--type-scale))] font-semibold')],
+            [title],
+          ),
           card.pinned
             ? button(
                 {
@@ -302,7 +315,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
       effect(model, card, h),
       migration && !card.refusal
         ? h.p(
-            [h.Class('text-[12px] leading-snug text-muted-foreground')],
+            [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
             [
               `Migration: ${migrationCost(model.board.game, migration)} DH across all App Servers. Feature work slows and rollout can expose bugs. Manage work and shift traffic in Team after starting.`,
             ],
@@ -318,7 +331,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   h.Type('button'),
                   h.OnClick(Message.GlossaryOpened({ id: anchor })),
                   h.Class(
-                    'rounded-md bg-nested px-1.5 py-0.5 text-[11px] text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground',
+                    'rounded-md bg-nested px-1.5 py-0.5 text-[calc(11px*var(--type-scale))] text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground',
                   ),
                 ],
                 [TERMS[anchor] ?? anchor],

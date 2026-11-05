@@ -17,16 +17,16 @@ Above the company, [Exit and Legacy](/design/13-prestige) carries progress betwe
 
 ## Eras
 
-| #   | Era      | Milestone to leave                     | Market size         | New kinds                 | New failure mode                                                      | SLO    | Apdex target |
-| --- | -------- | -------------------------------------- | ------------------- | ------------------------- | --------------------------------------------------------------------- | ------ | ------------ |
-| 0   | Garage   | 1,000 users                            | 1,500               | `page`, `read`            | One box runs out of CPU, then RAM                                     | 99%    | 0.85         |
-| 1   | Pre-seed | 5,000 users                            | 7,000               | `write`, `login`          | Database contention, connections, a CPU-heavy kind                    | 99%    | 0.86         |
-| 2   | Seed     | 25,000 users                           | 35,000              | `search`, `upload`, `bot` | Unlike workloads, abuse, large payloads                               | 99.5%  | 0.88         |
-| 3   | Series A | 150,000 users                          | 200,000             | `media`, `rt`, `buy`      | Zone failures, egress cost, money correctness, long-lived connections | 99.9%  | 0.90         |
-| 4   | Series B | 1,000,000 users                        | 1,400,000           | `job`, `report`, `ai`     | OLTP against OLAP, GPU economics, team scaling                        | 99.9%  | 0.91         |
-| 5   | Series C | 10,000,000 users                       | 14,000,000          | `feed`, `hook`, `push`    | Fan-out, hot keys, geography, region failures                         | 99.95% | 0.92         |
-| 6   | Pre-IPO  | 50,000,000 users and the IPO checklist | 70,000,000          | —                         | Compliance, disaster recovery, margin                                 | 99.95% | 0.93         |
-| 7   | Public   | None (endless)                         | Up to 6,000,000,000 | —                         | Quarterly targets                                                     | 99.99% | 0.94         |
+| #   | Era      | Milestone to leave                     | Market size         | New kinds                   | New failure mode                                                      | SLO    | Apdex target |
+| --- | -------- | -------------------------------------- | ------------------- | --------------------------- | --------------------------------------------------------------------- | ------ | ------------ |
+| 0   | Garage   | 1,000 users                            | 1,500               | `page`, `read`              | One box runs out of CPU, then RAM                                     | 99%    | 0.85         |
+| 1   | Pre-seed | 5,000 users                            | 7,000               | `write`, `login`            | Database contention, connections, a CPU-heavy kind                    | 99%    | 0.86         |
+| 2   | Seed     | 25,000 users                           | 35,000              | `search`, `upload`, `bot`   | Unlike workloads, abuse, large payloads                               | 99.5%  | 0.88         |
+| 3   | Series A | 150,000 users                          | 200,000             | `media`, `rt`, `buy`, `bid` | Zone failures, egress cost, money correctness, long-lived connections | 99.9%  | 0.90         |
+| 4   | Series B | 1,000,000 users                        | 1,400,000           | `job`, `report`, `ai`       | OLTP against OLAP, GPU economics, team scaling                        | 99.9%  | 0.91         |
+| 5   | Series C | 10,000,000 users                       | 14,000,000          | `feed`, `hook`, `push`      | Fan-out, hot keys, geography, region failures                         | 99.95% | 0.92         |
+| 6   | Pre-IPO  | 50,000,000 users and the IPO checklist | 70,000,000          | —                           | Compliance, disaster recovery, margin                                 | 99.95% | 0.93         |
+| 7   | Public   | None (endless)                         | Up to 6,000,000,000 | —                           | Quarterly targets                                                     | 99.99% | 0.94         |
 
 Market size is multiplied by features, regions, and Venture rules. It caps user growth inside an Era
 ([Simulation](/design/04-simulation#users-and-growth)).
@@ -37,7 +37,7 @@ Shares of demand, in percent. Features and Ventures shift these shares.
 
 | Kind     | Garage | Pre-seed | Seed | Series A | Series B | Series C+ |
 | -------- | ------ | -------- | ---- | -------- | -------- | --------- |
-| `page`   | 60     | 45       | 30   | 22       | 18       | 14        |
+| `page`   | 60     | 45       | 30   | 21       | 17       | 13        |
 | `read`   | 40     | 35       | 30   | 25       | 22       | 18        |
 | `write`  | —      | 15       | 12   | 10       | 9        | 8         |
 | `login`  | —      | 5        | 4    | 3        | 3        | 2         |
@@ -47,6 +47,7 @@ Shares of demand, in percent. Features and Ventures shift these shares.
 | `media`  | —      | —        | —    | 10       | 10       | 10        |
 | `rt`     | —      | —        | —    | 8        | 8        | 8         |
 | `buy`    | —      | —        | —    | 3        | 3        | 3         |
+| `bid`    | —      | —        | —    | 1        | 1        | 1         |
 | `job`    | —      | —        | —    | —        | 2        | 2         |
 | `report` | —      | —        | —    | —        | 3        | 2         |
 | `ai`     | —      | —        | —    | —        | 5        | 6         |
@@ -97,7 +98,9 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
 
 - **New kinds.** `media` makes egress the largest bill line. `rt` holds connections open, which
   breaks process-per-request runtimes. `buy` is worth $25 and needs correctness: no stale reads, no
-  double charges.
+  double charges. `bid` is worth a tenth of a cent and has to answer inside 100 ms; every Venture
+  serves a little of it, and Ad tech serves ten times as much
+  ([Exit and Legacy](/design/13-prestige#ventures)).
 - **New problems.** Availability. Zone outages begin. A single database is now a single point of
   failure. Users expect 99.9%.
 - **New systems.** Zones ([Components](/design/05-components#zones-and-regions)), pricing models
@@ -168,7 +171,7 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 186 items across 10 tracks; the build has 102 of
+a promise that the game offers it. The tables design 186 items across 10 tracks; the build has 104 of
 them across 9, and the whole Cost track is not built.
 
 ### Recipes
@@ -181,16 +184,16 @@ Until Seed, the default recipe is the request kinds that the item's Era brings. 
 the kinds of the Era before. A Series A kind such as `buy` arrives only when its Feature ships, and
 the Checkout Feature itself needs research, so a Series A default of `buy` could never be paid.
 
-| Era      | Default recipe                  |
-| -------- | ------------------------------- |
-| Garage   | `page`, `read`                  |
-| Pre-seed | `write`, `login`                |
-| Seed     | `search`, `upload`              |
-| Series A | `search`, `upload`              |
-| Series B | `media`, `rt`, `buy`            |
-| Series C | `job`, `report`, `ai`           |
-| Pre-IPO  | Every request kind except `bot` |
-| Public   | Every request kind except `bot` |
+| Era      | Default recipe                            |
+| -------- | ----------------------------------------- |
+| Garage   | `page`, `read`                            |
+| Pre-seed | `write`, `login`                          |
+| Seed     | `search`, `upload`                        |
+| Series A | `search`, `upload`                        |
+| Series B | `media`, `rt`, `buy`                      |
+| Series C | `job`, `report`, `ai`                     |
+| Pre-IPO  | Every request kind except `bot` and `bid` |
+| Public   | Every request kind except `bot` and `bid` |
 
 So the player cannot study Series B research before Series A's Features bring their traffic, and
 more `page` traffic never buys it. Items that teach a new kind's problem ask for that kind, so the
@@ -397,16 +400,16 @@ range.
 | ID                     | Name                     | Era      | ◇       | Requires                         | Effect                                                                        |
 | ---------------------- | ------------------------ | -------- | ------- | -------------------------------- | ----------------------------------------------------------------------------- |
 | `timeouts`             | Timeouts and retries     | Pre-seed | 60      | —                                | Link timeout and naive retries                                                |
-| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline, with all four deploy strategies                               |
+| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline, with Recreate and Rolling                                     |
 | `backoff-jitter`       | Backoff with jitter      | Seed     | 400     | `timeouts`                       | Retry policy option                                                           |
 | `cert-automation`      | Certificate automation   | Seed     | 300     | —                                | Secrets and Certificates                                                      |
-| `blue-green`           | Blue-green deploys       | Seed     | 900     | `ci`                             | Deploy strategy                                                               |
+| `blue-green`           | Blue-green deploys       | Seed     | 900     | `ci`                             | Blue-green deploy strategy                                                    |
 | `feature-flags`        | Feature flags            | Seed     | 800     | `ci`                             | Feature Flags                                                                 |
 | `circuit-breakers`     | Circuit breakers         | Series A | 2,500   | `backoff-jitter`                 | Link option                                                                   |
 | `bulkheads`            | Bulkheads                | Series A | 3,500   | `circuit-breakers`               | Link option                                                                   |
 | `load-shedding`        | Priority load shedding   | Series A | 4,000   | `timeouts`                       | When saturated, drop the lowest-value kinds first                             |
 | `graceful-degradation` | Graceful degradation     | Series A | 3,000   | `feature-flags`                  | Turn off expensive features automatically during overload                     |
-| `canary`               | Canary deploys           | Series A | 3,000   | `ci`, `percentiles`              | Deploy strategy                                                               |
+| `canary`               | Canary deploys           | Series A | 3,000   | `ci`, `percentiles`              | Canary deploy strategy                                                        |
 | `on-call`              | On-call rotation         | Series A | 2,000   | `alerting`                       | Faster triage; incidents page the player                                      |
 | `error-budgets`        | Error budgets            | Series A | 3,000   | `slo-dashboards`                 | Velocity bonus with budget left, freeze when spent                            |
 | `runbooks`             | Runbooks                 | Series A | 5,000   | `on-call`                        | Automatic mitigation for known incident types                                 |
@@ -416,8 +419,8 @@ range.
 | `chaos-engineering`    | Chaos engineering        | Pre-IPO  | 300,000 | `runbooks`                       | Scheduled failure injection that earns Failure Insight and reveals weak spots |
 | `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                        |
 
-**Built: 10 of 19.** Not built yet: `blue-green`, `feature-flags`, `bulkheads`,
-`graceful-degradation`, `canary`, `on-call`, `runbooks`, `hedged-requests`, `chaos-engineering`.
+**Built: 12 of 19.** Not built yet: `feature-flags`, `bulkheads`,
+`graceful-degradation`, `on-call`, `runbooks`, `hedged-requests`, `chaos-engineering`.
 
 ### Track: Observability
 

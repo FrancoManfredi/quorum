@@ -910,6 +910,15 @@ export const DEPLOY_STRATEGIES: Record<DeployStrategyId, DeployStrategyDef> = {
   canary: { id: 'canary', name: 'Canary', deployMinutes: 10, blast: 0.05, burn: 1.5 },
 }
 
+/**
+ * The research a deploy strategy needs (10 "Track: Reliability"): Recreate and Rolling come with
+ * the Pipeline, Blue-green and Canary each need their own.
+ */
+export const STRATEGY_RESEARCH: Partial<Record<DeployStrategyId, ResearchId>> = {
+  'blue-green': 'blue-green',
+  canary: 'canary',
+}
+
 /** Seconds a Cluster takes to reschedule a pod whose host died (self-healing). */
 export const POD_RESCHEDULE = 30
 /** Share of pod requests that fail while a forced Cluster upgrade breaks them. Proposed. */
