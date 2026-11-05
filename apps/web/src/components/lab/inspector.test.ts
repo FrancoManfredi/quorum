@@ -235,3 +235,29 @@ test('an API Gateway shows its rate limit, and choosing a limit sets it', () => 
   const after = update(before, Message.RateLimitChosen({ nodeId: 'n9', rateLimit: 1_000 })).model
   expect(after.board.game.nodes.find((node) => node.id === 'n9')?.rateLimit).toBe(1_000)
 })
+
+/** A board whose Users reach a Realtime Hub on the BEAM instead of the PHP App Server. */
+const hubBoard = (): Model => {
+  const start = initialModel()
+  const base = preseedGame(7)
+  const game: Game = {
+    ...base,
+    researched: [...base.researched, 'websockets', 'lang-elixir'],
+    nodes: [...base.nodes, node('n9', 'ws', 240, 280, { runtime: 'beam' })],
+    links: [...base.links.filter((entry) => entry.from !== 'users'), link('users', 'n9')],
+  }
+  return { ...start, board: { ...start.board, game, selected: 'n9' } }
+}
+
+test('a Realtime Hub shows its connections and its options, and choosing one sets it', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(hubBoard()),
+    Scene.expect(Scene.text('Connections')).toExist(),
+    Scene.expect(Scene.text('Clients')).toExist(),
+    Scene.expect(Scene.text('Presence')).toExist(),
+  )
+  const before = hubBoard()
+  const after = update(before, Message.HubOptionsChosen({ nodeId: 'n9', presence: true })).model
+  expect(after.board.game.nodes.find((node) => node.id === 'n9')?.presence).toBe(true)
+})

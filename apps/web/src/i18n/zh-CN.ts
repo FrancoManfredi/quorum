@@ -572,6 +572,33 @@ export const zhCN: Readonly<Record<string, string>> = {
   'No limit: every request goes on to the services.': '无限制：每个请求都会发往服务。',
   'Past {0} requests a second, they fail as throttled.':
     '超过每秒 {0} 个请求后，它们以 throttled 失败。',
+  'Realtime Hub': '实时中枢',
+  'Holds a connection open for every realtime message. How many fit depends on the runtime.':
+    '为每条实时消息保持一个打开的连接。能容纳多少取决于运行时。',
+  WebSockets: 'WebSockets',
+  'Unlocks the Realtime Hub: holds the open connections that realtime messages need.':
+    '解锁实时中枢：维持实时消息所需的打开连接。',
+  'Only a Realtime Hub has these.': '只有实时中枢有这些选项。',
+  Clients: '客户端',
+  'No presence': '无在线状态',
+  Presence: '在线状态',
+  'Reconnect at once': '立即重连',
+  Clustered: '集群',
+  'Boxes share a pub/sub backbone, so every size step adds room.':
+    '各主机共享 pub/sub 总线，因此每个档位都会增加容量。',
+  'One box takes every connection: larger sizes add Burn and no room.':
+    '单台主机承担所有连接：更大的档位只增加成本，不增加容量。',
+  'Presence on': '在线状态已开启',
+  'Presence off': '在线状态已关闭',
+  'Reconnect backoff on': '重连退避已开启',
+  'Reconnect backoff off': '重连退避已关闭',
+  'Clustering on': '集群已开启',
+  'Clustering off': '集群已关闭',
+  'Only App Servers, Workers and Realtime Hubs run a Stack.':
+    '只有应用服务器、工作进程和实时中枢可运行运行时。',
+  '{0} holds no connections. Pick a runtime that does.':
+    '{0} 无法保持连接。请选择可保持连接的运行时。',
+  'Holds about {0} connections.': '约可保持 {0} 个连接。',
   'A new query has no index. Every read scans the table.':
     '新查询缺少索引，每次读取都会扫描整张表。',
   'A new query has no index. Research Query analysis to find it.':

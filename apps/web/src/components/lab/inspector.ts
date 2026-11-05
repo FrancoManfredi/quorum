@@ -41,6 +41,7 @@ import {
   PARANOIA,
   PROFILES,
   REQUEST_KINDS,
+  RT_HOLD_SECONDS,
   RUNTIMES,
   RUNTIME_IDS,
   SAMPLE_RATES,
@@ -58,6 +59,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
+import { hubConnections } from '@quorum/simulation/rules'
 import { platformTax, quartersBehind } from '@quorum/simulation/team'
 import type { Ledger } from '@quorum/simulation/ledger'
 import {
@@ -577,6 +579,23 @@ const stats = (
         ),
         row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
       ]
+    case 'ws': {
+      // The Hub's limit is connections, not requests: each realtime message holds one open.
+      const max = hubConnections(node)
+      const held = own.inbound * RT_HOLD_SECONDS
+      return [
+        row(
+          'Connections',
+          `${compact(Math.round(held))} / ${compact(Math.round(max))}`,
+          max <= 0 || held >= max * 0.9 ? 'danger' : held >= max * 0.7 ? 'warn' : 'plain',
+          h,
+        ),
+        row('Messages', `${rate(own.inbound)}/s`, 'plain', h),
+        row('Latency', ms(own.latency), 'plain', h),
+        row('Dropped', `${rate(own.dropped)}/s`, own.dropped > 0.05 ? 'danger' : 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
     default: {
       const util = own.utilization
       return [
@@ -1012,6 +1031,32 @@ const stack = (
         ]
       : []),
   ]
+}
+
+/** The runtime a Realtime Hub holds its connections on: the per-connection cost is the whole model. */
+const hubStack = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const runtime = RUNTIMES[node.runtime]
+  return section(
+    'Runtime',
+    [
+      picker(
+        'runtime',
+        RUNTIME_IDS.map((id) => [id, RUNTIMES[id].name] as const),
+        node.runtime,
+        (id) => Message.OptionChosen({ nodeId: node.id, option: { kind: 'runtime', id } }),
+        h,
+        (id) => runtimeReady(game, id),
+      ),
+      h.p([h.Class('text-[12px] leading-snug text-muted-foreground')], [runtime.blurb]),
+      caption(
+        runtime.connectionKB === null
+          ? `${runtime.name} holds no connections. Pick a runtime that does.`
+          : `Holds about ${compact(hubConnections(node))} connections.`,
+        h,
+      ),
+    ],
+    h,
+  )
 }
 
 const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
@@ -1762,6 +1807,51 @@ const gateway = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
+/** A Realtime Hub's Presence, Reconnect backoff and Clustering (05 "Realtime Hub"). */
+const hub = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+  section(
+    'Clients',
+    [
+      picker(
+        'presence',
+        [
+          [false, 'No presence'],
+          [true, 'Presence'],
+        ],
+        node.presence,
+        (presence) => Message.HubOptionsChosen({ nodeId: node.id, presence }),
+        h,
+      ),
+      picker(
+        'backoff',
+        [
+          [false, 'Reconnect at once'],
+          [true, 'Backoff with jitter'],
+        ],
+        node.backoff,
+        (backoff) => Message.HubOptionsChosen({ nodeId: node.id, backoff }),
+        h,
+      ),
+      picker(
+        'clustering',
+        [
+          [false, 'One box'],
+          [true, 'Clustered'],
+        ],
+        node.clustering,
+        (clustering) => Message.HubOptionsChosen({ nodeId: node.id, clustering }),
+        h,
+      ),
+      caption(
+        node.clustering
+          ? 'Boxes share a pub/sub backbone, so every size step adds room.'
+          : 'One box takes every connection: larger sizes add Burn and no room.',
+        h,
+      ),
+    ],
+    h,
+  )
+
 const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'TTL',
@@ -2285,6 +2375,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   : null,
               )
             : []),
+          ...(node.type === 'ws' ? [hubStack(game, node, h)] : []),
           ...(node.type === 'server' ? collector(game, node, h) : []),
           ...(node.type === 'server' ? routing(game, node, h) : []),
           ...(node.type === 'gpu' ? [gpu(node, h)] : []),
@@ -2295,6 +2386,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
           ...(node.type === 'gw' ? [gateway(node, h)] : []),
+          ...(node.type === 'ws' ? [hub(node, h)] : []),
           ...(node.type === 'cdn' ? [cdnTtl(node, h)] : []),
           ...(node.type === 'pooler' ? [pooler(node, h)] : []),
           ...(node.type === 'autoscaler' ? [autoscaler(node, h)] : []),

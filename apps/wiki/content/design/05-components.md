@@ -57,7 +57,7 @@ Compute, Data, and Ops — and this document keeps the seven as a reading order.
 | Data          | [Wide-column Store](/design/07-data-tier#wide-column-store)           | `wide` | Leaderless replication   | Series C |
 | Data          | [Distributed SQL](/design/07-data-tier#distributed-sql)               | `dsql` | Consensus databases      | Series C |
 | Async         | [Queue](#queue)                                                       | `mq`   | Message queues           | Seed     |
-| Async         | [Realtime Hub](#realtime-hub) — Not built yet                         | `ws`   | WebSockets               | Series A |
+| Async         | [Realtime Hub](#realtime-hub)                                         | `ws`   | WebSockets               | Series A |
 | Async         | [Event Stream](#event-stream) — Not built yet                         | `log`  | Event streaming          | Series B |
 | Async         | [CDC Connector](#cdc-connector) — Not built yet                       | `cdc`  | Change data capture      | Series B |
 | Platform      | [Autoscaler](#autoscaler)                                             | `hpa`  | Autoscaling              | Series A |
@@ -378,19 +378,34 @@ Queue depth is a game stat. A growing depth is the earliest sign that Workers ar
 
 ### Realtime Hub
 
-Not built yet: there is no `ws` Component in the catalog. Realtime connections live on the App Server until it exists.
-
 Real products: Phoenix Channels, Socket.IO, Centrifugo, Pusher.
 
 Holds the long-lived connections that `rt` needs and fans messages out to them. Its capacity is
 measured in concurrent connections and depends on the runtime: a thread per connection holds about
 1 MB of memory, and a BEAM process holds a few KB ([Runtimes](/design/06-runtimes#realtime-connections)).
 
-| Option            | Effect                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Presence          | Tracks who is online. Earns more per message (social features) and costs CPU per join and leave.                                                        |
-| Reconnect backoff | After a deploy or crash, all clients reconnect. Without jittered backoff they reconnect at once: a [thundering herd](/design/glossary#thundering-herd). |
-| Clustering        | Several hubs share a pub/sub backbone. Needed above one box.                                                                                            |
+- **It holds connections, not requests.** A realtime message keeps one connection open for 300 s
+  ([Simulation](/design/04-simulation#request-kinds)), so a Hub serving `rt` at 100 a second holds
+  30,000 connections. Its capacity is those connections: an 8 GB box given to connections, divided
+  by the runtime's memory per connection. Each size step doubles the RAM, and a larger Hub needs
+  Clustering to use it.
+- **It takes `rt` and nothing else, and sends nothing on.** Put it behind the Load Balancer next to
+  the App Servers, and give its Link only `rt` ([Links](#links)), so the two runtimes each take the
+  traffic they are good at. A runtime that holds a worker per connection still refuses `rt` on the
+  App Server, which is why a PHP or Gunicorn design places a Hub on a runtime that can hold them.
+- **Its limit is memory, so the runtime is the upgrade.** Request handling, CPU, and the data tier
+  stay on the App Servers; only `rt` reaches it.
+
+| Option            | Effect                                                                                                                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Presence          | Tracks who is online. Earns 25% more per message (social features) and spends 15% of the box's CPU on each join and leave. |
+| Reconnect backoff | Clients reconnect at once after a deploy or crash without jittered backoff: a thundering herd, and half of it is refused.  |
+| Clustering        | Several hubs share a pub/sub backbone. Needed above one box: without it the larger sizes add Burn and no room.             |
+
+The per-connection numbers are the runtime table's ([Runtimes](/design/06-runtimes#realtime-connections)),
+so the same box holds about 1.6 million BEAM connections, 800,000 Go ones, and 8,000 Java platform
+threads. The 8 GB box, the 25% and 15%, and the half a Hub refuses without backoff are proposed
+stylizations: the pages give no numbers.
 
 ### Event Stream
 

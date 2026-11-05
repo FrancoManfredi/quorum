@@ -183,6 +183,9 @@ export const through = (
   let success = 1
   let fixed = own.fixed
   let variable = own.variable
+  // The Stack that answered sets the revenue: a multiplier reaches the user through every hop
+  // between, so a Rails or Phoenix page view still earns its share.
+  let value = own.value
   let tail = { tailP: own.tailP, tailMs: own.tailMs }
   const causes = { ...NO_FAILURES }
   let causeWeight = 0
@@ -198,6 +201,7 @@ export const through = (
     addScaledInto(causes, call.fail, count)
     causeWeight += (1 - call.success) * count
     stale = Math.max(stale, call.stale)
+    value *= call.value
   }
   const staleLoss = staleCounts ? stale : 0
   const childFailure = 1 - success
@@ -214,7 +218,7 @@ export const through = (
     variable,
     ...tail,
     stale: staleCounts ? 0 : stale,
-    value: own.value,
+    value,
     fail,
   }
 }

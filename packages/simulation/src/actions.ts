@@ -207,6 +207,9 @@ export const blankNode = (
     paranoia: 2,
     underAttack: false,
     rateLimit: 0,
+    presence: false,
+    backoff: false,
+    clustering: false,
     zone: 'a',
     standby: false,
     pricing: 'on-demand',
@@ -445,8 +448,8 @@ const defaultWorkers = (node: GameNode, runtime: RuntimeId): number =>
 
 export const setRuntime = (game: Game, id: string, runtime: RuntimeId): Action =>
   withNode(game, id, (node) => {
-    if (node.type !== 'server' && node.type !== 'worker')
-      return notAllowed('Only App Servers and Workers run a Stack.')
+    if (node.type !== 'server' && node.type !== 'worker' && node.type !== 'ws')
+      return notAllowed('Only App Servers, Workers and Realtime Hubs run a Stack.')
     const def = RUNTIMES[runtime]
     if (!runtimeReady(game, runtime) && def.research)
       return no(Refusal.Locked({ what: def.name, research: RESEARCH[def.research].name }))
@@ -656,6 +659,16 @@ export const setRateLimit = (game: Game, id: string, rateLimit: number): Action 
       return notAllowed(`Rate limits are ${GATEWAY_LIMITS.join(', ')} requests per second.`)
     return ok(node.rateLimit === rateLimit ? game : patch(game, id, { rateLimit }))
   })
+
+/** Sets a Realtime Hub's Presence, Reconnect backoff, or Clustering (05 "Realtime Hub"). */
+export const setHubOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{ presence?: boolean; backoff?: boolean; clustering?: boolean }>,
+): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'ws' ? ok(patch(game, id, change)) : notAllowed('Only a Realtime Hub has these.'),
+  )
 
 /** Moves a Node to another zone. Needs Multiple zones; a sized Node restarts there. */
 export const setZone = (game: Game, id: string, zone: Zone): Action =>

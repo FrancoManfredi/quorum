@@ -44,6 +44,7 @@ import {
   type InsightPool,
   MSGP_PRICE,
   REGION_INFO,
+  RT_HOLD_SECONDS,
   rttOf,
 } from '@quorum/simulation/catalog'
 import { POOL_ORDER } from '../game/pools.ts'
@@ -59,6 +60,7 @@ import {
   zoned,
 } from '@quorum/simulation/lookups'
 import { isGlobal, regional, regionApdexOf, regionUsers } from '@quorum/simulation/regions'
+import { hubConnections } from '@quorum/simulation/rules'
 import { quartersBehind } from '@quorum/simulation/team'
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import { compact, money, ms, priceLabel, queueWait, rate } from '../game/format.ts'
@@ -371,6 +373,29 @@ export const rowsOf = (
         },
         out,
       ]
+    case 'ws': {
+      // A Hub's capacity is connections, not requests: a message holds one for the hold time.
+      const runtime = RUNTIMES[node.runtime]
+      const max = hubConnections(node)
+      const held = own.inbound * RT_HOLD_SECONDS
+      return [
+        {
+          glyph: 'connections',
+          name: 'Connections',
+          value: `${compact(Math.round(held))} / ${compact(Math.round(max))}`,
+          tone: max <= 0 || held >= max * 0.9 ? 'danger' : held >= max * 0.7 ? 'warn' : 'plain',
+          bar: max > 0 ? Math.min(1, held / max) : 1,
+        },
+        { glyph: 'load', name: 'Messages', value: `${rate(own.inbound)}/s` },
+        {
+          glyph: 'stack',
+          logo: runtime.language,
+          name: runtime.name,
+          value: node.clustering ? 'Clustered' : 'One box',
+        },
+        latency,
+      ]
+    }
     case 'psp':
       return [
         { ...inbound, name: 'Checkouts' },

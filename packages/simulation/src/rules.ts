@@ -9,9 +9,14 @@ import {
   PSP_CAPACITY,
   GPU_FIRST_TOKEN_MS,
   GPU_TYPES,
+  HERD_REFUSED,
+  HUB_RAM_KB,
   LLM_FIRST_TOKEN_MS,
   LLM_RATE,
+  PRESENCE_CPU,
+  PRESENCE_VALUE,
   REGEX_CAPACITY,
+  RT_HOLD_SECONDS,
   SLOW_CHARGE_MS,
   TOKENS_PER_PROMPT,
   DSQL_READ_COST,
@@ -327,6 +332,24 @@ export const gatewayShare = (node: GameNode, arriving: Rates): number => {
   const limit = gatewayLimitOf(node)
   return total > 0 && limit < total ? limit / total : 1
 }
+
+/* ---------- the Realtime Hub ---------- */
+
+/**
+ * Connections a Hub holds at its size: the RAM it gives them over what one costs its runtime
+ * (06 "Realtime connections"). A runtime that holds a worker or a thread per connection holds
+ * none, and without Clustering only one box takes connections, so the larger sizes add Burn and
+ * no room.
+ */
+export const hubConnections = (node: GameNode): number => {
+  const perConnection = RUNTIMES[node.runtime].connectionKB
+  if (perConnection === null) return 0
+  return (HUB_RAM_KB * (node.clustering ? flatScale(node) : 1)) / perConnection
+}
+
+/** Realtime messages a second a Hub holds: a message keeps its connection open for the hold time. */
+export const hubRate = (node: GameNode): number =>
+  (hubConnections(node) / RT_HOLD_SECONDS) * (node.presence ? 1 - PRESENCE_CPU : 1)
 
 /* ---------- the table ---------- */
 
@@ -718,6 +741,37 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       ),
     connections: noConnections,
     probe: noProbe,
+  },
+  // A Realtime Hub holds a connection for each realtime message instead of serving it as a
+  // request, and sends nothing on (05 "Realtime Hub", 06 "Realtime connections").
+  ws: {
+    // A runtime that holds a worker per connection holds none: the Hub takes the traffic and
+    // refuses it, rather than dividing a box that cannot hold a connection.
+    model: (solver, node, arriving) =>
+      RUNTIMES[node.runtime].connectionKB === null
+        ? flatModel(
+            Number.POSITIVE_INFINITY,
+            arriving,
+            { fixed: 1, variable: 0 },
+            solver.boost(node),
+          )
+        : flatModel(hubRate(node), arriving, { fixed: 1, variable: 0 }, solver.boost(node)),
+    serve: nothing,
+    outcome: (answer, node, kind) => {
+      // PHP-FPM and Gunicorn sync hold a worker per open connection: they cannot hold any.
+      if (RUNTIMES[node.runtime].connectionKB === null) return failed('refused')
+      // A Hub that just came back takes the fleet's whole reconnect wave at once. Jittered
+      // backoff spreads it over the hold time; without it, the Hub refuses what it cannot take.
+      const herd = node.life._tag === 'Warming' && !node.backoff
+      return failSome(
+        through(answer.ownHop(kind, node.presence ? PRESENCE_VALUE : 1)),
+        herd ? HERD_REFUSED : 0,
+        'refused',
+      )
+    },
+    connections: noConnections,
+    // An LB weighs it by the connections it holds, which depend on its runtime.
+    probe: () => ({ rt: 1 }),
   },
   // A Managed Component: 400 ms per charge, and its own outages.
   psp: {

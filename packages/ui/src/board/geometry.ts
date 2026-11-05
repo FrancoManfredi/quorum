@@ -57,6 +57,8 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 4, inRow: 0, outRow: 3, footer: true }
     case 'gw':
       return { rows: 4, inRow: 0, outRow: 3, footer: false }
+    case 'ws':
+      return { rows: 4, inRow: 0, outRow: null, footer: true }
     case 'psp':
       return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'autoscaler':

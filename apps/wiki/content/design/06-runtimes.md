@@ -320,7 +320,12 @@ deploy frequency ([Team](/design/08-team-and-velocity#deploy-frequency)).
 | Elixir                          | ~5 KB                 | Phoenix reached 2 million connections on one large box in 2015. |
 
 A runtime that cannot hold connections needs a Realtime Hub on a different runtime. This is a real
-reason that teams add a second language.
+reason that teams add a second language. In the build, the Realtime Hub
+([Components](/design/05-components#realtime-hub)) holds them: its box gives 8 GB to connections
+divided by the row above, so a BEAM Hub holds about 1.6 million connections, a Go one 800,000, and
+a Java one 8,000. An App Server holds the same `rt` connections itself while its runtime can, and
+refuses them when it cannot: PHP-FPM and Gunicorn sync never hold one, on an App Server or on a
+Hub.
 
 ## Frameworks
 

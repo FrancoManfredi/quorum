@@ -223,6 +223,12 @@ export const Message = defineMessageUnion({
   ParanoiaChosen: { nodeId: Schema.String, paranoia: Schema.Finite },
   UnderAttackChosen: { nodeId: Schema.String, underAttack: Schema.Boolean },
   RateLimitChosen: { nodeId: Schema.String, rateLimit: Schema.Finite },
+  HubOptionsChosen: {
+    nodeId: Schema.String,
+    presence: Schema.optional(Schema.Boolean),
+    backoff: Schema.optional(Schema.Boolean),
+    clustering: Schema.optional(Schema.Boolean),
+  },
   ZoneChosen: { nodeId: Schema.String, zone: Zone },
   StandbyChosen: { nodeId: Schema.String, standby: Schema.Boolean },
   AutoscalerChosen: {

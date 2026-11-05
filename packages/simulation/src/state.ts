@@ -162,6 +162,12 @@ const NODE_FIELDS = {
   underAttack: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Requests per second an API Gateway lets through; 0 is no limit (05 "API Gateway"). */
   rateLimit: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** A Realtime Hub tracks who is online: more per message, and CPU spent on each join. */
+  presence: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Realtime Hub lets clients reconnect with jittered backoff after a restart. */
+  backoff: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Realtime Hub runs several boxes behind one pub/sub backbone; without it, one box takes all. */
+  clustering: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The zone the Node runs in. */
   zone: Zone.pipe(Schema.withDecodingDefaultKey(Effect.succeed('a' as const))),
   /** A data Node keeps a standby in another zone and fails over to it. */

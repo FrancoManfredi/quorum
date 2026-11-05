@@ -6,8 +6,14 @@ import type { Action } from './actions.ts'
 import {
   ERAS,
   FAILOVER_SECONDS,
+  HERD_REFUSED,
+  HUB_RAM_KB,
   INCIDENTS,
   POD_RESCHEDULE,
+  PRESENCE_CPU,
+  PRESENCE_VALUE,
+  RT_HOLD_SECONDS,
+  RUNTIMES,
   SPOT_DOWN,
   SPOT_WARNING,
   UPGRADE_CRASHES,
@@ -131,6 +137,98 @@ describe('runtimes', () => {
       solve(seriesA(4_000, runtime)).nodes.server?.resources.ram?.used ?? 0
     expect(solve(seriesA(4_000, 'beam')).kinds.rt?.success).toBeGreaterThan(0.99)
     expect(ramOf('beam')).toBeLessThan(ramOf('tomcat'))
+  })
+})
+
+describe('the Realtime Hub', () => {
+  /** Series A Users linked straight to a Hub: only `rt` reaches it, so its Ledger row is the Hub's. */
+  const hubBoard = (
+    runtime: RuntimeId,
+    options: Partial<GameNode> = {},
+    researched = true,
+  ): Game => ({
+    ...company(7),
+    sandbox: true,
+    stage: 3,
+    users: 200_000,
+    researched: [...RESEARCH, ...(researched ? (['websockets'] as const) : [])],
+    nodes: [node('users', 'users', 120, 280), node('hub', 'ws', 440, 280, { runtime, ...options })],
+    links: [link('users', 'hub')],
+  })
+  const capacityAt = (runtime: RuntimeId, options: Partial<GameNode> = {}): number =>
+    solve(hubBoard(runtime, options)).nodes.hub?.capacity ?? 0
+  const connections = (runtime: RuntimeId): number =>
+    HUB_RAM_KB / (RUNTIMES[runtime].connectionKB ?? 1)
+
+  test('a Hub holds rt as connections instead of serving it as requests', () => {
+    const ledger = solve(hubBoard('beam'))
+    const own = ledger.nodes.hub
+    // A message keeps its connection open for the hold time, so the Hub holds far more
+    // connections than it answers messages a second.
+    expect(own?.inbound ?? 0).toBeGreaterThan(100)
+    expect((own?.inbound ?? 0) * RT_HOLD_SECONDS).toBeGreaterThan(10_000)
+    // Its capacity is those connections: the box's RAM over a BEAM process's ~5 KB, divided back
+    // out by the hold time. Nothing is dropped while they fit.
+    expect((own?.capacity ?? 0) * RT_HOLD_SECONDS).toBeCloseTo(connections('beam'), 6)
+    expect(ledger.kinds.rt?.success).toBe(1)
+    expect(own?.dropped).toBe(0)
+    // Holding a connection adds no work per message: the Hub adds its own 1 ms and nothing more.
+    expect(own?.latency).toBeCloseTo(1, 6)
+  })
+
+  test('its capacity follows the runtime’s memory per connection', () => {
+    // 8 GB over 5 KB of BEAM process, 10 KB of goroutine, and 1 MB of Java thread.
+    expect(capacityAt('beam')).toBeCloseTo(connections('beam') / RT_HOLD_SECONDS, 6)
+    expect(capacityAt('go')).toBeCloseTo(connections('go') / RT_HOLD_SECONDS, 6)
+    expect(capacityAt('tomcat')).toBeCloseTo(connections('tomcat') / RT_HOLD_SECONDS, 6)
+    expect(capacityAt('beam')).toBeCloseTo(capacityAt('go') * 2, 6)
+    expect(capacityAt('tomcat')).toBeLessThan(capacityAt('beam') / 100)
+  })
+
+  test('PHP-FPM and Gunicorn sync refuse rt instead of holding it', () => {
+    for (const runtime of ['php_fpm', 'gunicorn'] as const) {
+      const ledger = solve(hubBoard(runtime))
+      expect(ledger.kinds.rt?.success).toBe(0)
+      expect(ledger.errors.refused).toBeCloseTo(ledger.kinds.rt?.rate ?? 0, 6)
+    }
+  })
+
+  test('Presence earns more per message and costs CPU per join', () => {
+    const plain = solve(hubBoard('beam'))
+    const presence = solve(hubBoard('beam', { presence: true }))
+    expect(presence.revenue).toBeCloseTo(plain.revenue * PRESENCE_VALUE, 6)
+    expect(presence.nodes.hub?.capacity ?? 0).toBeCloseTo(
+      (plain.nodes.hub?.capacity ?? 0) * (1 - PRESENCE_CPU),
+      6,
+    )
+  })
+
+  test('Clustering is what a larger Hub needs; without it one box takes every connection', () => {
+    const one = capacityAt('beam')
+    expect(capacityAt('beam', { size: 2 })).toBeCloseTo(one, 6)
+    expect(capacityAt('beam', { size: 2, clustering: true })).toBeCloseTo(one * 2, 6)
+  })
+
+  test('without jittered backoff, a Hub that just came back drops the reconnect wave', () => {
+    expect(solve(hubBoard('beam')).kinds.rt?.success).toBe(1)
+    expect(solve(hubBoard('beam', { life: warming(0) })).kinds.rt?.success).toBeCloseTo(
+      1 - HERD_REFUSED,
+      6,
+    )
+    expect(solve(hubBoard('beam', { life: warming(0), backoff: true })).kinds.rt?.success).toBe(1)
+  })
+
+  test('it is placeable only with WebSockets researched', () => {
+    const game = { ...company(7), sandbox: true, cash: 1e9, nodes: [], links: [] }
+    expect(Result.isFailure(Actions.place(game, 'ws', 600, 300))).toBe(true)
+    const placed = ok(
+      Actions.place({ ...game, researched: [...RESEARCH, 'websockets'] }, 'ws', 600, 300),
+    )
+    expect(placed.nodes.some((entry) => entry.type === 'ws')).toBe(true)
+    // Its options belong to a Hub, not to any other Node.
+    const id = placed.nodes.at(-1)?.id ?? ''
+    expect(Result.isSuccess(Actions.setHubOptions(placed, id, { presence: true }))).toBe(true)
+    expect(Result.isFailure(Actions.setHubOptions(placed, 'server', { presence: true }))).toBe(true)
   })
 })
 

@@ -55,7 +55,7 @@ patience target. Kinds arrive by Era ([Progression](/design/10-progression#eras)
 | Upload     | `upload` | Seed     | 0.75      | 120              | 1 × `blob-put`, 1 × `q-write`                 | 2 MB in   | 1,500 ms | CPU-heavy (image resize); can go async            |
 | Bot        | `bot`    | Seed     | 0         | 2                | 1 × `q-read`                                  | 4 KB      | —        | Earns nothing; WAF target                         |
 | Video      | `media`  | Series A | 1.00      | 1                | 1 × `blob-get`                                | 5 MB      | 1,000 ms | Egress-heavy; CDN-cacheable                       |
-| Realtime   | `rt`     | Series A | 0.025     | 0.3              | —                                             | 1 KB      | 100 ms   | Holds a long-lived connection                     |
+| Realtime   | `rt`     | Series A | 0.025     | 0.3              | 1 × `ws` (connection)                         | 1 KB      | 100 ms   | Holds a long-lived connection                     |
 | Checkout   | `buy`    | Series A | 25.00     | 5                | 1 × `q-read` (cart), 1 × `q-tx`, 1 × `charge` | 2 KB      | 2,000 ms | Needs strong consistency and idempotency          |
 | Export job | `job`    | Series B | 1.60      | 400              | 50 × `q-read`                                 | 10 MB out | 1,000 ms | Long-running; should go through a queue           |
 | Report     | `report` | Series B | 2.00      | 20               | 1 × `q-scan`                                  | 50 KB     | 3,000 ms | Analytical scan; harms the transactional database |
@@ -74,8 +74,10 @@ A **Queue** makes a kind's downstream calls asynchronous: the user waits for the
 Worker makes the calls. `job` and `upload` then carry a completion window, 60 s and 10 s, and are
 scored on when the async part finishes rather than on the acknowledgement. `hook` and `push` have no
 completion window, so they are scored synchronously at their 1,000 ms target even when a Queue runs
-them. `bot` is unscored: the catalog carries its 400 ms target but nothing reads it. `rt` has no
-downstream call, so a realtime message is served by the App Server until a Realtime Hub exists.
+them. `bot` is unscored: the catalog carries its 400 ms target but nothing reads it. `rt` has no backend
+call: an App Server holds the connection while its runtime can
+([Runtimes](/design/06-runtimes#realtime-connections)), and a Realtime Hub holds it instead, on a
+runtime built for it ([Components](/design/05-components#realtime-hub)).
 
 ### Backend kinds
 

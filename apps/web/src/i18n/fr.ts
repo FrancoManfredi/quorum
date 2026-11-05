@@ -405,6 +405,28 @@ export const fr: Readonly<Record<string, string>> = {
     'Aucune limite : chaque requête passe aux services.',
   'Past {0} requests a second, they fail as throttled.':
     'Au-delà de {0} requêtes par seconde, elles échouent en throttled.',
+  'Realtime Hub': 'Hub temps réel',
+  'Holds a connection open for every realtime message. How many fit depends on the runtime.':
+    'Garde une connexion ouverte pour chaque message temps réel. Le nombre qui tient dépend du runtime.',
+  WebSockets: 'WebSockets',
+  'Unlocks the Realtime Hub: holds the open connections that realtime messages need.':
+    'Débloque le Hub temps réel : il garde les connexions ouvertes dont les messages temps réel ont besoin.',
+  'Only a Realtime Hub has these.': 'Seul un Hub temps réel a ces options.',
+  Clients: 'Clients',
+  'No presence': 'Sans présence',
+  Presence: 'Présence',
+  'Reconnect at once': 'Reconnexion immédiate',
+  Clustered: 'En grappe',
+  'Boxes share a pub/sub backbone, so every size step adds room.':
+    'Les boîtes partagent un bus pub/sub : chaque palier ajoute de la place.',
+  'One box takes every connection: larger sizes add Burn and no room.':
+    'Une seule boîte prend toutes les connexions : les paliers plus grands ajoutent du coût et pas de place.',
+  'Presence on': 'Présence activée',
+  'Presence off': 'Présence désactivée',
+  'Reconnect backoff on': 'Attente de reconnexion activée',
+  'Reconnect backoff off': 'Attente de reconnexion désactivée',
+  'Clustering on': 'Grappe activée',
+  'Clustering off': 'Grappe désactivée',
   'A new query has no index. Every read scans the table.':
     "Une nouvelle requête n'a pas d'index. Chaque lecture analyse la table.",
   'A new query has no index. Research Query analysis to find it.':
@@ -2090,8 +2112,11 @@ export const fr: Readonly<Record<string, string>> = {
   'Next size': 'Taille suivante',
   'Size {0}': 'Taille {0}',
   'Only VMs have an instance family.': "Seules les VM disposent d'une famille d'instances.",
-  'Only App Servers and Workers run a Stack.':
-    'Seuls les serveurs applicatifs et les processus exécutent une pile.',
+  'Only App Servers, Workers and Realtime Hubs run a Stack.':
+    'Seuls les serveurs applicatifs, les processus et les hubs temps réel exécutent une pile.',
+  '{0} holds no connections. Pick a runtime that does.':
+    '{0} ne garde aucune connexion. Choisissez un runtime qui en garde.',
+  'Holds about {0} connections.': 'Garde environ {0} connexions.',
   'fw-{0}': 'fw-{0}',
   '{0} sizes its own pool.': 'Le {0} dimensionne sa propre pool.',
   'Only App Servers compress responses.':

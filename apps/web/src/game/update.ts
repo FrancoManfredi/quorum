@@ -3387,6 +3387,28 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    HubOptionsChosen: ({ nodeId, presence, backoff, clustering }) =>
+      act(
+        model,
+        presence !== undefined
+          ? presence
+            ? 'Presence on'
+            : 'Presence off'
+          : backoff !== undefined
+            ? backoff
+              ? 'Reconnect backoff on'
+              : 'Reconnect backoff off'
+            : clustering
+              ? 'Clustering on'
+              : 'Clustering off',
+        Actions.setHubOptions(model.board.game, nodeId, {
+          ...(presence === undefined ? {} : { presence }),
+          ...(backoff === undefined ? {} : { backoff }),
+          ...(clustering === undefined ? {} : { clustering }),
+        }),
+        { undoable: true },
+      ),
+
     ZoneChosen: ({ nodeId, zone }) =>
       act(
         model,
