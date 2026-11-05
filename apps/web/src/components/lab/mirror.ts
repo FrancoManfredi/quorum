@@ -66,6 +66,7 @@ const FIELD_LABEL: Record<Managed, string> = {
   cacheStrategy: 'Cache strategy',
   refresh: 'Search refresh',
   sticky: 'Sticky sessions',
+  slowStart: 'Slow start',
   purge: 'Purge on deploy',
   cacheKey: 'Cache key',
   earlyExpiry: 'Early expiration',

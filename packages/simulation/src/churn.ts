@@ -1,5 +1,8 @@
 import {
   CALENDAR_DAY,
+  DEVICES,
+  DEVICE_INFO,
+  type DeviceId,
   PROFILES,
   REGIONS,
   REGION_INFO,
@@ -46,6 +49,10 @@ export type ChurnRow = Readonly<{
   /** Fixing this row and the ones above it wins back the points the region needs. */
   needed: boolean
   fix: ChurnFix
+  /** With `tracing`: the Node whose hop takes the most time on this kind's path, and that time. */
+  hop: Readonly<{ nodeId: string; ms: number }> | null
+  /** With `rum`: the device whose round trip over the internet is the longest, and that time. */
+  device: Readonly<{ device: DeviceId; ms: number }> | null
 }>
 
 export type RegionChurn = Readonly<{
@@ -90,6 +97,30 @@ const farFix = (game: Game, region: RegionId): ChurnFix => {
   return { _tag: 'region', region }
 }
 
+/** The Node that adds the most milliseconds to a kind's requests, when `tracing` shows hops. */
+const slowestHop = (
+  game: Game,
+  ledger: Ledger,
+  kind: RequestKind,
+): Readonly<{ nodeId: string; ms: number }> | null => {
+  if (!has(game, 'tracing')) return null
+  let best: Readonly<{ nodeId: string; ms: number }> | null = null
+  for (const [nodeId, entry] of Object.entries(ledger.nodes)) {
+    const ms = entry.hopByKind[kind] ?? 0
+    if (ms > 0 && (best === null || ms > best.ms)) best = { nodeId, ms }
+  }
+  return best
+}
+
+/** The device with the longest radio round trip, when `rum` splits Users by device. */
+const slowestDevice = (game: Game): Readonly<{ device: DeviceId; ms: number }> | null => {
+  if (!has(game, 'rum')) return null
+  const slowest = DEVICES.reduce((best, device) =>
+    DEVICE_INFO[device].rttMs > DEVICE_INFO[best].rttMs ? device : best,
+  )
+  return { device: slowest, ms: DEVICE_INFO[slowest].rttMs }
+}
+
 /** The rows of one region, largest first, with the ones the region needs marked. */
 const rowsOf = (game: Game, ledger: Ledger, region: RegionId, gap: number): Array<ChurnRow> => {
   const kinds = ledger.regionKinds[region] ?? {}
@@ -97,7 +128,7 @@ const rowsOf = (game: Game, ledger: Ledger, region: RegionId, gap: number): Arra
   if (total <= 0) return []
   const logs = has(game, 'logs')
   const percentiles = has(game, 'percentiles')
-  const rows: Array<Omit<ChurnRow, 'needed'>> = []
+  const rows: Array<Omit<ChurnRow, 'needed' | 'hop' | 'device'>> = []
   for (const [kind, entry] of Object.entries(kinds) as Array<
     [RequestKind, NonNullable<(typeof kinds)[RequestKind]>]
   >) {
@@ -150,7 +181,12 @@ const rowsOf = (game: Game, ledger: Ledger, region: RegionId, gap: number): Arra
   return rows.map((row) => {
     const needed = gap > 0 && won < gap
     won += row.points
-    return { ...row, needed }
+    return {
+      ...row,
+      needed,
+      hop: row.cause === 'slow' ? slowestHop(game, ledger, row.kind) : null,
+      device: row.cause === 'slow' || row.cause === 'far' ? slowestDevice(game) : null,
+    }
   })
 }
 

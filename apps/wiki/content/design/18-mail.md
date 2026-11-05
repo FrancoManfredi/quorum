@@ -121,11 +121,7 @@ buttons follow the sender:
 - **Add to backlog** queues the Feature a customer asks for at the end of the Team backlog, which is
   what the Team panel's own Queue does.
 
-**Switch provider** lives on the Payment Provider itself, not on a vendor pitch: no Component has a
-second provider to pick between, so while a Payment provider outage runs, the Inspector's own
-mitigation button ends it at once, for a proposed Cash cost, as a rush integration with a second
-provider would. A vendor pitch about anything else still carries no Switch provider, because
-nothing else has an outage with a second provider to switch to. A hire request offers Approve hire
+**Switch provider** lives on the Payment Provider itself, not on a vendor pitch: the Inspector's Provider setting moves its checkouts to a second provider, and while a Payment provider outage runs the Inspector's mitigation button does the same at once. A vendor pitch about anything else carries no Switch provider. A hire request offers Approve hire
 and Later, not Decline: Later says the same thing to a teammate and keeps the door open.
 
 Capacity facts that live in the Simulation today (`nextGoal`: out of CPU credits, out of RAM, workers
@@ -295,7 +291,7 @@ a Security sender and a spam folder together.
 
 Two incidents are new, and both have catalog entries: **Data breach** (from an exploited CVE) and
 **Credential leak** (from phishing). A Credential leak is SEV1, runs 90 sim seconds, and takes 10% of
-the Users when it starts; the design gives neither number, so both are proposed. The director never
+the Users when it starts; those are its numbers. The director never
 draws it: only a trap the player clicks starts one. Its postmortem opens the WAF as its action item,
 when that research is ready.
 
@@ -311,9 +307,10 @@ and one gift.
 - **Spam arrives from Pre-seed on, at a fixed rate.** Every 45 sim seconds the Company's seed draws
   one world event, and 45 of every 100 draws are spam. The rate does not grow with Users or press. It
   is flavour with a purpose: it fills the Inbox with sound.
-- **Spam is filtered from the first message.** There is no spam filter to research and no Postbox
-  setting: every piece of spam is written straight into the Spam folder. Not built yet: the filter as
-  a research item and a setting, and the small share of real Mail it would misfile into Spam.
+- **The spam filter is a research.** `spam-filter` adds a Postbox setting, on by default once
+  researched. With the filter on, every piece of spam is written straight into the Spam folder, and now
+  and then a real security advisory goes with it. Without the research, spam lands in the folder
+  its content belongs to, beside real Mail.
 - **Kinds of spam.**
 
 | Kind             | Looks like                                                                 | Effect                                                            |
@@ -325,17 +322,17 @@ and one gift.
 | Recruiter        | Offers to your engineers                                                   | A hint that a teammate is unhappy.                                |
 | Real CVE in Spam | A true advisory that the filter sorted wrongly                             | Ignoring it starts the CVE clock without a warning.               |
 
-**Recruiter** is built: once an engineer's mood is low enough to write
+**Recruiter:** once an engineer's mood is low enough to write
 ([Burnout and quitting](#burnout-and-quitting)), the pitch's letter carries a line that hints one of
-them is unhappy, without naming who; the player still reads the Team panel to find out. Not built
-yet: two of the other effects in that table. **Fake CVE alert**: a backdoor needs a lasting
-compromise to install itself into, and the build has none, so its button still raises the toast "That
-was phishing. Check the sender address first." Its id is not in the Glossary, which is the tell that
-catches it before the click. **Vendor pitch**: no research discount exists, and the discount would
-have to live in the Simulation's research catalog, which prices every Study.
+them is unhappy, without naming who; the player still reads the Team panel to find out.
+**Fake CVE alert:** its button runs a patcher that leaves a backdoor in the Company, and the
+Simulation records when. Five calendar minutes later the attacker uses it and a Data breach starts. A
+Security team finds the backdoor in half that time and closes it, and Dependency scanning stops the
+dropper before it runs. Its id is not in the Glossary, which is the tell that catches it before the
+click. **Vendor pitch:** about one in four is a real demo of an unstudied Observability research, with a
+Book the demo button; taking it takes a fifth off that item's Insight cost.
 
-What is built: a phishing button starts the Credential leak incident and takes 10% of the Users (a
-proposed share), the pager writes about it, and the trap's thread keeps the line that says the
+A phishing button starts the Credential leak incident and takes 10% of the Users, the pager writes about it, and the trap's thread keeps the line that says the
 address was not the real one. A fake invoice and a domain notice charge the amount printed on them:
 $4,812 (the Azzure invoice's $4,812.44, rounded) and $389, both refused when the Cash is not there.
 Reporting a phishing Mail as spam takes its button away, so the risk goes with it.
@@ -351,9 +348,8 @@ Reporting a phishing Mail as spam takes its button away, so the risk goes with i
   names the control it opens, and a trap's names the off-site address it leaves for, on a cheap TLD.
   The two carry the same number key, and the hover is what separates them before the click.
 - **Report spam.** Marking a Mail as spam teaches the filter and, for phishing, removes the risk.
-  Reporting a real Mail as spam is a mistake the player can undo from Spam. Built for the risk: a
-  phishing Mail reported as spam loses its trap button for good. Not built yet: the filter itself,
-  which does not exist to teach, so reporting changes nothing else.
+  Reporting a real Mail as spam is a mistake the player can undo from Spam. A
+  phishing Mail reported as spam loses its trap button for good.
 - **Tone.** Spam is funny and plausible, never cruel. Real vendor names are not used.
 
 Spam is pillar 5's mirror: the player is never punished for opening Mail, only for acting on a
@@ -562,17 +558,16 @@ Teammates draw a name from a pool and keep it for life.
   advisory's id is one the player can look up.
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
   The Company also has a 0.5× speed.
-- **Switch provider:** while a Payment provider outage runs, the Inspector's own mitigation button
-  ends it at once, for a proposed Cash cost: a rush integration with a second provider. No Component
-  has a second provider to pick between on the board, so this is the one place the mechanic lives.
+- **Switch provider:** a Payment Provider Node has a Provider setting, First or Second. Switching is a
+  rush integration that costs Cash and ends a running Payment provider outage at once. The second
+  provider keeps serving through an outage of the first and charges 15% more per checkout.
 - **The recruiter's hint:** once an engineer's mood is low enough to write
   ([Burnout and quitting](#burnout-and-quitting)), the recruiter spam's letter carries a line that
   hints one of them is unhappy, without naming who.
+- **The Security team's mail:** with a Security team, it writes the credential-leak and breach
+  warnings itself instead of the pager.
 
-Not built yet: the **spam filter** as a research item and a setting (the design says there is
-none to research, so nothing gates it); the **fake CVE trap's backdoor**, which needs a lasting
-compromise to install itself into; and a vendor's **research discount**, which the Simulation's
-research catalog would have to price. Reviewing a rewrite proposal opens the Tradeoff card for the
+Reviewing a rewrite proposal opens the Tradeoff card for the
 migration, not Team. The reader's keys are built: `1` to `9` press a button, `E` deletes or
 restores, `J` and `K` move, `S`
 reports spam. The funding offer panel still exists beside the investor Mail.

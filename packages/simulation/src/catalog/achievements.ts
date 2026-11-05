@@ -294,4 +294,5 @@ export const EXIT_MUTATORS: ReadonlyArray<MutatorId> = [
   'legacy-monolith',
   'one-region',
   'tight-budget',
+  'shared-tenancy',
 ]

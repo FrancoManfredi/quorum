@@ -37,7 +37,7 @@ It is cheap and it carries nothing, so the only question is whether you have Fea
 - **No lift, no holdout.** The users without the Feature do not measure it yet: that waits on
   `ab-testing`.
 - **Flags left behind.** Nothing removes a Feature's code, so flags accumulate in the real world;
-  the build has no Remove item to model that.
+  there is no Remove item to model that.
 
 ## Tips
 

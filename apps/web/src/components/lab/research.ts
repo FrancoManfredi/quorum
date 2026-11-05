@@ -128,7 +128,7 @@ const costRows = (
     [h.Class('flex flex-col gap-1')],
     [
       h.span([h.Class(cn(EYEBROW, 'px-2'))], [`Cost · ${duration(game, entry)}`]),
-      ...recipeOf(entry.id).map(([pool, cost]) =>
+      ...recipeOf(entry.id, game.discounts).map(([pool, cost]) =>
         h.div(
           [
             h.Key(pool),

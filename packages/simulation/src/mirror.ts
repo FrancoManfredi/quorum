@@ -66,6 +66,7 @@ export const MANAGED = [
   'cacheStrategy',
   'refresh',
   'sticky',
+  'slowStart',
   'purge',
   'cacheKey',
   'earlyExpiry',

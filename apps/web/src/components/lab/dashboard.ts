@@ -31,7 +31,7 @@ import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
-import { budgetOf, slaCreditsOf } from '@quorum/simulation/slo'
+import { budgetOf, burnRateOf, slaCreditsOf } from '@quorum/simulation/slo'
 import type { Game, Postmortem, Sample } from '@quorum/simulation/state'
 import { ignored } from '@quorum/simulation/step'
 import { teamOutputs } from '@quorum/simulation/team'
@@ -634,7 +634,15 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
           : [{ group: 'research' as const, at: entry.time, label: '⬡ Research' }],
       ),
     )
-  return [...design, ...open, ...mail, ...finished].filter((mark) => shown.includes(mark.group))
+  // The Era the Company is in began at the second the Game kept when its round closed.
+  const game = model.board.game
+  const era: ReadonlyArray<Annotation> =
+    game.stage > 0 && game.stageAt > 0
+      ? [{ group: 'company', at: game.stageAt, label: `◇ ${ERAS[game.stage]?.name ?? 'Era'}` }]
+      : []
+  return [...design, ...open, ...mail, ...finished, ...era].filter((mark) =>
+    shown.includes(mark.group),
+  )
 }
 
 /** The annotations, as labelled vertical markers on every time series. */
@@ -1389,11 +1397,15 @@ const stateTimeline = (
 const kindColor = (kind: Kind): string => `#${KINDS[kind].color.toString(16).padStart(6, '0')}`
 
 /** The request mix now, as Grafana's donut with a table legend. `kind` narrows it to one Service. */
-const mix = (ledger: Ledger, kind: RequestKind | null, h: HtmlBuilder<Message>): Html => {
+const mix = (
+  ledger: Ledger,
+  shown: (kind: RequestKind) => boolean,
+  h: HtmlBuilder<Message>,
+): Html => {
   const kinds = (
     Object.entries(ledger.kinds) as ReadonlyArray<[Kind, { rate: number; p99: number }]>
   )
-    .filter(([entryKind, entry]) => entry.rate > 0 && (kind === null || entryKind === kind))
+    .filter(([entryKind, entry]) => entry.rate > 0 && shown(entryKind as RequestKind))
     .sort((a, b) => b[1].rate - a[1].rate)
   const total = kinds.reduce((sum, [, entry]) => sum + entry.rate, 0)
   return panel(
@@ -2425,12 +2437,14 @@ const incidentPanels = (
    Rows by research (12 "Charts by research")
    ========================================================================== */
 
-const RULES = ['errors', 'latency', 'saturation'] as const
+const RULES = ['errors', 'latency', 'saturation', 'queue', 'budget'] as const
 type Rule = (typeof RULES)[number]
 const RULE_NAME: Record<Rule, string> = {
   errors: 'Error rate',
   latency: 'Latency',
   saturation: 'Saturation',
+  queue: 'Queue growth',
+  budget: 'Budget burn',
 }
 
 type AlertState = 'ok' | 'pending' | 'firing' | 'ignored'
@@ -2464,11 +2478,21 @@ const watchedOf = (game: Game, ledger: Ledger): Record<Rule, number> => {
       .filter((node) => node.type !== 'users' && node.type !== 'analytics')
       .map((node) => ledger.nodes[node.id]?.utilization ?? 0),
   )
-  return { errors: ledger.errorShare, latency: slowest, saturation: hottest }
+  const oldest = Math.max(
+    0,
+    ...game.nodes.map((node) => (node.type === 'queue' ? (ledger.nodes[node.id]?.age ?? 0) : 0)),
+  )
+  return {
+    errors: ledger.errorShare,
+    latency: slowest,
+    saturation: hottest,
+    queue: Number.isFinite(oldest) ? oldest : 0,
+    budget: burnRateOf(game, ledger),
+  }
 }
 
 const asRule = (value: string | undefined): Rule | null =>
-  value === 'errors' || value === 'latency' || value === 'saturation' ? value : null
+  (RULES as ReadonlyArray<string>).includes(value ?? '') ? (value as Rule) : null
 
 /** The alerts the Inbox records: the rule, when, and whether the team has given up on it. */
 const alertMarks = (
@@ -2540,13 +2564,21 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
       ? percent(game.alertRules.errors, 1)
       : rule === 'latency'
         ? `${game.alertRules.latency}× T`
-        : percent(game.alertRules.saturation)
+        : rule === 'queue'
+          ? `${game.alertRules.queue} s`
+          : rule === 'budget'
+            ? `${game.alertRules.budget}×`
+            : percent(game.alertRules.saturation)
   const seen = (rule: Rule): string =>
     rule === 'errors'
       ? percent(watched.errors, 2)
       : rule === 'latency'
         ? `${watched.latency.toFixed(1)}× T`
-        : percent(watched.saturation)
+        : rule === 'queue'
+          ? `${Math.round(watched.queue)} s`
+          : rule === 'budget'
+            ? `${watched.budget.toFixed(1)}×`
+            : percent(watched.saturation)
   return tablePanel(
     'alert-rules',
     'col-span-12',
@@ -2574,14 +2606,16 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
 }
 
 /** The RED method: rate, errors and duration for each Service the Design serves, or for one. */
-const servicesTable = (ledger: Ledger, only: RequestKind | null, h: HtmlBuilder<Message>): Html => {
+const servicesTable = (
+  ledger: Ledger,
+  shown: (kind: RequestKind) => boolean,
+  h: HtmlBuilder<Message>,
+): Html => {
   const kinds = (
     Object.entries(ledger.kinds) as ReadonlyArray<[RequestKind, KindLedger | undefined]>
   )
     .flatMap(([kind, entry]) =>
-      entry === undefined || entry.rate <= 0 || (only !== null && kind !== only)
-        ? []
-        : [{ kind, entry }],
+      entry === undefined || entry.rate <= 0 || !shown(kind) ? [] : [{ kind, entry }],
     )
     .sort((left, right) => right.entry.rate - left.entry.rate)
   const total = kinds.reduce((sum, { entry }) => sum + entry.rate, 0)
@@ -2597,6 +2631,44 @@ const servicesTable = (ledger: Ledger, only: RequestKind | null, h: HtmlBuilder<
         key: kind,
         cells: [
           { text: KINDS[kind].label },
+          { text: `${rateText(entry.rate)}/s` },
+          { text: percent(total > 0 ? entry.rate / total : 0) },
+          { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
+          { text: ms(entry.mean) },
+          { text: ms(entry.p99) },
+        ],
+      }
+    }),
+    h,
+  )
+}
+
+/** The RED method per Service: the kinds its Features touch, summed from the Ledger's `services`. */
+const serviceTable = (
+  game: Game,
+  ledger: Ledger,
+  only: string | null,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const rows = game.services.flatMap((service) => {
+    const entry = ledger.services[service.id]
+    return entry === undefined || entry.rate <= 0 || (only !== null && service.id !== only)
+      ? []
+      : [{ service, entry }]
+  })
+  const total = rows.reduce((sum, { entry }) => sum + entry.rate, 0)
+  return tablePanel(
+    'service-red',
+    'col-span-24',
+    'Code',
+    'Rate, Errors, Duration per codebase · now',
+    ['Service', 'Rate', 'Share', 'Errors', 'Mean', 'p99'],
+    rows.map(({ service, entry }) => {
+      const failed = entry.rate > 0 ? entry.failed / entry.rate : 0
+      return {
+        key: service.id,
+        cells: [
+          { text: service.name },
           { text: `${rateText(entry.rate)}/s` },
           { text: percent(total > 0 ? entry.rate / total : 0) },
           { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
@@ -3141,8 +3213,8 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
 /**
  * Grafana's template variables (12 "Controls"): a Request kind and a Region that narrow every panel
  * that reads per-kind or per-region figures, the read-only Era and SLO, the compare and table
- * switches, and a switch per annotation group. A Service filter waits on a per-Service figure the
- * Ledger does not hold: the Game keeps one Service, and no Sample says which Service it served.
+ * switches, and a switch per annotation group. A Service drop-down appears with a second Service and
+ * narrows the per-kind panels to the kinds that Service's Features touch.
  */
 const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
@@ -3245,6 +3317,24 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
             }),
           }),
       ),
+      ...(game.services.length > 1
+        ? [
+            select(
+              'service',
+              dashboard.service ?? 'all',
+              [
+                ['all', 'All services'],
+                ...game.services.map((entry) => [entry.id, entry.name] as const),
+              ],
+              (value) =>
+                Message.DashboardChanged({
+                  message: DashboardMessage.ServiceChosen({
+                    service: value === 'all' ? null : value,
+                  }),
+                }),
+            ),
+          ]
+        : []),
       regional(game)
         ? select(
             'region',
@@ -3303,6 +3393,10 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const cashRate = Number(rows[rows.length - 1]?.cashRate ?? 0)
   // The template variables: a Request kind and a Region narrow every panel that holds them.
   const kind = model.board.dashboard.kind
+  const service = model.board.dashboard.service
+  const serviceKinds = service === null ? null : (ledger.services[service]?.kinds ?? [])
+  const shownKind = (entry: RequestKind): boolean =>
+    (kind === null || entry === kind) && (serviceKinds === null || serviceKinds.includes(entry))
   const region = regional(game) ? model.board.dashboard.region : null
   const regionApdex = region === null ? null : (ledger.regions[region] ?? null)
   const percentiles = has(game, 'percentiles')
@@ -3471,7 +3565,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               })
             : locked('errors-series', 'col-span-8', 'Errors', 'logs', h),
           causes(ledger, h),
-          mix(ledger, kind, h),
+          mix(ledger, shownKind, h),
 
           ...(alerting
             ? [
@@ -3483,7 +3577,8 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ...(has(game, 'tracing')
             ? [
                 rowHeader('Services (RED)', 1, h),
-                servicesTable(ledger, kind, h),
+                servicesTable(ledger, shownKind, h),
+                ...(game.services.length > 1 ? [serviceTable(game, ledger, service, h)] : []),
                 ...(kind ? [waterfallTable(game, ledger, kind, h)] : []),
               ]
             : []),

@@ -1331,6 +1331,26 @@ export const fr: Readonly<Record<string, string>> = {
   'Not yet': 'Pas encore',
   'Main menu': 'Menu principal',
   'Start a company': 'Créer une entreprise',
+  'Slow start on the Load Balancer, scheduled scaling, and a GraalVM native image, which starts warm. With slow start a new copy takes traffic gradually, so it never answers cold.':
+    'Démarrage progressif sur le répartiteur de charge, mise à l’échelle planifiée et image native GraalVM, qui démarre à chaud. Avec le démarrage progressif, une nouvelle copie reçoit le trafic peu à peu et ne répond jamais à froid.',
+  'Start in Pre-seed, then Seed, then Series A':
+    'Commencer en pré-amorçage, puis en amorçage, puis en série A',
+  'Policies: queue the cheapest Study, hire, keep App Servers cool':
+    'Politiques : mettre en file l’étude la moins chère, recruter, garder les serveurs d’application au frais',
+  'Spam filter': 'Filtre antispam',
+  'Adds a Postbox filter that sorts spam into its own folder, and now and then a real letter too.':
+    'Ajoute un filtre à la boîte qui range le spam dans son dossier, et parfois aussi un vrai courrier.',
+  'Twice the users, half the value each; media +50%; viral spikes twice as often':
+    'Deux fois plus d’utilisateurs, moitié moins de valeur chacun ; médias +50 % ; pics viraux deux fois plus fréquents',
+  'Business hours; buy ×4, write +50%; a stale money read is fined':
+    'Heures de bureau ; achat ×4, écriture +50 % ; une lecture d’argent périmée est sanctionnée',
+  'Late evening peak; media ×4; egress costs three times as much':
+    'Pic tard le soir ; médias ×4 ; la sortie réseau coûte trois fois plus',
+  'Buy ×2, search ×2; a scheduled monthly sale':
+    'Achat ×2, recherche ×2 ; une vente mensuelle planifiée',
+  'Shared tenancy': 'Location partagée',
+  'Noisy neighbours steal CPU from every instance':
+    'Des voisins bruyants volent du CPU à chaque instance',
   'Start in Pre-seed': 'Commencer en pré-amorçage',
   'lb server': 'serveur lb',
   'cache database': 'base de données cache',

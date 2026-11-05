@@ -1,4 +1,4 @@
-import { CALENDAR_START } from './catalog.ts'
+import { CALENDAR_START, type SaleSchedule } from './catalog.ts'
 
 /* The calendar, and an exact cosine for the daily cycles (04 "Determinism"). */
 
@@ -53,4 +53,20 @@ export const cosTurns = (turns: number): number => {
   return quarter > 0.125
     ? sign * sinSeries((0.25 - quarter) * 2 * PI)
     : sign * cosSeries(quarter * 2 * PI)
+}
+
+/**
+ * A Venture's scheduled sale (13 "Ventures"): whether it runs now, and the calendar minutes until
+ * the next one starts (0 while it runs).
+ */
+export const saleOf = (
+  time: number,
+  sale: SaleSchedule,
+): Readonly<{ on: boolean; startsIn: number }> => {
+  const minute = calendarMinute(time)
+  const cycle = sale.everyDays * 1_440
+  const ran = Math.floor((minute - sale.startMinute) / cycle)
+  const on = ran >= 1 && minute < ran * cycle + sale.startMinute + sale.minutes
+  const next = Math.max(1, Math.ceil((minute - sale.startMinute) / cycle))
+  return { on, startsIn: on ? 0 : next * cycle + sale.startMinute - minute }
 }

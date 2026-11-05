@@ -1246,6 +1246,8 @@ export const WARMED = 0.8
  */
 export const PSP_RATE = 0.029
 export const PSP_FIXED = 0.3
+/** What the second Payment Provider charges, against the first's fees: a smaller vendor, dearer per checkout. */
+export const SECOND_PROVIDER_FEE = 1.15
 /** Checkouts per second the Payment Provider takes at its first usage tier; each tier doubles it. */
 export const PSP_CAPACITY = 1_000
 
@@ -1469,6 +1471,12 @@ export const CHAOS_EVERY = 120
 export const CHAOS_SECONDS = 10
 export const CHAOS_FAILURE = 0.2
 export const CHAOS_INSIGHT = 1
+/**
+ * Failure Insight a second while a Load test's readout runs (12 "Other Insight sources"), and
+ * while a DR drill's outage runs: both push the Design past its limits on purpose.
+ */
+export const LOAD_TEST_INSIGHT = 2
+export const DRILL_INSIGHT = 5
 
 /** Auth Provider price, in dollars per second per user. */
 export const AUTH_PRICE_PER_USER = 0.00006

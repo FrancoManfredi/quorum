@@ -155,6 +155,7 @@ export const RESEARCH_IDS = [
   'service-mesh',
   'feature-flags',
   'secrets-management',
+  'spam-filter',
   // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").
   'on-call',
   'runbooks',
@@ -1588,6 +1589,16 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     requires: [],
     blurb: 'Keys live in a vault, so a phishing page has nothing to steal.',
   }),
+  research({
+    id: 'spam-filter',
+    name: 'Spam filter',
+    track: 'security',
+    cost: 300,
+    era: 1,
+    requires: [],
+    blurb:
+      'Adds a Postbox filter that sorts spam into its own folder, and now and then a real letter too.',
+  }),
   // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").
   research({
     id: 'on-call',
@@ -2098,6 +2109,8 @@ const RECIPES: Partial<Record<ResearchId, ReadonlyArray<InsightPool>>> = {
 
 /** Component types an item's recipe kinds must be sampled at: a trace needs more than one hop. */
 export const BREADTH: Partial<Record<ResearchId, number>> = { tracing: 3, profiling: 4 }
+/** Regions an item's recipe kinds must be sampled in: Real user monitoring needs two. */
+export const REGION_BREADTH: Partial<Record<ResearchId, number>> = { rum: 2 }
 
 /**
  * Each Era's price scale: the ◇ prices keep their ratios, and this sets their

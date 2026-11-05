@@ -43,22 +43,22 @@ Ventures and Mutators, and the engineering glossary entries the player has disco
 
 ## The Legacy shop
 
-| Perk                    | Levels | Cost (★) per level | Effect per level                                                                                             |
-| ----------------------- | ------ | ------------------ | ------------------------------------------------------------------------------------------------------------ |
-| Angel network           | 5      | 2, 4, 8, 16, 32    | Starting Cash ×2                                                                                             |
-| Alumni network          | 5      | 3, 6, 12, 24, 48   | +1 starting engineer (from the Pre-seed Era)                                                                 |
-| Institutional knowledge | 10     | 5 each             | Keep one researched item of your choice through the next Exit                                                |
-| Pattern recognition     | 5      | 4, 8, 16, 32, 64   | Insight +20%                                                                                                 |
-| Founder's reputation    | 5      | 4, 8, 16, 32, 64   | User growth +10%                                                                                             |
-| Better terms            | 5      | 6, 12, 24, 48, 96  | Dilution per round −2 points                                                                                 |
-| Night shift             | 3      | 5, 15, 45          | Offline cap 12 h, 18 h, 24 h                                                                                 |
-| Time dilation           | 2      | 20, 80             | Unlocks 20× and then 40× speed                                                                               |
-| Playbooks               | 4      | 5, 15, 45, 135     | Playbook slots: one free, then 2, 5, 10, 25 ([Playbooks](#playbooks))                                        |
-| Autopilot               | —      | —                  | Not built yet: the build has no Autopilot perk, so upgrades, research queues, and hiring stay manual.        |
-| War stories             | 3      | 8, 24, 72          | Open action items raise incident odds by half as much                                                        |
-| Head start              | 1      | 25                 | Start the next company in the Pre-seed Era. Levels 2 and 3 (the Seed and Series A starts) are not built yet. |
+| Perk                    | Levels | Cost (★) per level | Effect per level                                                                                                                                                                                                           |
+| ----------------------- | ------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Angel network           | 5      | 2, 4, 8, 16, 32    | Starting Cash ×2                                                                                                                                                                                                           |
+| Alumni network          | 5      | 3, 6, 12, 24, 48   | +1 starting engineer (from the Pre-seed Era)                                                                                                                                                                               |
+| Institutional knowledge | 10     | 5 each             | Keep one researched item of your choice through the next Exit                                                                                                                                                              |
+| Pattern recognition     | 5      | 4, 8, 16, 32, 64   | Insight +20%                                                                                                                                                                                                               |
+| Founder's reputation    | 5      | 4, 8, 16, 32, 64   | User growth +10%                                                                                                                                                                                                           |
+| Better terms            | 5      | 6, 12, 24, 48, 96  | Dilution per round −2 points                                                                                                                                                                                               |
+| Night shift             | 3      | 5, 15, 45          | Offline cap 12 h, 18 h, 24 h                                                                                                                                                                                               |
+| Time dilation           | 2      | 20, 80             | Unlocks 20× and then 40× speed                                                                                                                                                                                             |
+| Playbooks               | 4      | 5, 15, 45, 135     | Playbook slots: one free, then 2, 5, 10, 25 ([Playbooks](#playbooks))                                                                                                                                                      |
+| Autopilot               | 3      | 10, 30, 90         | Policies, each a switch in the Team panel: queue the cheapest Study; hire while payroll is under a quarter of revenue; buy the next size for App Servers above 70% load                                                    |
+| War stories             | 3      | 8, 24, 72          | Open action items raise incident odds by half as much                                                                                                                                                                      |
+| Head start              | 3      | 25, 75, 225        | Start the next company in the Pre-seed Era, then in Seed, then in Series A, with that Era's Cash, Equity, Users and research, and a Design that has a Cache (and a Load Balancer behind a second App Server from Series A) |
 
-The eleven perks cost 1,133 ★ in all, and costs grow so that a full shop takes several Exits, which
+The twelve perks cost 1,563 ★ in all, and costs grow so that a full shop takes several Exits, which
 is the target for 80 to 150 hours.
 
 ## Playbooks
@@ -105,7 +105,7 @@ Four of the eight now have the rule their row names: Bootstrapped indie's no-fun
 three below. Consumer social's celebrity post is the build's **Hot key** incident, and its own row
 names what the player meets.
 
-What each Venture starts with, and the numbers the build proposed where this document states none:
+What each Venture starts with:
 
 | Venture             | Cash | Equity | Stack and research                 | Legacy × | Signature incident   |
 | ------------------- | ---- | ------ | ---------------------------------- | -------- | -------------------- |
@@ -127,12 +127,11 @@ curves and amplitudes, the market and value multipliers, the mix boosts, and the
 above are the build's proposals; the unlock costs, the 100 ms bid deadline, the Java-or-C# rule, the
 calendar-day procurement, the Series A residency, the no-naive-retry rule, the Series B SLA, the
 realtime regions from Series A, the scarce GPUs, and the signature incidents are this document's. The
-SLA's one SLO level and the AI startup's two GPU Nodes are the build's proposals. Where it names an
-incident but no magnitude, the build proposes one: a hot shard costs three times the CPU per query, a
+SLA's one SLO level and the AI startup's two GPU Nodes are the game's own. Incident magnitudes: a hot shard costs three times the CPU per query, a
 premiere lifts video four times, a launch day lifts realtime six times, and a flash sale lifts
-checkouts — the ×20 this document's E-commerce row already gives its monthly sale — for a few minutes.
+checkouts ×20, for a few minutes.
 
-The rule of each built Venture is enforced where the player meets it. Developer platform refuses
+The rule of each Venture is enforced where the player meets it. Developer platform refuses
 `naive` retries on a Link (`retryRefusal`). Healthcare refuses to place a data Component outside the
 home region from Series A (`venturePlaceRefusal`). Ad tech's requests earn nothing once the kind's
 mean latency passes its deadline (`earnsInTime`). Government contract refuses a runtime that is not
@@ -148,19 +147,19 @@ Series A (`venturePlaceRefusal`): realtime is served where the players are. AI s
 GPU Nodes, whatever their size, and resizes them rather than buying more
 (`venturePlaceRefusal`): GPUs are scarce.
 
-The other four rows name a rule that is not a refusal or a target, so nothing of theirs is refused, and
-two of them are already what the build does:
+The other four rows name a rule that is not a refusal or a target. Each runs in the Simulation:
 
-- Consumer social's constraint is its market shape, and it is built: half the value per request and
-  twice the market (`value` 0.5 and `market` 2 in `catalog/ventures.ts`), read by `features.ts`.
-- Streaming media's egress dominance follows from its `media` ×4 mix, and it is built the same way:
-  four times the video is four times the egress, and the Egress Shock achievement asks for the bill.
-- Fintech's compliance fine needs a money penalty on a stale read of the money kinds, charged where a
-  Step counts what the Company earned (`solve.ts`, `step.ts`). The build counts that stale read as a
-  failed checkout and stops there.
-- E-commerce's monthly sale needs a scheduled-event day kept in `state.ts`, and a calendar month is
-  about 12 real hours at 1×, longer than most Companies last. The build keeps the Flash sale as the
-  Venture's signature incident, at the ×20 the row gives it.
+- Consumer social's constraint is its market shape: half the value per request and twice the market
+  (`value` 0.5 and `market` 2 in `catalog/ventures.ts`, read by `features.ts`), and viral spikes come
+  twice as often (`spikeWeight`).
+- Streaming media's egress dominates the bill: four times the video is four times the egress, and
+  every byte leaving the Design bills three times the price (`egress`). The Egress Shock achievement
+  asks for the bill.
+- Fintech's compliance fine charges 20 times the value of a request for each stale answer to a money
+  kind (`read`, `write`, `buy`), as `fines` on the Ledger, taken from Cash beside Burn.
+- E-commerce's sale is on the calendar: every 30 calendar days, at noon, for two calendar hours,
+  `buy` demand is ×20 (`saleOf` in `calendar.ts`). The Flash sale stays the Venture's signature
+  incident, at the same ×20.
 
 A signature incident weighs four times as much for its own Venture (`SIGNATURE_WEIGHT`) and keeps a
 weakness of 2 (`SIGNATURE_WEAKNESS`), so it can fire on a well-built Design. Six incidents exist only
@@ -191,7 +190,7 @@ Legacy multiplier.
 | Legacy monolith         | Start with a large PHP codebase: migrations cost 3× and tech debt starts at 40%           | +20%   |
 | One region forever      | Multi-region is disabled                                                                  | +20%   |
 | No caches               | The Cache and CDN are disabled                                                            | +40%   |
-| Shared tenancy          | Not built yet: noisy neighbors would put random CPU steal on every instance               | +10%   |
+| Shared tenancy          | Noisy neighbours steal up to 30% of an instance's CPU, redrawn every 30 sim seconds       | +10%   |
 | Tight budget            | Funding grants are halved                                                                 | +20%   |
 | Single language         | Every App Server must run PHP                                                             | +15%   |
 | Postgres for everything | The Cache, the Wide-column Store, Distributed SQL and the Data Warehouse cannot be placed | +30%   |

@@ -1,4 +1,4 @@
-import { Option, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import type { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import type { Game } from '@quorum/simulation/state'
@@ -36,6 +36,7 @@ export const EMPTY_INBOX: Inbox = {
   folder: 'action',
   label: null,
   mutes: [],
+  filter: true,
 }
 
 /** True while the player has this Sender muted: their Mail lands for the record, not the badge. */
@@ -168,7 +169,7 @@ export const mailed = (
         answer: null,
         read: quiet,
         trashed: false,
-        spam: fact.spam,
+        spam: fact.spam && inbox.filter,
         resolved: null,
       }
   // Mail that wants the player (a decision, or a provider, alarm or advisory) previews above the
@@ -241,6 +242,8 @@ export const withMail = (inbox: Inbox, id: number, change: Partial<Mail>): Inbox
 export const SavedInbox = Schema.Struct({
   mail: Schema.Array(MailSchema),
   mutes: Schema.Array(MailMute),
+  /** The spam filter's setting. */
+  filter: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   /** The last event tick the world wrote Mail for, so a reload does not repeat it. */
   bucket: Schema.Finite,
   /** The Sandbox bench's chosen sample; harmless for a Company, and it keeps one shape. */
@@ -251,6 +254,7 @@ export type SavedInbox = typeof SavedInbox.Type
 export const savedInbox = (inbox: Inbox): SavedInbox => ({
   mail: inbox.mail,
   mutes: inbox.mutes,
+  filter: inbox.filter,
   bucket: inbox.bucket,
   sample: inbox.sample,
 })
@@ -279,6 +283,8 @@ export const InboxMessage = defineMessageUnion({
   Trashed: { id: Schema.Finite },
   Restored: { id: Schema.Finite },
   MarkedSpam: { id: Schema.Finite },
+  /** The spam filter was switched on or off. */
+  FilterToggled: {},
   FolderChosen: { folder: Folder },
   /** A filter chip: one Sender kind, or null for every label. */
   LabelChosen: { label: Schema.NullOr(MailLabel) },
@@ -346,6 +352,8 @@ const answerOf = (kind: string | undefined, mail: Mail): string | null => {
       return 'You filed the postmortem.'
     case 'postmortem-take':
       return 'You filed the postmortem and put the action item in the study queue.'
+    case 'vendor':
+      return 'You booked the demo.'
     case 'trap':
       return 'You clicked it. It was a trap: the address was not the real sender.'
     default:
@@ -405,6 +413,7 @@ export const updateInbox = (
     PeekDismissed: () => ({ model: { ...inbox, peek: null } }),
     Trashed: ({ id }) => ({ model: reading(withMail(inbox, id, { trashed: true })) }),
     Restored: ({ id }) => ({ model: reading(withMail(inbox, id, { trashed: false })) }),
+    FilterToggled: () => ({ model: { ...inbox, filter: !inbox.filter } }),
     MarkedSpam: ({ id }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
       const spam = !mail?.spam

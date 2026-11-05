@@ -50,6 +50,8 @@ import {
   type TaskId,
   PATCH_GRACE,
 } from '@quorum/simulation/catalog'
+import { POLICY_LEVEL } from '@quorum/simulation/catalog'
+import { perkLevel } from '@quorum/simulation/founding'
 import { has } from '@quorum/simulation/lookups'
 import type { Engineer, Game, Team, TeamKind, WorkItem, WorkKind } from '@quorum/simulation/state'
 import {
@@ -1857,6 +1859,40 @@ const autopilot = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** The Autopilot perk's policies (13 "The Legacy shop"): a switch for each level the perk has. */
+const POLICY_COPY: Readonly<Record<'research' | 'hire' | 'upgrade', string>> = {
+  research: 'Queue the cheapest Study',
+  hire: 'Hire while payroll is under a quarter of revenue',
+  upgrade: 'Buy the next size for App Servers above 70% load',
+}
+
+const policies = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const game = model.board.game
+  const level = perkLevel(game, 'autopilot')
+  return (['research', 'hire', 'upgrade'] as const)
+    .filter((policy) => level >= POLICY_LEVEL[policy])
+    .map((policy) =>
+      h.button(
+        [
+          h.Key(`policy-${policy}`),
+          h.Type('button'),
+          h.Role('switch'),
+          h.AriaChecked(game.policies[policy]),
+          h.OnClick(Message.PolicyToggled({ policy, on: !game.policies[policy] })),
+          h.Class(
+            cn(
+              'press inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[calc(11.5px*var(--type-scale))] font-medium',
+              game.policies[policy]
+                ? 'bg-primary-fill text-on-primary-fill shadow-primary'
+                : 'text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)] hover:text-foreground',
+            ),
+          ),
+        ],
+        [POLICY_COPY[policy]],
+      ),
+    )
+}
+
 /** Chaos experiments (10 "Track: Reliability"): the Company's own failure injection, once researched. */
 const chaos = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
@@ -2130,7 +2166,11 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
         'Board',
         h.div(
           [h.Class('flex items-center gap-2')],
-          [autopilot(model, h), ...(has(game, 'chaos-engineering') ? [chaos(model, h)] : [])],
+          [
+            autopilot(model, h),
+            ...policies(model, h),
+            ...(has(game, 'chaos-engineering') ? [chaos(model, h)] : []),
+          ],
         ),
         h,
       ),

@@ -1,4 +1,5 @@
 import {
+  BACKDOOR_FUSE,
   CVE_DEFS,
   CVE_EVERY,
   PATCH_GRACE,
@@ -81,6 +82,24 @@ export const advanceCves = (
       next = { ...next, cves: [...next.cves, def.id].slice(-RECENT_CVES) }
       const filed = next.backlog.find((entry) => entry.id === item.id) as WorkItem
       events.push(StepEvent.CveDisclosed({ item: filed }))
+    }
+  }
+
+  // A backdoor the attacker has sat on long enough starts a breach too; a Security team finds it
+  // first, in half the time, and closes it quietly.
+  if (next.backdoorAt !== null) {
+    const age = next.time - next.backdoorAt
+    if (securityStaffed(next) && age >= BACKDOOR_FUSE / 2) next = { ...next, backdoorAt: null }
+    else if (age >= BACKDOOR_FUSE && !next.incident) {
+      const used = startIncident(next, ledger, 'breach', 0)
+      if (used) {
+        next = {
+          ...used.game,
+          backdoorAt: null,
+          users: Math.floor(used.game.users * (1 - BREACH_CHURN)),
+        }
+        events.push(StepEvent.IncidentStarted({ incident: used.incident }))
+      }
     }
   }
 

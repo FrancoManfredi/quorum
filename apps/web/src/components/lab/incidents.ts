@@ -131,7 +131,13 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
                       ),
                     ),
                   ],
-                  [rule === 'latency' ? `${threshold}×` : `${Math.round(threshold * 1000) / 10}%`],
+                  [
+                    rule === 'latency' || rule === 'budget'
+                      ? `${threshold}×`
+                      : rule === 'queue'
+                        ? `${threshold} s`
+                        : `${Math.round(threshold * 1000) / 10}%`,
+                  ],
                 ),
               ),
             ),

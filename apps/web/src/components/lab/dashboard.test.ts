@@ -177,7 +177,7 @@ const row = (label: string) => Scene.selector(`[data-row="${label}"]`)
 
 test('the Alerts row draws each rule’s threshold and state, and the pages the Inbox kept', () => {
   const model = fixture({
-    game: { alarms: { errors: 40, latency: 0, saturation: 20 } },
+    game: { alarms: { errors: 40, latency: 0, saturation: 20, queue: 0, budget: 0 } },
     board: {
       inbox: {
         ...initialModel().board.inbox,

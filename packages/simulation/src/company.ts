@@ -6,6 +6,7 @@ import {
   LINK_TIMEOUT,
   START_CASH,
   type ComponentId,
+  type ResearchId,
 } from './catalog.ts'
 import {
   CORE_TEAM,
@@ -57,6 +58,8 @@ export const node = (
   policy: 'weighted',
   variant: 'l7',
   sticky: false,
+  slowStart: false,
+  provider: 'first',
   purge: false,
   cacheKey: 'full',
   staleUntil: 0,
@@ -168,6 +171,7 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   spilled: 0,
   researched: [],
   stage: 0,
+  stageAt: 0,
   equity: 1,
   declined: false,
   time: 0,
@@ -184,7 +188,7 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   openActions: [],
   handled: [],
   runbooks: [],
-  alarms: { errors: 0, latency: 0, saturation: 0 },
+  alarms: { errors: 0, latency: 0, saturation: 0, queue: 0, budget: 0 },
   servedKinds: ['page', 'read'],
   alertRules: DEFAULT_ALERT_RULES,
   falseAlarms: NO_FALSE_ALARMS,
@@ -208,6 +212,10 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   adoption: {},
   lifts: {},
   awaiting: [],
+  backdoorAt: null,
+  discounts: [],
+  policies: { research: false, hire: false, upgrade: false },
+  policyAt: 0,
   autopilot: true,
   deploys: 0,
   badDeploys: 0,
@@ -262,9 +270,116 @@ export const preseedGame = (seed = 20_261_031): Game => {
     pools: { ...NO_INSIGHT, write: 20, login: 20 },
     users: 1_050,
     stage: 1,
+    stageAt: 12 * 60,
     equity: 1 - (garage?.dilution ?? 0),
     researched: ['stripe', 'php-fpm', 'logs', 'metrics', 'load-balancing'],
     time: 12 * 60,
     nextIncidentAt: 12 * 60 + FIRST_INCIDENT_AFTER,
+  })
+}
+
+/**
+ * The Head start perk's later levels (13 "The Legacy shop"): the Company starts in Seed or Series
+ * A. The Design is the Pre-seed one with what the lessons of the missed Eras add (a Cache, then a
+ * second App Server behind a Load Balancer), the research those Eras give, the Cash and Equity of
+ * the rounds raised, and the Users that ended the last Era.
+ */
+const HEAD_START: ReadonlyArray<
+  Readonly<{ users: number; research: ReadonlyArray<ResearchId>; hours: number }>
+> = [
+  { users: 1_050, research: [], hours: 12 },
+  {
+    users: 5_000,
+    research: [
+      'caching',
+      'pooling',
+      'replication',
+      'health-checks',
+      'percentiles',
+      'timeouts',
+      'ci',
+    ],
+    hours: 36,
+  },
+  {
+    users: 25_000,
+    research: [
+      'caching',
+      'pooling',
+      'replication',
+      'health-checks',
+      'percentiles',
+      'timeouts',
+      'ci',
+      'full-text-search',
+      'object-storage',
+      'cdn',
+      'waf',
+      'background-jobs',
+      'queues',
+      'stampede-protection',
+      'tracing',
+      'pitr',
+    ],
+    hours: 72,
+  },
+]
+
+export const headStartGame = (seed: number, level: number): Game => {
+  const preseed = preseedGame(seed)
+  const era = Math.max(1, Math.min(level, HEAD_START.length)) as 1 | 2 | 3
+  if (era === 1) return preseed
+  const start = HEAD_START[era - 1]
+  if (!start) return preseed
+  const nodes = [
+    ...preseed.nodes.map((entry) =>
+      entry.type === 'server'
+        ? { ...entry, size: 3, workers: 24 }
+        : entry.type === 'database'
+          ? { ...entry, size: 2 }
+          : entry,
+    ),
+    node('cache', 'cache', 760, 120),
+    ...(era === 3
+      ? [
+          node('lb', 'lb', 280, 280),
+          node('server2', 'server', 440, 40, { size: 3, runtime: 'php_fpm', workers: 24 }),
+        ]
+      : []),
+  ]
+  const links = [
+    ...preseed.links.filter((entry) => era === 2 || entry.from !== 'users'),
+    link('server', 'cache'),
+    ...(era === 3
+      ? [
+          link('users', 'lb'),
+          link('lb', 'server'),
+          link('lb', 'server2'),
+          link('server2', 'database'),
+          link('server2', 'cache'),
+          link('server2', 'analytics'),
+        ]
+      : []),
+  ]
+  const raised = ERAS.slice(0, era).reduce(
+    (total, entry) => ({
+      grant: total.grant + entry.grant,
+      keep: total.keep * (1 - entry.dilution),
+    }),
+    { grant: START_CASH, keep: 1 },
+  )
+  const time = start.hours * 60
+  return normalizeOrdinals({
+    ...preseed,
+    nodes,
+    links,
+    cash: raised.grant,
+    equity: raised.keep,
+    users: start.users,
+    stage: era,
+    stageAt: time,
+    researched: [...preseed.researched, ...start.research],
+    time,
+    nextIncidentAt: time + FIRST_INCIDENT_AFTER,
   })
 }

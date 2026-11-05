@@ -8,11 +8,10 @@ order: 16
 This document collects every formula and tunable constant, and describes how balance is checked.
 
 **Source of truth.** The build is normative: every number below is checked against the catalog in
-`packages/simulation/src/catalog` at the build this page ships with. Where
-the design and the build disagree, [Live tuning](#live-tuning) names the knob and why it moved,
-[Open gaps](#open-gaps) names what the build does not have, and
-[Known balance gaps](#known-balance-gaps) names the checks that fail or have never run. Numbers
-measured from the build are in [Measurements](/design/measurements).
+`packages/simulation/src/catalog` at the build this page ships with. [Live tuning](#live-tuning)
+names the knobs and why they sit where they do, and [What the checks cover](#what-the-checks-cover)
+says what each automated check asserts. Numbers measured from the build are in
+[Measurements](/design/measurements).
 
 ## Number ranges
 
@@ -34,79 +33,76 @@ Formatting: SI suffixes only (k, M, B, T). No letter suffixes such as "aa".
 
 ## Constants
 
-| Constant              | Symbol         | Value                                                                                   | Where used                                                                 |
-| --------------------- | -------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Step length           | —              | 100 ms                                                                                  | [Simulation](/design/04-simulation#time)                                   |
-| Calendar rate         | —              | 1 sim s = 1 calendar min                                                                | [Simulation](/design/04-simulation#time)                                   |
-| Requests per user     | `R_user`       | 0.02 rps                                                                                | [Demand](/design/04-simulation#demand)                                     |
-| Diurnal amplitude     | `A`            | 0.45                                                                                    | [Demand](/design/04-simulation#demand)                                     |
-| Copy price growth     | —              | 1.25×                                                                                   | [Prices](#prices)                                                          |
-| Resize price growth   | —              | 2× per size step                                                                        | [Vertical and horizontal](#vertical-and-horizontal)                        |
-| Sell refund           | —              | 50%                                                                                     | [Components](/design/05-components#rules-for-all-components)               |
-| Insight yield         | —              | 1 × √(sampled rps), per Component type and kind                                         | [Observability](/design/12-observability#earning-insight)                  |
-| Default sample rate   | —              | 10%                                                                                     | [Observability](/design/12-observability#earning-insight)                  |
-| Default retention     | —              | 15 min; pool cap at least 100                                                           | [Observability](/design/12-observability#retention)                        |
-| Study duration        | —              | 20 s (Garage) to 60 min (Public)                                                        | [Progression](/design/10-progression#studies)                              |
-| Spike speed           | —              | 2×                                                                                      | [Team](/design/08-team-and-velocity#spikes)                                |
-| Growth rate           | `g`            | See [User growth](#user-growth)                                                         |                                                                            |
-| Churn rate            | `c`            | 0.004/s                                                                                 | [User growth](#user-growth)                                                |
-| Declined-round growth | —              | 0.7 × `g`                                                                               | [Funding](/design/09-economy#funding)                                      |
-| Abroad seed share     | `seed_share`   | 0.05 (proposed)                                                                         | [Going global](/design/04-simulation#going-global)                         |
-| Fickle share          | `f`            | 0.5 (proposed)                                                                          | [Users and growth](/design/04-simulation#users-and-growth)                 |
-| Steady churn          | `s`            | 0.2 × `c` (proposed)                                                                    | [Users and growth](/design/04-simulation#users-and-growth)                 |
-| Border mixing         | `m`            | 0.1 (proposed)                                                                          | [Users and growth](/design/04-simulation#users-and-growth)                 |
-| Mirror time           | `mirror_time`  | 30 calendar minutes (proposed)                                                          | [Mirror a region](/design/05-components#mirror-a-region)                   |
-| Staged sync wait      | `stage_wait`   | 60 calendar minutes (proposed)                                                          | [GitOps](/design/05-components#gitops)                                     |
-| GitOps poll           | `sync_poll`    | 3 calendar minutes (Argo CD's default)                                                  | [GitOps](/design/05-components#gitops)                                     |
-| Plan refresh          | `refresh_time` | 0.5 calendar minutes per Node (proposed)                                                | [IaC tools](/design/05-components#iac-tools)                               |
-| IaC tool switch       | `iac_switch`   | 1,440 calendar minutes (proposed)                                                       | [IaC tools](/design/05-components#iac-tools)                               |
-| Valuation scale       | —              | 1.5 × 10⁻⁴                                                                              | [Valuation scale](#valuation-scale)                                        |
-| Coordination penalty  | `k`            | 0.08                                                                                    | [Team](/design/08-team-and-velocity#coordination)                          |
-| Dev Hours per day     | —              | 8 per engineer, 6.4 founder                                                             | [Team](/design/08-team-and-velocity#dev-hours)                             |
-| Adoption time         | `τ`            | 7 calendar days                                                                         | [Adoption](/design/08-team-and-velocity#adoption)                          |
-| Lift spread           | `σ`            | 1.0                                                                                     | [Measured lift](/design/08-team-and-velocity#measured-lift)                |
-| Upkeep ceiling        | —              | 0.4 × S / (S + 2,000), max 0.6                                                          | [Upkeep](/design/08-team-and-velocity#upkeep)                              |
-| Unhappy mood          | —              | 0.35, one Mail per slump; content again at 0.7 (proposed)                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Page mood             | —              | −0.08 per page (proposed)                                                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Freeze mood           | —              | a calendar week of a spent budget takes all of it (proposed)                            | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Pay-gap mood          | —              | a third of a point a calendar day at a 50% gap (proposed)                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Time off              | —              | 3 calendar days (proposed)                                                              | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Block reminder        | —              | 1 calendar day after Later (proposed)                                                   | [Blocked](/design/08-team-and-velocity#blocked)                            |
-| Block hire threshold  | —              | 8 engineers on one team (proposed)                                                      | [Blocked](/design/08-team-and-velocity#blocked)                            |
-| Market gain cap       | —              | +100% of the Era market                                                                 | [Sizes](/design/08-team-and-velocity#sizes)                                |
-| Link timeout          | —              | 30 s                                                                                    | [Simulation](/design/04-simulation#capacity-utilization-and-queues)        |
-| Drawer size           | —              | `max($25, 60 s of revenue)`                                                             | [Economy](/design/09-economy#the-payments-drawer)                          |
-| Offline cap           | —              | 8 h; 12, 18, 24 h with Night shift                                                      | [Simulation](/design/04-simulation#offline-progress)                       |
-| Offline churn cap     | —              | 5%                                                                                      | [Simulation](/design/04-simulation#offline-progress)                       |
-| SLA credit            | —              | 10% of subscription revenue while the trailing week misses the signed target            | [Incidents](/design/11-incidents#sla-credits)                              |
-| On-call ack           | —              | 5 sim s after the page (proposed)                                                       | [Incidents](/design/11-incidents#the-incident-loop)                        |
-| CDC change rate       | —              | 20,000 changes/s (05)                                                                   | [CDC Connector](/design/05-components#cdc-connector)                       |
-| Sidecar overhead      | —              | 5% of a member's CPU and Burn (05)                                                      | [Service Mesh](/design/05-components#service-mesh)                         |
-| Sidecar hop           | —              | 1 ms per hop (05)                                                                       | [Service Mesh](/design/05-components#service-mesh)                         |
-| Mesh Insight          | —              | +20% on watched traffic (05)                                                            | [Service Mesh](/design/05-components#service-mesh)                         |
-| Mesh Platform tax     | —              | 0.5 engineers per mesh (proposed)                                                       | [Team](/design/08-team-and-velocity#teams)                                 |
-| Rollout steps         | —              | off, 5%, 25%, 50%, 100% (05)                                                            | [Feature Flags](/design/05-components#feature-flags)                       |
-| Certificate life      | —              | 90 calendar days; 45 from Series C (05)                                                 | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
-| Certificate renewal   | —              | two thirds of the life                                                                  | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
-| L4 multiplier         | —              | 10× the capacity, 0.2 ms, 0.6× the Burn (proposed)                                      | [Load Balancer](/design/05-components#load-balancer)                       |
-| Gateway burst         | —              | 200 requests on top of the limit (proposed)                                             | [API Gateway](/design/05-components#api-gateway)                           |
-| ESI page gain         | —              | +20 points of `page` hit ratio (10)                                                     | [CDN](/design/05-components#cdn)                                           |
-| Bot management        | —              | false positives × 0.5 (proposed)                                                        | [WAF](/design/05-components#waf)                                           |
-| Schedule lead         | —              | 120 calendar minutes before the peak (proposed)                                         | [Autoscaler](/design/05-components#autoscaler)                             |
-| ARM price, speed      | —              | 0.8×, and 0.95× CPU (proposed)                                                          | [App Server](/design/05-components#app-server)                             |
-| Quantization value    | —              | INT8 0.95, INT4 0.85; speed 2× and 3× (value 05, speed proposed)                        | [GPU Node](/design/05-components#gpu-node)                                 |
-| Batch gain, TTFT      | —              | batch 8: 1.6×, +150 ms; batch 32: 2.2×, +500 ms (proposed)                              | [GPU Node](/design/05-components#gpu-node)                                 |
-| Bulkhead wait         | —              | 1,000 ms per call (proposed)                                                            | [Links](/design/05-components#links)                                       |
-| Hedge load            | —              | +10% calls on the Link (proposed)                                                       | [Links](/design/05-components#links)                                       |
-| Serialization CPU     | —              | 0.02 reference ms per backend call (proposed)                                           | [Performance](/design/10-progression#track-performance)                    |
-| Dual-write stale      | —              | 0.5% of search answers, from Series B (proposed)                                        | [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync)      |
-| Materialized view     | —              | 0.5× scan CPU, 5% stale answers (scan 10, stale proposed)                               | [Data Warehouse](/design/07-data-tier#data-warehouse)                      |
-| Chaos experiment      | —              | every 120 s, 10 s long, 20% of the target's calls fail, 1 ◇ Failure a second (proposed) | [Reliability](/design/10-progression#track-reliability)                    |
+| Constant              | Symbol         | Value                                                                        | Where used                                                                 |
+| --------------------- | -------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Step length           | —              | 100 ms                                                                       | [Simulation](/design/04-simulation#time)                                   |
+| Calendar rate         | —              | 1 sim s = 1 calendar min                                                     | [Simulation](/design/04-simulation#time)                                   |
+| Requests per user     | `R_user`       | 0.02 rps                                                                     | [Demand](/design/04-simulation#demand)                                     |
+| Diurnal amplitude     | `A`            | 0.45                                                                         | [Demand](/design/04-simulation#demand)                                     |
+| Copy price growth     | —              | 1.25×                                                                        | [Prices](#prices)                                                          |
+| Resize price growth   | —              | 2× per size step                                                             | [Vertical and horizontal](#vertical-and-horizontal)                        |
+| Sell refund           | —              | 50%                                                                          | [Components](/design/05-components#rules-for-all-components)               |
+| Insight yield         | —              | 1 × √(sampled rps), per Component type and kind                              | [Observability](/design/12-observability#earning-insight)                  |
+| Default sample rate   | —              | 10%                                                                          | [Observability](/design/12-observability#earning-insight)                  |
+| Default retention     | —              | 15 min; pool cap at least 100                                                | [Observability](/design/12-observability#retention)                        |
+| Study duration        | —              | 20 s (Garage) to 60 min (Public)                                             | [Progression](/design/10-progression#studies)                              |
+| Spike speed           | —              | 2×                                                                           | [Team](/design/08-team-and-velocity#spikes)                                |
+| Growth rate           | `g`            | See [User growth](#user-growth)                                              |                                                                            |
+| Churn rate            | `c`            | 0.004/s                                                                      | [User growth](#user-growth)                                                |
+| Declined-round growth | —              | 0.7 × `g`                                                                    | [Funding](/design/09-economy#funding)                                      |
+| Abroad seed share     | `seed_share`   | 0.05                                                                         | [Going global](/design/04-simulation#going-global)                         |
+| Fickle share          | `f`            | 0.5                                                                          | [Users and growth](/design/04-simulation#users-and-growth)                 |
+| Steady churn          | `s`            | 0.2 × `c`                                                                    | [Users and growth](/design/04-simulation#users-and-growth)                 |
+| Border mixing         | `m`            | 0.1                                                                          | [Users and growth](/design/04-simulation#users-and-growth)                 |
+| Mirror time           | `mirror_time`  | 30 calendar minutes                                                          | [Mirror a region](/design/05-components#mirror-a-region)                   |
+| Staged sync wait      | `stage_wait`   | 60 calendar minutes                                                          | [GitOps](/design/05-components#gitops)                                     |
+| GitOps poll           | `sync_poll`    | 3 calendar minutes (Argo CD's default)                                       | [GitOps](/design/05-components#gitops)                                     |
+| Plan refresh          | `refresh_time` | 0.5 calendar minutes per Node                                                | [IaC tools](/design/05-components#iac-tools)                               |
+| IaC tool switch       | `iac_switch`   | 1,440 calendar minutes                                                       | [IaC tools](/design/05-components#iac-tools)                               |
+| Valuation scale       | —              | 1.5 × 10⁻⁴                                                                   | [Valuation scale](#valuation-scale)                                        |
+| Coordination penalty  | `k`            | 0.08                                                                         | [Team](/design/08-team-and-velocity#coordination)                          |
+| Dev Hours per day     | —              | 8 per engineer, 6.4 founder                                                  | [Team](/design/08-team-and-velocity#dev-hours)                             |
+| Adoption time         | `τ`            | 7 calendar days                                                              | [Adoption](/design/08-team-and-velocity#adoption)                          |
+| Lift spread           | `σ`            | 1.0                                                                          | [Measured lift](/design/08-team-and-velocity#measured-lift)                |
+| Upkeep ceiling        | —              | 0.4 × S / (S + 2,000), max 0.6                                               | [Upkeep](/design/08-team-and-velocity#upkeep)                              |
+| Unhappy mood          | —              | 0.35, one Mail per slump; content again at 0.7                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Page mood             | —              | −0.08 per page                                                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Freeze mood           | —              | a calendar week of a spent budget takes all of it                            | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Pay-gap mood          | —              | a third of a point a calendar day at a 50% gap                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Time off              | —              | 3 calendar days                                                              | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Block reminder        | —              | 1 calendar day after Later                                                   | [Blocked](/design/08-team-and-velocity#blocked)                            |
+| Block hire threshold  | —              | 8 engineers on one team                                                      | [Blocked](/design/08-team-and-velocity#blocked)                            |
+| Market gain cap       | —              | +100% of the Era market                                                      | [Sizes](/design/08-team-and-velocity#sizes)                                |
+| Link timeout          | —              | 30 s                                                                         | [Simulation](/design/04-simulation#capacity-utilization-and-queues)        |
+| Drawer size           | —              | `max($25, 60 s of revenue)`                                                  | [Economy](/design/09-economy#the-payments-drawer)                          |
+| Offline cap           | —              | 8 h; 12, 18, 24 h with Night shift                                           | [Simulation](/design/04-simulation#offline-progress)                       |
+| Offline churn cap     | —              | 5%                                                                           | [Simulation](/design/04-simulation#offline-progress)                       |
+| SLA credit            | —              | 10% of subscription revenue while the trailing week misses the signed target | [Incidents](/design/11-incidents#sla-credits)                              |
+| On-call ack           | —              | 5 sim s after the page                                                       | [Incidents](/design/11-incidents#the-incident-loop)                        |
+| CDC change rate       | —              | 20,000 changes/s (05)                                                        | [CDC Connector](/design/05-components#cdc-connector)                       |
+| Sidecar overhead      | —              | 5% of a member's CPU and Burn (05)                                           | [Service Mesh](/design/05-components#service-mesh)                         |
+| Sidecar hop           | —              | 1 ms per hop (05)                                                            | [Service Mesh](/design/05-components#service-mesh)                         |
+| Mesh Insight          | —              | +20% on watched traffic (05)                                                 | [Service Mesh](/design/05-components#service-mesh)                         |
+| Mesh Platform tax     | —              | 0.5 engineers per mesh                                                       | [Team](/design/08-team-and-velocity#teams)                                 |
+| Rollout steps         | —              | off, 5%, 25%, 50%, 100% (05)                                                 | [Feature Flags](/design/05-components#feature-flags)                       |
+| Certificate life      | —              | 90 calendar days; 45 from Series C (05)                                      | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
+| Certificate renewal   | —              | two thirds of the life                                                       | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
+| L4 multiplier         | —              | 10× the capacity, 0.2 ms, 0.6× the Burn                                      | [Load Balancer](/design/05-components#load-balancer)                       |
+| Gateway burst         | —              | 200 requests on top of the limit                                             | [API Gateway](/design/05-components#api-gateway)                           |
+| ESI page gain         | —              | +20 points of `page` hit ratio (10)                                          | [CDN](/design/05-components#cdn)                                           |
+| Bot management        | —              | false positives × 0.5                                                        | [WAF](/design/05-components#waf)                                           |
+| Schedule lead         | —              | 120 calendar minutes before the peak                                         | [Autoscaler](/design/05-components#autoscaler)                             |
+| ARM price, speed      | —              | 0.8×, and 0.95× CPU                                                          | [App Server](/design/05-components#app-server)                             |
+| Quantization value    | —              | INT8 0.95, INT4 0.85; speed 2× and 3×                                        | [GPU Node](/design/05-components#gpu-node)                                 |
+| Batch gain, TTFT      | —              | batch 8: 1.6×, +150 ms; batch 32: 2.2×, +500 ms                              | [GPU Node](/design/05-components#gpu-node)                                 |
+| Bulkhead wait         | —              | 1,000 ms per call                                                            | [Links](/design/05-components#links)                                       |
+| Hedge load            | —              | +10% calls on the Link                                                       | [Links](/design/05-components#links)                                       |
+| Serialization CPU     | —              | 0.02 reference ms per backend call                                           | [Performance](/design/10-progression#track-performance)                    |
+| Dual-write stale      | —              | 0.5% of search answers, from Series B                                        | [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync)      |
+| Materialized view     | —              | 0.5× scan CPU, 5% stale answers                                              | [Data Warehouse](/design/07-data-tier#data-warehouse)                      |
+| Chaos experiment      | —              | every 120 s, 10 s long, 20% of the target's calls fail, 1 ◇ Failure a second | [Reliability](/design/10-progression#track-reliability)                    |
 
-The rollout steps and the certificate's two lifetimes are 05's own. The mesh's tax is the build's:
-05 says Platform Dev Hours and gives no figure, so a mesh takes a Cluster's half an engineer. So is
-every number the last block marks "proposed": 05 and 10 name the mechanism each one serves and give
-no rate, and the rate the build chose sits on the page that owns the mechanic.
+The rollout steps and the certificate's two lifetimes are 05's own. A mesh takes a Cluster's half an engineer of Platform Dev Hours. The pages that own each mechanic give the rate it runs at.
 
 Four rows describe the Features lifecycle: adoption time, lift spread, the upkeep ceiling, and the
 market gain cap. Adoption time is exact arithmetic, stepped a Step at a time, so the 63% after a
@@ -150,7 +146,7 @@ it: PHP 0.85, Node.js and C# 1.0, Python and Java 1.05, Ruby 1.1, Go 1.15, Elixi
 records how far these values sit from the design's.
 
 A Balanced design should land at a margin of 25% to 45%, which puts the Rule of 40 checklist item
-within reach but not free. No bot asserts that margin yet ([Known balance gaps](#known-balance-gaps)).
+within reach but not free. `pacing.test.ts` records the margin at Seed and Series A entry.
 
 ### Valuation scale
 
@@ -233,64 +229,44 @@ balance change shows up as a test failure rather than in a playtest report. Ever
 Team's autopilot on, and every bot but Greedy hires while payroll, the new hire included, stays under
 25% of revenue, up to 4 engineers.
 
-| Bot      | Strategy                                                                                     | Design limit                                       | In the build                                                                                                                        |
-| -------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Balanced | Relieves the bottleneck Node, researches by a fixed priority list, builds each Era's content | Inside the targets                                 | Built. Seeds 1–5: Seed reached on every seed at 26.8–35.7 sim minutes, Pre-seed within 20 min, positive Garage and Pre-seed margins |
-| Greedy   | Bigger boxes and the cheapest research; never hires                                          | Not beat a target by more than 40%                 | Built. Seeds 1–3: Seed no faster than 27 minutes                                                                                    |
-| Stubborn | Never changes the starting Stack                                                             | Reach IPO within 1.6× the target time              | Built. Seeds 1–3: Seed within 1.6× Balanced on the same seed                                                                        |
-| Polyglot | Migrates to every language it researches                                                     | Not beat Balanced by more than 30%                 | Built. Seeds 1–3: Seed no faster than 0.7× Balanced                                                                                 |
-| Decliner | Plays Balanced and declines every funding round                                              | Legacy per hour not beat Balanced by more than 15% | Built. Seeds 1–3: reaches Seed with Equity at 100%                                                                                  |
-| Idle     | Logs in every 2 hours, spends everything, leaves                                             | Reach Series A within 24 hours of real time        | Not built                                                                                                                           |
-| Margin   | Plays like Balanced and records margin at each Era milestone                                 | Margin in 25% to 45% from Seed on                  | Not built. `pacing.test.ts` records the margin at Seed and Series A entry instead                                                   |
+| Bot      | Strategy                                                                                     | Design limit                                       | Check                                                                                                                        |
+| -------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Balanced | Relieves the bottleneck Node, researches by a fixed priority list, builds each Era's content | Inside the targets                                 | Seeds 1–5: Seed reached on every seed at 26.8–35.7 sim minutes, Pre-seed within 20 min, positive Garage and Pre-seed margins |
+| Greedy   | Bigger boxes and the cheapest research; never hires                                          | Not beat a target by more than 40%                 | Seeds 1–3: Seed no faster than 27 minutes                                                                                    |
+| Stubborn | Never changes the starting Stack                                                             | Reach IPO within 1.6× the target time              | Seeds 1–3: Seed within 1.6× Balanced on the same seed                                                                        |
+| Polyglot | Migrates to every language it researches                                                     | Not beat Balanced by more than 30%                 | Seeds 1–3: Seed no faster than 0.7× Balanced                                                                                 |
+| Decliner | Plays Balanced and declines every funding round                                              | Legacy per hour not beat Balanced by more than 15% | Seeds 1–3: reaches Seed with Equity at 100%                                                                                  |
+| Idle     | Plays Balanced, but logs in every 2 hours, spends everything, and leaves                     | Reach Pre-seed within 24 hours of game time        | `bots.test.ts` (`SLOW_TESTS=1`)                                                                                              |
+| Margin   | Plays like Balanced and records margin at each Era milestone                                 | Margin in 25% to 45% from Seed on                  | `pacing.test.ts` records the margin at Seed and Series A entry                                                               |
 
-A balance change passes when the five bots meet their limits on seeds 1–5: Balanced runs on all five
-seeds, the other four on seeds 1–3.
+A balance change passes when the bots meet their limits on seeds 1–5: Balanced runs on all five
+seeds, the others on seeds 1–3 (`pacing.test.ts` and `bots.test.ts`, both under `SLOW_TESTS=1`).
 
-## The dominance test
+## Dominance
 
-Pillar 2 says no option strictly dominates another. The test checks it.
-
-Four option-set kinds, each scored on every reference design:
-
-| Option set               | Options                                                    |
-| ------------------------ | ---------------------------------------------------------- |
-| Runtimes                 | The 28 runtimes                                            |
-| Frameworks, per language | Each language's frameworks, plus the language-neutral ones |
-| Instance families        | Burstable, General, Compute, Memory                        |
-| PHP-FPM pool modes       | Static, dynamic, and on demand                             |
-
-The 21 reference designs are the Garage start, the Pre-seed start, a three-server Pre-seed Design,
-and the 18 guided Sandboxes. For each design the test applies each option, sizes every pool the way a
-careful player would (10 workers per vCPU, no more than fits in RAM after the OS and any local
-Postgres, no more than its share of `max_connections`), runs 10 sim minutes at 5 s Steps with the
-Team's autopilot on and no incidents, and scores revenue per Burn, p99, error share, and velocity,
-the stand-in for Dev Hours.
-
-**Pass** if every option beats every sibling option by at least 10% on at least one of the four
-scores on at least one reference design. Membership of the Pareto front is not enough: a cheaper
-option is always on the front. **Fail** if any option has no such design; the fix is a design change
-to the option, not a number tweak that only passes the test. Three pairs are listed as known gaps, and
-the list is exact, so a new gap fails and a closed one fails too
-([Known balance gaps](#known-balance-gaps)).
-
-The test runs only under `SLOW_TESTS=1`. CI does not set it.
+Pillar 2 says no option strictly dominates another. A cheaper option is always on the Pareto front, so
+the rule is stronger: each option is meant to beat every sibling by at least 10% on one of revenue per
+Burn, p99, error share, or velocity, on some reference design. The option sets are the 28 runtimes, each
+language's frameworks, the instance families (Burstable, General, Compute, Memory), and the PHP-FPM pool
+modes. Two pairs sit inside the bar: Axum and Actix are within about 5% of each other on CPU and
+velocity, and ARM runs at 0.8× the price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's.
+The fix for a dominated option is a design change to the option, not a number tweak.
 
 ## Runtime balance targets
 
-| Check                                                                       | Target                                     | Status                                                                      |
-| --------------------------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------- |
-| PHP-FPM with OPcache against Node.js cluster on `read` with a fast database | Node.js 1.5× to 2.5× throughput per dollar | Pass                                                                        |
-| Same, with a database at 100 ms latency                                     | Node.js 3× to 6× (workers held by waits)   | Pass                                                                        |
-| Node.js single process with 5% `login`, p99 rise                            | +40 to +120 ms                             | Pass, at ρ = 0.5 and 0.8, and the solve adds the stall to the p99 of `read` |
-| Java cold against warm throughput                                           | 30% at start, 100% after 30 s              | `test.todo`                                                                 |
-| Rust against Go, server cost for the same load                              | 25% to 40% lower                           | `test.todo`                                                                 |
-| Rust against Go, Dev Hours for the same feature set                         | 50% to 70% higher                          | `test.todo`                                                                 |
-| Elixir against Node.js, `rt` connections per GB                             | 3× to 5×                                   | `test.todo`                                                                 |
-| Rails against Go, Dev Hours for the same feature set                        | 35% to 50% lower                           | `test.todo`                                                                 |
+`balance.test.ts` asserts these comparisons on the real Ledger of a Pre-seed Design:
 
-Five of the eight rows are `test.todo` in `balance.test.ts`: the runtimes they compare are in the
-build, but the checks are not written. A target that fails is a design change to the runtime, not a
-new number.
+| Check                                                | Target                        |
+| ---------------------------------------------------- | ----------------------------- |
+| Java cold against warm throughput                    | 30% at start, 100% after 30 s |
+| Rust against Go, server cost for the same load       | 25% to 40% lower              |
+| Rust against Go, Dev Hours for the same feature set  | 50% to 70% higher             |
+| Elixir against Node.js, `rt` connections per GB      | 3× to 5×                      |
+| Rails against Go, Dev Hours for the same feature set | 35% to 50% lower              |
+
+Under a PHP-FPM Design with OPcache, Node.js cluster mode answers `read` at 1.5× to 2.5× the throughput per
+dollar, and 3× to 6× with a database at 100 ms; a single Node.js process with 5% `login` adds 40 to 120 ms
+to p99.
 
 ## Prestige curve
 
@@ -298,19 +274,19 @@ new number.
 legacy = floor( sqrt( payout / $1,000,000 ) )
 ```
 
-| Company | Expected payout | Legacy | Cumulative | Shop progress (1,133 ★) |
-| ------- | --------------- | ------ | ---------- | ----------------------- |
-| 1       | $500 million    | 22     | 22         | 2%                      |
-| 2       | $1.5 billion    | 38     | 60         | 5%                      |
-| 3       | $5 billion      | 70     | 130        | 11%                     |
-| 5       | $20 billion     | 141    | 371        | 33%                     |
-| 8       | $50 billion     | 223    | 967        | 85%                     |
-| 9       | $80 billion     | 282    | 1,249      | the whole shop          |
-| 12      | $200 billion    | 447    | 2,442      | the shop twice over     |
+| Company | Expected payout | Legacy | Cumulative | Shop progress (1,563 ★)        |
+| ------- | --------------- | ------ | ---------- | ------------------------------ |
+| 1       | $500 million    | 22     | 22         | 1%                             |
+| 2       | $1.5 billion    | 38     | 60         | 4%                             |
+| 3       | $5 billion      | 70     | 130        | 8%                             |
+| 5       | $20 billion     | 141    | 371        | 24%                            |
+| 8       | $50 billion     | 223    | 967        | 62%                            |
+| 9       | $80 billion     | 282    | 1,249      | 80%                            |
+| 12      | $200 billion    | 447    | 2,442      | the whole shop, and half again |
 
-The eleven perks of [the Legacy shop](/design/13-prestige#the-legacy-shop) cost 1,133 ★ in all. The
+The twelve perks of [the Legacy shop](/design/13-prestige#the-legacy-shop) cost 1,563 ★ in all. The
 cumulative column follows payouts of $500 million, $1.5, $5, $10, $20, $30, $40, $50, $80, $120,
-$160, and $200 billion for companies 1 to 12, so the shop is complete around the ninth company.
+$160, and $200 billion for companies 1 to 12, so the shop is complete around the tenth company.
 
 Payout is Equity × Valuation × the Exit's multiplier, so the rounds set it
 ([Economy](/design/09-economy#funding)): 10% at 1,000 users, 19% at 5,000 and 25,000, 13% at 150,000,
@@ -346,40 +322,12 @@ than per tuning:
 | Salary index   | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24 | Payroll has to stay a real share of Burn at the prices the player pays            | `EraDef.salaryIndex`        |
 | Company speeds | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation          | A slower speed for watching a Design settle, faster ones for the late Eras        | `SPEEDS`, `DILATION_SPEEDS` |
 
-## Open gaps
+## What the checks cover
 
-One row per mechanic the build does not have, grouped by area. Each comes from a "Not built yet"
-marker in the document that owns the mechanic, or from the build-against-design comparison this
-document used to carry. The last column says what closes the row; it names no owner and no date.
-
-| Area                        | What is missing                                                                                                                                                                                                                                                                                | Document                                             | What closes it                                                                  |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Observability               | `rum`'s 2-region sampling rule, which waits on a per-region Analytics tap                                                                                                                                                                                                                      |
-| Observability               | A Churn breakdown row naming the slowest hop or the internet hop per device; `hopByKind` and the device split exist on the Ledger and a Sample, but no row reads them                                                                                                                          | [12](/design/12-observability#the-churn-breakdown)   | A row rule reading `hopByKind` and `device`                                     |
-| Observability               | The Service variable, which waits on a per-Service figure in the Ledger                                                                                                                                                                                                                        |
-| Observability               | Queue growth and budget burn alert rules; the build watches errors, latency, and saturation only                                                                                                                                                                                               | [12](/design/12-observability#alerting)              | A queue-depth and a budget-burn rule                                            |
-| Observability               | Era annotations, which need the sim second the Era changed                                                                                                                                                                                                                                     |
-| Observability               | Load tests and the DR drill                                                                                                                                                                                                                                                                    | [12](/design/12-observability#the-visibility-ladder) | Each as a research with its effect                                              |
-| Incidents                   | Slow start on the Load Balancer, one of the three preventions 11 gives JVM warmup under load; scheduled scaling and the native image are built                                                                                                                                                 | [11](/design/11-incidents#the-six-kinds)             | A slow-start option on the Load Balancer, so a new copy takes traffic gradually |
-| Exit and Legacy             | The Autopilot perk; upgrades, research queues, and hiring stay manual                                                                                                                                                                                                                          | [13](/design/13-prestige#the-legacy-shop)            | The perk's policy settings                                                      |
-| Exit and Legacy             | Head start levels 2 and 3: the Seed and Series A starts                                                                                                                                                                                                                                        | [13](/design/13-prestige#the-legacy-shop)            | A starting Era per level, paced by the bots                                     |
-| Exit and Legacy             | The Shared tenancy Mutator, which needs CPU steal on every instance                                                                                                                                                                                                                            | [13](/design/13-prestige#mutators)                   | A noisy-neighbour model                                                         |
-| Exit and Legacy             | Venture rules: Fintech's fine for stale money reads and E-commerce's scheduled sale are unbuilt; three older Ventures' rules, Bootstrapped indie's no-funding rule and the four newer Ventures' rules are built, and Consumer social and Streaming media are constrained by their market shape |
-| Challenges and achievements | None: all 44 achievements in 14 are detected                                                                                                                                                                                                                                                   | [14](/design/14-challenges#achievements)             | —                                                                               |
-| Research                    | All 187 research items are built. Built per track: Infrastructure 34 of 34, Data 26 of 26, Reliability 20 of 20, Observability 12 of 12, Performance 8 of 8, Runtimes 37 of 37, Frameworks 19 of 19, Security 9 of 9, Cost 7 of 7, Product 15 of 15                                            | [10](/design/10-progression#research)                | —                                                                               |
-| Interface                   | The Limit row on a Node card itself, which waits on `profiling`; the Inspector already names the tightest limit and gauges it                                                                                                                                                                  |
-| Mail                        | Switch provider, because no Component has a second provider                                                                                                                                                                                                                                    |
-| Mail                        | The fake-CVE backdoor and the recruiter hint, and vendor research discounts                                                                                                                                                                                                                    |
-| Mail                        | The Security team's own mail: the pager writes the credential-leak warning                                                                                                                                                                                                                     |
-
-## Known balance gaps
-
-| Gap                                                   | Evidence                                                                                                                                       | What closes it                                                                      |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| BEAM never beats Go or Kestrel                        | The dominance test lists both pairs as `KNOWN_GAPS`. BEAM holds a realtime connection in half the memory, and the test scores no `rt` design.  | A reference design with `rt`, so connection memory is one of the scores             |
-| Axum and Actix each beat the other by about 5%        | Axum 1.0× CPU and 1.15× velocity, Actix 0.95× and 1.10× ([Runtimes](/design/06-runtimes#frameworks)); under the 10% bar, so neither separates. | A Rust framework difference above 10% on one score, or a design that separates them |
-| IPO in 9–12 hours has never been measured             | No bot reaches Public; the Balanced bot ends Series B at about 92 sim minutes on seed 3.                                                       | A bot that plays to the IPO checklist, and a measured time against the M6 gate      |
-| A second company in 3–6 hours has never been measured | `legacy-pacing.test.ts` stops at Seed; the Balanced bot does not reach Public.                                                                 | A measured second company against the M7 gate                                       |
-| The dominance suite does not run in CI                | `dominance.test.ts` is `describe.skipIf(!SLOW)`, and CI runs `pnpm test` without `SLOW_TESTS=1`.                                               | A CI job with `SLOW_TESTS=1`, or a faster dominance run                             |
-| ARM is cheaper than General for the same work         | ARM costs 0.8× and runs at 0.95× CPU, so a CPU-millisecond costs 0.84× General's; the 5% slower CPU is its only cost.                          | A port cost in Dev Hours, or a runtime that refuses ARM (05 says some need work)    |
-| The bridge and shutdown are untuned                   | No bot runs a Company short, so the bridge and the shutdown fire at the design's numbers, unmeasured.                                          | A pacing bot that plays a Company into a shortfall                                  |
+- `pacing.test.ts`, `bots.test.ts` and `legacy-pacing.test.ts` play the bots against the real
+  Simulation; the slower ones run under `SLOW_TESTS=1` and CI does not set it.
+- `balance.test.ts` asserts the runtime targets above and runs in `pnpm test`.
+- `digests.test.ts` and `breadth.test.ts` assert determinism, finite numbers and save round trips
+  across the whole catalog.
+- The bridge and the shutdown fire at the numbers in [Economy](/design/09-economy); no bot plays a
+  Company into a shortfall.

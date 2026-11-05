@@ -774,6 +774,17 @@ export const indexWriteFactor = (game: Game): number =>
 /** What a CDN's cache key does to its hit ratio. */
 export const cacheKeyHit = (node: GameNode): number => CACHE_KEYS[node.cacheKey].hit
 
+/**
+ * Whether a Load Balancer with slow start links to the Node (11 "JVM warmup under load"): it
+ * sends a new copy a growing share of traffic, so the copy never meets a spike cold.
+ */
+export const rampedOf = (game: Game, node: GameNode): boolean =>
+  game.links.some(
+    (link) =>
+      link.to === node.id &&
+      game.nodes.some((entry) => entry.id === link.from && entry.type === 'lb' && entry.slowStart),
+  )
+
 /** The Nodes a sticky Load Balancer pins its users to, per node list: built once per Step. */
 const pinnedSets = new WeakMap<ReadonlyArray<GameNode>, ReadonlySet<string>>()
 

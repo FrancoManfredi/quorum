@@ -289,6 +289,8 @@ export const Dashboard = Schema.Struct({
   table: Schema.Boolean,
   /** The request kind the per-kind panels narrow to, or null for every kind. */
   kind: Schema.NullOr(Schema.Literals(REQUEST_KINDS)),
+  /** The Service the per-kind panels narrow to, or null for every Service. */
+  service: Schema.NullOr(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The region the per-region panels narrow to, or null for every region. */
   region: Schema.NullOr(Region),
 })
@@ -316,6 +318,8 @@ export const Inbox = Schema.Struct({
   label: Schema.NullOr(MailLabel),
   /** Senders the player muted: their Mail lands read, with no preview card, until the hour is up. */
   mutes: Schema.Array(MailMute),
+  /** The Postbox's spam filter is on (18 "Spam and phishing"); it needs the Spam filter research. */
+  filter: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
 })
 export type Inbox = typeof Inbox.Type
 

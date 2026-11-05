@@ -118,7 +118,7 @@ Time-billed prices map one sim second to one real hour; per-use prices keep the 
 | CockroachDB Cloud Standard costs $0.092 per vCPU-hour.                                                     | Distributed SQL $1.95/s for 3 nodes.          | Assumes 2 vCPU per node plus storage.           | <https://cockroachlabs.com/pricing>                                                                         |
 | Amazon SES costs $0.10 to $0.16 per 1,000 emails.                                                          | $0.0001 per push or email message.            | Push and email share one price.                 | <https://aws.amazon.com/ses/pricing>                                                                        |
 | Median dilution: seed 19.4%, Series A 18.7% (Carta, Q2 2026); Series B 12.9%; 16% seed to Series C (2025). | Rounds dilute 19%, 19%, 13%, 12%.             | Fixed percentages; Pre-seed and later stylized. | Carta, State of Private Markets 2025 in review; <https://carta.com/learn/startups/fundraising/seed-funding> |
-| Private SaaS companies spend a median 5% of ARR on hosting.                                                | Not yet a target; the cost index sets Burn.   | Recorded for the Margin bot.                    | SaaS Capital, 2026 spending benchmarks                                                                      |
+| Private SaaS companies spend a median 5% of ARR on hosting.                                                | Not a target; the cost index sets Burn.       | Recorded for the Margin bot.                    | SaaS Capital, 2026 spending benchmarks                                                                      |
 
 ## Teams and business
 

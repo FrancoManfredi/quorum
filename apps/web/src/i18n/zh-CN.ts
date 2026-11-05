@@ -620,6 +620,23 @@ export const zhCN: Readonly<Record<string, string>> = {
   'No Exits yet': '尚无退出记录',
   'Not yet': '尚未达成',
   'Start a company': '创办公司',
+  'Slow start on the Load Balancer, scheduled scaling, and a GraalVM native image, which starts warm. With slow start a new copy takes traffic gradually, so it never answers cold.':
+    '负载均衡器的慢启动、计划扩缩容，以及启动即热的 GraalVM 原生镜像。启用慢启动后，新副本会逐步接管流量，因此不会以冷状态应答。',
+  'Start in Pre-seed, then Seed, then Series A': '依次从天使轮、种子轮、A 轮起步',
+  'Policies: queue the cheapest Study, hire, keep App Servers cool':
+    '策略：排入最便宜的研究、招聘、让应用服务器保持低负载',
+  'Spam filter': '垃圾邮件过滤',
+  'Adds a Postbox filter that sorts spam into its own folder, and now and then a real letter too.':
+    '为收件箱添加过滤器，把垃圾邮件归入专属文件夹，偶尔也会误放真邮件。',
+  'Twice the users, half the value each; media +50%; viral spikes twice as often':
+    '用户翻倍，每人价值减半；媒体 +50%；病毒式流量高峰出现频率翻倍',
+  'Business hours; buy ×4, write +50%; a stale money read is fined':
+    '工作时间；购买 ×4，写入 +50%；读到过期的资金数据会被罚款',
+  'Late evening peak; media ×4; egress costs three times as much':
+    '深夜高峰；媒体 ×4；出口流量成本为三倍',
+  'Buy ×2, search ×2; a scheduled monthly sale': '购买 ×2，搜索 ×2；每月定期促销',
+  'Shared tenancy': '共享租户',
+  'Noisy neighbours steal CPU from every instance': '吵闹的邻居会抢占每个实例的 CPU',
   'Start in Pre-seed': '从天使轮起步',
   'Insert badge': '插入工牌',
   'Clocked in': '已打卡',

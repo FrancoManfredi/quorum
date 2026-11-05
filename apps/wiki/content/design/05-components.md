@@ -30,8 +30,8 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
 
 ## Catalog overview
 
-Not built yet: the seven-group dock. The build's dock groups Components into four groups — Edge,
-Compute, Data, and Ops — and this document keeps the seven as a reading order.
+The dock groups Components into four groups — Edge, Compute, Data, and Ops — and this document
+keeps seven as a reading order.
 
 | Group         | Component                                                   | Code   | Unlocked by              | Era      |
 | ------------- | ----------------------------------------------------------- | ------ | ------------------------ | -------- |
@@ -247,19 +247,19 @@ Node, which takes the edge down ([Incidents](/design/11-incidents#catalog)).
 Real products: Kong, AWS API Gateway, Apigee.
 
 Routes requests to services by path, checks authentication, and applies rate limits. It takes every
-request kind and sends on what it lets through, adding its own hop. The build models one front door,
+request kind and sends on what it lets through, adding its own hop. The game models one front door,
 not a route table: every kind goes on the same Links.
 
-| Option                             | Effect                                                                                                                                            |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rate limit                         | A cap in requests per second. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients. |
-| Auth at the edge (Not built yet)   | Validates tokens once, so services skip it. Adds 2 ms.                                                                                            |
-| Request coalescing (Not built yet) | Merges identical in-flight reads. Lowers load during spikes.                                                                                      |
+| Option             | Effect                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rate limit         | A cap in requests per second. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients. |
+| Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms.                                                                                            |
+| Request coalescing | Merges identical in-flight reads. Lowers load during spikes.                                                                                      |
 
 The cap is one limit for the whole Node: the game counts requests per second at the gateway, not
 per user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes
 it a token bucket: the limit refills every Step and the bucket holds 200 more requests, so a burst that fits passes whole while the average holds.
-The bucket is still one per Node, not one per client: the build has no clients to count. Past the
+The bucket is one per Node, not one per client: the game has no clients to count. Past the
 gateway's own 10,000 requests per second it drops requests like any other flat-capacity Component.
 
 Cost is per request, so the gateway is cheap at low volume and expensive at high volume. It is the
@@ -313,11 +313,11 @@ Real products: AWS Lambda, Google Cloud Functions, Azure Functions.
 Pay per request and per GB-second. Scales from zero to 1,000 concurrent executions with no
 placement cost.
 
-**Built:** the Component, its per-use bill on the Requests line, the concurrency cap (per Node: two
+The Component has its per-use bill on the Requests line, the concurrency cap (per Node: two
 functions in one region have 1,000 each), the cold start after idle, and the connections each
 execution opens. The price is Lambda's list price × 1,200, so the cost curve below crosses where the
-design puts it ([Economy](/design/09-economy#the-cloud-bill)). **Not built yet:** the 15-minute
-duration limit, which no request kind in the game reaches.
+design puts it ([Economy](/design/09-economy#the-cloud-bill)). No request kind in the game runs
+long enough to meet Lambda's 15-minute duration limit.
 
 | Tradeoff        | Detail                                                                                                                                                      |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -355,11 +355,11 @@ Serves `infer`. Capacity is measured in tokens per second.
 | Quantization | FP16, INT8, INT4. Lower precision is faster and uses less memory, and it lowers answer quality, which lowers `ai` value by 5% (INT8) or 15% (INT4). |
 | Model size   | Small, medium, large. Larger models earn more per prompt and need more GPU memory. A model that does not fit causes `oom`.                          |
 
-**Built:** the GPU type, and both research items' options. Quantization (`quantization`) adds INT8 and
+The GPU has a type, and both research items add options. Quantization (`quantization`) adds INT8 and
 INT4: INT8 serves 2× the tokens and INT4 3×, each answer is worth 5% or 15% less, and the memory saving
-is not modelled, because the build has no model size for it to free. Continuous batching
+is not modelled, because the game has one model, so there is no memory for it to free. Continuous batching
 (`continuous-batching`) adds batch 8 and batch 32: 1.6× and 2.2× the throughput, with the time to the
-first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait Model size is not built: there is one model, and no `oom` from it.
+first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait. There is one model size, and no `oom` from it.
 
 ### Edge Function
 
@@ -375,9 +375,8 @@ instead of containers.
 **Built:** the Component, its 5 ms hop in every region, its 10 ms CPU ceiling per request (past it the
 request fails as `timeout`), the 128 MB isolate ceiling, the 30% of `read` it adds to a CDN's cache,
 its per-request bill on the Requests line, and the Stack gate: only JavaScript and TypeScript, or
-Rust and Go compiled to WebAssembly, run there. **Not built yet:** "personalizes cached pages" as a
-separate effect, and the 128 MB isolate ceiling as a failure: no response the game sends is close to
-it.
+Rust and Go compiled to WebAssembly, run there. "Personalizes cached pages" is not a separate effect, and the 128 MB isolate ceiling never fails a
+request: no response the game sends is close to it.
 
 ## Data
 
@@ -472,8 +471,8 @@ retention window, in sim seconds, so a consumer further behind than the window l
 events; a stream hands on one consumer's 20,000 messages a second per partition; and round robin
 with more than one partition loses order, which the game counts as a stale result. The 20,000, the
 three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies and the half-broker
-Burn a replica adds are the Event Stream's own numbers. **Not built yet:** durability. `acks` and the replication factor move the append latency and the Burn, not
-what a broker loses when it dies, because the build gives a log no replica to fail over to; and
+Burn a replica adds are the Event Stream's own numbers. Durability is not modelled: `acks` and the replication factor move the append latency and the Burn, not
+what a broker loses when it dies, because a log has no replica to fail over to; and
 partition key skew is the Hot key incident rather than a model of the key's distribution.
 
 ### CDC Connector
@@ -492,9 +491,8 @@ and it into an Event Stream: it copies the writes that Database processed, one c
 publishes them as `task` at 20,000 changes a second. It takes none of the Database's traffic and
 adds no latency to a write: its own hop is 2 ms, and the lag it adds is the Stream's, which is the
 game stat its card shows. A Stream's key decides order, so a change reaches a consumer in order only
-inside a partition. Past its rate it drops changes, as any flat-capacity Component does. **Not built
-yet:** the "dual write" it removes, because the build's App Servers write to the Database only and no
-path writes to a second copy; and a `cdc` Node's own backlog, because it keeps none.
+inside a partition. Past its rate it drops changes, as any flat-capacity Component does. The "dual write" it removes does not exist in the game, because App Servers write to the Database
+only and no path writes to a second copy; and a `cdc` Node keeps no backlog of its own.
 
 ## Platform
 
@@ -539,9 +537,8 @@ retry at once and open a breaker when half their calls fail, with no research fo
 player set a policy of its own. Each hop costs the design's 1 ms, each member loses 5% of its CPU,
 the mesh bills 5% of each member's Burn as the sidecar's share, and it takes 0.5 engineers of
 Platform Dev Hours, or none with a Platform team. A Node it watches also earns the design's 20% more
-Insight where Analytics samples it. **Not built yet:** the Cluster tie. 05 puts the sidecar on every
-service in a Cluster, and the build attaches it by Link instead, so a mesh works without one.
-Mutual TLS is a property the card reports, not a failure the build can produce.
+Insight where Analytics samples it. The sidecar attaches by Link, not through a Cluster, so a mesh works without one.
+Mutual TLS is a property the card reports, not a failure the game produces.
 
 ### CI/CD Pipeline
 
@@ -566,13 +563,12 @@ It carries no traffic: nothing links into or out of it.
 
 A bad deploy fails 8% of App Server requests for each Feature in its batch; the strategy sets the
 ceiling on that share, so Recreate's 100% arrives with a batch of thirteen Features. The ceiling is
-the design's own number for Recreate (100%) and Canary (5%), and Rolling keeps 16's 40%.
+100% for Recreate and 5% for Canary, and Rolling keeps 16's 40%.
 
-Blue-green is the one number the build changes: the design gives it 100% with instant rollback, and
-neither is worth anything here, because a deploy never interrupts traffic and rollback already ends
-a Bad deploy at once for every Company with the research. So the build reads the design's own
-shield, "the old fleet keeps serving until the new one is up", as the number: the new fleet is
-checked on a slice before the switch, and a bad deploy breaks 10% of traffic.
+Blue-green's ceiling is 10%: the old fleet keeps serving until the new one is up, so the new fleet is
+checked on a slice before the switch, and a bad deploy breaks 10% of traffic. A deploy never
+interrupts traffic, and rollback already ends a Bad deploy at once for every Company with the
+research, so neither is worth a number here.
 
 Each strategy has a deploy time and a Burn multiple. Burn is a multiple of the Pipeline's own rate,
 standing for a second fleet and a canary's metrics.
@@ -599,7 +595,7 @@ flag cuts that Feature's share to its rollout, so Recreate's 100% ceiling cannot
 thirteen Features at 5% break 5.2% of traffic instead of everything. The rollout also scales a
 Feature's effects and load, through its exposure, its rollout times its adoption, and `ab-testing`
 measures its lift against the users it holds out
-([Team and velocity](/design/08-team-and-velocity#rollout)). **Not built yet:** Shift and Remove, so
+([Team and velocity](/design/08-team-and-velocity#rollout)). There is no Shift or Remove, so
 code never disappears and a Feature turned off still pays its upkeep.
 
 ### Secrets and Certificates
@@ -621,9 +617,8 @@ is where an ACME client renews with a third left. With none live, nothing renews
 its expiry date the Certificate expired incident starts, every request from Users fails as `down`,
 and it starts again after the incident ends until a manager is live again or the player presses Renew.
 Selling the manager leaves the certificate it issued running down, so the Component owns the
-calendar. **Not built yet:** the per-Node certificate. One certificate covers the Company, so the
-build does not say which Nodes terminate TLS; and a certificate issued before a manager is placed is
-not tracked, so the director's own incident covers that case.
+calendar. One certificate covers the Company, so no Node is named as terminating TLS; and a certificate issued
+before a manager is placed is not tracked, so the director's own incident covers that case.
 
 ## Observability and money
 
@@ -697,8 +692,7 @@ A link is a network call. Each link has:
 **Built:** every row but the first three, which [Simulation](/design/04-simulation#retries) explains. A
 bulkhead (research `bulkheads`) caps one call at 1,000 ms: past it the caller gives the call up, frees
 its slot and the request fails as `timeout`. It is a cap on time rather than on slots, which at the
-design's load is the same thing by Little's law; the design gives the mechanism and no cap, so the
-cap is 1,000 ms. Hedging (research `hedged-requests`) sends a second copy of every call on that
+game's load is the same thing by Little's law. Hedging (research `hedged-requests`) sends a second copy of every call on that
 Link: the user waits for the faster of two, the mean halves, the tail thins, and the callee sees 10%
 more calls, which the Link's own rate shows.
 

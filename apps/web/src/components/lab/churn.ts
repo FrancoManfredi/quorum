@@ -1,6 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { churnOf, type ChurnFix, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
-import { KINDS, REGION_INFO, RESEARCH } from '@quorum/simulation/catalog'
+import { DEVICE_INFO, KINDS, REGION_INFO, RESEARCH } from '@quorum/simulation/catalog'
 import { nodeLabel } from '@quorum/simulation/labels'
 import { has } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
@@ -55,7 +55,50 @@ const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** The slowest hop and the internet hop per device that a row names, as one line. */
+const detailOf = (game: Game, entry: ChurnRow): string => {
+  const hop = entry.hop
+  const shown = hop ? game.nodes.find((node) => node.id === hop.nodeId) : undefined
+  return [
+    ...(hop ? [`Slowest hop: ${shown ? nodeLabel(game, shown) : 'Node'} adds ${ms(hop.ms)}`] : []),
+    ...(entry.device
+      ? [`${DEVICE_INFO[entry.device.device].name} adds ${ms(entry.device.ms)} over the internet`]
+      : []),
+  ].join(' · ')
+}
+
 const row = (
+  game: Game,
+  entry: ChurnRow,
+  widest: number,
+  fixed: boolean,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const detail = detailOf(game, entry)
+  return h.div(
+    [h.Key(`${entry.kind}:${entry.cause}`)],
+    [
+      rowGrid(game, entry, widest, fixed, h),
+      ...(detail === ''
+        ? []
+        : [
+            h.div(
+              [
+                h.Class(
+                  cn(
+                    'px-3 pb-1 text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                    !entry.needed && 'opacity-60',
+                  ),
+                ),
+              ],
+              [detail],
+            ),
+          ]),
+    ],
+  )
+}
+
+const rowGrid = (
   game: Game,
   entry: ChurnRow,
   widest: number,
@@ -64,7 +107,6 @@ const row = (
 ): Html =>
   h.div(
     [
-      h.Key(`${entry.kind}:${entry.cause}`),
       h.Class(
         cn(
           'grid grid-cols-[88px_80px_1fr_44px_minmax(0,180px)] items-center gap-3 px-3 py-1.5 compact:grid-cols-[72px_64px_1fr_40px]',

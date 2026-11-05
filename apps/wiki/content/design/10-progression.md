@@ -169,10 +169,7 @@ belongs to a track, needs an Era, and may need other items. The research screen 
 track, with the locked items of the next Era visible so that the player can plan
 ([Interface](/design/15-ui-ux#research-screen)).
 
-The track tables below are design intent. Each one is followed by a status line saying how many of its
-items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 187 items across 10 tracks, and the build has all
-187 of them.
+The track tables below list every item the game offers: 188 items across 10 tracks.
 
 ### Recipes
 
@@ -252,9 +249,8 @@ Component types. A trace needs more than one hop.
 | `profiling` | 4 Component types    |
 | `rum`       | Sampled in 2 regions |
 
-**Built: `tracing` and `profiling`.** Not built yet: `rum`'s 2-region sampling rule. `rum` is built —
-it adds a device split to the Users row — but its breadth still reads one region's traffic; the
-2-region requirement waits on a per-region Analytics tap.
+`rum`'s rule reads the Ledger's `breadthRegions`: each of its kinds must be sampled by an Analytics tap
+on a Node in two regions, so the Study stalls until a second region has its own tap.
 
 ### Studies
 
@@ -358,7 +354,7 @@ range.
 | `edge-compute`        | Edge compute              | Series C | 80,000  | `cdn`             | Edge Function                                                                                 |
 | `notifications`       | Notifications             | Series C | 40,000  | —                 | Push Provider                                                                                 |
 
-**Built: 34 of 34.** Each option is wired to its Component (05 "Load Balancer", "CDN", "WAF",
+Each option is wired to its Component (05 "Load Balancer", "CDN", "WAF",
 "Autoscaler", "App Server", "GPU Node"): the L4 variant, the Gateway's token bucket, Edge-side
 includes' 20 points of `page`, Bot management's half false positives, Scheduled scaling's lead on the
 peak, the ARM family at 0.8× the price, and the GPU's INT8/INT4 and batch sizes.
@@ -394,7 +390,7 @@ peak, the ARM family at 0.8× the price, and the GPU's INT8/INT4 and batch sizes
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
 | `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
 
-**Built: 26 of 26.** `online-migrations` is in the build: a migration no longer holds a big table's
+`online-migrations` is in the build: a migration no longer holds a big table's
 lock ([Incidents](/design/11-incidents#the-six-kinds)). `expand-contract` removes what is left of it,
 and `outbox` takes dual-write divergence out of the Search Engine's answers
 ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
@@ -424,7 +420,7 @@ and `outbox` takes dual-write divergence out of the Search Engine's answers
 | `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                                         |
 | `leap-smearing`        | Leap smearing            | Series C | 60,000  | —                                | A clock never jumps, so no timer fires twice ([Incidents](/design/11-incidents#the-six-kinds)) |
 
-**Built: 20 of 20.** `on-call`, `runbooks` and `leap-smearing` are in the build: the rotation answers
+`on-call`, `runbooks` and `leap-smearing` are in the build: the rotation answers
 the page, a written runbook resolves its incident kind by itself
 ([Incidents](/design/11-incidents#runbooks)), and a leap smear keeps a clock jump from timing out a
 region. `bulkheads`, `graceful-degradation`, `hedged-requests` and `chaos-engineering` are too: a Link
@@ -451,11 +447,11 @@ Failure Insight ([Components](/design/05-components#links)).
 | `rum`               | Real user monitoring | Series C | 50,000 | `tracing`      | Latency per region and device                          |
 | `anomaly-detection` | Anomaly detection    | Series C | 80,000 | `alerting`     | Early warnings before an incident peaks                |
 
-**Built: 12 of 12.** `profiling` names each Node's limiting resource and arrives with the Resources
+`profiling` names each Node's limiting resource and arrives with the Resources
 (USE) row ([Observability](/design/12-observability#the-visibility-ladder)); it carries `tracing`'s
 breadth rule at 4 Component types. `tail-sampling` doubles Failure Insight. `rum` adds a device
 split — desktop, mobile, and tablet — to the Users row; the device shares and each one's extra
-round trip are proposed, since devices are not otherwise modelled. `anomaly-detection` halves how
+round trip are the game's own stylization. `anomaly-detection` halves how
 long a threshold must hold before the pager fires, and adds a forecast line at tomorrow's peak,
 projected from the known diurnal cycle rather than fit from history.
 
@@ -472,7 +468,7 @@ projected from the known diurnal cycle rather than fit from history.
 | `binary-rpc`      | Binary RPC between services | Series B | 15,000 | —        | Inter-service serialization CPU −50%                      |
 | `http3`           | HTTP/3                      | Series C | 60,000 | `http2`  | −20% user hop latency for distant and mobile users        |
 
-**Built: 8 of 8.** Denormalization takes 30% off a read's CPU and adds 20% to a write's, Materialized
+Denormalization takes 30% off a read's CPU and adds 20% to a write's, Materialized
 views halve a report's scan, and Binary RPC halves the CPU a Node spends serialising its calls
 ([Data tier](/design/07-data-tier#data-warehouse)).
 
@@ -521,8 +517,6 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `jemalloc`           | jemalloc               | Series B | 8,000  | `lang-rust`   |
 | `free-threading`     | Free-threaded Python   | Series C | 50,000 | `lang-python` |
 
-**Built: 37 of 37.**
-
 ### Track: Frameworks
 
 | Framework    | Era      | ◇      | Requires      |
@@ -547,8 +541,6 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | Actix Web    | Series A | 3,000  | `lang-rust`   |
 | Quarkus      | Series B | 10,000 | `lang-java`   |
 
-**Built: 19 of 19.**
-
 ### Track: Security
 
 | ID                      | Name                           | Era      | ◇       | Requires                                                      | Effect                                                       |
@@ -562,8 +554,9 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `soc2`                  | SOC 2 program                  | Pre-IPO  | 300,000 | `tls-everywhere`, `encryption-at-rest`, `dependency-scanning` | IPO checklist item                                           |
 | `gdpr-residency`        | Data residency controls        | Pre-IPO  | 350,000 | `multi-region`                                                | IPO checklist item                                           |
 | `security-team`         | Security team                  | Pre-IPO  | 200,000 | —                                                             | Team type                                                    |
+| `spam-filter`           | Spam filter                    | Pre-seed | 300     | —                                                             | Postbox filter setting; spam sorts into its own folder       |
 
-**Built: 9 of 9.** `credential-protection` cuts the Credential stuffing incident's weakness and its
+`credential-protection` cuts the Credential stuffing incident's weakness and its
 bot-login magnitude once a WAF is also in place. `pen-testing` reveals one weakness a calendar
 week: it finds the Design's highest-weakness incident kind (the same score the director weighs
 incidents by) and opens its prevention research as an action item, the same way a Postmortem does.
@@ -580,7 +573,7 @@ incidents by) and opens its prevention research as an action item, the same way 
 | `cost-allocation`     | Cost allocation     | Series B | 10,000  | `unit-economics`     | Cost per service and team                 |
 | `savings-plans`       | Savings plans       | Pre-IPO  | 250,000 | `reserved-instances` | −20% compute with no per-Node lock        |
 
-**Built: 7 of 7.** `reserved-instances` and `spot-instances` unlock the two pricing models on a
+`reserved-instances` and `spot-instances` unlock the two pricing models on a
 compute Node from Series A ([Economy](/design/09-economy#pricing-models)). `rightsizing` marks a
 Node whose peak utilization stayed under 30% over its kept history, in the Inspector; this reads
 the client-side Inspector history, not a new Ledger field, so it needs no save change.
@@ -589,8 +582,7 @@ an R2-priced path at $0 origin egress, lowering the Egress line by that share
 ([Economy](/design/09-economy#egress)). `unit-economics` and `cost-allocation` split Burn by
 request kind and by the Service that owns each kind's code, shown in the cloud bill panel.
 `savings-plans` takes a further 20% off every compute Node's box, on top of whichever pricing model
-it already runs, with no per-Node commitment. Proposed: all five numbers, since the design gives no
-rates for them.
+it already runs, with no per-Node commitment. These five numbers are the game's own rates.
 
 ### Track: Product and business
 
@@ -612,7 +604,7 @@ rates for them.
 | `investor-relations` | Investor relations      | Pre-IPO  | 300,000   | —                          | Valuation multiple +2                                |
 | `guidance-modeling`  | Guidance modeling       | Public   | 1,000,000 | —                          | Shows the probability of beating each guidance level |
 
-**Built: 15 of 15.** Each item does what its Effect column says:
+Each item does what its Effect column says:
 
 - `ab-testing` reads a Feature's lift and its interval on the Team card, between 5% and 50% rollout
   ([Measured lift](/design/08-team-and-velocity#measured-lift)).
@@ -622,7 +614,7 @@ rates for them.
   A Platform team runs the Clusters and halves deploy time; a Data team makes `report` and `ai`
   Features cost 30% less and halves a CDC pipeline's lag.
 - `sre-team` unlocks the SRE team.
-- `enterprise-sales` signs the SLA and its credits; its B2B market +30% is not built.
+- `enterprise-sales` signs the SLA and its credits.
 
 ## Pacing targets for the first company
 

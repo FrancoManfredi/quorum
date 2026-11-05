@@ -1234,8 +1234,8 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         },
         solver.boost(node),
       ),
-    outcome: (answer, _, kind) =>
-      answer.game.incident?.kind === 'psp-outage'
+    outcome: (answer, node, kind) =>
+      answer.game.incident?.kind === 'psp-outage' && node.provider === 'first'
         ? failed('upstream')
         : through(answer.ownHop(kind)),
     ...terminal,

@@ -23,7 +23,7 @@ import {
 import type { AwayReport } from '@quorum/simulation/offline'
 import type { ChurnCause, RegionChurn } from '@quorum/simulation/churn'
 import { alertActions, cloudActions } from '@quorum/simulation/goals'
-import { has } from '@quorum/simulation/lookups'
+import { has, securityStaffed } from '@quorum/simulation/lookups'
 import { compact, money } from '@quorum/ui/game/format'
 import type { WorkItem } from '@quorum/simulation/state'
 import { unhappy } from '@quorum/simulation/team'
@@ -219,6 +219,9 @@ export const disclosureFact = (item: WorkItem, game: Game, spam = false, at = 0)
   const score = CVE_DEFS.find((def) => def.id === cve.id)?.score ?? 5
   const key = `security:${cve.id}`
   const sender = senderFor('security', game, cve.id)
+  // The filter now and then sorts a real advisory into Spam (18 "Spam and phishing").
+  const misfiled =
+    spam || (has(game, 'spam-filter') && hashOf(game.seed, 'misfile', cve.id, at) % 8 === 0)
   // Exposure is a research gate (GDD 18 "CVEs and patches"): only Dependency scanning turns the
   // advisory's Node list into names. Without it the Mail says to check whether the Design runs it,
   // and it has no Node to show on the Board.
@@ -244,7 +247,7 @@ export const disclosureFact = (item: WorkItem, game: Game, spam = false, at = 0)
       { id: 'team', label: 'Open Team' },
     ],
     // A real advisory can land in Spam, where the filter put it.
-    spam,
+    misfiled,
   )
 }
 
@@ -374,6 +377,19 @@ const CAUSE_TEXT: Record<ChurnCause, string> = {
   duplicate: 'charged twice',
 }
 
+/** The item a real vendor demo covers: one in four pitches, an unstudied observability item. */
+const vendorOffer = (game: Game, salt: number): ResearchId | null => {
+  if (hashOf(game.seed, 'vendor', salt) % 4 !== 0) return null
+  const open = (Object.keys(RESEARCH) as ReadonlyArray<ResearchId>).filter(
+    (id) =>
+      RESEARCH[id].track === 'observability' &&
+      RESEARCH[id].era <= game.stage &&
+      !has(game, id) &&
+      !game.discounts.includes(id),
+  )
+  return open.length === 0 ? null : pick(open, game.seed, 'vendor-item', salt)
+}
+
 const spamFact = (pitch: Pitch, game: Game, salt: number): Fact => {
   const key = `spam:${pitch.sender}`
   const written = write(pitch.letters, {}, pitch.sender, game, key, salt)
@@ -384,7 +400,17 @@ const spamFact = (pitch: Pitch, game: Game, salt: number): Fact => {
     pitch.sender === 'spam-recruiter' && game.engineers.some(unhappy)
       ? { ...written, body: `${written.body}\n\nP.S. One of your engineers looks ready to listen.` }
       : written
-  return fact(key, pitch.sender, hint, pitch.actions, true)
+  // A vendor's demo is real now and then (18 "Spam and phishing"): the pitch names an
+  // observability item the Company has not studied, and taking the demo takes a fifth off it.
+  const offered = pitch.sender === 'spam-datadug' ? vendorOffer(game, salt) : null
+  const body = offered
+    ? {
+        ...hint,
+        body: `${hint.body}\n\nP.S. This one is a real demo. It covers ${RESEARCH[offered].name}.`,
+      }
+    : hint
+  const actions = offered ? [{ id: `vendor:${offered}`, label: 'Book the demo' }] : pitch.actions
+  return fact(key, pitch.sender, body, actions, has(game, 'spam-filter'))
 }
 
 /**
@@ -754,6 +780,9 @@ const EVENT_FROM: Record<string, SenderKind> = {
   MigrationShifted: 'monitoring',
 }
 
+/** With a Security team, it writes about a compromise itself instead of the pager. */
+const SECURITY_PAGES: ReadonlyArray<EventMail['topic']> = ['incident-phishing', 'incident-breach']
+
 /** News only one party would send: the edge network sees a flood before anyone else. */
 const PINNED: Partial<Record<EventMail['topic'], string>> = { 'incident-ddos': 'cloud-cloudscare' }
 
@@ -828,9 +857,11 @@ export const eventFact = (
   const from = EVENT_FROM[event._tag]
   const sender =
     PINNED[mail.topic] ??
-    (from
-      ? senderFor(from, game, key)
-      : `mate:${typeof event.engineerId === 'string' ? event.engineerId : (game.engineers[0]?.id ?? 'e0')}`)
+    (securityStaffed(game) && SECURITY_PAGES.includes(mail.topic)
+      ? senderFor('security', game, key)
+      : from
+        ? senderFor(from, game, key)
+        : `mate:${typeof event.engineerId === 'string' ? event.engineerId : (game.engineers[0]?.id ?? 'e0')}`)
   // Each topic carries its own vars; the record type cannot say so.
   const letters = EVENTS[mail.topic] as unknown as Letters<EventMail['vars']>
   return fact(key, sender, write(letters, mail.vars, sender, game, key, salt), [

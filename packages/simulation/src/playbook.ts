@@ -66,6 +66,7 @@ export const NODE_SETTINGS = [
   'cacheStrategy',
   'refresh',
   'sticky',
+  'slowStart',
   'purge',
   'cacheKey',
   'earlyExpiry',

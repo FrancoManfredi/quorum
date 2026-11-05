@@ -124,6 +124,24 @@ export type RegionKindLedger = Readonly<{
   p99: number
 }>
 
+/**
+ * What one Service's code served (12 "Controls"): the request kinds its Features touch, summed.
+ * `apdex` and `mean` weigh each kind by the rate it sent and the rate it served.
+ */
+export type ServiceLedger = Readonly<{
+  kinds: ReadonlyArray<RequestKind>
+  /** Requests per second users send to the Service's kinds. */
+  rate: number
+  /** Requests per second answered. */
+  served: number
+  /** Failed requests per second. */
+  failed: number
+  apdex: number
+  mean: number
+  /** The slowest 99th percentile among its kinds. */
+  p99: number
+}>
+
 export type Ledger = Readonly<{
   nodes: Readonly<Record<string, NodeLedger>>
   links: ReadonlyArray<LinkLedger>
@@ -163,8 +181,12 @@ export type Ledger = Readonly<{
   insight: Readonly<Record<InsightPool, number>>
   /** Component types that sample each request kind, for research that needs breadth. */
   breadth: Readonly<Partial<Record<RequestKind, number>>>
+  /** Regions that sample each request kind, through an Analytics tap on a Node there. */
+  breadthRegions: Readonly<Partial<Record<RequestKind, number>>>
   /** Dollars per second: the cloud bill, plus salaries. */
   burn: number
+  /** Dollars per second a Venture's compliance fines cost, on top of `burn` (13 "Ventures"). */
+  fines: number
   /** Dollars per second of payroll, included in `burn`. */
   salaries: number
   /** Dollars per second of egress, included in `burn`. */
@@ -184,6 +206,8 @@ export type Ledger = Readonly<{
    * carries every kind no other Service's Features touch, takes the rest.
    */
   costPerService: Readonly<Partial<Record<string, number>>>
+  /** What each Service served, by its id (12 "Controls"). */
+  services: Readonly<Record<string, ServiceLedger>>
   /** Most users the market holds: the Era's, grown by Features. */
   market: number
   /** Traffic-weighted velocity of the App Servers' Stacks: language × framework. */

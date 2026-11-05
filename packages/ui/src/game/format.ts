@@ -46,12 +46,19 @@ export const queueWait = (seconds: number | null): string =>
           : `${Math.round(seconds / 3600)} h`
 
 /** What an alert rule pages on, at its threshold. */
-export const alertText = (rule: 'errors' | 'latency' | 'saturation', threshold: number): string =>
+export const alertText = (
+  rule: 'errors' | 'latency' | 'saturation' | 'queue' | 'budget',
+  threshold: number,
+): string =>
   rule === 'errors'
     ? `Error rate above ${threshold * 100}%`
     : rule === 'latency'
       ? `p99 above ${threshold}× the Apdex target`
-      : `A Node above ${Math.round(threshold * 100)}% load`
+      : rule === 'queue'
+        ? `A Queue's oldest task older than ${threshold} s`
+        : rule === 'budget'
+          ? `Error budget burning above ${threshold}×`
+          : `A Node above ${Math.round(threshold * 100)}% load`
 
 /** A setting in seconds: 30 s, 5 min, 1 h. */
 export const duration = (seconds: number): string =>

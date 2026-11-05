@@ -83,7 +83,7 @@ test('an incident the director picked shows no chain', () => {
   const model = fixture({
     researched: [...new Set([...preseedGame().researched, 'alerting' as const])],
     incident: { ...cascaded, causedBy: null },
-    alarms: { errors: 60, latency: 0, saturation: 0 },
+    alarms: { errors: 60, latency: 0, saturation: 0, queue: 0, budget: 0 },
   })
   Scene.scene(
     { update, view: (m: Model, h: HtmlBuilder<Message>) => pager(m, h) },

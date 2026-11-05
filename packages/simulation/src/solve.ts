@@ -7,6 +7,7 @@ import {
   EGRESS_CROSS_ZONE,
   EGRESS_ORIGIN,
   PSP_FIXED,
+  SECOND_PROVIDER_FEE,
   PSP_RATE,
   CALLOUT_FAILURE,
   CALLOUT_MS,
@@ -23,6 +24,7 @@ import {
   CREDENTIAL_PROTECTION_BLOCK,
   DEADLINE_SURGE,
   KIND_SURGE,
+  MONEY_KINDS,
   LATENCY_REGRESSION_MS,
   CLOCK_SKEW_LOSS,
   CLOCK_SKEW_MS,
@@ -67,7 +69,7 @@ import {
   type RequestKind,
 } from './catalog.ts'
 import { earnsInTime, insightPerk, ventureOf } from './founding.ts'
-import { calendarMinute, clockOf, cosTurns } from './calendar.ts'
+import { calendarMinute, clockOf, cosTurns, saleOf } from './calendar.ts'
 import { FLAT_CAPACITY, NO_RESOURCES, type Calls } from './capacity.ts'
 import {
   ERROR_CAUSES,
@@ -205,10 +207,18 @@ export const demandOf = (game: Game): Partial<Record<RequestKind, number>> => {
       ? regionalCycle(game.time, userSharesOf(game)) * ventureWeekly(game)
       : ventureDiurnal(game) * ventureWeekly(game)
   const total = game.users * RPS_PER_USER * cycle * spike * deadline
+  // E-commerce's scheduled sale lifts checkouts on the calendar, a month apart.
+  const sale = game.sandbox ? null : ventureOf(game).constraint.sale
+  const selling = sale !== null && saleOf(game.time, sale).on ? sale : null
   const demand: Partial<Record<RequestKind, number>> = {}
   for (const kind of REQUEST_KINDS) {
     const share = mix[kind] ?? 0
-    if (share > 0) demand[kind] = total * share * (surge?.[0] === kind ? surge[1] : 1)
+    if (share > 0)
+      demand[kind] =
+        total *
+        share *
+        (surge?.[0] === kind ? surge[1] : 1) *
+        (selling?.kind === kind ? selling.lift : 1)
   }
   // Attacks add bots on top of the users: scrapers, a flood, or leaked passwords tried on login.
   // Credential stuffing protection blocks most of the burst before it reaches login (11 "Catalog",
@@ -1424,6 +1434,7 @@ const ledgerOf = (
   let served = 0
   let satisfied = 0
   let revenue = 0
+  let fines = 0
   let latencyWeight = 0
   const failing: Array<RequestKind> = []
   for (const kind of REQUEST_KINDS) {
@@ -1485,6 +1496,9 @@ const ledgerOf = (
       (earnsInTime(game, mean) ? 1 : 0)
     latencyWeight += rate * result.success * mean
     for (const cause of ERROR_CAUSES) errors[cause] += rate * result.fail[cause]
+    // Fintech fines a stale answer to a money kind (13 "Ventures").
+    if (!game.sandbox && MONEY_KINDS.includes(kind))
+      fines += rate * result.fail.stale * KINDS[kind].value * ventureOf(game).constraint.staleFine
     if (result.success > 0) mixture.push([result, rate * result.success])
     if (result.success < 0.05 && result.fail.stranded >= 0.5) failing.push(kind)
   }
@@ -1589,6 +1603,8 @@ const ledgerOf = (
   // without code changes earn Insight on top of it (05 "Service Mesh": +20%).
   const meshedBy = new Map<string, number>()
   const failedBy = new Map<string, number>()
+  // The regions each request kind is sampled in: Real user monitoring needs two of them.
+  const regionsBy = new Map<RequestKind, Set<RegionId>>()
   for (const [tapId, sources] of graph.taps) {
     const tap = graph.byId.get(tapId)
     if (!tap) continue
@@ -1615,6 +1631,9 @@ const ledgerOf = (
         const samples = done * share
         if (samples <= 0) continue
         const key = `${from.type}:${kind}`
+        const seen = regionsBy.get(kind as RequestKind) ?? new Set<RegionId>()
+        seen.add(from.region)
+        regionsBy.set(kind as RequestKind, seen)
         sampledBy.set(key, (sampledBy.get(key) ?? 0) + samples)
         if (meshOf(game, from)) meshedBy.set(key, (meshedBy.get(key) ?? 0) + samples)
         // A request that fails or frustrates its user teaches Failure, a tolerated one half.
@@ -1751,7 +1770,7 @@ const ledgerOf = (
           : ((rate * kb) / 1_000_000) * EGRESS_CROSS_ZONE * 2
       }
     }
-    egress *= eraOf(game).costIndex
+    egress *= eraOf(game).costIndex * ventureOf(game).constraint.egress
   }
 
   // Object Storage's class (07 "Object Storage"): an infrequent-access object bills a retrieval fee
@@ -1770,7 +1789,11 @@ const ledgerOf = (
   const checkouts = kinds.buy ? kinds.buy.rate * kinds.buy.success : 0
   const fees =
     checkouts > 0
-      ? checkouts * (KINDS.buy.value * valueFactor(game, 'buy') * PSP_RATE + PSP_FIXED)
+      ? checkouts *
+        (KINDS.buy.value * valueFactor(game, 'buy') * PSP_RATE + PSP_FIXED) *
+        (game.nodes.some((node) => node.type === 'psp' && node.provider === 'second')
+          ? SECOND_PROVIDER_FEE
+          : 1)
       : 0
 
   // A Data Warehouse bills each scan; the LLM API bills each token (09 "Pricing models").
@@ -1827,16 +1850,54 @@ const ledgerOf = (
   // Service each kind's code lives in (10 "Track: Cost", `cost-allocation`).
   const costPerKind: Partial<Record<RequestKind, number>> = {}
   const costPerService: Partial<Record<string, number>> = {}
-  if (rateTotal > 0 && totalBurn > 0)
-    for (const kind of REQUEST_KINDS) {
-      const entry = kinds[kind]
-      if (!entry || entry.rate <= 0) continue
+  const serviceWork: Record<
+    string,
+    {
+      kinds: Array<RequestKind>
+      rate: number
+      served: number
+      satisfied: number
+      latency: number
+      p99: number
+    }
+  > = {}
+  for (const service of game.services)
+    serviceWork[service.id] = { kinds: [], rate: 0, served: 0, satisfied: 0, latency: 0, p99: 0 }
+  for (const kind of REQUEST_KINDS) {
+    const entry = kinds[kind]
+    if (!entry || entry.rate <= 0) continue
+    const service = serviceOfKind(game, kind).id
+    const work = serviceWork[service]
+    if (work) {
+      const servedRate = entry.rate * entry.success
+      work.kinds.push(kind)
+      work.rate += entry.rate
+      work.served += servedRate
+      work.satisfied += entry.rate * entry.apdex
+      work.latency += servedRate * entry.mean
+      work.p99 = Math.max(work.p99, entry.p99)
+    }
+    if (rateTotal > 0 && totalBurn > 0) {
       const kindBurn = totalBurn * (entry.rate / rateTotal)
       const servedRate = entry.rate * entry.success
       if (servedRate > 0) costPerKind[kind] = kindBurn / servedRate
-      const service = serviceOfKind(game, kind).id
       costPerService[service] = (costPerService[service] ?? 0) + kindBurn
     }
+  }
+  const services = Object.fromEntries(
+    Object.entries(serviceWork).map(([id, work]) => [
+      id,
+      {
+        kinds: work.kinds,
+        rate: work.rate,
+        served: work.served,
+        failed: work.rate - work.served,
+        apdex: work.rate > 0 ? work.satisfied / work.rate : 1,
+        mean: work.served > 0 ? work.latency / work.served : 0,
+        p99: work.p99,
+      },
+    ]),
+  )
   return {
     nodes,
     links,
@@ -1867,7 +1928,11 @@ const ledgerOf = (
     subscriptions,
     insight,
     breadth,
+    breadthRegions: Object.fromEntries(
+      [...regionsBy].map(([kind, regions]) => [kind, regions.size]),
+    ),
     burn: totalBurn,
+    fines,
     salaries,
     egress,
     fees: thirdParty,
@@ -1883,6 +1948,7 @@ const ledgerOf = (
     },
     costPerKind,
     costPerService,
+    services,
     market: marketOf(game),
     velocity,
     failing,

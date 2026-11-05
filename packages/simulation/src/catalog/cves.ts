@@ -19,6 +19,15 @@ export const CVE_DEFS: ReadonlyArray<CveDef> = [
   { id: 'CVE-2026-1024', score: 9.9, affects: ['server', 'worker'] },
 ]
 
+/**
+ * A fake advisory's backdoor (18 "Spam and phishing"): sim seconds from the click until the
+ * attacker uses it and a Data breach starts. Dependency scanning stops the dropper, and a Security
+ * team finds the backdoor in half the time.
+ */
+export const BACKDOOR_FUSE = 300
+/** Share of a Study's Insight a vendor's demo takes off (18 "Spam and phishing"). */
+export const VENDOR_DISCOUNT = 0.2
+
 /** Sim seconds between disclosures. */
 export const CVE_EVERY = 420
 /** Sim seconds a patch ticket can stay overdue before the CVE is exploited. */

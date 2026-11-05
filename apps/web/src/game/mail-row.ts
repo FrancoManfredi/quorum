@@ -67,6 +67,7 @@ const DESTINATIONS: Record<string, string> = {
   postmortem: 'Files the postmortem',
   'postmortem-take': 'Files the postmortem and queues the action item',
   ack: 'Marks it read and dismisses the card',
+  vendor: 'Takes a fifth off that item’s Insight cost',
   mute: 'Mutes the sender for one calendar hour',
 }
 

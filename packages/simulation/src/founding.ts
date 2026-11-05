@@ -16,6 +16,8 @@ import {
   RESEARCH,
   RUNTIMES,
   SLO_LEVELS,
+  STEAL_MAX,
+  STEAL_SECONDS,
   VENTURES,
   type ComponentId,
   type IncidentId,
@@ -26,7 +28,8 @@ import {
   type RuntimeId,
   type VentureDef,
 } from './catalog.ts'
-import { newGame, preseedGame } from './company.ts'
+import { nextRandom } from './random.ts'
+import { headStartGame, newGame } from './company.ts'
 import { restarting, type Life } from './life.ts'
 import { sreStaffed } from './lookups.ts'
 import { NEW_ENGINEER } from './state.ts'
@@ -43,6 +46,20 @@ export const perkLevel = (game: Game, id: PerkId): number =>
 
 export const ventureOf = (game: Game): VentureDef =>
   game.sandbox ? VENTURES['b2b-saas'] : VENTURES[game.founding.venture]
+
+/**
+ * Shared tenancy (13 "Mutators"): the share of an instance's CPU a noisy neighbour takes. It
+ * changes every `STEAL_SECONDS` sim seconds and differs per instance, drawn from the Company's
+ * seed, the instance and the interval, so a replay steals the same CPU at the same moments.
+ */
+export const stealOf = (game: Game, node: GameNode): number => {
+  if (!hasMutator(game, 'shared-tenancy')) return 0
+  let hash = game.seed
+  for (const char of node.id) hash = (hash * 31 + char.charCodeAt(0)) % 2_147_483_647
+  const [first] = nextRandom((hash + Math.floor(game.time / STEAL_SECONDS) * 7_919) % 2_147_483_647)
+  const [roll] = nextRandom(Math.floor(first * 2_147_483_647))
+  return STEAL_MAX * roll
+}
 
 export const hasMutator = (game: Game, id: MutatorId): boolean =>
   !game.sandbox && game.founding.mutators.includes(id)
@@ -86,6 +103,7 @@ export const openActionWeight = (game: Game): number => {
 /** What the Mutators do to an incident's weight. */
 export const mutatorWeight = (game: Game, kind: IncidentId): number =>
   (kind === 'spike' && hasMutator(game, 'hn-front-page') ? HN_WEIGHT : 1) *
+  (kind === 'spike' ? ventureOf(game).constraint.spikeWeight : 1) *
   (kind === 'instance' && hasMutator(game, 'chaos-monkey') && game.stage >= CHAOS_FROM_STAGE
     ? CHAOS_WEIGHT
     : 1)
@@ -211,7 +229,8 @@ export const sloOf = (game: Game, slo: number): number => {
  */
 const startBoard = (seed: number, founding: Founding): Game => {
   const venture = VENTURES[founding.venture]
-  if ((founding.perks['head-start'] ?? 0) >= 1 || venture.start.stage >= 1) return preseedGame(seed)
+  const headStart = Math.min(PERKS['head-start'].costs.length, founding.perks['head-start'] ?? 0)
+  if (headStart >= 1 || venture.start.stage >= 1) return headStartGame(seed, headStart)
   const garage = newGame(seed)
   return { ...garage, cash: venture.start.cash, equity: venture.start.equity }
 }
@@ -280,4 +299,4 @@ export const alumniOf = (game: Game, count: number) =>
 
 /** The Era a founding starts in. */
 export const startEra = (founding: Founding): string =>
-  ERAS[(founding.perks['head-start'] ?? 0) >= 1 ? 1 : 0]?.name ?? ''
+  ERAS[Math.min(PERKS['head-start'].costs.length, founding.perks['head-start'] ?? 0)]?.name ?? ''

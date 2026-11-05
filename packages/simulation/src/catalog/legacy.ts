@@ -66,6 +66,7 @@ export const PERK_IDS = [
   'playbooks',
   'war-stories',
   'head-start',
+  'autopilot',
 ] as const
 export type PerkId = (typeof PERK_IDS)[number]
 
@@ -158,14 +159,28 @@ export const PERKS: Record<PerkId, PerkDef> = {
     costs: tripling(8, 3),
     effect: 'Open action items raise odds half as much',
   },
-  // Levels 2 and 3 (Seed and Series A starts) need starter designs for those Eras.
   'head-start': {
     id: 'head-start',
     name: 'Head start',
-    costs: [25],
-    effect: 'Start in Pre-seed',
+    costs: [25, 75, 225],
+    effect: 'Start in Pre-seed, then Seed, then Series A',
+  },
+  autopilot: {
+    id: 'autopilot',
+    name: 'Autopilot',
+    costs: tripling(10, 3),
+    effect: 'Policies: queue the cheapest Study, hire, keep App Servers cool',
   },
 }
+
+/** The Autopilot level each policy needs. */
+export const POLICY_LEVEL = { research: 1, hire: 2, upgrade: 3 } as const
+
+/** The Autopilot's hiring policy: payroll stays under this share of revenue, up to a headcount. */
+export const AUTOPILOT_PAYROLL = 0.25
+export const AUTOPILOT_HIRES = 4
+/** The Autopilot's upgrade policy buys the next size for an App Server above this load. */
+export const AUTOPILOT_LOAD = 0.7
 
 /** Playbook slots by perk level. Level 0 keeps one, so the first Company can try them. */
 export const PLAYBOOK_SLOTS: ReadonlyArray<number> = [1, 2, 5, 10, 25]

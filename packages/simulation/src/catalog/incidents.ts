@@ -717,7 +717,7 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     cause:
       'An Autoscaler added Java App Servers during a spike, and the new copies ran cold: 30% speed for their first 30 s.',
     prevention:
-      'Slow start on the Load Balancer is not built. Scheduled scaling and a GraalVM native image are: native code starts warm.',
+      'Slow start on the Load Balancer, scheduled scaling, and a GraalVM native image, which starts warm. With slow start a new copy takes traffic gradually, so it never answers cold.',
     actions: ['graal-native', 'autoscaling'],
   },
   'migration-lock': {
@@ -877,12 +877,20 @@ export const ALERT_RULES = {
   errors: { threshold: 0.01, seconds: 30 },
   latency: { threshold: 4, seconds: 30 },
   saturation: { threshold: 0.9, seconds: 60 },
+  queue: { threshold: 30, seconds: 60 },
+  budget: { threshold: 10, seconds: 30 },
 } as const
-/** Thresholds the player can set: error share, p99 as a multiple of the Apdex target, and Node load. */
+/**
+ * Thresholds the player can set: error share, p99 as a multiple of the Apdex target, Node load,
+ * seconds the oldest task waits in a Queue, and the error budget's burn rate (1 spends exactly the
+ * budget over the SLO window).
+ */
 export const ALERT_THRESHOLDS = {
   errors: [0.005, 0.01, 0.05],
   latency: [2, 4, 8],
   saturation: [0.8, 0.9, 0.95],
+  queue: [10, 30, 120],
+  budget: [6, 10, 14.4],
 } as const
 /** False alarms in one calendar day before the player ignores a rule (12 "Alerting"). */
 export const ALERT_FATIGUE = 5

@@ -105,8 +105,7 @@ The Balanced bot does not reach Series C. On seed 3 it ends at 130 sim minutes i
 279,624 users, against the 10,000,000 that Series C needs; on seed 1 it holds 283,477.
 `series-c.test.ts` and the Series C Sandboxes play the Series C to Public mechanics on built Designs.
 
-The M6 exit check, an IPO in 9–12 hours, is not measured ([Known balance
-gaps](/design/16-balancing#known-balance-gaps)).
+No bot plays to the IPO, so no IPO time is recorded. [What the checks cover](/design/16-balancing#what-the-checks-cover) lists the checks.
 
 ## Exit and Legacy
 

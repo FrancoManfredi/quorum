@@ -31,6 +31,7 @@ import {
   Funnel,
   FileBadge,
   KeySquare,
+  ShieldBan,
   Target,
   GitBranch,
   Users,
@@ -249,6 +250,7 @@ export const LOOKS: Record<ResearchId, Look> = {
   'service-mesh': { component: 'mesh' },
   'feature-flags': { component: 'ff' },
   'secrets-management': { group: 'ops', glyph: KeySquare, hue: 150 },
+  'spam-filter': { group: 'ops', glyph: ShieldBan, hue: 30 },
   // Splitting a Service: the same compute chip a migration wears.
   'service-boundaries': { group: 'compute', glyph: Split, hue: 320 },
   // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").

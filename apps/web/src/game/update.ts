@@ -367,6 +367,7 @@ export const freshBoard = (game: Game): Board => ({
     compare: true,
     table: false,
     kind: null,
+    service: null,
     region: null,
   },
   lastGoal: '',
@@ -933,6 +934,18 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
     }
     case 'trap':
       return trapTaken(model, target)
+    case 'vendor': {
+      const id = target as ResearchId | null
+      if (!id || !(id in RESEARCH)) return { model }
+      return act(
+        model,
+        `Booked a demo of ${RESEARCH[id].name}`,
+        Actions.takeDiscount(model.board.game, id),
+        {
+          note: () => [`The vendor's demo takes a fifth off ${RESEARCH[id].name}.`, 'ok'],
+        },
+      )
+    }
     case 'postmortem':
     case 'postmortem-take':
       return route(
@@ -991,8 +1004,16 @@ const trapTaken = (model: Model, target: string | null): Result => {
       return act(model, 'Paid a fake domain notice', Actions.payFakeInvoice(game, FAKE_DOMAIN), {
         note: () => [`You paid ${money(FAKE_DOMAIN)} to keep a domain you already own.`, 'danger'],
       })
-    // A fake advisory would install a backdoor, and this build has no lasting compromise to
-    // install one into: the toast is the lesson, and 18 records the gap.
+    // A fake advisory's patcher installs a backdoor: it is used after a while, and a breach starts.
+    case 'patcher': {
+      const taken = act(model, 'Ran an unknown patcher', Actions.installBackdoor(game), {
+        note: () => [
+          'That was phishing. The patcher left a backdoor in; patch your dependencies before it is used.',
+          'danger',
+        ],
+      })
+      return taken
+    }
     default:
       return withToast(model, 'That was phishing. Check the sender address first.', 'danger')
   }
@@ -1089,7 +1110,7 @@ const foldResearch = (model: Model, message: ResearchMessage): Result =>
               const stall = studyStall(game, ledgerOf(parent), id)
               if (stall)
                 return [`Study queued: ${RESEARCH[id].name}. ${stallReason(stall)}`, 'warn']
-              const short = recipeOf(id)
+              const short = recipeOf(id, game.discounts)
                 .filter(([pool, cost]) => game.pools[pool] < cost)
                 .map(([pool]) => poolName(pool))
               return short.length > 0
@@ -3752,6 +3773,14 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    SlowStartChosen: ({ nodeId, slowStart }) =>
+      act(
+        model,
+        slowStart ? 'Slow start on' : 'Slow start off',
+        Actions.setSlowStart(model.board.game, nodeId, slowStart),
+        { undoable: true },
+      ),
+
     CdnOptionsChosen: ({ nodeId, purge, cacheKey }) =>
       act(
         model,
@@ -4323,6 +4352,11 @@ const handle = (model: Model, message: Message): Result =>
         note: () => ['Switched to a second Payment Provider mid-outage.', 'ok'],
       }),
 
+    ProviderChosen: ({ provider }) =>
+      act(model, 'Switched provider', Actions.setProvider(model.board.game, provider), {
+        undoable: true,
+      }),
+
     MessageDeleted: () =>
       logResponse(model, 'delete-message') ??
       act(model, 'Deleted the poison message', Actions.deleteMessage(model.board.game)),
@@ -4378,6 +4412,12 @@ const handle = (model: Model, message: Message): Result =>
         model,
         `Queued a runbook for ${INCIDENTS[kind].name}`,
         Work.queueRunbook(model.board.game, kind),
+      ),
+    PolicyToggled: ({ policy, on }) =>
+      act(
+        model,
+        `${on ? 'Set' : 'Cleared'} the ${policy} policy`,
+        Actions.setPolicyOn(model.board.game, policy, on),
       ),
     WorkMoved: ({ id, direction }) =>
       act(model, 'Reordered the backlog', Work.moveItem(model.board.game, id, direction)),

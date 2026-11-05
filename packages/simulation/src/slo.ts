@@ -52,6 +52,17 @@ export const budgetOf = (game: Game): Budget => {
   }
 }
 
+/**
+ * How fast the budget burns right now: the share of requests failing against the share the SLO
+ * allows, so 1 spends exactly the whole budget over the window (12 "Alerting"). Zero before the
+ * budget counts.
+ */
+export const burnRateOf = (game: Game, ledger: Ledger): number => {
+  if (!budgeted(game) || ledger.demand <= 0) return 0
+  const allowed = 1 - sloOf(game, eraOf(game).slo)
+  return allowed > 0 ? budgetFailures(ledger) / ledger.demand / allowed : 0
+}
+
 /** The error budget counts from Series A. */
 export const budgeted = (game: Game): boolean => !game.sandbox && game.stage >= SLO_FROM_STAGE
 

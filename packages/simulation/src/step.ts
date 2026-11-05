@@ -36,6 +36,8 @@ import {
   WARMUP_SECONDS,
   SCHEDULE_LEAD_MINUTES,
   CHAOS_INSIGHT,
+  DRILL_INSIGHT,
+  LOAD_TEST_INSIGHT,
   NO_DEVICE_LATENCY,
   ANOMALY_DETECTION_HOLD,
   type RegionId,
@@ -69,7 +71,7 @@ import {
   warmAfterRestart,
 } from './lookups.ts'
 import { causeOf, warming, warmOf, withWarm } from './life.ts'
-import { recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
+import { burnRateOf, recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
 import { cosTurns } from './calendar.ts'
 import { calendarMinute, chaosRunning, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
@@ -78,6 +80,7 @@ import { advanceRunway } from './runway.ts'
 import { accrue, advanceStudies } from './studies.ts'
 import { perRegion, regional, regionApdexOf, regionUsers, withRegionUsers } from './regions.ts'
 import type { Alarms, FalseAlarms, Game, GameLink, GameNode, PerRegion, Sample } from './state.ts'
+import { applyPolicies } from './policies.ts'
 import { advanceMorale, advanceTeam } from './work.ts'
 
 /* ==========================================================================
@@ -580,10 +583,17 @@ const advanceAlarms = (
       .filter((node) => node.type !== 'users' && node.type !== 'analytics')
       .map((node) => ledger.nodes[node.id]?.utilization ?? 0),
   )
+  const oldest = Math.max(
+    0,
+    ...game.nodes.map((node) => (node.type === 'queue' ? (ledger.nodes[node.id]?.age ?? 0) : 0)),
+  )
+  const burning = burnRateOf(game, ledger) > rules.budget
   const next: Alarms = {
     errors: ledger.errorShare > rules.errors ? game.alarms.errors + seconds : 0,
     latency: slowest ? game.alarms.latency + seconds : 0,
     saturation: hottest > rules.saturation ? game.alarms.saturation + seconds : 0,
+    queue: oldest > rules.queue ? game.alarms.queue + seconds : 0,
+    budget: burning ? game.alarms.budget + seconds : 0,
   }
   // A new calendar day forgives false alarms, except on rules the player already ignores.
   const day = Math.floor(calendarMinute(game.time) / 1440)
@@ -592,8 +602,10 @@ const advanceAlarms = (
     errors: game.falseAlarms.errors,
     latency: game.falseAlarms.latency,
     saturation: game.falseAlarms.saturation,
+    queue: game.falseAlarms.queue,
+    budget: game.falseAlarms.budget,
   }
-  for (const rule of ['errors', 'latency', 'saturation'] as const) {
+  for (const rule of ['errors', 'latency', 'saturation', 'queue', 'budget'] as const) {
     if (fresh && counts[rule] < ALERT_FATIGUE) counts[rule] = 0
     if (!has(game, 'alerting')) continue
     const limit =
@@ -640,7 +652,7 @@ export const step = (
     spilled += Math.max(0, earned - room)
   }
   // An SLA pays its credits back to customers: 10% of subscription revenue while the week misses.
-  if (!game.sandbox) cash -= (ledger.burn + slaCreditsOf(game, ledger)) * seconds
+  if (!game.sandbox) cash -= (ledger.burn + slaCreditsOf(game, ledger) + ledger.fines) * seconds
 
   const nodes = game.nodes.map((node) => advanceNode(game, node, ledger, seconds, events))
   // Object Storage keeps every file it is sent: data never shrinks by itself (07 "Data volume").
@@ -716,7 +728,14 @@ export const step = (
     alarms,
     falseAlarms,
     insight: 0,
-    pools: chaotic ? { ...pools, failure: pools.failure + CHAOS_INSIGHT * seconds } : pools,
+    pools: {
+      ...pools,
+      failure:
+        pools.failure +
+        (chaotic ? CHAOS_INSIGHT * seconds : 0) +
+        (game.time < game.loadTestUntil ? LOAD_TEST_INSIGHT * seconds : 0) +
+        (game.drill && !game.drill.done ? DRILL_INSIGHT * seconds : 0),
+    },
     // The Node the next experiment hits: the Design's weakest right now (10 "Chaos engineering").
     weakest: game.chaos ? (ledger.bottleneck ?? game.weakest) : null,
     servedKinds: firsts.length > 0 ? [...game.servedKinds, ...firsts] : game.servedKinds,
@@ -772,6 +791,9 @@ export const step = (
       budget: spendBudget(next, lost),
       incident: next.incident ? { ...next.incident, failed: next.incident.failed + lost } : null,
     }
+
+  // The Autopilot perk's policies act on the Design and the Team (13 "The Legacy shop").
+  if (!offline) next = applyPolicies(next, ledger)
 
   // Money out: Burn keeps billing, and a shortfall brings the bridge or the shutdown.
   next = advanceRunway(next, ledger)

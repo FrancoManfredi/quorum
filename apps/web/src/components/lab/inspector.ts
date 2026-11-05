@@ -1654,6 +1654,28 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
       h,
     ),
     section(
+      'Slow start',
+      [
+        picker(
+          'slow-start',
+          [
+            [false, 'Off'],
+            [true, 'On'],
+          ],
+          node.slowStart,
+          (slowStart) => Message.SlowStartChosen({ nodeId: node.id, slowStart }),
+          h,
+        ),
+        caption(
+          node.slowStart
+            ? 'A new copy takes traffic gradually, so a cold Java copy never answers at its cold speed.'
+            : 'A new copy takes its full share at once.',
+          h,
+        ),
+      ],
+      h,
+    ),
+    section(
       'Health checks',
       [
         picker(
@@ -2094,6 +2116,32 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
     ),
   ]
 }
+
+/** Which Payment Provider takes the checkouts (18 "Senders"): the second keeps serving through an outage of the first. */
+const paymentProvider = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+  section(
+    'Provider',
+    [
+      picker(
+        'provider',
+        [
+          ['first', 'First'],
+          ['second', 'Second'],
+        ] as const,
+        node.provider,
+        (provider) => Message.ProviderChosen({ nodeId: node.id, provider }),
+        h,
+      ),
+      caption(
+        node.provider === 'second'
+          ? 'A second provider charges 15% more per checkout and keeps serving when the first is down.'
+          : 'One provider takes every checkout. When it is down, checkouts fail until it is back.',
+        h,
+      ),
+    ],
+    h,
+  ),
+]
 
 /** Object Storage's class and lifecycle (07 "Object Storage"): price against retrieval. */
 const storage = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
@@ -4012,6 +4060,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'cache' ? [cache(game, node, h)] : []),
           ...(node.type === 'database' ? database(game, node, h) : []),
           ...(node.type === 'replica' ? replica(game, node, h) : []),
+          ...(node.type === 'psp' ? paymentProvider(node, h) : []),
           ...(node.type === 'storage' ? storage(game, node, h) : []),
           ...(node.type === 'search' ? search(node, h) : []),
           ...(node.type === 'queue' ? queue(node, h) : []),

@@ -214,7 +214,7 @@ export const Message = defineMessageUnion({
     deepCheck: Schema.optional(Schema.Boolean),
   },
   AlertRuleChosen: {
-    rule: Schema.Literals(['errors', 'latency', 'saturation']),
+    rule: Schema.Literals(['errors', 'latency', 'saturation', 'queue', 'budget']),
     threshold: Schema.Finite,
   },
   TtlChosen: { nodeId: Schema.String, ttl: Schema.Finite },
@@ -246,6 +246,7 @@ export const Message = defineMessageUnion({
     swr: Schema.optional(Schema.Boolean),
   },
   StickyChosen: { nodeId: Schema.String, sticky: Schema.Boolean },
+  SlowStartChosen: { nodeId: Schema.String, slowStart: Schema.Boolean },
   CdnOptionsChosen: {
     nodeId: Schema.String,
     purge: Schema.optional(Schema.Boolean),
@@ -356,6 +357,7 @@ export const Message = defineMessageUnion({
   VolumeExpanded: {},
   CertificateRenewed: {},
   ProviderSwitched: {},
+  ProviderChosen: { nodeId: Schema.String, provider: Schema.Literals(['first', 'second']) },
   MessageDeleted: {},
   /** Responses the six hand-written incident kinds need (11 "The six kinds"). */
   SchemaMigrationCancelled: {},
@@ -397,6 +399,7 @@ export const Message = defineMessageUnion({
   EngineerGivenRaise: { engineerId: Schema.String },
   EngineerResigned: { engineerId: Schema.String },
   AutopilotToggled: {},
+  PolicyToggled: { policy: Schema.Literals(['research', 'hire', 'upgrade']), on: Schema.Boolean },
   MigrationShifted: {},
   MigrationCancelled: {},
   RolledBack: {},

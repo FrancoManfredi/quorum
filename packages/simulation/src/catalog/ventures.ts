@@ -73,7 +73,30 @@ export type VentureConstraint = Readonly<{
   gpus: number
   /** From this Era (stage) on one Realtime Hub per region: realtime runs where its players are. */
   hubsPerRegion: number | null
+  /** Streaming media: every byte leaving the Design bills this multiple of the price, so egress dominates. */
+  egress: number
+  /** Consumer social: viral spikes come this many times as often. */
+  spikeWeight: number
+  /** Fintech: a stale answer to a money kind costs this multiple of what the request earns. 0 for none. */
+  staleFine: number
+  /** E-commerce: a sale on a calendar schedule that lifts one kind; null for none. */
+  sale: SaleSchedule | null
 }>
+
+/**
+ * A scheduled sale (13 "Ventures"): every `everyDays` calendar days, from the second such day, at
+ * `startMinute` of the day, one request kind rises by `lift` for `minutes` calendar minutes.
+ */
+export type SaleSchedule = Readonly<{
+  everyDays: number
+  startMinute: number
+  minutes: number
+  kind: RequestKind
+  lift: number
+}>
+
+/** The request kinds that carry money, for Fintech's fine on a stale answer. */
+export const MONEY_KINDS: ReadonlyArray<RequestKind> = ['read', 'write', 'buy']
 
 export const NO_CONSTRAINT: VentureConstraint = {
   noNaiveRetries: false,
@@ -84,6 +107,10 @@ export const NO_CONSTRAINT: VentureConstraint = {
   sla: null,
   gpus: 0,
   hubsPerRegion: null,
+  egress: 1,
+  spikeWeight: 1,
+  staleFine: 0,
+  sale: null,
 }
 
 export type VentureDef = Readonly<{
@@ -152,7 +179,8 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     market: 2,
     legacy: 1.1,
     signature: 'hot-key',
-    summary: 'Twice the users, half the value each; media +50%',
+    constraint: { ...NO_CONSTRAINT, spikeWeight: 2 },
+    summary: 'Twice the users, half the value each; media +50%; viral spikes twice as often',
   }),
   fintech: venture({
     id: 'fintech',
@@ -164,7 +192,8 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     mix: { buy: 4, write: 1.5 },
     legacy: 1.3,
     signature: 'double-charge',
-    summary: 'Business hours; buy ×4, write +50%',
+    constraint: { ...NO_CONSTRAINT, staleFine: 20 },
+    summary: 'Business hours; buy ×4, write +50%; a stale money read is fined',
   }),
   streaming: venture({
     id: 'streaming',
@@ -175,7 +204,8 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     mix: { media: 4 },
     legacy: 1.2,
     signature: 'premiere-spike',
-    summary: 'Late evening peak; media ×4',
+    constraint: { ...NO_CONSTRAINT, egress: 3 },
+    summary: 'Late evening peak; media ×4; egress costs three times as much',
   }),
   // Realtime is served where the players are: one Hub per region from Series A (the design's
   // "regions matter from Series A"). Its `rt` Apdex T 50 ms is not built: the Apdex target is
@@ -212,7 +242,11 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     mix: { buy: 2, search: 2 },
     legacy: 1.2,
     signature: 'flash-sale',
-    summary: 'Buy ×2, search ×2',
+    constraint: {
+      ...NO_CONSTRAINT,
+      sale: { everyDays: 30, startMinute: 720, minutes: 120, kind: 'buy', lift: 20 },
+    },
+    summary: 'Buy ×2, search ×2; a scheduled monthly sale',
   }),
   // Flat, bursty API clients. The no-naive-retries rule and the Series C
   // webhooks are the design's; the curve, the mix boosts, the market, the start
@@ -304,6 +338,7 @@ export const MUTATOR_IDS = [
   'single-language',
   'postgres',
   'strict-slo',
+  'shared-tenancy',
 ] as const
 export type MutatorId = (typeof MUTATOR_IDS)[number]
 
@@ -365,6 +400,12 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
     rule: 'The SLO is one level higher',
     legacy: 0.2,
   },
+  'shared-tenancy': {
+    id: 'shared-tenancy',
+    name: 'Shared tenancy',
+    rule: 'Noisy neighbours steal CPU from every instance',
+    legacy: 0.1,
+  },
 }
 
 /** What each Mutator refuses to place. */
@@ -380,6 +421,9 @@ export const MONOLITH_DEBT = 0.4
 /** Chaos Monkey's weight on instance failures, from Seed. */
 export const CHAOS_WEIGHT = 4
 export const CHAOS_FROM_STAGE = 2
+/** Shared tenancy: the most CPU a noisy neighbour takes, and the sim seconds each draw lasts. */
+export const STEAL_MAX = 0.3
+export const STEAL_SECONDS = 30
 /** Hacker News front page: spike weight. */
 export const HN_WEIGHT = 3
 /** SLO levels: Strict SLO moves each Era's target to the next one up. */

@@ -1,3 +1,4 @@
+import { has } from '@quorum/simulation/lookups'
 import { InboxMessage } from '@/game/inbox.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -898,6 +899,25 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
           ),
           h.span([h.Class('flex-1')], []),
+          has(model.board.game, 'spam-filter')
+            ? h.button(
+                [
+                  h.Key('filter'),
+                  h.Type('button'),
+                  h.AriaPressed(model.board.inbox.filter ? 'true' : 'false'),
+                  h.OnClick(Message.InboxChanged({ message: InboxMessage.FilterToggled() })),
+                  h.Class(
+                    cn(
+                      'press flex h-6 items-center rounded-lg px-2.5 text-[calc(12px*var(--type-scale))]',
+                      model.board.inbox.filter
+                        ? 'bg-raised text-foreground shadow-raised'
+                        : 'text-muted-foreground',
+                    ),
+                  ),
+                ],
+                [model.board.inbox.filter ? 'Spam filter on' : 'Spam filter off'],
+              )
+            : h.empty,
           Kbd.group({}, [Kbd({}, ['J'], h), Kbd({}, ['K'], h)], h),
           Kbd({}, ['Esc'], h),
           button(

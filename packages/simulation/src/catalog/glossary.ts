@@ -232,7 +232,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'A remote procedure call that encodes its messages in a binary format, such as Protocol Buffers over gRPC, instead of text such as JSON. The payload is smaller and cheaper to parse, at the cost of a schema both sides must agree on.',
     inGame:
-      'Binary RPC between services research halves the CPU an App Server or a Worker spends serialising each backend call: 0.02 reference ms a call becomes 0.01 (both proposed, since the build had no serialization cost before the research). It shows on the CPU gauge of the Nodes that make the calls, so a Design that ran out of CPU serves more on the same boxes.',
+      'Binary RPC between services research halves the CPU an App Server or a Worker spends serialising each backend call: 0.02 reference ms a call becomes 0.01. It shows on the CPU gauge of the Nodes that make the calls, so a Design that ran out of CPU serves more on the same boxes.',
     related: ['compression', 'connection-pooling', 'utilization', 'http2-and-http3'],
     links: [
       {
@@ -310,7 +310,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Telling automated traffic from people and handling it on its own terms: challenging a suspicious client, rate limiting it, or blocking it, rather than failing every rule match outright.',
     inGame:
-      'Bot management research halves a WAF’s false positives and keeps its block rate (the half is proposed, since 10 gives the direction and no rate): a suspicious client gets a challenge, so a real user it flags still loads the page. Bots still earn nothing and still cost capacity when they get through, so the WAF stays the first place to stop them.',
+      'Bot management research halves a WAF’s false positives and keeps its block rate: a suspicious client gets a challenge, so a real user it flags still loads the page. Bots still earn nothing and still cost capacity when they get through, so the WAF stays the first place to stop them.',
     related: [
       'waf-web-application-firewall',
       'rate-limiting',
@@ -348,7 +348,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       "A limit on how much of a caller's capacity, such as threads, connections, or slots, one dependency can use. When that dependency slows down, it fills only its own share, and calls to other dependencies keep working. The name comes from the walls that split a ship's hull into compartments.",
     inGame:
-      'Bulkheads research adds a switch to each Link. A bulkheaded Link lets a call run for 1,000 ms; past that the caller gives it up, frees its slot and the request fails as `timeout`, so a slow dependency cannot fill every slot. It is a cap on time rather than on concurrent calls, which is the same thing at a fixed load (Little’s law), and the 1,000 ms is proposed. Without it, each call holds the caller’s slot until it answers or hits the Link’s timeout, 30 s by default.',
+      'Bulkheads research adds a switch to each Link. A bulkheaded Link lets a call run for 1,000 ms; past that the caller gives it up, frees its slot and the request fails as `timeout`, so a slow dependency cannot fill every slot. It is a cap on time rather than on concurrent calls, which is the same thing at a fixed load (Little’s law). Without it, each call holds the caller’s slot until it answers or hits the Link’s timeout, 30 s by default.',
     related: ['circuit-breaker', 'timeout', 'blast-radius', 'thread-pool'],
     links: [
       {
@@ -562,7 +562,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Injecting failures on purpose, in a controlled way, to find out how a system really behaves: kill a node, add latency, drop a dependency. It turns a guess about a weak spot into a measured one.',
     inGame:
-      'Chaos engineering research adds a Chaos switch to the Team panel. While it is on, every 120 s the Design’s weakest Node fails 20% of its calls for 10 s, and the Company earns 1 Failure Insight a second from the experiment (all proposed). The switch names the Node the next experiment will hit, and its injected `refused` errors show in the Dashboard’s Errors row, beside the failures it is meant to teach you about.',
+      'Chaos engineering research adds a Chaos switch to the Team panel. While it is on, every 120 s the Design’s weakest Node fails 20% of its calls for 10 s, and the Company earns 1 Failure Insight a second from the experiment. The switch names the Node the next experiment will hit, and its injected `refused` errors show in the Dashboard’s Errors row, beside the failures it is meant to teach you about.',
     related: ['blast-radius', 'runbook', 'metastable-failure', 'observability'],
     links: [{ label: 'Principles of Chaos Engineering', url: 'https://principlesofchaos.org/' }],
   },
@@ -715,7 +715,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'A serving technique for language models that adds each new request to the running batch as soon as a slot frees, instead of waiting for the whole batch to finish. Throughput rises and the wait for a first token stays short.',
     inGame:
-      'Continuous batching research adds batch 8 and batch 32 to a GPU Node: 1.6× and 2.2× the prompts a second with the time to the first token unchanged. Without it the larger batches still raise throughput, and they add 150 ms or 500 ms to that wait. Every figure is proposed: 05 gives the trade and no numbers.',
+      'Continuous batching research adds batch 8 and batch 32 to a GPU Node: 1.6× and 2.2× the prompts a second with the time to the first token unchanged. Without it the larger batches still raise throughput, and they add 150 ms or 500 ms to that wait.',
     related: ['model-inference', 'quantization', 'percentile-p50-p95-p99', 'utilization'],
     links: [{ label: 'vLLM docs: Continuous batching', url: 'https://docs.vllm.ai/en/latest/' }],
   },
@@ -1631,7 +1631,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'A server that spreads incoming requests across a group of backend servers, and stops sending to a backend that fails its health check. It lets you add servers behind one address, and it decides which server gets each request.',
     inGame:
-      'The Load Balancing Research unlocks the Load Balancer, which handles 2,000 requests per second per size step and adds 1 ms. By default it splits traffic by each App Server’s capacity. It drops a dead host at its next health check, every 10 s by default, while DNS round robin keeps sending to a dead host. Load balancing algorithms adds least connections and power of two choices, and Health checks lets you check every 2 s or 30 s. L4 load balancing research switches a Node to layer 4: 20,000 requests a second, a 0.2 ms hop and 0.6× the Burn (the price cut is proposed), with no per-kind routing and no retries, because it never reads the HTTP.',
+      'The Load Balancing Research unlocks the Load Balancer, which handles 2,000 requests per second per size step and adds 1 ms. By default it splits traffic by each App Server’s capacity. It drops a dead host at its next health check, every 10 s by default, while DNS round robin keeps sending to a dead host. Load balancing algorithms adds least connections and power of two choices, and Health checks lets you check every 2 s or 30 s. L4 load balancing research switches a Node to layer 4: 20,000 requests a second, a 0.2 ms hop and 0.6× the Burn, with no per-kind routing and no retries, because it never reads the HTTP.',
     related: [
       'health-check',
       'power-of-two-choices',
@@ -2099,7 +2099,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Storing a model’s weights at lower precision, such as 8-bit or 4-bit integers rather than 16-bit floats, so the model uses less memory and computes faster, at some cost in answer quality.',
     inGame:
-      'Quantization research adds FP16, INT8 and INT4 to a GPU Node. INT8 serves 2× the tokens and INT4 3× (both proposed), and each answer is worth 5% or 15% less (05). It pays when the GPU is the bottleneck and the answers can afford to be slightly worse.',
+      'Quantization research adds FP16, INT8 and INT4 to a GPU Node. INT8 serves 2× the tokens and INT4 3×, and each answer is worth 5% or 15% less (05). It pays when the GPU is the bottleneck and the answers can afford to be slightly worse.',
     related: ['model-inference', 'continuous-batching', 'utilization', 'cold-start'],
     links: [
       {
@@ -2229,7 +2229,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       "Rate, Errors, and Duration for each service: how many requests it gets, how many fail, and how long they take. It measures what users feel, so alerts watch it. Tom Wilkie named it as a service-level version of Google's four golden signals.",
     inGame:
-      'The Dashboard (D) opens after Metrics research. Its Golden signals row charts traffic, latency, and, with Structured logs, errors for your whole system over time. A per-Service RED row is not built yet; use the Golden signals row to see when users started to suffer.',
+      'The Dashboard (D) opens after Metrics research. Its Golden signals row charts traffic, latency, and, with Structured logs, errors for your whole system over time. The Services row gives the rate, errors and duration of each Service; use the Golden signals row to see when users started to suffer.',
     related: ['use-method', 'percentile-p50-p95-p99', 'observability', 'apdex'],
     links: [
       {
@@ -2748,7 +2748,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Utilization, Saturation, and Errors for each resource, such as CPU, memory, or a connection pool. It measures causes, not symptoms: a resource at 100% with work waiting is the likely bottleneck. Brendan Gregg described it as a checklist for performance analysis.',
     inGame:
-      "The Dashboard's Saturation row shows utilization for each Node as a bar gauge, a state timeline, and a table, so you can see which Node filled up first. A full per-resource USE row is not built yet. On the Board, the Load bar on each Node card shows the same utilization now.",
+      "The Dashboard's Saturation row shows utilization for each Node as a bar gauge, a state timeline, and a table, so you can see which Node filled up first. The Resources row, with profiling, names the limiting resource. On the Board, the Load bar on each Node card shows the same utilization now.",
     related: ['red-method', 'utilization', 'littles-law', 'observability'],
     links: [
       {
@@ -2781,7 +2781,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Vertical scaling (scaling up) moves a workload to a bigger machine with more CPU and memory. Horizontal scaling (scaling out) adds more machines and splits the work among them. Scaling up is simple but has a ceiling and usually a restart; scaling out needs a load balancer and stateless servers, but has no hard ceiling and survives the loss of one machine.',
     inGame:
-      'Resizing a sized Node moves it one step between nano (0.5 vCPU) and metal (96 vCPU), and each step doubles vCPU and RAM, but the Node restarts and comes back cold. Some software cannot use the extra cores: Node.js runs one event loop on one core, and Redis answers on one thread. To scale out, put more App Servers behind DNS or a Load Balancer, each copy costing 25% more to place, or let an Autoscaler add copies, which take 180 s on VMs or 30 s in a Kubernetes Cluster. The instance family also matters: ARM instances research adds a family with General’s vCPU and RAM for 0.8× the price, which runs at 0.95× the CPU speed (proposed).',
+      'Resizing a sized Node moves it one step between nano (0.5 vCPU) and metal (96 vCPU), and each step doubles vCPU and RAM, but the Node restarts and comes back cold. Some software cannot use the extra cores: Node.js runs one event loop on one core, and Redis answers on one thread. To scale out, put more App Servers behind DNS or a Load Balancer, each copy costing 25% more to place, or let an Autoscaler add copies, which take 180 s on VMs or 30 s in a Kubernetes Cluster. The instance family also matters: ARM instances research adds a family with General’s vCPU and RAM for 0.8× the price, which runs at 0.95× the CPU speed.',
     related: ['load-balancer', 'autoscaling', 'shared-nothing', 'utilization'],
     links: [
       {
@@ -2801,7 +2801,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'A filter in front of a web application that inspects HTTP requests and blocks those that match attack or bot rules. Stricter rule sets catch more attacks and also block more real users by mistake (false positives).',
     inGame:
-      'Web application firewall research unlocks the WAF Component. It blocks a share of bot requests and, by mistake, a share of real users, set by its paranoia level: level 1 blocks 60% of bots and 0.1% of users, level 2 (the default) 80% and 0.5%, level 3 92% and 2%, level 4 98% and 6%. Higher levels cost more CPU per request, up to 4 times level 1. Bot management research challenges a suspicious client instead of blocking it, which halves the false positives (proposed) and keeps the block rate. Under attack mode blocks 99% of bots and 1% of users and adds 40 ms.',
+      'Web application firewall research unlocks the WAF Component. It blocks a share of bot requests and, by mistake, a share of real users, set by its paranoia level: level 1 blocks 60% of bots and 0.1% of users, level 2 (the default) 80% and 0.5%, level 3 92% and 2%, level 4 98% and 6%. Higher levels cost more CPU per request, up to 4 times level 1. Bot management research challenges a suspicious client instead of blocking it, which halves the false positives and keeps the block rate. Under attack mode blocks 99% of bots and 1% of users and adds 40 ms.',
     related: [
       'ddos-distributed-denial-of-service',
       'credential-stuffing',

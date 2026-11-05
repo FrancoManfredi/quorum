@@ -4,7 +4,7 @@ import type { BlockKind, Incident, Postmortem, WorkItem } from './state.ts'
 
 /* What a Step reports besides the new Game: things the player should hear about. */
 
-export type AlertRule = 'errors' | 'latency' | 'saturation'
+export type AlertRule = 'errors' | 'latency' | 'saturation' | 'queue' | 'budget'
 
 export type StepEvent = Data.TaggedEnum<{
   IncidentStarted: { readonly incident: Incident }

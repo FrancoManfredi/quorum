@@ -81,7 +81,9 @@ import {
   ramOf,
   vcpuOf,
   vecOf,
+  rampedOf,
 } from './lookups.ts'
+import { stealOf } from './founding.ts'
 import { fixed } from './team.ts'
 import type { Game, GameNode } from './state.ts'
 import { warmOf } from './life.ts'
@@ -282,7 +284,10 @@ export const speedOf = (game: Game, node: GameNode): number => {
   const arm = node.family === 'arm' ? ARM_SPEED : 1
   // A JVM that scaled up under load runs its new copies cold: the Node answers at its cold
   // speed until the warmup finishes (11 "JVM warmup under load").
-  const cold = game.incident?.kind === 'jvm-warmup' && game.incident.nodeId === node.id
+  const cold =
+    game.incident?.kind === 'jvm-warmup' &&
+    game.incident.nodeId === node.id &&
+    !rampedOf(game, node)
   return (
     runtime.speed *
     collector *
@@ -391,8 +396,14 @@ export const requestCpuMs = (
   return cpuOf(context, kind, callsOf(game, node, kind, delegated))
 }
 
-/** Core-milliseconds one request of a kind costs this server. */
-const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number => {
+/**
+ * Core-milliseconds one request of a kind costs this server. Under Shared tenancy a noisy
+ * neighbour takes a share of the cores, so the same work takes longer.
+ */
+const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number =>
+  cpuBase(context, kind, calls) / (1 - stealOf(context.game, context.node))
+
+const cpuBase = (context: ServerContext, kind: RequestKind, calls: Calls): number => {
   const { game, node } = context
   const profile = profileOf(game, kind)
   const speed = speedOf(game, node)

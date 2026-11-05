@@ -1,10 +1,12 @@
 import {
   BREADTH,
+  REGION_BREADTH,
   ERA_RECIPES,
   FEATURES,
   INSIGHT_POOLS,
   POOL_FLOOR,
   RECIPE,
+  VENDOR_DISCOUNT,
   RESEARCH,
   RETENTION_WINDOWS,
   SPIKE_SPEED,
@@ -92,6 +94,21 @@ export const accrue = (
   return next
 }
 
+/** What an item costs this Company: a vendor's demo takes a fifth off its Insight. */
+export const recipeOf = (
+  game: Game,
+  id: ResearchId,
+): Readonly<Partial<Record<InsightPool, number>>> => {
+  const recipe = RECIPE[id]
+  if (!game.discounts.includes(id)) return recipe
+  return Object.fromEntries(
+    (Object.entries(recipe) as Array<[InsightPool, number]>).map(([pool, cost]) => [
+      pool,
+      cost * (1 - VENDOR_DISCOUNT),
+    ]),
+  )
+}
+
 /** The request kinds of a recipe, without Failure. */
 const recipeKinds = (id: ResearchId): ReadonlyArray<RequestKind> =>
   (Object.keys(RECIPE[id]) as Array<InsightPool>).filter(
@@ -101,7 +118,12 @@ const recipeKinds = (id: ResearchId): ReadonlyArray<RequestKind> =>
 /** Whether the Design samples an item's recipe kinds at enough Component types. */
 export const broadEnough = (id: ResearchId, ledger: Ledger): boolean => {
   const needed = BREADTH[id] ?? 0
-  return needed === 0 || recipeKinds(id).every((kind) => (ledger.breadth[kind] ?? 0) >= needed)
+  const regions = REGION_BREADTH[id] ?? 0
+  return (
+    (needed === 0 || recipeKinds(id).every((kind) => (ledger.breadth[kind] ?? 0) >= needed)) &&
+    (regions === 0 ||
+      recipeKinds(id).every((kind) => (ledger.breadthRegions[kind] ?? 0) >= regions))
+  )
 }
 
 /** Whether a Team spikes the running Study: its Spike is among the items the Teams take. */
@@ -130,7 +152,9 @@ export const limitingPool = (game: Game): InsightPool | null => {
   if (!running) return null
   let worst: InsightPool | null = null
   let least = Number.POSITIVE_INFINITY
-  for (const [pool, cost] of Object.entries(RECIPE[running.id]) as Array<[InsightPool, number]>) {
+  for (const [pool, cost] of Object.entries(recipeOf(game, running.id)) as Array<
+    [InsightPool, number]
+  >) {
     const left = game.pools[pool] / cost
     if (left < least) {
       least = left
@@ -154,7 +178,7 @@ export type StudyStall =
 export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
   if (!broadEnough(id, ledger)) return { _tag: 'Breadth', types: BREADTH[id] ?? 0 }
   const left = 1 - (game.studies.find((item) => item.id === id)?.progress ?? 0)
-  for (const [pool, cost] of Object.entries(RECIPE[id]) as Array<[InsightPool, number]>) {
+  for (const [pool, cost] of Object.entries(recipeOf(game, id)) as Array<[InsightPool, number]>) {
     if (ledger.insight[pool] > 0 || game.pools[pool] >= cost * left) continue
     const feature = Object.values(FEATURES).find(
       (entry) => entry.unlocks?.kind === pool && !game.shipped.includes(entry.id),
@@ -177,7 +201,7 @@ export const advanceStudies = (
     return studies.length === game.studies.length ? game : { ...game, studies }
   const speed = studySpeed(game)
   const share = (speed * seconds) / studySeconds(running.id)
-  const recipe = Object.entries(RECIPE[running.id]) as Array<[InsightPool, number]>
+  const recipe = Object.entries(recipeOf(game, running.id)) as Array<[InsightPool, number]>
   // The scarcest pool sets the pace: each pool pays the same share of its draw.
   let paid = 1
   for (const [pool, cost] of recipe) {

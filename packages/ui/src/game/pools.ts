@@ -24,6 +24,7 @@ import {
   INSIGHT_POOLS,
   POOLS,
   RECIPE,
+  VENDOR_DISCOUNT,
   type InsightPool,
   type ResearchId,
 } from '@quorum/simulation/catalog'
@@ -66,10 +67,15 @@ export const poolName = (pool: InsightPool): string => `${POOLS[pool].label} Ins
 export const POOL_ORDER: ReadonlyArray<InsightPool> = INSIGHT_POOLS
 
 /** An item's cost, by pool, in pool order. */
-export const recipeOf = (id: ResearchId): ReadonlyArray<readonly [InsightPool, number]> =>
+export const recipeOf = (
+  id: ResearchId,
+  discounts: ReadonlyArray<ResearchId> = [],
+): ReadonlyArray<readonly [InsightPool, number]> =>
   POOL_ORDER.flatMap((pool) => {
     const cost = RECIPE[id][pool]
-    return cost ? [[pool, cost] as const] : []
+    return cost
+      ? [[pool, discounts.includes(id) ? cost * (1 - VENDOR_DISCOUNT) : cost] as const]
+      : []
   })
 
 /** Why a Study stalls, in one sentence (10 "Studies"). */

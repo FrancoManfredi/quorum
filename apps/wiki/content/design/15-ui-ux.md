@@ -110,9 +110,8 @@ time the game state makes it useful.
   the round trip its calls pay, such as `75 ms`, in the amber of the cross-zone badge; a link into a
   global Component pays no place, so it shows no plate.
 - From Series C, each region is a tab with its own board.
-- Node groups: the player can box a set of Nodes as a Service. The box shows the Service's name, team,
-  and Stack. **Not built yet:** the build ties a Service to the Features it carries, not to a box of
-  Nodes; the Team panel shows the Services and splits one (see [Panels](#panels)).
+- Services: a Service is tied to the Features it carries, not to a box of Nodes. The Team panel shows
+  the Services and splits one (see [Panels](#panels)).
 
 ## Node cards
 
@@ -129,7 +128,7 @@ Each card is a small window, like Upload Labs. The card is the main information 
 └──────────────────────────────────────┘
 ```
 
-Not built yet: the `Limit` row (after research `profiling`). The gauges that explain the limit live in
+With research `profiling`, the card carries the `Limit` row. The gauges that explain the limit live in
 the Inspector: a goal bar names the tightest limit, and a bar follows for every limit the Ledger can
 measure — CPU, RAM, worker slots, connections, CPU credits, and the network card. A limit it cannot
 measure, such as disk IOPS or a flat Component's throughput, is named with no bar.
@@ -240,7 +239,7 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 
 The Team panel opens with the Company's Services ([Services](/design/08-team-and-velocity#services)),
 one row per codebase: its name, a badge naming the team that owns it, its KLOC, tech debt and Burn
-(its share of the Company's total Burn by its share of the Company's total codebase, proposed, since
+(its share of the Company's total Burn by its share of the Company's total codebase, since
 no Node belongs to a Service), and the Features it carries. The row rings when an incident names it,
 and a `Paged` badge marks the Service whose code broke. The starting Service's row reads that it
 carries every Feature no other Service names, so a Company with one Service shows one row and no
@@ -251,8 +250,8 @@ With Service boundaries, the card holds the split's form: a name, a select of th
 per live Feature no other Service carries. The button says what the split costs (`Split · 48 DH`),
 and while the form breaks a rule, such as moving nothing, it is disabled and says why. The split
 takes effect at once, so the new row appears with its owner, and its Dev Hours arrive on the backlog
-as a split item the owner's team builds. The build has no Service filter on the Dashboard: the
-Services row still draws one row per request kind ([Observability](/design/12-observability#the-dashboard)).
+as a split item the owner's team builds. The Dashboard's Service drop-down narrows the per-kind panels to that Service's kinds
+([Observability](/design/12-observability#the-dashboard)).
 
 Below the Services card, a **DORA metrics** card shows deploy frequency, lead time for changes,
 change failure rate and failed deployment recovery time (MTTR) once a CI/CD Pipeline is placed
@@ -300,8 +299,7 @@ round happened. The Game holds no round time, and a round raised from the fundin
 leaves no answer, so that row reads "—". The Game records whether the current Era began with a
 declined round and nothing about past rounds. The last row is the IPO: its grant reads "Public
 market" and its answer "Listed", because it pays Burn rather than a fixed grant and cannot be
-declined. Not built yet: the round time and answer on the Game, which would make the funding history
-independent of the Inbox.
+declined. The funding history is read from the Inbox.
 
 The Money card carries the Cash series under its figures: one point per Sample, on the Dashboard's
 time range, so the player sees Cash fall through the Garage and step up at a round. The last point is
@@ -349,7 +347,7 @@ fields. A Postmortem from such a save, or one whose times the Game never recorde
 for the whole run, so the lane never invents a phase. The card, the two tables and the timeline's two
 leading spans all read the same fields, so they agree.
 
-Not built yet: `anomaly-detection`, which would warn before the peak.
+`anomaly-detection` adds a forecast line at tomorrow's peak and halves the pager's hold.
 
 ## Research screen
 
@@ -382,7 +380,7 @@ Advice and offers are Mail ([Mail](/design/18-mail)). The rules below cover what
 - No sounds or popups for routine events. A short sound for an incident and for an Era milestone,
   both mutable.
 - Era transitions use a full-screen card with the new kinds and the new problem in one sentence. One
-  click to continue. Not built yet: the illustration.
+  click to continue.
 
 ## Offline return
 

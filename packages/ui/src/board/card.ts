@@ -118,6 +118,7 @@ export const ROW_ICONS = {
   blocked: ShieldBan,
   copies: Copy,
   version: Tag,
+  limit: Gauge,
 } as const
 
 export const FOOT_ICONS = {
@@ -164,7 +165,60 @@ export const pct = (value: number): string => `${Math.round(value * 100)}%`
 export const outRate = (ledger: Ledger, id: string): number =>
   ledger.links.reduce((sum, link) => (link.from === id ? sum + link.rate : sum), 0)
 
+/** What limits a Node, in the words a card has room for (15 "Node cards"). */
+const limitText = (own: Ledger['nodes'][string]): string => {
+  const { cpu, ram, slots, network } = own.resources
+  const share = (gauge: { used: number; total: number } | null): string =>
+    gauge !== null && gauge.total > 0 ? pct(gauge.used / gauge.total) : ''
+  switch (own.limit) {
+    case 'cpu':
+      return `CPU ${share(cpu)}`
+    case 'memory':
+      return `RAM ${share(ram)}`
+    case 'workers':
+      return slots ? `Workers ${Math.round(slots.used)}/${Math.round(slots.total)}` : 'Workers'
+    case 'network':
+      return `Network ${share(network)}`
+    case 'credits':
+      return 'CPU credits'
+    case 'connections':
+      return own.connections
+        ? `Connections ${own.connections.used}/${own.connections.max}`
+        : 'Connections'
+    case 'disk':
+      return 'Disk IOPS'
+    case 'throughput':
+      return 'Throughput'
+    default:
+      return 'Nothing tight'
+  }
+}
+
+/**
+ * A Node's card rows. With `profiling`, a Limit row follows the Load row and names the resource
+ * that limits the Node, such as `Workers 20/20` or `CPU 22%`.
+ */
 export const rowsOf = (
+  game: Game,
+  node: GameNode,
+  ledger: Ledger,
+  history: ReadonlyArray<number> = [],
+): ReadonlyArray<Row> => {
+  const rows = baseRowsOf(game, node, ledger, history)
+  const own = ledger.nodes[node.id]
+  if (!own || !has(game, 'profiling') || own.inbound <= 0 || own.limit === 'none') return rows
+  const at = rows.findIndex((row) => row.glyph === 'load')
+  if (at < 0) return rows
+  const limit: Row = {
+    glyph: 'limit',
+    name: 'Limit',
+    value: limitText(own),
+    tone: own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
+  }
+  return [...rows.slice(0, at + 1), limit, ...rows.slice(at + 1)]
+}
+
+const baseRowsOf = (
   game: Game,
   node: GameNode,
   ledger: Ledger,

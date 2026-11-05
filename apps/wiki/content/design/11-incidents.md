@@ -115,8 +115,7 @@ Insight.
 The acknowledgement is the player's first action while the Incident runs: any action counts, because
 it means the player is at the board. With `on-call` a rotation answers the page instead, five sim
 seconds (five calendar minutes) after it lands, so a Company with a rotation logs a five-minute MTTA
-whether or not the player was watching. `anomaly-detection` is still not built: it would warn before
-the peak.
+whether or not the player was watching. `anomaly-detection` halves the hold before the pager fires, so the page lands earlier.
 
 **Who it pages, and what a page costs.** An Incident pages the team that owns the Service whose code
 failed ([Team](/design/08-team-and-velocity#services)). Every page is recorded against the engineers
@@ -159,7 +158,7 @@ the Garage founds alone.
 | Forced cluster upgrade       | Series A | 2→1 | A Cluster left on a version the provider no longer supports. Weak: a Cluster a quarter or more behind | Pods that use removed APIs crash-loop                                        | Upgrade the Cluster                            | Upgrade at least once a quarter, or a Platform team                                | Kubernetes removes deprecated APIs on a schedule                            |
 | Spot reclaim                 | Series A | 3→2 | The provider needs the capacity back. Weak: a spot Node on the request path                           | One Node goes grey after a 10 s warning                                      | Switch it to on-demand                         | Mixed fleets, graceful shutdown                                                    | Spot interruption notices                                                   |
 | Thundering herd on reconnect | Series A | 2→1 | A Realtime Hub restarts. Weak: no reconnect jitter                                                    | All clients reconnect in one second; the Hub refuses what it cannot take     | Throttle connects, or wait for the Hub to warm | Reconnect jitter, Clustering                                                       | Common                                                                      |
-| JVM warmup under load        | Seed     | 3   | Scaling up Java during a spike. Weak: an Autoscaler that adds cold copies                             | New copies make p99 worse for 30 s                                           | Wait, or route less traffic to new copies      | Slow start on the load balancer, scheduled scaling, native image                   | Common                                                                      |
+| JVM warmup under load        | Seed     | 3   | Scaling up Java during a spike. Weak: an Autoscaler that adds cold copies                             | New copies make p99 worse for 30 s                                           | Wait, or route less traffic to new copies      | Slow start on the Load Balancer, scheduled scaling, native image                   | Common                                                                      |
 | GC pause storm               | Series A | 3→2 | Heap above 90% on a GC runtime                                                                        | p99 spikes; p50 normal                                                       | Restart, resize                                | More memory, ZGC, GOGC tuning                                                      | Discord's Go read-states service (2020)                                     |
 | Hot key                      | Series C | 2→1 | One key or tenant gets a huge share                                                                   | One shard or cache node red, others idle                                     | Cache the key locally                          | Key splitting, hybrid fan-out                                                      | Celebrity posts                                                             |
 | Report kills the database    | Series B | 2→1 | `report` runs on the primary                                                                          | Every kind slows down                                                        | Disable reports                                | Data Warehouse                                                                     | Common                                                                      |
@@ -184,8 +183,8 @@ the Garage founds alone.
 
 ## The six kinds
 
-The six kinds the catalog names by hand are built. The table above gives each one's trigger, symptom,
-mitigation and prevention; where it gives no Era, severity or duration, the build proposes one:
+The table above gives each of the six kinds' trigger, symptom, mitigation and prevention; the
+Era, severity and duration of each:
 
 | Kind                      | Era      | Sev | Sim s | Trigger in the build                                                                  | Effect in the build                                                                | Mitigation           | Action item                   |
 | ------------------------- | -------- | --- | ----- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | -------------------- | ----------------------------- |
@@ -196,10 +195,9 @@ mitigation and prevention; where it gives no Era, severity or duration, the buil
 | Operator typo             | Series C | 2   | 120   | A data Component serving now; 2 without `infra-as-code`, 0.5 with it                  | Every Node of that Component in its region goes down                               | Re-add capacity      | `infra-as-code`               |
 | Leap second or clock skew | Series C | 1   | 60    | A busy App Server, whose region is the one the jump hits; 1.5 without `leap-smearing` | Every Node there answers 1,000 ms late, and 10% of its answers time out            | Restart the Nodes    | `leap-smearing`               |
 
-The numbers the design gives are kept: the JVM warmup lasts the 30 s 11's symptom names, which is also
-Tomcat's warmup (06 "Java"). The rest are proposed: the five durations 11 does not give (150, 90, 120,
-120 and 60 sim seconds), the 10% a supply-chain compromise and a restore with no good backup drive
-away, and the 1,000 ms a clock jump adds to every hop and the 10% of answers it times out.
+The JVM warmup lasts 30 s, which is also Tomcat's warmup (06 "Java"). The other durations are 150, 90,
+120, 120 and 60 sim seconds. A supply-chain compromise and a restore with no good backup drive away 10%
+of the Users, and a clock jump adds 1,000 ms to every hop and times out 10% of answers.
 
 A restore with no good backup loses users because the rows in the deleted table are gone (07
 "Backups"): `pitr` and `restore-drills` are what make the restore succeed. Restarting the Nodes a clock
@@ -218,7 +216,7 @@ too, so the next incident waits for the cascade to end and the usual gap after i
 records its cause, and its postmortem does too, so the pager names the chain and the postmortem card
 says what it followed.
 
-The design names no pairs, so the build proposes them. Each is a failure the catalog's own flagship
+Each pair is a failure the catalog's own flagship
 section already describes:
 
 | Left alone                    | Starts                |
@@ -288,7 +286,7 @@ that owns it.
 Feature Flags set a ceiling of their own ([Components](/design/05-components#feature-flags)): a Feature
 only breaks the share of users its flag has reached, so a batch of thirteen Features at 5% breaks
 5.2% of requests under Recreate, Rolling and Blue-green, and Canary's 5% holds it to 5. A Feature
-with no flag is live for every user, as an old save opens. Two parts are not built: the rollout does
+with no flag is live for every user, as an old save opens. The rollout does
 not scale the Feature's load, and a Feature's code is never removed.
 
 ## Mitigation toolbox
@@ -392,6 +390,6 @@ its subscription revenue, and the Cash falls with the Burn. The credits need `en
 is what signs the contract. A Venture with no SLA, one that has not reached the Era it signs in, a
 week that met the target, or a Company without that research pays nothing.
 
-The design's figure is 10% of a week's subscription revenue. The build pays it as a rate while the
+The credit is 10% of a week's subscription revenue, paid as a rate while the
 week is short, which is the same money in a steady week and simpler to read on the Cash series: the
 player sees the line fall, and the fix is the same as any other SLO miss.

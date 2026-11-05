@@ -422,7 +422,7 @@ Serves `q-scan`. Columnar storage makes scans cheap.
   cache and hold locks. Separating analytics from transactions is the Series B lesson.
 - A **materialized view** answers a report from a stored result instead of scanning: half the CPU,
   and the figures are as old as the last refresh. Research `precompute` puts one on a Database's
-  card ([Progression](/design/10-progression#track-performance)). The build charges half the scan
+  card ([Progression](/design/10-progression#track-performance)). A view costs half the scan
   CPU and marks 5% of report answers stale.
 
 ## Vector Index

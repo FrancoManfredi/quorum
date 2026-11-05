@@ -35,7 +35,6 @@ import {
   OPEN_REGION_PRICE,
   FAILURE_YIELD,
   POOLS,
-  RECIPE,
   REGIONS,
   REGION_INFO,
   RESEARCH,
@@ -48,7 +47,7 @@ import { tabDrift } from './mirror.ts'
 import { canRaise } from '@quorum/simulation/actions'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has, nextEra, researchReady } from '@quorum/simulation/lookups'
-import { limitingPool, studyStall } from '@quorum/simulation/studies'
+import { limitingPool, recipeOf as simRecipe, studyStall } from '@quorum/simulation/studies'
 import { PRE_IPO_STAGE, checklistOf } from '@quorum/simulation/ipo'
 import {
   GUIDANCE_GROWTH,
@@ -295,7 +294,7 @@ const poolRow = (
 const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   const running = game.studies[0]
-  const recipe = running ? RECIPE[running.id] : {}
+  const recipe = running ? simRecipe(game, running.id) : {}
   const limit = running ? limitingPool(game) : null
   const stall = running ? studyStall(game, ledger, running.id) : null
   const pools = POOL_ORDER.filter(

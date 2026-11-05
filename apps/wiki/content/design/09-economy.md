@@ -64,7 +64,7 @@ place where reliability is a line on the P&L rather than a figure in the HUD
 
 **Burn** is the total Cash spent per second. The HUD shows Cash with its net change per second,
 income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
-beside them. The table is the bill the build charges:
+beside them. The table is the bill:
 
 | Line          | Formula                                                                                                                                                                                                                                                                              |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

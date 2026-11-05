@@ -145,6 +145,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['cacheStrategy'], (game, id, node) => Actions.setCacheStrategy(game, id, node.cacheStrategy)],
   [['refresh'], (game, id, node) => Actions.setSearchRefresh(game, id, node.refresh)],
   [['sticky'], (game, id, node) => Actions.setSticky(game, id, node.sticky)],
+  [['slowStart'], (game, id, node) => Actions.setSlowStart(game, id, node.slowStart)],
   [
     ['purge', 'cacheKey'],
     (game, id, node) =>

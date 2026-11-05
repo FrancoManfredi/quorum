@@ -99,18 +99,17 @@ add, subtract, multiply, divide, and square root. It never calls functions such 
 which engines compute slightly differently. Smooth curves such as the daily demand cycle are built
 from those exact operations. This lets the server replay a Challenge and check its score.
 
-## Not modeled yet
+## What the game simplifies
 
-The design describes some systems that the game does not have yet. The glossary marks each one.
-
-- **One Service.** The Company runs one codebase, the monolith. Service splits and the coordination
-  cost of a shared database are designed but not built. See [Conway's law](/glossary/conways-law).
-- **Feature Flags.** A Feature reaches every user at its deploy, with no gradual rollout. See
+- **Services.** A Service is a codebase owned by one team. The coordination cost of a shared database
+  is the team size penalty, not a model of the database. See [Conway's law](/glossary/conways-law).
+- **Feature Flags.** A flag sets the share of users a Feature reaches. Nothing removes a Feature's
+  code afterwards, so flags never pile up as they do in a real codebase. See
   [feature flag](/glossary/feature-flag).
-- **Spot instances.** Spot pricing is designed but not in the game. See
+- **Spot instances.** A spot Node is cheaper and the provider can reclaim it with a 10 s warning. See
   [spot instance](/glossary/spot-instance).
-- **Distributed tracing.** The Research exists, but it does not change what you see yet. See
-  [distributed tracing](/glossary/distributed-tracing).
+- **Distributed tracing.** The Research adds the Dashboard's Services and waterfall tables, built from
+  per-hop times rather than stored traces. See [distributed tracing](/glossary/distributed-tracing).
 
 The game's design documents keep a reality check: a table of every claim the game makes, the rule
 that models it, the simplification, and the source. The wiki's [glossary](/glossary) gives the real

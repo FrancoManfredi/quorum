@@ -50,6 +50,7 @@ import {
   securityStaffed,
   sreStaffed,
   zoned,
+  rampedOf,
 } from './lookups.ts'
 import { nodeLabel } from './labels.ts'
 
@@ -196,7 +197,7 @@ const javaTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNo
         !isDown(node) &&
         busy(ledger, node),
     )
-    .map((node) => [node, autoscalerInto(game, node) ? 3 : 1] as const)
+    .map((node) => [node, rampedOf(game, node) ? 0.3 : autoscalerInto(game, node) ? 3 : 1] as const)
 
 /**
  * The data Component an operator's command reaches: the busiest Node whose loss takes reads or
@@ -411,7 +412,11 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     certificate: () => (has(game, 'cert-automation') ? 0 : 0.5),
     // Their outage, not yours: it hits whoever takes checkouts.
     'psp-outage': () =>
-      game.nodes.some((node) => node.type === 'psp' && busy(ledger, node)) ? 1 : 0,
+      game.nodes.some(
+        (node) => node.type === 'psp' && node.provider === 'first' && busy(ledger, node),
+      )
+        ? 1
+        : 0,
     // 3.0 once the Company could spread across zones and has not; before Multiple
     // zones it has no answer, so the outage stays rare. 0.2 when nothing depends on one zone.
     zone: () =>

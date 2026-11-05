@@ -210,6 +210,12 @@ const NODE_FIELDS = {
   policy: LbPolicy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('weighted' as const))),
   /** A Load Balancer keeps a user on one target (05 "Load Balancer"). */
   sticky: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** The Payment Provider a checkout goes to: the first, or a second that an outage of the first leaves alone (18). */
+  provider: Schema.Literals(['first', 'second']).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('first' as const)),
+  ),
+  /** A Load Balancer lets a new copy take traffic gradually (11 "JVM warmup under load"). */
+  slowStart: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** A CDN clears its cache when a deploy ships (05 "CDN"). */
   purge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** What a CDN's cache key holds (05 "CDN"). */
@@ -553,14 +559,21 @@ export const Alarms = Schema.Struct({
   errors: Schema.Finite,
   latency: Schema.Finite,
   saturation: Schema.Finite,
+  queue: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  budget: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
 })
 export type Alarms = typeof Alarms.Type
 
-/** Alert thresholds: error share, p99 as a multiple of the Apdex target, and Node load. */
+/**
+ * Alert thresholds: error share, p99 as a multiple of the Apdex target, Node load, the age in
+ * seconds of the oldest task in any Queue, and the error budget's burn rate.
+ */
 export const AlertRules = Schema.Struct({
   errors: Schema.Finite,
   latency: Schema.Finite,
   saturation: Schema.Finite,
+  queue: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(30))),
+  budget: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(10))),
 })
 export type AlertRules = typeof AlertRules.Type
 
@@ -570,6 +583,8 @@ export const FalseAlarms = Schema.Struct({
   errors: Schema.Finite,
   latency: Schema.Finite,
   saturation: Schema.Finite,
+  queue: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  budget: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
 })
 export type FalseAlarms = typeof FalseAlarms.Type
 
@@ -1038,8 +1053,29 @@ export const Bridge = Schema.Struct({
 })
 export type Bridge = typeof Bridge.Type
 
-export const DEFAULT_ALERT_RULES: AlertRules = { errors: 0.01, latency: 4, saturation: 0.9 }
-export const NO_FALSE_ALARMS: FalseAlarms = { day: 0, errors: 0, latency: 0, saturation: 0 }
+/** The Autopilot perk's policies (13 "The Legacy shop"): which rules the Company follows. */
+export const Policies = Schema.Struct({
+  research: Schema.Boolean,
+  hire: Schema.Boolean,
+  upgrade: Schema.Boolean,
+})
+export type Policies = typeof Policies.Type
+
+export const DEFAULT_ALERT_RULES: AlertRules = {
+  errors: 0.01,
+  latency: 4,
+  saturation: 0.9,
+  queue: 30,
+  budget: 10,
+}
+export const NO_FALSE_ALARMS: FalseAlarms = {
+  day: 0,
+  errors: 0,
+  latency: 0,
+  saturation: 0,
+  queue: 0,
+  budget: 0,
+}
 
 export const Game = Schema.Struct({
   nodes: Schema.Array(GameNode),
@@ -1062,6 +1098,8 @@ export const Game = Schema.Struct({
   spilled: Schema.Finite,
   researched: Schema.Array(ResearchId),
   stage: Schema.Finite,
+  /** The sim second the current Era began (12 "Annotations"). */
+  stageAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   equity: Schema.Finite,
   /** The current Era began with a declined round. */
   declined: Schema.Boolean,
@@ -1156,6 +1194,17 @@ export const Game = Schema.Struct({
   /** Features built and waiting for the next deploy. */
   awaiting: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   /** Idle teams pick the next Feature, shift migrations, and pay down debt on their own. */
+  /** Sim time a fake advisory's backdoor went in, or null (18 "Spam and phishing"). */
+  backdoorAt: Schema.NullOr(Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(null)),
+  ),
+  /** Research a vendor's demo discounted: each costs less Insight to study. */
+  discounts: Schema.Array(ResearchId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /** The Autopilot perk's policies, and the sim time the upgrade policy may act again. */
+  policies: Policies.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({ research: false, hire: false, upgrade: false })),
+  ),
+  policyAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   autopilot: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   deploys: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   badDeploys: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),

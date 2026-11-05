@@ -22,6 +22,8 @@ export const DashboardMessage = defineMessageUnion({
   TableToggled: {},
   /** A Request kind narrows every per-kind panel; null for all of them. */
   KindChosen: { kind: Schema.NullOr(Schema.Literals(REQUEST_KINDS)) },
+  /** A Service narrows every per-kind panel to the kinds its Features touch; null for all of them. */
+  ServiceChosen: { service: Schema.NullOr(Schema.String) },
   /** A region narrows every per-region panel; null for all of them. */
   RegionChosen: { region: Schema.NullOr(Region) },
 })
@@ -48,5 +50,6 @@ export const updateDashboard = (
     CompareToggled: () => ({ model: { ...dashboard, compare: !dashboard.compare } }),
     TableToggled: () => ({ model: { ...dashboard, table: !dashboard.table } }),
     KindChosen: ({ kind }) => ({ model: { ...dashboard, kind } }),
+    ServiceChosen: ({ service }) => ({ model: { ...dashboard, service } }),
     RegionChosen: ({ region }) => ({ model: { ...dashboard, region } }),
   })

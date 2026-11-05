@@ -52,6 +52,7 @@ import { newGame } from './company.ts'
 import { foundCompany } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import { has, isDown, ramOf, researchReady } from './lookups.ts'
+import { recipeOf } from './studies.ts'
 import { bottleneckOf, solveFlow } from './solve.ts'
 import type { Founding, Game, GameNode } from './state.ts'
 import { step } from './step.ts'
@@ -73,11 +74,12 @@ import {
    no UI. Balanced plays the way the design expects; Greedy only buys bigger
    boxes and the cheapest research, and never hires; Stubborn never changes
    runtime or framework; Decliner plays Balanced and turns every round down;
-   Polyglot plays Balanced and migrates to each new language it researches.
+   Polyglot plays Balanced and migrates to each new language it researches; Idle plays
+   Balanced but only every two hours.
    Every bot leaves the Team's autopilot on, so Features ship.
    ========================================================================== */
 
-export type Strategy = 'balanced' | 'greedy' | 'stubborn' | 'decliner' | 'polyglot'
+export type Strategy = 'balanced' | 'greedy' | 'stubborn' | 'decliner' | 'polyglot' | 'idle'
 
 export type Milestone =
   | 'first-upgrade'
@@ -176,6 +178,9 @@ const LANGUAGE_RESEARCH: ReadonlyArray<readonly [ResearchId, RuntimeId]> = [
 ]
 
 /** The Balanced player hires while payroll stays under this share of revenue, up to a headcount. */
+/** Sim seconds between the idle player's visits: two hours. */
+const IDLE_EVERY = 7_200
+
 const PAYROLL_SHARE = 0.25
 const MAX_HIRES = 4
 
@@ -486,7 +491,7 @@ const studies = (
 ): Game => {
   const payable = (id: ResearchId) =>
     (Object.keys(RECIPE[id]) as Array<InsightPool>).every(
-      (pool) => ledger.insight[pool] > 0 || game.pools[pool] >= (RECIPE[id][pool] ?? 0),
+      (pool) => ledger.insight[pool] > 0 || game.pools[pool] >= (recipeOf(game, id)[pool] ?? 0),
     )
   let next = game
   const head = next.studies[0]
@@ -732,7 +737,8 @@ export const runBot = (
     if (milestones[milestone] === undefined) milestones[milestone] = game.time
   }
   while (game.time < until && game.stage < untilStage) {
-    if (Math.round(game.time) % LOOK_EVERY === 0) {
+    // The idle player logs in every two hours of game time, spends everything, and leaves.
+    if (Math.round(game.time) % (strategy === 'idle' ? IDLE_EVERY : LOOK_EVERY) === 0) {
       const before = game
       const ledger = solveFlow(before)
       game = look(before, tuning, strategy)

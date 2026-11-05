@@ -119,7 +119,9 @@ import { nextRandom } from './random.ts'
 import { solveFlow } from './solve.ts'
 import { serviceOf, withService } from './team.ts'
 import type { AlertRule } from './events.ts'
+import { POLICY_LEVEL } from './catalog/legacy.ts'
 import type {
+  Policies,
   CacheEngine,
   Collector,
   Game,
@@ -253,6 +255,8 @@ export const blankNode = (
     policy: 'weighted',
     variant: 'l7',
     sticky: false,
+    slowStart: false,
+    provider: 'first',
     purge: false,
     cacheKey: 'full',
     staleUntil: 0,
@@ -725,6 +729,17 @@ export const setSticky = (game: Game, id: string, sticky: boolean): Action =>
     node.type === 'lb'
       ? ok(node.sticky === sticky ? game : patch(game, id, { sticky }))
       : notAllowed('Only a Load Balancer keeps users on a target.'),
+  )
+
+/**
+ * Turns slow start on or off on a Load Balancer (11 "JVM warmup under load"): a new copy takes
+ * traffic gradually, so a cold Java copy never answers at its cold speed.
+ */
+export const setSlowStart = (game: Game, id: string, slowStart: boolean): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'lb'
+      ? ok(node.slowStart === slowStart ? game : patch(game, id, { slowStart }))
+      : notAllowed('Only a Load Balancer ramps a new copy up.'),
   )
 
 /** Sets a CDN's purge on deploy and its cache key (05 "CDN"). */
@@ -1617,18 +1632,27 @@ export const renewCertificate = (game: Game): Action =>
     : notAllowed('No certificate has expired.')
 
 /**
- * Switches Payment Provider mid-outage (18 "Senders": "Switch provider"): a rush integration with
- * a second provider, for Cash, ends the Payment provider outage at once. Their outage, not yours,
- * so nothing on the Design remains broken once it ends.
+ * Moves every Payment Provider Node to the second provider, or back to the first (18 "Senders":
+ * "Switch provider"). The move is a rush integration that costs Cash; the second provider keeps
+ * serving through an outage of the first, and charges more per checkout. Switching during an
+ * outage of the first ends its effect at once.
  */
-export const switchProvider = (game: Game): Action =>
-  game.incident?.kind === 'psp-outage'
-    ? spend(game, SWITCH_PROVIDER_PRICE, 'Switch provider', (paid) =>
-        paid.incident
-          ? { ...paid, incident: { ...answering(paid, paid.incident), remaining: 0 } }
-          : paid,
-      )
-    : notAllowed('The Payment Provider is not down.')
+export const setProvider = (game: Game, provider: 'first' | 'second'): Action => {
+  const psps = game.nodes.filter((node) => node.type === 'psp')
+  if (psps.length === 0) return notAllowed('There is no Payment Provider to switch.')
+  if (psps.every((node) => node.provider === provider)) return ok(game)
+  return spend(game, SWITCH_PROVIDER_PRICE, 'Switch provider', (paid) => ({
+    ...paid,
+    nodes: paid.nodes.map((node) => (node.type === 'psp' ? { ...node, provider } : node)),
+    incident:
+      provider === 'second' && paid.incident?.kind === 'psp-outage'
+        ? { ...answering(paid, paid.incident), remaining: 0 }
+        : paid.incident,
+  }))
+}
+
+/** Switches to the second Payment Provider, which an outage of the first leaves alone. */
+export const switchProvider = (game: Game): Action => setProvider(game, 'second')
 
 /** Deletes the poison message: the Workers get back to the queue. */
 export const deleteMessage = (game: Game): Action =>
@@ -1669,6 +1693,36 @@ export const restoreBackup = (game: Game): Action => {
 /** Restarts the Nodes whose clocks jumped: the region's timers and leases resync. */
 export const restartClocks = (game: Game): Action =>
   endIncident(game, 'leap-second', 'No clock has jumped.')
+
+/**
+ * Acting on a fake advisory runs its patcher, which installs a backdoor (18 "Spam and phishing").
+ * Dependency scanning catches the dropper first. The attacker uses the backdoor once it has sat
+ * for BACKDOOR_FUSE sim seconds, and a Data breach starts.
+ */
+export const installBackdoor = (game: Game): Action => {
+  if (game.sandbox) return notAllowed('A Sandbox has nothing to compromise.')
+  if (has(game, 'dependency-scanning'))
+    return notAllowed('Dependency scanning caught the dropper before it ran.')
+  if (game.backdoorAt !== null) return notAllowed('The backdoor is already in.')
+  return ok({ ...game, backdoorAt: game.time })
+}
+
+/** Takes a vendor's demo (18 "Spam and phishing"): the item's Study costs less Insight. */
+export const takeDiscount = (game: Game, id: ResearchId): Action => {
+  if (game.sandbox) return notAllowed('A Sandbox has no vendors.')
+  if (has(game, id)) return notAllowed(`${RESEARCH[id].name} is already yours.`)
+  if (game.discounts.includes(id)) return notAllowed('You already took that demo.')
+  return ok({ ...game, discounts: [...game.discounts, id] })
+}
+
+/** Switches one of the Autopilot perk's policies on or off (13 "The Legacy shop"). */
+export const setPolicyOn = (game: Game, policy: keyof Policies, on: boolean): Action => {
+  if (game.sandbox || perkLevel(game, 'autopilot') < POLICY_LEVEL[policy])
+    return notAllowed('The Autopilot perk has not reached that policy.')
+  return ok(
+    game.policies[policy] === on ? game : { ...game, policies: { ...game.policies, [policy]: on } },
+  )
+}
 
 /** Sets an alert rule's threshold. A new threshold is a fresh start: its false alarms are forgiven. */
 export const setAlertRule = (game: Game, rule: AlertRule, threshold: number): Action => {
@@ -1860,6 +1914,7 @@ const advanceEra = (game: Game, raised: boolean, firstIncidentAfter: number): Ac
     return ok({
       ...game,
       stage,
+      stageAt: game.time,
       cash: game.cash + ledger.burn * IPO_BURN_SECONDS,
       equity: game.equity * (1 - dilution),
       declined: false,
@@ -1872,6 +1927,7 @@ const advanceEra = (game: Game, raised: boolean, firstIncidentAfter: number): Ac
     // Users abroad arrive with the regions (04 "Going global").
     ...(stage === REGIONS_FROM_STAGE ? goGlobal(game) : game),
     stage,
+    stageAt: game.time,
     cash: game.cash + (raised ? grantOf(game, era.grant) : 0),
     equity: raised ? game.equity * (1 - dilution) : game.equity,
     // A bootstrapped Company declines every round, and grows at the full rate.

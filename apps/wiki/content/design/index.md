@@ -42,7 +42,7 @@ latency hides the p99.
 | 14  | [Sandbox, Challenges, and achievements](/design/14-challenges) | Guided and free Sandboxes, fixed puzzles with histograms, daily drills, and achievements.  |
 | 15  | [Interface and game feel](/design/15-ui-ux)                    | The board, Node cards, feedback, bulk actions, and accessibility.                          |
 | 16  | [Balancing](/design/16-balancing)                              | Every formula, every tunable constant, and the pacing model.                               |
-| 17  | [Scope and roadmap](/design/17-scope-and-roadmap)              | What ships first, what exists in code today, and open questions.                           |
+| 17  | [Scope and roadmap](/design/17-scope-and-roadmap)              | What the game contains, the milestones, and open questions.                                |
 | 18  | [Mail](/design/18-mail)                                        | Mail: colour-coded senders, threads, teammates, CVEs, and spam as the game's main channel. |
 | —   | [Measurements](/design/measurements)                           | Balance snapshots taken at a named simulation version.                                     |
 
