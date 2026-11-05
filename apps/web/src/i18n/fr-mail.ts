@@ -2407,4 +2407,92 @@ export const frMail: Readonly<Record<string, string>> = {
   'a provider is down': 'un fournisseur est en panne',
   'rate limited': 'débit limité',
   'charged twice': 'débité deux fois',
+  '[SEV1] Credentials used: a login we did not expect':
+    '[SEV1] Identifiants utilisés : une connexion que nous n’attendions pas',
+  'Incident: credential leak\nUrgency: Critical':
+    'Incident : fuite d’identifiants\nUrgence : critique',
+  "One of your access keys was used from an address none of us have ever logged in from. The traffic is real, the session is real, and the key was not stolen by anything clever: it was typed into a page that looked like the provider's.":
+    'Une de vos clés d’accès a été utilisée depuis une adresse d’où aucun de nous ne s’est jamais connecté. Le trafic est réel, la session est réelle, et la clé n’a pas été volée par une prouesse : elle a été saisie sur une page qui ressemblait à celle du fournisseur.',
+  'The page was in your Inbox this morning. The address was not.':
+    'La page était dans votre boîte de réception ce matin. L’adresse, non.',
+  'Users are finding out with us.': 'Les utilisateurs l’apprennent en même temps que nous.',
+  'Unusual login volume from your account': 'Volume de connexions inhabituel depuis votre compte',
+  'We are seeing logins with your credentials from somewhere you are not. Sessions were opened, data was read, and one of the keys has since been used to look around.':
+    'Nous voyons des connexions avec vos identifiants depuis un endroit où vous n’êtes pas. Des sessions ont été ouvertes, des données lues, et une des clés a servi depuis à regarder autour.',
+  'This is not a vulnerability in anything you run. It is a person who read an email and trusted the address on it.':
+    'Ce n’est pas une faille dans ce que vous exploitez. C’est une personne qui a lu un courriel et fait confiance à l’adresse.',
+  'We will keep this open until it burns out.':
+    'Nous laisserons ceci ouvert jusqu’à ce que cela s’éteigne.',
+  'Suspicious session opened with your key': 'Session suspecte ouverte avec votre clé',
+  'Alert: a session was opened with an access key that belongs to you.':
+    'Alerte : une session a été ouverte avec une clé d’accès qui vous appartient.',
+  'Location: not where you are\nDevices: one, unfamiliar\nWhat it read: enough\nWhy it worked: the credentials were real, and they were given away on purpose, to a page that was not ours.':
+    'Lieu : pas là où vous êtes\nAppareils : un, inconnu\nCe qu’elle a lu : assez\nPourquoi cela a marché : les identifiants étaient vrais, et ils ont été donnés volontairement à une page qui n’était pas la nôtre.',
+  'Wait it out. Next time, read the domain before the logo.':
+    'Attendez que ça passe. La prochaine fois, lisez le domaine avant le logo.',
+  'Postmortem for the {0}?': 'Analyse post-incident : {0} ?',
+  'Team,': 'Équipe,',
+  "We're clear. {0} {1} on {2}, {3} to restore, {4} of revenue gone.":
+    'Tout est revenu à la normale. {0} {1} sur {2}, {3} pour rétablir, {4} de revenu perdu.',
+  "Someone has to write it down before the details turn into folklore. I can do it now, and I'd rather do it now.":
+    'Quelqu’un doit l’écrire avant que les détails ne deviennent une légende. Je peux le faire maintenant, et je préfère le faire maintenant.',
+  "The obvious action item is {0}. If you want it, I'll file the postmortem and put the study in the queue in one go.":
+    'L’élément de suivi évident est {0}. Si vous le voulez, je consigne l’analyse et je mets l’étude dans la file d’un seul coup.',
+  '{0} {1}: the write-up': '{0} {1} : le compte rendu',
+  "The incident is over. I've got the numbers in front of me and I'd like to close the loop while they're still true:":
+    'L’incident est terminé. J’ai les chiffres sous les yeux et j’aimerais boucler tant qu’ils sont encore vrais :',
+  'Target: {0}\nRun: {1}\nUsers lost: {2}\nFailed requests: {3}':
+    'Cible : {0}\nDurée : {1}\nUtilisateurs perdus : {2}\nRequêtes échouées : {3}',
+  "File the postmortem and it goes in the record with all of that. Leave it and we'll reconstruct it from memory in a week, badly, over lunch.":
+    'Consignez l’analyse et tout cela entre dans le dossier. Laissez tomber et nous la reconstituerons de mémoire dans une semaine, mal, autour d’un déjeuner.',
+  'Before we forget: {0}': 'Avant que nous oubliions : {0}',
+  'We are all very relieved about {0}. Relief is a terrible archivist.':
+    'Nous sommes tous soulagés pour {0}. Le soulagement est un très mauvais archiviste.',
+  '{0}, {1} of it. If we file the postmortem we can start on {2} straight away, and it stops being twice as likely.':
+    '{0}, {1} de cela. Si nous consignons l’analyse, nous pouvons commencer {2} tout de suite, et cela cesse d’être deux fois plus probable.',
+  'Give me the word and it is filed.': 'Dites un mot et c’est consigné.',
+  'Incident report: {0}': 'Rapport d’incident : {0}',
+  'Summary of what just happened, so we can look back at this without arguing about it later.':
+    'Résumé de ce qui vient de se passer, pour pouvoir y revenir plus tard sans en débattre.',
+  'What: {0} ({1})\nWhere: {2}\nUsers lost: {3}\nRevenue lost: {4}\nFailed requests: {5}':
+    'Quoi : {0} ({1})\nOù : {2}\nUtilisateurs perdus : {3}\nRevenu perdu : {4}\nRequêtes échouées : {5}',
+  "I'll write it up properly if you file the postmortem. The action item goes to the study queue and the whole thing joins the Incidents row.":
+    'Je rédigerai tout proprement si vous consignez l’analyse. L’élément de suivi part dans la file d’étude et l’ensemble rejoint la ligne Incidents.',
+  'While you were away: {0}': 'Pendant votre absence : {0}',
+  'You were gone for {0}. The books kept turning.':
+    'Vous êtes parti {0}. Les comptes ont continué de tourner.',
+  'Users: {0}\nCash: {1}\nStudies finished: {2}\nDev Hours: {3}':
+    'Utilisateurs : {0}\nTrésorerie : {1}\nÉtudes terminées : {2}\nHeures de dev : {3}',
+  'Nothing needed a signature. That is the most we can say for most days.':
+    'Rien n’a eu besoin d’une signature. C’est le mieux qu’on puisse dire de la plupart des journées.',
+  'Reconciled: {0} of doing nothing': 'Rapproché : {0} à ne rien faire',
+  'Summary of the {0} you were not here:': 'Résumé des {0} où vous n’étiez pas là :',
+  '- {0} users\n- {1} cash\n- {2} studies completed\n- {3} of Dev Hours banked':
+    '- {0} utilisateurs\n- {1} de trésorerie\n- {2} études terminées\n- {3} d’heures de dev mises de côté',
+  'All reconciled to the nearest regret.': 'Tout est rapproché au regret près.',
+  'You were out for {0}': 'Vous étiez absent {0}',
+  'Quick note for the record: the Company ran for {0} without you.':
+    'Note rapide pour le dossier : la société a tourné {0} sans vous.',
+  '{0} users now. {1} in cash. {2} of Dev Hours done by people who did not take the day off.':
+    '{0} utilisateurs maintenant. {1} en trésorerie. {2} d’heures de dev réalisées par des gens qui n’ont pas pris leur journée.',
+  'No invoices were harmed in your absence.':
+    'Aucune facture n’a été maltraitée pendant votre absence.',
+  'While you were away: peak {0} on {1}': 'Pendant votre absence : pic de {0} sur {1}',
+  'You were away for {0}. Here is what the dials did.':
+    'Vous êtes parti {0}. Voici ce qu’ont fait les cadrans.',
+  'Highest load: {0} on {1}': 'Charge maximale : {0} sur {1}',
+  'We lost users while you were out. Nobody paged you about it.':
+    'Nous avons perdu des utilisateurs pendant votre absence. Personne ne vous a appelé pour cela.',
+  'The users stayed, and no dial reached its limit.':
+    'Les utilisateurs sont restés, et aucun cadran n’a atteint sa limite.',
+  'We did not page you. We considered it for a moment, then we looked at your calendar.':
+    'Nous ne vous avons pas appelé. Nous y avons songé un instant, puis nous avons regardé votre agenda.',
+  'Your graphs missed you (draft, unsent)':
+    'Vos graphiques vous ont regretté (brouillon, non envoyé)',
+  'I drafted a few pages while you were away. This is the one I did not send.':
+    'J’ai rédigé quelques alertes pendant votre absence. Voici celle que je n’ai pas envoyée.',
+  '{0} away. Peak load {1} on {2}. Nothing caught fire, though one graph got warm enough to toast bread.':
+    '{0} d’absence. Charge de pointe {1} sur {2}. Rien n’a pris feu, même si un graphique est devenu assez chaud pour griller du pain.',
+  "Read this instead of a page and we'll call it even.":
+    'Lisez ceci à la place d’une alerte et nous serons quittes.',
 }

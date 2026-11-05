@@ -341,6 +341,33 @@ export const fr: Readonly<Record<string, string>> = {
   'No updates.': 'Aucune nouvelle.',
   'Spam is empty.': 'Aucun courrier indésirable.',
   'Trash is empty.': 'La corbeille est vide.',
+  'No Mail with that label here.': 'Aucun courrier avec ce libellé ici.',
+  Labels: 'Libellés',
+  Digest: 'Résumé',
+  'Digest: {0} older updates': 'Résumé : {0} mises à jour plus anciennes',
+  '{0} older updates': '{0} mises à jour plus anciennes',
+  'More than eight threads were unread, so the oldest ones that needed nothing from you folded into this one. They are all still here.':
+    'Plus de huit discussions étaient non lues : les plus anciennes qui n’attendaient rien de vous ont été repliées ici. Elles sont toutes encore là.',
+  'File postmortem': 'Consigner le post-mortem',
+  'File and research the action item': 'Consigner et étudier l’élément de suivi',
+  'You filed the postmortem.': 'Vous avez consigné le post-mortem.',
+  'You filed the postmortem and put the action item in the study queue.':
+    'Vous avez consigné le post-mortem et mis l’élément de suivi dans la file d’étude.',
+  'Credential leak': 'Fuite d’identifiants',
+  'Credential leak: the page was not the provider, and your keys were real.':
+    'Fuite d’identifiants : la page n’était pas celle du fournisseur, et vos clés étaient vraies.',
+  'Credential leak: the phishing page took your keys. Users are leaving.':
+    'Fuite d’identifiants : la page d’hameçonnage a pris vos clés. Des utilisateurs partent.',
+  'Gave away the credentials': 'Identifiants donnés',
+  'Paid a fake invoice': 'Fausse facture payée',
+  'Paid a fake domain notice': 'Fausse notice de domaine payée',
+  'A fake invoice': 'Une fausse facture',
+  'You paid {0} to a provider you do not use.':
+    'Vous avez payé {0} à un fournisseur que vous n’utilisez pas.',
+  'You paid {0} to keep a domain you already own.':
+    'Vous avez payé {0} pour garder un domaine que vous possédez déjà.',
+  'A Sandbox has no credentials to leak.': 'Un bac à sable n’a pas d’identifiants à divulguer.',
+  'There is nothing left to leak.': 'Il ne reste rien à divulguer.',
   Sample: 'Échantillon',
   'Send {0} random': 'Envoyer {0} messages aléatoires',
   Send: 'Envoyer',
@@ -3507,6 +3534,10 @@ export const fr: Readonly<Record<string, string>> = {
     'Un concentrateur temps réel a redémarré. Tous les clients se sont reconnectés dans la même seconde.',
   'Reconnect jitter spreads the wave, and Clustering gives it more than one box.':
     'Le jitter de reconnexion étale la vague, et le clustering lui donne plus d’une machine.',
+  'A phishing page took the Company credentials, and a stranger used them.':
+    'Une page d’hameçonnage a pris les identifiants de la société, et un inconnu s’en est servi.',
+  'Read the domain, not the logo. Report the Mail as phishing and it loses its button.':
+    'Lisez le domaine, pas le logo. Signalez le courrier comme hameçonnage et il perd son bouton.',
   'Runaway bill': 'Facture emballée',
   'An Autoscaler grew to its ceiling without a spike to serve, and Burn rose with no extra revenue.':
     'Un autoscaler a atteint son plafond sans pic à servir, et la dépense a grimpé sans revenu supplémentaire.',

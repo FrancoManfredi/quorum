@@ -156,6 +156,12 @@ const NODE_FIELDS = {
   credits: Schema.Finite,
   /** GB leaked by a memory leak. */
   leak: Schema.Finite,
+  /**
+   * The Company shut this Node down to stop its Burn (09 "Runway and running
+   * out of Cash"). A shut Node serves nothing and bills nothing, and stays on
+   * the board until the player replaces or sells it.
+   */
+  shut: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Supervised process crashes a BEAM App Server has absorbed (06 "Fault isolation"). */
   crashes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** The App Server gzips page and read responses. */
@@ -742,6 +748,19 @@ export const Mirror = Schema.Struct({
 })
 export type Mirror = typeof Mirror.Type
 
+/**
+ * A bridge investors offer while Cash is short (09 "Runway and running out of
+ * Cash"): a grant that covers a few calendar days of Burn, for a slice of
+ * Equity. The terms are fixed when the offer arrives, like a term sheet.
+ */
+export const Bridge = Schema.Struct({
+  /** Cash the grant adds. */
+  grant: Schema.Finite,
+  /** Share of Equity the grant costs, 0 to 1. */
+  dilution: Schema.Finite,
+})
+export type Bridge = typeof Bridge.Type
+
 export const DEFAULT_ALERT_RULES: AlertRules = { errors: 0.01, latency: 4, saturation: 0.9 }
 export const NO_FALSE_ALARMS: FalseAlarms = { day: 0, errors: 0, latency: 0, saturation: 0 }
 
@@ -750,6 +769,10 @@ export const Game = Schema.Struct({
   links: Schema.Array(GameLink),
   nextId: Schema.Finite,
   cash: Schema.Finite,
+  /** The bridge offer waiting for an answer, or null when none waits. */
+  bridge: Schema.NullOr(Bridge).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** The investors already offered this Company one bridge; they offer no second. */
+  bridgeUsed: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Old saves' single Insight balance. Unused: the first Step moves it into `pools`. */
   insight: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   pools: InsightPools.pipe(Schema.withDecodingDefaultKey(Effect.succeed(NO_INSIGHT))),

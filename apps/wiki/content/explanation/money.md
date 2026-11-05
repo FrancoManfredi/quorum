@@ -48,7 +48,13 @@ shows where to look first.
 
 A Company never ends because it runs out of money. Cash can go below zero. Burn continues, and the
 game refuses anything that costs Cash, such as placing a Node or signing a hire, until you can pay.
-Nothing shuts down by itself. The fix is to sell Nodes you do not need or to grow revenue.
+The fix is to sell Nodes you do not need or to grow revenue.
+
+Stay short, and the investors offer a **bridge**: a grant in exchange for a slice of your Equity.
+Take it and you have room again. Leave it, and the Company starts shutting Nodes down, the most
+expensive first, until the bill no longer outruns the income. A shut Node serves nothing and bills
+nothing, and stays on the board until you sell it or pay to replace it. Even then the Company goes
+on: running out of money is a setback, not the end of the run.
 
 ## Funding rounds
 

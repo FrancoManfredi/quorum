@@ -37,6 +37,7 @@ export type EventVars = {
   readonly 'incident-zone': { readonly zone: string }
   readonly 'incident-psp': Nothing
   readonly 'incident-breach': Nothing
+  readonly 'incident-phishing': Nothing
   readonly resolved: { readonly incident: string }
   readonly 'resolved-action': { readonly incident: string; readonly action: string }
   readonly drawer: Nothing

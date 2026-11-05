@@ -471,6 +471,28 @@ test('the Company row draws Cash, Burn, Equity, runway and each team’s velocit
   )
 })
 
+test('the Company row draws the bridge offer’s terms, and taking it pays the grant', () => {
+  const model = fixture({
+    game: {
+      cash: -2_000,
+      equity: 0.81,
+      bridge: { grant: 6_000, dilution: 0.08 },
+      bridgeUsed: true,
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(panelOf('company-money')).toContainText('Bridge'),
+    Scene.expect(panelOf('company-money')).toContainText(`${money(6_000)} · 8% · Accept`),
+  )
+  // The offer pays three calendar days of Burn and costs 8% of Equity.
+  const took = update(model, Message.BridgeAccepted())
+  expect(took.model.board.game.cash).toBe(4_000)
+  expect(took.model.board.game.equity).toBeCloseTo(0.81 * 0.92, 6)
+  expect(took.model.board.game.bridge).toBeNull()
+})
+
 test('the Company row lists each funding round with the Inbox’s answer', () => {
   const model = fixture({
     game: { stage: 2 },

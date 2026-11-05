@@ -239,8 +239,10 @@ export const warmAfterRestart = (node: GameNode, warming = false): number =>
     ? Math.max(CACHE_ENGINES[node.engine].warmAfterRestart, warming ? WARMED : 0)
     : 0
 
+/** A Node restarting: it comes back warm or cold, and a shut Node comes back in service. */
 export const restarted = (node: GameNode, cause: DownCause = 'restart', warming = false) => ({
   life: restarting(restartSeconds(node), cause, warmAfterRestart(node, warming)),
+  ...(node.shut ? { shut: false } : {}),
 })
 
 export const languageOf = (node: GameNode) => RUNTIMES[node.runtime].language
@@ -343,8 +345,9 @@ export const dataBurnOf = (game: Game, node: GameNode): number =>
   (node.type === 'database' ? DB_RETENTIONS[node.keep].price : 1) *
   eraOf(game).costIndex
 
-/** Dollars per second a Node costs while it exists, down or not. */
+/** Dollars per second a Node costs while it exists, down or not; nothing once it is shut. */
 export const burnOf = (game: Game, node: GameNode): number => {
+  if (node.shut) return 0
   const def = COMPONENTS[node.type]
   const index = eraOf(game).costIndex
   if (def.sized) {

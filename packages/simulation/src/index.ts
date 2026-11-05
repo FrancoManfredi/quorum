@@ -25,6 +25,7 @@ export * from './random.ts'
 export * from './replay.ts'
 export * from './regions.ts'
 export * from './rules.ts'
+export * from './runway.ts'
 export * from './sandbox.ts'
 export * from './solve.ts'
 // The id schemas (`ComponentId` and the others) share their names with the

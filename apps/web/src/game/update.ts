@@ -124,6 +124,8 @@ import {
   eventFact,
   eventMail,
   factOf,
+  postmortemFact,
+  awayFacts,
   type Fact,
 } from './mail.ts'
 import type { EventMail } from './copy/index.ts'
@@ -131,15 +133,18 @@ import { updateDashboard } from './dashboard.ts'
 import { updateGlossary } from './glossary.ts'
 import {
   EMPTY_INBOX,
+  DIGEST_ID,
   InboxMessage,
   InboxOutMessage,
   closed,
   withMail,
   folderList,
+  inboxOfSave,
   mailed,
   openingFolder,
   reading,
   resolvedExcept,
+  savedInbox,
   updateInbox,
 } from './inbox.ts'
 import { PrefsMessage, updatePrefs } from './prefs.ts'
@@ -162,6 +167,7 @@ import { optionAction } from '@quorum/ui/board/jobs'
 import { Game } from '@quorum/simulation/state'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { firstQuarter } from '@quorum/simulation/quarters'
+import * as Runway from '@quorum/simulation/runway'
 import { step } from '@quorum/simulation/step'
 import { serviceOf } from '@quorum/simulation/team'
 import * as Work from '@quorum/simulation/work'
@@ -449,6 +455,7 @@ const saveOf = (model: Model): AnyCommand | null => {
     revealed: model.board.disclosure.revealed,
     pending: model.board.disclosure.pending,
     dashboard: model.board.dashboard.history,
+    inbox: savedInbox(model.board.inbox),
   })
 }
 
@@ -504,7 +511,7 @@ const mailKey = (model: Model, key: string): Result | null => {
     case 'k':
       return foldInbox(model, InboxMessage.Opened({ id: list[Math.max(at - 1, 0)]?.id ?? null }))
     case 'e':
-      return current
+      return current && current.id !== DIGEST_ID
         ? apply(
             current.trashed
               ? InboxMessage.Restored({ id: current.id })
@@ -512,7 +519,9 @@ const mailKey = (model: Model, key: string): Result | null => {
           )
         : null
     case 's':
-      return current && !current.trashed ? apply(InboxMessage.MarkedSpam({ id: current.id })) : null
+      return current && current.id !== DIGEST_ID && !current.trashed
+        ? apply(InboxMessage.MarkedSpam({ id: current.id }))
+        : null
     default: {
       // The reader shows every button, so every one of them takes a number, in order.
       if (!/^[1-9]$/.test(key)) return null
@@ -881,9 +890,69 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
       return act(model, `Queued ${FEATURES[id].name}`, Work.queueFeature(model.board.game, id))
     }
     case 'trap':
-      return withToast(model, 'That was phishing. Check the sender address first.', 'danger')
+      return trapTaken(model, target)
+    case 'postmortem':
+    case 'postmortem-take':
+      return route(
+        model,
+        Message.PostmortemFiled({
+          id: Number(target),
+          take: kind === 'postmortem-take',
+        }),
+      )
     default:
       return { model }
+  }
+}
+
+/** What paying a fake invoice costs, in Cash: the amount printed on the invoice itself. */
+const FAKE_INVOICE = 4_812
+const FAKE_DOMAIN = 389
+
+/**
+ * A trap the player clicked (18 "Spam and phishing"): the effect lands in the world, and the Mail
+ * records it. Spam lies about the world, so the damage is always the player's own click.
+ */
+const trapTaken = (model: Model, target: string | null): Result => {
+  const game = model.board.game
+  switch (target) {
+    case 'phish': {
+      const taken = act(model, 'Gave away the credentials', Actions.phished(game), {
+        note: () => [
+          'Credential leak: the page was not the provider, and your keys were real.',
+          'danger',
+        ],
+      })
+      const incident = taken.model.board.game.incident
+      // The Act starts the incident directly, so the pager's Mail is written here, not by a Step.
+      return incident?.kind === 'credential-leak'
+        ? {
+            ...taken,
+            model: mailedTo(
+              taken.model,
+              eventFact(
+                { _tag: 'IncidentStarted', incident },
+                { topic: 'incident-phishing', vars: {} },
+                taken.model.board.game,
+              ),
+              taken.model.board.game.time,
+              true,
+            ),
+          }
+        : taken
+    }
+    case 'invoice':
+      return act(model, 'Paid a fake invoice', Actions.payFakeInvoice(game, FAKE_INVOICE), {
+        note: () => [`You paid ${money(FAKE_INVOICE)} to a provider you do not use.`, 'danger'],
+      })
+    case 'domain':
+      return act(model, 'Paid a fake domain notice', Actions.payFakeInvoice(game, FAKE_DOMAIN), {
+        note: () => [`You paid ${money(FAKE_DOMAIN)} to keep a domain you already own.`, 'danger'],
+      })
+    // A fake advisory would install a backdoor, and this build has no lasting compromise to
+    // install one into: the toast is the lesson, and 18 records the gap.
+    default:
+      return withToast(model, 'That was phishing. Check the sender address first.', 'danger')
   }
 }
 
@@ -1116,49 +1185,55 @@ const eventText = (event: StepEvent, game: Game): EventNote =>
               'danger',
               { topic: 'incident-breach', vars: {} },
             ]
-          : incident.kind === 'instance' && incident.nodeId
+          : incident.kind === 'credential-leak'
             ? [
-                `${nodeName(game, incident.nodeId)} failed. Select it and click Replace.`,
+                'Credential leak: the phishing page took your keys. Users are leaving.',
                 'danger',
-                { topic: 'incident-instance', vars: { node: nodeName(game, incident.nodeId) } },
+                { topic: 'incident-phishing', vars: {} },
               ]
-            : incident.kind === 'slow-query'
+            : incident.kind === 'instance' && incident.nodeId
               ? [
-                  'A new query has no index. Every read scans the table.',
+                  `${nodeName(game, incident.nodeId)} failed. Select it and click Replace.`,
                   'danger',
-                  { topic: 'incident-slow-query', vars: {} },
+                  { topic: 'incident-instance', vars: { node: nodeName(game, incident.nodeId) } },
                 ]
-              : incident.kind === 'poison'
+              : incident.kind === 'slow-query'
                 ? [
-                    'A task keeps failing. Workers retry it instead of the queue.',
+                    'A new query has no index. Every read scans the table.',
                     'danger',
-                    { topic: 'incident-poison', vars: {} },
+                    { topic: 'incident-slow-query', vars: {} },
                   ]
-                : incident.kind === 'ddos'
+                : incident.kind === 'poison'
                   ? [
-                      'A flood of junk traffic hits the edge.',
+                      'A task keeps failing. Workers retry it instead of the queue.',
                       'danger',
-                      { topic: 'incident-ddos', vars: {} },
+                      { topic: 'incident-poison', vars: {} },
                     ]
-                  : incident.kind === 'stampede'
+                  : incident.kind === 'ddos'
                     ? [
-                        'The Cache restarted empty. Every miss goes to the database.',
+                        'A flood of junk traffic hits the edge.',
                         'danger',
-                        { topic: 'incident-stampede', vars: {} },
+                        { topic: 'incident-ddos', vars: {} },
                       ]
-                    : incident.kind === 'zone' && incident.zone
+                    : incident.kind === 'stampede'
                       ? [
-                          `Zone ${incident.zone.toUpperCase()} is down.`,
+                          'The Cache restarted empty. Every miss goes to the database.',
                           'danger',
-                          { topic: 'incident-zone', vars: { zone: incident.zone.toUpperCase() } },
+                          { topic: 'incident-stampede', vars: {} },
                         ]
-                      : incident.kind === 'psp-outage'
+                      : incident.kind === 'zone' && incident.zone
                         ? [
-                            'The Payment Provider is down. Checkouts fail.',
+                            `Zone ${incident.zone.toUpperCase()} is down.`,
                             'danger',
-                            { topic: 'incident-psp', vars: {} },
+                            { topic: 'incident-zone', vars: { zone: incident.zone.toUpperCase() } },
                           ]
-                        : null,
+                        : incident.kind === 'psp-outage'
+                          ? [
+                              'The Payment Provider is down. Checkouts fail.',
+                              'danger',
+                              { topic: 'incident-psp', vars: {} },
+                            ]
+                          : null,
     IncidentResolved: ({ postmortem }): EventNote =>
       postmortem.action
         ? [
@@ -1394,6 +1469,10 @@ const tick = (model: Model): Result => {
         },
       }
     const text = eventText(event, game)
+    // An incident's postmortem is a teammate's to file, so the alarm clearing and the follow-up
+    // are two Mail: the pager's record, and a person asking for the write-up (18 "Teammates").
+    if (!boardChallenge(next.board) && event._tag === 'IncidentResolved')
+      next = mailedTo(next, postmortemFact(event.postmortem, game), game.time)
     if (!text) continue
     // What happened in the Design is Mail (GDD 18); a Challenge has no Inbox, so it keeps the toast.
     if (boardChallenge(next.board)) {
@@ -1402,6 +1481,39 @@ const tick = (model: Model): Result => {
       commands.push(clear)
     } else {
       next = mailedTo(next, eventFact(event, text[2], game), game.time, true)
+    }
+  }
+
+  // Money out (09 "Runway and running out of Cash"): the bridge arrives, or the Nodes shut down.
+  if (!offCompany(next)) {
+    const was = model.board.game.bridge
+    const bridge = next.board.game.bridge
+    if (!was && bridge) {
+      logs.push(
+        line(game.time, 'BridgeOffered', { grant: bridge.grant, dilution: bridge.dilution }),
+      )
+      const [raised, clear] = toasted(
+        next,
+        `Out of Cash. Investors offer a bridge: ${money(bridge.grant)} for ${Math.round(bridge.dilution * 100)}% of Equity.`,
+        'danger',
+      )
+      next = raised
+      commands.push(clear)
+    }
+    const shut = next.board.game.nodes.filter(
+      (node) =>
+        node.shut &&
+        !(model.board.game.nodes.find((before) => before.id === node.id)?.shut ?? false),
+    )
+    if (shut.length > 0) {
+      logs.push(line(game.time, 'NodesShutDown', { nodes: shut.map((node) => node.id) }))
+      const [raised, clear] = toasted(
+        next,
+        `Out of Cash: ${shut.length === 1 ? 'a Node shut' : `${shut.length} Nodes shut`} down to stop the Burn.`,
+        'danger',
+      )
+      next = raised
+      commands.push(clear)
     }
   }
 
@@ -1706,6 +1818,14 @@ const applyCompany = (
         )
       : null
   const played = normalizeOrdinals(back?.game ?? game)
+  // The Inbox survives the reload (18 "Open questions"), and the return from away writes to it.
+  const kept = inboxOfSave(file)
+  const inbox = back
+    ? awayFacts(back.report, played).reduce(
+        (next, fact) => mailed(next, fact, played.time, true),
+        kept,
+      )
+    : kept
   const next: Model = {
     ...model,
     loaded: true,
@@ -1719,6 +1839,7 @@ const applyCompany = (
       disclosure: { ...model.board.disclosure, ...revealsOfSave(file) },
       dashboard: { ...model.board.dashboard, history: historyOfSave(file) },
       game: played,
+      inbox,
       clock: { ...model.board.clock, savedAt: played.time, sampledAt: played.time },
       bottleneckAt: -1,
       away: back?.report ?? null,
@@ -3878,6 +3999,19 @@ const handle = (model: Model, message: Message): Result =>
     RoundDeclined: () =>
       act(model, 'Declined a round', Actions.decline(model.board.game), { panel: afterRound }),
 
+    BridgeAccepted: () => {
+      const bridge = model.board.game.bridge
+      if (!bridge) return withToast(model, 'No bridge is on the table.', 'warn')
+      const took = act(model, 'Accepted the bridge', Runway.acceptBridge(model.board.game))
+      if (took.model.board.game === model.board.game) return took
+      return withToast(
+        took.model,
+        `Bridge: ${money(bridge.grant)} for ${Math.round(bridge.dilution * 100)}% of Equity.`,
+        'primary',
+        took.commands,
+      )
+    },
+
     PostmortemFiled: ({ id, take }) => {
       const action = model.board.game.postmortems.find((entry) => entry.id === id)?.action
       return act(model, 'Postmortem', Actions.filePostmortem(model.board.game, id, take), {
@@ -4017,6 +4151,7 @@ const handle = (model: Model, message: Message): Result =>
                 inbox: reading({
                   ...opened.board.inbox,
                   folder: openingFolder(opened.board.inbox),
+                  label: null,
                 }),
               },
             }

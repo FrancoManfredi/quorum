@@ -160,6 +160,17 @@ const ok = (game: Game): Action => Result.succeed(game)
 const no = (refusal: Refusal): Action => Result.fail(refusal)
 const notAllowed = (reason: string): Action => no(Refusal.NotAllowed({ reason }))
 
+/**
+ * Cash is short (09 "Runway and running out of Cash"): at zero or below, the
+ * Company places nothing, upgrades nothing, and hires nobody until Cash is
+ * positive again. Selling, layoffs, research, and the backlog still run, and
+ * Burn still bills.
+ */
+export const shortOfCash = (game: Game): boolean => !game.sandbox && game.cash <= 0
+
+const shortfall = (): Action =>
+  notAllowed('Out of Cash: no placement, upgrade, or hire until Cash is above zero.')
+
 const withNode = (game: Game, id: string, apply: (node: GameNode) => Action): Action => {
   const node = game.nodes.find((entry) => entry.id === id)
   return node ? apply(node) : no(Refusal.Missing())
@@ -204,6 +215,7 @@ export const blankNode = (
     life: COMPONENTS[type].coldStart ? warming(0) : RUNNING,
     credits: 0,
     leak: 0,
+    shut: false,
     compress: stack?.compress ?? false,
     downAt: 0,
     policy: 'weighted',
@@ -276,6 +288,7 @@ export const place = (
 ): Action => {
   const def = COMPONENTS[type]
   if (def.fixed) return notAllowed(`${def.name} cannot be placed.`)
+  if (shortOfCash(game)) return shortfall()
   if (!isUnlocked(game, type) && def.unlock)
     return no(Refusal.Locked({ what: def.name, research: RESEARCH[def.unlock].name }))
   const banned = placeRefusal(game, type, region)
@@ -452,6 +465,7 @@ export const resize = (game: Game, id: string, direction: 1 | -1): Action =>
     const price = resizePrice(game, node)
     if (price === null || node.size >= maxSize(node))
       return notAllowed(`${def.name} is at its largest size.`)
+    if (shortOfCash(game)) return shortfall()
     const label = def.sized
       ? `${SIZES[node.size + 1]?.name ?? 'Next size'}`
       : `Size ${node.size + 1}`
@@ -486,6 +500,12 @@ export const upgradeAll = (
     (node) => node.type === type && (region === undefined || node.region === region),
   )
   if (nodes.length === 0) return Result.fail(Refusal.Missing())
+  if (shortOfCash(game))
+    return Result.fail(
+      Refusal.NotAllowed({
+        reason: 'Out of Cash: no placement, upgrade, or hire until Cash is above zero.',
+      }),
+    )
   let next = game
   let upgraded = 0
   let skipped = 0
@@ -1129,6 +1149,28 @@ export const setSplit = (game: Game, id: string, split: boolean): Action =>
 /** Rolls back the routing change that withdrew the Company from the internet. */
 export const rollBackRoutes = (game: Game): Action =>
   endIncident(game, 'bgp', 'No routing change to roll back.')
+
+/** Share of the Users a phishing page drives away. The design gives no number: this is proposed. */
+export const PHISH_CHURN = 0.1
+
+/**
+ * Acting on a phishing Mail leaks the Company's credentials and starts the Credential leak
+ * (18 "Spam and phishing"). The act is the player's, so it is an Action like any other.
+ */
+export const phished = (game: Game): Action => {
+  if (game.sandbox) return notAllowed('A Sandbox has no credentials to leak.')
+  if (game.incident) return notAllowed('Wait for the incident to end.')
+  const started = startIncident(game, solveFlow(game), 'credential-leak', 0)
+  if (!started) return notAllowed('There is nothing left to leak.')
+  return ok({
+    ...started.game,
+    users: Math.max(1, Math.floor(started.game.users * (1 - PHISH_CHURN))),
+  })
+}
+
+/** Paying an invoice from a provider the Company does not use: the Cash is gone (18 "Spam"). */
+export const payFakeInvoice = (game: Game, amount: number): Action =>
+  spend(game, amount, 'A fake invoice', (paid) => paid)
 
 /** Rolls back the config push that crashed the servers: they restart on the old config. */
 export const rollBackConfig = (game: Game): Action =>

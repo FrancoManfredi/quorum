@@ -54,6 +54,7 @@ import { recordBudget, spendBudget } from './slo.ts'
 import { calendarMinute, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
 import { advanceQuarter } from './quarters.ts'
+import { advanceRunway } from './runway.ts'
 import { accrue, advanceStudies } from './studies.ts'
 import { perRegion, regional, regionApdexOf, regionUsers, withRegionUsers } from './regions.ts'
 import type { Alarms, FalseAlarms, Game, GameLink, GameNode, PerRegion, Sample } from './state.ts'
@@ -593,6 +594,9 @@ export const step = (
       budget: spendBudget(next, lost),
       incident: next.incident ? { ...next.incident, failed: next.incident.failed + lost } : null,
     }
+
+  // Money out: Burn keeps billing, and a shortfall brings the bridge or the shutdown.
+  next = advanceRunway(next, ledger)
 
   return { game: next, ledger, events }
 }

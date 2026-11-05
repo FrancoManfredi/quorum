@@ -428,6 +428,8 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     'dr-drill': () => 0,
     // Only an expired patch ticket starts one.
     breach: () => 0,
+    // Only a phishing trap the player clicks starts one.
+    'credential-leak': () => 0,
     // A Cluster left on an unsupported version: likelier the further behind it is.
     'cluster-upgrade': () => Math.max(0, ...clusterTargets(game).map(([, weight]) => weight)),
   }

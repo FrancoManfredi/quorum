@@ -10,6 +10,7 @@ import { HistoryRow, exitOffers } from '@quorum/simulation/exit'
 import { Founder } from '@quorum/simulation/founder'
 import { Playbook } from '@quorum/simulation/playbook'
 import { Boot } from './boot-machine.ts'
+import { SENDER_KINDS } from './copy/senders.ts'
 import { SandboxId, SandboxRun, Session } from './session-machine.ts'
 import { histogramQuery } from './challenge-query.ts'
 import { History } from './history.ts'
@@ -137,6 +138,10 @@ export type Mail = typeof Mail.Type
 
 export const Folder = Schema.Literals(['action', 'fyi', 'spam', 'trash'])
 export type Folder = typeof Folder.Type
+
+/** A Mail's label: one per Sender kind, and the Inbox's filter chips (18 "The Inbox"). */
+export const MailLabel = Schema.Literals(SENDER_KINDS)
+export type MailLabel = typeof MailLabel.Type
 
 /** The figures a change is measured by. */
 export const Figures = Schema.Struct({
@@ -284,6 +289,8 @@ export const Inbox = Schema.Struct({
   sample: Schema.String,
   /** The folder the panel lists. */
   folder: Folder,
+  /** The label the chips filter the folder by, or null for every kind. */
+  label: Schema.NullOr(MailLabel),
   /** Senders the player muted: their Mail lands read, with no preview card, until the hour is up. */
   mutes: Schema.Array(MailMute),
 })

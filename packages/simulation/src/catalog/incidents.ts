@@ -36,6 +36,7 @@ export const INCIDENT_IDS = [
   'audit',
   'dr-drill',
   'breach',
+  'credential-leak',
   'cluster-upgrade',
   'config',
   'spot-reclaim',
@@ -511,6 +512,20 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     cause: 'A disclosed vulnerability stayed unpatched past its deadline, and someone used it.',
     prevention: 'Patch the ticket before it expires. The Team backlog shows the deadline.',
     actions: [],
+  },
+  // Only a phishing Mail the player acts on starts this one (18 "Spam and phishing"); the
+  // director never draws it. The duration is proposed: the design gives none.
+  'credential-leak': {
+    id: 'credential-leak',
+    name: 'Credential leak',
+    era: 1,
+    severity: 1,
+    escalatesTo: 1,
+    duration: 90,
+    cause: 'A phishing page took the Company credentials, and a stranger used them.',
+    prevention:
+      'Read the domain, not the logo. Report the Mail as phishing and it loses its button.',
+    actions: ['waf'],
   },
   'spot-reclaim': {
     id: 'spot-reclaim',

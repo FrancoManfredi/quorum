@@ -248,3 +248,82 @@ export const CHURN_LETTERS: Letters<ChurnVars> = [
     body: `Hello,\n\nThe ${region} queue doubled this hour. ${users} users, down ${perHour} an hour, ${inADay} by this time tomorrow if nothing changes.\n\nTop tags:\n\n${causes}\n\nOpen the Churn breakdown to see what wins them back.\n\n${from}`,
   }),
 ]
+
+/** An incident is over: a teammate has to file the postmortem (GDD 18 "Teammates"). */
+export type PostmortemVars = Readonly<{
+  incident: string
+  severity: string
+  /** The Node it hit, or the whole Design. */
+  target: string
+  /** Mean time to restore, in sim seconds. */
+  mttr: string
+  lostUsers: string
+  lostRevenue: string
+  failed: string
+  /** The action item the postmortem opens, or null when it opens none. */
+  action: string | null
+}>
+
+export const POSTMORTEM: Letters<PostmortemVars> = [
+  ({ from, incident, severity, target, mttr, lostRevenue, action }) => ({
+    subject: `Postmortem for the ${incident.toLowerCase()}?`,
+    body: `Hi,\n\nWe're clear. ${severity} ${incident} on ${target}, ${mttr} to restore, ${lostRevenue} of revenue gone.\n\nSomeone has to write it down before the details turn into folklore. I can do it now, and I'd rather do it now.\n\n${action ? `The obvious action item is ${action}. If you want it, I'll file the postmortem and put the study in the queue in one go.` : 'No action item this time, which is its own finding.'}\n\n${from.split(' ')[0]}`,
+  }),
+  ({ from, incident, severity, target, mttr, lostUsers, failed }) => ({
+    subject: `${severity} ${incident}: the write-up`,
+    body: `Hello,\n\nThe incident is over. I've got the numbers in front of me and I'd like to close the loop while they're still true:\n\nTarget: ${target}\nRun: ${mttr}\nUsers lost: ${lostUsers}\nFailed requests: ${failed}\n\nFile the postmortem and it goes in the record with all of that. Leave it and we'll reconstruct it from memory in a week, badly, over lunch.\n\nThanks,\n${from.split(' ')[0]}`,
+  }),
+  ({ from, incident, target, mttr, action }) => ({
+    subject: `Before we forget: ${incident}`,
+    body: `Hi,\n\nWe are all very relieved about ${target}. Relief is a terrible archivist.\n\n${incident}, ${mttr} of it. ${action ? `If we file the postmortem we can start on ${action} straight away, and it stops being twice as likely.` : 'I still think it is worth a page.'}\n\nGive me the word and it is filed.\n\n${from.split(' ')[0]}`,
+  }),
+  ({ from, incident, severity, target, lostUsers, lostRevenue, failed }) => ({
+    subject: `Incident report: ${incident}`,
+    body: `Team,\n\nSummary of what just happened, so we can look back at this without arguing about it later.\n\nWhat: ${incident} (${severity})\nWhere: ${target}\nUsers lost: ${lostUsers}\nRevenue lost: ${lostRevenue}\nFailed requests: ${failed}\n\nI'll write it up properly if you file the postmortem. The action item goes to the study queue and the whole thing joins the Incidents row.\n\n${from.split(' ')[0]}`,
+  }),
+]
+
+/** The return from time away, as Finance puts it (GDD 18 "What Mail replaces"). */
+export type AwayVars = Readonly<{
+  /** How long the player was away, compacted. */
+  away: string
+  users: string
+  cash: string
+  studied: string
+  devHours: string
+}>
+
+export const AWAY_FINANCE: Letters<AwayVars> = [
+  ({ from, away, users, cash, studied, devHours }) => ({
+    subject: `While you were away: ${away}`,
+    body: `Hello,\n\nYou were gone for ${away}. The books kept turning.\n\nUsers: ${users}\nCash: ${cash}\nStudies finished: ${studied}\nDev Hours: ${devHours}\n\nNothing needed a signature. That is the most we can say for most days.\n\n${from}`,
+  }),
+  ({ from, away, users, cash, studied, devHours }) => ({
+    subject: `Reconciled: ${away} of doing nothing`,
+    body: `Hi,\n\nSummary of the ${away} you were not here:\n\n- ${users} users\n- ${cash} cash\n- ${studied} studies completed\n- ${devHours} of Dev Hours banked\n\nAll reconciled to the nearest regret.\n\n${from}`,
+  }),
+  ({ from, away, users, cash, devHours }) => ({
+    subject: `You were out for ${away}`,
+    body: `Hello,\n\nQuick note for the record: the Company ran for ${away} without you.\n\n${users} users now. ${cash} in cash. ${devHours} of Dev Hours done by people who did not take the day off.\n\nNo invoices were harmed in your absence.\n\n${from}`,
+  }),
+]
+
+/** The same return, as the pager remembers it: what got close to its limit while nobody watched. */
+export type AwayWatchVars = Readonly<{
+  away: string
+  peak: string
+  /** The Node that came closest to its limit, or "the Design" when none stands out. */
+  peakNode: string
+  lost: boolean
+}>
+
+export const AWAY_MONITORING: Letters<AwayWatchVars> = [
+  ({ from, away, peak, peakNode, lost }) => ({
+    subject: `While you were away: peak ${peak} on ${peakNode}`,
+    body: `Hello,\n\nYou were away for ${away}. Here is what the dials did.\n\nHighest load: ${peak} on ${peakNode}\n\n${lost ? 'We lost users while you were out. Nobody paged you about it.' : 'The users stayed, and no dial reached its limit.'}\n\nWe did not page you. We considered it for a moment, then we looked at your calendar.\n\n${from}`,
+  }),
+  ({ from, away, peak, peakNode }) => ({
+    subject: `Your graphs missed you (draft, unsent)`,
+    body: `Hi,\n\nI drafted a few pages while you were away. This is the one I did not send.\n\n${away} away. Peak load ${peak} on ${peakNode}. Nothing caught fire, though one graph got warm enough to toast bread.\n\nRead this instead of a page and we'll call it even.\n\n${from}`,
+  }),
+]

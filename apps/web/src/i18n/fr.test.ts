@@ -109,6 +109,7 @@ describe('localized presentation', () => {
       const missing = new Set<string>()
       const vars = {
         action: 'Restart',
+        away: '3.2 h',
         alert: 'Error rate above 5%',
         backlog: '12',
         causes: '- API read: slow from far away\n\n- Checkout: timeouts',
@@ -132,6 +133,17 @@ describe('localized presentation', () => {
         title: 'HTTP proxy request smuggling',
         users: '1.2k',
         what: 'A crafted request hides a second request inside the first, and the proxy forwards both. Your server then answers a question nobody at the front door saw anyone ask.',
+        cash: '+$1.2k',
+        devHours: '+40',
+        failed: '400',
+        lost: true,
+        lostRevenue: '$1.2k',
+        lostUsers: '12',
+        mttr: '40 s',
+        peak: '80%',
+        peakNode: 'Server',
+        studied: '2',
+        target: 'Server',
         zone: 'Zone A',
       }
       const visit = (value: unknown) => {
@@ -140,7 +152,7 @@ describe('localized presentation', () => {
             const letter = value({ ...vars, exposed }) as Copy.Written
             for (const text of [letter.subject, ...paragraphs(letter.body)]) {
               const signature =
-                /^(?:[—-] )?(?:Pat Mutex|Pat|Tyler|Madison|Derek|Chad\nPat Mutex|Ava @ Pat Mutex|comptime\.?)$/.test(
+                /^(?:[—-] )?(?:Pat Mutex|Pat|Tyler|Madison|Derek|Chad\nPat Mutex|Ava @ Pat Mutex|Ava @ Pat Mutex|comptime\.?)$/.test(
                   text,
                 )
               const identifier = /^CVE-\d+-\d+ \([\d.]+\)$/.test(text)
@@ -166,6 +178,9 @@ describe('localized presentation', () => {
         Copy.REWRITES,
         Copy.TICKETS,
         Copy.CHURN_LETTERS,
+        Copy.POSTMORTEM,
+        Copy.AWAY_FINANCE,
+        Copy.AWAY_MONITORING,
       ])
         visit(value)
       expect([...missing]).toEqual([])

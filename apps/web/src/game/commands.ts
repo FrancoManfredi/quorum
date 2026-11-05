@@ -14,6 +14,7 @@ import { Founder } from '@quorum/simulation/founder'
 import { Motion, Prefs, Reveal, SandboxStore, TextSize, TradeoffOption } from './model.ts'
 import { refreshed, SaveIndex } from './saves.ts'
 import { History } from './history.ts'
+import { SavedInbox } from './inbox.ts'
 import { play, setMuted, SOUND_NAMES } from './sound.ts'
 import { setAgentAccess } from './agent-relay.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
@@ -215,9 +216,11 @@ export const WriteCompany = Command.define('WriteCompany', {
     revealed: Schema.Array(Reveal),
     pending: Schema.Array(Reveal),
     dashboard: History,
+    /** The Inbox the Company keeps (18 "Open questions"): its Mail and its mutes. */
+    inbox: SavedInbox,
   },
   messages: [Message.Saved],
-  execute: ({ id, index, game, revealed, pending, dashboard }) =>
+  execute: ({ id, index, game, revealed, pending, dashboard, inbox }) =>
     Effect.sync(() => {
       try {
         // The wall clock goes in at the last moment: it is the only one, for offline progress.
@@ -231,6 +234,7 @@ export const WriteCompany = Command.define('WriteCompany', {
               wall: now,
               disclosure: { revealed, pending },
               dashboard,
+              inbox,
             })
             annotateSpan({ 'save.bytes': json.length })
             window.localStorage.setItem(saveKeyOf(id), json)

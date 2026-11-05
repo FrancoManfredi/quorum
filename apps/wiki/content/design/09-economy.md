@@ -213,21 +213,38 @@ growth.
 
 **Runway** is Cash divided by net Burn. The HUD shows it when net Burn is positive.
 
-**Partly built.** The Dashboard's Company panel shows runway as Cash divided by net Burn. There is
-no bridge offer and no automatic shutdown: Cash goes negative and keeps going, and the company
-never ends.
+**Built.** The HUD shows runway beside Cash's net change in 30-day months while net Burn is
+positive, and the Dashboard's Company panel shows the same figure. The rest of the rule is not a
+figure but a sequence of events, below.
 
 When Cash reaches zero:
 
-1. Placement and upgrades stop.
+1. Placement and upgrades stop, and so does hiring: nothing that costs Cash starts until the balance
+   is positive again. Selling Nodes, layoffs, Research, the backlog, and the Payments drawer keep
+   working, and Burn keeps billing.
 2. Burn continues and Cash goes negative.
-3. At −1 calendar day of Burn, investors offer a **bridge**: a grant that covers 3 calendar days of
-   Burn for 8% dilution. The player can accept, or cut costs.
-4. If the player declines and Cash reaches −3 calendar days of Burn, Nodes shut down, most expensive
-   first, until net Burn is zero.
+3. At −1 calendar day of Burn, investors offer a **bridge**: a grant that is 3 calendar days of Burn
+   for 8% dilution. The player can accept, or cut costs. The terms are fixed when the offer arrives,
+   and the Company is offered one bridge.
+4. If the player declines (leaves the offer unanswered) and Cash reaches −3 calendar days of Burn,
+   Nodes shut down, most expensive first, until net Burn is zero. A shut Node serves nothing, bills
+   nothing, and stays on the board until the player sells it or pays to replace it.
 
-The company never ends. Running out of money is a setback, not a game over
-([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
+The Company never ends. Running out of money is a setback, not a game over
+([pillar 5](/design/01-vision#pillar-5-respect-the-player)). The Company row of the Dashboard shows
+the bridge's grant, dilution, and Accept while the offer waits
+([Interface](/design/15-ui-ux#company-and-incidents-panels)).
+
+**Proposed.** The design fixes the thresholds, the grant, the dilution, and the shutdown; the
+build's readings of the gaps:
+
+- The two thresholds count the gross Burn, which this document calls Burn. The shutdown counts net
+  Burn, which this document names.
+- "Most expensive" is the Node with the highest Burn now, excluding Users, Payments, and any Node
+  already shut.
+- The grant is fixed at the offer's Burn, like a term sheet, so later cost cuts do not shrink it.
+- The 8% comes off the Equity the founder holds at the time, so two bridges would compound; the
+  build offers one.
 
 ## Sources and sinks summary
 

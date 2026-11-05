@@ -73,9 +73,11 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
   address, the body, the sign-off, and the action buttons. The time appears only on a thread with
   more than one entry: a single letter shows no timestamp.
 - **Labels:** each Mail has one label from its sender kind (Cloud, Team, Investor, Security, and so
-  on). Labels are the filter chips above the list.
-- Not built yet: the labels as filter chips, and the sender-kind label on a row of the list. The
-  folder tabs are the only filter, and the kind label appears in the reader alone.
+  on). Labels are the filter chips above the list: `All`, then every kind the open folder holds, with
+  its count. Choosing a chip shows that kind alone and selects the newest of them; choosing `All`
+  brings the folder back. Changing folder clears the chip, so a folder is never quietly empty.
+- Not built yet: the sender-kind label on a row of the list. The folder tabs and the label chips are
+  the filters, and the kind label itself appears in the reader alone.
 - Opening the Inbox always resets it to Needs action and selects the newest Mail in that folder, not
   the newest unread Mail. On a phone the two panes stack.
 - Time is the Company clock.
@@ -190,7 +192,8 @@ language, seniority, and the state of the Design.
 | Proposal to patch    | A CVE affects a service the engineer owns                                                          | Patch now, Queue the patch. Not built yet.                      |
 
 Not built yet: Blocked, Burnout and quitting, and Proposal to patch. The world event draws only a hire
-request or a rewrite proposal.
+request or a rewrite proposal. Incident follow-up is built: the teammate's Mail carries File postmortem
+and File and research the action item.
 
 ### Rewrite proposals
 
@@ -244,8 +247,11 @@ a Security sender and a spam folder together.
   arrives as a CVE with a false "safe" advisory first, then a correction: Security mail, then a
   second thread entry that says to pin and redeploy.
 
-Two incidents are new and need entries in the [catalog](/design/11-incidents#catalog): **Data breach**
-(from an exploited CVE) and **Credential leak** (from phishing).
+Two incidents are new, and both have catalog entries: **Data breach** (from an exploited CVE) and
+**Credential leak** (from phishing). A Credential leak is SEV1, runs 90 sim seconds, and takes 10% of
+the Users when it starts; the design gives neither number, so both are proposed. The director never
+draws it: only a trap the player clicks starts one. Its postmortem opens the WAF as its action item,
+when that research is ready.
 
 The rate does not scale with the size of the stack. Every 420 sim seconds from Pre-seed the
 Simulation discloses one CVE, drawn from those that affect something the Design runs. A bigger stack
@@ -273,9 +279,17 @@ and one gift.
 | Recruiter        | Offers to your engineers                                                   | A hint that a teammate is unhappy.                                |
 | Real CVE in Spam | A true advisory that the filter sorted wrongly                             | Ignoring it starts the CVE clock without a warning.               |
 
-Not built yet: the effects in that table. Clicking a trap only raises a toast, "That was phishing.
-Check the sender address first.": no Cash is lost, no backdoor is installed, and no research discount
-exists.
+Not built yet: three of the effects in that table. **Fake CVE alert**: a backdoor needs a lasting
+compromise to install itself into, and the build has none, so its button still raises the toast "That
+was phishing. Check the sender address first." **Recruiter**: the hint needs the unhappiness that
+[Burnout and quitting](#teammates) would track, and that thread is not built. **Vendor pitch**: no
+research discount exists.
+
+What is built: a phishing button starts the Credential leak incident and takes 10% of the Users (a
+proposed share), the pager writes about it, and the trap's thread keeps the line that says the
+address was not the real one. A fake invoice and a domain notice charge the amount printed on them:
+$4,812 (the Azzure invoice's $4,812.44, rounded) and $389, both refused when the Cash is not there.
+Reporting a phishing Mail as spam takes its button away, so the risk goes with it.
 
 - **How to tell.** The sender's address is on a lookalike domain (`billing@awol-cloud.support`
   against `no-reply@awol.cloud`). Not built yet: the second tell, where a real advisory names a CVE
@@ -286,8 +300,9 @@ exists.
   act, not the game's. Not built yet: the hover that shows the real destination; a trap's button
   carries the same number key as a real one and names nothing on hover.
 - **Report spam.** Marking a Mail as spam teaches the filter and, for phishing, removes the risk.
-  Reporting a real Mail as spam is a mistake the player can undo from Spam. Not built yet: there is no
-  filter to teach and no risk to remove; the button moves the Mail to Spam and back.
+  Reporting a real Mail as spam is a mistake the player can undo from Spam. Built for the risk: a
+  phishing Mail reported as spam loses its trap button for good. Not built yet: the filter itself,
+  which does not exist to teach, so reporting changes nothing else.
 - **Tone.** Spam is funny and plausible, never cruel. Real vendor names are not used.
 
 Spam is pillar 5's mirror: the player is never punished for opening Mail, only for acting on a
@@ -314,8 +329,8 @@ trap. The cost is one click and one lesson.
 | ---------------------------------- | ------------------------------------------------------------------ |
 | Goal pill at the top of the Board  | Cloud, Monitoring, and Mentor Mail. Partly done: the pill is gone. |
 | Funding round modal and pager chip | Investor Mail with Raise and Decline                               |
-| Postmortem card                    | Teammate Mail with the file actions                                |
-| Away card                          | A Mail from Finance and Monitoring, "While you were away"          |
+| Postmortem card                    | Teammate Mail with the file actions. Built.                        |
+| Away card                          | A Mail from Finance and Monitoring, "While you were away". Built.  |
 | Team panel requests                | Teammate Mail; the panel stays for the roster                      |
 | Era card                           | Stays. An Era transition is a scene, not a message.                |
 | Sandbox and Challenge objectives   | Stay on the Board. Mail belongs to a Company.                      |
@@ -338,8 +353,9 @@ The Simulation emits **facts**: typed, deterministic records of things that happ
 - **Quiet at the start.** The Garage Era sends at most one Mail a minute, mostly from the Mentor.
 - **Priority.** Mail that needs a decision, such as an offer or a CVE with a clock, sits above the
   rest. Not built yet: the coloured left bar that marks it.
-- **Digest.** Not built yet: when more than eight threads are unread, the oldest low-priority ones
-  fold into one "Digest" thread.
+- **Digest.** Built: when more than eight threads in a folder are unread, the oldest low-priority
+  ones (FYI, so nothing that waits on a decision) fold into one "Digest" row where the newest of them
+  was. Its reader lists them, and each line opens the Mail it stands for.
 - **No guilt.** Unread Mail never expires a decision the player has not been told about, and never
   costs anything on its own. Clocks start when the Mail arrives and are shown in it.
 
@@ -347,7 +363,7 @@ The Simulation emits **facts**: typed, deterministic records of things that happ
 
 | Question                                   | Current answer                                                                                                           |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Does the Inbox survive a reload?           | Yes, once it is saved with the Company. In the build it is not saved yet.                                                |
+| Does the Inbox survive a reload?           | Yes: the save keeps the Mail, the mutes, and the last event tick, and an older save opens with an empty Inbox.           |
 | Does new Mail raise a sound or a toast?    | Offers, CVEs with a clock, and outages do: one short mutable chime. The rest only change the badge.                      |
 | Should each Mail have a written subject?   | Yes. Every letter in `apps/web/src/game/copy/` writes its own subject; the Simulation supplies the topic and its values. |
 | Does an unanswered offer cost the player?  | No. An Era that begins without a raise already runs at 0.7 × `g` ([Economy](/design/09-economy#funding)).                |
@@ -449,15 +465,29 @@ Teammates draw a name from a pool and keep it for life.
   with its own subject, greeting, and close. The Simulation names the topic and its values; the
   Inbox picks a letter by the Company's seed, the Thread, and the time, so a Company reads the same
   on every device and a Thread rarely repeats itself. Each teammate has their own footer.
-- **Folders:** Needs action, FYI, Spam, Trash, with "Report spam" and "Not spam".
+- **Folders and labels:** Needs action, FYI, Spam, Trash, with "Report spam" and "Not spam", and the
+  sender-kind filter chips above the list.
+- **Saving the Inbox:** the Company save keeps the Mail, the mutes, and the last event tick the world
+  wrote for. A save from before the Inbox was saved opens with an empty Inbox rather than failing.
+- **The Digest:** more than eight unread threads in a folder fold their oldest low-priority ones into
+  one row, whose reader lists them.
+- **Postmortems:** when an Incident resolves, a teammate writes with File postmortem and File and
+  research the action item, which send the same Action the Dashboard's Incidents row sends. The
+  Dashboard row still lists the Postmortems.
+- **Away Mail:** on a return from away, Finance writes "While you were away" with users, Cash, Studies
+  and Dev Hours, and the pager writes the peak load and what was lost. The Away panel still opens.
+- **The Credential leak:** a phishing trap starts it, the pager writes about it, and the trap's Thread
+  records the click. A fake invoice and a domain notice cost the Cash printed on them; reporting a
+  phishing Mail as spam takes its button away.
 - **Actions:** Show on Board wherever a Mail names a Node; Resize, Raise quota, and Switch to
   Reserved (cloud, which open the Node's Inspector and its pricing control); Acknowledge and Mute
   for 1 h (alerts, which the Inbox carries out itself);
   Raise and Decline (investor); Approve hire and Later (a teammate's hire request); Review
   \<language\> migration and Decline (a rewrite); Patch now, Rush patch, and Open Team (security);
-  Open Churn breakdown and Add to backlog (customers); and the phishing traps. Raise, Decline,
-  Approve hire, Patch now, Rush patch, and Add to backlog send the real Messages. Every button is on
-  screen and takes a number key from `1` to `9`.
+  Open Churn breakdown and Add to backlog (customers); File postmortem and File and research the
+  action item (a teammate, after an incident); and the phishing traps. Raise, Decline,
+  Approve hire, Patch now, Rush patch, Add to backlog, and the postmortem buttons send the real
+  Messages. Every button is on screen and takes a number key from `1` to `9`.
 - **World events:** every 45 sim seconds from Pre-seed, the Company's seed draws spam, a
   teammate (hire request or rewrite proposal), or a customer: a slow-page ticket when a page is slow,
   and otherwise a Feature that a big customer asks for.
@@ -467,9 +497,11 @@ Teammates draw a name from a pool and keep it for life.
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
   The Company also has a 0.5× speed.
 
-Not built yet: the Credential leak incident (a trap only raises a toast); a vendor's Switch provider;
-Postmortem and Away mail; the spam filter research; and saving the Inbox (a mute lasts for the
-session). Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
+Not built yet: a vendor's **Switch provider** (no Component has a second provider, so a vendor pitch
+carries no button); the **spam filter** as a research item and a setting (the design says there is
+none to research, so nothing gates it); the **fake CVE trap's backdoor** and the **recruiter's hint**
+(neither has a mechanic to land in); the sender-kind label on a row of the list; and the coloured
+priority bar. Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
 reader's keys are built: `1` to `9` press a button, `E` deletes or restores, `J` and `K` move, `S`
 reports spam. The funding offer panel still exists beside the investor Mail.
 

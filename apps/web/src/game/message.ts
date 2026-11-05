@@ -352,6 +352,8 @@ export const Message = defineMessageUnion({
 
   RoundRaised: {},
   RoundDeclined: {},
+  /** Takes the investors' bridge while Cash is short (09 "Runway and running out of Cash"). */
+  BridgeAccepted: {},
   PostmortemFiled: { id: Schema.Finite, take: Schema.Boolean },
 
   PanelOpened: { panel: Panel },

@@ -91,9 +91,11 @@ eight Ventures that shipped without them, and achievement unlocks (M9). All twel
 built: the four the design promised on top of the eight (Developer platform, Healthcare, Ad tech, and
 Government contract) each have their start, their rule and their signature incident, and the eight
 older ones each meet the signature incident 13 names for them, apart from Bootstrapped indie, whose
-Runway is a figure rather than an incident. A second Company with Legacy perks reaches Pre-seed
-and Seed sooner than the first (`legacy-pacing.test.ts`). The exit target, a second Company to Exit in
-3–6 hours, is not verified: no bot plays to an Exit.
+Runway is a figure rather than an incident; the runway rule behind that figure is built (09), with
+spending stopped at zero, the bridge at one calendar day of Burn, and the shutdown at three. A
+second Company with Legacy perks reaches Pre-seed and Seed sooner than the first
+(`legacy-pacing.test.ts`). The exit target, a second Company to Exit in 3–6 hours, is not verified:
+no bot plays to an Exit.
 
 **M3 status.** Undo and redo, Settling and Stable, the preview, the six axes, Tradeoff cards, and the
 free Sandbox are in the build. The M3 exit check is a human playtest and has not been run.

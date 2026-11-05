@@ -25,6 +25,7 @@ import type { KindLedger, Ledger } from '@quorum/simulation/ledger'
 import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { regional } from '@quorum/simulation/regions'
+import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
 import { budgetOf } from '@quorum/simulation/slo'
 import type { Game, Postmortem, Sample } from '@quorum/simulation/state'
 import { ignored } from '@quorum/simulation/step'
@@ -196,15 +197,6 @@ const tracksOf = (model: Model): ReadonlyArray<NodeTrack> =>
 /* ==========================================================================
    The Company and Incidents panels (15 "Panels")
    ========================================================================== */
-
-/** Calendar minutes in the 30-day month a runway figure reads in. */
-const RUNWAY_MONTH = 30 * 24 * 60
-
-/** Runway in sim seconds: Cash divided by net Burn, or null while revenue covers the bill. */
-const runwayOf = (game: Game, ledger: Ledger): number | null => {
-  const net = ledger.burn - ledger.revenue
-  return net > 0 ? Math.max(0, game.cash) / net : null
-}
 
 const runwayText = (seconds: number | null): string =>
   seconds === null ? '∞' : `${(seconds / RUNWAY_MONTH).toFixed(1)} mo`
@@ -1705,7 +1697,7 @@ const companyPanels = (
   const teamUnit = `${people} ${people === 1 ? 'person' : 'people'} · velocity${
     morale ? ` · morale −${Math.round((1 - LAYOFF_MORALE) * 100)}%` : ''
   }`
-  const moneyRows: ReadonlyArray<readonly [string, string]> = [
+  const moneyRows: ReadonlyArray<readonly [string, string, Message?]> = [
     ['Cash', money(game.cash)],
     ['Revenue', `${money(ledger.revenue)}/s`],
     ['Burn', `${money(ledger.burn)}/s`],
@@ -1713,6 +1705,16 @@ const companyPanels = (
     ['Payroll', `${money(ledger.salaries)}/s`],
     ['Equity', percent(game.equity)],
     ['Runway', runwayText(runway)],
+    // Cash is short and the investors' bridge waits: its terms and the way to take it (09).
+    ...(game.bridge
+      ? [
+          [
+            'Bridge',
+            `${money(game.bridge.grant)} · ${percent(game.bridge.dilution)} · Accept`,
+            Message.BridgeAccepted(),
+          ] as const,
+        ]
+      : []),
   ]
   return [
     tablePanel(
@@ -1721,7 +1723,19 @@ const companyPanels = (
       'Money',
       'now',
       ['Line', 'Value'],
-      moneyRows.map(([name, value]) => ({ key: name, cells: [{ text: name }, { text: value }] })),
+      moneyRows.map(([name, value, onClick]) => ({
+        key: name,
+        cells: [
+          { text: name },
+          onClick === undefined
+            ? { text: value }
+            : {
+                text: value,
+                onClick,
+                hint: 'Cash is short: take the grant, or cut costs before the Nodes shut down.',
+              },
+        ],
+      })),
       h,
     ),
     tablePanel(

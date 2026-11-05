@@ -5,12 +5,13 @@ import type {
   AdviceTopic,
   AdviceVars,
 } from '@quorum/simulation/goals'
-import type { Game } from '@quorum/simulation/state'
+import type { Game, Postmortem } from '@quorum/simulation/state'
 import type { Mail } from './model.ts'
 import {
   COMPONENTS,
   CVE_DEFS,
   FEATURES,
+  INCIDENTS,
   KINDS,
   REGION_INFO,
   RESEARCH,
@@ -19,19 +20,23 @@ import {
   type ResearchId,
   type FeatureId,
 } from '@quorum/simulation/catalog'
+import type { AwayReport } from '@quorum/simulation/offline'
 import type { ChurnCause, RegionChurn } from '@quorum/simulation/churn'
 import { alertActions, cloudActions } from '@quorum/simulation/goals'
 import { has } from '@quorum/simulation/lookups'
-import { compact } from '@quorum/ui/game/format'
+import { compact, money } from '@quorum/ui/game/format'
 import type { WorkItem } from '@quorum/simulation/state'
 import { featureRefusal, itemName } from '@quorum/simulation/work'
 import {
   ADVICE,
+  AWAY_FINANCE,
+  AWAY_MONITORING,
   CHURN_LETTERS,
   CVE_LETTERS,
   CVES,
   EVENTS,
   HIRE,
+  POSTMORTEM,
   REQUESTS,
   REWRITES,
   SENDERS,
@@ -45,6 +50,8 @@ import {
   type EventVars,
   type Letters,
   type Pitch,
+  type PostmortemVars,
+  type AwayVars,
   type SenderKind,
   type Written,
 } from './copy/index.ts'
@@ -483,6 +490,11 @@ const EVENT_SAMPLES: {
   'incident-stampede': { label: 'Cache stampede', tag: 'IncidentStarted', vars: {} },
   'incident-zone': { label: 'Zone outage', tag: 'IncidentStarted', vars: { zone: 'B' } },
   'incident-breach': { label: 'Data breach', tag: 'IncidentStarted', vars: {} },
+  'incident-phishing': {
+    label: 'Credential leak (phishing)',
+    tag: 'IncidentStarted',
+    vars: {},
+  },
   'incident-psp': { label: 'Payment provider outage', tag: 'IncidentStarted', vars: {} },
   resolved: {
     label: 'Incident over',
@@ -630,6 +642,71 @@ export const SAMPLES: ReadonlyArray<Sample> = [
     make: (game, n) => own(spamFact(pitch, game, n), n),
   })),
 ]
+
+/* ---------- an incident's follow-up, and the return from away ---------- */
+
+/** A teammate's follow-up once an Incident resolves: the postmortem is theirs to file (18 "Teammates"). */
+export const postmortemFact = (
+  postmortem: Postmortem,
+  game: Game,
+  salt: number | string = '',
+): Fact => {
+  const incident = INCIDENTS[postmortem.kind].name
+  const key = `team:postmortem:${postmortem.id}`
+  const mate = mateOf(game, postmortem.id)
+  const vars: PostmortemVars = {
+    incident,
+    severity: `SEV${postmortem.severity}`,
+    target: postmortem.target ?? 'the whole Design',
+    mttr: `${Math.round(postmortem.mttr)} s`,
+    lostUsers: compact(postmortem.lostUsers),
+    lostRevenue: money(postmortem.lostRevenue),
+    failed: compact(postmortem.failed),
+    action: postmortem.action ? RESEARCH[postmortem.action].name : null,
+  }
+  return fact(key, mate, write(POSTMORTEM, vars, mate, game, key, salt), [
+    { id: `postmortem:${postmortem.id}`, label: 'File postmortem' },
+    ...(postmortem.action
+      ? [{ id: `postmortem-take:${postmortem.id}`, label: 'File and research the action item' }]
+      : []),
+  ])
+}
+
+/** "While you were away", from Finance and from the pager (18 "What Mail replaces"). */
+export const awayFacts = (report: AwayReport, game: Game): ReadonlyArray<Fact> => {
+  const hours = report.away / 3_600
+  const away = hours >= 1 ? `${hours.toFixed(1)} h` : `${Math.round(report.away / 60)} min`
+  const financeKey = `finance:away:${Math.round(game.time)}`
+  const finance = senderFor('finance', game, financeKey)
+  const vars: AwayVars = {
+    away,
+    users: `${compact(report.usersBefore)} → ${compact(report.usersAfter)}`,
+    cash: `${report.cash >= 0 ? '+' : ''}${money(report.cash)}`,
+    studied: String(report.studied.length),
+    devHours: `+${compact(report.devHours)}`,
+  }
+  const watchKey = `monitoring:away:${Math.round(game.time)}`
+  const watch = senderFor('monitoring', game, watchKey)
+  return [
+    fact(financeKey, finance, write(AWAY_FINANCE, vars, finance, game, financeKey)),
+    fact(
+      watchKey,
+      watch,
+      write(
+        AWAY_MONITORING,
+        {
+          away,
+          peak: `${Math.round(report.peak * 100)}%`,
+          peakNode: report.peakNode ?? 'the Design',
+          lost: report.lost,
+        },
+        watch,
+        game,
+        watchKey,
+      ),
+    ),
+  ]
+}
 
 /* ---------- Step events: what happened in the Design, as Mail ---------- */
 

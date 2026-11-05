@@ -43,6 +43,7 @@ import {
   type InsightPool,
 } from '@quorum/simulation/catalog'
 import { openRegions, regional } from '@quorum/simulation/regions'
+import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
 import { tabDrift } from './mirror.ts'
 import { canRaise } from '@quorum/simulation/actions'
 import type { Ledger } from '@quorum/simulation/ledger'
@@ -583,6 +584,13 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   const target = eraOf(game).apdexTarget
   const errors = ledger.errorShare * 100
   const percentiles = has(game, 'percentiles')
+  const runway = runwayOf(game, ledger)
+  const short = game.cash <= 0
+  const cashNote = game.bridge
+    ? 'Bridge offered'
+    : short
+      ? 'Out of Cash'
+      : `${net >= 0 ? '+' : ''}${money(net)}/s${runway === null ? '' : ` · ${(runway / RUNWAY_MONTH).toFixed(1)} mo`}`
   const errorTitle = has(game, 'logs')
     ? Object.entries(ledger.errors)
         .filter(([, value]) => value > 0.005)
@@ -604,9 +612,14 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             'Cash',
             Wallet,
             money(game.cash),
-            `${net >= 0 ? '+' : ''}${money(net)}/s`,
-            game.cash < 0 ? 'danger' : net >= 0 && income > 0 ? 'ok' : 'plain',
+            cashNote,
+            game.cash < 0 || game.bridge ? 'danger' : net >= 0 && income > 0 ? 'ok' : 'plain',
             h,
+            game.bridge
+              ? 'Cash is short: the investors’ bridge waits in the Company row'
+              : 'Cash and its net change; runway in 30-day months',
+            short || game.bridge ? 'cursor-pointer rounded-lg hover:bg-muted' : '',
+            short || game.bridge ? Message.PanelOpened({ panel: 'dashboard' }) : undefined,
           ),
           stat(
             'Users',

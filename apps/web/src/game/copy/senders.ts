@@ -1,11 +1,23 @@
-import type { AdviceFrom } from '@quorum/simulation/goals'
-
 /* ==========================================================================
    Who writes Mail (GDD 18, Names). Every name is a pun, and every sign is the
    footer the Inbox prints under each of their letters.
    ========================================================================== */
 
-export type SenderKind = AdviceFrom | 'teammate' | 'security' | 'spam'
+/** Every kind of party that writes, in the order the Inbox's filter chips list them. */
+export const SENDER_KINDS = [
+  'cloud',
+  'monitoring',
+  'vendor',
+  'investor',
+  'finance',
+  'customers',
+  'mentor',
+  'teammate',
+  'security',
+  'spam',
+] as const
+
+export type SenderKind = (typeof SENDER_KINDS)[number]
 
 export interface SenderCopy {
   readonly kind: SenderKind

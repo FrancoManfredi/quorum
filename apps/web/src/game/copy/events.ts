@@ -164,6 +164,47 @@ export const EVENTS: EventLetters = {
     }),
   ],
 
+  'incident-phishing': [
+    ({ from }) => ({
+      subject: `[SEV1] Credentials used: a login we did not expect`,
+      body: `Incident: credential leak
+Urgency: Critical
+
+One of your access keys was used from an address none of us have ever logged in from. The traffic is real, the session is real, and the key was not stolen by anything clever: it was typed into a page that looked like the provider's.
+
+The page was in your Inbox this morning. The address was not.
+
+Users are finding out with us.
+
+${from}`,
+    }),
+    ({ from }) => ({
+      subject: `Unusual login volume from your account`,
+      body: `Hello,
+
+We are seeing logins with your credentials from somewhere you are not. Sessions were opened, data was read, and one of the keys has since been used to look around.
+
+This is not a vulnerability in anything you run. It is a person who read an email and trusted the address on it.
+
+We will keep this open until it burns out.
+
+${from}`,
+    }),
+    ({ from }) => ({
+      subject: `Suspicious session opened with your key`,
+      body: `Alert: a session was opened with an access key that belongs to you.
+
+Location: not where you are
+Devices: one, unfamiliar
+What it read: enough
+Why it worked: the credentials were real, and they were given away on purpose, to a page that was not ours.
+
+Wait it out. Next time, read the domain before the logo.
+
+${from}`,
+    }),
+  ],
+
   'incident-psp': [
     ({ from }) => ({
       subject: `[TRIGGERED] Payment Provider down`,

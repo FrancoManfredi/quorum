@@ -25,7 +25,7 @@ import {
   type TaskId,
   type Tuning,
 } from './catalog.ts'
-import { Refusal, setFramework, setRuntime, type Action } from './actions.ts'
+import { Refusal, setFramework, setRuntime, shortOfCash, type Action } from './actions.ts'
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
@@ -255,6 +255,9 @@ export const addIndex = (game: Game, nodeId: string): Action => {
 export const hire = (game: Game, tuning: Tuning = LIVE_TUNING): Action => {
   if (game.sandbox) return notAllowed(SANDBOX)
   if (game.stage < 1) return no(Refusal.TooEarly({ what: 'Hiring', era: ERAS[1]?.name ?? '' }))
+  // Cash is short, so no hire (09 "Runway and running out of Cash").
+  if (shortOfCash(game))
+    return notAllowed('Out of Cash: no placement, upgrade, or hire until Cash is above zero.')
   const language = languageOfService(game)
   const price = signingOf(game, language)
   if (game.cash < price)

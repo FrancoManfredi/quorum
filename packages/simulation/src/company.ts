@@ -49,6 +49,7 @@ export const node = (
   life: RUNNING,
   credits: 0,
   leak: 0,
+  shut: false,
   compress: false,
   downAt: 0,
   policy: 'weighted',
@@ -127,6 +128,8 @@ export const link = (from: string, to: string): GameLink => ({
 export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   nextId: 1,
   cash: START_CASH,
+  bridge: null,
+  bridgeUsed: false,
   insight: 0,
   pools: NO_INSIGHT,
   studies: [],

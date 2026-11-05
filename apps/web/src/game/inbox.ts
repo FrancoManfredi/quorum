@@ -1,9 +1,10 @@
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import type { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import type { Game } from '@quorum/simulation/state'
 import { SAMPLES, needsAction, randomSample, senderOf, type Fact } from './mail.ts'
-import { Folder, type Inbox, type Mail } from './model.ts'
+import { Folder, MailLabel, Mail as MailSchema, MailMute, type Inbox, type Mail } from './model.ts'
+import { SENDER_KINDS } from './copy/senders.ts'
 
 /* ==========================================================================
    The Inbox submodel (GDD 18): how Mail joins its Thread, resolves, and is
@@ -17,6 +18,12 @@ const THREAD_ENTRIES = 20
 /** Sim seconds in one calendar hour: one sim second is one calendar minute. */
 export const CALENDAR_HOUR = 60
 
+/** Unread threads past this many fold their oldest low-priority ones into the Digest (18 "Pacing"). */
+export const FOLD_AFTER = 8
+
+/** The Digest is not a Mail the Inbox stores: it is the fold of threads it hides, shown as one row. */
+export const DIGEST_ID = -1
+
 /** Senders whose Mail is about the Design now: a Thread resolves when its cause is gone. */
 const ADVISING = new Set(['cloud', 'monitoring', 'vendor', 'investor', 'finance', 'mentor'])
 
@@ -27,6 +34,7 @@ export const EMPTY_INBOX: Inbox = {
   bucket: 0,
   sample: 'random',
   folder: 'action',
+  label: null,
   mutes: [],
 }
 
@@ -50,6 +58,74 @@ export const folderHolds = (mail: Mail, folder: Folder): boolean =>
     ? mail.trashed
     : !mail.trashed &&
       (folder === 'spam' ? mail.spam : !mail.spam && needsAction(mail) === (folder === 'action'))
+
+/** A Mail's label is its Sender's kind; a chip shows one kind, or every kind with no chip. */
+export const labelHolds = (mail: Mail, label: MailLabel | null): boolean =>
+  label === null || senderOf(mail.sender).kind === label
+
+/** The Mail in the open folder under the chips' label. */
+const held = (inbox: Inbox): ReadonlyArray<Mail> =>
+  inbox.mail.filter((mail) => folderHolds(mail, inbox.folder) && labelHolds(mail, inbox.label))
+
+/**
+ * The threads the Digest folds (18 "Pacing and volume"): once more than eight are unread, the
+ * oldest low-priority ones (FYI, so nothing that waits on a decision) fold into one row.
+ */
+export const digestOf = (inbox: Inbox): ReadonlyArray<Mail> => {
+  const unread = held(inbox).filter((mail) => !mail.read)
+  if (unread.length <= FOLD_AFTER) return []
+  const kept = new Set(unread.slice(-FOLD_AFTER))
+  return unread.filter((mail) => !kept.has(mail) && !needsAction(mail))
+}
+
+/** The Digest as the list shows it: one row for every thread it folds, newest folded line first. */
+const digestMail = (folded: ReadonlyArray<Mail>): Mail => {
+  const time = folded.at(-1)?.time ?? 0
+  return {
+    id: DIGEST_ID,
+    key: 'digest',
+    // A Digest is the Inbox folding its own Mail, so it wears no Sender's badge.
+    sender: 'digest',
+    subject: `Digest: ${folded.length} older updates`,
+    time,
+    entries: [{ time, text: '' }],
+    actions: [],
+    answer: null,
+    read: folded.every((mail) => mail.read),
+    trashed: false,
+    spam: false,
+    resolved: null,
+  }
+}
+
+/** The Mail in the open folder, newest first, with the Digest in the place of the threads it folds. */
+export const folderList = (inbox: Inbox): ReadonlyArray<Mail> => {
+  const list = held(inbox)
+  const folded = digestOf(inbox)
+  if (folded.length === 0) return [...list].reverse()
+  const hidden = new Set(folded)
+  const newest = folded[folded.length - 1]
+  const shown: Array<Mail> = []
+  for (const mail of list) {
+    if (!hidden.has(mail)) shown.push(mail)
+    else if (mail === newest) shown.push(digestMail(folded))
+  }
+  return shown.reverse()
+}
+
+/** The Mail in the open folder, the Digest's folded threads, and the Digest itself. */
+const reachable = (inbox: Inbox): ReadonlyArray<Mail> => [...held(inbox), ...folderList(inbox)]
+
+/** The labels the open folder holds, with how much Mail each one has, in the chips' order. */
+export const labelsIn = (
+  inbox: Inbox,
+): ReadonlyArray<Readonly<{ label: MailLabel; count: number }>> => {
+  const inFolder = inbox.mail.filter((mail) => folderHolds(mail, inbox.folder))
+  return SENDER_KINDS.flatMap((label) => {
+    const count = inFolder.filter((mail) => senderOf(mail.sender).kind === label).length
+    return count > 0 ? [{ label, count }] : []
+  })
+}
 
 /** A fact joins its Thread, or starts one. The same news twice changes nothing.
  *  `open` says the Inbox panel is on screen, so new Mail needs no preview card. */
@@ -129,10 +205,6 @@ export const closed = (inbox: Inbox, key: string, time: number, text: string): I
   ),
 })
 
-/** The Mail in the open folder, newest first. */
-export const folderList = (inbox: Inbox): ReadonlyArray<Mail> =>
-  inbox.mail.filter((mail) => folderHolds(mail, inbox.folder)).reverse()
-
 /** The Inbox opens on Needs action while something needs the player, and on FYI otherwise. */
 export const openingFolder = (inbox: Inbox): Folder =>
   !inbox.mail.some((mail) => folderHolds(mail, 'action')) &&
@@ -142,8 +214,14 @@ export const openingFolder = (inbox: Inbox): Folder =>
 
 /** The Inbox on one Mail, or the newest in its folder, which counts as read. */
 export const reading = (inbox: Inbox, focus: number | null = null): Inbox => {
-  const inFolder = folderList(inbox)
-  const id = (inFolder.find((mail) => mail.id === focus) ?? inFolder[0])?.id ?? null
+  const shown = folderList(inbox)
+  const id =
+    (
+      shown.find((mail) => mail.id === focus) ??
+      // A thread the Digest folded is still reachable: opening it from the Digest shows it.
+      reachable(inbox).find((mail) => mail.id === focus) ??
+      shown[0]
+    )?.id ?? null
   return {
     ...inbox,
     focus: id,
@@ -157,6 +235,39 @@ export const withMail = (inbox: Inbox, id: number, change: Partial<Mail>): Inbox
   mail: inbox.mail.map((mail) => (mail.id === id ? { ...mail, ...change } : mail)),
 })
 
+/* ---------- the save ---------- */
+
+/** What a Company keeps of its Inbox (18 "Open questions"): the Mail and the Senders it muted. */
+export const SavedInbox = Schema.Struct({
+  mail: Schema.Array(MailSchema),
+  mutes: Schema.Array(MailMute),
+  /** The last event tick the world wrote Mail for, so a reload does not repeat it. */
+  bucket: Schema.Finite,
+  /** The Sandbox bench's chosen sample; harmless for a Company, and it keeps one shape. */
+  sample: Schema.String,
+})
+export type SavedInbox = typeof SavedInbox.Type
+
+export const savedInbox = (inbox: Inbox): SavedInbox => ({
+  mail: inbox.mail,
+  mutes: inbox.mutes,
+  bucket: inbox.bucket,
+  sample: inbox.sample,
+})
+
+const decodeInbox = Schema.decodeUnknownOption(SavedInbox)
+
+/**
+ * What a save says about the Inbox. A save from before it was saved, or one whose Mail this build
+ * cannot read, opens with an empty Inbox rather than refusing to open at all.
+ */
+export const inboxOfSave = (saved: unknown): Inbox => {
+  if (typeof saved !== 'object' || saved === null || !('inbox' in saved)) return EMPTY_INBOX
+  const inbox = Option.getOrElse(decodeInbox(saved.inbox), () => EMPTY_INBOX)
+  // The panel's own view is not part of the Inbox: it opens on Needs action, as it always does.
+  return { ...inbox, focus: null, peek: null, folder: 'action', label: null }
+}
+
 /* ---------- the panel's gestures ---------- */
 
 export const InboxMessage = defineMessageUnion({
@@ -169,6 +280,8 @@ export const InboxMessage = defineMessageUnion({
   Restored: { id: Schema.Finite },
   MarkedSpam: { id: Schema.Finite },
   FolderChosen: { folder: Folder },
+  /** A filter chip: one Sender kind, or null for every label. */
+  LabelChosen: { label: Schema.NullOr(MailLabel) },
   /** A button on a Mail. */
   Acted: { id: Schema.Finite, action: Schema.String },
   /** The Sandbox's mail generator. */
@@ -215,6 +328,10 @@ const answerOf = (kind: string | undefined, mail: Mail): string | null => {
       return 'You muted this sender for an hour.'
     case 'backlog':
       return 'You added it to the backlog.'
+    case 'postmortem':
+      return 'You filed the postmortem.'
+    case 'postmortem-take':
+      return 'You filed the postmortem and put the action item in the study queue.'
     case 'trap':
       return 'You clicked it. It was a trap: the address was not the real sender.'
     default:
@@ -245,6 +362,8 @@ const ACTING = new Set([
   'trap',
   'churn',
   'research',
+  'postmortem',
+  'postmortem-take',
 ])
 
 export const updateInbox = (
@@ -257,16 +376,27 @@ export const updateInbox = (
     PeekOpened: ({ id }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
       const folder = mail?.spam ? 'spam' : mail && needsAction(mail) ? 'action' : 'fyi'
-      return { model: reading({ ...inbox, folder }, id), outMessage: InboxOutMessage.PanelWanted() }
+      return {
+        model: reading({ ...inbox, folder, label: null }, id),
+        outMessage: InboxOutMessage.PanelWanted(),
+      }
     },
     PeekDismissed: () => ({ model: { ...inbox, peek: null } }),
     Trashed: ({ id }) => ({ model: reading(withMail(inbox, id, { trashed: true })) }),
     Restored: ({ id }) => ({ model: reading(withMail(inbox, id, { trashed: false })) }),
     MarkedSpam: ({ id }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
-      return { model: reading(withMail(inbox, id, { spam: !mail?.spam })) }
+      const spam = !mail?.spam
+      // Reporting a trap teaches the filter and removes the risk (18 "Report spam"): a phishing
+      // Mail that reaches Spam can no longer be clicked, and its button goes with it.
+      const disarms =
+        spam && (mail?.actions.some((action) => action.id.startsWith('trap:')) ?? false)
+      return {
+        model: reading(withMail(inbox, id, { spam, ...(disarms ? { actions: [] } : {}) })),
+      }
     },
-    FolderChosen: ({ folder }) => ({ model: reading({ ...inbox, folder }) }),
+    FolderChosen: ({ folder }) => ({ model: reading({ ...inbox, folder, label: null }) }),
+    LabelChosen: ({ label }) => ({ model: reading({ ...inbox, label }) }),
     Acted: ({ id, action }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
       if (!mail) return { model: inbox }
