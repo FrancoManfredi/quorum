@@ -780,7 +780,7 @@ Lightweight threads that a language runtime schedules instead of the operating s
 
 A periodic probe, such as an HTTP request to a status endpoint, that decides whether a server should receive traffic. A shallow check tests only the server; a deep check also tests what it depends on, such as its database.
 
-**In the game:** A Load Balancer probes its App Servers every 10 s and stops sending traffic to a dead one at the next check. The Health checks research adds 2 s and 30 s intervals and a deep check that also removes App Servers whose Database is down or overloaded. It also lets DNS drop a dead host once its TTL runs out; without it, DNS keeps sending that host its share.
+**In the game:** A Load Balancer probes its App Servers every 10 s and stops sending traffic to a dead one at the next check. The Health checks research adds 2 s and 30 s intervals and a deep check that also removes App Servers whose Database is down or overloaded. It also lets DNS drop a dead host once its TTL runs out; without it, DNS keeps sending that host its share. The checks work only once the Health check endpoint task is done.
 
 **Design:** [Load Balancer](/design/05-components#load-balancer).
 
@@ -848,7 +848,7 @@ A tool that describes infrastructure as code and applies it: it compares the cod
 
 An operation is idempotent when doing it twice has the same effect as doing it once. Reads are idempotent by nature; a card charge or an order is not. An idempotency key is a unique ID the client sends with a request, so the server can recognize a retry and return the first result instead of acting again.
 
-**In the game:** A checkout sends a charge to the Payment Provider. In the Double charge Incident the provider slows by about 1.5 s, the charge Link times out, and a retry charges a card that the first attempt already charged, so those checkouts fail as duplicate. Research Idempotency keys (it needs Checkout) so a retried charge never charges twice. Without it, set the charge Link's retries to none to end the Incident.
+**In the game:** A checkout sends a charge to the Payment Provider. In the Double charge Incident the provider slows by about 1.5 s, the charge Link times out, and a retry charges a card that the first attempt already charged, so those checkouts fail as duplicate. Research Idempotency keys (it needs Checkout) and do the Idempotency keys task so a retried charge never charges twice. Without it, set the charge Link's retries to none to end the Incident.
 
 **Design:** [Payment Provider](/design/05-components#payment-provider).
 
@@ -1364,7 +1364,7 @@ A service level indicator (SLI) is a measurement of service behavior, such as th
 
 An audit framework from the AICPA. An independent auditor reports on a service organization's controls for security, availability, processing integrity, confidentiality, and privacy. Enterprise customers often require a SOC 2 report.
 
-**In the game:** SOC 2 is an item on the Pre-IPO IPO checklist. You need the SOC 2 program Research, which needs TLS everywhere, Encryption at rest, and Dependency scanning, and you need the Security team Research. Without a Security team, an Audit finding Incident can reset a passed DR drill.
+**In the game:** SOC 2 is an item on the Pre-IPO IPO checklist. You need the SOC 2 program Research, which needs TLS everywhere, Encryption at rest, and Dependency scanning, and you need a Security team with an engineer on it. Without one, an Audit finding Incident can reset a passed DR drill.
 
 **Related:** [Encryption at rest](#encryption-at-rest), [Dependency scanning](#dependency-scanning), [TLS certificate](#tls-certificate), [Data residency](#data-residency)
 

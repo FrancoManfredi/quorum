@@ -3790,13 +3790,24 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
-    DbEngineChosen: ({ nodeId, dbEngine }) =>
-      act(
-        model,
-        `Database engine: ${DB_ENGINES[dbEngine].name}`,
-        Actions.setDbEngine(model.board.game, nodeId, dbEngine),
-        { undoable: true },
-      ),
+    DbEngineChosen: ({ nodeId, dbEngine }) => {
+      const game = model.board.game
+      // A Company changes a Database's engine through a migration (08 "Migrations").
+      const company =
+        !game.sandbox && game.nodes.some((n) => n.id === nodeId && n.type === 'database')
+      return company
+        ? act(
+            model,
+            `Change the database engine to ${DB_ENGINES[dbEngine].name}`,
+            Work.queueEngineChange(game, nodeId, dbEngine),
+          )
+        : act(
+            model,
+            `Database engine: ${DB_ENGINES[dbEngine].name}`,
+            Actions.setDbEngine(game, nodeId, dbEngine),
+            { undoable: true },
+          )
+    },
 
     StorageIopsChosen: ({ nodeId, iops }) =>
       act(
@@ -4274,6 +4285,8 @@ const handle = (model: Model, message: Message): Result =>
     TeamChanged: ({ message }) => foldTeam(model, message),
     TaskQueued: ({ id }) =>
       act(model, `Queued ${TASKS[id].name}`, Work.queueTask(model.board.game, id)),
+    AuthMoveQueued: () =>
+      act(model, 'Queued moving auth in-house', Work.queueAuthMove(model.board.game)),
     RunbookQueued: ({ kind }) =>
       act(
         model,

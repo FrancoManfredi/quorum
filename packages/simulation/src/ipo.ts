@@ -9,7 +9,7 @@ import {
   type ComponentId,
 } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
-import { has, isDown } from './lookups.ts'
+import { has, isDown, securityStaffed } from './lookups.ts'
 import { survivesRegion } from './regions.ts'
 import { budgetOf } from './slo.ts'
 import type { Drill, Game, GameNode } from './state.ts'
@@ -171,8 +171,8 @@ export const checklistOf = (game: Game, ledger: Ledger): ReadonlyArray<Checklist
     {
       id: 'soc2',
       label: 'SOC 2',
-      met: has(game, 'soc2') && has(game, 'security-team'),
-      value: has(game, 'soc2') ? (has(game, 'security-team') ? 'Done' : 'Security team') : 'SOC 2',
+      met: has(game, 'soc2') && securityStaffed(game),
+      value: has(game, 'soc2') ? (securityStaffed(game) ? 'Done' : 'Security team') : 'SOC 2',
     },
     {
       id: 'drill',

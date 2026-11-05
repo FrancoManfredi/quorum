@@ -358,6 +358,7 @@ export const Message = defineMessageUnion({
   /** The Team panel: engineers, teams, the backlog, migrations, and deploys. */
   TeamChanged: { message: TeamMessage },
   TaskQueued: { id: Schema.Literals(TASK_IDS) },
+  AuthMoveQueued: {},
   /** "Write a runbook" for one incident kind (11 "Runbooks"). */
   RunbookQueued: { kind: IncidentId },
   WorkMoved: { id: Schema.Finite, direction: Schema.Literals([1, -1]) },

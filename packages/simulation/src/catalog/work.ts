@@ -147,7 +147,13 @@ export const FEATURES: Record<FeatureId, FeatureDef> = {
     dh: 40,
     requires: ['signup-flow'],
     churn: 0.9,
-    effect: 'Churn −10%',
+    // The weekly send is a burst of `job` requests that a Queue takes off the App Servers: it needs
+    // a Queue in the Design before it can be queued, checked in `featureRefusal` (08 "Features").
+    unlocks: { kind: 'job', share: 0.01, gated: false },
+    load: { job: 2 },
+    effect:
+      'Churn −10%. Digests send in a burst of jobs: twice the exports, 400 ms of CPU and 50 reads each',
+    hidden: 'The send is a burst of jobs',
   }),
   'search-filters': feature({
     id: 'search-filters',
@@ -384,6 +390,12 @@ export const TASK_IDS = [
   'fix-bugs',
   'upgrade-cluster',
   'runbook',
+  'idempotency-keys',
+  'off-loop',
+  'timeouts-retries',
+  'graceful-shutdown',
+  'health-check',
+  'load-test',
 ] as const
 export type TaskId = (typeof TASK_IDS)[number]
 
@@ -464,11 +476,67 @@ export const TASKS: Record<TaskId, TaskDef> = {
     effect: 'One incident kind resolves by itself, with no player action',
     internal: false,
   },
+  'idempotency-keys': {
+    id: 'idempotency-keys',
+    name: 'Idempotency keys',
+    dh: 20,
+    research: 'idempotency-keys',
+    effect: 'A retried checkout never charges twice',
+    internal: false,
+  },
+  'off-loop': {
+    id: 'off-loop',
+    name: 'Move CPU work off the loop',
+    dh: 12,
+    research: 'worker-threads',
+    effect: 'Node.js and Python async send CPU-heavy kinds to worker threads',
+    internal: false,
+  },
+  'timeouts-retries': {
+    id: 'timeouts-retries',
+    name: 'Add timeouts and retries',
+    dh: 8,
+    research: 'timeouts',
+    effect: 'Every Link out of an App Server or Worker gets a 5 s timeout and backoff retries',
+    internal: false,
+  },
+  'graceful-shutdown': {
+    id: 'graceful-shutdown',
+    name: 'Graceful shutdown',
+    dh: 6,
+    research: null,
+    effect: 'Deploys and scale-downs finish in-flight requests instead of failing them',
+    internal: false,
+  },
+  'health-check': {
+    id: 'health-check',
+    name: 'Health check endpoint',
+    dh: 4,
+    research: 'health-checks',
+    effect: 'A Load Balancer can run deep health checks',
+    internal: false,
+  },
+  'load-test': {
+    id: 'load-test',
+    name: 'Load test',
+    dh: 15,
+    research: null,
+    effect: 'Shows every Node at twice the demand, for one calendar day',
+    internal: false,
+  },
 }
 
 /** Calendar days in a quarter, for how long a Kubernetes version stays supported. */
 export const QUARTER_DAYS = 90
 
 /** Fixes a task leaves on the service. Refactor and Fix bugs act once instead. */
-export const FIXES = ['eager-loading', 'fix-leak', 'session-state'] as const
+export const FIXES = [
+  'eager-loading',
+  'fix-leak',
+  'session-state',
+  'idempotency-keys',
+  'off-loop',
+  'graceful-shutdown',
+  'health-check',
+] as const
 export type FixId = (typeof FIXES)[number]

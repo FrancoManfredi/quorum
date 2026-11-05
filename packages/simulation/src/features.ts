@@ -8,6 +8,7 @@ import {
   LIFT_MIN_ROLLOUT,
   LIFT_SPREAD,
   LIVE_TUNING,
+  MARKET_GAIN_CAP,
   OUTCOME_BANDS,
   PAYING_SHARE,
   PLAN_PER_DAY,
@@ -164,12 +165,16 @@ const ventureMix = (
 /**
  * Most users the market holds: the Era's, grown by the share of each Feature users have adopted,
  * at the Feature's realized outcome (08 "Outcomes"): a Loss can shrink the market as readily as a
- * Win grows it.
+ * Win grows it. The Features' gains compound up to a ceiling of +100% of the Era's market (08
+ * "Sizes"): they reach more of the people who could use the product, not new people.
  */
 export const marketOf = (game: Game): number =>
   eraOf(game).market *
-  rolledProduct(game, (feature, exposure, outcome) =>
-    atExposure(feature.market, exposure, outcome),
+  Math.min(
+    MARKET_GAIN_CAP,
+    rolledProduct(game, (feature, exposure, outcome) =>
+      atExposure(feature.market, exposure, outcome),
+    ),
   ) *
   ventureOf(game).market
 

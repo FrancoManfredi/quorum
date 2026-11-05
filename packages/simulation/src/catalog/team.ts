@@ -120,6 +120,13 @@ export const OUTCOME_BANDS: ReadonlyArray<Readonly<{ lo: number; hi: number }>> 
   { lo: -0.5, hi: -0.1 }, // Loss
 ]
 
+/**
+ * The most the Features' market gains add together (08 "Sizes"): the Era's market at most doubles
+ * however many Features ship. Features reach more of the people who could use the product; they
+ * cannot create new people.
+ */
+export const MARKET_GAIN_CAP = 2
+
 /* ---------- adoption and measured lift (08 "Adoption", "Measured lift") ---------- */
 
 /** Calendar days a Feature takes to reach about 63% of its effect. */
@@ -213,6 +220,23 @@ export const MIGRATION_FEATURE_SPEED = 0.5
  * own, because a schema change still needs every team's agreement (08 "Shared database penalty").
  */
 export const SHARED_DB_COORDINATION = 0.5
+
+/* ---------- engineering tasks and moves (08 "Engineering tasks", "Migrations") ---------- */
+
+/** Seconds before a Link the Add timeouts and retries task touches gives up. Proposed. */
+export const TASK_LINK_TIMEOUT = 5
+
+/** A Load test shows every Node at this multiple of the demand it has now (08 "Engineering tasks"). */
+export const LOAD_TEST_DEMAND = 2
+/** Calendar days a Load test's readout lasts. */
+export const LOAD_TEST_DAYS = 1
+
+/** Dev Hours to move auth in-house from an Auth Provider, whatever the codebase (08 "Migrations"). */
+export const AUTH_MOVE_DH = 120
+/** A Database engine change costs this share of the codebase in Dev Hours (08 "Migrations"). */
+export const ENGINE_FACTOR = 0.8
+/** Calendar minutes the data copy of an engine change takes per GB the Databases hold. Proposed. */
+export const ENGINE_COPY_MINUTES_PER_GB = 1
 
 /* ---------- pooler modes (07 "Connection Pooler") ---------- */
 

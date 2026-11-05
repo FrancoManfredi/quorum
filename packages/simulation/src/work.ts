@@ -6,6 +6,7 @@ import {
   COMPONENTS,
   CONTENT_MOOD,
   DATA_TEAM_HOURS,
+  DB_ENGINES,
   DOC_PATTERN_FACTOR,
   DOC_SHAPE_DH,
   ELIXIR_HOT_UPGRADE_DEV_HOURS,
@@ -35,6 +36,11 @@ import {
   type ResearchId,
   STRUCTURED_DEBT,
   TASKS,
+  TASK_LINK_TIMEOUT,
+  LOAD_TEST_DAYS,
+  AUTH_MOVE_DH,
+  ENGINE_FACTOR,
+  ENGINE_COPY_MINUTES_PER_GB,
   UNSTRUCTURED_DEBT,
   type FeatureId,
   type FixId,
@@ -64,13 +70,16 @@ import {
 import { nextRandom } from './random.ts'
 import { openRegions } from './regions.ts'
 import { NEW_ENGINEER } from './state.ts'
-import type { BlockKind, Game, Service, Team, TeamKind, WorkItem } from './state.ts'
+import { warming } from './life.ts'
+import type { BlockKind, DbEngine, Game, Service, Team, TeamKind, WorkItem } from './state.ts'
 import {
   badDeployChance,
   blastService,
   dataStaffed,
+  days,
   deployEvery,
   enqueue,
+  fixed,
   hireSeconds,
   languageOfService,
   memberOf,
@@ -129,6 +138,8 @@ export const itemName = (item: WorkItem): string => {
     return `Patch ${COMPONENTS[item.target as ComponentId]?.name ?? 'Design'}`
   if (item.kind === 'spike') return `Spike: ${RESEARCH[item.ref as ResearchId]?.name ?? item.ref}`
   if (item.kind === 'split') return 'Split a service'
+  if (item.kind === 'move')
+    return item.ref === 'auth' ? 'Move auth in-house' : 'Change the database engine'
   return `Migration step ${item.ref.slice(5)}`
 }
 
@@ -137,6 +148,64 @@ const queued = (game: Game, ref: string): boolean => game.backlog.some((item) =>
 /** Features the Company has, has built, or has queued. */
 const planned = (game: Game, id: FeatureId): boolean =>
   game.shipped.includes(id) || game.awaiting.includes(id) || queued(game, id)
+
+/* ---------- moves (08 "Migrations") ---------- */
+
+/** Dev Hours of a Database engine change: 0.8 of the codebase, to a tenth. */
+export const engineCost = (game: Game): number =>
+  Math.max(0.5, Math.round(serviceOf(game).codebase * ENGINE_FACTOR * 10) / 10)
+
+/** Queues the move off an Auth Provider: a fixed 120 Dev Hours, whatever the codebase. */
+export const queueAuthMove = (game: Game): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  if (!game.nodes.some((node) => node.type === 'auth'))
+    return notAllowed('There is no Auth Provider to move off.')
+  if (queued(game, 'auth')) return notAllowed('Moving auth in-house is on the backlog.')
+  return ok(enqueue(game, 'move', 'auth', AUTH_MOVE_DH))
+}
+
+/** Queues a Database engine change: 0.8 of the codebase in Dev Hours, then a data copy. */
+export const queueEngineChange = (game: Game, nodeId: string, to: DbEngine): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const node = game.nodes.find((entry) => entry.id === nodeId)
+  if (!node || node.type !== 'database') return notAllowed('Only a Database changes engine.')
+  if (node.dbEngine === to) return notAllowed(`It already runs ${DB_ENGINES[to].name}.`)
+  if (game.engineChange || queued(game, 'engine'))
+    return notAllowed('A Database engine change is already running.')
+  return ok({
+    ...enqueue(game, 'move', 'engine', engineCost(game), false, { target: nodeId }),
+    engineChange: { node: nodeId, to, until: 0 },
+  })
+}
+
+/** What a finished move does: auth leaves the Design, or the engine's data copy starts. */
+const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
+  if (item.ref === 'auth') {
+    const gone = new Set(game.nodes.filter((node) => node.type === 'auth').map((node) => node.id))
+    return {
+      ...game,
+      nodes: game.nodes.filter((node) => !gone.has(node.id)),
+      links: game.links.filter((link) => !gone.has(link.from) && !gone.has(link.to)),
+    }
+  }
+  const change = game.engineChange
+  if (!change) return game
+  const copy = (game.data * ENGINE_COPY_MINUTES_PER_GB * 60) / CALENDAR_DAY
+  return { ...game, engineChange: { ...change, until: game.time + days(copy, tuning) } }
+}
+
+/** Ends a finished data copy: the Database runs the new engine from now on. */
+const finishEngineChange = (game: Game): Game => {
+  const change = game.engineChange
+  if (!change || change.until <= 0 || game.time < change.until) return game
+  return {
+    ...game,
+    engineChange: null,
+    nodes: game.nodes.map((node) =>
+      node.id === change.node && node.type === 'database' ? { ...node, dbEngine: change.to } : node,
+    ),
+  }
+}
 
 /* ---------- what can be queued ---------- */
 
@@ -160,8 +229,26 @@ export const featureRefusal = (game: Game, id: FeatureId): Refusal | null => {
   // data allowed to leave the region it names.
   if (id === 'data-residency' && !openRegions(game).includes('eu'))
     return Refusal.NotAllowed({ reason: `${def.name} needs an open EU region.` })
+  // Email digests send in a burst of jobs that a Queue absorbs (08 "Features").
+  if (id === 'email-digests' && !game.nodes.some((node) => node.type === 'queue'))
+    return Refusal.NotAllowed({ reason: `${def.name} need a Queue to send through.` })
   return null
 }
+
+/** An App Server whose runtime is Node.js or Python on an event loop (08 "Engineering tasks"). */
+const onLoop = (node: Game['nodes'][number]): boolean =>
+  RUNTIMES[node.runtime].language === 'node' ||
+  (RUNTIMES[node.runtime].language === 'python' && RUNTIMES[node.runtime].model === 'loop')
+
+/** Whether a Link starts at an App Server or a Worker, the code the task changes. */
+const callerOf = (game: Game, link: Game['links'][number]): boolean =>
+  game.nodes.some(
+    (node) => node.id === link.from && (node.type === 'server' || node.type === 'worker'),
+  )
+
+/** Whether a Link already holds the policy Add timeouts and retries writes. */
+const policed = (link: Game['links'][number]): boolean =>
+  link.timeout <= TASK_LINK_TIMEOUT && link.retries === 'backoff'
 
 export const taskRefusal = (game: Game, id: TaskId): Refusal | null => {
   const def = TASKS[id]
@@ -181,6 +268,15 @@ export const taskRefusal = (game: Game, id: TaskId): Refusal | null => {
   // A runbook names one incident kind, which the Add work menu picks (11 "Runbooks").
   if (id === 'runbook')
     return Refusal.NotAllowed({ reason: 'Choose the incident a runbook covers.' })
+  if (id === 'off-loop' && !game.nodes.some((node) => node.type === 'server' && onLoop(node)))
+    return Refusal.NotAllowed({ reason: 'No App Server runs Node.js or Python on an event loop.' })
+  if (
+    id === 'timeouts-retries' &&
+    !game.links.some((link) => callerOf(game, link) && !policed(link))
+  )
+    return Refusal.NotAllowed({ reason: 'Every Link out of a server already has a policy.' })
+  if (id === 'load-test' && game.time < game.loadTestUntil)
+    return Refusal.NotAllowed({ reason: 'A load test is already running.' })
   return null
 }
 
@@ -960,9 +1056,10 @@ export const advanceMorale = (
 }
 
 /** What a finished item does. */
-const complete = (game: Game, item: WorkItem): Game => {
+const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   // A patch, a split, and a spike have no effect to apply: finishing them is the effect.
   if (item.kind === 'spike' || item.kind === 'patch' || item.kind === 'split') return game
+  if (item.kind === 'move') return moved(game, item, tuning)
   const service = serviceOfItem(game, item)
   if (item.kind === 'migration') {
     const migration = serviceOf(game).migration
@@ -1007,7 +1104,23 @@ const complete = (game: Game, item: WorkItem): Game => {
     }
     case 'eager-loading':
     case 'session-state':
+    case 'idempotency-keys':
+    case 'off-loop':
+    case 'graceful-shutdown':
+    case 'health-check':
       return withService(after, { fixes: [...service.fixes, id] })
+    case 'timeouts-retries':
+      // Every Link out of an App Server or Worker gets a short timeout and backoff retries.
+      return {
+        ...after,
+        links: after.links.map((link) =>
+          callerOf(after, link)
+            ? { ...link, timeout: Math.min(link.timeout, TASK_LINK_TIMEOUT), retries: 'backoff' }
+            : link,
+        ),
+      }
+    case 'load-test':
+      return { ...after, loadTestUntil: after.time + days(LOAD_TEST_DAYS, tuning) }
     case 'refactor':
       return withService(after, { debt: Math.max(0, service.debt - item.cost * REFACTOR_PER_DH) })
     case 'fix-bugs':
@@ -1083,7 +1196,10 @@ const deployService = (
       !node.shut &&
       RUNTIMES[node.runtime].hotReload !== true &&
       node.life._tag !== 'Restarting'
-        ? { ...node, ...restarted(node) }
+        ? // Graceful shutdown finishes in-flight requests: the new copies start cold, never down.
+          fixed(next, 'graceful-shutdown')
+          ? { ...node, life: warming(0) }
+          : { ...node, ...restarted(node) }
         : node,
     ),
   }
@@ -1248,7 +1364,7 @@ export const advanceTeam = (
     { debt: Math.max(0, service.debt - paydown * REFACTOR_PER_DH) },
   )
   for (const item of finished) {
-    next = complete(next, item)
+    next = complete(next, item, tuning)
     events.push(StepEvent.WorkFinished({ item }))
   }
 
@@ -1263,6 +1379,7 @@ export const advanceTeam = (
       ),
     }
 
+  next = finishEngineChange(next)
   next = deploy(next, ledger, tuning, events, offline)
   return { game: next, events }
 }

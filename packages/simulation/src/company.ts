@@ -183,6 +183,8 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   hires: [],
   teams: [CORE_TEAM],
   moraleUntil: 0,
+  loadTestUntil: 0,
+  engineChange: null,
   services: [monolith([])],
   backlog: [],
   workSeq: 0,

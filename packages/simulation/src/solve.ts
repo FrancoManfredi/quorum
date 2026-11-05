@@ -137,7 +137,7 @@ import {
 } from './regions.ts'
 import { causeOf } from './life.ts'
 import { NO_INSIGHT, type Game, type GameLink, type GameNode } from './state.ts'
-import { payrollOf, serviceOfKind } from './team.ts'
+import { fixed, payrollOf, serviceOfKind } from './team.ts'
 
 /* ==========================================================================
    The flow solve: turns a Design and the current demand into the Ledger.
@@ -371,7 +371,7 @@ const buildGraph = (game: Game): Graph => {
     parents,
     taps,
     order,
-    healthChecked: has(game, 'health-checks'),
+    healthChecked: has(game, 'health-checks') && fixed(game, 'health-check'),
     time: game.time,
   }
 }
@@ -995,7 +995,9 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
       again.success > 0
         ? (Math.max(0, again.success - once.success) / again.success) * timedOutShare
         : 0
-    return kind === 'charge' && !has(game, 'idempotency-keys') && duplicates > 0
+    return kind === 'charge' &&
+      !(has(game, 'idempotency-keys') && fixed(game, 'idempotency-keys')) &&
+      duplicates > 0
       ? failSome(again, duplicates, 'duplicate')
       : again
   }

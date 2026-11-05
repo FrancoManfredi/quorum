@@ -134,6 +134,7 @@ const USES: Partial<Record<Message['_tag'], (message: Message) => Reveal | null>
   Collected: () => 'collect',
   ResizeChosen: () => 'resize',
   TaskQueued: () => 'engineering',
+  AuthMoveQueued: () => 'engineering',
   AutopilotToggled: () => 'autopilot',
   GlossaryOpened: () => 'glossary',
   PanelOpened: (message) =>

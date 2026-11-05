@@ -109,6 +109,6 @@ Some calls must not run twice. A checkout sends a charge to the Payment Provider
 out and the Link retries, the first attempt may have succeeded already. The customer pays twice, and
 the request fails as `duplicate`.
 
-The [Idempotency keys](/research/idempotency-keys) research gives each charge a key, so a retry never
-charges twice. Without it, set the charge Link's retries to none. See
+The [Idempotency keys](/research/idempotency-keys) research, and the Idempotency keys engineering task that puts
+it in the code, give each charge a key, so a retry never charges twice. Without them, set the charge Link's retries to none. See
 [idempotency](/glossary/idempotency) and the [Double charge](/incidents/double-charge) incident.

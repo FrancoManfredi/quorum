@@ -1146,6 +1146,34 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   'No leaks until the next Feature ships': '下一个功能上线前不会再发生内存泄漏',
   'Drop session state': '移除会话状态',
   'Transaction pooling stops breaking queries': '事务级连接池不再导致查询出错',
+  'A retried checkout never charges twice': '重试的结账不会重复扣款',
+  'Move CPU work off the loop': '把 CPU 工作移出事件循环',
+  'Node.js and Python async send CPU-heavy kinds to worker threads':
+    'Node.js 与 Python 异步把耗 CPU 的请求类型交给工作线程',
+  'Add timeouts and retries': '添加超时与重试',
+  'Every Link out of an App Server or Worker gets a 5 s timeout and backoff retries':
+    '应用服务器或 Worker 发出的每条链路都获得 5 秒超时和退避重试',
+  'Graceful shutdown': '优雅停机',
+  'Deploys and scale-downs finish in-flight requests instead of failing them':
+    '部署和缩容会处理完进行中的请求，而不是让它们失败',
+  'Health check endpoint': '健康检查端点',
+  'A Load Balancer can run deep health checks': '负载均衡器可以进行深度健康检查',
+  'Load test': '压力测试',
+  'Shows every Node at twice the demand, for one calendar day':
+    '在一个日历日内显示每个节点在两倍需求下的情况',
+  'Churn −10%. Digests send in a burst of jobs: twice the exports, 400 ms of CPU and 50 reads each':
+    '流失 −10%。摘要邮件以一批任务集中发送：导出量翻倍，每个 400 毫秒 CPU 和 50 次读取',
+  'The send is a burst of jobs': '发送是一批集中的任务',
+  'Move auth in-house': '自建认证',
+  'Change the database engine': '更换数据库引擎',
+  'Move auth in-house · {0} DH': '自建认证 · {0} 开发工时',
+  'Move login in-house: the App Servers hash passwords themselves, and the per-user fee ends.':
+    '自建登录：应用服务器自己哈希密码，按用户收费随之结束。',
+  'Load test: at {0}× demand this Node runs at {1}% utilization.':
+    '压力测试：在 {0}× 需求下，此节点利用率为 {1}%。',
+  'Copying its data to {0}. It keeps serving on {1} until the copy ends.':
+    '正在把数据复制到 {0}。复制结束前它继续在 {1} 上提供服务。',
+  'Rewriting the code for {0}. It is on the backlog.': '正在为 {0} 重写代码。它在待办列表中。',
   Refactor: '重构',
   'Tech debt −20 points': '技术债 −20 个百分点',
   'Fix migration bugs': '修复迁移缺陷',

@@ -639,7 +639,11 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const offLoop = (kind: RequestKind): boolean =>
     (asLogin(game, kind) && (has(game, 'libuv-pool') || context.delegated)) ||
     // Worker threads take CPU-heavy kinds off Node.js's loop (06 "Event loops and blocking").
-    (runtime.language === 'node' && has(game, 'worker-threads') && CPU_HEAVY_KINDS.includes(kind))
+    (has(game, 'worker-threads') &&
+      fixed(game, 'off-loop') &&
+      (runtime.language === 'node' ||
+        (runtime.language === 'python' && runtime.model === 'loop')) &&
+      CPU_HEAVY_KINDS.includes(kind))
   // Tokio blocks one worker thread of many: the stall lands on a share of requests per core. Its
   // blocking pool removes that, and a runtime that never blocks has none (06 "Rust").
   const blocking =

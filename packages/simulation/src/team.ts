@@ -269,7 +269,8 @@ export const memberOf = (game: Game, teamId: string, salt: number): Engineer | u
 
 /* ---------- calendar time ---------- */
 
-const days = (count: number, tuning: Tuning): number => (count * CALENDAR_DAY) / tuning.calendarPace
+export const days = (count: number, tuning: Tuning): number =>
+  (count * CALENDAR_DAY) / tuning.calendarPace
 
 /** The policy a team works under now: the old one for a calendar day after a change. */
 export const policyNow = (game: Game, team: Team, tuning: Tuning = LIVE_TUNING): PolicyDef =>

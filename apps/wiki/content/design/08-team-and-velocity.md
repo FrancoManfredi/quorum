@@ -96,15 +96,15 @@ save from before them has every engineer content, on the Era's rate, with no pag
 
 Engineers belong to teams. The player creates teams and assigns engineers.
 
-| Team type     | Unlocked                  | Owns                                       | Effect                                                                                                                                                                                                                         |
-| ------------- | ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Product team  | Pre-seed                  | One or more services                       | Produces DH for features and engineering tasks on its services.                                                                                                                                                                |
-| Platform team | Series A, `platform-team` | Kubernetes, CI/CD, the Service Mesh        | Removes the per-cluster DH tax. Halves deploy time.                                                                                                                                                                            |
-| SRE team      | Series A                  | On-call, runbooks, incident response       | MTTR −40%: an incident, and the recovery it drives, runs 60% as long. Open action items raise incident odds by half as much. It holds the pager a runbook needs ([Incidents](/design/11-incidents#runbooks)).                  |
-| Data team     | Series B, `data-team`     | The warehouse, CDC, the Vector Index       | `report` and `ai` features cost −30% DH. A CDC pipeline has half the lag.                                                                                                                                                      |
-| Security team | Pre-IPO, `security-team`  | WAF rules, dependency scanning, compliance | Required for the SOC 2 milestone. Halves the weakness that draws a Supply-chain compromise, stacking with Dependency scanning, and doubles the grace before an overdue CVE is exploited into a Data breach (proposed factors). |
+| Team type     | Unlocked                  | Owns                                       | Effect                                                                                                                                                                                                                                                                                                      |
+| ------------- | ------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product team  | Pre-seed                  | One or more services                       | Produces DH for features and engineering tasks on its services.                                                                                                                                                                                                                                             |
+| Platform team | Series A, `platform-team` | Kubernetes, CI/CD, the Service Mesh        | Removes the per-cluster DH tax. Halves deploy time.                                                                                                                                                                                                                                                         |
+| SRE team      | Series A                  | On-call, runbooks, incident response       | MTTR −40%: an incident, and the recovery it drives, runs 60% as long. Open action items raise incident odds by half as much. It holds the pager a runbook needs ([Incidents](/design/11-incidents#runbooks)).                                                                                               |
+| Data team     | Series B, `data-team`     | The warehouse, CDC, the Vector Index       | `report` and `ai` features cost −30% DH. A CDC pipeline has half the lag.                                                                                                                                                                                                                                   |
+| Security team | Pre-IPO, `security-team`  | WAF rules, dependency scanning, compliance | Required for the SOC 2 milestone: the checklist item needs the SOC 2 program research and a Security team with an engineer on it. Halves the weakness that draws a Supply-chain compromise, stacking with Dependency scanning, and doubles the grace before an overdue CVE is exploited into a Data breach. |
 
-Product, Platform, SRE, Data and Security teams exist in the build. A Platform team needs
+Product, Platform, SRE, Data and Security teams exist. A Platform team needs
 `platform-team` research, an SRE team `sre-team`, a Data team `data-team`, and a Security team
 `security-team`, each with an engineer on it. Their Dev Hours build no backlog: they run the system
 instead.
@@ -159,9 +159,7 @@ policy and its own tech debt, not the Design's: the one shared CI/CD Pipeline st
 cadence and the strategy every Service ships through, so two Services on the same policy still
 deploy about as often, but a bad deploy on one no longer waits behind, or pulls down, another's.
 Burn has no Node-level ownership to split exactly, so each Service's reported Burn is its share of
-the Company's total Burn by its share of the Company's total codebase (KLOC). Proposed: the design
-asks for a split and gives no formula, so this is the simplest one that uses a figure every Service
-already tracks. A Stack change still migrates the whole Design rather than one Service.
+the Company's total Burn by its share of the Company's total codebase (KLOC). A Stack change still migrates the whole Design rather than one Service.
 
 | Gain                                           | Cost                                                                                              |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -231,7 +229,7 @@ engineers for six weeks. A week is 40 DH.
 | Pagination           | Garage   | —                                | Half a day            | 4     | —                                             | `read` payload −50%, adds an unindexed query shape |
 | Password login       | Pre-seed | Signup flow                      | 1 week                | 40    | Required for paid plans                       | Unlocks `login`                                    |
 | Paid plans           | Pre-seed | Password login                   | 2 weeks               | 80    | `write` value +30%                            | —                                                  |
-| Email digests        | Pre-seed | Signup flow                      | 1 week                | 40    | Churn −10%                                    | **Not built yet:** no `job` burst                  |
+| Email digests        | Pre-seed | Signup flow, a Queue             | 1 week                | 40    | Churn −10%                                    | `job` demand ×2: a burst through the Queue         |
 | Search filters       | Seed     | —                                | 1 week                | 40    | `search` value +25%                           | `q-search` cost +40%                               |
 | Profile photos       | Seed     | Password login                   | 1 week                | 40    | Growth +10%                                   | Unlocks `upload`                                   |
 | Public API           | Seed     | Password login                   | 4 weeks               | 160   | Market +25%                                   | `read` +30%, bursty clients, bots                  |
@@ -256,14 +254,18 @@ engineers for six weeks. A week is 40 DH.
 | Status page          | Pre-IPO  | —                                | 2 days                | 16    | Churn −10%                                    | —                                                  |
 | Usage-based pricing  | Public   | Paid plans                       | 2 engineers, 6 weeks  | 480   | `job`, `write`, `ai` and `hook` requests +15% | Metering `job` and `q-write`                       |
 
-The largest Feature in the build is Mobile app at 960 DH; Data residency, at 1,440 DH, is larger
+The largest Feature after Data residency is Mobile app at 960 DH; Data residency, at 1,440 DH, is larger
 still but needs an open EU region, checked when it is queued, rather than another Feature. From the
 Pre-IPO Era on, a Company with the EU region open cannot grow it without Data residency: the
 Region's share of the market reads zero until it ships. Earlier Eras, and every Era before regions
 split, play as they did before this Feature existed.
 
-Market gains multiply, and there is no cap: each Feature's share of the Era's market compounds.
-Features reach more of the people who could use the product. They cannot create new people.
+Market gains multiply, up to a ceiling: together the Features add at most +100% to the Era's market,
+so the Company's market never exceeds twice the Era's, however many Features ship. Features reach
+more of the people who could use the product. They cannot create new people.
+
+Email digests need a Queue in the Design when they are queued, because the weekly send is a burst
+of `job` requests that the Queue takes off the App Servers.
 
 Some features ship with hidden costs that appear later: a new unindexed query shape, an N+1 in a
 list view, or a scan in a dashboard. Research "Code review" reveals these costs before the feature
@@ -271,7 +273,7 @@ ships.
 
 ### Outcomes
 
-**Built.** The "Win effect" column is what a Feature does when it works. Most product changes do not
+The "Win effect" column is what a Feature does when it works. Most product changes do not
 work as planned. When Microsoft ran controlled experiments, about a third of ideas improved the
 metric they targeted, a third did nothing, and a third made it worse.
 
@@ -300,7 +302,7 @@ in the deploy that ships it.
 With Feature Flags, each shipped Feature has a rollout. The player moves it through the design's
 steps: dark, 5%, 25%, 50%, 100% of users.
 
-**Built:** the `ff` Component, a rollout share per Feature, and the blast-radius rule. The steps are
+the `ff` Component, a rollout share per Feature, and the blast-radius rule. The steps are
 the design's four. A bad deploy that comes from a flagged Feature hits only its rollout share, so a
 Feature at 5% cannot break more than 5% of what it would have
 ([Incidents](/design/11-incidents#mitigation-toolbox)). A Feature with no step set is live for every
@@ -308,11 +310,11 @@ user, which is what a Design with no Feature Flags Node does with all of them, s
 unchanged. One click sets a step to Off, which is the mitigation an incident needs. The share counts
 the moment it is set, and the Deploy bar and the flags card read it.
 
-**Built:** the rollout scales what users get. Effects and load follow the Feature's exposure, its
+the rollout scales what users get. Effects and load follow the Feature's exposure, its
 rollout times its adoption ([Adoption](#adoption)), so a dark Feature earns nothing and costs no
 capacity, and a Feature at 50% reaches half its effect once its users have adopted it.
 
-**Built:** **Shift** moves a live Feature's rollout, including to Off, through the Inspector's flag
+**Shift** moves a live Feature's rollout, including to Off, through the Inspector's flag
 control above; a Feature turned off this way still pays its upkeep, because its code has not gone
 anywhere ([Upkeep](#upkeep)). **Remove** takes the code out for good: the Feature leaves `shipped`
 and the Service that carried it, every effect it had stops, and its upkeep ends with it. A Feature
@@ -322,7 +324,7 @@ the Feature again queues it from zero, with a new rollout and a new rolled outco
 
 ### Adoption
 
-**Built.** A Feature's **adoption** share starts at 0 in the deploy that ships it and approaches 1
+A Feature's **adoption** share starts at 0 in the deploy that ships it and approaches 1
 with calendar time. Its **exposure** is the product of its rollout and its adoption, and every
 effect and every load change an exposure of 0 has none of and an exposure of 1 has all of. The
 Team panel shows each live Feature's adopted share.
@@ -342,7 +344,7 @@ exact arithmetic ([Simulation](/design/04-simulation)).
 
 ### Measured lift
 
-**Built.** With `ab-testing` researched, a Feature between 5% and 50% rollout reports its lift with
+With `ab-testing` researched, a Feature between 5% and 50% rollout reports its lift with
 a confidence interval on its Team card. The counts are sampled requests from the exposed users and
 from the holdout, since the Feature reached its current rollout step; a new step starts the count
 again. Analytics' sample rate sets the rate, and a Design with no Analytics tap counts 1% of
@@ -378,7 +380,7 @@ controlled experiments.
 
 ### Upkeep
 
-**Built.** Each product team loses a share of its Dev Hours to the Features its Service carries,
+Each product team loses a share of its Dev Hours to the Features its Service carries,
 before the backlog gets any.
 
 Every live Feature needs upkeep: bug fixes, dependency updates, and support questions. Upkeep takes
@@ -394,8 +396,7 @@ and it approaches 40% with no debt. Developers in Stripe's survey spent about 42
 maintenance and bad code. Turning a Feature off does not end its upkeep. Removing it does.
 
 Upkeep makes a large product slower to change. The player chooses which Features earn their upkeep
-and removes the ones that lose or stay flat. Until Remove lands, the only lever is what the Company
-ships, which is the trap the section describes.
+and removes the ones that lose or stay flat.
 
 A team that runs the system instead of the product, a Platform, SRE or Data team, pays no upkeep: its
 Dev Hours build no backlog. The Team panel's Live column shows the share.
@@ -409,7 +410,7 @@ names, and the first that holds is the reason:
 | ---------- | ----------------------------------------------------------------------------------------------- |
 | An index   | The Service has a query shape with no index ([Data tier](/design/07-data-tier#indexes)).        |
 | A copy     | The Service shares its Database with another ([the distributed monolith](#blast-radius)).       |
-| A hire     | The team has eight engineers (proposed), near where the coordination table flattens.            |
+| A hire     | The team has eight engineers, near where the coordination table flattens.                       |
 | A decision | The Design is below its Apdex target: what to build first is the player's call, not the team's. |
 
 An item with none of them moves. The team's owner writes and the item waits: its Dev Hours go to the
@@ -429,22 +430,24 @@ point-in-time recovery, restore drills and infrastructure as code
 cancel the migration, pin and redeploy, restore from a backup, restart the Nodes a clock jump hit
 ([Mitigation toolbox](/design/11-incidents#mitigation-toolbox)).
 
-Ten tasks are designed. The build has eight, and four of those are not in this list.
+Ten tasks are in this list, and each one changes a mechanic. Five of them are **fixes**: once the
+task is done, the Service's code has it for good, and the mechanic that reads it stops failing.
+Sandboxes and Challenges without a Dev Hour budget start with every fix in place.
 
-| Task                        | DH  | Effect                                                                      | Status                                      |
-| --------------------------- | --- | --------------------------------------------------------------------------- | ------------------------------------------- |
-| Add index (per query shape) | 4   | Removes one slow query shape ([Data tier](/design/07-data-tier#indexes)).   | Built                                       |
-| Eager loading               | 10  | Removes N+1 multipliers on one service.                                     | Built                                       |
-| Fix memory leak             | 15  | Stops RSS growth on one service until the next big feature.                 | Built                                       |
-| Idempotency keys            | 20  | Removes `duplicate` on checkout and double-processing on queues.            | Research "Idempotency keys", not a task     |
-| Move CPU work off the loop  | 12  | Node.js and Python async only: moves a CPU-heavy kind to worker threads.    | Not built yet                               |
-| Add timeouts and retries    | 8   | Applies a link policy to every link of one service.                         | Research "Timeouts and retries", not a task |
-| Graceful shutdown           | 6   | Deploys and scale-downs finish in-flight requests instead of failing them.  | Not built yet                               |
-| Health check endpoint       | 4   | Enables deep health checks.                                                 | Research "Health checks", not a task        |
-| Write a runbook             | 10  | Enables automatic mitigation for one incident type (with an SRE team).      | Built                                       |
-| Load test                   | 15  | Shows the capacity of each Node at 2× current demand, for one calendar day. | Not built yet                               |
+| Task                        | DH  | Effect                                                                                                                                                                 |
+| --------------------------- | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Add index (per query shape) | 4   | Removes one slow query shape ([Data tier](/design/07-data-tier#indexes)).                                                                                              |
+| Eager loading               | 10  | Removes N+1 multipliers on one service.                                                                                                                                |
+| Fix memory leak             | 15  | Stops RSS growth on one service until the next big feature.                                                                                                            |
+| Idempotency keys            | 20  | Needs research "Idempotency keys". A retried charge no longer fails as `duplicate`, and the Double charge incident cannot start.                                       |
+| Move CPU work off the loop  | 12  | Needs research "Worker threads", and a Node.js or Python event-loop App Server. Moves the CPU-heavy kinds (`upload`, `report`, `job`) to worker threads, off the loop. |
+| Add timeouts and retries    | 8   | Needs research "Timeouts and retries". Every Link out of an App Server or Worker gets a 5 s timeout and backoff retries.                                               |
+| Graceful shutdown           | 6   | A deploy no longer takes App Servers down: the new copies start cold and the old ones finish their in-flight requests first.                                           |
+| Health check endpoint       | 4   | Needs research "Health checks". A Load Balancer's health checks, including the deep check, work only once the endpoint exists.                                         |
+| Write a runbook             | 10  | Enables automatic mitigation for one incident type (with an SRE team).                                                                                                 |
+| Load test                   | 15  | Shows the Inspector's utilization of each Node at 2× current demand, for one calendar day.                                                                             |
 
-The build's other four tasks:
+The other four tasks:
 
 | Task               | DH  | Effect                                                                    |
 | ------------------ | --- | ------------------------------------------------------------------------- |
@@ -473,18 +476,19 @@ migration_DH = codebase_size × migration_factor
 codebase_size grows with every feature shipped on that service (in thousands of lines)
 ```
 
-| Migration                                 | Factor                | Notes                                                                                 | Status        |
-| ----------------------------------------- | --------------------- | ------------------------------------------------------------------------------------- | ------------- |
-| Variant inside a language (FPM to Octane) | 0.1                   | Fast, with surprises (state bleed).                                                   | Built         |
-| Framework inside a language               | 0.5                   |                                                                                       | Built         |
-| Language change                           | 1.0                   | Multiplied by the target language's velocity inverse: rewriting into Rust costs more. | Built         |
-| Split a service                           | 0.3 of the moved part | Adds a Service with its own owner and Features ([Services](#services)).               | Built         |
-| Move auth in-house from an Auth Provider  | Fixed 120             |                                                                                       | Not built yet |
-| Database engine change                    | 0.8                   | Plus a data copy that takes calendar time proportional to volume.                     | Not built yet |
+| Migration                                 | Factor                | Notes                                                                                                                                        |
+| ----------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Variant inside a language (FPM to Octane) | 0.1                   | Fast, with surprises (state bleed).                                                                                                          |
+| Framework inside a language               | 0.5                   |                                                                                                                                              |
+| Language change                           | 1.0                   | Multiplied by the target language's velocity inverse: rewriting into Rust costs more.                                                        |
+| Split a service                           | 0.3 of the moved part | Adds a Service with its own owner and Features ([Services](#services)).                                                                      |
+| Move auth in-house from an Auth Provider  | Fixed 120             | The Auth Provider leaves the Design. App Servers hash passwords, and the per-user fee ends.                                                  |
+| Database engine change                    | 0.8                   | Plus a data copy that takes one calendar minute per GB the Databases hold. The Database keeps serving on the old engine until the copy ends. |
 
-Two migration kinds exist: a Stack change moves a Service's runtime and framework, and a split makes
-a new Service ([Services](#services)). Nothing moves auth in-house, and nothing changes a database
-engine.
+A Stack change moves a Service's runtime and framework, and a split makes a new Service
+([Services](#services)). Moving auth in-house is queued from the Auth Provider's card, and a
+Database engine change from the Database's engine picker; each is one backlog item, and only the
+engine change adds a copy after the Dev Hours.
 
 During a migration:
 
@@ -545,8 +549,8 @@ bad-deploy chance, times (1 + 2 × debt), times 0.7 with automated tests and 0.8
 bad deploy fails 8% of the requests for each item it shipped, up to the ceiling its deploy strategy
 sets: 40% without a Pipeline and on Rolling, 100% on Recreate, 10% on Blue-green and 5% on Canary.
 
-**Built:** four of the five DORA metrics appear on the Team panel once the player has a CI/CD
+four of the five DORA metrics appear on the Team panel once the player has a CI/CD
 Pipeline: deploy frequency, lead time for changes (the sim seconds between deploy slots), change
 failure rate (bad deploys over every deploy the Company has made), and failed deployment recovery
-time (the mean MTTR of every Bad deploy postmortem, a dash with none yet). Rework rate is not
-built: the build keeps no record of a change a later deploy had to redo.
+time (the mean MTTR of every Bad deploy postmortem, a dash with none yet). The panel shows no rework rate, because a deploy keeps no record of a change that a later deploy
+redid.

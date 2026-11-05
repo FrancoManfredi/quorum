@@ -660,6 +660,14 @@ export const MigrationState = MigrationStored.pipe(
 )
 export type MigrationState = typeof MigrationState.Type
 
+/** The data copy of a Database engine change: the Node, the engine it moves to, and when the copy ends. */
+export const EngineChange = Schema.Struct({
+  node: Schema.String,
+  to: DbEngine,
+  until: Schema.Finite,
+})
+export type EngineChange = typeof EngineChange.Type
+
 /** A codebase with its own deploys, owned by one team (08 "Services"). */
 export const Service = Schema.Struct({
   id: Schema.String,
@@ -698,7 +706,15 @@ export const Service = Schema.Struct({
 })
 export type Service = typeof Service.Type
 
-export const WorkKind = Schema.Literals(['feature', 'task', 'migration', 'spike', 'patch', 'split'])
+export const WorkKind = Schema.Literals([
+  'feature',
+  'task',
+  'migration',
+  'spike',
+  'patch',
+  'split',
+  'move',
+])
 export type WorkKind = typeof WorkKind.Type
 
 /** What a backlog item waits on when it cannot move (18 "Teammates"): the four the design names. */
@@ -787,7 +803,14 @@ export const monolith = (fixes: ReadonlyArray<typeof FixId.Type>): Service => ({
  * A save from before the Team plays as it did: its code already loads eagerly
  * once researched, and its poolers already ran in transaction mode.
  */
-const OLD_MONOLITH = monolith(['eager-loading', 'session-state'])
+const OLD_MONOLITH = monolith([
+  'eager-loading',
+  'session-state',
+  'idempotency-keys',
+  'off-loop',
+  'graceful-shutdown',
+  'health-check',
+])
 
 /** The DR drill (10 "Era 6"): when it began, how long recovery took, and the data it would lose. */
 export const Drill = Schema.Struct({
@@ -1032,6 +1055,12 @@ export const Game = Schema.Struct({
   teams: Schema.Array(Team).pipe(Schema.withDecodingDefaultKey(Effect.succeed([CORE_TEAM]))),
   /** Sim time a layoff's hit to morale ends. */
   moraleUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** Sim time a Load test's readout ends (08 "Engineering tasks"): every Node at twice the demand. */
+  loadTestUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** A Database engine change's data copy in progress (08 "Migrations"), or null. */
+  engineChange: Schema.NullOr(EngineChange).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(null)),
+  ),
   services: Schema.Array(Service).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed([OLD_MONOLITH])),
   ),

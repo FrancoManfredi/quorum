@@ -2914,6 +2914,36 @@ export const fr: Readonly<Record<string, string>> = {
   'Drop session state': 'Supprimer l’état de session',
   'Transaction pooling stops breaking queries':
     'Le pooling de transactions arrête les requêtes interrompues',
+  'A retried checkout never charges twice': 'Un paiement retenté ne débite jamais deux fois',
+  'Move CPU work off the loop': 'Sortir le travail CPU de la boucle',
+  'Node.js and Python async send CPU-heavy kinds to worker threads':
+    'Node.js et Python async envoient les types gourmands en CPU à des threads de travail',
+  'Add timeouts and retries': 'Ajouter des délais d’expiration et des nouvelles tentatives',
+  'Every Link out of an App Server or Worker gets a 5 s timeout and backoff retries':
+    'Chaque Lien sortant d’un Serveur d’application ou d’un Worker reçoit un délai de 5 s et des nouvelles tentatives avec backoff',
+  'Graceful shutdown': 'Arrêt propre',
+  'Deploys and scale-downs finish in-flight requests instead of failing them':
+    'Les déploiements et les réductions d’échelle terminent les requêtes en cours au lieu de les faire échouer',
+  'Health check endpoint': 'Point de terminaison de contrôle de santé',
+  'A Load Balancer can run deep health checks':
+    'Un répartiteur de charge peut lancer des contrôles de santé approfondis',
+  'Load test': 'Test de charge',
+  'Shows every Node at twice the demand, for one calendar day':
+    'Montre chaque Nœud à deux fois la demande, pendant un jour calendaire',
+  'Churn −10%. Digests send in a burst of jobs: twice the exports, 400 ms of CPU and 50 reads each':
+    'Attrition −10 %. Les résumés partent en une rafale de tâches : deux fois plus d’exportations, 400 ms de CPU et 50 lectures chacune',
+  'The send is a burst of jobs': 'L’envoi est une rafale de tâches',
+  'Move auth in-house': 'Internaliser l’authentification',
+  'Change the database engine': 'Changer de moteur de base de données',
+  'Move auth in-house · {0} DH': 'Internaliser l’authentification · {0} DH',
+  'Move login in-house: the App Servers hash passwords themselves, and the per-user fee ends.':
+    'Internalisez la connexion : les serveurs d’application hachent eux-mêmes les mots de passe, et la facturation par utilisateur cesse.',
+  'Load test: at {0}× demand this Node runs at {1}% utilization.':
+    'Test de charge : à {0}× la demande, ce Nœud tourne à {1} % d’utilisation.',
+  'Copying its data to {0}. It keeps serving on {1} until the copy ends.':
+    'Copie de ses données vers {0}. Il continue de servir sur {1} jusqu’à la fin de la copie.',
+  'Rewriting the code for {0}. It is on the backlog.':
+    'Réécriture du code pour {0}. Elle est dans le backlog.',
   Refactor: 'Refactoriser',
   'Tech debt −20 points': 'Dette technique −20 points',
   'Fix migration bugs': 'Corriger les bugs de migration',

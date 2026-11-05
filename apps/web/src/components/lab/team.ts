@@ -165,6 +165,7 @@ const KIND: Record<WorkKind, Readonly<{ label: string; fill: string }>> = {
   spike: { label: 'Spike', fill: 'bg-group-ops' },
   patch: { label: 'Security', fill: 'bg-danger' },
   split: { label: 'Split', fill: 'bg-group-ops' },
+  move: { label: 'Move', fill: 'bg-group-compute' },
 }
 
 const STRIPES = 'repeating-linear-gradient(-45deg, oklch(1 0 0 / 0.28) 0 6px, transparent 6px 12px)'
@@ -1320,6 +1321,7 @@ const codeOf = (kind: WorkKind, ref: string): string => {
   if (kind === 'feature') return `FEAT-${FEATURE_IDS.indexOf(ref as FeatureId) + 1}`
   if (kind === 'task') return `ENG-${TASK_IDS.indexOf(ref as TaskId) + 1}`
   if (kind === 'patch') return `SEC-${ref.slice(-4)}`
+  if (kind === 'move') return ref === 'auth' ? 'MOV-1' : 'MOV-2'
   if (kind === 'split') return `SVC-${ref.replace(/\D/g, '') || '2'}`
   return `MIG-${ref.replace(/\D/g, '') || '1'}`
 }

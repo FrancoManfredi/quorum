@@ -60,6 +60,8 @@ import {
   SPOT_WARNING,
   STANDBY_TYPES,
   TASKS,
+  AUTH_MOVE_DH,
+  LOAD_TEST_DEMAND,
   ZONES,
   type RequestKind,
   type RuntimeId,
@@ -494,6 +496,45 @@ const warnings = (
         ),
       )
   }
+  if (node.type === 'auth' && !game.sandbox)
+    list.push(
+      callout(
+        'Move login in-house: the App Servers hash passwords themselves, and the per-user fee ends.',
+        'warn',
+        button(
+          {
+            onClick: Message.AuthMoveQueued(),
+            isDisabled: game.backlog.some((item) => item.ref === 'auth'),
+            variant: 'outline',
+            size: 'sm',
+            className: 'self-start',
+          },
+          [`Move auth in-house · ${AUTH_MOVE_DH} DH`],
+          h,
+        ),
+        h,
+      ),
+    )
+  if (game.time < game.loadTestUntil && own.utilization > 0)
+    list.push(
+      callout(
+        `Load test: at ${LOAD_TEST_DEMAND}× demand this Node runs at ${Math.round(own.utilization * LOAD_TEST_DEMAND * 100)}% utilization.`,
+        own.utilization * LOAD_TEST_DEMAND > 1 ? 'danger' : 'warn',
+        null,
+        h,
+      ),
+    )
+  if (node.type === 'database' && game.engineChange?.node === node.id)
+    list.push(
+      callout(
+        game.engineChange.until > 0
+          ? `Copying its data to ${DB_ENGINES[game.engineChange.to].name}. It keeps serving on ${DB_ENGINES[node.dbEngine].name} until the copy ends.`
+          : `Rewriting the code for ${DB_ENGINES[game.engineChange.to].name}. It is on the backlog.`,
+        'warn',
+        null,
+        h,
+      ),
+    )
   if (node.type === 'queue' && game.incident?.kind === 'poison' && game.incident.nodeId === node.id)
     list.push(
       callout(

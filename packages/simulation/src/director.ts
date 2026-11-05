@@ -424,7 +424,7 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     'double-charge': () =>
       game.nodes.some((node) => node.type === 'psp' && busy(ledger, node)) &&
       retriesInto(game, 'psp').some((retry) => retry !== 'none') &&
-      !has(game, 'idempotency-keys')
+      !(has(game, 'idempotency-keys') && fixed(game, 'idempotency-keys'))
         ? 2.5
         : 0,
     // Reports that scan the primary; a Data Warehouse takes them.

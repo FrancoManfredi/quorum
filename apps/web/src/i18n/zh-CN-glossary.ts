@@ -712,8 +712,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'JEP 444: Virtual Threads': 'JEP 444：虚拟线程',
   'A periodic probe, such as an HTTP request to a status endpoint, that decides whether a server should receive traffic. A shallow check tests only the server; a deep check also tests what it depends on, such as its database.':
     '定期发送的探测，例如向状态端点发送 HTTP 请求，用来判断服务器是否应该接收流量。浅层检查只检查服务器自身；深层检查还会检查它所依赖的数据库等系统。',
-  'A Load Balancer probes its App Servers every 10 s and stops sending traffic to a dead one at the next check. The Health checks research adds 2 s and 30 s intervals and a deep check that also removes App Servers whose Database is down or overloaded. It also lets DNS drop a dead host once its TTL runs out; without it, DNS keeps sending that host its share.':
-    '负载均衡器每 10 秒探测一次应用服务器，在下一次检查时停止向宕机服务器发送流量。“健康检查”研究新增 2 秒和 30 秒的检查间隔，以及深层检查；后者还能剔除数据库宕机或过载的应用服务器。它也允许 DNS 在 TTL 到期后移除宕机主机；没有此研究，DNS 会继续把该主机应得的流量发送给它。',
+  'A Load Balancer probes its App Servers every 10 s and stops sending traffic to a dead one at the next check. The Health checks research adds 2 s and 30 s intervals and a deep check that also removes App Servers whose Database is down or overloaded. It also lets DNS drop a dead host once its TTL runs out; without it, DNS keeps sending that host its share. The checks work only once the Health check endpoint task is done.':
+    '负载均衡器每 10 秒探测一次应用服务器，在下一次检查时停止向宕机服务器发送流量。“健康检查”研究新增 2 秒和 30 秒的检查间隔，以及深层检查；后者还能剔除数据库宕机或过载的应用服务器。它也允许 DNS 在 TTL 到期后移除宕机主机；没有此研究，DNS 会继续把该主机应得的流量发送给它。只有完成“健康检查端点”任务后，这些检查才会生效。',
   "AWS Builders' Library: Implementing health checks": 'AWS 构建者文库：实现健康检查',
   'Kubernetes docs: Liveness, readiness, and startup probes':
     'Kubernetes 文档：存活、就绪与启动探针',
@@ -744,8 +744,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'RFC 9114: HTTP/3': 'RFC 9114：HTTP/3',
   'An operation is idempotent when doing it twice has the same effect as doing it once. Reads are idempotent by nature; a card charge or an order is not. An idempotency key is a unique ID the client sends with a request, so the server can recognize a retry and return the first result instead of acting again.':
     '一个操作执行两次与执行一次的效果相同时，就具有幂等性。读取天然幂等，银行卡扣款或下单则不是。幂等键是客户端随请求发送的唯一 ID，服务端可借此识别重试，并返回首次结果，而不是再次执行操作。',
-  "A checkout sends a charge to the Payment Provider. In the Double charge Incident the provider slows by about 1.5 s, the charge Link times out, and a retry charges a card that the first attempt already charged, so those checkouts fail as duplicate. Research Idempotency keys (it needs Checkout) so a retried charge never charges twice. Without it, set the charge Link's retries to none to end the Incident.":
-    '结账会向支付服务商发送扣款请求。在“重复扣款”故障中，服务商延迟增加约 1.5 秒，扣款链路超时，重试会对首次已经扣款的银行卡再次扣款，这些结账请求因此以重复扣款失败。研究“幂等键”（需要“结账”），就能保证重试扣款不再重复收费。没有这项研究时，将扣款链路的重试设为“无”即可结束故障。',
+  "A checkout sends a charge to the Payment Provider. In the Double charge Incident the provider slows by about 1.5 s, the charge Link times out, and a retry charges a card that the first attempt already charged, so those checkouts fail as duplicate. Research Idempotency keys (it needs Checkout) and do the Idempotency keys task so a retried charge never charges twice. Without it, set the charge Link's retries to none to end the Incident.":
+    '结账会向支付服务商发送扣款请求。在“重复扣款”故障中，服务商延迟增加约 1.5 秒，扣款链路超时，重试会对首次已经扣款的银行卡再次扣款，这些结账请求因此以重复扣款失败。研究“幂等键”（需要“结账”），再完成“幂等键”任务，就能保证重试扣款不再重复收费。没有这项研究时，将扣款链路的重试设为“无”即可结束故障。',
   "AWS Builders' Library: Making retries safe with idempotent APIs":
     'AWS 构建者文库：利用幂等 API 实现安全重试',
   'Stripe API: Idempotent requests': 'Stripe API：幂等请求',
@@ -977,8 +977,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'Google Cloud blog: SLIs, SLAs, and SLOs': 'Google Cloud 博客：SLI、SLA 与 SLO',
   "An audit framework from the AICPA. An independent auditor reports on a service organization's controls for security, availability, processing integrity, confidentiality, and privacy. Enterprise customers often require a SOC 2 report.":
     'AICPA 制定的审计框架。独立审计师就服务组织在安全性、可用性、处理完整性、保密性和隐私方面的控制措施出具报告。企业客户通常会要求提供 SOC 2 报告。',
-  'SOC 2 is an item on the Pre-IPO IPO checklist. You need the SOC 2 program Research, which needs TLS everywhere, Encryption at rest, and Dependency scanning, and you need the Security team Research. Without a Security team, an Audit finding Incident can reset a passed DR drill.':
-    'SOC 2 是上市前 IPO 清单中的一项。你需要“SOC 2 计划”研究，其前置条件为“全链路 TLS”“静态数据加密”和“依赖扫描”，还需要“安全团队”研究。没有安全团队时，“审计发现问题”故障可能重置已通过的灾难恢复演练。',
+  'SOC 2 is an item on the Pre-IPO IPO checklist. You need the SOC 2 program Research, which needs TLS everywhere, Encryption at rest, and Dependency scanning, and you need a Security team with an engineer on it. Without one, an Audit finding Incident can reset a passed DR drill.':
+    'SOC 2 是上市前 IPO 清单中的一项。你需要“SOC 2 计划”研究，其前置条件为“全链路 TLS”“静态数据加密”和“依赖扫描”，还需要一支至少有一名工程师的安全团队。没有它时，“审计发现问题”故障可能重置已通过的灾难恢复演练。',
   'AICPA: System and Organization Controls': 'AICPA：系统与组织控制',
   'Spare cloud capacity sold at a large discount, up to 90% off the on-demand price, that the provider can take back whenever it needs the capacity. AWS gives a two-minute interruption notice. Spot suits stateless, fault-tolerant work such as batch jobs and servers behind a load balancer with spare capacity, not a single database.':
     '以大幅折扣出售的闲置云容量，最低可比按需价格便宜 90%，但服务商需要时可以随时收回。AWS 会提前两分钟通知中断。竞价实例适合无状态、可容错的工作，例如批处理任务，或放在负载均衡器后且有备用容量的服务器，不适合单个数据库。',
