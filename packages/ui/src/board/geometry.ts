@@ -51,6 +51,8 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 4, inRow: 0, outRow: 3, footer: true }
     case 'worker':
       return { rows: 4, inRow: 0, outRow: 3, footer: true }
+    case 'fn':
+      return { rows: 5, inRow: 0, outRow: 4, footer: true }
     case 'cdn':
       return { rows: 3, inRow: 0, outRow: 2, footer: false }
     case 'waf':
@@ -71,6 +73,8 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'gpu':
       return { rows: 4, inRow: 0, outRow: null, footer: true }
+    case 'edge':
+      return { rows: 4, inRow: 0, outRow: 3, footer: true }
     case 'llm':
       return { rows: 3, inRow: 0, outRow: null, footer: true }
     case 'msgp':

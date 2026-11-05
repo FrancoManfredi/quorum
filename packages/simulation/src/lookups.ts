@@ -50,6 +50,12 @@ import {
   SPREAD_REGIONS,
   STORAGE_CLASSES,
   STORAGE_IOPS,
+  COLD_START_MS,
+  NATIVE_COLD_MS,
+  EDGE_REQUEST_PRICE,
+  SERVERLESS_GB_SECOND,
+  SERVERLESS_MEMORY_GB,
+  SERVERLESS_REQUEST_PRICE,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
 import type { Game, GameNode, Pricing, StorageClass } from './state.ts'
@@ -247,6 +253,21 @@ export const restarted = (node: GameNode, cause: DownCause = 'restart', warming 
 
 export const languageOf = (node: GameNode) => RUNTIMES[node.runtime].language
 
+/**
+ * Milliseconds a cold start costs this Serverless Function (05 "Cold starts"): its language's
+ * figure, or 100 ms when the Stack is an ahead-of-time binary (the design's GraalVM native image).
+ */
+export const coldStartMs = (node: GameNode): number => {
+  const runtime = RUNTIMES[node.runtime]
+  return runtime.id === 'graal' || runtime.id === 'native_aot'
+    ? NATIVE_COLD_MS
+    : (COLD_START_MS[runtime.language] ?? NATIVE_COLD_MS)
+}
+
+/** A live Edge Function holds the edge key-value cache a CDN answers `read` from (05 "CDN"). */
+export const hasEdge = (game: Game): boolean =>
+  game.nodes.some((node) => node.type === 'edge' && !isDown(node))
+
 /* ---------- money ---------- */
 
 /** base × factor^steps by repeated multiplication: `**` is not exact across engines. */
@@ -401,6 +422,26 @@ export const burnOf = (game: Game, node: GameNode): number => {
     return def.burn * flatScale(node) * index * spreadCount(game)
   return def.burn * flatScale(node) * index * (node.standby ? 2 : 1)
 }
+
+/**
+ * Dollars per second a Serverless Function's uses bill (09 "The cloud bill"): each request, plus
+ * the GB-seconds its executions ran, at the cost index. `meanMs` is how long one request lasts.
+ */
+export const serverlessBurnOf = (
+  game: Game,
+  node: GameNode,
+  done: number,
+  meanMs: number,
+): number =>
+  node.type !== 'fn'
+    ? 0
+    : done *
+      (SERVERLESS_REQUEST_PRICE + SERVERLESS_GB_SECOND * SERVERLESS_MEMORY_GB * (meanMs / 1_000)) *
+      eraOf(game).costIndex
+
+/** Dollars per second an Edge Function's requests bill (09 "The cloud bill"), at the cost index. */
+export const edgeBurnOf = (game: Game, node: GameNode, done: number): number =>
+  node.type !== 'edge' ? 0 : done * EDGE_REQUEST_PRICE * eraOf(game).costIndex
 
 /** Burn split the way the Cost panel reads it (09 "The cloud bill"), in dollars per second. */
 export type BurnShares = Readonly<{

@@ -20,7 +20,11 @@ const LINES: ReadonlyArray<Line> = [
   { key: 'storage', label: 'Storage', note: 'GB stored, priced per GB per second' },
   { key: 'egress', label: 'Egress', note: 'Bytes out from the origin and the CDN' },
   { key: 'thirdParty', label: 'Third parties', note: 'Payment fees, scans, tokens, and messages' },
-  { key: 'requests', label: 'Requests', note: 'API Gateway requests, priced per request' },
+  {
+    key: 'requests',
+    label: 'Requests',
+    note: 'Gateway, Serverless and Edge Function requests, priced per use',
+  },
   { key: 'observability', label: 'Observability', note: 'Analytics sampling and retention' },
   { key: 'salaries', label: 'Salaries', note: 'Engineers, by language and policy' },
 ]
@@ -135,7 +139,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
         [
-          'The bill follows the Era’s cost index, so it rises with the Company. An API Gateway is billed per request; the Requests line is what it serves.',
+          'The bill follows the Era’s cost index, so it rises with the Company. A Gateway bills each request, and so do a Serverless Function’s requests and GB-seconds and an Edge Function’s requests: the Requests line is what they serve.',
         ],
       ),
     ],

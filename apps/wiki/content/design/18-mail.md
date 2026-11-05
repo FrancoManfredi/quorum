@@ -68,16 +68,20 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
   and no answer yet; its count is the open threads. FYI holds the rest and shows its unread count. Spam shows its own
   count so the player knows something is there.
 - **List:** newest first, grouped by thread ([Threads](#threads)). Each row shows the sender's colour
-  chip, the sender, the time, and the subject. Unread Mail has a dot and a bold subject.
+  chip, the sender's kind label, the sender, the time, and the subject. Unread Mail has a dot and a
+  bold subject, and Mail that wants the player carries the [priority bar](#pacing-and-volume) on its
+  left edge: red while a clock runs, amber while a decision waits.
 - **Reader:** the sender's kind as a label above the subject, the subject, the sender's name and
   address, the body, the sign-off, and the action buttons. The time appears only on a thread with
   more than one entry: a single letter shows no timestamp.
 - **Labels:** each Mail has one label from its sender kind (Cloud, Team, Investor, Security, and so
   on). Labels are the filter chips above the list: `All`, then every kind the open folder holds, with
   its count. Choosing a chip shows that kind alone and selects the newest of them; choosing `All`
-  brings the folder back. Changing folder clears the chip, so a folder is never quietly empty.
-- Not built yet: the sender-kind label on a row of the list. The folder tabs and the label chips are
-  the filters, and the kind label itself appears in the reader alone.
+  brings the folder back. Changing folder clears the chip, so a folder is never quietly empty. A row
+  carries the same label as the chip, so a filtered list reads the same in both places.
+- **Hover:** a button names where it really goes. A game button names the control it opens ("Team: the
+  patch goes to the top of the backlog"); a trap's names the site it leaves for (see
+  [A button is a commitment](#spam-and-phishing)).
 - Opening the Inbox always resets it to Needs action and selects the newest Mail in that folder, not
   the newest unread Mail. On a phone the two panes stack.
 - Time is the Company clock.
@@ -281,9 +285,11 @@ and one gift.
 
 Not built yet: three of the effects in that table. **Fake CVE alert**: a backdoor needs a lasting
 compromise to install itself into, and the build has none, so its button still raises the toast "That
-was phishing. Check the sender address first." **Recruiter**: the hint needs the unhappiness that
+was phishing. Check the sender address first." Its id is not in the Glossary, which is the tell that
+catches it before the click. **Recruiter**: the hint needs the unhappiness that
 [Burnout and quitting](#teammates) would track, and that thread is not built. **Vendor pitch**: no
-research discount exists.
+research discount exists, and the discount would have to live in the Simulation, which prices every
+Study.
 
 What is built: a phishing button starts the Credential leak incident and takes 10% of the Users (a
 proposed share), the pager writes about it, and the trap's thread keeps the line that says the
@@ -291,14 +297,16 @@ address was not the real one. A fake invoice and a domain notice charge the amou
 $4,812 (the Azzure invoice's $4,812.44, rounded) and $389, both refused when the Cash is not there.
 Reporting a phishing Mail as spam takes its button away, so the risk goes with it.
 
-- **How to tell.** The sender's address is on a lookalike domain (`billing@awol-cloud.support`
-  against `no-reply@awol.cloud`). Not built yet: the second tell, where a real advisory names a CVE
-  id that the player can look up in the Glossary, which lists the real ones the Design is exposed to,
-  and a fake one names an id the Glossary does not know. CVE ids are not in the Glossary, so the
-  address is the only tell.
+- **How to tell.** Two tells. The first is the sender's address, which is on a lookalike domain
+  (`billing@awol-cloud.support` against `no-reply@awol.cloud`). The second is the CVE id: a real
+  advisory names one the Glossary lists (its advisory block carries every CVE the Simulation can
+  disclose, with the score and the Components it affects), and a fake one names an id the Glossary
+  does not know, so there is nothing to open. The reader marks a known id with "In the Glossary" and
+  leaves an unknown one bare.
 - **A button is a commitment.** A trap's action button looks normal, and clicking it is the player's
-  act, not the game's. Not built yet: the hover that shows the real destination; a trap's button
-  carries the same number key as a real one and names nothing on hover.
+  act, not the game's. Every button names where it really goes when the player hovers: a game button
+  names the control it opens, and a trap's names the off-site address it leaves for, on a cheap TLD.
+  The two carry the same number key, and the hover is what separates them before the click.
 - **Report spam.** Marking a Mail as spam teaches the filter and, for phishing, removes the risk.
   Reporting a real Mail as spam is a mistake the player can undo from Spam. Built for the risk: a
   phishing Mail reported as spam loses its trap button for good. Not built yet: the filter itself,
@@ -352,7 +360,10 @@ The Simulation emits **facts**: typed, deterministic records of things that happ
 
 - **Quiet at the start.** The Garage Era sends at most one Mail a minute, mostly from the Mentor.
 - **Priority.** Mail that needs a decision, such as an offer or a CVE with a clock, sits above the
-  rest. Not built yet: the coloured left bar that marks it.
+  rest. Built: a coloured bar on the row's left edge marks it, in the design's tones. Red (`$danger`)
+  while a clock is running, which is a CVE advisory; amber (`$warn`) while a decision waits; nothing
+  on Mail that only informs, on Mail already answered or resolved, and on Spam, because noise is
+  never something the Design needs.
 - **Digest.** Built: when more than eight threads in a folder are unread, the oldest low-priority
   ones (FYI, so nothing that waits on a decision) fold into one "Digest" row where the newest of them
   was. Its reader lists them, and each line opens the Mail it stands for.
@@ -466,7 +477,11 @@ Teammates draw a name from a pool and keep it for life.
   Inbox picks a letter by the Company's seed, the Thread, and the time, so a Company reads the same
   on every device and a Thread rarely repeats itself. Each teammate has their own footer.
 - **Folders and labels:** Needs action, FYI, Spam, Trash, with "Report spam" and "Not spam", and the
-  sender-kind filter chips above the list.
+  sender-kind filter chips above the list. Each row carries its sender kind as a label, so the list
+  says what the chip filters by, and Mail that wants the player wears the priority bar.
+- **Hover destinations and the second tell:** every button names where it really goes, and a trap's
+  names the off-site address it leaves for. The Glossary lists the CVEs the Simulation can disclose,
+  so a real advisory's id opens an entry and a fake one has nothing to open.
 - **Saving the Inbox:** the Company save keeps the Mail, the mutes, and the last event tick the world
   wrote for. A save from before the Inbox was saved opens with an empty Inbox rather than failing.
 - **The Digest:** more than eight unread threads in a folder fold their oldest low-priority ones into
@@ -493,15 +508,17 @@ Teammates draw a name from a pool and keep it for life.
   and otherwise a Feature that a big customer asks for.
 - **CVEs:** every 420 sim seconds the Simulation discloses one CVE that affects a Component the
   Design runs, as a patch ticket. Security writes the advisory; "Rush patch" sends the rush Action,
-  and the Node list is behind Dependency scanning ("Check whether you run this" without it).
+  and the Node list is behind Dependency scanning ("Check whether you run this" without it). Every
+  CVE the Simulation can disclose is a Glossary entry, with its score and what it affects, so the
+  advisory's id is one the player can look up.
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
   The Company also has a 0.5× speed.
 
 Not built yet: a vendor's **Switch provider** (no Component has a second provider, so a vendor pitch
 carries no button); the **spam filter** as a research item and a setting (the design says there is
 none to research, so nothing gates it); the **fake CVE trap's backdoor** and the **recruiter's hint**
-(neither has a mechanic to land in); the sender-kind label on a row of the list; and the coloured
-priority bar. Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
+(neither has a mechanic to land in); and a vendor's research discount, which the Simulation would have
+to price. Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
 reader's keys are built: `1` to `9` press a button, `E` deletes or restores, `J` and `K` move, `S`
 reports spam. The funding offer panel still exists beside the investor Mail.
 

@@ -9,6 +9,7 @@ import {
   type GlossaryEntry,
 } from '@quorum/simulation/catalog'
 import { Message } from '@/game/message.ts'
+import { CVE_TERMS } from '@/game/advisories.ts'
 import type { Model } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
@@ -34,7 +35,13 @@ const CATEGORY_NAMES: Record<GlossaryCategory, string> = {
   business: 'Business',
 }
 
-const BY_ID = new Map(GLOSSARY.map((entry) => [entry.id, entry]))
+/**
+ * Every term the panel lists: the engineering glossary, then the CVEs the Simulation can disclose
+ * (18 "How to tell"). A real advisory names one of these ids; a fake advisory's id is not here.
+ */
+const TERMS: ReadonlyArray<GlossaryEntry> = [...GLOSSARY, ...CVE_TERMS]
+
+const BY_ID = new Map(TERMS.map((entry) => [entry.id, entry]))
 
 /** Accept unaccented keyboard input as well as the spelling shown in the glossary. */
 const searchable = (text: string): string =>
@@ -238,15 +245,15 @@ const detail = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuild
   )
 
 export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const shown = GLOSSARY.filter((entry) =>
+  const shown = TERMS.filter((entry) =>
     matches(entry, model.glossary.query, model.glossary.category, model.prefs.locale),
   )
   const open =
     (model.glossary.focus !== null ? BY_ID.get(model.glossary.focus) : undefined) ??
     shown[0] ??
-    GLOSSARY[0]
+    TERMS[0]
   const met = (id: string) => model.founder.glossary.includes(id)
-  const metCount = GLOSSARY.filter((entry) => met(entry.id)).length
+  const metCount = TERMS.filter((entry) => met(entry.id)).length
   return shell(
     'Glossary',
     [
@@ -258,9 +265,9 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               'flex items-center gap-1 text-[calc(12px*var(--type-scale))] text-muted-foreground compact:hidden',
             ),
           ),
-          h.AriaLabel(`${metCount} of ${GLOSSARY.length} terms met`),
+          h.AriaLabel(`${metCount} of ${TERMS.length} terms met`),
         ],
-        [icon(h, Check, 'size-3.5'), `${metCount} / ${GLOSSARY.length}`],
+        [icon(h, Check, 'size-3.5'), `${metCount} / ${TERMS.length}`],
       ),
       h.label(
         [h.Class(cn(WELL, 'flex h-8 w-56 items-center gap-2 px-2.5 compact:w-40'))],

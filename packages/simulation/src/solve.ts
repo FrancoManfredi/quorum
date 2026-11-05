@@ -86,6 +86,7 @@ import type {
 import {
   burnOf,
   burnSharesOf,
+  edgeBurnOf,
   eraOf,
   grown,
   has,
@@ -93,6 +94,7 @@ import {
   isDown,
   languageOf,
   sampleIndex,
+  serverlessBurnOf,
   zoneMs,
 } from './lookups.ts'
 import {
@@ -947,6 +949,27 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
   return { outcome, downstream, held, failureOn }
 }
 
+/**
+ * Mean milliseconds one request spends inside a Node: its own service, weighted by the kinds that
+ * reach it, and the cold starts that land on a share of them. A Serverless Function bills it.
+ */
+const meanServiceOf = (pass: Pass, node: GameNode): number => {
+  const slot = slotOf(pass, node)
+  const arriving = pass.arriving[slot] ?? {}
+  const model = pass.models[slot]
+  let spent = 0
+  let rate = 0
+  for (const kind of Object.keys(arriving) as Array<Kind>) {
+    const service = model?.service[kind]
+    const each = arriving[kind] ?? 0
+    if (!service || each <= 0) continue
+    spent += each * (service.fixed + service.variable)
+    rate += each
+  }
+  const cold = model ? model.tailP * model.tailMs : 0
+  return rate > 0 ? spent / rate + cold : cold
+}
+
 /* ---------- the solve ---------- */
 
 const statusOf = (
@@ -1543,14 +1566,22 @@ const ledgerOf = (
   }
   const thirdParty = usage > 0 ? fees + usage * eraOf(game).costIndex : fees
 
-  // An API Gateway bills each request it serves (09 "The cloud bill": Requests), × cost index.
+  // An API Gateway, a Serverless Function and an Edge Function bill each request on the Requests
+  // line (09 "The cloud bill"), × cost index. A function's uses also bill the GB-seconds its
+  // executions ran, so a slow call to a data tier shows up on it.
   let requests = 0
+  const index = eraOf(game).costIndex
   for (const node of game.nodes) {
-    if (node.type !== 'gw' || isDown(node)) continue
+    if (isDown(node)) continue
     const done = (nodes[node.id]?.inbound ?? 0) - (nodes[node.id]?.dropped ?? 0)
     if (done <= 0) continue
-    const arriving = pass.arriving[slotOf(pass, node)] ?? {}
-    requests += done * gatewayShare(node, arriving) * GATEWAY_PRICE * eraOf(game).costIndex
+    if (node.type === 'gw') {
+      const arriving = pass.arriving[slotOf(pass, node)] ?? {}
+      requests += done * gatewayShare(node, arriving) * GATEWAY_PRICE * index
+    }
+    if (node.type === 'fn')
+      requests += serverlessBurnOf(game, node, done, meanServiceOf(pass, node))
+    if (node.type === 'edge') requests += edgeBurnOf(game, node, done)
   }
 
   const subscriptions = subscriptionsOf(game)

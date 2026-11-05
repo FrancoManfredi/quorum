@@ -52,16 +52,16 @@ This keeps the Garage Era active and then removes the click before it becomes a 
 income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
 beside them. The table is the bill the build charges:
 
-| Line          | Formula                                                                                                                      |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                            |
-| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                      |
-| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage)) |
-| Egress        | GB out × egress price ([Egress](#egress))                                                                                    |
-| Requests      | API Gateway requests × $0.002 × cost index. Not built yet: Serverless Functions, SQS and Object Storage                      |
-| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                              |
-| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                              |
-| Salaries      | Σ engineers × salary × language factor                                                                                       |
+| Line          | Formula                                                                                                                                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                                                                                                               |
+| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                                                                                                         |
+| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage))                                                                                    |
+| Egress        | GB out × egress price ([Egress](#egress))                                                                                                                                                                       |
+| Requests      | API Gateway requests × $0.002 × cost index; Serverless Function requests × ($0.00024 + $0.02 per GB-second) × cost index; Edge Function requests × $0.00036 × cost index. Not built yet: SQS and Object Storage |
+| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                                                                                                                 |
+| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                                                                                                                 |
+| Salaries      | Σ engineers × salary × language factor                                                                                                                                                                          |
 
 Real teams are often surprised by the egress, observability, and third-party lines. The game
 surfaces them on purpose.
@@ -74,6 +74,9 @@ surfaces them on purpose.
 | vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                                                |
 | RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory)                             |
 | Object storage, standard          | $0.000032/s per GB                                                                                                                    |
+| Serverless Function request       | $0.00024 per request: Lambda's $0.20 per million × 1,200, so the cost curve crosses where 05 puts it                                  |
+| Serverless Function duration      | $0.02 per GB-second, at 1 GB an execution: Lambda's $0.0000166667 × 1,200, charged on the wall time each execution takes              |
+| Edge Function request             | $0.00036 per request: Workers' $0.30 per million × 1,200                                                                              |
 | Object storage, infrequent access | 0.5× the standard price, and $0.01 per GB read back                                                                                   |
 | Object storage, archive           | 0.1× the standard price. A read waits for a restore, and fails as `timeout` until then                                                |
 | Database volume, provisioned IOPS | 1.5× the Database's box. Proposed: the design says "higher cost" and gives no rate                                                    |
@@ -91,10 +94,10 @@ company. [Balancing](/design/16-balancing#cost-index) holds the index and the sa
 
 Each price follows one of two rules, so a player who knows the real price can check it:
 
-| Rule        | Prices                                                                            | Mapping                                                             |
-| ----------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Time-billed | Instances, GPUs, managed Nodes, storage, the Kubernetes control plane, LLM tokens | $1 per sim second in the game is $1 per real hour. A vCPU is $0.05. |
-| Per use     | Egress, the Payment Provider, push and email messages, Data Warehouse scans       | The real list price per GB, per checkout, per message, or per scan. |
+| Rule        | Prices                                                                                                     | Mapping                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Time-billed | Instances, GPUs, managed Nodes, storage, the Kubernetes control plane, LLM tokens                          | $1 per sim second in the game is $1 per real hour. A vCPU is $0.05.              |
+| Per use     | Egress, the Payment Provider, push and email messages, Data Warehouse scans, Gateway and function requests | The real list price per GB, per checkout, per message, per scan, or per request. |
 
 LLM tokens use the time-billed rule because they compete with GPU Nodes for the same prompts. On
 the same scale, a busy H100 is cheaper per prompt than the LLM API only while it is more than half
@@ -109,21 +112,28 @@ to compute, than in a real bill. This is on purpose. At the time-billed rate, ev
 pay half its value in egress. Request values, the cost index, and the salary index are balance
 controls and do not follow a real price.
 
+A function's per-use prices are the one exception: Lambda's and Workers' list prices are multiplied
+by 1,200, which puts the crossover at about 30% of an equal VM's steady load, where
+[Components](/design/05-components#serverless-function) puts it. Proposed: the design gives the cost
+curve and no multiplier, and at the straight list prices a function would never cost as much as the
+VM it replaces.
+
 ## Pricing models
 
 Every Node bills at one rate until the Series A Era. From Series A, each compute Node — an App
 Server or a Worker — has a pricing model. The player picks it on the Node's card, and the box price
 in the cloud bill is multiplied by it.
 
-**Built:** On-demand, Reserved and Spot, on sized compute Nodes. **Not built yet:** Serverless, which
-needs the Serverless Function Component and a per-use price.
+**Built:** On-demand, Reserved and Spot, on sized compute Nodes; and Serverless, which is not a model on
+a box but the Serverless Function's own bill: each request and each GB-second on the Requests line, with
+nothing standing while it idles ([Components](/design/05-components#serverless-function)).
 
 | Model      | Price   | Condition                                                                                                                                                                                                                                                                                         |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | On-demand  | 1.0×    | None. Remove at any time.                                                                                                                                                                                                                                                                         |
 | Reserved   | 0.6×    | A commitment of one calendar week. Removing the Node does not stop the Burn until the term ends: selling it early charges the Burn it still owes, and it cannot change model before then.                                                                                                         |
 | Spot       | 0.3×    | The provider can reclaim the Node at any time. The player gets a 10-second warning (stylized; the real AWS notice is two minutes). A reclaimed Node goes down for 20 sim seconds. Good for Workers and stateless servers behind a load balancer with spare capacity. Fatal for a single database. |
-| Serverless | Per use | Only for Serverless Functions and managed services. **Not built yet.**                                                                                                                                                                                                                            |
+| Serverless | Per use | Only for Serverless Functions and managed services. A function bills on the Requests line, never as a box.                                                                                                                                                                                        |
 
 The real lesson: the cheapest fleet mixes all three. Reserved instances cover the base load, on-demand
 instances cover the daily peak, and spot instances run batch work.

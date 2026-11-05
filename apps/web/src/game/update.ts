@@ -254,6 +254,7 @@ import {
   type Menu,
   boardChallenge,
   boardSandbox,
+  ANNOTATION_GROUPS,
 } from './model.ts'
 import {
   EMPTY_SAVE_INDEX,
@@ -350,7 +351,17 @@ export const freshBoard = (game: Game): Board => ({
   nodeHistory: {},
   nodeSample: null,
   inbox: EMPTY_INBOX,
-  dashboard: { history: EMPTY_HISTORY, range: 360, hover: null, postmortem: null },
+  dashboard: {
+    history: EMPTY_HISTORY,
+    range: 360,
+    hover: null,
+    postmortem: null,
+    groups: [...ANNOTATION_GROUPS],
+    compare: true,
+    table: false,
+    kind: null,
+    region: null,
+  },
   lastGoal: '',
   lastBottleneck: '',
 })

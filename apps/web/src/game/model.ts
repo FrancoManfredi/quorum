@@ -3,7 +3,7 @@ import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Locale } from '../i18n/index.ts'
 import { Effect, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
-import { BUILD_GROUPS, type BuildGroup } from '@quorum/simulation/catalog'
+import { BUILD_GROUPS, REQUEST_KINDS, type BuildGroup } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { solveFlow } from '@quorum/simulation/solve'
 import { HistoryRow, exitOffers } from '@quorum/simulation/exit'
@@ -258,7 +258,12 @@ export const Undo = Schema.Struct({
 })
 export type Undo = typeof Undo.Type
 
-/** The Dashboard panel: its long history, time range, and crosshair. */
+/** The Dashboard's annotation groups: the kinds of mark a Chart draws (12 "Annotations"). */
+export const ANNOTATION_GROUPS = ['design', 'deploys', 'incidents', 'company', 'research'] as const
+export const AnnotationGroup = Schema.Literals(ANNOTATION_GROUPS)
+export type AnnotationGroup = typeof AnnotationGroup.Type
+
+/** The Dashboard panel: its long history, time range, crosshair, and the controls above the rows. */
 export const Dashboard = Schema.Struct({
   /** The 15-minute and 1-hour blocks, beyond the Game's 600 Samples. */
   history: History,
@@ -268,6 +273,16 @@ export const Dashboard = Schema.Struct({
   hover: Schema.NullOr(Schema.Finite),
   /** The Postmortem the Incidents row shows, or null for the list alone. */
   postmortem: Schema.NullOr(Schema.Finite),
+  /** The annotation groups the Charts draw, so the player can hide the ones in the way. */
+  groups: Schema.Array(AnnotationGroup),
+  /** Draw yesterday's line under the current series (12 "Controls"). */
+  compare: Schema.Boolean,
+  /** Show each time series' values as a table instead of its plot (12 "Controls"). */
+  table: Schema.Boolean,
+  /** The request kind the per-kind panels narrow to, or null for every kind. */
+  kind: Schema.NullOr(Schema.Literals(REQUEST_KINDS)),
+  /** The region the per-region panels narrow to, or null for every region. */
+  region: Schema.NullOr(Region),
 })
 export type Dashboard = typeof Dashboard.Type
 

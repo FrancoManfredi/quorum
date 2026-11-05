@@ -14,7 +14,9 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
 
 - **Place.** Placing a Node costs Cash. Each further copy of the same Component costs 25% more than
   the previous copy ([Balancing](/design/16-balancing#prices)).
-- **Burn.** Each Node burns Cash every second while it exists, even while it is down.
+- **Burn.** Each Node burns Cash every second while it exists, even while it is down. A Serverless
+  Function and an Edge Function are the exception: they have no box, so they bill nothing while they
+  idle and each use on the Requests line ([Economy](/design/09-economy#the-cloud-bill)).
 - **Resize.** Most Components have sizes. A size step doubles resources and doubles Burn. A resize
   restarts the Node, so it is briefly down unless a redundant Node carries the load. Real cloud
   prices scale linearly with size, so vertical scaling is not a discount. It saves a network hop, a
@@ -41,10 +43,10 @@ Compute, Data, and Ops — and this document keeps the seven as a reading order.
 | Edge          | [API Gateway](#api-gateway)                                           | `gw`   | API gateway              | Series A |
 | Compute       | [App Server](#app-server)                                             | `app`  | Starter                  | Garage   |
 | Compute       | [Worker](#worker)                                                     | `wrk`  | Background jobs          | Seed     |
-| Compute       | [Serverless Function](#serverless-function) — Not built yet           | `fn`   | Serverless               | Series A |
+| Compute       | [Serverless Function](#serverless-function)                           | `fn`   | Serverless               | Series A |
 | Compute       | [Kubernetes Cluster](#kubernetes-cluster)                             | `k8s`  | Container orchestration  | Series A |
 | Compute       | [GPU Node](#gpu-node)                                                 | `gpu`  | Model serving            | Series B |
-| Compute       | [Edge Function](#edge-function) — Not built yet                       | `edge` | Edge compute             | Series C |
+| Compute       | [Edge Function](#edge-function)                                       | `edge` | Edge compute             | Series C |
 | Data          | [Database](/design/07-data-tier#relational-database)                  | `sql`  | Starter                  | Garage   |
 | Data          | [Connection Pooler](/design/07-data-tier#connection-pooler)           | `pool` | Connection pooling       | Pre-seed |
 | Data          | [Cache](/design/07-data-tier#cache)                                   | `kv`   | Caching                  | Pre-seed |
@@ -278,12 +280,16 @@ how long the queue grows.
 
 ### Serverless Function
 
-Not built yet: the Serverless Function; there is no `fn` Component in the catalog.
-
 Real products: AWS Lambda, Google Cloud Functions, Azure Functions.
 
 Pay per request and per GB-second. Scales from zero to 1,000 concurrent executions with no
 placement cost.
+
+**Built:** the Component, its per-use bill on the Requests line, the concurrency cap (per Node: two
+functions in one region have 1,000 each), the cold start after idle, and the connections each
+execution opens. The price is Lambda's list price × 1,200, so the cost curve below crosses where the
+design puts it ([Economy](/design/09-economy#the-cloud-bill)). **Not built yet:** the 15-minute
+duration limit, which no request kind in the game reaches.
 
 | Tradeoff        | Detail                                                                                                                                                      |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -323,8 +329,6 @@ Serves `infer`. Capacity is measured in tokens per second.
 
 ### Edge Function
 
-Not built yet: the Edge Function; there is no `edge` Component in the catalog.
-
 Real products: Cloudflare Workers, Fastly Compute.
 
 Runs small handlers in the CDN, near the user. Starts in under 5 ms because it uses V8 isolates
@@ -333,6 +337,13 @@ instead of containers.
 - Answers 30% of `read` from an edge key-value cache, and personalizes cached pages.
 - Supports JavaScript, TypeScript, and WebAssembly only. Rust and Go can compile to WebAssembly.
 - Has a CPU time limit per request. CPU-heavy kinds fail as `timeout`.
+
+**Built:** the Component, its 5 ms hop in every region, its 10 ms CPU ceiling per request (past it the
+request fails as `timeout`), the 128 MB isolate ceiling, the 30% of `read` it adds to a CDN's cache,
+its per-request bill on the Requests line, and the Stack gate: only JavaScript and TypeScript, or
+Rust and Go compiled to WebAssembly, run there. **Not built yet:** "personalizes cached pages" as a
+separate effect, and the 128 MB isolate ceiling as a failure: no response the game sends is close to
+it.
 
 ## Data
 

@@ -68,16 +68,24 @@ import {
   SEARCH_REFRESH,
   LIFECYCLE_DAYS,
   RESTORE_DRILL_DH,
+  EDGE_CPU_MS,
+  EDGE_MEMORY_MB,
+  SERVERLESS_CONCURRENCY,
+  SERVERLESS_GB_SECOND,
+  SERVERLESS_MEMORY_GB,
+  SERVERLESS_REQUEST_PRICE,
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
-import { distributedErlang, hubConnections } from '@quorum/simulation/rules'
+import { distributedErlang, edgeRuns, hubConnections } from '@quorum/simulation/rules'
 import { deploysPerDay, platformTax, quartersBehind } from '@quorum/simulation/team'
 import type { Limit } from '@quorum/simulation/capacity'
 import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
 import {
   burnOf,
+  coldStartMs,
   drawerSize,
+  edgeBurnOf,
   eraOf,
   frameworkReady,
   has,
@@ -89,6 +97,7 @@ import {
   replacePrice,
   resizePrice,
   runtimeReady,
+  serverlessBurnOf,
   sizeLabel as sizeLabelOf,
   vcpuOf,
   zoned,
@@ -630,6 +639,43 @@ const stats = (
         row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
       ]
     }
+    case 'fn': {
+      const slots = own.resources.slots
+      const used = slots ? Math.min(slots.used, slots.total) : 0
+      return [
+        row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
+        row(
+          'Executions',
+          slots ? `${used.toFixed(1)} / ${compact(Math.round(slots.total))}` : '—',
+          slots && used >= slots.total * 0.9 ? 'danger' : 'plain',
+          h,
+        ),
+        row('Cold start', ms(coldStartMs(node)), 'plain', h),
+        row(
+          'Uses',
+          `${money(serverlessBurnOf(game, node, own.inbound - own.dropped, own.latency))}/s`,
+          'plain',
+          h,
+        ),
+        row('Standing Burn', `${money(burnOf(game, node))}/s`, 'ok', h),
+      ]
+    }
+    case 'edge': {
+      const refused = !edgeRuns(node)
+      return [
+        row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
+        row('Latency', ms(own.latency), 'plain', h),
+        row('CPU ceiling', `${EDGE_CPU_MS} ms`, 'plain', h),
+        row(
+          'Stack',
+          refused ? `${RUNTIMES[node.runtime].name} cannot run here` : RUNTIMES[node.runtime].name,
+          refused ? 'danger' : 'plain',
+          h,
+        ),
+        row('Uses', `${money(edgeBurnOf(game, node, own.inbound - own.dropped))}/s`, 'plain', h),
+        row('Standing Burn', `${money(burnOf(game, node))}/s`, 'ok', h),
+      ]
+    }
     case 'ci': {
       const strategy = DEPLOY_STRATEGIES[node.strategy]
       return [
@@ -714,7 +760,7 @@ const gaugesOf = (node: GameNode, own: NodeLedger) => {
     }
   if (slots)
     gauges.workers = {
-      label: 'Workers busy',
+      label: node.type === 'fn' ? 'Executions' : 'Workers busy',
       used: slots.used,
       total: slots.total,
       text: `${slots.used.toFixed(1)} / ${slots.total}`,
@@ -2171,6 +2217,99 @@ const gateway = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
+/** A Serverless Function's executions, its cold start, and the bill it runs up (05). */
+const serverless = (
+  game: Game,
+  node: GameNode,
+  ledger: Ledger,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => {
+  const own = ledger.nodes[node.id]
+  const slots = own?.resources.slots
+  const used = slots ? Math.min(slots.used, slots.total) : 0
+  const done = own ? own.inbound - own.dropped : 0
+  return [
+    section(
+      'Executions',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `One execution holds the request for as long as it runs, up to ${compact(SERVERLESS_CONCURRENCY)} at a time. Past the cap the provider throttles: the requests are dropped, not queued.`,
+          ],
+        ),
+        caption(
+          `${compact(Math.round(used))} of ${compact(slots?.total ?? SERVERLESS_CONCURRENCY)} in flight`,
+          h,
+        ),
+      ],
+      h,
+      true,
+    ),
+    section(
+      'Cold start',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `A new execution environment boots before the code runs: ${ms(coldStartMs(node))} for this Stack. A function that idles loses its environments, so a trickle of traffic pays it more often than a steady one.`,
+          ],
+        ),
+        caption('Change the runtime in the Stack to trade the cold start for throughput.', h),
+      ],
+      h,
+    ),
+    section(
+      'Bill',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `There is no box to pay for: nothing stands while it idles. Each use bills ${money(SERVERLESS_REQUEST_PRICE * 1_000)} per 1,000 requests plus ${money(SERVERLESS_GB_SECOND)} per GB-second, at ${SERVERLESS_MEMORY_GB} GB an execution, on the Requests line of the bill.`,
+          ],
+        ),
+        caption(`This use: ${money(serverlessBurnOf(game, node, done, own?.latency ?? 0))}/s`, h),
+      ],
+      h,
+    ),
+  ]
+}
+
+/** An Edge Function's ceilings, and the Stack it needs (05 "Edge Function"). */
+const edge = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+  section(
+    'Ceilings',
+    [
+      h.p(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [
+          `A handler runs in ${EDGE_MEMORY_MB} MB of isolate and may spend ${EDGE_CPU_MS} ms of CPU a request. A request past the ceiling fails as a timeout, so CPU-heavy kinds belong on an App Server.`,
+        ],
+      ),
+      caption(
+        edgeRuns(node)
+          ? 'This Stack compiles to the edge: JavaScript, TypeScript, Rust or Go to WebAssembly.'
+          : `${RUNTIMES[node.runtime].name} cannot run at the edge. Migrate the Stack to Node.js, Rust or Go.`,
+        h,
+      ),
+    ],
+    h,
+    true,
+  ),
+  section(
+    'Edge cache',
+    [
+      h.p(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [
+          'A user in its region reaches it in 5 ms, so the hop is the region’s edge and not a round trip to the origin. Place one in each region whose users need it. A live Edge Function’s key-value cache also lets a CDN answer 30% of reads at the edge.',
+        ],
+      ),
+    ],
+    h,
+  ),
+]
+
 /** A Realtime Hub's Presence, Reconnect backoff and Clustering (05 "Realtime Hub"). */
 const hub = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
@@ -2798,6 +2937,8 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
           ...(node.type === 'gw' ? [gateway(node, h)] : []),
+          ...(node.type === 'fn' ? serverless(game, node, ledger, h) : []),
+          ...(node.type === 'edge' ? edge(game, node, h) : []),
           ...(node.type === 'ci' ? [pipeline(game, node, h)] : []),
           ...(node.type === 'ws' ? [hub(node, h)] : []),
           ...(node.type === 'cdn' ? [cdnTtl(node, h)] : []),

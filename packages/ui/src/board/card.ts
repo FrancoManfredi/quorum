@@ -51,22 +51,27 @@ import {
   CACHE_STRATEGIES,
   STORAGE_CLASSES,
   STORAGE_IOPS,
+  EDGE_CPU_MS,
   rttOf,
 } from '@quorum/simulation/catalog'
 import { POOL_ORDER } from '../game/pools.ts'
 import type { Ledger } from '@quorum/simulation/ledger'
 import {
   burnOf,
+  coldStartMs,
   drawerSize,
+  edgeBurnOf,
   eraOf,
   has,
+  hasEdge,
   replacePrice,
   resizePrice,
+  serverlessBurnOf,
   sizeLabel,
   zoned,
 } from '@quorum/simulation/lookups'
 import { isGlobal, regional, regionApdexOf, regionUsers } from '@quorum/simulation/regions'
-import { distributedErlang, hubConnections } from '@quorum/simulation/rules'
+import { distributedErlang, edgeRuns, hubConnections } from '@quorum/simulation/rules'
 import { deploysPerDay, quartersBehind } from '@quorum/simulation/team'
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import { compact, money, ms, priceLabel, queueWait, rate } from '../game/format.ts'
@@ -449,6 +454,48 @@ export const rowsOf = (
         out,
       ]
     }
+    // A function has no box: it pays for each use, and an environment that went away starts cold.
+    case 'fn': {
+      const runtime = RUNTIMES[node.runtime]
+      return [
+        inbound,
+        capacity,
+        {
+          glyph: 'latency',
+          name: 'Cold start',
+          value: ms(coldStartMs(node)),
+          tone: runtime.language === 'java' ? 'warn' : 'plain',
+        },
+        {
+          glyph: 'cost',
+          name: 'Uses',
+          value: `${money(serverlessBurnOf(game, node, own.inbound - own.dropped, own.latency))}/s`,
+        },
+        out,
+      ]
+    }
+    // It answers at the edge with no box either, and it is CPU it runs out of, not capacity.
+    case 'edge':
+      return [
+        inbound,
+        {
+          glyph: 'latency',
+          name: 'CPU ceiling',
+          value: `${EDGE_CPU_MS} ms`,
+          tone: edgeRuns(node) ? 'plain' : 'danger',
+        },
+        {
+          glyph: 'hits',
+          name: 'Cache',
+          value: hasEdge(game) ? 'read 30%' : 'off',
+          tone: 'muted',
+        },
+        {
+          glyph: 'cost',
+          name: 'Uses',
+          value: `${money(edgeBurnOf(game, node, own.inbound - own.dropped))}/s`,
+        },
+      ]
     case 'cdn':
       return [
         inbound,

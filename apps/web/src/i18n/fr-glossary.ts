@@ -376,8 +376,8 @@ export const frGlossary: Readonly<Record<string, string>> = {
     'Revue de code moderne : une étude de cas chez Google',
   'The delay and slow first requests when a new process, container, or function instance starts. It must boot, load code and data, and fill caches or JIT-compile hot code before it reaches full speed.':
     "Le retard et la lenteur des premières requêtes lorsqu'un nouveau processus, conteneur ou instance de fonction démarre. Il doit démarrer, charger le code et les données, et remplir les caches ou compiler le code à chaud JIT avant d'atteindre sa pleine vitesse.",
-  'A new or restarted App Server boots, then warms up. A Java (Tomcat) copy starts at 30% speed and needs 30 s to reach full speed, while Go starts at full speed. A new copy from an Autoscaler serves after 180 s on VMs, or 30 s in a Kubernetes Cluster. A restarted Cache comes back empty with Memcached or half warm with Redis, and a cold Database runs its queries at up to twice the CPU.':
-    "Un serveur applicatif nouveau ou redémarré démarre, puis se réchauffe. Une copie Java (Tomcat) démarre à une vitesse de 30 % et a besoin de 30 s pour atteindre la pleine vitesse, tandis que la copie Go démarre à pleine vitesse. Une nouvelle copie d'un Autoscaler est diffusée après 180 s sur les machines virtuelles ou 30 s dans un cluster Kubernetes. Un cache redémarré revient vide avec Memcached ou à moitié chaud avec Redis, et une base de données froide exécute ses requêtes jusqu'à deux fois celle de CPU.",
+  'A new or restarted App Server boots, then warms up. A Java (Tomcat) copy starts at 30% speed and needs 30 s to reach full speed, while Go starts at full speed. A new copy from an Autoscaler serves after 180 s on VMs, or 30 s in a Kubernetes Cluster. A restarted Cache comes back empty with Memcached or half warm with Redis, and a cold Database runs its queries at up to twice the CPU. A Serverless Function keeps no environment while it idles, so the request after a gap starts cold: 50 ms in Rust or Go, up to 2,000 ms on the JVM.':
+    "Un serveur applicatif nouveau ou redémarré démarre, puis se réchauffe. Une copie Java (Tomcat) démarre à une vitesse de 30 % et a besoin de 30 s pour atteindre la pleine vitesse, tandis que la copie Go démarre à pleine vitesse. Une nouvelle copie d'un Autoscaler est diffusée après 180 s sur les machines virtuelles ou 30 s dans un cluster Kubernetes. Un cache redémarré revient vide avec Memcached ou à moitié chaud avec Redis, et une base de données froide exécute ses requêtes jusqu'à deux fois celle de CPU. Une fonction sans serveur ne garde aucun environnement quand elle dort : la requête qui suit une pause démarre à froid, en 50 ms en Rust ou Go et jusqu'à 2 000 ms sur la JVM.",
   'AWS Lambda docs: Execution environment lifecycle':
     "Documents AWS Lambda : Cycle de vie de l'environnement d'exécution",
   'Wikipedia: Cold start (computing)': 'Wikipédia : Démarrage à froid (informatique)',
@@ -1053,4 +1053,8 @@ export const frGlossary: Readonly<Record<string, string>> = {
   'OpenGitOps: GitOps Principles': 'OpenGitOps: GitOps Principles',
   'Argo CD docs: Automated Sync Policy': 'Argo CD docs: Automated Sync Policy',
   'Flux docs: Core Concepts': 'Flux docs: Core Concepts',
+  // The CVEs the Simulation can disclose, as the Glossary lists them (18 "How to tell").
+  'Score {0} of 10. Affects {1}.': 'Score {0} sur 10. Affecte {1}.',
+  'Security mail names it and files a patch ticket: {0} DH, due {1} minutes after disclosure. Overdue, it turns red on the Team backlog, and a minute later it is exploited.':
+    'Le courrier de sécurité le nomme et ouvre un ticket de correctif : {0} DH, à rendre {1} minutes après la divulgation. En retard, il devient rouge dans la file d’Équipe et, une minute plus tard, il est exploité.',
 }

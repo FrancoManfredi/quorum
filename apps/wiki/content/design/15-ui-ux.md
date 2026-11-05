@@ -223,7 +223,7 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 | --------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards                                                           |
 | Research  | `R`          | The tree by track ([Research screen](#research-screen))                                                                              |
-| Dashboard | `D`          | Charts over time ([Observability](/design/12-observability#the-dashboard))                                                           |
+| Dashboard | `D`          | Charts over time, with its template variables, compare line and table view ([Observability](/design/12-observability#the-dashboard)) |
 | Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                                                                                |
 | Cost      | `$`          | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
 | Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                                                                          |
@@ -344,6 +344,10 @@ its worst utilization, and one suggestion if users were lost at peak.
   on the board does. `L` starts a link from the selected Node, the arrows pick the other end, and
   `Enter` or `L` joins them; `Esc` cancels. `Shift+T` tidies by zone, `Shift+F` fits the board, and
   `Enter` confirms a pinned Tradeoff card that has a preview.
+- The Dashboard's Table view turns each time series into the table of the figures it plots: one row
+  per time, one column per series, formatted as the Chart formats them, under a caption naming the
+  Chart and its unit. A screen reader reads the numbers a plot cannot say, and any player reads an
+  exact figure. Its Controls are in [Observability](/design/12-observability#controls).
 - Text at 150%. Settings › Text at 150% multiplies the interface's type by 1.5 through the
   `--type-scale` token, so rows, panels, and the HUD keep their boxes while their text grows. The
   board's cards scale with the board's zoom instead, because they are drawn on the canvas.

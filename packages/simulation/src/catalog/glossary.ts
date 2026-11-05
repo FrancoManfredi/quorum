@@ -542,7 +542,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'The delay and slow first requests when a new process, container, or function instance starts. It must boot, load code and data, and fill caches or JIT-compile hot code before it reaches full speed.',
     inGame:
-      'A new or restarted App Server boots, then warms up. A Java (Tomcat) copy starts at 30% speed and needs 30 s to reach full speed, while Go starts at full speed. A new copy from an Autoscaler serves after 180 s on VMs, or 30 s in a Kubernetes Cluster. A restarted Cache comes back empty with Memcached or half warm with Redis, and a cold Database runs its queries at up to twice the CPU.',
+      'A new or restarted App Server boots, then warms up. A Java (Tomcat) copy starts at 30% speed and needs 30 s to reach full speed, while Go starts at full speed. A new copy from an Autoscaler serves after 180 s on VMs, or 30 s in a Kubernetes Cluster. A restarted Cache comes back empty with Memcached or half warm with Redis, and a cold Database runs its queries at up to twice the CPU. A Serverless Function keeps no environment while it idles, so the request after a gap starts cold: 50 ms in Rust or Go, up to 2,000 ms on the JVM.',
     related: ['jit-warmup', 'autoscaling', 'cache-warming', 'cache-stampede'],
     links: [
       {

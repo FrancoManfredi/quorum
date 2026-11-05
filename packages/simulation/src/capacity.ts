@@ -51,11 +51,23 @@ import {
   DB_RETENTIONS,
   STORAGE_IOPS,
   diskMs,
+  SERVERLESS_CONCURRENCY,
+  SERVERLESS_IDLE_SECONDS,
+  SERVERLESS_MS,
 } from './catalog.ts'
 import { combineTail } from './distribution.ts'
 import type { Kind } from './catalog.ts'
 import { mixOf, payloadFactor, queryFactor } from './features.ts'
-import { asLogin, has, networkOf, payloadOf, profileOf, ramOf, vcpuOf } from './lookups.ts'
+import {
+  asLogin,
+  coldStartMs,
+  has,
+  networkOf,
+  payloadOf,
+  profileOf,
+  ramOf,
+  vcpuOf,
+} from './lookups.ts'
 import { fixed } from './team.ts'
 import type { Game, GameNode } from './state.ts'
 import { warmOf } from './life.ts'
@@ -324,6 +336,32 @@ export const collectorOf = (
 
 /** A saturated App Server with Priority load shedding keeps its load at this share. */
 export const SHED_AT = 0.9
+
+/**
+ * Core-milliseconds one request of a kind costs a Node that runs the Stack, given nothing else:
+ * the figure the App Server's model divides by its cores. An Edge Function's CPU ceiling is
+ * measured with it (05 "Edge Function").
+ */
+export const requestCpuMs = (
+  game: Game,
+  node: GameNode,
+  kind: RequestKind,
+  delegated = false,
+): number => {
+  const context: ServerContext = {
+    game,
+    node,
+    arriving: {},
+    callLatency: {},
+    delegated,
+    local: false,
+    inflight: 0,
+    boost: 1,
+    sampling: 0,
+    hashing: 1,
+  }
+  return cpuOf(context, kind, callsOf(game, node, kind, delegated))
+}
 
 /** Core-milliseconds one request of a kind costs this server. */
 const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number => {
@@ -645,6 +683,103 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     : model
 }
 
+/* ---------- Serverless Function ---------- */
+
+/**
+ * Share of invocations that find no warm execution environment (05 "Cold starts"): an
+ * environment goes away after `SERVERLESS_IDLE_SECONDS` without work, so at a low request rate
+ * the next invocation starts cold. 1 / (1 + λ × idle) is 1 at an idle function and near 0 under
+ * steady load. Proposed: the design says only that a new environment starts cold.
+ */
+export const coldShareOf = (rate: number): number =>
+  1 / (1 + Math.max(0, rate) * SERVERLESS_IDLE_SECONDS)
+
+export type ServerlessContext = Readonly<{
+  game: Game
+  node: GameNode
+  arriving: Readonly<Partial<Record<RequestKind, number>>>
+  /** Mean latency of one call to each backend, in ms. */
+  callLatency: Calls
+  /** An Auth Provider takes this function's logins. */
+  delegated: boolean
+  /** CPU overhead from Analytics sampling this Node. */
+  sampling: number
+  /** Login hashing costs this many times more (incident "Event loop block"). */
+  hashing: number
+  /** Capacity multiplier, for the bottleneck test. */
+  boost: number
+}>
+
+/**
+ * A Serverless Function (05 "Serverless Function"): one execution environment per in-flight
+ * request, up to the concurrency cap, and nothing resident when it idles. An execution lasts the
+ * request's own CPU plus the calls it waits on, so Little's law turns a mean execution into the
+ * requests a second the cap allows. Each environment is one core and its own memory, so the CPU
+ * the code needs is what the cap divides.
+ */
+export const serverlessModel = (context: ServerlessContext): NodeModel => {
+  const { game, node, arriving } = context
+  const code: ServerContext = {
+    game,
+    node,
+    arriving,
+    callLatency: context.callLatency,
+    delegated: context.delegated,
+    local: false,
+    inflight: 0,
+    boost: context.boost,
+    sampling: context.sampling,
+    hashing: context.hashing,
+  }
+  const kinds = REQUEST_KINDS.filter((kind) => (arriving[kind] ?? 0) > 0)
+  const rate = kinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0), 0)
+  const calls = Object.fromEntries(
+    REQUEST_KINDS.map((kind) => [kind, callsOf(game, node, kind, context.delegated)]),
+  ) as Record<RequestKind, Calls>
+  // An environment runs one request at a time on one core: its own CPU, then the calls it waits on.
+  const cpu = Object.fromEntries(
+    REQUEST_KINDS.map((kind) => [kind, cpuOf(code, kind, calls[kind])]),
+  ) as Record<RequestKind, number>
+  const waiting = (kind: RequestKind): number => waitOf(calls[kind], context.callLatency)
+  const concurrency = SERVERLESS_CONCURRENCY * context.boost
+  // Little's law: executions in flight = requests a second × the seconds each one lasts.
+  const inflight = kinds.reduce(
+    (sum, kind) => sum + ((arriving[kind] ?? 0) * (cpu[kind] + waiting(kind))) / 1_000,
+    0,
+  )
+  const utilization = concurrency > 0 ? inflight / concurrency : rate > 0 ? 99 : 0
+  const share = utilization > 1 ? 1 / utilization : 1
+  // A new environment starts cold, and one that was reaped after an idle gap starts cold too.
+  const cold = Math.max(1 - warmOf(node.life), coldShareOf(rate))
+  const used = inflight * share
+  return {
+    utilization,
+    limit: utilization <= 0 ? 'none' : 'throughput',
+    share,
+    capacity: rate > 0 ? rate / Math.max(utilization, 1e-9) : 0,
+    service: Object.fromEntries(
+      REQUEST_KINDS.map((kind) => [
+        kind,
+        { fixed: SERVERLESS_MS, variable: cpu[kind] + waiting(kind) },
+      ]),
+    ),
+    tailP: cold,
+    tailMs: coldStartMs(node),
+    // Every in-flight execution holds its own database connections (05 "Connections").
+    processes: used,
+    inflight: used,
+    resources: {
+      cpu: null,
+      ram: null,
+      slots: { used, total: concurrency },
+      network: null,
+      credits: null,
+    },
+    throttled: false,
+    swapping: false,
+  }
+}
+
 /* ---------- Database and Read Replica ---------- */
 
 /** Extra latency on a read query that misses the buffer cache. */
@@ -819,6 +954,8 @@ export const FLAT_CAPACITY: Readonly<Record<string, number>> = {
   queue: 20_000,
   waf: 5_000,
   gw: 10_000,
+  // An Edge Function answers as many requests as reach it: nothing caps it but its CPU ceiling.
+  edge: Number.POSITIVE_INFINITY,
 }
 
 export const flatModel = (

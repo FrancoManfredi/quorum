@@ -55,6 +55,11 @@ import {
   SESSION_STATE_CRASHES,
   UPGRADE_CRASHES,
   STORAGE_CLASSES,
+  EDGE_CPU_MS,
+  EDGE_LANGUAGES,
+  EDGE_MS,
+  EDGE_READ_HIT,
+  isBackendKind,
   type ComponentId,
   type Kind,
   type RequestKind,
@@ -65,6 +70,8 @@ import {
   callsOf,
   databaseModel,
   flatModel,
+  requestCpuMs,
+  serverlessModel,
   serverModel,
   type Calls,
   type NodeModel,
@@ -86,6 +93,7 @@ import {
   flatScale,
   grown,
   has,
+  hasEdge,
   hopMs,
   inCluster,
   storageBands,
@@ -323,15 +331,32 @@ export const hitRatioOf = (game: Game, node: GameNode, writeShare: number): numb
   )
 }
 
-/** A CDN's hit ratio for a kind at its TTL. Tiered caching lifts video. */
+/** A CDN's hit ratio for a kind at its TTL. Tiered caching lifts video, and an Edge Function's
+ * key-value cache lifts `read` (05 "CDN": 0% to 30% with Edge compute). */
 export const cdnHitOf = (node: GameNode, kind: Kind, game?: Game): number => {
   const ttl = CDN_TTLS.find((entry) => entry.ttl === node.ttl) ?? CDN_TTLS[1]
   const base =
     kind === 'media' && game && has(game, 'tiered-caching')
       ? TIERED_MEDIA_HIT
-      : (CDN_HIT[kind] ?? 0)
+      : kind === 'read' && game && hasEdge(game)
+        ? EDGE_READ_HIT
+        : (CDN_HIT[kind] ?? 0)
   return Math.min(0.95, base * ttl.factor)
 }
+
+/* ---------- the Edge Function ---------- */
+
+/** Whether the Service's Stack runs at the edge: JavaScript, TypeScript, or Rust or Go to WASM. */
+export const edgeRuns = (node: GameNode): boolean =>
+  EDGE_LANGUAGES.includes(RUNTIMES[node.runtime].language)
+
+/**
+ * Whether one request of a kind fits the Edge Function's CPU ceiling (05 "Edge Function"): past
+ * it the handler is killed, so CPU-heavy kinds fail as `timeout`. A login whose hash an Auth
+ * Provider takes is a thin call and fits.
+ */
+export const edgeFits = (game: Game, node: GameNode, kind: Kind, delegated = false): boolean =>
+  !isBackendKind(kind) && requestCpuMs(game, node, kind, delegated) <= EDGE_CPU_MS
 
 /** A WAF's paranoia level, or Under attack mode. */
 export const wafOf = (node: GameNode) => {
@@ -396,6 +421,75 @@ export const mlValueOf = (node: GameNode, kind: RequestKind): number =>
 export const distributedErlang = (game: Game, node: GameNode): boolean =>
   has(game, 'distributed-erlang') && RUNTIMES[node.runtime].language === 'elixir'
 
+/* ---------- code that runs the Service's Stack ---------- */
+
+/**
+ * What a Node that runs the Service's code sends on for the work it processed: one backend call
+ * for every call the request kind makes. An App Server, a Worker and a function all answer with it.
+ */
+const serveCalls: ComponentRule['serve'] = (serve, node, rates, share) => {
+  const { solver } = serve
+  if (solver.runsLocalDb(node)) return
+  const delegated = solver.delegates(node)
+  const offloaded = solver.offloads(node)
+  each(rates, share, (kind, processed) => {
+    const calls = callsOf(solver.game, node, kind as RequestKind, delegated, offloaded)
+    for (const backend of BACKEND_KINDS) serve.route(backend, processed * (calls[backend] ?? 0))
+  })
+}
+
+/**
+ * What one request of a kind gets back from a Node that runs the Service's code: its own hop, the
+ * calls it makes, the code's own failures, and the bytes the response sends to the user.
+ */
+const answerCalls: ComponentRule['outcome'] = (answer, node, kind) => {
+  const { game } = answer
+  const requestKind = kind as RequestKind
+  const served = answer.ownHop(
+    kind,
+    (FRAMEWORKS[node.framework].value[requestKind] ?? 1) * mlValueOf(node, requestKind),
+  )
+  // The response crosses the user's downlink: bytes over bandwidth.
+  const own = {
+    ...served,
+    fixed:
+      served.fixed +
+      transferMs(node, requestKind, answer.offloads) * payloadFactor(game, requestKind),
+  }
+  const crashes = codeCrashes(game, node)
+  // A runtime that holds a worker per open connection cannot keep realtime connections.
+  if (requestKind === 'rt' && RUNTIMES[node.runtime].connectionKB === null) return failed('refused')
+  if (answer.runsLocalDb) return failSome(through(own), crashes, 'crash')
+  const calls = callsOf(game, node, requestKind, answer.delegates, answer.offloads)
+  const hop = hopMs(game)
+  // Read-your-writes routing sends a checkout's read, and most reads after a write, to the primary.
+  const ryw = node.ryw && has(game, 'ryw-routing')
+  const fresh = (backend: Kind, outcome: Outcome): Outcome =>
+    ryw && backend === 'q-read' && outcome.stale > 0
+      ? { ...outcome, stale: requestKind === 'buy' ? 0 : outcome.stale * RYW_STALE }
+      : outcome
+  // A call to a Queue returns once the task is enqueued: what happens after is async.
+  // A stale read fails an API read, and a checkout that reads its own write.
+  const relayed = failSome(
+    through(
+      own,
+      BACKEND_KINDS.flatMap((backend, index) =>
+        index < 3 || (calls[backend] ?? 0) > 0
+          ? [[fresh(backend, answer.downstream(backend, hop)), calls[backend] ?? 0] as const]
+          : [],
+      ),
+      // A stale read fails an API read, a checkout that reads its own write, and a search.
+      requestKind === 'read' || requestKind === 'buy' || requestKind === 'search',
+    ),
+    crashes,
+    'crash',
+  )
+  // A path with a smaller MTU drops an upload larger than it: the request times out.
+  return game.incident?.kind === 'mtu' && requestKind === 'upload'
+    ? failSome(relayed, MTU_LOSS, 'timeout')
+    : relayed
+}
+
 /* ---------- the table ---------- */
 
 const terminal: Pick<ComponentRule, 'serve' | 'connections' | 'probe'> = {
@@ -453,64 +547,8 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         offloaded: solver.offloads(node),
         pod: inCluster(solver.game, node),
       }),
-    serve: (serve, node, rates, share) => {
-      const { solver } = serve
-      if (solver.runsLocalDb(node)) return
-      const delegated = solver.delegates(node)
-      const offloaded = solver.offloads(node)
-      each(rates, share, (kind, processed) => {
-        const calls = callsOf(solver.game, node, kind as RequestKind, delegated, offloaded)
-        for (const backend of BACKEND_KINDS) serve.route(backend, processed * (calls[backend] ?? 0))
-      })
-    },
-    outcome: (answer, node, kind) => {
-      const { game } = answer
-      const requestKind = kind as RequestKind
-      const served = answer.ownHop(
-        kind,
-        (FRAMEWORKS[node.framework].value[requestKind] ?? 1) * mlValueOf(node, requestKind),
-      )
-      // The response crosses the user's downlink: bytes over bandwidth.
-      const own = {
-        ...served,
-        fixed:
-          served.fixed +
-          transferMs(node, requestKind, answer.offloads) * payloadFactor(game, requestKind),
-      }
-      const crashes = codeCrashes(game, node)
-      // A runtime that holds a worker per open connection cannot keep realtime connections.
-      if (requestKind === 'rt' && RUNTIMES[node.runtime].connectionKB === null)
-        return failed('refused')
-      if (answer.runsLocalDb) return failSome(through(own), crashes, 'crash')
-      const calls = callsOf(game, node, requestKind, answer.delegates, answer.offloads)
-      const hop = hopMs(game)
-      // Read-your-writes routing sends a checkout's read, and most reads after a write, to the primary.
-      const ryw = node.ryw && has(game, 'ryw-routing')
-      const fresh = (backend: Kind, outcome: Outcome): Outcome =>
-        ryw && backend === 'q-read' && outcome.stale > 0
-          ? { ...outcome, stale: requestKind === 'buy' ? 0 : outcome.stale * RYW_STALE }
-          : outcome
-      // A call to a Queue returns once the task is enqueued: what happens after is async.
-      // A stale read fails an API read, and a checkout that reads its own write.
-      const relayed = failSome(
-        through(
-          own,
-          BACKEND_KINDS.flatMap((backend, index) =>
-            index < 3 || (calls[backend] ?? 0) > 0
-              ? [[fresh(backend, answer.downstream(backend, hop)), calls[backend] ?? 0] as const]
-              : [],
-          ),
-          // A stale read fails an API read, a checkout that reads its own write, and a search.
-          requestKind === 'read' || requestKind === 'buy' || requestKind === 'search',
-        ),
-        crashes,
-        'crash',
-      )
-      // A path with a smaller MTU drops an upload larger than it: the request times out.
-      return game.incident?.kind === 'mtu' && requestKind === 'upload'
-        ? failSome(relayed, MTU_LOSS, 'timeout')
-        : relayed
-    },
+    serve: serveCalls,
+    outcome: answerCalls,
     // Every app process holds its own pool to each database it reaches.
     connections: (solver, node, model) => {
       if (solver.runsLocalDb(node)) return 0
@@ -773,6 +811,30 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     connections: (_, node, model) => (model?.processes ?? 0) * RUNTIMES[node.runtime].connections,
     probe: noProbe,
   },
+  // It runs the Service's code with no box: one execution per in-flight request up to the
+  // concurrency cap, and a bill for each use (05 "Serverless Function").
+  fn: {
+    model: (solver, node, arriving) =>
+      serverlessModel({
+        game: solver.game,
+        node,
+        arriving,
+        callLatency: solver.callLatency(node),
+        delegated: solver.delegates(node),
+        sampling: solver.sampling(node),
+        hashing: solver.game.incident?.kind === 'loop' ? 4 : 1,
+        boost: solver.boost(node),
+      }),
+    serve: serveCalls,
+    outcome: answerCalls,
+    // Each concurrent execution opens its own connections: a spike exhausts the Database's pool.
+    connections: (_, node, model) => (model?.processes ?? 0) * RUNTIMES[node.runtime].connections,
+    // An LB weighs it by the Era's mix, as it weighs an App Server.
+    probe: (game) => {
+      const mix = mixOf(game)
+      return Object.fromEntries(REQUEST_KINDS.map((kind) => [kind, mix[kind] ?? 0]))
+    },
+  },
   cdn: {
     model: unlimited(8, 0),
     serve: (serve, node, rates, share) => {
@@ -923,6 +985,37 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       ),
     outcome: (answer, _, kind) => through(answer.ownHop(kind)),
     ...terminal,
+  },
+  // Small handlers next to the user (05 "Edge Function"): 5 ms, no cold start, and a CPU ceiling
+  // that CPU-heavy kinds hit as a `timeout`.
+  edge: {
+    model: (solver, node, arriving) =>
+      flatModel(
+        Number.POSITIVE_INFINITY,
+        arriving,
+        { fixed: EDGE_MS, variable: 0 },
+        solver.boost(node),
+      ),
+    serve: (serve, node, rates, share) => {
+      const { game } = serve.solver
+      const delegated = serve.solver.delegates(node)
+      // JavaScript, TypeScript, or Rust or Go compiled to WebAssembly: anything else is refused.
+      if (!edgeRuns(node)) return
+      each(rates, share, (kind, processed) => {
+        if (!edgeFits(game, node, kind, delegated)) return
+        const calls = callsOf(game, node, kind as RequestKind, delegated)
+        for (const backend of BACKEND_KINDS) serve.route(backend, processed * (calls[backend] ?? 0))
+      })
+    },
+    outcome: (answer, node, kind) =>
+      !edgeRuns(node)
+        ? failed('refused')
+        : !edgeFits(answer.game, node, kind, answer.delegates)
+          ? failed('timeout')
+          : answerCalls(answer, node, kind),
+    // A handler opens no pool of its own: the edge reaches the data tier through the platform.
+    connections: noConnections,
+    probe: noProbe,
   },
   // A Managed Component: 10,000 messages a second, paid per message.
   msgp: {

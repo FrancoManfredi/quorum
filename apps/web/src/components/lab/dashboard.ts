@@ -12,9 +12,12 @@ import {
   LAYOFF_MORALE,
   PROFILES,
   REGION_INFO,
+  REGIONS,
+  REQUEST_KINDS,
   RESEARCH,
   type ComponentId,
   type Kind,
+  type RegionId,
   type RequestKind,
   type ResearchId,
 } from '@quorum/simulation/catalog'
@@ -24,16 +27,23 @@ import { dilutionOf, grantOf } from '@quorum/simulation/founding'
 import type { KindLedger, Ledger } from '@quorum/simulation/ledger'
 import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
-import { regional } from '@quorum/simulation/regions'
+import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
 import { budgetOf } from '@quorum/simulation/slo'
 import type { Game, Postmortem, Sample } from '@quorum/simulation/state'
 import { ignored } from '@quorum/simulation/step'
 import { teamOutputs } from '@quorum/simulation/team'
-import { type Field, TIERS, type Tier, startOf } from '@/game/history.ts'
+import { type Field, TIERS, type Tier, blockIndexAt, startOf } from '@/game/history.ts'
 import { alertText, compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { type Mail, type Model, ledgerOf, boardSandbox } from '@/game/model.ts'
+import {
+  ANNOTATION_GROUPS,
+  type AnnotationGroup,
+  type Mail,
+  type Model,
+  ledgerOf,
+  boardSandbox,
+} from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
 import { button } from '@quorum/ui/primitives/button'
@@ -102,7 +112,8 @@ const hhmm = (time: number): string => {
 
 const percent = (share: number, digits = 0): string => `${(share * 100).toFixed(digits)}%`
 
-type Row = Readonly<Record<string, number | string>>
+/** One Chart row: its label and figures. A figure is null where the history holds no value. */
+type Row = Readonly<Record<string, number | string | null>>
 
 /* ==========================================================================
    Data
@@ -168,6 +179,35 @@ const labelAt = (rows: ReadonlyArray<Row>, time: number): string | null => {
     (entry) => Number(entry.at) <= time && time < Number(entry.at) + Number(entry.span),
   )
   return row ? String(row.t) : null
+}
+
+/** A calendar day in sim seconds: the distance to the same moment yesterday (12 "Controls"). */
+const DAY_SECONDS = 86_400
+
+/** Yesterday's line is drawn faint, so it never reads as this range's own series. */
+const COMPARE_COLOR = 'color-mix(in oklab, var(--foreground) 32%, transparent)'
+
+/** The tier the compare line reads: the Chart's own, or 15-minute blocks under a short range. */
+const compareTier = (range: number): Tier => tierOf(range) ?? 'quarter'
+
+/**
+ * Yesterday's figure at each row's moment, for the compare line (12 "Controls"). It reads the
+ * Dashboard's own blocks, so a short range compares against 15-minute means; a row whose moment
+ * the history does not reach is null, and the line breaks there rather than guessing.
+ */
+const yesterdayOf = (
+  model: Model,
+  rows: ReadonlyArray<Row>,
+  field: Field,
+): ReadonlyArray<number | null> => {
+  const tier = compareTier(model.board.dashboard.range)
+  const means = new Map(
+    model.board.dashboard.history[tier].map((block) => {
+      const sum = block.sum[field]
+      return [block.index, sum === undefined ? null : sum / Math.max(1, block.count)] as const
+    }),
+  )
+  return rows.map((row) => means.get(blockIndexAt(Number(row.at) - DAY_SECONDS, tier)) ?? null)
 }
 
 /** Each Node's name, numbered when the Board holds more than one of its type. */
@@ -431,21 +471,12 @@ const PLOT =
 /** Lifts a marker's label from the bottom of the plot to its top. */
 const TOP_OF_PLOT = -150
 
-/** The groups the build draws. Research has no mark: the Game keeps no time for a Study. */
-type AnnotationGroup = 'design' | 'deploys' | 'incidents' | 'company'
-
-const ANNOTATION_GROUPS: ReadonlyArray<AnnotationGroup> = [
-  'design',
-  'deploys',
-  'incidents',
-  'company',
-]
-
 const ANNOTATION_COLOR: Record<AnnotationGroup, string> = {
   design: BLUE,
   deploys: PURPLE,
   incidents: RED,
   company: PINK,
+  research: GREEN,
 }
 
 const ANNOTATION_NAME: Record<AnnotationGroup, string> = {
@@ -453,6 +484,7 @@ const ANNOTATION_NAME: Record<AnnotationGroup, string> = {
   deploys: 'Deploy',
   incidents: 'Incident',
   company: 'Company',
+  research: 'Research',
 }
 
 /** One mark on the timeline: its group, the sim second it happened, and its label. */
@@ -466,11 +498,34 @@ const incidentNameOf = (topic: string): string =>
   (INCIDENTS as Readonly<Record<string, Readonly<{ name: string }> | undefined>>)[topic]?.name ??
   'Incident'
 
+/** Every Research name, longest first, so "Load balancing algorithms" wins over "Load balancing". */
+const RESEARCH_NAMES: ReadonlyArray<readonly [string, ResearchId]> = (
+  Object.entries(RESEARCH) as ReadonlyArray<[ResearchId, Readonly<{ name: string }>]>
+)
+  .map(([id, entry]) => [entry.name, id] as const)
+  .sort((left, right) => right[0].length - left[0].length)
+
+const WORD = /[\p{L}\p{N}]/u
+
+/** The Research an item name in a `finished` letter names, if one is in it. */
+const researchNamed = (text: string): ResearchId | null => {
+  for (const [name, id] of RESEARCH_NAMES) {
+    const at = text.indexOf(name)
+    if (at < 0) continue
+    const before = text[at - 1]
+    const after = text[at + name.length]
+    if (before !== undefined && WORD.test(before)) continue
+    if (after !== undefined && WORD.test(after)) continue
+    return id
+  }
+  return null
+}
+
 /**
  * What a Thread marks, if anything. The Inbox is the only record of when an
- * event happened that the Model keeps: the Game holds no deploy, hire or round
- * time. It keeps only its last Threads, so the marks reach as far back as its
- * Mail does.
+ * event happened that the Model keeps: the Game holds no deploy, Study, hire or
+ * round time. It keeps only its last Threads, so the marks reach as far back as
+ * its Mail does.
  */
 const markOfMail = (mail: Mail): Readonly<{ group: AnnotationGroup; label: string }> | null => {
   const [from, topic, about] = keyParts(mail)
@@ -494,8 +549,14 @@ const markOfMail = (mail: Mail): Readonly<{ group: AnnotationGroup; label: strin
   return null
 }
 
-/** Every mark the history holds, in the order the groups are drawn. */
+/**
+ * Every mark the history holds, in the order the groups are drawn. A finished Study's second is
+ * not on the Game: `studies` drops it and `researched` keeps only its id, so the mark comes from
+ * the Inbox's `event:finished` Thread, at the second that entry was written. The Thread does not
+ * say which kind of item finished, so the mark is the entry that names a Research.
+ */
 const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
+  const shown = model.board.dashboard.groups
   const incident = model.board.game.incident
   const open: ReadonlyArray<Annotation> = incident
     ? [
@@ -521,7 +582,16 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
       if (!marked.has(`${mark.group}:${Math.floor(entry.time)}`))
         mail.push({ ...mark, at: entry.time })
   }
-  return [...design, ...open, ...mail]
+  const finished: Array<Annotation> = model.board.inbox.mail
+    .filter((thread) => thread.key.startsWith('event:finished:'))
+    .flatMap((thread) =>
+      thread.entries.flatMap((entry) =>
+        researchNamed(entry.text) === null
+          ? []
+          : [{ group: 'research' as const, at: entry.time, label: '⬡ Research' }],
+      ),
+    )
+  return [...design, ...open, ...mail, ...finished].filter((mark) => shown.includes(mark.group))
 }
 
 /** The annotations, as labelled vertical markers on every time series. */
@@ -547,6 +617,8 @@ type Series = Readonly<{
   /** Fill under the line with a fading gradient, as Grafana's opacity gradient mode. */
   fill?: boolean
   dashed?: boolean
+  /** Drawn under the series that carry the Signal now: the compare line (12 "Controls"). */
+  faint?: boolean
 }>
 
 type SeriesSpec = Readonly<{
@@ -556,6 +628,8 @@ type SeriesSpec = Readonly<{
   unit: string
   series: ReadonlyArray<Series>
   format: (value: number) => string
+  /** The field yesterday's line draws, where the Chart offers a compare (12 "Controls"). */
+  compare?: Field
   rules?: ReadonlyArray<Readonly<{ y: number; label: string; color: string }>>
   domain?: readonly [number, number]
   width?: number
@@ -590,9 +664,14 @@ const gradient = (id: string, color: string, h: HtmlBuilder<Message>): Html =>
     ],
   )
 
+/** The figures a series holds, skipping the moments its history does not reach. */
+const figuresOf = (rows: ReadonlyArray<Row>, key: string): ReadonlyArray<number> =>
+  rows.flatMap((row) => (typeof row[key] === 'number' ? [row[key] as number] : []))
+
 /** The legend under a time series, in Grafana's list mode: swatch, name, mean, max, last. */
 const seriesLegend = (
   rows: ReadonlyArray<Row>,
+  series: ReadonlyArray<Series>,
   spec: SeriesSpec,
   hovered: Row | undefined,
   h: HtmlBuilder<Message>,
@@ -603,23 +682,23 @@ const seriesLegend = (
       ...(hovered
         ? [h.span([h.Key('at'), h.Class(cn(FIGURE, 'text-muted-foreground'))], [String(hovered.t)])]
         : []),
-      ...spec.series.map((series) => {
-        const values = rows.map((row) => Number(row[series.key]))
+      ...series.map((entry) => {
+        const values = figuresOf(rows, entry.key)
         const last = values[values.length - 1] ?? 0
         const max = Math.max(...values)
         const mean = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length)
         return h.span(
-          [h.Key(series.key), h.Class('flex items-center gap-1.5 whitespace-nowrap')],
+          [h.Key(entry.key), h.Class('flex items-center gap-1.5 whitespace-nowrap')],
           [
             h.span(
-              [h.Class('h-[3px] w-3.5 rounded-full'), h.Style({ background: series.color })],
+              [h.Class('h-[3px] w-3.5 rounded-full'), h.Style({ background: entry.color })],
               [],
             ),
-            h.span([h.Class('text-foreground')], [series.name]),
+            h.span([h.Class('text-foreground')], [entry.name]),
             h.span(
               [h.Class(cn(FIGURE, 'text-muted-foreground'))],
               hovered
-                ? [spec.format(Number(hovered[series.key]))]
+                ? [spec.format(Number(hovered[entry.key]))]
                 : [`mean ${spec.format(mean)}  max ${spec.format(max)}  last ${spec.format(last)}`],
             ),
           ],
@@ -627,6 +706,71 @@ const seriesLegend = (
       }),
     ],
   )
+
+/**
+ * A Chart's values as a table, for a screen reader and for reading an exact figure: the same rows
+ * the plot draws, one per time, in Grafana's table view (12 "Controls").
+ */
+const seriesTable = (
+  data: ReadonlyArray<Row>,
+  series: ReadonlyArray<Series>,
+  spec: SeriesSpec,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const border = 'border-b border-hairline px-2 py-1'
+  const figure = (row: Row, key: string): string => {
+    const value = row[key]
+    return typeof value === 'number' ? spec.format(value) : '—'
+  }
+  return h.div(
+    [h.Class(cn(SCREEN, 'max-h-[210px] min-h-0 flex-1 overflow-auto px-1 pb-1', SCROLL))],
+    [
+      h.table(
+        [
+          h.DataAttribute('table', spec.key),
+          h.Class('w-full border-collapse text-[calc(11.5px*var(--type-scale))]'),
+        ],
+        [
+          h.caption([h.Class('sr-only')], [`${spec.title} · ${spec.unit}`]),
+          h.thead(
+            [],
+            [
+              h.tr(
+                [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
+                [
+                  h.th([h.Class(cn(border, 'text-left font-medium'))], ['Time']),
+                  ...series.map((entry) =>
+                    h.th(
+                      [h.Key(entry.key), h.Class(cn(border, 'text-right font-medium'))],
+                      [entry.name],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          h.tbody(
+            [],
+            data.map((row, index) =>
+              h.tr(
+                [h.Key(`${String(row.t)}-${index}`), h.Class('hover:bg-foreground/[0.03]')],
+                [
+                  h.td([h.Class(cn(border, FIGURE))], [String(row.t)]),
+                  ...series.map((entry) =>
+                    h.td(
+                      [h.Key(entry.key), h.Class(cn(border, FIGURE, 'text-right'))],
+                      [figure(row, entry.key)],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  )
+}
 
 const timeSeries = (
   model: Model,
@@ -638,104 +782,133 @@ const timeSeries = (
   const hovered =
     model.board.dashboard.hover !== null ? rows[model.board.dashboard.hover] : undefined
   const id = (series: Series) => `fill-${spec.key}-${series.key}`
+  const yesterday =
+    spec.compare === undefined || !model.board.dashboard.compare
+      ? null
+      : yesterdayOf(model, rows, spec.compare)
+  const compare =
+    model.board.dashboard.compare && yesterday !== null && yesterday.some((value) => value !== null)
+  const series: ReadonlyArray<Series> = compare
+    ? [...spec.series, { key: 'cmp', name: 'Yesterday', color: COMPARE_COLOR, faint: true }]
+    : spec.series
+  const data: ReadonlyArray<Row> = compare
+    ? rows.map((row, index) => ({ ...row, cmp: yesterday?.[index] ?? null }))
+    : rows
+  const line = (entry: Series): CartesianChild =>
+    Line({
+      dataKey: entry.key,
+      name: entry.name,
+      stroke: entry.color,
+      strokeWidth: 1.5,
+      type: 'linear',
+      dot: false,
+      activeDot: { r: 3, fill: entry.color, stroke: 'var(--card)' },
+      ...(entry.faint ? { strokeDasharray: '5 3' } : {}),
+      ...(entry.dashed ? { strokeDasharray: '4 3' } : {}),
+    })
   return panel(
     spec.key,
     spec.span,
     spec.title,
     spec.unit,
     [
-      h.div(
-        [h.Class(cn(SCREEN, 'min-h-0 flex-1 px-1 pt-1'))],
-        [
-          ComposedChart(
-            {
-              data: rows,
-              responsive: true,
-              width: spec.width ?? 760,
-              height: 210,
-              margin: { top: 10, right: 12, bottom: 0, left: 2 },
-              title: spec.title,
-              className: PLOT,
-              accessibilityLayer: true,
-              activeIndex: model.board.dashboard.hover,
-              onActiveIndexChange: (index) =>
-                Message.DashboardChanged({ message: DashboardMessage.Hovered({ index }) }),
-              defs: spec.series
-                .filter((series) => series.fill)
-                .map((series) => gradient(id(series), series.color, h)),
-              children: [
-                CartesianGrid({ stroke: 'var(--hairline)' }),
-                XAxis({
-                  dataKey: 't',
-                  interval: Math.max(0, Math.ceil(rows.length / ((spec.width ?? 760) / 70)) - 1),
-                  padding: { left: 32 },
-                  // Ends the right-most label at the plot edge, so the well does not clip it.
-                  tick: ({ x, y, value }) =>
-                    h.text(
-                      [
-                        h.Attribute('x', String(x)),
-                        h.Attribute('y', String(y - 14)),
-                        h.Attribute('text-anchor', x + 30 > (spec.width ?? 760) ? 'end' : 'middle'),
-                      ],
-                      [String(value)],
-                    ),
-                  stroke: 'var(--hairline)',
-                }),
-                YAxis({
-                  width: 58,
-                  tickCount: 5,
-                  ...(spec.domain ? { domain: spec.domain } : {}),
-                  tickFormatter: (value) => spec.format(Number(value)),
-                  stroke: 'transparent',
-                }),
-                Tooltip({ content: 'none' }),
-                ...(spec.rules ?? []).map((rule) =>
-                  ReferenceLine({
-                    y: rule.y,
-                    stroke: rule.color,
-                    strokeDasharray: '6 4',
-                    label: { value: rule.label, dy: -6, fill: rule.color },
-                  }),
-                ),
-                ...markers,
-                ...(hovered
-                  ? [
-                      ReferenceLine({
-                        x: String(hovered.t),
-                        stroke: 'var(--foreground)',
-                        strokeOpacity: 0.4,
+      ...(model.board.dashboard.table
+        ? [seriesTable(data, series, spec, h)]
+        : [
+            h.div(
+              [h.Class(cn(SCREEN, 'min-h-0 flex-1 px-1 pt-1'))],
+              [
+                ComposedChart(
+                  {
+                    data,
+                    responsive: true,
+                    width: spec.width ?? 760,
+                    height: 210,
+                    margin: { top: 10, right: 12, bottom: 0, left: 2 },
+                    title: spec.title,
+                    className: PLOT,
+                    accessibilityLayer: true,
+                    activeIndex: model.board.dashboard.hover,
+                    onActiveIndexChange: (index) =>
+                      Message.DashboardChanged({ message: DashboardMessage.Hovered({ index }) }),
+                    defs: series
+                      .filter((entry) => entry.fill)
+                      .map((entry) => gradient(id(entry), entry.color, h)),
+                    children: [
+                      CartesianGrid({ stroke: 'var(--hairline)' }),
+                      XAxis({
+                        dataKey: 't',
+                        interval: Math.max(
+                          0,
+                          Math.ceil(rows.length / ((spec.width ?? 760) / 70)) - 1,
+                        ),
+                        padding: { left: 32 },
+                        // Ends the right-most label at the plot edge, so the well does not clip it.
+                        tick: ({ x, y, value }) =>
+                          h.text(
+                            [
+                              h.Attribute('x', String(x)),
+                              h.Attribute('y', String(y - 14)),
+                              h.Attribute(
+                                'text-anchor',
+                                x + 30 > (spec.width ?? 760) ? 'end' : 'middle',
+                              ),
+                            ],
+                            [String(value)],
+                          ),
+                        stroke: 'var(--hairline)',
                       }),
-                    ]
-                  : []),
-                ...spec.series.map((series) =>
-                  series.fill
-                    ? Area({
-                        dataKey: series.key,
-                        name: series.name,
-                        stroke: series.color,
-                        strokeWidth: 1.5,
-                        fill: `url(#${id(series)})`,
-                        fillOpacity: 1,
-                        type: 'linear',
-                      })
-                    : Line({
-                        dataKey: series.key,
-                        name: series.name,
-                        stroke: series.color,
-                        strokeWidth: 1.5,
-                        type: 'linear',
-                        dot: false,
-                        activeDot: { r: 3, fill: series.color, stroke: 'var(--card)' },
-                        ...(series.dashed ? { strokeDasharray: '4 3' } : {}),
+                      YAxis({
+                        width: 58,
+                        tickCount: 5,
+                        ...(spec.domain ? { domain: spec.domain } : {}),
+                        tickFormatter: (value) => spec.format(Number(value)),
+                        stroke: 'transparent',
                       }),
+                      Tooltip({ content: 'none' }),
+                      ...(spec.rules ?? []).map((rule) =>
+                        ReferenceLine({
+                          y: rule.y,
+                          stroke: rule.color,
+                          strokeDasharray: '6 4',
+                          label: { value: rule.label, dy: -6, fill: rule.color },
+                        }),
+                      ),
+                      ...markers,
+                      ...(hovered
+                        ? [
+                            ReferenceLine({
+                              x: String(hovered.t),
+                              stroke: 'var(--foreground)',
+                              strokeOpacity: 0.4,
+                            }),
+                          ]
+                        : []),
+                      // Yesterday goes under the series that carry the signal now.
+                      ...series.filter((entry) => entry.faint).map(line),
+                      ...series
+                        .filter((entry) => !entry.faint)
+                        .map((entry) =>
+                          entry.fill
+                            ? Area({
+                                dataKey: entry.key,
+                                name: entry.name,
+                                stroke: entry.color,
+                                strokeWidth: 1.5,
+                                fill: `url(#${id(entry)})`,
+                                fillOpacity: 1,
+                                type: 'linear',
+                              })
+                            : line(entry),
+                        ),
+                    ],
+                  },
+                  h,
                 ),
               ],
-            },
-            h,
-          ),
-        ],
-      ),
-      seriesLegend(rows, spec, hovered, h),
+            ),
+          ]),
+      seriesLegend(data, series, spec, hovered, h),
     ],
     h,
     null,
@@ -1163,12 +1336,12 @@ const stateTimeline = (
 
 const kindColor = (kind: Kind): string => `#${KINDS[kind].color.toString(16).padStart(6, '0')}`
 
-/** The request mix now, as Grafana's donut with a table legend. */
-const mix = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+/** The request mix now, as Grafana's donut with a table legend. `kind` narrows it to one Service. */
+const mix = (ledger: Ledger, kind: RequestKind | null, h: HtmlBuilder<Message>): Html => {
   const kinds = (
     Object.entries(ledger.kinds) as ReadonlyArray<[Kind, { rate: number; p99: number }]>
   )
-    .filter(([, entry]) => entry.rate > 0)
+    .filter(([entryKind, entry]) => entry.rate > 0 && (kind === null || entryKind === kind))
     .sort((a, b) => b[1].rate - a[1].rate)
   const total = kinds.reduce((sum, [, entry]) => sum + entry.rate, 0)
   return panel(
@@ -1742,7 +1915,7 @@ const cashSpark = (rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      seriesLegend(rows, spec, undefined, h),
+      seriesLegend(rows, spec.series, spec, undefined, h),
     ],
   )
 }
@@ -2264,12 +2437,16 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
   )
 }
 
-/** The RED method: rate, errors and duration for each Service the Design serves. */
-const servicesTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+/** The RED method: rate, errors and duration for each Service the Design serves, or for one. */
+const servicesTable = (ledger: Ledger, only: RequestKind | null, h: HtmlBuilder<Message>): Html => {
   const kinds = (
     Object.entries(ledger.kinds) as ReadonlyArray<[RequestKind, KindLedger | undefined]>
   )
-    .flatMap(([kind, entry]) => (entry === undefined || entry.rate <= 0 ? [] : [{ kind, entry }]))
+    .flatMap(([kind, entry]) =>
+      entry === undefined || entry.rate <= 0 || (only !== null && kind !== only)
+        ? []
+        : [{ kind, entry }],
+    )
     .sort((left, right) => right.entry.rate - left.entry.rate)
   const total = kinds.reduce((sum, { entry }) => sum + entry.rate, 0)
   return tablePanel(
@@ -2362,9 +2539,15 @@ const resourceTimeline = (
 const churnCache = new WeakMap<Game, ReadonlyArray<RegionChurn>>()
 
 /** Users by region against the market, with the rate at which each region loses them. */
-const usersTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
-  const regions = churnCache.get(game) ?? churnOf(game, ledger)
-  churnCache.set(game, regions)
+const usersTable = (
+  game: Game,
+  ledger: Ledger,
+  only: RegionId | null,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const all = churnCache.get(game) ?? churnOf(game, ledger)
+  churnCache.set(game, all)
+  const regions = only === null ? all : all.filter((region) => region.region === only)
   const split = regional(game)
   return tablePanel(
     'users',
@@ -2699,8 +2882,15 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** Grafana's variable bar: read-only facts about what the board shows. */
+/**
+ * Grafana's template variables (12 "Controls"): a Request kind and a Region that narrow every panel
+ * that reads per-kind or per-region figures, the read-only Era and SLO, the compare and table
+ * switches, and a switch per annotation group. A Service filter waits on a per-Service figure the
+ * Ledger does not hold: the Game keeps one Service, and no Sample says which Service it served.
+ */
 const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => {
+  const game = model.board.game
+  const dashboard = model.board.dashboard
   const chip = (name: string, value: string) =>
     h.span(
       [
@@ -2724,32 +2914,118 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
         ),
       ],
     )
-  return h.div(
-    [h.Class('flex flex-wrap items-center gap-2 px-4 pt-4 compact:px-3')],
-    [
-      chip('era', eraOf(model.board.game).name),
-      chip('region', model.board.region),
-      chip('slo', percent(slo, slo >= 0.999 ? 1 : 0)),
-      h.span([h.Class('flex-1')], []),
-      h.div(
-        [
-          h.Class(
-            'flex flex-wrap items-center gap-3 text-[calc(11px*var(--type-scale))] text-muted-foreground',
+  const select = (
+    name: string,
+    value: string,
+    options: ReadonlyArray<readonly [string, string]>,
+    chosen: (value: string) => Message,
+  ) =>
+    h.label(
+      [
+        h.Key(name),
+        h.DataAttribute('variable', name),
+        h.Class(
+          'flex h-7 items-center gap-1.5 rounded-lg bg-raised pr-1 pl-2 text-[calc(11px*var(--type-scale))] shadow-raised',
+        ),
+      ],
+      [
+        h.span([h.Class('text-muted-foreground')], [name]),
+        h.select(
+          [
+            h.Value(value),
+            h.AriaLabel(name),
+            h.OnChange(chosen),
+            h.Class(
+              'h-6 max-w-[9.5rem] truncate rounded-md bg-well px-1 font-mono text-[calc(11.5px*var(--type-scale))] text-foreground outline-none',
+            ),
+          ],
+          options.map(([option, label]) =>
+            h.option([h.Value(option), ...(option === value ? [h.Selected(true)] : [])], [label]),
           ),
-        ],
-        ANNOTATION_GROUPS.map((group) =>
-          h.span(
-            [h.Key(group), h.Class('flex items-center gap-1.5')],
-            [
+        ),
+      ],
+    )
+  /** A control that stays pressed: the compare line, the table view, and one per mark group. */
+  const toggle = (name: string, on: boolean, click: Message, color?: string) =>
+    h.button(
+      [
+        h.Key(name),
+        h.Type('button'),
+        h.AriaPressed(on ? 'true' : 'false'),
+        h.OnClick(click),
+        h.Class(
+          cn(
+            'flex h-6 items-center gap-1.5 rounded-md px-1.5 text-[calc(11px*var(--type-scale))]',
+            on ? 'bg-raised text-foreground shadow-raised' : 'text-muted-foreground/70',
+          ),
+        ),
+      ],
+      [
+        ...(color === undefined
+          ? []
+          : [
               h.span(
                 [
                   h.Class('h-3 border-l border-dashed'),
-                  h.Style({ borderColor: ANNOTATION_COLOR[group] }),
+                  h.Style({ borderColor: color, opacity: on ? '1' : '0.4' }),
                 ],
                 [],
               ),
-              ANNOTATION_NAME[group],
+            ]),
+        h.span([], [name]),
+      ],
+    )
+  return h.div(
+    [h.Class('flex flex-wrap items-center gap-2 px-4 pt-4 compact:px-3')],
+    [
+      select(
+        'kind',
+        dashboard.kind ?? 'all',
+        [['all', 'All kinds'], ...REQUEST_KINDS.map((kind) => [kind, KINDS[kind].label] as const)],
+        (value) =>
+          Message.DashboardChanged({
+            message: DashboardMessage.KindChosen({
+              kind: value === 'all' ? null : (value as RequestKind),
+            }),
+          }),
+      ),
+      regional(game)
+        ? select(
+            'region',
+            dashboard.region ?? 'all',
+            [
+              ['all', 'All regions'],
+              ...REGIONS.map((region) => [region, REGION_INFO[region].name] as const),
             ],
+            (value) =>
+              Message.DashboardChanged({
+                message: DashboardMessage.RegionChosen({
+                  region: value === 'all' ? null : (value as RegionId),
+                }),
+              }),
+          )
+        : chip('region', model.board.region),
+      chip('era', eraOf(game).name),
+      chip('slo', percent(slo, slo >= 0.999 ? 1 : 0)),
+      h.span([h.Class('flex-1')], []),
+      toggle(
+        'Compare',
+        dashboard.compare,
+        Message.DashboardChanged({ message: DashboardMessage.CompareToggled() }),
+      ),
+      toggle(
+        'Table',
+        dashboard.table,
+        Message.DashboardChanged({ message: DashboardMessage.TableToggled() }),
+      ),
+      h.div(
+        [h.Class('flex flex-wrap items-center gap-1')],
+        ANNOTATION_GROUPS.map((group) =>
+          toggle(
+            ANNOTATION_NAME[group],
+            dashboard.groups.includes(group),
+            Message.DashboardChanged({ message: DashboardMessage.GroupToggled({ group }) }),
+            ANNOTATION_COLOR[group],
           ),
         ),
       ),
@@ -2766,6 +3042,10 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const markers = markersOf(model, rows)
   const tracks = tracksOf(model)
   const latest = game.history[game.history.length - 1]
+  // The template variables: a Request kind and a Region narrow every panel that holds them.
+  const kind = model.board.dashboard.kind
+  const region = regional(game) ? model.board.dashboard.region : null
+  const regionApdex = region === null ? null : (ledger.regions[region] ?? null)
   const percentiles = has(game, 'percentiles')
   const alerting = has(game, 'alerting')
   const hasNode = (type: ComponentId): boolean => game.nodes.some((node) => node.type === type)
@@ -2806,7 +3086,16 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ]
       : [
-          stat('users', 'Users', compact(latest.users), 'plain', rows, 'users', BLUE, h),
+          stat(
+            'users',
+            'Users',
+            compact(region === null ? latest.users : regionUsers(game)[region]),
+            'plain',
+            rows,
+            'users',
+            BLUE,
+            h,
+          ),
           stat(
             'revenue',
             'Revenue',
@@ -2820,8 +3109,8 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           gauge(
             'apdex',
             'Apdex',
-            latest.apdex,
-            latest.apdex.toFixed(2),
+            regionApdex ?? latest.apdex,
+            (regionApdex ?? latest.apdex).toFixed(2),
             { warn: 0.85, danger: 0.7, invert: true },
             h,
           ),
@@ -2870,6 +3159,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               { key: 'demand', name: 'Demand', color: MUTED, dashed: true },
             ],
             format: (value) => `${compact(value)}/s`,
+            compare: 'served',
           }),
           series({
             key: 'latency',
@@ -2883,6 +3173,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ]
               : [{ key: 'latency', name: 'Mean', color: BLUE, fill: true }],
             format: ms,
+            compare: percentiles ? 'p99' : 'latency',
             ...(latencyRule === null
               ? {}
               : {
@@ -2908,7 +3199,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               })
             : locked('errors-series', 'col-span-8', 'Errors', 'logs', h),
           causes(ledger, h),
-          mix(ledger, h),
+          mix(ledger, kind, h),
 
           ...(alerting
             ? [
@@ -2918,7 +3209,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ]
             : []),
           ...(has(game, 'tracing')
-            ? [rowHeader('Services (RED)', 1, h), servicesTable(ledger, h)]
+            ? [rowHeader('Services (RED)', 1, h), servicesTable(ledger, kind, h)]
             : []),
 
           rowHeader('Saturation', 3, h),
@@ -2988,7 +3279,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             : []),
 
           ...(has(game, 'multi-region')
-            ? [rowHeader('Users', 1, h), usersTable(game, ledger, h)]
+            ? [rowHeader('Users', 1, h), usersTable(game, ledger, region, h)]
             : []),
 
           ...(game.sandbox

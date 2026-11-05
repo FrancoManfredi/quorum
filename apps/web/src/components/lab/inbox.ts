@@ -39,6 +39,8 @@ import {
   nativeSelectOption,
 } from '@quorum/ui/primitives/native-select'
 import { folderHolds, folderList, digestOf, labelsIn, DIGEST_ID } from '@/game/inbox.ts'
+import { PRIORITY_LABEL, barOf, destinationOf, kindLabelOf, priorityOf } from '@/game/mail-row.ts'
+import { advisoryTell } from '@/game/advisories.ts'
 import { Message } from '@/game/message.ts'
 import { boardSandbox, type Folder, type Mail, type MailLabel, type Model } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -170,7 +172,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                     message: InboxMessage.Acted({ id: mail.id, action: act.id }),
                   }),
                   size: 'sm',
-                  attributes: [h.Key(act.id)],
+                  attributes: [h.Key(act.id), h.Title(destinationOf(act))],
                 },
                 act.label,
                 h,
@@ -245,6 +247,9 @@ const row = (
 ): Html => {
   if (mail.id === DIGEST_ID) return digestRow(mail, folded, open, h)
   const sender = senderOf(mail.sender)
+  // The priority bar (18 "Pacing and volume"): danger while a clock runs, warn while a
+  // decision waits. Noise wears none, because no clock and no question is running.
+  const bar = barOf(mail)
   return h.li(
     [h.Key(String(mail.id))],
     [
@@ -261,6 +266,16 @@ const row = (
           ),
         ],
         [
+          bar === null
+            ? h.empty
+            : h.span(
+                [
+                  h.Class(cn('absolute inset-y-0 left-0 w-[3px]', bar)),
+                  h.Role('img'),
+                  h.AriaLabel(PRIORITY_LABEL[priorityOf(mail)]),
+                ],
+                [],
+              ),
           mail.read
             ? h.empty
             : h.span(
@@ -289,6 +304,9 @@ const row = (
                     ],
                     [sender.name],
                   ),
+                  // The kind label repeats the badge's shape and colour in words
+                  // (18 "Colour code").
+                  h.span([h.Class(cn(EYEBROW, 'shrink-0'))], [kindLabelOf(mail)]),
                   mail.entries.length > 1
                     ? h.span(
                         [
@@ -580,6 +598,11 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
   if (mail.id === DIGEST_ID) return digestLetter(mail, folded, h)
   const sender = senderOf(mail.sender)
   const threaded = mail.entries.length > 1
+  // The second tell (18 "How to tell"): a real advisory names an id the Glossary lists, and a
+  // fake one names an id it does not, so there is nothing here to open.
+  const tell = advisoryTell(
+    `${mail.subject}\n${mail.entries.map((entry) => entry.text).join('\n')}`,
+  )
   const buttons =
     mail.answer !== null
       ? [
@@ -597,7 +620,8 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 }),
                 variant: action.id.startsWith('show') ? 'outline' : 'default',
                 size: 'sm',
-                attributes: [h.Key(action.id)],
+                // The hover names where the button really goes: a trap names an off-site address.
+                attributes: [h.Key(action.id), h.Title(destinationOf(action))],
               },
               [action.label, Kbd({ className: 'ml-1 opacity-80' }, [String(index + 1)], h)],
               h,
@@ -611,9 +635,25 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
         [h.Class(cn('flex min-h-0 flex-1 flex-col gap-3 px-5 py-4', SCROLL))],
         [
           h.div(
-            [h.Class('flex items-center gap-2')],
+            [h.Class('flex flex-wrap items-center gap-2')],
             [
               h.span([h.Class(EYEBROW)], [KIND_LABEL[sender.kind]]),
+              tell === null
+                ? h.empty
+                : button(
+                    {
+                      onClick: Message.GlossaryOpened({ id: tell.term }),
+                      variant: 'ghost',
+                      size: 'sm',
+                      className: '-ml-1 h-6 px-1.5 text-muted-foreground',
+                      attributes: [
+                        h.Key(`glossary-${tell.id}`),
+                        h.Title('Opens the Glossary on this advisory'),
+                      ],
+                    },
+                    [icon(h, ShieldAlert, 'size-3.5'), tell.id, ' · ', 'In the Glossary'],
+                    h,
+                  ),
               mail.resolved === null
                 ? h.empty
                 : h.span(

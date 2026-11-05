@@ -3,6 +3,7 @@
 import { MAX_CONNECTIONS } from './instances.ts'
 import { REQUEST_KINDS, type Kind } from './kinds.ts'
 import type { ResearchId } from './research.ts'
+import type { LanguageId } from './runtimes.ts'
 
 export const COMPONENT_IDS = [
   'users',
@@ -20,6 +21,7 @@ export const COMPONENT_IDS = [
   'storage',
   'queue',
   'worker',
+  'fn',
   'cdn',
   'waf',
   'gw',
@@ -30,6 +32,7 @@ export const COMPONENT_IDS = [
   'cluster',
   'warehouse',
   'gpu',
+  'edge',
   'llm',
   'msgp',
   'wide',
@@ -129,6 +132,75 @@ const def = (
   burn: 0,
   ...entry,
 })
+
+/* ---------- functions (05 "Serverless Function", "Edge Function") ---------- */
+
+/**
+ * A Serverless Function's bill (09 "The cloud bill"): dollars per request, and dollars per
+ * GB-second, × cost index, on the Requests line. AWS Lambda lists $0.20 per million requests and
+ * $0.0000166667 per GB-second. At those straight rates a per-use bill is about 3,600× cheaper than
+ * the time-billed compute beside it (09 "How prices map to real prices"), so a function would never
+ * cost as much as the VM it replaces and 05's cost curve could not cross. Both are multiplied by
+ * 1,200, which puts the crossover at about 30% of an equal VM's steady load. Proposed: the design
+ * gives no multiplier and no per-GB-second price for the game.
+ */
+export const SERVERLESS_REQUEST_PRICE = 0.00024
+export const SERVERLESS_GB_SECOND = 0.02
+/** GB one execution bills for each second it runs: Lambda's common 1,024 MB (05). Proposed. */
+export const SERVERLESS_MEMORY_GB = 1
+/** Executions one Serverless Function runs at once, per region (05 "Concurrency cap"). */
+export const SERVERLESS_CONCURRENCY = 1_000
+/** Milliseconds an invocation spends on its own bookkeeping before its code runs. Proposed. */
+export const SERVERLESS_MS = 1
+/**
+ * Sim seconds an execution environment stays warm after its last invocation (05 "Cold starts").
+ * AWS reaps an idle environment after 5 to 15 minutes; one sim second is one calendar minute, so
+ * 5 s. Proposed: the design gives no idle window.
+ */
+export const SERVERLESS_IDLE_SECONDS = 5
+/**
+ * Milliseconds a cold start costs by language (05 "Cold starts"): Rust and Go 50, Node and Python
+ * 200, .NET 500, JVM 2,000. PHP, Ruby, Elixir, Zig and Haskell are proposed in the same order.
+ */
+export const COLD_START_MS: Record<LanguageId, number> = {
+  go: 50,
+  rust: 50,
+  zig: 50,
+  haskell: 100,
+  node: 200,
+  python: 200,
+  php: 200,
+  ruby: 300,
+  csharp: 500,
+  elixir: 500,
+  java: 2_000,
+}
+/** Milliseconds a cold start costs an ahead-of-time binary: the design's GraalVM native image. */
+export const NATIVE_COLD_MS = 100
+
+/**
+ * An Edge Function's bill (05 "Edge Function": Burn "Per request"): dollars per request × cost
+ * index, on the Requests line. Cloudflare Workers list $0.30 per million requests, multiplied by
+ * 1,200 like Lambda's, so a request served at the edge costs about what one served by a function
+ * does, without the GB-seconds. Proposed.
+ */
+export const EDGE_REQUEST_PRICE = 0.00036
+/** Milliseconds an Edge Function adds to a request: it starts in under 5 ms (05 "Stats"). */
+export const EDGE_MS = 5
+/**
+ * CPU milliseconds one request may spend at the edge before it fails as `timeout` (05 "Edge
+ * Function": "CPU-heavy kinds fail as `timeout`"). Cloudflare's free plan gives 10 ms a request.
+ */
+export const EDGE_CPU_MS = 10
+/** MB one edge isolate holds: the small memory ceiling a handler runs in (Cloudflare Workers). */
+export const EDGE_MEMORY_MB = 128
+/**
+ * Languages that run at the edge (05 "Edge Function"): JavaScript and TypeScript, and Rust and Go
+ * compiled to WebAssembly. A Stack in any other language is refused there.
+ */
+export const EDGE_LANGUAGES: ReadonlyArray<LanguageId> = ['node', 'rust', 'go']
+/** Share of `read` a CDN answers from the edge key-value cache an Edge Function holds (05 "CDN"). */
+export const EDGE_READ_HIT = 0.3
 
 export const COMPONENTS: Record<ComponentId, ComponentDef> = {
   users: def({
@@ -382,6 +454,40 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     limiting: true,
     coldStart: true,
   }),
+  // It runs the Service's code per request and owns no box: idle costs nothing, a use bills
+  // (09 "The cloud bill"), and an environment that went away starts cold.
+  fn: def({
+    id: 'fn',
+    code: 'fn',
+    name: 'Serverless Function',
+    product: 'AWS Lambda',
+    group: 'compute',
+    blurb:
+      'Runs your code per request with no box to pay for: nothing while it idles, a cold start when it has, and 1,000 executions at once.',
+    cost: 0,
+    latency: SERVERLESS_MS,
+    accepts: REQUEST_KINDS,
+    sends: [
+      'q-read',
+      'q-write',
+      'auth',
+      'q-search',
+      'blob-put',
+      'task',
+      'blob-get',
+      'q-tx',
+      'charge',
+      'q-scan',
+      'infer',
+      'notify',
+      'callout',
+      'k-write',
+    ],
+    unlock: 'serverless',
+    stack: true,
+    limiting: true,
+    coldStart: true,
+  }),
   cdn: def({
     id: 'cdn',
     code: 'cdn',
@@ -535,6 +641,37 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     steps: 8,
     limiting: true,
     coldStart: true,
+  }),
+  // It runs small handlers in every region's edge, so a user reaches it without a round trip.
+  edge: def({
+    id: 'edge',
+    code: 'edge',
+    name: 'Edge Function',
+    product: 'Cloudflare Workers',
+    group: 'compute',
+    blurb:
+      'Runs small handlers next to the user: 5 ms, no cold start, and a CPU ceiling instead of a box.',
+    cost: 0,
+    latency: EDGE_MS,
+    accepts: REQUEST_KINDS,
+    sends: [
+      'q-read',
+      'q-write',
+      'auth',
+      'q-search',
+      'blob-put',
+      'task',
+      'blob-get',
+      'q-tx',
+      'charge',
+      'q-scan',
+      'infer',
+      'notify',
+      'callout',
+      'k-write',
+    ],
+    unlock: 'edge-compute',
+    stack: true,
   }),
   llm: def({
     id: 'llm',
@@ -821,8 +958,8 @@ export const PSP_FIXED = 0.3
 export const PSP_CAPACITY = 1_000
 
 /**
- * API Gateway (05 "API Gateway"): dollars per request served, × cost index. It is the only
- * Component that bills per request, so its Burn is on the Cost panel's Requests line.
+ * API Gateway (05 "API Gateway"): dollars per request served, × cost index. Its Burn is on the
+ * Cost panel's Requests line, beside the functions'.
  */
 export const GATEWAY_PRICE = 0.002
 /** Rate limits a Gateway offers, in requests per second; 0 is no limit at all. */
@@ -1023,8 +1160,8 @@ export const HOT_KEY_SHARE = 0.3
 /**
  * How a compute Node pays for its box. On-demand is the full rate, reserved a
  * discount for a calendar week's commitment, and spot a deeper one on capacity
- * the provider can take back. Serverless prices each use, and the build has no
- * Serverless Function to bill.
+ * the provider can take back. Serverless is not a box at all: a Serverless
+ * Function bills each use on the Requests line, so it has no entry here.
  */
 export const PRICING_IDS = ['on-demand', 'reserved', 'spot'] as const
 export type PricingId = (typeof PRICING_IDS)[number]

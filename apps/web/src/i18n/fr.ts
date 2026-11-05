@@ -171,6 +171,15 @@ export const fr: Readonly<Record<string, string>> = {
   'Close (Esc)': 'Fermer (Échap)',
   'Design change': 'Modification d’architecture',
   Incident: 'Incident',
+  Deploy: 'Déploiement',
+  'All kinds': 'Tous les types',
+  'All regions': 'Toutes les régions',
+  Yesterday: 'Hier',
+  Compare: 'Comparer',
+  Table: 'Tableau',
+  '⬡ Research': '⬡ Recherche',
+  kind: 'type',
+  region: 'région',
   'Charts fill in as the clock runs.': 'Les graphiques se remplissent au fil du temps.',
   Users: 'Utilisateurs',
   Revenue: 'Revenus',
@@ -3646,4 +3655,53 @@ export const fr: Readonly<Record<string, string>> = {
   'Less fragmentation in long-running Rust services: 1.05× CPU, for 5% more memory at start.':
     'Moins de fragmentation dans les services Rust de longue durée : 1,05× CPU, pour 5 % de mémoire en plus au démarrage.',
   'Free-threaded Python': 'Python à threads libres',
+  // Mail (18): the row's kind label, the priority bar, the hover destinations, and the tell.
+  'In the Glossary': 'Dans le glossaire',
+  'Opens the Glossary on this advisory': 'Ouvre le glossaire sur cet avis',
+  'Urgent: a clock is running': 'Urgent : une horloge tourne',
+  'Needs a decision': 'Attend une décision',
+  'Selects it on the Board': 'Le sélectionne sur le plateau',
+  'Opens the Node Inspector, to resize it': 'Ouvre l’inspecteur du nœud, pour le redimensionner',
+  'Opens the Node Inspector, on its limit': 'Ouvre l’inspecteur du nœud, sur sa limite',
+  'Opens the Node Inspector, on its pricing': 'Ouvre l’inspecteur du nœud, sur sa tarification',
+  'Team: the patch goes to the top of the backlog':
+    'Équipe : le correctif passe en tête de la file',
+  'Team: the patch is rushed': 'Équipe : le correctif est accéléré',
+  'Opens Team': 'Ouvre Équipe',
+  'Raises the round': 'Lève le tour',
+  Declines: 'Refuse',
+  'Adds the hire to the Team roster': 'Ajoute l’embauche à l’effectif d’Équipe',
+  'Answers later': 'Répond plus tard',
+  'Opens the Tradeoff card for the migration': 'Ouvre la carte de compromis de la migration',
+  'Queues the Feature at the end of the Team backlog':
+    'Met la fonctionnalité en fin de file d’Équipe',
+  'Opens the Churn breakdown': 'Ouvre la répartition du churn',
+  'Files the postmortem': 'Classe le post-mortem',
+  'Files the postmortem and queues the action item':
+    'Classe le post-mortem et met l’action en file',
+  'Marks it read and dismisses the card': 'Le marque lu et ferme la carte',
+  'Mutes the sender for one calendar hour': 'Met l’expéditeur en sourdine une heure calendaire',
+  'Leads off-site to {0}': 'Mène hors du jeu vers {0}',
+  'Leads off-site': 'Mène hors du jeu',
+  // The Serverless and Edge Function catalog rows, added alongside the Component work: fr.test
+  // enumerates every player-facing catalog field, so these keep it green until their own copy lands.
+  Serverless: 'Sans serveur',
+  'Edge compute': 'Calcul en périphérie',
+  'Edge Function': 'Fonction Edge',
+  'Runs your code per request with no box to pay for: nothing while it idles, a cold start when it has, and 1,000 executions at once.':
+    'Exécute votre code à la requête, sans machine à payer : rien quand il dort, un démarrage à froid quand il se réveille, et 1 000 exécutions à la fois.',
+  'Runs small handlers next to the user: 5 ms, no cold start, and a CPU ceiling instead of a box.':
+    'Exécute de petits gestionnaires au plus près de l’utilisateur : 5 ms, pas de démarrage à froid, et un plafond de CPU au lieu d’une machine.',
+  'Unlocks the Serverless Function: your code per request, and no box to pay for.':
+    'Débloque la fonction sans serveur : votre code à la requête, sans machine à payer.',
+  'Unlocks the Edge Function: small handlers that run next to the user.':
+    'Débloque la fonction Edge : de petits gestionnaires exécutés au plus près de l’utilisateur.',
+  // The inspector and card rows the two functions add (05 "Serverless Function", "Edge Function").
+  Executions: 'Exécutions',
+  Uses: 'Usages',
+  'Standing Burn': 'Dépenses fixes',
+  'CPU ceiling': 'Plafond CPU',
+  Ceilings: 'Plafonds',
+  'Edge cache': 'Cache de périphérie',
+  Bill: 'Facture',
 }

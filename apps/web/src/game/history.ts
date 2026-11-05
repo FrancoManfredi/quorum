@@ -60,6 +60,9 @@ const indexOf = (time: number, minutes: number): number =>
 export const startOf = (index: number, tier: Tier): number =>
   index * TIERS[tier].minutes - CALENDAR_START
 
+/** The block a sim second falls in, so a Chart can read another day at the same moment. */
+export const blockIndexAt = (time: number, tier: Tier): number => indexOf(time, TIERS[tier].minutes)
+
 const add = (blocks: ReadonlyArray<Block>, index: number, sample: Sample): ReadonlyArray<Block> => {
   const last = blocks[blocks.length - 1]
   if (last && last.index === index) {

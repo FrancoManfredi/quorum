@@ -111,6 +111,10 @@ export const GOLDEN_STEPS = 10_000
 // a time axis (12, 15). Every Sample gains `cash` and every Postmortem `endedAt`,
 // so the encoded Game carries them and every hash moves; the replay's values are
 // unchanged.
+// SIM_VERSION 27: the Serverless Function and the Edge Function are Components, and
+// the Serverless and Edge compute research unlock them. Neither adds a field to the
+// save, so the replay and every reference hash are unchanged; the catalog and the
+// solver both move, so the version does.
 export const GOLDEN_HASH = '26896f78'
 
 /**

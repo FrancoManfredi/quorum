@@ -15,7 +15,7 @@ import { clockOf } from '@quorum/simulation/calendar'
 import { churnOf } from '@quorum/simulation/churn'
 import { preseedGame } from '@quorum/simulation/company'
 import type { KindLedger } from '@quorum/simulation/ledger'
-import { regionUsers } from '@quorum/simulation/regions'
+import { regionUsers, withRegionUsers } from '@quorum/simulation/regions'
 import type { Game, GameLink, GameNode, Postmortem, Sample } from '@quorum/simulation/state'
 import { teamOutputs } from '@quorum/simulation/team'
 import { compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
@@ -24,6 +24,8 @@ import { initialModel, update } from '@/game/update.ts'
 import { ledgerOf, type Mail, type Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
 import { sampleNode, type NodeSample } from '@/game/node-metrics.ts'
+import { blockIndexAt, startOf } from '@/game/history.ts'
+import { AppendLog } from '@/game/commands.ts'
 import { dashboardPanel } from './dashboard.ts'
 
 /* ==========================================================================
@@ -766,6 +768,295 @@ test('the scroll area takes focus, so the keyboard can reach the last rows', () 
         'Dashboard, scroll for the Company and Incidents rows',
       )
       expect(JSON.stringify(scroll.data?.class)).toContain('focus-visible:outline-2')
+    }),
+  )
+})
+
+/* ==========================================================================
+   The Dashboard's long tail (12 "Annotations" and "Controls"): Research
+   marks, the group toggles, the compare line, the template variables and the
+   table view.
+   ========================================================================== */
+
+/** A `finished` Thread, as the Inbox writes one: a letter per item that finished. */
+const finishedOf = (entries: ReadonlyArray<readonly [number, string]>): Mail => ({
+  id: 9,
+  key: 'event:finished:',
+  sender: 'mate:e0',
+  subject: 'Done',
+  time: entries[entries.length - 1]?.[0] ?? 0,
+  entries: entries.map(([time, item]) => ({
+    time,
+    text: `Hey,\n\n${item} is done. Finished it just now.\n\nTests were green.`,
+  })),
+  actions: [],
+  answer: null,
+  read: true,
+  trashed: false,
+  spam: false,
+  resolved: null,
+})
+
+/** One 15-minute block of the Dashboard's own history, holding the means the Charts read. */
+const blockOf = (index: number, means: Readonly<Record<string, number>>) => ({
+  index,
+  count: 2,
+  min: {},
+  max: {},
+  sum: Object.fromEntries(Object.entries(means).map(([field, mean]) => [field, mean * 2])),
+})
+
+/** The Dashboard at a 24-hour range, reading the blocks its history keeps. */
+const daily = (options: Fixture, blocks: ReadonlyArray<ReturnType<typeof blockOf>>): Model => {
+  const model = fixture(options)
+  return {
+    ...model,
+    board: {
+      ...model.board,
+      dashboard: {
+        ...model.board.dashboard,
+        range: 1440,
+        history: { quarter: [...blocks], hour: [] },
+      },
+    },
+  }
+}
+
+/** A path's points, read back out of its `d`: `M92,10L420,10`. */
+const pointsOf = (d: string): ReadonlyArray<readonly [number, number]> =>
+  d
+    .split(/[ML]/)
+    .slice(1)
+    .map((pair) => {
+      const [x, y] = pair.trim().split(/[ ,]/)
+      const point = [Number(x), Number(y)] as const
+      if (Number.isNaN(point[0]) || Number.isNaN(point[1]))
+        throw new Error(`the path does not parse: ${d}`)
+      return point
+    })
+
+test('a finished Study marks the second the Inbox wrote, and a finished task does not', () => {
+  const at = 1_000
+  const last = blockIndexAt(at, 'quarter')
+  const blocks = [last - 2, last - 1, last].map((index) => blockOf(index, { served: 0 }))
+  const studied = startOf(last - 1, 'quarter')
+  const model = daily(
+    {
+      game: { history: [sampleOf(), sampleOf()] },
+      board: {
+        inbox: {
+          ...initialModel().board.inbox,
+          mail: [
+            finishedOf([
+              // A Study, then a task in the same block: the Thread does not say which is which.
+              [studied, RESEARCH['caching'].name],
+              [studied + 60, 'Add index'],
+            ]),
+          ],
+        },
+      },
+    },
+    blocks,
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.tap((simulation) => {
+      const panel = '[data-panel="traffic"]'
+      // One mark, at the block the Study finished in, so the task's entry drew none.
+      const marks = Scene.findAll(simulation.html, `${panel} line[stroke="var(--ok)"]`)
+      expect(marks).toHaveLength(1)
+      const marks2 = Scene.findAll(simulation.html, `${panel} text`).filter(
+        (node) => Scene.textContent(node) === '⬡ Research',
+      )
+      expect(marks2).toHaveLength(1)
+      // The block's own tick is where its second sits on the axis.
+      const label = clock(studied)
+      const ticks = Scene.findAll(simulation.html, `${panel} text`).filter(
+        (node) => Scene.textContent(node) === label,
+      )
+      expect(ticks).toHaveLength(1)
+      expect(Number(Option.getOrNull(Scene.attr(marks[0]!, 'x1')))).toBe(
+        Number(Option.getOrNull(Scene.attr(ticks[0]!, 'x'))),
+      )
+      expect(Number(Option.getOrNull(Scene.attr(marks2[0]!, 'x')))).toBe(
+        Number(Option.getOrNull(Scene.attr(ticks[0]!, 'x'))) + 4,
+      )
+    }),
+  )
+})
+
+test('a group’s toggle hides its marks and leaves the others', () => {
+  const model = fixture({
+    board: {
+      inbox: {
+        ...initialModel().board.inbox,
+        mail: [threadOf('event:deployed:', [998]), threadOf('event:incident-zone:b', [999])],
+      },
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(Scene.text('⇢ Deploy')).toExist(),
+    Scene.click(Scene.role('button', { name: 'Deploy' })),
+    Scene.Command.resolve(AppendLog, Message.Synced()),
+    Scene.expect(Scene.text('⇢ Deploy')).toBeAbsent(),
+    // Only that group went: the Incident in the same range still marks.
+    Scene.expect(Scene.text('▲ Zone outage')).toExist(),
+    Scene.expect(Scene.role('button', { name: 'Deploy' })).toHaveAttr('aria-pressed', 'false'),
+  )
+})
+
+test('the compare line draws yesterday’s figure on the traffic and latency Charts', () => {
+  const history = Array.from({ length: 30 }, () => sampleOf({ served: 28 }))
+  const days = [...new Set(history.map((_, index) => 1_000 - (history.length - 1 - index)))].map(
+    (time) => blockIndexAt(time - 86_400, 'quarter'),
+  )
+  const model = fixture({
+    game: { history: [...history] },
+    board: {
+      dashboard: {
+        ...initialModel().board.dashboard,
+        history: {
+          quarter: days.map((index) => blockOf(index, { served: 7, p99: 120 })),
+          hour: [],
+        },
+      },
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.tap((simulation) => {
+      // Yesterday was a flat 7 req/s, so its line is level, below the 30 the demand carries.
+      const compare = Scene.findAll(
+        simulation.html,
+        '[data-panel="traffic"] path[stroke^="color-mix"]',
+      )
+      expect(compare).toHaveLength(1)
+      const yesterday = pointsOf(Option.getOrNull(Scene.attr(compare[0]!, 'd')) ?? '')
+      expect(yesterday).toHaveLength(history.length)
+      // A flat 7 req/s is one height, the same on every point.
+      expect(new Set(yesterday.map(([, y]) => y)).size).toBe(1)
+      const demand = pointsOf(
+        Option.getOrNull(
+          Scene.attr(
+            Scene.findAll(
+              simulation.html,
+              '[data-panel="traffic"] path[stroke="var(--muted-foreground)"]',
+            )[0]!,
+            'd',
+          ),
+        ) ?? '',
+      )
+      expect(Math.min(...yesterday.map(([, y]) => y))).toBeGreaterThan(
+        Math.max(...demand.map(([, y]) => y)),
+      )
+      // The Latency Chart carries its own compare line.
+      expect(
+        Scene.findAll(simulation.html, '[data-panel="latency"] path[stroke^="color-mix"]'),
+      ).toHaveLength(1)
+    }),
+    // The switch takes it away again.
+    Scene.click(Scene.role('button', { name: 'Compare' })),
+    Scene.Command.resolve(AppendLog, Message.Synced()),
+    Scene.expect(Scene.selector('[data-panel="traffic"] path[stroke^="color-mix"]')).toBeAbsent(),
+    Scene.expect(Scene.role('button', { name: 'Compare' })).toHaveAttr('aria-pressed', 'false'),
+  )
+})
+
+test('a Request kind narrows the Request mix and the Services row together', () => {
+  const model = fixture()
+  const kinds = ledgerOf(model).kinds
+  const busiest = (
+    Object.entries(kinds) as ReadonlyArray<[keyof typeof KINDS, KindLedger | undefined]>
+  )
+    .flatMap(([kind, entry]) => (entry === undefined || entry.rate <= 0 ? [] : [{ kind, entry }]))
+    .sort((left, right) => right.entry.rate - left.entry.rate)[0]
+  if (busiest === undefined) throw new Error('the fixture Design serves nothing')
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    // Every kind before the filter, one after it.
+    Scene.tap((simulation) => {
+      expect(Scene.findAll(simulation.html, '[data-panel="mix"] tbody tr').length).toBeGreaterThan(
+        1,
+      )
+    }),
+    Scene.change('[data-variable="kind"] select', busiest.kind),
+    Scene.Command.resolve(AppendLog, Message.Synced()),
+    Scene.tap((simulation) => {
+      const rows = Scene.findAll(simulation.html, '[data-panel="mix"] tbody tr')
+      expect(rows).toHaveLength(1)
+      // The whole mix is that one Service now, where the unfiltered rows shared it.
+      expect(Scene.textContent(rows[0]!)).toContain('100%')
+      expect(Scene.textContent(rows[0]!)).toContain(`${compact(busiest.entry.rate)}/s`)
+      const services = Scene.findAll(simulation.html, '[data-panel="services"] tbody tr')
+      expect(services).toHaveLength(1)
+      expect(Scene.textContent(services[0]!)).toContain(KINDS[busiest.kind].label)
+      expect(Scene.textContent(services[0]!)).toContain(`${rateText(busiest.entry.rate)}/s`)
+    }),
+  )
+})
+
+test('a Region narrows the Users row and the Apdex the gauge reads', () => {
+  const base = preseedGame()
+  const split = withRegionUsers(base, { na: 600, eu: 300, apac: 100, sa: 50 })
+  const model = fixture({
+    game: {
+      stage: 5,
+      users: split.users,
+      userShares: split.userShares,
+      regionApdex: { na: 0.99, eu: 0.71, apac: 0.95, sa: 0.96 },
+    },
+  })
+  const game = model.board.game
+  const euApdex = ledgerOf(model).regions.eu ?? 0
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.tap((simulation) => {
+      expect(Scene.findAll(simulation.html, '[data-panel="users"] tbody tr')).toHaveLength(4)
+    }),
+    Scene.change('[data-variable="region"] select', 'eu'),
+    Scene.Command.resolve(AppendLog, Message.Synced()),
+    Scene.tap((simulation) => {
+      const rows = Scene.findAll(simulation.html, '[data-panel="users"] tbody tr')
+      expect(rows).toHaveLength(1)
+      expect(Scene.textContent(rows[0]!)).toContain(REGION_INFO.eu.name)
+      expect(Scene.textContent(rows[0]!)).toContain(compact(regionUsers(game).eu))
+      // The Apdex gauge reads that region's users, not the Design's.
+      expect(
+        Scene.textContent(Scene.findAll(simulation.html, '[data-panel="apdex"]')[0]!),
+      ).toContain(euApdex.toFixed(2))
+    }),
+  )
+})
+
+test('the table view reads each Chart’s cells back with the figures its plot draws', () => {
+  const history = [
+    sampleOf({ latency: 80, p99: 300 }),
+    sampleOf({ latency: 90, p99: 400 }),
+    sampleOf({ latency: 100, p99: 500 }),
+  ]
+  const model = fixture({ game: { history } })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.click(Scene.role('button', { name: 'Table' })),
+    Scene.Command.resolve(AppendLog, Message.Synced()),
+    Scene.tap((simulation) => {
+      const rows = Scene.findAll(simulation.html, '[data-table="latency"] tbody tr')
+      expect(rows).toHaveLength(history.length)
+      const cells = (index: number) =>
+        Scene.findAll(rows[index]!, 'td').map((cell) => Scene.textContent(cell))
+      // Time, p99, mean: the same figures the plot's last points carry.
+      expect(cells(1)).toEqual([clock(999), ms(400), ms(90)])
+      expect(cells(2)).toEqual([clock(1_000), ms(500), ms(100)])
+      expect(Scene.findAll(simulation.html, '[data-table="traffic"] tbody tr')).toHaveLength(
+        history.length,
+      )
     }),
   )
 })

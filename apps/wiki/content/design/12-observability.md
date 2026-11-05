@@ -316,16 +316,16 @@ per-CDN Egress, so those Charts wait for a field the Simulation would have to de
 
 ### Annotations
 
-Every time series shows vertical markers for the events that change a system. The design let the
-player turn each group on and off; the build draws every group it has, with no toggle, and the bar
-above the rows names each one in its colour.
+Every time series shows vertical markers for the events that change a system. The variables bar
+carries a switch per group, pressed by default, so the player can hide the marks that sit in the way
+of a change; the switch shows each group in its colour.
 
 | Group          | Marks                                                           | Colour |
 | -------------- | --------------------------------------------------------------- | ------ |
 | Deploys        | A deploy of Shipped Features, and a bad one                     | Purple |
 | Design changes | Nodes placed, resized, or removed; Links drawn; options changed | Blue   |
 | Incidents      | Where an Incident started, with its SEV                         | Red    |
-| Research       | Not built yet                                                   | —      |
+| Research       | A Study finished, from the Inbox's `event:finished` Thread      | Green  |
 | Company        | A funding round, the IPO, and a hire                            | Pink   |
 
 The Deploy, Incident and Company marks come from the Inbox, which is the only record the client keeps
@@ -335,8 +335,16 @@ Incident is marked once, with the SEV it holds now; every other Incident is mark
 started. The marks show when an Incident began; its band, from start to end, is on the Incidents row
 ([Interface](/design/15-ui-ux#company-and-incidents-panels)).
 
-Not built yet: Research marks, which need the sim second each Study finished, and the per-group
-toggles, which need a field on the Dashboard's model.
+Research marks read the same Inbox, and they are the one group the Game does not date. A Study is
+`{ id, progress }` while it runs, and `advanceStudies` takes it off `studies` and adds its id to
+`researched` when it completes, so no field holds the second it finished. The mark is the
+`event:finished` entry that names a Research, at the second the Inbox wrote it. That Thread carries
+a finished task's Mail too, and a letter names its item rather than its kind, so the mark is read
+from the item name in the text: the mark says Research for an entry that names a Research item. A
+per-item field on the Thread's entry would make the mark exact, and so would the time on the Game.
+
+Not built yet: Era markers, which need the second each Era began; the Game holds `stage` and no time
+for the change.
 
 Design changes are the most important group. The player changes the Board to fix a problem, and
 the marker shows whether the line moved after the change. This closes the loop that the
@@ -346,14 +354,29 @@ the marker shows whether the line moved after the change. This closes the loop t
 
 - **Time range.** Last 1 hour, 6 hours (the default), 24 hours, 7 days, and 30 days, in calendar
   time. At 1× speed, 1 calendar hour is 1 real minute.
-- **Compare.** Not built yet: drawing yesterday's line for the same time range as a faint line, so
-  the player can separate the daily cycle from a real change. Grafana calls this a time shift.
-- **Variables.** Not built yet: Service, Request kind, and Region filtering every Chart. The bar
-  shows read-only chips for the Era, the Region and the SLO instead.
+- **Compare.** A switch that draws yesterday's line for the same time range as a faint dashed line
+  under the current series, on the Traffic Chart (Served) and the Latency Chart (p99, or the mean
+  before Percentiles), so the player can separate the daily cycle from a real change. Grafana calls
+  this a time shift. It reads the Dashboard's own blocks, so a range under 10 hours compares against
+  15-minute means, and a row whose day the history no longer reaches leaves a gap rather than a
+  guess. The line is drawn by default and the switch takes it away.
+- **Variables.** A Request kind and a Region, as drop-downs at the top of the page. They narrow every
+  panel that reads a per-kind or a per-region figure: the Request mix and the Services row by kind;
+  the Users row, the Users stat and the Apdex gauge by region. The Charts over time read the
+  Simulation's global Samples, which carry no kind and no region, so a filter cannot narrow them;
+  the field they wait on is a Sample history per Request kind and per Region. The bar keeps
+  read-only chips for the Era and the SLO, and the region drop-down appears from Series C, when
+  users live in more than one place.
+- **Service.** Not built yet. The build's Services row draws one row per Request kind, so the kind
+  filter is the Service filter; a per-Service one waits on a per-Service figure in the Ledger. The
+  Game keeps one Service (`monolith`) and no Sample says which Service served it.
 - **Crosshair and focus.** Hover shows the same moment on every Chart. Clicking a Node's series
   selects that Node on the Board and closes the Dashboard.
-- **Table view.** Not built yet: showing each Chart's values as a table, for screen readers and for
-  exact numbers ([Accessibility](/design/15-ui-ux#accessibility)).
+- **Table view.** A switch that shows each time series' values as a table in place of its plot: one
+  row per time, one column per series with yesterday's when the compare line is drawn, formatted the
+  way the Chart formats them, and a caption naming the Chart and its unit. It is there for screen
+  readers and for reading an exact number
+  ([Accessibility](/design/15-ui-ux#accessibility)).
 
 The player cannot edit queries, add Charts, or move rows. The Dashboard teaches what to look at;
 building dashboards is out of scope.
