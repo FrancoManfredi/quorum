@@ -761,6 +761,12 @@ export const fr: Readonly<Record<string, string>> = {
   'Agent access': 'Accès des agents',
   Language: 'Langue',
   'Copy state as JSON': 'Copier l’état au format JSON',
+  'Copy save as text': 'Copier la sauvegarde en texte',
+  'Import a save': 'Importer une sauvegarde',
+  'Copied the save as text.': 'Sauvegarde copiée au format texte.',
+  'Save imported.': 'Sauvegarde importée.',
+  'A Sandbox or Challenge has no save.': 'Un bac à sable ou un défi n’a pas de sauvegarde.',
+  'There is no Company to export.': 'Aucune entreprise à exporter.',
   '{0} round': 'Levée {0}',
   'Go public': 'Entrer en bourse',
   '+{0} Cash': '+{0} de trésorerie',
@@ -3704,4 +3710,80 @@ export const fr: Readonly<Record<string, string>> = {
   Ceilings: 'Plafonds',
   'Edge cache': 'Cache de périphérie',
   Bill: 'Facture',
+
+  // The Document Store, Vector Index and Event Stream (05, 07): their catalog rows, the research
+  // that unlocks them, and the rows and sections their cards and Inspector add.
+  'Document Store': 'Base documentaire',
+  'Vector Index': 'Index vectoriel',
+  'Event Stream': 'Flux d’événements',
+  'Holds documents instead of rows. No joins and no connections to pool: one flat rate of reads and writes, and each query needs its own index.':
+    'Stocke des documents plutôt que des lignes. Pas de jointures ni de connexions à mutualiser : un débit unique pour les lectures et les écritures, et chaque requête a besoin de son propre index.',
+  'Answers nearest-neighbour lookups over your embeddings. It holds the index in memory, and a prompt that reaches it earns more.':
+    'Répond aux recherches de plus proches voisins sur vos plongements. L’index tient en mémoire, et une requête qui l’atteint rapporte plus.',
+  'A log, not a queue: events stay after they are read, so a consumer can replay them. Consumers read one partition each and fall behind at their own pace.':
+    'Un journal, pas une file : les événements restent après lecture, donc un consommateur peut les rejouer. Chaque consommateur lit une partition et prend son propre retard.',
+  'Document databases': 'Bases documentaires',
+  'Event streaming': 'Diffusion d’événements',
+  Embeddings: 'Plongements',
+  'Unlocks the Document Store: no schema migrations, and no joins either.':
+    'Débloque la base documentaire : plus de migrations de schéma, mais pas de jointures non plus.',
+  'Unlocks the Event Stream: a log that keeps its messages, so consumers replay them.':
+    'Débloque le flux d’événements : un journal qui garde ses messages, que les consommateurs peuvent rejouer.',
+  'Unlocks the Vector Index. AI answers use your own documents, and Python keeps its bonus.':
+    'Débloque l’index vectoriel. Les réponses d’IA s’appuient sur vos propres documents, et Python garde son bonus.',
+  Access: 'Accès',
+  'Access patterns': 'Schémas d’accès',
+  'One document': 'Un document',
+  'Multi-document': 'Multi-document',
+  Joins: 'Jointures',
+  'none to pool': 'aucune à mutualiser',
+  Lookups: 'Consultations',
+  Recall: 'Rappel',
+  Behind: 'En retard',
+  Partitions: 'Partitions',
+  Replicas: 'Réplicas',
+  Keyed: 'Par clé',
+  Durability: 'Durabilité',
+  Retrieval: 'Récupération',
+  'No ack': 'Sans acquittement',
+  Leader: 'Chef de partition',
+  'All replicas': 'Tous les réplicas',
+  'caught up': 'à jour',
+  'caught up s': 'à jour',
+  events: 'événements',
+  'Multi-document transactions on': 'Transactions multi-documents activées',
+  'Multi-document transactions off': 'Transactions multi-documents désactivées',
+  'Index: {0}': 'Index : {0}',
+  'Partitions: {0}': 'Partitions : {0}',
+  'Acks: {0}': 'Acquittements : {0}',
+  'Partition key: keyed': 'Clé de partition : par clé',
+  'Partition key: round robin': 'Clé de partition : tourniquet',
+  'A checkout writes several documents. Without multi-document transactions one can land without the others, and a retry charges the card again; with them every write waits for the rest, at half again its latency.':
+    'Un paiement écrit plusieurs documents. Sans transactions multi-documents, l’un peut être écrit sans les autres, et une nouvelle tentative débite la carte une seconde fois ; avec elles, chaque écriture attend les autres, à une fois et demie sa latence.',
+  'There are no joins: a query that spans documents is a scan, at {0}× the ops, and each new pattern a Feature needs is its own collection and index to write. A Feature that changes the data shape costs {1}% fewer Dev Hours, because there is no migration; the rest cost a little more.':
+    'Pas de jointures : une requête qui traverse des documents est un balayage, à {0}× les opérations, et chaque nouveau schéma demandé par une fonctionnalité est sa propre collection et son index à écrire. Une fonctionnalité qui change la forme des données coûte {1} % d’heures de dev en moins, faute de migration ; les autres coûtent un peu plus.',
+  'The Team panel charges the Dev Hours. The Database is the other side of this trade: joins and schemas, at the price of migrations.':
+    'Le panneau Équipe facture les heures de dev. La base de données est l’autre côté de ce compromis : des jointures et des schémas, au prix des migrations.',
+  'Exact compares the query to every vector: every lookup finds its nearest neighbour, at {0} a second per size step. HNSW walks a graph instead: {1}× the lookups, twice the memory in Burn, and {2} recall, so one lookup in twenty quotes the wrong document.':
+    'Exact compare la requête à chaque vecteur : chaque consultation trouve son plus proche voisin, à {0} par seconde et par palier de taille. HNSW parcourt un graphe : {1}× les consultations, deux fois la mémoire en dépense, et {2} de rappel, donc une consultation sur vingt cite le mauvais document.',
+  'Recall {0} · Burn {1}/s': 'Rappel {0} · Dépense {1}/s',
+  'Link a Node that answers prompts into it and each prompt pays one nearest-neighbour lookup for the documents it quotes. Those answers earn {0}% more, and a Python Stack keeps its ML ecosystem bonus only with an index in the path.':
+    'Reliez-lui un nœud qui répond aux requêtes et chaque requête paie une consultation de plus proche voisin pour les documents qu’elle cite. Ces réponses rapportent {0} % de plus, et une pile Python ne garde son bonus d’écosystème ML qu’avec un index sur le chemin.',
+  'Nothing answers prompts through it yet. Link an App Server into it.':
+    'Rien n’y répond encore. Reliez-lui un serveur applicatif.',
+  '{0} Node retrieves from it.': '{0} nœud y récupère ses documents.',
+  '{0} Nodes retrieve from it.': '{0} nœuds y récupèrent leurs documents.',
+  'One key keeps an entity in one partition, so its events stay in order. A hot key fills a partition and slows it.':
+    'Une clé garde une entité dans une seule partition, donc ses événements restent ordonnés. Une clé chaude remplit une partition et la ralentit.',
+  'Events spread evenly, and order is lost: a superseded write can land after the one that replaced it.':
+    'Les événements se répartissent également, et l’ordre est perdu : une écriture remplacée peut arriver après celle qui l’a remplacée.',
+  'A consumer group reads one consumer per partition, so this stream hands on at most {0}/s.':
+    'Un groupe de consommateurs lit un consommateur par partition, donc ce flux transmet au plus {0}/s.',
+  'A producer waits {0}× the 5 ms append. A replica past the first bills half a broker’s Burn again.':
+    'Un producteur attend {0}× les 5 ms d’ajout. Un réplica au-delà du premier refacture la moitié de la dépense d’un courtier.',
+  'Messages stay after they are read, so a consumer can replay them into a new index or a second Worker without touching the Database. A consumer further behind than the window loses the oldest events.':
+    'Les messages restent après lecture, donc un consommateur peut les rejouer dans un nouvel index ou un second Worker sans toucher à la base de données. Un consommateur plus en retard que la fenêtre perd les événements les plus anciens.',
+  // A Vector Index's two types (07 "Vector Index").
+  Exact: 'Exact',
+  HNSW: 'HNSW',
 }

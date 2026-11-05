@@ -25,6 +25,9 @@ import {
   SHARD_COUNTS,
   LANGUAGES,
   LIFECYCLE_DAYS,
+  LOG_ACKS,
+  LOG_PARTITIONS,
+  LOG_RETENTION,
   SEARCH_REFRESH,
   RESTORE_FAILURE,
   RESTORE_DRILL_DH,
@@ -55,6 +58,7 @@ import {
   QUORUM_N,
   REGION_INFO,
   REGIONS_FROM_STAGE,
+  VEC_INDEXES,
 } from './catalog.ts'
 import {
   frameworkReady,
@@ -268,7 +272,9 @@ export const blankNode = (
     shed: false,
     ryw: false,
     region,
-    n: 3,
+    // A Wide-column Store starts with three replicas per key; an Event Stream keeps one copy of
+    // each partition until the player pays for the second and third (07 "Event Stream").
+    n: type === 'log' ? 1 : 3,
     r: 1,
     w: 1,
     lost: 0,
@@ -276,6 +282,12 @@ export const blankNode = (
     backup: 'none',
     fanout: 'pull',
     split: false,
+    transactions: false,
+    indexType: 'exact',
+    partitions: 3,
+    acks: 'all',
+    retain: 3_600,
+    keyed: true,
   }
 }
 
@@ -1075,6 +1087,61 @@ export const setShards = (game: Game, id: string, shards: number): Action =>
     if (shards > 1 && !has(game, 'sharding'))
       return no(Refusal.Locked({ what: 'Sharding', research: RESEARCH.sharding.name }))
     return ok(node.shards === shards ? game : patch(game, id, { shards }))
+  })
+
+/** Turns multi-document transactions on or off on a Document Store (07 "Document Store"). */
+export const setDocOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{ transactions?: boolean }>,
+): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'doc'
+      ? ok(patch(game, id, change))
+      : notAllowed('Only a Document Store has multi-document transactions.'),
+  )
+
+/** Picks a Vector Index's type (07 "Vector Index"): exact, or approximate HNSW. */
+export const setVecIndex = (game: Game, id: string, indexType: GameNode['indexType']): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'vec') return notAllowed('Only a Vector Index has an index type.')
+    if ((VEC_INDEXES as Record<string, unknown>)[indexType] === undefined)
+      return notAllowed(`Index types are ${Object.keys(VEC_INDEXES).join(', ')}.`)
+    return ok(node.indexType === indexType ? game : patch(game, id, { indexType }))
+  })
+
+/**
+ * An Event Stream's partitions, acknowledgements, retention and partition key (07 "Event Stream").
+ * Each one trades parallelism or durability against order, disk, and the window a consumer has.
+ */
+export const setLogOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{
+    partitions?: number
+    acks?: GameNode['acks']
+    retain?: number
+    keyed?: boolean
+  }>,
+): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'log') return notAllowed('Only an Event Stream has these.')
+    if (
+      change.partitions !== undefined &&
+      !(LOG_PARTITIONS as ReadonlyArray<number>).includes(change.partitions)
+    )
+      return notAllowed(`Partition counts are ${LOG_PARTITIONS.join(', ')}.`)
+    if (
+      change.acks !== undefined &&
+      (LOG_ACKS as Record<string, unknown>)[change.acks] === undefined
+    )
+      return notAllowed(`Acknowledgements are ${Object.keys(LOG_ACKS).join(', ')}.`)
+    if (
+      change.retain !== undefined &&
+      !(LOG_RETENTION as ReadonlyArray<number>).includes(change.retain)
+    )
+      return notAllowed(`Retention windows are ${LOG_RETENTION.join(', ')} seconds.`)
+    return ok(patch(game, id, change))
   })
 
 /**

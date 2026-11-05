@@ -16,6 +16,8 @@ import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { WorkItem } from '@quorum/simulation/state'
 import { SHARED } from '@quorum/simulation/playbook'
+import { encodeText } from '@quorum/simulation/codec'
+import { SIM_VERSION } from '@quorum/simulation/version'
 import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
 import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
@@ -1193,6 +1195,41 @@ test('a save this version cannot read is kept aside instead of dropped', () => {
       ]),
     )
   }
+})
+
+test('a save travels as one line of text, and only a save of this build opens it', () => {
+  const playable: Model = { ...inLab(), saved: true }
+  const exported = update(playable, Message.SaveExported())
+  const copied = (
+    (exported.commands ?? []) as ReadonlyArray<{
+      name: string
+      args: Record<string, unknown>
+    }>
+  ).find((command) => command.name === 'CopyText')
+  const text = String(copied?.args['text'] ?? '')
+  expect(text.startsWith('QSV1:')).toBe(true)
+
+  // Pasting it back opens the same Company, on a fresh board to work on.
+  const opened = update(initialModel(), Message.SaveImported({ text }))
+  expect(opened.model.saved).toBe(true)
+  expect(opened.model.toast?.tone).toBe('ok')
+  expect(opened.model.board.game.cash).toBe(playable.board.game.cash)
+  expect(opened.model.board.game.nodes).toEqual(playable.board.game.nodes)
+  expect(opened.model.board.undo).toEqual([])
+
+  // Anything that is not a save of this build is refused, and the open Company stays.
+  const other = encodeText('QSV1:', {
+    version: SIM_VERSION - 1,
+    save: { ...playable.board.game, wall: 0 },
+  })
+  for (const wrong of ['hello', other]) {
+    const refused = update(playable, Message.SaveImported({ text: wrong }))
+    expect(refused.model.toast?.tone).toBe('warn')
+    expect(refused.model.board.game).toBe(playable.board.game)
+  }
+
+  // There is nothing to export before a Company exists.
+  expect(update(initialModel(), Message.SaveExported()).model.toast?.tone).toBe('warn')
 })
 
 test('the board redraws after any Message that changes what it shows, and fits after the redraw', () => {

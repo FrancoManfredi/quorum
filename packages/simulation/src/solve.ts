@@ -635,7 +635,7 @@ const forward = (inputs: Inputs): Pass => {
       for (const kind of REQUEST_KINDS)
         if (PROFILES[kind].offload > 0 && (kept[kind] ?? 0) > 0) offloaded[kind] = kept[kind] ?? 0
       composition = sharesOf(offloaded)
-    } else composition = node.type === 'queue' ? sharesOf(tasks[slot]) : null
+    } else composition = node.type === 'queue' || node.type === 'log' ? sharesOf(tasks[slot]) : null
     rule.serve(
       {
         solver,
@@ -1380,7 +1380,8 @@ const ledgerOf = (
       strandedKinds: strand ? [...strand.kinds] : [],
       connections: pool,
       hitRatio: node.type === 'cache' || node.type === 'cdn' ? (pass.hits[slot] ?? 0) : null,
-      age: node.type === 'queue' ? (completion.waits.get(node.id) ?? 0) : null,
+      age:
+        node.type === 'queue' || node.type === 'log' ? (completion.waits.get(node.id) ?? 0) : null,
       lag: node.type === 'replica' ? pass.lag : null,
       disk: model?.disk ?? false,
       out,

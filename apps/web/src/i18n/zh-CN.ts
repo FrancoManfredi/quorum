@@ -94,6 +94,12 @@ export const zhCN: Readonly<Record<string, string>> = {
     '正在进行挑战。挑战会计分，所以不能读取。',
   'Copy state as JSON': '复制状态为 JSON',
   'Copied the game state as JSON.': '已将游戏状态复制为 JSON。',
+  'Copy save as text': '将存档复制为文本',
+  'Import a save': '导入存档',
+  'Copied the save as text.': '已将存档复制为文本。',
+  'Save imported.': '存档已导入。',
+  'A Sandbox or Challenge has no save.': '沙盒或挑战没有存档。',
+  'There is no Company to export.': '没有可导出的公司。',
   'Playtest build': '试玩版本',
   'This game is not finished yet': '游戏尚未完成',
   'Your saves can break or reset when the game changes. Treat this as a playtest, not a final release.':
@@ -1738,4 +1744,53 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Score {0} of 10. Affects {1}.': '评分 {0}，满分 10 分。影响 {1}。',
   'Security mail names it and files a patch ticket: {0} DH, due {1} minutes after disclosure. Overdue, it turns red on the Team backlog, and a minute later it is exploited.':
     '安全邮件会点名它并开出补丁工单：{0} DH，披露后 {1} 分钟内到期。逾期后它会在团队待办中变红，再过一分钟就会被利用。',
+
+  // The Document Store, Vector Index and Event Stream (05, 07).
+  'Document Store': '文档数据库',
+  'Vector Index': '向量索引',
+  'Event Stream': '事件流',
+  'Holds documents instead of rows. No joins and no connections to pool: one flat rate of reads and writes, and each query needs its own index.':
+    '存文档而不是行。没有连接、也没有需要池化的连接：读写共用一个固定吞吐，而每个查询都要有自己的索引。',
+  'Answers nearest-neighbour lookups over your embeddings. It holds the index in memory, and a prompt that reaches it earns more.':
+    '在你的向量上回答最近邻查询。索引常驻内存，能访问到它的请求赚得更多。',
+  'A log, not a queue: events stay after they are read, so a consumer can replay them. Consumers read one partition each and fall behind at their own pace.':
+    '是日志而不是队列：事件读完后仍然保留，消费者可以重放。每个消费者读一个分区，按自己的节奏落后。',
+  'Document databases': '文档数据库',
+  'Event streaming': '事件流',
+  Embeddings: '向量嵌入',
+  'Unlocks the Document Store: no schema migrations, and no joins either.':
+    '解锁文档数据库：不用改表结构，但也没有连接查询。',
+  'Unlocks the Event Stream: a log that keeps its messages, so consumers replay them.':
+    '解锁事件流：保留消息的日志，消费者可以重放。',
+  'Unlocks the Vector Index. AI answers use your own documents, and Python keeps its bonus.':
+    '解锁向量索引。AI 回答会用到你自己的文档，Python 也能保住加成。',
+  Access: '访问',
+  'Access patterns': '访问模式',
+  'One document': '单文档',
+  'Multi-document': '多文档',
+  Joins: '连接',
+  'none to pool': '无需池化',
+  Lookups: '查询',
+  Recall: '召回率',
+  Behind: '落后',
+  Partitions: '分区',
+  Replicas: '副本',
+  Keyed: '按 key',
+  Durability: '持久性',
+  Retrieval: '检索',
+  'No ack': '不确认',
+  Leader: '分区首领',
+  'All replicas': '全部副本',
+  'caught up': '已跟上',
+  events: '事件',
+  'Multi-document transactions on': '已开启多文档事务',
+  'Multi-document transactions off': '已关闭多文档事务',
+  'Index: {0}': '索引：{0}',
+  'Partitions: {0}': '分区：{0}',
+  'Acks: {0}': '确认：{0}',
+  'Partition key: keyed': '分区键：按 key',
+  'Partition key: round robin': '分区键：轮询',
+  // A Vector Index's two types (07 "Vector Index").
+  Exact: '精确',
+  HNSW: 'HNSW',
 }

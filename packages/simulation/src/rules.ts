@@ -59,6 +59,17 @@ import {
   EDGE_LANGUAGES,
   EDGE_MS,
   EDGE_READ_HIT,
+  DOC_JOIN_COST,
+  DOC_OPS,
+  DOC_OP_MS,
+  DOC_PARTIAL,
+  DOC_TXN_LATENCY,
+  LOG_ACKS,
+  LOG_RATE,
+  LOG_READ_RATE,
+  VEC_AI_LIFT,
+  VEC_INDEXES,
+  VEC_QUERIES,
   isBackendKind,
   type ComponentId,
   type Kind,
@@ -98,6 +109,7 @@ import {
   inCluster,
   storageBands,
   transferMs,
+  vecOf,
 } from './lookups.ts'
 import { buggy } from './migration.ts'
 import { spreadRegions } from './regions.ts'
@@ -405,14 +417,29 @@ export const hubRate = (node: GameNode, builtIn = false): number =>
 
 /**
  * The ML ecosystem bonus (06 "ML ecosystem"): a Python service runs small models in process, so
- * `ai` requests earn 20% more. PyPy cannot use it, because the C extensions it needs are not
- * ready. Vector Index is not built, so any Python server that answers `ai` earns it. Proposed:
- * the design makes the bonus conditional on a Vector Index in the path.
+ * an `ai` request whose answer uses a Vector Index earns 20% more. PyPy cannot use it, because
+ * the C extensions it needs are not ready. The index has to be in the path: without one, the
+ * prompt has no documents of the company's own behind it and no small model to embed them.
  */
-export const mlValueOf = (node: GameNode, kind: RequestKind): number =>
-  kind === 'ai' && RUNTIMES[node.runtime].language === 'python' && node.runtime !== 'pypy'
+export const mlValueOf = (node: GameNode, kind: RequestKind, retrieved: boolean): number =>
+  kind === 'ai' &&
+  retrieved &&
+  RUNTIMES[node.runtime].language === 'python' &&
+  node.runtime !== 'pypy'
     ? ML_AI_BONUS
     : 1
+
+/**
+ * What an `ai` request earns (07 "Vector Index"): the ML ecosystem bonus when a Vector Index is
+ * in the path, on top of the lift the retrieved documents add. An approximate index takes its
+ * recall's share of the lift, because a lookup that misses a neighbour quotes the wrong document.
+ */
+export const aiValueOf = (game: Game, node: GameNode, kind: RequestKind): number => {
+  if (kind !== 'ai') return 1
+  const vec = vecOf(game, node)
+  const lift = vec ? 1 + (VEC_AI_LIFT - 1) * VEC_INDEXES[vec.indexType].recall : 1
+  return lift * mlValueOf(node, kind, vec !== undefined)
+}
 
 /**
  * Distributed Erlang gives an Elixir Hub its own cluster backbone, so it takes connections on
@@ -447,7 +474,7 @@ const answerCalls: ComponentRule['outcome'] = (answer, node, kind) => {
   const requestKind = kind as RequestKind
   const served = answer.ownHop(
     kind,
-    (FRAMEWORKS[node.framework].value[requestKind] ?? 1) * mlValueOf(node, requestKind),
+    (FRAMEWORKS[node.framework].value[requestKind] ?? 1) * aiValueOf(game, node, requestKind),
   )
   // The response crosses the user's downlink: bytes over bandwidth.
   const own = {
@@ -496,6 +523,22 @@ const terminal: Pick<ComponentRule, 'serve' | 'connections' | 'probe'> = {
   serve: nothing,
   connections: noConnections,
   probe: noProbe,
+}
+
+/**
+ * The work a Document Store's arrivals make, in ops: a read or a write is one document, and a
+ * join — a checkout across documents, or a report scanning the collection — is three (07
+ * "Document Store": "`report` and `q-tx` across documents cost 3×").
+ */
+const docWork = (arriving: Rates): Readonly<{ rate: number; ops: number }> => {
+  let rate = 0
+  let ops = 0
+  for (const kind of Object.keys(arriving) as Array<Kind>) {
+    const each = arriving[kind] ?? 0
+    rate += each
+    ops += each * (kind === 'q-tx' || kind === 'q-scan' ? DOC_JOIN_COST : 1)
+  }
+  return { rate, ops }
 }
 
 export const RULES: Record<ComponentId, ComponentRule> = {
@@ -719,6 +762,45 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     },
     ...terminal,
   },
+  // It answers reads and writes on documents: one flat rate of ops, a join at three of them, no
+  // connections to pool, and no schema to migrate (07 "Document Store").
+  doc: {
+    model: (solver, node, arriving) => {
+      const { rate, ops } = docWork(arriving)
+      const perOp = rate > 0 ? ops / rate : 1
+      const capacity = (DOC_OPS * flatScale(node)) / hotKeyFactor(solver.game, node) / perOp
+      const model = flatModel(
+        capacity,
+        arriving,
+        { fixed: 3, variable: DOC_OP_MS },
+        solver.boost(node),
+      )
+      // A join makes the store touch three documents, and a transaction makes the write wait for
+      // every one of them: the latency grows with the ops it costs, not only with the queue.
+      const wait = (model.service['q-read']?.variable ?? DOC_OP_MS) - DOC_OP_MS
+      const service: Record<string, { fixed: number; variable: number }> = {}
+      for (const kind of Object.keys(arriving)) {
+        const join = kind === 'q-tx' || kind === 'q-scan' ? DOC_JOIN_COST : 1
+        const slower =
+          node.transactions && (kind === 'q-write' || kind === 'q-tx') ? 1 + DOC_TXN_LATENCY : 1
+        service[kind] = { fixed: 3, variable: DOC_OP_MS * join * slower + wait }
+      }
+      return { ...model, service }
+    },
+    // It takes every document op and sends nothing on: there is no database behind it.
+    serve: nothing,
+    outcome: (answer, node, kind) => {
+      const reply = through(answer.ownHop(kind))
+      // No joins: a checkout spreads over several documents, and without multi-document
+      // transactions it can land half-applied, so the retry charges again (07 "Document Store").
+      return kind === 'q-tx' && !node.transactions
+        ? failSome(reply, DOC_PARTIAL, 'duplicate')
+        : reply
+    },
+    // It has no connection limit to exhaust: an App Server opens none it has to pool.
+    connections: noConnections,
+    probe: () => ({ 'q-read': 1 }),
+  },
   queue: {
     model: flat({ fixed: 2, variable: 0.05 }, (node) => QUEUE_RATE * flatScale(node)),
     // It offers its Workers what arrived, plus a share of its backlog as far as they have room.
@@ -742,6 +824,46 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       return inflow > 0
         ? failSome(enqueued, Math.max(0, 1 - drained / inflow), 'dropped')
         : enqueued
+    },
+    connections: noConnections,
+    probe: noProbe,
+  },
+  // A log, not a queue (07 "Event Stream"): it appends what producers send, and its consumers
+  // read one partition each at their own pace, so they lag behind and the messages stay.
+  log: {
+    model: (solver, node, arriving) =>
+      flatModel(
+        (LOG_RATE * flatScale(node)) / hotKeyFactor(solver.game, node),
+        arriving,
+        { fixed: LOG_ACKS[node.acks].latency * 5, variable: 0.1 },
+        solver.boost(node),
+      ),
+    // It offers its consumers what arrived plus a share of its lag, and no faster than one
+    // consumer per partition can read (07 "Event Stream": "A consumer group can use at most one
+    // consumer per partition").
+    serve: (serve, node, rates, share) => {
+      if (share <= 0) return
+      const arrived = (rates.task ?? 0) * share
+      const room = Math.max(0, serve.solver.drainable(node) - arrived)
+      const read = LOG_READ_RATE * Math.max(1, Math.floor(node.partitions))
+      serve.route('task', Math.min(arrived + Math.min(node.depth / DRAIN_SECONDS, room), read))
+    },
+    // The producer waits for its append only. A consumer further behind than the retention window
+    // loses the oldest events, and one that reads unkeyed events sees them out of order.
+    outcome: (answer, node, kind) => {
+      const own = answer.ownHop(kind)
+      // With no Worker linked, nothing consumes the stream.
+      if (answer.downstream(kind).fail.stranded >= 1) return failed('stranded')
+      const appended = through({ ...own, fixed: own.fixed + BACKLOG_MS * node.depth })
+      const slot = slotOf(answer.pass, node)
+      const inflow = answer.pass.arriving[slot]?.task ?? 0
+      // How far behind the producer its consumers are, in seconds of arriving work.
+      const lag = inflow > 0 ? node.depth / inflow : 0
+      const expired = lag > node.retain && lag > 0 ? 1 - node.retain / lag : 0
+      // Order holds only inside a partition, so an unkeyed stream spreads one entity's events and
+      // they apply out of order: the value a consumer writes is the older one.
+      const unordered = node.keyed ? 0 : 1 - 1 / Math.max(1, Math.floor(node.partitions))
+      return failSome(failSome(appended, expired, 'dropped'), unordered, 'stale')
     },
     connections: noConnections,
     probe: noProbe,
@@ -973,6 +1095,27 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     model: unlimited(1_500, 200),
     outcome: (answer, _, kind) => through(answer.ownHop(kind)),
     ...terminal,
+  },
+  // Nearest-neighbour lookups over the company's embeddings (07 "Vector Index"): the index lives
+  // in memory, so its type decides how many lookups it answers and how many it gets right.
+  vec: {
+    model: (solver, node, arriving) => {
+      const index = VEC_INDEXES[node.indexType]
+      return flatModel(
+        (VEC_QUERIES * flatScale(node) * index.queries) / hotKeyFactor(solver.game, node),
+        arriving,
+        { fixed: 20, variable: 2 },
+        solver.boost(node),
+      )
+    },
+    // An approximate index misses a true neighbour on its recall's shortfall: the search comes
+    // back without the document it wanted, which is a stale result.
+    outcome: (answer, node, kind) => {
+      const miss = 1 - VEC_INDEXES[node.indexType].recall
+      return { ...through(answer.ownHop(kind)), stale: kind === 'q-search' ? miss : 0 }
+    },
+    ...terminal,
+    probe: () => ({ 'q-search': 1 }),
   },
   // Prompts per second: tokens per second over the tokens in a prompt. A cold Node loads its model.
   gpu: {

@@ -19,8 +19,10 @@ export const COMPONENT_IDS = [
   'auth',
   'search',
   'storage',
+  'doc',
   'queue',
   'worker',
+  'log',
   'fn',
   'cdn',
   'waf',
@@ -31,6 +33,7 @@ export const COMPONENT_IDS = [
   'ci',
   'cluster',
   'warehouse',
+  'vec',
   'gpu',
   'edge',
   'llm',
@@ -201,6 +204,87 @@ export const EDGE_MEMORY_MB = 128
 export const EDGE_LANGUAGES: ReadonlyArray<LanguageId> = ['node', 'rust', 'go']
 /** Share of `read` a CDN answers from the edge key-value cache an Edge Function holds (05 "CDN"). */
 export const EDGE_READ_HIT = 0.3
+
+/* ---------- the Document Store, Vector Index and Event Stream (05, 07) ---------- */
+
+/**
+ * Ops a Document Store answers a second at size 1 (05 "Stats": 3,000). It has no buffer cache,
+ * no IOPS volume and no connection limit: one flat rate covers reads and writes, which is the
+ * shape that differs from a relational table (07 "Document Store").
+ */
+export const DOC_OPS = 3_000
+/**
+ * Ops one join costs it: a checkout spread over several documents, or a report scanning the whole
+ * collection (07 "Document Store": "`report` and `q-tx` across documents cost 3×").
+ */
+export const DOC_JOIN_COST = 3
+/** Milliseconds one op takes the store's own server. Proposed: the design gives the Node's 3 ms. */
+export const DOC_OP_MS = 1
+/** Multi-document transactions add this share to a write's latency (07 "Document Store": +50%). */
+export const DOC_TXN_LATENCY = 0.5
+/**
+ * Share of checkouts that land half-applied without multi-document transactions, so a retry
+ * charges again: the atomicity the option buys back (07 "Document Store"). Proposed.
+ */
+export const DOC_PARTIAL = 0.02
+/**
+ * Dev Hours every Feature pays on a Design with a Document Store (07 "Document Store"): no joins
+ * means each new access pattern is its own collection and index to write and read, so it costs
+ * this multiple of a Feature's hours. Proposed: the design gives the direction ("+Dev Hours per
+ * feature"), the −25% for a shape change, and no figure for the access pattern.
+ */
+export const DOC_PATTERN_FACTOR = 1.1
+/** A Feature that changes the data shape costs this share of its Dev Hours there (07: −25%). */
+export const DOC_SHAPE_DH = 0.75
+
+/** Nearest-neighbour queries one Vector Index answers a second at size 1 (05 "Stats": 500). */
+export const VEC_QUERIES = 500
+/**
+ * Index types (07 "Vector Index"). Exact compares the query to every vector: perfect recall, and
+ * slow once the index outgrows a scan. HNSW walks a graph instead: twice the queries, twice the
+ * memory in Burn, and 95% recall. The 95% is the design's; the capacity and the Burn multiple
+ * are proposed, since the design says "slow at scale" and "memory-heavy" without a figure.
+ */
+export const VEC_INDEXES = {
+  exact: { name: 'Exact', recall: 1, queries: 1, burn: 1 },
+  hnsw: { name: 'HNSW', recall: 0.95, queries: 2, burn: 2 },
+} as const
+/**
+ * `ai` value with the company's own documents behind the answer (07 "Vector Index": "answers use
+ * the company's own data"). Proposed: the design gives the direction and no figure. An
+ * approximate index takes its recall's share of the lift.
+ */
+export const VEC_AI_LIFT = 1.35
+
+/** Messages a second one broker appends at size 1 (05 "Stats": 100,000 per broker). */
+export const LOG_RATE = 100_000
+/**
+ * Messages a second one partition hands its consumer. A consumer group can use at most one
+ * consumer per partition (07 "Event Stream"), so a stream reads no faster than its partitions.
+ * Proposed: the design gives the partitions' meaning and no rate.
+ */
+export const LOG_READ_RATE = 20_000
+/** Partitions a stream offers, as button values: parallelism, and the width of the order it keeps. */
+export const LOG_PARTITIONS = [1, 3, 6, 12] as const
+/**
+ * Acknowledgements (07 "Event Stream"): what a producer waits for before it moves on. `0` does not
+ * wait, `1` waits for the partition leader, `all` for every replica. Each is a multiple of the
+ * 5 ms append. The multiples are proposed: the design gives the direction only.
+ */
+export const LOG_ACKS = {
+  '0': { name: 'No ack', latency: 0.4 },
+  '1': { name: 'Leader', latency: 1 },
+  all: { name: 'All replicas', latency: 1.5 },
+} as const
+/** Retention windows a stream offers, in sim seconds: 10 calendar hours, 2.5 days, and a week. */
+export const LOG_RETENTION = [600, 3_600, 10_080] as const
+/**
+ * Burn each replica past the first adds to a broker, as a share of its own rate: every partition
+ * is copied, and the copies are disk (07 "Event Stream": "costs more disk"). Proposed.
+ */
+export const LOG_REPLICA_BURN = 0.5
+/** Replicas a stream keeps of each partition: 1, 2, or 3 (07 "Event Stream"). */
+export const LOG_REPLICAS = [1, 2, 3] as const
 
 export const COMPONENTS: Record<ComponentId, ComponentDef> = {
   users: def({
@@ -420,6 +504,27 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     maxOut: 0,
     unlock: 'object-storage',
   }),
+  // It holds documents, not rows: no joins and no connection limit, one flat rate of reads and
+  // writes, and every query pattern is its own collection and index (07 "Document Store").
+  doc: def({
+    id: 'doc',
+    code: 'doc',
+    name: 'Document Store',
+    product: 'MongoDB, Firestore',
+    group: 'data',
+    blurb:
+      'Holds documents instead of rows. No joins and no connections to pool: one flat rate of reads and writes, and each query needs its own index.',
+    cost: 260,
+    burn: 0.2,
+    latency: 3,
+    accepts: ['q-read', 'q-write', 'q-tx', 'q-scan'],
+    fallback: ['q-scan'],
+    maxOut: 0,
+    unlock: 'document-db',
+    steps: 8,
+    limiting: true,
+    coldStart: true,
+  }),
   queue: def({
     id: 'queue',
     code: 'mq',
@@ -453,6 +558,25 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     stack: true,
     limiting: true,
     coldStart: true,
+  }),
+  // A partitioned, replicated log: producers append, consumers read at their own pace, and the
+  // messages stay after they are read (07 "Event Stream").
+  log: def({
+    id: 'log',
+    code: 'log',
+    name: 'Event Stream',
+    product: 'Apache Kafka',
+    group: 'compute',
+    blurb:
+      'A log, not a queue: events stay after they are read, so a consumer can replay them. Consumers read one partition each and fall behind at their own pace.',
+    cost: 900,
+    burn: 0.3,
+    latency: 5,
+    accepts: ['task'],
+    sends: ['task'],
+    unlock: 'event-streaming',
+    steps: 6,
+    limiting: true,
   }),
   // It runs the Service's code per request and owns no box: idle costs nothing, a use bills
   // (09 "The cloud bill"), and an environment that went away starts cold.
@@ -625,6 +749,26 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     accepts: ['q-scan'],
     maxOut: 0,
     unlock: 'data-warehouse',
+  }),
+  // It holds the embeddings a prompt retrieves from: nearest-neighbour reads, and an index that
+  // lives in memory (07 "Vector Index").
+  vec: def({
+    id: 'vec',
+    code: 'vec',
+    name: 'Vector Index',
+    product: 'pgvector, Pinecone, Qdrant',
+    group: 'data',
+    blurb:
+      'Answers nearest-neighbour lookups over your embeddings. It holds the index in memory, and a prompt that reaches it earns more.',
+    cost: 400,
+    burn: 0.3,
+    latency: 20,
+    accepts: ['q-search'],
+    maxOut: 0,
+    unlock: 'embeddings',
+    steps: 6,
+    limiting: true,
+    coldStart: true,
   }),
   gpu: def({
     id: 'gpu',

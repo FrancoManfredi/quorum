@@ -56,6 +56,9 @@ import {
   SERVERLESS_GB_SECOND,
   SERVERLESS_MEMORY_GB,
   SERVERLESS_REQUEST_PRICE,
+  LOG_REPLICAS,
+  LOG_REPLICA_BURN,
+  VEC_INDEXES,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
 import type { Game, GameNode, Pricing, StorageClass } from './state.ts'
@@ -268,6 +271,23 @@ export const coldStartMs = (node: GameNode): number => {
 export const hasEdge = (game: Game): boolean =>
   game.nodes.some((node) => node.type === 'edge' && !isDown(node))
 
+/**
+ * The live Vector Index a Node links to, if any: the company's own documents behind an `ai`
+ * answer (07 "Vector Index"). A Node that reaches one pays the nearest-neighbour lookup, and the
+ * prompt it answers earns more.
+ */
+export const vecOf = (game: Game, node: GameNode): GameNode | undefined =>
+  game.nodes.find(
+    (entry) =>
+      entry.type === 'vec' &&
+      !isDown(entry) &&
+      game.links.some((link) => link.from === node.id && link.to === entry.id),
+  )
+
+/** Replicas an Event Stream keeps of each partition, 1 to 3 (07 "Event Stream"). */
+export const logReplicas = (node: GameNode): number =>
+  Math.max(1, Math.min(LOG_REPLICAS[LOG_REPLICAS.length - 1] ?? 3, Math.floor(node.n)))
+
 /* ---------- money ---------- */
 
 /** base × factor^steps by repeated multiplication: `**` is not exact across engines. */
@@ -416,6 +436,18 @@ export const burnOf = (game: Game, node: GameNode): number => {
       (node.standby ? 2 : 1)
     )
   if (node.type === 'storage') return (def.burn + storageBurnOf(game, node)) * index
+  // A Vector Index holds its graph in memory: HNSW bills twice the vectors' box (07 "Vector Index").
+  if (node.type === 'vec')
+    return def.burn * VEC_INDEXES[node.indexType].burn * flatScale(node) * index
+  // An Event Stream copies every partition once per replica, and the copies are disk (07).
+  if (node.type === 'log')
+    return (
+      def.burn *
+      (1 + (logReplicas(node) - 1) * LOG_REPLICA_BURN) *
+      flatScale(node) *
+      index *
+      (node.standby ? 2 : 1)
+    )
   if (node.type === 'gpu') return GPU_TYPES[node.gpu].burn * flatScale(node) * index
   // A spread store runs its nodes in each region it replicates to.
   if ((node.type === 'wide' || node.type === 'dsql') && node.spread)

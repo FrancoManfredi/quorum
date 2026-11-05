@@ -70,6 +70,15 @@ import {
   RESTORE_DRILL_DH,
   EDGE_CPU_MS,
   EDGE_MEMORY_MB,
+  DOC_JOIN_COST,
+  DOC_SHAPE_DH,
+  LOG_ACKS,
+  LOG_PARTITIONS,
+  LOG_READ_RATE,
+  LOG_RETENTION,
+  VEC_AI_LIFT,
+  VEC_INDEXES,
+  VEC_QUERIES,
   SERVERLESS_CONCURRENCY,
   SERVERLESS_GB_SECOND,
   SERVERLESS_MEMORY_GB,
@@ -97,6 +106,7 @@ import {
   replacePrice,
   resizePrice,
   runtimeReady,
+  logReplicas,
   serverlessBurnOf,
   sizeLabel as sizeLabelOf,
   vcpuOf,
@@ -105,6 +115,7 @@ import {
 } from '@quorum/simulation/lookups'
 import { LINK_TIMEOUTS } from '@quorum/simulation/actions'
 import type {
+  Acks,
   CacheEngine,
   DbEngine,
   Game,
@@ -116,6 +127,7 @@ import type {
   StorageClass,
   CacheStrategy,
   DbRetention,
+  VecIndexType,
 } from '@quorum/simulation/state'
 import { compact, duration, money, ms, priceLabel, queueWait, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
@@ -674,6 +686,71 @@ const stats = (
         ),
         row('Uses', `${money(edgeBurnOf(game, node, own.inbound - own.dropped))}/s`, 'plain', h),
         row('Standing Burn', `${money(burnOf(game, node))}/s`, 'ok', h),
+      ]
+    }
+    case 'doc': {
+      // One flat rate of ops: a read or a write is one, and a join is three of them (07).
+      const ops = (own.traffic['q-tx'] ?? 0) + (own.traffic['q-scan'] ?? 0)
+      return [
+        row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
+        row(
+          'Load',
+          own.inbound > 0
+            ? `${percent(Math.min(own.utilization, 9.99))} of ${rate(own.capacity)} ops/s`
+            : 'idle',
+          own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
+          h,
+        ),
+        row('Joins', `${rate(ops)}/s`, ops > 0 ? 'warn' : 'plain', h),
+        row(
+          'Transactions',
+          node.transactions ? 'multi-document' : 'one document',
+          node.transactions ? 'plain' : 'warn',
+          h,
+        ),
+        row('Connections', 'none to pool', 'ok', h),
+        row('Latency', ms(own.latency), 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    case 'vec': {
+      const index = VEC_INDEXES[node.indexType]
+      return [
+        row('Lookups', `${rate(own.inbound)}/s`, 'plain', h),
+        row(
+          'Load',
+          own.inbound > 0
+            ? `${percent(Math.min(own.utilization, 9.99))} of ${rate(own.capacity)}/s`
+            : 'idle',
+          own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
+          h,
+        ),
+        row('Index', index.name, 'plain', h),
+        row('Recall', percent(index.recall), index.recall >= 1 ? 'ok' : 'warn', h),
+        row('Latency', ms(own.latency), 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    case 'log': {
+      const lag = node.depth / Math.max(1, own.capacity)
+      return [
+        row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
+        row(
+          'Lag',
+          `${compact(Math.round(node.depth))} events`,
+          node.depth > 0 ? 'warn' : 'plain',
+          h,
+        ),
+        row(
+          'Behind',
+          node.depth < 1 ? 'caught up' : `${Math.round(lag)} s`,
+          lag > node.retain ? 'danger' : lag > node.retain / 2 ? 'warn' : 'plain',
+          h,
+        ),
+        row('Retention', retentionLabel(node.retain), lag > node.retain ? 'danger' : 'plain', h),
+        row('Partitions', `${node.partitions}`, 'plain', h),
+        row('Replicas', `${logReplicas(node)} · acks ${LOG_ACKS[node.acks].name}`, 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
       ]
     }
     case 'ci': {
@@ -1779,6 +1856,190 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+
+/**
+ * How long an Event Stream keeps a message, as a calendar reads: one sim second is one calendar
+ * minute, so 1,440 sim seconds are a day.
+ */
+const retentionLabel = (seconds: number): string =>
+  seconds >= 1_440
+    ? `${Math.round((seconds / 1_440) * 10) / 10} d`
+    : `${Math.round(seconds / 60)} h`
+
+/** A Document Store's transactions, and the access patterns its Dev Hours buy (07). */
+const documents = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+  section(
+    'Transactions',
+    [
+      picker(
+        'transactions',
+        [
+          [false, 'One document'],
+          [true, 'Multi-document'],
+        ],
+        node.transactions,
+        (transactions) => Message.DocOptionsChosen({ nodeId: node.id, transactions }),
+        h,
+      ),
+      h.p(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [
+          'A checkout writes several documents. Without multi-document transactions one can land without the others, and a retry charges the card again; with them every write waits for the rest, at half again its latency.',
+        ],
+      ),
+    ],
+    h,
+    true,
+  ),
+  section(
+    'Access patterns',
+    [
+      h.p(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [
+          `There are no joins: a query that spans documents is a scan, at ${DOC_JOIN_COST}× the ops, and each new pattern a Feature needs is its own collection and index to write. A Feature that changes the data shape costs ${Math.round((1 - DOC_SHAPE_DH) * 100)}% fewer Dev Hours, because there is no migration; the rest cost a little more.`,
+        ],
+      ),
+      caption(
+        'The Team panel charges the Dev Hours. The Database is the other side of this trade: joins and schemas, at the price of migrations.',
+        h,
+      ),
+    ],
+    h,
+  ),
+]
+
+/** A Vector Index's type: its recall, its lookups, and the memory it bills (07). */
+const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const index = VEC_INDEXES[node.indexType]
+  const prompts = game.nodes.filter(
+    (entry) => entry.type === 'server' || entry.type === 'worker' || entry.type === 'fn',
+  )
+  const reached = prompts.filter((entry) =>
+    outbound(game, entry).some(([, to]) => to.id === node.id),
+  )
+  return [
+    section(
+      'Index',
+      [
+        picker(
+          'index-type',
+          (
+            Object.entries(VEC_INDEXES) as ReadonlyArray<
+              [VecIndexType, (typeof VEC_INDEXES)['exact']]
+            >
+          ).map(([id, type]) => [id, type.name] as const),
+          node.indexType,
+          (indexType) => Message.VecIndexChosen({ nodeId: node.id, indexType }),
+          h,
+        ),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `Exact compares the query to every vector: every lookup finds its nearest neighbour, at ${VEC_QUERIES} a second per size step. HNSW walks a graph instead: ${index.queries}× the lookups, twice the memory in Burn, and ${percent(index.recall)} recall, so one lookup in twenty quotes the wrong document.`,
+          ],
+        ),
+        caption(`Recall ${percent(index.recall)} · Burn ${money(burnOf(game, node))}/s`, h),
+      ],
+      h,
+      true,
+    ),
+    section(
+      'Retrieval',
+      [
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [
+            `Link a Node that answers prompts into it and each prompt pays one nearest-neighbour lookup for the documents it quotes. Those answers earn ${Math.round((VEC_AI_LIFT - 1) * 100)}% more, and a Python Stack keeps its ML ecosystem bonus only with an index in the path.`,
+          ],
+        ),
+        caption(
+          reached.length === 0
+            ? 'Nothing answers prompts through it yet. Link an App Server into it.'
+            : `${reached.length} Node${reached.length === 1 ? '' : 's'} retrieve from it.`,
+          h,
+        ),
+      ],
+      h,
+    ),
+  ]
+}
+
+/** An Event Stream's partitions, acknowledgements, retention and key (07 "Event Stream"). */
+const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+  section(
+    'Partitions',
+    [
+      picker(
+        'partitions',
+        LOG_PARTITIONS.map((partitions) => [partitions, String(partitions)] as const),
+        node.partitions,
+        (partitions) => Message.LogOptionsChosen({ nodeId: node.id, partitions }),
+        h,
+      ),
+      picker(
+        'keyed',
+        [
+          [true, 'Keyed'],
+          [false, 'Round robin'],
+        ],
+        node.keyed,
+        (keyed) => Message.LogOptionsChosen({ nodeId: node.id, keyed }),
+        h,
+      ),
+      caption(
+        node.keyed
+          ? 'One key keeps an entity in one partition, so its events stay in order. A hot key fills a partition and slows it.'
+          : 'Events spread evenly, and order is lost: a superseded write can land after the one that replaced it.',
+        h,
+      ),
+      caption(
+        `A consumer group reads one consumer per partition, so this stream hands on at most ${compact(LOG_READ_RATE * node.partitions)}/s.`,
+        h,
+      ),
+    ],
+    h,
+    true,
+  ),
+  section(
+    'Durability',
+    [
+      picker(
+        'acks',
+        (Object.entries(LOG_ACKS) as ReadonlyArray<[Acks, (typeof LOG_ACKS)['all']]>).map(
+          ([id, ack]) => [id, ack.name] as const,
+        ),
+        node.acks,
+        (acks) => Message.LogOptionsChosen({ nodeId: node.id, acks }),
+        h,
+      ),
+      caption(
+        `A producer waits ${LOG_ACKS[node.acks].latency}× the 5 ms append. A replica past the first bills half a broker's Burn again.`,
+        h,
+      ),
+    ],
+    h,
+  ),
+  section(
+    'Retention',
+    [
+      picker(
+        'retain',
+        LOG_RETENTION.map((retain) => [retain, retentionLabel(retain)] as const),
+        node.retain,
+        (retain) => Message.LogOptionsChosen({ nodeId: node.id, retain }),
+        h,
+      ),
+      h.p(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [
+          'Messages stay after they are read, so a consumer can replay them into a new index or a second Worker without touching the Database. A consumer further behind than the window loses the oldest events.',
+        ],
+      ),
+    ],
+    h,
+  ),
+]
 
 const queue = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   section(
@@ -2937,6 +3198,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
           ...(node.type === 'gw' ? [gateway(node, h)] : []),
+          ...(node.type === 'doc' ? documents(game, node, h) : []),
+          ...(node.type === 'vec' ? vector(game, node, h) : []),
+          ...(node.type === 'log' ? events(node, h) : []),
           ...(node.type === 'fn' ? serverless(game, node, ledger, h) : []),
           ...(node.type === 'edge' ? edge(game, node, h) : []),
           ...(node.type === 'ci' ? [pipeline(game, node, h)] : []),

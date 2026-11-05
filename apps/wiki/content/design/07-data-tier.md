@@ -323,8 +323,6 @@ before a read fails; one in Infrequent access needs only one.
 
 ## Document Store
 
-Not built yet: the Document Store; there is no `doc` Component in the catalog.
-
 Real products: MongoDB, Firestore, Amazon DynamoDB (AWS lists it as a key-value and document
 database).
 
@@ -334,6 +332,18 @@ Serves `q-read` and `q-write` on documents.
 - Joins happen in the app: `report` and `q-tx` across documents cost 3× and lose atomicity unless the
   multi-document transaction option is on (+50% write latency).
 - Scales out by sharding on a shard key, with the same hot-key risks as relational sharding.
+
+**Built:** the Component, its flat rate, its joins and its Dev Hours. It answers 3,000 ops a second
+at its first size, over eight sizes, and a read or a write is one op while a `q-tx` or a `q-scan`
+is three: a report reaches it only when no Data Warehouse is linked. It holds no connections, so an
+App Server needs no pooler to reach it, and it has no buffer cache or IOPS volume to run out of.
+Without multi-document transactions a share of checkouts lands half-applied and bills as a
+duplicate; with them, every write waits half again its latency. A Feature costs 10% more Dev Hours
+for the access pattern it adds, and 25% less when it changes the data shape, because there is no
+migration to run. The 2% half-applied share and the 10% are proposed; the design gives the −25%, the
+3× and the +50%. **Not built yet:** sharding on a key. The `doc` Component has no shard count, so the
+Hot key incident divides its rate the way it divides a Cache's, and nothing scales its writes out;
+the design's "same hot-key risks as relational sharding" is only the incident.
 
 ## Data Warehouse
 
@@ -349,9 +359,6 @@ Serves `q-scan`. Columnar storage makes scans cheap.
 
 ## Vector Index
 
-Not built yet: the Vector Index; there is no `vec` Component in the catalog, and `ai` value does not
-change with retrieval.
-
 Real products: pgvector, Pinecone, Qdrant.
 
 Holds embeddings for retrieval-augmented generation. With a Vector Index in the `ai` path, `ai` value
@@ -361,6 +368,16 @@ rises, because answers use the company's own data.
 | ---------- | ------------------------------------------------------------------------------------------- |
 | Index type | Exact (perfect recall, slow at scale) or approximate HNSW (fast, memory-heavy, 95% recall). |
 | pgvector   | Lives inside Postgres. No new Node, and it competes with transactional load.                |
+
+**Built:** the Component, its two index types, and the retrieval lift. It answers nearest-neighbour
+lookups (`q-search`) at 500 a second per size step. Exact gives every lookup its true neighbour;
+HNSW answers twice as many, bills twice the Burn for the graph it holds in memory, and reaches 95%
+recall, so one search in twenty comes back stale. A Node that answers `ai` and links into a live
+index pays one lookup per prompt and earns 35% more for it, times the index's recall; and Python's
+ML ecosystem bonus (06) now needs an index in the path, which is the condition the Runtimes page
+describes. The 35%, the 2× capacity and the 2× Burn are proposed: the design gives the 95% and the
+direction. **Not built yet:** pgvector as a second way to own the index, inside the Database and
+sharing its CPU; the build has one Node, and the design's "no new Node" option stays prose.
 
 ## Wide-column Store
 

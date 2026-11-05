@@ -67,6 +67,7 @@ import {
   profileOf,
   ramOf,
   vcpuOf,
+  vecOf,
 } from './lookups.ts'
 import { fixed } from './team.ts'
 import type { Game, GameNode } from './state.ts'
@@ -207,6 +208,9 @@ export const callsOf = (
       [BackendKind, number]
     >)
       calls[backend] = (calls[backend] ?? 0) + count
+  // Retrieval-augmented generation (07 "Vector Index"): a prompt on a Node that reaches a Vector
+  // Index pays one nearest-neighbour lookup for the documents it quotes.
+  if (kind === 'ai' && vecOf(game, node)) calls['q-search'] = (calls['q-search'] ?? 0) + 1
   return calls
 }
 

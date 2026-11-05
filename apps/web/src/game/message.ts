@@ -5,6 +5,7 @@ import { UrlRequest } from 'foldkit/navigation'
 import { Url } from 'foldkit/url'
 import { EXIT_IDS, FIXES, PERK_IDS, TASK_IDS } from '@quorum/simulation/catalog'
 import {
+  Acks,
   CacheEngine,
   Collector,
   ComponentId,
@@ -36,6 +37,7 @@ import {
   StorageClass,
   DbRetention,
   CacheStrategy,
+  VecIndexType,
 } from '@quorum/simulation/state'
 import { MANAGED } from '@quorum/simulation/mirror'
 import { ChallengeVerdict } from '@quorum/rpc'
@@ -255,6 +257,15 @@ export const Message = defineMessageUnion({
     backoff: Schema.optional(Schema.Boolean),
     clustering: Schema.optional(Schema.Boolean),
   },
+  DocOptionsChosen: { nodeId: Schema.String, transactions: Schema.optional(Schema.Boolean) },
+  VecIndexChosen: { nodeId: Schema.String, indexType: VecIndexType },
+  LogOptionsChosen: {
+    nodeId: Schema.String,
+    partitions: Schema.optional(Schema.Finite),
+    acks: Schema.optional(Acks),
+    retain: Schema.optional(Schema.Finite),
+    keyed: Schema.optional(Schema.Boolean),
+  },
   ZoneChosen: { nodeId: Schema.String, zone: Zone },
   StandbyChosen: { nodeId: Schema.String, standby: Schema.Boolean },
   AutoscalerChosen: {
@@ -377,6 +388,11 @@ export const Message = defineMessageUnion({
   GlossaryChanged: { message: GlossaryMessage },
   DashboardChanged: { message: DashboardMessage },
   InboxChanged: { message: InboxMessage },
+
+  /** The save as text (15 "Save"): copied out, or asked for and pasted back. */
+  SaveExported: {},
+  SaveImportAsked: {},
+  SaveImported: { text: Schema.NullOr(Schema.String) },
 
   /** Playtest panel. */
   CheatCash: {},

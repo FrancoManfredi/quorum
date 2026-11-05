@@ -15,6 +15,7 @@ import { Motion, Prefs, Reveal, SandboxStore, TextSize, TradeoffOption } from '.
 import { refreshed, SaveIndex } from './saves.ts'
 import { History } from './history.ts'
 import { SavedInbox } from './inbox.ts'
+import { saveJson } from './save-file.ts'
 import { play, setMuted, SOUND_NAMES } from './sound.ts'
 import { setAgentAccess } from './agent-relay.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
@@ -229,13 +230,9 @@ export const WriteCompany = Command.define('WriteCompany', {
         if (file) {
           const stamped = refreshed(file, game, now)
           traced('save.write', {}, () => {
-            const json = JSON.stringify({
-              ...game,
-              wall: now,
-              disclosure: { revealed, pending },
-              dashboard,
-              inbox,
-            })
+            const json = JSON.stringify(
+              saveJson({ game, revealed, pending, dashboard, inbox }, now),
+            )
             annotateSpan({ 'save.bytes': json.length })
             window.localStorage.setItem(saveKeyOf(id), json)
           })
@@ -535,6 +532,14 @@ export const CopyText = Command.define('CopyText', {
         return Message.ToastRaised({ message: 'The clipboard is blocked.', tone: 'warn' })
       }
     }),
+})
+
+/** Asks for a save string. */
+export const AskSaveImport = Command.define('AskSaveImport', {
+  args: {},
+  messages: [Message.SaveImported],
+  execute: () =>
+    Effect.sync(() => Message.SaveImported({ text: window.prompt('Paste a save (QSV1:…)') })),
 })
 
 /** Asks for a Playbook string. */

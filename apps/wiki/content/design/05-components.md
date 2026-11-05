@@ -53,14 +53,14 @@ Compute, Data, and Ops — and this document keeps the seven as a reading order.
 | Data          | [Read Replica](/design/07-data-tier#read-replica)                     | `rep`  | Replication              | Pre-seed |
 | Data          | [Search Engine](/design/07-data-tier#search-engine)                   | `fts`  | Full-text search         | Seed     |
 | Data          | [Object Storage](/design/07-data-tier#object-storage)                 | `s3`   | Object storage           | Seed     |
-| Data          | [Document Store](/design/07-data-tier#document-store) — Not built yet | `doc`  | Document databases       | Series A |
+| Data          | [Document Store](/design/07-data-tier#document-store)                 | `doc`  | Document databases       | Series A |
 | Data          | [Data Warehouse](/design/07-data-tier#data-warehouse)                 | `olap` | Data warehousing         | Series B |
-| Data          | [Vector Index](/design/07-data-tier#vector-index) — Not built yet     | `vec`  | Embeddings               | Series B |
+| Data          | [Vector Index](/design/07-data-tier#vector-index)                     | `vec`  | Embeddings               | Series B |
 | Data          | [Wide-column Store](/design/07-data-tier#wide-column-store)           | `wide` | Leaderless replication   | Series C |
 | Data          | [Distributed SQL](/design/07-data-tier#distributed-sql)               | `dsql` | Consensus databases      | Series C |
 | Async         | [Queue](#queue)                                                       | `mq`   | Message queues           | Seed     |
 | Async         | [Realtime Hub](#realtime-hub)                                         | `ws`   | WebSockets               | Series A |
-| Async         | [Event Stream](#event-stream) — Not built yet                         | `log`  | Event streaming          | Series B |
+| Async         | [Event Stream](#event-stream)                                         | `log`  | Event streaming          | Series B |
 | Async         | [CDC Connector](#cdc-connector) — Not built yet                       | `cdc`  | Change data capture      | Series B |
 | Platform      | [Autoscaler](#autoscaler)                                             | `hpa`  | Autoscaling              | Series A |
 | Platform      | [Service Mesh](#service-mesh) — Not built yet                         | `mesh` | Service mesh             | Series B |
@@ -357,9 +357,9 @@ The data tier has its own document: [Data tier](/design/07-data-tier). This tabl
 | Read Replica      | `q-read`                                                     | Read capacity against replication lag.                                                                                                                      |
 | Search Engine     | `q-search`                                                   | Fast search against indexing lag and heap memory; a longer refresh is cheaper and staler.                                                                   |
 | Object Storage    | `blob-get`, `blob-put`                                       | Unlimited storage against egress cost, first-byte latency, the class's retrieval price, and a lifecycle that archives the oldest objects.                   |
-| Document Store    | `q-read`, `q-write`                                          | Developer velocity against joins and transactions.                                                                                                          |
+| Document Store    | `q-read`, `q-write`; `q-tx` and `q-scan` at 3× the ops       | Developer velocity against joins and transactions.                                                                                                          |
 | Data Warehouse    | `q-scan`                                                     | Cheap scans against freshness.                                                                                                                              |
-| Vector Index      | Embedding lookups for `ai`                                   | Better AI answers against memory and recall.                                                                                                                |
+| Vector Index      | `q-search`, with the lookups an `ai` prompt retrieves from   | Better AI answers against memory and recall.                                                                                                                |
 | Wide-column Store | `q-read`, `q-write` at very high volume                      | Linear write scaling against partition design and eventual consistency. The game's namesake: quorums.                                                       |
 | Distributed SQL   | `q-tx` across regions                                        | Global consistency against write latency.                                                                                                                   |
 
@@ -420,8 +420,6 @@ stylizations: the pages give no numbers.
 
 ### Event Stream
 
-Not built yet: the Event Stream; there is no `log` Component in the catalog.
-
 Real products: Apache Kafka, Redpanda, Amazon Kinesis.
 
 A partitioned, replicated log. Producers append, consumers read at their own pace.
@@ -435,6 +433,16 @@ A partitioned, replicated log. Producers append, consumers read at their own pac
 | Retention          | How long messages stay. Allows replay into a new consumer, such as a new search index, without touching the database.  |
 
 Consumer lag is a game stat. It is the stream's version of queue depth.
+
+**Built:** the Component, its options, and its consumer lag. The log keeps a message for its
+retention window, in sim seconds, so a consumer further behind than the window loses the oldest
+events; a stream hands on one consumer's 20,000 messages a second per partition; and round robin
+with more than one partition loses order, which the game counts as a stale result. The 20,000, the
+three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies and the half-broker
+Burn a replica adds are proposed: the design gives each option's direction and no figure. **Not
+built yet:** durability. `acks` and the replication factor move the append latency and the Burn, not
+what a broker loses when it dies, because the build gives a log no replica to fail over to; and
+partition key skew is the Hot key incident rather than a model of the key's distribution.
 
 ### CDC Connector
 

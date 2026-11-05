@@ -361,4 +361,9 @@ its worst utilization, and one suggestion if users were lost at peak.
 - Any number of Companies are kept; the Companies page lists them and opens, or deletes, one.
 - The single save from the build before Company files is never deleted. Settings offers a hidden
   "Recover previous save" action that imports it into the Companies list. This action is temporary.
-- Export and import a save as a text string.
+- Export and import as text: Settings › Copy save as text puts the save on the clipboard as one line
+  (`QSV1:` and base64url JSON), and Settings › Import a save asks for one and opens it; the title
+  screen's settings carry the same two rows. The line carries the Simulation's version in front, so
+  a string from another build is refused with the two versions named instead of being read as this
+  build's. An import replaces the open Company's game, and is refused in a Sandbox or a Challenge, which
+  have no save.

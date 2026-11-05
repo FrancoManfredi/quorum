@@ -1,6 +1,6 @@
 import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { ArrowUpRight, Copy, DoorOpen, Download, House, Play, Settings, Trash2, X } from 'lucide'
+import { ArrowUpRight, Copy, DoorOpen, Download, House, Play, Settings, Trash2, Upload, X } from 'lucide'
 import { UrlRequest } from 'foldkit/navigation'
 import { PRIVACY_URL } from '@/platform/analytics.ts'
 import { offer } from '@quorum/simulation/actions'
@@ -385,6 +385,13 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
             Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
             h,
             ArrowUpRight,
+          ),
+          h.div(
+            [h.Class('flex flex-wrap gap-2')],
+            [
+              secondaryButton('Copy save as text', Message.SaveExported(), h, Copy),
+              secondaryButton('Import a save', Message.SaveImportAsked(), h, Upload),
+            ],
           ),
           secondaryButton('Copy state as JSON', Message.StateCopied(), h, Copy),
         ],

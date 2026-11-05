@@ -232,9 +232,9 @@ of one worker, which is the real sizing rule ([Reality check](/design/reality-ch
 
 **ML ecosystem.** A Python service can run small models in process (embeddings, reranking) without a
 GPU Node, which raises `ai` value by 20% when a Vector Index is in the path. Every other language
-must call a GPU Node or an LLM API. Built: every Python App Server except PyPy earns +20% on `ai`,
-and FastAPI adds 15% on top. Vector Index is not built, so the build cannot test that it is in the
-path: any Python server that answers `ai` earns the bonus.
+must call a GPU Node or an LLM API. Built: every Python App Server except PyPy earns +20% on `ai`
+when it links into a live Vector Index, and FastAPI adds 15% on top. The condition is part of the
+build: a Python server that answers `ai` with no index to retrieve from earns nothing extra.
 
 ### Node.js
 

@@ -52,6 +52,7 @@ import {
   STORAGE_CLASSES,
   STORAGE_IOPS,
   EDGE_CPU_MS,
+  VEC_INDEXES,
   rttOf,
 } from '@quorum/simulation/catalog'
 import { POOL_ORDER } from '../game/pools.ts'
@@ -398,6 +399,19 @@ export const rowsOf = (
         { glyph: 'policy', name: 'Refresh', value: `${node.refresh} s` },
         latency,
       ]
+    case 'doc':
+      return [
+        inbound,
+        capacity,
+        {
+          glyph: 'policy',
+          name: 'Access',
+          value: node.transactions ? 'Multi-document' : 'One document',
+          // No joins: a checkout that spreads over documents lands half-applied without them.
+          tone: node.transactions ? 'plain' : 'warn',
+        },
+        latency,
+      ]
     case 'storage':
       return [
         inbound,
@@ -434,6 +448,20 @@ export const rowsOf = (
               : (own.age ?? 0) >= 10 || node.depth >= 100
                 ? 'warn'
                 : 'plain',
+        },
+        capacity,
+        out,
+      ]
+    // A log, not a queue: its depth is how far its consumers are behind, and it keeps it.
+    case 'log':
+      return [
+        inbound,
+        {
+          glyph: 'depth',
+          name: 'Lag',
+          // Past its retention window the oldest events expire, and the work they carried is gone.
+          value: node.depth < 1 ? '0' : compact(Math.round(node.depth)),
+          tone: node.depth > 0 ? 'warn' : 'plain',
         },
         capacity,
         out,
@@ -611,6 +639,21 @@ export const rowsOf = (
           value: upgrading ? 'upgrading' : behind > 0 ? 'unsupported' : 'supported',
           tone: upgrading ? 'danger' : behind > 0 ? 'warn' : 'plain',
         },
+      ]
+    }
+    case 'vec': {
+      const index = VEC_INDEXES[node.indexType]
+      return [
+        { ...inbound, name: 'Lookups' },
+        capacity,
+        {
+          glyph: 'hits',
+          name: 'Recall',
+          value: pct(index.recall),
+          tone: index.recall >= 1 ? 'ok' : 'warn',
+        },
+        { glyph: 'cost', name: 'Cost', value: `${money(burnOf(game, node))}/s` },
+        latency,
       ]
     }
     case 'warehouse':

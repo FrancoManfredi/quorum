@@ -1,6 +1,8 @@
 import { Result } from 'effect'
 import {
   COMPONENTS,
+  DOC_PATTERN_FACTOR,
+  DOC_SHAPE_DH,
   ELIXIR_HOT_UPGRADE_DEV_HOURS,
   ERAS,
   RUNTIMES,
@@ -32,7 +34,7 @@ import { Refusal, setFramework, setRuntime, shortOfCash, type Action } from './a
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { has, restarted } from './lookups.ts'
+import { has, isDown, restarted } from './lookups.ts'
 import {
   bugsFixed,
   cancelMigration,
@@ -140,8 +142,22 @@ export const taskRefusal = (game: Game, id: TaskId): Refusal | null => {
 const refused = (refusal: Refusal | null, apply: () => Game): Action =>
   refusal ? no(refusal) : ok(apply())
 
+/**
+ * Dev Hours a Feature costs on this Design (07 "Document Store"). A Document Store has no schema
+ * to migrate, so a Feature that changes the data shape costs a quarter less and skips the
+ * migration. Every other Feature pays a little more, because with no joins each access pattern it
+ * adds is its own collection and index to write. Proposed: the design gives the −25% and the
+ * direction of the access-pattern cost, and no figure for either in Dev Hours.
+ */
+export const featureHoursOf = (game: Game, id: FeatureId): number => {
+  const def = FEATURES[id]
+  const documents = game.nodes.some((node) => node.type === 'doc' && !isDown(node) && !node.shut)
+  if (!documents) return def.dh
+  return def.dh * (def.shapes > 0 ? DOC_SHAPE_DH : DOC_PATTERN_FACTOR)
+}
+
 export const queueFeature = (game: Game, id: FeatureId): Action =>
-  refused(featureRefusal(game, id), () => enqueue(game, 'feature', id, FEATURES[id].dh))
+  refused(featureRefusal(game, id), () => enqueue(game, 'feature', id, featureHoursOf(game, id)))
 
 export const queueTask = (game: Game, id: TaskId): Action =>
   refused(taskRefusal(game, id), () => enqueue(game, 'task', id, TASKS[id].dh))
@@ -453,7 +469,7 @@ const autopilot = (game: Game, events: Array<StepEvent>): Game => {
   while (next.backlog.length < next.teams.length) {
     const feature = nextFeature(next)
     if (feature) {
-      next = enqueue(next, 'feature', feature, FEATURES[feature].dh)
+      next = enqueue(next, 'feature', feature, featureHoursOf(next, feature))
       continue
     }
     if (serviceOf(next).debt >= AUTO_REFACTOR && !queued(next, 'refactor')) {

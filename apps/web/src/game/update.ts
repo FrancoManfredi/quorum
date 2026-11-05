@@ -23,6 +23,8 @@ import {
   BACKUPS,
   COLLECTORS,
   DEPLOY_STRATEGIES,
+  LOG_ACKS,
+  VEC_INDEXES,
   DB_ENGINES,
   STORAGE_CLASSES,
   STORAGE_IOPS,
@@ -148,6 +150,7 @@ import {
   updateInbox,
 } from './inbox.ts'
 import { PrefsMessage, updatePrefs } from './prefs.ts'
+import { decodeSave, encodeSave } from './save-file.ts'
 import { EMPTY_RESEARCH, ResearchMessage, ResearchOutMessage, updateResearch } from './research.ts'
 import { TeamOutMessage, initTeam, updateTeam, type TeamMessage } from './team.ts'
 import type { Ledger } from '@quorum/simulation/ledger'
@@ -173,6 +176,7 @@ import { serviceOf } from '@quorum/simulation/team'
 import * as Work from '@quorum/simulation/work'
 import {
   AskPlaybook,
+  AskSaveImport,
   ApplySettings,
   DeleteCompany,
   FocusDashboard,
@@ -458,6 +462,15 @@ const sync = (model: Model, fit: boolean, focus: string | null = null): AnyComma
     cue: cueNode(model),
   })
 
+/** The Company save: the Game, and what this Company has shown so far. */
+const savePayloadOf = (model: Model) => ({
+  game: model.board.game,
+  revealed: model.board.disclosure.revealed,
+  pending: model.board.disclosure.pending,
+  dashboard: model.board.dashboard.history,
+  inbox: savedInbox(model.board.inbox),
+})
+
 /** The open Company's file, with what the board has shown so far. Null when no Company is open. */
 const saveOf = (model: Model): AnyCommand | null => {
   const id = model.saves.current
@@ -465,11 +478,7 @@ const saveOf = (model: Model): AnyCommand | null => {
   return WriteCompany({
     id,
     index: refreshedIndex(model.saves, model.board.game),
-    game: model.board.game,
-    revealed: model.board.disclosure.revealed,
-    pending: model.board.disclosure.pending,
-    dashboard: model.board.dashboard.history,
-    inbox: savedInbox(model.board.inbox),
+    ...savePayloadOf(model),
   })
 }
 
@@ -3765,6 +3774,51 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    DocOptionsChosen: ({ nodeId, transactions }) =>
+      act(
+        model,
+        transactions === undefined
+          ? 'Document Store'
+          : transactions
+            ? 'Multi-document transactions on'
+            : 'Multi-document transactions off',
+        Actions.setDocOptions(
+          model.board.game,
+          nodeId,
+          transactions === undefined ? {} : { transactions },
+        ),
+        { undoable: true },
+      ),
+
+    VecIndexChosen: ({ nodeId, indexType }) =>
+      act(
+        model,
+        `Index: ${VEC_INDEXES[indexType].name}`,
+        Actions.setVecIndex(model.board.game, nodeId, indexType),
+        { undoable: true },
+      ),
+
+    LogOptionsChosen: ({ nodeId, partitions, acks, retain, keyed }) =>
+      act(
+        model,
+        partitions !== undefined
+          ? `Partitions: ${partitions}`
+          : acks !== undefined
+            ? `Acks: ${LOG_ACKS[acks].name}`
+            : retain !== undefined
+              ? `Retention: ${retain} s`
+              : keyed
+                ? 'Partition key: keyed'
+                : 'Partition key: round robin',
+        Actions.setLogOptions(model.board.game, nodeId, {
+          ...(partitions === undefined ? {} : { partitions }),
+          ...(acks === undefined ? {} : { acks }),
+          ...(retain === undefined ? {} : { retain }),
+          ...(keyed === undefined ? {} : { keyed }),
+        }),
+        { undoable: true },
+      ),
+
     ZoneChosen: ({ nodeId, zone }) =>
       act(
         model,
@@ -4199,6 +4253,55 @@ const handle = (model: Model, message: Message): Result =>
             ),
             'Playbook imported.',
           ),
+
+    SaveExported: () => {
+      if (offCompany(model)) return withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
+      if (!model.saved) return withToast(model, 'There is no Company to export.', 'warn')
+      return {
+        model,
+        commands: [
+          CopyText({
+            text: encodeSave(savePayloadOf(model), Date.now()),
+            done: 'Copied the save as text.',
+          }),
+        ],
+      }
+    },
+    SaveImportAsked: () =>
+      offCompany(model)
+        ? withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
+        : { model, commands: [AskSaveImport({})] },
+    SaveImported: ({ text }) => {
+      if (text === null) return { model }
+      if (offCompany(model)) return withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
+      const id = model.saves.current
+      if (id === null) return withToast(model, 'There is no Company to import into.', 'warn')
+      const decoded = decodeSave(text)
+      if (Result.isFailure(decoded)) return withToast(model, decoded.failure, 'warn')
+      // The save loads as it does when the Company opens, on a fresh board: the open Company's
+      // undo stack and Inspector history belong to the Company the import replaces.
+      const loaded = handle(
+        model,
+        Message.CompanyLoaded({ id, open: false, json: decoded.success, now: Date.now() }),
+      )
+      const board = loaded.model.board
+      const [next, clear] = toasted(
+        {
+          ...loaded.model,
+          board: {
+            ...freshBoard(board.game),
+            disclosure: board.disclosure,
+            dashboard: board.dashboard,
+            inbox: board.inbox,
+            away: board.away,
+            clock: board.clock,
+          },
+        },
+        'Save imported.',
+        'ok',
+      )
+      return { ...loaded, model: next, commands: [...(loaded.commands ?? []), clear] }
+    },
 
     PanelOpened: ({ panel }) => {
       const opened: Model = {

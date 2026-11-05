@@ -786,6 +786,8 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
       },
       h,
     ),
+    row({ key: 'save-export', label: 'Copy save as text', message: Message.SaveExported() }, h),
+    row({ key: 'save-import', label: 'Import a save', message: Message.SaveImportAsked() }, h),
     row({ key: 'copy', label: 'Copy state as JSON', message: Message.StateCopied() }, h),
     ...(model.oldSave && !hasRecovered(model.saves.companies)
       ? [

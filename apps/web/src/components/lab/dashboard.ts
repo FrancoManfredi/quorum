@@ -155,13 +155,14 @@ const rowsOf = (model: Model, slo: number): ReadonlyArray<Row> => {
     const history = model.board.game.history
     const last = Math.floor(model.board.game.time)
     const kept = history.slice(Math.max(0, history.length - range))
-    return kept.map((sample: Sample, index) =>
+    const rows = kept.map((sample: Sample, index) =>
       figures((field) => sample[field], last - (kept.length - 1 - index), 1),
     )
+    return withCashRate(rows)
   }
   const { minutes } = TIERS[tier]
   const blocks = model.board.dashboard.history[tier]
-  return blocks
+  const rows = blocks
     .slice(Math.max(0, blocks.length - Math.ceil(range / minutes)))
     .map((block) =>
       figures(
@@ -171,7 +172,25 @@ const rowsOf = (model: Model, slo: number): ReadonlyArray<Row> => {
         minutes,
       ),
     )
+  return withCashRate(rows)
 }
+
+/**
+ * Cash per second (12 "The Dashboard"): how fast Cash moved between two rows, which is the
+ * Samples' own `cash` read as a rate. The first row has no previous row, so it draws nothing.
+ */
+const withCashRate = (rows: ReadonlyArray<Row>): ReadonlyArray<Row> =>
+  rows.map((row, index) => {
+    const previous = rows[index - 1]
+    const seconds = previous === undefined ? 0 : Number(row.at) - Number(previous.at)
+    return {
+      ...row,
+      cashRate:
+        previous === undefined || seconds <= 0
+          ? null
+          : (Number(row.cash) - Number(previous.cash)) / seconds,
+    }
+  })
 
 /** The label of the row a sim time falls in, if the range holds it. */
 const labelAt = (rows: ReadonlyArray<Row>, time: number): string | null => {
@@ -920,9 +939,17 @@ const timeSeries = (
    Stat and gauge
    ========================================================================== */
 
-/** The top of a sparkline's scale: room above the peak, so a flat history is a line, not a slab. */
-const sparkTop = (rows: ReadonlyArray<Row>, key: string): number =>
-  Math.max(1e-9, ...rows.map((row) => Number(row[key]))) * 1.6
+/** A sparkline's bounds: room above the peak, so a flat history is a line, not a slab, and the
+    zero line for a figure that can fall below it, such as Cash per second. */
+const sparkDomain = (
+  rows: ReadonlyArray<Row>,
+  key: string,
+  signed: boolean,
+): readonly [number, number] => {
+  const values = figuresOf(rows, key)
+  const top = Math.max(1e-9, ...values) * 1.6
+  return signed ? [Math.min(0, ...values), top] : [0, top]
+}
 
 /** Grafana's stat panel: one big coloured value over a sparkline of its history. */
 const stat = (
@@ -935,6 +962,7 @@ const stat = (
   color: string,
   h: HtmlBuilder<Message>,
   background = false,
+  signed = false,
 ): Html =>
   panel(
     key,
@@ -969,7 +997,7 @@ const stat = (
                   defs: [gradient(`stat-${key}`, color, h)],
                   children: [
                     XAxis({ dataKey: 't', hide: true }),
-                    YAxis({ hide: true, domain: [0, sparkTop(rows, dataKey)] }),
+                    YAxis({ hide: true, domain: sparkDomain(rows, dataKey, signed) }),
                     Area({
                       dataKey,
                       stroke: color,
@@ -2616,6 +2644,45 @@ const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html
   )
 }
 
+/** Each App Server's copies, and the workers busy against the pool they share. */
+const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const names = namesOf(game)
+  return tablePanel(
+    'app-server',
+    'col-span-24',
+    'App Server',
+    'copies · busy workers against the pool',
+    ['Node', 'Copies', 'Busy workers'],
+    game.nodes
+      .filter((node) => node.type === 'server')
+      .map((node) => {
+        const own = ledger.nodes[node.id]
+        const slots = own?.resources.slots ?? null
+        const busy = slots === null ? 0 : Math.min(slots.used, slots.total)
+        const share = slots === null || slots.total <= 0 ? 0 : busy / slots.total
+        return {
+          key: node.id,
+          cells: [
+            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            {
+              text:
+                node.pending > 0
+                  ? `${node.replicas} (+${node.pending} booting)`
+                  : String(node.replicas),
+            },
+            slots === null
+              ? { text: '—' }
+              : {
+                  text: `${Math.round(busy)}/${Math.round(slots.total)}`,
+                  bar: { share, color: LEVEL_COLOR[levelOf(share, UTILIZATION)] },
+                },
+          ],
+        }
+      }),
+    h,
+  )
+}
+
 /** Connections used against the limit, refused queries, and how far a replica lags. */
 const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const names = namesOf(game)
@@ -3042,6 +3109,8 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const markers = markersOf(model, rows)
   const tracks = tracksOf(model)
   const latest = game.history[game.history.length - 1]
+  /** Cash per second now: the last row's `cash` against the row before it (12 "The Dashboard"). */
+  const cashRate = Number(rows[rows.length - 1]?.cashRate ?? 0)
   // The template variables: a Request kind and a Region narrow every panel that holds them.
   const kind = model.board.dashboard.kind
   const region = regional(game) ? model.board.dashboard.region : null
@@ -3097,14 +3166,16 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             h,
           ),
           stat(
-            'revenue',
-            'Revenue',
-            `${money(latest.revenue)}/s`,
-            'plain',
+            'cash-rate',
+            'Cash per second',
+            `${cashRate >= 0 ? '+' : ''}${money(cashRate)}/s`,
+            cashRate > 0 ? 'ok' : cashRate < 0 ? 'danger' : 'plain',
             rows,
-            'revenue',
-            TEAL,
+            'cashRate',
+            GREEN,
             h,
+            false,
+            true,
           ),
           gauge(
             'apdex',
@@ -3249,6 +3320,9 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             : []),
           ...(hasNode('lb')
             ? [rowHeader('Load Balancer', 1, h), loadBalancer(game, ledger, h)]
+            : []),
+          ...(hasNode('server')
+            ? [rowHeader('App Server', 1, h), appServers(game, ledger, h)]
             : []),
           ...(hasNode('database') || hasNode('replica')
             ? [rowHeader('Database', 1, h), databases(game, ledger, h)]

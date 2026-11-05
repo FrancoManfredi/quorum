@@ -63,7 +63,13 @@ import {
 import { overdueBy } from '@quorum/simulation/cve'
 import { isReady, stepOf } from '@quorum/simulation/migration'
 import { PLATFORM_STAGE } from '@quorum/simulation/work'
-import { featureRefusal, itemName, MAX_TEAMS, taskRefusal } from '@quorum/simulation/work'
+import {
+  featureHoursOf,
+  featureRefusal,
+  itemName,
+  MAX_TEAMS,
+  taskRefusal,
+} from '@quorum/simulation/work'
 import { describeRefusal } from '@quorum/simulation/actions'
 import { money } from '@quorum/ui/game/format'
 import { STACK_LOGOS } from '@quorum/ui/game/icons'
@@ -1567,7 +1573,7 @@ const featureTile = (game: Game, id: FeatureId, review: boolean, h: HtmlBuilder<
     id,
     codeOf('feature', id),
     def.name,
-    def.dh,
+    featureHoursOf(game, id),
     def.era > game.stage ? `${ERAS[def.era]?.name ?? ''} · ${def.effect}` : def.effect,
     review && def.hidden && !live ? def.hidden : null,
     state,

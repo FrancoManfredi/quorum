@@ -359,7 +359,8 @@ const advanceNode = (
     if (inbound > 0)
       next = { ...next, crashes: next.crashes + (inbound * seconds) / BEAM_CRASHES_PER_REQUESTS }
   }
-  if (node.type === 'queue') next = { ...next, depth: depthAfter(game, ledger, node, seconds) }
+  if (node.type === 'queue' || node.type === 'log')
+    next = { ...next, depth: depthAfter(game, ledger, node, seconds) }
   if (node.lost > 0) next = { ...next, lost: Math.max(0, node.lost - seconds) }
   // A Database in a retry storm queues what it cannot take, and drains once it can.
   if (

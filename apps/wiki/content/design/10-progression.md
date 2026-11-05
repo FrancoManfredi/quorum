@@ -107,7 +107,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
   ([Economy](/design/09-economy#pricing-models)), SLOs and error budgets
   ([Incidents](/design/11-incidents#slos-and-error-budgets)), team types.
 - **Unlocks available.** Multi-zone, Kubernetes, Autoscaler, Serverless Functions, Realtime Hub,
-  Payment Provider, Feature Flags, canary deploys, Elixir, Rust.
+  Document Store, Payment Provider, Feature Flags, canary deploys, Elixir, Rust.
 
 ### Era 4: Series B
 
@@ -391,8 +391,7 @@ range.
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
 | `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
 
-**Built: 19 of 26.** Not built yet: `document-db`, `online-migrations`, `event-streaming`, `cdc`,
-`outbox`, `expand-contract`, `embeddings`.
+**Built: 22 of 26.** Not built yet: `online-migrations`, `cdc`, `outbox`, `expand-contract`.
 
 ### Track: Reliability
 

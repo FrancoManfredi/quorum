@@ -314,13 +314,15 @@ describe('the runtime variants', () => {
     expect(RUNTIMES.webflux.velocity).toBe(0.8)
   })
 
-  test('Python earns the ML ecosystem bonus on `ai`, and PyPy cannot', () => {
+  test('Python earns the ML ecosystem bonus on `ai` when a Vector Index is in the path', () => {
     const context = (runtime: RuntimeId) => node('server', 'server', 0, 0, { size: 3, runtime })
-    expect(mlValueOf(context('gunicorn'), 'ai')).toBe(ML_AI_BONUS)
-    expect(mlValueOf(context('uvicorn'), 'ai')).toBe(ML_AI_BONUS)
-    expect(mlValueOf(context('pypy'), 'ai')).toBe(1)
-    expect(mlValueOf(context('go'), 'ai')).toBe(1)
-    expect(mlValueOf(context('gunicorn'), 'read')).toBe(1)
+    expect(mlValueOf(context('gunicorn'), 'ai', true)).toBe(ML_AI_BONUS)
+    expect(mlValueOf(context('uvicorn'), 'ai', true)).toBe(ML_AI_BONUS)
+    expect(mlValueOf(context('pypy'), 'ai', true)).toBe(1)
+    expect(mlValueOf(context('go'), 'ai', true)).toBe(1)
+    expect(mlValueOf(context('gunicorn'), 'read', true)).toBe(1)
+    // 06's condition: without a Vector Index in the path there is nothing to embed.
+    expect(mlValueOf(context('gunicorn'), 'ai', false)).toBe(1)
     // FastAPI's value bonus stacks on top, and only on `ai`.
     expect(FRAMEWORKS.fastapi.value.ai).toBe(1.15)
     expect(FRAMEWORKS.fastapi.value.read).toBeUndefined()

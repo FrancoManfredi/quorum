@@ -47,9 +47,13 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 3, inRow: 0, outRow: null, footer: true }
     case 'storage':
       return { rows: 4, inRow: 0, outRow: null, footer: false }
+    case 'doc':
+      return { rows: 4, inRow: 0, outRow: null, footer: true }
     case 'queue':
       return { rows: 4, inRow: 0, outRow: 3, footer: true }
     case 'worker':
+      return { rows: 4, inRow: 0, outRow: 3, footer: true }
+    case 'log':
       return { rows: 4, inRow: 0, outRow: 3, footer: true }
     case 'fn':
       return { rows: 5, inRow: 0, outRow: 4, footer: true }
@@ -71,6 +75,8 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'warehouse':
       return { rows: 3, inRow: 0, outRow: null, footer: false }
+    case 'vec':
+      return { rows: 4, inRow: 0, outRow: null, footer: true }
     case 'gpu':
       return { rows: 4, inRow: 0, outRow: null, footer: true }
     case 'edge':

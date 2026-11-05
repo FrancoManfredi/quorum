@@ -280,6 +280,29 @@ test('the Load Balancer row draws its traffic per backend', () => {
   )
 })
 
+test('the App Server row draws its copies and the workers busy against the pool', () => {
+  const model = fixture({
+    build: (base) => ({
+      nodes: base.nodes.map((node) =>
+        node.type === 'server' ? { ...node, replicas: 2, pending: 1, workers: 16 } : node,
+      ),
+      links: base.links,
+    }),
+  })
+  const slots = ledgerOf(model).nodes.server?.resources.slots ?? null
+  if (slots === null) throw new Error('the fixture App Server holds no worker slots')
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(row('App Server')).toExist(),
+    Scene.expect(board).toContainText('Copies'),
+    Scene.expect(board).toContainText('2 (+1 booting)'),
+    Scene.expect(board).toContainText(
+      `${Math.round(Math.min(slots.used, slots.total))}/${Math.round(slots.total)}`,
+    ),
+  )
+})
+
 test('the Database row draws connections used against the limit, and the lag column', () => {
   const model = fixture({ build: components })
   const connections = ledgerOf(model).nodes.database?.connections ?? null
@@ -425,6 +448,28 @@ test('each row waits for its research, and a Component row for its Component', (
     Scene.expect(row('Database')).toExist(),
     Scene.expect(row('Load Balancer')).toBeAbsent(),
   )
+})
+
+test('the Overview draws Cash per second from the Samples’ cash, signed', () => {
+  const rising = fixture({
+    game: {
+      history: [
+        sampleOf({ cash: 12_000 }),
+        sampleOf({ cash: 12_000.2 }),
+        sampleOf({ cash: 12_000.5 }),
+      ],
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(rising),
+    Scene.expect(board).toContainText('Cash per second'),
+    Scene.expect(board).toContainText('+$0.30/s'),
+  )
+  const falling = fixture({
+    game: { history: [sampleOf({ cash: 12_000 }), sampleOf({ cash: 11_999.4 })] },
+  })
+  Scene.scene({ update, view }, Scene.given(falling), Scene.expect(board).toContainText('−$0.60/s'))
 })
 
 test('a Design change in the undo stack marks the timeline', () => {

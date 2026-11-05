@@ -110,6 +110,12 @@ export const node = (
   backup: 'none',
   fanout: 'pull',
   split: false,
+  transactions: false,
+  indexType: 'exact',
+  partitions: 3,
+  acks: 'all',
+  retain: 3_600,
+  keyed: true,
   ...extra,
 })
 

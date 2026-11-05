@@ -76,6 +76,14 @@ export const CacheStrategy = Schema.Literals([
 ])
 export type CacheStrategy = typeof CacheStrategy.Type
 
+/** A Vector Index's type (07 "Vector Index"): exact, or approximate HNSW. */
+export const VecIndexType = Schema.Literals(['exact', 'hnsw'])
+export type VecIndexType = typeof VecIndexType.Type
+
+/** What an Event Stream's producer waits for before it moves on (07 "Event Stream"). */
+export const Acks = Schema.Literals(['0', '1', 'all'])
+export type Acks = typeof Acks.Type
+
 /** A Search Engine's refresh interval, in seconds (07 "Search Engine"). */
 export const SearchRefresh = Schema.Finite
 export type SearchRefresh = typeof SearchRefresh.Type
@@ -280,6 +288,18 @@ const NODE_FIELDS = {
   fanout: Fanout.pipe(Schema.withDecodingDefaultKey(Effect.succeed('pull' as const))),
   /** A Cache splits hot keys across its shards. */
   split: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Document Store runs multi-document transactions: atomic checkouts, and slower writes (07). */
+  transactions: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Vector Index's type: exact, or approximate HNSW (07 "Vector Index"). */
+  indexType: VecIndexType.pipe(Schema.withDecodingDefaultKey(Effect.succeed('exact' as const))),
+  /** Partitions an Event Stream splits into (07 "Event Stream"): its readers, and its order. */
+  partitions: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
+  /** What a producer waits for before it moves on: `0`, `1`, or `all` (07 "Event Stream"). */
+  acks: Acks.pipe(Schema.withDecodingDefaultKey(Effect.succeed('all' as const))),
+  /** Sim seconds an Event Stream keeps a message, for replay (07 "Event Stream"). */
+  retain: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3_600))),
+  /** An Event Stream keys its partitions by entity, so one entity's events stay in order (07). */
+  keyed: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
 } as const
 
 /** A save from before the machine carries these three fields instead of `life`. */
