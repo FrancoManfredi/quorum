@@ -51,6 +51,7 @@ import {
   WEEKEND_FACTOR,
   MESH_HOP_MS,
   MESH_INSIGHT,
+  JVM_INSIGHT,
   BULKHEAD_MS,
   HEDGE_LOAD,
   CHAOS_EVERY,
@@ -915,6 +916,10 @@ const splitFor = (inputs: Inputs, node: GameNode, kind: Kind): Split => {
         return weighted(healthy, (edge) => inputs.nominal[edge.toAt])
       case 'least-conn':
         return weighted(healthy, live)
+      // Consistent hashing places each key on a ring of the targets: every target takes an equal
+      // share of the keys, whatever its load, and a target that leaves moves only its own keys.
+      case 'hash':
+        return even(healthy)
       case 'p2c': {
         const spread = 1 / healthy.length
         return weighted(healthy, live).map(
@@ -1602,6 +1607,8 @@ const ledgerOf = (
   // The share of each key's samples that came from a Node a Service Mesh watches: per-Link metrics
   // without code changes earn Insight on top of it (05 "Service Mesh": +20%).
   const meshedBy = new Map<string, number>()
+  // The share that came from a Java App Server: its profilers (Java Flight Recorder) expose more.
+  const profiledBy = new Map<string, number>()
   const failedBy = new Map<string, number>()
   // The regions each request kind is sampled in: Real user monitoring needs two of them.
   const regionsBy = new Map<RequestKind, Set<RegionId>>()
@@ -1636,6 +1643,8 @@ const ledgerOf = (
         regionsBy.set(kind as RequestKind, seen)
         sampledBy.set(key, (sampledBy.get(key) ?? 0) + samples)
         if (meshOf(game, from)) meshedBy.set(key, (meshedBy.get(key) ?? 0) + samples)
+        if (from.type === 'server' && RUNTIMES[from.runtime].language === 'java')
+          profiledBy.set(key, (profiledBy.get(key) ?? 0) + samples)
         // A request that fails or frustrates its user teaches Failure, a tolerated one half.
         const answer = kinds[kind]
         if (answer && PROFILES[kind].scored)
@@ -1664,7 +1673,12 @@ const ledgerOf = (
     // A mesh watches each Link, so the samples from its members earn their 20% again, under the
     // same square root: a Design where every sampled Node is meshed earns a full 20% more.
     const watched = meshedBy.get(key) ?? 0
-    insight[kind] += INSIGHT_YIELD * (Math.sqrt(samples) + MESH_INSIGHT * Math.sqrt(watched)) * perk
+    // Mature JVM tooling earns the same 25% on the samples from its servers (06 "Java").
+    const profiled = profiledBy.get(key) ?? 0
+    insight[kind] +=
+      INSIGHT_YIELD *
+      (Math.sqrt(samples) + MESH_INSIGHT * Math.sqrt(watched) + JVM_INSIGHT * Math.sqrt(profiled)) *
+      perk
     breadth[kind] = (breadth[kind] ?? 0) + 1
   }
   // Tail-based sampling keeps the failed traces instead of dropping most of them with the rest

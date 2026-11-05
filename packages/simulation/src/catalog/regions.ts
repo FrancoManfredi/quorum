@@ -10,11 +10,11 @@ export type RegionDef = Readonly<{
   name: string
   /** Tab label. */
   short: string
-  /** Share of users who live here, from Series C. Proposed: the GDD gives none. */
+  /** Share of users who live here, from Series C.  */
   share: number
   /**
    * Calendar minutes this region's clock runs ahead of the home clock, so its
-   * 20:00 peak lands at a different home hour (10 "Era 5": follow the sun). Proposed.
+   * 20:00 peak lands at a different home hour (10 "Era 5": follow the sun).
    */
   offset: number
 }>
@@ -28,7 +28,7 @@ export const REGION_INFO: Record<RegionId, RegionDef> = {
 
 /**
  * Round trips between regions, in ms (05 "Zones and regions": US East to Europe 75,
- * Europe to Asia 160, US East to Sydney 200). The South America figures are proposed.
+ * Europe to Asia 160, US East to Sydney 200). The South America figures are
  */
 const RTT: Readonly<Record<string, number>> = {
   'na-eu': 75,
@@ -56,20 +56,20 @@ export const HTTP3_CUT = 0.2
 export const HTTP2_CUT = 0.15
 /** Egress price per GB between regions (09 "Egress"). */
 export const EGRESS_CROSS_REGION = 0.02
-/** Cash to open a region: its network, its accounts, its Users. Proposed. */
+/** Cash to open a region: its network, its accounts, its Users.  */
 export const OPEN_REGION_PRICE = 20_000
 /** The Era regions arrive in (10 "Era 5"). */
 export const REGIONS_FROM_STAGE = 5
 /**
  * When regions arrive, each far region starts with this share of the users at home,
- * times its share over North America's (04 "Going global"). Proposed.
+ * times its share over North America's (04 "Going global").
  */
 export const ABROAD_SEED = 0.05
 /**
  * How much users in other regions count toward word of mouth in a region, against
  * 1 for its own users (04 "Going global"). Putsis et al. (1997) measured adoption in
  * one country speeding it in others; Takada and Jain (1991) found later countries
- * adopt faster. Proposed.
+ * adopt faster.
  */
 export const BORDER_MIXING = 0.1
 
@@ -77,8 +77,7 @@ export const BORDER_MIXING = 0.1
  * Real user monitoring splits latency by device (12 "The visibility ladder", `rum`). Devices are
  * not otherwise modelled, so a fixed, stylized mix and a radio-latency multiplier per device
  * stand in for a real client population: mobile radios and tablets' Wi-Fi-or-cellular mix both
- * add round-trip time a desktop's wired or fast Wi-Fi connection does not pay. Proposed: the
- * design names the split and gives no numbers.
+ * add round-trip time a desktop's wired or fast Wi-Fi connection does not pay.
  */
 export const DEVICES = ['desktop', 'mobile', 'tablet'] as const
 export type DeviceId = (typeof DEVICES)[number]
@@ -100,15 +99,15 @@ export const NO_DEVICE_LATENCY: Record<DeviceId, number> = {
 /* ---------- Mirrors (05 "Mirror a region") ---------- */
 
 /**
- * Calendar minutes from Apply until a Mirror's new Nodes serve (16 `mirror_time`). Proposed:
+ * Calendar minutes from Apply until a Mirror's new Nodes serve (16 `mirror_time`):
  * about what `terraform apply` takes to boot instances and a replica.
  */
 export const MIRROR_TIME = 30
-/** Calendar minutes GitOps Staged holds a change on the source before the Mirrors get it (16 `stage_wait`). Proposed. */
+/** Calendar minutes GitOps Staged holds a change on the source before the Mirrors get it (16 `stage_wait`).  */
 export const STAGE_WAIT = 60
 /** Calendar minutes until a GitOps sync: Argo CD polls every 120 s plus up to 60 s of jitter by default. */
 export const SYNC_POLL = 3
-/** Calendar minutes Mirrors do not sync while the Company moves to another IaC tool. Proposed: one calendar day. */
+/** Calendar minutes Mirrors do not sync while the Company moves to another IaC tool.  */
 export const IAC_SWITCH = 1_440
 
 export const IAC_TOOLS = ['terraform', 'pulumi', 'alchemy'] as const
@@ -124,7 +123,7 @@ export type DataPatternId = (typeof DATA_PATTERNS)[number]
 /**
  * Calendar minutes a plan spends reading one Node's live state before it diffs (05 "IaC tools").
  * Terraform refreshes on every plan and apply; Pulumi documents the same round trip per resource
- * as the reason `pulumi up` does not refresh by default. Proposed.
+ * as the reason `pulumi up` does not refresh by default.
  */
 export const REFRESH_TIME = 0.5
 

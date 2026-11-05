@@ -49,7 +49,7 @@ export const FixId = Schema.Literals(FIXES)
 export const VentureId = Schema.Literals(VENTURE_IDS)
 export const MutatorId = Schema.Literals(MUTATOR_IDS)
 
-export const LbPolicy = Schema.Literals(['weighted', 'round-robin', 'least-conn', 'p2c'])
+export const LbPolicy = Schema.Literals(['weighted', 'round-robin', 'least-conn', 'p2c', 'hash'])
 export type LbPolicy = typeof LbPolicy.Type
 
 export const PmMode = Schema.Literals(['static', 'dynamic', 'ondemand'])
@@ -202,6 +202,8 @@ const NODE_FIELDS = {
   drainAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Supervised process crashes a BEAM App Server has absorbed (06 "Fault isolation"). */
   crashes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** A persistent App Server recycles its workers every so many requests (pm.max_requests, a worker killer). */
+  recycle: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The App Server gzips page and read responses. */
   compress: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Sim time the Node last went down, so health checks and DNS notice it late. */
@@ -243,6 +245,10 @@ const NODE_FIELDS = {
   variant: Schema.Literals(['l7', 'l4']).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed('l7' as const)),
   ),
+  /** A Gateway validates each request's token once, so the services behind it skip it (05 "API Gateway"). */
+  authEdge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Gateway merges identical reads that are in flight at once (05 "API Gateway"). */
+  merge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Requests a Gateway's token bucket holds on top of its limit; 0 is a flat cap (05). */
   burst: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Seconds between a Load Balancer's health checks. */
@@ -338,6 +344,10 @@ const NODE_FIELDS = {
   /** A GPU Node's weight precision: FP16, INT8 or INT4 (05 "GPU Node"). */
   precision: Schema.Literals(['fp16', 'int8', 'int4']).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed('fp16' as const)),
+  ),
+  /** The model a GPU Node serves: small, medium or large (05 "GPU Node"). */
+  gpuModel: Schema.Literals(['small', 'medium', 'large']).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('medium' as const)),
   ),
   /** A GPU Node's batch size (05 "GPU Node"). */
   batch: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),

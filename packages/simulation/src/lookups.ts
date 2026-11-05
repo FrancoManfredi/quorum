@@ -58,6 +58,7 @@ import {
   SERVERLESS_GB_SECOND,
   SERVERLESS_MEMORY_GB,
   SERVERLESS_REQUEST_PRICE,
+  LOG_LOSS,
   LOG_REPLICAS,
   LOG_REPLICA_BURN,
   VEC_INDEXES,
@@ -327,6 +328,14 @@ export const vecOf = (game: Game, node: GameNode): GameNode | undefined =>
 export const logReplicas = (node: GameNode): number =>
   Math.max(1, Math.min(LOG_REPLICAS[LOG_REPLICAS.length - 1] ?? 3, Math.floor(node.n)))
 
+/** The share of its events an Event Stream loses when a broker fails: all of them with one replica. */
+export const logLoss = (node: GameNode): number =>
+  logReplicas(node) <= 1 ? 1 : LOG_LOSS[node.acks]
+
+/** Whether a live API Gateway validates every token at the edge, so the services skip it (05). */
+export const edgeAuthOf = (game: Game): boolean =>
+  game.nodes.some((node) => node.type === 'gw' && node.authEdge && !isDown(node) && !node.shut)
+
 /* ---------- the Service Mesh ---------- */
 
 /** The live Service Mesh Nodes, and the members that link into each, found once per Game. */
@@ -434,7 +443,7 @@ const CLASS_ORDER: ReadonlyArray<StorageClass> = ['standard', 'infrequent', 'arc
 /**
  * The share of a store's GB an object older than `days` calendar days makes up: the store holds
  * its uploads, so its oldest object is `stored / uploads` long, and everything past the window is
- * the older share. Proposed: the design gives no age model, only "moves old objects".
+ * the older share.
  */
 export const agedShareOf = (game: Game, days: number): number => {
   if (days <= 0) return 0

@@ -83,7 +83,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   feed: { label: 'Feed', value: 0.3, color: 0xc9a227 },
   hook: { label: 'Webhook', value: 0.4, color: 0x6d8f3a },
   push: { label: 'Notify', value: 0.05, color: 0xd96b9a },
-  // The design's number for the bid kind is $0.001 (13 "Ventures"); the colour is proposed.
+  // The design's number for the bid kind is $0.001 (13 "Ventures"); the colour is
   bid: { label: 'Bid request', value: 0.001, color: 0x8e7cc3 },
   notify: { label: 'Push message', value: 0, color: 0xd96b9a },
   callout: { label: 'Customer call', value: 0, color: 0x6d8f3a },
@@ -135,7 +135,7 @@ export type RequestProfile = Readonly<{
   offload: number
   /**
    * Apdex target T, in ms, for the async part to finish once it went through a
-   * Queue: the user waits for the result, not only the acknowledgement. Proposed.
+   * Queue: the user waits for the result, not only the acknowledgement.
    */
   completion?: number
   /** Counts toward Apdex, errors, revenue and growth. Bots do not. */
@@ -396,7 +396,7 @@ export const PROFILES: Record<RequestKind, RequestProfile> = {
     scored: true,
   },
   // A bid request (13 "Ventures", Ad tech): the design gives its value, its 100 ms target and
-  // its volume; the rest is proposed. It reads the campaign before it answers, and nothing else.
+  // its volume; the rest is  It reads the campaign before it answers, and nothing else.
   bid: {
     cpu: 0.5,
     native: false,
@@ -428,22 +428,22 @@ export const QUERY_CPU: Readonly<{
   'q-write': 25,
   // Postgres full-text search: fine at low volume, ten reads' worth of CPU each (10 "Seed").
   'q-search': 80,
-  // A 2 MB object stored as a row. Proposed: not in the GDD.
+  // A 2 MB object stored as a row.
   'blob-put': 60,
-  // A checkout transaction: several statements under locks. Proposed: not in the GDD.
+  // A checkout transaction: several statements under locks.
   'q-tx': 40,
-  // A file read back out of a row. Proposed.
+  // A file read back out of a row.
   'blob-get': 30,
   // A report's scan of a whole table on the primary: a hundred ms, and it evicts the buffer
-  // cache, so every other read on that Database slows too (07 "Data Warehouse"). Proposed.
+  // cache, so every other read on that Database slows too (07 "Data Warehouse").
   'q-scan': 100,
 }
 
-/** KB of a streamed response the user waits for before it starts playing. Proposed. */
+/** KB of a streamed response the user waits for before it starts playing.  */
 export const STREAM_KB = 500
 /**
  * Seconds a realtime connection stays open for each message it carries, so open
- * connections are rt per second × this. Proposed: at 8% rt it keeps about half the users online.
+ * connections are rt per second × this.
  */
 export const RT_HOLD_SECONDS = 300
 
@@ -459,12 +459,12 @@ export const GZIP_CPU = 1.1
 /** Login CPU, in reference ms, when an Auth Provider does the hashing. */
 export const LOGIN_DELEGATED_CPU = 2
 
-/** A customer's webhook endpoint: slow and unreliable (04 "Request kinds"). Proposed. */
+/** A customer's webhook endpoint: slow and unreliable (04 "Request kinds").  */
 export const CALLOUT_MS = 800
 export const CALLOUT_FAILURE = 0.02
 /**
  * Fan-out on write (07 "Fan-out"): a post becomes one timeline write per follower, and a
- * feed reads one timeline. Hybrid pulls the celebrities' posts. Followers are proposed.
+ * feed reads one timeline. Hybrid pulls the celebrities' posts. Followers are
  */
 export const FOLLOWERS = 20
 export const HYBRID_WRITES = 0.5

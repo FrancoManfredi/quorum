@@ -194,10 +194,9 @@ first GB of cache is worth more than the tenth. `ttl_factor` is the Cache's row 
 is the default and keeps the TTL's own stale share of hits. The rest are four numbers:
 read-through removes the aside race, so it serves three quarters of that share; write-through has no
 stale hits and adds half a millisecond to each write; write-behind halves the stale share, answers the
-write at the Cache's own hop, and flushes half of each write to the Database. Read-through's own cost,
-the library that owns loading, is not modelled; write-behind caches nothing across a restart, so a
-crash still loses what it had not flushed, and the Cache counts only the slower reads of a lagging
-Database, not the loss.
+write at the Cache's own hop, and flushes half of each write to the Database. Read-through's library adds 1 ms to
+each miss. A write-behind Cache holds the writes it has acknowledged and not flushed, ten seconds of
+them, and a crash loses what it holds: the lost writes spend the error budget like failed requests.
 
 ### TTL
 

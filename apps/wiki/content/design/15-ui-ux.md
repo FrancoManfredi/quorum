@@ -11,7 +11,7 @@ and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player
 ## Interface rules
 
 1. **Information over decoration.** Squares on the board carry numbers. Illustrations appear only on
-   the title screen, Era transitions, and Exit screens.
+   the title screen and the Exit screens.
 2. **No helper text.** No taglines, subtitles, or secondary labels. If a screen needs them to make
    sense, the layout is wrong. Explanations live in Tradeoff cards and the glossary, opened on demand.
 3. **One click to the cause.** From any red number, one click opens the Node or link that causes it.

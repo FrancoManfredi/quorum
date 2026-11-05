@@ -4,7 +4,7 @@ The Load Balancer stands for a reverse proxy such as NGINX that spreads requests
 
 It takes every request kind and sends it on. It adds a little latency and has a throughput limit, which each size step doubles. It spans every zone, so a zone outage does not take it down.
 
-By default it splits traffic by each target's capacity, so a large App Server gets a larger share. Round robin is also on offer. The [Load balancing algorithms](/research/lb-algorithms) Research adds least connections and [power of two choices](/glossary/power-of-two-choices). Two choices handles more traffic with a little imbalance.
+By default it splits traffic by each target's capacity, so a large App Server gets a larger share. Round robin is also on offer. The [Load balancing algorithms](/research/lb-algorithms) Research adds least connections and [power of two choices](/glossary/power-of-two-choices). Two choices handles more traffic with a little imbalance. Consistent hash gives every target an equal share of the keys whatever its load, and a target that leaves moves only its own keys.
 
 It drops a dead host at its next [health check](/glossary/health-check). The [Health checks](/research/health-checks) Research lets you change the interval and turn on deep checks. A Load Balancer can also route by request kind: set which kinds each of its links carries.
 

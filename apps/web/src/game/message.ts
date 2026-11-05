@@ -206,6 +206,7 @@ export const Message = defineMessageUnion({
   PmChosen: { nodeId: Schema.String, pm: PmMode },
   PoolerModeChosen: { nodeId: Schema.String, mode: PoolerMode },
   CompressionChosen: { nodeId: Schema.String, compress: Schema.Boolean },
+  RecycleChosen: { nodeId: Schema.String, recycle: Schema.Boolean },
   PolicyChosen: { nodeId: Schema.String, policy: LbPolicy },
   LbVariantChosen: { nodeId: Schema.String, variant: Schema.Literals(['l7', 'l4']) },
   HealthCheckChosen: {
@@ -270,6 +271,11 @@ export const Message = defineMessageUnion({
   UnderAttackChosen: { nodeId: Schema.String, underAttack: Schema.Boolean },
   RateLimitChosen: { nodeId: Schema.String, rateLimit: Schema.Finite },
   GatewayBucketChosen: { nodeId: Schema.String, bucket: Schema.Boolean },
+  GatewayOptionsChosen: {
+    nodeId: Schema.String,
+    authEdge: Schema.optional(Schema.Boolean),
+    merge: Schema.optional(Schema.Boolean),
+  },
   DbEngineChosen: { nodeId: Schema.String, dbEngine: DbEngine },
   StorageIopsChosen: { nodeId: Schema.String, iops: IopsClass },
   ShardsChosen: { nodeId: Schema.String, shards: Schema.Finite },
@@ -302,6 +308,7 @@ export const Message = defineMessageUnion({
     acks: Schema.optional(Acks),
     retain: Schema.optional(Schema.Finite),
     keyed: Schema.optional(Schema.Boolean),
+    replicas: Schema.optional(Schema.Finite),
   },
   ZoneChosen: { nodeId: Schema.String, zone: Zone },
   StandbyChosen: { nodeId: Schema.String, standby: Schema.Boolean },
@@ -316,6 +323,10 @@ export const Message = defineMessageUnion({
   GpuChosen: { nodeId: Schema.String, gpu: GpuType },
   PrecisionChosen: { nodeId: Schema.String, precision: Schema.Literals(['fp16', 'int8', 'int4']) },
   BatchChosen: { nodeId: Schema.String, batch: Schema.Finite },
+  GpuModelChosen: {
+    nodeId: Schema.String,
+    gpuModel: Schema.Literals(['small', 'medium', 'large']),
+  },
   CollectorChosen: { nodeId: Schema.String, collector: Collector },
   GogcChosen: { nodeId: Schema.String, gogc: Schema.Finite },
   ShedChosen: { nodeId: Schema.String, shed: Schema.Boolean },

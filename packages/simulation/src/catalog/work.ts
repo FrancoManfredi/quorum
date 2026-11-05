@@ -392,6 +392,23 @@ export const FEATURES: Record<FeatureId, FeatureDef> = {
   }),
 }
 
+/** Features an engineering team builds for its own people: a Django admin site makes them cheaper (06). */
+export const INTERNAL_TOOL_FEATURES: ReadonlyArray<FeatureId> = [
+  'dashboards',
+  'audit-log',
+  'status-page',
+  'data-export',
+]
+
+/** Features that run as background work, queued or scheduled: Laravel's queues make them cheaper (06). */
+export const BACKGROUND_FEATURES: ReadonlyArray<FeatureId> = [
+  'email-digests',
+  'data-export',
+  'notifications-center',
+  'webhooks',
+  'push-notifications',
+]
+
 export const TASK_IDS = [
   'add-index',
   'eager-loading',

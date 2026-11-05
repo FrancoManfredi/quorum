@@ -10,7 +10,7 @@ The shape that differs from a [relational table](/components/database):
 - **No connections to pool.** An App Server opens no pool it has to share through a [Connection Pooler](/components/pooler), so a spike of App Servers cannot exhaust it the way PostgreSQL's 100 connections are exhausted. It has no buffer cache and no IOPS volume either, so it has no disk limit to meet.
 - **No schema to migrate.** A Feature that changes the data shape costs **25% fewer Dev Hours**, because there is no migration to write, run, or lock a table for. Every other Feature costs **10% more**, because with no joins each access pattern it adds is its own collection and index to write and read. The [Team](/team) panel charges the total.
 
-That last row is the trade the design names: developer velocity against joins and transactions.
+That last row is the trade: developer velocity against joins and transactions.
 
 ## A join costs three ops
 

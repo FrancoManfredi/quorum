@@ -33,6 +33,7 @@ import {
   LANGUAGES,
   LIFECYCLE_DAYS,
   LOG_ACKS,
+  LOG_REPLICAS,
   LOG_PARTITIONS,
   LOG_RETENTION,
   SEARCH_REFRESH,
@@ -73,6 +74,8 @@ import {
   LB_VARIANTS,
   GPU_PRECISIONS,
   GPU_BATCHES,
+  GPU_MODELS,
+  type GpuModel,
   GATEWAY_BURST,
   SWITCH_PROVIDER_PRICE,
   type LbVariant,
@@ -251,6 +254,9 @@ export const blankNode = (
     draining: false,
     drainAt: 0,
     compress: stack?.compress ?? false,
+    recycle: stack?.recycle ?? false,
+    authEdge: false,
+    merge: false,
     downAt: 0,
     policy: 'weighted',
     variant: 'l7',
@@ -315,6 +321,7 @@ export const blankNode = (
     maxCopies: 8,
     gpu: 't4',
     precision: 'fp16',
+    gpuModel: 'medium',
     batch: 1,
     collector: 'g1',
     gogc: 100,
@@ -687,6 +694,22 @@ export const setWorkers = (game: Game, id: string, workers: number): Action =>
       : notAllowed(`${RUNTIMES[node.runtime].name} sizes its own pool.`),
   )
 
+/**
+ * Turns periodic restarts on or off for an App Server whose processes live across requests
+ * (`pm.max_requests`, a Puma worker killer). A recycled process starts cold now and then, and a
+ * leak never builds: the Node's heap returns to what it was.
+ */
+export const setRecycle = (game: Game, id: string, recycle: boolean): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'server' && node.type !== 'worker')
+      return notAllowed('Only App Servers and Workers recycle their processes.')
+    if (!RUNTIMES[node.runtime].persistent)
+      return notAllowed(
+        `${RUNTIMES[node.runtime].name} starts every request clean: nothing to recycle.`,
+      )
+    return ok(node.recycle === recycle ? game : patch(game, id, { recycle, leak: 0 }))
+  })
+
 /** Turns gzip on or off for an App Server's page and read responses. Needs Compression. */
 export const setCompression = (game: Game, id: string, compress: boolean): Action =>
   withNode(game, id, (node) => {
@@ -944,6 +967,16 @@ export const setGatewayBucket = (game: Game, id: string, bucket: boolean): Actio
     return ok(node.burst === burst ? game : patch(game, id, { burst }))
   })
 
+/** Sets an API Gateway's Auth at the edge, or its Request coalescing (05 "API Gateway"). */
+export const setGatewayOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{ authEdge?: boolean; merge?: boolean }>,
+): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'gw' ? ok(patch(game, id, change)) : notAllowed('Only an API Gateway has these.'),
+  )
+
 /** Sets a Realtime Hub's Presence, Reconnect backoff, or Clustering (05 "Realtime Hub"). */
 export const setHubOptions = (
   game: Game,
@@ -1091,17 +1124,21 @@ export const setPrecision = (game: Game, id: string, precision: GpuPrecision): A
     return ok(node.precision === precision ? game : patch(game, id, { precision }))
   })
 
-/** Sets a GPU Node's batch size. Continuous batching raises it without the latency (05). */
+/** Sets a GPU Node's batch size. Continuous batching keeps the first token's wait at its floor (05). */
 export const setBatch = (game: Game, id: string, batch: number): Action =>
   withNode(game, id, (node) => {
     if (node.type !== 'gpu') return notAllowed('Only a GPU Node batches prompts.')
     if (!GPU_BATCHES.some((entry) => entry.batch === batch))
       return notAllowed(`A batch is ${GPU_BATCHES.map((entry) => entry.batch).join(', ')}.`)
-    if (batch > 1 && !has(game, 'continuous-batching'))
-      return no(
-        Refusal.Locked({ what: 'Batching', research: RESEARCH['continuous-batching'].name }),
-      )
     return ok(node.batch === batch ? game : patch(game, id, { batch }))
+  })
+
+/** Picks the model a GPU Node serves. It loads the weights, so the Node comes back cold. */
+export const setGpuModel = (game: Game, id: string, gpuModel: GpuModel): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'gpu') return notAllowed('Only a GPU Node serves a model.')
+    if (!(gpuModel in GPU_MODELS)) return notAllowed('There is no such model.')
+    return ok(node.gpuModel === gpuModel ? game : patch(game, id, { gpuModel, ...restarted(node) }))
   })
 
 /** Picks a Java App Server's collector. ZGC needs its research. */
@@ -1415,6 +1452,7 @@ export const setLogOptions = (
     acks?: GameNode['acks']
     retain?: number
     keyed?: boolean
+    replicas?: number
   }>,
 ): Action =>
   withNode(game, id, (node) => {
@@ -1434,7 +1472,13 @@ export const setLogOptions = (
       !(LOG_RETENTION as ReadonlyArray<number>).includes(change.retain)
     )
       return notAllowed(`Retention windows are ${LOG_RETENTION.join(', ')} seconds.`)
-    return ok(patch(game, id, change))
+    if (
+      change.replicas !== undefined &&
+      !(LOG_REPLICAS as ReadonlyArray<number>).includes(change.replicas)
+    )
+      return notAllowed(`Replication factors are ${LOG_REPLICAS.join(', ')}.`)
+    const { replicas, ...rest } = change
+    return ok(patch(game, id, replicas === undefined ? rest : { ...rest, n: replicas }))
   })
 
 /**
@@ -1532,7 +1576,7 @@ export const setRollout = (
 export const rollBackRoutes = (game: Game): Action =>
   endIncident(game, 'bgp', 'No routing change to roll back.')
 
-/** Share of the Users a phishing page drives away. The design gives no number: this is proposed. */
+/** Share of the Users a phishing page drives away. The design gives no number: this is  */
 export const PHISH_CHURN = 0.1
 
 /**

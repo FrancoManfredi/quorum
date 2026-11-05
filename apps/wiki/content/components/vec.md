@@ -17,7 +17,7 @@ A prompt that reaches an index retrieves from it: link the App Server, Worker or
 
 An approximate index takes its recall's share of that lift, so HNSW earns a little less per prompt than Exact and answers twice as many.
 
-It also unlocks Python's ML ecosystem bonus in the way the [Runtimes](/runtimes) page always intended: a Python Stack's `+20%` on `ai` needs an index in the path, because a small model in process is only worth having when it has something to embed and something to quote. Before the Vector Index existed the build could not test that condition; now it does.
+It also unlocks Python's ML ecosystem bonus as the [Runtimes](/runtimes) page describes: a Python Stack's `+20%` on `ai` needs an index in the path, because a small model in process is only worth having when it has something to embed and something to quote. Before the Vector Index existed the build could not test that condition; now it does.
 
 ## When to place it
 

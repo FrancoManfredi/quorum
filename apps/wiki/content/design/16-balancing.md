@@ -244,13 +244,16 @@ seeds, the others on seeds 1–3 (`pacing.test.ts` and `bots.test.ts`, both unde
 
 ## Dominance
 
-Pillar 2 says no option strictly dominates another. A cheaper option is always on the Pareto front, so
-the rule is stronger: each option is meant to beat every sibling by at least 10% on one of revenue per
-Burn, p99, error share, or velocity, on some reference design. The option sets are the 28 runtimes, each
+Pillar 2 says no option strictly dominates another. `dominance.test.ts` runs in every `pnpm test` and in
+CI. Within each language, every runtime must beat each of its siblings by at least 10% on one
+reference score: throughput on the real Ledger of a Pre-seed Design, RAM per process, realtime
+connections per GB, startup, cold speed, stall-free CPU work, GC pause, leak-proof processes, a
+self-sized pool, or one of the six axes of its profile. Across languages, BEAM holds the most
+realtime connections per GB, beating Go and Kestrel. The option sets are the 28 runtimes, each
 language's frameworks, the instance families (Burstable, General, Compute, Memory), and the PHP-FPM pool
-modes. Two pairs sit inside the bar: Axum and Actix are within about 5% of each other on CPU and
-velocity, and ARM runs at 0.8× the price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's.
-The fix for a dominated option is a design change to the option, not a number tweak.
+modes. Axum and Actix are within about 5% of each other on CPU and velocity, and ARM runs at 0.8× the
+price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's. A dominated option is fixed
+by changing the option, not by a number tweak.
 
 ## Runtime balance targets
 

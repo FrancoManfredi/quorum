@@ -19,8 +19,11 @@ import {
   TIME_OFF_DAYS,
   UNHAPPY_MOOD,
   type ComponentId,
+  BACKGROUND_FEATURES,
   FEATURES,
   FEATURE_IDS,
+  FRAMEWORKS,
+  INTERNAL_TOOL_FEATURES,
   FIXES,
   INCIDENTS,
   INCIDENT_IDS,
@@ -34,7 +37,6 @@ import {
   REFACTOR_PER_DH,
   RESEARCH,
   type ResearchId,
-  STRUCTURED_DEBT,
   TASKS,
   TASK_LINK_TIMEOUT,
   LOAD_TEST_DAYS,
@@ -110,7 +112,7 @@ import {
   sharesDatabase,
   signingOf,
   stackOf,
-  structured,
+  debtGrowthOf,
   teamOutputs,
   withService,
   withServiceId,
@@ -390,8 +392,7 @@ const refused = (refusal: Refusal | null, apply: () => Game): Action =>
  * Dev Hours a Feature costs on this Design (07 "Document Store"). A Document Store has no schema
  * to migrate, so a Feature that changes the data shape costs a quarter less and skips the
  * migration. Every other Feature pays a little more, because with no joins each access pattern it
- * adds is its own collection and index to write. Proposed: the design gives the −25% and the
- * direction of the access-pattern cost, and no figure for either in Dev Hours.
+ * adds is its own collection and index to write.
  */
 export const featureHoursOf = (game: Game, id: FeatureId): number => {
   const def = FEATURES[id]
@@ -400,12 +401,19 @@ export const featureHoursOf = (game: Game, id: FeatureId): number => {
     dataStaffed(game) && def.unlocks && DATA_KINDS.includes(def.unlocks.kind as RequestKind)
       ? DATA_TEAM_HOURS
       : 1
+  // The framework's own tools: Django's admin site for internal tools, Laravel's queues and
+  // scheduler for background work (06 "Frameworks").
+  const framework = FRAMEWORKS[stackOf(game).framework]
+  const tooling =
+    (INTERNAL_TOOL_FEATURES.includes(id) ? (framework.internalTools ?? 1) : 1) *
+    (BACKGROUND_FEATURES.includes(id) ? (framework.workerHours ?? 1) : 1)
   const documents = game.nodes.some((node) => node.type === 'doc' && !isDown(node) && !node.shut)
   // A schema-change tool costs Dev Hours on every Feature that changes a relational schema.
   if (!documents)
     return (
       def.dh *
       data *
+      tooling *
       (def.shapes > 0
         ? has(game, 'expand-contract')
           ? EXPAND_CONTRACT_DH
@@ -414,7 +422,7 @@ export const featureHoursOf = (game: Game, id: FeatureId): number => {
             : 1
         : 1)
     )
-  return def.dh * data * (def.shapes > 0 ? DOC_SHAPE_DH : DOC_PATTERN_FACTOR)
+  return def.dh * data * tooling * (def.shapes > 0 ? DOC_SHAPE_DH : DOC_PATTERN_FACTOR)
 }
 
 /** The request kinds a Data team makes cheaper to build: `report` and `ai` (08 "Teams"). */
@@ -1151,7 +1159,7 @@ const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
     const policy = team ? policyNow(game, team) : POLICIES.balanced
     const grows =
       (policy.debt + (stackOf(game).framework === 'none' ? UNSTRUCTURED_DEBT : 0)) *
-      (structured(game) ? STRUCTURED_DEBT : 1)
+      debtGrowthOf(game)
     return withServiceId({ ...game, awaiting: [...game.awaiting, id] }, service.id, {
       debt: Math.min(1, service.debt + grows),
       codebase: service.codebase + FEATURES[id].dh * KLOC_PER_DH,
@@ -1317,7 +1325,7 @@ const deploy = (
   offline: boolean,
 ): Game => {
   // A hot upgrade costs Elixir Dev Hours per release (06 "Runtime behaviors"): the next slot is
-  // that many Dev Hours later. Proposed: the design gives the cost, not its length in seconds.
+  // that many Dev Hours later.
   const hotUpgrade = game.nodes.some(
     (node) =>
       node.type === 'server' &&

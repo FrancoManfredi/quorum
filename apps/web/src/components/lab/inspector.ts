@@ -32,10 +32,13 @@ import {
   FEATURES,
   FRAMEWORKS,
   FRAMEWORK_IDS,
+  AUTH_CHECK_MS,
+  GATEWAY_AUTH_MS,
   GATEWAY_LIMITS,
   KINDS,
   LB_POLICIES,
   LB_VARIANTS,
+  GPU_MODELS,
   GPU_PRECISIONS,
   GPU_BATCHES,
   GPU_FIRST_TOKEN_MS,
@@ -66,6 +69,7 @@ import {
   type RequestKind,
   type RuntimeId,
   type LbVariant,
+  type GpuModel,
   type GpuPrecision,
   BACKUPS,
   DB_ENGINES,
@@ -94,6 +98,7 @@ import {
   DOC_SHAPE_DH,
   LOG_ACKS,
   LOG_PARTITIONS,
+  LOG_REPLICAS,
   LOG_READ_RATE,
   LOG_RETENTION,
   VEC_AI_LIFT,
@@ -111,7 +116,14 @@ import {
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
-import { distributedErlang, edgeRuns, hubConnections } from '@quorum/simulation/rules'
+import {
+  distributedErlang,
+  edgeRuns,
+  gpuFits,
+  gpuHeldGB,
+  gpuNeedGB,
+  hubConnections,
+} from '@quorum/simulation/rules'
 import {
   badDeployShareOf,
   blastService,
@@ -138,6 +150,7 @@ import {
   replacePrice,
   resizePrice,
   runtimeReady,
+  logLoss,
   logReplicas,
   serverlessBurnOf,
   sizeLabel as sizeLabelOf,
@@ -1466,6 +1479,32 @@ const stack = (
           ),
         ]
       : []),
+    ...(RUNTIMES[node.runtime].persistent
+      ? [
+          section(
+            'Recycle workers',
+            [
+              picker(
+                'recycle',
+                [
+                  [false, 'Off'],
+                  [true, 'Every few hours'],
+                ],
+                node.recycle,
+                (recycle) => Message.RecycleChosen({ nodeId: node.id, recycle }),
+                h,
+              ),
+              h.p(
+                [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+                [
+                  'pm.max_requests and worker killers restart each process now and then. A leak never builds, and each restart runs cold.',
+                ],
+              ),
+            ],
+            h,
+          ),
+        ]
+      : []),
     ...(has(game, 'gzip')
       ? [
           section(
@@ -2488,6 +2527,24 @@ const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         `A producer waits ${LOG_ACKS[node.acks].latency}× the 5 ms append. A replica past the first bills half a broker's Burn again.`,
         h,
       ),
+      picker(
+        'replicas',
+        LOG_REPLICAS.map(
+          (replicas) =>
+            [replicas, `${replicas} ${replicas === 1 ? 'replica' : 'replicas'}`] as const,
+        ),
+        logReplicas(node),
+        (replicas) => Message.LogOptionsChosen({ nodeId: node.id, replicas }),
+        h,
+      ),
+      caption(
+        logLoss(node) >= 1
+          ? 'One replica holds the only copy: a broker that fails takes every event it held.'
+          : logLoss(node) > 0
+            ? `A broker that fails loses ${percent(logLoss(node))} of the events it held: the ones its replicas had not copied.`
+            : 'Every replica had every acknowledged event, so a broker that fails loses none.',
+        h,
+      ),
     ],
     h,
   ),
@@ -3037,6 +3094,23 @@ const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
         h,
       ),
       picker(
+        'gpu-model',
+        (Object.keys(GPU_MODELS) as ReadonlyArray<GpuModel>).map(
+          (id) => [id, GPU_MODELS[id].name] as const,
+        ),
+        node.gpuModel,
+        (choice) => Message.GpuModelChosen({ nodeId: node.id, gpuModel: choice }),
+        h,
+        undefined,
+        'grid-cols-3',
+      ),
+      caption(
+        gpuFits(node)
+          ? `${GPU_MODELS[node.gpuModel].speed}× the medium model's tokens, and each answer is worth ${GPU_MODELS[node.gpuModel].value}× as much. The weights and the batch take ${gpuNeedGB(node).toFixed(1)} of ${gpuHeldGB(node)} GB.`
+          : `The weights and the batch need ${gpuNeedGB(node).toFixed(1)} GB and the GPUs hold ${gpuHeldGB(node)}: the model is killed as it loads, and every prompt fails as oom. A lower precision, a smaller model or a smaller batch fits.`,
+        h,
+      ),
+      picker(
         'precision',
         (Object.keys(GPU_PRECISIONS) as ReadonlyArray<GpuPrecision>).map(
           (id) => [id, GPU_PRECISIONS[id].name] as const,
@@ -3059,7 +3133,7 @@ const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
         node.batch,
         (choice) => Message.BatchChosen({ nodeId: node.id, batch: choice }),
         h,
-        (batch) => batch === 1 || has(game, 'continuous-batching'),
+        undefined,
         'grid-cols-3',
       ),
       caption(
@@ -3220,6 +3294,36 @@ const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
         node.burst > 0
           ? `A burst of up to ${compact(node.burst)} requests passes whole, and the average holds at the limit.`
           : 'Every Step over the limit is throttled at once. Research Rate limiting for a token bucket.',
+        h,
+      ),
+      picker(
+        'gateway-auth',
+        [
+          [false, 'Services check'],
+          [true, 'Auth at the edge'],
+        ],
+        node.authEdge,
+        (authEdge) => Message.GatewayOptionsChosen({ nodeId: node.id, authEdge }),
+        h,
+      ),
+      caption(
+        node.authEdge
+          ? `The Gateway validates each token once, for ${GATEWAY_AUTH_MS} ms, and the services skip the ${AUTH_CHECK_MS * 1_000} µs check.`
+          : `Every service validates the token itself: ${AUTH_CHECK_MS * 1_000} µs of CPU on each authenticated request.`,
+        h,
+      ),
+      picker(
+        'gateway-merge',
+        [
+          [false, 'Every read goes on'],
+          [true, 'Request coalescing'],
+        ],
+        node.merge,
+        (merge) => Message.GatewayOptionsChosen({ nodeId: node.id, merge }),
+        h,
+      ),
+      caption(
+        'Identical reads in flight at once become one call. The busier the Gateway, the more it merges, so a spike sends less on.',
         h,
       ),
     ],

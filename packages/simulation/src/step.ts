@@ -30,6 +30,7 @@ import {
   SCALE_IN,
   STEADY_CHURN,
   UPLOAD_MB,
+  WRITE_BEHIND_SECONDS,
   VM_REACTION,
   CERT_RENEW,
   DRAIN_SECONDS,
@@ -65,6 +66,7 @@ import {
   has,
   inCluster,
   isDown,
+  logLoss,
   meshOf,
   restarted,
   vcpuOf,
@@ -291,6 +293,40 @@ const lostOnCrash = (game: Game, from: number, seconds: number): number => {
   return lost
 }
 
+/**
+ * Events an Event Stream lost when its broker failed (07 "Event Stream"): the share its replicas
+ * and `acks` leave exposed, of the events it held. A planned restart hands them over first. A
+ * failure counts once, in the Step whose start it falls in.
+ */
+const crashedLog = (node: GameNode, from: number, seconds: number): boolean =>
+  node.type === 'log' &&
+  isDown(node) &&
+  causeOf(node.life) !== 'restart' &&
+  node.downAt >= from &&
+  node.downAt < from + seconds
+
+/**
+ * Writes a write-behind Cache lost when it failed (07 "Strategies"): the ones it had acknowledged
+ * and not yet flushed to the Database. The Cache keeps that backlog in `depth`.
+ */
+const crashedCache = (node: GameNode, from: number, seconds: number): boolean =>
+  node.type === 'cache' &&
+  isDown(node) &&
+  causeOf(node.life) !== 'restart' &&
+  node.downAt >= from &&
+  node.downAt < from + seconds
+
+const lostOnBroker = (game: Game, from: number, seconds: number): number =>
+  game.nodes.reduce(
+    (lost, node) =>
+      crashedLog(node, from, seconds)
+        ? lost + node.depth * logLoss(node)
+        : crashedCache(node, from, seconds)
+          ? lost + node.depth
+          : lost,
+    0,
+  )
+
 /** Seconds a cold Node takes to warm: its runtime's JIT for App Servers and Workers. */
 const warmupOf = (game: Game, node: GameNode): number =>
   node.type === 'server' || node.type === 'worker'
@@ -450,6 +486,17 @@ const advanceNode = (
   }
   if (node.type === 'queue' || node.type === 'log')
     next = { ...next, depth: depthAfter(game, ledger, node, seconds) }
+  // A write-behind Cache holds the writes it has acknowledged and not flushed.
+  if (node.type === 'cache')
+    next = {
+      ...next,
+      depth:
+        !isDown(node) && has(game, 'cache-strategies') && node.cacheStrategy === 'write-behind'
+          ? (ledger.nodes[node.id]?.traffic['q-write'] ?? 0) * WRITE_BEHIND_SECONDS
+          : 0,
+    }
+  // A failed broker takes the events its replicas did not have with it.
+  if (crashedLog(node, time, seconds)) next = { ...next, depth: next.depth * (1 - logLoss(node)) }
   if (node.lost > 0) next = { ...next, lost: Math.max(0, node.lost - seconds) }
   // A drained Node takes no new traffic (the solver routes around it) and finishes what it holds:
   // a Queue hands its backlog to its Workers at its own rate, and a lost replica comes back. Empty
@@ -784,7 +831,7 @@ export const step = (
   // The pager, a freeze and a pay gap wear the Team down (18 "Burnout and quitting").
   next = advanceMorale(next, game, seconds, tuning, events)
   // A crashed Worker's prefetched tasks are lost: they spend the error budget like failed requests.
-  const lost = lostOnCrash(next, game.time, seconds)
+  const lost = lostOnCrash(next, game.time, seconds) + lostOnBroker(game, game.time, seconds)
   if (lost > 0)
     next = {
       ...next,

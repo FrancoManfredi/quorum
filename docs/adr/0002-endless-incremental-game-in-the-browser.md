@@ -12,7 +12,7 @@ Considered options:
 - A server-authoritative Simulation. Rejected for the Company: an idle game must run offline, must
   simulate hours of absence in under a second, and must stay cheap per player. The server keeps only
   the jobs that need trust: Challenge verification, histograms, and the daily drill.
-- Driving a faithful Kubernetes simulation. Rejected: it does not model the numbers the player
+- Driving a faithful Kubernetes simulation. Rejected: it would not produce the numbers the player
   optimizes, and its bundle size and CPU cost do not fit a browser game that steps ten times a second.
 
 ## Consequences

@@ -15,6 +15,8 @@ is cheap at low volume and expensive at high volume, and it is the Requests line
 has one size and a flat capacity of its own, so a Design past that capacity drops requests at the
 gateway like any other flat-capacity Node.
 
+Two options change what services do behind it. **Auth at the edge** validates each token once at the gateway, which adds to its hop and takes the token check off every service. **Request coalescing** merges identical reads that are in flight at once, so the busier the gateway, the less it sends on.
+
 ## When to place it
 
 Place it when you want to protect your services from a burst or from abusive clients without

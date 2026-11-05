@@ -9,7 +9,7 @@ The engineering terms Quorum teaches, each with the mechanic it drives.
 
 Real engineering terms that Quorum teaches. Each entry gives a definition, what the term does in the
 game as built, related terms, and sources to read more. "Design" links to the design sections behind
-the term. When the game does not model a term yet, "In the game" names the closest mechanic.
+the term. "In the game" says what the term does in the game, or names the closest mechanic.
 
 The game ships this glossary in the Glossary panel from
 `packages/simulation/src/catalog/glossary.ts`, which `glossary.test.ts` keeps in sync with this
@@ -34,7 +34,7 @@ A marker on a time series chart for an event, such as a deploy, a configuration 
 
 A routing method where many servers in different places announce the same IP address. Internet routing (BGP) sends each user to the nearest of them, so users connect to a close server and a flood spreads across all of them.
 
-**In the game:** You can research Anycast in Series C after GeoDNS. It does not change latency yet. GeoDNS is the working way to shorten the user hop: it sends each region's Users to their own region, or to the nearest region that is still up.
+**In the game:** Anycast is Series C research after GeoDNS. GeoDNS is what shortens the user hop: it sends each region's Users to their own region, or to the nearest region that is still up.
 
 **Related:** [BGP (Border Gateway Protocol)](#bgp-border-gateway-protocol), [GeoDNS](#geodns), [CDN (content delivery network)](#cdn-content-delivery-network), [DDoS (distributed denial of service)](#ddos-distributed-denial-of-service)
 
@@ -386,7 +386,7 @@ Keeping a set of open database connections and sharing them among many clients, 
 
 A way to map keys to servers on a hash ring, so that adding or removing one server moves only about 1/n of the keys. Karger and others described it in 1997 for web caches, and Amazon's Dynamo and Apache Cassandra use it to place data.
 
-**In the game:** The game does not model consistent hashing yet. A Load Balancer splits traffic by Weighted, Round robin, Least conn, or Two choices, not by key. The closest is the Wide-column Store, which places each key on N replicas, and the Hot key Incident, where one key's shard saturates.
+**In the game:** With Load balancing algorithms researched, a Load Balancer can split by Consistent hash: every target takes an equal share of the keys whatever its load, and a target that leaves moves only its own keys. The Wide-column Store places each key on N replicas, and the Hot key Incident is one key's shard saturating.
 
 **Design:** a [Load Balancer](/design/05-components#load-balancer) algorithm.
 
@@ -494,7 +494,7 @@ Storing the same fact in more than one place, or keeping a pre-joined copy, so a
 
 An automated check of the third-party libraries a project uses against databases of known vulnerabilities. It usually runs in the build pipeline and flags versions that need an upgrade.
 
-**In the game:** Dependency scanning is Security Research from Series A that needs Continuous delivery. In the game today it has no direct effect on traffic or Incidents. It is one of three prerequisites, with TLS everywhere and Encryption at rest, for the SOC 2 program, which the IPO checklist needs.
+**In the game:** Dependency scanning is Security Research from Series A that needs Continuous delivery. It catches a published backdoor before the build installs it and cuts the weakness the Supply-chain compromise Incident finds. It is also one of three prerequisites, with TLS everywhere and Encryption at rest, for the SOC 2 program, which the IPO checklist needs.
 
 **Related:** [SOC 2](#soc-2), [Continuous delivery](#continuous-delivery), [Tech debt](#tech-debt)
 
@@ -504,7 +504,7 @@ An automated check of the third-party libraries a project uses against databases
 
 Following one request across every service it touches. Each hop records a span with its start and end time, and spans that share a trace ID join into one trace. Traces show where time goes and which dependency is slow.
 
-**In the game:** The Distributed tracing Research (after Percentiles) promises each request kind's time, Node by Node, but buying it changes nothing in the game today. The closest thing that works now is the Analytics Node, which samples the traffic of the Nodes you link into it and turns it into Insight. Percentiles show p50, p95, and p99, and the Board marks the Bottleneck.
+**In the game:** The Distributed tracing Research (after Percentiles) shows each request kind's time, Node by Node, as the Dashboard's Services table and its Waterfall. The Analytics Node samples the traffic of the Nodes you link into it and turns it into Insight. Percentiles show p50, p95, and p99, and the Board marks the Bottleneck.
 
 **Related:** [Observability](#observability), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Tail at scale](#tail-at-scale), [Fan-out](#fan-out)
 
@@ -594,7 +594,7 @@ A caching technique where the edge stores the shared part of a page and assemble
 
 Encrypting stored data, such as disks, database files, and backups, so that someone who gets the storage media cannot read it without the keys. It protects against stolen disks and leaked backups, not against an attacker who can query the live system.
 
-**In the game:** Encryption at rest is Security Research from Series B. In the game today it has no direct effect on traffic, cost, or Incidents. It is one of three prerequisites, with TLS everywhere and Dependency scanning, for the SOC 2 program, which the IPO checklist needs.
+**In the game:** Encryption at rest is Security Research from Series B. It has no direct effect on traffic, cost, or Incidents. It is one of three prerequisites, with TLS everywhere and Dependency scanning, for the SOC 2 program, which the IPO checklist needs.
 
 **Related:** [SOC 2](#soc-2), [TLS certificate](#tls-certificate), [Data residency](#data-residency)
 
@@ -826,7 +826,7 @@ Reusing one TCP connection for many HTTP requests instead of opening a new one e
 
 Newer versions of HTTP. HTTP/2 sends many requests at once over one TCP connection. HTTP/3 runs over QUIC on UDP, which combines the transport and TLS handshakes and stops one lost packet from stalling every stream.
 
-**In the game:** HTTP/3 is Series C Research that needs HTTP/2. It cuts the round trips a user pays to reach a region on another continent by 20%: a European user served from North America waits 120 ms instead of 150 ms. HTTP/2 research has no effect of its own yet; you research it to unlock HTTP/3.
+**In the game:** HTTP/3 is Series C Research that needs HTTP/2. It cuts the round trips a user pays to reach a region on another continent by 20%: a European user served from North America waits 120 ms instead of 150 ms. HTTP/2 is the Research that unlocks HTTP/3.
 
 **Related:** [HTTP keep-alive](#http-keep-alive), [GeoDNS](#geodns), [Tail at scale](#tail-at-scale)
 
@@ -1328,7 +1328,7 @@ A codebase with its own deploy pipeline, owned by one team. Splitting a monolith
 
 Splitting one dataset across several databases (shards) by a key, such as a hash of the user ID, so each shard stores and serves only part of the data. It scales writes and storage past one machine, but a query that spans shards must ask all of them, and one hot key can overload its shard while the others idle.
 
-**In the game:** The Sharding research splits a Database into 1, 2, 4, or 8 shards by key, and it still unlocks Leaderless replication. Each shard is another box and bills like one, and the writes divide across them, so two shards answer twice the writes. Reads still ask the one shard that holds their key, which is why a Read Replica takes reads off the primary, and a transaction across shards costs three times its latency. The game does not model the shard key, a hot shard, scatter-gather, or resharding. The Hot key Incident still hits a Cache or Wide-column Store, where 30% of the reads ask for one key on one shard, so the Node's capacity falls to about 1 / (0.3 × shards + 0.7). With Hybrid fan-out you can split those keys.
+**In the game:** The Sharding research splits a Database into 1, 2, 4, or 8 shards by key, and it still unlocks Leaderless replication. Each shard is another box and bills like one, and the writes divide across them, so two shards answer twice the writes. Reads still ask the one shard that holds their key, which is why a Read Replica takes reads off the primary, and a transaction across shards costs three times its latency. You choose the shard key (hash, range, tenant or region) on the card, and changing the shard count is a resharding that costs Dev Hours and calendar time for each GB the Database holds. The Hot key Incident still hits a Cache or Wide-column Store, where 30% of the reads ask for one key on one shard, so the Node's capacity falls to about 1 / (0.3 × shards + 0.7). With Hybrid fan-out you can split those keys.
 
 **Design:** [Partitioning](/design/07-data-tier#partitioning-sharding).
 
@@ -1398,7 +1398,7 @@ Replacing a legacy system piece by piece: put a routing layer in front of it, se
 
 Replication where the primary confirms a write only after at least one replica has also stored it. No acknowledged write is lost if the primary fails, but every write waits for the round trip to the replica.
 
-**In the game:** The Synchronous replication Research says that writes wait for a replica, but today it only unlocks Consensus databases; it does not change Read Replicas or the Database. The closest thing the game models is Distributed SQL: every write waits for a majority of its replicas, so writes across regions pay the round trip. A Database with a Standby also fails over in seconds when its zone fails.
+**In the game:** The Synchronous replication Research adds a switch to each Read Replica: with it on, every write waits for that replica, so the replica never lags and each write pays its round trip. It also unlocks Consensus databases. Distributed SQL waits for a majority of its replicas on every write, so writes across regions pay the round trip. A Database with a Standby also fails over in seconds when its zone fails.
 
 **Related:** [Read replica](#read-replica), [Replication lag](#replication-lag), [Raft](#raft), [RPO and RTO](#rpo-and-rto)
 
@@ -1554,7 +1554,7 @@ A filter in front of a web application that inspects HTTP requests and blocks th
 
 A caching policy in which every write goes to the cache and the database together, so the cache always holds the latest value for the keys written through it. Reads hit more often and are never stale for those keys, but each write is slower and the cache fills with data that may never be read. Cache-aside and write-behind are the common alternatives.
 
-**In the game:** Write-through is designed as a Cache strategy but not in the game yet. Today a Cache works like cache-aside with invalidation: writes pass through to the Database and invalidate keys, so its hit ratio falls by twice the write share, at most by half. Between invalidations some hits are stale, from 0.5% to 10% per unit of write share as the TTL grows from 10 s to 1 hour.
+**In the game:** Write-through is one of the Cache's strategies, with Cache strategies researched: a write goes to the Cache and the Database together, so the Cache never serves a stale hit for a key written through it, and each write pays half a millisecond more. A cache-aside Cache invalidates keys on a write, so its hit ratio falls by twice the write share, at most by half. Between invalidations some hits are stale, from 0.5% to 10% per unit of write share as the TTL grows from 10 s to 1 hour.
 
 **Design:** [Cache strategies](/design/07-data-tier#strategies-a-tradeoff-card).
 

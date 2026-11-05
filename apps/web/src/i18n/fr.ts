@@ -1767,6 +1767,7 @@ export const fr: Readonly<Record<string, string>> = {
   'Push Provider': 'Fournisseur Push',
   'Wide-column Store': 'Magasin à larges colonnes',
   'Distributed SQL': 'Distribué SQL',
+  'Consistent hash': 'Hachage cohérent',
   'Two choices': 'Deux choix',
   Nightly: 'Tous les soirs',
   'Where traffic starts. A domain resolves to one host, so Users take one link.':
@@ -3808,33 +3809,21 @@ export const fr: Readonly<Record<string, string>> = {
   'FrankenPHP, RoadRunner or Octane: the app boots once, so the framework’s per-request overhead goes. Loses shared nothing, so memory leaks and state bleed become possible.':
     'FrankenPHP, RoadRunner ou Octane : l’application démarre une fois, donc la surcharge du framework par requête disparaît. Perd le « rien de partagé » : les fuites mémoire et le mélange d’état redeviennent possibles.',
   Swoole: 'Swoole',
-  'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections; 20 KB each is proposed.':
-    'Des coroutines sur une boucle d’événements, des E/S asynchrones comme Node.js, et aucune surcharge de framework par requête. Une extension bloquante bloque la boucle. Tient les connexions temps réel ; 20 Ko chacune est proposé.',
   Unicorn: 'Unicorn',
   'A Rails process per slot: simple and robust, and memory-heavy. One waiting request holds a whole process, so it refuses realtime connections.':
     'Un processus Rails par emplacement : simple et robuste, et gourmand en mémoire. Une requête en attente immobilise tout un processus, donc il refuse les connexions temps réel.',
   Falcon: 'Falcon',
-  'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection is proposed: the design gives Ruby’s figure without naming the server.':
-    'Les fibres tiennent beaucoup de connexions inactives par processus. Une gem qui bloque bloque la boucle. 100 Ko par connexion est proposé : le design donne le chiffre de Ruby sans nommer le serveur.',
   Bun: 'Bun',
-  'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup are proposed; its compatibility incident is not built.':
-    'Une boucle d’événements plus rapide au démarrage instantané, donc il s’autoscale et se déploie mieux que Node.js. 60 Mo et aucun démarrage sont proposés ; son incident de compatibilité n’est pas construit.',
   Deno: 'Deno',
   'Permissions block most supply-chain attacks, at 10% slower feature work: fewer packages are compatible. The same event loop as Node.js.':
     'Les permissions bloquent la plupart des attaques de chaîne d’approvisionnement, au prix de 10 % de vélocité : moins de paquets sont compatibles. La même boucle d’événements que Node.js.',
   gevent: 'gevent',
   'Gunicorn with gevent': 'Gunicorn avec gevent',
-  'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching breaks some libraries; that incident is not built. 30 KB per connection is proposed.':
-    'Les threads verts tiennent beaucoup d’attentes d’E/S par processus, donc une base lente n’immobilise plus un processus. Le monkey patching casse certaines bibliothèques ; cet incident n’est pas construit. 30 Ko par connexion est proposé.',
   'Uvicorn ASGI': 'Uvicorn ASGI',
   'Async like Node.js, with slower CPU: a blocking call stalls the loop. Holds realtime connections at the design’s 30 KB each.':
     'Asynchrone comme Node.js, avec un CPU plus lent : un appel bloquant bloque la boucle. Tient les connexions temps réel aux 30 Ko du design chacune.',
   'Free-threaded CPython': 'CPython à threads libres',
-  'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours; the design gives no figure, so 8 threads and 100 KB are proposed.':
-    'De vrais threads parallèles sur chaque cœur, 10 % plus lents par thread, et un thread par connexion n’est pas gratuit. Les extensions C pas prêtes coûtent des heures de dev ; le design ne donne aucun chiffre, donc 8 threads et 100 Ko sont proposés.',
   PyPy: 'PyPy',
-  'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus, and 200 MB per worker is proposed.':
-    'Trois fois le CPU Python pur de Gunicorn, après la montée en régime du JIT. Le faible support des extensions C prive du bonus d’écosystème ML ; 200 Mo par processus est proposé.',
   fasthttp: 'fasthttp',
   'A quarter faster than net/http at 10% slower feature work: the API is not standard, some middleware does not work, and there is no HTTP/2.':
     'Un quart plus rapide que net/http au prix de 10 % de vélocité : l’API n’est pas standard, certains middlewares ne fonctionnent pas, et il n’y a pas de HTTP/2.',
@@ -3842,19 +3831,11 @@ export const fr: Readonly<Record<string, string>> = {
   'Waiting no longer holds a platform thread, so a slow database only adds latency. Native (JNI) calls still pin a carrier, and the JVM still warms for 30 s. Realtime connections cost 10 KB.':
     'L’attente n’immobilise plus un thread de plateforme, donc une base lente n’ajoute que de la latence. Les appels natifs (JNI) épinglent encore un porteur, et la JVM chauffe toujours 30 s. Les connexions temps réel coûtent 10 Ko.',
   'Spring WebFlux': 'Spring WebFlux',
-  'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB is proposed.':
-    'Une très forte concurrence sur une boucle par processus, et 20 % plus lent à écrire et déboguer. Un appel bloquant bloque la boucle, et la JVM chauffe toujours. 400 Mo est proposé.',
   'GraalVM native image': 'Image native GraalVM',
   'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with slower builds. A thread per connection, like Tomcat. Great for Serverless Functions.':
     'Démarre en moins de 100 ms sans échauffement, à 60 % de la mémoire de la JVM et 0,80× sa vitesse, avec des builds plus lents. Un thread par connexion, comme Tomcat. Idéal pour les fonctions serverless.',
   'Native AOT': 'Native AOT',
-  'No JIT, so it starts at full speed, and smaller: 100 MB is proposed from the design’s “smaller memory”. 0.90× the speed, and reflection-heavy libraries need Dev Hours.':
-    'Pas de JIT, donc il démarre à pleine vitesse, et plus petit : 100 Mo est proposé d’après le « moins de mémoire » du design. 0,90× la vitesse, et les bibliothèques à forte réflexion coûtent des heures de dev.',
-  'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB is proposed.':
-    'Validation avec Pydantic, et le meilleur écosystème pour la colle à modèles : les requêtes `ai` rapportent 15 % de plus. 1,15× CPU, et seulement sur un serveur ASGI. 10 Mo est proposé.',
   Fastify: 'Fastify',
-  'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB is proposed.':
-    'Sérialisation par schéma : les lectures coûtent 20 % de CPU en moins. Aucune surcharge propre. 5 Mo est proposé.',
   'Next.js': 'Next.js',
   'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU. The 40% of pages a CDN could cache is not built. 30 MB is proposed.':
     'Rendu serveur et régénération statique incrémentale : les pages rapportent 50 % de plus, à 1,6× leur CPU. Les 40 % de pages qu’un CDN pourrait mettre en cache ne sont pas construits. 30 Mo est proposé.',
@@ -4233,4 +4214,73 @@ export const fr: Readonly<Record<string, string>> = {
   'Too early': 'Trop tôt',
   Wins: 'Gagne',
   Loses: 'Perd',
+  'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections at 20 KB each.':
+    "Des coroutines sur une boucle d'événements, des E/S asynchrones comme Node.js et aucun surcoût de framework par requête. Les extensions bloquantes figent la boucle. Tient des connexions temps réel à 20 Ko chacune.",
+  'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection.':
+    'Les fibres tiennent de nombreuses connexions inactives par processus. Une gem bloquante fige la boucle. 100 Ko par connexion.',
+  'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup. Less mature: a package that works on Node.js can break on it.':
+    "Une boucle d'événements plus rapide avec un démarrage instantané : il s'adapte et se déploie mieux que Node.js. 60 Mo et aucun démarrage. Moins mature : un paquet qui fonctionne sur Node.js peut y casser.",
+  'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching can break a library. 30 KB per connection.':
+    "Les threads verts tiennent de nombreuses attentes d'E/S par processus : une base lente ne bloque plus un worker. Le monkey patching peut casser une bibliothèque. 30 Ko par connexion.",
+  'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours. 8 threads and 100 KB per connection.':
+    "De vrais threads parallèles sur chaque cœur, 10 % plus lents par thread, et un thread par connexion n'est pas bon marché. Les extensions C pas encore prêtes coûtent des heures de dev. 8 threads et 100 Ko par connexion.",
+  'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus. 200 MB per worker.':
+    "Trois fois le CPU Python pur de Gunicorn, après un échauffement JIT. Un faible support des extensions C signifie aucun bonus d'écosystème ML. 200 Mo par worker.",
+  'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB.':
+    'Très forte concurrence sur une boucle par processus, et 20 % plus lent à écrire et à déboguer. Un appel bloquant fige la boucle, et la JVM chauffe toujours. 400 Mo.',
+  'No JIT, so it starts at full speed, and smaller: 100 MB. 0.90× the speed, and reflection-heavy libraries need Dev Hours.':
+    'Pas de JIT : il démarre à pleine vitesse, et plus petit : 100 Mo. 0,90× la vitesse, et les bibliothèques à réflexion lourde demandent des heures de dev.',
+  'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB.':
+    'Validation avec Pydantic et le meilleur écosystème pour relier les modèles : les requêtes `ai` rapportent 15 % de plus. 1,15× le CPU, uniquement sur un serveur ASGI. 10 Mo.',
+  'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB.':
+    'Sérialisation basée sur des schémas : les lectures coûtent 20 % de CPU en moins. Aucun surcoût propre. 5 Mo.',
+  'Ships features fast, and background work costs 20% fewer Dev Hours. 1.8× CPU (1.1× in worker mode), and Eloquent makes 3 read queries where 1 would do.':
+    "Livre des fonctionnalités vite, et le travail d'arrière-plan coûte 20 % d'heures de dev en moins. 1,8× le CPU (1,1× en mode worker), et Eloquent fait 3 requêtes de lecture là où 1 suffirait.",
+  'Minimal and everywhere. 1.1× CPU, and middleware sprawl grows tech debt 10% faster.':
+    'Minimal et partout. 1,1× le CPU, et la prolifération des middlewares fait croître la dette technique 10 % plus vite.',
+  'Ships features fast, and internal tools cost 30% fewer Dev Hours with the admin site. 1.4× CPU and N+1 queries.':
+    "Livre des fonctionnalités vite, et les outils internes coûtent 30 % d'heures de dev en moins grâce au site d'administration. 1,4× le CPU et des requêtes N+1.",
+  'Strict structure: 30% less coordination and 30% slower tech debt. 1.5× CPU and no N+1 queries.':
+    'Structure stricte : 30 % de coordination en moins et une dette technique 30 % plus lente. 1,5× le CPU et aucune requête N+1.',
+  'Structure for large teams: 30% less coordination. 1.3× CPU, 200 MB more, and 15 s more to start.':
+    'Structure pour les grandes équipes : 30 % de coordination en moins. 1,3× le CPU, 200 Mo de plus et 15 s de plus au démarrage.',
+  'Structure for large teams: 30% less coordination. 1.3× CPU and 20 MB per process.':
+    'Structure pour les grandes équipes : 30 % de coordination en moins. 1,3× le CPU et 20 Mo par processus.',
+  'Built for native images: a GraalVM build takes half the time. 1.1× CPU and 100 MB per process.':
+    'Conçu pour les images natives : un build GraalVM prend moitié moins de temps. 1,1× le CPU et 100 Mo par processus.',
+  'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU, and a CDN can answer 40% of them. 30 MB per process.':
+    'Rendu côté serveur et régénération statique incrémentale : les pages rapportent 50 % de plus, pour 1,6× leur CPU, et un CDN peut en servir 40 %. 30 Mo par processus.',
+  'An Express-style API on fasthttp: no CPU overhead, and no HTTP/2. 5 MB per process.':
+    'Une API de style Express sur fasthttp : aucun surcoût CPU et pas de HTTP/2. 5 Mo par processus.',
+  'Stale OPcache': 'OPcache périmé',
+  'A CI/CD Pipeline resets OPcache on every deploy. A restart clears the cache by hand.':
+    'Un pipeline CI/CD réinitialise OPcache à chaque déploiement. Un redémarrage vide le cache à la main.',
+  'Automated tests run against the runtime a Service ships on, and catch the package before a deploy does.':
+    "Les tests automatisés s'exécutent sur le runtime où le service est livré et détectent le paquet avant le déploiement.",
+  'Library incompatibility': 'Incompatibilité de bibliothèque',
+  'Automated tests run the Service under gevent before it ships, and show which library breaks.':
+    'Les tests automatisés exécutent le service sous gevent avant sa livraison et montrent quelle bibliothèque casse.',
+  'Chaos experiments find the partition before it does. A restart rejoins the cluster.':
+    "Les expériences de chaos trouvent la partition avant qu'elle ne frappe. Un redémarrage réintègre le cluster.",
+  'Small (3B)': 'Petit (3B)',
+  'Medium (7B)': 'Moyen (7B)',
+  'Large (34B)': 'Grand (34B)',
+  'Recycle workers': 'Recycler les workers',
+  'Keep workers': 'Garder les workers',
+  'Every few hours': 'Toutes les quelques heures',
+  'pm.max_requests and worker killers restart each process now and then. A leak never builds, and each restart runs cold.':
+    "pm.max_requests et les tueurs de workers redémarrent chaque processus de temps en temps. Une fuite ne s'accumule jamais, et chaque redémarrage repart à froid.",
+  'Services check': 'Les services vérifient',
+  'Auth at the edge': 'Authentification en périphérie',
+  'Auth at the edge on': 'Authentification en périphérie activée',
+  'Auth at the edge off': 'Authentification en périphérie désactivée',
+  'Every read goes on': 'Chaque lecture continue',
+  'Request coalescing on': 'Fusion de requêtes activée',
+  'Request coalescing off': 'Fusion de requêtes désactivée',
+  'Identical reads in flight at once become one call. The busier the Gateway, the more it merges, so a spike sends less on.':
+    'Les lectures identiques en vol en même temps deviennent un seul appel. Plus la passerelle est occupée, plus elle fusionne : un pic envoie donc moins en aval.',
+  '{0} replica': '{0} réplique',
+  '{0} replicas': '{0} répliques',
+  'Replicas: {0}': 'Répliques : {0}',
+  'Model {0}': 'Modèle {0}',
 }

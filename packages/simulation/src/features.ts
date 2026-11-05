@@ -29,7 +29,7 @@ import type { Game, LiftSample } from './state.ts'
    Sandbox runs its Era's mix with no Feature effects, as it always has.
    ========================================================================== */
 
-/** The rate the experiment samples at when the Design runs no Analytics. Proposed. */
+/** The rate the experiment samples at when the Design runs no Analytics.  */
 const LIFT_SAMPLE_FLOOR = 0.01
 
 /**
@@ -249,7 +249,7 @@ export const advanceAdoption = (
 
 /**
  * The share of requests the experiment observes: the best Analytics tap's sample rate, or a
- * proposed 1% without one. A higher rate gives a verdict sooner, which is what sampling buys.
+ * 1% without one. A higher rate gives a verdict sooner, which is what sampling buys.
  */
 export const liftSampleRate = (game: Game): number => {
   const rates = game.nodes

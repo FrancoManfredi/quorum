@@ -124,7 +124,7 @@ What each Venture starts with:
 
 All twelve start in the Garage, and the Head start perk still opens Pre-seed. Cash, Equity, the demand
 curves and amplitudes, the market and value multipliers, the mix boosts, and the Legacy multipliers
-above are the build's proposals; the unlock costs, the 100 ms bid deadline, the Java-or-C# rule, the
+above are this game's own; the unlock costs, the 100 ms bid deadline, the Java-or-C# rule, the
 calendar-day procurement, the Series A residency, the no-naive-retry rule, the Series B SLA, the
 realtime regions from Series A, the scarce GPUs, and the signature incidents are this document's. The
 SLA's one SLO level and the AI startup's two GPU Nodes are the game's own. Incident magnitudes: a hot shard costs three times the CPU per query, a

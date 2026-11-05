@@ -56,6 +56,10 @@ export const INCIDENT_IDS = [
   'leap-second',
   'table-bloat',
   'page-leak',
+  'stale-opcache',
+  'bun-compat',
+  'gevent-compat',
+  'split-brain',
 ] as const
 export type IncidentId = (typeof INCIDENT_IDS)[number]
 
@@ -126,8 +130,7 @@ export const DEADLINE_SURGE = 3
 /**
  * The signature incidents of the older Ventures (13 "Ventures"). The design names each one and
  * gives two numbers: a flash sale is "×20 demand" and a hot shard is one tenant on one shard.
- * The rest are proposed: a hot shard costs three times the CPU per query, a premiere lifts video
- * four times, and a launch day lifts realtime six times.
+ * The rest are
  */
 export const HOT_SHARD_CPU = 3
 export const PREMIERE_SURGE = 4
@@ -148,12 +151,30 @@ export const KIND_SURGE: Partial<Record<IncidentId, readonly [RequestKind, numbe
  * (06 "Java"). It is the one number in this group the design gives.
  */
 export const JVM_WARMUP_SECONDS = 30
-/** The five durations 11 gives no number for: proposed, between the catalog's 30 s and 300 s. */
+/** The durations of the other five of the six kinds, between the catalog's 30 s and 300 s. */
 export const MIGRATION_LOCK_SECONDS = 150
 export const SUPPLY_CHAIN_SECONDS = 90
 export const ACCIDENTAL_DELETE_SECONDS = 120
 export const OPERATOR_TYPO_SECONDS = 120
 export const LEAP_SECOND_SECONDS = 60
+
+/* ---------- the runtime incidents (06 "Runtime behaviors", "Variants by language") ---------- */
+
+/** Sim seconds a stale OPcache, a runtime compatibility break and a split brain last. */
+export const STALE_OPCACHE_SECONDS = 90
+export const RUNTIME_COMPAT_SECONDS = 90
+export const SPLIT_BRAIN_SECONDS = 90
+/**
+ * The share of its requests a Node fails while a runtime incident runs on it: the old code run
+ * against the new schema, a package that does not work on the new runtime, a monkey patch that
+ * blocks the hub, or the half of a split cluster that no longer sees the other.
+ */
+export const RUNTIME_INCIDENT_FAILURES: Partial<Record<IncidentId, number>> = {
+  'stale-opcache': 0.3,
+  'bun-compat': 0.2,
+  'gevent-compat': 0.15,
+  'split-brain': 0.5,
+}
 
 /* Table bloat and the cached page leak (07, 05). */
 
@@ -164,15 +185,15 @@ export const PAGE_LEAK_SECONDS = 90
 export const BLOAT_CPU = 2
 /** Share of the Users a cached page leak drives away at once. */
 export const PAGE_LEAK_CHURN = 0.05
-/** Share of the Users the supply-chain compromise drives away at once (proposed). */
+/** Share of the Users the supply-chain compromise drives away at once. */
 export const SUPPLY_CHAIN_CHURN = 0.1
 /**
  * Cash to switch Payment Provider mid-outage (18 "Senders": "Switch provider"), scaled by the
- * Era's cost index like a signing bonus. The design gives no number: proposed. A rush integration
+ * Era's cost index like a signing bonus. The design gives no number:  A rush integration
  * with a second provider ends the Payment provider outage at once.
  */
 export const SWITCH_PROVIDER_PRICE = 5_000
-/** Share of the Users a restore that finds no good backup loses (proposed, 07 "Backups"). */
+/** Share of the Users a restore that finds no good backup loses. */
 export const DELETE_CHURN = 0.1
 /** Milliseconds a clock jump adds to a Node in the region, and the share of its answers that time out. */
 export const CLOCK_SKEW_MS = 1_000
@@ -185,9 +206,7 @@ export const CASCADE_FROM_STAGE = 3
 
 /**
  * The incident one left alone can start, by the kind it leaves alone (11 "One at a time, early").
- * The design says cascades happen and names no pairs, so this table is proposed: each pair is the
- * failure the catalog's own flagship section describes — a slowdown plus retries, a cache gone
- * cold, a heap that fills, a clock that jumps into a partition.
+ * The design says cascades happen and names no pairs, so this table is
  */
 export const CASCADES: Partial<Record<IncidentId, IncidentId>> = {
   'slow-query': 'retry-storm',
@@ -585,7 +604,7 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     actions: [],
   },
   // Only a phishing Mail the player acts on starts this one (18 "Spam and phishing"); the
-  // director never draws it. The duration is proposed: the design gives none.
+  // director never draws it. The duration is
   'credential-leak': {
     id: 'credential-leak',
     name: 'Credential leak',
@@ -705,7 +724,7 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     prevention: 'A Queue for the checkout work, an Autoscaler, and load shedding.',
     actions: ['autoscaling', 'load-shedding'],
   },
-  // The six kinds the design names by hand: each severity, Era and duration below is proposed
+  // The six kinds the design names by hand: each severity, Era and duration is below
   // except where 11 gives one, and each prevention names its research in the build.
   'jvm-warmup': {
     id: 'jvm-warmup',
@@ -808,6 +827,58 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     prevention: 'Leap smearing spreads the second over a day, so no clock ever jumps.',
     actions: ['leap-smearing'],
   },
+  'stale-opcache': {
+    id: 'stale-opcache',
+    name: 'Stale OPcache',
+    era: 1,
+    severity: 3,
+    escalatesTo: null,
+    duration: STALE_OPCACHE_SECONDS,
+    cause:
+      'OPcache runs with validate_timestamps off, and a deploy did not reset it. The PHP servers kept running the old code against the new schema, and a share of requests failed.',
+    prevention:
+      'A CI/CD Pipeline resets OPcache on every deploy. A restart clears the cache by hand.',
+    actions: ['ci'],
+  },
+  'bun-compat': {
+    id: 'bun-compat',
+    name: 'Runtime compatibility',
+    era: 3,
+    severity: 3,
+    escalatesTo: null,
+    duration: RUNTIME_COMPAT_SECONDS,
+    cause:
+      'A package that works on Node.js does not work on Bun, which is less mature. A share of requests that touched it failed until the package was swapped.',
+    prevention:
+      'Automated tests run against the runtime a Service ships on, and catch the package before a deploy does.',
+    actions: ['testing-culture'],
+  },
+  'gevent-compat': {
+    id: 'gevent-compat',
+    name: 'Library incompatibility',
+    era: 2,
+    severity: 3,
+    escalatesTo: null,
+    duration: RUNTIME_COMPAT_SECONDS,
+    cause:
+      'gevent monkey patches the standard library, and one library did not survive it: its calls blocked the hub, and a share of requests failed.',
+    prevention:
+      'Automated tests run the Service under gevent before it ships, and show which library breaks.',
+    actions: ['testing-culture'],
+  },
+  'split-brain': {
+    id: 'split-brain',
+    name: 'Split brain',
+    era: 4,
+    severity: 2,
+    escalatesTo: 1,
+    duration: SPLIT_BRAIN_SECONDS,
+    cause:
+      'A network partition cut a Distributed Erlang cluster in two. Each half kept serving its own clients, and half of the realtime messages never reached the other.',
+    prevention:
+      'Chaos experiments find the partition before it does. A restart rejoins the cluster.',
+    actions: ['chaos-engineering'],
+  },
 }
 
 /** A quarter-end report scans this many times what a report usually does. */
@@ -835,8 +906,7 @@ export const DDOS_MAGNITUDE = 50
 export const STUFFING_MAGNITUDE = 19
 /**
  * Credential stuffing protection blocks 80% of a stuffing burst before it reaches login (10
- * "Track: Security", `credential-protection`). Proposed: the design names the research and its
- * blurb, not a rate.
+ * "Track: Security", `credential-protection`).
  */
 export const CREDENTIAL_PROTECTION_BLOCK = 0.2
 

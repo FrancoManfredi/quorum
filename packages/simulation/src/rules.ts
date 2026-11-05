@@ -14,6 +14,8 @@ import {
   L4_MS,
   GPU_PRECISIONS,
   GPU_BATCHES,
+  GPU_MODELS,
+  GPU_CACHE_GB,
   DUAL_WRITE_STALE,
   MATERIALIZED_STALE,
   PSP_CAPACITY,
@@ -28,6 +30,11 @@ import {
   PRESENCE_CPU,
   PRESENCE_VALUE,
   REGEX_CAPACITY,
+  RUNTIME_INCIDENT_FAILURES,
+  GATEWAY_AUTH_MS,
+  COALESCE_KINDS,
+  COALESCE_HOT,
+  COALESCE_WINDOW,
   RT_HOLD_SECONDS,
   SEARCH_REFRESH,
   SLOW_CHARGE_MS,
@@ -129,6 +136,7 @@ import {
   hasEdge,
   hopMs,
   inCluster,
+  isDown,
   meshOf,
   pinnedOf,
   shardingOf,
@@ -291,7 +299,10 @@ export const codeCrashes = (
     incident?.kind === 'cluster-upgrade' && cluster !== undefined && cluster === incident.nodeId
       ? UPGRADE_CRASHES
       : 0
-  return deploy + upgrade + (buggy(game, node) ? MIGRATION_BUGS : 0)
+  // A runtime incident fails a share of the requests of the Node it runs on.
+  const runtime =
+    incident && incident.nodeId === node.id ? (RUNTIME_INCIDENT_FAILURES[incident.kind] ?? 0) : 0
+  return deploy + upgrade + runtime + (buggy(game, node) ? MIGRATION_BUGS : 0)
 }
 
 /** What `outcome` may ask: this Node's own hop, and what its calls get back. */
@@ -413,8 +424,22 @@ export const cdnHitOf = (node: GameNode, kind: Kind, game?: Game): number => {
           : (CDN_HIT[kind] ?? 0)
   // A key that leaves out the query string or the cookie shares more pages, and a cache that a
   // purge emptied fills again as it warms (05 "CDN").
-  return Math.min(0.95, base * ttl.factor * CACHE_KEYS[node.cacheKey].hit * warmOf(node.life))
+  const hit = base * ttl.factor * CACHE_KEYS[node.cacheKey].hit * warmOf(node.life)
+  // Incremental static regeneration makes a share of the pages the origin renders static, so the
+  // CDN can answer them too (06 "Frameworks": Next.js).
+  const regenerated = kind === 'page' && game ? staticPagesOf(game) : 0
+  return Math.min(0.95, hit + (1 - hit) * regenerated * ttl.factor * warmOf(node.life))
 }
+
+/** The share of `page` requests a Next.js App Server renders statically, so a CDN can cache them. */
+export const staticPagesOf = (game: Game): number =>
+  game.nodes.reduce(
+    (best, node) =>
+      node.type === 'server' && !isDown(node)
+        ? Math.max(best, FRAMEWORKS[node.framework].cacheable ?? 0)
+        : best,
+    0,
+  )
 
 /* ---------- the Edge Function ---------- */
 
@@ -468,6 +493,16 @@ export const gatewayShare = (node: GameNode, arriving: Rates, dt = STEP_SECONDS)
   const allowed = limit * dt + Math.max(0, node.burst)
   const asked = total * dt
   return allowed < asked ? allowed / asked : 1
+}
+
+/**
+ * Share of a read kind's requests a Gateway merges into one already in flight (05 "Request
+ * coalescing"): the popular reads that overlap, which grows with the rate.
+ */
+const merged = (node: GameNode, kind: Kind, rate: number): number => {
+  if (!node.merge || !COALESCE_KINDS.includes(kind as RequestKind)) return 0
+  const overlap = rate * COALESCE_WINDOW
+  return (COALESCE_HOT * overlap) / (1 + overlap)
 }
 
 /* ---------- the Realtime Hub ---------- */
@@ -824,7 +859,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       const hit = answer.pass.hits[slotOf(answer.pass, node)] ?? 0
       const mixed = blend([
         [{ ...answered(0, 0), stale: answer.pass.staleHits[slotOf(answer.pass, node)] ?? 0 }, hit],
-        [answer.downstream(kind, hopMs(answer.game)), 1 - hit],
+        [answer.downstream(kind, hopMs(answer.game) + strategy.loadMs), 1 - hit],
       ])
       return through(answer.ownHop(kind), mixed ? [[mixed, 1]] : [])
     },
@@ -1123,7 +1158,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     model: unlimited(8, 0),
     serve: (serve, node, rates, share) => {
       const { game } = serve.solver
-      serve.setHits(cdnHitOf(node, 'page'), 0)
+      serve.setHits(cdnHitOf(node, 'page', game), 0)
       each(rates, share, (kind, processed) =>
         serve.route(kind, processed * (1 - cdnHitOf(node, kind, game))),
       )
@@ -1170,10 +1205,18 @@ export const RULES: Record<ComponentId, ComponentRule> = {
   },
   // A Gateway relays every kind, and past its rate limit it answers throttled instead (05).
   gw: {
-    model: flat({ fixed: 6, variable: 0.1 }),
+    model: (solver, node, arriving) =>
+      flatModel(
+        flatCapacity(node),
+        arriving,
+        { fixed: 6 + (node.authEdge ? GATEWAY_AUTH_MS : 0), variable: 0.1 },
+        solver.boost(node),
+      ),
     serve: (serve, node, rates, share) => {
       const kept = gatewayShare(node, rates)
-      each(rates, share, (kind, processed) => serve.route(kind, processed * kept))
+      each(rates, share, (kind, processed) =>
+        serve.route(kind, processed * kept * (1 - merged(node, kind, processed * kept))),
+      )
     },
     outcome: (answer, node, kind) =>
       failSome(
@@ -1210,8 +1253,14 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       // A Hub that just came back takes the fleet's whole reconnect wave at once. Jittered
       // backoff spreads it over the hold time; without it, the Hub refuses what it cannot take.
       const herd = node.life._tag === 'Warming' && !node.backoff
+      // A split cluster loses the messages that cross the cut.
+      const incident = answer.game.incident
+      const split =
+        incident?.kind === 'split-brain' && incident.nodeId === node.id
+          ? (RUNTIME_INCIDENT_FAILURES['split-brain'] ?? 0)
+          : 0
       return failSome(
-        through(answer.ownHop(kind, node.presence ? PRESENCE_VALUE : 1)),
+        failSome(through(answer.ownHop(kind, node.presence ? PRESENCE_VALUE : 1)), split, 'stale'),
         // A sticky Load Balancer sends each client back to the Hub it had, so a restarted Hub
         // takes only its own half of the wave.
         herd ? HERD_REFUSED * (pinnedOf(answer.game, node) ? STICKY_HERD : 1) : 0,
@@ -1292,15 +1341,28 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       // for a first token does not (05 "GPU Node").
       const batched = has(solver.game, 'continuous-batching')
       return flatModel(
-        gpuCapacity(node) * precision.speed * batch.gain * Math.max(0.1, warmOf(node.life)),
+        gpuCapacity(node) *
+          GPU_MODELS[node.gpuModel].speed *
+          precision.speed *
+          batch.gain *
+          Math.max(0.1, warmOf(node.life)),
         arriving,
         { fixed: GPU_FIRST_TOKEN_MS + (batched ? 0 : batch.ttft), variable: 100 },
         solver.boost(node),
       )
     },
     // A quantized answer is worth less: 5% at INT8 and 15% at INT4 (05 "GPU Node").
+    // A model that does not fit in the GPU's memory is killed as it loads: every prompt fails as
+    // `oom`. Quantization shrinks the weights until it fits.
     outcome: (answer, node, kind) =>
-      through(answer.ownHop(kind, GPU_PRECISIONS[node.precision].value)),
+      gpuFits(node)
+        ? through(
+            answer.ownHop(
+              kind,
+              GPU_PRECISIONS[node.precision].value * GPU_MODELS[node.gpuModel].value,
+            ),
+          )
+        : failed('oom'),
     ...terminal,
   },
   // Small handlers next to the user (05 "Edge Function"): 5 ms, no cold start, and a CPU ceiling
@@ -1464,6 +1526,16 @@ export const RULES: Record<ComponentId, ComponentRule> = {
   },
 }
 
+/** GB of GPU memory the Node's model needs: its weights at its precision, and the batch's attention cache. */
+export const gpuNeedGB = (node: GameNode): number =>
+  GPU_MODELS[node.gpuModel].gb * GPU_PRECISIONS[node.precision].memory + GPU_CACHE_GB * node.batch
+
+/** GB of memory the Node's GPUs hold between them. */
+export const gpuHeldGB = (node: GameNode): number => GPU_TYPES[node.gpu].gb * flatScale(node)
+
+/** Whether the model fits in the Node's GPU memory. */
+export const gpuFits = (node: GameNode): boolean => gpuNeedGB(node) <= gpuHeldGB(node)
+
 /** Prompts per second a GPU Node serves at full warmth. */
 export const gpuCapacity = (node: GameNode): number =>
   (GPU_TYPES[node.gpu].tokens * flatScale(node)) / TOKENS_PER_PROMPT
@@ -1479,7 +1551,7 @@ export const accepts = (node: GameNode, kind: Kind): boolean =>
 
 /* ---------- quorums, consensus and hot keys ---------- */
 
-/** Mean ms one Wide-column replica takes to answer. Proposed. */
+/** Mean ms one Wide-column replica takes to answer.  */
 export const WIDE_REPLICA_MS = 2
 
 export const quorumN = (node: GameNode): number => Math.max(1, Math.min(5, node.n))

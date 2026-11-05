@@ -60,7 +60,7 @@ The Symfony framework lowers the penalty by 30%, because its structure means les
 :::Note{tone="real"}
 The second term comes from Neil Gunther's Universal Scalability Law, which also describes servers
 that slow down as you add cores. Real companies split into small teams for the same reason. The
-game has one Service, so it does not yet model the service boundaries that real teams split along.
+game splits a Service the same way: a Service is a codebase one team owns, and a split moves Features to a new Service with its own team, deploys and bad deploys.
 See [Conway's law](/glossary/conways-law).
 :::
 

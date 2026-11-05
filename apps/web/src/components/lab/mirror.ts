@@ -49,6 +49,7 @@ const FIELD_LABEL: Record<Managed, string> = {
   framework: 'Framework',
   workers: 'Workers',
   compress: 'Compression',
+  recycle: 'Recycle workers',
   sampleRate: 'Sample rate',
   retention: 'Retention',
   policy: 'Policy',

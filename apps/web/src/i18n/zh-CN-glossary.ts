@@ -357,8 +357,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'Grafana docs: Annotate visualizations': 'Grafana 文档：为可视化图表添加注释',
   'A routing method where many servers in different places announce the same IP address. Internet routing (BGP) sends each user to the nearest of them, so users connect to a close server and a flood spreads across all of them.':
     '一种路由方式：不同地点的多台服务器宣告同一个 IP 地址。互联网路由（BGP）将用户引导至其中最近的一台，让用户连接附近的服务器，也让洪泛流量分散到所有服务器。',
-  "You can research Anycast in Series C after GeoDNS. It does not change latency yet. GeoDNS is the working way to shorten the user hop: it sends each region's Users to their own region, or to the nearest region that is still up.":
-    '在 C 轮完成 GeoDNS 研究后，可以研究 Anycast。它目前还不会改变延迟。要实际缩短用户的访问路径，请使用 GeoDNS：它将各区域的用户引导至本区域，或仍在运行的最近区域。',
+  "Anycast is Series C research after GeoDNS. GeoDNS is what shortens the user hop: it sends each region's Users to their own region, or to the nearest region that is still up.":
+    'Anycast 是 C 轮研究，排在 GeoDNS 之后。缩短用户跳数的是 GeoDNS：它把每个区域的用户送到自己的区域，或最近的仍可用的区域。',
   'Cloudflare Learning Center: What is Anycast?': 'Cloudflare 学习中心：什么是 Anycast？',
   'RFC 4786: Operation of Anycast Services': 'RFC 4786：Anycast 服务的运行',
   Wikipedia: '维基百科',
@@ -527,8 +527,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'PostgreSQL docs: Connections (max_connections)': 'PostgreSQL 文档：连接（max_connections）',
   "A way to map keys to servers on a hash ring, so that adding or removing one server moves only about 1/n of the keys. Karger and others described it in 1997 for web caches, and Amazon's Dynamo and Apache Cassandra use it to place data.":
     '在哈希环上将键映射到服务器的方法，增删一台服务器时，只需移动约 1/n 的键。Karger 等人于 1997 年为 Web 缓存提出此方法，Amazon 的 Dynamo 和 Apache Cassandra 也用它放置数据。',
-  "The game does not model consistent hashing yet. A Load Balancer splits traffic by Weighted, Round robin, Least conn, or Two choices, not by key. The closest is the Wide-column Store, which places each key on N replicas, and the Hot key Incident, where one key's shard saturates.":
-    '游戏目前尚未模拟一致性哈希。负载均衡器通过加权、轮询、最少连接或随机二选一来分配流量，而不是按键分配。最接近的是宽列存储，它将每个键放在 N 个副本上；以及“热键”故障，其中一个键所在的分片会达到饱和。',
+  "With Load balancing algorithms researched, a Load Balancer can split by Consistent hash: every target takes an equal share of the keys whatever its load, and a target that leaves moves only its own keys. The Wide-column Store places each key on N replicas, and the Hot key Incident is one key's shard saturating.":
+    '研究负载均衡算法后，负载均衡器可以按一致性哈希分配：每个目标无论负载如何都获得相同份额的键，离开的目标只移走它自己的键。宽列存储将每个键放在 N 个副本上，“热键”故障则是一个键所在的分片达到饱和。',
   'Karger et al.: Consistent hashing and random trees (STOC 1997)':
     'Karger 等：一致性哈希与随机树（STOC 1997）',
   'DeCandia et al.: Dynamo (SOSP 2007)': 'DeCandia 等：Dynamo（SOSP 2007）',
@@ -583,15 +583,15 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'Enterprise Integration Patterns: Dead Letter Channel': '企业集成模式：死信通道',
   'An automated check of the third-party libraries a project uses against databases of known vulnerabilities. It usually runs in the build pipeline and flags versions that need an upgrade.':
     '自动将项目使用的第三方库与已知漏洞数据库进行比对的检查。它通常在构建流水线中运行，标记出需要升级的版本。',
-  'Dependency scanning is Security Research from Series A that needs Continuous delivery. In the game today it has no direct effect on traffic or Incidents. It is one of three prerequisites, with TLS everywhere and Encryption at rest, for the SOC 2 program, which the IPO checklist needs.':
-    '“依赖扫描”是 A 轮起可用的安全研究，前置条件是“持续交付”。目前在游戏中，它对流量和故障没有直接影响。它与“全链路 TLS”“静态数据加密”一起，是“SOC 2 计划”的三个前置条件，而 IPO 清单要求完成 SOC 2 计划。',
+  'Dependency scanning is Security Research from Series A that needs Continuous delivery. It catches a published backdoor before the build installs it and cuts the weakness the Supply-chain compromise Incident finds. It is also one of three prerequisites, with TLS everywhere and Encryption at rest, for the SOC 2 program, which the IPO checklist needs.':
+    '依赖扫描是 A 轮的安全研究，需要持续交付。它能在构建安装之前发现已发布的后门，并降低供应链攻陷事件所利用的弱点。它还是 SOC 2 计划的三个前提之一（另两个是全程 TLS 和静态加密），而 IPO 清单需要 SOC 2。',
   'OWASP Top 10: Vulnerable and Outdated Components': 'OWASP Top 10：存在漏洞和过时的组件',
   'OWASP Dependency-Check': 'OWASP Dependency-Check 依赖检查工具',
   'GitHub Docs: About Dependabot alerts': 'GitHub 文档：关于 Dependabot 警报',
   'Following one request across every service it touches. Each hop records a span with its start and end time, and spans that share a trace ID join into one trace. Traces show where time goes and which dependency is slow.':
     '追踪一个请求经过的每个服务。每一跳都记录带有开始和结束时间的跨度，共享同一追踪 ID 的跨度组成完整调用链。调用链能显示时间花在哪里，以及哪个依赖较慢。',
-  "The Distributed tracing Research (after Percentiles) promises each request kind's time, Node by Node, but buying it changes nothing in the game today. The closest thing that works now is the Analytics Node, which samples the traffic of the Nodes you link into it and turns it into Insight. Percentiles show p50, p95, and p99, and the Board marks the Bottleneck.":
-    '“分布式追踪”研究（需先研究“百分位数”）承诺按节点显示每种请求的耗时，但目前在游戏中购买它不会产生任何变化。当前可用的最接近工具是分析节点，它对连接给它的节点流量进行采样，并转化为洞察。“百分位数”显示 p50、p95 和 p99，画布则会标出瓶颈。',
+  "The Distributed tracing Research (after Percentiles) shows each request kind's time, Node by Node, as the Dashboard's Services table and its Waterfall. The Analytics Node samples the traffic of the Nodes you link into it and turns it into Insight. Percentiles show p50, p95, and p99, and the Board marks the Bottleneck.":
+    '分布式追踪研究（在百分位之后）会在仪表盘的服务表和瀑布图中逐节点显示每种请求类型的耗时。Analytics 节点对与它相连的节点的流量采样并转化为洞察。百分位显示 p50、p95 和 p99，看板会标出瓶颈。',
   "Dapper: Google's tracing infrastructure": 'Dapper：Google 的追踪基础设施',
   'OpenTelemetry: Traces': 'OpenTelemetry：调用链',
   'Diurnal traffic': '昼夜流量变化',
@@ -630,8 +630,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'AWS Architecture Blog: Data transfer costs': 'AWS 架构博客：数据传输成本',
   'Encrypting stored data, such as disks, database files, and backups, so that someone who gets the storage media cannot read it without the keys. It protects against stolen disks and leaked backups, not against an attacker who can query the live system.':
     '对磁盘、数据库文件和备份等存储数据进行加密，让拿到存储介质的人没有密钥就无法读取。它能防范磁盘被盗和备份泄露，却不能防范能够查询在线系统的攻击者。',
-  'Encryption at rest is Security Research from Series B. In the game today it has no direct effect on traffic, cost, or Incidents. It is one of three prerequisites, with TLS everywhere and Dependency scanning, for the SOC 2 program, which the IPO checklist needs.':
-    '“静态数据加密”是 B 轮起可用的安全研究。目前在游戏中，它对流量、成本或故障没有直接影响。它与“全链路 TLS”“依赖扫描”一起，是“SOC 2 计划”的三个前置条件，而 IPO 清单要求完成 SOC 2 计划。',
+  'Encryption at rest is Security Research from Series B. It has no direct effect on traffic, cost, or Incidents. It is one of three prerequisites, with TLS everywhere and Dependency scanning, for the SOC 2 program, which the IPO checklist needs.':
+    '静态加密是 B 轮的安全研究。它对流量、成本或故障没有直接影响。它是 SOC 2 计划的三个前提之一（另两个是全程 TLS 和依赖扫描），而 IPO 清单需要 SOC 2。',
   'Google Cloud: Default encryption at rest': 'Google Cloud：默认静态数据加密',
   'OWASP Cheat Sheet: Cryptographic Storage': 'OWASP 速查表：加密存储',
   'PostgreSQL docs: Encryption Options': 'PostgreSQL 文档：加密选项',
@@ -737,8 +737,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'HTTP/2 and HTTP/3': 'HTTP/2 与 HTTP/3',
   'Newer versions of HTTP. HTTP/2 sends many requests at once over one TCP connection. HTTP/3 runs over QUIC on UDP, which combines the transport and TLS handshakes and stops one lost packet from stalling every stream.':
     '较新的 HTTP 版本。HTTP/2 在一条 TCP 连接上同时发送多个请求。HTTP/3 基于 UDP 上的 QUIC，将传输层握手和 TLS 握手合并，并防止单个数据包丢失拖住所有流。',
-  'HTTP/3 is Series C Research that needs HTTP/2. It cuts the round trips a user pays to reach a region on another continent by 20%: a European user served from North America waits 120 ms instead of 150 ms. HTTP/2 research has no effect of its own yet; you research it to unlock HTTP/3.':
-    'HTTP/3 是 C 轮研究，前置条件为 HTTP/2。它将用户跨洲访问区域的往返延迟降低 20%：欧洲用户访问北美服务时，等待时间从 150 ms 降至 120 ms。HTTP/2 研究本身目前还没有效果，研究它是为了解锁 HTTP/3。',
+  'HTTP/3 is Series C Research that needs HTTP/2. It cuts the round trips a user pays to reach a region on another continent by 20%: a European user served from North America waits 120 ms instead of 150 ms. HTTP/2 is the Research that unlocks HTTP/3.':
+    'HTTP/3 是需要 HTTP/2 的 C 轮研究。它让用户到另一个大洲区域的往返次数减少 20%：由北美服务的欧洲用户等待 120 毫秒而不是 150 毫秒。HTTP/2 是解锁 HTTP/3 的研究。',
   'MDN: Evolution of HTTP': 'MDN：HTTP 的演进',
   'Cloudflare Learning Center: What is HTTP/3?': 'Cloudflare 学习中心：什么是 HTTP/3？',
   'RFC 9114: HTTP/3': 'RFC 9114：HTTP/3',
@@ -996,8 +996,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'AWS Prescriptive Guidance: Strangler fig pattern': 'AWS 实践指南：绞杀榕模式',
   'Replication where the primary confirms a write only after at least one replica has also stored it. No acknowledged write is lost if the primary fails, but every write waits for the round trip to the replica.':
     '主库必须等至少一个副本也存储了写入后，才确认写入的复制方式。主库故障时，不会丢失任何已确认的写入，但每次写入都要等待与副本之间的往返通信。',
-  'The Synchronous replication Research says that writes wait for a replica, but today it only unlocks Consensus databases; it does not change Read Replicas or the Database. The closest thing the game models is Distributed SQL: every write waits for a majority of its replicas, so writes across regions pay the round trip. A Database with a Standby also fails over in seconds when its zone fails.':
-    '“同步复制”研究说明写入需要等待副本，但目前它只解锁“共识数据库”，不会改变只读副本或数据库。游戏实际模拟的最接近机制是分布式 SQL：每次写入等待多数副本，因此跨区域写入要承担往返延迟。拥有备用节点的数据库，在其可用区故障时也能在数秒内完成故障转移。',
+  'The Synchronous replication Research adds a switch to each Read Replica: with it on, every write waits for that replica, so the replica never lags and each write pays its round trip. It also unlocks Consensus databases. Distributed SQL waits for a majority of its replicas on every write, so writes across regions pay the round trip. A Database with a Standby also fails over in seconds when its zone fails.':
+    '同步复制研究为每个只读副本增加一个开关：开启后每次写入都要等待该副本，因此副本不会滞后，每次写入也要付出它的往返时间。它还会解锁共识数据库。分布式 SQL 每次写入都要等待多数副本，因此跨区域写入要付出往返时间。带有备用节点的数据库在所在可用区故障时也会在几秒内切换。',
   'PostgreSQL docs: Log-shipping standby servers (synchronous replication)':
     'PostgreSQL 文档：日志传送备用服务器（同步复制）',
   'PostgreSQL docs: Replication settings': 'PostgreSQL 文档：复制设置',
@@ -1059,8 +1059,6 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
     'AWS EC2 文档：突发性能实例的关键概念',
   'A way to update a database and publish an event without losing either. The service writes the change and an outbox row in the same database transaction, and a separate relay reads the outbox and publishes each event to the message broker, at least once. It avoids the dual-write problem, where the database commit succeeds and the publish fails, or the reverse.':
     '一种同时更新数据库并发布事件、且不会丢失任何一方的方式。服务在同一个数据库事务中写入变更和一条发件箱记录，再由独立中继读取发件箱，将每个事件至少一次发布到消息代理。它避免了双写问题：数据库提交成功但发布失败，或反过来。',
-  'The outbox is designed but not in the game yet. The closest mechanic is the Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue. The game does not model an event lost or duplicated between a database write and a publish.':
-    '发件箱已有设计，但尚未加入游戏。最接近的机制是队列：连接到队列的应用服务器将慢请求的异步部分交给工作进程，用户只需等待任务入队。游戏没有模拟数据库写入与发布之间的事件丢失或重复。',
   'microservices.io: Transactional outbox': 'microservices.io：事务发件箱',
   'AWS Prescriptive Guidance: Transactional outbox pattern': 'AWS 实践指南：事务发件箱模式',
   'Debezium docs: Outbox event router': 'Debezium 文档：发件箱事件路由器',
@@ -1090,8 +1088,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'OWASP: Web Application Firewall': 'OWASP：Web 应用防火墙',
   'A caching policy in which every write goes to the cache and the database together, so the cache always holds the latest value for the keys written through it. Reads hit more often and are never stale for those keys, but each write is slower and the cache fills with data that may never be read. Cache-aside and write-behind are the common alternatives.':
     '一种缓存策略：每次写入同时进入缓存和数据库，因此缓存始终保存经它写入的各键的最新值。这些键的读取命中率更高，且不会过期，但每次写入更慢，缓存也可能填满从未被读取的数据。常见替代方案是旁路缓存和异步回写。',
-  'Write-through is designed as a Cache strategy but not in the game yet. Today a Cache works like cache-aside with invalidation: writes pass through to the Database and invalidate keys, so its hit ratio falls by twice the write share, at most by half. Between invalidations some hits are stale, from 0.5% to 10% per unit of write share as the TTL grows from 10 s to 1 hour.':
-    '直写已设计为一种缓存策略，但尚未加入游戏。目前缓存采用带失效的旁路缓存模式：写入穿过缓存到达数据库，并使相关键失效，因此命中率会按写入占比的两倍下降，最多降低一半。在两次失效之间，部分命中仍会过期；随着 TTL 从 10 秒延长至 1 小时，每单位写入占比对应的过期比例从 0.5% 增至 10%。',
+  "Write-through is one of the Cache's strategies, with Cache strategies researched: a write goes to the Cache and the Database together, so the Cache never serves a stale hit for a key written through it, and each write pays half a millisecond more. A cache-aside Cache invalidates keys on a write, so its hit ratio falls by twice the write share, at most by half. Between invalidations some hits are stale, from 0.5% to 10% per unit of write share as the TTL grows from 10 s to 1 hour.":
+    '启用缓存策略研究后，直写是缓存的策略之一：写入会同时进入缓存和数据库，因此缓存永远不会为经由它写入的键返回过期命中，每次写入多花半毫秒。旁路缓存在写入时使键失效，所以命中率下降为写入占比的两倍，最多降一半。两次失效之间，部分命中是过期的，随着 TTL 从 10 秒增加到 1 小时，每单位写入占比为 0.5% 到 10%。',
   'Amazon ElastiCache docs: Caching strategies': 'Amazon ElastiCache 文档：缓存策略',
   'Wikipedia: Cache write policies': '维基百科：缓存写入策略',
   // The three glossary entries the last four Components changed.

@@ -30,8 +30,8 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
 
 ## Catalog overview
 
-The dock groups Components into four groups — Edge, Compute, Data, and Ops — and this document
-keeps seven as a reading order.
+The dock groups Components into four groups: Edge, Compute, Data, and Ops. The catalog below lists
+each Component under its group.
 
 | Group         | Component                                                   | Code   | Unlocked by              | Era      |
 | ------------- | ----------------------------------------------------------- | ------ | ------------------------ | -------- |
@@ -153,13 +153,14 @@ Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 | L7      | Understands HTTP. Routes by path and kind, terminates TLS, retries failed requests. Lower capacity and 1 ms latency.                                           |
 | L4      | Forwards TCP. Ten times the capacity, 0.2 ms latency, and cheaper. Cannot route by kind, cannot retry, and treats a long-lived connection as one unit of load. |
 
-| Algorithm            | Behavior                                                                                                                                                       |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Round robin          | Equal shares. Good when targets are identical. Bad when one target is slower: it gets the same share and its queue grows.                                      |
-| Weighted by capacity | Shares proportional to capacity. The default. Needs a reasonably fresh view of capacity.                                                                       |
-| Least connections    | Sends to the target with the fewest in-flight requests. Adapts to slow targets. Best with mixed instance sizes.                                                |
-| Power of two choices | Picks two targets at random and sends to the less loaded one. Nearly as good as least connections, with no global state. Research "Load balancing algorithms". |
-| Consistent hashing   | The same key always goes to the same target. Improves cache hit ratio on the targets. One hot key overloads one target.                                        |
+| Algorithm            | Behavior                                                                                                                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Round robin          | Equal shares. Good when targets are identical. Bad when one target is slower: it gets the same share and its queue grows.                                                                          |
+| Weighted by capacity | Shares proportional to capacity. The default. Needs a reasonably fresh view of capacity.                                                                                                           |
+| Least connections    | Sends to the target with the fewest in-flight requests. Adapts to slow targets. Best with mixed instance sizes.                                                                                    |
+| Power of two choices | Picks two targets at random and sends to the less loaded one. Nearly as good as least connections, with no global state. Research "Load balancing algorithms".                                     |
+| Consistent hash      | Places each key on a ring of the targets: every target takes an equal share of the keys whatever its load, and a target that leaves moves only its own keys. Research "Load balancing algorithms". |
+| Consistent hashing   | The same key always goes to the same target. Improves cache hit ratio on the targets. One hot key overloads one target.                                                                            |
 
 | Option                | Effect                                                                                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -247,14 +248,14 @@ Node, which takes the edge down ([Incidents](/design/11-incidents#catalog)).
 Real products: Kong, AWS API Gateway, Apigee.
 
 Routes requests to services by path, checks authentication, and applies rate limits. It takes every
-request kind and sends on what it lets through, adding its own hop. The game models one front door,
+request kind and sends on what it lets through, adding its own hop. It is one front door,
 not a route table: every kind goes on the same Links.
 
-| Option             | Effect                                                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rate limit         | A cap in requests per second. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients. |
-| Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms.                                                                                            |
-| Request coalescing | Merges identical in-flight reads. Lowers load during spikes.                                                                                      |
+| Option             | Effect                                                                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rate limit         | A cap in requests per second. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients.                                                                                                 |
+| Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms to the Gateway's hop, and takes 0.02 ms of CPU off each authenticated request a service answers.                                                                                            |
+| Request coalescing | Merges identical in-flight reads: 30% of `page`, `read`, `feed` and `search` ask for popular objects, and λw / (1 + λw) of them find an identical read in flight (w = 50 ms). The busier the Gateway, the more it merges, so spikes send less on. |
 
 The cap is one limit for the whole Node: the game counts requests per second at the gateway, not
 per user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes
@@ -317,7 +318,7 @@ The Component has its per-use bill on the Requests line, the concurrency cap (pe
 functions in one region have 1,000 each), the cold start after idle, and the connections each
 execution opens. The price is Lambda's list price × 1,200, so the cost curve below crosses where the
 design puts it ([Economy](/design/09-economy#the-cloud-bill)). No request kind in the game runs
-long enough to meet Lambda's 15-minute duration limit.
+long enough to meet Lambda's 15-minute duration limit: every request kind finishes in seconds.
 
 | Tradeoff        | Detail                                                                                                                                                      |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -325,7 +326,7 @@ long enough to meet Lambda's 15-minute duration limit.
 | Cold starts     | A new execution environment starts cold. Cold start by runtime: Rust and Go 50 ms, Node and Python 200 ms, .NET 500 ms, JVM 2,000 ms (native image 100 ms). |
 | Concurrency cap | 1,000 per region by default. Spikes above the cap are throttled.                                                                                            |
 | Connections     | Each concurrent execution opens its own database connections. Without a pooler, a spike exhausts Postgres.                                                  |
-| Duration limit  | 15 minutes. Long `job` work must be split.                                                                                                                  |
+| Duration limit  | 15 minutes in a real function; every request kind here finishes in seconds, so a long `job` belongs on a Worker behind a Queue for cost, not for the limit. |
 
 ### Kubernetes Cluster
 
@@ -348,18 +349,21 @@ Real products: vLLM or Triton on NVIDIA T4, A100, and H100.
 
 Serves `infer`. Capacity is measured in tokens per second.
 
-| Option       | Effect                                                                                                                                              |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GPU type     | T4: cheap, slow. A100: balanced. H100: fastest per dollar, and scarce. Placing an H100 has a waiting list in some calendar months.                  |
-| Batch size   | Larger batches raise throughput and raise time to first token. Continuous batching (research) keeps latency low at high throughput.                 |
-| Quantization | FP16, INT8, INT4. Lower precision is faster and uses less memory, and it lowers answer quality, which lowers `ai` value by 5% (INT8) or 15% (INT4). |
-| Model size   | Small, medium, large. Larger models earn more per prompt and need more GPU memory. A model that does not fit causes `oom`.                          |
+| Option       | Effect                                                                                                                                                                                                                 |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GPU type     | T4: cheap, slow. A100: balanced. H100: fastest per dollar, and scarce. Placing an H100 has a waiting list in some calendar months.                                                                                     |
+| Batch size   | Larger batches raise throughput and raise time to first token. Continuous batching (research) keeps latency low at high throughput.                                                                                    |
+| Quantization | FP16, INT8, INT4. Lower precision is faster and uses less memory, and it lowers answer quality, which lowers `ai` value by 5% (INT8) or 15% (INT4).                                                                    |
+| Model size   | Small (3B), medium (7B), large (34B). Larger models earn more per prompt (0.6×, 1×, 1.8×), serve fewer tokens (2×, 1×, 0.25×) and need more GPU memory (6, 14, 68 GB at FP16). A model that does not fit causes `oom`. |
 
-The GPU has a type, and both research items add options. Quantization (`quantization`) adds INT8 and
-INT4: INT8 serves 2× the tokens and INT4 3×, each answer is worth 5% or 15% less, and the memory saving
-is not modelled, because the game has one model, so there is no memory for it to free. Continuous batching
-(`continuous-batching`) adds batch 8 and batch 32: 1.6× and 2.2× the throughput, with the time to the
-first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait. There is one model size, and no `oom` from it.
+The GPU has a type, a model, a precision and a batch. T4 holds 16 GB per GPU, A100 and H100 80 GB;
+the Node needs the model's weights at its precision plus 0.25 GB of attention cache for each prompt
+in a batch, and a Node whose GPUs hold less fails every prompt as `oom` until a lower precision, a
+smaller model, a smaller batch or a bigger GPU fits it. Changing the model reloads the weights, so the
+Node comes back cold. Quantization (`quantization`) adds INT8 and INT4: INT8 serves 2× the tokens and
+INT4 3×, their weights take half and a quarter of the memory, and each answer is worth 5% or 15% less.
+Continuous batching (`continuous-batching`) adds batch 8 and batch 32: 1.6× and 2.2× the throughput,
+with the time to the first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait.
 
 ### Edge Function
 
@@ -375,8 +379,8 @@ instead of containers.
 **Built:** the Component, its 5 ms hop in every region, its 10 ms CPU ceiling per request (past it the
 request fails as `timeout`), the 128 MB isolate ceiling, the 30% of `read` it adds to a CDN's cache,
 its per-request bill on the Requests line, and the Stack gate: only JavaScript and TypeScript, or
-Rust and Go compiled to WebAssembly, run there. "Personalizes cached pages" is not a separate effect, and the 128 MB isolate ceiling never fails a
-request: no response the game sends is close to it.
+Rust and Go compiled to WebAssembly, run there. Personalizing cached pages is the same 30% effect, and the 128 MB isolate ceiling is a cap no
+response the game sends comes near.
 
 ## Data
 
@@ -471,8 +475,10 @@ retention window, in sim seconds, so a consumer further behind than the window l
 events; a stream hands on one consumer's 20,000 messages a second per partition; and round robin
 with more than one partition loses order, which the game counts as a stale result. The 20,000, the
 three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies and the half-broker
-Burn a replica adds are the Event Stream's own numbers. Durability is not modelled: `acks` and the replication factor move the append latency and the Burn, not
-what a broker loses when it dies, because a log has no replica to fail over to; and
+Burn a replica adds are the Event Stream's own numbers. Durability follows the replication factor and `acks`: a broker that fails takes the events its
+replicas did not have. With one replica it held the only copy and loses all of them; with more,
+`acks=all` waited for every replica and loses none, `acks=1` acknowledged after the leader alone and
+loses 5%, and `acks=0` did not wait and loses 10%. The replication factor is chosen on the card, and
 partition key skew is the Hot key incident rather than a model of the key's distribution.
 
 ### CDC Connector
@@ -595,8 +601,8 @@ flag cuts that Feature's share to its rollout, so Recreate's 100% ceiling cannot
 thirteen Features at 5% break 5.2% of traffic instead of everything. The rollout also scales a
 Feature's effects and load, through its exposure, its rollout times its adoption, and `ab-testing`
 measures its lift against the users it holds out
-([Team and velocity](/design/08-team-and-velocity#rollout)). There is no Shift or Remove, so
-code never disappears and a Feature turned off still pays its upkeep.
+([Team and velocity](/design/08-team-and-velocity#rollout)). A flag's Shift moves a live Feature's rollout, including to Off, and a Feature turned off still pays
+its upkeep. Remove takes the code out for good.
 
 ### Secrets and Certificates
 
@@ -617,8 +623,8 @@ is where an ACME client renews with a third left. With none live, nothing renews
 its expiry date the Certificate expired incident starts, every request from Users fails as `down`,
 and it starts again after the incident ends until a manager is live again or the player presses Renew.
 Selling the manager leaves the certificate it issued running down, so the Component owns the
-calendar. One certificate covers the Company, so no Node is named as terminating TLS; and a certificate issued
-before a manager is placed is not tracked, so the director's own incident covers that case.
+calendar. One certificate covers the Company, so every Node that terminates TLS goes down together when it
+expires; the director's own Certificate expired incident covers a Company that never placed a manager.
 
 ## Observability and money
 

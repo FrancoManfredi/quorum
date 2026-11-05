@@ -14,7 +14,7 @@ Link App Servers and Workers into it. Each one gets a sidecar, and every Link ou
 
 The retries and the breaker need no research of their own: the sidecar runs them for you. A Link whose
 player set its own policy keeps it, because the mesh is a default, not an override. The 1 ms, the 5%
-and the 20% are the design's own figures.
+and the 20% are the figures the mesh uses.
 
 ## When to place it
 

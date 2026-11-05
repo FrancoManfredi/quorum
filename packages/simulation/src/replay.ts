@@ -128,6 +128,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['sampleRate'], (game, id, node) => Actions.setSample(game, id, node.sampleRate)],
   [['retention'], (game, id, node) => Actions.setRetention(game, id, node.retention)],
   [['compress'], (game, id, node) => Actions.setCompression(game, id, node.compress)],
+  [['recycle'], (game, id, node) => Actions.setRecycle(game, id, node.recycle)],
   [['policy'], (game, id, node) => Actions.setPolicy(game, id, node.policy)],
   [
     ['checkEvery', 'deepCheck'],
@@ -193,6 +194,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
       }),
   ],
   [['gpu'], (game, id, node) => Actions.setGpuType(game, id, node.gpu)],
+  [['gpuModel'], (game, id, node) => Actions.setGpuModel(game, id, node.gpuModel)],
   [['collector'], (game, id, node) => Actions.setCollector(game, id, node.collector)],
   [['gogc'], (game, id, node) => Actions.setGogc(game, id, node.gogc)],
   [['shed'], (game, id, node) => Actions.setShed(game, id, node.shed)],
@@ -204,6 +206,11 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['split'], (game, id, node) => Actions.setSplit(game, id, node.split)],
   [['pricing'], (game, id, node) => Actions.setPricing(game, id, node.pricing)],
   [['rateLimit'], (game, id, node) => Actions.setRateLimit(game, id, node.rateLimit)],
+  [
+    ['authEdge', 'merge'],
+    (game, id, node) =>
+      Actions.setGatewayOptions(game, id, { authEdge: node.authEdge, merge: node.merge }),
+  ],
   [['strategy'], (game, id, node) => Actions.setDeployStrategy(game, id, node.strategy)],
   [
     ['presence', 'backoff', 'clustering'],

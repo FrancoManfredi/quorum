@@ -199,6 +199,54 @@ const javaTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNo
     )
     .map((node) => [node, rampedOf(game, node) ? 0.3 : autoscalerInto(game, node) ? 3 : 1] as const)
 
+/** App Servers serving now whose Stack a runtime incident can hit (06 "Runtime behaviors"). */
+const stackTargets = (
+  game: Game,
+  ledger: Ledger,
+  hit: (node: GameNode) => boolean,
+): ReadonlyArray<GameNode> =>
+  game.nodes.filter(
+    (node) => node.type === 'server' && hit(node) && !isDown(node) && busy(ledger, node),
+  )
+
+/** PHP servers with OPcache, which can keep running the code of the deploy before. */
+const opcacheTargets = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
+  has(game, 'opcache')
+    ? stackTargets(game, ledger, (node) => RUNTIMES[node.runtime].language === 'php')
+    : []
+
+/** Realtime Hubs that form a Distributed Erlang cluster, which a partition can split. */
+const clusterHubs = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
+  has(game, 'distributed-erlang')
+    ? game.nodes.filter(
+        (node) =>
+          node.type === 'ws' &&
+          RUNTIMES[node.runtime].language === 'elixir' &&
+          !isDown(node) &&
+          busy(ledger, node),
+      )
+    : []
+
+/** The Node a runtime incident strikes, or undefined for any other kind. */
+const runtimeTarget = (
+  game: Game,
+  ledger: Ledger,
+  kind: IncidentId,
+  roll: number,
+): GameNode | undefined => {
+  const targets =
+    kind === 'stale-opcache'
+      ? opcacheTargets(game, ledger)
+      : kind === 'bun-compat'
+        ? stackTargets(game, ledger, (node) => node.runtime === 'bun')
+        : kind === 'gevent-compat'
+          ? stackTargets(game, ledger, (node) => node.runtime === 'gevent')
+          : kind === 'split-brain'
+            ? clusterHubs(game, ledger)
+            : []
+  return targets[Math.floor(roll * targets.length)]
+}
+
 /**
  * The data Component an operator's command reaches: the busiest Node whose loss takes reads or
  * writes with it (11 "Operator typo").
@@ -231,6 +279,7 @@ const leakTargets = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
     (node) =>
       node.type === 'server' &&
       RUNTIMES[node.runtime].persistent &&
+      !node.recycle &&
       !isDown(node) &&
       busy(ledger, node),
   )
@@ -549,6 +598,27 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
       if (!database || database.dbEngine !== 'postgres') return 0
       return database.keep === 'keep' ? 1.5 : 0.5
     },
+    // PHP servers that cache compiled code run the old deploy until the cache resets; a Pipeline
+    // resets it on every deploy.
+    'stale-opcache': () =>
+      opcacheTargets(game, ledger).length > 0 ? (has(game, 'ci') ? 0.3 : 1.5) : 0,
+    // A package that works on Node.js and not on Bun, and a library that does not survive gevent's
+    // monkey patching: tests run against the runtime find them first.
+    'bun-compat': () =>
+      stackTargets(game, ledger, (node) => node.runtime === 'bun').length > 0
+        ? has(game, 'testing-culture')
+          ? 0.3
+          : 1
+        : 0,
+    'gevent-compat': () =>
+      stackTargets(game, ledger, (node) => node.runtime === 'gevent').length > 0
+        ? has(game, 'testing-culture')
+          ? 0.3
+          : 1
+        : 0,
+    // A partition splits a Distributed Erlang cluster; chaos experiments find it first.
+    'split-brain': () =>
+      clusterHubs(game, ledger).length > 0 ? (has(game, 'chaos-engineering') ? 0.3 : 1) : 0,
     // A cache key that leaves out the cookie shares a cached logged-in page (05 "CDN").
     'page-leak': () =>
       Math.max(0, ...leakyCdns(game, ledger).map((node) => CACHE_KEYS[node.cacheKey].leak)),
@@ -659,6 +729,7 @@ export const startIncident = (
       () => busiest(game, ledger, 'database'),
     ),
     Match.when('page-leak', () => leakyCdns(game, ledger)[0]),
+
     Match.when('jvm-warmup', () => pickWeighted(javaTargets(game, ledger), roll)),
     Match.when(
       (id) => id === 'supply-chain' || id === 'leap-second',
@@ -669,7 +740,7 @@ export const startIncident = (
       const targets = hotKeyTargets(game, ledger)
       return targets[Math.floor(roll * targets.length)]
     }),
-    Match.orElse(() => undefined),
+    Match.orElse(() => runtimeTarget(game, ledger, kind, roll)),
   )
   // A zone outage strikes a zone the Design depends on, or else the busiest one.
   const fragile = fragileZones(game)
@@ -703,6 +774,10 @@ export const startIncident = (
     'leap-second',
     'table-bloat',
     'page-leak',
+    'stale-opcache',
+    'bun-compat',
+    'gevent-compat',
+    'split-brain',
   ] as const
   if ((targeted as ReadonlyArray<IncidentId>).includes(kind) && !target) return null
   // A Region outage strikes the region most of the Design depends on; the DR drill, home; a leap
@@ -1117,7 +1192,7 @@ export const advanceIncident = (
   const nodes =
     incident.kind === 'leak' && target
       ? game.nodes.map((node) =>
-          node.id === target.id
+          node.id === target.id && !node.recycle
             ? { ...node, leak: node.leak + ramOf(node) * LEAK_RATE * seconds }
             : node,
         )
@@ -1156,6 +1231,9 @@ export const advanceIncident = (
     (incident.kind === 'spot-reclaim' &&
       elapsedAfter >= SPOT_WARNING &&
       (!held || held.life._tag !== 'Restarting')) ||
+    // A restart resets OPcache, and rejoins the halves of a split cluster.
+    ((incident.kind === 'stale-opcache' || incident.kind === 'split-brain') &&
+      (!target || target.life._tag === 'Restarting')) ||
     // The Hub is warm again: the reconnect wave is over.
     (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running')) ||
     // Re-adding capacity: a Node of the Component the command emptied serves again (11).

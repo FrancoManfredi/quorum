@@ -42,7 +42,7 @@ export const FAMILIES: Record<FamilyId, FamilyDef> = {
   compute: { id: 'compute', name: 'Compute', ram: 2, price: 0.85, blurb: '1 vCPU : 2 GB.' },
   memory: { id: 'memory', name: 'Memory', ram: 8, price: 1.3, blurb: '1 vCPU : 8 GB.' },
   // 05 "App Server": the same vCPU and RAM as General for 0.8× the price, and some software runs
-  // slower or needs work to port (the speed penalty is proposed; the design gives the price).
+  // slower or needs work to port (the speed is 0.95; the price is 20% less).
   arm: {
     id: 'arm',
     name: 'ARM',
@@ -52,7 +52,7 @@ export const FAMILIES: Record<FamilyId, FamilyDef> = {
   },
 }
 
-/** CPU speed of an ARM box, relative to a General one: the port is not free (proposed, 05). */
+/** CPU speed of an ARM box, relative to a General one: the port is not free. */
 export const ARM_SPEED = 0.95
 /** The family ARM instances unlock, and the research that unlocks it. */
 export const ARM_RESEARCH = 'arm-instances' as const

@@ -159,6 +159,8 @@ export type RuntimeDef = Readonly<{
   velocity?: number
   /** A deploy swaps the code in place, so the runtime never restarts on a release. */
   hotReload?: boolean
+  /** Multiplier on the minutes a build takes: a native image compiles the whole program ahead of time. */
+  build?: number
   research: ResearchId | null
   blurb: string
 }>
@@ -214,7 +216,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     blurb:
       'A fixed pool of PHP workers behind NGINX. Each waiting request holds a worker. Shared nothing: no leaks.',
   },
-  // PHP worker mode (06 "PHP"): possible, but a worker mode's Dev Hours and 1.1× overhead are not modeled.
+  // PHP worker mode (06 "PHP"): the app boots once, and Laravel Octane still spends 1.1× per request.
   php_worker: {
     id: 'php_worker',
     axes: { throughput: 3, tail: 3, memory: 2, velocity: 5, resilience: 2, operability: 4 },
@@ -266,7 +268,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     hotReload: true,
     research: 'swoole',
     blurb:
-      'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections; 20 KB each is proposed.',
+      'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections at 20 KB each.',
   },
   puma: {
     id: 'puma',
@@ -340,7 +342,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     connectionKB: 100,
     research: 'falcon',
     blurb:
-      'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection is proposed: the design gives Ruby’s figure without naming the server.',
+      'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection.',
   },
   node: {
     id: 'node',
@@ -389,7 +391,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     research: 'node-cluster',
     blurb: 'One event loop per core. Uses every core; memory and connections grow with the cores.',
   },
-  // Bun (06 "Node.js"): faster startup and throughput; its compatibility incident is not modeled.
+  // Bun (06 "Node.js"): faster startup and throughput, and a package that works on Node.js can break on it.
   bun: {
     id: 'bun',
     axes: { throughput: 5, tail: 2, memory: 3, velocity: 4, resilience: 2, operability: 5 },
@@ -412,7 +414,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     connectionKB: 20,
     research: 'bun',
     blurb:
-      'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup are proposed; its compatibility incident is not built.',
+      'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup. Less mature: a package that works on Node.js can break on it.',
   },
   // Deno (06 "Node.js"): the same loop, with permissions and −10% velocity.
   deno: {
@@ -463,7 +465,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     research: 'lang-python',
     blurb: 'A pool of sync workers, one request each. Like PHP-FPM with more memory per worker.',
   },
-  // gevent (06 "Python"): green threads under a GIL. Monkey patching's incompatibility incident is not built.
+  // gevent (06 "Python"): green threads under a GIL. Monkey patching can break a library.
   gevent: {
     id: 'gevent',
     axes: { throughput: 4, tail: 4, memory: 3, velocity: 4, resilience: 3, operability: 2 },
@@ -486,7 +488,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     connectionKB: 30,
     research: 'gevent',
     blurb:
-      'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching breaks some libraries; that incident is not built. 30 KB per connection is proposed.',
+      'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching can break a library. 30 KB per connection.',
   },
   // Uvicorn (06 "Python"): ASGI, an event loop under a GIL.
   uvicorn: {
@@ -536,7 +538,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     connectionKB: 100,
     research: 'free-threading',
     blurb:
-      'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours; the design gives no figure, so 8 threads and 100 KB are proposed.',
+      'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours. 8 threads and 100 KB per connection.',
   },
   // PyPy (06 "Python"): process per request with a JIT, and no ML ecosystem.
   pypy: {
@@ -561,7 +563,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     connectionKB: null,
     research: 'pypy',
     blurb:
-      'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus, and 200 MB per worker is proposed.',
+      'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus. 200 MB per worker.',
   },
   go: {
     id: 'go',
@@ -686,7 +688,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     velocity: 0.8,
     research: 'webflux',
     blurb:
-      'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB is proposed.',
+      'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB.',
   },
   // GraalVM native image (06 "Java"): 0.80 speed, under 100 ms start, −60% memory, slower builds.
   graal: {
@@ -709,9 +711,10 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     blocking: null,
     gc: { pauseMs: 30, cpu: 0 },
     connectionKB: 1_024,
+    build: 3,
     research: 'graal-native',
     blurb:
-      'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with slower builds. A thread per connection, like Tomcat. Great for Serverless Functions.',
+      'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with builds three times as long. A thread per connection, like Tomcat. Great for Serverless Functions.',
   },
   kestrel: {
     id: 'kestrel',
@@ -759,7 +762,7 @@ export const RUNTIMES: Record<RuntimeId, RuntimeDef> = {
     connectionKB: 10,
     research: 'native-aot',
     blurb:
-      'No JIT, so it starts at full speed, and smaller: 100 MB is proposed from the design’s “smaller memory”. 0.90× the speed, and reflection-heavy libraries need Dev Hours.',
+      'No JIT, so it starts at full speed, and smaller: 100 MB. 0.90× the speed, and reflection-heavy libraries need Dev Hours.',
   },
   beam: {
     id: 'beam',
@@ -878,17 +881,27 @@ export const PHP_JIT_HEAVY = 1.6
 export const NIF_SPEED = 3
 /**
  * The kinds 06 calls CPU-heavy: the design names `upload` and `report`, and `job`
- * is the same shape of work. Proposed: the design gives no list.
+ * is the same shape of work.
  */
 export const CPU_HEAVY_KINDS: ReadonlyArray<RequestKind> = ['upload', 'report', 'job']
 /** Node.js worker threads: a pool each about 10 MB (06 "Event loops and blocking"). */
 export const WORKER_THREADS = 4
 export const WORKER_THREAD_MB = 10
+/** Insight a Java App Server's profilers earn on top of what Analytics samples from it (06 "Java": +25%). */
+export const JVM_INSIGHT = 0.25
+/** Sim seconds between one process's recycles: a worker restarts every few hours of calendar time. */
+export const RECYCLE_CYCLE = 1_800
+/** Node.js hashes passwords on libuv's thread pool: UV_THREADPOOL_SIZE's default of four threads, about 2 MB of stack each. */
+export const LIBUV_THREADS = 4
+export const LIBUV_THREAD_MB = 2
+/** Tokio's `spawn_blocking` pool in this game: eight threads, about 2 MB of stack each. */
+export const SPAWN_BLOCKING_THREADS = 8
+export const SPAWN_BLOCKING_THREAD_MB = 2
 /** Python's ML ecosystem raises `ai` value by 20% (06 "ML ecosystem"). PyPy cannot use it. */
 export const ML_AI_BONUS = 1.2
 /**
  * Sim seconds one Dev Hour is worth on the Team's calendar, for a cost the design gives in
- * Dev Hours: an Elixir hot upgrade takes 4 per release (06 "Runtime behaviors"). Proposed.
+ * Dev Hours: an Elixir hot upgrade takes 4 per release (06 "Runtime behaviors").
  */
 export const ELIXIR_HOT_UPGRADE_DEV_HOURS = 4
 export const SIM_SECONDS_PER_DEV_HOUR = 0.3125
@@ -944,6 +957,23 @@ export type FrameworkDef = Readonly<{
   value: Partial<Record<RequestKind, number>>
   /** Seconds it adds to a restart. */
   startup: number
+  /**
+   * CPU overhead the framework keeps when the app boots once, in worker mode or on Swoole: Laravel
+   * Octane still spends 1.1× per request. A framework without it drops its overhead altogether.
+   */
+  workerOverhead?: number
+  /** Multiplier on the team's coordination constant: a structured framework means less to agree on. */
+  coordination?: number
+  /** Multiplier on the tech debt each shipped Feature adds. */
+  debt?: number
+  /** Multiplier on the minutes one GraalVM native-image build takes (Quarkus). */
+  nativeBuild?: number
+  /** Share of `page` requests a CDN can answer, with the framework's incremental static regeneration. */
+  cacheable?: number
+  /** Multiplier on the Dev Hours of internal tools (Django's admin). */
+  internalTools?: number
+  /** Multiplier on the Dev Hours a Worker costs (Laravel's queues and scheduler). */
+  workerHours?: number
   blurb: string
 }>
 
@@ -974,7 +1004,10 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: true,
     value: {},
     startup: 0,
-    blurb: 'Ships features fast. 1.8× CPU, and Eloquent makes 3 read queries where 1 would do.',
+    workerOverhead: 1.1,
+    workerHours: 0.8,
+    blurb:
+      'Ships features fast, and background work costs 20% fewer Dev Hours. 1.8× CPU (1.1× in worker mode), and Eloquent makes 3 read queries where 1 would do.',
   },
   rails: {
     id: 'rails',
@@ -1002,7 +1035,8 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 0,
-    blurb: 'Minimal and everywhere. 1.1× CPU.',
+    debt: 1.1,
+    blurb: 'Minimal and everywhere. 1.1× CPU, and middleware sprawl grows tech debt 10% faster.',
   },
   django: {
     id: 'django',
@@ -1016,7 +1050,9 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: true,
     value: {},
     startup: 0,
-    blurb: 'Ships features fast. 1.4× CPU and N+1 queries.',
+    internalTools: 0.7,
+    blurb:
+      'Ships features fast, and internal tools cost 30% fewer Dev Hours with the admin site. 1.4× CPU and N+1 queries.',
   },
   symfony: {
     id: 'symfony',
@@ -1030,7 +1066,10 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 0,
-    blurb: 'Strict structure. 1.5× CPU, no N+1 queries, and slower tech debt.',
+    coordination: 0.7,
+    debt: 0.7,
+    blurb:
+      'Strict structure: 30% less coordination and 30% slower tech debt. 1.5× CPU and no N+1 queries.',
   },
   sinatra: {
     id: 'sinatra',
@@ -1086,7 +1125,9 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 15,
-    blurb: 'Structure for large teams. 1.3× CPU, 200 MB more, and 15 s more to start.',
+    coordination: 0.7,
+    blurb:
+      'Structure for large teams: 30% less coordination. 1.3× CPU, 200 MB more, and 15 s more to start.',
   },
   aspnet: {
     id: 'aspnet',
@@ -1159,7 +1200,7 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     value: { ai: 1.15 },
     startup: 0,
     blurb:
-      'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB is proposed.',
+      'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB.',
   },
   // Fastify (06 "Frameworks"): schema-based serialization, so reads cost 20% less CPU.
   fastify: {
@@ -1175,10 +1216,9 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 0,
-    blurb:
-      'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB is proposed.',
+    blurb: 'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB.',
   },
-  // Next.js (06 "Frameworks"): 1.6× CPU on pages, for 1.5× their value. CDN caching is not built.
+  // Next.js (06 "Frameworks"): 1.6× CPU on pages, for 1.5× their value. A CDN can answer part of the pages.
   nextjs: {
     id: 'nextjs',
     axes: { throughput: 3, tail: 3, memory: 4, velocity: 4, resilience: 2, operability: 4 },
@@ -1192,10 +1232,11 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: { page: 1.5 },
     startup: 0,
+    cacheable: 0.4,
     blurb:
-      'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU. The 40% of pages a CDN could cache is not built. 30 MB is proposed.',
+      'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU, and a CDN can answer 40% of them. 30 MB per process.',
   },
-  // NestJS (06 "Frameworks"): structure for large teams. The coordination penalty is not modeled.
+  // NestJS (06 "Frameworks"): structure for large teams.
   nestjs: {
     id: 'nestjs',
     axes: { throughput: 3, tail: 3, memory: 3, velocity: 5, resilience: 2, operability: 4 },
@@ -1208,8 +1249,8 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 0,
-    blurb:
-      'Structure for large teams: the design’s 30% smaller coordination penalty is not modeled. 1.3× CPU and 20 MB are proposed.',
+    coordination: 0.7,
+    blurb: 'Structure for large teams: 30% less coordination. 1.3× CPU and 20 MB per process.',
   },
   // Fiber (06 "Frameworks"): Express-style API on fasthttp, so it inherits fasthttp's limits.
   fiber: {
@@ -1224,10 +1265,9 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 0,
-    blurb:
-      'An Express-style API on fasthttp: no CPU overhead, and no HTTP/2. 5 MB is proposed, as Gin’s.',
+    blurb: 'An Express-style API on fasthttp: no CPU overhead, and no HTTP/2. 5 MB per process.',
   },
-  // Quarkus (06 "Frameworks"): built for native images. The halved GraalVM build is not modeled.
+  // Quarkus (06 "Frameworks"): built for native images, so a GraalVM build takes half the time.
   quarkus: {
     id: 'quarkus',
     axes: { throughput: 4, tail: 4, memory: 2, velocity: 4, resilience: 3, operability: 3 },
@@ -1240,8 +1280,9 @@ export const FRAMEWORKS: Record<FrameworkId, FrameworkDef> = {
     orm: false,
     value: {},
     startup: 0,
+    nativeBuild: 0.5,
     blurb:
-      'Built for native images: 1.1× CPU, and the halved GraalVM build time is not modeled. 100 MB is proposed.',
+      'Built for native images: a GraalVM build takes half the time. 1.1× CPU and 100 MB per process.',
   },
 }
 
@@ -1276,8 +1317,7 @@ export const PM_MODES = {
 
 /**
  * The BEAM's supervisors restart one process per this many requests (06 "Fault isolation").
- * The request is retried inside the VM, so the user sees no failure. Proposed: the design
- * says a crash affects one request and the supervisor restarts it, but gives no rate.
+ * The request is retried inside the VM, so the user sees no failure.
  */
 export const BEAM_CRASHES_PER_REQUESTS = 100
 /** The Let It Crash milestone: supervised crashes one service survives (14 "Achievements"). */

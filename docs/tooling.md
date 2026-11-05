@@ -41,7 +41,7 @@ pnpm dev
 pnpm dev:reference
 ```
 
-`pnpm test` skips the multi-minute simulation checks (the dominance test and the Balanced bot through Series B) and plays the guided Sandboxes in 10-second Steps. Run `SLOW_TESTS=1 pnpm test` to include those checks and play the Sandboxes in 1-second Steps. CI does not run them: run them by hand when you tune balance.
+`pnpm test` runs the dominance test and skips the multi-minute simulation checks (the Balanced bot through Series B) and plays the guided Sandboxes in 10-second Steps. Run `SLOW_TESTS=1 pnpm test` to include those checks and play the Sandboxes in 1-second Steps. CI does not run the slow ones: run them by hand when you tune balance.
 
 `pnpm test:engines` replays one fixed Company and every Challenge's reference solution in Chromium, Firefox, and WebKit (Vitest browser mode with Playwright) and in workerd, and compares the hashes with Node's. It is not part of `pnpm test` because it needs browser binaries: install them with `pnpm --filter @quorum/simulation exec playwright install chromium firefox webkit`, plus `playwright install-deps webkit` on Linux (`.agents/setup` does both in an orb).
 

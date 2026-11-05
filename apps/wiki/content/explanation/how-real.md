@@ -1,9 +1,9 @@
 ---
 title: How real is Quorum
-summary: What the Simulation models faithfully, what it simplifies on purpose, and what it does not model yet.
+summary: What the Simulation models faithfully, what it simplifies on purpose, and where it bends reality.
 section: explanation
 order: 14
-aliases: realism, accuracy, simplification, model, simulation, determinism, real world, faithful, limits, what is not modeled
+aliases: realism, accuracy, simplification, model, simulation, determinism, real world, faithful, limits, simplifications
 gdd: /design/reality-check
 ---
 

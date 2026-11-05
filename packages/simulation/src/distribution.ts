@@ -353,9 +353,9 @@ export const retried = (call: Outcome, ms: number): Outcome => {
   }
 }
 
-/** Retries with backoff stay within this share of extra calls (a retry budget). Proposed. */
+/** Retries with backoff stay within this share of extra calls (a retry budget).  */
 export const RETRY_BUDGET = 0.1
-/** Milliseconds a backed-off retry waits, on average, before it goes. Proposed. */
+/** Milliseconds a backed-off retry waits, on average, before it goes.  */
 export const BACKOFF_MS = 200
 
 /**

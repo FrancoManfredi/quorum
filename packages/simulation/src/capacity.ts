@@ -27,6 +27,13 @@ import {
   CPU_HEAVY_KINDS,
   WORKER_THREADS,
   WORKER_THREAD_MB,
+  LIBUV_THREADS,
+  AUTHENTICATED_KINDS,
+  AUTH_CHECK_MS,
+  RECYCLE_CYCLE,
+  LIBUV_THREAD_MB,
+  SPAWN_BLOCKING_THREADS,
+  SPAWN_BLOCKING_THREAD_MB,
   MATERIALIZED_SCAN,
   DENORMALIZED_READ,
   DENORMALIZED_WRITE,
@@ -70,6 +77,7 @@ import { mixOf, payloadFactor, queryFactor } from './features.ts'
 import {
   asLogin,
   coldStartMs,
+  edgeAuthOf,
   has,
   indexWriteFactor,
   networkOf,
@@ -159,7 +167,7 @@ export type NodeModel = Readonly<{
 export const LOOP_TAIL_SHARE = 0.02
 /** Garbage collection pauses start above this share of the heap (06 "Runtime behaviors"). */
 export const GC_HEAP = 0.7
-/** Share of requests a GC pause lands on at a full heap: the p99, not the p50. Proposed. */
+/** Share of requests a GC pause lands on at a full heap: the p99, not the p50.  */
 export const GC_TAIL_SHARE = 0.02
 
 /** M/M/c-style waiting time, capped at saturation. */
@@ -282,6 +290,11 @@ export const speedOf = (game: Game, node: GameNode): number => {
     (runtime.language === 'rust' && has(game, 'jemalloc') ? JEMALLOC_SPEED : 1)
   // An ARM box is 20% cheaper and a little slower: some software needs work to port (05).
   const arm = node.family === 'arm' ? ARM_SPEED : 1
+  // A recycled process starts cold every RECYCLE_CYCLE seconds: its boot, then its warmup.
+  const recycled =
+    node.recycle && runtime.persistent
+      ? 1 - (runtime.startup + (1 - runtime.warmFrom) * runtime.warmup) / RECYCLE_CYCLE
+      : 1
   // A JVM that scaled up under load runs its new copies cold: the Node answers at its cold
   // speed until the warmup finishes (11 "JVM warmup under load").
   const cold =
@@ -294,9 +307,26 @@ export const speedOf = (game: Game, node: GameNode): number => {
     opcache *
     variant *
     arm *
+    recycled *
     (runtime.warmFrom + (1 - runtime.warmFrom) * (cold ? 0 : warmOf(node.life)))
   )
 }
+
+/**
+ * Whether Node.js hashes this kind's password on the libuv thread pool: a login on a Node.js
+ * runtime with the pool researched, unless an Auth Provider takes the hash.
+ */
+const hashesOnPool = (
+  game: Game,
+  node: GameNode,
+  kind: RequestKind,
+  context: ServerContext,
+): boolean =>
+  RUNTIMES[node.runtime].language === 'node' &&
+  has(game, 'libuv-pool') &&
+  asLogin(game, kind) &&
+  !context.delegated &&
+  !context.worker
 
 /**
  * A variant's memory cost: YJIT's 20% and jemalloc's 5% multiply the runtime's base, and Node.js
@@ -312,9 +342,15 @@ export const variantMemoryOf = (
       (runtime.language === 'ruby' && has(game, 'yjit') ? YJIT_MEMORY : 1) *
       (runtime.language === 'rust' && has(game, 'jemalloc') ? JEMALLOC_MEMORY : 1),
     extraMB:
-      runtime.language === 'node' && has(game, 'worker-threads')
+      (runtime.language === 'node' && has(game, 'worker-threads')
         ? WORKER_THREADS * WORKER_THREAD_MB
-        : 0,
+        : 0) +
+      (runtime.language === 'node' && has(game, 'libuv-pool')
+        ? LIBUV_THREADS * LIBUV_THREAD_MB
+        : 0) +
+      (runtime.language === 'rust' && has(game, 'spawn-blocking')
+        ? SPAWN_BLOCKING_THREADS * SPAWN_BLOCKING_THREAD_MB
+        : 0),
   }
 }
 
@@ -338,8 +374,11 @@ const overheadOf = (node: GameNode, kind: RequestKind): number => {
   const framework = FRAMEWORKS[node.framework]
   // FastAPI's overhead is ASGI's: on a process-per-request server it does not apply.
   if (framework.asgi && runtime.model !== 'loop') return framework.cpu?.[kind] ?? 1
+  // An app that boots once keeps only the overhead its framework still spends per request.
+  const booted = runtime.overheadFactor === 0 ? (framework.workerOverhead ?? 1) : undefined
   return (
-    (1 + (framework.overhead - 1) * (runtime.overheadFactor ?? 1)) * (framework.cpu?.[kind] ?? 1)
+    (booted ?? 1 + (framework.overhead - 1) * (runtime.overheadFactor ?? 1)) *
+    (framework.cpu?.[kind] ?? 1)
   )
 }
 
@@ -419,11 +458,15 @@ const cpuBase = (context: ServerContext, kind: RequestKind, calls: Calls): numbe
   // The JIT and NIFs change what one request of a kind costs the CPU, native work included.
   cpu /= variant
   // Every call the code makes is serialised on the way out: a text format costs CPU at the
-  // caller, and Binary RPC halves it (10 "Track: Performance"). Proposed: the design gives the
-  // half and the build had no serialization cost before it.
+  // caller, and Binary RPC halves it (10 "Track: Performance").
   let made = 0
   for (const backend of BACKEND_KINDS) made += calls[backend] ?? 0
   const serial = made * SERIALIZE_MS * (has(game, 'binary-rpc') ? 0.5 : 1)
+  // A service validates the user's token on each authenticated request, unless a Gateway did.
+  const auth =
+    AUTHENTICATED_KINDS.includes(kind) && !edgeAuthOf(game) && !(login && context.delegated)
+      ? AUTH_CHECK_MS
+      : 0
   // A Worker runs the part that went async; the App Server keeps the rest.
   if (context.worker) return (cpu + serial) * profile.offload * (1 + context.sampling)
   if (context.offloaded) cpu *= 1 - profile.offload
@@ -437,7 +480,7 @@ const cpuBase = (context: ServerContext, kind: RequestKind, calls: Calls): numbe
     }
     cpu += queries * LOCAL_DB_CONTENTION
   }
-  return (cpu + serial) * (1 + context.sampling)
+  return (cpu + serial + auth) * (1 + context.sampling)
 }
 
 /**
@@ -632,11 +675,25 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   // cannot start another thread and refuses the work (06 "Concurrency models").
   const threadUtilization =
     runtime.model === 'threads' && connectionRam > 0 && ram > 0 ? ramUsed / ram : 0
+  // Node.js hashes passwords on libuv's thread pool: four threads a process. The hashes leave the
+  // event loop, and wait for a thread when more of them arrive than the pool can run (06 "Event
+  // loops and blocking"). The pool also cannot run more threads than the box has cores.
+  const pooled = (kind: RequestKind): boolean => hashesOnPool(game, node, kind, context)
+  const poolKinds = kinds.filter(pooled)
+  const poolRate = poolKinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0), 0)
+  const poolWork = poolKinds.reduce(
+    (sum, kind) => sum + ((arriving[kind] ?? 0) * cpu[kind]) / perRequest,
+    0,
+  )
+  const poolThreads = Math.max(1, Math.min(LIBUV_THREADS * Math.max(1, processes), cores))
+  const poolUtilization = poolWork / (poolThreads * 1000)
+  const poolWait = poolRate > 0 ? waitFor(poolWork / poolRate, poolUtilization, poolThreads) : 0
   const utilization = Math.max(
     cpuUtilization,
     slotUtilization,
     networkUtilization,
     threadUtilization,
+    poolUtilization,
   )
   const share = utilization > 1 ? 1 / utilization : 1
   const limit: NodeModel['limit'] =
@@ -658,7 +715,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   // The stall hits LOOP_TAIL_SHARE of requests, above 1%, so it lands on the p99 and not the p95.
   // The libuv pool and an Auth Provider take the login hash off the loop, not the rest.
   const offLoop = (kind: RequestKind): boolean =>
-    (asLogin(game, kind) && (has(game, 'libuv-pool') || context.delegated)) ||
+    (asLogin(game, kind) && (pooled(kind) || context.delegated)) ||
     // Worker threads take CPU-heavy kinds off Node.js's loop (06 "Event loops and blocking").
     (has(game, 'worker-threads') &&
       fixed(game, 'off-loop') &&
@@ -705,7 +762,10 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const service = Object.fromEntries(
     REQUEST_KINDS.map((kind) => [
       kind,
-      { fixed: 2, variable: cpu[kind] / perRequest + cpuWait + slotWait },
+      {
+        fixed: 2,
+        variable: cpu[kind] / perRequest + cpuWait + slotWait + (pooled(kind) ? poolWait : 0),
+      },
     ]),
   )
 
@@ -749,7 +809,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
  * Share of invocations that find no warm execution environment (05 "Cold starts"): an
  * environment goes away after `SERVERLESS_IDLE_SECONDS` without work, so at a low request rate
  * the next invocation starts cold. 1 / (1 + λ × idle) is 1 at an idle function and near 0 under
- * steady load. Proposed: the design says only that a new environment starts cold.
+ * steady load.
  */
 export const coldShareOf = (rate: number): number =>
   1 / (1 + Math.max(0, rate) * SERVERLESS_IDLE_SECONDS)
@@ -847,7 +907,7 @@ const DISK_READ_MS = 8
 
 /**
  * Share of the buffer cache report scans evict: twice their share of the box's CPU, at most
- * all of it. Proposed: the GDD says only that scans evict the cache.
+ * all of it.
  */
 const scanEviction = (scanWork: number, cores: number): number =>
   cores > 0 ? Math.min(1, (2 * scanWork) / (cores * 1000)) : 1

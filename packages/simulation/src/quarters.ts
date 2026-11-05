@@ -7,7 +7,7 @@ import { marginOf } from './valuation.ts'
    guidance on its first day; at its end the market compares revenue growth and
    margin with it. A beat raises the multiple, a miss lowers it, and every
    fourth beat in a row adds a bonus. The GDD gives no magnitudes: these are
-   proposed (plan 5.20) and listed in 16's divergence log.
+   set here and listed in 16's balance tables.
    ========================================================================== */
 
 /** Sim seconds in a quarter: 7 calendar days. */

@@ -257,10 +257,10 @@ export const CHURN = 0.004
 /**
  * Share of new users who are fickle; the rest are steady (04 "Users and growth").
  * Fader and Hardie (2007): retention rises with tenure because the least loyal
- * users leave first. Two segments are the simplest form of that sorting. Proposed.
+ * users leave first. Two segments are the simplest form of that sorting.
  */
 export const FICKLE_SHARE = 0.5
-/** Steady users leave at this share of the fickle users' rate. Proposed. */
+/** Steady users leave at this share of the fickle users' rate.  */
 export const STEADY_CHURN = 0.2
 /** Growth multiplier from Funnel analytics. */
 export const FUNNEL_GROWTH = 1.1

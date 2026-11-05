@@ -6,7 +6,7 @@ order: 0
 ---
 
 This is the internal design document behind Quorum. The game is the source of truth for every
-number; these pages describe what it does and what it does not have yet.
+number; these pages describe what it does.
 
 Quorum is an incremental systems game in the spirit of Upload Labs
 and Factorio, built on real engineering behavior.

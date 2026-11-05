@@ -222,7 +222,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     summary: 'Evening peak; realtime ×4',
   }),
   // GPUs are scarce: the Company holds two GPU Nodes, whatever their size, and resizes them.
-  // The two is proposed; the scarcity is the design's. The inference cost that decides margin
+  // The two and the scarcity are the Venture's own. The inference cost that decides margin
   // is the GPU Node's own Burn (09), not a rule of this Venture.
   'ai-startup': venture({
     id: 'ai-startup',
@@ -250,7 +250,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   }),
   // Flat, bursty API clients. The no-naive-retries rule and the Series C
   // webhooks are the design's; the curve, the mix boosts, the market, the start
-  // and the Legacy multiplier are proposed.
+  // and the Legacy multiplier are
   'developer-platform': venture({
     id: 'developer-platform',
     name: 'Developer platform',
@@ -265,7 +265,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   }),
   // Business hours, writes and records. The residency rule, from Series A, is
   // the design's; the curve, the ×1.5 writes and the Legacy multiplier are
-  // proposed.
+  //
   healthcare: venture({
     id: 'healthcare',
     name: 'Healthcare',
@@ -279,7 +279,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     summary: 'Business hours; writes +50%; data stays in the home region from Series A',
   }),
   // Flat, enormous, and cheap per request. The 100 ms deadline, the bid kind's value, its 100 ms
-  // Apdex target and its ×10 volume are the design's; the market and the value are proposed.
+  // Apdex target and its ×10 volume are the design's; the market and the value are
   'ad-tech': venture({
     id: 'ad-tech',
     name: 'Ad tech',
@@ -296,7 +296,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   }),
   // Business hours and deadline spikes, on a Java or C# service bought through a
   // procurement cycle. The rule is the design's; the curve, the contract cash
-  // and the Java starter are proposed.
+  // and the Java starter are
   government: venture({
     id: 'government',
     name: 'Government contract',

@@ -11,6 +11,7 @@ import {
   ERAS,
   FEATURES,
   FOUNDER_OUTPUT,
+  FRAMEWORKS,
   HIRE_DAYS,
   HIRING_PIPELINE,
   LANGUAGES,
@@ -27,10 +28,10 @@ import {
   RAMP_OUTPUT,
   ROLLOUT_ALL,
   RETROGRADE,
+  RUNTIMES,
   SALARY_BASE,
   SHARED_DB_COORDINATION,
   SIGNING_BASE,
-  STRUCTURED_COORDINATION,
   SUPPORTED_QUARTERS,
   TESTS_FACTOR,
   TRUNK_FREQUENCY,
@@ -73,12 +74,9 @@ import {
  * Headcount after the coordination penalty (08 "Coordination"). A team whose Service shares a
  * Database with another keeps half of the penalty again: a schema change still needs agreement.
  */
-export const effectiveEngineers = (n: number, structured = false, shared = false): number => {
+export const effectiveEngineers = (n: number, structure = 1, shared = false): number => {
   if (n <= 0) return 0
-  const k =
-    COORDINATION *
-    (structured ? STRUCTURED_COORDINATION : 1) *
-    (shared ? 1 + SHARED_DB_COORDINATION : 1)
+  const k = COORDINATION * structure * (shared ? 1 + SHARED_DB_COORDINATION : 1)
   return n / (1 + k * (n - 1) + RETROGRADE * n * (n - 1))
 }
 
@@ -190,8 +188,12 @@ export const languageOfService = (game: Game): LanguageId => {
   return node ? languageOf(node) : 'php'
 }
 
-/** A structured framework lowers coordination and slows tech debt (Symfony). */
-export const structured = (game: Game): boolean => stackOf(game).framework === 'symfony'
+/** The multiplier a framework puts on the coordination constant: Spring Boot, NestJS and Symfony 0.7. */
+export const coordinationOf = (game: Game): number =>
+  FRAMEWORKS[stackOf(game).framework].coordination ?? 1
+
+/** The multiplier a framework puts on the tech debt each Feature adds: Symfony 0.7, Express 1.1. */
+export const debtGrowthOf = (game: Game): number => FRAMEWORKS[stackOf(game).framework].debt ?? 1
 
 /* ---------- ownership and upkeep (08 "Upkeep") ---------- */
 
@@ -220,7 +222,7 @@ export const upkeepShare = (game: Game, service: Service): number => {
  * A Service's share of the Company's Burn (08 "Services": "every Service still shares the one...
  * Burn"). The design gives no split, because Nodes belong to the board, not to a Service: this
  * build attributes Burn by each Service's share of the Company's total codebase (KLOC), the one
- * size every Service already tracks. Proposed. The starting Service, which carries every Feature
+ * size every Service already tracks.  The starting Service, which carries every Feature
  * no other Service names, reads the whole Burn on a Company that never splits.
  */
 export const serviceBurnOf = (game: Game, ledger: Ledger, service: Service): number => {
@@ -379,7 +381,8 @@ export const teamOutputs = (
     )
     const effective =
       headcount > 0
-        ? (effectiveEngineers(headcount, structured(game), sharesDatabase(game, owned)) * output) /
+        ? (effectiveEngineers(headcount, coordinationOf(game), sharesDatabase(game, owned)) *
+            output) /
           headcount
         : 0
     const velocity =
@@ -437,6 +440,18 @@ export const deployStrategyOf = (game: Game): DeployStrategyDef | null => {
   return pipeline ? DEPLOY_STRATEGIES[pipeline.strategy] : null
 }
 
+/**
+ * Minutes one build takes: the language's, times what the runtime adds. A GraalVM native image
+ * compiles the whole program ahead of time and takes three times as long, and Quarkus halves that
+ * (06 "Frameworks").
+ */
+export const buildMinutesOf = (game: Game): number => {
+  const { runtime, framework } = stackOf(game)
+  const extra = RUNTIMES[runtime].build ?? 1
+  const native = extra > 1 ? extra * (FRAMEWORKS[framework].nativeBuild ?? 1) : extra
+  return LANGUAGES[languageOfService(game)].buildMinutes * native
+}
+
 export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number => {
   const team = game.teams[0]
   const policy = team ? policyNow(game, team, tuning) : POLICIES.balanced
@@ -448,7 +463,7 @@ export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number 
       : MANUAL_DEPLOY_MINUTES
   // A Platform team halves deploy time (08 "Teams").
   const deploy = minutes * (platformStaffed(game) ? 0.5 : 1)
-  const build = LANGUAGES[languageOfService(game)].buildMinutes
+  const build = buildMinutesOf(game)
   const base = Math.min(policy.deploysPerDay, WORK_MINUTES / (build + deploy + VERIFY_MINUTES))
   // Trunk-based development ships 50% more often (10 "Track: Product and business").
   return base * (has(game, 'trunk-based') ? TRUNK_FREQUENCY : 1)

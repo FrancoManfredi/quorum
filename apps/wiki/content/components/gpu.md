@@ -6,6 +6,8 @@ It takes inference calls from your App Servers and sends nothing on. Its capacit
 
 The **GPU type** sets the tradeoff. T4 is cheap and slow. A100 is balanced. H100 is the cheapest per token and the hardest to get. Changing the type restarts the Node.
 
+The **model** (small, medium or large) sets how many prompts a second the Node serves and what each answer is worth: a larger model earns more and serves fewer. The weights, at the chosen precision, and the batch's attention cache must fit in the GPUs' memory, or the Node is killed as it loads and every prompt fails as `oom`. A lower precision, a smaller model, a smaller batch or a bigger GPU fits it. Changing the model reloads the weights.
+
 A new or restarted GPU Node starts cold: it loads its model and serves at a fraction of its capacity until it warms up.
 
 ## When to place it

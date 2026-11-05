@@ -23,6 +23,7 @@ import {
   BACKUPS,
   COLLECTORS,
   DEPLOY_STRATEGIES,
+  GPU_MODELS,
   LOG_ACKS,
   VEC_INDEXES,
   CACHE_KEYS,
@@ -3605,6 +3606,14 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    RecycleChosen: ({ nodeId, recycle }) =>
+      act(
+        model,
+        recycle ? 'Recycle workers' : 'Keep workers',
+        Actions.setRecycle(model.board.game, nodeId, recycle),
+        { undoable: true },
+      ),
+
     PolicyChosen: ({ nodeId, policy }) =>
       act(
         model,
@@ -3898,6 +3907,23 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    GatewayOptionsChosen: ({ nodeId, authEdge, merge }) =>
+      act(
+        model,
+        authEdge !== undefined
+          ? authEdge
+            ? 'Auth at the edge on'
+            : 'Auth at the edge off'
+          : merge
+            ? 'Request coalescing on'
+            : 'Request coalescing off',
+        Actions.setGatewayOptions(model.board.game, nodeId, {
+          ...(authEdge === undefined ? {} : { authEdge }),
+          ...(merge === undefined ? {} : { merge }),
+        }),
+        { undoable: true },
+      ),
+
     DbEngineChosen: ({ nodeId, dbEngine }) => {
       const game = model.board.game
       // A Company changes a Database's engine through a migration (08 "Migrations").
@@ -4069,23 +4095,26 @@ const handle = (model: Model, message: Message): Result =>
         Actions.setRollout(model.board.game, nodeId, feature, share),
       ),
 
-    LogOptionsChosen: ({ nodeId, partitions, acks, retain, keyed }) =>
+    LogOptionsChosen: ({ nodeId, partitions, acks, retain, keyed, replicas }) =>
       act(
         model,
         partitions !== undefined
           ? `Partitions: ${partitions}`
           : acks !== undefined
             ? `Acks: ${LOG_ACKS[acks].name}`
-            : retain !== undefined
-              ? `Retention: ${retain} s`
-              : keyed
-                ? 'Partition key: keyed'
-                : 'Partition key: round robin',
+            : replicas !== undefined
+              ? `Replicas: ${replicas}`
+              : retain !== undefined
+                ? `Retention: ${retain} s`
+                : keyed
+                  ? 'Partition key: keyed'
+                  : 'Partition key: round robin',
         Actions.setLogOptions(model.board.game, nodeId, {
           ...(partitions === undefined ? {} : { partitions }),
           ...(acks === undefined ? {} : { acks }),
           ...(retain === undefined ? {} : { retain }),
           ...(keyed === undefined ? {} : { keyed }),
+          ...(replicas === undefined ? {} : { replicas }),
         }),
         { undoable: true },
       ),
@@ -4141,6 +4170,14 @@ const handle = (model: Model, message: Message): Result =>
       act(model, `Batch ${batch}`, Actions.setBatch(model.board.game, nodeId, batch), {
         undoable: true,
       }),
+
+    GpuModelChosen: ({ nodeId, gpuModel }) =>
+      act(
+        model,
+        `Model ${GPU_MODELS[gpuModel].name}`,
+        Actions.setGpuModel(model.board.game, nodeId, gpuModel),
+        { undoable: true },
+      ),
 
     CollectorChosen: ({ nodeId, collector }) =>
       act(

@@ -31,8 +31,8 @@ cause left, unless the manager itself stops.
 - **A manager that is down renews nothing.** A restart, an OOM kill or a sold Node is enough to stop
   renewal, and the countdown does not care.
 - **A shorter life every Era.** 45 days from Series C is half the room manual renewal had.
-- **One certificate.** It covers the Company, not one Node, so the build cannot say which Nodes
-  terminate TLS.
+- **One certificate.** It covers the Company, so every Node that terminates TLS goes down
+  together when it expires.
 
 ## Tips
 

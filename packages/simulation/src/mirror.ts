@@ -49,6 +49,7 @@ export const MANAGED = [
   'framework',
   'workers',
   'compress',
+  'recycle',
   'sampleRate',
   'retention',
   'policy',

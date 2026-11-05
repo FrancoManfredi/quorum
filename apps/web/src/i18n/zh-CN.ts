@@ -979,6 +979,7 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Push Provider': '推送服务',
   'Wide-column Store': '宽列存储',
   'Distributed SQL': '分布式 SQL',
+  'Consistent hash': '一致性哈希',
   'Two choices': '二选一',
   Nightly: '每夜备份',
   'Where traffic starts. A domain resolves to one host, so Users take one link.':
@@ -1834,32 +1835,20 @@ export const zhCN: Readonly<Record<string, string>> = {
   'FrankenPHP, RoadRunner or Octane: the app boots once, so the framework’s per-request overhead goes. Loses shared nothing, so memory leaks and state bleed become possible.':
     'FrankenPHP、RoadRunner 或 Octane：应用只启动一次，框架的每请求开销随之消失。失去“无共享”，内存泄漏与状态串扰重新可能出现。',
   Swoole: 'Swoole',
-  'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections; 20 KB each is proposed.':
-    '事件循环上的协程，像 Node.js 一样异步 I/O，且没有每请求的框架开销。阻塞式扩展会卡住循环。可保持实时连接；每个 20 KB 为提议值。',
   'A Rails process per slot: simple and robust, and memory-heavy. One waiting request holds a whole process, so it refuses realtime connections.':
     '每个槽位一个 Rails 进程：简单可靠，但吃内存。一个等待中的请求就占住整个进程，因此拒绝实时连接。',
   Falcon: 'Falcon',
-  'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection is proposed: the design gives Ruby’s figure without naming the server.':
-    '纤程让每个进程保持大量空闲连接。阻塞的 gem 会卡住循环。每个连接 100 KB 为提议值：设计给出的是 Ruby 的数字，未指明服务器。',
   Bun: 'Bun',
-  'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup are proposed; its compatibility incident is not built.':
-    '更快的事件循环与瞬时启动，因此自动扩缩容和部署都优于 Node.js。60 MB 与零启动时间为提议值；其兼容性事故尚未实现。',
   Deno: 'Deno',
   'Permissions block most supply-chain attacks, at 10% slower feature work: fewer packages are compatible. The same event loop as Node.js.':
     '权限机制挡住大多数供应链攻击，代价是功能开发慢 10%：兼容的软件包更少。事件循环与 Node.js 相同。',
   gevent: 'gevent',
   'Gunicorn with gevent': 'Gunicorn 配 gevent',
-  'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching breaks some libraries; that incident is not built. 30 KB per connection is proposed.':
-    '绿色线程让每个进程承载大量 I/O 等待，慢数据库不再占住工作进程。猴子补丁会破坏部分库；该事故尚未实现。每个连接 30 KB 为提议值。',
   'Uvicorn ASGI': 'Uvicorn ASGI',
   'Async like Node.js, with slower CPU: a blocking call stalls the loop. Holds realtime connections at the design’s 30 KB each.':
     '像 Node.js 一样异步，但 CPU 更慢：阻塞调用会卡住循环。按设计的每个连接 30 KB 保持实时连接。',
   'Free-threaded CPython': '自由线程 CPython',
-  'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours; the design gives no figure, so 8 threads and 100 KB are proposed.':
-    '真正的并行线程用满每个核心，每个线程慢 10%，而每连接一个线程并不便宜。未就绪的 C 扩展要花开发工时；设计未给数字，故提议 8 个线程与 100 KB。',
   PyPy: 'PyPy',
-  'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus, and 200 MB per worker is proposed.':
-    'JIT 预热后，纯 Python CPU 是 Gunicorn 的三倍。C 扩展支持差，无法获得 ML 生态加成；每个工作进程 200 MB 为提议值。',
   fasthttp: 'fasthttp',
   'A quarter faster than net/http at 10% slower feature work: the API is not standard, some middleware does not work, and there is no HTTP/2.':
     '比 net/http 快四分之一，代价是功能开发慢 10%：API 非标准，部分中间件不可用，也没有 HTTP/2。',
@@ -1867,20 +1856,12 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Waiting no longer holds a platform thread, so a slow database only adds latency. Native (JNI) calls still pin a carrier, and the JVM still warms for 30 s. Realtime connections cost 10 KB.':
     '等待不再占住平台线程，慢数据库只增加延迟。原生 (JNI) 调用仍会钉住载体线程，JVM 仍要预热 30 秒。实时连接每个 10 KB。',
   'Spring WebFlux': 'Spring WebFlux',
-  'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB is proposed.':
-    '每个进程一条循环带来极高并发，但编写和调试慢 20%。阻塞调用会卡住循环，JVM 仍要预热。400 MB 为提议值。',
   'GraalVM native image': 'GraalVM 原生镜像',
   'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with slower builds. A thread per connection, like Tomcat. Great for Serverless Functions.':
     '不到 100 毫秒启动、无需预热，内存为 JVM 的 60%，速度为 0.80×，构建更慢。像 Tomcat 一样每连接一个线程。适合 Serverless 函数。',
   'Native AOT': 'Native AOT',
-  'No JIT, so it starts at full speed, and smaller: 100 MB is proposed from the design’s “smaller memory”. 0.90× the speed, and reflection-heavy libraries need Dev Hours.':
-    '没有 JIT，因此全速启动且更小：依设计“更少内存”提议 100 MB。速度为 0.90×，重度反射的库需要开发工时。',
   FastAPI: 'FastAPI',
-  'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB is proposed.':
-    '用 Pydantic 校验，也是模型粘合最好的生态：`ai` 请求多赚 15%。1.15× CPU，且仅在 ASGI 服务器上生效。10 MB 为提议值。',
   Fastify: 'Fastify',
-  'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB is proposed.':
-    '基于模式的序列化：读取少花 20% CPU。自身没有额外开销。5 MB 为提议值。',
   'Next.js': 'Next.js',
   'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU. The 40% of pages a CDN could cache is not built. 30 MB is proposed.':
     '服务端渲染与增量静态再生成：页面多赚 50%，CPU 为 1.6×。CDN 可缓存的那 40% 页面尚未实现。30 MB 为提议值。',
@@ -2228,4 +2209,74 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Spreads a leap second over the whole day, so no clock jumps and no lease expires early.':
     '把一个闰秒分摊到全天，因此没有时钟跳变，也没有租约提前过期。',
   'Required for the EU market: EU data stays in an EU region': '欧盟市场必备：欧盟数据留在欧盟区域',
+  'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections at 20 KB each.':
+    '事件循环上的协程，像 Node.js 一样异步 I/O，每个请求没有框架开销。阻塞扩展会卡住循环。可承载实时连接，每个 20 KB。',
+  'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection.':
+    '纤程让每个进程可持有大量空闲连接。阻塞的 gem 会卡住循环。每个连接 100 KB。',
+  'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup. Less mature: a package that works on Node.js can break on it.':
+    '更快的事件循环，启动即时，因此比 Node.js 更适合自动扩缩和部署。60 MB，无启动时间。不够成熟：在 Node.js 上能用的包可能在它上面出错。',
+  'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching can break a library. 30 KB per connection.':
+    '绿色线程让每个进程可同时等待大量 I/O，因此慢数据库不再占住 worker。猴子补丁可能让某个库出错。每个连接 30 KB。',
+  'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours. 8 threads and 100 KB per connection.':
+    '每个核心上都是真正的并行线程，每线程慢 10%，每个连接一个线程并不便宜。尚未就绪的 C 扩展会花费开发工时。8 个线程，每个连接 100 KB。',
+  'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus. 200 MB per worker.':
+    '纯 Python 的 CPU 性能是 Gunicorn 的三倍，需要 JIT 预热。对 C 扩展支持差，因此没有 ML 生态加成。每个 worker 200 MB。',
+  'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB.':
+    '每个进程一个循环即可实现极高并发，但构建和调试慢 20%。阻塞调用会卡住循环，JVM 仍需预热。400 MB。',
+  'No JIT, so it starts at full speed, and smaller: 100 MB. 0.90× the speed, and reflection-heavy libraries need Dev Hours.':
+    '没有 JIT，因此一启动就是全速，而且更小：100 MB。速度为 0.90×，大量使用反射的库需要开发工时。',
+  'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB.':
+    '使用 Pydantic 校验，并拥有最好的模型胶水生态：`ai` 请求多赚 15%。CPU 1.15×，且仅限 ASGI 服务器。10 MB。',
+  'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB.':
+    '基于模式的序列化：读取少用 20% 的 CPU。自身没有开销。5 MB。',
+  'Ships features fast, and background work costs 20% fewer Dev Hours. 1.8× CPU (1.1× in worker mode), and Eloquent makes 3 read queries where 1 would do.':
+    '功能交付快，后台工作少花 20% 的开发工时。CPU 1.8×（worker 模式下 1.1×），Eloquent 一次读取会发出 3 条查询。',
+  'Minimal and everywhere. 1.1× CPU, and middleware sprawl grows tech debt 10% faster.':
+    '精简且无处不在。CPU 1.1×，中间件泛滥让技术债增长快 10%。',
+  'Ships features fast, and internal tools cost 30% fewer Dev Hours with the admin site. 1.4× CPU and N+1 queries.':
+    '功能交付快，借助管理站点，内部工具少花 30% 的开发工时。CPU 1.4×，并有 N+1 查询。',
+  'Strict structure: 30% less coordination and 30% slower tech debt. 1.5× CPU and no N+1 queries.':
+    '结构严谨：协调成本少 30%，技术债增长慢 30%。CPU 1.5×，没有 N+1 查询。',
+  'Structure for large teams: 30% less coordination. 1.3× CPU, 200 MB more, and 15 s more to start.':
+    '为大团队提供结构：协调成本少 30%。CPU 1.3×，多 200 MB，启动多 15 秒。',
+  'Structure for large teams: 30% less coordination. 1.3× CPU and 20 MB per process.':
+    '为大团队提供结构：协调成本少 30%。CPU 1.3×，每个进程 20 MB。',
+  'Built for native images: a GraalVM build takes half the time. 1.1× CPU and 100 MB per process.':
+    '为原生镜像而生：GraalVM 构建时间减半。CPU 1.1×，每个进程 100 MB。',
+  'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU, and a CDN can answer 40% of them. 30 MB per process.':
+    '服务端渲染和增量静态再生：页面多赚 50%，CPU 为 1.6×，CDN 可应答其中 40%。每个进程 30 MB。',
+  'An Express-style API on fasthttp: no CPU overhead, and no HTTP/2. 5 MB per process.':
+    '基于 fasthttp 的 Express 风格 API：没有 CPU 开销，不支持 HTTP/2。每个进程 5 MB。',
+  'Stale OPcache': 'OPcache 过期',
+  'A CI/CD Pipeline resets OPcache on every deploy. A restart clears the cache by hand.':
+    'CI/CD 流水线会在每次部署时重置 OPcache。重启可手动清空缓存。',
+  'Automated tests run against the runtime a Service ships on, and catch the package before a deploy does.':
+    '自动化测试在服务发布所用的运行时上运行，在部署之前就能发现问题包。',
+  'Library incompatibility': '库不兼容',
+  'Automated tests run the Service under gevent before it ships, and show which library breaks.':
+    '自动化测试在发布前于 gevent 下运行服务，并指出是哪个库出错。',
+  'Chaos experiments find the partition before it does. A restart rejoins the cluster.':
+    '混沌实验能在分区发生之前发现问题。重启可让节点重新加入集群。',
+  'Small (3B)': '小型（3B）',
+  'Medium (7B)': '中型（7B）',
+  'Large (34B)': '大型（34B）',
+  'Recycle workers': '回收 worker',
+  'Keep workers': '保留 worker',
+  'Every few hours': '每隔数小时',
+  'pm.max_requests and worker killers restart each process now and then. A leak never builds, and each restart runs cold.':
+    'pm.max_requests 和 worker 回收器会时不时重启每个进程。内存泄漏不会累积，每次重启都从冷状态开始。',
+  'Services check': '由服务校验',
+  'Auth at the edge': '边缘认证',
+  'Auth at the edge on': '边缘认证已开启',
+  'Auth at the edge off': '边缘认证已关闭',
+  'Every read goes on': '每次读取都继续转发',
+  'Request coalescing': '请求合并',
+  'Request coalescing on': '请求合并已开启',
+  'Request coalescing off': '请求合并已关闭',
+  'Identical reads in flight at once become one call. The busier the Gateway, the more it merges, so a spike sends less on.':
+    '同时在途的相同读取合并为一次调用。网关越忙合并越多，因此流量高峰向后端发送得更少。',
+  '{0} replica': '{0} 个副本',
+  '{0} replicas': '{0} 个副本',
+  'Replicas: {0}': '副本：{0}',
+  'Model {0}': '模型 {0}',
 }

@@ -76,8 +76,6 @@ export const MORALE_DAYS = 7
 
 /** Coordination (08): n / (1 + k(n − 1) + βn(n − 1)). */
 export const COORDINATION = 0.08
-/** A structured framework lowers k by this factor. */
-export const STRUCTURED_COORDINATION = 0.7
 export const RETROGRADE = 0.0004
 
 /* ---------- codebases and tech debt ---------- */
@@ -91,8 +89,6 @@ export const REFACTOR_PER_DH = 0.02
 export const UNSTRUCTURED_DEBT = 0.01
 /** Debt a task adds when it ships during an incident: a hotfix. */
 export const HOTFIX_DEBT = 0.02
-/** A structured framework grows debt this much slower (06 Symfony). */
-export const STRUCTURED_DEBT = 0.7
 
 /* ---------- upkeep (08 "Upkeep") ---------- */
 
@@ -141,26 +137,26 @@ export const LIFT_MAX_ROLLOUT = 0.5
 
 /* ---------- blocked work (18 "Teammates") ---------- */
 
-/** Calendar days after which Later brings a block back to the Inbox. Proposed. */
+/** Calendar days after which Later brings a block back to the Inbox.  */
 export const BLOCK_REMIND_DAYS = 1
-/** A Team this big waits on a hire before it can move: past the coordination table's flat part. Proposed. */
+/** A Team this big waits on a hire before it can move: past the coordination table's flat part.  */
 export const BLOCK_HIRE_AT = 8
 
 /* ---------- burnout and quitting (18 "Teammates") ---------- */
 
 /** Where an engineer's mood starts. */
 export const MOOD_START = 1
-/** Mood at or below this makes an engineer unhappy: they write, and ask to be heard. Proposed. */
+/** Mood at or below this makes an engineer unhappy: they write, and ask to be heard.  */
 export const UNHAPPY_MOOD = 0.35
-/** Mood recovered above this, a later slump writes again. Proposed. */
+/** Mood recovered above this, a later slump writes again.  */
 export const CONTENT_MOOD = 0.7
-/** Mood a calendar week of a spent error budget costs: 1 at the week, 0 before. Proposed. */
+/** Mood a calendar week of a spent error budget costs: 1 at the week, 0 before.  */
 export const FREEZE_MOOD_DAYS = 7
-/** Mood each page costs the engineer it wakes. Proposed. */
+/** Mood each page costs the engineer it wakes.  */
 export const PAGE_MOOD = 0.08
-/** Mood a calendar day costs at a full pay gap: paid nothing against the Era's rate. Proposed. */
+/** Mood a calendar day costs at a full pay gap: paid nothing against the Era's rate.  */
 export const PAY_GAP_MOOD_DAYS = 3
-/** Calendar days a spell of time off lasts. Proposed. */
+/** Calendar days a spell of time off lasts.  */
 export const TIME_OFF_DAYS = 3
 
 /* ---------- the three Team research effects (10 "Track: Product and business") ---------- */
@@ -177,8 +173,7 @@ export const DATA_TEAM_LAG = 0.5
  * A Security team (08 "Teams": "Lowers supply-chain and breach incident chances"). It halves the
  * weakness that draws a Supply-chain compromise, same as Dependency scanning research does and
  * stacking with it, and doubles the patch grace before an overdue CVE is exploited into a Data
- * breach, so the player has more time to patch before one starts. Proposed: the design names the
- * effect, not these factors.
+ * breach, so the player has more time to patch before one starts.
  */
 export const SECURITY_TEAM_SUPPLY_CHAIN = 0.5
 export const SECURITY_TEAM_GRACE = 2
@@ -223,7 +218,7 @@ export const SHARED_DB_COORDINATION = 0.5
 
 /* ---------- engineering tasks and moves (08 "Engineering tasks", "Migrations") ---------- */
 
-/** Seconds before a Link the Add timeouts and retries task touches gives up. Proposed. */
+/** Seconds before a Link the Add timeouts and retries task touches gives up.  */
 export const TASK_LINK_TIMEOUT = 5
 
 /** A Load test shows every Node at this multiple of the demand it has now (08 "Engineering tasks"). */
@@ -235,7 +230,7 @@ export const LOAD_TEST_DAYS = 1
 export const AUTH_MOVE_DH = 120
 /** A Database engine change costs this share of the codebase in Dev Hours (08 "Migrations"). */
 export const ENGINE_FACTOR = 0.8
-/** Calendar minutes the data copy of an engine change takes per GB the Databases hold. Proposed. */
+/** Calendar minutes the data copy of an engine change takes per GB the Databases hold.  */
 export const ENGINE_COPY_MINUTES_PER_GB = 1
 
 /* ---------- pooler modes (07 "Connection Pooler") ---------- */

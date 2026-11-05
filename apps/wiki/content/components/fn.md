@@ -21,9 +21,9 @@ Place it when traffic is spiky, or when one endpoint needs its own capacity with
 - **The cap.** A spike above 1,000 concurrent executions is throttled, and the requests are lost.
 - **Cold starts after a quiet minute.** A Java function can pay two seconds before its code runs; Go and Rust pay 50 ms. A trickle of traffic pays it most often.
 - **Connections.** Every concurrent execution opens its own database connections. Without a [Connection Pooler](/components/pooler), a spike exhausts Postgres.
-- **Duration.** The design cuts an execution off after 15 minutes, so long `job` work belongs on a [Worker](/components/worker) behind a [Queue](/components/queue). The build never reaches that limit: no request kind lasts long enough, so the cutoff is not modelled.
+- **Duration.** An execution holds its request for as long as the kind takes, and every kind finishes in seconds, far inside a real function's 15-minute limit. Long `job` work still belongs on a [Worker](/components/worker) behind a [Queue](/components/queue).
 
 ## Tips
 
 - Put a [CDN](/components/cdn) or a [Cache](/components/cache) in front: a function pays for every request that reaches it.
-- A steady base load on App Servers with functions for the peaks is the mix the design teaches: reserved boxes for the floor, per-use capacity for the spike.
+- A steady base load on App Servers with functions for the peaks is the mix to aim for: reserved boxes for the floor, per-use capacity for the spike.

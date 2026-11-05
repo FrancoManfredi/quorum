@@ -22,7 +22,7 @@ A bad deploy fails 8% of App Server requests for each Feature its batch shipped.
 the ceiling on that: Recreate swaps every server at once, so nothing holds the bug back; Rolling
 replaces a slice at a time and can be stopped; Blue-green serves from the old fleet while the new
 one comes up and only its slice sees the bug; Canary sends 5% of traffic first and waits. Deploy
-times and Burn multipliers are the build's own numbers, chosen to make the trade real.
+times and Burn multipliers are this game's own numbers, chosen to make the trade real.
 
 Settings on its card:
 

@@ -1,7 +1,7 @@
 /* The Components a player can place, and how Analytics samples. */
 
 import { MAX_CONNECTIONS } from './instances.ts'
-import { REQUEST_KINDS, type Kind } from './kinds.ts'
+import { REQUEST_KINDS, type Kind, type RequestKind } from './kinds.ts'
 import type { ResearchId } from './research.ts'
 import type { LanguageId } from './runtimes.ts'
 
@@ -152,26 +152,25 @@ const def = (
  * $0.0000166667 per GB-second. At those straight rates a per-use bill is about 3,600× cheaper than
  * the time-billed compute beside it (09 "How prices map to real prices"), so a function would never
  * cost as much as the VM it replaces and 05's cost curve could not cross. Both are multiplied by
- * 1,200, which puts the crossover at about 30% of an equal VM's steady load. Proposed: the design
- * gives no multiplier and no per-GB-second price for the game.
+ * 1,200, which puts the crossover at about 30% of an equal VM's steady load.
  */
 export const SERVERLESS_REQUEST_PRICE = 0.00024
 export const SERVERLESS_GB_SECOND = 0.02
-/** GB one execution bills for each second it runs: Lambda's common 1,024 MB (05). Proposed. */
+/** GB one execution bills for each second it runs: Lambda's common 1,024 MB (05).  */
 export const SERVERLESS_MEMORY_GB = 1
 /** Executions one Serverless Function runs at once, per region (05 "Concurrency cap"). */
 export const SERVERLESS_CONCURRENCY = 1_000
-/** Milliseconds an invocation spends on its own bookkeeping before its code runs. Proposed. */
+/** Milliseconds an invocation spends on its own bookkeeping before its code runs.  */
 export const SERVERLESS_MS = 1
 /**
  * Sim seconds an execution environment stays warm after its last invocation (05 "Cold starts").
  * AWS reaps an idle environment after 5 to 15 minutes; one sim second is one calendar minute, so
- * 5 s. Proposed: the design gives no idle window.
+ * 5 s.
  */
 export const SERVERLESS_IDLE_SECONDS = 5
 /**
  * Milliseconds a cold start costs by language (05 "Cold starts"): Rust and Go 50, Node and Python
- * 200, .NET 500, JVM 2,000. PHP, Ruby, Elixir, Zig and Haskell are proposed in the same order.
+ * 200, .NET 500, JVM 2,000. PHP, Ruby, Elixir, Zig and Haskell follow in the same order.
  */
 export const COLD_START_MS: Record<LanguageId, number> = {
   go: 50,
@@ -193,7 +192,7 @@ export const NATIVE_COLD_MS = 100
  * An Edge Function's bill (05 "Edge Function": Burn "Per request"): dollars per request × cost
  * index, on the Requests line. Cloudflare Workers list $0.30 per million requests, multiplied by
  * 1,200 like Lambda's, so a request served at the edge costs about what one served by a function
- * does, without the GB-seconds. Proposed.
+ * does, without the GB-seconds.
  */
 export const EDGE_REQUEST_PRICE = 0.00036
 /** Milliseconds an Edge Function adds to a request: it starts in under 5 ms (05 "Stats"). */
@@ -226,20 +225,19 @@ export const DOC_OPS = 3_000
  * collection (07 "Document Store": "`report` and `q-tx` across documents cost 3×").
  */
 export const DOC_JOIN_COST = 3
-/** Milliseconds one op takes the store's own server. Proposed: the design gives the Node's 3 ms. */
+/** Milliseconds one op takes the store's own server.  */
 export const DOC_OP_MS = 1
 /** Multi-document transactions add this share to a write's latency (07 "Document Store": +50%). */
 export const DOC_TXN_LATENCY = 0.5
 /**
  * Share of checkouts that land half-applied without multi-document transactions, so a retry
- * charges again: the atomicity the option buys back (07 "Document Store"). Proposed.
+ * charges again: the atomicity the option buys back (07 "Document Store").
  */
 export const DOC_PARTIAL = 0.02
 /**
  * Dev Hours every Feature pays on a Design with a Document Store (07 "Document Store"): no joins
  * means each new access pattern is its own collection and index to write and read, so it costs
- * this multiple of a Feature's hours. Proposed: the design gives the direction ("+Dev Hours per
- * feature"), the −25% for a shape change, and no figure for the access pattern.
+ * this multiple of a Feature's hours.
  */
 export const DOC_PATTERN_FACTOR = 1.1
 /** A Feature that changes the data shape costs this share of its Dev Hours there (07: −25%). */
@@ -251,7 +249,7 @@ export const VEC_QUERIES = 500
  * Index types (07 "Vector Index"). Exact compares the query to every vector: perfect recall, and
  * slow once the index outgrows a scan. HNSW walks a graph instead: twice the queries, twice the
  * memory in Burn, and 95% recall. The 95% is the design's; the capacity and the Burn multiple
- * are proposed, since the design says "slow at scale" and "memory-heavy" without a figure.
+ * are 2 and 2.
  */
 export const VEC_INDEXES = {
   exact: { name: 'Exact', recall: 1, queries: 1, burn: 1 },
@@ -259,7 +257,7 @@ export const VEC_INDEXES = {
 } as const
 /**
  * `ai` value with the company's own documents behind the answer (07 "Vector Index": "answers use
- * the company's own data"). Proposed: the design gives the direction and no figure. An
+ * the company's own data").  An
  * approximate index takes its recall's share of the lift.
  */
 export const VEC_AI_LIFT = 1.35
@@ -269,7 +267,7 @@ export const LOG_RATE = 100_000
 /**
  * Messages a second one partition hands its consumer. A consumer group can use at most one
  * consumer per partition (07 "Event Stream"), so a stream reads no faster than its partitions.
- * Proposed: the design gives the partitions' meaning and no rate.
+ *
  */
 export const LOG_READ_RATE = 20_000
 /** Partitions a stream offers, as button values: parallelism, and the width of the order it keeps. */
@@ -277,7 +275,7 @@ export const LOG_PARTITIONS = [1, 3, 6, 12] as const
 /**
  * Acknowledgements (07 "Event Stream"): what a producer waits for before it moves on. `0` does not
  * wait, `1` waits for the partition leader, `all` for every replica. Each is a multiple of the
- * 5 ms append. The multiples are proposed: the design gives the direction only.
+ * 5 ms append. The multiples are
  */
 export const LOG_ACKS = {
   '0': { name: 'No ack', latency: 0.4 },
@@ -288,11 +286,19 @@ export const LOG_ACKS = {
 export const LOG_RETENTION = [600, 3_600, 10_080] as const
 /**
  * Burn each replica past the first adds to a broker, as a share of its own rate: every partition
- * is copied, and the copies are disk (07 "Event Stream": "costs more disk"). Proposed.
+ * is copied, and the copies are disk (07 "Event Stream": "costs more disk").
  */
 export const LOG_REPLICA_BURN = 0.5
 /** Replicas a stream keeps of each partition: 1, 2, or 3 (07 "Event Stream"). */
 export const LOG_REPLICAS = [1, 2, 3] as const
+/**
+ * The share of the events a broker holds that a failure takes with it (07 "Event Stream":
+ * `acks` trades write latency for durability). With one replica the failed broker held the only
+ * copy. With more, `acks=all` waited for every replica, so none is lost; `acks=1` acknowledged
+ * after the leader alone, so what the followers had not yet copied is lost; `acks=0` did not wait
+ * at all, so the producer's last events never arrived.
+ */
+export const LOG_LOSS = { '0': 0.1, '1': 0.05, all: 0 } as const
 
 /* ---------- the CDC Connector, Service Mesh, Feature Flags and Certificates (05) ---------- */
 
@@ -304,9 +310,7 @@ export const CDC_RATE = 20_000
  */
 export const CDC_CHANGES = ['q-write', 'q-tx', 'k-write'] as const
 /**
- * Milliseconds a change spends in the connector before it is published. Proposed: 05 gives the
- * connector "Lag-based" latency and no figure, so the lag is the stream's, and this is only the
- * connector's own hop.
+ * Milliseconds a change spends in the connector before it is published.
  */
 export const CDC_MS = 2
 
@@ -317,7 +321,7 @@ export const MESH_OVERHEAD = 0.05
 /** Insight per-link metrics earn on top of what Analytics already samples (05: +20%). */
 export const MESH_INSIGHT = 0.2
 /**
- * Dev Hours the mesh takes from the product teams, in engineers, the same as a Cluster's. Proposed:
+ * Dev Hours the mesh takes from the product teams, in engineers, the same as a Cluster's:
  * 05 says "Platform Dev Hours" and gives no figure.
  */
 export const MESH_TAX = 0.5
@@ -1015,6 +1019,7 @@ export const LB_POLICIES = {
   'round-robin': { label: 'Round robin', research: null },
   'least-conn': { label: 'Least conn', research: 'lb-algorithms' },
   p2c: { label: 'Two choices', research: 'lb-algorithms' },
+  hash: { label: 'Consistent hash', research: 'lb-algorithms' },
 } as const
 /** Power of two choices keeps no global state: its LB handles this much more traffic... */
 export const P2C_CAPACITY = 1.5
@@ -1024,7 +1029,7 @@ export const P2C_IMBALANCE = 0.1
 export const CHECK_INTERVALS = [2, 10, 30] as const
 /**
  * What the L4 variant changes (05 "Load Balancer"): ten times the throughput, 0.2 ms instead of
- * 1 ms, and cheaper. The exact price cut is proposed: 05 says only "cheaper".
+ * 1 ms, and cheaper. The exact price cut is
  */
 export const L4_CAPACITY = 10
 export const L4_MS = 0.2
@@ -1052,7 +1057,7 @@ export const CACHE_OPS = 50_000
 export const CDN_HIT: Partial<Record<Kind, number>> = { page: 0.7, media: 0.75 }
 /** With Tiered caching, a CDN answers this share of video. */
 export const TIERED_MEDIA_HIT = 0.92
-/** CDN TTLs in seconds, and what each does to the hit ratio. Proposed: the GDD gives no numbers. */
+/** CDN TTLs in seconds, and what each does to the hit ratio.  */
 export const CDN_TTLS = [
   { ttl: 60, factor: 0.8 },
   { ttl: 300, factor: 1 },
@@ -1079,43 +1084,43 @@ export const UNDER_ATTACK = { block: 0.99, falsePositive: 0.01, latency: 40, cpu
 /**
  * Share by which Bot management lowers a WAF's false positives (10 "Track: Infrastructure"): a
  * suspicious client is challenged instead of blocked, so a real user it flags still gets through.
- * The design gives the direction and no rate, so half is proposed.
+ * The design gives the direction and no rate, so half is
  */
 export const BOT_MANAGEMENT_FALSE = 0.5
 
 /** Messages per second one RabbitMQ node takes (05 "Queue"). */
 export const QUEUE_RATE = 20_000
-/** Milliseconds a backlog of one message adds to the enqueue: a large backlog slows the broker. Proposed. */
+/** Milliseconds a backlog of one message adds to the enqueue: a large backlog slows the broker.  */
 export const BACKLOG_MS = 0.01
 /** A Queue offers its Workers its backlog over this many seconds. */
 export const DRAIN_SECONDS = 10
-/** While a poison message is stuck, Workers spend this share of their time on it. Proposed. */
+/** While a poison message is stuck, Workers spend this share of their time on it.  */
 export const POISON_SHARE = 0.9
 /** Max attempts a Queue with a dead-letter queue offers (05 "Worker"). Sidekiq retries 25 times. */
 export const MAX_ATTEMPTS = [1, 3, 10, 25] as const
 /** A Queue with no dead-letter queue retries forever; the math stops at Sidekiq's 25. */
 export const FOREVER_ATTEMPTS = 25
-/** Seconds a failed task waits before its next attempt, with backoff. Proposed. */
+/** Seconds a failed task waits before its next attempt, with backoff.  */
 export const TASK_RETRY_SECONDS = 30
 /** Max lengths a Queue offers; 0 means no limit (RabbitMQ `x-max-length`). */
 export const QUEUE_LENGTHS = [0, 1_000, 10_000, 100_000] as const
 /** Tasks each Worker process takes from the Queue ahead of time (05 "Worker": Prefetch). */
 export const PREFETCH = [1, 10, 100] as const
-/** Milliseconds a Worker waits on the broker for each fetch, ack included. Proposed. */
+/** Milliseconds a Worker waits on the broker for each fetch, ack included.  */
 export const FETCH_MS = 20
 
 /**
  * Realtime Hub (05 "Realtime Hub", 06 "Realtime connections"): KB of RAM its first box gives to
  * open connections. Each size step doubles it. A box holds as many connections as fit at its
  * runtime's cost per connection, 1 MB for a Java platform thread down to about 5 KB for a BEAM
- * process, so the runtime decides how many a dollar holds. Proposed: the GDD gives no box.
+ * process, so the runtime decides how many a dollar holds.
  */
 export const HUB_RAM_KB = 8 * 1_048_576
-/** Presence spends this share of a Hub's CPU on joins and leaves, so a box holds fewer connections. Proposed. */
+/** Presence spends this share of a Hub's CPU on joins and leaves, so a box holds fewer connections.  */
 export const PRESENCE_CPU = 0.15
-/** Presence earns this multiple of a realtime message: social features pay for who is online. Proposed. */
+/** Presence earns this multiple of a realtime message: social features pay for who is online.  */
 export const PRESENCE_VALUE = 1.25
-/** Share of the reconnect wave a Hub that just came back refuses without jittered backoff. Proposed. */
+/** Share of the reconnect wave a Hub that just came back refuses without jittered backoff.  */
 export const HERD_REFUSED = 0.5
 
 /** Search queries per second one Search Engine answers at size 1 (05 "Stats"). */
@@ -1144,7 +1149,7 @@ export const STORAGE_CLASSES = {
  * Relational database engines (07 "Variants"). Postgres forks a process for every connection, so
  * its `max_connections` (100) is a limit it meets early; MySQL gives each connection a thread and
  * holds more of them on one box. MySQL's full-text search is the weaker of the two, so `q-search`
- * costs it twice the CPU. Proposed: the design names both behaviours and gives no counts.
+ * costs it twice the CPU.
  */
 export const DB_ENGINES = {
   postgres: { name: 'PostgreSQL', connections: MAX_CONNECTIONS, searchCost: 1 },
@@ -1154,7 +1159,7 @@ export const DB_ENGINES = {
 /**
  * IOPS a Database's volume answers (07 "Capacity"): a read that misses the buffer cache and every
  * write goes to disk, and waits on it. A general purpose volume answers 3,000; a provisioned one
- * up to 64,000. Provisioned storage bills this multiple of the box's Burn: proposed, since the
+ * up to 64,000. Provisioned storage bills this multiple of the box's Burn: the
  * design says "at higher cost" and gives no rate.
  */
 export const STORAGE_IOPS = {
@@ -1162,7 +1167,7 @@ export const STORAGE_IOPS = {
   provisioned: { name: 'Provisioned IOPS', iops: 64_000, burn: 1.5 },
 } as const
 
-/** Shard counts a Database splits into (07 "Partitioning"): writes scale with them. Proposed. */
+/** Shard counts a Database splits into (07 "Partitioning"): writes scale with them.  */
 export const SHARD_COUNTS = [1, 2, 4, 8] as const
 
 /**
@@ -1170,21 +1175,23 @@ export const SHARD_COUNTS = [1, 2, 4, 8] as const
  * older than its window. Keep everything bills every GB and answers a report from the table;
  * archive moves old rows to cheap storage and a report waits on the restore; delete drops them,
  * so a report rebuilds its figures from the event log at three times the scan. The 30-day window
- * and the three prices are proposed: the design names the trade and gives no numbers.
+ * and the three prices are
  */
 export const DB_RETENTIONS = {
   keep: { name: 'Keep everything', days: 0, price: 1, scanMs: 0, rebuild: 1 },
   archive: { name: 'Archive after 30 d', days: 30, price: 0.1, scanMs: 200, rebuild: 1 },
   delete: { name: 'Delete after 30 d', days: 30, price: 0, scanMs: 0, rebuild: 3 },
 } as const
-/** KB one row costs the Database: the row, its indexes, and its share of the WAL. Proposed. */
+/** KB one row costs the Database: the row, its indexes, and its share of the WAL.  */
 export const ROW_KB = 10
 /**
  * How much dearer a Database's GB are than Object Storage's, per GB per second: gp3 is $0.08 per
- * GB-month and S3 Standard $0.023, so about 3.5×. Proposed: the design bills the rows only as
- * "Storage Burn grows with volume".
+ * GB-month and S3 Standard $0.023, so about 3.5×.
  */
 export const DB_STORAGE_MULT = 3.5
+
+/** Seconds of writes a write-behind Cache holds before it flushes them to the Database. */
+export const WRITE_BEHIND_SECONDS = 10
 
 /**
  * Cache strategies (07 "Strategies"): what the Cache does on a write. `stale` multiplies the
@@ -1192,21 +1199,42 @@ export const DB_STORAGE_MULT = 3.5
  * or `ahead` of it), and `flush` is the share a write-behind Cache passes on to the Database.
  * Cache-aside keeps the TTL's own stale share; read-through removes the race between a write and
  * a concurrent miss, so it serves three quarters of it; write-through and write-behind keep the
- * Cache's copy fresh. Proposed: the design names the four strategies and their risks, not their
- * numbers. Read-through's own cost, the cache library owning loading, is not modelled.
+ * Cache's copy fresh. `loadMs` is what the library that owns loading adds to a miss. A write-behind
+ * Cache holds the writes it has not flushed for `WRITE_BEHIND_SECONDS`, and a crash loses them.
  */
 export const CACHE_STRATEGIES = {
-  aside: { name: 'Cache-aside', stale: 1, write: 'bypass', writeMs: 0, flush: 1 },
-  'read-through': { name: 'Read-through', stale: 0.75, write: 'bypass', writeMs: 0, flush: 1 },
-  'write-through': { name: 'Write-through', stale: 0, write: 'through', writeMs: 0.5, flush: 1 },
-  'write-behind': { name: 'Write-behind', stale: 0.5, write: 'ahead', writeMs: 0, flush: 0.5 },
+  aside: { name: 'Cache-aside', stale: 1, write: 'bypass', writeMs: 0, flush: 1, loadMs: 0 },
+  'read-through': {
+    name: 'Read-through',
+    stale: 0.75,
+    write: 'bypass',
+    writeMs: 0,
+    flush: 1,
+    loadMs: 1,
+  },
+  'write-through': {
+    name: 'Write-through',
+    stale: 0,
+    write: 'through',
+    writeMs: 0.5,
+    flush: 1,
+    loadMs: 0,
+  },
+  'write-behind': {
+    name: 'Write-behind',
+    stale: 0.5,
+    write: 'ahead',
+    writeMs: 0,
+    flush: 0.5,
+    loadMs: 0,
+  },
 } as const
 
 /**
  * A Search Engine's refresh interval (07 "Search Engine"): how long a new document waits to
  * become searchable. A longer interval saves indexing CPU, so the Node answers more queries, and
  * a bigger share of its answers are staler than the index. 1 s is the design's default and fresh
- * enough to serve nothing stale; 5 s and 60 s, their capacity and their stale shares are proposed.
+ * enough to serve nothing stale; 5 s and 60 s, their capacity and their stale shares are
  */
 export const SEARCH_REFRESH = [
   { seconds: 1, capacity: 1, stale: 0 },
@@ -1217,14 +1245,13 @@ export const SEARCH_REFRESH = [
 /**
  * Lifecycle rules (07 "Object Storage"): an object older than this many calendar days moves one
  * class cheaper, so Standard becomes Infrequent access and Infrequent access becomes Archive.
- * Days offered, and the age model below, are proposed: the design says "moves old objects to
- * cheaper classes automatically" and gives no rule.
+ * Days offered, and the age model below, are
  */
 export const LIFECYCLE_DAYS = [0, 30, 90, 365] as const
 
 /** Share of backups an untested restore fails (07 "Backups"): the design's own 20%. */
 export const RESTORE_FAILURE = 0.2
-/** Dev Hours a manual restore drill costs: a half day of an engineer. Proposed. */
+/** Dev Hours a manual restore drill costs: a half day of an engineer.  */
 export const RESTORE_DRILL_DH = 4
 /** Milliseconds one disk operation takes on a volume, before it queues: 1,000 / its IOPS. */
 export const diskMs = (volume: keyof typeof STORAGE_IOPS): number =>
@@ -1261,9 +1288,38 @@ export const GATEWAY_LIMITS = [0, 100, 500, 1_000, 2_500, 5_000] as const
 /**
  * Requests a Gateway's token bucket holds on top of its rate limit, once Rate limiting is
  * researched (10 "Track: Infrastructure"). A burst up to this many requests passes whole and the
- * long-run average holds; the design gives the mechanism and no size, so 200 is proposed.
+ * long-run average holds; the design gives the mechanism and no size, so 200 is
  */
 export const GATEWAY_BURST = 200
+/**
+ * The kinds that carry a user's token: every request but the anonymous ones (pages, video,
+ * realtime, bots, bids, pushes) and the login that issues it. A service validates the token on
+ * each of them for `AUTH_CHECK_MS` of CPU, unless an API Gateway validates it once at the edge,
+ * which adds `GATEWAY_AUTH_MS` to its hop (05 "API Gateway": "Auth at the edge").
+ */
+export const AUTHENTICATED_KINDS: ReadonlyArray<RequestKind> = [
+  'read',
+  'write',
+  'search',
+  'upload',
+  'buy',
+  'job',
+  'report',
+  'ai',
+  'feed',
+  'hook',
+]
+export const AUTH_CHECK_MS = 0.02
+export const GATEWAY_AUTH_MS = 2
+/**
+ * Request coalescing (05 "API Gateway"): a Gateway merges identical reads that are in flight at
+ * once. `COALESCE_HOT` of a read kind's requests ask for a few popular objects, and `COALESCE_WINDOW`
+ * seconds is how long a read stays in flight, so at a rate of λ the share of the hot ones that
+ * find an identical read in flight is λw / (1 + λw): spikes merge more.
+ */
+export const COALESCE_KINDS: ReadonlyArray<RequestKind> = ['page', 'read', 'feed', 'search']
+export const COALESCE_HOT = 0.3
+export const COALESCE_WINDOW = 0.05
 /** A Load Balancer's variants (05 "Load Balancer"). */
 export const LB_VARIANTS = {
   l7: { name: 'L7', research: null },
@@ -1276,7 +1332,7 @@ export const ZONES = ['a', 'b', 'c'] as const
 /** A call between zones costs this much more than one inside a zone, and egress both ways. */
 export const CROSS_ZONE_MS = 1
 export const EGRESS_CROSS_ZONE = 0.01
-/** KB one backend call moves between Nodes, for cross-zone egress. Proposed. */
+/** KB one backend call moves between Nodes, for cross-zone egress.  */
 export const BACKEND_KB = 4
 /** Data Nodes that can keep a standby in another zone; App Servers and Workers spread copies instead. */
 export const STANDBY_TYPES: ReadonlyArray<ComponentId> = [
@@ -1301,7 +1357,7 @@ export const SCALE_MAXIMA = [4, 8, 16, 0] as const
 export const SCALE_IN = 0.6
 /**
  * Calendar minutes before the daily peak that Scheduled scaling provisions for it (10 "Track:
- * Infrastructure": "scale ahead of the daily peak"). Two hours is proposed, long enough for a VM to
+ * Infrastructure": "scale ahead of the daily peak"). Two hours is long enough for a VM to
  * boot and warm inside the lead.
  */
 export const SCHEDULE_LEAD_MINUTES = 120
@@ -1309,11 +1365,11 @@ export const SCHEDULE_LEAD_MINUTES = 120
 export const POD_BURN = 0.85
 /**
  * Noisy neighbours: a share of a member's requests wait `NOISY_MS`. The share grows with how
- * busy the shared nodes run: half of `NOISY_SHARE` when idle, twice it at full CPU. Proposed.
+ * busy the shared nodes run: half of `NOISY_SHARE` when idle, twice it at full CPU.
  */
 export const NOISY_SHARE = 0.01
 export const NOISY_MS = 10
-/** A rolling deploy stops after its first batch of pods: they take this share of a bad deploy. Proposed. */
+/** A rolling deploy stops after its first batch of pods: they take this share of a bad deploy.  */
 export const ROLLOUT_SHARE = 0.25
 
 /**
@@ -1330,8 +1386,7 @@ export const ROLLOUT_SHARE = 0.25
  * for every Company, so the design's "instant rollback" pays nothing, and its "the old fleet keeps
  * serving until the new one is up" is read as the shield instead.
  *
- * Deploy minutes and the Burn multiplier are proposed: the design names the four strategies and
- * their blast radiuses, and gives no time or rate for any of them. Burn multiplies the Pipeline's
+ * Deploy minutes and the Burn multiplier are  Burn multiplies the Pipeline's
  * own, since a second fleet and the canary's metrics would bill beside it.
  */
 export const DEPLOY_STRATEGY_IDS = ['recreate', 'rolling', 'blue-green', 'canary'] as const
@@ -1370,17 +1425,17 @@ export const STRATEGY_RESEARCH: Partial<Record<DeployStrategyId, ResearchId>> = 
 
 /** Seconds a Cluster takes to reschedule a pod whose host died (self-healing). */
 export const POD_RESCHEDULE = 30
-/** Share of pod requests that fail while a forced Cluster upgrade breaks them. Proposed. */
+/** Share of pod requests that fail while a forced Cluster upgrade breaks them.  */
 export const UPGRADE_CRASHES = 0.3
 /** Calendar quarters a Kubernetes version stays supported before the provider forces an upgrade. */
 export const SUPPORTED_QUARTERS = 1
 /** Engineers of Dev Hours each Cluster takes from the product teams without a Platform team (08). */
 export const PLATFORM_TAX = 0.5
 
-/** Data Warehouse price per scan (09 "Pricing models": per scan, BigQuery style). Proposed. */
+/** Data Warehouse price per scan (09 "Pricing models": per scan, BigQuery style).  */
 export const SCAN_PRICE = 0.02
 
-/** Tokens in one AI prompt and its answer. Proposed: the GDD gives none. */
+/** Tokens in one AI prompt and its answer.  */
 export const TOKENS_PER_PROMPT = 400
 /**
  * GPU types (05 "GPU Node"): dollars per second per GPU, at the real rental price per GPU-hour,
@@ -1390,16 +1445,30 @@ export const TOKENS_PER_PROMPT = 400
  * 70B model at 30 tokens/s per user; the others follow memory bandwidth.
  */
 export const GPU_TYPES = {
-  t4: { name: 'T4', burn: 0.53, tokens: 200 },
-  a100: { name: 'A100', burn: 1.8, tokens: 900 },
-  h100: { name: 'H100', burn: 3.3, tokens: 2_000 },
+  t4: { name: 'T4', burn: 0.53, tokens: 200, gb: 16 },
+  a100: { name: 'A100', burn: 1.8, tokens: 900, gb: 80 },
+  h100: { name: 'H100', burn: 3.3, tokens: 2_000, gb: 80 },
 } as const
+/**
+ * The model a GPU Node serves (05 "GPU Node": "Small, medium, large. Larger models earn more per
+ * prompt and need more GPU memory"): the weights' GB at FP16, how many times the medium model's
+ * tokens a second it serves, and what a prompt it answers is worth next to the medium model's. The
+ * weights are a 3B, a 7B and a 34B model at two bytes a weight.
+ */
+export const GPU_MODELS = {
+  small: { name: 'Small (3B)', gb: 6, speed: 2, value: 0.6 },
+  medium: { name: 'Medium (7B)', gb: 14, speed: 1, value: 1 },
+  large: { name: 'Large (34B)', gb: 68, speed: 0.25, value: 1.8 },
+} as const
+export type GpuModel = keyof typeof GPU_MODELS
+/** GB of GPU memory each prompt in a batch holds for its attention cache. */
+export const GPU_CACHE_GB = 0.25
 /** Milliseconds to the first token on a GPU Node, and on the LLM API (05 "LLM API": 600 ms). */
 export const GPU_FIRST_TOKEN_MS = 300
 /**
  * A GPU Node's weight precision (05 "GPU Node"): INT8 and INT4 serve faster and use less memory,
  * and a lower-precision answer is worth less. The value penalties are the design's 5% and 15%; the
- * speed multipliers are proposed, since the design says only "faster".
+ * speed multipliers are 2× and 3×. Their weights take half and a quarter of the memory.
  */
 export const GPU_PRECISIONS = {
   fp16: { name: 'FP16', speed: 1, value: 1, memory: 1 },
@@ -1411,7 +1480,7 @@ export type GpuPrecision = keyof typeof GPU_PRECISIONS
 /**
  * A GPU Node's batch size (05 "GPU Node"): a larger batch raises throughput and raises the time to
  * the first token. Continuous batching serves new prompts as they arrive, so it keeps the
- * throughput and drops the added latency. The design gives the trade and no numbers: all proposed.
+ * throughput and drops the added latency.
  */
 export const GPU_BATCHES = [
   { batch: 1, gain: 1, ttft: 0 },
@@ -1426,7 +1495,7 @@ export const LLM_FIRST_TOKEN_MS = 600
  * about two-thirds busy.
  */
 export const LLM_PRICE = 2.5
-/** Prompts per second the LLM API takes at its first usage tier; each tier doubles it. Proposed. */
+/** Prompts per second the LLM API takes at its first usage tier; each tier doubles it.  */
 export const LLM_RATE = 100
 
 /** A circuit breaker opens when this share of a Link's calls fail, and stays open this many seconds. */
@@ -1437,27 +1506,25 @@ export const BREAKER_OPEN = 5
  * Milliseconds a bulkheaded Link lets one call run before it fails it and frees the caller's slot
  * (10 "Track: Reliability", "Bulkheads"). The bulkhead is a cap on how long one dependency may hold
  * a caller's capacity; at the design's load, one second stands for a fixed number of slots (Little's
- * law). Proposed: the design gives the mechanism and no cap.
+ * law).
  */
 export const BULKHEAD_MS = 1_000
-/** Extra calls a hedged Link sends for each call: the second copy that races the first (proposed, 05). */
+/** Extra calls a hedged Link sends for each call: the second copy that races the first. */
 export const HEDGE_LOAD = 0.1
 /**
  * Reference CPU ms one backend call costs its caller to serialise, before Binary RPC halves it
- * (10 "Track: Performance": "Inter-service serialization CPU −50%"). Proposed: the build had no
- * serialization cost before the research, and the design gives none.
+ * (10 "Track: Performance": "Inter-service serialization CPU −50%").
  */
 export const SERIALIZE_MS = 0.02
 /**
  * Share of search answers that are stale because a dual write lost its publish, until a
  * Transactional outbox or a CDC Connector carries the change (07 "Keeping copies in sync").
- * Proposed: the design says the copies diverge and gives no rate, and the build starts it in
- * Series B, the Era the outbox is offered in, so the fix arrives with the problem.
+ *
  */
 export const DUAL_WRITE_STALE = 0.005
 /** Share of a report's scan CPU a materialized view saves (10 "Track: Performance": 50%). */
 export const MATERIALIZED_SCAN = 0.5
-/** Share of report answers a materialized view serves before its next refresh (proposed, 10). */
+/** Share of report answers a materialized view serves before its next refresh. */
 export const MATERIALIZED_STALE = 0.05
 /** Denormalization's CPU multipliers (10 "Track: Performance": read −30%, write +20%). */
 export const DENORMALIZED_READ = 0.7
@@ -1465,7 +1532,7 @@ export const DENORMALIZED_WRITE = 1.2
 /**
  * A chaos experiment (10 "Track: Reliability"): every CHAOS_EVERY sim seconds the weakest Node fails
  * CHAOS_FAILURE of its calls for CHAOS_SECONDS, and the experiment earns CHAOS_INSIGHT Failure
- * Insight a second. The design gives the mechanism and no numbers: all proposed.
+ * Insight a second. The design gives the mechanism and no numbers: all
  */
 export const CHAOS_EVERY = 120
 export const CHAOS_SECONDS = 10
@@ -1512,9 +1579,9 @@ export const MSGP_PRICE = 0.0001
  */
 export const WIDE_OPS = 30_000
 export const QUORUM_N = [1, 2, 3, 4, 5] as const
-/** Share of a weak-quorum store's reads that miss the latest write, per unit of write share. Proposed. */
+/** Share of a weak-quorum store's reads that miss the latest write, per unit of write share.  */
 export const WIDE_STALE = 0.5
-/** Overlap is not linearizability: checkouts on a quorum store still see these (07). Proposed. */
+/** Overlap is not linearizability: checkouts on a quorum store still see these (07).  */
 export const WIDE_TX_STALE = 0.02
 export const WIDE_TX_DUPLICATE = 0.01
 
@@ -1524,7 +1591,7 @@ export const DSQL_READ_COST = 0.25
 /** A spread store replicates to at most this many regions. */
 export const SPREAD_REGIONS = 3
 
-/** Backups (07 "Backups"): RPO in calendar minutes, and Burn on top of the Database's. Costs proposed. */
+/** Backups (07 "Backups"): RPO in calendar minutes, and Burn on top of the Database's. Costs  */
 export const BACKUPS = {
   none: { name: 'None', rpo: Number.POSITIVE_INFINITY, burn: 0 },
   nightly: { name: 'Nightly', rpo: 1_440, burn: 0.05 },

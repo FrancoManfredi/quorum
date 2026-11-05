@@ -118,7 +118,7 @@ Chaos engineering schedules pays for the 10 seconds it runs
 | 5    | `tracing`           | Seed     | The Dashboard's Services and Resources rows, and a waterfall of a request kind's path: `NodeLedger` gained `hopByKind` and `waitByKind`, so each hop and each Queue wait can be split by kind, and `Ledger.bottleneckByKind` names the busiest limiting Node on each kind's own path.        |
 | 6    | `slo-dashboards`    | Series A | The error budget panel and burn rate.                                                                                                                                                                                                                                                        |
 | 7    | `profiling`         | Series A | Its own Research now, at the breadth `tracing` carried: 4 Component types. The Dashboard's Resources row names the resource that limits each Node ([Runtimes](/design/06-runtimes#the-capacity-model)), and it is locked behind `profiling` rather than arriving with `tracing`.             |
-| 8    | `tail-sampling`     | Series B | Failure Insight doubles. The Dashboard keeps no trace, so there are no exemplar dots ([Charts by research](#charts-by-research)).                                                                                                                                                            |
+| 8    | `tail-sampling`     | Series B | Failure Insight doubles ([Charts by research](#charts-by-research)).                                                                                                                                                                                                                         |
 | 9    | `rum`               | Series C | A device split — desktop, mobile, and tablet — on the Users row, with each device's own mean latency including a stylized round trip. Its Study needs `page` and `feed` sampled in two regions, each through an Analytics tap on a Node there ([Research](/design/10-progression#research)). |
 | 10   | `anomaly-detection` | Series C | A shorter hold before the pager fires, so the warning lands while an incident is still ramping up, and a forecast line at tomorrow's predicted peak, projected from the known diurnal cycle. The cycle gives one line, not a range, so the forecast is a line.                               |
 
@@ -272,7 +272,7 @@ The Dashboard copies the methods that real teams use, so that what the player le
 | Template variables          | Drop-downs at the top, such as service, instance, or environment, that filter every panel.                                                                      | Service, Request kind, and Region.                                                                            |
 | Percentiles from histograms | Prometheus records latency in buckets and computes `histogram_quantile(0.99, ...)` at query time. Percentiles cannot be averaged across instances; buckets can. | p50, p95, and p99 lines. The mean stays on the Chart, so the player sees how much it hides.                   |
 | Burn rate                   | How fast an SLO spends its error budget. A burn rate of 1 spends exactly the whole budget in the SLO window.                                                    | The SLO row, with lines at 1× and at the 10× of the Budget burn alert.                                        |
-| Exemplars                   | Points on a metric graph that link to one trace of a real request.                                                                                              | Dots on latency Charts that open the trace waterfall, with `tracing`.                                         |
+| Exemplars                   | Points on a metric graph that link to one trace of a real request.                                                                                              | The Waterfall table of the selected Request kind, with `tracing`.                                             |
 | Downsampling and retention  | Thanos keeps raw samples, then 5-minute blocks after 40 hours and 1-hour blocks after 10 days. Each block stores min, max, sum, and count.                      | Three resolutions, each keeping min, max, sum, and count ([History and resolution](#history-and-resolution)). |
 | Cardinality                 | Every label combination is a new time series. Labels such as user ID make the storage bill explode.                                                             | Series are per Node, per Request kind, and per Region only, never per request or per User.                    |
 | Logs, traces, and profiles  | Grafana's stack adds Loki (logs), Tempo (traces), Pyroscope (profiles), and Faro (real user monitoring) next to Prometheus metrics.                             | The visibility ladder: `logs`, `tracing`, `profiling`, and `rum` each add their signal.                       |
@@ -326,8 +326,7 @@ Component, after `metrics`, and each Chart reads a number the Ledger already hol
 | CDN               | Hit ratio, beside the Design's Egress                                                   |
 | Managed Component | Calls, latency and outage state                                                         |
 
-The Ledger holds no per-Component cost, no Cache evictions, no Database buffer cache hit ratio and no
-per-CDN Egress, so the rows carry none of them.
+Each row carries the figures its table gives: the Ledger's per-Node numbers for that Component.
 
 ### Annotations
 
