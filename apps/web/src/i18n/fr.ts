@@ -392,6 +392,19 @@ export const fr: Readonly<Record<string, string>> = {
   'Expand volume': 'Agrandir le volume',
   'A flood of junk traffic.': 'Un flot de trafic indésirable.',
   'Under attack': 'Sous attaque',
+  'API Gateway': 'Passerelle API',
+  'API gateway': 'Passerelle API',
+  'Rate-limits and routes API calls. Past its rate limit, requests fail as throttled, and it bills per request.':
+    'Limite le débit et achemine les appels API. Au-delà de sa limite, les requêtes échouent en throttled, et chaque requête est facturée.',
+  'Unlocks the API Gateway: one front door that rate-limits every API call.':
+    "Débloque la Passerelle API : une porte d'entrée unique qui limite le débit de chaque appel API.",
+  'Rate limit': 'Limite de débit',
+  'Rate limit {0}/s': 'Limite {0}/s',
+  'Rate limit off': 'Limite désactivée',
+  'No limit: every request goes on to the services.':
+    'Aucune limite : chaque requête passe aux services.',
+  'Past {0} requests a second, they fail as throttled.':
+    'Au-delà de {0} requêtes par seconde, elles échouent en throttled.',
   'A new query has no index. Every read scans the table.':
     "Une nouvelle requête n'a pas d'index. Chaque lecture analyse la table.",
   'A new query has no index. Research Query analysis to find it.':

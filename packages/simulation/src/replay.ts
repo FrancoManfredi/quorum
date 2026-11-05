@@ -165,6 +165,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['fanout'], (game, id, node) => Actions.setFanout(game, id, node.fanout)],
   [['split'], (game, id, node) => Actions.setSplit(game, id, node.split)],
   [['pricing'], (game, id, node) => Actions.setPricing(game, id, node.pricing)],
+  [['rateLimit'], (game, id, node) => Actions.setRateLimit(game, id, node.rateLimit)],
 ]
 
 const nodeIn = (game: Game, id: string): GameNode | undefined =>

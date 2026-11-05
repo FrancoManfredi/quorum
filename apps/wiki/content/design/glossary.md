@@ -1020,7 +1020,7 @@ A consensus algorithm that keeps a replicated log identical on a group of server
 
 Capping how many requests a client can make in a period and rejecting the rest, often with HTTP 429 Too Many Requests. It protects a service from abuse, scrapers, and one noisy client, and lets a provider share capacity fairly. Common algorithms are the token bucket, the leaky bucket, and fixed or sliding windows.
 
-**In the game:** You meet rate limiting from the client side: the LLM API takes 100 prompts per second per usage tier, and past that, prompts fail at once as throttled. The game has no rate limiter you can put in front of your own App Servers. To stop abusive traffic, a WAF blocks bots by rule instead: 80% of bots at paranoia 2, with 0.5% of real users blocked too.
+**In the game:** The LLM API rate-limits you from the client side: it takes 100 prompts per second per usage tier, and past that, prompts fail at once as throttled. The API Gateway turns the same limit on your own services: pick a cap in requests per second and requests past it fail as throttled, one cap for the whole Node rather than a bucket per user or API key. To stop abusive traffic, a WAF blocks bots by rule instead: 80% of bots at paranoia 2, with 0.5% of real users blocked too.
 
 **Design:** [API Gateway](/design/05-components#api-gateway).
 

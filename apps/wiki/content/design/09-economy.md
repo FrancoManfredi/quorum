@@ -52,16 +52,16 @@ This keeps the Garage Era active and then removes the click before it becomes a 
 income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
 beside them. The table is the bill the build charges:
 
-| Line          | Formula                                                                                               |
-| ------------- | ----------------------------------------------------------------------------------------------------- |
-| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family     |
-| Managed data  | Σ data Nodes at their size price                                                                      |
-| Storage       | Object storage: GB stored × price ([Data tier](/design/07-data-tier#data-volume))                     |
-| Egress        | GB out × egress price ([Egress](#egress))                                                             |
-| Requests      | **Not built yet:** no per-request prices for API Gateway, Serverless Functions, SQS or Object Storage |
-| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                       |
-| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))       |
-| Salaries      | Σ engineers × salary × language factor                                                                |
+| Line          | Formula                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------- |
+| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family       |
+| Managed data  | Σ data Nodes at their size price                                                                        |
+| Storage       | Object storage: GB stored × price ([Data tier](/design/07-data-tier#data-volume))                       |
+| Egress        | GB out × egress price ([Egress](#egress))                                                               |
+| Requests      | API Gateway requests × $0.002 × cost index. Not built yet: Serverless Functions, SQS and Object Storage |
+| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                         |
+| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))         |
+| Salaries      | Σ engineers × salary × language factor                                                                  |
 
 Real teams are often surprised by the egress, observability, and third-party lines. The game
 surfaces them on purpose.
@@ -145,7 +145,7 @@ or R2 serves it. A player who ignores egress sees revenue rise and margin fall.
 | Auth Provider    | $0.00006/s per user, $0.0864 per calendar day, not indexed |
 | LLM API          | $2.50 per 1,000 tokens                                     |
 | Push and email   | $0.0001 per message                                        |
-| API Gateway      | **Not built yet:** no per-request price                    |
+| API Gateway      | $0.002 per request, on the Requests line                   |
 
 ## Funding
 

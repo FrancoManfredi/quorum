@@ -21,6 +21,8 @@ export type BurnLines = Readonly<{
   egress: number
   /** Payment Provider fees, scans, tokens, and push messages. */
   thirdParty: number
+  /** API Gateway requests, priced per request served. */
+  requests: number
   /** Analytics sampling and retention. */
   observability: number
   /** Payroll. */

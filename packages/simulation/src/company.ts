@@ -67,6 +67,7 @@ export const node = (
   warming: false,
   paranoia: 2,
   underAttack: false,
+  rateLimit: 0,
   zone: 'a',
   standby: false,
   pricing: 'on-demand',

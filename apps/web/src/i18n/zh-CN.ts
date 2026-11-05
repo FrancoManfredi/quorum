@@ -560,6 +560,18 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Expand volume': '扩容磁盘',
   'A flood of junk traffic.': '大量垃圾流量涌入。',
   'Under attack': '遭受攻击',
+  'API Gateway': 'API 网关',
+  'API gateway': 'API 网关',
+  'Rate-limits and routes API calls. Past its rate limit, requests fail as throttled, and it bills per request.':
+    '为 API 调用限流并转发。超过速率限制后，请求以 throttled 失败，并按请求计费。',
+  'Unlocks the API Gateway: one front door that rate-limits every API call.':
+    '解锁 API 网关：一个为所有 API 调用限流的总入口。',
+  'Rate limit': '速率限制',
+  'Rate limit {0}/s': '限制 {0}/s',
+  'Rate limit off': '限流已关闭',
+  'No limit: every request goes on to the services.': '无限制：每个请求都会发往服务。',
+  'Past {0} requests a second, they fail as throttled.':
+    '超过每秒 {0} 个请求后，它们以 throttled 失败。',
   'A new query has no index. Every read scans the table.':
     '新查询缺少索引，每次读取都会扫描整张表。',
   'A new query has no index. Research Query analysis to find it.':

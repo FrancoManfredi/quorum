@@ -12,6 +12,7 @@ import {
   CALLOUT_MS,
   EGRESS_CROSS_REGION,
   MSGP_PRICE,
+  GATEWAY_PRICE,
   LAG_SURGE,
   LLM_PRICE,
   SCAN_PRICE,
@@ -95,6 +96,7 @@ import {
   accepts,
   cdnHitOf,
   flatCapacity,
+  gatewayShare,
   taskMixOf,
   type Model,
   type Pass,
@@ -1506,6 +1508,16 @@ const ledgerOf = (
   }
   const thirdParty = usage > 0 ? fees + usage * eraOf(game).costIndex : fees
 
+  // An API Gateway bills each request it serves (09 "The cloud bill": Requests), × cost index.
+  let requests = 0
+  for (const node of game.nodes) {
+    if (node.type !== 'gw' || isDown(node)) continue
+    const done = (nodes[node.id]?.inbound ?? 0) - (nodes[node.id]?.dropped ?? 0)
+    if (done <= 0) continue
+    const arriving = pass.arriving[slotOf(pass, node)] ?? {}
+    requests += done * gatewayShare(node, arriving) * GATEWAY_PRICE * eraOf(game).costIndex
+  }
+
   const subscriptions = subscriptionsOf(game)
   const salaries = payrollOf(game)
   const shares = burnSharesOf(game)
@@ -1539,8 +1551,12 @@ const ledgerOf = (
         ? game.nodes.reduce((total, node) => total + burnOf(game, node), 0) +
           salaries +
           egress +
-          thirdParty
-        : game.nodes.reduce((total, node) => total + burnOf(game, node), 0) + salaries + egress,
+          thirdParty +
+          requests
+        : game.nodes.reduce((total, node) => total + burnOf(game, node), 0) +
+          salaries +
+          egress +
+          requests,
     salaries,
     egress,
     fees: thirdParty,
@@ -1550,6 +1566,7 @@ const ledgerOf = (
       storage: shares.storage,
       egress,
       thirdParty,
+      requests,
       observability: shares.observability,
       salaries,
     },

@@ -314,6 +314,20 @@ export const wafOf = (node: GameNode) => {
     : level
 }
 
+/* ---------- the API Gateway ---------- */
+
+/** Requests per second a Gateway lets through: its rate limit, or every request when it is 0. */
+export const gatewayLimitOf = (node: GameNode): number =>
+  node.rateLimit > 0 ? node.rateLimit : Number.POSITIVE_INFINITY
+
+/** Share of its arrivals a Gateway's rate limit lets through; the rest fails as throttled. */
+export const gatewayShare = (node: GameNode, arriving: Rates): number => {
+  let total = 0
+  for (const kind of Object.keys(arriving) as Array<Kind>) total += arriving[kind] ?? 0
+  const limit = gatewayLimitOf(node)
+  return total > 0 && limit < total ? limit / total : 1
+}
+
 /* ---------- the table ---------- */
 
 const terminal: Pick<ComponentRule, 'serve' | 'connections' | 'probe'> = {
@@ -685,6 +699,22 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         relay(answer, node, kind),
         kind === 'bot' ? wafOf(node).block : wafOf(node).falsePositive,
         'blocked',
+      ),
+    connections: noConnections,
+    probe: noProbe,
+  },
+  // A Gateway relays every kind, and past its rate limit it answers throttled instead (05).
+  gw: {
+    model: flat({ fixed: 6, variable: 0.1 }),
+    serve: (serve, node, rates, share) => {
+      const kept = gatewayShare(node, rates)
+      each(rates, share, (kind, processed) => serve.route(kind, processed * kept))
+    },
+    outcome: (answer, node, kind) =>
+      failSome(
+        relay(answer, node, kind),
+        1 - gatewayShare(node, answer.pass.arriving[slotOf(answer.pass, node)] ?? {}),
+        'throttled',
       ),
     connections: noConnections,
     probe: noProbe,

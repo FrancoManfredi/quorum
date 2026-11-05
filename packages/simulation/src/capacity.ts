@@ -700,6 +700,7 @@ export const FLAT_CAPACITY: Readonly<Record<string, number>> = {
   search: 400,
   queue: 20_000,
   waf: 5_000,
+  gw: 10_000,
 }
 
 export const flatModel = (

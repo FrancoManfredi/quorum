@@ -162,11 +162,12 @@ export const hopMs = (game: Game): number => HOP_MS + (has(game, 'keepalive') ? 
 export const zoned = (node: GameNode): boolean =>
   COMPONENTS[node.type].limiting &&
   !COMPONENTS[node.type].fixed &&
-  // A provider's, and the regional Load Balancer's and WAF's, span every zone.
+  // A provider's, and the regional Load Balancer's, WAF's and API Gateway's, span every zone.
   node.type !== 'psp' &&
   node.type !== 'llm' &&
   node.type !== 'lb' &&
   node.type !== 'waf' &&
+  node.type !== 'gw' &&
   // A store spread across regions keeps replicas in every zone too.
   !((node.type === 'wide' || node.type === 'dsql') && node.spread)
 

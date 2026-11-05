@@ -20,6 +20,7 @@ const LINES: ReadonlyArray<Line> = [
   { key: 'storage', label: 'Storage', note: 'GB stored, priced per GB per second' },
   { key: 'egress', label: 'Egress', note: 'Bytes out from the origin and the CDN' },
   { key: 'thirdParty', label: 'Third parties', note: 'Payment fees, scans, tokens, and messages' },
+  { key: 'requests', label: 'Requests', note: 'API Gateway requests, priced per request' },
   { key: 'observability', label: 'Observability', note: 'Analytics sampling and retention' },
   { key: 'salaries', label: 'Salaries', note: 'Engineers, by language and policy' },
 ]
@@ -99,7 +100,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.p(
         [h.Class('px-5 pb-4 text-[12.5px] leading-snug text-muted-foreground')],
         [
-          'The bill follows the Era’s cost index, so it rises with the Company. A per-request line arrives with per-request pricing; no Component charges per request yet.',
+          'The bill follows the Era’s cost index, so it rises with the Company. An API Gateway is billed per request; the Requests line is what it serves.',
         ],
       ),
     ],

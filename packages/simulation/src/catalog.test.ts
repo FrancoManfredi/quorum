@@ -74,6 +74,7 @@ const GDD_IDS: ReadonlyArray<string> = [
   'queues',
   'cdn',
   'waf',
+  'api-gateway',
   'stampede-protection',
   'full-text-search',
   'object-storage',

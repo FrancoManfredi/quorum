@@ -3379,6 +3379,14 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    RateLimitChosen: ({ nodeId, rateLimit }) =>
+      act(
+        model,
+        rateLimit > 0 ? `Rate limit ${rateLimit}/s` : 'Rate limit off',
+        Actions.setRateLimit(model.board.game, nodeId, rateLimit),
+        { undoable: true },
+      ),
+
     ZoneChosen: ({ nodeId, zone }) =>
       act(
         model,

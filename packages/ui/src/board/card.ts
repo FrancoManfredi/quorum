@@ -359,6 +359,18 @@ export const rowsOf = (
         },
         out,
       ]
+    case 'gw':
+      return [
+        inbound,
+        capacity,
+        {
+          glyph: 'policy',
+          name: 'Rate limit',
+          value: node.rateLimit > 0 ? `${rate(node.rateLimit)}/s` : 'Off',
+          tone: node.rateLimit > 0 && own.inbound > node.rateLimit ? 'warn' : 'plain',
+        },
+        out,
+      ]
     case 'psp':
       return [
         { ...inbound, name: 'Checkouts' },

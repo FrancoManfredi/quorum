@@ -318,6 +318,7 @@ describe('achievements', () => {
           storage: 0,
           egress,
           thirdParty: 0,
+          requests: 0,
           observability: 0,
           salaries,
         },

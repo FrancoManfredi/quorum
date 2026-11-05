@@ -44,6 +44,7 @@ export const RESEARCH_IDS = [
   'object-storage',
   'cdn',
   'waf',
+  'api-gateway',
   'background-jobs',
   'queues',
   'stampede-protection',
@@ -510,6 +511,15 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     era: 2,
     requires: [],
     blurb: 'Unlocks the WAF: blocks bots, and some real users with them.',
+  }),
+  research({
+    id: 'api-gateway',
+    name: 'API gateway',
+    track: 'infrastructure',
+    cost: 2_000,
+    era: 3,
+    requires: ['load-balancing'],
+    blurb: 'Unlocks the API Gateway: one front door that rate-limits every API call.',
   }),
   research({
     id: 'background-jobs',

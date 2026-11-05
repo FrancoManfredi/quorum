@@ -206,3 +206,32 @@ test('choosing a pricing model reserves the Node for a calendar week, and undoes
   const undone = update(after, Message.UndoChosen()).model
   expect(undone.board.game.nodes.find((node) => node.id === 'server')?.pricing).toBe('on-demand')
 })
+
+/** A board with an API Gateway in front of the App Server, selected, capped at 500 a second. */
+const gatewayBoard = (): Model => {
+  const start = initialModel()
+  const base = preseedGame(7)
+  const game: Game = {
+    ...base,
+    researched: [...base.researched, 'api-gateway'],
+    nodes: [...base.nodes, node('n9', 'gw', 240, 280, { rateLimit: 500 })],
+    links: [
+      ...base.links.filter((entry) => entry.from !== 'users'),
+      link('users', 'n9'),
+      link('n9', 'server'),
+    ],
+  }
+  return { ...start, board: { ...start.board, game, selected: 'n9' } }
+}
+
+test('an API Gateway shows its rate limit, and choosing a limit sets it', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(gatewayBoard()),
+    Scene.expect(Scene.text('Rate limit')).toExist(),
+    Scene.expect(Scene.text('500/s')).toExist(),
+  )
+  const before = gatewayBoard()
+  const after = update(before, Message.RateLimitChosen({ nodeId: 'n9', rateLimit: 1_000 })).model
+  expect(after.board.game.nodes.find((node) => node.id === 'n9')?.rateLimit).toBe(1_000)
+})

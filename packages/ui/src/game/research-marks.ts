@@ -123,6 +123,7 @@ export const LOOKS: Record<ResearchId, Look> = {
   'object-storage': { component: 'storage' },
   cdn: { component: 'cdn' },
   waf: { component: 'waf' },
+  'api-gateway': { component: 'gw' },
   'background-jobs': { component: 'worker' },
   queues: { component: 'queue' },
   'stampede-protection': { group: 'data', glyph: Flame, hue: 25 },

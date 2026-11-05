@@ -27,6 +27,7 @@ import {
   FAMILY_IDS,
   FRAMEWORKS,
   FRAMEWORK_IDS,
+  GATEWAY_LIMITS,
   KINDS,
   LB_POLICIES,
   MAX_ATTEMPTS,
@@ -1737,6 +1738,30 @@ const waf = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
+/** An API Gateway's rate limit, in requests per second; Off lets every request through. */
+const gateway = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+  section(
+    'Rate limit',
+    [
+      picker(
+        'rate-limit',
+        GATEWAY_LIMITS.map(
+          (limit) => [limit, limit === 0 ? 'Off' : `${compact(limit)}/s`] as const,
+        ),
+        node.rateLimit,
+        (rateLimit) => Message.RateLimitChosen({ nodeId: node.id, rateLimit }),
+        h,
+      ),
+      caption(
+        node.rateLimit > 0
+          ? `Past ${compact(node.rateLimit)} requests a second, they fail as throttled.`
+          : 'No limit: every request goes on to the services.',
+        h,
+      ),
+    ],
+    h,
+  )
+
 const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'TTL',
@@ -2269,6 +2294,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'queue' ? queue(node, h) : []),
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
+          ...(node.type === 'gw' ? [gateway(node, h)] : []),
           ...(node.type === 'cdn' ? [cdnTtl(node, h)] : []),
           ...(node.type === 'pooler' ? [pooler(node, h)] : []),
           ...(node.type === 'autoscaler' ? [autoscaler(node, h)] : []),

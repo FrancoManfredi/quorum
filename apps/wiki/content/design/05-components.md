@@ -38,7 +38,7 @@ Compute, Data, and Ops — and this document keeps the seven as a reading order.
 | Edge          | [Load Balancer](#load-balancer)                                       | `lb`   | Load balancing           | Garage   |
 | Edge          | [CDN](#cdn)                                                           | `cdn`  | Content delivery         | Seed     |
 | Edge          | [WAF](#waf)                                                           | `waf`  | Web application firewall | Seed     |
-| Edge          | [API Gateway](#api-gateway) — Not built yet                           | `gw`   | API gateway              | Series A |
+| Edge          | [API Gateway](#api-gateway)                                           | `gw`   | API gateway              | Series A |
 | Compute       | [App Server](#app-server)                                             | `app`  | Starter                  | Garage   |
 | Compute       | [Worker](#worker)                                                     | `wrk`  | Background jobs          | Seed     |
 | Compute       | [Serverless Function](#serverless-function) — Not built yet           | `fn`   | Serverless               | Series A |
@@ -218,19 +218,26 @@ Node, which takes the edge down ([Incidents](/design/11-incidents#catalog)).
 
 ### API Gateway
 
-Not built yet: the API Gateway; there is no `gw` Component in the catalog.
-
 Real products: Kong, AWS API Gateway, Apigee.
 
-Routes requests to services by path, checks authentication, and applies rate limits.
+Routes requests to services by path, checks authentication, and applies rate limits. It takes every
+request kind and sends on what it lets through, adding its own hop. The build models one front door,
+not a route table: every kind goes on the same Links.
 
-| Option             | Effect                                                                                                                                                      |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rate limit         | A token bucket per user or per API key. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients. |
-| Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms.                                                                                                      |
-| Request coalescing | Merges identical in-flight reads. Lowers load during spikes.                                                                                                |
+| Option                             | Effect                                                                                                                                            |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rate limit                         | A cap in requests per second. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients. |
+| Auth at the edge (Not built yet)   | Validates tokens once, so services skip it. Adds 2 ms.                                                                                            |
+| Request coalescing (Not built yet) | Merges identical in-flight reads. Lowers load during spikes.                                                                                      |
 
-Cost is per request, so the gateway is cheap at low volume and expensive at high volume.
+The cap is one limit for the whole Node: the game counts requests per second at the gateway, not
+per user or per API key, and a limit of 0 lets everything through. A token bucket with burst
+capacity per client is still to come with `rate-limiting`
+([Progression](/design/10-progression#track-infrastructure)). Past the gateway's own 10,000
+requests per second it drops requests like any other flat-capacity Component.
+
+Cost is per request, so the gateway is cheap at low volume and expensive at high volume. It is the
+one per-request line on the cloud bill ([Economy](/design/09-economy#the-cloud-bill)).
 
 ## Compute
 

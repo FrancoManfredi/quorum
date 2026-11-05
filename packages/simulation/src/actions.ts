@@ -17,6 +17,7 @@ import {
   ERAS,
   FIRST_INCIDENT_AFTER,
   FRAMEWORKS,
+  GATEWAY_LIMITS,
   KINDS,
   LANGUAGES,
   LB_POLICIES,
@@ -205,6 +206,7 @@ export const blankNode = (
     warming: false,
     paranoia: 2,
     underAttack: false,
+    rateLimit: 0,
     zone: 'a',
     standby: false,
     pricing: 'on-demand',
@@ -645,6 +647,15 @@ export const setUnderAttack = (game: Game, id: string, underAttack: boolean): Ac
       ? ok(node.underAttack === underAttack ? game : patch(game, id, { underAttack }))
       : notAllowed('Only a WAF has Under attack mode.'),
   )
+
+/** Sets an API Gateway's rate limit in requests per second; 0 turns it off. */
+export const setRateLimit = (game: Game, id: string, rateLimit: number): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'gw') return notAllowed('Only an API Gateway rate-limits.')
+    if (!(GATEWAY_LIMITS as ReadonlyArray<number>).includes(rateLimit))
+      return notAllowed(`Rate limits are ${GATEWAY_LIMITS.join(', ')} requests per second.`)
+    return ok(node.rateLimit === rateLimit ? game : patch(game, id, { rateLimit }))
+  })
 
 /** Moves a Node to another zone. Needs Multiple zones; a sized Node restarts there. */
 export const setZone = (game: Game, id: string, zone: Zone): Action =>

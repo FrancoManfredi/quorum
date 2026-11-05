@@ -354,9 +354,9 @@ range.
 | `edge-compute`        | Edge compute              | Series C | 80,000  | `cdn`             | Edge Function                                                                                 |
 | `notifications`       | Notifications             | Series C | 40,000  | —                 | Push Provider                                                                                 |
 
-**Built: 21 of 34.** Not built yet: `l4-lb`, `serverless`, `websockets`, `api-gateway`,
-`rate-limiting`, `esi`, `bot-management`, `scheduled-scaling`, `service-mesh`, `arm-instances`,
-`quantization`, `continuous-batching`, `edge-compute`.
+**Built: 22 of 34.** Not built yet: `l4-lb`, `serverless`, `websockets`, `rate-limiting`, `esi`,
+`bot-management`, `scheduled-scaling`, `service-mesh`, `arm-instances`, `quantization`,
+`continuous-batching`, `edge-compute`.
 
 ### Track: Data
 

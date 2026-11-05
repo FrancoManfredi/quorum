@@ -65,6 +65,7 @@ export const NODE_SETTINGS = [
   'coalesce',
   'warming',
   'paranoia',
+  'rateLimit',
   'standby',
   'signal',
   'target',

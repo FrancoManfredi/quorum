@@ -9,6 +9,7 @@ import {
   setLinkKinds,
   setLinkPolicy,
   setPolicy,
+  setRateLimit,
   setTtl,
   setRuntime,
   setWorkers,
@@ -16,10 +17,10 @@ import {
 } from './actions.ts'
 import { newGame, preseedGame } from './company.ts'
 import { serverModel } from './capacity.ts'
-import { BACKEND_KINDS, REQUEST_KINDS, type Kind } from './catalog.ts'
+import { BACKEND_KINDS, GATEWAY_PRICE, REQUEST_KINDS, type Kind } from './catalog.ts'
 import { RUNNING, stopped, warmOf } from './life.ts'
 import type { Ledger } from './ledger.ts'
-import { restarted } from './lookups.ts'
+import { restarted, eraOf } from './lookups.ts'
 import { hitRatioOf } from './rules.ts'
 import { cosTurns, diurnal, solve, weekly } from './solve.ts'
 import type { Game, GameNode } from './state.ts'
@@ -692,5 +693,73 @@ describe('the cloud bill by line', () => {
     // placed, the line is zero however much is stored.
     expect(full.burnLines.storage).toBe(0)
     expect(full.burn).toBeCloseTo(solve({ ...game, stored: 0 }).burn, 6)
+  })
+})
+
+describe('the API Gateway', () => {
+  /** Pre-seed Users, an App Server and its Database, with a Gateway in front and the given limit. */
+  const gateway = (rateLimit: number): Game => {
+    const placed = ok(place(preseed(1_000, ['api-gateway']), 'gw', 240, 280))
+    const id = last(placed)
+    const target = placed.links.find((link) => link.from === 'users')?.to ?? ''
+    const rewired = ok(connect(disconnect(placed, 'users', target), 'users', id))
+    return tune(ok(connect(rewired, id, target)), id, { rateLimit })
+  }
+
+  test('under its limit, it passes traffic on unchanged', () => {
+    const game = gateway(100)
+    const ledger = solve(game)
+    const id = game.nodes.find((node) => node.type === 'gw')?.id ?? ''
+    expect(ledger.errors.throttled).toBe(0)
+    expect(ledger.nodes[id]?.inbound ?? 0).toBeCloseTo(ledger.demand, 6)
+    expect(ledger.links.find((link) => link.from === id)?.rate ?? 0).toBeCloseTo(ledger.demand, 6)
+    expect(ledger.demand).toBeLessThan(100)
+  })
+
+  test('past its limit, the rest fail as throttled and never reach the App Server', () => {
+    const game = gateway(5)
+    const ledger = solve(game)
+    const id = game.nodes.find((node) => node.type === 'gw')?.id ?? ''
+    expect(ledger.errors.throttled).toBeCloseTo(ledger.demand - 5, 4)
+    // Nothing is dropped for capacity: the limit, not the flat capacity, is what stops them.
+    expect(ledger.nodes[id]?.dropped).toBe(0)
+    expect(ledger.nodes.server?.inbound ?? 0).toBeLessThanOrEqual(5.0001)
+  })
+
+  test('it bills each request it serves on the Requests line', () => {
+    const index = eraOf(preseed(1_000)).costIndex
+    const open = solve(gateway(0))
+    expect(open.burnLines.requests).toBeCloseTo(open.demand * GATEWAY_PRICE * index, 6)
+    // Throttled requests reach no service, so they are not billed either.
+    const limited = solve(gateway(5))
+    expect(limited.burnLines.requests).toBeCloseTo(5 * GATEWAY_PRICE * index, 5)
+    // The line is in Burn exactly once, in its place in the bill.
+    const lines = limited.burnLines
+    expect(
+      lines.compute +
+        lines.data +
+        lines.storage +
+        lines.egress +
+        lines.thirdParty +
+        lines.requests +
+        lines.observability +
+        lines.salaries,
+    ).toBeCloseTo(limited.burn, 6)
+  })
+
+  test('its limit is a setting only a Gateway takes', () => {
+    const game = gateway(0)
+    const id = game.nodes.find((node) => node.type === 'gw')?.id ?? ''
+    expect(ok(setRateLimit(game, id, 500)).nodes.find((node) => node.id === id)?.rateLimit).toBe(
+      500,
+    )
+    expect(Result.isFailure(setRateLimit(game, 'server', 500))).toBe(true)
+    expect(Result.isFailure(setRateLimit(game, id, 123))).toBe(true)
+  })
+
+  test('it is placeable only with its research', () => {
+    expect(Result.isFailure(place(preseed(1_000), 'gw', 240, 280))).toBe(true)
+    const placed = ok(place(preseed(1_000, ['api-gateway']), 'gw', 240, 280))
+    expect(placed.nodes.some((node) => node.type === 'gw')).toBe(true)
   })
 })

@@ -222,6 +222,7 @@ export const Message = defineMessageUnion({
   PrefetchChosen: { nodeId: Schema.String, prefetch: Schema.Finite },
   ParanoiaChosen: { nodeId: Schema.String, paranoia: Schema.Finite },
   UnderAttackChosen: { nodeId: Schema.String, underAttack: Schema.Boolean },
+  RateLimitChosen: { nodeId: Schema.String, rateLimit: Schema.Finite },
   ZoneChosen: { nodeId: Schema.String, zone: Zone },
   StandbyChosen: { nodeId: Schema.String, standby: Schema.Boolean },
   AutoscalerChosen: {

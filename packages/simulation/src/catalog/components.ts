@@ -21,6 +21,7 @@ export const COMPONENT_IDS = [
   'worker',
   'cdn',
   'waf',
+  'gw',
   'psp',
   'autoscaler',
   'cluster',
@@ -407,6 +408,21 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     steps: 6,
     limiting: true,
   }),
+  gw: def({
+    id: 'gw',
+    code: 'gw',
+    name: 'API Gateway',
+    product: 'Kong',
+    group: 'edge',
+    blurb:
+      'Rate-limits and routes API calls. Past its rate limit, requests fail as throttled, and it bills per request.',
+    cost: 300,
+    latency: 6,
+    accepts: REQUEST_KINDS,
+    sends: REQUEST_KINDS,
+    unlock: 'api-gateway',
+    limiting: true,
+  }),
   psp: def({
     id: 'psp',
     code: 'psp',
@@ -650,6 +666,14 @@ export const PSP_RATE = 0.029
 export const PSP_FIXED = 0.3
 /** Checkouts per second the Payment Provider takes at its first usage tier; each tier doubles it. */
 export const PSP_CAPACITY = 1_000
+
+/**
+ * API Gateway (05 "API Gateway"): dollars per request served, × cost index. It is the only
+ * Component that bills per request, so its Burn is on the Cost panel's Requests line.
+ */
+export const GATEWAY_PRICE = 0.002
+/** Rate limits a Gateway offers, in requests per second; 0 is no limit at all. */
+export const GATEWAY_LIMITS = [0, 100, 500, 1_000, 2_500, 5_000] as const
 
 /** Zones a Node can sit in (05 "Zones and regions"). */
 export const ZONES = ['a', 'b', 'c'] as const
