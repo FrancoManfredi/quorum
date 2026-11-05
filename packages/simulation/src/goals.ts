@@ -1,8 +1,8 @@
 import { canRaise } from './actions.ts'
 import type { Limit } from './capacity.ts'
-import { COMPONENTS, KINDS, RUNTIMES, researchList, type RequestKind } from './catalog.ts'
+import { COMPONENTS, KINDS, RUNTIMES, type RequestKind } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
-import { drawerSize, eraOf, has, nextEra, researchReady } from './lookups.ts'
+import { drawerSize, eraOf, has, nextEra, researchAffordable } from './lookups.ts'
 import type { Game, GameNode } from './state.ts'
 
 /* ==========================================================================
@@ -326,8 +326,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
         { id: 'decline', label: 'Decline' },
       ],
     )
-  const ready = researchList.some((entry) => !has(game, entry.id) && researchReady(game, entry.id))
-  if (ready && game.studies.length === 0 && game.researched.length < 3)
+  if (researchAffordable(game) && game.studies.length === 0 && game.researched.length < 3)
     return advice(
       'mentor:research',
       'mentor',

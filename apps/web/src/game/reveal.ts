@@ -1,4 +1,4 @@
-import { BUILD_GROUPS, COMPONENTS, RESEARCH, researchList } from '@quorum/simulation/catalog'
+import { BUILD_GROUPS, COMPONENTS, RESEARCH } from '@quorum/simulation/catalog'
 import type { BuildGroup, ComponentId } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import {
@@ -6,9 +6,9 @@ import {
   drawerSize,
   has,
   isUnlocked,
+  researchAffordable,
   researchReady,
   resizePrice,
-  insightTotal,
 } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
 import type { Message } from './message.ts'
@@ -39,13 +39,6 @@ export const glowing = (model: Model, key: Reveal): boolean =>
 export const playbooksShown = (model: Model): boolean =>
   !offCompany(model) && model.founder.history.length > 0
 
-const cheapestResearch = (game: Game): number =>
-  Math.min(
-    ...researchList
-      .filter((entry) => !has(game, entry.id) && researchReady(game, entry.id))
-      .map((entry) => entry.cost),
-  )
-
 /** The Node whose footer the resize cue points at: the bottleneck, when it can grow. */
 const resizable = (game: Game, bottleneck: string | null): string | null => {
   const node = game.nodes.find((entry) => entry.id === bottleneck)
@@ -67,7 +60,7 @@ const triggered = (key: Reveal, model: Model, ledger: Ledger): boolean => {
     case 'resize':
       return resizable(game, ledger.bottleneck) !== null
     case 'research':
-      return insightTotal(game.pools) >= cheapestResearch(game)
+      return researchAffordable(game)
     case 'errors':
       return ledger.errorShare > 0.001
     case 'team':

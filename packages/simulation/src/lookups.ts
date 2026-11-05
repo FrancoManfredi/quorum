@@ -12,6 +12,7 @@ import {
   FRAMEWORKS,
   FRAMEWORK_RESEARCH,
   RESEARCH,
+  researchList,
   RUNTIMES,
   SAMPLE_RATES,
   RETENTION_STORAGE,
@@ -85,6 +86,15 @@ export const isUnlocked = (game: Game, type: ComponentId): boolean => {
 
 export const researchReady = (game: Game, id: ResearchId): boolean =>
   RESEARCH[id].era <= game.stage && RESEARCH[id].requires.every((needed) => has(game, needed))
+
+/** Insight covers the cheapest Research item the player can study now: Research is worth opening. */
+export const researchAffordable = (game: Game): boolean =>
+  insightTotal(game.pools) >=
+  Math.min(
+    ...researchList
+      .filter((entry) => !has(game, entry.id) && researchReady(game, entry.id))
+      .map((entry) => entry.cost),
+  )
 
 export const runtimeReady = (game: Game, runtime: RuntimeId): boolean => {
   const needed = RUNTIMES[runtime].research
