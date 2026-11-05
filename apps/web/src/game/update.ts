@@ -102,6 +102,7 @@ import {
   SHARED,
   decodePlaybook,
   encodePlaybook,
+  duplicate,
   ghostReason,
   placePlaybook,
 } from '@quorum/simulation/playbook'
@@ -2854,7 +2855,7 @@ const handle = (model: Model, message: Message): Result =>
         w: Math.max(...playbook.nodes.map((node) => node.dx)) + CARD_W,
         h: Math.max(...playbook.nodes.map((node) => node.dy + heightOf(node.type))),
       })
-      const placed = placePlaybook(model.board.game, playbook, spot.x, spot.y, model.board.region)
+      const placed = duplicate(model.board.game, playbook, spot.x, spot.y, model.board.region)
       return act(
         model,
         `Duplicated ${countNodes(playbook.nodes.length)}`,

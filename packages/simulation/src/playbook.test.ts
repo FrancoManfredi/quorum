@@ -1,7 +1,8 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
+import { place } from './actions.ts'
 import { preseedGame } from './company.ts'
-import { capture, decodePlaybook, encodePlaybook, placePlaybook } from './playbook.ts'
+import { capture, decodePlaybook, duplicate, encodePlaybook, placePlaybook } from './playbook.ts'
 import type { Game } from './state.ts'
 
 /* Playbooks (13): capture a Design, place it in another Company, share it as text. */
@@ -64,5 +65,56 @@ describe('Playbooks', () => {
     expect(Result.getOrThrow(decodePlaybook(text))).toEqual(playbook)
     expect(Result.isFailure(decodePlaybook('QPB1:!!!'))).toBe(true)
     expect(Result.isFailure(decodePlaybook('hello'))).toBe(true)
+  })
+})
+
+describe('Duplicate', () => {
+  // Users → Load Balancer → App Server → Database, with a 12 s Database timeout.
+  const balanced = (): Game => {
+    const built = Result.getOrThrow(
+      place(
+        { ...source, cash: 100_000, researched: [...source.researched, 'load-balancing'] },
+        'lb',
+        200,
+        280,
+      ),
+    )
+    const lb = built.nodes.at(-1)!.id
+    const link = built.links.find((entry) => entry.from === 'users')!
+    return {
+      ...built,
+      links: [
+        { ...link, to: lb },
+        { ...link, from: lb, to: 'server' },
+        ...built.links
+          .filter((entry) => entry.from !== 'users')
+          .map((entry) => (entry.to === 'database' ? { ...entry, timeout: 12 } : entry)),
+      ],
+    }
+  }
+
+  test('a duplicated App Server keeps its Links to Nodes outside the selection', () => {
+    const game = balanced()
+    const lb = game.nodes.find((node) => node.type === 'lb')!.id
+    const playbook = capture(game, ['server'], 'Nodes')!
+    const copied = Result.getOrThrow(duplicate(game, playbook, 600, 400))
+    const copy = copied.ids.get('server')!
+    const linked = (from: string, to: string) =>
+      copied.game.links.find((entry) => entry.from === from && entry.to === to)
+    expect(linked(lb, copy)).toBeDefined()
+    expect(linked(copy, 'database')?.timeout).toBe(12)
+    expect(linked(copy, 'analytics')).toBeDefined()
+    // The original keeps its own Links.
+    expect(linked(lb, 'server')).toBeDefined()
+  })
+
+  test('a pasted Playbook can land anywhere, so it keeps only its own and shared Links', () => {
+    const game = balanced()
+    const playbook = capture(game, ['server'], 'Nodes')!
+    const pasted = Result.getOrThrow(placePlaybook(game, playbook, 600, 400))
+    const copy = pasted.ids.get('server')!
+    expect(pasted.game.links.some((entry) => entry.from === copy && entry.to === 'database')).toBe(
+      false,
+    )
   })
 })

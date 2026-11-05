@@ -137,7 +137,13 @@ export const ghostReason = (game: Game, node: PlaybookNode, region: Region): str
   return placeRefusal(game, node.type, region)
 }
 
-export type Placed = Readonly<{ game: Game; placed: number; ghosts: ReadonlyArray<PlaybookNode> }>
+/** A placed Playbook. `ids` maps each placed Playbook Node's key to its new Node's id. */
+export type Placed = Readonly<{
+  game: Game
+  placed: number
+  ghosts: ReadonlyArray<PlaybookNode>
+  ids: ReadonlyMap<string, string>
+}>
 
 const decodeNode = Schema.decodeUnknownOption(GameNode)
 const decodeLink = Schema.decodeUnknownOption(GameLink)
@@ -167,6 +173,20 @@ const configure = (game: Game, id: string, settings: Record<string, unknown>): G
   if (merged._tag === 'Some')
     next = { ...next, nodes: next.nodes.map((entry) => (entry.id === id ? merged.value : entry)) }
   return next
+}
+
+/** Links two Nodes with a Link's settings. A Link the rules refuse is left out. */
+const linkWith = (game: Game, from: string, to: string, settings: object): Game => {
+  const linked = connect(game, from, to)
+  if (Result.isFailure(linked)) return game
+  const made = linked.success.links.find((entry) => entry.from === from && entry.to === to)
+  const merged = made ? decodeLink({ ...made, ...pick(settings, LINK_SETTINGS) }) : null
+  return merged?._tag === 'Some'
+    ? {
+        ...linked.success,
+        links: linked.success.links.map((entry) => (entry === made ? merged.value : entry)),
+      }
+    : linked.success
 }
 
 /**
@@ -215,20 +235,38 @@ export const placePlaybook = (
   for (const link of playbook.links) {
     const from = endOf(link.from)
     const to = endOf(link.to)
-    if (!from || !to) continue
-    const linked = connect(next, from, to)
-    if (Result.isFailure(linked)) continue
-    next = linked.success
-    const made = next.links.find((entry) => entry.from === from && entry.to === to)
-    const merged = made ? decodeLink({ ...made, ...pick(link.settings, LINK_SETTINGS) }) : null
-    if (merged?._tag === 'Some')
-      next = {
-        ...next,
-        links: next.links.map((entry) => (entry === made ? merged.value : entry)),
-      }
+    if (from && to) next = linkWith(next, from, to, link.settings)
   }
-  return Result.succeed({ game: next, placed: ids.size, ghosts })
+  return Result.succeed({ game: next, placed: ids.size, ghosts, ids })
 }
+
+/**
+ * Duplicates Nodes on their own Board (15 "Bulk actions"): a Playbook captured from this Game,
+ * placed at (x, y), whose copies also keep the selection's Links to Nodes outside it. A copied
+ * App Server sits behind the same Load Balancer and calls the same Database. A Link the rules
+ * refuse, such as a second Link out of Users, is left out.
+ */
+export const duplicate = (
+  game: Game,
+  playbook: Playbook,
+  x: number,
+  y: number,
+  region: Region = HOME_REGION,
+): Result.Result<Placed, Refusal> =>
+  Result.map(placePlaybook(game, playbook, x, y, region), (placed) => {
+    // `capture` keys a Playbook Node by its Node's id; Links to SHARED Nodes are in the Playbook.
+    const outside = (id: string) =>
+      !placed.ids.has(id) &&
+      game.nodes.some((node) => node.id === id && !SHARED.includes(node.type))
+    let next = placed.game
+    for (const link of game.links) {
+      const from = placed.ids.get(link.from)
+      const to = placed.ids.get(link.to)
+      if (from && outside(link.to)) next = linkWith(next, from, link.to, link)
+      else if (to && outside(link.from)) next = linkWith(next, link.from, to, link)
+    }
+    return { ...placed, game: next }
+  })
 
 /* ---------- sharing ---------- */
 
