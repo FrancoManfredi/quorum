@@ -282,7 +282,7 @@ Each visibility step adds a row. A row appears only when its research is owned.
 | `percentiles`       | Latency         | p99 with the mean. Latency per Node as a bar gauge for the selected moment.                                                                                                                                                                                                                                                      |
 | `alerting`          | Alerts          | A state timeline per rule, OK, pending, firing and ignored, from the pages the Inbox kept and the seconds each rule has held; a table of each rule's threshold, its value now, and its state; and the threshold on the Errors and Latency Charts.                                                                                |
 | `tracing`           | Services (RED)  | One row per Request kind, with its rate, its share of the traffic, its errors, and its mean and p99 duration. Not built yet: exemplar dots on the latency Charts.                                                                                                                                                                |
-| `slo-dashboards`    | SLO             | Availability this calendar week as a stat, error budget left as a gauge, and burn rate over the last day. The HUD keeps availability and the budget left.                                                                                                                                                                        |
+| `slo-dashboards`    | SLO             | Availability this calendar week as a stat, error budget left as a gauge, the SLA credit the Venture owes as a figure, and burn rate over the last day. The HUD keeps availability and the budget left, and adds an SLA row while the credit pays.                                                                                |
 | `profiling`         | Resources (USE) | A state timeline per Node that colours the resource that limited it: CPU, workers, memory, connections, network, disk, or throughput. Not built yet: pool waits and queue depths, which the Queue row carries instead. The build has no `profiling` Research, so this row arrives with `tracing`.                                |
 | `tail-sampling`     | —               | Not built yet: exemplars that prefer slow and failed requests, so the dots sit in the tail.                                                                                                                                                                                                                                      |
 | `rum`               | Users           | Users by region against the region's market, with its Apdex and its churn per hour. Not built yet: latency per region and device from the user's side, including the internet hop. The build has no `rum` Research, so this row arrives with Multiple regions, in the same Era.                                                  |
@@ -294,8 +294,10 @@ and SLO. Two more rows read the Game, the Ledger and the Inbox rather than a sig
 cannot say who is on the Team, how long the money lasts, or what the last Incident cost. Each adds
 one series drawn from history the Board cannot show, and no new figure: the Company's Money card
 draws Cash from the Samples' `cash`, and the Incidents row draws each Postmortem's run from `endedAt`
-less its `duration` to `endedAt`, with the running Incident last. They are not visibility steps: they
-gather facts the player already has, not a new signal.
+less its `duration` to `endedAt`, split at the first signal and the acknowledgement so the spans
+before each show, with the running Incident last. It reaches back only as far as the four Postmortems
+the Game keeps and the Chart history behind its axis, so a run older than either stays in the table
+alone. They are not visibility steps: they gather facts the player already has, not a new signal.
 
 ### Component rows
 
@@ -334,8 +336,8 @@ The Deploy, Incident and Company marks come from the Inbox, which is the only re
 of when an event happened: the Game holds no Deploy, Study or round time. That bounds them to the
 Threads the Inbox still keeps, and it is why a mark names its kind rather than its detail. The running
 Incident is marked once, with the SEV it holds now; every other Incident is marked where its Thread
-started. The marks show when an Incident began; its band, from start to end, is on the Incidents row
-([Interface](/design/15-ui-ux#company-and-incidents-panels)).
+started. The marks show when an Incident began; its band, with the spans before it was seen and
+answered, is on the Incidents row ([Interface](/design/15-ui-ux#company-and-incidents-panels)).
 
 Research marks read the same Inbox, and they are the one group the Game does not date. A Study is
 `{ id, progress }` while it runs, and `advanceStudies` takes it off `studies` and adds its id to

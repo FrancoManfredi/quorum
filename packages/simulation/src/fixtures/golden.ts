@@ -144,7 +144,13 @@ export const GOLDEN_STEPS = 10_000
 // owner, Features and datastore, the incident's and postmortem's Service, a backlog item's Service,
 // and the split work kind, so every hash moves. One research item (Service boundaries) shifts what
 // a Company earns toward it.
-export const GOLDEN_HASH = '94376bce'
+// SIM_VERSION 32 (the six kinds and cascades): the six incident kinds 11's catalog names by hand land —
+// JVM warmup under load, schema migration lock, supply-chain compromise, accidental delete, operator typo,
+// and leap second or clock skew — each with its Era, severity, duration, effect, mitigation and action
+// item. An incident nobody answers can start a second one from Series A, so an Incident and a Postmortem
+// gain `causedBy`; an Incident may also have no second severity. Two research items join the catalog
+// (Online schema migrations, Leap smearing), which shifts what a Company earns toward them.
+export const GOLDEN_HASH = 'd736ca6f'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on

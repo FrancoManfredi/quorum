@@ -550,6 +550,7 @@ describe('Kubernetes Clusters and the Platform team (08 "Teams")', () => {
         magnitude: 3,
         zone: null,
         region: null,
+        causedBy: null,
       },
     }
     const upgraded = work(ok(queueTask(forced, 'upgrade-cluster')), 30 * 60)

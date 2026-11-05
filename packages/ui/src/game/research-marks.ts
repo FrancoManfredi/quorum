@@ -242,6 +242,9 @@ export const LOOKS: Record<ResearchId, Look> = {
   runbooks: { group: 'ops', glyph: BookOpen, hue: 60 },
   'sre-team': { group: 'ops', glyph: Siren, hue: 340 },
   'enterprise-sales': { group: 'ops', glyph: Handshake, hue: 110 },
+  // The two preventions the six hand-written incident kinds open (11 "The six kinds").
+  'online-migrations': { group: 'data', glyph: Split, hue: 200 },
+  'leap-smearing': { group: 'ops', glyph: Timer, hue: 250 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

@@ -256,8 +256,10 @@ Services row still draws one row per request kind ([Observability](/design/12-ob
 Both are rows of the [Dashboard](/design/12-observability#the-dashboard), not panels with keys of
 their own. They use the Dashboard's vocabulary, a table with coloured cells and an LCD bar, so the
 player reads the Company beside the charts of its system. They add no Chart and no new
-metric: every figure comes from the Game, the Ledger, or the Inbox. The one derived figure is runway,
-Cash divided by net Burn, which [Economy](/design/09-economy#runway-and-running-out-of-cash) defines.
+metric: every figure comes from the Game, the Ledger, or the Inbox. Two figures are derived: runway,
+Cash divided by net Burn, which [Economy](/design/09-economy#runway-and-running-out-of-cash) defines,
+and the SLA credit, 10% of subscription revenue while the trailing week misses the target the Venture
+signed ([Incidents](/design/11-incidents#slos-and-error-budgets)).
 
 **The Company row** does not appear in a Sandbox or a Challenge, because neither has a Company.
 
@@ -282,22 +284,31 @@ the Cash the row above it shows. A Sample from a save made before the field hold
 
 **The Incidents row** appears when an Incident is running or the Game holds a Postmortem.
 
-| Panel             | Shows                                                                                                                                                                       | Reads                                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Running Incident  | The incident's kind, SEV, target, elapsed and total run as an LCD bar, MTTD and MTTA so far, MTTR so far, users lost, revenue lost, and failed requests                     | `Game.incident`, `Game.time` and `Game.users`                                                            |
-| Incident history  | One row per Postmortem, newest first: incident, SEV, target, run, MTTD, MTTA, MTTR, users lost, revenue lost, failed requests, and the action item with whether it is owned | `Game.postmortems` and `Game.researched`                                                                 |
-| Postmortem        | The chosen row's cause, run, MTTD, MTTA, MTTR, cost, prevention, and the action item's state                                                                                | The chosen `Postmortem`, the incident catalog, and the research catalog                                  |
-| Incident timeline | One lane per Postmortem, from the second its run began to the one it ended at, tinted by its SEV, with the running Incident as the last lane                                | `Game.postmortems` (`endedAt` and `duration`), `Game.incident` and `Game.time`; the rows the Charts draw |
+| Panel             | Shows                                                                                                                                                                                              | Reads                                                                                                                    |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Running Incident  | The incident's kind, SEV, target, elapsed and total run as an LCD bar, MTTD and MTTA so far, MTTR so far, users lost, revenue lost, and failed requests                                            | `Game.incident`, `Game.time` and `Game.users`                                                                            |
+| Incident history  | One row per Postmortem, newest first: incident, SEV, target, run, MTTD, MTTA, MTTR, users lost, revenue lost, failed requests, and the action item with whether it is owned                        | `Game.postmortems` and `Game.researched`                                                                                 |
+| Postmortem        | The chosen row's cause, run, MTTD, MTTA, MTTR, cost, prevention, and the action item's state                                                                                                       | The chosen `Postmortem`, the incident catalog, and the research catalog                                                  |
+| Incident timeline | One lane per Postmortem, from the second its run began to the one it ended at, split at its first signal and its acknowledgement and tinted by its SEV, with the running Incident as the last lane | `Game.postmortems` (`endedAt`, `duration`, `mttd` and `mtta`), `Game.incident` and `Game.time`; the rows the Charts draw |
 
 Choosing a row is Dashboard view state: it changes no Game state, adds no undo entry, and writes no
 log line. The Game keeps its last four Postmortems, so the history reaches back that far.
 
 Below the two cards, the Incident timeline places each Postmortem on the Dashboard's time axis: one
 lane per Postmortem, named for its Incident and tinted by its SEV, from the second its run began to
-the one it ended at. Its axis is the rows the Charts above draw, so a run lines up with the traffic
-beside it and slides left as time passes. A run that ended before the axis began is left out, and so
-is a Postmortem from a save made before the field, which has no end time to place. The running
-Incident is the last lane, drawn from where it started to now.
+the one it ended at. A lane splits where the incident loop does. The span before the first signal is
+grey and reads "not seen": the Company was failing requests and nobody had noticed. The span from
+that signal to the acknowledgement is blue and reads "awaiting ack". The rest of the run keeps its
+SEV colour, so the player reads at a glance how much of a run was missed, how much went unanswered,
+and how much was worked. Each block's tooltip names its phase and its length, and the legend carries a
+swatch for each phase and each SEV on the axis. Its axis is the rows the Charts above draw, so a run
+lines up with the traffic beside it and slides left as time passes; a save that kept no Chart history
+has no axis, so the lane reads "No run in this range." until the Charts fill. A run that ended before
+the axis began is left out, and so is a Postmortem from a save made before the field, which has no end
+time to place; the Game keeps its last four Postmortems, so the history reaches back no further than
+them. The running Incident is the last lane, drawn from where it started to now, and its phase
+follows the loop live: grey until its first signal lands, blue until a player or the rotation
+answers, its SEV colour after that.
 
 Neither row needs a key of its own, and neither is a panel: `D` opens the Dashboard that holds them,
 beside the charts of the system. The Dashboard's scroll area takes focus when the panel opens, and
@@ -308,8 +319,9 @@ The three times come from the Game: an Incident records the second its first sig
 second it was acknowledged, so the Postmortem keeps an MTTD and an MTTA beside its MTTR
 ([Incidents](/design/11-incidents#the-incident-loop)). A run that never signalled shows a dash for
 MTTD, and one nobody answered a dash for MTTA, as does a Postmortem from a save made before the
-fields. The timeline draws when each Incident ran, not how long it took the team to notice it or to
-respond; the two times sit in the rows above it.
+fields. A Postmortem from such a save, or one whose times the Game never recorded, draws one SEV bar
+for the whole run, so the lane never invents a phase. The card, the two tables and the timeline's two
+leading spans all read the same fields, so they agree.
 
 Not built yet: `anomaly-detection`, which would warn before the peak.
 

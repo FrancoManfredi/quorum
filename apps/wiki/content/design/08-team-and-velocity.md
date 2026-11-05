@@ -346,6 +346,15 @@ and removes the ones that lose or stay flat.
 
 Tasks are DH spent on the system instead of the product. Many come from incident action items.
 
+An action item is not always a task: a postmortem opens the first **research** in its kind's
+prevention list that the player does not own and can study now
+([Incidents](/design/11-incidents#postmortems)). The six kinds 11 names by hand open research, not
+tasks here: online schema migrations, leap smearing, dependency scanning, Deno permissions,
+point-in-time recovery, restore drills and infrastructure as code
+([Incidents](/design/11-incidents#the-six-kinds)). A response during the incident is the other half:
+cancel the migration, pin and redeploy, restore from a backup, restart the Nodes a clock jump hit
+([Mitigation toolbox](/design/11-incidents#mitigation-toolbox)).
+
 Ten tasks are designed. The build has eight, and four of those are not in this list.
 
 | Task                        | DH  | Effect                                                                      | Status                                      |

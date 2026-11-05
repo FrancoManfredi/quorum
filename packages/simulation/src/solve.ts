@@ -22,6 +22,8 @@ import {
   DEADLINE_SURGE,
   KIND_SURGE,
   LATENCY_REGRESSION_MS,
+  CLOCK_SKEW_LOSS,
+  CLOCK_SKEW_MS,
   COMPONENTS,
   DB_ENGINES,
   DIURNAL_AMPLITUDE,
@@ -892,6 +894,17 @@ const weighted = (
 
 /* ---------- outcomes ---------- */
 
+/**
+ * A leap second repeats one, so every Node in the region fires its timers twice: its answer waits
+ * on a clock that jumped, and a share of its answers time out (11 "Leap second or clock skew").
+ */
+const skewed = (game: Game, node: GameNode, answer: Outcome): Outcome => {
+  const incident = game.incident
+  if (incident?.kind !== 'leap-second' || incident.region === null) return answer
+  if (node.region !== incident.region) return answer
+  return failSome(through(hop({ fixed: CLOCK_SKEW_MS }), [[answer, 1]]), CLOCK_SKEW_LOSS, 'timeout')
+}
+
 const outcomesOf = (inputs: Inputs, pass: Pass) => {
   const { game, graph } = inputs
   const memo = new Map<GameNode, Map<Kind, Outcome>>()
@@ -994,18 +1007,22 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
     // A Node the kernel killed for memory fails as `oom` until it is back.
     const result = isDown(node)
       ? failed(causeOf(node.life) === 'oom' ? 'oom' : 'down')
-      : RULES[node.type].outcome(
-          {
-            game,
-            pass,
-            ownHop: (of, value) => ownHop(node, of, value),
-            downstream: (of, extraHop) => downstream(node, of, extraHop),
-            delegates: delegates(graph, node),
-            runsLocalDb: runsLocalDb(graph, node),
-            offloads: offloads(graph, node),
-          },
+      : skewed(
+          game,
           node,
-          kind,
+          RULES[node.type].outcome(
+            {
+              game,
+              pass,
+              ownHop: (of, value) => ownHop(node, of, value),
+              downstream: (of, extraHop) => downstream(node, of, extraHop),
+              delegates: delegates(graph, node),
+              runsLocalDb: runsLocalDb(graph, node),
+              offloads: offloads(graph, node),
+            },
+            node,
+            kind,
+          ),
         )
     byKind.set(kind, result)
     return result

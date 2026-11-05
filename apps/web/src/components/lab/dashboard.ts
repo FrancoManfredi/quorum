@@ -112,6 +112,9 @@ const hhmm = (time: number): string => {
 
 const percent = (share: number, digits = 0): string => `${(share * 100).toFixed(digits)}%`
 
+/** An SLO target as the variables bar and the SLO row print it, so 99.95% never reads 100.0%. */
+const sloText = (slo: number): string => `${Number((slo * 100).toFixed(3))}%`
+
 /** One Chart row: its label and figures. A figure is null where the history holds no value. */
 type Row = Readonly<Record<string, number | string | null>>
 
@@ -146,6 +149,8 @@ const rowsOf = (model: Model, slo: number): ReadonlyArray<Row> => {
     p99: value('p99'),
     apdex: value('apdex'),
     errors: value('errors') * 100,
+    // Availability per row, so the SLO stat draws the week's dips behind its figure.
+    availability: 100 - value('errors') * 100,
     revenue: value('revenue'),
     burn: value('burn'),
     cash: value('cash'),
@@ -2076,13 +2081,18 @@ const companyPanels = (
 /** SEV1 is the worst Incident, so the bars soften down the game's hues as the SEV does. */
 const SEVERITY_COLOR: Readonly<Record<number, string>> = { 1: RED, 2: AMBER, 3: PURPLE }
 
+/** A run's two spans before it was live: nobody had seen it yet, then nobody had answered. */
+const UNSEEN = MUTED
+const AWAITING = BLUE
+
 /**
  * The Incident history on the Dashboard's time axis (15 "Company and Incidents
  * panels"): one lane per Postmortem, from the second its run began to the one it
- * ended at, and the running Incident as the last lane. The axis is the rows the
- * Charts above draw, so a run lines up with the traffic that ran beside it. A
- * Postmortem saved before `endedAt` has no time to place it at, so it stays in
- * the table only.
+ * ended at, and the running Incident as the last lane. A lane splits at the two
+ * moments of the incident loop, the first signal and the acknowledgement, so the
+ * spans before each show. The axis is the rows the Charts above draw, so a run
+ * lines up with the traffic that ran beside it. A Postmortem saved before
+ * `endedAt` has no time to place it at, so it stays in the table only.
  */
 const incidentTimeline = (
   model: Model,
@@ -2094,21 +2104,53 @@ const incidentTimeline = (
   const first = Number(rows[0]?.at ?? Math.floor(game.time))
   const last = Number(rows[rows.length - 1]?.at ?? first) + Number(rows[rows.length - 1]?.span ?? 1)
   const span = Math.max(1, last - first)
-  const lane = (key: string, name: string, from: number, to: number, severity: number): Lane => {
+  /**
+   * One lane, split where the incident loop does: the seconds no one had seen it, the seconds
+   * no one had answered, and the run the SEV tints. `pending` says a null signal means one that
+   * has not landed yet, as the running Incident's does, rather than one the Game never recorded.
+   */
+  const lane = (
+    key: string,
+    name: string,
+    from: number,
+    to: number,
+    severity: number,
+    signalAt: number | null,
+    ackAt: number | null,
+    pending = false,
+  ): Lane => {
     const start = Math.max(first, from)
     const end = Math.min(last, to)
-    return {
-      key,
-      name,
-      runs: [
-        {
-          from: start - first,
-          to: end - first,
-          color: SEVERITY_COLOR[severity] ?? MUTED,
-          label: `SEV${severity} · ${hhmm(start)}–${hhmm(end)}`,
-        },
-      ],
-    }
+    const color = SEVERITY_COLOR[severity] ?? MUTED
+    const block = (at: number, until: number, background: string, label: string): Run => ({
+      from: at - first,
+      to: until - first,
+      color: background,
+      label,
+    })
+    const held = `SEV${severity} · ${hhmm(start)}–${hhmm(end)}`
+    if (signalAt === null)
+      return {
+        key,
+        name,
+        runs: [
+          pending
+            ? block(start, end, UNSEEN, `not seen · ${minutesText(end - start)}`)
+            : block(start, end, color, held),
+        ],
+      }
+    const signal = Math.min(end, Math.max(start, signalAt))
+    const answered = ackAt === null ? null : Math.min(end, Math.max(signal, ackAt))
+    const runs: Array<Run> = []
+    if (signal > start)
+      runs.push(block(start, signal, UNSEEN, `not seen · ${minutesText(signal - start)}`))
+    const awaited = answered ?? end
+    if (awaited > signal)
+      runs.push(block(signal, awaited, AWAITING, `awaiting ack · ${minutesText(awaited - signal)}`))
+    if (answered !== null && end > answered)
+      runs.push(block(answered, end, color, `SEV${severity} · ${hhmm(answered)}–${hhmm(end)}`))
+    // A run with no seconds to split, as a save with equal times, still draws its whole span.
+    return { key, name, runs: runs.length === 0 ? [block(start, end, color, held)] : runs }
   }
   const lanes: Array<Lane> = []
   const severities = new Set<number>()
@@ -2119,6 +2161,7 @@ const incidentTimeline = (
     // A run that ended before the axis began, or began after it ends, has nothing to place.
     if (endedAt < first || startedAt > last) continue
     severities.add(postmortem.severity)
+    const signal = postmortem.mttd
     lanes.push(
       lane(
         `pm-${postmortem.id}`,
@@ -2126,6 +2169,8 @@ const incidentTimeline = (
         startedAt,
         endedAt,
         postmortem.severity,
+        signal === null ? null : startedAt + signal,
+        signal === null || postmortem.mtta === null ? null : startedAt + signal + postmortem.mtta,
       ),
     )
   }
@@ -2140,6 +2185,9 @@ const incidentTimeline = (
         incident.startedAt,
         now,
         incident.severity,
+        incident.signalAt,
+        incident.ackAt,
+        true,
       ),
     )
   }
@@ -2172,9 +2220,17 @@ const incidentTimeline = (
     first,
     last,
     h,
-    [...severities]
-      .sort()
-      .map((severity) => swatch(`SEV${severity}`, SEVERITY_COLOR[severity] ?? MUTED, h)),
+    [
+      ...(lanes.some((entry) => entry.runs.some((run) => run.color === UNSEEN))
+        ? [swatch('Not seen', UNSEEN, h)]
+        : []),
+      ...(lanes.some((entry) => entry.runs.some((run) => run.color === AWAITING))
+        ? [swatch('Awaiting ack', AWAITING, h)]
+        : []),
+      ...[...severities]
+        .sort()
+        .map((severity) => swatch(`SEV${severity}`, SEVERITY_COLOR[severity] ?? MUTED, h)),
+    ],
   )
 }
 
@@ -2199,6 +2255,13 @@ const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
   const facts: ReadonlyArray<readonly [string, Cell]> = [
     ['Severity', { text: `SEV${incident.severity}` }],
     ['Target', { text: incidentTarget(game, incident) }],
+    [
+      'Cause',
+      {
+        text:
+          incident.causedBy === null ? '—' : `${INCIDENTS[incident.causedBy].name} · left alone`,
+      },
+    ],
     [
       'Run',
       {
@@ -2232,6 +2295,7 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
     `${game.postmortems.length} postmortems`,
     [
       'Incident',
+      'Cause',
       'SEV',
       'Target',
       'Run',
@@ -2253,6 +2317,9 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
           }),
           hint: 'Show this postmortem',
         },
+        {
+          text: postmortem.causedBy === null ? '—' : INCIDENTS[postmortem.causedBy].name,
+        },
         { text: `SEV${postmortem.severity}` },
         { text: postmortem.target ?? '—' },
         { text: minutesText(postmortem.duration) },
@@ -2272,6 +2339,7 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
   const def = INCIDENTS[postmortem.kind]
   const facts: ReadonlyArray<readonly [string, string]> = [
     ['Run', minutesText(postmortem.duration)],
+    ['Cause', postmortem.causedBy === null ? '—' : INCIDENTS[postmortem.causedBy].name],
     ['MTTD', minutesOrUnknown(postmortem.mttd)],
     ['MTTA', minutesOrUnknown(postmortem.mtta)],
     ['MTTR', minutesText(postmortem.mttr)],
@@ -3109,7 +3177,7 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
           )
         : chip('region', model.board.region),
       chip('era', eraOf(game).name),
-      chip('slo', percent(slo, slo >= 0.999 ? 1 : 0)),
+      chip('slo', sloText(slo)),
       h.span([h.Class('flex-1')], []),
       toggle(
         'Compare',
@@ -3140,6 +3208,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   const ledger = ledgerOf(model)
   const budget = budgetOf(game)
+  const credit = slaCreditsOf(game, ledger)
   const slo = budget.slo > 0 && budget.slo < 1 ? budget.slo : 0.999
   const rows = rowsOf(model, slo)
   const markers = markersOf(model, rows)
@@ -3324,10 +3393,10 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           stateTimeline(model, tracks, h),
           nodeTable(ledger, tracks, h),
 
-          rowHeader('Money and error budget', 2, h),
+          rowHeader('Money', 1, h),
           series({
             key: 'money',
-            span: 'col-span-12',
+            span: 'col-span-24',
             title: 'Revenue and Burn',
             unit: '$/s',
             series: [
@@ -3336,20 +3405,85 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
             format: (value) => money(value),
           }),
-          has(game, 'slo-dashboards')
-            ? series({
-                key: 'burn-rate',
-                span: 'col-span-12',
-                title: 'Error budget burn rate',
-                unit: `× budget · SLO ${percent(slo, slo >= 0.999 ? 1 : 0)}`,
-                series: [{ key: 'burnRate', name: 'Burn rate', color: PINK, fill: true }],
-                format: (value) => `${value < 10 ? value.toFixed(1) : Math.round(value)}×`,
-                rules: [
-                  { y: 10, label: 'page > 10×', color: RED },
-                  { y: 1, label: '1×', color: MUTED },
-                ],
-              })
-            : locked('burn-rate', 'col-span-12', 'Error budget burn rate', 'slo-dashboards', h),
+
+          ...(has(game, 'slo-dashboards')
+            ? [
+                rowHeader('SLO', 4, h),
+                stat(
+                  'availability',
+                  'Availability · week',
+                  percent(budget.availability, 2),
+                  budget.availability >= budget.slo ? 'ok' : 'danger',
+                  rows,
+                  'availability',
+                  GREEN,
+                  h,
+                ),
+                gauge(
+                  'error-budget',
+                  'Error budget left',
+                  Math.max(0, Math.min(1, budget.left)),
+                  budget.left > 0 ? `${Math.round(Math.min(1, budget.left) * 100)}%` : 'spent',
+                  { warn: 0.5, danger: 0.05, invert: true },
+                  h,
+                ),
+                panel(
+                  'sla-credit',
+                  'col-span-4 compact:col-span-12',
+                  'SLA credits',
+                  credit > 0 ? 'paid' : '',
+                  [
+                    h.div(
+                      [
+                        h.Class(
+                          cn(
+                            SCREEN,
+                            'flex min-h-[92px] flex-1 flex-col justify-end px-3 pt-2 pb-3',
+                          ),
+                        ),
+                      ],
+                      [
+                        h.span(
+                          [
+                            h.Class(
+                              cn(
+                                FIGURE,
+                                'text-[calc(30px*var(--type-scale))] leading-none font-medium tracking-[-0.03em]',
+                              ),
+                            ),
+                            h.Style({ color: credit > 0 ? RED : MUTED }),
+                            h.Title(
+                              credit > 0
+                                ? `The SLA pays ${money(credit)}/s back to customers while the week sits under ${sloText(budget.slo)}`
+                                : 'No SLA credit: no SLA signed, its Era not reached, or the week met the target',
+                            ),
+                          ],
+                          [credit > 0 ? `−${money(credit)}/s` : '—'],
+                        ),
+                      ],
+                    ),
+                  ],
+                  h,
+                  null,
+                  credit > 0 ? RED : MUTED,
+                ),
+                series({
+                  key: 'burn-rate',
+                  span: 'col-span-12',
+                  title: 'Error budget burn rate',
+                  unit: `× budget · SLO ${sloText(slo)}`,
+                  series: [{ key: 'burnRate', name: 'Burn rate', color: PINK, fill: true }],
+                  format: (value) => `${value < 10 ? value.toFixed(1) : Math.round(value)}×`,
+                  rules: [
+                    { y: 10, label: 'page > 10×', color: RED },
+                    { y: 1, label: '1×', color: MUTED },
+                  ],
+                }),
+              ]
+            : [
+                rowHeader('SLO', 1, h),
+                locked('burn-rate', 'col-span-12', 'Error budget burn rate', 'slo-dashboards', h),
+              ]),
 
           ...(has(game, 'tracing')
             ? [rowHeader('Resources (USE)', 1, h), resourceTimeline(model, tracks, h)]

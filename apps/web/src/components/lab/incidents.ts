@@ -35,18 +35,44 @@ import { EYEBROW, FIGURE, PANEL, WELL, insightChip } from '@quorum/ui/game/bits'
 
 /** Symptom-based pages, like real alerting: they name what users feel, not the cause. A rule
  * that cried wolf too often today is ignored until the player changes its threshold. */
+/**
+ * The chain a cascade carries (11 "Cascades"): the pager names the incident that was left alone, so
+ * the player sees that this is the second page, not the first.
+ */
+const cause = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const kind = game.incident?.causedBy
+  if (!kind) return h.empty
+  return h.div(
+    [h.Key('cascade'), h.Class(cn('flex items-center gap-1.5 py-1 pr-2.5 pl-2', PANEL))],
+    [
+      icon(h, ChevronRight, 'size-3.5 text-warn'),
+      h.span([h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')], ['After']),
+      h.span(
+        [h.Class('text-[calc(12.5px*var(--type-scale))] font-semibold')],
+        [INCIDENTS[kind].name],
+      ),
+      h.span(
+        [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+        ['left alone'],
+      ),
+    ],
+  )
+}
+
 export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
-  if (!has(game, 'alerting')) return h.empty
+  const chained = cause(game, h)
+  if (!has(game, 'alerting')) return chained
   const rules = Object.keys(ALERT_RULES) as Array<AlertRule>
   const firing = rules.filter(
     (rule) => !ignored(game, rule) && game.alarms[rule] >= ALERT_RULES[rule].seconds,
   )
   const muted = rules.filter((rule) => ignored(game, rule))
-  if (firing.length === 0 && muted.length === 0) return h.empty
+  if (firing.length === 0 && muted.length === 0) return chained
   return h.div(
     [h.Class('flex flex-col items-center gap-1.5')],
     [
+      chained,
       firing.length > 0
         ? h.div(
             [
@@ -152,12 +178,17 @@ const BANNERS = {
   bgp: { label: 'Roll back', message: Message.RoutesRolledBack() },
   config: { label: 'Roll back', message: Message.ConfigRolledBack() },
   partition: { label: 'Fence leader', message: Message.LeaderFenced() },
+  'migration-lock': { label: 'Cancel migration', message: Message.SchemaMigrationCancelled() },
+  'supply-chain': { label: 'Pin and redeploy', message: Message.DependencyPinned() },
+  'accidental-delete': { label: 'Restore', message: Message.TableRestored() },
+  'leap-second': { label: 'Restart Nodes', message: Message.ClocksRestarted() },
 } as const
 
-export const expiredCertificate = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const kind = model.board.game.incident?.kind
-  if (kind !== 'certificate' && kind !== 'bgp' && kind !== 'partition' && kind !== 'config')
-    return h.empty
+type BannerKind = keyof typeof BANNERS
+
+export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const kind = model.board.game.incident?.kind as BannerKind | undefined
+  if (kind === undefined || !(kind in BANNERS)) return h.empty
   const banner = BANNERS[kind]
   return h.div(
     [
@@ -277,6 +308,13 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
             [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
             [postmortem.target ? `${postmortem.target}: ${def.cause}` : def.cause],
           ),
+          // The chain: what this one followed, and that nobody answered it (11 "Cascades").
+          postmortem.causedBy
+            ? h.p(
+                [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-warn')],
+                [`Followed ${INCIDENTS[postmortem.causedBy].name}, which was left alone.`],
+              )
+            : h.empty,
           h.div(
             [h.Class(`grid grid-cols-3 divide-x divide-hairline ${WELL}`)],
             (

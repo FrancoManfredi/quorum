@@ -23,6 +23,7 @@ const incident: Incident = {
   magnitude: 3,
   zone: null,
   region: null,
+  causedBy: null,
 }
 
 /* The in-game glossary ships apps/wiki/content/design/glossary.md: every heading, in order, with its slug as id. */

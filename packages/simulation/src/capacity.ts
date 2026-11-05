@@ -263,12 +263,15 @@ export const speedOf = (game: Game, node: GameNode): number => {
   const variant =
     (runtime.language === 'ruby' && has(game, 'yjit') ? YJIT_SPEED : 1) *
     (runtime.language === 'rust' && has(game, 'jemalloc') ? JEMALLOC_SPEED : 1)
+  // A JVM that scaled up under load runs its new copies cold: the Node answers at its cold
+  // speed until the warmup finishes (11 "JVM warmup under load").
+  const cold = game.incident?.kind === 'jvm-warmup' && game.incident.nodeId === node.id
   return (
     runtime.speed *
     collector *
     opcache *
     variant *
-    (runtime.warmFrom + (1 - runtime.warmFrom) * warmOf(node.life))
+    (runtime.warmFrom + (1 - runtime.warmFrom) * (cold ? 0 : warmOf(node.life)))
   )
 }
 

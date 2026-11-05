@@ -32,6 +32,7 @@ import {
   SEARCH_REFRESH,
   RESTORE_FAILURE,
   RESTORE_DRILL_DH,
+  DELETE_CHURN,
   LB_POLICIES,
   MAX_ATTEMPTS,
   POOL_LIMITS,
@@ -128,6 +129,7 @@ import type {
   DbRetention,
   CacheStrategy,
   FeatureId,
+  Incident,
 } from './state.ts'
 
 /* ==========================================================================
@@ -1308,10 +1310,19 @@ export const setGuidance = (game: Game, growth: number, margin: number): Action 
   return ok({ ...game, quarter: { ...game.quarter, growth, margin } })
 }
 
+/**
+ * The player's first action while an Incident runs acknowledges it (11 "The incident loop"), so an
+ * Incident a response ended is never mistaken for one left alone to cascade.
+ */
+const answering = (game: Game, incident: Incident): Incident => ({
+  ...incident,
+  ackAt: incident.ackAt ?? game.time,
+})
+
 /** Ends an incident that one action ends. */
 const endIncident = (game: Game, kind: IncidentId, refusal: string): Action =>
   game.incident?.kind === kind
-    ? ok({ ...game, incident: { ...game.incident, remaining: 0 } })
+    ? ok({ ...game, incident: { ...answering(game, game.incident), remaining: 0 } })
     : notAllowed(refusal)
 
 /** Disables the WAF rule that backtracks. */
@@ -1327,7 +1338,9 @@ export const expandVolume = (game: Game): Action => {
   const target = game.nodes.find((node) => node.id === game.incident?.nodeId)
   if (game.incident?.kind !== 'disk-full' || !target) return notAllowed('No disk is full.')
   return spend(game, replacePrice(game, target), 'A bigger volume', (paid) =>
-    paid.incident ? { ...paid, incident: { ...paid.incident, remaining: 0 } } : paid,
+    paid.incident
+      ? { ...paid, incident: { ...answering(paid, paid.incident), remaining: 0 } }
+      : paid,
   )
 }
 
@@ -1335,14 +1348,46 @@ export const expandVolume = (game: Game): Action => {
 export const renewCertificate = (game: Game): Action =>
   game.incident?.kind === 'certificate'
     ? // The renewal restarts the clock: the certificate is issued again now (05).
-      ok({ ...game, incident: { ...game.incident, remaining: 0 }, certificate: game.time })
+      ok({
+        ...game,
+        incident: { ...answering(game, game.incident), remaining: 0 },
+        certificate: game.time,
+      })
     : notAllowed('No certificate has expired.')
 
 /** Deletes the poison message: the Workers get back to the queue. */
 export const deleteMessage = (game: Game): Action =>
   game.incident?.kind === 'poison'
-    ? ok({ ...game, incident: { ...game.incident, remaining: 0 } })
+    ? ok({ ...game, incident: { ...answering(game, game.incident), remaining: 0 } })
     : notAllowed('No poison message is stuck.')
+
+/** Cancels the migration that holds the table's lock: writes go through again. */
+export const cancelMigration = (game: Game): Action =>
+  endIncident(game, 'migration-lock', 'No migration is locking a table.')
+
+/** Pins the dependency to a good version and redeploys: the malicious package is gone. */
+export const pinAndRedeploy = (game: Game): Action =>
+  endIncident(game, 'supply-chain', 'No compromised dependency is deployed.')
+
+/**
+ * Restores the deleted table from the Database's backup (11 "Accidental delete", 07 "Backups"). A
+ * broken backup, or none at all, restores nothing: the users whose rows were in the table are lost.
+ */
+export const restoreBackup = (game: Game): Action => {
+  const incident = game.incident
+  if (incident?.kind !== 'accidental-delete') return notAllowed('No table was deleted.')
+  const target = game.nodes.find((node) => node.id === incident.nodeId)
+  const good = target !== undefined && target.backup !== 'none' && target.restore !== 'failed'
+  return ok({
+    ...game,
+    users: good ? game.users : Math.max(1, Math.floor(game.users * (1 - DELETE_CHURN))),
+    incident: { ...answering(game, incident), remaining: 0 },
+  })
+}
+
+/** Restarts the Nodes whose clocks jumped: the region's timers and leases resync. */
+export const restartClocks = (game: Game): Action =>
+  endIncident(game, 'leap-second', 'No clock has jumped.')
 
 /** Sets an alert rule's threshold. A new threshold is a fresh start: its false alarms are forgiven. */
 export const setAlertRule = (game: Game, rule: AlertRule, threshold: number): Action => {
@@ -1411,7 +1456,10 @@ export const drain = (game: Game, id: string): Action =>
     if (node.draining) return notAllowed('It is already draining.')
     const incident =
       game.incident?.nodeId === id
-        ? { ...game.incident, remaining: Math.min(game.incident.remaining, DRAIN_SECONDS) }
+        ? {
+            ...answering(game, game.incident),
+            remaining: Math.min(game.incident.remaining, DRAIN_SECONDS),
+          }
         : game.incident
     return ok({ ...patch(game, id, { draining: true, drainAt: game.time }), incident })
   })

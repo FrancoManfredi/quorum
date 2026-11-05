@@ -256,6 +256,18 @@ A release method that sends a small share of traffic to a new version first and 
 
 **Learn more:** [Martin Fowler: CanaryRelease](https://martinfowler.com/bliki/CanaryRelease.html) · [Google SRE workbook: Canarying releases](https://sre.google/workbook/canarying-releases/)
 
+## Cascading failure
+
+A failure that jumps from one part of a system to another: one slow or broken component overloads its callers, whose retries and queues in turn overload theirs. The first failure is the trigger; the later ones are what makes the outage large, and they are why a small incident becomes a long one.
+
+**In the game:** From Series A, an Incident nobody answers can start another when it ends, and the second records the first as its cause. A Slow query left alone starts a Retry storm, a Retry storm starts Connection exhaustion, and a Memory leak starts a GC pause storm; the pager names the chain, and the postmortem card says what it followed. Answering an Incident in any way, even acknowledging it, stops it from cascading, and a chain stops after one hop.
+
+**Design:** [Incidents](/design/11-incidents#cascades).
+
+**Related:** [Metastable failure](#metastable-failure), [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [Thundering herd](#thundering-herd), [Circuit breaker](#circuit-breaker)
+
+**Learn more:** [AWS: Automating safe, hands-off deployments](https://aws.amazon.com/builders-library/automating-safe-hands-off-deployments/) · [Google SRE book: Cascading failures](https://sre.google/sre-book/addressing-cascading-failures/)
+
 ## CDC (change data capture)
 
 Reading a database's change log, such as the PostgreSQL write-ahead log, and publishing each insert, update, and delete as an event. Other systems, such as a data warehouse or a search index, stay in sync without querying the source.
@@ -779,6 +791,18 @@ Replication with no single leader: a client sends each write to several replicas
 **Related:** [Quorum](#quorum), [Eventual consistency](#eventual-consistency), [Consistent hashing](#consistent-hashing), [Hot key](#hot-key)
 
 **Learn more:** [Dynamo: Amazon's highly available key-value store](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf) · [Apache Cassandra docs: Dynamo](https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html)
+
+## Leap smearing
+
+A timekeeping fix for the leap second: instead of letting every clock jump back or forward by a second at midnight UTC, a server spreads the change over a long window, often a whole day, so its clock runs very slightly fast or slow and never jumps. Google and Amazon do this on their own clocks. A jump is what hurts: a repeated second makes timers fire twice and leases expire early.
+
+**In the game:** The Leap second or clock skew Incident makes every Node in one region answer 1,000 ms late and time out 10% of its answers, until you restart the Nodes. Leap smearing (Series C) is the Research that keeps the jump from firing; the Clocks in a Challenge such as Leap Second are scripted as a regional App Server outage.
+
+**Design:** [Incidents](/design/11-incidents#the-six-kinds).
+
+**Related:** [Timeout](#timeout), [Network partition](#network-partition), [Consensus](#raft), [MTTR](#mttr)
+
+**Learn more:** [Google: Leap Smear](https://developers.google.com/time/smear) · [Cloudflare: How and why we leap smear](https://blog.cloudflare.com/how-and-why-the-leap-second-affected-cloudflare-dns/)
 
 ## Little's law
 

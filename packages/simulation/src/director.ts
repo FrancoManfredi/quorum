@@ -1,6 +1,8 @@
 import { Match } from 'effect'
 import {
   ALERT_RULES,
+  CASCADE_FROM_STAGE,
+  CASCADES,
   CALENDAR_DURATION,
   COMPONENTS,
   ERAS,
@@ -19,6 +21,7 @@ import {
   SRE_MTTR,
   STORM_TRIGGER,
   SPIKE_MAGNITUDE,
+  SUPPLY_CHAIN_CHURN,
   WARMED,
   type ComponentId,
   type IncidentId,
@@ -153,6 +156,36 @@ const autoscaled = (game: Game): ReadonlyArray<GameNode> =>
         return target?.type === 'autoscaler' && !isDown(target)
       }),
   )
+
+/** A Node's live Autoscaler, if it has one, which is what adds the cold copies (11 "JVM warmup"). */
+const autoscalerInto = (game: Game, node: GameNode): boolean =>
+  game.links.some((link) => {
+    if (link.from !== node.id) return false
+    const target = game.nodes.find((entry) => entry.id === link.to)
+    return target?.type === 'autoscaler' && !isDown(target)
+  })
+
+/** Java App Servers serving now, weighted up when an Autoscaler can add cold copies to them. */
+const javaTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNode, number]> =>
+  game.nodes
+    .filter(
+      (node) =>
+        node.type === 'server' &&
+        RUNTIMES[node.runtime].language === 'java' &&
+        RUNTIMES[node.runtime].warmup > 0 &&
+        !isDown(node) &&
+        busy(ledger, node),
+    )
+    .map((node) => [node, autoscalerInto(game, node) ? 3 : 1] as const)
+
+/**
+ * The data Component an operator's command reaches: the busiest Node whose loss takes reads or
+ * writes with it (11 "Operator typo").
+ */
+const DATA_TYPES: ReadonlyArray<ComponentId> = ['database', 'replica', 'wide', 'dsql', 'doc']
+
+const dataTarget = (game: Game, ledger: Ledger): GameNode | undefined =>
+  DATA_TYPES.map((type) => busiest(game, ledger, type)).find((node) => node !== undefined)
 
 /** Nodes an instance failure can hit, weighted toward Nodes with no second copy. */
 const instanceTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNode, number]> =>
@@ -441,6 +474,38 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     'credential-leak': () => 0,
     // A Cluster left on an unsupported version: likelier the further behind it is.
     'cluster-upgrade': () => Math.max(0, ...clusterTargets(game).map(([, weight]) => weight)),
+    // Java warms for 30 s, so copies an Autoscaler adds during a spike make p99 worse (11).
+    'jvm-warmup': () => Math.max(0, ...javaTargets(game, ledger).map(([, weight]) => weight)),
+    // A big table and no online migrations: the ALTER holds its lock through the copy.
+    'migration-lock': () =>
+      busiest(game, ledger, 'database') ? (has(game, 'online-migrations') ? 0.3 : 2.5) : 0,
+    // Every Service installs its dependencies; scanning is the only thing that reads them.
+    'supply-chain': () =>
+      game.nodes.some((node) => node.type === 'server' && busy(ledger, node))
+        ? has(game, 'dependency-scanning')
+          ? 0.5
+          : 2
+        : 0,
+    // A table with no restorable backup is gone for good; a drill proves the backup.
+    'accidental-delete': () => {
+      const database = busiest(game, ledger, 'database')
+      if (!database) return 0
+      if (database.backup === 'none' || database.restore === 'failed') return 3
+      return has(game, 'restore-drills') ? 0.5 : 1
+    },
+    // A plan shows what a command removes; without one, a typo takes the whole Component.
+    'operator-typo': () => {
+      const target = dataTarget(game, ledger)
+      if (!target) return 0
+      return has(game, 'infra-as-code') ? 0.5 : 2
+    },
+    // A clock that jumps breaks the timers and leases of one region; smearing stops the jump.
+    'leap-second': () =>
+      game.nodes.some((node) => node.type === 'server' && !isDown(node) && busy(ledger, node))
+        ? has(game, 'leap-smearing')
+          ? 0.3
+          : 1.5
+        : 0,
   }
   return weakness[kind]()
 }
@@ -457,6 +522,7 @@ export const startIncident = (
   roll: number,
   only?: ComponentId,
   service?: string,
+  causedBy: IncidentId | null = null,
 ): Readonly<{ game: Game; incident: Incident }> | null => {
   const target = Match.value(kind).pipe(
     Match.when('instance', () =>
@@ -504,7 +570,16 @@ export const startIncident = (
     }),
     Match.when('reconnect', () => busiest(game, ledger, 'ws')),
     Match.when('cluster-upgrade', () => pickWeighted(clusterTargets(game), roll)),
-    Match.when('hot-shard', () => busiest(game, ledger, 'database')),
+    Match.when(
+      (id) => id === 'hot-shard' || id === 'migration-lock' || id === 'accidental-delete',
+      () => busiest(game, ledger, 'database'),
+    ),
+    Match.when('jvm-warmup', () => pickWeighted(javaTargets(game, ledger), roll)),
+    Match.when(
+      (id) => id === 'supply-chain' || id === 'leap-second',
+      () => busiest(game, ledger, 'server'),
+    ),
+    Match.when('operator-typo', () => dataTarget(game, ledger)),
     Match.when('hot-key', () => {
       const targets = hotKeyTargets(game, ledger)
       return targets[Math.floor(roll * targets.length)]
@@ -535,17 +610,26 @@ export const startIncident = (
     'hot-key',
     'cluster-upgrade',
     'hot-shard',
+    'jvm-warmup',
+    'migration-lock',
+    'supply-chain',
+    'accidental-delete',
+    'operator-typo',
+    'leap-second',
   ] as const
   if ((targeted as ReadonlyArray<IncidentId>).includes(kind) && !target) return null
-  // A Region outage strikes the region most of the Design depends on; the DR drill, home.
+  // A Region outage strikes the region most of the Design depends on; the DR drill, home; a leap
+  // second the target App Server's own region.
   const region =
     kind === 'dr-drill'
       ? HOME_REGION
-      : kind === 'region'
-        ? (busiestRegion(game) ?? null)
-        : kind === 'config'
-          ? configRegion(game)
-          : null
+      : kind === 'leap-second'
+        ? (target?.region ?? null)
+        : kind === 'region'
+          ? (busiestRegion(game) ?? null)
+          : kind === 'config'
+            ? configRegion(game)
+            : null
   if ((kind === 'region' || kind === 'config') && region === null) return null
   // A bad config push crashes every App Server and Worker it reaches.
   const pushed = kind === 'config' && region !== null ? configReach(game, region) : []
@@ -570,6 +654,8 @@ export const startIncident = (
     region,
     // A bad deploy names the Service whose code broke; every other incident hits the Design.
     service: kind === 'bad-deploy' ? (service ?? serviceOf(game).id) : null,
+    // A cascade names the incident it followed, so the pager and the postmortem show the chain.
+    causedBy,
   }
   // A stampede: the Cache restarted empty, or mostly warm with Cache warming.
   // A zone outage downs its zone for the incident; a Node with a standby fails over.
@@ -580,7 +666,7 @@ export const startIncident = (
           ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
           downAt: game.time,
         }
-      : kind !== 'config' &&
+      : (kind === 'region' || kind === 'dr-drill') &&
           region !== null &&
           node.region === region &&
           !survivesRegion(game, node) &&
@@ -590,59 +676,76 @@ export const startIncident = (
             ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
             downAt: game.time,
           }
-        : zone !== null && zoned(node) && node.zone === zone && !isDown(node)
+        : // An operator's command takes most of a data Component's Nodes with it: every Node of
+          // the target's type in its region goes down, not just the one it named (11).
+          kind === 'operator-typo' &&
+            target !== undefined &&
+            node.type === target.type &&
+            node.region === target.region &&
+            !isDown(node)
           ? {
               ...node,
-              ...takeDown(
-                node.life,
-                node.standby ? failoverSeconds(game) : incidentDuration(game, 'zone'),
-                'failure',
-              ),
+              ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
               downAt: game.time,
             }
-          : node.id !== target?.id
-            ? node
-            : kind === 'reconnect'
-              ? // The Hub restarted: it is back, cold, and every client reconnects at once.
-                { ...node, life: withWarm(node.life, 0) }
-              : kind === 'instance' && node.type === 'wide'
-                ? // A Wide-column Store loses one replica and keeps serving the quorums it can still form.
-                  { ...node, lost: incidentDuration(game, kind) }
-                : kind === 'instance'
-                  ? {
-                      ...node,
-                      // A standby takes over: the Node is back once failover finishes. A Cluster
-                      // reschedules a pod on another host by itself (self-healing).
-                      ...takeDown(
-                        node.life,
-                        node.standby
-                          ? failoverSeconds(game)
-                          : clusterOf(game, node) !== undefined
-                            ? rescheduleSeconds(game)
-                            : -1,
-                        'failure',
-                      ),
-                      downAt: game.time,
-                    }
-                  : kind === 'stampede'
+          : zone !== null && zoned(node) && node.zone === zone && !isDown(node)
+            ? {
+                ...node,
+                ...takeDown(
+                  node.life,
+                  node.standby ? failoverSeconds(game) : incidentDuration(game, 'zone'),
+                  'failure',
+                ),
+                downAt: game.time,
+              }
+            : node.id !== target?.id
+              ? node
+              : kind === 'reconnect'
+                ? // The Hub restarted: it is back, cold, and every client reconnects at once.
+                  { ...node, life: withWarm(node.life, 0) }
+                : kind === 'instance' && node.type === 'wide'
+                  ? // A Wide-column Store loses one replica and keeps serving the quorums it can still form.
+                    { ...node, lost: incidentDuration(game, kind) }
+                  : kind === 'instance'
                     ? {
                         ...node,
-                        life: withWarm(
+                        // A standby takes over: the Node is back once failover finishes. A Cluster
+                        // reschedules a pod on another host by itself (self-healing).
+                        ...takeDown(
                           node.life,
-                          node.warming && has(game, 'cache-warming') ? WARMED : 0,
+                          node.standby
+                            ? failoverSeconds(game)
+                            : clusterOf(game, node) !== undefined
+                              ? rescheduleSeconds(game)
+                              : -1,
+                          'failure',
                         ),
+                        downAt: game.time,
                       }
-                    : kind === 'gpu-shortage'
+                    : kind === 'stampede'
                       ? {
                           ...node,
-                          ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
-                          downAt: game.time,
+                          life: withWarm(
+                            node.life,
+                            node.warming && has(game, 'cache-warming') ? WARMED : 0,
+                          ),
                         }
-                      : node,
+                      : kind === 'gpu-shortage'
+                        ? {
+                            ...node,
+                            ...takeDown(node.life, incidentDuration(game, kind), 'failure'),
+                            downAt: game.time,
+                          }
+                        : node,
   )
   // An audit finding resets the DR drill: it must pass again.
   const drill = kind === 'audit' ? null : game.drill
-  return { game: { ...game, nodes, drill, incident, lastIncident: kind }, incident }
+  // A malicious package ships the data out: users leave at once, and the postmortem counts them.
+  const lost = kind === 'supply-chain' ? Math.floor(game.users * SUPPLY_CHAIN_CHURN) : 0
+  return {
+    game: { ...game, nodes, drill, incident, lastIncident: kind, users: game.users - lost },
+    incident,
+  }
 }
 
 /** Rolls the next incident when one is due. */
@@ -706,6 +809,7 @@ const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem 
     failed: incident.failed,
     severity: incident.severity,
     endedAt: game.time,
+    causedBy: incident.causedBy,
     action: game.sandbox
       ? null
       : (INCIDENTS[incident.kind].actions.find((id) => !has(game, id) && researchReady(game, id)) ??
@@ -740,10 +844,30 @@ const resolvesItself = (game: Game, incident: Incident, target: GameNode | undef
   return false
 }
 
+/**
+ * Whether the incident festered: nobody answered it, the player or a rotation (11 "Cascades").
+ * A run the Design or a runbook ended never counts, because it was handled.
+ */
+export const leftAlone = (incident: Incident): boolean =>
+  incident.ackAt === null && incident.remaining <= 0 && incident.causedBy === null
+
+/**
+ * The incident a left-alone one starts, or null (11 "One at a time, early"). Cascades arrive from
+ * Series A, take one hop only, and need the second one to have something to hit.
+ */
+const cascadesInto = (game: Game, ledger: Ledger, incident: Incident): IncidentId | null => {
+  if (game.sandbox || game.stage < CASCADE_FROM_STAGE) return null
+  if (!leftAlone(incident)) return null
+  const next = CASCADES[incident.kind]
+  if (!next) return null
+  return weaknessOf(game, ledger, next) > 0 ? next : null
+}
+
 /** Ends the running incident: undoes its effect and files a postmortem to write. */
 const resolve = (
   game: Game,
   auto = false,
+  ledger?: Ledger,
 ): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
   const incident = game.incident
   if (!incident) return { game, events: [] }
@@ -777,27 +901,52 @@ const resolve = (
     if (incident.kind === 'retry-storm' && node.depth > 0) return { ...node, depth: 0 }
     return node
   })
+  const cleared: Game = {
+    ...game,
+    nodes,
+    incident: null,
+    postmortems: game.sandbox ? game.postmortems : [...game.postmortems, postmortem].slice(-4),
+    postmortemSeq: postmortem.id,
+    openActions:
+      postmortem.action && !game.openActions.includes(postmortem.action)
+        ? [...game.openActions, postmortem.action]
+        : game.openActions,
+    // A run that a player ended is one the team has handled by hand, so it may get a runbook.
+    handled:
+      auto || game.handled.includes(incident.kind)
+        ? game.handled
+        : [...game.handled, incident.kind],
+  }
+  const events: Array<StepEvent> = [
+    ...(killed ? [StepEvent.OutOfMemory({ nodeId: killed.id })] : []),
+    StepEvent.IncidentResolved({ postmortem }),
+  ]
+  // One at a time: a cascade starts after its cause has ended, never beside it (11).
+  if (!ledger) return { game: cleared, events }
+  const cascade = cascadesInto(cleared, ledger, incident)
+  if (cascade === null) return { game: cleared, events }
+  const [roll, seed] = nextRandom(cleared.seed)
+  const started = startIncident(
+    { ...cleared, seed },
+    ledger,
+    cascade,
+    roll,
+    undefined,
+    undefined,
+    incident.kind,
+  )
+  if (!started) return { game: cleared, events }
+  events.push(StepEvent.IncidentStarted({ incident: started.incident }))
+  // The cascade holds the director's clock: its own run, then the usual gap before the next one.
   return {
     game: {
-      ...game,
-      nodes,
-      incident: null,
-      postmortems: game.sandbox ? game.postmortems : [...game.postmortems, postmortem].slice(-4),
-      postmortemSeq: postmortem.id,
-      openActions:
-        postmortem.action && !game.openActions.includes(postmortem.action)
-          ? [...game.openActions, postmortem.action]
-          : game.openActions,
-      // A run that a player ended is one the team has handled by hand, so it may get a runbook.
-      handled:
-        auto || game.handled.includes(incident.kind)
-          ? game.handled
-          : [...game.handled, incident.kind],
+      ...started.game,
+      nextIncidentAt: Math.max(
+        cleared.nextIncidentAt,
+        started.game.time + started.incident.remaining + INCIDENT_GAP,
+      ),
     },
-    events: [
-      ...(killed ? [StepEvent.OutOfMemory({ nodeId: killed.id })] : []),
-      StepEvent.IncidentResolved({ postmortem }),
-    ],
+    events,
   }
 }
 
@@ -833,24 +982,30 @@ export const advanceIncident = (
     lostRevenue: incident.lostRevenue + Math.max(0, incident.baseline - ledger.revenue) * seconds,
     failed: incident.failed + ledger.errorShare * ledger.demand * seconds,
   }
-  // Halfway through, an incident that has hurt users more than half the time steps up once.
+  // Halfway through, an incident that has hurt users more than half the time steps up once. An
+  // incident the design gives no arrow has no second severity (11 "Severity").
   const def = INCIDENTS[incident.kind]
   const half = incidentDuration(game, incident.kind) / 2
   const elapsed = game.time - incident.startedAt
-  const escalates =
+  const stepsTo =
+    def.escalatesTo !== null &&
     !game.sandbox &&
     incident.severity === def.severity &&
     elapsed >= half &&
     elapsed - seconds < half &&
     counted.impaired > elapsed / 2
-  const tracked: Incident = escalates
-    ? {
-        ...counted,
-        severity: def.escalatesTo,
-        remaining: counted.remaining * ESCALATION,
-        magnitude: incident.kind === 'spike' ? incident.magnitude * ESCALATION : incident.magnitude,
-      }
-    : counted
+      ? def.escalatesTo
+      : null
+  const tracked: Incident =
+    stepsTo !== null
+      ? {
+          ...counted,
+          severity: stepsTo,
+          remaining: counted.remaining * ESCALATION,
+          magnitude:
+            incident.kind === 'spike' ? incident.magnitude * ESCALATION : incident.magnitude,
+        }
+      : counted
   // On-call answers the page: the rotation acknowledges it a few seconds after the signal.
   const acked: Incident =
     tracked.ackAt === null &&
@@ -910,10 +1065,20 @@ export const advanceIncident = (
       elapsedAfter >= SPOT_WARNING &&
       (!held || held.life._tag !== 'Restarting')) ||
     // The Hub is warm again: the reconnect wave is over.
-    (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running'))
+    (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running')) ||
+    // Re-adding capacity: a Node of the Component the command emptied serves again (11).
+    (incident.kind === 'operator-typo' &&
+      target !== undefined &&
+      game.nodes.some(
+        (node) =>
+          node.id !== target.id &&
+          node.type === target.type &&
+          node.region === target.region &&
+          !isDown(node),
+      ))
   // Fixed before its clock ran out, by a path the Design takes on its own: record that.
   const healed = fixed && acked.remaining > 0 && resolvesItself(game, incident, target)
-  return acked.remaining <= 0 || fixed ? resolve(next, healed) : { game: next, events: [] }
+  return acked.remaining <= 0 || fixed ? resolve(next, healed, ledger) : { game: next, events: [] }
 }
 
 /** Starts an incident on demand, for the playtest panel and Sandbox scripts. */

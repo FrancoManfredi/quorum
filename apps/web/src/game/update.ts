@@ -4085,6 +4085,22 @@ const handle = (model: Model, message: Message): Result =>
       logResponse(model, 'delete-message') ??
       act(model, 'Deleted the poison message', Actions.deleteMessage(model.board.game)),
 
+    SchemaMigrationCancelled: () =>
+      logResponse(model, 'cancel-migration') ??
+      act(model, 'Cancelled the migration', Actions.cancelMigration(model.board.game)),
+
+    DependencyPinned: () =>
+      logResponse(model, 'pin-and-redeploy') ??
+      act(model, 'Pinned the dependency', Actions.pinAndRedeploy(model.board.game)),
+
+    TableRestored: () =>
+      logResponse(model, 'restore-backup') ??
+      act(model, 'Restored from backup', Actions.restoreBackup(model.board.game)),
+
+    ClocksRestarted: () =>
+      logResponse(model, 'restart-clocks') ??
+      act(model, 'Restarted the Nodes', Actions.restartClocks(model.board.game)),
+
     NodeSold: ({ nodeId }) =>
       act(
         model,

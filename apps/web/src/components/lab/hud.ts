@@ -56,7 +56,7 @@ import {
   guidanceOpen,
   quarterGrowth,
 } from '@quorum/simulation/quarters'
-import { budgetOf, budgeted } from '@quorum/simulation/slo'
+import { budgetOf, budgeted, slaCreditsOf } from '@quorum/simulation/slo'
 import { marginOf, valuationOf } from '@quorum/simulation/valuation'
 import { clockOf } from '@quorum/simulation/solve'
 import { devHoursRate } from '@quorum/simulation/team'
@@ -97,6 +97,7 @@ const CHIP_ORDER: Record<string, string> = {
   p99: 'compact:order-3',
   Latency: 'compact:order-3',
   SLO: 'compact:order-2',
+  SLA: 'compact:order-2',
 }
 
 /** One stat: a glyph and its name, then the value and a short note. */
@@ -586,6 +587,8 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   const percentiles = has(game, 'percentiles')
   const runway = runwayOf(game, ledger)
   const short = game.cash <= 0
+  // The SLA pays its credits on top of Burn: its own HUD row names them beside the runway (11).
+  const credit = slaCreditsOf(game, ledger)
   const cashNote = game.bridge
     ? 'Bridge offered'
     : short
@@ -654,6 +657,19 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
               )
             : h.empty,
           budgeted(game) ? slo(game, h) : h.empty,
+          // The SLA pays 10% of subscriptions back while the week misses: its own row names
+          // the money, so the player sees why Cash falls faster than the Burn beside it (11).
+          credit > 0
+            ? stat(
+                'SLA',
+                Wallet,
+                `−${money(credit)}/s`,
+                '',
+                'danger',
+                h,
+                `SLA credits: the Venture pays ${money(credit)}/s back to customers while the week sits under ${percent(budgetOf(game).slo)}`,
+              )
+            : h.empty,
           stat(
             percentiles ? 'p99' : 'Latency',
             Timer,

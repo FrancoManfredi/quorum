@@ -160,6 +160,7 @@ test('a resolved incident asks a teammate to file the postmortem', () => {
     action: 'caching',
     severity: 2,
     endedAt: 600,
+    causedBy: null,
   }
   const mail = postmortemFact(postmortem, game)
   // The sender is a person: the design gives the postmortem to a teammate, not the pager.

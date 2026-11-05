@@ -323,6 +323,11 @@ export const Message = defineMessageUnion({
   VolumeExpanded: {},
   CertificateRenewed: {},
   MessageDeleted: {},
+  /** Responses the six hand-written incident kinds need (11 "The six kinds"). */
+  SchemaMigrationCancelled: {},
+  DependencyPinned: {},
+  TableRestored: {},
+  ClocksRestarted: {},
   NodeSold: { nodeId: Schema.String },
   Collected: {},
   /** Hovering an option opens its Tradeoff card; clicking pins it, or applies it once seen. */

@@ -171,7 +171,7 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 186 items across 10 tracks; the build has 152 of
+a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 154 of
 them across all 10.
 
 ### Recipes
@@ -391,35 +391,39 @@ range.
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
 | `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
 
-**Built: 23 of 26.** Not built yet: `online-migrations`, `outbox`, `expand-contract`.
+**Built: 24 of 26.** Not built yet: `outbox`, `expand-contract`. `online-migrations` is in the build: a
+migration no longer holds a big table's lock ([Incidents](/design/11-incidents#the-six-kinds)).
 
 ### Track: Reliability
 
-| ID                     | Name                     | Era      | ◇       | Requires                         | Effect                                                                        |
-| ---------------------- | ------------------------ | -------- | ------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| `timeouts`             | Timeouts and retries     | Pre-seed | 60      | —                                | Link timeout and naive retries                                                |
-| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline, with Recreate and Rolling                                     |
-| `backoff-jitter`       | Backoff with jitter      | Seed     | 400     | `timeouts`                       | Retry policy option                                                           |
-| `cert-automation`      | Certificate automation   | Seed     | 300     | —                                | Secrets and Certificates                                                      |
-| `blue-green`           | Blue-green deploys       | Seed     | 900     | `ci`                             | Blue-green deploy strategy                                                    |
-| `feature-flags`        | Feature flags            | Seed     | 800     | `ci`                             | Feature Flags                                                                 |
-| `circuit-breakers`     | Circuit breakers         | Series A | 2,500   | `backoff-jitter`                 | Link option                                                                   |
-| `bulkheads`            | Bulkheads                | Series A | 3,500   | `circuit-breakers`               | Link option                                                                   |
-| `load-shedding`        | Priority load shedding   | Series A | 4,000   | `timeouts`                       | When saturated, drop the lowest-value kinds first                             |
-| `graceful-degradation` | Graceful degradation     | Series A | 3,000   | `feature-flags`                  | Turn off expensive features automatically during overload                     |
-| `canary`               | Canary deploys           | Series A | 3,000   | `ci`, `percentiles`              | Canary deploy strategy                                                        |
-| `on-call`              | On-call rotation         | Series A | 2,000   | `alerting`                       | Faster triage; incidents page the player                                      |
-| `error-budgets`        | Error budgets            | Series A | 3,000   | `slo-dashboards`                 | Velocity bonus with budget left, freeze when spent                            |
-| `runbooks`             | Runbooks                 | Series A | 5,000   | `on-call`                        | Automatic mitigation for known incident types                                 |
-| `restore-drills`       | Restore drills           | Series A | 2,000   | `pitr`                           | Removes the failed-restore chance                                             |
-| `idempotency-keys`     | Idempotency keys         | Series A | 1,500   | `checkout`                       | A retried charge never charges twice                                          |
-| `hedged-requests`      | Hedged requests          | Series C | 100,000 | `tracing`                        | Send a second request after the p95; cuts the tail, adds load                 |
-| `chaos-engineering`    | Chaos engineering        | Pre-IPO  | 300,000 | `runbooks`                       | Scheduled failure injection that earns Failure Insight and reveals weak spots |
-| `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                        |
+| ID                     | Name                     | Era      | ◇       | Requires                         | Effect                                                                                         |
+| ---------------------- | ------------------------ | -------- | ------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `timeouts`             | Timeouts and retries     | Pre-seed | 60      | —                                | Link timeout and naive retries                                                                 |
+| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline, with Recreate and Rolling                                                      |
+| `backoff-jitter`       | Backoff with jitter      | Seed     | 400     | `timeouts`                       | Retry policy option                                                                            |
+| `cert-automation`      | Certificate automation   | Seed     | 300     | —                                | Secrets and Certificates                                                                       |
+| `blue-green`           | Blue-green deploys       | Seed     | 900     | `ci`                             | Blue-green deploy strategy                                                                     |
+| `feature-flags`        | Feature flags            | Seed     | 800     | `ci`                             | Feature Flags                                                                                  |
+| `circuit-breakers`     | Circuit breakers         | Series A | 2,500   | `backoff-jitter`                 | Link option                                                                                    |
+| `bulkheads`            | Bulkheads                | Series A | 3,500   | `circuit-breakers`               | Link option                                                                                    |
+| `load-shedding`        | Priority load shedding   | Series A | 4,000   | `timeouts`                       | When saturated, drop the lowest-value kinds first                                              |
+| `graceful-degradation` | Graceful degradation     | Series A | 3,000   | `feature-flags`                  | Turn off expensive features automatically during overload                                      |
+| `canary`               | Canary deploys           | Series A | 3,000   | `ci`, `percentiles`              | Canary deploy strategy                                                                         |
+| `on-call`              | On-call rotation         | Series A | 2,000   | `alerting`                       | Faster triage; incidents page the player                                                       |
+| `error-budgets`        | Error budgets            | Series A | 3,000   | `slo-dashboards`                 | Velocity bonus with budget left, freeze when spent                                             |
+| `runbooks`             | Runbooks                 | Series A | 5,000   | `on-call`                        | Automatic mitigation for known incident types                                                  |
+| `restore-drills`       | Restore drills           | Series A | 2,000   | `pitr`                           | Removes the failed-restore chance                                                              |
+| `idempotency-keys`     | Idempotency keys         | Series A | 1,500   | `checkout`                       | A retried charge never charges twice                                                           |
+| `hedged-requests`      | Hedged requests          | Series C | 100,000 | `tracing`                        | Send a second request after the p95; cuts the tail, adds load                                  |
+| `chaos-engineering`    | Chaos engineering        | Pre-IPO  | 300,000 | `runbooks`                       | Scheduled failure injection that earns Failure Insight and reveals weak spots                  |
+| `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                                         |
+| `leap-smearing`        | Leap smearing            | Series C | 60,000  | —                                | A clock never jumps, so no timer fires twice ([Incidents](/design/11-incidents#the-six-kinds)) |
 
-**Built: 15 of 19.** Not built yet: `bulkheads`, `graceful-degradation`, `hedged-requests`,
-`chaos-engineering`. `on-call` and `runbooks` are in the build: the rotation answers the page, and a
-written runbook resolves its incident kind by itself ([Incidents](/design/11-incidents#runbooks)).
+**Built: 16 of 20.** Not built yet: `bulkheads`, `graceful-degradation`, `hedged-requests`,
+`chaos-engineering`. `on-call`, `runbooks` and `leap-smearing` are in the build: the rotation answers
+the page, a written runbook resolves its incident kind by itself
+([Incidents](/design/11-incidents#runbooks)), and a leap smear keeps a clock jump from timing out a
+region.
 
 ### Track: Observability
 

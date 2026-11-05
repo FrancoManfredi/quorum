@@ -200,6 +200,10 @@ export const fr: Readonly<Record<string, string>> = {
   'alert > 1%': 'alerte > 1 %',
   Saturation: 'Saturation',
   'Money and error budget': 'Finances et budget d’erreur',
+  Money: 'Finances',
+  'SLA credits': 'Crédits SLA',
+  'Availability · week': 'Disponibilité · semaine',
+  'Error budget left': 'Budget d’erreur restant',
   'Revenue and Burn': 'Revenus et dépenses',
   '$/s': '$/s',
   Burn: 'Dépenses',
@@ -397,6 +401,8 @@ export const fr: Readonly<Record<string, string>> = {
   'File and leave the action item open: this incident stays twice as likely':
     "Classer et laisser l'action ouverte : cet incident reste deux fois plus probable",
   'Show details': 'Afficher les détails',
+  'Not seen': 'Non détecté',
+  'Awaiting ack': 'En attente d’acquittement',
   'SEV{0}': 'SEV{0}',
   MTTR: 'MTTR',
   '{0}m': '{0} min',
@@ -3881,4 +3887,41 @@ export const fr: Readonly<Record<string, string>> = {
   '{0} engineers': '{0} ingénieurs',
   '{0} of {1}': '{0} sur {1}',
   '{0} d': '{0} j',
+  'Cascading failure': 'Défaillance en cascade',
+  'From Series A, an Incident nobody answers can start another when it ends, and the second records the first as its cause. A Slow query left alone starts a Retry storm, a Retry storm starts Connection exhaustion, and a Memory leak starts a GC pause storm; the pager names the chain, and the postmortem card says what it followed. Answering an Incident in any way, even acknowledging it, stops it from cascading, and a chain stops after one hop.':
+    "À partir de la série A, un incident auquel personne ne répond peut en déclencher un autre en se terminant, et le second enregistre le premier comme cause. Une requête lente laissée seule déclenche une tempête de réessais, une tempête de réessais déclenche un épuisement des connexions, et une fuite mémoire déclenche une tempête de pauses GC ; le pager nomme la chaîne et la fiche postmortem dit ce qu'elle a suivi. Répondre à un incident, même par un simple accusé, empêche la cascade, et une chaîne s'arrête après un saut.",
+  'AWS: Automating safe, hands-off deployments': 'AWS: Automating safe, hands-off deployments',
+  'Google SRE book: Cascading failures': 'Google SRE book: Cascading failures',
+  'Leap smearing': 'Étalement de la seconde intercalaire',
+  'Google: Leap Smear': 'Google: Leap Smear',
+  'Cloudflare: How and why we leap smear': 'Cloudflare: How and why we leap smear',
+  'JVM warmup under load': 'Préchauffage JVM sous charge',
+  'An Autoscaler added Java App Servers during a spike, and the new copies ran cold: 30% speed for their first 30 s.':
+    "Un autoscaler a ajouté des serveurs d'application Java pendant un pic, et les nouvelles copies ont démarré à froid : 30 % de vitesse pendant leurs 30 premières s.",
+  'Slow start on the Load Balancer is not built. Scheduled scaling and a GraalVM native image are: native code starts warm.':
+    "Le démarrage progressif du répartiteur de charge n'est pas construit. La montée en charge planifiée et une image native GraalVM le sont : le code natif démarre chaud.",
+  'Schema migration lock': 'Verrou de migration de schéma',
+  'A migration ran ALTER TABLE on the biggest table. It held the lock while it copied it, and every write queued behind it until it timed out.':
+    "Une migration a lancé ALTER TABLE sur la plus grande table. Elle a tenu le verrou pendant la copie, et chaque écriture s'est mise en file derrière elle jusqu'au délai dépassé.",
+  'Online schema migrations change a big table without holding the lock.':
+    'Les migrations de schéma en ligne modifient une grande table sans tenir le verrou.',
+  'Supply-chain compromise': "Compromission de la chaîne d'approvisionnement",
+  'A dependency published a malicious version, and a deploy installed it. The package ran in the App Servers and shipped data out.':
+    "Une dépendance a publié une version malveillante, et un déploiement l'a installée. Le paquet s'est exécuté dans les serveurs d'application et a exfiltré des données.",
+  'Accidental delete': 'Suppression accidentelle',
+  'An operator deleted data. A table was gone, and every query that needed it failed.':
+    'Un opérateur a supprimé des données. Une table avait disparu, et chaque requête qui en dépendait échouait.',
+  'Point-in-time recovery restores the table to the minute before the delete. Restore drills prove the backup restores.':
+    'La restauration à un instant donné remet la table à la minute précédant la suppression. Les exercices de restauration prouvent que la sauvegarde restaure.',
+  'Operator typo': "Faute de frappe d'opérateur",
+  'A plan and a review before a change is applied show what it will remove, so a typo stops at the plan.':
+    "Un plan et une revue avant l'application d'un changement montrent ce qu'il supprimera : une faute de frappe s'arrête au plan.",
+  'Leap second or clock skew': "Seconde intercalaire ou dérive d'horloge",
+  'Leap smearing spreads the second over a day, so no clock ever jumps.':
+    "L'étalement de la seconde intercalaire répartit la seconde sur une journée, donc aucune horloge ne saute.",
+  'Online schema migrations': 'Migrations de schéma en ligne',
+  'Changes a big table without holding its lock, so writes keep flowing through a migration.':
+    'Modifie une grande table sans tenir son verrou, donc les écritures continuent pendant une migration.',
+  'Spreads a leap second over the whole day, so no clock jumps and no lease expires early.':
+    "Répartit la seconde intercalaire sur toute la journée : aucune horloge ne saute et aucun bail n'expire trop tôt.",
 }

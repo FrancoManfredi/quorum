@@ -50,6 +50,10 @@ export const RESPONSES = [
   'expand-volume',
   'renew-certificate',
   'delete-message',
+  'cancel-migration',
+  'pin-and-redeploy',
+  'restore-backup',
+  'restart-clocks',
 ] as const
 export type Response = (typeof RESPONSES)[number]
 
@@ -311,6 +315,10 @@ const RESPOND: Record<Response, (game: Game) => Actions.Action> = {
   'expand-volume': Actions.expandVolume,
   'renew-certificate': Actions.renewCertificate,
   'delete-message': Actions.deleteMessage,
+  'cancel-migration': Actions.cancelMigration,
+  'pin-and-redeploy': Actions.pinAndRedeploy,
+  'restore-backup': Actions.restoreBackup,
+  'restart-clocks': Actions.restartClocks,
 }
 
 /** Applies one run action. A refused action changes nothing, as a refused click does. */

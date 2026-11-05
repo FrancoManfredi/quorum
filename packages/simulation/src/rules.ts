@@ -636,6 +636,21 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         (kind === 'q-write' || kind === 'q-tx' || kind === 'blob-put')
       )
         return failed('refused')
+      // A migration holds the table's lock while it copies it: writes queue and time out
+      // (11 "Schema migration lock").
+      if (
+        answer.game.incident?.kind === 'migration-lock' &&
+        answer.game.incident.nodeId === node.id &&
+        (kind === 'q-write' || kind === 'q-tx')
+      )
+        return failed('timeout')
+      // A deleted table: every read and write that needs it fails until a restore (11).
+      if (
+        answer.game.incident?.kind === 'accidental-delete' &&
+        answer.game.incident.nodeId === node.id &&
+        (kind === 'q-read' || kind === 'q-write' || kind === 'q-tx')
+      )
+        return failed('refused')
       const pool = answer.pass.connections[slotOf(answer.pass, node)]
       const refused = pool && pool.used > pool.max ? 1 - pool.max / pool.used : 0
       const reply: Outcome = {

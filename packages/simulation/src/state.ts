@@ -398,6 +398,11 @@ export const Incident = Schema.Struct({
    * in a save from before Services were named.
    */
   service: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  /**
+   * The incident that was left alone and started this one, or null when the director picked it
+   * (11 "One at a time, early"). Null in a save from before cascades.
+   */
+  causedBy: Schema.NullOr(IncidentId).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
 })
 export type Incident = typeof Incident.Type
 
@@ -429,6 +434,11 @@ export const Postmortem = Schema.Struct({
   endedAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The Design resolved it by itself, with no player action (11 "Runbooks"). */
   auto: Schema.optionalKey(Schema.Boolean),
+  /**
+   * The incident left alone that started this one, so the card shows the chain (11 "Cascades").
+   * Null for an incident the director picked, and in a save from before cascades.
+   */
+  causedBy: Schema.NullOr(IncidentId).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The Service whose code failed, so the card can name the team that was paged. */
   service: Schema.optionalKey(Schema.NullOr(Schema.String)),
 })

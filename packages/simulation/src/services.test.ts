@@ -62,6 +62,7 @@ const incident = (change: Partial<Incident>): Incident => ({
   magnitude: 3,
   zone: null,
   region: null,
+  causedBy: null,
   ...change,
 })
 

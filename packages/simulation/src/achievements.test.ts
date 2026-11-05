@@ -61,6 +61,7 @@ const postmortem = (change: Partial<Postmortem>): Postmortem => ({
   action: null,
   severity: 3,
   endedAt: 600,
+  causedBy: null,
   ...change,
 })
 const resolved = (change: Partial<Postmortem>) =>
@@ -85,6 +86,7 @@ const incident = (kind: Incident['kind'], change: Partial<Incident> = {}): Incid
   magnitude: 3,
   zone: null,
   region: null,
+  causedBy: null,
   ...change,
 })
 const sample = (change: Partial<Sample> = {}): Sample => ({
@@ -185,6 +187,7 @@ describe('achievements', () => {
         magnitude: 10,
         zone: null,
         region: null,
+        causedBy: null,
       },
     }
     const clean = [resolved({ kind: 'spike', lostUsers: 0 })]

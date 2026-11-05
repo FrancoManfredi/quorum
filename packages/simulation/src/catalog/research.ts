@@ -160,6 +160,9 @@ export const RESEARCH_IDS = [
   'runbooks',
   'sre-team',
   'enterprise-sales',
+  // Two preventions the incident catalog names (11 "Catalog", 10 "Track: Data", "Track: Reliability").
+  'online-migrations',
+  'leap-smearing',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -1584,6 +1587,28 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     requires: [],
     blurb: 'Signs the SLA: a missed week of availability pays credits back to customers.',
   }),
+  // 10 "Track: Data": an ALTER TABLE on a big table holds its lock; this one does not.
+  research({
+    id: 'online-migrations',
+    name: 'Online schema migrations',
+    track: 'data',
+    cost: 4_000,
+    era: 3,
+    requires: ['query-analysis'],
+    blurb:
+      'Changes a big table without holding its lock, so writes keep flowing through a migration.',
+  }),
+  // 10 "Track: Reliability": a leap second repeats one, and every timer fires twice without this.
+  research({
+    id: 'leap-smearing',
+    name: 'Leap smearing',
+    track: 'reliability',
+    cost: 60_000,
+    era: 5,
+    requires: [],
+    blurb:
+      'Spreads a leap second over the whole day, so no clock jumps and no lease expires early.',
+  }),
 ]
 
 export const RESEARCH: Record<ResearchId, ResearchDef> = Object.fromEntries(
@@ -1664,6 +1689,8 @@ const RECIPES: Partial<Record<ResearchId, ReadonlyArray<InsightPool>>> = {
   caching: ['read'],
   pooling: ['write'],
   pitr: ['write'],
+  // 10's recipe for `online-migrations`: data loss shows under writes.
+  'online-migrations': ['write'],
   replication: ['read', 'write'],
   'ryw-routing': ['read', 'write'],
   sharding: ['read', 'write'],

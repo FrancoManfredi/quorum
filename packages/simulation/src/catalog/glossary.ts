@@ -456,6 +456,31 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     ],
   },
   {
+    id: 'cascading-failure',
+    term: 'Cascading failure',
+    category: 'reliability',
+    definition:
+      'A failure that jumps from one part of a system to another: one slow or broken component overloads its callers, whose retries and queues in turn overload theirs. The first failure is the trigger; the later ones are what makes the outage large, and they are why a small incident becomes a long one.',
+    inGame:
+      'From Series A, an Incident nobody answers can start another when it ends, and the second records the first as its cause. A Slow query left alone starts a Retry storm, a Retry storm starts Connection exhaustion, and a Memory leak starts a GC pause storm; the pager names the chain, and the postmortem card says what it followed. Answering an Incident in any way, even acknowledging it, stops it from cascading, and a chain stops after one hop.',
+    related: [
+      'metastable-failure',
+      'retry-with-backoff-and-jitter',
+      'thundering-herd',
+      'circuit-breaker',
+    ],
+    links: [
+      {
+        label: 'AWS: Automating safe, hands-off deployments',
+        url: 'https://aws.amazon.com/builders-library/automating-safe-hands-off-deployments/',
+      },
+      {
+        label: 'Google SRE book: Cascading failures',
+        url: 'https://sre.google/sre-book/addressing-cascading-failures/',
+      },
+    ],
+  },
+  {
     id: 'cdc-change-data-capture',
     term: 'CDC (change data capture)',
     category: 'data',
@@ -1442,6 +1467,23 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
       {
         label: 'Apache Cassandra docs: Dynamo',
         url: 'https://cassandra.apache.org/doc/latest/cassandra/architecture/dynamo.html',
+      },
+    ],
+  },
+  {
+    id: 'leap-smearing',
+    term: 'Leap smearing',
+    category: 'reliability',
+    definition:
+      'A timekeeping fix for the leap second: instead of letting every clock jump back or forward by a second at midnight UTC, a server spreads the change over a long window, often a whole day, so its clock runs very slightly fast or slow and never jumps. Google and Amazon do this on their own clocks. A jump is what hurts: a repeated second makes timers fire twice and leases expire early.',
+    inGame:
+      'The Leap second or clock skew Incident makes every Node in one region answer 1,000 ms late and time out 10% of its answers, until you restart the Nodes. Leap smearing (Series C) is the Research that keeps the jump from firing; the Clocks in a Challenge such as Leap Second are scripted as a regional App Server outage.',
+    related: ['timeout', 'network-partition', 'raft', 'mttr'],
+    links: [
+      { label: 'Google: Leap Smear', url: 'https://developers.google.com/time/smear' },
+      {
+        label: 'Cloudflare: How and why we leap smear',
+        url: 'https://blog.cloudflare.com/how-and-why-the-leap-second-affected-cloudflare-dns/',
       },
     ],
   },

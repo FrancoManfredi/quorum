@@ -48,6 +48,12 @@ export const INCIDENT_IDS = [
   'premiere-spike',
   'launch-day',
   'flash-sale',
+  'jvm-warmup',
+  'migration-lock',
+  'supply-chain',
+  'accidental-delete',
+  'operator-typo',
+  'leap-second',
 ] as const
 export type IncidentId = (typeof INCIDENT_IDS)[number]
 
@@ -88,8 +94,11 @@ export type IncidentDef = Readonly<{
   /** The first Era the director can pick it in. */
   era: number
   severity: 1 | 2 | 3
-  /** The severity it steps up to when it stays unmitigated (11 "Escalation"). */
-  escalatesTo: 1 | 2
+  /**
+   * The severity it steps up to when it stays unmitigated (11 "Escalation"), or null for an
+   * incident the design gives no arrow: that one has no second severity.
+   */
+  escalatesTo: 1 | 2 | null
   /** Sim seconds before it ends on its own. */
   duration: number
   /** What happened, for the postmortem. */
@@ -128,6 +137,50 @@ export const KIND_SURGE: Partial<Record<IncidentId, readonly [RequestKind, numbe
   'premiere-spike': ['media', PREMIERE_SURGE],
   'launch-day': ['rt', LAUNCH_SURGE],
   'flash-sale': ['buy', FLASH_SALE_SURGE],
+}
+
+/* ---------- the six kinds 11 names by hand ---------- */
+
+/**
+ * Sim seconds a JVM warmup under load lasts: 11 gives "30 s", the warmup a cold Tomcat takes
+ * (06 "Java"). It is the one number in this group the design gives.
+ */
+export const JVM_WARMUP_SECONDS = 30
+/** The five durations 11 gives no number for: proposed, between the catalog's 30 s and 300 s. */
+export const MIGRATION_LOCK_SECONDS = 150
+export const SUPPLY_CHAIN_SECONDS = 90
+export const ACCIDENTAL_DELETE_SECONDS = 120
+export const OPERATOR_TYPO_SECONDS = 120
+export const LEAP_SECOND_SECONDS = 60
+/** Share of the Users the supply-chain compromise drives away at once (proposed). */
+export const SUPPLY_CHAIN_CHURN = 0.1
+/** Share of the Users a restore that finds no good backup loses (proposed, 07 "Backups"). */
+export const DELETE_CHURN = 0.1
+/** Milliseconds a clock jump adds to a Node in the region, and the share of its answers that time out. */
+export const CLOCK_SKEW_MS = 1_000
+export const CLOCK_SKEW_LOSS = 0.1
+
+/* ---------- cascades (11 "One at a time, early") ---------- */
+
+/** Cascades start from Series A, when the design says they become possible. */
+export const CASCADE_FROM_STAGE = 3
+
+/**
+ * The incident one left alone can start, by the kind it leaves alone (11 "One at a time, early").
+ * The design says cascades happen and names no pairs, so this table is proposed: each pair is the
+ * failure the catalog's own flagship section describes — a slowdown plus retries, a cache gone
+ * cold, a heap that fills, a clock that jumps into a partition.
+ */
+export const CASCADES: Partial<Record<IncidentId, IncidentId>> = {
+  'slow-query': 'retry-storm',
+  'retry-storm': 'connections',
+  spike: 'connections',
+  stampede: 'slow-query',
+  leak: 'gc-storm',
+  'hot-key': 'stampede',
+  'migration-lock': 'retry-storm',
+  'accidental-delete': 'repl-lag',
+  'leap-second': 'partition',
 }
 
 export const INCIDENTS: Record<IncidentId, IncidentDef> = {
@@ -633,6 +686,84 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     cause: `A flash sale: ${FLASH_SALE_SURGE}× the usual checkouts for a few minutes.`,
     prevention: 'A Queue for the checkout work, an Autoscaler, and load shedding.',
     actions: ['autoscaling', 'load-shedding'],
+  },
+  // The six kinds the design names by hand: each severity, Era and duration below is proposed
+  // except where 11 gives one, and each prevention names its research in the build.
+  'jvm-warmup': {
+    id: 'jvm-warmup',
+    name: 'JVM warmup under load',
+    era: 2,
+    severity: 3,
+    escalatesTo: null,
+    duration: JVM_WARMUP_SECONDS,
+    cause:
+      'An Autoscaler added Java App Servers during a spike, and the new copies ran cold: 30% speed for their first 30 s.',
+    prevention:
+      'Slow start on the Load Balancer is not built. Scheduled scaling and a GraalVM native image are: native code starts warm.',
+    actions: ['graal-native', 'autoscaling'],
+  },
+  'migration-lock': {
+    id: 'migration-lock',
+    name: 'Schema migration lock',
+    era: 3,
+    severity: 2,
+    escalatesTo: null,
+    duration: MIGRATION_LOCK_SECONDS,
+    cause:
+      'A migration ran ALTER TABLE on the biggest table. It held the lock while it copied it, and every write queued behind it until it timed out.',
+    prevention: 'Online schema migrations change a big table without holding the lock.',
+    actions: ['online-migrations'],
+  },
+  'supply-chain': {
+    id: 'supply-chain',
+    name: 'Supply-chain compromise',
+    // SEV1 is the worst an incident can start at, and only Series B and later allow one (11).
+    era: 4,
+    severity: 1,
+    escalatesTo: null,
+    duration: SUPPLY_CHAIN_SECONDS,
+    cause:
+      'A dependency published a malicious version, and a deploy installed it. The package ran in the App Servers and shipped data out.',
+    prevention:
+      'Dependency scanning catches a published backdoor before the build installs it; Deno permissions keep a package from reading what it does not need.',
+    actions: ['dependency-scanning', 'deno'],
+  },
+  'accidental-delete': {
+    id: 'accidental-delete',
+    name: 'Accidental delete',
+    era: 4,
+    severity: 2,
+    escalatesTo: null,
+    duration: ACCIDENTAL_DELETE_SECONDS,
+    cause: 'An operator deleted data. A table was gone, and every query that needed it failed.',
+    prevention:
+      'Point-in-time recovery restores the table to the minute before the delete. Restore drills prove the backup restores.',
+    actions: ['pitr', 'restore-drills'],
+  },
+  'operator-typo': {
+    id: 'operator-typo',
+    name: 'Operator typo',
+    era: 5,
+    severity: 2,
+    escalatesTo: null,
+    duration: OPERATOR_TYPO_SECONDS,
+    cause:
+      'A command meant to remove one Node matched the whole Component, and most of its Nodes went with it.',
+    prevention:
+      'A plan and a review before a change is applied show what it will remove, so a typo stops at the plan.',
+    actions: ['infra-as-code'],
+  },
+  'leap-second': {
+    id: 'leap-second',
+    name: 'Leap second or clock skew',
+    era: 5,
+    severity: 1,
+    escalatesTo: null,
+    duration: LEAP_SECOND_SECONDS,
+    cause:
+      'A leap second repeated a second of the clock. Timers fired twice, leases expired early, and requests and locks across one region timed out.',
+    prevention: 'Leap smearing spreads the second over a day, so no clock ever jumps.',
+    actions: ['leap-smearing'],
   },
 }
 

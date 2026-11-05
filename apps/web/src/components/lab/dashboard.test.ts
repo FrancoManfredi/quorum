@@ -16,7 +16,15 @@ import { churnOf } from '@quorum/simulation/churn'
 import { preseedGame } from '@quorum/simulation/company'
 import type { KindLedger } from '@quorum/simulation/ledger'
 import { regionUsers, withRegionUsers } from '@quorum/simulation/regions'
-import type { Game, GameLink, GameNode, Postmortem, Sample } from '@quorum/simulation/state'
+import {
+  DEFAULT_FOUNDING,
+  type Game,
+  type GameLink,
+  type GameNode,
+  type Postmortem,
+  type Sample,
+} from '@quorum/simulation/state'
+import { budgetOf, slaCreditsOf } from '@quorum/simulation/slo'
 import { teamOutputs } from '@quorum/simulation/team'
 import { compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
 import { DashboardMessage } from '@/game/dashboard.ts'
@@ -413,6 +421,7 @@ test('the running Incident is marked once, with its severity', () => {
         magnitude: 3,
         zone: 'b',
         region: 'eu',
+        causedBy: null,
       },
     },
     board: {
@@ -523,6 +532,58 @@ test('the Company row draws Cash, Burn, Equity, runway and each team’s velocit
   )
 })
 
+test('the SLO row draws the week’s availability, its error budget and the SLA credit', () => {
+  const base = preseedGame()
+  const model = fixture({
+    game: {
+      // A B2B SaaS in Series B, under an SLA and selling to enterprises, with a week that missed.
+      stage: 4,
+      founding: { ...DEFAULT_FOUNDING, venture: 'b2b-saas' },
+      researched: [...new Set<ResearchId>([...base.researched, ...RESEARCHED, 'enterprise-sales'])],
+      shipped: ['paid-plans'],
+      budget: [{ hour: 0, requests: 10_000, failed: 500, users: base.users }],
+    },
+  })
+  const game = model.board.game
+  const ledger = ledgerOf(model)
+  const budget = budgetOf(game)
+  const credit = slaCreditsOf(game, ledger)
+  expect(budget.availability).toBeLessThan(budget.slo)
+  expect(credit).toBeGreaterThan(0)
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(row('SLO')).toExist(),
+    Scene.expect(panelOf('availability')).toContainText('Availability · week'),
+    Scene.expect(panelOf('availability')).toContainText(
+      `${(budget.availability * 100).toFixed(2)}%`,
+    ),
+    Scene.expect(panelOf('error-budget')).toContainText('Error budget left'),
+    // A week under its SLO has spent the budget the SLO allowed.
+    Scene.expect(panelOf('error-budget')).toContainText('spent'),
+    Scene.expect(panelOf('sla-credit')).toContainText('SLA credits'),
+    Scene.expect(panelOf('sla-credit')).toContainText(`−${money(credit)}/s`),
+  )
+})
+
+test('a week that met its SLO owes no SLA credit', () => {
+  const base = preseedGame()
+  const model = fixture({
+    game: {
+      stage: 4,
+      founding: { ...DEFAULT_FOUNDING, venture: 'b2b-saas' },
+      researched: [...new Set<ResearchId>([...base.researched, ...RESEARCHED, 'enterprise-sales'])],
+      shipped: ['paid-plans'],
+      budget: [{ hour: 0, requests: 10_000, failed: 0, users: base.users }],
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(panelOf('sla-credit')).toContainText('—'),
+  )
+})
+
 test('the Money card draws the Cash series its Samples carry, ending on the Cash it shows', () => {
   const history = [
     sampleOf({ cash: 8_000 }),
@@ -616,6 +677,7 @@ test('the Incidents row draws the running Incident’s severity, run, MTTR and c
         magnitude: 3,
         zone: 'b',
         region: null,
+        causedBy: null,
       },
     },
   })
@@ -654,6 +716,7 @@ const POSTMORTEMS: ReadonlyArray<Postmortem> = [
     action: 'health-checks',
     severity: 3,
     endedAt: 940,
+    causedBy: null,
   },
   {
     id: 2,
@@ -669,6 +732,7 @@ const POSTMORTEMS: ReadonlyArray<Postmortem> = [
     action: null,
     severity: 2,
     endedAt: 1_000,
+    causedBy: null,
   },
 ]
 
@@ -706,6 +770,10 @@ const clock = (time: number): string => {
 const laneOf = (name: string, severity: number, from: number, to: number) =>
   Scene.selector(`[title="${name}: SEV${severity} · ${clock(from)}–${clock(to)}"]`)
 
+/** A span of a lane before it was live: the seconds no one had seen it, then no one had
+ *  answered. */
+const phaseOf = (name: string, label: string) => Scene.selector(`[title="${name}: ${label}"]`)
+
 /** `seconds` one-second Samples, ending at the Game's clock. */
 const samplesOf = (seconds: number): ReadonlyArray<Sample> =>
   Array.from({ length: seconds }, () => sampleOf())
@@ -732,6 +800,7 @@ test('the Incident timeline places each Postmortem by the time it ran, and the r
         magnitude: 3,
         zone: 'b',
         region: null,
+        causedBy: null,
       },
     },
   })
@@ -740,13 +809,68 @@ test('the Incident timeline places each Postmortem by the time it ran, and the r
     Scene.given(model),
     Scene.expect(panelOf('incident-timeline')).toExist(),
     // Each Postmortem sits where its run began and ended, on the Dashboard's one time axis.
-    Scene.expect(laneOf(INCIDENTS.instance.name, 3, 850, 940)).toExist(),
+    // The bar is the acknowledged run: 3 minutes to the signal, 8 more to the answer.
+    Scene.expect(laneOf(INCIDENTS.instance.name, 3, 861, 940)).toExist(),
+    Scene.expect(phaseOf(INCIDENTS.instance.name, 'not seen · 3m')).toExist(),
+    Scene.expect(phaseOf(INCIDENTS.instance.name, 'awaiting ack · 8m')).toExist(),
     Scene.expect(laneOf(INCIDENTS.leak.name, 2, 970, 1_000)).toExist(),
-    // The running Incident is the last lane, from when it started to now.
-    Scene.expect(laneOf(`Running · ${INCIDENTS.zone.name}`, 2, 960, 1_000)).toExist(),
+    // The running Incident is the last lane, from when it started to now, split the same way.
+    Scene.expect(laneOf(`Running · ${INCIDENTS.zone.name}`, 2, 971, 1_000)).toExist(),
+    Scene.expect(phaseOf(`Running · ${INCIDENTS.zone.name}`, 'not seen · 1m')).toExist(),
+    Scene.expect(phaseOf(`Running · ${INCIDENTS.zone.name}`, 'awaiting ack · 10m')).toExist(),
     Scene.expect(panelOf('incident-timeline')).toContainText(INCIDENTS.instance.name),
     Scene.expect(panelOf('incident-timeline')).toContainText(INCIDENTS.leak.name),
     Scene.expect(panelOf('incident-timeline')).toContainText('SEV2'),
+    Scene.expect(panelOf('incident-timeline')).toContainText('Not seen'),
+    Scene.expect(panelOf('incident-timeline')).toContainText('Awaiting ack'),
+  )
+})
+
+test('a run nobody answered stays in its acknowledgement span to the end', () => {
+  const model = fixture({
+    game: {
+      history: [...samplesOf(151)],
+      postmortems: [{ ...POSTMORTEMS[0]!, mtta: null }],
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(phaseOf(INCIDENTS.instance.name, 'awaiting ack · 87m')).toExist(),
+    Scene.expect(laneOf(INCIDENTS.instance.name, 3, 861, 940)).toBeAbsent(),
+  )
+})
+
+test('a running Incident nobody has seen yet is one unseen span', () => {
+  const model = fixture({
+    game: {
+      time: 1_000,
+      history: [...samplesOf(151)],
+      incident: {
+        kind: 'zone',
+        remaining: 12,
+        nodeId: null,
+        startedAt: 960,
+        baseline: 1,
+        usersAtStart: 1_200,
+        impaired: 25,
+        lostRevenue: 340,
+        failed: 900,
+        signalAt: null,
+        ackAt: null,
+        severity: 2,
+        magnitude: 3,
+        zone: 'b',
+        region: null,
+        causedBy: null,
+      },
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(phaseOf(`Running · ${INCIDENTS.zone.name}`, 'not seen · 40m')).toExist(),
+    Scene.expect(laneOf(`Running · ${INCIDENTS.zone.name}`, 2, 960, 1_000)).toBeAbsent(),
   )
 })
 
