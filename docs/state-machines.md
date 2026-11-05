@@ -65,7 +65,7 @@ not.
    anywhere else.
 4. Read through selectors (`isDown`, `stepOf`, `isReady`), never through the payload of a phase that
    may not have it.
-5. If the encoded save changes, bump `SIM_VERSION` and the golden hash; if only the runtime shape
+5. If the encoded save changes, the version follows from the commit, with nothing to bump; if only the runtime shape
    changes and the encoded Game is identical, keep the version.
 
 ## Adding a state chart

@@ -5,7 +5,7 @@ section: design
 order: 21
 ---
 
-Recorded at `SIM_VERSION` 17, whose golden replay hashes to `0cb85ad1`, on 4 November 2026. These are
+Recorded at Simulation version 17 (the old numbered scheme), on 4 November 2026. These are
 snapshots taken at that version; they are not claims about the current build. When the tuning changes,
 the numbers are measured again and this page is stamped with the new version and date.
 

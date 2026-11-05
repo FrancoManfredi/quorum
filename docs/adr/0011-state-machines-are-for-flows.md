@@ -63,7 +63,7 @@ apply returns the same state.
   `@quorum/simulation`, not from the Machine.
 - A Node's reads go through `isDown`, `warmOf`, `causeOf`, and `leftOf`; no caller compares
   `down` or `warm` any more. The capacity model keeps the numbers it integrates.
-- A new simulation phase needs a `SIM_VERSION` and golden-hash bump. A new web flow does not.
+- A new simulation phase changes the Simulation, and so its version. A new web flow does not.
 - [State machines](../state-machines.md) keeps the inventory, the properties, and the steps for the
   next flow in one place.
 - What would change it: an Effect state-machine module that the Simulation may import.

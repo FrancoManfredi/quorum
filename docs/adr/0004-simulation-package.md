@@ -26,8 +26,10 @@ Considered options:
   `src/purity.test.ts` rejects any other import, host globals such as `Date` and `window`, and the
   math that engines may compute differently (`Math.cos`, `Math.exp`, `Math.pow`, `**`, and the
   rest), as [GDD 04](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#determinism-and-randomness) requires.
-- `src/golden.test.ts` replays one fixed Company for 10,000 Steps and checks the hash of the Game.
-  A change that moves the hash bumps `SIM_VERSION`, so results from different versions are never
-  compared.
+- `SIM_VERSION` is the git tree hash of `packages/simulation/src`, filled in at build time by
+  `packages/simulation/sim-version.ts`. A commit that changes the Simulation changes the version, so
+  results from different versions are never compared, and nobody bumps a number or re-pins a hash.
+  `pnpm test:engines` replays one fixed Company and every Challenge's reference solution in each
+  engine and compares the hashes with Node's, which it computes on the spot.
 - The UI stays in `apps/web`. The Simulation exports data and pure functions; it never renders,
   stores, or schedules anything.

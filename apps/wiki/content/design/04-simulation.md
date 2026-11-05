@@ -396,8 +396,9 @@ feeds the Ledger.
   The Simulation never calls them. The diurnal curve is a cosine series (`cosTurns` in `solve.ts`)
   built from those exact operations only, and it agrees with `Math.cos` to within 1e-12. Percentile
   factors such as `ln(1 / (1 − q))` are constants. A square root is `Math.sqrt`, never `** 0.5`.
-- A golden-hash test replays one fixed save for 10,000 steps in Chromium, Firefox, WebKit, and the
-  API Worker runtime, and the hashes must match. The server score of a Challenge is the
+- A cross-engine check replays one fixed save for 10,000 steps, and every Challenge's reference
+  solution, in Chromium, Firefox, WebKit, and the API Worker runtime, and the hashes must match
+  Node's. The server score of a Challenge is the
   authoritative one ([Challenges](/design/14-challenges#rules)).
 
 ## Offline progress

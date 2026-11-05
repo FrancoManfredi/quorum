@@ -14,7 +14,7 @@
     "lint": "vp lint",
     "typecheck": "tsrs --noEmit -p tsconfig.json && effect-tsrs diagnostics --strict --project tsconfig.json && turbo run typecheck",
     "test": "turbo run test",
-    "test:golden": "pnpm --filter @quorum/simulation test:golden",
+    "test:engines": "pnpm --filter @quorum/simulation test:engines",
     "deploy": "alchemy deploy --stage prod"
   },
   "devDependencies": {

@@ -8,7 +8,7 @@ order: 16
 This document collects every formula and tunable constant, and describes how balance is checked.
 
 **Source of truth.** The build is normative: every number below is checked against the catalog in
-`packages/simulation/src/catalog` at `SIM_VERSION` 34, whose golden replay hashes to `db2fd0cb`. Where
+`packages/simulation/src/catalog` at the build this page ships with. Where
 the design and the build disagree, [Live tuning](#live-tuning) names the knob and why it moved,
 [Open gaps](#open-gaps) names what the build does not have, and
 [Known balance gaps](#known-balance-gaps) names the checks that fail or have never run. Numbers

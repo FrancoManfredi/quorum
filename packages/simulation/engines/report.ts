@@ -1,19 +1,20 @@
 import { Result } from 'effect'
-import { CHALLENGES, challengeById, runChallenge } from '../src/challenges.ts'
+import { CHALLENGES, runChallenge } from '../src/challenges.ts'
 import { referenceReplay } from '../src/fixtures/challenges.ts'
 import { GOLDEN_STEPS, goldenGame, replay } from '../src/fixtures/golden.ts'
 import { hashGame } from '../src/hash.ts'
 
-/* What every engine computes for the cross-engine golden check (04 "Determinism and randomness"). */
+/* What every engine computes for the cross-engine check (04 "Determinism and randomness"). */
 
-export const goldenHash = (): string => hashGame(replay(goldenGame(), GOLDEN_STEPS))
+export type Report = Readonly<{ golden: string; challenges: Readonly<Record<string, string>> }>
 
-export const CHALLENGE_IDS: ReadonlyArray<string> = CHALLENGES.map((challenge) => challenge.id)
-
-/** The end hash of a Challenge's reference replay, or the reason it did not run. */
-export const referenceHash = (id: string): string => {
-  const challenge = challengeById(id)
-  if (!challenge) return `unknown ${id}`
-  const result = runChallenge(challenge, referenceReplay(challenge))
-  return Result.isSuccess(result) ? result.success.hash : result.failure
-}
+/** The end hash of the golden Company and of every Challenge's reference replay. */
+export const report = (): Report => ({
+  golden: hashGame(replay(goldenGame(), GOLDEN_STEPS)),
+  challenges: Object.fromEntries(
+    CHALLENGES.map((challenge) => {
+      const result = runChallenge(challenge, referenceReplay(challenge))
+      return [challenge.id, Result.isSuccess(result) ? result.success.hash : result.failure]
+    }),
+  ),
+})

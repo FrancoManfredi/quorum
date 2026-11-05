@@ -1,5 +1,5 @@
-// Runs the golden hash and every Challenge's reference replay in workerd, the
-// Workers runtime, and compares them with the hashes Node committed. Wall time
+// Runs the golden Company and every Challenge's reference replay in workerd, the
+// Workers runtime, and compares them with the hashes Node computes. Wall time
 // is measured from here: inside a Worker the clock stops while code runs.
 import { spawn } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -15,8 +15,8 @@ const workerd = join(require.resolve('workerd/package.json'), '..', 'bin', 'work
 const PORT = 8_791
 const dir = mkdtempSync(join(tmpdir(), 'quorum-workerd-'))
 
-const { GOLDEN_HASH, REFERENCE_HASHES } = await import('../src/fixtures/golden.ts')
-const expected = { golden: GOLDEN_HASH, challenges: REFERENCE_HASHES }
+const { report } = await import('./report.ts')
+const expected = report()
 
 await build({
   entryPoints: [join(here, 'workerd.ts')],
@@ -49,11 +49,11 @@ const stop = () => {
   rmSync(dir, { recursive: true, force: true })
 }
 
-const fetchText = async (path) => {
+const fetchReport = async () => {
   for (let attempt = 0; ; attempt += 1) {
     try {
-      const response = await fetch(`http://127.0.0.1:${PORT}${path}`)
-      return await response.text()
+      const response = await fetch(`http://127.0.0.1:${PORT}/`)
+      return await response.json()
     } catch (error) {
       if (attempt > 50) throw error
       await new Promise((resolve) => setTimeout(resolve, 100))
@@ -61,24 +61,22 @@ const fetchText = async (path) => {
   }
 }
 
-let failed = 0
-const check = async (label, path, want) => {
-  const started = performance.now()
-  const got = await fetchText(path)
-  const ms = (performance.now() - started).toFixed(0)
-  const ok = got === want
-  if (!ok) failed += 1
-  console.log(
-    `${ok ? 'ok  ' : 'FAIL'} workerd ${label}: ${got}${ok ? '' : ` (Node: ${want})`} in ${ms} ms`,
-  )
-}
-
 try {
-  await fetchText('/challenges')
-  await check('golden', '/golden', expected.golden)
-  for (const [id, hash] of Object.entries(expected.challenges))
-    await check(id, `/challenge/${id}`, hash)
+  const started = performance.now()
+  const got = await fetchReport()
+  const ms = (performance.now() - started).toFixed(0)
+  const wrong = [
+    ...(got.golden === expected.golden ? [] : ['golden']),
+    ...Object.keys(expected.challenges).filter(
+      (id) => got.challenges[id] !== expected.challenges[id],
+    ),
+  ]
+  console.log(
+    wrong.length === 0
+      ? `ok   workerd matches Node on the golden Company and every reference replay in ${ms} ms`
+      : `FAIL workerd differs from Node on: ${wrong.join(', ')}`,
+  )
+  process.exitCode = wrong.length === 0 ? 0 : 1
 } finally {
   stop()
 }
-process.exitCode = failed > 0 ? 1 : 0

@@ -9,7 +9,7 @@
   "scripts": {
     "typecheck": "tsrs --noEmit -p tsconfig.json && effect-tsrs diagnostics --strict --project tsconfig.json",
     "test": "vitest run",
-    "test:golden": "vitest run --config vitest.golden.config.ts && node engines/workerd.mjs"
+    "test:engines": "vitest run --config vitest.engines.config.ts && node engines/workerd.mjs"
   },
   "dependencies": {
     "effect": "4.0.0"

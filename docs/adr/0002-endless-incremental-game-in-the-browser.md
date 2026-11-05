@@ -21,6 +21,6 @@ Considered options:
   Design, seed, and actions. JavaScript engines differ in `sin`, `cos`, `exp`, `log`, and `pow`, so
   the Simulation uses only exact operations, committed tables, and constants
   ([Simulation](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#determinism-and-randomness)). The server score is
-  authoritative, and a golden-hash test across engines guards the rule.
+  authoritative, and a cross-engine hash check guards the rule.
 - Offline progress is a coarse re-run of the same Simulation ([Simulation](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#offline-progress)).
 - Kubernetes appears as a Component with modeled behavior, not as a simulated cluster.
