@@ -109,8 +109,24 @@ version of Brooks's law: "adding manpower to a late software project makes it la
 A **Service** is a codebase with its own deploy pipeline, owned by one team. Every App Server and
 Worker belongs to a Service. The starting company has one Service: the monolith.
 
-**Splitting** a service (research "Service boundaries", Series B) moves some request kinds to a new
-codebase. **Not built yet:** the build's Company is one Service, and no research or action splits it.
+A Service **carries Features**. The request kinds those Features put on the wire, the load they add
+and the kind they unlock, are the Service's traffic. Features that no other Service names stay with
+the starting Service, so a Company that never splits runs exactly as it did before Services existed,
+and an old save opens on one Service.
+
+**Splitting** a service (research "Service boundaries", Series B) moves some live Features to a new
+codebase with a name and an owning team.
+
+```text
+split_DH = 0.3 × 0.5 × Σ DH of the moved Features      (at least 0.5 DH, to a tenth)
+```
+
+The 0.3 is the migration factor for a split and the 0.5 is the codebase's KLOC per Dev Hour, so a
+split costs the same 0.3 of the moved part as the [Migrations](#migrations) table says: moving
+Checkout, 320 DH, is 48 Dev Hours. The Dev Hours go on the backlog as one **split** item, owned by
+the team the split gives the Service, and the moved code leaves the codebase it came from. Two
+parts are not built yet: every Service still shares the one deploy pipeline and its Burn, and a
+Stack change still migrates the whole Design rather than one Service.
 
 | Gain                                           | Cost                                                                                              |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -119,11 +135,36 @@ codebase. **Not built yet:** the build's Company is one Service, and no research
 | A bad deploy hits one service, not all of them | Distributed failure modes: partial outages, retries, timeouts ([Incidents](/design/11-incidents)) |
 | Each service scales on its own                 | DH for the split itself (proportional to the moved code)                                          |
 
+### Ownership
+
+A Service has one owning team. The build ties the two together:
+
+- **Who fixes it.** The owner's engineers take that Service's backlog items first. Another team's
+  engineers do not take them, so a Service whose owner is busy waits. A team that owns no Service
+  helps on the starting one, which keeps a Company that never splits playing as it did.
+- **Who is paged.** A bad deploy names the Service whose code broke, and the incident and its
+  postmortem name the owner as the team that fixes it.
+- **What it costs.** A team's velocity uses the tech debt of the Service it owns, not the whole
+  Design's.
+
+Not built yet: a restructure action that moves a Service from one team to another, and the SRE team
+that would take the pager for every Service.
+
+### Blast radius
+
+A bad deploy fails **only the traffic of the Service that shipped it**: its own Feature kinds, at the
+share [Bad deploy](/design/11-incidents#bad-deploy) gives. With one Service that is every kind, as an
+old save expects. This is the mechanic behind the Gain row above: the deploy that breaks `buy` in
+the checkout Service leaves `login` and `page` alone. Infrastructure incidents, such as a zone, a
+Database, or a Queue, still hit every Service that uses the Node.
+
 **Shared database penalty.** Services that share one database keep 50% of the coordination penalty,
-because schema changes still need agreement. This is the "distributed monolith" trap. Giving each
-service its own data store removes the penalty and creates the problems in
-[keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync). **Not built yet:** with one
-Service there is no shared-database penalty to pay.
+because schema changes still need agreement. This is the "distributed monolith" trap. The build
+multiplies the coordination constant `k` by 1.5 for a team whose Service shares its Database with
+another Service: two services on the starting Database pay it, and a Service that names its own
+Database Node, such as a second one the player placed, pays nothing. Giving each service its own
+data store removes the penalty and creates the problems in
+[keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync).
 
 Conway's law works in both directions in the game: the team structure the player builds shapes the
 service graph, and the service graph decides how well the teams work.
@@ -353,12 +394,13 @@ codebase_size grows with every feature shipped on that service (in thousands of 
 | Variant inside a language (FPM to Octane) | 0.1                   | Fast, with surprises (state bleed).                                                   | Built         |
 | Framework inside a language               | 0.5                   |                                                                                       | Built         |
 | Language change                           | 1.0                   | Multiplied by the target language's velocity inverse: rewriting into Rust costs more. | Built         |
-| Split a service                           | 0.3 of the moved part |                                                                                       | Not built yet |
+| Split a service                           | 0.3 of the moved part | Adds a Service with its own owner and Features ([Services](#services)).               | Built         |
 | Move auth in-house from an Auth Provider  | Fixed 120             |                                                                                       | Not built yet |
 | Database engine change                    | 0.8                   | Plus a data copy that takes calendar time proportional to volume.                     | Not built yet |
 
-Only Stack migrations exist: the build changes a Service's runtime and framework. Nothing splits a
-Service, moves auth in-house, or changes the database engine.
+Two migration kinds exist: a Stack change moves a Service's runtime and framework, and a split makes
+a new Service ([Services](#services)). Nothing moves auth in-house, and nothing changes a database
+engine.
 
 During a migration:
 

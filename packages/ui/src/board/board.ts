@@ -22,7 +22,7 @@ import {
   type ComponentId,
 } from '@quorum/simulation/catalog'
 import { POOL_ICONS } from '../game/pools.ts'
-import type { Ledger } from '@quorum/simulation/ledger'
+import type { Ledger, NodeStatus } from '@quorum/simulation/ledger'
 import { has, zoned, zoneMs } from '@quorum/simulation/lookups'
 
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
@@ -48,7 +48,8 @@ import {
   type Route,
 } from './geometry.ts'
 import { compute } from './compute.ts'
-import { flowMarks } from './flows.ts'
+import { flowMarks, placeLabel } from './flows.ts'
+import { CHIP_NONE, chipAt, rowsAt } from './lod.ts'
 import { HOP, type RoutedLink, type RoutedNode, type Wire } from './routing.ts'
 import { FOOT_ICONS, ROW_ICONS, footerOf, levelOf, rowsOf, sizePips, type RowTone } from './card.ts'
 import { COMPONENT_ICONS, GROUP_SHAPES, STACK_LOGOS, type StackLogoId } from '../game/icons.ts'
@@ -819,6 +820,15 @@ class NodeView {
   private readonly bars = new Graphics()
   private readonly ports = new Graphics()
   private readonly mark = glyph(12)
+  /** Zoomed far out, the card gives way to this chip: its block, its name and the load it carries. */
+  private readonly chip = new Graphics()
+  private readonly chipTitle = label(15, SANS, '600')
+  private chipKey = ''
+  /** What the chip draws, from the last update. */
+  private chipName = ''
+  private chipHue = 0
+  private chipStatus: NodeStatus = 'idle'
+  private chipLoad = 0
   private readonly title = label(15, SANS, '700')
   private readonly level = label(10.5, MONO)
   private readonly ordinal = label(9, MONO, '700')
@@ -891,6 +901,7 @@ class NodeView {
       this.shadow,
       this.ring,
       this.frame,
+      this.chip,
       this.holdFill,
       this.burst,
       this.bars,
@@ -903,6 +914,7 @@ class NodeView {
       this.shadow,
       this.ring,
       this.frame,
+      this.chip,
       this.holdFill,
       this.burst,
       this.bars,
@@ -915,7 +927,11 @@ class NodeView {
       this.foot,
       this.footMark,
       this.markRing,
+      this.chipTitle,
     )
+    this.chipTitle.anchor.set(0.5, 0.5)
+    this.chip.visible = false
+    this.chipTitle.visible = false
     const glyphSize = badgeGlyph(this.group, BADGE_R)
     this.mark.setSize(glyphSize)
     this.mark.position.set(BADGE_X - glyphSize / 2, BADGE_Y - glyphSize / 2)
@@ -945,10 +961,67 @@ class NodeView {
     this.foot.anchor.set(0, 0.5)
   }
 
-  /** Level of detail: zoomed far out, the rows fade, then are left out. */
-  detail(alpha: number): void {
-    this.rows.visible = alpha > 0
-    this.rows.alpha = alpha
+  /** Level of detail: zoomed far out the rows fade, then the whole card becomes a chip. */
+  detail(rows: number, chip: number, colors: Palette): void {
+    const full = 1 - chip
+    this.rows.visible = rows > 0 && full > 0
+    this.rows.alpha = rows * full
+    for (const part of [
+      this.frame,
+      this.bars,
+      this.title,
+      this.level,
+      this.foot,
+      this.footMark,
+      this.markRing,
+    ]) {
+      part.visible = full > 0
+      part.alpha = full
+    }
+    this.chip.visible = chip > 0
+    this.chip.alpha = chip
+    this.chipTitle.visible = chip > 0
+    this.chipTitle.alpha = chip
+    if (chip > 0) this.drawChip(colors)
+  }
+
+  /** The chip a card collapses to at low zoom: its name, and a ring of the load it carries. */
+  private drawChip(colors: Palette): void {
+    const load = Math.round(this.chipLoad * 20) / 20
+    const key = `${this.chipName}:${this.chipHue}:${this.chipStatus}:${load}`
+    if (key === this.chipKey) return
+    this.chipKey = key
+    this.chip.clear()
+    silhouette(this.chip, this.group, 0, 0, CARD_W, this.height).fill(
+      mix(colors.card, this.chipHue, 0.08),
+    )
+    silhouette(this.chip, this.group, 0, 0, CARD_W, this.height).stroke({
+      color: mix(this.chipHue, colors.ink, 0.25),
+      width: 1.5,
+      alignment: 1,
+    })
+    // The load ring: the share of the limiting resource, as the card's load bar shows it.
+    const ring = BADGE_R + 9
+    this.chip.circle(BADGE_X, BADGE_Y, ring).stroke({ color: colors.well, width: 3 })
+    if (load > 0)
+      this.chip
+        .moveTo(BADGE_X, BADGE_Y - ring)
+        .arc(BADGE_X, BADGE_Y, ring, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * load)
+        .stroke({
+          color:
+            this.chipStatus === 'danger' || this.chipStatus === 'down'
+              ? colors.danger
+              : load >= 0.9
+                ? colors.danger
+                : load >= 0.7
+                  ? colors.warn
+                  : colors.accent,
+          width: 3,
+          cap: 'round',
+        })
+    this.chipTitle.style.fill = this.chipStatus === 'down' ? colors.danger : colors.ink
+    this.chipTitle.position.set(CARD_W / 2, this.height / 2)
+    fitText(this.chipTitle, this.chipName, CARD_W - 24)
   }
 
   leave(): void {
@@ -1095,6 +1168,11 @@ class NodeView {
     const layout = layoutOf(node.type)
     const rows = rowsOf(game, node, ledger, history)
     const footer = footerOf(game, node)
+    // What the chip says at low zoom, kept from the update so the zoom need not read the Game.
+    this.chipName = t(def.name)
+    this.chipHue = colors.groups[this.group]
+    this.chipStatus = own.status
+    this.chipLoad = Math.min(1, own.utilization)
     this.target = { x: node.x, y: node.y }
     this.at ??= this.target
     if (this.selected !== selected || this.accent !== colors.accent) {
@@ -1401,9 +1479,8 @@ class NodeView {
 const DIM = 0.3
 /** Below this zoom the belts' chevrons are left out: they are a few pixels apart. */
 const CHEVRON_SCALE = 0.5
-/** The cards' rows fade out between these zooms; below the first they are a few pixels tall. */
-const ROWS_GONE_SCALE = 0.3
-const ROWS_SCALE = 0.38
+/** How far under a belt its region's round-trip plate sits, clear of the zone badge. */
+const PLACE_LIFT = 24
 
 class BeltView {
   readonly body = new Graphics()
@@ -1670,6 +1747,8 @@ class BoardController {
   private readonly packets = new Graphics()
   /** The rate labels on still belts: reduced motion's stand-in for moving packets. */
   private readonly notes = new NoteLayer()
+  /** The round trip a link between regions pays, under its belt. */
+  private readonly places = new NoteLayer()
   private readonly cards = new Container()
   private readonly overlay = new Graphics()
   /** The "!" badges on links that cross zones: they move only with the links, so they
@@ -1787,6 +1866,7 @@ class BoardController {
       this.wires,
       this.packets,
       this.notes.root,
+      this.places.root,
       this.cards,
       this.badges,
       this.overlay,
@@ -1993,6 +2073,11 @@ class BoardController {
           point.y <= node.y + heightOf(node.type),
       ) ?? null
     )
+  }
+
+  /** Whether a point is on a card's footer button. A chip has no footer, so a tap on it selects. */
+  private footerAt(node: GameNode, point: Pt): boolean {
+    return this.world.scale.x >= CHIP_NONE && inFooter(node, point)
   }
 
   private outPortAt(point: Pt): GameNode | null {
@@ -2254,7 +2339,7 @@ class BoardController {
         }
         const node = this.nodeAt(point)
         if (node) {
-          if (inFooter(node, point)) {
+          if (this.footerAt(node, point)) {
             this.pressed = node.id
             this.holdSince = this.state && holds(this.state.game, node) ? performance.now() : 0
             this.syncCards()
@@ -2399,7 +2484,7 @@ class BoardController {
         canvas.style.cursor = this.outPortAt(point)
           ? 'crosshair'
           : this.nodeAt(point)
-            ? inFooter(this.nodeAt(point) as GameNode, point)
+            ? this.footerAt(this.nodeAt(point) as GameNode, point)
               ? 'pointer'
               : 'move'
             : this.hoverLink
@@ -2458,7 +2543,7 @@ class BoardController {
           this.dragged = null
           if (event.shiftKey) this.events.onNodeToggle(gesture.id)
           // A size is bought by holding (see animate), so letting go early buys nothing.
-          else if (node && inFooter(node, point)) {
+          else if (node && this.footerAt(node, point)) {
             if (!this.state || !holds(this.state.game, node)) this.events.onFooter(gesture.id)
           } else this.events.onNodeTap(gesture.id)
         }
@@ -2736,10 +2821,11 @@ class BoardController {
     const still = reducedMotion()
     const zoom = this.world.scale.x
     const detailed = zoom >= CHEVRON_SCALE
-    const rows = Math.min(1, Math.max(0, (zoom - ROWS_GONE_SCALE) / (ROWS_SCALE - ROWS_GONE_SCALE)))
+    const rows = rowsAt(zoom)
+    const chip = chipAt(zoom)
     for (const view of this.views.values()) {
       view.tick(seconds, still)
-      view.detail(rows)
+      view.detail(rows, chip, colors)
     }
     this.advanceHold()
     this.leaving = this.leaving.filter((view) => {
@@ -2777,6 +2863,7 @@ class BoardController {
     const focus = this.pathOf(state)
     this.packets.clear()
     this.notes.begin()
+    this.places.begin()
     this.overlay.clear()
     this.syncBelts(state.game.links)
     const picked = this.selectedLink
@@ -2847,6 +2934,12 @@ class BoardController {
         const mid = midOf(path)
         badges.push(mid.x, mid.y)
       }
+      // A link between regions says what its round trip costs, under the belt.
+      const place = placeLabel(state.game, from, to)
+      if (place && detailed && seen && drawn >= 1) {
+        const mid = midOf(path)
+        this.places.add(mid.x, mid.y, place, colors.ink, colors.warn, -PLACE_LIFT)
+      }
       if (picked) {
         const mid = pointOn(path, 0.5)
         this.overlay.circle(mid.x, mid.y, 9).fill(colors.danger)
@@ -2903,6 +2996,7 @@ class BoardController {
     }
 
     this.notes.end()
+    this.places.end()
     this.chevrons.end()
     this.drawBadges(badges, colors)
 

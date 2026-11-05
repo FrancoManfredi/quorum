@@ -206,10 +206,13 @@ describe('achievements', () => {
     expect(earned({ events: [resolved({ kind: 'stampede' })] })).not.toContain('two-hard-things')
   })
 
-  test("Conway's Law needs more teams than Services, then fewer teams again", () => {
+  test("Conway's Law needs more Services than teams, then a team for each", () => {
     const second = { ...base.teams[0]!, id: 't2', name: 'Team 2' }
-    const mismatched = { ...base, teams: [...base.teams, second] }
-    expect(earned({ before: mismatched, after: base })).toContain('conways-law')
+    const services = [...base.services, { ...base.services[0]!, id: 'service-2', name: 'Search' }]
+    const mismatched = { ...base, services }
+    expect(
+      earned({ before: mismatched, after: { ...mismatched, teams: [...base.teams, second] } }),
+    ).toContain('conways-law')
     expect(earned({ before: mismatched, after: mismatched })).not.toContain('conways-law')
     expect(earned({ before: base, after: base })).not.toContain('conways-law')
   })

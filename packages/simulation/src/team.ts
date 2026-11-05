@@ -9,6 +9,7 @@ import {
   DEPLOY_STRATEGIES,
   DEV_HOURS_PER_DAY,
   ERAS,
+  FEATURES,
   FOUNDER_OUTPUT,
   HIRE_DAYS,
   LANGUAGES,
@@ -26,6 +27,7 @@ import {
   ROLLOUT_ALL,
   RETROGRADE,
   SALARY_BASE,
+  SHARED_DB_COORDINATION,
   SIGNING_BASE,
   STRUCTURED_COORDINATION,
   SUPPORTED_QUARTERS,
@@ -33,10 +35,12 @@ import {
   VERIFY_MINUTES,
   WORK_MINUTES,
   type DeployStrategyDef,
+  type FeatureId,
   type FixId,
   type FrameworkId,
   type LanguageId,
   type PolicyDef,
+  type RequestKind,
   type RuntimeId,
   type Tuning,
 } from './catalog.ts'
@@ -44,6 +48,7 @@ import type { Ledger } from './ledger.ts'
 import { eraOf, has, isDown, languageOf } from './lookups.ts'
 import { budgetVelocity } from './slo.ts'
 import {
+  CORE_TEAM,
   monolith,
   type Engineer,
   type Game,
@@ -58,20 +63,98 @@ import {
    actions and the Step that use them are in work.ts.
    ========================================================================== */
 
-/** Headcount after the coordination penalty (08 "Coordination"). */
-export const effectiveEngineers = (n: number, structured = false): number => {
+/**
+ * Headcount after the coordination penalty (08 "Coordination"). A team whose Service shares a
+ * Database with another keeps half of the penalty again: a schema change still needs agreement.
+ */
+export const effectiveEngineers = (n: number, structured = false, shared = false): number => {
   if (n <= 0) return 0
-  const k = COORDINATION * (structured ? STRUCTURED_COORDINATION : 1)
+  const k =
+    COORDINATION *
+    (structured ? STRUCTURED_COORDINATION : 1) *
+    (shared ? 1 + SHARED_DB_COORDINATION : 1)
   return n / (1 + k * (n - 1) + RETROGRADE * n * (n - 1))
 }
 
-/** The slice has one Service. */
+/** The starting Service: the one every Feature no other Service names stays with. */
 export const serviceOf = (game: Game): Service => game.services[0] ?? monolith([])
+
+/** The Service with this id, or the starting one: a save from before Services keeps working. */
+export const serviceOfId = (game: Game, id: string | undefined): Service =>
+  (id === undefined ? undefined : game.services.find((service) => service.id === id)) ??
+  serviceOf(game)
 
 export const withService = (game: Game, change: Partial<Service>): Game => ({
   ...game,
   services: [{ ...serviceOf(game), ...change }, ...game.services.slice(1)],
 })
+
+/** Changes one Service by id, leaving the others alone. */
+export const withServiceId = (game: Game, id: string, change: Partial<Service>): Game => ({
+  ...game,
+  services: game.services.map((service) =>
+    service.id === id ? { ...service, ...change } : service,
+  ),
+})
+
+/* ---------- Ownership (08 "Services") ---------- */
+
+/** The team that owns a Service: the one whose Dev Hours fix it, and the one an incident pages. */
+export const ownerOf = (game: Game, service: Service): Team =>
+  game.teams.find((team) => team.id === service.owner) ?? game.teams[0] ?? CORE_TEAM
+
+/** The Service a team owns, or the starting one for a team that owns none. */
+export const serviceOwnedBy = (game: Game, team: Team): Service =>
+  game.services.find((service) => service.owner === team.id) ?? serviceOf(game)
+
+/** The team an incident pages: the owner of the Service whose code failed, else the first team. */
+export const pagedTeam = (game: Game): Team =>
+  ownerOf(game, serviceOfId(game, game.incident?.service ?? undefined))
+
+/** Whether a Feature puts a request kind on the wire: the load it adds or the kind it unlocks. */
+const featureTouches = (id: FeatureId, kind: RequestKind): boolean => {
+  const def = FEATURES[id]
+  return def !== undefined && (kind in def.load || def.unlocks?.kind === kind)
+}
+
+/**
+ * The Service that carries a Feature: the first one that was split for it. The starting Service
+ * carries every Feature no other Service names, so an old save needs no features on its Service.
+ */
+export const serviceOfFeature = (game: Game, id: FeatureId): Service =>
+  game.services.slice(1).find((service) => service.features.includes(id)) ?? serviceOf(game)
+
+/** The Service whose code answers a request kind: the first one that carries a Feature touching it. */
+export const serviceOfKind = (game: Game, kind: RequestKind): Service => {
+  const carrier = game.services
+    .slice(1)
+    .find((service) => service.features.some((id) => featureTouches(id, kind)))
+  return carrier ?? serviceOf(game)
+}
+
+/**
+ * The Service whose deploy broke: the bad deploy names it, so only its traffic fails
+ * (08 "Services", 11 "Bad deploy").
+ */
+export const blastService = (game: Game): Service =>
+  serviceOfId(game, game.incident?.service ?? undefined)
+
+/** Whether a request kind is the blast: a bad deploy fails only the Service that shipped it. */
+export const failsKind = (game: Game, kind: RequestKind): boolean =>
+  game.incident?.kind === 'bad-deploy' && serviceOfKind(game, kind).id === blastService(game).id
+
+/** The Database a Service reads and writes: its own Node, or the Design's first one. */
+const datastoreOf = (game: Game, service: Service): string =>
+  service.datastore ?? game.nodes.find((node) => node.type === 'database')?.id ?? ''
+
+/**
+ * Whether a Service shares its Database with another Service (08 "Shared database penalty").
+ * Services that name different Databases, or run with no Database, share nothing.
+ */
+export const sharesDatabase = (game: Game, service: Service): boolean => {
+  const key = datastoreOf(game, service)
+  return key !== '' && game.services.filter((entry) => datastoreOf(game, entry) === key).length > 1
+}
 
 /** A Sandbox has no Team: every fix is in its code, unless its Challenge makes fixes cost Dev Hours. */
 export const fixed = (game: Game, fix: FixId): boolean =>
@@ -191,9 +274,9 @@ export const teamOutputs = (
   tuning: Tuning = LIVE_TUNING,
 ): ReadonlyArray<TeamOutput> => {
   if (game.sandbox) return []
-  const debt = serviceOf(game).debt
   const morale = game.time < game.moraleUntil ? LAYOFF_MORALE : 1
   const outputs = game.teams.map((team, index) => {
+    const owned = serviceOwnedBy(game, team)
     const members = membersOf(game, team)
     const founder = index === 0 ? FOUNDER_OUTPUT : 0
     const headcount = members.length + (index === 0 ? 1 : 0)
@@ -202,10 +285,13 @@ export const teamOutputs = (
       founder,
     )
     const effective =
-      headcount > 0 ? (effectiveEngineers(headcount, structured(game)) * output) / headcount : 0
+      headcount > 0
+        ? (effectiveEngineers(headcount, structured(game), sharesDatabase(game, owned)) * output) /
+          headcount
+        : 0
     const velocity =
       ledger.velocity *
-      (1 - 0.5 * debt) *
+      (1 - 0.5 * owned.debt) *
       policyNow(game, team, tuning).velocity *
       morale *
       budgetVelocity(game)
@@ -302,8 +388,8 @@ export const rolloutOf = (game: Game, feature: string): number => {
  * 5% cannot cost more than 5% of what it would have, whatever the deploy strategy. A deploy that
  * ships no Feature at all still breaks one Feature's worth, because it ships the code around them.
  */
-export const badDeployShare = (game: Game): number => {
-  const batch = serviceOf(game).lastDeploy
+export const badDeployShareOf = (game: Game, service: Service): number => {
+  const batch = service.lastDeploy
   const reached = batch.reduce((sum, feature) => sum + rolloutOf(game, feature), 0)
   return Math.min(
     // Without a Pipeline the cap is 16's 40%; with one, its deploy strategy sets the cap.
@@ -311,6 +397,9 @@ export const badDeployShare = (game: Game): number => {
     BAD_DEPLOY_ERRORS * Math.max(batch.length === 0 ? 1 : 0, reached),
   )
 }
+
+/** The share of the Design a bad deploy breaks: the deploy that broke, or the starting Service. */
+export const badDeployShare = (game: Game): number => badDeployShareOf(game, serviceOf(game))
 
 /* ---------- the backlog ---------- */
 
@@ -321,7 +410,7 @@ export const enqueue = (
   ref: string,
   cost: number,
   top = false,
-  extra: Pick<WorkItem, 'due' | 'target'> = {},
+  extra: Pick<WorkItem, 'due' | 'target' | 'service'> = {},
 ): Game => {
   const item: WorkItem = { id: game.workSeq + 1, kind, ref, cost, spent: 0, ...extra }
   return {

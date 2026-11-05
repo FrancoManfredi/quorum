@@ -253,7 +253,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'The share of a system, its users, or its traffic that one failure affects. Fault isolation, such as zones, cells, and small deploys, keeps the blast radius small.',
     inGame:
-      'A Zone outage takes down every Node in that zone. With Multiple zones you can spread copies across three zones and give a data Node a standby that takes over in seconds. A Bad deploy fails 8% of App Server requests for each item it shipped, up to 40%, so smaller deploys break less. On Node.js one slow request stalls every request on its event loop, while BEAM keeps each request apart.',
+      'A Zone outage takes down every Node in that zone. With Multiple zones you can spread copies across three zones and give a data Node a standby that takes over in seconds. A Bad deploy fails 8% of App Server requests for each item it shipped, up to 40%, so smaller deploys break less, and it fails only the traffic of the Service that shipped it. On Node.js one slow request stalls every request on its event loop, while BEAM keeps each request apart.',
     related: ['availability-zone', 'bulkhead', 'canary-deployment', 'shared-nothing'],
     links: [
       {
@@ -663,7 +663,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       '"Organizations which design systems are constrained to produce designs which are copies of the communication structures of these organizations," from Melvin Conway\'s 1968 paper. Teams that rarely talk tend to build parts with narrow interfaces between them.',
     inGame:
-      'Not modeled yet: the Company runs one Service, the monolith, and every Team works on it. From Pre-seed you can create up to 4 Teams, each with its own policy. Each Team pays its own coordination cost, so splitting a large group raises total Dev Hours.',
+      'From Pre-seed you can create up to 4 Teams, each with its own policy, and each pays its own coordination cost, so splitting a large group raises total Dev Hours. Building more Services than you have Teams is the mismatch the Conway’s Law achievement marks: fix it by giving each Service a team. A Service’s owner builds its backlog and is paged when it breaks.',
     related: ['brookss-law', 'strangler-pattern', 'tech-debt'],
     links: [
       { label: "Mel Conway: Conway's Law", url: 'https://www.melconway.com/Home/Conways_Law.html' },
@@ -2088,6 +2088,30 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
       {
         label: 'McKinsey: SaaS and the Rule of 40',
         url: 'https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/saas-and-the-rule-of-40-keys-to-the-critical-value-creation-metric',
+      },
+    ],
+  },
+  {
+    id: 'service',
+    term: 'Service',
+    category: 'team',
+    definition:
+      'A codebase with its own deploy pipeline, owned by one team. Splitting a monolith into services lets each team ship and scale on its own, at the price of a network hop between services and failures that can travel across them.',
+    inGame:
+      'A Company starts on one Service, the monolith, and every Feature no other Service names stays with it. Service boundaries (Series B) splits live Features into a new Service with a name and an owning team, for 0.3 of the moved part of the codebase in Dev Hours. The owner builds that Service’s backlog and is paged when it breaks, and a bad deploy fails only the Service that shipped it. Two Services on one Database keep half the coordination penalty: k is multiplied by 1.5 until a Service names its own Database Node.',
+    related: ['conways-law', 'blast-radius', 'tech-debt', 'strangler-pattern'],
+    links: [
+      {
+        label: 'Martin Fowler: MonolithFirst',
+        url: 'https://martinfowler.com/bliki/MonolithFirst.html',
+      },
+      {
+        label: 'Martin Fowler: Microservices',
+        url: 'https://martinfowler.com/articles/microservices.html',
+      },
+      {
+        label: 'microservices.io: Monolithic architecture',
+        url: 'https://microservices.io/patterns/monolithic.html',
       },
     ],
   },

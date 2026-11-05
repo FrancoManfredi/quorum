@@ -3521,8 +3521,8 @@ export const fr: Readonly<Record<string, string>> = {
   'Two Hard Things': 'Deux choses difficiles',
   'Have a stale-read incident on a cache': 'Vivre un incident de lecture périmée sur un cache',
   "Conway's Law": 'Loi de Conway',
-  'Have more teams than Services, then fix it':
-    'Avoir plus d’équipes que de services, puis corriger',
+  'Have more Services than teams, then fix it':
+    'Avoir plus de services que d’équipes, puis corriger',
   Fallacies: 'Sophismes',
   'Experience all eight fallacies of distributed computing in incidents':
     'Vivre les huit idées reçues de l’informatique distribuée dans des incidents',
@@ -3805,6 +3805,9 @@ export const fr: Readonly<Record<string, string>> = {
   'Change data capture': 'Capture des modifications de données',
   'Unlocks the CDC Connector: the copies follow the write log, without a second write.':
     'Débloque le connecteur CDC : les copies suivent le journal d’écriture, sans seconde écriture.',
+  'Service boundaries': 'Frontières de service',
+  'Split a Service: a new codebase with its own team, its own deploys, and its own blast.':
+    'Découper un service : un nouveau code source avec son équipe, ses déploiements et son propre périmètre d’impact.',
   'Service mesh': 'Maillage de services',
   'Unlocks the Service Mesh: retries, breakers and metrics on every link.':
     'Débloque le maillage de services : nouvelles tentatives, coupe-circuits et métriques sur chaque lien.',

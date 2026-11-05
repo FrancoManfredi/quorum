@@ -233,6 +233,8 @@ export const LOOKS: Record<ResearchId, Look> = {
   'service-mesh': { component: 'mesh' },
   'feature-flags': { component: 'ff' },
   'secrets-management': { group: 'ops', glyph: KeySquare, hue: 150 },
+  // Splitting a Service: the same compute chip a migration wears.
+  'service-boundaries': { group: 'compute', glyph: Split, hue: 320 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

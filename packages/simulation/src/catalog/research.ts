@@ -148,6 +148,8 @@ export const RESEARCH_IDS = [
   'fw-nestjs',
   'fw-fiber',
   'fw-quarkus',
+  // Splitting a Service (08 "Services", 10 "Research").
+  'service-boundaries',
   // The last four Components (05 "Catalog overview", 10 "Research").
   'cdc',
   'service-mesh',
@@ -1503,6 +1505,15 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     era: 4,
     requires: ['event-streaming', 'data-warehouse'],
     blurb: 'Unlocks the CDC Connector: the copies follow the write log, without a second write.',
+  }),
+  research({
+    id: 'service-boundaries',
+    name: 'Service boundaries',
+    track: 'product',
+    cost: 15_000,
+    era: 4,
+    requires: [],
+    blurb: 'Split a Service: a new codebase with its own team, its own deploys, and its own blast.',
   }),
   research({
     id: 'service-mesh',

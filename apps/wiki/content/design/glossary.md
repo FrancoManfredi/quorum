@@ -134,7 +134,7 @@ The protocol that networks on the internet use to tell each other which IP addre
 
 The share of a system, its users, or its traffic that one failure affects. Fault isolation, such as zones, cells, and small deploys, keeps the blast radius small.
 
-**In the game:** A Zone outage takes down every Node in that zone. With Multiple zones you can spread copies across three zones and give a data Node a standby that takes over in seconds. A Bad deploy fails 8% of App Server requests for each item it shipped, up to 40%, so smaller deploys break less. On Node.js one slow request stalls every request on its event loop, while BEAM keeps each request apart.
+**In the game:** A Zone outage takes down every Node in that zone. With Multiple zones you can spread copies across three zones and give a data Node a standby that takes over in seconds. A Bad deploy fails 8% of App Server requests for each item it shipped, up to 40%, so smaller deploys break less, and it fails only the traffic of the Service that shipped it. On Node.js one slow request stalls every request on its event loop, while BEAM keeps each request apart.
 
 **Design:** per runtime ([Runtimes](/design/06-runtimes#language-profiles)) and per deploy strategy ([Components](/design/05-components#cicd-pipeline)).
 
@@ -370,7 +370,7 @@ A practice that keeps software in a state where any change can be released safel
 
 "Organizations which design systems are constrained to produce designs which are copies of the communication structures of these organizations," from Melvin Conway's 1968 paper. Teams that rarely talk tend to build parts with narrow interfaces between them.
 
-**In the game:** Not modeled yet: the Company runs one Service, the monolith, and every Team works on it. From Pre-seed you can create up to 4 Teams, each with its own policy. Each Team pays its own coordination cost, so splitting a large group raises total Dev Hours.
+**In the game:** From Pre-seed you can create up to 4 Teams, each with its own policy, and each pays its own coordination cost, so splitting a large group raises total Dev Hours. Building more Services than you have Teams is the mismatch the Conway’s Law achievement marks: fix it by giving each Service a team. A Service’s owner builds its backlog and is paged when it breaks.
 
 **Design:** [Services](/design/08-team-and-velocity#services).
 
@@ -1119,6 +1119,18 @@ A heuristic for software-as-a-service companies: annual revenue growth rate plus
 **Related:** [Operating margin](#operating-margin), [Egress](#egress), [Spot instance](#spot-instance)
 
 **Learn more:** [Wikipedia: Rule of 40](https://en.wikipedia.org/wiki/Rule_of_40) · [McKinsey: SaaS and the Rule of 40](https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/saas-and-the-rule-of-40-keys-to-the-critical-value-creation-metric)
+
+## Service
+
+A codebase with its own deploy pipeline, owned by one team. Splitting a monolith into services lets each team ship and scale on its own, at the price of a network hop between services and failures that can travel across them.
+
+**In the game:** A Company starts on one Service, the monolith, and every Feature no other Service names stays with it. Service boundaries (Series B) splits live Features into a new Service with a name and an owning team, for 0.3 of the moved part of the codebase in Dev Hours. The owner builds that Service’s backlog and is paged when it breaks, and a bad deploy fails only the Service that shipped it. Two Services on one Database keep half the coordination penalty: k is multiplied by 1.5 until a Service names its own Database Node.
+
+**Design:** [Services](/design/08-team-and-velocity#services).
+
+**Related:** [Conway's law](#conways-law), [Blast radius](#blast-radius), [Tech debt](#tech-debt), [Strangler pattern](#strangler-pattern)
+
+**Learn more:** [Martin Fowler: MonolithFirst](https://martinfowler.com/bliki/MonolithFirst.html) · [Martin Fowler: Microservices](https://martinfowler.com/articles/microservices.html) · [microservices.io: Monolithic architecture](https://microservices.io/patterns/monolithic.html)
 
 ## Sharding
 

@@ -379,6 +379,12 @@ export const Incident = Schema.Struct({
   /** The zone a zone outage took down. */
   zone: Schema.NullOr(Zone).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   region: Schema.NullOr(Region).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /**
+   * The Service whose code failed, for a bad deploy: only its traffic breaks (08 "Services",
+   * 11 "Bad deploy"). Absent for an incident that hits the Design rather than one codebase, and
+   * in a save from before Services were named.
+   */
+  service: Schema.optionalKey(Schema.NullOr(Schema.String)),
 })
 export type Incident = typeof Incident.Type
 
@@ -403,6 +409,8 @@ export const Postmortem = Schema.Struct({
   endedAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The Design resolved it by itself, with no player action (11 "Runbooks"). */
   auto: Schema.optionalKey(Schema.Boolean),
+  /** The Service whose code failed, so the card can name the team that was paged. */
+  service: Schema.optionalKey(Schema.NullOr(Schema.String)),
 })
 export type Postmortem = typeof Postmortem.Type
 
@@ -558,7 +566,7 @@ export const MigrationState = MigrationStored.pipe(
 )
 export type MigrationState = typeof MigrationState.Type
 
-/** A codebase with its own deploys. The slice has one: the monolith. */
+/** A codebase with its own deploys, owned by one team (08 "Services"). */
 export const Service = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
@@ -581,10 +589,22 @@ export const Service = Schema.Struct({
   rollouts: Schema.Record(Schema.String, Schema.Finite).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed({})),
   ),
+  /** The team that owns it: the team that builds its work and is paged when it breaks. */
+  owner: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed('core'))),
+  /**
+   * The Features moved onto it (08 "Services"). Empty on the starting Service means every Feature
+   * that no other Service carries, so an old save opens on one Service as it did.
+   */
+  features: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /**
+   * The Database Node it reads and writes, or null for the Design's first Database. Two Services
+   * on one datastore keep half the coordination penalty (08 "Shared database penalty").
+   */
+  datastore: Schema.NullOr(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
 })
 export type Service = typeof Service.Type
 
-export const WorkKind = Schema.Literals(['feature', 'task', 'migration', 'spike', 'patch'])
+export const WorkKind = Schema.Literals(['feature', 'task', 'migration', 'spike', 'patch', 'split'])
 export type WorkKind = typeof WorkKind.Type
 
 /**
@@ -601,6 +621,8 @@ export const WorkItem = Schema.Struct({
   due: Schema.optionalKey(Schema.Finite),
   /** The Component id a patch is for. */
   target: Schema.optionalKey(Schema.String),
+  /** The Service the work belongs to, so its owner team takes it first (08 "Ownership"). */
+  service: Schema.optionalKey(Schema.String),
 })
 export type WorkItem = typeof WorkItem.Type
 
@@ -624,6 +646,9 @@ export const monolith = (fixes: ReadonlyArray<typeof FixId.Type>): Service => ({
   nextDeployAt: 0,
   lastDeploy: [],
   rollouts: {},
+  owner: 'core',
+  features: [],
+  datastore: null,
 })
 
 /**

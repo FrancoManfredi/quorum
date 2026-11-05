@@ -196,7 +196,7 @@ played. Some unlock Mutators or Ventures ([Exit and Legacy](/design/13-prestige)
 | Monoglot                | Reach IPO with one language                                                  | Mutator: Single language         |
 | Big Rewrite             | Migrate every service to a new language in one company                       | —                                |
 | Strangler               | Finish a migration in four traffic steps with errors under 1%                | —                                |
-| Conway's Law            | Have more teams than Services, then fix it                                   | —                                |
+| Conway's Law            | Have more Services than teams, then fix it                                   | —                                |
 | Fallacies               | Experience all eight fallacies of distributed computing in incidents         | —                                |
 | Quorum                  | Run a wide-column store with R + W > N across three regions                  | —                                |
 | Eventually              | Run R = 1, W = 1 at a billion users                                          | —                                |

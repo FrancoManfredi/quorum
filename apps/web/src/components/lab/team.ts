@@ -55,8 +55,11 @@ import {
   payrollOf,
   policyNow,
   rampSeconds,
+  ownerOf,
   salaryOf,
   serviceOf,
+  serviceOfFeature,
+  sharesDatabase,
   signingOf,
   teamOutputs,
 } from '@quorum/simulation/team'
@@ -68,6 +71,8 @@ import {
   featureRefusal,
   itemName,
   MAX_TEAMS,
+  splitCost,
+  splitRefusal,
   taskRefusal,
 } from '@quorum/simulation/work'
 import { describeRefusal } from '@quorum/simulation/actions'
@@ -145,6 +150,7 @@ const KIND: Record<WorkKind, Readonly<{ label: string; fill: string }>> = {
   migration: { label: 'Migration', fill: 'bg-group-compute' },
   spike: { label: 'Spike', fill: 'bg-group-ops' },
   patch: { label: 'Security', fill: 'bg-danger' },
+  split: { label: 'Split', fill: 'bg-group-ops' },
 }
 
 const STRIPES = 'repeating-linear-gradient(-45deg, oklch(1 0 0 / 0.28) 0 6px, transparent 6px 12px)'
@@ -695,6 +701,206 @@ const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html =>
         ],
   )
 
+/** The Services a Company runs (08 "Services"): its codebases, their owners, and the split. */
+const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const game = model.board.game
+  const draft = model.board.team.service
+  // A split moves a live Feature that no other Service carries.
+  const candidates = game.shipped.filter(
+    (id) => serviceOfFeature(game, id).id === serviceOf(game).id,
+  )
+  const refusal = splitRefusal(game, {
+    name: draft.name,
+    owner: draft.owner,
+    features: draft.features,
+  })
+  const shared = game.services.filter((service) => sharesDatabase(game, service)).length
+  return h.section(
+    [h.Key('services'), h.Class(cn(PANEL, 'flex shrink-0 flex-col gap-2.5 px-4 pt-3.5 pb-3'))],
+    [
+      heading(
+        'Services',
+        h.span(
+          [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
+          [
+            `${game.services.length} codebase${game.services.length === 1 ? '' : 's'}${
+              shared > 1 ? ' · one database' : ''
+            }`,
+          ],
+        ),
+        h,
+      ),
+      ...game.services.map((service) => {
+        const owner = ownerOf(game, service)
+        const paged = game.incident?.service === service.id
+        return h.div(
+          [
+            h.Class(
+              cn(
+                WELL,
+                'flex flex-col gap-1 rounded-[10px] px-2.5 py-2',
+                paged && 'ring-1 ring-danger/60',
+              ),
+            ),
+          ],
+          [
+            h.div(
+              [h.Class('flex flex-wrap items-center gap-x-2 gap-y-1')],
+              [
+                h.span(
+                  [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
+                  [service.name],
+                ),
+                badge(
+                  {
+                    variant: 'outline',
+                    className: 'text-[calc(10.5px*var(--type-scale))]',
+                  },
+                  [`Owned by ${owner.name}`],
+                  h,
+                ),
+                paged
+                  ? badge({ variant: 'outline', className: 'text-danger' }, ['Paged'], h)
+                  : h.empty,
+              ],
+            ),
+            h.span(
+              [
+                h.Class(
+                  cn(
+                    FIGURE,
+                    'whitespace-nowrap text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+                  ),
+                ),
+              ],
+              [`${service.codebase.toFixed(0)} KLOC · debt ${Math.round(service.debt * 100)}%`],
+            ),
+            h.span(
+              [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+              [
+                service.features.length === 0
+                  ? 'Carries every Feature no other Service names'
+                  : `Carries ${service.features.map((id) => FEATURES[id].name).join(', ')}`,
+              ],
+            ),
+          ],
+        )
+      }),
+      has(game, 'service-boundaries')
+        ? h.div(
+            [h.Class('flex flex-col gap-2 pt-1')],
+            [
+              h.div(
+                [h.Class('flex items-center gap-1.5')],
+                [
+                  h.input([
+                    h.Type('text'),
+                    h.Value(draft.name),
+                    h.Placeholder('Name the new Service'),
+                    h.AriaLabel('The new Service’s name'),
+                    h.OnInput((name) =>
+                      Message.TeamChanged({ message: TeamMessage.ServiceNamed({ name }) }),
+                    ),
+                    h.Class(
+                      cn(
+                        WELL,
+                        'h-7 min-w-0 flex-1 rounded-lg px-2 text-[calc(12px*var(--type-scale))] outline-none',
+                      ),
+                    ),
+                  ]),
+                  h.select(
+                    [
+                      h.AriaLabel('The team that owns the new Service'),
+                      h.OnChange((teamId) =>
+                        Message.TeamChanged({
+                          message: TeamMessage.ServiceOwnerChosen({ teamId }),
+                        }),
+                      ),
+                      h.Class(
+                        cn(WELL, 'h-7 rounded-lg px-1.5 text-[calc(12px*var(--type-scale))]'),
+                      ),
+                    ],
+                    game.teams.map((entry) =>
+                      h.option(
+                        [
+                          h.Value(entry.id),
+                          ...(entry.id === draft.owner ? [h.Selected(true)] : []),
+                        ],
+                        [entry.name],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              candidates.length === 0
+                ? h.span(
+                    [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+                    ['No live Feature is left to move.'],
+                  )
+                : h.div(
+                    [h.Class('flex flex-wrap gap-1.5')],
+                    candidates.map((id) => {
+                      const on = draft.features.includes(id)
+                      return h.button(
+                        [
+                          h.Key(`split-${id}`),
+                          h.Type('button'),
+                          h.OnClick(
+                            Message.TeamChanged({
+                              message: TeamMessage.ServiceFeatureToggled({ id }),
+                            }),
+                          ),
+                          h.Class(
+                            cn(
+                              'flex h-6 items-center gap-1 rounded-full border px-2 text-[calc(11px*var(--type-scale))]',
+                              on
+                                ? 'border-primary/60 bg-primary/15 text-foreground'
+                                : 'border-foreground/15 text-muted-foreground hover:text-foreground',
+                            ),
+                          ),
+                        ],
+                        [on ? icon(h, Check, 'size-3') : h.empty, FEATURES[id].name],
+                      )
+                    }),
+                  ),
+              h.div(
+                [h.Class('flex items-center gap-2')],
+                [
+                  button(
+                    {
+                      onClick: Message.TeamChanged({ message: TeamMessage.SplitChosen() }),
+                      isDisabled: refusal !== null,
+                      variant: 'outline',
+                      size: 'sm',
+                      attributes: [
+                        h.Title(
+                          refusal === null
+                            ? 'Move these Features to a new codebase'
+                            : describeRefusal(refusal),
+                        ),
+                      ],
+                    },
+                    refusal === null
+                      ? [icon(h, Container, 'size-3.5'), `Split · ${splitCost(draft.features)} DH`]
+                      : [icon(h, Lock, 'size-3'), 'Locked'],
+                    h,
+                  ),
+                  h.span(
+                    [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
+                    [refusal === null ? '' : describeRefusal(refusal)],
+                  ),
+                ],
+              ),
+            ],
+          )
+        : h.span(
+            [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+            ['Service boundaries (Series B) splits a Service.'],
+          ),
+    ],
+  )
+}
+
 const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   return h.div(
@@ -706,6 +912,7 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
         : []),
     ],
     [
+      game.sandbox ? h.empty : servicesCard(model, h),
       game.teams.length > 1 && game.engineers.length > 0
         ? h.p(
             [h.Class('px-1 text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
@@ -973,6 +1180,7 @@ const codeOf = (kind: WorkKind, ref: string): string => {
   if (kind === 'feature') return `FEAT-${FEATURE_IDS.indexOf(ref as FeatureId) + 1}`
   if (kind === 'task') return `ENG-${TASK_IDS.indexOf(ref as TaskId) + 1}`
   if (kind === 'patch') return `SEC-${ref.slice(-4)}`
+  if (kind === 'split') return `SVC-${ref.replace(/\D/g, '') || '2'}`
   return `MIG-${ref.replace(/\D/g, '') || '1'}`
 }
 

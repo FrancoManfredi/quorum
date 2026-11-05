@@ -119,7 +119,7 @@ import { buggy } from './migration.ts'
 import { spreadRegions } from './regions.ts'
 import type { Game, GameNode } from './state.ts'
 import { RUNNING, warmOf } from './life.ts'
-import { badDeployShare, fixed } from './team.ts'
+import { badDeployShareOf, blastService, failsKind, fixed } from './team.ts'
 
 /* ==========================================================================
    What each Component does in the flow solve, one rule per Component. The
@@ -242,12 +242,29 @@ export const mixIn = (pass: Pass, node: GameNode): Partial<Record<RequestKind, n
  * Share of requests the code itself fails on an App Server or Worker: a bad
  * deploy, a migration's bugs, or a Cluster upgrade gone wrong. A rolling deploy
  * stops after its first batch of pods, so pods take a share of a bad deploy.
+ * A bad deploy fails only the traffic of the Service that shipped it
+ * (08 "Services", 11 "Bad deploy"); every other kind keeps its own code.
  */
-export const codeCrashes = (game: Game, node: GameNode): number => {
+export const codeCrashes = (
+  game: Game,
+  node: GameNode,
+  kind: Kind,
+  /** The kinds a Queue's task came from, when `kind` is the task itself rather than its origin. */
+  origins: ReadonlyArray<Kind> = [],
+): number => {
   const incident = game.incident
   const cluster = clusterOf(game, node)
+  const request = kind as string
+  const carries = (entry: Kind): boolean =>
+    REQUEST_KINDS.includes(entry as RequestKind) && failsKind(game, entry as RequestKind)
+  // A Worker's task is not a request kind: it breaks when one of the kinds that made it breaks.
+  const failing = REQUEST_KINDS.includes(request as RequestKind)
+    ? carries(kind)
+    : origins.some(carries)
   const deploy =
-    incident?.kind === 'bad-deploy' ? badDeployShare(game) * (cluster ? ROLLOUT_SHARE : 1) : 0
+    incident?.kind === 'bad-deploy' && failing
+      ? badDeployShareOf(game, blastService(game)) * (cluster ? ROLLOUT_SHARE : 1)
+      : 0
   const upgrade =
     incident?.kind === 'cluster-upgrade' && cluster !== undefined && cluster === incident.nodeId
       ? UPGRADE_CRASHES
@@ -487,7 +504,7 @@ const answerCalls: ComponentRule['outcome'] = (answer, node, kind) => {
       served.fixed +
       transferMs(node, requestKind, answer.offloads) * payloadFactor(game, requestKind),
   }
-  const crashes = codeCrashes(game, node)
+  const crashes = codeCrashes(game, node, kind)
   // A runtime that holds a worker per open connection cannot keep realtime connections.
   if (requestKind === 'rt' && RUNTIMES[node.runtime].connectionKB === null) return failed('refused')
   if (answer.runsLocalDb) return failSome(through(own), crashes, 'crash')
@@ -931,7 +948,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
               : [],
           ),
         ),
-        codeCrashes(game, node),
+        codeCrashes(game, node, kind, Object.keys(mix) as Array<Kind>),
         'crash',
       )
     },

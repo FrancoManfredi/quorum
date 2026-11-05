@@ -1,4 +1,6 @@
-import { rate as rateText } from '../game/format.ts'
+import type { Game, GameNode } from '@quorum/simulation/state'
+import { placeMs } from '@quorum/simulation/regions'
+import { ms, rate as rateText } from '../game/format.ts'
 
 /* ==========================================================================
    What a belt shows for its flow. With motion, items ride the belt at its
@@ -32,6 +34,17 @@ const arrowOffsets = (length: number): ReadonlyArray<number> => {
 
 /** The rate a belt carries, in the interface's figures. */
 export const flowLabel = (rate: number): string => `${rateText(rate)}/s`
+
+/**
+ * What a belt between regions says about the distance (15 "The board"): the round
+ * trip its calls pay, in the milliseconds the Simulation charges them. Null inside
+ * one region, and for a global Node, which pays no place at all.
+ */
+export const placeLabel = (game: Game, from: GameNode, to: GameNode): string | null => {
+  if (from.region === to.region) return null
+  const cost = placeMs(game, from, to)
+  return cost > 0 ? ms(cost) : null
+}
 
 /** A belt's marks: moving items, or else arrows under the rate they carry. */
 export const flowMarks = (still: boolean, rate: number, length: number): FlowMarks =>

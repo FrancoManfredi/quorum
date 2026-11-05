@@ -255,7 +255,7 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
   'conways-law': achievement({
     id: 'conways-law',
     name: "Conway's Law",
-    condition: 'Have more teams than Services, then fix it',
+    condition: 'Have more Services than teams, then fix it',
   }),
   fallacies: achievement({
     id: 'fallacies',

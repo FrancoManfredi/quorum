@@ -18,7 +18,15 @@ import { NodeSample } from './node-metrics.ts'
 import { AppRoute, MENU_PAGES } from './route.ts'
 import { LogoId } from './logos.ts'
 import { fileOf, SaveIndex } from './saves.ts'
-import { ComponentId, Game, GameLink, GameNode, ResearchId, Region } from '@quorum/simulation/state'
+import {
+  ComponentId,
+  FeatureId,
+  Game,
+  GameLink,
+  GameNode,
+  ResearchId,
+  Region,
+} from '@quorum/simulation/state'
 
 /* ==========================================================================
    Quorum — what the UI holds. The Game is the saved company; everything else
@@ -313,7 +321,17 @@ export type Inbox = typeof Inbox.Type
 
 /** The Glossary panel: its open entry, search, category filter, and the panel it closes back to. */
 /** The Team panel's transient drag gesture for moving engineers between teams. */
-export const Team = Schema.Struct({ drag: DragAndDrop.Model })
+export const ServiceDraft = Schema.Struct({
+  /** The name typed for the Service a split makes. */
+  name: Schema.String,
+  /** The team that will own it. */
+  owner: Schema.String,
+  /** The Features the split moves. */
+  features: Schema.Array(FeatureId),
+})
+export type ServiceDraft = typeof ServiceDraft.Type
+
+export const Team = Schema.Struct({ drag: DragAndDrop.Model, service: ServiceDraft })
 export type Team = typeof Team.Type
 
 /** The research item the Research panel shows in its side pane; null picks one. */

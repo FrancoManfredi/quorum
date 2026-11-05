@@ -95,8 +95,9 @@ time the game state makes it useful.
 
 - Flow goes left to right: Users on the left, the data tier on the right, Payments and Analytics at the
   bottom. The board does not enforce this, but new Nodes snap to the matching column.
-- Pan with drag, zoom with the wheel. Not built yet: at low zoom, cards collapse to a chip with a
-  load ring; the card's rows fade out instead.
+- Pan with drag, zoom with the wheel. Zoomed out, a card first drops its rows, then becomes a chip:
+  its block, its name and a ring of the load it carries, so a large Design still reads as named
+  blocks. Up close it is a whole card again.
 - Cards never overlap. Each card keeps 24 px clear around it. A card dropped on others moves to the
   nearest free spot, preferring its column, and an outline shows that spot while the card is held.
 - Links are belts. They run around cards in orthogonal lanes. Links into one Node merge into one
@@ -105,10 +106,13 @@ time the game state makes it useful.
 - Chevrons on a belt point the way it runs and move at its speed. Requests ride on it as items. A
   busier belt runs faster; an idle belt is grey and still.
 - A link with errors turns red. A belt that crosses zones has orange rails: its calls pay the
-  cross-zone latency and Egress. Not built yet: a link that crosses regions shows its latency.
+  cross-zone latency and Egress. A belt between two regions carries a plate under its midpoint with
+  the round trip its calls pay, such as `75 ms`, in the amber of the cross-zone badge; a link into a
+  global Component pays no place, so it shows no plate.
 - From Series C, each region is a tab with its own board.
 - Node groups: the player can box a set of Nodes as a Service. The box shows the Service's name, team,
-  and Stack.
+  and Stack. **Not built yet:** the build ties a Service to the Features it carries, not to a box of
+  Nodes; the Team panel shows the Services and splits one (see [Panels](#panels)).
 
 ## Node cards
 
@@ -224,13 +228,28 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 | Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards                                                           |
 | Research  | `R`          | The tree by track ([Research screen](#research-screen))                                                                              |
 | Dashboard | `D`          | Charts over time, with its template variables, compare line and table view ([Observability](/design/12-observability#the-dashboard)) |
-| Team      | `T`          | Teams, engineers, the backlog, policies, DORA metrics                                                                                |
+| Team      | `T`          | Teams, engineers, the Services and the split, the backlog, policies, DORA metrics                                                    |
 | Cost      | `$`          | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
 | Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                                                                          |
 | Incidents | `D`          | The running Incident and its Postmortems, as a Dashboard row ([below](#company-and-incidents-panels)). Runbooks are still not built. |
 | Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                                                                        |
 | Company   | `D`          | Cash, runway, the Team's shape, and the funding history, as a Dashboard row ([below](#company-and-incidents-panels))                 |
 | Churn     | Users on HUD | The [Churn breakdown](/design/12-observability#the-churn-breakdown) by region                                                        |
+
+### The Services card
+
+The Team panel opens with the Company's Services ([Services](/design/08-team-and-velocity#services)),
+one row per codebase: its name, a badge naming the team that owns it, its KLOC and tech debt, and the
+Features it carries. The row rings when an incident names it, and a `Paged` badge marks the Service
+whose code broke. The starting Service's row reads that it carries every Feature no other Service
+names, so a Company with one Service shows one row and no split form.
+
+With Service boundaries, the card holds the split's form: a name, a select of the teams, and a chip
+per live Feature no other Service carries. The button says what the split costs (`Split · 48 DH`),
+and while the form breaks a rule, such as moving nothing, it is disabled and says why. The split
+takes effect at once, so the new row appears with its owner, and its Dev Hours arrive on the backlog
+as a split item the owner's team builds. The build has no Service filter on the Dashboard: the
+Services row still draws one row per request kind ([Observability](/design/12-observability#the-dashboard)).
 
 ## Company and Incidents panels
 
@@ -350,9 +369,9 @@ its worst utilization, and one suggestion if users were lost at peak.
   exact figure. Its Controls are in [Observability](/design/12-observability#controls).
 - Text at 150%. Settings › Text at 150% multiplies the interface's type by 1.5 through the
   `--type-scale` token, so rows, panels, and the HUD keep their boxes while their text grows. The
-  board's cards scale with the board's zoom instead, because they are drawn on the canvas.
-  Not built yet: the Research tree keeps its fixed node boxes, so at 150% a long item name ellipsizes
-  in the tree; its side pane reads it in full.
+  board's cards scale with the board's zoom instead, because they are drawn on the canvas. The
+  Research tree is the exception: its Node boxes and the spacing between them grow by the same 1.5,
+  and a name too long for one line wraps onto a second inside the taller box.
 
 ## Save
 

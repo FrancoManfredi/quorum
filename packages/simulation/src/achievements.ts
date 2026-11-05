@@ -310,11 +310,11 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
     events.some(
       (event) => event._tag === 'IncidentResolved' && event.postmortem.kind === 'stale-read',
     ),
-  // The slice has one Service: more teams than Services is the mismatch, and one team is the fix.
+  // Conway's law, both ways: more Services than Teams is the mismatch, and a team is the fix.
   'conways-law': ({ before, after }) =>
-    before.teams.length > before.services.length &&
+    before.services.length > before.teams.length &&
     after.services.length > 0 &&
-    after.teams.length <= after.services.length,
+    after.teams.length >= after.services.length,
   fallacies: ({ stats }) => new Set(stats.fallacies).size >= FALLACY_IDS.length,
   // The Hub came back, every client reconnected, and nothing was refused.
   'thundering-herd': ({ events }) =>

@@ -198,6 +198,13 @@ share is the CI/CD Pipeline's deploy strategy: 40% without a Pipeline and on Rol
 Recreate, 10% on Blue-green and 5% on Canary. A rolling Cluster deploy stops after its first batch
 of pods, so pods there take a quarter of that.
 
+**Whose traffic it breaks.** A bad deploy belongs to the Service that shipped it
+([Services](/design/08-team-and-velocity#blast-radius)). Each Service's deploy ships only its own
+Features, so the batch that breaks is that Service's last deploy, and the kinds its Features put on
+the wire fail while every other Service keeps serving. A Company with one Service breaks every kind,
+which is what an old save expects. The incident and its postmortem name the Service and the team
+that owns it.
+
 Feature Flags set a ceiling of their own ([Components](/design/05-components#feature-flags)): a Feature
 only breaks the share of users its flag has reached, so a batch of thirteen Features at 5% breaks
 5.2% of requests under Recreate, Rolling and Blue-green, and Canary's 5% holds it to 5. A Feature

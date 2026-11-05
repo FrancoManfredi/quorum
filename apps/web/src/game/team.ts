@@ -18,6 +18,11 @@ export const TeamMessage = defineMessageUnion({
   PolicyChosen: { teamId: Schema.String, policy: PolicyId },
   KindChosen: { teamId: Schema.String, kind: TeamKind },
   FeatureQueued: { id: FeatureId },
+  /** The split's draft: its name, its owner, and the Features it moves. */
+  ServiceNamed: { name: Schema.String },
+  ServiceOwnerChosen: { teamId: Schema.String },
+  ServiceFeatureToggled: { id: FeatureId },
+  SplitChosen: {},
 })
 export type TeamMessage = typeof TeamMessage.Type
 
@@ -30,10 +35,14 @@ export const TeamOutMessage = defineMessageUnion({
   SetPolicy: { teamId: Schema.String, policy: PolicyId },
   SetKind: { teamId: Schema.String, kind: TeamKind },
   QueueFeature: { id: FeatureId },
+  SplitService: { name: Schema.String, owner: Schema.String, features: Schema.Array(FeatureId) },
 })
 export type TeamOutMessage = typeof TeamOutMessage.Type
 
-export const initTeam = (): Team => ({ drag: DragAndDrop.init({ id: 'team-drag' }) })
+export const initTeam = (): Team => ({
+  drag: DragAndDrop.init({ id: 'team-drag' }),
+  service: { name: '', owner: 'core', features: [] },
+})
 
 type TeamReturn = Update.ReturnWithOutMessage<Team, TeamMessage, TeamOutMessage>
 
@@ -71,4 +80,30 @@ export const updateTeam = (team: Team, message: TeamMessage): TeamReturn =>
     PolicyChosen: ({ teamId, policy }) => out(team, TeamOutMessage.SetPolicy({ teamId, policy })),
     KindChosen: ({ teamId, kind }) => out(team, TeamOutMessage.SetKind({ teamId, kind })),
     FeatureQueued: ({ id }) => out(team, TeamOutMessage.QueueFeature({ id })),
+    ServiceNamed: ({ name }) => ({
+      model: { ...team, service: { ...team.service, name } },
+    }),
+    ServiceOwnerChosen: ({ teamId }) => ({
+      model: { ...team, service: { ...team.service, owner: teamId } },
+    }),
+    ServiceFeatureToggled: ({ id }) => ({
+      model: {
+        ...team,
+        service: {
+          ...team.service,
+          features: team.service.features.includes(id)
+            ? team.service.features.filter((entry) => entry !== id)
+            : [...team.service.features, id],
+        },
+      },
+    }),
+    SplitChosen: () =>
+      out(
+        team,
+        TeamOutMessage.SplitService({
+          name: team.service.name,
+          owner: team.service.owner,
+          features: [...team.service.features],
+        }),
+      ),
   })

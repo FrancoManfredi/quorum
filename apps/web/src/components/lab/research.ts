@@ -36,8 +36,8 @@ import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, FLOAT, PANEL, SCROLL, insightChip } from '@quorum/ui/game/bits'
 import { LOOKS, TRACK_ICONS, colorOf, researchMark } from '@quorum/ui/game/research-marks'
 import {
-  NODE_SIZE,
   eraName,
+  nodeSize,
   researchLayout,
   type Layout,
   type Placed,
@@ -169,6 +169,7 @@ const face = (
   entry: ResearchDef,
   state: State,
   grey: boolean,
+  large: boolean,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
   const open = state !== 'owned' && game.openActions.includes(entry.id)
@@ -181,13 +182,16 @@ const face = (
           [
             h.Class(
               cn(
-                'flex items-center gap-1 truncate text-[calc(12.5px*var(--type-scale))] leading-tight font-semibold',
+                'flex items-center gap-1 text-[calc(12.5px*var(--type-scale))] leading-tight font-semibold',
+                large ? '' : 'truncate',
                 grey ? 'text-muted-foreground' : '',
               ),
             ),
           ],
           [
-            h.span([h.Class('truncate')], [entry.name]),
+            // At 150% the box is tall enough for a second line, so a long name wraps
+            // rather than ellipsizes (15 "Accessibility").
+            h.span([h.Class(large ? 'line-clamp-2' : 'truncate')], [entry.name]),
             open ? icon(h, TriangleAlert, 'size-3 shrink-0 text-warn') : h.empty,
           ],
         ),
@@ -198,12 +202,18 @@ const face = (
 }
 
 /** A card node. Saving up: the card is the progress bar, a coloured copy wiping in from the left. */
-const card = (game: Game, entry: ResearchDef, state: State, h: HtmlBuilder<Message>) => {
+const card = (
+  game: Game,
+  entry: ResearchDef,
+  state: State,
+  large: boolean,
+  h: HtmlBuilder<Message>,
+) => {
   const share = Math.min(1, game.studies.find((item) => item.id === entry.id)?.progress ?? 0)
   const color = colorOf(LOOKS[entry.id])
   return state === 'saving'
     ? [
-        ...face(game, entry, state, true, h),
+        ...face(game, entry, state, true, large, h),
         h.span(
           [
             h.Key('fill'),
@@ -216,7 +226,7 @@ const card = (game: Game, entry: ResearchDef, state: State, h: HtmlBuilder<Messa
               'clip-path': `inset(0 ${(1 - share) * 100}% 0 0)`,
             }),
           ],
-          face(game, entry, state, false, h),
+          face(game, entry, state, false, large, h),
         ),
         h.span(
           [
@@ -228,13 +238,18 @@ const card = (game: Game, entry: ResearchDef, state: State, h: HtmlBuilder<Messa
           [],
         ),
       ]
-    : face(game, entry, state, state === 'locked', h)
+    : face(game, entry, state, state === 'locked', large, h)
 }
+
+/** The interface's type scale: the tree's boxes and spacing grow with it (15 "Accessibility"). */
+const scaleOf = (model: Model): number => (model.prefs.text === 'large' ? 1.5 : 1)
 
 const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   const { entry } = place
   const state = stateOf(game, entry)
+  const large = model.prefs.text === 'large'
+  const size = nodeSize(scaleOf(model))
   // Beyond the next Era: in the fog.
   const far = entry.era > game.stage + 1 && state === 'locked'
   return h.button(
@@ -250,8 +265,8 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
       h.Style({
         left: `${place.x}px`,
         top: `${place.y}px`,
-        width: `${NODE_SIZE.w}px`,
-        height: `${NODE_SIZE.h}px`,
+        width: `${size.w}px`,
+        height: `${size.h}px`,
       }),
       h.Class(
         cn(
@@ -264,7 +279,7 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
         ),
       ),
     ],
-    card(game, entry, state, h),
+    card(game, entry, state, large, h),
   )
 }
 
@@ -439,7 +454,8 @@ const scrollTo = (host: HTMLElement, target: Element, behavior: ScrollBehavior) 
   target.scrollIntoView({ block: 'center', inline: 'center', behavior })
 }
 
-const ResearchScroll = Mount.define('ResearchScroll', {
+/** Opens the tree scrolled to the focused item; the Research test resolves it by name. */
+export const ResearchScroll = Mount.define('ResearchScroll', {
   messages: [Message.Synced],
   execute: ({ element }) =>
     Effect.acquireRelease(
@@ -835,7 +851,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
 
 export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const focus = focusOf(model)
-  const layout = researchLayout()
+  const layout = researchLayout(scaleOf(model))
   return h.div(
     [
       h.Key('research'),

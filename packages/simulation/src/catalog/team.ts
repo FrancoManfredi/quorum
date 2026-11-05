@@ -118,13 +118,19 @@ export const CODE_REVIEW_FACTOR = 0.2
 export const MIGRATION_STEPS: ReadonlyArray<number> = [0.05, 0.25, 0.5, 1]
 /** The share of a migration's Dev Hours each step needs. */
 export const MIGRATION_TRANCHES: ReadonlyArray<number> = [0.1, 0.2, 0.3, 0.4]
-export const MIGRATION_FACTORS = { variant: 0.1, framework: 0.5, language: 1 } as const
+export const MIGRATION_FACTORS = { variant: 0.1, framework: 0.5, language: 1, split: 0.3 } as const
 /** Requests on a new Stack fail this often until its bugs are fixed. */
 export const MIGRATION_BUGS = 0.03
 /** Fixing a step's bugs costs this share of its tranche, and at least 1 DH. */
 export const FIX_BUGS_SHARE = 0.25
 /** Features on a migrating service build at this speed. */
 export const MIGRATION_FEATURE_SPEED = 0.5
+
+/**
+ * Services that share one Database keep this share of the coordination penalty on top of their
+ * own, because a schema change still needs every team's agreement (08 "Shared database penalty").
+ */
+export const SHARED_DB_COORDINATION = 0.5
 
 /* ---------- pooler modes (07 "Connection Pooler") ---------- */
 

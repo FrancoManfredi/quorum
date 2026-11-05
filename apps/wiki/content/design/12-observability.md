@@ -371,7 +371,8 @@ the marker shows whether the line moved after the change. This closes the loop t
   users live in more than one place.
 - **Service.** Not built yet. The build's Services row draws one row per Request kind, so the kind
   filter is the Service filter; a per-Service one waits on a per-Service figure in the Ledger. The
-  Game keeps one Service (`monolith`) and no Sample says which Service served it.
+  Game now carries several Services ([Services](/design/08-team-and-velocity#services)), but no
+  Sample says which Service served a request, so a RED row per Service has nothing to draw.
 - **Crosshair and focus.** Hover shows the same moment on every Chart. Clicking a Node's series
   selects that Node on the Board and closes the Dashboard.
 - **Table view.** A switch that shows each time series' values as a table in place of its plot: one

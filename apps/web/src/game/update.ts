@@ -1005,6 +1005,26 @@ const teamAction = (model: Model, out: TeamOutMessage): Result => {
       ),
     QueueFeature: ({ id }) =>
       act(model, `Queued ${FEATURES[id].name}`, Work.queueFeature(game, id)),
+    SplitService: ({ name, owner, features }) =>
+      act(
+        model,
+        `Split off ${name.trim() === '' ? 'a service' : name.trim()}`,
+        Work.splitService(game, { name, owner, features }),
+        {
+          note: () => [
+            `${features.length} Feature${features.length === 1 ? '' : 's'} moved. Its Dev Hours are on the backlog.`,
+            'primary',
+          ],
+          // The draft is spent: the next split starts from a clean form, owned by the team that
+          // made this one.
+          patch: (parent, next) => ({
+            team: {
+              ...parent.board.team,
+              service: { name: '', owner: next.services.at(-1)?.owner ?? 'core', features: [] },
+            },
+          }),
+        },
+      ),
   })
 }
 

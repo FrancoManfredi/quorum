@@ -94,7 +94,8 @@ import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
 import { distributedErlang, edgeRuns, hubConnections } from '@quorum/simulation/rules'
 import {
-  badDeployShare,
+  badDeployShareOf,
+  blastService,
   deploysPerDay,
   platformTax,
   quartersBehind,
@@ -826,15 +827,18 @@ const stats = (
       ]
     }
     case 'ff': {
-      const batch = game.services[0]?.lastDeploy ?? []
+      // The last deploy shipped each Service its own code: the blast is the Service that broke.
+      const service = blastService(game)
+      const batch = service.lastDeploy
       const rolled = batch.filter((feature) => rolloutOf(game, feature) < 1)
-      const blast = badDeployShare(game)
+      const blast = badDeployShareOf(game, service)
       return [
+        row('Service', service.name, 'plain', h),
         row('In the batch', `${batch.length}`, 'plain', h),
         row('Behind a flag', `${rolled.length}`, rolled.length > 0 ? 'ok' : 'plain', h),
         row(
           'Bad deploy',
-          `up to ${percent(blast)}`,
+          `up to ${percent(blast)} of its traffic`,
           blast >= 0.4 ? 'warn' : blast <= 0.1 ? 'ok' : 'plain',
           h,
         ),
@@ -2136,7 +2140,8 @@ const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
 
 /** A Feature Flags Node's rollouts: each Feature's share, and what a bad deploy of it can break. */
 const flags = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
-  const batch = game.services[0]?.lastDeploy ?? []
+  const service = blastService(game)
+  const batch = service.lastDeploy
   const listed = batch.length > 0 ? batch : game.shipped
   return [
     section(
@@ -2177,7 +2182,7 @@ const flags = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [
-            `A bad deploy fails 8% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. The last deploy shipped ${batch.length} Feature${batch.length === 1 ? '' : 's'}, so this design's ceiling is ${percent(badDeployShare(game))}.`,
+            `A bad deploy fails 8% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. The last deploy of ${service.name} shipped ${batch.length} Feature${batch.length === 1 ? '' : 's'}, so its ceiling is ${percent(badDeployShareOf(game, service))}. Only that Service's traffic breaks.`,
           ],
         ),
       ],

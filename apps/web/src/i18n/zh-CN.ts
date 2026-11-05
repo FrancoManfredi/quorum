@@ -1581,7 +1581,7 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Two Hard Things': '两件难事',
   'Have a stale-read incident on a cache': '在缓存上经历一次陈旧读取事件',
   "Conway's Law": '康威定律',
-  'Have more teams than Services, then fix it': '团队数多于服务数，然后修正',
+  'Have more Services than teams, then fix it': '服务数多于团队数，然后修正',
   Fallacies: '谬误',
   'Experience all eight fallacies of distributed computing in incidents':
     '在事件中经历分布式计算的八个谬误',
@@ -1805,6 +1805,9 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Change data capture': '变更数据捕获',
   'Unlocks the CDC Connector: the copies follow the write log, without a second write.':
     '解锁 CDC 连接器：副本跟随写入日志，无需第二次写入。',
+  'Service boundaries': '服务边界',
+  'Split a Service: a new codebase with its own team, its own deploys, and its own blast.':
+    '拆分服务：一个拥有自己的团队、自己的部署和自己的爆炸半径的新代码库。',
   'Service mesh': '服务网格',
   'Unlocks the Service Mesh: retries, breakers and metrics on every link.':
     '解锁服务网格：每条链路上的重试、熔断与指标。',

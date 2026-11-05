@@ -171,7 +171,7 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 186 items across 10 tracks; the build has 138 of
+a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 139 of
 them across all 10.
 
 ### Recipes
@@ -575,14 +575,14 @@ compute Node from Series A ([Economy](/design/09-economy#pricing-models)). Not b
 | `platform-team`      | Platform team           | Series A | 3,000     | `containers`               | Team type                                            |
 | `sre-team`           | SRE team                | Series A | 4,000     | `on-call`                  | Team type                                            |
 | `checkout`           | Checkout                | Series A | 1,500     | —                          | Payment Provider and the Checkout Feature            |
-| `service-boundaries` | Service boundaries      | Series B | 15,000    | —                          | Split services                                       |
+| `service-boundaries` | Service boundaries      | Series B | 15,000    | —                          | Split a Service                                      |
 | `data-team`          | Data team               | Series B | 10,000    | `data-warehouse`           | Team type                                            |
 | `enterprise-sales`   | Enterprise sales        | Series B | 20,000    | —                          | B2B market +30%; outages cost SLA credits            |
 | `investor-relations` | Investor relations      | Pre-IPO  | 300,000   | —                          | Valuation multiple +2                                |
 | `guidance-modeling`  | Guidance modeling       | Public   | 1,000,000 | —                          | Shows the probability of beating each guidance level |
 
-**Built: 7 of 15.** Not built yet: `ab-testing`, `hiring-pipeline`, `trunk-based`, `platform-team`,
-`sre-team`, `service-boundaries`, `data-team`, `enterprise-sales`.
+**Built: 8 of 15.** Not built yet: `ab-testing`, `hiring-pipeline`, `trunk-based`, `platform-team`,
+`sre-team`, `data-team`, `enterprise-sales`.
 
 ## Pacing targets for the first company
 

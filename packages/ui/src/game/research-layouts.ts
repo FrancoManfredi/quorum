@@ -17,6 +17,12 @@ import {
 
 export const NODE_SIZE = { w: 184, h: 48 }
 
+/** A Node box at `scale`, the interface's type scale: at 150% it is half again as wide and tall. */
+export const nodeSize = (scale: number): Readonly<{ w: number; h: number }> => ({
+  w: NODE_SIZE.w * scale,
+  h: NODE_SIZE.h * scale,
+})
+
 export type Placed = Readonly<{ entry: ResearchDef; x: number; y: number }>
 
 /** A line behind the nodes. `from` decides whether it is drawn as done. */
@@ -65,16 +71,16 @@ const curve = (ax: number, ay: number, bx: number, by: number, vertical: boolean
   return `M${ax} ${ay} C${ax + bend} ${ay} ${bx - bend} ${by} ${bx} ${by}`
 }
 
-const build = (): Layout => {
-  const { w, h } = NODE_SIZE
-  const GAP_X = 16
-  const GAP_Y = 34
-  const PAD = 36
+const build = (scale: number): Layout => {
+  const { w, h } = nodeSize(scale)
+  const GAP_X = 16 * scale
+  const GAP_Y = 34 * scale
+  const PAD = 36 * scale
   const SLOTS = 2
   const COLUMN = SLOTS * w + GAP_X + PAD * 2
-  const ROOT_H = 150
-  const BAND_PAD = 28
-  const LEFT = 120
+  const ROOT_H = 150 * scale
+  const BAND_PAD = 28 * scale
+  const LEFT = 120 * scale
   // Rows per Era band: as many as its fullest track needs, at most two items a row.
   const rowsOf = (track: ResearchTrack, era: number): Array<Array<ResearchDef>> => {
     const cell = cellOf(track, era)
@@ -139,7 +145,7 @@ const build = (): Layout => {
         ? [{ entry, bx: place.x + w / 2, by: place.y + h, fork: place.y + h + GAP_Y / 2 }]
         : []
     })
-    const base = height - ROOT_H / 2 - 28
+    const base = height - ROOT_H / 2 - 28 * scale
     const peak = Math.min(...forks.map((item) => item.fork))
     wires.push({
       key: `trunk-${track.key}`,
@@ -189,7 +195,14 @@ const build = (): Layout => {
   }
 }
 
-let cached: Layout | null = null
-export const researchLayout = (): Layout => (cached ??= build())
+const cached = new Map<number, Layout>()
+/** The tree at `scale`, the interface's type scale (15 "Accessibility"); built once per scale. */
+export const researchLayout = (scale = 1): Layout => {
+  const made = cached.get(scale)
+  if (made) return made
+  const layout = build(scale)
+  cached.set(scale, layout)
+  return layout
+}
 
 export const eraName = (era: number): string => ERAS[era]?.name ?? ''

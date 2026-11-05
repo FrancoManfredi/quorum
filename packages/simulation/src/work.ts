@@ -14,6 +14,7 @@ import {
   HOTFIX_DEBT,
   KLOC_PER_DH,
   LIVE_TUNING,
+  MIGRATION_FACTORS,
   MIGRATION_FEATURE_SPEED,
   POLICIES,
   REFACTOR_PER_DH,
@@ -46,7 +47,7 @@ import {
   trancheBuilt,
 } from './migration.ts'
 import { nextRandom } from './random.ts'
-import type { Game, TeamKind, WorkItem } from './state.ts'
+import type { Game, Service, Team, TeamKind, WorkItem } from './state.ts'
 import {
   badDeployChance,
   deployEvery,
@@ -57,11 +58,14 @@ import {
   platformStaffed,
   policyNow,
   serviceOf,
+  serviceOfFeature,
+  serviceOfId,
   signingOf,
   stackOf,
   structured,
   teamOutputs,
   withService,
+  withServiceId,
 } from './team.ts'
 
 /* ==========================================================================
@@ -91,6 +95,7 @@ export const itemName = (item: WorkItem): string => {
   if (item.kind === 'patch')
     return `Patch ${COMPONENTS[item.target as ComponentId]?.name ?? 'Design'}`
   if (item.kind === 'spike') return `Spike: ${RESEARCH[item.ref as ResearchId]?.name ?? item.ref}`
+  if (item.kind === 'split') return 'Split a service'
   return `Migration step ${item.ref.slice(5)}`
 }
 
@@ -157,10 +162,136 @@ export const featureHoursOf = (game: Game, id: FeatureId): number => {
 }
 
 export const queueFeature = (game: Game, id: FeatureId): Action =>
-  refused(featureRefusal(game, id), () => enqueue(game, 'feature', id, featureHoursOf(game, id)))
+  refused(featureRefusal(game, id), () =>
+    enqueue(game, 'feature', id, featureHoursOf(game, id), false, {
+      service: serviceOfFeature(game, id).id,
+    }),
+  )
 
 export const queueTask = (game: Game, id: TaskId): Action =>
   refused(taskRefusal(game, id), () => enqueue(game, 'task', id, TASKS[id].dh))
+
+/* ---------- splitting a Service (08 "Services") ---------- */
+
+/** What a split asks for: the new Service's name, its owner, and the Features it takes with it. */
+export type SplitRequest = Readonly<{
+  name: string
+  owner: string
+  features: ReadonlyArray<FeatureId>
+  /** The Database Node the new Service reads and writes; null keeps the Design's first one. */
+  datastore?: string | null
+}>
+
+/**
+ * Dev Hours a split costs: the migration factor for a split, 0.3, of the moved part of the
+ * codebase (08 "Migrations"). A codebase is 0.5 KLOC per Dev Hour of the Features shipped on it.
+ */
+export const splitCost = (features: ReadonlyArray<FeatureId>): number =>
+  Math.max(
+    0.5,
+    Math.round(
+      features.reduce((sum, id) => sum + FEATURES[id].dh * KLOC_PER_DH, 0) *
+        MIGRATION_FACTORS.split *
+        10,
+    ) / 10,
+  )
+
+/** Why a split cannot be made, or null. */
+export const splitRefusal = (game: Game, request: SplitRequest): Refusal | null => {
+  if (game.sandbox) return Refusal.NotAllowed({ reason: SANDBOX })
+  if (!has(game, 'service-boundaries'))
+    return Refusal.Locked({
+      what: 'A service split',
+      research: RESEARCH['service-boundaries'].name,
+    })
+  if (request.features.length === 0)
+    return Refusal.NotAllowed({ reason: 'Choose at least one Feature to move.' })
+  if (!game.teams.some((team) => team.id === request.owner))
+    return Refusal.NotAllowed({ reason: 'That team is gone.' })
+  const name = request.name.trim()
+  if (
+    name !== '' &&
+    game.services.some((service) => service.name.toLowerCase() === name.toLowerCase())
+  )
+    return Refusal.NotAllowed({ reason: `A Service is already called ${name}.` })
+  for (const id of request.features) {
+    if (!game.shipped.includes(id))
+      return Refusal.NotAllowed({ reason: `${FEATURES[id].name} is not live yet.` })
+    const carrier = serviceOfFeature(game, id)
+    if (carrier.id !== serviceOf(game).id)
+      return Refusal.NotAllowed({
+        reason: `${FEATURES[id].name} is already on ${carrier.name}.`,
+      })
+  }
+  return null
+}
+
+/**
+ * Splits a Service: the new codebase, owned by a team, carrying the Features it was split for.
+ * Its Dev Hours go on the backlog as one split item, sized by the moved code. The moved Features
+ * leave the codebase they came from.
+ */
+export const splitService = (game: Game, request: SplitRequest): Action => {
+  const refusal = splitRefusal(game, request)
+  if (refusal) return no(refusal)
+  const features = [...new Set(request.features)]
+  const name = request.name.trim() || `Service ${game.services.length}`
+  const moved = features.reduce((sum, id) => sum + FEATURES[id].dh * KLOC_PER_DH, 0)
+  // The code leaves the Services that carried it.
+  const leaving = new Map<string, number>()
+  for (const id of features) {
+    const carrier = serviceOfFeature(game, id)
+    leaving.set(carrier.id, (leaving.get(carrier.id) ?? 0) + FEATURES[id].dh * KLOC_PER_DH)
+  }
+  let seq = game.services.length + 1
+  while (game.services.some((service) => service.id === `service-${seq}`)) seq += 1
+  const service: Service = {
+    id: `service-${seq}`,
+    name,
+    debt: 0,
+    codebase: moved,
+    fixes: [],
+    shapes: 0,
+    migration: null,
+    nextDeployAt: serviceOf(game).nextDeployAt,
+    lastDeploy: [],
+    rollouts: {},
+    owner: request.owner,
+    features,
+    datastore: request.datastore ?? null,
+  }
+  const next: Game = {
+    ...game,
+    services: [
+      ...game.services.map((entry) =>
+        leaving.has(entry.id)
+          ? { ...entry, codebase: Math.max(0, entry.codebase - (leaving.get(entry.id) ?? 0)) }
+          : entry,
+      ),
+      service,
+    ],
+  }
+  return ok(enqueue(next, 'split', service.id, splitCost(features), false, { service: service.id }))
+}
+
+/** The item's Service: a Feature's own codebase, or the Service the item names. */
+export const serviceOfItem = (game: Game, item: WorkItem): Service =>
+  item.kind === 'feature'
+    ? serviceOfFeature(game, item.ref as FeatureId)
+    : serviceOfId(game, item.service)
+
+/**
+ * Whether a team takes an item (08 "Ownership"): a Service is fixed by its owner. A team that owns
+ * no Service helps on the starting one, which keeps a Company with one Service playing as it did.
+ */
+export const worksOn = (game: Game, team: Team, item: WorkItem): boolean => {
+  if (game.services.length <= 1) return true
+  const service = serviceOfItem(game, item)
+  if (service.owner === team.id) return true
+  return (
+    !game.services.some((entry) => entry.owner === team.id) && service.id === serviceOf(game).id
+  )
+}
 
 /**
  * Puts a fix in the code, or takes it out, on a Challenge whose fixes cost Dev Hours
@@ -437,14 +568,15 @@ export { cancelMigration, shiftMigration }
 export const rollback = (game: Game): Action => {
   if (game.incident?.kind !== 'bad-deploy') return notAllowed('No deploy needs rolling back.')
   if (!has(game, 'ci')) return no(Refusal.Locked({ what: 'Roll back', research: RESEARCH.ci.name }))
-  const batch = serviceOf(game).lastDeploy
+  const service = serviceOfId(game, game.incident.service ?? undefined)
+  const batch = service.lastDeploy
   const rolled: Game = {
     ...game,
     shipped: game.shipped.filter((id) => !batch.includes(id)),
     awaiting: [...batch, ...game.awaiting.filter((id) => !batch.includes(id))],
     incident: { ...game.incident, remaining: 0 },
   }
-  return ok(withService(rolled, { lastDeploy: [] }))
+  return ok(withServiceId(rolled, service.id, { lastDeploy: [] }))
 }
 
 /* ---------- the Step ---------- */
@@ -469,7 +601,9 @@ const autopilot = (game: Game, events: Array<StepEvent>): Game => {
   while (next.backlog.length < next.teams.length) {
     const feature = nextFeature(next)
     if (feature) {
-      next = enqueue(next, 'feature', feature, featureHoursOf(next, feature))
+      next = enqueue(next, 'feature', feature, featureHoursOf(next, feature), false, {
+        service: serviceOfFeature(next, feature).id,
+      })
       continue
     }
     if (serviceOf(next).debt >= AUTO_REFACTOR && !queued(next, 'refactor')) {
@@ -483,11 +617,11 @@ const autopilot = (game: Game, events: Array<StepEvent>): Game => {
 
 /** What a finished item does. */
 const complete = (game: Game, item: WorkItem): Game => {
-  // A patch has no effect to apply: finishing it before it is exploited is the effect.
-  if (item.kind === 'spike' || item.kind === 'patch') return game
-  const service = serviceOf(game)
+  // A patch, a split, and a spike have no effect to apply: finishing them is the effect.
+  if (item.kind === 'spike' || item.kind === 'patch' || item.kind === 'split') return game
+  const service = serviceOfItem(game, item)
   if (item.kind === 'migration') {
-    const migration = service.migration
+    const migration = serviceOf(game).migration
     return migration ? withService(game, { migration: trancheBuilt(migration) }) : game
   }
   if (item.kind === 'feature') {
@@ -497,13 +631,10 @@ const complete = (game: Game, item: WorkItem): Game => {
     const grows =
       (policy.debt + (stackOf(game).framework === 'none' ? UNSTRUCTURED_DEBT : 0)) *
       (structured(game) ? STRUCTURED_DEBT : 1)
-    return withService(
-      { ...game, awaiting: [...game.awaiting, id] },
-      {
-        debt: Math.min(1, service.debt + grows),
-        codebase: service.codebase + FEATURES[id].dh * KLOC_PER_DH,
-      },
-    )
+    return withServiceId({ ...game, awaiting: [...game.awaiting, id] }, service.id, {
+      debt: Math.min(1, service.debt + grows),
+      codebase: service.codebase + FEATURES[id].dh * KLOC_PER_DH,
+    })
   }
   const id = item.ref as TaskId
   // A task shipped during an incident is a hotfix: it adds debt.
@@ -569,23 +700,38 @@ const deploy = (
       RUNTIMES[node.runtime].language === 'elixir' &&
       RUNTIMES[node.runtime].hotReload === true,
   )
-  const slot = withService(game, {
-    nextDeployAt:
-      game.time +
-      deployEvery(game, tuning) +
-      (hotUpgrade ? ELIXIR_HOT_UPGRADE_DEV_HOURS * SIM_SECONDS_PER_DEV_HOUR : 0),
-  })
+  const slot: Game = {
+    ...game,
+    services: game.services.map((entry) => ({
+      ...entry,
+      nextDeployAt:
+        game.time +
+        deployEvery(game, tuning) +
+        (hotUpgrade ? ELIXIR_HOT_UPGRADE_DEV_HOURS * SIM_SECONDS_PER_DEV_HOUR : 0),
+    })),
+  }
   if (game.awaiting.length === 0 || game.incident?.kind === 'bad-deploy') return slot
   const batch = game.awaiting
-  let next = withService(
-    { ...slot, shipped: [...slot.shipped, ...batch], awaiting: [], deploys: slot.deploys + 1 },
-    {
-      lastDeploy: batch,
-      shapes: service.shapes + batch.reduce((sum, id) => sum + FEATURES[id].shapes, 0),
-      // A new Feature can leak again.
-      fixes: service.fixes.filter((fix) => fix !== 'fix-leak'),
-    },
-  )
+  // Each Service ships its own code: its Features, its query shapes, its codebase.
+  const shippedBy = (service: Service): ReadonlyArray<FeatureId> =>
+    batch.filter((id) => serviceOfFeature(game, id).id === service.id)
+  let next: Game = {
+    ...slot,
+    shipped: [...slot.shipped, ...batch],
+    awaiting: [],
+    deploys: slot.deploys + 1,
+    services: slot.services.map((entry) => {
+      const mine = shippedBy(entry)
+      if (mine.length === 0) return entry
+      return {
+        ...entry,
+        lastDeploy: mine,
+        shapes: entry.shapes + mine.reduce((sum, id) => sum + FEATURES[id].shapes, 0),
+        // A new Feature can leak again.
+        fixes: entry.fixes.filter((fix) => fix !== 'fix-leak'),
+      }
+    }),
+  }
   // A release swaps the code. PHP and Elixir reload it in place; every other runtime restarts its
   // App Servers cold (06 "Runtime behaviors", "Hot code reload").
   next = {
@@ -605,7 +751,14 @@ const deploy = (
   if (chance > 0) {
     const [roll, seed] = nextRandom(next.seed)
     next = { ...next, seed }
-    const started = roll < chance ? startIncident(next, ledger, 'bad-deploy', roll) : null
+    // The Service that shipped the most code in this batch is the one that broke.
+    const weight = (service: Service): number =>
+      service.lastDeploy.reduce((sum, id) => sum + FEATURES[id].dh, 0)
+    const broke = next.services.reduce((worst, entry) =>
+      weight(entry) > weight(worst) ? entry : worst,
+    )
+    const started =
+      roll < chance ? startIncident(next, ledger, 'bad-deploy', roll, undefined, broke.id) : null
     if (started) {
       next = { ...started.game, badDeploys: next.badDeploys + 1 }
       bad = true
@@ -656,7 +809,7 @@ export const advanceTeam = (
 
   if (next.autopilot) next = autopilot(next, events)
 
-  // Each team builds the first item no team ahead of it has.
+  // Each team builds the first item no team ahead of it has, on a Service it owns.
   const migrating = serviceOf(next).migration !== null
   const backlog = next.backlog.map((item) => ({ ...item }))
   const taken = new Set<number>()
@@ -668,7 +821,9 @@ export const advanceTeam = (
     const made = output.rate * seconds
     const kept = made * policyNow(next, output.team, tuning).paydown
     paydown += kept
-    const item = backlog.find((entry) => !taken.has(entry.id) && takeable(next, entry))
+    const item = backlog.find(
+      (entry) => !taken.has(entry.id) && takeable(next, entry) && worksOn(next, output.team, entry),
+    )
     if (!item) {
       pool += made - kept
       continue

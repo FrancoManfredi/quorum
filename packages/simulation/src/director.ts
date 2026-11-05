@@ -311,7 +311,7 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     // Each query shape with no index makes a Slow query likelier.
     'slow-query': () =>
       game.nodes.some((node) => node.type === 'database' && busy(ledger, node))
-        ? 1.5 * (1 + serviceOf(game).shapes)
+        ? 1.5 * (1 + Math.max(0, ...game.services.map((service) => service.shapes)))
         : 0,
     // Only a deploy ships a bug: the director never picks one.
     'bad-deploy': () => 0,
@@ -447,6 +447,7 @@ export const startIncident = (
   kind: IncidentId,
   roll: number,
   only?: ComponentId,
+  service?: string,
 ): Readonly<{ game: Game; incident: Incident }> | null => {
   const target = Match.value(kind).pipe(
     Match.when('instance', () =>
@@ -556,6 +557,8 @@ export const startIncident = (
         : SPIKE_MAGNITUDE[0],
     zone,
     region,
+    // A bad deploy names the Service whose code broke; every other incident hits the Design.
+    service: kind === 'bad-deploy' ? (service ?? serviceOf(game).id) : null,
   }
   // A stampede: the Cache restarted empty, or mostly warm with Cache warming.
   // A zone outage downs its zone for the incident; a Node with a standby fails over.
@@ -658,8 +661,8 @@ export const directIncidents = (
           (INCIDENTS[id].severity < cap ? 0 : weaknessOf(game, ledger, id)) *
             // A Venture's signature incident recurs for it.
             signatureWeight(game, id) *
-            // Tech debt makes every incident likelier (08 "Tech debt").
-            (1 + serviceOf(game).debt) *
+            // Tech debt makes every incident likelier (08 "Tech debt"): the weakest codebase sets it.
+            (1 + Math.max(0, ...game.services.map((service) => service.debt))) *
             (id === game.lastIncident ? REPEAT_WEIGHT : 1) *
             (unaddressed(game, id) ? openActionWeight(game) : 1) *
             mutatorWeight(game, id),
@@ -691,6 +694,7 @@ const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem 
       : (INCIDENTS[incident.kind].actions.find((id) => !has(game, id) && researchReady(game, id)) ??
         null),
     ...(auto ? { auto: true } : {}),
+    ...(incident.service ? { service: incident.service } : {}),
   }
 }
 
