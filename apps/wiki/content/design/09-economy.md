@@ -66,37 +66,40 @@ place where reliability is a line on the P&L rather than a figure in the HUD
 income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
 beside them. The table is the bill the build charges:
 
-| Line          | Formula                                                                                                                                                                                                         |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                                                                                                               |
-| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                                                                                                         |
-| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage))                                                                                    |
-| Egress        | GB out × egress price ([Egress](#egress))                                                                                                                                                                       |
-| Requests      | API Gateway requests × $0.002 × cost index; Serverless Function requests × ($0.00024 + $0.02 per GB-second) × cost index; Edge Function requests × $0.00036 × cost index. Not built yet: SQS and Object Storage |
-| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                                                                                                                 |
-| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                                                                                                                 |
-| Salaries      | Σ engineers × salary × language factor                                                                                                                                                                          |
+| Line          | Formula                                                                                                                                                                                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                                                                                                                                                                                    |
+| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                                                                                                                                                                              |
+| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage))                                                                                                                                                         |
+| Egress        | GB out × egress price ([Egress](#egress))                                                                                                                                                                                                                                            |
+| Requests      | API Gateway requests × $0.002 × cost index; Serverless Function requests × ($0.00024 + $0.02 per GB-second) × cost index; Edge Function requests × $0.00036 × cost index; Queue tasks × $0.00144 × cost index; Object Storage reads and writes at their product's price × cost index |
+| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                                                                                                                                                                                      |
+| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                                                                                                                                                                                      |
+| Salaries      | Σ engineers × salary × language factor                                                                                                                                                                                                                                               |
 
 Real teams are often surprised by the egress, observability, and third-party lines. The game
 surfaces them on purpose.
 
 ### Base prices
 
-| Resource                          | Price                                                                                                                                 |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| vCPU, general family              | $0.05/s                                                                                                                               |
-| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                                                |
-| RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory)                             |
-| Object storage, standard          | $0.000032/s per GB                                                                                                                    |
-| Serverless Function request       | $0.00024 per request: Lambda's $0.20 per million × 1,200, so the cost curve crosses where 05 puts it                                  |
-| Serverless Function duration      | $0.02 per GB-second, at 1 GB an execution: Lambda's $0.0000166667 × 1,200, charged on the wall time each execution takes              |
-| Edge Function request             | $0.00036 per request: Workers' $0.30 per million × 1,200                                                                              |
-| Object storage, infrequent access | 0.5× the standard price, and $0.01 per GB read back                                                                                   |
-| Object storage, archive           | 0.1× the standard price. A read waits for a restore, and fails as `timeout` until then                                                |
-| Database volume, provisioned IOPS | 1.5× the Database's box. Proposed: the design says "higher cost" and gives no rate                                                    |
-| Database rows                     | 3.5× the Object Storage price: gp3 is $0.08 per GB-month against S3 Standard's $0.023. Proposed, and a retention policy multiplies it |
-| Block storage                     | **Not built yet:** no block-storage price and no volume model                                                                         |
-| Engineer salary (base)            | $0.40/s                                                                                                                               |
+| Resource                          | Price                                                                                                                                  |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| vCPU, general family              | $0.05/s                                                                                                                                |
+| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                                                 |
+| RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory)                              |
+| Object storage, standard          | $0.000032/s per GB                                                                                                                     |
+| Serverless Function request       | $0.00024 per request: Lambda's $0.20 per million × 1,200, so the cost curve crosses where 05 puts it                                   |
+| Serverless Function duration      | $0.02 per GB-second, at 1 GB an execution: Lambda's $0.0000166667 × 1,200, charged on the wall time each execution takes               |
+| Edge Function request             | $0.00036 per request: Workers' $0.30 per million × 1,200                                                                               |
+| Object storage, infrequent access | 0.5× the standard price, and $0.01 per GB read back                                                                                    |
+| Object storage, archive           | 0.1× the standard price. A read waits for a restore, and fails as `timeout` until then                                                 |
+| Database volume, provisioned IOPS | 1.5× the Database's box                                                                                                                |
+| Database rows                     | 3.5× the Object Storage price: gp3 is $0.08 per GB-month against S3 Standard's $0.023. A retention policy multiplies it                |
+| Block storage                     | The gp3 price of a Database's rows, and of a Search Engine's index and each replica's copy of it: 3.5× the Object Storage price per GB |
+| Queue task                        | $0.00144 per task: SQS's $0.40 per million requests × 3 requests a message × 1,200                                                     |
+| Object storage read               | S3 $0.00048, R2 $0.000432 per read: $0.40 and $0.36 per million × 1,200                                                                |
+| Object storage write              | S3 $0.006, R2 $0.0054 per write: $5.00 and $4.50 per million × 1,200                                                                   |
+| Engineer salary (base)            | $0.40/s                                                                                                                                |
 
 These are Garage prices. Every price in this document, including placement, Burn, egress, and
 third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee and the
@@ -108,10 +111,10 @@ company. [Balancing](/design/16-balancing#cost-index) holds the index and the sa
 
 Each price follows one of two rules, so a player who knows the real price can check it:
 
-| Rule        | Prices                                                                                                     | Mapping                                                                          |
-| ----------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Time-billed | Instances, GPUs, managed Nodes, storage, the Kubernetes control plane, LLM tokens                          | $1 per sim second in the game is $1 per real hour. A vCPU is $0.05.              |
-| Per use     | Egress, the Payment Provider, push and email messages, Data Warehouse scans, Gateway and function requests | The real list price per GB, per checkout, per message, per scan, or per request. |
+| Rule        | Prices                                                                                                                             | Mapping                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Time-billed | Instances, GPUs, managed Nodes, storage, the Kubernetes control plane, LLM tokens                                                  | $1 per sim second in the game is $1 per real hour. A vCPU is $0.05.              |
+| Per use     | Egress, the Payment Provider, push and email messages, Data Warehouse scans, Gateway, function, Queue, and Object Storage requests | The real list price per GB, per checkout, per message, per scan, or per request. |
 
 LLM tokens use the time-billed rule because they compete with GPU Nodes for the same prompts. On
 the same scale, a busy H100 is cheaper per prompt than the LLM API only while it is more than half
@@ -126,11 +129,11 @@ to compute, than in a real bill. This is on purpose. At the time-billed rate, ev
 pay half its value in egress. Request values, the cost index, and the salary index are balance
 controls and do not follow a real price.
 
-A function's per-use prices are the one exception: Lambda's and Workers' list prices are multiplied
-by 1,200, which puts the crossover at about 30% of an equal VM's steady load, where
-[Components](/design/05-components#serverless-function) puts it. Proposed: the design gives the cost
-curve and no multiplier, and at the straight list prices a function would never cost as much as the
-VM it replaces.
+The per-use prices of a function, a Queue, and Object Storage are the exception: the list prices of
+Lambda, Workers, SQS, and S3 and R2 are multiplied by 1,200. For a function that puts the crossover at
+about 30% of an equal VM's steady load, where
+[Components](/design/05-components#serverless-function) puts it; at the straight list prices a
+function would never cost as much as the VM it replaces.
 
 ## Pricing models
 
@@ -170,9 +173,9 @@ commitment: it is a Company-wide discount, not a fifth model on the card.
 or R2 serves it. A player who ignores egress sees revenue rise and margin fall.
 
 **Built.** `egress-optimization` ([Progression](/design/10-progression#track-cost)) moves the share
-of a server's egress bytes that `upload` and `media` traffic reaching an Object Storage Node
-accounts for onto the R2 row: $0 instead of the origin price. The build reads this from the
-server's own traffic mix rather than a per-byte trace, so the saved share is proposed.
+of a server's egress bytes that `upload` and `media` traffic reaching an R2 Object Storage Node
+accounts for onto the R2 row: $0 instead of the origin price. It reads this from the server's own
+traffic mix rather than a per-byte trace, and only an Object Storage Node that is R2 counts.
 
 ## Third-party fees
 
@@ -268,8 +271,7 @@ The Company never ends. Running out of money is a setback, not a game over
 the bridge's grant, dilution, and Accept while the offer waits
 ([Interface](/design/15-ui-ux#company-and-incidents-panels)).
 
-**Proposed.** The design fixes the thresholds, the grant, the dilution, and the shutdown; the
-build's readings of the gaps:
+The thresholds, the grant, the dilution, and the shutdown read as follows:
 
 - The two thresholds count the gross Burn, which this document calls Burn. The shutdown counts net
   Burn, which this document names.

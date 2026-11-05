@@ -39,6 +39,9 @@ import {
   UNINDEXED_MS_PER_ROW,
   REPORT_SURGE,
   HOT_SHARD_CPU,
+  STICKY_LOCAL_READ,
+  BLOAT_CPU,
+  RESHARD_IOPS,
   STORM_SLOWDOWN,
   STORM_TRIGGER,
   RT_HOLD_SECONDS,
@@ -68,7 +71,11 @@ import {
   asLogin,
   coldStartMs,
   has,
+  indexWriteFactor,
   networkOf,
+  pinnedOf,
+  shardingOf,
+  syncWaitMs,
   payloadOf,
   profileOf,
   ramOf,
@@ -207,6 +214,9 @@ export const callsOf = (
     if (kind === 'write' && (mixOf(game).feed ?? 0) > 0)
       calls['k-write'] = FOLLOWERS * (hybrid ? HYBRID_WRITES : 1)
   }
+  // A sticky Load Balancer keeps a user on this server, so some of its reads hit the memory of
+  // the process that served the user before (05 "Load Balancer").
+  if (pinnedOf(game, node)) calls['q-read'] = (calls['q-read'] ?? 0) * (1 - STICKY_LOCAL_READ)
   // The async part's calls: a Worker makes them once the kind goes through a Queue.
   if (offloaded && profile.offload > 0) calls.task = 1
   else
@@ -853,8 +863,12 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const disk = workingSet > ram - OS_RAM
   // A Database's engine and volume (07 "Variants", "Capacity"), and its shards (07 "Partitioning").
   const engine = DB_ENGINES[node.dbEngine]
-  const shards = Math.max(1, Math.floor(node.shards))
-  const iops = STORAGE_IOPS[node.iops].iops * shards
+  const sharding = shardingOf(node)
+  const { shards } = sharding
+  // A resharding copies the data in the background, and the copy leaves the volume half its IOPS.
+  const resharding =
+    game.reshard?.node === node.id && game.reshard.until > 0 && game.time < game.reshard.until
+  const iops = STORAGE_IOPS[node.iops].iops * shards * (resharding ? RESHARD_IOPS : 1)
   const throttled = node.family === 'burstable' && node.credits < 1
   // A retry storm's trigger: the Database runs slow for its first seconds.
   const incident = game.incident
@@ -876,8 +890,10 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const retention = DB_RETENTIONS[node.keep]
   // A materialized view answers the scan from a stored copy, for half its CPU (10 "Performance").
   const view = node.materialized && has(game, 'precompute') ? MATERIALIZED_SCAN : 1
+  // A report or a search touches every shard: the fan-out costs CPU on top (07 "Partitioning").
   const scanCpu =
     (QUERY_CPU['q-scan'] *
+      sharding.scatter *
       (game.incident?.kind === 'report-db' ? REPORT_SURGE : 1) *
       retention.rebuild *
       view) /
@@ -886,6 +902,8 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   // A big tenant's key lands on one shard: every read and write that shard answers costs more
   // CPU, while the Cache and the other shards serve theirs as usual (13 "Ventures").
   const shard = incident?.kind === 'hot-shard' && incident.nodeId === node.id ? HOT_SHARD_CPU : 1
+  // Table bloat: dead rows make every read and write cost more until VACUUM cleans them (07).
+  const bloat = incident?.kind === 'table-bloat' && incident.nodeId === node.id ? BLOAT_CPU : 1
   // Denormalization keeps a pre-joined copy: reads cost 30% less CPU and writes 20% more
   // (10 "Track: Performance").
   const denormalized = has(game, 'denormalization')
@@ -894,16 +912,20 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
       ? ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1 + 0.5 * evicted)) / warmth
       : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth) *
     shard *
+    bloat *
     (denormalized ? DENORMALIZED_READ : 1)
   const writeCpu =
     ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) *
     (1 + 0.5 * evicted) *
     shard *
+    bloat *
+    indexWriteFactor(game) *
     (denormalized ? DENORMALIZED_WRITE : 1)
   // Postgres full-text search and files stored as rows: both work, both badly at volume. MySQL's
   // full-text search is the weaker of the two engines, so it costs it more CPU (07 "Variants").
   const searchCpu =
-    (QUERY_CPU['q-search'] * queryFactor(game, 'q-search') * engine.searchCost) / warmth
+    (QUERY_CPU['q-search'] * queryFactor(game, 'q-search') * engine.searchCost * sharding.scatter) /
+    warmth
   const putCpu = QUERY_CPU['blob-put'] / warmth
   const txCpu = QUERY_CPU['q-tx'] / warmth
   const getCpu = QUERY_CPU['blob-get'] / warmth
@@ -916,7 +938,9 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   let rate = reads + writes + searches + puts
   // Sharding (07 "Partitioning"): each shard takes its share of the writes, so N shards answer N
   // times the write load. Reads still ask one shard, and a transaction that crosses shards pays.
-  let work = reads * readCpu + (writes * writeCpu + puts * putCpu) / shards + searches * searchCpu
+  // The busiest shard sets the pace: its share of the writes depends on the key.
+  let work =
+    reads * readCpu + (writes * writeCpu + puts * putCpu) * sharding.hot + searches * searchCpu
   // Checkouts and files read back from rows arrive with Series A.
   if (txs > 0 || gets > 0) {
     rate += txs + gets
@@ -941,10 +965,14 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const wait = rate > 0 ? waitFor(work / rate / perRequest, utilization, cores) + backlog : backlog
   const share = utilization > 1 ? 1 / utilization : 1
   const used = Math.min(work * share, cores * 1000) / 1000
-  // A transaction that touches two shards needs a distributed transaction: 3× its latency.
+  // A transaction that touches two shards needs a distributed transaction: 3× its latency. The
+  // key sets how many do. A synchronous replica makes every write wait for it, and a region key
+  // makes the users of other regions wait a round trip.
+  const distributed = 1 + 2 * sharding.cross
+  const syncMs = syncWaitMs(game, node)
   const txService = {
-    fixed: 2.5 * (shards > 1 ? 3 : 1),
-    variable: (txCpu / perRequest + wait + ioWait) * (shards > 1 ? 3 : 1),
+    fixed: 2.5 * distributed + syncMs + sharding.farMs,
+    variable: (txCpu / perRequest + wait + ioWait) * distributed,
   }
   return {
     utilization,
@@ -960,16 +988,20 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     capacity,
     service: {
       'q-read': {
-        fixed: 2.5 + (disk ? DISK_READ_MS : evicted > 0 ? DISK_READ_MS * evicted : 0),
+        fixed:
+          2.5 + sharding.farMs + (disk ? DISK_READ_MS : evicted > 0 ? DISK_READ_MS * evicted : 0),
         variable: readCpu / perRequest + wait + (disk ? ioWait : 0),
       },
-      'q-write': { fixed: 2.5, variable: writeCpu / perRequest + wait + ioWait },
-      'q-search': { fixed: 2.5, variable: searchCpu / perRequest + wait },
+      'q-write': {
+        fixed: 2.5 + syncMs + sharding.farMs,
+        variable: writeCpu / perRequest + wait + ioWait,
+      },
+      'q-search': { fixed: 2.5 + sharding.scatterMs, variable: searchCpu / perRequest + wait },
       'blob-put': { fixed: 2.5, variable: putCpu / perRequest + wait + ioWait },
       'q-tx': txService,
       'blob-get': { fixed: 2.5 + DISK_READ_MS, variable: getCpu / perRequest + wait + ioWait },
       'q-scan': {
-        fixed: 2.5 + DISK_READ_MS + retention.scanMs,
+        fixed: 2.5 + DISK_READ_MS + retention.scanMs + sharding.scatterMs,
         variable: scanCpu / perRequest + wait + ioWait,
       },
     },

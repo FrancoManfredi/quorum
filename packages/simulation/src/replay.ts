@@ -144,6 +144,25 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['lifecycle'], (game, id, node) => Actions.setLifecycle(game, id, node.lifecycle)],
   [['cacheStrategy'], (game, id, node) => Actions.setCacheStrategy(game, id, node.cacheStrategy)],
   [['refresh'], (game, id, node) => Actions.setSearchRefresh(game, id, node.refresh)],
+  [['sticky'], (game, id, node) => Actions.setSticky(game, id, node.sticky)],
+  [
+    ['purge', 'cacheKey'],
+    (game, id, node) =>
+      Actions.setCdnOptions(game, id, { purge: node.purge, cacheKey: node.cacheKey }),
+  ],
+  [['shardKey'], (game, id, node) => Actions.setShardKey(game, id, node.shardKey)],
+  [['sync'], (game, id, node) => Actions.setSync(game, id, node.sync)],
+  [
+    ['searchVariant', 'searchShards', 'searchReplicas', 'heap'],
+    (game, id, node) =>
+      Actions.setSearchOptions(game, id, {
+        searchVariant: node.searchVariant,
+        searchShards: node.searchShards,
+        searchReplicas: node.searchReplicas,
+        heap: node.heap,
+      }),
+  ],
+  [['storeVariant'], (game, id, node) => Actions.setStoreVariant(game, id, node.storeVariant)],
   [['pm'], (game, id, node) => Actions.setPm(game, id, node.pm)],
   [['mode'], (game, id, node) => Actions.setPoolerMode(game, id, node.mode)],
   [['dlq'], (game, id, node) => Actions.setDlq(game, id, node.dlq)],
@@ -151,9 +170,14 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['maxLength'], (game, id, node) => Actions.setMaxLength(game, id, node.maxLength)],
   [['prefetch'], (game, id, node) => Actions.setPrefetch(game, id, node.prefetch)],
   [
-    ['coalesce', 'warming'],
+    ['coalesce', 'warming', 'earlyExpiry', 'swr'],
     (game, id, node) =>
-      Actions.setCacheGuard(game, id, { coalesce: node.coalesce, warming: node.warming }),
+      Actions.setCacheGuard(game, id, {
+        coalesce: node.coalesce,
+        warming: node.warming,
+        earlyExpiry: node.earlyExpiry,
+        swr: node.swr,
+      }),
   ],
   [['paranoia'], (game, id, node) => Actions.setParanoia(game, id, node.paranoia)],
   [['standby'], (game, id, node) => Actions.setStandby(game, id, node.standby)],

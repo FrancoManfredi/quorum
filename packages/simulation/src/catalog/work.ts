@@ -65,6 +65,12 @@ export type FeatureDef = Readonly<{
   unlocks: Readonly<{ kind: RequestKind; share: number; gated: boolean }> | null
   /** Unindexed query shapes it ships: Slow query grows likelier until an index covers them. */
   shapes: number
+  /**
+   * It reads old rows: a Database that deletes history past its window gives it this share of its
+   * effect, and one that archives it a restore's wait (07 \"Data volume\"). 1 for a Feature that
+   * needs no history.
+   */
+  history: number
   /** Adds subscription revenue per paying user. */
   subscription: boolean
   /** The effect, in one line. */
@@ -87,6 +93,7 @@ const feature = (
   queries: {},
   unlocks: null,
   shapes: 0,
+  history: 1,
   subscription: false,
   hidden: null,
   ...entry,
@@ -261,6 +268,8 @@ export const FEATURES: Record<FeatureId, FeatureDef> = {
     era: 4,
     dh: 480,
     market: 1.1,
+    // A dashboard charts old rows: delete them and it shows half as much.
+    history: 0.5,
     unlocks: { kind: 'report', share: 0.03, gated: true },
     effect: 'Market +10%. Reports arrive: a table scan each',
   }),
@@ -278,6 +287,8 @@ export const FEATURES: Record<FeatureId, FeatureDef> = {
     era: 4,
     dh: 480,
     requires: ['video', 'data-export'],
+    // The model trains on what users did: delete that history and the lift halves.
+    history: 0.5,
     load: { media: 1.3, job: 1.3 },
     effect: 'Video +30%',
     hidden: 'Exports +30%: the model trains in batch',

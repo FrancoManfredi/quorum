@@ -76,6 +76,16 @@ import {
   DB_RETENTIONS,
   CACHE_STRATEGIES,
   SEARCH_REFRESH,
+  R2_FIRST_BYTE_MS,
+  RESHARD_DH,
+  SYNC_MS,
+  CACHE_KEYS,
+  SEARCH_HEAPS,
+  SEARCH_REPLICAS,
+  SEARCH_SHARDS,
+  SEARCH_VARIANTS,
+  SHARD_KEYS,
+  STORE_VARIANTS,
   LIFECYCLE_DAYS,
   RESTORE_DRILL_DH,
   EDGE_CPU_MS,
@@ -137,6 +147,7 @@ import {
   certDaysLeft,
   certDaysOf,
   meshMembers,
+  shardingOf,
 } from '@quorum/simulation/lookups'
 import { LINK_TIMEOUTS } from '@quorum/simulation/actions'
 import type {
@@ -150,6 +161,11 @@ import type {
   LbPolicy,
   PmMode,
   StorageClass,
+  CacheKey,
+  SearchHeap,
+  SearchVariant,
+  ShardKey,
+  StoreVariant,
   CacheStrategy,
   DbRetention,
   VecIndexType,
@@ -530,6 +546,17 @@ const warnings = (
         game.engineChange.until > 0
           ? `Copying its data to ${DB_ENGINES[game.engineChange.to].name}. It keeps serving on ${DB_ENGINES[node.dbEngine].name} until the copy ends.`
           : `Rewriting the code for ${DB_ENGINES[game.engineChange.to].name}. It is on the backlog.`,
+        'warn',
+        null,
+        h,
+      ),
+    )
+  if (node.type === 'database' && game.reshard?.node === node.id)
+    list.push(
+      callout(
+        game.reshard.until > 0
+          ? `Copying its data to ${game.reshard.shards} shard${game.reshard.shards === 1 ? '' : 's'} by ${SHARD_KEYS[game.reshard.key].name}. The volume runs at half its IOPS until the copy ends.`
+          : 'Rewriting the code for the new shards. It is on the backlog.',
         'warn',
         null,
         h,
@@ -1605,6 +1632,28 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
       h,
     ),
     section(
+      'Sessions',
+      [
+        picker(
+          'sticky',
+          [
+            [false, 'Balanced'],
+            [true, 'Sticky'],
+          ],
+          node.sticky,
+          (sticky) => Message.StickyChosen({ nodeId: node.id, sticky }),
+          h,
+        ),
+        caption(
+          node.sticky
+            ? 'A user stays on the target it first reached. The oldest copy holds the most users, a target that dies takes its sessions with it, and in-process caches and realtime clients stay warm.'
+            : 'Every request goes where the algorithm sends it.',
+          h,
+        ),
+      ],
+      h,
+    ),
+    section(
       'Health checks',
       [
         picker(
@@ -1834,6 +1883,30 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
             ),
           ]
         : []),
+      ...(has(game, 'stampede-protection')
+        ? [
+            picker(
+              'early-expiry',
+              [
+                [false, 'Expire on the TTL'],
+                [true, 'Refresh early'],
+              ],
+              node.earlyExpiry,
+              (earlyExpiry) => Message.CacheGuardChosen({ nodeId: node.id, earlyExpiry }),
+              h,
+            ),
+            picker(
+              'swr',
+              [
+                [false, 'Miss on expiry'],
+                [true, 'Stale while revalidating'],
+              ],
+              node.swr,
+              (swr) => Message.CacheGuardChosen({ nodeId: node.id, swr }),
+              h,
+            ),
+          ]
+        : []),
       ...(has(game, 'cache-warming')
         ? [
             picker(
@@ -1892,6 +1965,14 @@ const engine = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
+/** What a shard key does to the load, in one line. */
+const shardKeyNote = (node: GameNode): string => {
+  const sharding = shardingOf(node)
+  const hot = Math.round(sharding.hot * 100)
+  const cross = Math.round(sharding.cross * 100)
+  return `The busiest shard takes ${hot}% of the writes. ${cross}% of transactions span shards, so they cost up to 3× and can fail on any shard. Reports and searches touch every shard: +${Math.round((sharding.scatter - 1) * 100)}% CPU and +${sharding.scatterMs} ms.${sharding.farMs > 0 ? ` Users in other regions wait ${Math.round(sharding.farMs)} ms more.` : ''}`
+}
+
 /** A Database's engine, its volume, and its shards (07 "Variants", "Capacity", "Partitioning"). */
 const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const volume = STORAGE_IOPS[node.iops]
@@ -1934,13 +2015,35 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         ),
         caption(
           shards > 1
-            ? `Writes divide across ${shards} shards, and each one bills. A transaction across shards costs 3×.`
+            ? `Writes divide across ${shards} shards, and each one bills. Changing the count or the key takes ${RESHARD_DH} Dev Hours and a copy of the data that halves the volume's IOPS.`
             : 'One primary: a Read Replica is what takes the reads off it.',
           h,
         ),
       ],
       h,
     ),
+    ...(shards > 1
+      ? [
+          section(
+            'Shard key',
+            [
+              picker(
+                'shard-key',
+                (Object.keys(SHARD_KEYS) as ReadonlyArray<ShardKey>).map(
+                  (id) => [id, SHARD_KEYS[id].name] as const,
+                ),
+                node.shardKey,
+                (shardKey) => Message.ShardKeyChosen({ nodeId: node.id, shardKey }),
+                h,
+                () => true,
+                'grid-cols-2',
+              ),
+              caption(shardKeyNote(node), h),
+            ],
+            h,
+          ),
+        ]
+      : []),
     section(
       'Reports',
       [
@@ -1995,6 +2098,28 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
 /** Object Storage's class and lifecycle (07 "Object Storage"): price against retrieval. */
 const storage = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
   section(
+    'Product',
+    [
+      picker(
+        'store-variant',
+        (Object.keys(STORE_VARIANTS) as ReadonlyArray<StoreVariant>).map(
+          (id) => [id, STORE_VARIANTS[id].name] as const,
+        ),
+        node.storeVariant,
+        (storeVariant) => Message.StoreVariantChosen({ nodeId: node.id, storeVariant }),
+        h,
+        (id) => id === 's3' || has(game, 'egress-optimization'),
+      ),
+      caption(
+        node.storeVariant === 'r2'
+          ? `No egress to the internet. A read waits ${R2_FIRST_BYTE_MS} ms more for its first byte unless a CDN is on the board.`
+          : 'Egress to the internet bills per GB, unless a CDN serves it.',
+        h,
+      ),
+    ],
+    h,
+  ),
+  section(
     'Storage class',
     [
       picker(
@@ -2042,7 +2167,99 @@ const storage = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
 ]
 
 /** A Search Engine's refresh interval (07 "Search Engine"): fresher answers cost indexing CPU. */
-const search = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const variant = SEARCH_VARIANTS[node.searchVariant]
+  return [
+    section(
+      'Product',
+      [
+        picker(
+          'search-variant',
+          (Object.keys(SEARCH_VARIANTS) as ReadonlyArray<SearchVariant>).map(
+            (id) => [id, SEARCH_VARIANTS[id].name] as const,
+          ),
+          node.searchVariant,
+          (searchVariant) => Message.SearchOptionsChosen({ nodeId: node.id, searchVariant }),
+          h,
+          () => true,
+          'grid-cols-3',
+        ),
+        caption(
+          variant.jvm
+            ? 'Full features on a JVM: shards, replicas, and a heap to tune.'
+            : 'Answers half again as many queries in a shorter hop on one smaller node, and its relevance falls as the index grows. No shards, replicas, or heap.',
+          h,
+        ),
+      ],
+      h,
+    ),
+    ...(variant.jvm
+      ? [
+          section(
+            'Shards and replicas',
+            [
+              picker(
+                'search-shards',
+                SEARCH_SHARDS.map(
+                  (count) => [count, `${count} shard${count === 1 ? '' : 's'}`] as const,
+                ),
+                node.searchShards,
+                (searchShards) => Message.SearchOptionsChosen({ nodeId: node.id, searchShards }),
+                h,
+                () => true,
+                'grid-cols-3',
+              ),
+              picker(
+                'search-replicas',
+                SEARCH_REPLICAS.map(
+                  (count) => [count, `${count} replica${count === 1 ? '' : 's'}`] as const,
+                ),
+                node.searchReplicas,
+                (searchReplicas) =>
+                  Message.SearchOptionsChosen({ nodeId: node.id, searchReplicas }),
+                h,
+                () => true,
+                'grid-cols-3',
+              ),
+              caption(
+                'More shards parallelize the index and fan every query out. Each replica adds query capacity, a box, and a copy of the index.',
+                h,
+              ),
+            ],
+            h,
+          ),
+          section(
+            'Heap',
+            [
+              picker(
+                'search-heap',
+                (Object.keys(SEARCH_HEAPS) as ReadonlyArray<SearchHeap>).map(
+                  (id) => [id, SEARCH_HEAPS[id].name] as const,
+                ),
+                node.heap,
+                (heap) => Message.SearchOptionsChosen({ nodeId: node.id, heap }),
+                h,
+                () => true,
+                'grid-cols-3',
+              ),
+              caption(
+                node.heap === 'small'
+                  ? 'Too small: garbage collection pauses.'
+                  : node.heap === 'large'
+                    ? 'Too large: long pauses and less file system cache.'
+                    : 'The JVM heap holds caches without starving the file system cache.',
+                h,
+              ),
+            ],
+            h,
+          ),
+        ]
+      : []),
+    searchRefresh(node, h),
+  ]
+}
+
+const searchRefresh = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'Refresh',
     [
@@ -2707,6 +2924,8 @@ const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
         [
           ['cpu', 'CPU'],
           ['load', 'Load'],
+          ['rps', 'Requests'],
+          ['queue', 'Queue depth'],
         ],
         node.signal,
         (signal) => Message.AutoscalerChosen({ nodeId: node.id, signal }),
@@ -3119,6 +3338,76 @@ const pipeline = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
     h,
   )
 }
+
+/** A CDN's purge on deploy and cache key (05 "CDN"). */
+const cdnOptions = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+  section(
+    'Deploys and keys',
+    [
+      picker(
+        'cdn-purge',
+        [
+          [false, 'Keep until the TTL'],
+          [true, 'Purge on deploy'],
+        ],
+        node.purge,
+        (purge) => Message.CdnOptionsChosen({ nodeId: node.id, purge }),
+        h,
+      ),
+      picker(
+        'cdn-key',
+        (Object.keys(CACHE_KEYS) as ReadonlyArray<CacheKey>).map(
+          (id) => [id, CACHE_KEYS[id].name] as const,
+        ),
+        node.cacheKey,
+        (cacheKey) => Message.CdnOptionsChosen({ nodeId: node.id, cacheKey }),
+        h,
+        () => true,
+        'grid-cols-3',
+      ),
+      caption(
+        node.purge
+          ? 'A deploy empties the cache: the origin takes the misses while it refills.'
+          : `After a deploy the edge serves some of the old pages until the TTL passes.`,
+        h,
+      ),
+      caption(
+        node.cacheKey === 'full'
+          ? 'The key holds the path, the query string and the cookies: nothing is shared between users.'
+          : `A smaller key lifts the hit ratio ${Math.round((CACHE_KEYS[node.cacheKey].hit - 1) * 100)}%, and a logged-in page cached under it can be served to another user: a data leak.`,
+        h,
+      ),
+    ],
+    h,
+  )
+
+/** A Read Replica's engine, and whether every write waits for it (07 "Read Replica"). */
+const replica = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
+  engine(node, h),
+  section(
+    'Replication',
+    [
+      picker(
+        'sync',
+        [
+          [false, 'Asynchronous'],
+          [true, 'Synchronous'],
+        ],
+        node.sync,
+        (sync) => Message.SyncChosen({ nodeId: node.id, sync }),
+        h,
+        (sync) => !sync || has(game, 'sync-replication'),
+      ),
+      caption(
+        node.sync
+          ? `Every write waits ${SYNC_MS} ms for this replica, more across zones and regions. It serves no stale read, and writes stall while it is down.`
+          : 'No write cost, and the replica lags: a read after a write can be stale.',
+        h,
+      ),
+    ],
+    h,
+  ),
+]
 
 const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
@@ -3722,9 +4011,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'lb' ? loadBalancer(game, node, h) : []),
           ...(node.type === 'cache' ? [cache(game, node, h)] : []),
           ...(node.type === 'database' ? database(game, node, h) : []),
-          ...(node.type === 'replica' ? [engine(node, h)] : []),
+          ...(node.type === 'replica' ? replica(game, node, h) : []),
           ...(node.type === 'storage' ? storage(game, node, h) : []),
-          ...(node.type === 'search' ? [search(node, h)] : []),
+          ...(node.type === 'search' ? search(node, h) : []),
           ...(node.type === 'queue' ? queue(node, h) : []),
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
@@ -3740,7 +4029,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'edge' ? edge(game, node, h) : []),
           ...(node.type === 'ci' ? [pipeline(game, node, h)] : []),
           ...(node.type === 'ws' ? [hub(node, h)] : []),
-          ...(node.type === 'cdn' ? [cdnTtl(node, h)] : []),
+          ...(node.type === 'cdn' ? [cdnTtl(node, h), cdnOptions(node, h)] : []),
           ...(node.type === 'pooler' ? [pooler(node, h)] : []),
           ...(node.type === 'autoscaler' ? [autoscaler(game, node, h)] : []),
           ...(has(game, 'multi-az') && zoned(node) ? [placement(node, h)] : []),

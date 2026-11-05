@@ -10,6 +10,10 @@ The refresh interval decides how long a new document waits before it is searchab
 
 Until you link a Search Engine, the [Database](/components/database) answers searches with built-in full-text search. When an App Server links to both, searches go to the Search Engine, and Postgres stops answering them.
 
+## Product, shards, replicas and heap
+
+The product is Elasticsearch, OpenSearch, or Meilisearch. The first two share a profile and take every option. More shards parallelize the index but fan every query out, so each one adds less than the last. Each replica adds query capacity, a box, and a copy of the index on a volume. The heap trades garbage collection pauses against the file system cache: too small pauses often, too large pauses long and answers fewer queries. Meilisearch is one smaller, faster node with none of these options, and its relevance falls as the index grows. [Data tier](/design/07-data-tier#search-engine) holds the numbers.
+
 ## When to place it
 
 Place it when searches load the Database: its CPU climbs as the Search share of the mix grows, and every other query slows with it. It unlocks with [Full-text search](/research/full-text-search). Resize it when its card shows it near its limit.

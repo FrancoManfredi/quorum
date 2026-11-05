@@ -23,6 +23,11 @@ import {
   STORM_TRIGGER,
   SPIKE_MAGNITUDE,
   SUPPLY_CHAIN_CHURN,
+  PAGE_LEAK_CHURN,
+  CACHE_KEYS,
+  MIGRATION_LOCK_PER_GB,
+  RESTORE_MIN_MINUTES,
+  RESTORE_MINUTES_PER_GB,
   WARMED,
   type ComponentId,
   type IncidentId,
@@ -76,12 +81,24 @@ export const incidentDuration = (game: Game, kind: IncidentId): number => {
     // A spot reclaim warns for 10 s before it takes the Node, longer than a SEV3 calendar
     // duration, so it runs on its own clock (09 "Pricing models").
     if (kind === 'spot-reclaim') return def.duration
+    // A schema migration locks the table while it copies it: the lock grows with the rows it holds
+    // (07 "Schema migrations"), up to four times the base.
+    if (kind === 'migration-lock')
+      return Math.min(def.duration * 4, def.duration + game.data * MIGRATION_LOCK_PER_GB)
     return !game.sandbox && game.stage >= SLO_FROM_STAGE
       ? Math.min(def.duration, CALENDAR_DURATION[def.severity])
       : def.duration
   }
   return clock() * (sreStaffed(game) ? 1 - SRE_MTTR : 1)
 }
+
+/**
+ * Sim seconds a restore takes (07 \"Backups\"): 5 calendar minutes and half a minute per GB of rows,
+ * twice the GB for point-in-time recovery, which replays the log on top of a snapshot. One sim
+ * second is a calendar minute.
+ */
+export const restoreSeconds = (game: Game, backup: GameNode['backup']): number =>
+  RESTORE_MIN_MINUTES + game.data * RESTORE_MINUTES_PER_GB * (backup === 'pitr' ? 2 : 1)
 
 /** Sim seconds a Sandbox retry storm may last: long enough that only draining ends it. */
 const SANDBOX_STORM = 3_600
@@ -189,6 +206,15 @@ const DATA_TYPES: ReadonlyArray<ComponentId> = ['database', 'replica', 'wide', '
 
 const dataTarget = (game: Game, ledger: Ledger): GameNode | undefined =>
   DATA_TYPES.map((type) => busiest(game, ledger, type)).find((node) => node !== undefined)
+
+/** CDNs that serve now and cache a logged-in page under a key without the cookie. */
+const leakyCdns = (game: Game, ledger: Ledger): ReadonlyArray<GameNode> =>
+  has(game, 'esi')
+    ? game.nodes.filter(
+        (node) =>
+          node.type === 'cdn' && node.cacheKey !== 'full' && !isDown(node) && busy(ledger, node),
+      )
+    : []
 
 /** Nodes an instance failure can hit, weighted toward Nodes with no second copy. */
 const instanceTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNode, number]> =>
@@ -511,6 +537,16 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
       if (database.backup === 'none' || database.restore === 'failed') return 3
       return has(game, 'restore-drills') ? 0.5 : 1
     },
+    // Heavy updates outrun VACUUM on PostgreSQL; MySQL has no dead rows to clean, and a retention
+    // window keeps the tables small (07 "Variants").
+    'table-bloat': () => {
+      const database = busiest(game, ledger, 'database')
+      if (!database || database.dbEngine !== 'postgres') return 0
+      return database.keep === 'keep' ? 1.5 : 0.5
+    },
+    // A cache key that leaves out the cookie shares a cached logged-in page (05 "CDN").
+    'page-leak': () =>
+      Math.max(0, ...leakyCdns(game, ledger).map((node) => CACHE_KEYS[node.cacheKey].leak)),
     // A plan shows what a command removes; without one, a typo takes the whole Component.
     'operator-typo': () => {
       const target = dataTarget(game, ledger)
@@ -610,9 +646,14 @@ export const startIncident = (
     Match.when('reconnect', () => busiest(game, ledger, 'ws')),
     Match.when('cluster-upgrade', () => pickWeighted(clusterTargets(game), roll)),
     Match.when(
-      (id) => id === 'hot-shard' || id === 'migration-lock' || id === 'accidental-delete',
+      (id) =>
+        id === 'hot-shard' ||
+        id === 'migration-lock' ||
+        id === 'accidental-delete' ||
+        id === 'table-bloat',
       () => busiest(game, ledger, 'database'),
     ),
+    Match.when('page-leak', () => leakyCdns(game, ledger)[0]),
     Match.when('jvm-warmup', () => pickWeighted(javaTargets(game, ledger), roll)),
     Match.when(
       (id) => id === 'supply-chain' || id === 'leap-second',
@@ -655,6 +696,8 @@ export const startIncident = (
     'accidental-delete',
     'operator-typo',
     'leap-second',
+    'table-bloat',
+    'page-leak',
   ] as const
   if ((targeted as ReadonlyArray<IncidentId>).includes(kind) && !target) return null
   // A Region outage strikes the region most of the Design depends on; the DR drill, home; a leap
@@ -780,7 +823,12 @@ export const startIncident = (
   // An audit finding resets the DR drill: it must pass again.
   const drill = kind === 'audit' ? null : game.drill
   // A malicious package ships the data out: users leave at once, and the postmortem counts them.
-  const lost = kind === 'supply-chain' ? Math.floor(game.users * SUPPLY_CHAIN_CHURN) : 0
+  const lost =
+    kind === 'supply-chain'
+      ? Math.floor(game.users * SUPPLY_CHAIN_CHURN)
+      : kind === 'page-leak'
+        ? Math.floor(game.users * PAGE_LEAK_CHURN)
+        : 0
   return {
     game: { ...game, nodes, drill, incident, lastIncident: kind, users: game.users - lost },
     incident,

@@ -9,7 +9,7 @@ It answers nearest-neighbour lookups, `q-search`, at **500 a second** at its fir
 | Exact | 1×      | 1×                                                              | 100%: every lookup finds its true nearest neighbour. |
 | HNSW  | 2×      | 2×: the graph sits beside the vectors, and bills twice the Burn | 95%: one lookup in twenty quotes the wrong document. |
 
-Exact is a scan of every vector: perfect, and slow once the collection outgrows a scan. HNSW walks a graph instead, which is what a real index does at scale, and it gives up a little recall for it. The 95% is the design's number; the 2× and the Burn are proposed, since the design says "fast" and "memory-heavy" without a figure.
+Exact is a scan of every vector: perfect, and slow once the collection outgrows a scan. HNSW walks a graph instead, which is what a real index does at scale, and it gives up a little recall for it. HNSW answers 2× the lookups, bills 2× the Burn for the graph it holds in memory, and reaches 95% recall.
 
 ## What it unlocks
 

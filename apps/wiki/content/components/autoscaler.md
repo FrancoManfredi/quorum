@@ -12,6 +12,10 @@ Settings on its card:
 
 New copies are not instant. A VM takes minutes to boot. In a [Kubernetes Cluster](/components/cluster), a pod takes seconds. Between two scaling actions on one Node it waits a cooldown. New copies start cold, so a JIT runtime runs them slowly at first. See [cold start](/glossary/cold-start).
 
+## Signals
+
+The signal can be CPU, the Node's whole load, the requests a second each copy takes, or the tasks waiting in the Queues that feed it. CPU misreads a runtime that waits on I/O, because its workers fill while its CPU stays low. Request rate follows the traffic whatever the runtime. Queue depth suits a Worker: it adds copies when the backlog grows, and a Node no Queue feeds reads zero on it.
+
 ## When to place it
 
 Place it when demand swings through the day and you either pay for idle copies at night or run hot at peak. It unlocks with [Autoscaling](/research/autoscaling).

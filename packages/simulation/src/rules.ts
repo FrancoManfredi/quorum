@@ -20,6 +20,7 @@ import {
   GPU_FIRST_TOKEN_MS,
   GPU_TYPES,
   HERD_REFUSED,
+  STICKY_HERD,
   HUB_RAM_KB,
   ML_AI_BONUS,
   LLM_FIRST_TOKEN_MS,
@@ -44,7 +45,9 @@ import {
   WIDE_TX_STALE,
   rttOf,
   TIERED_MEDIA_HIT,
+  CACHE_KEYS,
   COALESCED,
+  STALE_AFTER_DEPLOY,
   COMPONENTS,
   DRAIN_SECONDS,
   PARANOIA,
@@ -69,6 +72,12 @@ import {
   EDGE_MS,
   EDGE_READ_HIT,
   DOC_JOIN_COST,
+  EARLY_LIFT,
+  R2_FIRST_BYTE_MS,
+  SEARCH_FANOUT,
+  SEARCH_HEAPS,
+  SEARCH_VARIANTS,
+  EARLY_REFRESH,
   DOC_OPS,
   DOC_OP_MS,
   DOC_PARTIAL,
@@ -121,7 +130,10 @@ import {
   hopMs,
   inCluster,
   meshOf,
+  pinnedOf,
+  shardingOf,
   storageBands,
+  syncStalled,
   transferMs,
   vecOf,
 } from './lookups.ts'
@@ -356,6 +368,18 @@ const cacheCapacity = (node: GameNode): number =>
 export const cacheTtlOf = (ttl: number) =>
   ttl <= 10 ? CACHE_TTLS[0] : ttl < 3_600 ? CACHE_TTLS[1] : CACHE_TTLS[2]
 
+/**
+ * The share of reads a Cache's TTL keeps as hits (07 "TTL", "Stampedes"). Probabilistic early
+ * expiration refreshes a key a little before it expires, so half the hits a short TTL loses stay;
+ * stale-while-revalidate serves the old value while one request refreshes it, so none are lost.
+ */
+export const ttlFactorOf = (game: Game, node: GameNode): number => {
+  const factor = cacheTtlOf(node.ttl).factor
+  if (!has(game, 'stampede-protection')) return factor
+  if (node.swr) return 1
+  return node.earlyExpiry ? factor + (1 - factor) * EARLY_LIFT : factor
+}
+
 /** A Search Engine's refresh interval: how fresh its answers are and what indexing costs. */
 export const refreshOf = (node: GameNode) =>
   SEARCH_REFRESH.find((entry) => entry.seconds === node.refresh) ??
@@ -368,7 +392,7 @@ export const hitRatioOf = (game: Game, node: GameNode, writeShare: number): numb
   const fits = hot > 0 ? Math.min(1, memory / hot) : 1
   return (
     Math.sqrt(fits) *
-    cacheTtlOf(node.ttl).factor *
+    ttlFactorOf(game, node) *
     (1 - Math.min(0.5, 2 * writeShare)) *
     warmOf(node.life)
   )
@@ -387,7 +411,9 @@ export const cdnHitOf = (node: GameNode, kind: Kind, game?: Game): number => {
           kind === 'page' && game && has(game, 'esi')
           ? (CDN_HIT.page ?? 0) + ESI_PAGE_HIT
           : (CDN_HIT[kind] ?? 0)
-  return Math.min(0.95, base * ttl.factor)
+  // A key that leaves out the query string or the cookie shares more pages, and a cache that a
+  // purge emptied fills again as it warms (05 "CDN").
+  return Math.min(0.95, base * ttl.factor * CACHE_KEYS[node.cacheKey].hit * warmOf(node.life))
 }
 
 /* ---------- the Edge Function ---------- */
@@ -679,6 +705,14 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         (kind === 'q-read' || kind === 'q-write' || kind === 'q-tx')
       )
         return failed('refused')
+      // A synchronous replica that is down stalls every write the primary takes, because each one
+      // waits for it (07 "Read Replica").
+      if (
+        node.type === 'database' &&
+        (kind === 'q-write' || kind === 'q-tx') &&
+        syncStalled(answer.game)
+      )
+        return failed('timeout')
       const pool = answer.pass.connections[slotOf(answer.pass, node)]
       const refused = pool && pool.used > pool.max ? 1 - pool.max / pool.used : 0
       // A report read from a materialized view is as fresh as its last refresh (10 "Performance").
@@ -690,12 +724,14 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         ...answered(0, 0),
         success: 1 - refused,
         stale: Math.max(
-          node.type === 'replica' && kind === 'q-read' ? answer.pass.staleShare : 0,
+          node.type === 'replica' && kind === 'q-read' && !node.sync ? answer.pass.staleShare : 0,
           staleScan,
         ),
         fail: { ...NO_FAILURES, refused },
       }
-      return through(answer.ownHop(kind), [[reply, 1]])
+      const own = through(answer.ownHop(kind), [[reply, 1]])
+      // A transaction across shards commits on each of them, and any one can fail (07 "Partitioning").
+      return kind === 'q-tx' ? failSome(own, shardingOf(node).failure, 'timeout') : own
     },
     ...terminal,
     probe: () => ({ 'q-read': 1 }),
@@ -748,16 +784,24 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       // stores old data now and then; write-through has nothing stale behind it. A stale-read
       // incident is an invalidation bug on top: the Cache keeps serving old rows (07 "TTL").
       const surge = game.incident?.kind === 'stale-read' && game.incident.nodeId === node.id
+      // Stale-while-revalidate answers the reads an expired key would have missed from the old value.
+      const revalidating =
+        node.swr && has(game, 'stampede-protection') ? 1 - cacheTtlOf(node.ttl).factor : 0
       serve.setHits(
         hit,
-        cacheTtlOf(node.ttl).stale * writeShare * strategy.stale * (surge ? STALE_SURGE : 1),
+        Math.min(
+          1,
+          cacheTtlOf(node.ttl).stale * writeShare * strategy.stale * (surge ? STALE_SURGE : 1) +
+            revalidating,
+        ),
       )
       // Stampede protection: misses only a cold Cache has wait on one fetch per key.
       const warmHit = hitRatioOf(game, { ...node, life: RUNNING }, writeShare)
+      const early = node.earlyExpiry && has(game, 'stampede-protection') ? hit * EARLY_REFRESH : 0
       const sent =
-        node.coalesce && has(game, 'stampede-protection')
+        (node.coalesce && has(game, 'stampede-protection')
           ? 1 - warmHit + (warmHit - hit) * COALESCED
-          : 1 - hit
+          : 1 - hit) + early
       each(rates, share, (kind, processed) => {
         if (kind === 'q-read') return serve.route(kind, processed * sent)
         // Write-behind answers the write here and flushes only its share to the Database.
@@ -804,14 +848,32 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     ...terminal,
   },
   search: {
-    model: (solver, node, arriving) =>
-      flatModel(
-        (SEARCH_QPS * flatScale(node) * refreshOf(node).capacity) /
-          queryFactor(solver.game, 'q-search'),
-        arriving,
-        { fixed: 15, variable: 2 },
-        solver.boost(node),
-      ),
+    model: (solver, node, arriving) => {
+      const variant = SEARCH_VARIANTS[node.searchVariant]
+      // Shards parallelize the index and fan every query out; replicas add query capacity; the heap
+      // trades garbage collection pauses against the file system cache (07 "Search Engine").
+      const shards = variant.jvm ? node.searchShards : 1
+      const heap = variant.jvm ? SEARCH_HEAPS[node.heap] : SEARCH_HEAPS.half
+      const capacity =
+        (SEARCH_QPS *
+          flatScale(node) *
+          refreshOf(node).capacity *
+          variant.capacity *
+          (shards / (1 + SEARCH_FANOUT * (shards - 1))) *
+          (1 + (variant.jvm ? node.searchReplicas : 0)) *
+          heap.capacity) /
+        queryFactor(solver.game, 'q-search')
+      return {
+        ...flatModel(
+          capacity,
+          arriving,
+          { fixed: variant.fixedMs, variable: 2 },
+          solver.boost(node),
+        ),
+        tailP: heap.tailP,
+        tailMs: heap.tailMs,
+      }
+    },
     // A slower refresh saves indexing CPU and answers staler: a new document waits to be seen. On
     // top of that, the app's dual write loses now and then: without a Transactional outbox or a CDC
     // Connector, a write's publish can fail and the index keeps the old document (07 "Keeping
@@ -823,14 +885,32 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         has(answer.game, 'outbox') || answer.game.nodes.some((entry) => entry.type === 'cdc')
       // The copies can only diverge once the app writes to several of them: Series B (07).
       const diverged = carried || answer.game.stage < 4 ? 0 : DUAL_WRITE_STALE
-      return { ...own, stale: Math.max(refreshOf(node).stale, diverged) }
+      // Meilisearch's relevance falls as the index grows: its answers drift from what was asked.
+      const variant = SEARCH_VARIANTS[node.searchVariant]
+      const relevance = Math.min(variant.cap, answer.game.users * variant.relevance)
+      return { ...own, stale: Math.max(refreshOf(node).stale, diverged, relevance) }
     },
     ...terminal,
   },
   // Archive-class objects must be restored before they can be read, so a `media` request for one
   // fails as `timeout` (07 "Object Storage").
   storage: {
-    model: unlimited(40, 5),
+    // R2 answers a little later than S3 outside its own CDN: a CDN on the board takes the first
+    // byte (07 "Object Storage").
+    model: (solver, node, arriving) =>
+      flatModel(
+        Number.POSITIVE_INFINITY,
+        arriving,
+        {
+          fixed:
+            40 +
+            (node.storeVariant === 'r2' && !solver.game.nodes.some((entry) => entry.type === 'cdn')
+              ? R2_FIRST_BYTE_MS
+              : 0),
+          variable: 5,
+        },
+        1,
+      ),
     // A read of an archived object waits hours for its restore, so it fails as a timeout. Lifecycle
     // rules put the oldest share of the store in Archive, and that share of reads fails with it.
     outcome: (answer, node, kind) => {
@@ -1052,8 +1132,10 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     outcome: (answer, node, kind) => {
       const hit = cdnHitOf(node, kind, answer.game)
       if (hit <= 0) return relay(answer, node, kind)
+      // Without a purge, pages cached before the deploy are served until their TTL passes.
+      const old = kind === 'page' && answer.game.time < node.staleUntil ? STALE_AFTER_DEPLOY : 0
       const mixed = blend([
-        [answered(0, 0), hit],
+        [{ ...answered(0, 0), stale: old }, hit],
         [answer.downstream(kind), 1 - hit],
       ])
       return through(answer.ownHop(kind), mixed ? [[mixed, 1]] : [])
@@ -1130,7 +1212,9 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       const herd = node.life._tag === 'Warming' && !node.backoff
       return failSome(
         through(answer.ownHop(kind, node.presence ? PRESENCE_VALUE : 1)),
-        herd ? HERD_REFUSED : 0,
+        // A sticky Load Balancer sends each client back to the Hub it had, so a restarted Hub
+        // takes only its own half of the wave.
+        herd ? HERD_REFUSED * (pinnedOf(answer.game, node) ? STICKY_HERD : 1) : 0,
         'refused',
       )
     },

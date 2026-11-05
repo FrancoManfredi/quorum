@@ -16,18 +16,30 @@ The game tracks stored data in GB, in two places. Object Storage holds the files
 message a Realtime Hub carries adds one. Data never shrinks by itself.
 
 - The rows bill on the Storage line of the cloud bill at 3.5× the Object Storage price, the price of
-  gp3 against S3 Standard (proposed: the design says only that Storage Burn grows with volume).
+  gp3 block storage against S3 Standard.
 - A Database answers an unindexed query or a report from its rows, so more rows mean a slower scan.
 - Research "Retention policies" puts a window on the Database and archives or deletes what passes
   it, which trades cheap storage for slower reads or a rebuild (see [Rows and retention](#rows-and-retention),
   built below).
 
 **Built:** data volume, and the two figures it lives in — `stored` for Object Storage and `data` for
-the Databases. A row costs 10 KB, its indexes and its share of the WAL included (proposed). Growth
-bills, and it is what a retention window caps.
+the Databases. A row costs 10 KB, its indexes and its share of the WAL included. Growth bills, and it
+is what a retention window caps.
 
-Not built: backups, replicas, and migrations taking longer as volume grows. They read no volume, so
-a large Company backs up as fast as a small one.
+Volume also sets how long the slow operations take, in calendar time (one sim second is a calendar
+minute):
+
+| Operation                       | Time                                                                           |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| Restore of a backup             | 5 minutes plus half a minute per GB; point-in-time recovery reads twice the GB |
+| A new Read Replica's first copy | Half a minute per GB (at least the 15 s of any cold Node) before it serves     |
+| Schema migration lock           | 150 s plus 0.1 s per GB of rows, at most four times 150 s                      |
+| Database engine change          | One minute per GB of rows, after its Dev Hours                                 |
+| Resharding                      | One minute per GB of rows, at least a calendar day, after its Dev Hours        |
+
+A large Company takes longer to back up, copy, and migrate than a small one. A Feature that reads
+history loses part of its value when retention deletes that history
+([Rows and retention](#rows-and-retention)).
 
 ## Relational database
 
@@ -50,8 +62,7 @@ capacity = min(cpu_limit, connection_limit, iops_limit)
 | Buffer cache | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database. |
 
 **Built:** the IOPS limit. A general purpose volume answers 3,000 disk operations a second and a
-provisioned one 64,000, and provisioned storage bills 1.5× the Database's box (proposed: the design
-says "at higher cost" and gives no rate). A disk operation waits 1 / IOPS ms and queues as the volume
+provisioned one 64,000, and provisioned storage bills 1.5× the Database's box. A disk operation waits 1 / IOPS ms and queues as the volume
 fills, so a Database whose working set outgrows RAM meets the volume before its CPU: at 96 vCPU a
 general purpose volume caps reads at 3,000 a second while the CPU would answer 8,000. A shard brings
 its own volume.
@@ -65,8 +76,15 @@ its own volume.
 
 **Built:** both engines, chosen on the Database's card and on a Read Replica's. Postgres holds 100
 connections, MySQL 500, so a fleet that exhausts `max_connections` on Postgres fits on MySQL. MySQL's
-`q-search` costs twice the CPU of Postgres's (proposed: the design says the search is weaker and gives
-no ratio). Not built: the Table bloat incident, and a migration between engines.
+`q-search` costs twice the CPU of Postgres's.
+
+PostgreSQL meets the **Table bloat** incident (Series A, sev 2, 120 s): heavy updates outrun
+`VACUUM`, the table fills with dead rows, and every read and write on the busiest Database costs 2×
+the CPU until the incident ends. It weighs 1.5 on a Database that keeps everything and 0.5 on one with
+a retention window, and 0 on MySQL, which has no dead rows to clean. Changing a Database's engine is
+a migration: the card queues 0.8 of the codebase in Dev Hours, then copies the data at one minute a
+GB, and the Database serves on its old engine until the copy ends
+([Migrations](/design/08-team-and-velocity#migrations)).
 
 ### Indexes
 
@@ -76,8 +94,8 @@ Each feature the player ships adds query shapes. Some of them have no index.
   small scale and becomes the bottleneck as data grows. This is incident "Slow query"
   ([Incidents](/design/11-incidents#catalog)).
 - Adding an index costs 4 Dev Hours and covers one unindexed query shape, which lowers the Slow query
-  weight. Not built yet: an index's write cost; indexes add no write cost in the build, so many of
-  them cost nothing.
+  weight. Each index makes every write cost 5% more CPU, on every Database, so many indexes slow
+  the writes.
 - Research "Query analysis" (`EXPLAIN`) shows which query shapes lack an index.
 
 ### Schema migrations
@@ -94,7 +112,8 @@ fail or queue while the lock is held.
 **Built:** both research items, as a weight on the Schema migration lock Incident
 ([Incidents](/design/11-incidents#catalog)). A Database with neither takes the lock in full (weight
 2.5); online migrations leave it a fifth of a chance (0.3); expand and contract removes it entirely
-(0), because no step of the change ever holds a write back.
+(0), because no step of the change ever holds a write back. Both cost Dev Hours on a relational Database: a Feature that adds a query shape costs 10% more
+with online migrations and 25% more with expand and contract.
 
 ## Rows and retention
 
@@ -109,13 +128,12 @@ Research "Retention policies" (Pre-IPO, 250,000 ◇) puts a window on the Databa
 The window is the trade: a Database that keeps everything grows without bound and bills for it; one
 that archives or deletes stops growing at the rows it writes inside its window, and the history it
 gave up is what a report over that range costs. Archive adds 200 ms to a report's scan; delete makes
-it rebuild, at three times the scan CPU (both proposed: the design names the trade and, for the
-report, only that it loses some feature values). The window is 30 calendar days (proposed: the design
-says "old data" and gives no period).
+it rebuild, at three times the scan CPU. The window is 30 calendar days.
 
 **Built:** the three policies and the window that caps the rows. The `data` figure never grows past
 the window's worth of writes, and a Database whose Company has not researched Retention policies
-stays on Keep everything.
+stays on Keep everything. Dashboards and Recommendations read history: on a Company with a Database
+that deletes it, each has half its effect.
 
 ## Connection Pooler
 
@@ -173,12 +191,12 @@ first GB of cache is worth more than the tenth. `ttl_factor` is the Cache's row 
 | Write-behind  | Hit fast            | Fast (cache only) | None in cache; the database lags        | A cache crash loses writes not yet flushed.                    |
 
 **Built:** all four, on the Cache's card, with research "Cache strategies" (Seed, 600 ◇). Cache-aside
-is the default and keeps the TTL's own stale share of hits. The rest are four numbers, all proposed:
+is the default and keeps the TTL's own stale share of hits. The rest are four numbers:
 read-through removes the aside race, so it serves three quarters of that share; write-through has no
 stale hits and adds half a millisecond to each write; write-behind halves the stale share, answers the
 write at the Cache's own hop, and flushes half of each write to the Database. Read-through's own cost,
 the library that owns loading, is not modelled; write-behind caches nothing across a restart, so a
-crash still loses what it had not flushed, and the build counts only the slower reads of a lagging
+crash still loses what it had not flushed, and the Cache counts only the slower reads of a lagging
 Database, not the loss.
 
 ### TTL
@@ -198,12 +216,18 @@ acceptable up to a limit set by the Venture.
 When a hot key expires, or the cache restarts, many requests miss at once and hit the database
 together. This is a [cache stampede](/design/glossary#cache-stampede).
 
-| Protection (research)                          | Effect                                                                               |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Request coalescing                             | One request reloads the key while the others wait for it.                            |
-| Probabilistic early expiration (Not built yet) | Keys refresh slightly before they expire, at random, so they do not expire together. |
-| Stale-while-revalidate (Not built yet)         | Serves the old value while one request refreshes it.                                 |
-| Cache warming                                  | Fills a new or restarted cache before it takes traffic.                              |
+| Protection (research)          | Effect                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| Request coalescing             | One request reloads the key while the others wait for it.                            |
+| Probabilistic early expiration | Keys refresh slightly before they expire, at random, so they do not expire together. |
+| Stale-while-revalidate         | Serves the old value while one request refreshes it.                                 |
+| Cache warming                  | Fills a new or restarted cache before it takes traffic.                              |
+
+**Built:** all four, as switches on the Cache's card. Coalescing, early expiration and
+stale-while-revalidate need research `stampede-protection`; warming needs `cache-warming`. Early
+expiration wins back half the hit ratio a short TTL loses and costs 2% of the hits as extra refresh
+reads on the Database. Stale-while-revalidate keeps the whole TTL-free hit ratio: the reads an
+expired key would have missed are answered from the old value, and they count as stale hits.
 
 ## Read Replica
 
@@ -217,8 +241,12 @@ A copy of the primary that serves `q-read`. Writes still go to the primary.
 | Synchronous                         | No lag on the synchronous replica. Every write waits for it: +2 ms in the same zone, more across zones. If the replica is down, writes stall.                       |
 | Read-your-writes routing (research) | Sends a user's reads to the primary for a few seconds after that user writes. Removes most `stale` errors and keeps some read load on the primary.                  |
 
-Not built yet: synchronous replication. Research `sync-replication` only gates `consensus`; replicas
-always lag by `base_lag + write_rate × lag_factor`, and no write ever stalls.
+**Built:** synchronous replication, a switch on each Read Replica's card, with research
+`sync-replication`. Every write and checkout on the primary waits for its synchronous replicas: 2 ms
+in the same zone, a zone hop more across zones, a region round trip more across regions, for the
+slowest of them. A synchronous replica serves no stale read. If one is down, every write the primary
+takes times out until it is back. An asynchronous replica lags by `base_lag + write_rate × lag_factor`,
+and no write waits for it.
 
 Replicas behind a misconfigured route are a common bug: sending `q-write` to a replica fails every
 write. The card shows a red "Read-only" row.
@@ -241,15 +269,31 @@ Research "Sharding" splits one database into N shards by a key.
   skew.
 
 **Built:** sharding the Database, as the write-side counterpart to the Read Replica. With research
-`sharding` the card offers 1, 2, 4, or 8 shards (proposed: the design says N and gives no set). Each
-shard is another box: a Database with N shards bills N times the box. The writes divide across the
-shards and the reads do not, because a read asks the one shard that holds its key; a Read Replica is
-still what takes reads off the primary. A `q-tx` across shards costs 3× its latency, the design's own
-number. Each shard brings its own volume, so sharding lifts the IOPS limit with the CPU limit.
+`sharding` the card offers 1, 2, 4, or 8 shards. Each shard is another box: a Database with N shards
+bills N times the box. Each shard brings its own volume, so sharding lifts the IOPS limit with the
+CPU limit. A read asks the one shard that holds its key, so the reads do not divide; a Read Replica
+is still what takes reads off the primary.
 
-Not built: the shard key choice and its skew, so there is no hot shard on a Database (the Hot key
-incident still hits a Cache or Wide-column Store), no scatter-gather cost, the failure mode of a
-distributed transaction, and the Dev Hours resharding takes.
+The card also picks the shard key. The key sets how the writes fall on the shards, how many
+transactions span shards, and what a report costs:
+
+| Key             | Writes on the busiest shard | Transactions that span shards | Other cost                                   |
+| --------------- | --------------------------- | ----------------------------- | -------------------------------------------- |
+| Hash of user ID | 1/N, an even split          | `1 − 1/N`                     | None                                         |
+| Range of IDs    | `0.5 + 0.5/N`: a hot shard  | `1 − 1/N`                     | None                                         |
+| By tenant       | `0.3 + 0.7/N`: a hot shard  | A tenth of the hash key's     | None                                         |
+| By region       | 1/N                         | A fifth of the hash key's     | Users in other regions wait up to 70 ms more |
+
+The busiest shard sets the pace, so the write capacity is the CPU's over its share. A report or a
+search touches every shard (scatter-gather): each shard past the first adds 15% CPU and 2 ms to it.
+A `q-tx` that spans shards is a distributed transaction: 3× the latency, and it fails as a timeout
+with a 0.5% chance on each shard that takes part. The card shows the busiest shard's share and the
+share of transactions that span shards.
+
+In a Company, changing the shard count or the key is a resharding. It queues 24 Dev Hours, then
+copies the data at a minute a GB for at least a calendar day, and the volume runs at half its IOPS
+while it copies. The Database keeps its old shards and key until the copy ends. The Hot key incident
+still hits a Cache or Wide-column Store.
 
 ## Fan-out
 
@@ -266,13 +310,26 @@ When one user request becomes many backend requests, the tail grows
 
 ## Search Engine
 
-Not built yet: shards and replicas, heap, and the Elasticsearch, OpenSearch, and Meilisearch variants.
 A Search Engine has a size and 400 queries per second per size step.
 
-**Built:** the refresh interval, as 1 s, 5 s, or 60 s on the card. A longer interval answers 1.1× or
-1.3× the queries and serves 5% or 25% of them staler than the index; 1 s serves nothing stale. The
-capacity multipliers and the stale shares are proposed: the design gives the default and the
-direction only.
+**Built:** every option below, on the card. The refresh interval is 1 s, 5 s, or 60 s. A longer
+interval answers 1.1× or 1.3× the queries and serves 5% or 25% of them staler than the index; 1 s
+serves nothing stale.
+
+Shards are 1, 2, or 4 and replicas 0, 1, or 2. A query fans out to every shard, so each shard past
+the first adds 20% of one shard's work: the capacity is `shards / (1 + 0.2 × (shards − 1))` of one
+shard's. Each replica adds a whole copy of the capacity, a box, and a copy of the index. The index is
+30% of the Company's rows on a gp3 volume, and each replica holds one more copy, so the volume bills on
+the Storage line at the Database's row price. Every shard and every replica is another box.
+
+The heap is 25%, 50%, or 75% of the RAM. At 25% the JVM garbage-collects too often: 5% of the
+answers pause 150 ms. At 50% nothing pauses. At 75% the file system cache is small, so the Node
+answers 0.85× the queries, and 2% of the answers pause 400 ms.
+
+Elasticsearch and OpenSearch share a profile and take every option. Meilisearch runs one node with no
+shards, replicas, or heap, answers 1.5× the queries in an 8 ms hop instead of 15 ms, and bills 0.6×
+the box. Its relevance falls as the index grows: each user makes 0.00005% of its answers stale, at
+most 25%.
 
 Real products: Elasticsearch, OpenSearch (variant), Meilisearch (variant).
 
@@ -293,17 +350,15 @@ Feeding the index: either dual writes from the app or a CDC Connector
 
 ## Object Storage
 
-Not built yet: the R2 variant.
-
 Real products: Amazon S3, Cloudflare R2, Google Cloud Storage.
 
 Unlimited capacity. It burns a flat $0.01/s plus $0.000032 per GB stored per second, and it charges
 per request and per GB of egress.
 
-| Variant            | Profile                                                                 |
-| ------------------ | ----------------------------------------------------------------------- |
-| S3                 | Standard. Egress costs money unless it goes through a CDN.              |
-| R2 (Not built yet) | No egress fees. Slightly higher first-byte latency outside its own CDN. |
+| Variant | Profile                                                                 |
+| ------- | ----------------------------------------------------------------------- |
+| S3      | Standard. Egress costs money unless it goes through a CDN.              |
+| R2      | No egress fees. Slightly higher first-byte latency outside its own CDN. |
 
 | Storage class     | Storage price | Retrieval                                                      |
 | ----------------- | ------------- | -------------------------------------------------------------- |
@@ -314,17 +369,22 @@ per request and per GB of egress.
 **Built:** the three classes, chosen on the card. The class multiplies the price of the GB the store
 holds, and Infrequent access bills $0.01 per GB read back out (S3's own Standard-IA rate) on the
 Storage line of the bill. Archive bills a tenth and fails every `blob-get` as `timeout`: an archived
-object must be restored first, and the build has no restore.
+object must be restored first.
 
 Research "Lifecycle rules" (Series A, 1,500 ◇) moves old objects to cheaper classes automatically.
 
-**Built:** the rule, on the card: Off, or after 30, 90, or 365 calendar days (proposed; the design
-gives no thresholds). An object past the window drops one class, so Standard becomes Infrequent
-access and Infrequent access becomes Archive. The build ages the store from its GB and its upload rate:
+**Built:** the rule, on the card: Off, or after 30, 90, or 365 calendar days. An object past the window drops one class, so Standard becomes Infrequent
+access and Infrequent access becomes Archive. The store ages from its GB and its upload rate:
 a store that fills at a steady rate holds its oldest object for `stored / uploads`, and the share past
 the window is the older share. That share bills at the cheaper class, and a read of it into Archive
 fails as `timeout`, so the cheaper bill costs the oldest reads. A store in Standard needs two windows
 before a read fails; one in Infrequent access needs only one.
+
+**Built:** the product, on the card: S3, or R2 with research `egress-optimization`. R2 has no egress
+to the internet: the share of a server's egress that `upload` and `media` traffic into an R2 store
+accounts for bills $0 ([Economy](/design/09-economy#egress)). A read from R2 waits 15 ms more for its
+first byte unless a CDN is on the board. Each read and write bills at its product's price on the
+Requests line ([Economy](/design/09-economy#base-prices)).
 
 ## Document Store
 
@@ -336,7 +396,7 @@ Serves `q-read` and `q-write` on documents.
 - Flexible schema: features that change data shape cost −25% Dev Hours and skip schema migrations.
 - Joins happen in the app: `report` and `q-tx` across documents cost 3× and lose atomicity unless the
   multi-document transaction option is on (+50% write latency).
-- Scales out by sharding on a shard key, with the same hot-key risks as relational sharding.
+- Scales out by size: eight sizes, each one more ops a second. A hot key overloads one node's share, which the Hot key incident shows.
 
 **Built:** the Component, its flat rate, its joins and its Dev Hours. It answers 3,000 ops a second
 at its first size, over eight sizes, and a read or a write is one op while a `q-tx` or a `q-scan`
@@ -345,10 +405,9 @@ App Server needs no pooler to reach it, and it has no buffer cache or IOPS volum
 Without multi-document transactions a share of checkouts lands half-applied and bills as a
 duplicate; with them, every write waits half again its latency. A Feature costs 10% more Dev Hours
 for the access pattern it adds, and 25% less when it changes the data shape, because there is no
-migration to run. The 2% half-applied share and the 10% are proposed; the design gives the −25%, the
-3× and the +50%. **Not built yet:** sharding on a key. The `doc` Component has no shard count, so the
-Hot key incident divides its rate the way it divides a Cache's, and nothing scales its writes out;
-the design's "same hot-key risks as relational sharding" is only the incident.
+migration to run. The half-applied share is 2%, and the access pattern's extra Dev Hours 10%. The
+`doc` Component has no shard count, so the Hot key incident divides its rate the way it divides a
+Cache's.
 
 ## Data Warehouse
 
@@ -364,7 +423,7 @@ Serves `q-scan`. Columnar storage makes scans cheap.
 - A **materialized view** answers a report from a stored result instead of scanning: half the CPU,
   and the figures are as old as the last refresh. Research `precompute` puts one on a Database's
   card ([Progression](/design/10-progression#track-performance)). The build charges half the scan
-  CPU and marks 5% of report answers stale (proposed: 10 gives the half and no refresh interval).
+  CPU and marks 5% of report answers stale.
 
 ## Vector Index
 
@@ -376,7 +435,6 @@ rises, because answers use the company's own data.
 | Option     | Effect                                                                                      |
 | ---------- | ------------------------------------------------------------------------------------------- |
 | Index type | Exact (perfect recall, slow at scale) or approximate HNSW (fast, memory-heavy, 95% recall). |
-| pgvector   | Lives inside Postgres. No new Node, and it competes with transactional load.                |
 
 **Built:** the Component, its two index types, and the retrieval lift. It answers nearest-neighbour
 lookups (`q-search`) at 500 a second per size step. Exact gives every lookup its true neighbour;
@@ -384,9 +442,7 @@ HNSW answers twice as many, bills twice the Burn for the graph it holds in memor
 recall, so one search in twenty comes back stale. A Node that answers `ai` and links into a live
 index pays one lookup per prompt and earns 35% more for it, times the index's recall; and Python's
 ML ecosystem bonus (06) now needs an index in the path, which is the condition the Runtimes page
-describes. The 35%, the 2× capacity and the 2× Burn are proposed: the design gives the 95% and the
-direction. **Not built yet:** pgvector as a second way to own the index, inside the Database and
-sharing its CPU; the build has one Node, and the design's "no new Node" option stays prose.
+describes. The lift is 35%, the HNSW capacity 2× and its Burn 2×. The index is always its own Node.
 
 ## Wide-column Store
 
@@ -420,8 +476,8 @@ each — and a write costs N of them, a read R.
 - Writes scale linearly with nodes, until the partition key is skewed.
 - No joins and no ad hoc queries. Each query pattern needs its own table, designed for it: +Dev Hours
   per feature.
-- Across regions, `LOCAL_QUORUM` keeps latency local and gives up global consistency. Not built yet:
-  a spread Wide-column Store pays no cross-region latency.
+- Across regions, `LOCAL_QUORUM` keeps latency local and gives up global consistency. A spread
+  Wide-column Store pays no cross-region latency.
 
 ## Distributed SQL
 
@@ -447,8 +503,7 @@ disagree.
 | CDC Connector                   | Reads the database log. Correct, with lag, and no app changes.                                                                  |
 
 **Built:** all three. From Series B, 0.5% of a Search Engine's answers are stale from a lost publish
-(both proposed: the design gives the divergence and no rate, and the build starts it in the Era that
-offers the outbox, so the fix arrives with the problem). The research `outbox`, or a CDC Connector on
+(it starts in the Era that offers the outbox, so the fix arrives with the problem). The research `outbox`, or a CDC Connector on
 the Board, takes that share to zero: the write and its event land together, and no answer waits on a
 repair job.
 
@@ -491,9 +546,10 @@ on restore until research "Restore drills".
 **Built:** the 20%, and the drill that finds it. A backup written without research "Restore drills"
 (Series A, 2,000 ◇) rolls the design's own 20% as it is taken: it either restores or it does not, and
 the card says which. A broken backup restores nothing, so the DR drill reads an infinite RPO and the
-checklist names "Restore failed". A **Restore drill** button on the card costs 4 Dev Hours (proposed)
-and writes a new backup and tests it: 20% broken without the research, never broken with it, and the
+checklist names "Restore failed". A **Restore drill** button on the card costs 4 Dev Hours and writes a new backup and tests it: 20% broken without the research, never broken with it, and the
 research also tests every new backup as it is taken.
 
-Not built: "Accidental delete" itself (an incident this build does not have), so a broken backup
-currently shows up only in the DR drill, and a restore's time does not grow with data volume.
+A broken backup shows up in the DR drill and in the **Accidental delete** incident. Restoring a good
+backup takes 5 calendar minutes plus half a minute per GB of rows, twice the GB for point-in-time
+recovery ([Data volume](#data-volume)); a broken one, or none, restores nothing and costs 10% of the
+Users.

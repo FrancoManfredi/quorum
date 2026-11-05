@@ -67,6 +67,17 @@ import {
   CERT_SHORT_FROM,
   MESH_OVERHEAD,
   LIVE_TUNING,
+  SHARD_KEYS,
+  SCATTER_CPU,
+  SCATTER_MS,
+  DISTRIBUTED_TX_FAILURE,
+  SYNC_MS,
+  rttOf,
+  INDEX_WRITE_COST,
+  CACHE_KEYS,
+  SEARCH_VARIANTS,
+  SEARCH_INDEX_SHARE,
+  STORE_VARIANTS,
   type Tuning,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
@@ -486,6 +497,25 @@ export const dataBurnOf = (game: Game, node: GameNode): number =>
   (node.type === 'database' ? DB_RETENTIONS[node.keep].price : 1) *
   eraOf(game).costIndex
 
+/**
+ * Dollars per second the block volume under a Search Engine's index bills, before the cost index
+ * (09 "Base prices"): the index is a share of the rows, and each replica holds a copy of it, at
+ * the same gp3 price a Database's rows bill.
+ */
+export const searchVolumeBurnOf = (game: Game, node: GameNode): number =>
+  node.type === 'search'
+    ? game.data *
+      SEARCH_INDEX_SHARE *
+      (SEARCH_VARIANTS[node.searchVariant].jvm ? 1 + node.searchReplicas : 1) *
+      DB_GB_PRICE
+    : 0
+
+/** Dollars per second Object Storage's requests bill, before the cost index: its product's price per read and write. */
+export const storageRequestBurnOf = (node: GameNode, gets: number, puts: number): number =>
+  node.type === 'storage'
+    ? gets * STORE_VARIANTS[node.storeVariant].get + puts * STORE_VARIANTS[node.storeVariant].put
+    : 0
+
 /** Dollars per second a Node costs while it exists, down or not; nothing once it is shut. */
 export const burnOf = (game: Game, node: GameNode): number => {
   if (node.shut) return 0
@@ -540,6 +570,17 @@ export const burnOf = (game: Game, node: GameNode): number => {
       (node.standby ? 2 : 1)
     )
   if (node.type === 'storage') return (def.burn + storageBurnOf(game, node)) * index
+  // A Search Engine bills a box for each shard and each replica, and its index sits on a volume
+  // (07 "Search Engine"); Meilisearch runs one smaller node.
+  if (node.type === 'search') {
+    const variant = SEARCH_VARIANTS[node.searchVariant]
+    const copies = variant.jvm ? Math.max(1, node.searchShards) * (1 + node.searchReplicas) : 1
+    return (
+      (def.burn * flatScale(node) * variant.burn * copies * (node.standby ? 2 : 1) +
+        searchVolumeBurnOf(game, node)) *
+      index
+    )
+  }
   // A Vector Index holds its graph in memory: HNSW bills twice the vectors' box (07 "Vector Index").
   if (node.type === 'vec')
     return def.burn * VEC_INDEXES[node.indexType].burn * flatScale(node) * index
@@ -616,6 +657,7 @@ export const burnSharesOf = (game: Game): BurnShares => {
       data += burn
       if (node.type === 'database') storage += dataBurnOf(game, node)
       if (node.type === 'storage') storage += storageBurnOf(game, node) * index
+      if (node.type === 'search') storage += searchVolumeBurnOf(game, node) * index
     } else compute += burn
   }
   return { compute, data: data - storage, storage, observability }
@@ -669,4 +711,84 @@ export const replacePrice = (game: Game, node: GameNode): number =>
 export const drawerSize = (game: Game, revenue: number): number => {
   const payments = game.nodes.find((node) => node.type === 'payments')
   return Math.max(DRAWER_MIN, revenue * DRAWER_SECONDS) * grown(1, 2, (payments?.size ?? 1) - 1)
+}
+
+/* ---------- sharding, synchronous replicas and indexes (07) ---------- */
+
+/**
+ * How a Database's shards share its load (07 "Partitioning"). `hot` is the share of the writes
+ * the busiest shard takes; `cross` the share of transactions that span shards; `scatter` the
+ * multiple of a report's or a search's CPU, which touches every shard, and `scatterMs` its extra
+ * wait; `farMs` the round trip a user in another region pays; `failure` the share of the
+ * transactions a distributed commit fails, one chance for each shard that takes part.
+ */
+export const shardingOf = (node: GameNode) => {
+  const shards = Math.max(1, Math.floor(node.shards))
+  const key = SHARD_KEYS[node.shardKey]
+  const cross = shards > 1 ? key.cross * (1 - 1 / shards) : 0
+  return {
+    shards,
+    hot: shards > 1 ? key.hot + (1 - key.hot) / shards : 1,
+    cross,
+    scatter: 1 + SCATTER_CPU * (shards - 1),
+    scatterMs: SCATTER_MS * (shards - 1),
+    farMs: shards > 1 ? key.farMs * (1 - 1 / shards) : 0,
+    failure: cross * DISTRIBUTED_TX_FAILURE * shards,
+  }
+}
+
+/** The Read Replicas every write waits for: those on synchronous replication, once researched. */
+export const syncReplicasOf = (game: Game): ReadonlyArray<GameNode> =>
+  has(game, 'sync-replication')
+    ? game.nodes.filter((node) => node.type === 'replica' && node.sync && !node.shut)
+    : []
+
+/**
+ * Milliseconds a write on a Database waits for its synchronous replicas (07 "Read Replica"): the
+ * slowest of them, 2 ms in the same zone, a zone hop more across zones, a region round trip more
+ * across regions.
+ */
+export const syncWaitMs = (game: Game, database: GameNode): number =>
+  syncReplicasOf(game).reduce(
+    (most, replica) =>
+      Math.max(
+        most,
+        SYNC_MS +
+          (replica.region !== database.region
+            ? rttOf(database.region, replica.region)
+            : replica.zone !== database.zone
+              ? CROSS_ZONE_MS
+              : 0),
+      ),
+    0,
+  )
+
+/** Whether a synchronous replica is down: every write on the primary stalls until it is back. */
+export const syncStalled = (game: Game): boolean =>
+  syncReplicasOf(game).some((replica) => isDown(replica))
+
+/** The indexes the Services have added: each one makes every write cost more (07 "Indexes"). */
+export const indexWriteFactor = (game: Game): number =>
+  1 + INDEX_WRITE_COST * game.services.reduce((sum, service) => sum + service.indexes, 0)
+
+/** What a CDN's cache key does to its hit ratio. */
+export const cacheKeyHit = (node: GameNode): number => CACHE_KEYS[node.cacheKey].hit
+
+/** The Nodes a sticky Load Balancer pins its users to, per node list: built once per Step. */
+const pinnedSets = new WeakMap<ReadonlyArray<GameNode>, ReadonlySet<string>>()
+
+/**
+ * Whether a sticky Load Balancer links to the Node (05 "Load Balancer"): its users stay on it, so
+ * an App Server answers some reads from its own memory and a Hub takes back its own clients.
+ */
+export const pinnedOf = (game: Game, node: GameNode): boolean => {
+  let set = pinnedSets.get(game.nodes)
+  if (!set) {
+    const sticky = new Set(
+      game.nodes.filter((entry) => entry.type === 'lb' && entry.sticky).map((entry) => entry.id),
+    )
+    set = new Set(game.links.filter((link) => sticky.has(link.from)).map((link) => link.to))
+    pinnedSets.set(game.nodes, set)
+  }
+  return set.has(node.id)
 }

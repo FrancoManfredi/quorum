@@ -3093,8 +3093,8 @@ export const fr: Readonly<Record<string, string>> = {
   Stampede: 'Avalanche de défauts de cache',
   'Demand is up 50%. The Cache restarts again. Keep Apdex above 0.85 with Burn at ${0}/s or less.':
     'La demande est en hausse de 50 %. Le cache redémarre. Maintenez Apdex au-dessus de 0,85 avec dépenses à ${0}/s ou moins.',
-  'Demand is up 60%. Keep Apdex above 0.9 with Burn at $5.20/s or less.':
-    'La demande est en hausse de 60 %. Maintenez Apdex au-dessus de 0,9 avec dépenses à 5,20 $/s ou moins.',
+  'Demand is up 60%. Keep Apdex above 0.9 with Burn at $6.00/s or less.':
+    'La demande est en hausse de 60 %. Maintenez Apdex au-dessus de 0,9 avec dépenses à 6,00 $/s ou moins.',
   'They are back. Keep Apdex above 0.9 with Burn at ${0}/s or less.':
     'Ils sont de retour. Maintenez Apdex au-dessus de 0,9 avec dépenses à ${0}/s ou moins.',
   'Demand is up 50%. A zone fails again. Keep Apdex above 0.85 with Burn at ${0}/s or less.':
@@ -4105,6 +4105,63 @@ export const fr: Readonly<Record<string, string>> = {
   'Slow start on the Load Balancer is not built. Scheduled scaling and a GraalVM native image are: native code starts warm.':
     "Le démarrage progressif du répartiteur de charge n'est pas construit. La montée en charge planifiée et une image native GraalVM le sont : le code natif démarre chaud.",
   'Schema migration lock': 'Verrou de migration de schéma',
+  Sessions: 'Sessions',
+  Sticky: 'Persistant',
+  'Expire on the TTL': 'Expire au TTL',
+  'Refresh early': 'Rafraîchir tôt',
+  'Miss on expiry': "Échec à l'expiration",
+  'Stale while revalidating': 'Périmé pendant la revalidation',
+  'Shard key': 'Clé de partition',
+  'Keep until the TTL': "Garder jusqu'au TTL",
+  'Purge on deploy': 'Purger au déploiement',
+  'Deploys and keys': 'Déploiements et clés',
+  Replication: 'Réplication',
+  Asynchronous: 'Asynchrone',
+  Synchronous: 'Synchrone',
+  'Shards and replicas': 'Partitions et réplicas',
+  Heap: 'Tas',
+  'Queue depth': 'Profondeur de file',
+  'Every request goes where the algorithm sends it.':
+    "Chaque requête va là où l'algorithme l'envoie.",
+  'Too small: garbage collection pauses.': 'Trop petit : pauses du ramasse-miettes.',
+  'Too large: long pauses and less file system cache.':
+    'Trop grand : longues pauses et moins de cache du système de fichiers.',
+  'The JVM heap holds caches without starving the file system cache.':
+    'Le tas JVM contient les caches sans priver le cache du système de fichiers.',
+  'Full features on a JVM: shards, replicas, and a heap to tune.':
+    'Toutes les fonctions sur une JVM : partitions, réplicas et un tas à régler.',
+  'A deploy empties the cache: the origin takes the misses while it refills.':
+    "Un déploiement vide le cache : l'origine reçoit les échecs pendant le remplissage.",
+  'After a deploy the edge serves some of the old pages until the TTL passes.':
+    "Après un déploiement, le bord sert une partie des anciennes pages jusqu'à la fin du TTL.",
+  'The key holds the path, the query string and the cookies: nothing is shared between users.':
+    "La clé contient le chemin, la requête et les cookies : rien n'est partagé entre utilisateurs.",
+  'Egress to the internet bills per GB, unless a CDN serves it.':
+    'La sortie vers Internet est facturée au Go, sauf si un CDN la sert.',
+  'No write cost, and the replica lags: a read after a write can be stale.':
+    "Aucun coût d'écriture, et le réplica prend du retard : une lecture après écriture peut être périmée.",
+  'More shards parallelize the index and fan every query out. Each replica adds query capacity, a box, and a copy of the index.':
+    "Plus de partitions parallélisent l'index et diffusent chaque requête. Chaque réplica ajoute de la capacité, une machine et une copie de l'index.",
+  'Answers half again as many queries in a shorter hop on one smaller node, and its relevance falls as the index grows. No shards, replicas, or heap.':
+    "Répond à une fois et demie plus de requêtes en un saut plus court sur un nœud plus petit, mais sa pertinence baisse avec l'index. Ni partitions, ni réplicas, ni tas.",
+  'Path, query and cookies': 'Chemin, requête et cookies',
+  'Path and query': 'Chemin et requête',
+  'Path only': 'Chemin seul',
+  'By tenant': 'Par locataire',
+  'By region': 'Par région',
+  Meilisearch: 'Meilisearch',
+  S3: 'S3',
+  R2: 'R2',
+  'Table bloat': 'Gonflement de table',
+  'A retention window keeps the tables small, and a MySQL engine has no dead rows to clean.':
+    "Une fenêtre de rétention garde les tables petites, et un moteur MySQL n'a pas de lignes mortes à nettoyer.",
+  'Cached page leak': 'Fuite de page en cache',
+  'The CDN cached a logged-in page under a key that left out the cookie, and served one user’s page to another.':
+    "Le CDN a mis en cache une page connectée sous une clé sans le cookie, et a servi la page d'un utilisateur à un autre.",
+  'A cache key that holds the cookie, so a personal page is never shared.':
+    "Une clé de cache qui contient le cookie : une page personnelle n'est jamais partagée.",
+  'PostgreSQL keeps the old version of every updated row until VACUUM cleans it. Heavy updates outran the cleaning, and the table filled with dead rows: every read and write costs more CPU.':
+    "PostgreSQL garde l'ancienne version de chaque ligne modifiée jusqu'au passage de VACUUM. Les mises à jour massives ont dépassé le nettoyage et la table s'est remplie de lignes mortes : chaque lecture et écriture coûte plus de CPU.",
   'A migration ran ALTER TABLE on the biggest table. It held the lock while it copied it, and every write queued behind it until it timed out.':
     "Une migration a lancé ALTER TABLE sur la plus grande table. Elle a tenu le verrou pendant la copie, et chaque écriture s'est mise en file derrière elle jusqu'au délai dépassé.",
   'Online schema migrations change a big table without holding the lock.':

@@ -23,7 +23,10 @@ import {
   RUNTIMES,
   ROW_KB,
   DB_RETENTIONS,
+  REPLICA_SYNC_MINUTES_PER_GB,
   SCALE_COOLDOWN,
+  SCALE_QUEUE_DEPTH,
+  SCALE_RPS_PER_VCPU,
   SCALE_IN,
   STEADY_CHURN,
   UPLOAD_MB,
@@ -286,8 +289,13 @@ const lostOnCrash = (game: Game, from: number, seconds: number): number => {
 }
 
 /** Seconds a cold Node takes to warm: its runtime's JIT for App Servers and Workers. */
-const warmupOf = (node: GameNode): number =>
-  node.type === 'server' || node.type === 'worker' ? RUNTIMES[node.runtime].warmup : WARMUP_SECONDS
+const warmupOf = (game: Game, node: GameNode): number =>
+  node.type === 'server' || node.type === 'worker'
+    ? RUNTIMES[node.runtime].warmup
+    : // A new Read Replica copies the rows before it serves: a calendar half minute per GB (07 \"Data volume\").
+      node.type === 'replica'
+      ? Math.max(WARMUP_SECONDS, game.data * REPLICA_SYNC_MINUTES_PER_GB)
+      : WARMUP_SECONDS
 
 /** The live Autoscaler a Node links into, if any. */
 const autoscalerOf = (game: Game, node: GameNode): GameNode | undefined => {
@@ -298,6 +306,37 @@ const autoscalerOf = (game: Game, node: GameNode): GameNode | undefined => {
     if (target?.type === 'autoscaler' && !isDown(target)) return target
   }
   return undefined
+}
+
+/**
+ * What an Autoscaler reads off a Node (05 "Autoscaler"): CPU alone, the whole load (CPU, slots and
+ * memory), the requests a second each copy takes against what a vCPU is rated for, or the tasks
+ * waiting in the Queues that feed it against what a copy can hold. A Node no Queue feeds reads 0
+ * on the queue-depth signal.
+ */
+const scaleLoadOf = (
+  game: Game,
+  node: GameNode,
+  own: NonNullable<Ledger['nodes'][string]>,
+  signal: GameNode['signal'],
+): number => {
+  const copies = Math.max(1, node.replicas)
+  if (signal === 'rps')
+    return own.inbound / (copies * Math.max(1, vcpuOf(node)) * SCALE_RPS_PER_VCPU)
+  if (signal === 'queue') {
+    let waiting = 0
+    for (const link of game.links) {
+      if (link.to !== node.id) continue
+      const from = game.nodes.find((entry) => entry.id === link.from)
+      if (from?.type === 'queue') waiting += from.depth
+    }
+    return waiting / (copies * SCALE_QUEUE_DEPTH)
+  }
+  if (signal === 'cpu') {
+    const cpu = own.resources.cpu
+    return cpu && cpu.total > 0 ? cpu.used / cpu.total : 0
+  }
+  return own.utilization
 }
 
 /**
@@ -322,9 +361,7 @@ const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): Gam
   if (!scaler || isDown(node) || game.time - node.scaledAt < SCALE_COOLDOWN) return node
   const own = ledger.nodes[node.id]
   if (!own) return node
-  const cpu = own.resources.cpu
-  const load =
-    scaler.signal === 'cpu' ? (cpu && cpu.total > 0 ? cpu.used / cpu.total : 0) : own.utilization
+  const load = scaleLoadOf(game, node, own, scaler.signal)
   // Scheduled scaling provisions for the peak that is coming, not the load of this minute: inside
   // the lead window, the load it plans for is today's peak (10 "Track: Infrastructure").
   const planned = scaler.schedule && has(game, 'scheduled-scaling') ? peakLoadOf(game, load) : load
@@ -392,7 +429,7 @@ const advanceNode = (
             life: warming(warmAfterRestart(node, node.warming && has(game, 'cache-warming'))),
           }
   } else if (life._tag === 'Warming' && !refillsStall(game, ledger, node)) {
-    next = { ...next, life: warming(Math.min(1, life.warm + seconds / warmupOf(node))) }
+    next = { ...next, life: warming(Math.min(1, life.warm + seconds / warmupOf(game, node))) }
   }
   if (node.type === 'server' || node.type === 'worker') next = scale(game, next, ledger, seconds)
   // BEAM supervisors restart a process now and then, and the request is retried inside the VM:

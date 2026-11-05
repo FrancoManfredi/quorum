@@ -19,6 +19,10 @@ Two engines are on offer. Redis runs on one main thread and reloads part of its 
 
 The Inspector names which way a write travels; [Data tier](/design/07-data-tier#strategies-a-tradeoff-card) holds the table.
 
+## Stampede options
+
+With [Stampede protection](/research/stampede-protection) the card has three switches. Coalescing makes one request reload a key while the others wait. Early expiration refreshes a key a little before it expires, so a short TTL keeps more of its hits and the Database takes a few extra reads. Stale-while-revalidate answers from the old value while one request refreshes it, so an expired key never misses, and those answers count as stale. [Data tier](/design/07-data-tier#stampedes) holds the numbers.
+
 ## When to place it
 
 Place it when reads dominate and the Database CPU is high. The [Read Mostly](/sandboxes/read-mostly) Sandbox shows the symptom. Resize it when the hit ratio falls as users grow.

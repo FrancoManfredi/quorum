@@ -50,7 +50,18 @@ const shipped = (game: Game): ReadonlyArray<FeatureDef> =>
  * An old save names no adoption, so its Features are fully adopted and play as they did.
  */
 export const exposureOf = (game: Game, id: FeatureId): number =>
-  rolloutOf(game, id) * (game.adoption[id] ?? 1)
+  rolloutOf(game, id) * (game.adoption[id] ?? 1) * historyOf(game, id)
+
+/**
+ * The share of a Feature's effect that its history gives (07 \"Data volume\"): a Feature that reads
+ * old rows loses part of its value while a Database deletes history past its window. One that
+ * needs none always has all of it.
+ */
+export const historyOf = (game: Game, id: FeatureId): number =>
+  FEATURES[id].history < 1 &&
+  game.nodes.some((node) => node.type === 'database' && node.keep === 'delete')
+    ? FEATURES[id].history
+    : 1
 
 /**
  * The share of a Feature's win effect that lands on market, growth, churn, and value (08

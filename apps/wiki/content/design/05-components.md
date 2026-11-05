@@ -161,21 +161,29 @@ Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 | Power of two choices | Picks two targets at random and sends to the less loaded one. Nearly as good as least connections, with no global state. Research "Load balancing algorithms". |
 | Consistent hashing   | The same key always goes to the same target. Improves cache hit ratio on the targets. One hot key overloads one target.                                        |
 
-| Option                          | Effect                                                                                                                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Health check interval           | 2 s, 10 s, or 30 s. Short intervals detect failures fast and cost a little CPU on targets. Long intervals keep routing to a dead Node.                                                            |
-| Health check depth              | Shallow (process alive) or deep (checks the database too). Deep checks catch more failures, and they take every app server out of rotation when the database is slow, which causes a full outage. |
-| Retries                         | L7 only. See [retries](/design/04-simulation#retries).                                                                                                                                            |
-| Sticky sessions (Not built yet) | Keeps a user on one target. Helps in-process caches and realtime. Unbalances load and loses sessions when a target dies.                                                                          |
+| Option                | Effect                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health check interval | 2 s, 10 s, or 30 s. Short intervals detect failures fast and cost a little CPU on targets. Long intervals keep routing to a dead Node.                                                            |
+| Health check depth    | Shallow (process alive) or deep (checks the database too). Deep checks catch more failures, and they take every app server out of rotation when the database is slow, which causes a full outage. |
+| Retries               | L7 only. See [retries](/design/04-simulation#retries).                                                                                                                                            |
+| Sticky sessions       | Keeps a user on one target. Helps in-process caches and realtime. Unbalances load and loses sessions when a target dies.                                                                          |
 
 Teaches: load balancing is a policy choice, and health checks can cause outages as well as prevent them.
 
 **Built:** both variants. L7 is the default: 2,000 requests a second at size 1, 1 ms, and the only one
 that can carry a chosen set of kinds on a Link or retry. L4 carries 20,000 at size 1 in a 0.2 ms hop
-for 0.6× the Burn (proposed: 05 says only "cheaper"), sends every kind whatever a Link asks for, and
-never retries, even with Timeouts and retries. The "long-lived connection as one unit of load" rule
-is not built: the L4 still counts a realtime message as one message. The L4 is research
-`l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
+for 0.6× the Burn, sends every kind whatever a Link asks for, and
+never retries, even with Timeouts and retries. The L4 counts a realtime message as one message. The
+L4 is research `l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
+
+Sticky sessions are a switch on the card. With it on, 40% of the Load Balancer's traffic belongs to
+users already pinned to a target, whatever the algorithm would send now, and the other 60% follows
+the algorithm. Pinned users do not move when a copy is added, so the oldest target holds the most:
+each later target holds 0.8× the pinned users of the one before. An App Server behind a sticky
+Load Balancer answers 15% of its `q-read` calls from its own memory, and a restarted Realtime Hub
+behind one takes half the reconnect wave it would take otherwise, because its own clients return to
+it. A target that dies keeps its pinned share until the Load Balancer notices, and those users lose
+their session.
 
 ### CDN
 
@@ -190,13 +198,20 @@ egress from a CDN is cheaper than egress from the origin ([Economy](/design/09-e
 | `media` | 75%                      | Raised to 92% by "Tiered caching".                                      |
 | `read`  | 0%                       | 30% with Edge compute ([Edge Function](#edge-function)).                |
 
-| Option                          | Effect                                                                                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| TTL                             | Longer TTL, higher hit ratio, staler content.                                                                                               |
-| Purge on deploy (Not built yet) | Clears the cache. The origin takes a burst of misses: a small [stampede](/design/glossary#cache-stampede).                                  |
-| Cache key (Not built yet)       | Including query strings or cookies lowers the hit ratio. Ignoring them can serve one user's page to another, which is a data leak incident. |
+| Option          | Effect                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| TTL             | Longer TTL, higher hit ratio, staler content.                                                                                               |
+| Purge on deploy | Clears the cache. The origin takes a burst of misses: a small [stampede](/design/glossary#cache-stampede).                                  |
+| Cache key       | Including query strings or cookies lowers the hit ratio. Ignoring them can serve one user's page to another, which is a data leak incident. |
 
-**Built:** the TTL, and Edge-side includes. The research adds 20 points to the `page` base (70% to
+**Built:** the TTL, Purge on deploy, the cache key, and Edge-side includes. Purge on deploy is a
+switch on the card. With it on, a deploy empties the CDN and it refills from the origin as it warms,
+so the origin takes the misses. With it off, the edge keeps serving the last deploy's pages: 30% of
+`page` answers are stale until the TTL passes. The cache key is Path, query and cookies (the
+default), Path and query, or Path only. A smaller key multiplies the hit ratio by 1.1× or 1.2×. With
+Edge-side includes a logged-in page is cached, so a key that leaves out the cookie can serve one
+user's page to another: the Cached page leak incident (weight 1 for Path and query, 2.5 for Path
+only) drives 5% of the Users away at once. The research adds 20 points to the `page` base (70% to
 90%), because the edge now assembles the personal parts of a logged-in page around a cached shell.
 The TTL multiplies it:
 
@@ -221,8 +236,7 @@ A WAF blocks bots and attacks before they reach the app.
 
 The OWASP Core Rule Set uses real paranoia levels with this tradeoff. Blocked real users fail as
 `blocked`. Research "Bot management" challenges a suspicious client instead of blocking it outright:
-the block rate stays and the false-positive rate halves (proposed: 10 gives the direction and no
-rate). A WAF has Under attack mode instead, which challenges every request at paranoia level 1's CPU
+the block rate stays and the false-positive rate halves. A WAF has Under attack mode instead, which challenges every request at paranoia level 1's CPU
 cost: it blocks 99% of bots and 1% of real users, and adds 40 ms.
 
 The WAF has a regex cost. Incident "Regex backtracking" makes one rule consume all CPU on every WAF
@@ -244,8 +258,7 @@ not a route table: every kind goes on the same Links.
 
 The cap is one limit for the whole Node: the game counts requests per second at the gateway, not
 per user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes
-it a token bucket: the limit refills every Step and the bucket holds 200 more requests (proposed:
-10 names the bucket and gives no size), so a burst that fits passes whole while the average holds.
+it a token bucket: the limit refills every Step and the bucket holds 200 more requests, so a burst that fits passes whole while the average holds.
 The bucket is still one per Node, not one per client: the build has no clients to count. Past the
 gateway's own 10,000 requests per second it drops requests like any other flat-capacity Component.
 
@@ -273,8 +286,7 @@ Sizes go from `nano` (0.5 vCPU) to `metal` (96 vCPU): nine sizes, each step doub
 `metal` a 1.5× last step.
 
 The ARM family needs research `arm-instances` ([Progression](/design/10-progression#track-infrastructure)).
-It runs at 0.95× a General box's CPU speed, so the 20% it saves costs 5% of the capacity (proposed:
-05 says some software is slower and gives no ratio). Every sized Node takes it, not only the App
+It runs at 0.95× a General box's CPU speed, so the 20% it saves costs 5% of the capacity. Every sized Node takes it, not only the App
 Server.
 
 The App Server answers `page` and `bot` itself and turns other kinds into backend kinds
@@ -347,8 +359,7 @@ Serves `infer`. Capacity is measured in tokens per second.
 INT4: INT8 serves 2× the tokens and INT4 3×, each answer is worth 5% or 15% less, and the memory saving
 is not modelled, because the build has no model size for it to free. Continuous batching
 (`continuous-batching`) adds batch 8 and batch 32: 1.6× and 2.2× the throughput, with the time to the
-first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait (all proposed: 05
-gives the trade and no numbers). Model size is not built: there is one model, and no `oom` from it.
+first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait Model size is not built: there is one model, and no `oom` from it.
 
 ### Edge Function
 
@@ -438,8 +449,7 @@ measured in concurrent connections and depends on the runtime: a thread per conn
 
 The per-connection numbers are the runtime table's ([Runtimes](/design/06-runtimes#realtime-connections)),
 so the same box holds about 1.6 million BEAM connections, 800,000 Go ones, and 8,000 Java platform
-threads. The 8 GB box, the 25% and 15%, and the half a Hub refuses without backoff are proposed
-stylizations: the pages give no numbers.
+threads. The 8 GB box, the 25% and 15%, and the half a Hub refuses without backoff are the Hub's own numbers.
 
 ### Event Stream
 
@@ -462,8 +472,7 @@ retention window, in sim seconds, so a consumer further behind than the window l
 events; a stream hands on one consumer's 20,000 messages a second per partition; and round robin
 with more than one partition loses order, which the game counts as a stale result. The 20,000, the
 three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies and the half-broker
-Burn a replica adds are proposed: the design gives each option's direction and no figure. **Not
-built yet:** durability. `acks` and the replication factor move the append latency and the Burn, not
+Burn a replica adds are the Event Stream's own numbers. **Not built yet:** durability. `acks` and the replication factor move the append latency and the Burn, not
 what a broker loses when it dies, because the build gives a log no replica to fail over to; and
 partition key skew is the Hot key incident rather than a model of the key's distribution.
 
@@ -495,19 +504,19 @@ Real products: Kubernetes HPA, AWS Auto Scaling groups.
 
 Attaches to a group of App Servers or Workers and adds or removes copies.
 
-| Option                       | Effect                                                                                                                                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Signal                       | CPU utilization or load (CPU, slots, and memory). CPU is wrong for runtimes that wait on I/O, because their CPU stays low while workers are full. Not built yet: request rate, queue depth, and p95 latency. |
-| Target                       | The utilization to hold, for example 60%. Lower is safer and costs more.                                                                                                                                     |
-| Reaction time                | VMs take 3 minutes to boot and warm. Containers take 30 seconds. A spike that is faster than the reaction time still hurts.                                                                                  |
-| Cooldown                     | Minimum time between scaling actions. Too short causes flapping. Too long reacts late.                                                                                                                       |
-| Min and max                  | The max is a cost guard. Without a max, a bug or an attack scales the bill ([Incidents: runaway bill](/design/11-incidents#catalog)).                                                                        |
-| Scheduled scaling (research) | Adds capacity before the known daily peak: two calendar hours ahead, it sizes for the peak's load.                                                                                                           |
+| Option                       | Effect                                                                                                                                                                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signal                       | CPU utilization or load (CPU, slots, and memory). CPU is wrong for runtimes that wait on I/O, because their CPU stays low while workers are full. Request rate reads each copy's requests a second against 100 a vCPU, and queue depth reads the tasks waiting in the Queues that feed it against 100 a copy. |
+| Target                       | The utilization to hold, for example 60%. Lower is safer and costs more.                                                                                                                                                                                                                                      |
+| Reaction time                | VMs take 3 minutes to boot and warm. Containers take 30 seconds. A spike that is faster than the reaction time still hurts.                                                                                                                                                                                   |
+| Cooldown                     | Minimum time between scaling actions. Too short causes flapping. Too long reacts late.                                                                                                                                                                                                                        |
+| Min and max                  | The max is a cost guard. Without a max, a bug or an attack scales the bill ([Incidents: runaway bill](/design/11-incidents#catalog)).                                                                                                                                                                         |
+| Scheduled scaling (research) | Adds capacity before the known daily peak: two calendar hours ahead, it sizes for the peak's load.                                                                                                                                                                                                            |
 
 JVM warmup interacts with autoscaling: new copies are slow for their first seconds, so a scale-up
 under load can make the p99 worse at first ([Runtimes](/design/06-runtimes#runtime-behaviors)).
 
-**Built:** every option in the table. The scheduled scaling research (`scheduled-scaling`, Series B)
+**Built:** every option in the table. A Node that no Queue feeds reads 0 on the queue-depth signal. The scheduled scaling research (`scheduled-scaling`, Series B)
 adds a switch: inside the two calendar hours before the Venture's peak hour, the Autoscaler plans
 for the peak's load (current load × the peak's share of today's cycle) instead of the load it sees,
 so the copies it adds are warm when the peak arrives. Outside that window it scales as before.
@@ -565,9 +574,8 @@ a Bad deploy at once for every Company with the research. So the build reads the
 shield, "the old fleet keeps serving until the new one is up", as the number: the new fleet is
 checked on a slice before the switch, and a bad deploy breaks 10% of traffic.
 
-Deploy minutes and Burn multipliers are proposed: the design named the four strategies and the shape
-of their cost, a second fleet and a canary's metrics, but no time or rate. Burn is a multiple of the
-Pipeline's own rate, standing for that fleet and those metrics.
+Each strategy has a deploy time and a Burn multiple. Burn is a multiple of the Pipeline's own rate,
+standing for a second fleet and a canary's metrics.
 
 Build time depends on the language ([Runtimes](/design/06-runtimes#language-profiles)). Deploy frequency
 multiplies feature velocity ([Team and velocity](/design/08-team-and-velocity#deploy-frequency)).
@@ -690,9 +698,9 @@ A link is a network call. Each link has:
 bulkhead (research `bulkheads`) caps one call at 1,000 ms: past it the caller gives the call up, frees
 its slot and the request fails as `timeout`. It is a cap on time rather than on slots, which at the
 design's load is the same thing by Little's law; the design gives the mechanism and no cap, so the
-1,000 ms is proposed. Hedging (research `hedged-requests`) sends a second copy of every call on that
+cap is 1,000 ms. Hedging (research `hedged-requests`) sends a second copy of every call on that
 Link: the user waits for the faster of two, the mean halves, the tail thins, and the callee sees 10%
-more calls, which the Link's own rate shows (proposed: 05 gives no extra-load share).
+more calls, which the Link's own rate shows.
 
 Links that cross zones or regions add egress cost ([Economy](/design/09-economy#egress)).
 

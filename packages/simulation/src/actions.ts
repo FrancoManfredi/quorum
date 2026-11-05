@@ -24,6 +24,12 @@ import {
   GATEWAY_LIMITS,
   KINDS,
   SHARD_COUNTS,
+  SHARD_KEYS,
+  CACHE_KEYS,
+  SEARCH_HEAPS,
+  SEARCH_REPLICAS,
+  SEARCH_SHARDS,
+  SEARCH_VARIANTS,
   LANGUAGES,
   LIFECYCLE_DAYS,
   LOG_ACKS,
@@ -106,7 +112,7 @@ import {
   runtimeRefusal,
   ventureOf,
 } from './founding.ts'
-import { startIncident, zoned } from './director.ts'
+import { restoreSeconds, startIncident, zoned } from './director.ts'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE, ipoReady, newDrill } from './ipo.ts'
 import { firstQuarter, guidanceOpen } from './quarters.ts'
 import { nextRandom } from './random.ts'
@@ -134,6 +140,11 @@ import type {
   DbEngine,
   IopsClass,
   StorageClass,
+  CacheKey,
+  SearchHeap,
+  SearchVariant,
+  ShardKey,
+  StoreVariant,
   DbRetention,
   CacheStrategy,
   FeatureId,
@@ -241,6 +252,19 @@ export const blankNode = (
     downAt: 0,
     policy: 'weighted',
     variant: 'l7',
+    sticky: false,
+    purge: false,
+    cacheKey: 'full',
+    staleUntil: 0,
+    earlyExpiry: false,
+    swr: false,
+    shardKey: 'hash',
+    sync: false,
+    searchVariant: 'elasticsearch',
+    searchShards: 1,
+    searchReplicas: 0,
+    heap: 'half',
+    storeVariant: 's3',
     burst: 0,
     checkEvery: 10,
     deepCheck: false,
@@ -692,6 +716,30 @@ export const setPolicy = (game: Game, id: string, policy: LbPolicy): Action =>
     return ok(patch(game, id, { policy }))
   })
 
+/**
+ * Turns sticky sessions on or off on a Load Balancer (05 "Load Balancer"): a share of its users stay
+ * on the target they first reached.
+ */
+export const setSticky = (game: Game, id: string, sticky: boolean): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'lb'
+      ? ok(node.sticky === sticky ? game : patch(game, id, { sticky }))
+      : notAllowed('Only a Load Balancer keeps users on a target.'),
+  )
+
+/** Sets a CDN's purge on deploy and its cache key (05 "CDN"). */
+export const setCdnOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{ purge?: boolean; cacheKey?: CacheKey }>,
+): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'cdn') return notAllowed('Only a CDN has a purge or a cache key.')
+    if (change.cacheKey !== undefined && CACHE_KEYS[change.cacheKey] === undefined)
+      return notAllowed(`Cache keys are ${Object.keys(CACHE_KEYS).join(', ')}.`)
+    return ok(patch(game, id, change))
+  })
+
 /** Sets a Load Balancer's health checks. Intervals other than 10 s and deep checks need Health checks. */
 export const setHealthCheck = (
   game: Game,
@@ -759,13 +807,25 @@ export const setCacheEngine = (game: Game, id: string, engine: CacheEngine): Act
 export const setCacheGuard = (
   game: Game,
   id: string,
-  change: Readonly<{ coalesce?: boolean; warming?: boolean }>,
+  change: Readonly<{
+    coalesce?: boolean
+    warming?: boolean
+    earlyExpiry?: boolean
+    swr?: boolean
+  }>,
 ): Action =>
   withNode(game, id, (node) => {
     if (node.type !== 'cache') return notAllowed('Only a Cache has stampede guards.')
-    if (change.coalesce && !has(game, 'stampede-protection'))
+    if ((change.coalesce || change.earlyExpiry || change.swr) && !has(game, 'stampede-protection'))
       return no(
-        Refusal.Locked({ what: 'Coalescing', research: RESEARCH['stampede-protection'].name }),
+        Refusal.Locked({
+          what: change.coalesce
+            ? 'Coalescing'
+            : change.earlyExpiry
+              ? 'Early expiration'
+              : 'Stale-while-revalidate',
+          research: RESEARCH['stampede-protection'].name,
+        }),
       )
     if (change.warming && !has(game, 'cache-warming'))
       return no(Refusal.Locked({ what: 'Warming', research: RESEARCH['cache-warming'].name }))
@@ -1229,6 +1289,84 @@ export const setShards = (game: Game, id: string, shards: number): Action =>
     return ok(node.shards === shards ? game : patch(game, id, { shards }))
   })
 
+/**
+ * Picks the key a Database shards on (07 "Partitioning"). It moves the data, so a Company changes
+ * it through `queueReshard`; this is the Sandbox's and a replay's instant change.
+ */
+export const setShardKey = (game: Game, id: string, shardKey: ShardKey): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database') return notAllowed('Only a Database shards.')
+    if (SHARD_KEYS[shardKey] === undefined)
+      return notAllowed(`Shard keys are ${Object.keys(SHARD_KEYS).join(', ')}.`)
+    return ok(node.shardKey === shardKey ? game : patch(game, id, { shardKey }))
+  })
+
+/**
+ * Makes a Read Replica synchronous (07 "Read Replica"): every write waits for it, and it serves no
+ * stale read. Needs Synchronous replication.
+ */
+export const setSync = (game: Game, id: string, sync: boolean): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'replica') return notAllowed('Only a Read Replica replicates synchronously.')
+    if (sync && !has(game, 'sync-replication'))
+      return no(
+        Refusal.Locked({
+          what: 'Synchronous replication',
+          research: RESEARCH['sync-replication'].name,
+        }),
+      )
+    return ok(node.sync === sync ? game : patch(game, id, { sync }))
+  })
+
+/**
+ * A Search Engine's product, shards, replicas, and heap (07 "Search Engine"). Meilisearch runs one
+ * node: it takes no shards, replicas, or heap.
+ */
+export const setSearchOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{
+    searchVariant?: SearchVariant
+    searchShards?: number
+    searchReplicas?: number
+    heap?: SearchHeap
+  }>,
+): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'search') return notAllowed('Only a Search Engine has these.')
+    if (change.searchVariant !== undefined && SEARCH_VARIANTS[change.searchVariant] === undefined)
+      return notAllowed(`Search products are ${Object.keys(SEARCH_VARIANTS).join(', ')}.`)
+    if (
+      change.searchShards !== undefined &&
+      !(SEARCH_SHARDS as ReadonlyArray<number>).includes(change.searchShards)
+    )
+      return notAllowed(`Shard counts are ${SEARCH_SHARDS.join(', ')}.`)
+    if (
+      change.searchReplicas !== undefined &&
+      !(SEARCH_REPLICAS as ReadonlyArray<number>).includes(change.searchReplicas)
+    )
+      return notAllowed(`Replica counts are ${SEARCH_REPLICAS.join(', ')}.`)
+    if (change.heap !== undefined && SEARCH_HEAPS[change.heap] === undefined)
+      return notAllowed(`Heaps are ${Object.keys(SEARCH_HEAPS).join(', ')}.`)
+    const next = { ...node, ...change }
+    if (
+      !SEARCH_VARIANTS[next.searchVariant].jvm &&
+      (next.searchShards !== 1 || next.searchReplicas !== 0 || next.heap !== 'half')
+    )
+      return notAllowed('Meilisearch runs one node: no shards, replicas, or heap.')
+    return ok(patch(game, id, change))
+  })
+
+/** Picks the product an Object Storage Node is (07 "Object Storage"): S3 or R2. */
+export const setStoreVariant = (game: Game, id: string, storeVariant: StoreVariant): Action =>
+  withNode(game, id, (node) =>
+    node.type !== 'storage'
+      ? notAllowed('Only Object Storage has a product.')
+      : storeVariant === 'r2' && !has(game, 'egress-optimization')
+        ? no(Refusal.Locked({ what: 'R2', research: RESEARCH['egress-optimization'].name }))
+        : ok(node.storeVariant === storeVariant ? game : patch(game, id, { storeVariant })),
+  )
+
 /** Turns multi-document transactions on or off on a Document Store (07 "Document Store"). */
 export const setDocOptions = (
   game: Game,
@@ -1518,7 +1656,13 @@ export const restoreBackup = (game: Game): Action => {
   return ok({
     ...game,
     users: good ? game.users : Math.max(1, Math.floor(game.users * (1 - DELETE_CHURN))),
-    incident: { ...answering(game, incident), remaining: 0 },
+    // A good restore takes time that grows with the rows it reads; a broken one ends the incident.
+    incident: {
+      ...answering(game, incident),
+      remaining: good
+        ? Math.min(incident.remaining, restoreSeconds(game, target?.backup ?? 'none'))
+        : 0,
+    },
   })
 }
 

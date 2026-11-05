@@ -25,7 +25,10 @@ import {
   DEPLOY_STRATEGIES,
   LOG_ACKS,
   VEC_INDEXES,
+  CACHE_KEYS,
   DB_ENGINES,
+  SHARD_KEYS,
+  STORE_VARIANTS,
   STORAGE_CLASSES,
   STORAGE_IOPS,
   DB_RETENTIONS,
@@ -3714,20 +3717,96 @@ const handle = (model: Model, message: Message): Result =>
             : null,
       }),
 
-    CacheGuardChosen: ({ nodeId, coalesce, warming }) =>
+    CacheGuardChosen: ({ nodeId, coalesce, warming, earlyExpiry, swr }) =>
       act(
         model,
         coalesce !== undefined
           ? coalesce
             ? 'Coalescing on'
             : 'Coalescing off'
-          : warming
-            ? 'Warming on'
-            : 'Warming off',
+          : earlyExpiry !== undefined
+            ? earlyExpiry
+              ? 'Early expiration on'
+              : 'Early expiration off'
+            : swr !== undefined
+              ? swr
+                ? 'Stale-while-revalidate on'
+                : 'Stale-while-revalidate off'
+              : warming
+                ? 'Warming on'
+                : 'Warming off',
         Actions.setCacheGuard(model.board.game, nodeId, {
           ...(coalesce === undefined ? {} : { coalesce }),
           ...(warming === undefined ? {} : { warming }),
+          ...(earlyExpiry === undefined ? {} : { earlyExpiry }),
+          ...(swr === undefined ? {} : { swr }),
         }),
+        { undoable: true },
+      ),
+
+    StickyChosen: ({ nodeId, sticky }) =>
+      act(
+        model,
+        sticky ? 'Sticky sessions on' : 'Sticky sessions off',
+        Actions.setSticky(model.board.game, nodeId, sticky),
+        { undoable: true },
+      ),
+
+    CdnOptionsChosen: ({ nodeId, purge, cacheKey }) =>
+      act(
+        model,
+        purge !== undefined
+          ? purge
+            ? 'Purge on deploy on'
+            : 'Purge on deploy off'
+          : `Cache key: ${cacheKey ? CACHE_KEYS[cacheKey].name : ''}`,
+        Actions.setCdnOptions(model.board.game, nodeId, {
+          ...(purge === undefined ? {} : { purge }),
+          ...(cacheKey === undefined ? {} : { cacheKey }),
+        }),
+        { undoable: true },
+      ),
+
+    // A Company moves a Database's data to change its key (07 "Partitioning"): Dev Hours, then a copy.
+    ShardKeyChosen: ({ nodeId, shardKey }) =>
+      model.board.game.sandbox
+        ? act(
+            model,
+            `Shard key: ${SHARD_KEYS[shardKey].name}`,
+            Actions.setShardKey(model.board.game, nodeId, shardKey),
+            { undoable: true },
+          )
+        : act(
+            model,
+            `Reshard by ${SHARD_KEYS[shardKey].name}`,
+            Work.queueReshard(model.board.game, nodeId, { key: shardKey }),
+          ),
+
+    SyncChosen: ({ nodeId, sync }) =>
+      act(
+        model,
+        sync ? 'Synchronous replica' : 'Asynchronous replica',
+        Actions.setSync(model.board.game, nodeId, sync),
+        { undoable: true },
+      ),
+
+    SearchOptionsChosen: ({ nodeId, ...change }) =>
+      act(
+        model,
+        'Search Engine set',
+        Actions.setSearchOptions(
+          model.board.game,
+          nodeId,
+          Object.fromEntries(Object.entries(change).filter(([, value]) => value !== undefined)),
+        ),
+        { undoable: true },
+      ),
+
+    StoreVariantChosen: ({ nodeId, storeVariant }) =>
+      act(
+        model,
+        `Object Storage: ${STORE_VARIANTS[storeVariant].name}`,
+        Actions.setStoreVariant(model.board.game, nodeId, storeVariant),
         { undoable: true },
       ),
 
@@ -3817,13 +3896,20 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    // A Company moves a Database's data to change its shards (07 "Partitioning"): Dev Hours, then a copy.
     ShardsChosen: ({ nodeId, shards }) =>
-      act(
-        model,
-        shards > 1 ? `${shards} shards` : 'One shard',
-        Actions.setShards(model.board.game, nodeId, shards),
-        { undoable: true },
-      ),
+      model.board.game.sandbox
+        ? act(
+            model,
+            shards > 1 ? `${shards} shards` : 'One shard',
+            Actions.setShards(model.board.game, nodeId, shards),
+            { undoable: true },
+          )
+        : act(
+            model,
+            shards > 1 ? `Reshard to ${shards} shards` : 'Reshard to one shard',
+            Work.queueReshard(model.board.game, nodeId, { shards }),
+          ),
 
     StorageClassChosen: ({ nodeId, storageClass }) =>
       act(

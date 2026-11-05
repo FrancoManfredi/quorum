@@ -1059,7 +1059,6 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   Dynamic: '动态',
   'On demand': '按需',
   'Move fast': '快速推进',
-  Balanced: '均衡',
   Quality: '质量优先',
   'Instance failures dominate from Seed': '从种子轮起，实例故障成为主要故障类型',
   'Traffic spikes three times as often': '流量突增频率变为三倍',
@@ -1313,8 +1312,8 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   Stampede: '缓存击穿',
   'Demand is up 50%. The Cache restarts again. Keep Apdex above 0.85 with Burn at ${0}/s or less.':
     '需求增加了 50%。缓存再次重启。将 Apdex 保持在 0.85 以上，且支出不超过每秒 ${0}。',
-  'Demand is up 60%. Keep Apdex above 0.9 with Burn at $5.20/s or less.':
-    '需求增加了 60%。将 Apdex 保持在 0.9 以上，且支出不超过每秒 $5.20。',
+  'Demand is up 60%. Keep Apdex above 0.9 with Burn at $6.00/s or less.':
+    '需求增加了 60%。将 Apdex 保持在 0.9 以上，且支出不超过每秒 $6.00。',
   'They are back. Keep Apdex above 0.9 with Burn at ${0}/s or less.':
     '它们又回来了。将 Apdex 保持在 0.9 以上，且支出不超过每秒 ${0}。',
   'Demand is up 50%. A zone fails again. Keep Apdex above 0.85 with Burn at ${0}/s or less.':
@@ -1611,4 +1610,64 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   'RED method': 'RED 方法',
   'USE method': 'USE 方法',
   'This inbox is not monitored. Neither is your bill.': '此邮箱无人查看。你的账单也一样。',
+  'Path, query and cookies': '路径、查询串和 Cookie',
+  'Path and query': '路径和查询串',
+  'Path only': '仅路径',
+  'By tenant': '按租户',
+  'By region': '按区域',
+  Meilisearch: 'Meilisearch',
+  S3: 'S3',
+  R2: 'R2',
+  'Table bloat': '表膨胀',
+  'A retention window keeps the tables small, and a MySQL engine has no dead rows to clean.':
+    '保留窗口让表保持精简,而 MySQL 引擎没有需要清理的死行。',
+  'Cached page leak': '缓存页面泄露',
+  'The CDN cached a logged-in page under a key that left out the cookie, and served one user’s page to another.':
+    'CDN 用不含 Cookie 的键缓存了已登录页面,并把一个用户的页面发给了另一个用户。',
+  'A cache key that holds the cookie, so a personal page is never shared.':
+    '缓存键包含 Cookie,个人页面就不会被共享。',
+  'PostgreSQL keeps the old version of every updated row until VACUUM cleans it. Heavy updates outran the cleaning, and the table filled with dead rows: every read and write costs more CPU.':
+    'PostgreSQL 会保留每个被更新行的旧版本,直到 VACUUM 清理。大量更新超过了清理速度,表里堆满死行:每次读写都消耗更多 CPU。',
+  Sessions: '会话',
+  Sticky: '粘性',
+  'Expire on the TTL': '按 TTL 过期',
+  'Refresh early': '提前刷新',
+  'Miss on expiry': '过期即未命中',
+  'Stale while revalidating': '重新验证时返回旧值',
+  'Shard key': '分片键',
+  Product: '产品',
+  'Keep until the TTL': '保留到 TTL',
+  'Purge on deploy': '部署时清除',
+  'Deploys and keys': '部署与键',
+  Replication: '复制',
+  Asynchronous: '异步',
+  Synchronous: '同步',
+  'Shards and replicas': '分片与副本',
+  Heap: '堆',
+  Requests: '请求',
+  'Queue depth': '队列深度',
+  'Every request goes where the algorithm sends it.': '每个请求都按算法分配的目标走。',
+  'Reads HTTP: routes by kind, retries, and checks health. Lower throughput and a longer hop.':
+    '读取 HTTP:按类型路由、重试并检查健康。吞吐更低,跳数延迟更长。',
+  'Too small: garbage collection pauses.': '太小:垃圾回收暂停。',
+  'Too large: long pauses and less file system cache.': '太大:暂停很长,文件系统缓存变少。',
+  'The JVM heap holds caches without starving the file system cache.':
+    'JVM 堆放得下缓存,又不挤占文件系统缓存。',
+  'Full features on a JVM: shards, replicas, and a heap to tune.':
+    'JVM 上的完整功能:分片、副本和可调的堆。',
+  'A deploy empties the cache: the origin takes the misses while it refills.':
+    '部署会清空缓存:重新填充期间源站承接未命中。',
+  'After a deploy the edge serves some of the old pages until the TTL passes.':
+    '部署后,边缘节点会在 TTL 结束前继续返回部分旧页面。',
+  'The key holds the path, the query string and the cookies: nothing is shared between users.':
+    '键包含路径、查询串和 Cookie:用户之间不共享任何内容。',
+  'Egress to the internet bills per GB, unless a CDN serves it.':
+    '出口到互联网按 GB 计费,除非由 CDN 提供。',
+  'No write cost, and the replica lags: a read after a write can be stale.':
+    '没有写入开销,但副本会滞后:写后读可能读到旧数据。',
+  'More shards parallelize the index and fan every query out. Each replica adds query capacity, a box, and a copy of the index.':
+    '分片越多,索引越并行,每个查询也要扇出。每个副本增加查询容量、一台机器和一份索引副本。',
+  'Answers half again as many queries in a shorter hop on one smaller node, and its relevance falls as the index grows. No shards, replicas, or heap.':
+    '单个较小节点上的查询量提高一半、跳数更短,但相关性随索引增大而下降。没有分片、副本或堆。',
+  Balanced: '均衡',
 }

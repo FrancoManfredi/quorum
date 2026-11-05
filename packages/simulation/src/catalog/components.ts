@@ -1577,3 +1577,165 @@ export const SAVINGS_PLAN_RATE = 0.8
 export const PRICING_FROM_STAGE = 3
 /** A reserved term: one calendar week, in sim seconds (one sim second is one calendar minute). */
 export const RESERVED_SECONDS = 7 * 1_440
+
+/* ---------- sticky sessions, purges and cache keys (05) ---------- */
+
+/**
+ * Sticky sessions (05 "Load Balancer"): the share of a Load Balancer's traffic that belongs to
+ * users already pinned to a target. Pinned users do not move when a copy is added, so the oldest
+ * copy holds the most of them: each copy after the first holds `STICKY_DECAY` times the pinned
+ * users of the one before. A pinned user whose target dies loses the session, and the rest of the
+ * traffic follows the Load Balancer's algorithm as before.
+ */
+export const STICKY_SHARE = 0.4
+export const STICKY_DECAY = 0.8
+/** Share of its `q-read` calls an App Server behind a sticky Load Balancer answers from its own memory. */
+export const STICKY_LOCAL_READ = 0.15
+/** Share of the realtime reconnect wave a Hub behind a sticky Load Balancer takes back on its own box. */
+export const STICKY_HERD = 0.5
+
+/** Share of `page` answers a CDN that did not purge serves from the last deploy until its TTL passes. */
+export const STALE_AFTER_DEPLOY = 0.3
+
+/**
+ * What a CDN's cache key holds (05 "CDN"). Each field a key leaves out raises the hit ratio, and
+ * a page that depends on the field is then served to the wrong user: with Edge-side includes a
+ * logged-in page is cached, so a key without the cookie leaks it. `leak` is the incident weight.
+ */
+export const CACHE_KEYS = {
+  full: { name: 'Path, query and cookies', hit: 1, leak: 0 },
+  query: { name: 'Path and query', hit: 1.1, leak: 1 },
+  path: { name: 'Path only', hit: 1.2, leak: 2.5 },
+} as const
+
+/* ---------- Cache stampede options (07 "Stampedes") ---------- */
+
+/** Share of the hits a short TTL loses that early expiration wins back, and the extra reads it costs. */
+export const EARLY_LIFT = 0.5
+export const EARLY_REFRESH = 0.02
+
+/* ---------- sharding (07 "Partitioning") ---------- */
+
+/**
+ * The shard keys. `hot` is the share of the load one key puts on its busiest shard before the
+ * even split: a range key sends new users to the last shard, a tenant key sends the big tenant to
+ * one. `cross` is the share of transactions that span shards, as a multiple of the chance two
+ * random keys differ. `farMs` is the round trip a user in another region pays.
+ */
+export const SHARD_KEYS = {
+  hash: { name: 'Hash of user ID', hot: 0, cross: 1, farMs: 0 },
+  range: { name: 'Range of IDs', hot: 0.5, cross: 1, farMs: 0 },
+  tenant: { name: 'By tenant', hot: 0.3, cross: 0.1, farMs: 0 },
+  region: { name: 'By region', hot: 0, cross: 0.2, farMs: 70 },
+} as const
+/** A report or a search touches every shard: each shard past the first adds this share of the CPU, and this many ms. */
+export const SCATTER_CPU = 0.15
+export const SCATTER_MS = 2
+/** Chance a distributed transaction fails on one shard that takes part in it. */
+export const DISTRIBUTED_TX_FAILURE = 0.005
+/** Dev Hours to change a Database's shard count or key, and the share of its IOPS the copy leaves. */
+export const RESHARD_DH = 24
+export const RESHARD_IOPS = 0.5
+/** Calendar minutes the data copy of a resharding takes per GB, at least a calendar day. */
+export const RESHARD_MINUTES_PER_GB = 1
+
+/* ---------- synchronous replication (07 "Read Replica") ---------- */
+
+/** Milliseconds every write waits for a synchronous replica in the same zone. */
+export const SYNC_MS = 2
+
+/* ---------- Search Engine options (07 "Search Engine") ---------- */
+
+export const SEARCH_SHARDS = [1, 2, 4] as const
+export const SEARCH_REPLICAS = [0, 1, 2] as const
+/** Each shard past the first fans every query out: it adds this share of one shard's work. */
+export const SEARCH_FANOUT = 0.2
+/**
+ * The JVM heap holds caches. Too small and garbage collection pauses; too large and the file
+ * system cache is small, so the Node answers fewer queries and its pauses are long.
+ */
+export const SEARCH_HEAPS = {
+  small: { name: '25% of RAM', capacity: 1, tailP: 0.05, tailMs: 150 },
+  half: { name: '50% of RAM', capacity: 1, tailP: 0, tailMs: 0 },
+  large: { name: '75% of RAM', capacity: 0.85, tailP: 0.02, tailMs: 400 },
+} as const
+/**
+ * The three products. Elasticsearch and OpenSearch share a profile and run on a JVM, so they take
+ * the options above. Meilisearch answers half again as many queries in a shorter hop, runs one
+ * node with no shards, replicas or heap, and a smaller Burn, and its relevance falls with the
+ * index: each user adds `relevance` of staleness, at most `cap`.
+ */
+export const SEARCH_VARIANTS = {
+  elasticsearch: {
+    name: 'Elasticsearch',
+    jvm: true,
+    capacity: 1,
+    fixedMs: 15,
+    burn: 1,
+    relevance: 0,
+    cap: 0,
+  },
+  opensearch: {
+    name: 'OpenSearch',
+    jvm: true,
+    capacity: 1,
+    fixedMs: 15,
+    burn: 1,
+    relevance: 0,
+    cap: 0,
+  },
+  meilisearch: {
+    name: 'Meilisearch',
+    jvm: false,
+    capacity: 1.5,
+    fixedMs: 8,
+    burn: 0.6,
+    relevance: 0.0000005,
+    cap: 0.25,
+  },
+} as const
+/** Share of a Search Engine's RAM and index the volume under it holds, per GB of rows. */
+export const SEARCH_INDEX_SHARE = 0.3
+
+/* ---------- Object Storage products (07 "Object Storage") ---------- */
+
+/** Milliseconds R2 adds to a read outside its own CDN: with a CDN on the board there is none. */
+export const R2_FIRST_BYTE_MS = 15
+/**
+ * What each product bills per request, before the cost index (09 "Base prices"). Per-use prices
+ * take the list price times 1,200, the multiple the functions' prices take: S3 bills $0.0004 per
+ * thousand reads and $0.005 per thousand writes, R2 $0.36 and $4.50 per million.
+ */
+export const STORE_VARIANTS = {
+  s3: { name: 'S3', egress: true, get: 0.00048, put: 0.006 },
+  r2: { name: 'R2', egress: false, get: 0.000432, put: 0.0054 },
+} as const
+/** A Queue bills each task as a message: SQS's $0.40 per million requests, three requests a message, times 1,200. */
+export const QUEUE_MESSAGE_PRICE = 0.00144
+
+/* ---------- autoscaler signals (05 "Autoscaler") ---------- */
+
+/** Requests per second per vCPU, and tasks per copy, that read 100% on the request-rate and queue-depth signals. */
+export const SCALE_RPS_PER_VCPU = 100
+export const SCALE_QUEUE_DEPTH = 100
+
+/* ---------- indexes and data volume (07) ---------- */
+
+/**
+ * What a schema-change tool adds to the Dev Hours of a Feature that adds a query shape on a
+ * relational Database (07 \"Schema migrations\"): online migrations 10%, expand and contract 25%.
+ */
+export const ONLINE_MIGRATION_DH = 1.1
+export const EXPAND_CONTRACT_DH = 1.25
+/** Share of a write's CPU each index adds (07 "Indexes"). */
+export const INDEX_WRITE_COST = 0.05
+/**
+ * Calendar minutes a restore takes per GB of rows, and the least it takes; a point-in-time
+ * restore replays the log on top of a snapshot, so it reads twice the GB.
+ */
+export const RESTORE_MINUTES_PER_GB = 0.5
+export const RESTORE_MIN_MINUTES = 5
+/** Calendar minutes a new Read Replica copies per GB before it serves, and the least it takes. */
+export const REPLICA_SYNC_MINUTES_PER_GB = 0.5
+/** Sim seconds a schema migration's lock holds per GB of rows, on top of its base, and its most. */
+export const MIGRATION_LOCK_PER_GB = 0.1

@@ -41,6 +41,11 @@ import {
   AUTH_MOVE_DH,
   ENGINE_FACTOR,
   ENGINE_COPY_MINUTES_PER_GB,
+  EXPAND_CONTRACT_DH,
+  ONLINE_MIGRATION_DH,
+  RESHARD_DH,
+  RESHARD_MINUTES_PER_GB,
+  SHARD_COUNTS,
   UNSTRUCTURED_DEBT,
   type FeatureId,
   type FixId,
@@ -71,7 +76,16 @@ import { nextRandom } from './random.ts'
 import { openRegions } from './regions.ts'
 import { NEW_ENGINEER } from './state.ts'
 import { warming } from './life.ts'
-import type { BlockKind, DbEngine, Game, Service, Team, TeamKind, WorkItem } from './state.ts'
+import type {
+  BlockKind,
+  DbEngine,
+  ShardKey,
+  Game,
+  Service,
+  Team,
+  TeamKind,
+  WorkItem,
+} from './state.ts'
 import {
   badDeployChance,
   blastService,
@@ -139,7 +153,11 @@ export const itemName = (item: WorkItem): string => {
   if (item.kind === 'spike') return `Spike: ${RESEARCH[item.ref as ResearchId]?.name ?? item.ref}`
   if (item.kind === 'split') return 'Split a service'
   if (item.kind === 'move')
-    return item.ref === 'auth' ? 'Move auth in-house' : 'Change the database engine'
+    return item.ref === 'auth'
+      ? 'Move auth in-house'
+      : item.ref === 'reshard'
+        ? 'Reshard the database'
+        : 'Change the database engine'
   return `Migration step ${item.ref.slice(5)}`
 }
 
@@ -178,7 +196,30 @@ export const queueEngineChange = (game: Game, nodeId: string, to: DbEngine): Act
   })
 }
 
-/** What a finished move does: auth leaves the Design, or the engine's data copy starts. */
+/** Queues a Database's resharding: Dev Hours first, then a data copy that halves its IOPS (07 "Partitioning"). */
+export const queueReshard = (
+  game: Game,
+  nodeId: string,
+  change: Readonly<{ shards?: number; key?: ShardKey }>,
+): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const node = game.nodes.find((entry) => entry.id === nodeId)
+  if (!node || node.type !== 'database') return notAllowed('Only a Database shards.')
+  const shards = change.shards ?? node.shards
+  const key = change.key ?? node.shardKey
+  if (!(SHARD_COUNTS as ReadonlyArray<number>).includes(shards))
+    return notAllowed(`Shard counts are ${SHARD_COUNTS.join(', ')}.`)
+  if (shards > 1 && !has(game, 'sharding'))
+    return Result.fail(Refusal.Locked({ what: 'Sharding', research: RESEARCH.sharding.name }))
+  if (shards === node.shards && key === node.shardKey) return ok(game)
+  if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
+  return ok({
+    ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
+    reshard: { node: nodeId, shards, key, until: 0 },
+  })
+}
+
+/** What a finished move does: auth leaves the Design, a resharding's or an engine's data copy starts. */
 const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   if (item.ref === 'auth') {
     const gone = new Set(game.nodes.filter((node) => node.type === 'auth').map((node) => node.id))
@@ -188,10 +229,32 @@ const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
       links: game.links.filter((link) => !gone.has(link.from) && !gone.has(link.to)),
     }
   }
+  if (item.ref === 'reshard') {
+    const reshard = game.reshard
+    if (!reshard) return game
+    // The copy takes a calendar day at least, and a minute a GB of rows after that.
+    const copy = Math.max(1, (game.data * RESHARD_MINUTES_PER_GB * 60) / CALENDAR_DAY)
+    return { ...game, reshard: { ...reshard, until: game.time + days(copy, tuning) } }
+  }
   const change = game.engineChange
   if (!change) return game
   const copy = (game.data * ENGINE_COPY_MINUTES_PER_GB * 60) / CALENDAR_DAY
   return { ...game, engineChange: { ...change, until: game.time + days(copy, tuning) } }
+}
+
+/** Ends a finished resharding copy: the Database runs the new shards and key from now on. */
+const finishReshard = (game: Game): Game => {
+  const reshard = game.reshard
+  if (!reshard || reshard.until <= 0 || game.time < reshard.until) return game
+  return {
+    ...game,
+    reshard: null,
+    nodes: game.nodes.map((node) =>
+      node.id === reshard.node && node.type === 'database'
+        ? { ...node, shards: reshard.shards, shardKey: reshard.key }
+        : node,
+    ),
+  }
 }
 
 /** Ends a finished data copy: the Database runs the new engine from now on. */
@@ -338,7 +401,19 @@ export const featureHoursOf = (game: Game, id: FeatureId): number => {
       ? DATA_TEAM_HOURS
       : 1
   const documents = game.nodes.some((node) => node.type === 'doc' && !isDown(node) && !node.shut)
-  if (!documents) return def.dh * data
+  // A schema-change tool costs Dev Hours on every Feature that changes a relational schema.
+  if (!documents)
+    return (
+      def.dh *
+      data *
+      (def.shapes > 0
+        ? has(game, 'expand-contract')
+          ? EXPAND_CONTRACT_DH
+          : has(game, 'online-migrations')
+            ? ONLINE_MIGRATION_DH
+            : 1
+        : 1)
+    )
   return def.dh * data * (def.shapes > 0 ? DOC_SHAPE_DH : DOC_PATTERN_FACTOR)
 }
 
@@ -490,6 +565,7 @@ export const splitService = (game: Game, request: SplitRequest): Action => {
     codebase: moved,
     fixes: [],
     shapes: 0,
+    indexes: 0,
     migration: null,
     nextDeployAt: serviceOf(game).nextDeployAt,
     lastDeploy: [],
@@ -605,7 +681,11 @@ export const cancelItem = (game: Game, id: number): Action =>
     if (item?.kind === 'migration') return notAllowed('Cancel the migration instead.')
     if (item?.ref === 'fix-bugs') return notAllowed('The migration needs its bugs fixed.')
     if (item?.kind === 'patch') return notAllowed('A patch stays until it is built or it expires.')
-    return ok({ ...game, backlog: game.backlog.filter((entry) => entry.id !== id) })
+    const gone = { ...game, backlog: game.backlog.filter((entry) => entry.id !== id) }
+    // A move cancelled before its data copy starts leaves nothing running.
+    if (item?.ref === 'reshard') return ok({ ...gone, reshard: null })
+    if (item?.ref === 'engine') return ok({ ...gone, engineChange: null })
+    return ok(gone)
   })
 
 /** Pays what an item still needs from the Dev Hours pool, as far as it reaches. */
@@ -1087,7 +1167,8 @@ const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
         after.incident?.kind === 'slow-query'
           ? { ...after, incident: { ...after.incident, remaining: 0 } }
           : after,
-        { shapes: Math.max(0, service.shapes - 1) },
+        // The index covers a query shape, and every write pays to keep it (07 "Indexes").
+        { shapes: Math.max(0, service.shapes - 1), indexes: service.indexes + 1 },
       )
     case 'fix-leak': {
       const leak = after.incident?.kind === 'leak' ? after.incident : null
@@ -1200,7 +1281,13 @@ const deployService = (
           fixed(next, 'graceful-shutdown')
           ? { ...node, life: warming(0) }
           : { ...node, ...restarted(node) }
-        : node,
+        : node.type === 'cdn' && !node.shut
+          ? // A CDN with Purge on deploy clears its cache and refills it from the origin; without it
+            // the edge keeps serving the last deploy's pages until their TTL passes (05 "CDN").
+            node.purge
+            ? { ...node, life: warming(0) }
+            : { ...node, staleUntil: next.time + node.ttl }
+          : node,
     ),
   }
   // No incident starts while the player is away (04 "Offline progress").
@@ -1380,6 +1467,7 @@ export const advanceTeam = (
     }
 
   next = finishEngineChange(next)
+  next = finishReshard(next)
   next = deploy(next, ledger, tuning, events, offline)
   return { game: next, events }
 }

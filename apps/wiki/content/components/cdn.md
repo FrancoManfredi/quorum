@@ -8,6 +8,12 @@ Egress from the edge costs less than egress from your App Servers, so a CDN also
 
 A CDN does not cache API reads, writes, logins, or checkouts. Those always reach the origin.
 
+## Purge on deploy and the cache key
+
+With **Purge on deploy** a release empties the CDN, and the origin takes the misses while it refills: a small stampede on every deploy. Without it the edge keeps serving the last release's pages until their TTL passes, so some users see old pages after a deploy.
+
+The **cache key** is what makes two requests the same page. A key with the path, the query string and the cookies shares nothing between users. Leaving out the query string or the cookie lifts the hit ratio, and with [Edge-side includes](/research/esi) a logged-in page is cached, so a key without the cookie can serve one user's page to another. That is the Cached page leak incident: users leave at once.
+
 ## When to place it
 
 Place it when page views or video load your App Servers, or when egress is a large line in the Ledger. See [Cut the cloud bill](/guides/cut-the-cloud-bill). It unlocks with [Content delivery](/research/cdn).

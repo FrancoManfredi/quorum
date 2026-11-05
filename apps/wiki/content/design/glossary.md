@@ -640,7 +640,7 @@ A consistency model where replicas can return old data for a while after a write
 
 A way to change a schema without locking a table: add the new column or table, write both, backfill, switch the reads, then drop the old one. Every step is backward compatible, so old and new code run side by side.
 
-**In the game:** Expand and contract research removes the Schema migration lock Incident entirely: with Online schema migrations it is a fifth of a chance, and with Expand and contract it cannot happen. The design says the change costs more Dev Hours; the build charges none, because it has no per-migration work item.
+**In the game:** Expand and contract research removes the Schema migration lock Incident entirely: with Online schema migrations it is a fifth of a chance, and with Expand and contract it cannot happen. Both cost Dev Hours: on a relational Database, a Feature that adds a query shape costs 10% more with online migrations and 25% more with expand and contract.
 
 **Design:** [Schema migrations](/design/07-data-tier#schema-migrations).
 
@@ -950,7 +950,7 @@ Memory that a long-running process keeps allocated but no longer uses, so its me
 
 A stored result of a query, kept on disk and refreshed on a schedule, so a report reads the answer instead of scanning the tables. It is fast, and it is only as fresh as the last refresh.
 
-**In the game:** Materialized views research adds a view to a Database's card. A report scans the stored view for half the CPU (10), and 5% of report answers are stale, from before the last refresh (proposed: 10 gives the half and no refresh interval). It is the Database-side twin of the Data Warehouse: the same cheap scans without a second system.
+**In the game:** Materialized views research adds a view to a Database's card. A report scans the stored view for half the CPU (10), and 5% of report answers are stale, from before the last refresh. It is the Database-side twin of the Data Warehouse: the same cheap scans without a second system.
 
 **Design:** [Data Warehouse](/design/07-data-tier#data-warehouse).
 
@@ -1496,7 +1496,7 @@ A rate limiting algorithm. A bucket holds up to B tokens and refills at a fixed 
 
 A way to update a database and publish an event without losing either. The service writes the change and an outbox row in the same database transaction, and a separate relay reads the outbox and publishes each event to the message broker, at least once. It avoids the dual-write problem, where the database commit succeeds and the publish fails, or the reverse.
 
-**In the game:** Until the outbox research, from Series B the app's dual write loses now and then: 0.5% of a Search Engine's answers are stale from a publish that never landed (the rate and the Era are proposed). Research Transactional outbox takes that share to zero, and so does a CDC Connector, which reads the change from the database log instead. Neither changes a Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue.
+**In the game:** Until the outbox research, from Series B the app's dual write loses now and then: 0.5% of a Search Engine's answers are stale from a publish that never landed. Research Transactional outbox takes that share to zero, and so does a CDC Connector, which reads the change from the database log instead. Neither changes a Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue.
 
 **Design:** [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync).
 

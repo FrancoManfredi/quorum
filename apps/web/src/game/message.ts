@@ -38,6 +38,11 @@ import {
   DbRetention,
   CacheStrategy,
   VecIndexType,
+  CacheKey,
+  SearchHeap,
+  SearchVariant,
+  ShardKey,
+  StoreVariant,
 } from '@quorum/simulation/state'
 import { MANAGED } from '@quorum/simulation/mirror'
 import { ChallengeVerdict } from '@quorum/rpc'
@@ -237,7 +242,25 @@ export const Message = defineMessageUnion({
     nodeId: Schema.String,
     coalesce: Schema.optional(Schema.Boolean),
     warming: Schema.optional(Schema.Boolean),
+    earlyExpiry: Schema.optional(Schema.Boolean),
+    swr: Schema.optional(Schema.Boolean),
   },
+  StickyChosen: { nodeId: Schema.String, sticky: Schema.Boolean },
+  CdnOptionsChosen: {
+    nodeId: Schema.String,
+    purge: Schema.optional(Schema.Boolean),
+    cacheKey: Schema.optional(CacheKey),
+  },
+  ShardKeyChosen: { nodeId: Schema.String, shardKey: ShardKey },
+  SyncChosen: { nodeId: Schema.String, sync: Schema.Boolean },
+  SearchOptionsChosen: {
+    nodeId: Schema.String,
+    searchVariant: Schema.optional(SearchVariant),
+    searchShards: Schema.optional(Schema.Finite),
+    searchReplicas: Schema.optional(Schema.Finite),
+    heap: Schema.optional(SearchHeap),
+  },
+  StoreVariantChosen: { nodeId: Schema.String, storeVariant: StoreVariant },
   DlqChosen: { nodeId: Schema.String, dlq: Schema.Boolean },
   AttemptsChosen: { nodeId: Schema.String, attempts: Schema.Finite },
   MaxLengthChosen: { nodeId: Schema.String, maxLength: Schema.Finite },

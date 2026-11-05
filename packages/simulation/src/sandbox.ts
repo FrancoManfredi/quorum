@@ -155,11 +155,11 @@ const board = (
 /* ---------- the tracks ---------- */
 
 const STAMPEDE_USERS = 6_000
-const STAMPEDE_BURN = 7.4
+const STAMPEDE_BURN = 8
 const BOTS_USERS = 12_000
-const BOTS_BURN = 10.2
+const BOTS_BURN = 10.8
 const ZONE_USERS = 8_000
-const ZONE_BURN = 21.2
+const ZONE_BURN = 22.2
 const COLD_USERS = 8_000
 const COLD_BURN = 17.4
 const COLD_SPIKE = 4
@@ -612,10 +612,10 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
     objectives: [
       { goal: 'Keep Apdex above 0.9 for 90 seconds.', hold: 90, ...serving(0.9) },
       {
-        goal: 'Demand is up 60%. Keep Apdex above 0.9 with Burn at $5.20/s or less.',
+        goal: 'Demand is up 60%. Keep Apdex above 0.9 with Burn at $6.00/s or less.',
         users: 8_000,
         hold: 120,
-        ...within(0.9, 5.2),
+        ...within(0.9, 6),
       },
       {
         goal: 'A task will fail forever. Keep the Queue under 500 tasks for 2 minutes.',

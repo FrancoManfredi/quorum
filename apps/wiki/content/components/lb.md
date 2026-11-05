@@ -8,6 +8,10 @@ By default it splits traffic by each target's capacity, so a large App Server ge
 
 It drops a dead host at its next [health check](/glossary/health-check). The [Health checks](/research/health-checks) Research lets you change the interval and turn on deep checks. A Load Balancer can also route by request kind: set which kinds each of its links carries.
 
+## Sticky sessions
+
+A switch on the card keeps users on the target they first reached. It helps in-process caches and realtime clients, because a user's next request finds the memory the last one filled. It unbalances the load, because pinned users do not move when you add a copy, so the oldest target carries the most. A target that dies takes its sessions with it. Leave it off until a cache or a Hub gains from it.
+
 ## When to place it
 
 Place it when you need a second App Server, or when hosts behind [DNS](/components/dns) have mixed sizes. Resize it when its card shows it near its throughput limit.

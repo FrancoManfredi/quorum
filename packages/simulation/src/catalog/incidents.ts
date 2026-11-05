@@ -54,6 +54,8 @@ export const INCIDENT_IDS = [
   'accidental-delete',
   'operator-typo',
   'leap-second',
+  'table-bloat',
+  'page-leak',
 ] as const
 export type IncidentId = (typeof INCIDENT_IDS)[number]
 
@@ -152,6 +154,16 @@ export const SUPPLY_CHAIN_SECONDS = 90
 export const ACCIDENTAL_DELETE_SECONDS = 120
 export const OPERATOR_TYPO_SECONDS = 120
 export const LEAP_SECOND_SECONDS = 60
+
+/* Table bloat and the cached page leak (07, 05). */
+
+/** Sim seconds a Table bloat and a cached page leak last. */
+export const TABLE_BLOAT_SECONDS = 120
+export const PAGE_LEAK_SECONDS = 90
+/** Table bloat: dead rows make every read and write cost this multiple of the CPU. */
+export const BLOAT_CPU = 2
+/** Share of the Users a cached page leak drives away at once. */
+export const PAGE_LEAK_CHURN = 0.05
 /** Share of the Users the supply-chain compromise drives away at once (proposed). */
 export const SUPPLY_CHAIN_CHURN = 0.1
 /**
@@ -758,6 +770,31 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     prevention:
       'A plan and a review before a change is applied show what it will remove, so a typo stops at the plan.',
     actions: ['infra-as-code'],
+  },
+  'table-bloat': {
+    id: 'table-bloat',
+    name: 'Table bloat',
+    era: 3,
+    severity: 2,
+    escalatesTo: 1,
+    duration: TABLE_BLOAT_SECONDS,
+    cause:
+      'PostgreSQL keeps the old version of every updated row until VACUUM cleans it. Heavy updates outran the cleaning, and the table filled with dead rows: every read and write costs more CPU.',
+    prevention:
+      'A retention window keeps the tables small, and a MySQL engine has no dead rows to clean.',
+    actions: ['retention'],
+  },
+  'page-leak': {
+    id: 'page-leak',
+    name: 'Cached page leak',
+    era: 3,
+    severity: 1,
+    escalatesTo: null,
+    duration: PAGE_LEAK_SECONDS,
+    cause:
+      'The CDN cached a logged-in page under a key that left out the cookie, and served one user’s page to another.',
+    prevention: 'A cache key that holds the cookie, so a personal page is never shared.',
+    actions: [],
   },
   'leap-second': {
     id: 'leap-second',

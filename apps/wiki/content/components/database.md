@@ -18,9 +18,9 @@ Every read that misses the buffer cache and every write waits on the volume, so 
 
 ## Shards
 
-With [Sharding](/research/sharding) the Database splits into shards by key: the card offers one shard and the doublings above it. Each shard is another box and bills like one, and the writes divide across them, so N shards answer N times the writes. Reads still ask one shard, so a [Read Replica](/components/replica) is what takes the reads off the primary. A transaction that touches two shards pays several times its latency.
+With [Sharding](/research/sharding) the Database splits into shards by key: the card offers one shard and the doublings above it. Each shard is another box and bills like one, and the writes divide across them, the busiest shard sets the pace. Reads still ask one shard, so a [Read Replica](/components/replica) is what takes the reads off the primary.
 
-Not modelled: a hot shard, scatter-gather across shards, and the Dev Hours resharding takes.
+The **shard key** decides how even the split is. A hash of the user ID splits the writes evenly, a range of IDs sends new users to the last shard, and a tenant key sends the biggest tenant to one shard. A region key keeps data near its users and makes users in other regions wait. A transaction that touches two shards is a distributed transaction: it pays several times its latency and can fail on any shard that takes part. A report or a search touches every shard, so it costs more CPU and time with every shard you add. Changing the shard count or the key is a resharding: it takes Dev Hours, then a copy of the data during which the volume answers fewer operations. [Data tier](/design/07-data-tier#partitioning-sharding) holds the numbers.
 
 ## Rows and retention
 

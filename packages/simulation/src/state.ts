@@ -130,7 +130,8 @@ export type Backup = typeof Backup.Type
 export const Fanout = Schema.Literals(['pull', 'push'])
 export type Fanout = typeof Fanout.Type
 
-export const ScaleSignal = Schema.Literals(['cpu', 'load'])
+/** What an Autoscaler reads (05 "Autoscaler"): CPU, the Node's whole load, requests per copy, or queue depth. */
+export const ScaleSignal = Schema.Literals(['cpu', 'load', 'rps', 'queue'])
 export type ScaleSignal = typeof ScaleSignal.Type
 
 /** A compute Node's pricing model. */
@@ -140,6 +141,26 @@ export type Pricing = typeof Pricing.Type
 /** How a CI/CD Pipeline ships a deploy (05 "CI/CD Pipeline"). */
 export const DeployStrategy = Schema.Literals(DEPLOY_STRATEGY_IDS)
 export type DeployStrategy = typeof DeployStrategy.Type
+
+/** What a CDN's cache key holds (05 "CDN"): path, query string and cookies, or less of them. */
+export const CacheKey = Schema.Literals(['full', 'query', 'path'])
+export type CacheKey = typeof CacheKey.Type
+
+/** The key a Database shards on (07 "Partitioning"). */
+export const ShardKey = Schema.Literals(['hash', 'range', 'tenant', 'region'])
+export type ShardKey = typeof ShardKey.Type
+
+/** A Search Engine's product (07 "Search Engine"). */
+export const SearchVariant = Schema.Literals(['elasticsearch', 'opensearch', 'meilisearch'])
+export type SearchVariant = typeof SearchVariant.Type
+
+/** The share of a Search Engine's RAM the JVM heap takes (07 "Search Engine"). */
+export const SearchHeap = Schema.Literals(['small', 'half', 'large'])
+export type SearchHeap = typeof SearchHeap.Type
+
+/** The product an Object Storage Node is (07 "Object Storage"). */
+export const StoreVariant = Schema.Literals(['s3', 'r2'])
+export type StoreVariant = typeof StoreVariant.Type
 
 const NODE_FIELDS = {
   id: Schema.String,
@@ -187,6 +208,31 @@ const NODE_FIELDS = {
   downAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** How a Load Balancer splits traffic. */
   policy: LbPolicy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('weighted' as const))),
+  /** A Load Balancer keeps a user on one target (05 "Load Balancer"). */
+  sticky: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A CDN clears its cache when a deploy ships (05 "CDN"). */
+  purge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** What a CDN's cache key holds (05 "CDN"). */
+  cacheKey: CacheKey.pipe(Schema.withDecodingDefaultKey(Effect.succeed('full' as const))),
+  /** Sim time until a CDN that did not purge still serves the old deploy's pages. */
+  staleUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** A Cache refreshes a key a little before it expires, at random (07 "Stampedes"). */
+  earlyExpiry: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Cache serves the old value while one request refreshes it (07 "Stampedes"). */
+  swr: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** The key a Database shards on (07 "Partitioning"). */
+  shardKey: ShardKey.pipe(Schema.withDecodingDefaultKey(Effect.succeed('hash' as const))),
+  /** A Read Replica every write waits for (07 "Read Replica"). */
+  sync: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Search Engine's product, and its replicas and heap (07 "Search Engine"). */
+  searchVariant: SearchVariant.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('elasticsearch' as const)),
+  ),
+  searchShards: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
+  searchReplicas: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  heap: SearchHeap.pipe(Schema.withDecodingDefaultKey(Effect.succeed('half' as const))),
+  /** The product an Object Storage Node is (07 "Object Storage"). */
+  storeVariant: StoreVariant.pipe(Schema.withDecodingDefaultKey(Effect.succeed('s3' as const))),
   /** A Load Balancer's variant: L7 reads HTTP, L4 forwards TCP (05 "Load Balancer"). */
   variant: Schema.Literals(['l7', 'l4']).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed('l7' as const)),
@@ -668,6 +714,18 @@ export const EngineChange = Schema.Struct({
 })
 export type EngineChange = typeof EngineChange.Type
 
+/**
+ * A Database's resharding in progress (07 "Partitioning"): the Node, the shard count and key it
+ * moves to, and when the data copy ends. `until` is 0 while the Dev Hours are still being built.
+ */
+export const Resharding = Schema.Struct({
+  node: Schema.String,
+  shards: Schema.Finite,
+  key: ShardKey,
+  until: Schema.Finite,
+})
+export type Resharding = typeof Resharding.Type
+
 /** A codebase with its own deploys, owned by one team (08 "Services"). */
 export const Service = Schema.Struct({
   id: Schema.String,
@@ -680,6 +738,8 @@ export const Service = Schema.Struct({
   fixes: Schema.Array(FixId),
   /** Query shapes with no index. */
   shapes: Schema.Finite,
+  /** Indexes the Service has added: each one makes every write cost more (07 "Indexes"). */
+  indexes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   migration: Schema.NullOr(MigrationState),
   nextDeployAt: Schema.Finite,
   /** What the last deploy shipped, so a rollback can take it back. */
@@ -790,6 +850,7 @@ export const monolith = (fixes: ReadonlyArray<typeof FixId.Type>): Service => ({
   codebase: START_KLOC,
   fixes,
   shapes: 0,
+  indexes: 0,
   migration: null,
   nextDeployAt: 0,
   lastDeploy: [],
@@ -1057,6 +1118,8 @@ export const Game = Schema.Struct({
   moraleUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Sim time a Load test's readout ends (08 "Engineering tasks"): every Node at twice the demand. */
   loadTestUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** A Database's resharding in progress (07 "Partitioning"), or null. */
+  reshard: Schema.NullOr(Resharding).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** A Database engine change's data copy in progress (08 "Migrations"), or null. */
   engineChange: Schema.NullOr(EngineChange).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(null)),

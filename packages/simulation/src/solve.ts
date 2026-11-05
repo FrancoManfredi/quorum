@@ -13,6 +13,7 @@ import {
   EGRESS_CROSS_REGION,
   MSGP_PRICE,
   GATEWAY_PRICE,
+  QUEUE_MESSAGE_PRICE,
   LAG_SURGE,
   LLM_PRICE,
   SCAN_PRICE,
@@ -34,6 +35,8 @@ import {
   KINDS,
   LANGUAGES,
   P2C_IMBALANCE,
+  STICKY_DECAY,
+  STICKY_SHARE,
   PROFILES,
   REQUEST_KINDS,
   RUNTIMES,
@@ -111,6 +114,7 @@ import {
   meshOf,
   sampleIndex,
   serverlessBurnOf,
+  storageRequestBurnOf,
   zoneMs,
 } from './lookups.ts'
 import {
@@ -893,20 +897,49 @@ const splitFor = (inputs: Inputs, node: GameNode, kind: Kind): Split => {
     isDown(edge.to) ? inputs.nominal[edge.toAt] : inputs.weights[edge.toAt]
   const policy =
     has(game, 'lb-algorithms') || node.policy === 'round-robin' ? node.policy : 'weighted'
-  switch (policy) {
-    case 'round-robin':
-      return even(healthy)
-    case 'weighted':
-      return weighted(healthy, (edge) => inputs.nominal[edge.toAt])
-    case 'least-conn':
-      return weighted(healthy, live)
-    case 'p2c': {
-      const spread = 1 / healthy.length
-      return weighted(healthy, live).map(
-        ([edge, share]) => [edge, (1 - P2C_IMBALANCE) * share + P2C_IMBALANCE * spread] as const,
-      )
+  const base = ((): Split => {
+    switch (policy) {
+      case 'round-robin':
+        return even(healthy)
+      case 'weighted':
+        return weighted(healthy, (edge) => inputs.nominal[edge.toAt])
+      case 'least-conn':
+        return weighted(healthy, live)
+      case 'p2c': {
+        const spread = 1 / healthy.length
+        return weighted(healthy, live).map(
+          ([edge, share]) => [edge, (1 - P2C_IMBALANCE) * share + P2C_IMBALANCE * spread] as const,
+        )
+      }
     }
+  })()
+  return node.sticky ? pinned(takers, base) : base
+}
+
+/**
+ * Sticky sessions (05 "Load Balancer"): a share of the traffic belongs to users already pinned to a
+ * target, wherever the algorithm would send them now. The oldest target holds the most of them,
+ * each later one `STICKY_DECAY` times the one before, and a dead target keeps its users: the
+ * Load Balancer sends them to it, and they lose their session.
+ */
+const pinned = (targets: ReadonlyArray<Edge>, base: Split): Split => {
+  const weights: Array<number> = []
+  let weight = 1
+  let sum = 0
+  for (let index = 0; index < targets.length; index += 1) {
+    weights.push(weight)
+    sum += weight
+    weight *= STICKY_DECAY
   }
+  const algorithm = new Map(base.map(([edge, share]) => [edge, share] as const))
+  return targets.map(
+    (edge, index) =>
+      [
+        edge,
+        (1 - STICKY_SHARE) * (algorithm.get(edge) ?? 0) +
+          (STICKY_SHARE * (weights[index] ?? 0)) / sum,
+      ] as const,
+  )
 }
 
 /** Shares proportional to each target's capacity. */
@@ -1688,7 +1721,9 @@ const ledgerOf = (
           r2 &&
           own &&
           own.inbound > 0 &&
-          (graph.routes.get(node.id) ?? []).some((child) => child.type === 'storage')
+          (graph.routes.get(node.id) ?? []).some(
+            (child) => child.type === 'storage' && child.storeVariant === 'r2',
+          )
             ? ((own.traffic.upload ?? 0) + (own.traffic.media ?? 0)) / own.inbound
             : 0
         egress += ((bytes * (1 - r2Share)) / 1_000_000) * EGRESS_ORIGIN
@@ -1765,6 +1800,14 @@ const ledgerOf = (
     if (node.type === 'fn')
       requests += serverlessBurnOf(game, node, done, meanServiceOf(pass, node))
     if (node.type === 'edge') requests += edgeBurnOf(game, node, done)
+    // Object Storage bills each read and write at its product's price, and a Queue each task as a
+    // message (09 "Base prices").
+    if (node.type === 'storage') {
+      const arriving = pass.arriving[slotOf(pass, node)] ?? {}
+      requests +=
+        storageRequestBurnOf(node, arriving['blob-get'] ?? 0, arriving['blob-put'] ?? 0) * index
+    }
+    if (node.type === 'queue') requests += done * QUEUE_MESSAGE_PRICE * index
   }
 
   const subscriptions = subscriptionsOf(game)

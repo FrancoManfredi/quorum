@@ -6,6 +6,10 @@ It takes only read queries and sends nothing on. It uses the same capacity model
 
 Replicas lag behind the primary, and the lag grows with the write rate. A read that hits a lagging replica can come back stale. A stale answer fails an API read and a checkout that reads its own write. Page views accept it. See [replication lag](/glossary/replication-lag).
 
+## Synchronous replication
+
+With [Synchronous replication](/research/sync-replication) a replica can be made synchronous. Every write on the primary then waits for it, more across zones and regions, and it serves no stale read. If it goes down, every write times out until it is back. Keep one when a read must never be stale and the writes can afford the wait.
+
 ## When to place it
 
 Place a replica when the Database CPU is high from reads, and a [Cache](/components/cache) cannot hold the hot data. Link your App Servers to both the primary and the replicas. Reads then spread across them.
