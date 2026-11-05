@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
 import type { HtmlBuilder } from 'foldkit/html'
 import { preseedGame } from '@quorum/simulation/company'
-import type { ResearchId } from '@quorum/simulation/catalog'
+import { NO_DEVICE_LATENCY, type ResearchId } from '@quorum/simulation/catalog'
 import { slaCreditsOf } from '@quorum/simulation/slo'
 import { DEFAULT_FOUNDING, type Game, type Postmortem, type Sample } from '@quorum/simulation/state'
 import { money } from '@quorum/ui/game/format'
@@ -30,6 +30,7 @@ const sampleOf = (): Sample => ({
   p99: 300,
   apdex: 0.9,
   errors: 0.01,
+  device: NO_DEVICE_LATENCY,
 })
 
 const fixture = (game: Partial<Game> = {}): Model => {

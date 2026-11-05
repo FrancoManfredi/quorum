@@ -170,6 +170,7 @@ export const GOLDEN_STEPS = 10_000
 // costs its caller a serialization's CPU, a Pre-seed Search Engine answers 2% of its answers stale
 // from a dual write, an ARM box runs at 0.95× the CPU, and 17 research items shift what a Company
 // earns toward them.
+<<<<<<< HEAD
 // SIM_VERSION 35: Features roll an outcome when queued (Win, Flat, or Loss), a live Feature can be
 // removed for good (ending its upkeep), each Service deploys on its own timer and rolls its own bad
 // deploy from its own owner's policy and debt, a Security team exists (lowering supply-chain and
@@ -177,12 +178,27 @@ export const GOLDEN_STEPS = 10_000
 // Service can be moved to another team. The save gains the outcome roll per Feature and the
 // Security team kind, so every hash moves.
 export const GOLDEN_HASH = '2e008cb4'
+=======
+// SIM_VERSION 35 (the research close-out, part two): the last eleven research items land —
+// `profiling` (names each Node's limiting resource, with `tracing`'s breadth rule at 4 Component
+// types), `tail-sampling` (×2 Failure Insight), `rum` (a device split added to every Sample, and a
+// stylized device latency), `anomaly-detection` (a shorter alert hold, and a forecast peak from
+// the diurnal cycle), `credential-protection` (softens the Credential stuffing incident and its
+// bot burst), `pen-testing` (opens an action item for the Design's weakest incident kind once a
+// calendar week), `rightsizing` (a client-side peak-utilization marker, no save change),
+// `egress-optimization` (an R2-priced share of `upload` and `media` egress at $0),
+// `unit-economics` and `cost-allocation` (Burn split by request kind and by Service, Ledger-only),
+// and `savings-plans` (20% off every compute Node's box, stacked on its pricing model). The save
+// gains each Sample's device latency, so every hash moves even where a Company owns none of them.
+export const GOLDEN_HASH = 'ececf521'
+>>>>>>> 67a21db (Add the last eleven research items across Observability, Security and Cost)
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
+<<<<<<< HEAD
   'hello-world': 'b41f339a',
   'split-the-box': '472c397b',
   slashdotted: '45b14e89',
@@ -215,4 +231,38 @@ export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
   'rule-of-40': '239868c2',
   'postgres-for-everything': '0202a07a',
   'five-nines': 'e398b9da',
+=======
+  'hello-world': '3669ca6d',
+  'split-the-box': 'a12c1d9e',
+  slashdotted: 'c327ff14',
+  c10k: '182767f6',
+  'event-loop': 'fb4b8817',
+  'too-many-connections': '03a7584c',
+  shoestring: 'a4a0bf9c',
+  'n-plus-one': '50724f91',
+  'thirteen-engineers': '117e2f94',
+  'credential-stuffing': '992a029b',
+  'black-friday': 'abb6dcd1',
+  'us-east-1': '62d44887',
+  'exactly-once': 'e22738f8',
+  'two-million-sockets': '974b94f2',
+  'pokemon-go': '5641af35',
+  'healthcare-launch': '89de239e',
+  'thundering-herd': '43cdbf15',
+  'read-states': 'f59d3de2',
+  'fail-whale': '07008863',
+  'reports-at-noon': '04259f50',
+  'gpu-economics': '26396efd',
+  metastable: '1e156988',
+  'regex-of-doom': 'd15321b4',
+  'forty-three-seconds': '74334cfc',
+  'follow-the-sun': 'b5daf51c',
+  celebrity: '00853d00',
+  'gone-from-the-internet': 'dd21ec21',
+  'the-typo': '1af8bc83',
+  'leap-second': '92cbe95b',
+  'rule-of-40': 'b11e6a6b',
+  'postgres-for-everything': '41f83182',
+  'five-nines': 'd2e7baff',
+>>>>>>> 67a21db (Add the last eleven research items across Observability, Security and Cost)
 }

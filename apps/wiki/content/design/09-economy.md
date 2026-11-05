@@ -152,6 +152,10 @@ nothing standing while it idles ([Components](/design/05-components#serverless-f
 The real lesson: the cheapest fleet mixes all three. Reserved instances cover the base load, on-demand
 instances cover the daily peak, and spot instances run batch work.
 
+**Built.** `savings-plans` ([Progression](/design/10-progression#track-cost)) takes a further 20%
+off every compute Node's box, on top of whichever model above it already runs, with no per-Node
+commitment: it is a Company-wide discount, not a fifth model on the card.
+
 ## Egress
 
 | Path                          | Price per GB |
@@ -164,6 +168,11 @@ instances cover the daily peak, and spot instances run batch work.
 
 `media` at 5 MB per request makes egress the largest line on the bill in the Series A Era unless a CDN
 or R2 serves it. A player who ignores egress sees revenue rise and margin fall.
+
+**Built.** `egress-optimization` ([Progression](/design/10-progression#track-cost)) moves the share
+of a server's egress bytes that `upload` and `media` traffic reaching an Object Storage Node
+accounts for onto the R2 row: $0 instead of the origin price. The build reads this from the
+server's own traffic mix rather than a per-byte trace, so the saved share is proposed.
 
 ## Third-party fees
 

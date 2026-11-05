@@ -33,6 +33,7 @@ import {
   STORAGE_PRICE,
   STREAM_KB,
   VCPU_PRICE,
+  SAVINGS_PLAN_RATE,
   WARMED,
   USER_MBPS,
   USER_UP_MBPS,
@@ -492,11 +493,15 @@ export const burnOf = (game: Game, node: GameNode): number => {
   const index = eraOf(game).costIndex
   if (def.sized) {
     // The pricing model discounts the box, before copies and standbys (09 "Pricing models").
+    // Savings plans take a further 20% off compute alone, with no per-Node lock: it stacks with
+    // whichever pricing model the Node already runs (10 "Track: Cost", `savings-plans`).
+    const savings = def.group === 'compute' && has(game, 'savings-plans') ? SAVINGS_PLAN_RATE : 1
     const box =
       vcpuOf(node) *
       VCPU_PRICE *
       FAMILIES[node.family].price *
       PRICINGS[pricingOf(game, node)].price *
+      savings *
       index
     // Backups store snapshots or the WAL on top of the box (07 "Backups"). A provisioned volume
     // bills a multiple of the box (07 "Capacity"), and each shard is another copy of it (07

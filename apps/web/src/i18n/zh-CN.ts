@@ -77,6 +77,42 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Expand and contract': '扩展与收缩',
   'A schema change adds the new shape, backfills, then drops the old one: no table lock, so a migration can never stall writes.':
     '模式变更先加入新结构、回填数据，再删除旧结构：不加表锁，迁移永远不会阻塞写入。',
+  // The last eleven research items (10 "Not built yet", 16 "Open gaps").
+  'Continuous profiling': '持续性能分析',
+  'Names the resource that limits each Node: CPU, workers, memory, connections, or disk.':
+    '指出限制每个节点的资源：CPU、工作进程、内存、连接数或磁盘。',
+  'Tail-based sampling': '尾部采样',
+  'Keeps slow and failed traces: twice the Failure Insight.':
+    '保留慢请求和失败的链路：故障洞察翻倍。',
+  'Real user monitoring': '真实用户监控',
+  'Latency from the user’s side, split by device: desktop, mobile, and tablet.':
+    '来自用户一侧的延迟，按设备拆分：桌面、手机和平板。',
+  Desktop: '桌面',
+  Mobile: '手机',
+  Tablet: '平板',
+  'Anomaly detection': '异常检测',
+  'Forecasts tomorrow’s peak traffic and warns before an incident peaks.':
+    '预测明天的流量高峰，并在事故达到峰值前发出预警。',
+  'Credential stuffing protection': '撞库防护',
+  'Blocks most of a credential-stuffing bot burst before it reaches login.':
+    '在撞库机器人流量到达登录接口之前拦截大部分。',
+  'Penetration testing': '渗透测试',
+  'Reveals the Design’s weakest incident kind once a calendar week.':
+    '每个日历周揭示一次设计中最薄弱的事故类型。',
+  'Rightsizing report': '容量优化报告',
+  'Marks Nodes below 30% utilization at peak, so oversized boxes are easy to find.':
+    '标记高峰利用率低于 30% 的节点，方便找出配置过大的实例。',
+  'Egress optimization': '出口流量优化',
+  'An R2-priced Object Storage variant: no egress to the internet.':
+    '按 R2 定价的对象存储变体：访问互联网不收出口流量费。',
+  'Unit economics': '单位经济模型',
+  'Cost per served request, for each request kind.': '每种请求类型中，每次成功服务请求的成本。',
+  'Cost allocation': '成本分摊',
+  'Cost per Service and per Team, from the Nodes each Service owns.':
+    '根据每个服务拥有的节点，按服务和团队计算成本。',
+  'Savings plans': '节省计划',
+  '20% off every compute Node’s Burn, on-demand or not, with no per-Node commitment.':
+    '每个计算节点的消耗费用减免 20%，无论是否按需计费，且不需要逐节点承诺。',
   ARM: 'ARM',
   'Same as General for 20% less. Some runtimes and libraries need work to port.':
     '与通用型相同但便宜 20%。部分运行时和库需要移植工作。',

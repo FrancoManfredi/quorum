@@ -188,6 +188,19 @@ export const RESEARCH_IDS = [
   'binary-rpc',
   'outbox',
   'expand-contract',
+  // The last eleven research items (10 "Not built yet", 16 "Open gaps"): Observability's
+  // waterfall and visibility steps, Security's bot and audit defences, and Cost's reports.
+  'profiling',
+  'tail-sampling',
+  'rum',
+  'anomaly-detection',
+  'credential-protection',
+  'pen-testing',
+  'rightsizing',
+  'egress-optimization',
+  'unit-economics',
+  'cost-allocation',
+  'savings-plans',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -1857,6 +1870,107 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     blurb:
       'A schema change adds the new shape, backfills, then drops the old one: no table lock, so a migration can never stall writes.',
   }),
+  // The last eleven items (10 "Not built yet", 16 "Open gaps"): Observability's waterfall and
+  // visibility steps, Security's bot and audit defences, and Cost's reports.
+  research({
+    id: 'profiling',
+    name: 'Continuous profiling',
+    track: 'observability',
+    cost: 3_000,
+    era: 3,
+    requires: ['tracing'],
+    blurb: 'Names the resource that limits each Node: CPU, workers, memory, connections, or disk.',
+  }),
+  research({
+    id: 'tail-sampling',
+    name: 'Tail-based sampling',
+    track: 'observability',
+    cost: 10_000,
+    era: 4,
+    requires: ['tracing'],
+    blurb: 'Keeps slow and failed traces: twice the Failure Insight.',
+  }),
+  research({
+    id: 'rum',
+    name: 'Real user monitoring',
+    track: 'observability',
+    cost: 50_000,
+    era: 5,
+    requires: ['tracing'],
+    blurb: 'Latency from the user’s side, split by device: desktop, mobile, and tablet.',
+  }),
+  research({
+    id: 'anomaly-detection',
+    name: 'Anomaly detection',
+    track: 'observability',
+    cost: 80_000,
+    era: 5,
+    requires: ['alerting'],
+    blurb: 'Forecasts tomorrow’s peak traffic and warns before an incident peaks.',
+  }),
+  research({
+    id: 'credential-protection',
+    name: 'Credential stuffing protection',
+    track: 'security',
+    cost: 2_500,
+    era: 3,
+    requires: ['rate-limiting'],
+    blurb: 'Blocks most of a credential-stuffing bot burst before it reaches login.',
+  }),
+  research({
+    id: 'pen-testing',
+    name: 'Penetration testing',
+    track: 'security',
+    cost: 200_000,
+    era: 6,
+    requires: [],
+    blurb: 'Reveals the Design’s weakest incident kind once a calendar week.',
+  }),
+  research({
+    id: 'rightsizing',
+    name: 'Rightsizing report',
+    track: 'cost',
+    cost: 2_500,
+    era: 3,
+    requires: ['metrics'],
+    blurb: 'Marks Nodes below 30% utilization at peak, so oversized boxes are easy to find.',
+  }),
+  research({
+    id: 'egress-optimization',
+    name: 'Egress optimization',
+    track: 'cost',
+    cost: 3_500,
+    era: 3,
+    requires: ['object-storage'],
+    blurb: 'An R2-priced Object Storage variant: no egress to the internet.',
+  }),
+  research({
+    id: 'unit-economics',
+    name: 'Unit economics',
+    track: 'cost',
+    cost: 8_000,
+    era: 4,
+    requires: [],
+    blurb: 'Cost per served request, for each request kind.',
+  }),
+  research({
+    id: 'cost-allocation',
+    name: 'Cost allocation',
+    track: 'cost',
+    cost: 10_000,
+    era: 4,
+    requires: ['unit-economics'],
+    blurb: 'Cost per Service and per Team, from the Nodes each Service owns.',
+  }),
+  research({
+    id: 'savings-plans',
+    name: 'Savings plans',
+    track: 'cost',
+    cost: 250_000,
+    era: 6,
+    requires: ['reserved-instances'],
+    blurb: '20% off every compute Node’s Burn, on-demand or not, with no per-Node commitment.',
+  }),
 ]
 
 export const RESEARCH: Record<ResearchId, ResearchDef> = Object.fromEntries(
@@ -1974,10 +2088,16 @@ const RECIPES: Partial<Record<ResearchId, ReadonlyArray<InsightPool>>> = {
   denormalization: ['read', 'write'],
   precompute: ['report'],
   outbox: ['buy', 'job'],
+  // 10's recipe table for the last eleven items: a kind's own traffic teaches the research that
+  // watches it, and Failure teaches the ones that watch failures.
+  'credential-protection': ['login', 'bot'],
+  rum: ['page', 'feed'],
+  'tail-sampling': ['failure'],
+  'anomaly-detection': ['failure', 'feed', 'hook', 'push'],
 }
 
 /** Component types an item's recipe kinds must be sampled at: a trace needs more than one hop. */
-export const BREADTH: Partial<Record<ResearchId, number>> = { tracing: 3 }
+export const BREADTH: Partial<Record<ResearchId, number>> = { tracing: 3, profiling: 4 }
 
 /**
  * Each Era's price scale: the ◇ prices keep their ratios, and this sets their

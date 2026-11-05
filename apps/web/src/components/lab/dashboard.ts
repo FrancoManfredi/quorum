@@ -6,6 +6,8 @@ import type { Limit } from '@quorum/simulation/capacity'
 import {
   ALERT_RULES,
   COMPONENTS,
+  DEVICES,
+  DEVICE_INFO,
   ERAS,
   INCIDENTS,
   KINDS,
@@ -24,8 +26,12 @@ import {
 import { churnOf, type RegionChurn } from '@quorum/simulation/churn'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
 import { dilutionOf, grantOf } from '@quorum/simulation/founding'
+<<<<<<< HEAD
 import type { KindLedger, Ledger } from '@quorum/simulation/ledger'
 import { nodeLabel } from '@quorum/simulation/labels'
+=======
+import type { KindLedger, Ledger, NodeLedger } from '@quorum/simulation/ledger'
+>>>>>>> 67a21db (Add the last eleven research items across Observability, Security and Cost)
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
@@ -2607,6 +2613,69 @@ const servicesTable = (ledger: Ledger, only: RequestKind | null, h: HtmlBuilder<
   )
 }
 
+/**
+ * One request kind's waterfall: every Node its traffic touches, in link order from the Users
+ * Node out, with the hop time and the queue wait this Node adds to that kind alone (12 "The
+ * visibility ladder", `tracing`). A Node the bottleneck-by-kind marker names is flagged.
+ */
+const waterfallTable = (
+  game: Game,
+  ledger: Ledger,
+  kind: RequestKind,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const names = namesOf(game)
+  const byId = new Map(game.nodes.map((node) => [node.id, node] as const))
+  const bottleneck = ledger.bottleneckByKind[kind] ?? null
+  // Walk the Links that carry this kind, from any Node nothing else sends it into.
+  const carriesKind = (id: string): boolean => (ledger.nodes[id]?.traffic[kind] ?? 0) > 0
+  const incoming = new Set(
+    ledger.links.filter((link) => (link.traffic[kind] ?? 0) > 0).map((link) => link.to),
+  )
+  const roots = Object.keys(ledger.nodes).filter((id) => carriesKind(id) && !incoming.has(id))
+  const order: Array<string> = []
+  const seen = new Set<string>()
+  const queue = [...roots]
+  while (queue.length > 0) {
+    const id = queue.shift() as string
+    if (seen.has(id)) continue
+    seen.add(id)
+    order.push(id)
+    for (const link of ledger.links)
+      if (link.from === id && (link.traffic[kind] ?? 0) > 0 && !seen.has(link.to))
+        queue.push(link.to)
+  }
+  return tablePanel(
+    'waterfall',
+    'col-span-24',
+    'Waterfall',
+    `${KINDS[kind].label} · hop time and wait, Node by Node`,
+    ['Node', 'Hop time', 'Wait', 'Bottleneck'],
+    order.flatMap((id) => {
+      const own = ledger.nodes[id] as NodeLedger
+      const node = byId.get(id)
+      if (!node) return []
+      const hop = own.hopByKind[kind] ?? 0
+      const wait = own.waitByKind[kind] ?? 0
+      return [
+        {
+          key: id,
+          cells: [
+            { text: names.get(id) ?? COMPONENTS[node.type].name },
+            { text: ms(hop) },
+            { text: wait > 0 ? queueWait(wait) : '—' },
+            {
+              text: id === bottleneck ? 'Bottleneck' : '',
+              color: id === bottleneck ? RED : undefined,
+            },
+          ],
+        },
+      ]
+    }),
+    h,
+  )
+}
+
 const LIMIT_NAME: Record<Limit, string> = {
   cpu: 'CPU',
   credits: 'CPU credits',
@@ -2716,6 +2785,24 @@ const usersTable = (
     h,
   )
 }
+
+/**
+ * Real user monitoring's device split: mean latency from each device's side, including its own
+ * round trip, for the users row (12 "The visibility ladder", `rum`).
+ */
+const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html =>
+  tablePanel(
+    'devices',
+    'col-span-24',
+    'Real user monitoring',
+    'mean latency from the user’s side, by device',
+    ['Device', 'Latency'],
+    DEVICES.map((device) => ({
+      key: device,
+      cells: [{ text: DEVICE_INFO[device].name }, { text: ms(ledger.deviceLatency[device] ?? 0) }],
+    })),
+    h,
+  )
 
 /* ==========================================================================
    Component rows (12 "Component rows")
@@ -3338,6 +3425,17 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
             format: (value) => `${compact(value)}/s`,
             compare: 'served',
+            ...(has(game, 'anomaly-detection')
+              ? {
+                  rules: [
+                    {
+                      y: ledger.forecastPeak,
+                      label: `tomorrow’s peak ${compact(ledger.forecastPeak)}/s`,
+                      color: PINK,
+                    },
+                  ],
+                }
+              : {}),
           }),
           series({
             key: 'latency',
@@ -3387,7 +3485,11 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ]
             : []),
           ...(has(game, 'tracing')
-            ? [rowHeader('Services (RED)', 1, h), servicesTable(ledger, kind, h)]
+            ? [
+                rowHeader('Services (RED)', 1, h),
+                servicesTable(ledger, kind, h),
+                ...(kind ? [waterfallTable(game, ledger, kind, h)] : []),
+              ]
             : []),
 
           rowHeader('Saturation', 3, h),
@@ -3487,9 +3589,14 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 locked('burn-rate', 'col-span-12', 'Error budget burn rate', 'slo-dashboards', h),
               ]),
 
-          ...(has(game, 'tracing')
+          ...(has(game, 'profiling')
             ? [rowHeader('Resources (USE)', 1, h), resourceTimeline(model, tracks, h)]
-            : []),
+            : has(game, 'tracing')
+              ? [
+                  rowHeader('Resources (USE)', 1, h),
+                  locked('resources', 'col-span-12', 'Resources (USE)', 'profiling', h),
+                ]
+              : []),
           ...(hasNode('lb')
             ? [rowHeader('Load Balancer', 1, h), loadBalancer(game, ledger, h)]
             : []),
@@ -3525,7 +3632,11 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             : []),
 
           ...(has(game, 'multi-region')
-            ? [rowHeader('Users', 1, h), usersTable(game, ledger, region, h)]
+            ? [
+                rowHeader('Users', 1, h),
+                usersTable(game, ledger, region, h),
+                ...(has(game, 'rum') ? [deviceTable(ledger, h)] : []),
+              ]
             : []),
 
           ...(game.sandbox

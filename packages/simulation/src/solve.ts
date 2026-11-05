@@ -19,6 +19,7 @@ import {
   STORAGE_CLASSES,
   TOKENS_PER_PROMPT,
   STUFFING_MAGNITUDE,
+  CREDENTIAL_PROTECTION_BLOCK,
   DEADLINE_SURGE,
   KIND_SURGE,
   LATENCY_REGRESSION_MS,
@@ -53,7 +54,10 @@ import {
   CDC_CHANGES,
   BACKEND_KINDS,
   isBackendKind,
+  DEVICES,
+  DEVICE_INFO,
   type BackendKind,
+  type DeviceId,
   type InsightPool,
   type Kind,
   type RegionId,
@@ -133,7 +137,7 @@ import {
 } from './regions.ts'
 import { causeOf } from './life.ts'
 import { NO_INSIGHT, type Game, type GameLink, type GameNode } from './state.ts'
-import { payrollOf } from './team.ts'
+import { payrollOf, serviceOfKind } from './team.ts'
 
 /* ==========================================================================
    The flow solve: turns a Design and the current demand into the Ledger.
@@ -203,13 +207,16 @@ export const demandOf = (game: Game): Partial<Record<RequestKind, number>> => {
     if (share > 0) demand[kind] = total * share * (surge?.[0] === kind ? surge[1] : 1)
   }
   // Attacks add bots on top of the users: scrapers, a flood, or leaked passwords tried on login.
+  // Credential stuffing protection blocks most of the burst before it reaches login (11 "Catalog",
+  // `credential-protection`).
+  const stuffing = has(game, 'credential-protection') ? CREDENTIAL_PROTECTION_BLOCK : 1
   const attack =
     game.incident?.kind === 'bot-surge'
       ? total * BOT_SURGE
       : game.incident?.kind === 'ddos'
         ? total * DDOS_MAGNITUDE
         : game.incident?.kind === 'stuffing'
-          ? total * (mix.login ?? 0.04) * STUFFING_MAGNITUDE
+          ? total * (mix.login ?? 0.04) * STUFFING_MAGNITUDE * stuffing
           : 0
   if (attack > 0) demand.bot = (demand.bot ?? 0) + attack
   return demand
@@ -1466,13 +1473,27 @@ const ledgerOf = (
         out[kind] = (out[kind] ?? 0) + rate
     }
     const kindsHere = Object.keys(rates) as Array<Kind>
+    // Each kind's own hop time at this Node, before it is blended into `latency` (12 "The
+    // visibility ladder", `tracing`): the waterfall needs a Node's time split by kind.
+    const hopByKind: Partial<Record<Kind, number>> = {}
+    for (const kind of kindsHere) {
+      const service = model?.service[kind]
+      if (service) hopByKind[kind] = service.fixed + service.variable
+    }
     const latency =
       inbound > 0 && model
-        ? kindsHere.reduce((total, kind) => {
-            const service = model.service[kind]
-            return total + (rates[kind] ?? 0) * (service ? service.fixed + service.variable : 0)
-          }, 0) / inbound
+        ? kindsHere.reduce(
+            (total, kind) => total + (rates[kind] ?? 0) * (hopByKind[kind] ?? 0),
+            0,
+          ) / inbound
         : 0
+    // A Queue's wait applies to every kind it holds; every other Node waits for nothing.
+    const queueTasks = node.type === 'queue' ? (pass.tasks[slot] ?? {}) : null
+    const queueWait = node.type === 'queue' ? (completion.waits.get(node.id) ?? 0) : 0
+    const waitByKind: Partial<Record<Kind, number>> = {}
+    if (queueTasks)
+      for (const kind of Object.keys(queueTasks) as Array<RequestKind>)
+        if ((queueTasks[kind] ?? 0) > 0) waitByKind[kind] = queueWait
     // The slowest 1% of this Node's own time, for its busiest kind.
     const busiest = kindsHere.reduce<Kind | null>(
       (best, kind) => (best === null || (rates[kind] ?? 0) > (rates[best] ?? 0) ? kind : best),
@@ -1505,6 +1526,8 @@ const ledgerOf = (
       limit: refusedShare > 0 ? 'connections' : (model?.limit ?? 'none'),
       latency,
       p99,
+      hopByKind,
+      waitByKind,
       dropped: inbound * (1 - share),
       refused: inbound * share * refusedShare,
       stranded: strand?.rate ?? 0,
@@ -1590,8 +1613,12 @@ const ledgerOf = (
     insight[kind] += INSIGHT_YIELD * (Math.sqrt(samples) + MESH_INSIGHT * Math.sqrt(watched)) * perk
     breadth[kind] = (breadth[kind] ?? 0) + 1
   }
+  // Tail-based sampling keeps the failed traces instead of dropping most of them with the rest
+  // (12 "Earning Insight", `tail-sampling`): twice the Failure Insight for the same failures.
+  const tailSampled = has(game, 'tail-sampling') ? 2 : 1
   for (const failed of failedBy.values())
-    insight.failure += INSIGHT_YIELD * FAILURE_YIELD * Math.sqrt(Math.max(0, failed)) * perk
+    insight.failure +=
+      INSIGHT_YIELD * FAILURE_YIELD * Math.sqrt(Math.max(0, failed)) * perk * tailSampled
 
   const links: Array<LinkLedger> = game.links.map((link) => {
     const to = graph.byId.get(link.to)
@@ -1644,11 +1671,26 @@ const ledgerOf = (
 
   // Egress (09 "Egress"): bytes App Servers send to the internet, and pages a CDN answers at the edge.
   // Billed from Seed: before it, the smallest box costs more than every byte the Company sends.
+  // Egress optimization moves `upload` and `media` onto an R2-priced Object Storage variant,
+  // which reaches the internet at $0 instead of the origin price (09 "Egress", `egress-optimization`).
+  const r2 = has(game, 'egress-optimization')
   let egress = 0
   if (game.stage >= 2) {
     for (const node of game.nodes) {
-      if (node.type === 'server')
-        egress += ((nodes[node.id]?.resources.network?.used ?? 0) / 1_000_000) * EGRESS_ORIGIN
+      if (node.type === 'server') {
+        const own = nodes[node.id]
+        const bytes = own?.resources.network?.used ?? 0
+        // The share of this Node's own traffic that Object Storage serves: its payload rides
+        // R2's $0 egress once the Node links to a storage Node.
+        const r2Share =
+          r2 &&
+          own &&
+          own.inbound > 0 &&
+          (graph.routes.get(node.id) ?? []).some((child) => child.type === 'storage')
+            ? ((own.traffic.upload ?? 0) + (own.traffic.media ?? 0)) / own.inbound
+            : 0
+        egress += ((bytes * (1 - r2Share)) / 1_000_000) * EGRESS_ORIGIN
+      }
       if (node.type === 'cdn' && !isDown(node)) {
         const rates = pass.arriving[slotOf(pass, node)] ?? {}
         for (const kind of REQUEST_KINDS)
@@ -1727,6 +1769,29 @@ const ledgerOf = (
   const salaries = payrollOf(game)
   const shares = burnSharesOf(game)
   const errorTotal = ERROR_CAUSES.reduce((total, cause) => total + errors[cause], 0)
+  const totalBurn =
+    (thirdParty > 0
+      ? game.nodes.reduce((total, node) => total + burnOf(game, node), 0) + thirdParty
+      : game.nodes.reduce((total, node) => total + burnOf(game, node), 0)) +
+    salaries +
+    egress +
+    retrieval +
+    requests
+  // Unit economics splits Burn across kinds by their share of demand, then costs each kind's
+  // own served rate (10 "Track: Cost", `unit-economics`); cost allocation rolls that up by the
+  // Service each kind's code lives in (10 "Track: Cost", `cost-allocation`).
+  const costPerKind: Partial<Record<RequestKind, number>> = {}
+  const costPerService: Partial<Record<string, number>> = {}
+  if (rateTotal > 0 && totalBurn > 0)
+    for (const kind of REQUEST_KINDS) {
+      const entry = kinds[kind]
+      if (!entry || entry.rate <= 0) continue
+      const kindBurn = totalBurn * (entry.rate / rateTotal)
+      const servedRate = entry.rate * entry.success
+      if (servedRate > 0) costPerKind[kind] = kindBurn / servedRate
+      const service = serviceOfKind(game, kind).id
+      costPerService[service] = (costPerService[service] ?? 0) + kindBurn
+    }
   return {
     nodes,
     links,
@@ -1746,24 +1811,18 @@ const ledgerOf = (
         sent > 0 ? (regionSatisfied[region as RegionId] ?? 0) / sent : 1,
       ]),
     ),
+    deviceLatency: Object.fromEntries(
+      DEVICES.map((device) => [
+        device,
+        (served > 0 ? latencyWeight / served : 0) + DEVICE_INFO[device].rttMs,
+      ]),
+    ) as Record<DeviceId, number>,
     regionKinds,
     revenue: revenue + subscriptions,
     subscriptions,
     insight,
     breadth,
-    burn:
-      thirdParty > 0
-        ? game.nodes.reduce((total, node) => total + burnOf(game, node), 0) +
-          salaries +
-          egress +
-          retrieval +
-          thirdParty +
-          requests
-        : game.nodes.reduce((total, node) => total + burnOf(game, node), 0) +
-          salaries +
-          egress +
-          retrieval +
-          requests,
+    burn: totalBurn,
     salaries,
     egress,
     fees: thirdParty,
@@ -1777,11 +1836,55 @@ const ledgerOf = (
       observability: shares.observability,
       salaries,
     },
+    costPerKind,
+    costPerService,
     market: marketOf(game),
     velocity,
     failing,
+    forecastPeak: forecastPeakOf(game, rateTotal),
     bottleneck: null,
+    bottleneckByKind: bottleneckByKindOf(game, nodes),
   }
+}
+
+/**
+ * Projects today's demand to tomorrow's peak hour, using the known diurnal cycle instead of a
+ * statistical fit (10 "Track: Observability", `anomaly-detection`). A Company with no diurnal
+ * cycle (a Sandbox with no daily cycle, or a regional Company) reports the current demand: the
+ * cycle this function reads is the single-region, non-regional cycle `demandOf` also uses.
+ */
+const forecastPeakOf = (game: Game, demand: number): number => {
+  if (demand <= 0 || regional(game) || (game.sandbox && !game.scenario?.daily)) return demand
+  const now = ventureDiurnal(game) * ventureWeekly(game)
+  const peak = (1 + DIURNAL_AMPLITUDE) * ventureWeekly(game)
+  return now > 0 ? demand * (peak / now) : demand
+}
+
+/**
+ * The most utilized limiting Node on each request kind's own path (12 "The visibility ladder",
+ * `tracing`): cheaper than `bottleneckOf`'s re-solve search, because it reads utilization and
+ * traffic the Node loop already produced instead of re-solving once per kind.
+ */
+const bottleneckByKindOf = (
+  game: Game,
+  nodes: Readonly<Record<string, NodeLedger>>,
+): Partial<Record<RequestKind, string>> => {
+  const byKind: Partial<Record<RequestKind, string>> = {}
+  for (const kind of REQUEST_KINDS) {
+    let best: string | null = null
+    let bestUtilization = 0.6
+    for (const node of game.nodes) {
+      if (!COMPONENTS[node.type].limiting || isDown(node)) continue
+      const ledger = nodes[node.id]
+      if (!ledger || (ledger.traffic[kind] ?? 0) <= 0) continue
+      if (ledger.utilization > bestUtilization) {
+        bestUtilization = ledger.utilization
+        best = node.id
+      }
+    }
+    if (best) byKind[kind] = best
+  }
+  return byKind
 }
 
 /**

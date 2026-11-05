@@ -796,6 +796,12 @@ export const REGEX_CAPACITY = 0.1
 export const BOT_SURGE = 0.8
 export const DDOS_MAGNITUDE = 50
 export const STUFFING_MAGNITUDE = 19
+/**
+ * Credential stuffing protection blocks 80% of a stuffing burst before it reaches login (10
+ * "Track: Security", `credential-protection`). Proposed: the design names the research and its
+ * blurb, not a rate.
+ */
+export const CREDENTIAL_PROTECTION_BLOCK = 0.2
 
 /** A traffic spike multiplies demand by a roll in this range. */
 export const SPIKE_MAGNITUDE = [3, 10] as const
@@ -843,6 +849,12 @@ export const ALERT_THRESHOLDS = {
 } as const
 /** False alarms in one calendar day before the player ignores a rule (12 "Alerting"). */
 export const ALERT_FATIGUE = 5
+/**
+ * Anomaly detection halves how long a threshold must hold before the pager fires (10 "Track:
+ * Observability", `anomaly-detection`): the warning lands while an incident is still ramping up,
+ * not only once it has fully peaked.
+ */
+export const ANOMALY_DETECTION_HOLD = 0.5
 
 /**
  * Once the error budget counts, incidents run on the calendar (11 "Duration"): an

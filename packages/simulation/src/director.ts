@@ -26,6 +26,7 @@ import {
   WARMED,
   type ComponentId,
   type IncidentId,
+  type ResearchId,
   HOME_REGION,
 } from './catalog.ts'
 import { StepEvent, type AlertRule } from './events.ts'
@@ -362,7 +363,15 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     // Scrapers and floods hit every Design; a WAF makes them a nuisance.
     'bot-surge': () => (hasNode(game, 'waf') ? 0.5 : 2),
     ddos: () => (hasNode(game, 'waf') ? 0.5 : 1.5),
-    stuffing: () => ((ledger.kinds.login?.rate ?? 0) > 0 ? (hasNode(game, 'waf') ? 0.5 : 2) : 0),
+    // Credential stuffing protection is a weakness fixed in two steps: a WAF, then the research.
+    stuffing: () =>
+      (ledger.kinds.login?.rate ?? 0) > 0
+        ? hasNode(game, 'waf')
+          ? has(game, 'credential-protection')
+            ? 0.25
+            : 0.5
+          : 2
+        : 0,
     stampede: () =>
       cacheTargets(game, ledger).some(
         (node) => !(node.coalesce && has(game, 'stampede-protection')),
@@ -522,6 +531,27 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
 /** A postmortem opened an action item against this incident, and its research is not owned yet. */
 const unaddressed = (game: Game, kind: IncidentId): boolean =>
   INCIDENTS[kind].actions.some((id) => game.openActions.includes(id) && !has(game, id))
+
+/**
+ * Penetration testing reveals one weakness a calendar week (10 "Track: Security",
+ * `pen-testing`): the prevention research for the Design's weakest incident kind right now,
+ * the same weakness score the director itself weighs incidents by. Null when every kind's
+ * preventions are already researched, or the Design has no weakness to find.
+ */
+export const pentestWeakness = (game: Game, ledger: Ledger): ResearchId | null => {
+  let best: ResearchId | null = null
+  let bestWeakness = 0
+  for (const id of INCIDENT_IDS) {
+    const action = INCIDENTS[id].actions.find((research) => !has(game, research))
+    if (!action) continue
+    const weakness = weaknessOf(game, ledger, id)
+    if (weakness > bestWeakness) {
+      bestWeakness = weakness
+      best = action
+    }
+  }
+  return best
+}
 
 /** Starts an incident. Returns null when the Design has nothing it can hit. */
 export const startIncident = (

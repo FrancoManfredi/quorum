@@ -60,6 +60,17 @@ import {
   Cpu,
   Database,
   Server,
+  Filter,
+  Microscope,
+  Smartphone,
+  Binoculars,
+  ShieldAlert,
+  Bug,
+  Ruler,
+  ArrowDownToLine,
+  Calculator,
+  ChartPie,
+  PiggyBank,
   type IconNode,
 } from 'lucide'
 import { siStripe } from 'simple-icons'
@@ -274,6 +285,18 @@ export const LOOKS: Record<ResearchId, Look> = {
   'binary-rpc': { group: 'edge', glyph: Cable, hue: 275 },
   outbox: { group: 'data', glyph: Workflow, hue: 70 },
   'expand-contract': { group: 'data', glyph: Split, hue: 220 },
+  // The last eleven items (10 "Not built yet", 16 "Open gaps").
+  profiling: { group: 'ops', glyph: Microscope, hue: 185 },
+  'tail-sampling': { group: 'ops', glyph: Filter, hue: 185 },
+  rum: { group: 'ops', glyph: Smartphone, hue: 185 },
+  'anomaly-detection': { group: 'ops', glyph: Binoculars, hue: 30 },
+  'credential-protection': { group: 'edge', glyph: ShieldAlert, hue: 345 },
+  'pen-testing': { group: 'edge', glyph: Bug, hue: 300 },
+  rightsizing: { group: 'ops', glyph: Ruler, hue: 45 },
+  'egress-optimization': { group: 'ops', glyph: ArrowDownToLine, hue: 45 },
+  'unit-economics': { group: 'ops', glyph: Calculator, hue: 45 },
+  'cost-allocation': { group: 'ops', glyph: ChartPie, hue: 45 },
+  'savings-plans': { group: 'ops', glyph: PiggyBank, hue: 45 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

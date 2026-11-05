@@ -73,6 +73,30 @@ export const ABROAD_SEED = 0.05
  */
 export const BORDER_MIXING = 0.1
 
+/**
+ * Real user monitoring splits latency by device (12 "The visibility ladder", `rum`). Devices are
+ * not otherwise modelled, so a fixed, stylized mix and a radio-latency multiplier per device
+ * stand in for a real client population: mobile radios and tablets' Wi-Fi-or-cellular mix both
+ * add round-trip time a desktop's wired or fast Wi-Fi connection does not pay. Proposed: the
+ * design names the split and gives no numbers.
+ */
+export const DEVICES = ['desktop', 'mobile', 'tablet'] as const
+export type DeviceId = (typeof DEVICES)[number]
+export const DEVICE_INFO: Record<
+  DeviceId,
+  Readonly<{ name: string; share: number; rttMs: number }>
+> = {
+  desktop: { name: 'Desktop', share: 0.45, rttMs: 0 },
+  mobile: { name: 'Mobile', share: 0.45, rttMs: 60 },
+  tablet: { name: 'Tablet', share: 0.1, rttMs: 30 },
+}
+/** Every device at 0 ms: a Sample before `rum`, or one from a Company that never researched it. */
+export const NO_DEVICE_LATENCY: Record<DeviceId, number> = {
+  desktop: 0,
+  mobile: 0,
+  tablet: 0,
+}
+
 /* ---------- Mirrors (05 "Mirror a region") ---------- */
 
 /**

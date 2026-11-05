@@ -25,6 +25,8 @@ import {
   SYNC_MODES,
   ZONES,
   MOOD_START,
+  DEVICES,
+  NO_DEVICE_LATENCY,
 } from './catalog.ts'
 
 /* ==========================================================================
@@ -480,6 +482,13 @@ export const Sample = Schema.Struct({
   p99: Schema.Finite,
   apdex: Schema.Finite,
   errors: Schema.Finite,
+  /**
+   * Mean milliseconds from each device's side: `latency` plus that device's own round trip (12
+   * "The visibility ladder", `rum`). 0 for every device on a Sample saved before `rum` landed.
+   */
+  device: Schema.Record(Schema.Literals(DEVICES), Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(NO_DEVICE_LATENCY)),
+  ),
 })
 export type Sample = typeof Sample.Type
 

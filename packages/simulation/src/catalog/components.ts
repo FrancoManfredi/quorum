@@ -1567,6 +1567,12 @@ export const PRICINGS: Record<PricingId, PricingDef> = {
   },
 }
 
+/**
+ * Savings plans (10 "Track: Cost", `savings-plans`): 20% off every compute Node's box, on top of
+ * its own pricing model, with no per-Node commitment.
+ */
+export const SAVINGS_PLAN_RATE = 0.8
+
 /** From Series A, each compute Node has a pricing model. */
 export const PRICING_FROM_STAGE = 3
 /** A reserved term: one calendar week, in sim seconds (one sim second is one calendar minute). */

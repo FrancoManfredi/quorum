@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { NO_DEVICE_LATENCY } from '@quorum/simulation/catalog'
 import type { Sample } from '@quorum/simulation/state'
 import { EMPTY_HISTORY, TIERS, historyOfSave, newSamples, record, startOf } from './history.ts'
 
@@ -13,6 +14,7 @@ const sample = (p99: number, users = 100, cash = 500): Sample => ({
   p99,
   apdex: 1,
   errors: 0,
+  device: NO_DEVICE_LATENCY,
 })
 
 test('blocks split at the clock quarter and keep min, max, sum, and count', () => {

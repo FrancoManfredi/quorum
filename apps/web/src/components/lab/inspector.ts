@@ -155,7 +155,7 @@ import type {
 import { compact, duration, money, ms, priceLabel, queueWait, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
-import { hasTraffic, hintOf, sampleNode, TRAFFIC_KINDS } from '@/game/node-metrics.ts'
+import { hasTraffic, hintOf, oversized, sampleNode, TRAFFIC_KINDS } from '@/game/node-metrics.ts'
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
 import { packetMark } from '@quorum/ui/game/packets'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -3542,6 +3542,17 @@ const trafficBreakdown = (
             callout(
               hint,
               sample.down || sample.swapping || sample.refused > 0 ? 'danger' : 'warn',
+              null,
+              h,
+              'mx-0 mb-0',
+            ),
+          ]
+        : []),
+      ...(!hint && has(game, 'rightsizing') && oversized(history)
+        ? [
+            callout(
+              'Rightsizing report: peak utilization stayed under 30% over the last calendar day. Consider a smaller size.',
+              'warn',
               null,
               h,
               'mx-0 mb-0',

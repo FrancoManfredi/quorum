@@ -3568,6 +3568,43 @@ export const fr: Readonly<Record<string, string>> = {
   'Spot instances': 'Instances Spot',
   'Spot pricing: 0.3×, until the provider reclaims the Node.':
     'Tarif Spot : 0,3×, jusqu’à ce que le fournisseur récupère le nœud.',
+  // The last eleven research items (10 "Not built yet", 16 "Open gaps").
+  'Continuous profiling': 'Profilage continu',
+  'Names the resource that limits each Node: CPU, workers, memory, connections, or disk.':
+    'Nomme la ressource qui limite chaque nœud : CPU, workers, mémoire, connexions ou disque.',
+  'Tail-based sampling': 'Échantillonnage par la queue',
+  'Keeps slow and failed traces: twice the Failure Insight.':
+    'Conserve les traces lentes et échouées : deux fois plus d’intuition d’échec.',
+  'Real user monitoring': 'Suivi des utilisateurs réels',
+  'Latency from the user’s side, split by device: desktop, mobile, and tablet.':
+    'Latence du côté de l’utilisateur, répartie par appareil : ordinateur, mobile et tablette.',
+  Desktop: 'Ordinateur',
+  Mobile: 'Mobile',
+  Tablet: 'Tablette',
+  'Anomaly detection': 'Détection d’anomalies',
+  'Forecasts tomorrow’s peak traffic and warns before an incident peaks.':
+    'Prévoit le pic de trafic de demain et alerte avant qu’un incident n’atteigne son pic.',
+  'Credential stuffing protection': 'Protection contre le credential stuffing',
+  'Blocks most of a credential-stuffing bot burst before it reaches login.':
+    'Bloque la majorité d’une rafale de robots de credential stuffing avant qu’elle n’atteigne la connexion.',
+  'Penetration testing': 'Test d’intrusion',
+  'Reveals the Design’s weakest incident kind once a calendar week.':
+    'Révèle le type d’incident le plus faible de la conception une fois par semaine calendaire.',
+  'Rightsizing report': 'Rapport de dimensionnement',
+  'Marks Nodes below 30% utilization at peak, so oversized boxes are easy to find.':
+    'Marque les nœuds sous 30 % d’utilisation au pic, pour repérer facilement les machines surdimensionnées.',
+  'Egress optimization': 'Optimisation de la sortie',
+  'An R2-priced Object Storage variant: no egress to the internet.':
+    'Une variante du stockage objet au tarif R2 : aucune sortie vers Internet.',
+  'Unit economics': 'Économie unitaire',
+  'Cost per served request, for each request kind.':
+    'Coût par requête servie, pour chaque type de requête.',
+  'Cost allocation': 'Répartition des coûts',
+  'Cost per Service and per Team, from the Nodes each Service owns.':
+    'Coût par service et par équipe, à partir des nœuds que possède chaque service.',
+  'Savings plans': 'Plans d’économies',
+  '20% off every compute Node’s Burn, on-demand or not, with no per-Node commitment.':
+    '20 % de réduction sur le Burn de chaque nœud de calcul, à la demande ou non, sans engagement par nœud.',
   'PostgreSQL or MySQL': 'PostgreSQL ou MySQL',
   'The source of truth. Postgres forks a process per connection; MySQL gives each a thread.':
     'La source de vérité. Postgres crée un processus par connexion ; MySQL donne un thread à chacune.',

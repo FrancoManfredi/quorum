@@ -1,5 +1,5 @@
 import type { Limit, Resources } from './capacity.ts'
-import type { InsightPool, Kind, RegionId, RequestKind } from './catalog.ts'
+import type { DeviceId, InsightPool, Kind, RegionId, RequestKind } from './catalog.ts'
 import type { ErrorCause, Failures } from './distribution.ts'
 
 /* ==========================================================================
@@ -42,6 +42,18 @@ export type NodeLedger = Readonly<{
   latency: number
   /** 99th percentile of the milliseconds this Node adds, for its busiest kind. */
   p99: number
+  /**
+   * Milliseconds this Node adds to a request of each kind that passes through it: the
+   * waterfall's per-hop time, split by kind instead of blended into `latency` (12 "The
+   * visibility ladder", `tracing`).
+   */
+  hopByKind: Readonly<Partial<Record<Kind, number>>>
+  /**
+   * Seconds a request of each kind waits at this Node before it is worked: `age` attributed to
+   * the kinds that pass through this Queue, 0 for every other Node (12 "The visibility ladder",
+   * `tracing`).
+   */
+  waitByKind: Readonly<Partial<Record<Kind, number>>>
   /** Requests per second dropped for lack of capacity. */
   dropped: number
   /** Queries per second refused for lack of connections. */
@@ -133,6 +145,12 @@ export type Ledger = Readonly<{
   apdex: number
   /** Apdex of each region's users, wherever the Design serves them. */
   regions: Readonly<Partial<Record<RegionId, number>>>
+  /**
+   * Mean milliseconds a request takes from each device's side: `latency` plus that device's own
+   * radio round trip, on top of whatever region hop already applies (12 "The visibility ladder",
+   * `rum`).
+   */
+  deviceLatency: Readonly<Record<DeviceId, number>>
   /** What each region's users get for each scored request kind (12 "The Churn breakdown"). */
   regionKinds: Readonly<
     Partial<Record<RegionId, Readonly<Partial<Record<RequestKind, RegionKindLedger>>>>>
@@ -155,12 +173,35 @@ export type Ledger = Readonly<{
   fees: number
   /** The same Burn, split by the lines 09 "The cloud bill" lists. Their sum is `burn`. */
   burnLines: BurnLines
+  /**
+   * Dollars per served request of each kind: `burn` split across kinds by their share of
+   * `demand`, each divided by its own served rate (10 "Track: Cost", `unit-economics`).
+   */
+  costPerKind: Readonly<Partial<Record<RequestKind, number>>>
+  /**
+   * Dollars per second of `burn` attributed to each Service, by its share of `demand` across the
+   * kinds its Features touch (10 "Track: Cost", `cost-allocation`). The starting Service, which
+   * carries every kind no other Service's Features touch, takes the rest.
+   */
+  costPerService: Readonly<Partial<Record<string, number>>>
   /** Most users the market holds: the Era's, grown by Features. */
   market: number
   /** Traffic-weighted velocity of the App Servers' Stacks: language × framework. */
   velocity: number
   /** Request kinds that mostly have no route, for hints. */
   failing: ReadonlyArray<RequestKind>
+  /**
+   * Requests per second at tomorrow's predicted peak: `demand` scaled by the known diurnal
+   * cycle's peak-to-now ratio (10 "Track: Observability", `anomaly-detection`). The cycle is
+   * deterministic, so this is a projection, not a statistical forecast.
+   */
+  forecastPeak: number
   /** The Node whose extra capacity would earn the most, if any. */
   bottleneck: string | null
+  /**
+   * The most utilized Node on each request kind's own path, if any: the waterfall's bottleneck
+   * marker per kind, cheaper than `bottleneck`'s re-solve search (12 "The visibility ladder",
+   * `tracing`). A kind with no route, or whose busiest Node sits under 60% utilization, has none.
+   */
+  bottleneckByKind: Readonly<Partial<Record<RequestKind, string>>>
 }>

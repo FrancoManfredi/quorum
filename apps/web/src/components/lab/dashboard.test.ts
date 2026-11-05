@@ -6,6 +6,7 @@ import {
   ERAS,
   INCIDENTS,
   KINDS,
+  NO_DEVICE_LATENCY,
   REGION_INFO,
   RESEARCH,
   type ComponentId,
@@ -49,6 +50,7 @@ const RESEARCHED: ReadonlyArray<ResearchId> = [
   'percentiles',
   'alerting',
   'tracing',
+  'profiling',
   'slo-dashboards',
   'multi-region',
 ]
@@ -65,6 +67,7 @@ const sampleOf = (over: Partial<Sample> = {}): Sample => ({
   p99: 300,
   apdex: 0.9,
   errors: 0.01,
+  device: NO_DEVICE_LATENCY,
   ...over,
 })
 
@@ -252,6 +255,19 @@ test('the Resources row colours each Node by the resource that limited it', () =
     Scene.expect(Scene.selector('[title="App Server: CPU"]')).toExist(),
     Scene.expect(Scene.selector('[title="App Server: Workers"]')).toExist(),
     Scene.expect(Scene.selector('[title="Database: Connections"]')).toExist(),
+  )
+})
+
+test('the Resources row is locked behind profiling, not tracing alone', () => {
+  const withoutProfiling = fixture({
+    game: { researched: RESEARCHED.filter((id) => id !== 'profiling') },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(withoutProfiling),
+    Scene.expect(row('Services (RED)')).toExist(),
+    Scene.expect(row('Resources (USE)')).toExist(),
+    Scene.expect(Scene.text('No data · research profiling')).toExist(),
   )
 })
 

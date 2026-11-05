@@ -252,8 +252,9 @@ Component types. A trace needs more than one hop.
 | `profiling` | 4 Component types    |
 | `rum`       | Sampled in 2 regions |
 
-**Not built yet.** Only `tracing` has a breadth rule. `profiling` and `rum` are not built, and neither
-is the 2-region sampling rule.
+**Built: `tracing` and `profiling`.** Not built yet: `rum`'s 2-region sampling rule. `rum` is built —
+it adds a device split to the Users row — but its breadth still reads one region's traffic; the
+2-region requirement waits on a per-region Analytics tap.
 
 ### Studies
 
@@ -450,7 +451,13 @@ Failure Insight ([Components](/design/05-components#links)).
 | `rum`               | Real user monitoring | Series C | 50,000 | `tracing`      | Latency per region and device                          |
 | `anomaly-detection` | Anomaly detection    | Series C | 80,000 | `alerting`     | Early warnings before an incident peaks                |
 
-**Built: 8 of 12.** Not built yet: `profiling`, `tail-sampling`, `rum`, `anomaly-detection`.
+**Built: 12 of 12.** `profiling` names each Node's limiting resource and arrives with the Resources
+(USE) row ([Observability](/design/12-observability#the-visibility-ladder)); it carries `tracing`'s
+breadth rule at 4 Component types. `tail-sampling` doubles Failure Insight. `rum` adds a device
+split — desktop, mobile, and tablet — to the Users row; the device shares and each one's extra
+round trip are proposed, since devices are not otherwise modelled. `anomaly-detection` halves how
+long a threshold must hold before the pager fires, and adds a forecast line at tomorrow's peak,
+projected from the known diurnal cycle rather than fit from history.
 
 ### Track: Performance
 
@@ -556,7 +563,10 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `gdpr-residency`        | Data residency controls        | Pre-IPO  | 350,000 | `multi-region`                                                | IPO checklist item                                           |
 | `security-team`         | Security team                  | Pre-IPO  | 200,000 | —                                                             | Team type                                                    |
 
-**Built: 7 of 9.** Not built yet: `credential-protection`, `pen-testing`.
+**Built: 9 of 9.** `credential-protection` cuts the Credential stuffing incident's weakness and its
+bot-login magnitude once a WAF is also in place. `pen-testing` reveals one weakness a calendar
+week: it finds the Design's highest-weakness incident kind (the same score the director weighs
+incidents by) and opens its prevention research as an action item, the same way a Postmortem does.
 
 ### Track: Cost
 
@@ -570,9 +580,17 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `cost-allocation`     | Cost allocation     | Series B | 10,000  | `unit-economics`     | Cost per service and team                 |
 | `savings-plans`       | Savings plans       | Pre-IPO  | 250,000 | `reserved-instances` | −20% compute with no per-Node lock        |
 
-**Built: 2 of 7.** `reserved-instances` and `spot-instances` unlock the two pricing models on a
-compute Node from Series A ([Economy](/design/09-economy#pricing-models)). Not built yet:
-`rightsizing`, `egress-optimization`, `unit-economics`, `cost-allocation`, `savings-plans`.
+**Built: 7 of 7.** `reserved-instances` and `spot-instances` unlock the two pricing models on a
+compute Node from Series A ([Economy](/design/09-economy#pricing-models)). `rightsizing` marks a
+Node whose peak utilization stayed under 30% over its kept history, in the Inspector; this reads
+the client-side Inspector history, not a new Ledger field, so it needs no save change.
+`egress-optimization` moves `upload` and `media` traffic that reaches an Object Storage Node onto
+an R2-priced path at $0 origin egress, lowering the Egress line by that share
+([Economy](/design/09-economy#egress)). `unit-economics` and `cost-allocation` split Burn by
+request kind and by the Service that owns each kind's code, shown in the cloud bill panel.
+`savings-plans` takes a further 20% off every compute Node's box, on top of whichever pricing model
+it already runs, with no per-Node commitment. Proposed: all five numbers, since the design gives no
+rates for them.
 
 ### Track: Product and business
 

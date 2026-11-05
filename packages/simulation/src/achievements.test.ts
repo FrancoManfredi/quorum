@@ -12,6 +12,7 @@ import {
   FALLACY_IDS,
   FALLACY_INCIDENTS,
   MUTATOR_IDS,
+  NO_DEVICE_LATENCY,
   VENTURE_IDS,
 } from './catalog.ts'
 import { newGame } from './company.ts'
@@ -100,6 +101,7 @@ const sample = (change: Partial<Sample> = {}): Sample => ({
   p99: 0,
   apdex: 1,
   errors: 0,
+  device: NO_DEVICE_LATENCY,
   ...change,
 })
 const quiet = (ledger: Ledger, utilization: number): Ledger => ({

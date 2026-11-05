@@ -127,3 +127,15 @@ export const hintOf = (sample: NodeSample): string | null => {
       return null
   }
 }
+
+/** Below this peak utilization over the kept history, the rightsizing report marks a Node. */
+export const RIGHTSIZE_THRESHOLD = 0.3
+
+/**
+ * Rightsizing marks a Node whose peak utilization over its kept history stayed under 30% (10
+ * "Track: Cost", `rightsizing`): it never got close to busy, so its box is bigger than it needs.
+ * Needs at least a full day of history (`HISTORY_POINTS`) so a quiet early moment does not count.
+ */
+export const oversized = (history: ReadonlyArray<NodeSample>): boolean =>
+  history.length >= HISTORY_POINTS &&
+  Math.max(...history.map((sample) => sample.utilization)) < RIGHTSIZE_THRESHOLD

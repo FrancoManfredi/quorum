@@ -33,11 +33,19 @@ import {
   WARMUP_SECONDS,
   SCHEDULE_LEAD_MINUTES,
   CHAOS_INSIGHT,
+  NO_DEVICE_LATENCY,
+  ANOMALY_DETECTION_HOLD,
   type RegionId,
   type Tuning,
 } from './catalog.ts'
 import { advanceCves } from './cve.ts'
-import { advanceIncident, directIncidents, markSignal, startIncident } from './director.ts'
+import {
+  advanceIncident,
+  directIncidents,
+  markSignal,
+  pentestWeakness,
+  startIncident,
+} from './director.ts'
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
 import { advanceFeatures, churnFactor, growthFactor } from './features.ts'
@@ -62,7 +70,7 @@ import { recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
 import { cosTurns } from './calendar.ts'
 import { calendarMinute, chaosRunning, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
-import { advanceQuarter } from './quarters.ts'
+import { advanceQuarter, QUARTER_SECONDS } from './quarters.ts'
 import { advanceRunway } from './runway.ts'
 import { accrue, advanceStudies } from './studies.ts'
 import { perRegion, regional, regionApdexOf, regionUsers, withRegionUsers } from './regions.ts'
@@ -551,7 +559,8 @@ const advanceAlarms = (
   for (const rule of ['errors', 'latency', 'saturation'] as const) {
     if (fresh && counts[rule] < ALERT_FATIGUE) counts[rule] = 0
     if (!has(game, 'alerting')) continue
-    const limit = ALERT_RULES[rule].seconds
+    const limit =
+      ALERT_RULES[rule].seconds * (has(game, 'anomaly-detection') ? ANOMALY_DETECTION_HOLD : 1)
     if (game.alarms[rule] >= limit || next[rule] < limit) continue
     if (ignored(game, rule)) continue
     events.push(StepEvent.AlertFired({ rule }))
@@ -648,6 +657,7 @@ export const step = (
     p99: ledger.p99,
     apdex: ledger.apdex,
     errors: ledger.errorShare,
+    device: has(game, 'rum') ? ledger.deviceLatency : NO_DEVICE_LATENCY,
   }
 
   // A chaos experiment earns Failure Insight for as long as it runs (10 "Reliability").
@@ -702,6 +712,16 @@ export const step = (
     const directed = directIncidents(next, ledger, tuning.incidentGap)
     next = directed.game
     events.push(...directed.events)
+  }
+  // Penetration testing reveals one weakness a calendar week: the first time a week's worth of
+  // calendar minutes rolls over, its prevention research joins the open action items, the same
+  // way a Postmortem's action item does (10 "Track: Security", `pen-testing`).
+  const lastWeek = Math.floor(calendarMinute(game.time) / QUARTER_SECONDS)
+  const thisWeek = Math.floor(calendarMinute(time) / QUARTER_SECONDS)
+  if (has(next, 'pen-testing') && thisWeek > lastWeek) {
+    const revealed = pentestWeakness(next, ledger)
+    if (revealed && !next.openActions.includes(revealed))
+      next = { ...next, openActions: [...next.openActions, revealed] }
   }
   // Users adopt a Feature over a calendar week, and Analytics counts the A/B samples (08).
   next = advanceFeatures(next, ledger.demand, seconds, tuning)
