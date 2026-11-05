@@ -71,9 +71,10 @@ import {
 } from '@quorum/simulation/catalog'
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
-import { hubConnections } from '@quorum/simulation/rules'
+import { distributedErlang, hubConnections } from '@quorum/simulation/rules'
 import { deploysPerDay, platformTax, quartersBehind } from '@quorum/simulation/team'
-import type { Ledger } from '@quorum/simulation/ledger'
+import type { Limit } from '@quorum/simulation/capacity'
+import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
 import {
   burnOf,
   drawerSize,
@@ -614,7 +615,7 @@ const stats = (
       ]
     case 'ws': {
       // The Hub's limit is connections, not requests: each realtime message holds one open.
-      const max = hubConnections(node)
+      const max = hubConnections(node, distributedErlang(game, node))
       const held = own.inbound * RT_HOLD_SECONDS
       return [
         row(
@@ -666,6 +667,85 @@ const stats = (
   }
 }
 
+const LIMIT_NAME: Record<Limit, string> = {
+  cpu: 'CPU',
+  credits: 'CPU credits',
+  memory: 'RAM',
+  workers: 'Workers busy',
+  connections: 'Connections',
+  network: 'Network',
+  disk: 'Disk IOPS',
+  throughput: 'Throughput',
+  none: 'Nothing',
+}
+
+/** One resource gauge's figures, as the Inspector draws them. */
+type GaugeSpec = Readonly<{
+  label: string
+  used: number
+  total: number
+  text: string
+  /** The bar reads the room left, as CPU credits do. */
+  invert?: boolean
+}>
+
+/**
+ * The gauges the Ledger can support for one Node (16 "Open gaps"): CPU, RAM,
+ * worker slots, connections, CPU credits, and the network card. A limit with no
+ * figure in the Ledger, such as disk IOPS or a flat Component's throughput, has
+ * no entry here.
+ */
+const gaugesOf = (node: GameNode, own: NodeLedger) => {
+  const { cpu, ram, slots, credits, network } = own.resources
+  const gauges: Partial<Record<Limit, GaugeSpec>> = {}
+  if (cpu)
+    gauges.cpu = {
+      label: 'CPU',
+      used: cpu.used,
+      total: cpu.total,
+      text: `${cpu.used.toFixed(2)} / ${cpu.total.toFixed(1)} cores`,
+    }
+  if (ram)
+    gauges.memory = {
+      label: 'RAM',
+      used: ram.used,
+      total: ram.total,
+      text: `${ram.used.toFixed(1)} / ${ram.total.toFixed(0)} GB`,
+    }
+  if (slots)
+    gauges.workers = {
+      label: 'Workers busy',
+      used: slots.used,
+      total: slots.total,
+      text: `${slots.used.toFixed(1)} / ${slots.total}`,
+    }
+  if (own.connections)
+    gauges.connections = {
+      label: 'Connections',
+      used: own.connections.used,
+      total: own.connections.max,
+      text: `${Math.round(own.connections.used)} / ${own.connections.max}`,
+    }
+  if (credits) {
+    const cap = CREDIT_CAP * vcpuOf(node)
+    gauges.credits = {
+      label: 'CPU credits',
+      used: credits.balance,
+      total: cap,
+      text: `${Math.round(credits.balance)} · ${credits.rate >= 0 ? '+' : ''}${credits.rate.toFixed(2)}/s`,
+      invert: true,
+    }
+  }
+  if (network)
+    gauges.network = {
+      label: 'Network',
+      used: network.used,
+      total: network.total,
+      text: `${(network.used / 1_000).toFixed(1)} / ${(network.total / 1_000).toFixed(0)} MB/s`,
+    }
+  return gauges
+}
+
 const resources = (
   node: GameNode,
   ledger: Ledger,
@@ -673,55 +753,19 @@ const resources = (
 ): ReadonlyArray<Html> => {
   const own = ledger.nodes[node.id]
   if (!own) return []
-  const { cpu, ram, slots, credits } = own.resources
+  const gauges = gaugesOf(node, own)
   const list: Array<Html> = []
-  if (cpu)
-    list.push(
-      gauge(
-        'CPU',
-        cpu.used,
-        cpu.total,
-        `${cpu.used.toFixed(2)} / ${cpu.total.toFixed(1)} cores`,
-        h,
-      ),
-    )
-  if (ram)
-    list.push(
-      gauge('RAM', ram.used, ram.total, `${ram.used.toFixed(1)} / ${ram.total.toFixed(0)} GB`, h),
-    )
-  if (slots)
-    list.push(
-      gauge(
-        'Workers busy',
-        slots.used,
-        slots.total,
-        `${slots.used.toFixed(1)} / ${slots.total}`,
-        h,
-      ),
-    )
-  if (credits) {
-    const cap = CREDIT_CAP * vcpuOf(node)
-    list.push(
-      gauge(
-        'CPU credits',
-        credits.balance,
-        cap,
-        `${Math.round(credits.balance)} · ${credits.rate >= 0 ? '+' : ''}${credits.rate.toFixed(2)}/s`,
-        h,
-        true,
-      ),
-    )
+  // The goal bar names the tightest limit, and the gauge behind it when the Ledger has one.
+  const tight = gauges[own.limit]
+  if (own.limit === 'none') list.push(row('Limit', 'Nothing tight', 'ok', h))
+  else if (tight)
+    list.push(gauge(`Limit · ${tight.label}`, tight.used, tight.total, tight.text, h, tight.invert))
+  // The Inspector says so rather than leaving a limit unexplained.
+  else list.push(row('Limit', `${LIMIT_NAME[own.limit]} · no gauge`, 'warn', h))
+  for (const limit of ['cpu', 'memory', 'workers', 'connections', 'credits', 'network'] as const) {
+    const spec = gauges[limit]
+    if (spec) list.push(gauge(spec.label, spec.used, spec.total, spec.text, h, spec.invert))
   }
-  if (own.connections)
-    list.push(
-      gauge(
-        'Connections',
-        own.connections.used,
-        own.connections.max,
-        `${Math.round(own.connections.used)} / ${own.connections.max}`,
-        h,
-      ),
-    )
   return list.length > 0 ? [section('Resources', list, h)] : []
 }
 
@@ -1156,7 +1200,7 @@ const hubStack = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
       caption(
         runtime.connectionKB === null
           ? `${runtime.name} holds no connections. Pick a runtime that does.`
-          : `Holds about ${compact(hubConnections(node))} connections.`,
+          : `Holds about ${compact(hubConnections(node, distributedErlang(game, node)))} connections.`,
         h,
       ),
     ],

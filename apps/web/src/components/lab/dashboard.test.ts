@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { Option } from 'effect'
 import { Scene } from 'foldkit/test'
 import type { HtmlBuilder } from 'foldkit/html'
 import {
@@ -640,5 +641,22 @@ test('the funding history reads the IPO as a public listing, not a grant', () =>
     Scene.expect(panelOf('company-funding')).toContainText(
       `${Math.round((ERAS[6]?.dilution ?? 0) * 100)}%`,
     ),
+  )
+})
+
+test('the scroll area takes focus, so the keyboard can reach the last rows', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.tap((simulation) => {
+      const [scroll] = Scene.findAll(simulation.html, '[data-scroll="dashboard"]')
+      if (!scroll) throw new Error('the Dashboard holds no scroll area')
+      expect(scroll.data?.props?.tabIndex).toBe(0)
+      expect(Option.getOrNull(Scene.attr(scroll, 'role'))).toBe('region')
+      expect(Option.getOrNull(Scene.attr(scroll, 'aria-label'))).toBe(
+        'Dashboard, scroll for the Company and Incidents rows',
+      )
+      expect(JSON.stringify(scroll.data?.class)).toContain('focus-visible:outline-2')
+    }),
   )
 })

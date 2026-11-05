@@ -1586,4 +1586,91 @@ export const zhCN: Readonly<Record<string, string>> = {
     '合作方网络使用更小的数据包尺寸。大于其 MTU 的上传在途中超时。',
   'Clamp the packet size, or keep large uploads on one network.':
     '限制数据包大小，或让大文件上传留在同一网络。',
+  'Inspector · place · confirm': '检查器 · 放置 · 确认',
+  'Link the selected Node': '连接选中的节点',
+  'Tidy by zone (Shift+T)': '按区域整理（Shift+T）',
+  'Fit the board (Shift+F)': '适应画布（Shift+F）',
+  'Confirm (Enter)': '确认（Enter）',
+  Limit: '限制',
+  'Nothing tight': '没有瓶颈',
+  'Disk IOPS': '磁盘 IOPS',
+  'no gauge': '无仪表',
+  CPU: 'CPU',
+  RAM: '内存',
+  'CPU credits': 'CPU 积分',
+  'Dashboard, scroll for the Company and Incidents rows': '仪表盘，滚动查看公司与事故行',
+  // Runtimes and frameworks the design names (06). Names and blurbs only: the pickers and cards.
+  'PHP worker mode': 'PHP worker 模式',
+  'FrankenPHP, RoadRunner or Octane: the app boots once, so the framework’s per-request overhead goes. Loses shared nothing, so memory leaks and state bleed become possible.':
+    'FrankenPHP、RoadRunner 或 Octane：应用只启动一次，框架的每请求开销随之消失。失去“无共享”，内存泄漏与状态串扰重新可能出现。',
+  Swoole: 'Swoole',
+  'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections; 20 KB each is proposed.':
+    '事件循环上的协程，像 Node.js 一样异步 I/O，且没有每请求的框架开销。阻塞式扩展会卡住循环。可保持实时连接；每个 20 KB 为提议值。',
+  'A Rails process per slot: simple and robust, and memory-heavy. One waiting request holds a whole process, so it refuses realtime connections.':
+    '每个槽位一个 Rails 进程：简单可靠，但吃内存。一个等待中的请求就占住整个进程，因此拒绝实时连接。',
+  Falcon: 'Falcon',
+  'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection is proposed: the design gives Ruby’s figure without naming the server.':
+    '纤程让每个进程保持大量空闲连接。阻塞的 gem 会卡住循环。每个连接 100 KB 为提议值：设计给出的是 Ruby 的数字，未指明服务器。',
+  Bun: 'Bun',
+  'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup are proposed; its compatibility incident is not built.':
+    '更快的事件循环与瞬时启动，因此自动扩缩容和部署都优于 Node.js。60 MB 与零启动时间为提议值；其兼容性事故尚未实现。',
+  Deno: 'Deno',
+  'Permissions block most supply-chain attacks, at 10% slower feature work: fewer packages are compatible. The same event loop as Node.js.':
+    '权限机制挡住大多数供应链攻击，代价是功能开发慢 10%：兼容的软件包更少。事件循环与 Node.js 相同。',
+  gevent: 'gevent',
+  'Gunicorn with gevent': 'Gunicorn 配 gevent',
+  'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching breaks some libraries; that incident is not built. 30 KB per connection is proposed.':
+    '绿色线程让每个进程承载大量 I/O 等待，慢数据库不再占住工作进程。猴子补丁会破坏部分库；该事故尚未实现。每个连接 30 KB 为提议值。',
+  'Uvicorn ASGI': 'Uvicorn ASGI',
+  'Async like Node.js, with slower CPU: a blocking call stalls the loop. Holds realtime connections at the design’s 30 KB each.':
+    '像 Node.js 一样异步，但 CPU 更慢：阻塞调用会卡住循环。按设计的每个连接 30 KB 保持实时连接。',
+  'Free-threaded CPython': '自由线程 CPython',
+  'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours; the design gives no figure, so 8 threads and 100 KB are proposed.':
+    '真正的并行线程用满每个核心，每个线程慢 10%，而每连接一个线程并不便宜。未就绪的 C 扩展要花开发工时；设计未给数字，故提议 8 个线程与 100 KB。',
+  PyPy: 'PyPy',
+  'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus, and 200 MB per worker is proposed.':
+    'JIT 预热后，纯 Python CPU 是 Gunicorn 的三倍。C 扩展支持差，无法获得 ML 生态加成；每个工作进程 200 MB 为提议值。',
+  fasthttp: 'fasthttp',
+  'A quarter faster than net/http at 10% slower feature work: the API is not standard, some middleware does not work, and there is no HTTP/2.':
+    '比 net/http 快四分之一，代价是功能开发慢 10%：API 非标准，部分中间件不可用，也没有 HTTP/2。',
+  'Java virtual threads': 'Java 虚拟线程',
+  'Waiting no longer holds a platform thread, so a slow database only adds latency. Native (JNI) calls still pin a carrier, and the JVM still warms for 30 s. Realtime connections cost 10 KB.':
+    '等待不再占住平台线程，慢数据库只增加延迟。原生 (JNI) 调用仍会钉住载体线程，JVM 仍要预热 30 秒。实时连接每个 10 KB。',
+  'Spring WebFlux': 'Spring WebFlux',
+  'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB is proposed.':
+    '每个进程一条循环带来极高并发，但编写和调试慢 20%。阻塞调用会卡住循环，JVM 仍要预热。400 MB 为提议值。',
+  'GraalVM native image': 'GraalVM 原生镜像',
+  'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with slower builds. A thread per connection, like Tomcat. Great for Serverless Functions.':
+    '不到 100 毫秒启动、无需预热，内存为 JVM 的 60%，速度为 0.80×，构建更慢。像 Tomcat 一样每连接一个线程。适合 Serverless 函数。',
+  'Native AOT': 'Native AOT',
+  'No JIT, so it starts at full speed, and smaller: 100 MB is proposed from the design’s “smaller memory”. 0.90× the speed, and reflection-heavy libraries need Dev Hours.':
+    '没有 JIT，因此全速启动且更小：依设计“更少内存”提议 100 MB。速度为 0.90×，重度反射的库需要开发工时。',
+  FastAPI: 'FastAPI',
+  'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB is proposed.':
+    '用 Pydantic 校验，也是模型粘合最好的生态：`ai` 请求多赚 15%。1.15× CPU，且仅在 ASGI 服务器上生效。10 MB 为提议值。',
+  Fastify: 'Fastify',
+  'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB is proposed.':
+    '基于模式的序列化：读取少花 20% CPU。自身没有额外开销。5 MB 为提议值。',
+  'Next.js': 'Next.js',
+  'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU. The 40% of pages a CDN could cache is not built. 30 MB is proposed.':
+    '服务端渲染与增量静态再生成：页面多赚 50%，CPU 为 1.6×。CDN 可缓存的那 40% 页面尚未实现。30 MB 为提议值。',
+  NestJS: 'NestJS',
+  'Structure for large teams: the design’s 30% smaller coordination penalty is not modeled. 1.3× CPU and 20 MB are proposed.':
+    '面向大团队的结构：设计中缩小 30% 的协作惩罚未建模。1.3× CPU 与 20 MB 为提议值。',
+  Fiber: 'Fiber',
+  'An Express-style API on fasthttp: no CPU overhead, and no HTTP/2. 5 MB is proposed, as Gin’s.':
+    'fasthttp 上的 Express 风格 API：没有 CPU 开销，也没有 HTTP/2。5 MB 为提议值，与 Gin 相同。',
+  Quarkus: 'Quarkus',
+  'Built for native images: 1.1× CPU, and the halved GraalVM build time is not modeled. 100 MB is proposed.':
+    '为原生镜像而建：1.1× CPU，GraalVM 构建时间减半未建模。100 MB 为提议值。',
+  'PHP JIT': 'PHP JIT',
+  'Node.js worker threads': 'Node.js 工作线程',
+  YJIT: 'YJIT',
+  'ASGI with Uvicorn': 'ASGI 配 Uvicorn',
+  'Tokio blocking pool': 'Tokio 阻塞池',
+  '.NET Native AOT': '.NET Native AOT',
+  'Distributed Erlang': '分布式 Erlang',
+  NIFs: 'NIF',
+  jemalloc: 'jemalloc',
+  'Free-threaded Python': '自由线程 Python',
 }

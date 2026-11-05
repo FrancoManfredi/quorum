@@ -19,6 +19,23 @@ import { TICK_MS, REPEAT_MS } from './update.ts'
 
 type KeyMessage = ReturnType<typeof Message.KeyPressed>
 
+/**
+ * The name a keydown becomes in the Model (15 "Accessibility"). Single keys
+ * arrive lower case, arrows keep their name, and Shift is part of the name so
+ * `Shift+T` can tidy while `T` opens the Team. Shift+Z stays `Z`, which redo
+ * has always used.
+ */
+export const keyNameOf = (key: string, shift: boolean): string =>
+  key.length !== 1
+    ? shift && key.startsWith('Arrow')
+      ? `Shift+${key}`
+      : key
+    : shift && key.toLowerCase() === 'z'
+      ? 'Z'
+      : shift && /^[a-z]$/i.test(key)
+        ? `Shift+${key.toLowerCase()}`
+        : key.toLowerCase()
+
 const keys = Stream.callback<KeyMessage>((queue) =>
   Effect.gen(function* () {
     yield* Effect.acquireRelease(
@@ -54,15 +71,7 @@ const keys = Stream.callback<KeyMessage>((queue) =>
           Queue.offerUnsafe(
             queue,
             Message.KeyPressed({
-              // Single keys arrive lower case, except Shift+Z, which is redo.
-              key:
-                event.key.length !== 1
-                  ? event.shiftKey && event.key.startsWith('Arrow')
-                    ? `Shift+${event.key}`
-                    : event.key
-                  : event.shiftKey && event.key.toLowerCase() === 'z'
-                    ? 'Z'
-                    : event.key.toLowerCase(),
+              key: keyNameOf(event.key, event.shiftKey),
             }),
           )
         }

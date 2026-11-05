@@ -33,6 +33,7 @@ import {
   P2C_IMBALANCE,
   PROFILES,
   REQUEST_KINDS,
+  RUNTIMES,
   RPS_PER_USER,
   SAMPLE_LATENCY,
   SAMPLE_OVERHEAD,
@@ -1472,7 +1473,10 @@ const ledgerOf = (
           const weight = traffic > 0 ? (nodes[node.id]?.inbound ?? 0) / traffic : 1 / servers.length
           return (
             total +
-            weight * LANGUAGES[languageOf(node)].velocity * FRAMEWORKS[node.framework].velocity
+            weight *
+              LANGUAGES[languageOf(node)].velocity *
+              FRAMEWORKS[node.framework].velocity *
+              (RUNTIMES[node.runtime].velocity ?? 1)
           )
         }, 0)
 

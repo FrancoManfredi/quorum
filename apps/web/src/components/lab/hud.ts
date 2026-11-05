@@ -1202,8 +1202,8 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
       desktopOnly(
         [
           divider(h),
-          toolButton('Tidy by zone', LayoutGrid, Message.BoardTidied(), false, h),
-          toolButton('Fit the board', Scan, Message.BoardFitted(), false, h),
+          toolButton('Tidy by zone (Shift+T)', LayoutGrid, Message.BoardTidied(), false, h),
+          toolButton('Fit the board (Shift+F)', Scan, Message.BoardFitted(), false, h),
           toolButton('Fullscreen (F)', Expand, Message.FullscreenToggled(), false, h),
         ],
         h,

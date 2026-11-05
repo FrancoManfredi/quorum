@@ -347,8 +347,14 @@ const advanceNode = (
   }
   if (node.type === 'server' || node.type === 'worker') next = scale(game, next, ledger, seconds)
   // BEAM supervisors restart a process now and then, and the request is retried inside the VM:
-  // the crash is absorbed, so it counts without failing anyone (06 "Fault isolation").
-  if (next.type === 'server' && RUNTIMES[next.runtime].language === 'elixir' && !isDown(next)) {
+  // the crash is absorbed, so it counts without failing anyone (06 "Fault isolation"). A NIF crash
+  // is not a process crash: it takes the whole VM, so it is not absorbed (06 "Elixir").
+  if (
+    next.type === 'server' &&
+    RUNTIMES[next.runtime].language === 'elixir' &&
+    !has(game, 'nifs') &&
+    !isDown(next)
+  ) {
     const inbound = ledger.nodes[next.id]?.inbound ?? 0
     if (inbound > 0)
       next = { ...next, crashes: next.crashes + (inbound * seconds) / BEAM_CRASHES_PER_REQUESTS }

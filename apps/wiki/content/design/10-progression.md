@@ -171,8 +171,8 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 186 items across 10 tracks; the build has 104 of
-them across 9, and the whole Cost track is not built.
+a promise that the game offers it. The tables design 186 items across 10 tracks; the build has 138 of
+them across all 10.
 
 ### Recipes
 
@@ -503,10 +503,7 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | `jemalloc`           | jemalloc               | Series B | 8,000  | `lang-rust`   |
 | `free-threading`     | Free-threaded Python   | Series C | 50,000 | `lang-python` |
 
-**Built: 16 of 37.** Not built yet: `php-jit`, `worker-threads`, `yjit`, `gevent`, `asgi`,
-`php-worker-mode`, `swoole`, `bun`, `deno`, `falcon`, `pypy`, `virtual-threads`, `webflux`,
-`fasthttp`, `spawn-blocking`, `graal-native`, `native-aot`, `distributed-erlang`, `nifs`, `jemalloc`,
-`free-threading`.
+**Built: 37 of 37.**
 
 ### Track: Frameworks
 
@@ -532,7 +529,7 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | Actix Web    | Series A | 3,000  | `lang-rust`   |
 | Quarkus      | Series B | 10,000 | `lang-java`   |
 
-**Built: 13 of 19.** Not built yet: FastAPI, Fastify, Next.js, NestJS, Fiber, Quarkus.
+**Built: 19 of 19.**
 
 ### Track: Security
 

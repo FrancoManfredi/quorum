@@ -66,7 +66,7 @@ import {
   zoned,
 } from '@quorum/simulation/lookups'
 import { isGlobal, regional, regionApdexOf, regionUsers } from '@quorum/simulation/regions'
-import { hubConnections } from '@quorum/simulation/rules'
+import { distributedErlang, hubConnections } from '@quorum/simulation/rules'
 import { deploysPerDay, quartersBehind } from '@quorum/simulation/team'
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import { compact, money, ms, priceLabel, queueWait, rate } from '../game/format.ts'
@@ -482,7 +482,9 @@ export const rowsOf = (
     case 'ws': {
       // A Hub's capacity is connections, not requests: a message holds one for the hold time.
       const runtime = RUNTIMES[node.runtime]
-      const max = hubConnections(node)
+      // Distributed Erlang gives a BEAM Hub the cluster backbone itself (06 "Elixir").
+      const builtIn = distributedErlang(game, node)
+      const max = hubConnections(node, builtIn)
       const held = own.inbound * RT_HOLD_SECONDS
       return [
         {
@@ -497,7 +499,7 @@ export const rowsOf = (
           glyph: 'stack',
           logo: runtime.language,
           name: runtime.name,
-          value: node.clustering ? 'Clustered' : 'One box',
+          value: node.clustering || builtIn ? 'Clustered' : 'One box',
         },
         latency,
       ]

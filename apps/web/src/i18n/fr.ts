@@ -1967,7 +1967,6 @@ export const fr: Readonly<Record<string, string>> = {
   Nines: 'Neuf',
   Monoglot: 'Monoglotte',
   'Default Alive': 'Viable sans financement',
-  Unicorn: 'Gunicorn',
   Decacorn: 'Décacorne',
   'Beat and Raise': 'Battre et relancer',
   'Serial Founder': 'Fondateur de la série',
@@ -3548,4 +3547,103 @@ export const fr: Readonly<Record<string, string>> = {
     'Un réseau partenaire utilise une taille de paquet plus petite. Les envois plus grands que son MTU expirent à l’arrivée.',
   'Clamp the packet size, or keep large uploads on one network.':
     'Limitez la taille des paquets, ou gardez les gros envois sur un seul réseau.',
+  'Inspector · place · confirm': 'Inspecteur · placer · confirmer',
+  'Link the selected Node': 'Relier le nœud sélectionné',
+  'Tidy by zone (Shift+T)': 'Ranger par zone (Maj+T)',
+  'Fit the board (Shift+F)': 'Cadrer le plan (Maj+F)',
+  'Confirm (Enter)': 'Confirmer (Entrée)',
+  Limit: 'Limite',
+  'Nothing tight': 'Rien de saturé',
+  'Disk IOPS': 'IOPS du disque',
+  'no gauge': 'sans jauge',
+  'Dashboard, scroll for the Company and Incidents rows':
+    'Tableau de bord, faites défiler vers les lignes Société et Incidents',
+  // Runtimes and frameworks the design names (06). Names and blurbs only: the pickers and cards.
+  'PHP worker mode': 'PHP en mode worker',
+  'FrankenPHP, RoadRunner or Octane: the app boots once, so the framework’s per-request overhead goes. Loses shared nothing, so memory leaks and state bleed become possible.':
+    'FrankenPHP, RoadRunner ou Octane : l’application démarre une fois, donc la surcharge du framework par requête disparaît. Perd le « rien de partagé » : les fuites mémoire et le mélange d’état redeviennent possibles.',
+  Swoole: 'Swoole',
+  'Coroutines on an event loop, async I/O like Node.js, and no framework overhead per request. Blocking extensions stall the loop. Holds realtime connections; 20 KB each is proposed.':
+    'Des coroutines sur une boucle d’événements, des E/S asynchrones comme Node.js, et aucune surcharge de framework par requête. Une extension bloquante bloque la boucle. Tient les connexions temps réel ; 20 Ko chacune est proposé.',
+  Unicorn: 'Unicorn',
+  'A Rails process per slot: simple and robust, and memory-heavy. One waiting request holds a whole process, so it refuses realtime connections.':
+    'Un processus Rails par emplacement : simple et robuste, et gourmand en mémoire. Une requête en attente immobilise tout un processus, donc il refuse les connexions temps réel.',
+  Falcon: 'Falcon',
+  'Fibers hold many idle connections per process. A gem that blocks stalls the loop. 100 KB per connection is proposed: the design gives Ruby’s figure without naming the server.':
+    'Les fibres tiennent beaucoup de connexions inactives par processus. Une gem qui bloque bloque la boucle. 100 Ko par connexion est proposé : le design donne le chiffre de Ruby sans nommer le serveur.',
+  Bun: 'Bun',
+  'A faster event loop with an instant start, so it autoscales and deploys better than Node.js. 60 MB and no startup are proposed; its compatibility incident is not built.':
+    'Une boucle d’événements plus rapide au démarrage instantané, donc il s’autoscale et se déploie mieux que Node.js. 60 Mo et aucun démarrage sont proposés ; son incident de compatibilité n’est pas construit.',
+  Deno: 'Deno',
+  'Permissions block most supply-chain attacks, at 10% slower feature work: fewer packages are compatible. The same event loop as Node.js.':
+    'Les permissions bloquent la plupart des attaques de chaîne d’approvisionnement, au prix de 10 % de vélocité : moins de paquets sont compatibles. La même boucle d’événements que Node.js.',
+  gevent: 'gevent',
+  'Gunicorn with gevent': 'Gunicorn avec gevent',
+  'Green threads hold many I/O waits per process, so a slow database stops holding a worker. Monkey patching breaks some libraries; that incident is not built. 30 KB per connection is proposed.':
+    'Les threads verts tiennent beaucoup d’attentes d’E/S par processus, donc une base lente n’immobilise plus un processus. Le monkey patching casse certaines bibliothèques ; cet incident n’est pas construit. 30 Ko par connexion est proposé.',
+  'Uvicorn ASGI': 'Uvicorn ASGI',
+  'Async like Node.js, with slower CPU: a blocking call stalls the loop. Holds realtime connections at the design’s 30 KB each.':
+    'Asynchrone comme Node.js, avec un CPU plus lent : un appel bloquant bloque la boucle. Tient les connexions temps réel aux 30 Ko du design chacune.',
+  'Free-threaded CPython': 'CPython à threads libres',
+  'Real parallel threads on every core, 10% slower per thread, and a thread per connection is not cheap. C extensions that are not ready cost Dev Hours; the design gives no figure, so 8 threads and 100 KB are proposed.':
+    'De vrais threads parallèles sur chaque cœur, 10 % plus lents par thread, et un thread par connexion n’est pas gratuit. Les extensions C pas prêtes coûtent des heures de dev ; le design ne donne aucun chiffre, donc 8 threads et 100 Ko sont proposés.',
+  PyPy: 'PyPy',
+  'Three times the pure-Python CPU of Gunicorn, after a JIT warmup. Poor C-extension support means no ML ecosystem bonus, and 200 MB per worker is proposed.':
+    'Trois fois le CPU Python pur de Gunicorn, après la montée en régime du JIT. Le faible support des extensions C prive du bonus d’écosystème ML ; 200 Mo par processus est proposé.',
+  fasthttp: 'fasthttp',
+  'A quarter faster than net/http at 10% slower feature work: the API is not standard, some middleware does not work, and there is no HTTP/2.':
+    'Un quart plus rapide que net/http au prix de 10 % de vélocité : l’API n’est pas standard, certains middlewares ne fonctionnent pas, et il n’y a pas de HTTP/2.',
+  'Java virtual threads': 'Threads virtuels Java',
+  'Waiting no longer holds a platform thread, so a slow database only adds latency. Native (JNI) calls still pin a carrier, and the JVM still warms for 30 s. Realtime connections cost 10 KB.':
+    'L’attente n’immobilise plus un thread de plateforme, donc une base lente n’ajoute que de la latence. Les appels natifs (JNI) épinglent encore un porteur, et la JVM chauffe toujours 30 s. Les connexions temps réel coûtent 10 Ko.',
+  'Spring WebFlux': 'Spring WebFlux',
+  'Very high concurrency on one loop per process, and 20% slower to build and debug. A blocking call stalls the loop, and the JVM still warms up. 400 MB is proposed.':
+    'Une très forte concurrence sur une boucle par processus, et 20 % plus lent à écrire et déboguer. Un appel bloquant bloque la boucle, et la JVM chauffe toujours. 400 Mo est proposé.',
+  'GraalVM native image': 'Image native GraalVM',
+  'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with slower builds. A thread per connection, like Tomcat. Great for Serverless Functions.':
+    'Démarre en moins de 100 ms sans échauffement, à 60 % de la mémoire de la JVM et 0,80× sa vitesse, avec des builds plus lents. Un thread par connexion, comme Tomcat. Idéal pour les fonctions serverless.',
+  'Native AOT': 'Native AOT',
+  'No JIT, so it starts at full speed, and smaller: 100 MB is proposed from the design’s “smaller memory”. 0.90× the speed, and reflection-heavy libraries need Dev Hours.':
+    'Pas de JIT, donc il démarre à pleine vitesse, et plus petit : 100 Mo est proposé d’après le « moins de mémoire » du design. 0,90× la vitesse, et les bibliothèques à forte réflexion coûtent des heures de dev.',
+  'Validation with Pydantic, and the best ecosystem for model glue: `ai` requests earn 15% more. 1.15× CPU, and only on an ASGI server. 10 MB is proposed.':
+    'Validation avec Pydantic, et le meilleur écosystème pour la colle à modèles : les requêtes `ai` rapportent 15 % de plus. 1,15× CPU, et seulement sur un serveur ASGI. 10 Mo est proposé.',
+  Fastify: 'Fastify',
+  'Schema-based serialization: reads cost 20% less CPU. No overhead of its own. 5 MB is proposed.':
+    'Sérialisation par schéma : les lectures coûtent 20 % de CPU en moins. Aucune surcharge propre. 5 Mo est proposé.',
+  'Next.js': 'Next.js',
+  'Server rendering and incremental static regeneration: pages earn 50% more, at 1.6× their CPU. The 40% of pages a CDN could cache is not built. 30 MB is proposed.':
+    'Rendu serveur et régénération statique incrémentale : les pages rapportent 50 % de plus, à 1,6× leur CPU. Les 40 % de pages qu’un CDN pourrait mettre en cache ne sont pas construits. 30 Mo est proposé.',
+  NestJS: 'NestJS',
+  'Structure for large teams: the design’s 30% smaller coordination penalty is not modeled. 1.3× CPU and 20 MB are proposed.':
+    'Structure pour grandes équipes : la pénalité de coordination réduite de 30 % du design n’est pas modélisée. 1,3× CPU et 20 Mo sont proposés.',
+  Fiber: 'Fiber',
+  'An Express-style API on fasthttp: no CPU overhead, and no HTTP/2. 5 MB is proposed, as Gin’s.':
+    'Une API façon Express sur fasthttp : aucune surcharge CPU, et pas de HTTP/2. 5 Mo est proposé, comme pour Gin.',
+  Quarkus: 'Quarkus',
+  'Built for native images: 1.1× CPU, and the halved GraalVM build time is not modeled. 100 MB is proposed.':
+    'Conçu pour les images natives : 1,1× CPU, et le temps de build GraalVM divisé par deux n’est pas modélisé. 100 Mo est proposé.',
+  'PHP JIT': 'JIT PHP',
+  'The PHP 8 JIT: 1.05× CPU on web kinds, 1.6× on CPU-heavy ones. It barely helps page and read.':
+    'Le JIT de PHP 8 : 1,05× CPU sur les types web, 1,6× sur les types gourmands en CPU. Il aide à peine les pages et les lectures.',
+  'Node.js worker threads': 'Threads de travail Node.js',
+  'A pool of 4 worker threads (40 MB) takes CPU-heavy kinds off the event loop.':
+    'Un pool de 4 threads de travail (40 Mo) sort les types gourmands en CPU de la boucle d’événements.',
+  YJIT: 'YJIT',
+  'Ruby’s JIT: 1.3× CPU work for 20% more memory.':
+    'Le JIT de Ruby : 1,3× le travail CPU pour 20 % de mémoire en plus.',
+  'ASGI with Uvicorn': 'ASGI avec Uvicorn',
+  'Tokio blocking pool': 'Pool bloquant de Tokio',
+  'CPU-heavy kinds move to a blocking pool, so a Tokio task stops stalling a worker thread.':
+    'Les types gourmands en CPU passent dans un pool bloquant, donc une tâche Tokio ne bloque plus un thread de travail.',
+  '.NET Native AOT': '.NET Native AOT',
+  'Distributed Erlang': 'Erlang distribué',
+  'A BEAM Realtime Hub clusters on its own built-in pub/sub, with no separate backbone. Partitions can split the brain.':
+    'Un hub temps réel BEAM se clusterise avec son propre pub/sub intégré, sans dorsale séparée. Les partitions peuvent couper le cerveau en deux.',
+  NIFs: 'NIF',
+  'Native code makes Elixir’s CPU-heavy kinds 3× faster. A NIF is not preempted, and a crash in one takes the whole VM.':
+    'Le code natif rend les types gourmands en CPU d’Elixir 3× plus rapides. Un NIF n’est pas préempté, et un plantage dans l’un emporte toute la VM.',
+  jemalloc: 'jemalloc',
+  'Less fragmentation in long-running Rust services: 1.05× CPU, for 5% more memory at start.':
+    'Moins de fragmentation dans les services Rust de longue durée : 1,05× CPU, pour 5 % de mémoire en plus au démarrage.',
+  'Free-threaded Python': 'Python à threads libres',
 }

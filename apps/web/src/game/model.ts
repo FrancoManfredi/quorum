@@ -374,6 +374,11 @@ export const Board = Schema.Struct({
   selection: Schema.Array(Schema.String),
   /** What a click on the board does, and what follows the pointer. */
   tool: Schema.NullOr(Tool),
+  /**
+   * The Node a keyboard link starts from (15 "Accessibility"): `L` sets it,
+   * arrows move the selection to the other end, and Enter or `L` links them.
+   */
+  linkFrom: Schema.NullOr(Schema.String),
   /** The Nodes a sale is waiting on, until the player confirms it. */
   confirmSell: Schema.NullOr(Schema.Array(Schema.String)),
   /** The Nodes last copied or cut. */

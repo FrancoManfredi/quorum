@@ -1,7 +1,10 @@
 import { Result } from 'effect'
 import {
   COMPONENTS,
+  ELIXIR_HOT_UPGRADE_DEV_HOURS,
   ERAS,
+  RUNTIMES,
+  SIM_SECONDS_PER_DEV_HOUR,
   type ComponentId,
   FEATURES,
   FEATURE_IDS,
@@ -29,7 +32,7 @@ import { Refusal, setFramework, setRuntime, shortOfCash, type Action } from './a
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { has } from './lookups.ts'
+import { has, restarted } from './lookups.ts'
 import {
   bugsFixed,
   cancelMigration,
@@ -541,7 +544,21 @@ const deploy = (
 ): Game => {
   const service = serviceOf(game)
   if (game.time < service.nextDeployAt) return game
-  const slot = withService(game, { nextDeployAt: game.time + deployEvery(game, tuning) })
+  // A hot upgrade costs Elixir Dev Hours per release (06 "Runtime behaviors"): the next slot is
+  // that many Dev Hours later. Proposed: the design gives the cost, not its length in seconds.
+  const hotUpgrade = game.nodes.some(
+    (node) =>
+      node.type === 'server' &&
+      !node.shut &&
+      RUNTIMES[node.runtime].language === 'elixir' &&
+      RUNTIMES[node.runtime].hotReload === true,
+  )
+  const slot = withService(game, {
+    nextDeployAt:
+      game.time +
+      deployEvery(game, tuning) +
+      (hotUpgrade ? ELIXIR_HOT_UPGRADE_DEV_HOURS * SIM_SECONDS_PER_DEV_HOUR : 0),
+  })
   if (game.awaiting.length === 0 || game.incident?.kind === 'bad-deploy') return slot
   const batch = game.awaiting
   let next = withService(
@@ -553,6 +570,19 @@ const deploy = (
       fixes: service.fixes.filter((fix) => fix !== 'fix-leak'),
     },
   )
+  // A release swaps the code. PHP and Elixir reload it in place; every other runtime restarts its
+  // App Servers cold (06 "Runtime behaviors", "Hot code reload").
+  next = {
+    ...next,
+    nodes: next.nodes.map((node) =>
+      node.type === 'server' &&
+      !node.shut &&
+      RUNTIMES[node.runtime].hotReload !== true &&
+      node.life._tag !== 'Restarting'
+        ? { ...node, ...restarted(node) }
+        : node,
+    ),
+  }
   // No incident starts while the player is away (04 "Offline progress").
   const chance = offline ? 0 : badDeployChance(next, tuning)
   let bad = false

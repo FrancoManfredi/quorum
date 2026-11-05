@@ -134,6 +134,10 @@ const STEPS: ReadonlyArray<readonly [string, string]> = [
 
 const KEYS: ReadonlyArray<readonly [string, string]> = [
   ['1–4', 'Build group'],
+  ['Enter', 'Inspector · place · confirm'],
+  ['L', 'Link the selected Node'],
+  ['Shift+T', 'Tidy by zone'],
+  ['Shift+F', 'Fit the board'],
   ['R', 'Research'],
   ['T', 'Team'],
   ['P', 'Playbooks'],
@@ -153,7 +157,6 @@ const KEYS: ReadonlyArray<readonly [string, string]> = [
   ['G', 'Glossary'],
   ['M', 'Mute'],
   ['Arrows', 'Select Node'],
-  ['Enter', 'Inspector'],
   ['Space', 'Pause'],
   ['`', 'Playtest panel'],
   ['Esc', 'Cancel'],

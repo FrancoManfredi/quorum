@@ -125,8 +125,10 @@ Each card is a small window, like Upload Labs. The card is the main information 
 └──────────────────────────────────────┘
 ```
 
-Not built yet: the `Limit` row (after research `profiling`); the gauges that explain the limit live
-in the Inspector.
+Not built yet: the `Limit` row (after research `profiling`). The gauges that explain the limit live in
+the Inspector: a goal bar names the tightest limit, and a bar follows for every limit the Ledger can
+measure — CPU, RAM, worker slots, connections, CPU credits, and the network card. A limit it cannot
+measure, such as disk IOPS or a flat Component's throughput, is named with no bar.
 
 | Element      | Rule                                                                                                                  |
 | ------------ | --------------------------------------------------------------------------------------------------------------------- |
@@ -191,9 +193,11 @@ replication mode, a deploy strategy, a pricing model.
   on its own, as "restarts cold for N s".
 - Hovering an option shows its card. Clicking pins it with Confirm and Cancel. Once an option set
   has been confirmed, a click applies the option at once.
-- The radar is drawn for Stack choices only (runtimes and frameworks), where
-  [Runtimes](/design/06-runtimes) defines the six axes. Other option sets, such as the instance family,
-  show the preview and cost lines.
+- The radar is drawn for every option set. Runtimes and frameworks use the six axes
+  [Runtimes](/design/06-runtimes#the-six-axes) defines. An instance family reads the same six axes
+  from its RAM per vCPU and its price per vCPU, which 05's family table carries: throughput is vCPU
+  per dollar, memory is RAM per vCPU, and a Burstable box loses tail, resilience, and operability to
+  its credit throttle. Velocity sits neutral, because the Stack sets it, not the family.
 - Glossary terms on a card are buttons that open the glossary at that entry.
 
 ## Bulk actions
@@ -252,8 +256,9 @@ market" and its answer "Listed", because it pays Burn rather than a fixed grant 
 declined. Not built yet: the round time and answer on the Game, which would make the funding history
 independent of the Inbox.
 
-Not built yet: a Cash series. The Game's Sample holds revenue and Burn, not Cash, so the Money panel
-shows the figure now and no sparkline.
+Not built yet: a Cash series. A `Sample` holds revenue and Burn but no Cash, so the Money panel
+shows the figure now and no sparkline. The series needs a `cash` field on `Sample`, written with the
+rest of the sample each sim second.
 
 **The Incidents row** appears when an Incident is running or the Game holds a Postmortem.
 
@@ -267,12 +272,14 @@ Choosing a row is Dashboard view state: it changes no Game state, adds no undo e
 log line. The Game keeps its last four Postmortems, so the history reaches back that far.
 
 Neither row needs a key of its own, and neither is a panel: `D` opens the Dashboard that holds them,
-beside the charts of the system. Not built yet: the Dashboard's scroll area does not take focus, so
-a keyboard-only player cannot scroll down to these last rows without a pointing device.
+beside the charts of the system. The Dashboard's scroll area takes focus when the panel opens, and
+`Tab` reaches it too, so a keyboard player scrolls down to these last rows; a focus ring shows where
+the keyboard is.
 
 Not built yet: MTTD, MTTA, and runbooks ([Incidents](/design/11-incidents#the-incident-loop)), and a
-chart of Incident history. The Game keeps no time for a resolved Incident, so a history row could
-only be placed on a timeline from the Inbox's Threads, and the row draws a table instead.
+chart of Incident history. A `Postmortem` holds a run and an MTTR but no time at which it ended, so a
+history row could only be placed on a timeline from the Inbox's Threads, and the row draws a table
+instead. The chart needs an `endedAt` field on `Postmortem`.
 
 ## Research screen
 
@@ -326,7 +333,10 @@ its worst utilization, and one suggestion if users were lost at peak.
   A list that the canvas cannot give names every Node on the board — its kind, its size, and its
   load — in board order; it stays hidden until a keyboard player tabs into it, and each entry is a
   button that opens that Node's Inspector. So the board is usable without seeing the canvas.
-  Not built yet: shortcuts for placing, linking, Tidy, Fit, and confirming a Tradeoff.
+  The keyboard also places: with a part in hand, `Enter` drops it in the next free spot, as a click
+  on the board does. `L` starts a link from the selected Node, the arrows pick the other end, and
+  `Enter` or `L` joins them; `Esc` cancels. `Shift+T` tidies by zone, `Shift+F` fits the board, and
+  `Enter` confirms a pinned Tradeoff card that has a preview.
 - Text at 150%. Settings › Text at 150% multiplies the interface's type by 1.5 through the
   `--type-scale` token, so rows, panels, and the HUD keep their boxes while their text grows. The
   board's cards scale with the board's zoom instead, because they are drawn on the canvas.

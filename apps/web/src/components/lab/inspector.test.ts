@@ -149,6 +149,64 @@ test('the inbound route is configuration, not live traffic, so it survives zero 
   )
 })
 
+const LIMIT_LABEL = {
+  cpu: 'CPU',
+  credits: 'CPU credits',
+  memory: 'RAM',
+  workers: 'Workers busy',
+  connections: 'Connections',
+  network: 'Network',
+  disk: 'Disk IOPS',
+  throughput: 'Throughput',
+  none: 'Nothing',
+} as const
+
+test('the Resource section draws the network gauge and a goal bar naming the tightest limit', () => {
+  const start = fixture()
+  const model: Model = { ...start, board: { ...start.board, selected: 'server' } }
+  const own = ledgerOf(model).nodes.server
+  const network = own?.resources.network
+  if (!own || !network) throw new Error('the fixture App Server holds no network gauge')
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(Scene.text('Network')).toExist(),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText(
+      `${(network.used / 1_000).toFixed(1)} / ${(network.total / 1_000).toFixed(0)} MB/s`,
+    ),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText(
+      own.limit === 'none' ? 'Nothing tight' : `Limit · ${LIMIT_LABEL[own.limit]}`,
+    ),
+  )
+})
+
+test('a limit the Ledger cannot gauge is named as such instead of drawing an empty bar', () => {
+  const start = initialModel()
+  const base = preseedGame()
+  // A Load Balancer with far more traffic than its flat capacity: its limit is throughput,
+  // and the Ledger holds no gauge for a flat Component.
+  const game: Game = {
+    ...base,
+    users: 2_000_000,
+    nodes: [...base.nodes, node('n9', 'lb', 240, 280)],
+    links: [
+      ...base.links.filter((entry) => entry.from !== 'users'),
+      link('users', 'n9'),
+      link('n9', 'server'),
+    ],
+  }
+  const model: Model = { ...start, board: { ...start.board, game, selected: 'n9' } }
+  const own = ledgerOf(model).nodes.n9
+  if (own?.limit !== 'throughput')
+    throw new Error('the fixture Load Balancer is not past its throughput')
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(Scene.text('Limit')).toExist(),
+    Scene.expect(Scene.text('Throughput · no gauge')).toExist(),
+  )
+})
+
 /** A Series A board with the App Server selected: the only Node with a pricing model. */
 const seriesA = (): Model => {
   const start = initialModel()

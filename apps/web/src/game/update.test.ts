@@ -475,6 +475,27 @@ describe('Tradeoff cards', () => {
     expect(send(pinned, Message.TradeoffClosed()).board.game).toBe(pinned.board.game)
   })
 
+  test('Enter confirms a pinned card once its preview is in, and Escape cancels it', () => {
+    const start = ready()
+    const pinned = send(start, Message.OptionChosen({ nodeId: 'server', option }))
+    const preview = JOBS.preview({ game: start.board.game, nodeId: 'server', option })
+    if (!preview) throw new Error('The option was refused.')
+    // A card with no preview yet has nothing to confirm: the key does nothing.
+    expect(send(pinned, Message.KeyPressed({ key: 'Enter' })).board.tradeoff?.pinned).toBe(true)
+    const shown = send(
+      pinned,
+      Message.PreviewComputed({
+        nodeId: 'server',
+        option,
+        preview: { ...preview, burn: [...preview.burn] },
+      }),
+    )
+    const confirmed = send(shown, Message.KeyPressed({ key: 'Enter' }))
+    expect(confirmed.board.tradeoff).toBeNull()
+    expect(confirmed.prefs.seenTradeoffs).toContain('runtime')
+    expect(send(shown, Message.KeyPressed({ key: 'Escape' })).board.tradeoff).toBeNull()
+  })
+
   test('a locked option shows why, and Confirm does nothing', () => {
     const locked = { ...ready(), board: { ...ready().board, game: preseedGame() } }
     const pinned = send(locked, Message.OptionChosen({ nodeId: 'server', option }))
@@ -995,6 +1016,85 @@ test('tidying the board groups nodes into a band per zone, in flow order', () =>
   expect(p!.x).toBeLessThan(q!.x)
   expect(p!.y).toBe(q!.y)
   expect(r!.y).toBeGreaterThan(q!.y)
+})
+
+test('Enter places the part in hand in the next free spot', () => {
+  const start = inLab()
+  const model: Model = {
+    ...start,
+    board: {
+      ...start.board,
+      game: { ...newGame(), links: [], cash: 1_000_000 },
+    },
+  }
+  const placing = update(model, Message.PlacingChosen({ type: 'server' })).model
+  const placed = update(placing, Message.KeyPressed({ key: 'Enter' }))
+  const nodes = placed.model.board.game.nodes
+  expect(nodes.filter((node) => node.type === 'server')).toHaveLength(2)
+  expect(placed.model.board.tool).toBeNull()
+  const added = nodes[nodes.length - 1]!
+  // The new card keeps its clearance, as a pointer drop does.
+  for (const other of nodes.slice(0, -1)) expect(crowds(boxOf(added), boxOf(other))).toBe(false)
+})
+
+test('L starts a link, an arrow picks the other end, and Enter links them', () => {
+  const start = inLab()
+  const game: Model['board']['game'] = { ...newGame(), links: [], cash: 1_000_000 }
+  const model: Model = {
+    ...start,
+    board: { ...start.board, game, selected: 'users' },
+  }
+  const began = update(model, Message.KeyPressed({ key: 'l' })).model
+  expect(began.board.linkFrom).toBe('users')
+  expect(began.board.game).toBe(game)
+  // The arrows still pick the other end while the link is in progress.
+  const picked = update(began, Message.KeyPressed({ key: 'ArrowRight' })).model
+  expect(picked.board.selected).not.toBe('users')
+  const linked = update(picked, Message.KeyPressed({ key: 'Enter' })).model
+  expect(linked.board.linkFrom).toBeNull()
+  expect(linked.board.game.links).toEqual([expect.objectContaining({ from: 'users' })])
+  // Escape cancels a link that has not been made.
+  expect(update(began, Message.KeyPressed({ key: 'Escape' })).model.board.linkFrom).toBeNull()
+})
+
+test('Shift+T tidies by zone and Shift+F fits the board, as their buttons do', () => {
+  const game = newGame()
+  const [first, second, third] = game.nodes
+  const start = inLab()
+  const model: Model = {
+    ...start,
+    board: {
+      ...start.board,
+      game: {
+        ...game,
+        links: [{ ...game.links[0]!, from: 'p', to: 'q' }],
+        nodes: [
+          { ...first!, id: 'q', type: 'server', zone: 'a', x: 40, y: 500 },
+          { ...second!, id: 'p', type: 'server', zone: 'a', x: 400, y: 300 },
+          { ...third!, id: 'r', type: 'server', zone: 'b', x: 10, y: 50 },
+        ],
+      },
+    },
+  }
+  const tidied = update(model, Message.KeyPressed({ key: 'Shift+t' }))
+  expect(tidied.commands).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: 'SyncBoard', args: expect.objectContaining({ fit: true }) }),
+    ]),
+  )
+  expect(tidied.model.board.undo.at(-1)?.label).toBe('Tidied the board by zone')
+  const fitted = update(model, Message.KeyPressed({ key: 'Shift+f' }))
+  expect((fitted.commands ?? []).map((command) => command.name)).toContain('FitBoard')
+  expect(fitted.model.board.game).toBe(model.board.game)
+})
+
+test('opening the Dashboard moves keyboard focus onto its scroll area', () => {
+  const opened = update(inLab(), Message.PanelOpened({ panel: 'dashboard' }))
+  expect(opened.model.panel).toBe('dashboard')
+  expect((opened.commands ?? []).map((command) => command.name)).toContain('FocusDashboard')
+  // Opening another panel leaves focus where it was.
+  const research = update(opened.model, Message.PanelOpened({ panel: 'research' }))
+  expect((research.commands ?? []).map((command) => command.name)).not.toContain('FocusDashboard')
 })
 
 test('losing focus pauses the clock and focus resumes it, unless the setting is off', () => {

@@ -175,6 +175,7 @@ import {
   AskPlaybook,
   ApplySettings,
   DeleteCompany,
+  FocusDashboard,
   FocusInspector,
   CopyText,
   LoadCompany,
@@ -222,6 +223,7 @@ import { BIG_PURCHASE, cueOf } from './cues.ts'
 import { bigBoard, stressBoard } from '@quorum/ui/board/stress'
 import {
   CARD_W,
+  CLEARANCE,
   boxOf,
   crowds,
   freeSpot,
@@ -320,6 +322,7 @@ export const freshBoard = (game: Game): Board => ({
   selected: null,
   selection: [],
   tool: null,
+  linkFrom: null,
   confirmSell: null,
   clipboard: null,
   buildGroup: null,
@@ -1689,6 +1692,18 @@ const ARROWS: Record<string, Direction> = {
   ArrowRight: 'right',
 }
 
+/**
+ * The spot a part placed from the keyboard lands in (15 "Accessibility"): the
+ * next free corner below the Design, so Enter never drops a card on another.
+ */
+const keyboardSpot = (model: Model, w: number, h: number): Readonly<{ x: number; y: number }> => {
+  const nodes = regionView(model.board.game, model.board.region).nodes
+  const left = nodes.length > 0 ? Math.min(...nodes.map((node) => node.x)) : 0
+  const bottom =
+    nodes.length > 0 ? Math.max(...nodes.map((node) => node.y + heightOf(node.type))) : 0
+  return freeSpot(nodes.map(boxOf), { x: left, y: bottom + CLEARANCE, w, h })
+}
+
 const startCompany = (
   model: Model,
   game: Game,
@@ -2726,6 +2741,8 @@ const handle = (model: Model, message: Message): Result =>
             return { model: { ...model, board: { ...model.board, tradeoff: null } } }
           if (model.board.insightHelp)
             return { model: { ...model, board: { ...model.board, insightHelp: false } } }
+          if (model.board.linkFrom !== null)
+            return { model: { ...model, board: { ...model.board, linkFrom: null } } }
           if (model.board.tool?._tag === 'Stamping' || model.board.selection.length > 0) {
             const cleared: Model = {
               ...model,
@@ -2797,6 +2814,21 @@ const handle = (model: Model, message: Message): Result =>
           )
         case 'm':
           return route(model, Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }))
+        case 'Shift+t':
+          return route(model, Message.BoardTidied())
+        case 'Shift+f':
+          return route(model, Message.BoardFitted())
+        case 'l': {
+          if (model.panel !== 'none') return { model }
+          const from = model.board.linkFrom
+          if (from !== null)
+            return selected && selected !== from
+              ? route(model, Message.LinkRequested({ from, to: selected }))
+              : { model }
+          return selected
+            ? { model: { ...model, board: { ...model.board, linkFrom: selected } } }
+            : { model }
+        }
         case 'g':
           if (!shown(model, 'glossary')) return { model }
           return model.panel === 'glossary'
@@ -2817,10 +2849,36 @@ const handle = (model: Model, message: Message): Result =>
             ? route(model, Message.NodeTapped({ nodeId: id }))
             : { model }
         }
-        case 'Enter':
+        case 'Enter': {
           if (model.board.confirmSell) return route(model, Message.SellConfirmed())
           if (model.panel !== 'none') return { model }
+          // A part in hand (or a Playbook) lands in the next free spot: the
+          // keyboard's equivalent of clicking the board (15 "Accessibility").
+          const type = placingOf(model)
+          if (type) {
+            const spot = keyboardSpot(model, CARD_W, heightOf(type))
+            return route(model, Message.NodePlaced({ x: spot.x, y: spot.y }))
+          }
+          const playbook = stampedPlaybook(model)
+          if (playbook) {
+            const spot = keyboardSpot(
+              model,
+              Math.max(...playbook.nodes.map((node) => node.dx)) + CARD_W,
+              Math.max(...playbook.nodes.map((node) => node.dy + heightOf(node.type))),
+            )
+            return route(model, Message.NodePlaced({ x: spot.x, y: spot.y }))
+          }
+          // A keyboard link from the selected Node to the one the arrows reached.
+          if (model.board.linkFrom !== null)
+            return selected && selected !== model.board.linkFrom
+              ? route(model, Message.LinkRequested({ from: model.board.linkFrom, to: selected }))
+              : { model }
+          // A pinned Tradeoff card's Confirm, when it has a preview to confirm.
+          const card = model.board.tradeoff
+          if (card?.pinned && card.preview !== null && card.refusal === null)
+            return route(model, Message.OptionConfirmed())
           return selected ? { model, commands: [FocusInspector({})] } : { model }
+        }
         case ' ':
           return route(model, Message.PauseToggled())
         case 's':
@@ -3126,7 +3184,7 @@ const handle = (model: Model, message: Message): Result =>
       const cleared: Model = { ...model, board: { ...model.board, confirmSell: null } }
       return act(cleared, `Sold ${countNodes(ids.length)}`, sellAll(model.board.game, ids), {
         undoable: true,
-        patch: () => ({ selected: null, selection: [] }),
+        patch: () => ({ selected: null, selection: [], linkFrom: null }),
       })
     },
     SellDismissed: () => ({ model: { ...model, board: { ...model.board, confirmSell: null } } }),
@@ -3177,6 +3235,7 @@ const handle = (model: Model, message: Message): Result =>
         Actions.connect(model.board.game, from, to),
         {
           undoable: true,
+          patch: () => ({ linkFrom: null }),
           note: (game) =>
             model.board.game.nodes.find((node) => node.id === from)?.localDb &&
             !game.nodes.find((node) => node.id === from)?.localDb
@@ -3199,7 +3258,7 @@ const handle = (model: Model, message: Message): Result =>
       if (model.board.selected === null && model.board.selection.length === 0) return { model }
       const next: Model = {
         ...model,
-        board: { ...model.board, selected: null, selection: [], tradeoff: null },
+        board: { ...model.board, selected: null, selection: [], tradeoff: null, linkFrom: null },
       }
       return { model: next }
     },
@@ -3928,7 +3987,7 @@ const handle = (model: Model, message: Message): Result =>
         Actions.sell(model.board.game, nodeId),
         {
           undoable: true,
-          patch: () => ({ selected: null }),
+          patch: () => ({ selected: null, linkFrom: null }),
         },
       ),
 
@@ -4156,7 +4215,11 @@ const handle = (model: Model, message: Message): Result =>
               },
             }
           : opened
-      return { model: next }
+      return {
+        model: next,
+        // The scroll area takes focus, so the keyboard reaches the last rows without a pointer.
+        commands: panel === 'dashboard' && model.panel !== 'dashboard' ? [FocusDashboard({})] : [],
+      }
     },
     ChurnFixTaken: ({ fix, target }) => {
       const game = model.board.game

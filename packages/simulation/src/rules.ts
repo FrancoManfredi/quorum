@@ -12,6 +12,7 @@ import {
   GPU_TYPES,
   HERD_REFUSED,
   HUB_RAM_KB,
+  ML_AI_BONUS,
   LLM_FIRST_TOKEN_MS,
   LLM_RATE,
   PRESENCE_CPU,
@@ -367,15 +368,33 @@ export const gatewayShare = (node: GameNode, arriving: Rates): number => {
  * none, and without Clustering only one box takes connections, so the larger sizes add Burn and
  * no room.
  */
-export const hubConnections = (node: GameNode): number => {
+export const hubConnections = (node: GameNode, builtIn = false): number => {
   const perConnection = RUNTIMES[node.runtime].connectionKB
   if (perConnection === null) return 0
-  return (HUB_RAM_KB * (node.clustering ? flatScale(node) : 1)) / perConnection
+  return (HUB_RAM_KB * (node.clustering || builtIn ? flatScale(node) : 1)) / perConnection
 }
 
 /** Realtime messages a second a Hub holds: a message keeps its connection open for the hold time. */
-export const hubRate = (node: GameNode): number =>
-  (hubConnections(node) / RT_HOLD_SECONDS) * (node.presence ? 1 - PRESENCE_CPU : 1)
+export const hubRate = (node: GameNode, builtIn = false): number =>
+  (hubConnections(node, builtIn) / RT_HOLD_SECONDS) * (node.presence ? 1 - PRESENCE_CPU : 1)
+
+/**
+ * The ML ecosystem bonus (06 "ML ecosystem"): a Python service runs small models in process, so
+ * `ai` requests earn 20% more. PyPy cannot use it, because the C extensions it needs are not
+ * ready. Vector Index is not built, so any Python server that answers `ai` earns it. Proposed:
+ * the design makes the bonus conditional on a Vector Index in the path.
+ */
+export const mlValueOf = (node: GameNode, kind: RequestKind): number =>
+  kind === 'ai' && RUNTIMES[node.runtime].language === 'python' && node.runtime !== 'pypy'
+    ? ML_AI_BONUS
+    : 1
+
+/**
+ * Distributed Erlang gives an Elixir Hub its own cluster backbone, so it takes connections on
+ * every box without the Clustering option (06 "Elixir", "Realtime connections").
+ */
+export const distributedErlang = (game: Game, node: GameNode): boolean =>
+  has(game, 'distributed-erlang') && RUNTIMES[node.runtime].language === 'elixir'
 
 /* ---------- the table ---------- */
 
@@ -447,7 +466,10 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     outcome: (answer, node, kind) => {
       const { game } = answer
       const requestKind = kind as RequestKind
-      const served = answer.ownHop(kind, FRAMEWORKS[node.framework].value[requestKind] ?? 1)
+      const served = answer.ownHop(
+        kind,
+        (FRAMEWORKS[node.framework].value[requestKind] ?? 1) * mlValueOf(node, requestKind),
+      )
       // The response crosses the user's downlink: bytes over bandwidth.
       const own = {
         ...served,
@@ -827,7 +849,12 @@ export const RULES: Record<ComponentId, ComponentRule> = {
             { fixed: 1, variable: 0 },
             solver.boost(node),
           )
-        : flatModel(hubRate(node), arriving, { fixed: 1, variable: 0 }, solver.boost(node)),
+        : flatModel(
+            hubRate(node, distributedErlang(solver.game, node)),
+            arriving,
+            { fixed: 1, variable: 0 },
+            solver.boost(node),
+          ),
     serve: nothing,
     outcome: (answer, node, kind) => {
       // PHP-FPM and Gunicorn sync hold a worker per open connection: they cannot hold any.

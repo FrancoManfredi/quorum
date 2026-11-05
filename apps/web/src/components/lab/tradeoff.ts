@@ -7,6 +7,7 @@ import {
   RUNTIMES,
   type Axes,
   type Axis,
+  type FamilyId,
 } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
 import { migrationCost, targetOf } from '@quorum/simulation/migration'
@@ -22,9 +23,9 @@ import { FIGURE, PANEL } from '@quorum/ui/game/bits'
 
 /* ==========================================================================
    The Tradeoff card (15 "Tradeoff cards"): what an option is, on the six
-   axes, and what the ghost run says it does to this Design. Stack choices
-   get the radar (16 D21); other options get the preview and the cost. Once
-   an option set is confirmed, its card is one line.
+   axes, and what the ghost run says it does to this Design. Every option set
+   gets the radar (16 D21): a Stack from 06's axes, an instance family from
+   05's RAM and price. Once an option set is confirmed, its card is one line.
    ========================================================================== */
 
 const KIND_TITLE: Record<TradeoffOption['kind'], string> = {
@@ -78,14 +79,40 @@ const currentOf = (node: GameNode, option: TradeoffOption): TradeoffOption => {
   }
 }
 
+/**
+ * The six axes of an instance family, on the same radar as a Stack (16 "The
+ * dominance test" scores the four families). 05's table carries the family's
+ * facts, not its axes, so each read comes from them: throughput is vCPU per
+ * dollar, memory is RAM per vCPU, and a Burstable box loses tail, resilience
+ * and operability to the credit throttle. Velocity is the Stack's, so it sits
+ * neutral. Higher is better on every axis, as for a runtime.
+ */
+export const familyAxes = (family: FamilyId): Axes => {
+  const { ram, price } = FAMILIES[family]
+  const throttled = family === 'burstable'
+  return {
+    throughput: price <= 0.5 ? 5 : price <= 0.9 ? 4 : price <= 1.05 ? 3 : 2,
+    tail: throttled ? 1 : ram >= 8 ? 5 : 4,
+    memory: ram >= 8 ? 5 : ram >= 4 ? 3 : 2,
+    velocity: 3,
+    resilience: throttled ? 2 : ram >= 8 ? 4 : ram >= 4 ? 3 : 2,
+    operability: throttled ? 2 : 4,
+  }
+}
+
+const familyOf = (family: FamilyId): Readonly<{ axes: Axes; glossary: ReadonlyArray<string> }> => ({
+  axes: familyAxes(family),
+  glossary: [],
+})
+
 const stackOf = (
   option: TradeoffOption,
-): Readonly<{ axes: Axes; glossary: ReadonlyArray<string> }> | null =>
+): Readonly<{ axes: Axes; glossary: ReadonlyArray<string> }> =>
   option.kind === 'runtime'
     ? RUNTIMES[option.id]
     : option.kind === 'framework'
       ? FRAMEWORKS[option.id]
-      : null
+      : familyOf(option.id)
 
 /* ---------- the radar ---------- */
 
@@ -311,7 +338,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
             : h.empty,
         ],
       ),
-      stack && now ? radar(now.axes, stack.axes, h) : h.empty,
+      radar(now.axes, stack.axes, h),
       effect(model, card, h),
       migration && !card.refusal
         ? h.p(
@@ -349,6 +376,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   isDisabled: card.preview === null || card.refusal !== null,
                   size: 'lg',
                   className: 'flex-1',
+                  attributes: [h.Title('Confirm (Enter)')],
                 },
                 [icon(h, Check, 'size-4'), migration ? 'Start migration' : 'Confirm'],
                 h,

@@ -2841,7 +2841,21 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       topBar(model, h),
       h.div(
-        [h.Key('scroll'), h.Class(cn('min-h-0 flex-1', SCROLL))],
+        [
+          h.Key('scroll'),
+          h.DataAttribute('scroll', 'dashboard'),
+          // The panels run past the window: a keyboard player tabs here and scrolls the last rows (15).
+          h.Tabindex(0),
+          h.Role('region'),
+          h.AriaLabel('Dashboard, scroll for the Company and Incidents rows'),
+          h.Class(
+            cn(
+              'min-h-0 flex-1',
+              SCROLL,
+              'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary',
+            ),
+          ),
+        ],
         [
           variables(model, slo, h),
           h.div([h.Class('grid grid-cols-24 gap-2.5 px-4 pt-3 pb-10 compact:px-3')], panels),

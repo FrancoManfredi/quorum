@@ -92,13 +92,13 @@ real "don't block the event loop" rule ([Reality check](/design/reality-check#ru
 
 The fixes, each with its own cost:
 
-| Fix               | Effect                                                                                                                    | Cost                                                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Async crypto      | Research "libuv thread pool" takes the `login` hash off the event loop, so logins stop stalling the requests behind them. | Dev Hours for the Research. No RAM cost. A modelled pool of 4 threads, with its queue and its RAM cost, is Not built yet. |
-| Worker threads    | Moves CPU-heavy kinds to a pool of worker threads.                                                                        | Each worker thread is a separate V8 isolate, about 10 MB. Dev Hours to adopt. Not built yet.                              |
-| Separate service  | Routes `login` or `upload` to a separate App Server group.                                                                | Another service: more Nodes, a load balancer route, a team boundary.                                                      |
-| Auth Provider     | Takes `login` off your servers.                                                                                           | Per-user price ([Components](/design/05-components#auth-provider)).                                                       |
-| Different runtime | Go, Java, and Elixir do not stall other requests on one heavy request.                                                    | A migration ([Team](/design/08-team-and-velocity#migrations)).                                                            |
+| Fix               | Effect                                                                                                                    | Cost                                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Async crypto      | Research "libuv thread pool" takes the `login` hash off the event loop, so logins stop stalling the requests behind them. | Dev Hours for the Research. No RAM cost. A modelled pool of 4 threads, with its queue and its RAM cost, is Not built yet.                                                                   |
+| Worker threads    | Moves CPU-heavy kinds to a pool of worker threads.                                                                        | Each worker thread is a separate V8 isolate, about 10 MB. Dev Hours to adopt. Built: `worker-threads` adds a pool of 4 threads, 40 MB, and takes `upload`, `report` and `job` off the loop. |
+| Separate service  | Routes `login` or `upload` to a separate App Server group.                                                                | Another service: more Nodes, a load balancer route, a team boundary.                                                                                                                        |
+| Auth Provider     | Takes `login` off your servers.                                                                                           | Per-user price ([Components](/design/05-components#auth-provider)).                                                                                                                         |
+| Different runtime | Go, Java, and Elixir do not stall other requests on one heavy request.                                                    | A migration ([Team](/design/08-team-and-velocity#migrations)).                                                                                                                              |
 
 ### Preemptive scheduling on the BEAM
 
@@ -179,7 +179,7 @@ These behaviors are what make runtimes feel different during play.
 | Memory leaks       | Persistent runtimes: Node.js, Ruby, Python, Java, C#, Go, Elixir, Rust, Zig, Haskell | RSS grows with uptime. When the process reaches its RAM, it is killed (`oom`) and restarts cold. Fixes: restart the server, or Dev Hours to fix the leak. Periodic restarts (`pm.max_requests`, Puma worker killer) are Not built yet.                                                 |
 | Shared nothing     | PHP-FPM classic                                                                      | Each request starts clean. No leaks, no state bleeding between requests. This is PHP's real strength.                                                                                                                                                                                  |
 | Fault isolation    | Elixir (supervisors), PHP (per request)                                              | A crash affects one request. Elixir restarts the crashed process in microseconds.                                                                                                                                                                                                      |
-| Hot code reload    | Elixir (release upgrades), PHP (file swap)                                           | Deploys with zero restarts. Elixir hot upgrades need extra Dev Hours per release. Not built yet: a deploy never restarts an App Server, and no runtime reloads code in place.                                                                                                          |
+| Hot code reload    | Elixir (release upgrades), PHP (file swap)                                           | Deploys with zero restarts. A deploy that ships Features restarts every App Server cold except a PHP or Elixir one, which reloads the code in place. Elixir hot upgrades cost 4 Dev Hours per release (proposed: the design gives the cost, not its length).                           |
 | Cold start         | Java (worst), then Ruby, Python, C#, Node.js, then Go and Rust (best)                | Matters for Serverless Functions and autoscaling ([Components](/design/05-components#serverless-function)).                                                                                                                                                                            |
 
 ## Variants by language
@@ -195,9 +195,9 @@ siblings.
 | Apache `mod_php` (start)                             | Process per request        | 0.15                                        | Every Apache process embeds PHP, including the processes that serve static files, so memory runs out early. Simple to deploy.                                                                                                        |
 | PHP-FPM with NGINX                                   | Process pool               | 0.15                                        | NGINX serves static files. PHP workers handle only PHP. Pool modes below.                                                                                                                                                            |
 | + OPcache                                            | —                          | ×2.5                                        | Skips compiling scripts on every request. A restarted box fills the cache again. With `validate_timestamps=0` a deploy would have to reset the cache, or the old code would keep running: that stale-code incident is Not built yet. |
-| + JIT (PHP 8)                                        | —                          | ×1.05 on web kinds, ×1.6 on CPU-heavy kinds | Helps `upload` and `report`, barely helps `page` and `read`. A deliberate lesson: the JIT is not a general speedup for web work. Not built yet.                                                                                      |
-| Worker mode (FrankenPHP, RoadRunner, Laravel Octane) | Persistent workers         | ×1.0, framework overhead removed            | The app boots once, not on every request. Framework-heavy apps gain 2× to 4×. Loses shared nothing: memory leaks and state bleed between requests become possible. Not built yet.                                                    |
-| Swoole                                               | Event loop with coroutines | ×1.0, overhead removed                      | Async I/O like Node.js. Can hold `rt` connections. Blocking extensions stall the loop. Not built yet.                                                                                                                                |
+| + JIT (PHP 8)                                        | —                          | ×1.05 on web kinds, ×1.6 on CPU-heavy kinds | Helps `upload` and `report`, barely helps `page` and `read`. A deliberate lesson: the JIT is not a general speedup for web work. Built: research `php-jit`, over every PHP runtime.                                                  |
+| Worker mode (FrankenPHP, RoadRunner, Laravel Octane) | Persistent workers         | ×1.0, framework overhead removed            | The app boots once, not on every request. Framework-heavy apps gain 2× to 4×. Loses shared nothing: memory leaks and state bleed between requests become possible. Built as `PHP worker mode`; its 1.1× overhead row is not modeled. |
+| Swoole                                               | Event loop with coroutines | ×1.0, overhead removed                      | Async I/O like Node.js. Can hold `rt` connections. Blocking extensions stall the loop. Built; 60 MB and 20 KB per connection are proposed.                                                                                           |
 
 PHP-FPM pool modes (a Tradeoff card):
 
@@ -213,46 +213,47 @@ of one worker, which is the real sizing rule ([Reality check](/design/reality-ch
 
 ### Ruby
 
-| Variant      | Model                             | Speed | Profile                                                                                              |
-| ------------ | --------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
-| Unicorn      | Process per request               | 0.25  | Simple and robust. Memory-heavy: one Rails process per slot. Not built yet.                          |
-| Puma (start) | Processes × 5 threads, with a GVL | 0.25  | Threads overlap I/O waits. CPU work runs on one core per process, so Puma runs one process per core. |
-| + YJIT       | —                                 | ×1.3  | Faster CPU work, +20% memory. Not built yet.                                                         |
-| Falcon       | Fibers (event loop)               | 0.25  | Many idle connections per process. Gems that block stall the loop. Not built yet.                    |
+| Variant      | Model                             | Speed | Profile                                                                                                                                                                 |
+| ------------ | --------------------------------- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unicorn      | Process per request               | 0.25  | Simple and robust. Memory-heavy: one Rails process per slot. Built; `lang-ruby` unlocks it with Puma, and it refuses `rt` connections.                                  |
+| Puma (start) | Processes × 5 threads, with a GVL | 0.25  | Threads overlap I/O waits. CPU work runs on one core per process, so Puma runs one process per core.                                                                    |
+| + YJIT       | —                                 | ×1.3  | Faster CPU work, +20% memory. Built as research `yjit`, over every Ruby runtime.                                                                                        |
+| Falcon       | Fibers (event loop)               | 0.25  | Many idle connections per process. Gems that block stall the loop. Built; 100 KB per connection is proposed (the design gives Ruby's figure without naming the server). |
 
 ### Python
 
-| Variant               | Model                           | Speed | Profile                                                                                                                                                |
-| --------------------- | ------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Gunicorn sync (start) | Process per request             | 0.20  | One request per worker. Like PHP-FPM, with more memory per worker.                                                                                     |
-| Gunicorn with gevent  | Green threads, with a GIL       | 0.20  | Many I/O waits per process. Monkey patching breaks some libraries (a small chance of a "Library incompatibility" incident on adoption). Not built yet. |
-| Uvicorn ASGI          | Event loop, with a GIL          | 0.20  | Async like Node.js, but slower CPU. Blocking calls stall the loop. Not built yet.                                                                      |
-| Free-threaded CPython | Threads without a GIL           | ×0.9  | Real parallel threads on all cores. Single-thread speed is lower, and some C extensions are not ready, which costs Dev Hours. Not built yet.           |
-| PyPy                  | Process per request, with a JIT | ×3    | Much faster pure-Python CPU work. Poor support for C extensions such as NumPy and PyTorch, so it cannot use the ML ecosystem bonus. Not built yet.     |
+| Variant               | Model                           | Speed | Profile                                                                                                                                                                                                            |
+| --------------------- | ------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Gunicorn sync (start) | Process per request             | 0.20  | One request per worker. Like PHP-FPM, with more memory per worker.                                                                                                                                                 |
+| Gunicorn with gevent  | Green threads, with a GIL       | 0.20  | Many I/O waits per process. Monkey patching breaks some libraries (a small chance of a "Library incompatibility" incident on adoption). Built; that incident is not modeled, and 30 KB per connection is proposed. |
+| Uvicorn ASGI          | Event loop, with a GIL          | 0.20  | Async like Node.js, but slower CPU. Blocking calls stall the loop. Built as `Uvicorn ASGI`, with 30 KB per connection.                                                                                             |
+| Free-threaded CPython | Threads without a GIL           | ×0.9  | Real parallel threads on all cores. Single-thread speed is lower, and some C extensions are not ready, which costs Dev Hours. Built; 8 threads and 100 KB per connection are proposed.                             |
+| PyPy                  | Process per request, with a JIT | ×3    | Much faster pure-Python CPU work. Poor support for C extensions such as NumPy and PyTorch, so it cannot use the ML ecosystem bonus. Built; 200 MB per worker is proposed.                                          |
 
 **ML ecosystem.** A Python service can run small models in process (embeddings, reranking) without a
 GPU Node, which raises `ai` value by 20% when a Vector Index is in the path. Every other language
-must call a GPU Node or an LLM API. Not built yet: the build gives no language or framework a value
-bonus, so Python's `ai` bonus and FastAPI's are both absent.
+must call a GPU Node or an LLM API. Built: every Python App Server except PyPy earns +20% on `ai`,
+and FastAPI adds 15% on top. Vector Index is not built, so the build cannot test that it is in the
+path: any Python server that answers `ai` earns the bonus.
 
 ### Node.js
 
-| Variant                | Model                       | Speed | Profile                                                                                                                                           |
-| ---------------------- | --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Single process (start) | Event loop                  | 0.70  | Uses one core. Resizing the instance adds no CPU throughput. A deliberate lesson.                                                                 |
-| Cluster mode (PM2)     | One event loop per core     | 0.70  | Uses all cores. Memory × processes. In-process caches are not shared between processes.                                                           |
-| + Worker threads       | —                           | —     | Offloads CPU-heavy kinds. See [event loops and blocking](#event-loops-and-blocking). Not built yet.                                               |
-| Bun                    | Event loop                  | 0.85  | Faster startup and throughput in benchmarks. Less mature: a small chance per calendar month of a "Runtime compatibility" incident. Not built yet. |
-| Deno                   | Event loop with permissions | 0.70  | Permissions block most supply-chain attacks ([Incidents](/design/11-incidents#catalog)). Fewer compatible packages: −10% velocity. Not built yet. |
+| Variant                | Model                       | Speed | Profile                                                                                                                                                                        |
+| ---------------------- | --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Single process (start) | Event loop                  | 0.70  | Uses one core. Resizing the instance adds no CPU throughput. A deliberate lesson.                                                                                              |
+| Cluster mode (PM2)     | One event loop per core     | 0.70  | Uses all cores. Memory × processes. In-process caches are not shared between processes.                                                                                        |
+| + Worker threads       | —                           | —     | Offloads CPU-heavy kinds. See [event loops and blocking](#event-loops-and-blocking). Built as research `worker-threads`.                                                       |
+| Bun                    | Event loop                  | 0.85  | Faster startup and throughput in benchmarks. Less mature: a small chance per calendar month of a "Runtime compatibility" incident. Built; its incident and 60 MB are proposed. |
+| Deno                   | Event loop with permissions | 0.70  | Permissions block most supply-chain attacks ([Incidents](/design/11-incidents#catalog)). Fewer compatible packages: −10% velocity. Built.                                      |
 
 ### Java
 
-| Variant                    | Model                | Speed     | Profile                                                                                                                                                 |
-| -------------------------- | -------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tomcat thread pool (start) | 200 platform threads | 1.10 warm | Each thread holds about 1 MB of stack. Above 200 waiting requests, new requests queue even with idle CPU.                                               |
-| Virtual threads            | Green threads        | 1.10 warm | Waiting no longer holds a platform thread. Since JDK 24, `synchronized` no longer pins. Native (JNI) calls still pin the carrier thread. Not built yet. |
-| Spring WebFlux             | Event loop           | 1.10 warm | Very high concurrency. Hard to write and debug: −20% velocity. Not built yet.                                                                           |
-| GraalVM native image       | Thread pool          | 0.80      | Starts in under 100 ms with no warmup and −60% memory. Lower peak speed. Slower builds. Great for Serverless Functions. Not built yet.                  |
+| Variant                    | Model                | Speed     | Profile                                                                                                                                                                    |
+| -------------------------- | -------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tomcat thread pool (start) | 200 platform threads | 1.10 warm | Each thread holds about 1 MB of stack. Above 200 waiting requests, new requests queue even with idle CPU.                                                                  |
+| Virtual threads            | Green threads        | 1.10 warm | Waiting no longer holds a platform thread. Since JDK 24, `synchronized` no longer pins. Native (JNI) calls still pin the carrier thread. Built; 10 KB per `rt` connection. |
+| Spring WebFlux             | Event loop           | 1.10 warm | Very high concurrency. Hard to write and debug: −20% velocity. Built; 100 MB is proposed.                                                                                  |
+| GraalVM native image       | Thread pool          | 0.80      | Starts in under 100 ms with no warmup and −60% memory. Lower peak speed. Slower builds. Great for Serverless Functions. Built; slower builds are not modeled.              |
 
 | GC option  | p99 pause | Throughput | Memory |
 | ---------- | --------- | ---------- | ------ |
@@ -266,17 +267,17 @@ built yet: Insight comes only from samples and failures, with no bonus for the J
 
 ### C#
 
-| Variant         | Model             | Speed | Profile                                                                                 |
-| --------------- | ----------------- | ----- | --------------------------------------------------------------------------------------- |
-| Kestrel (start) | Async thread pool | 1.10  | Fast, async by default. Tiered JIT warmup is shorter than the JVM's.                    |
-| Native AOT      | Async thread pool | 0.90  | Fast startup, smaller memory. Reflection-heavy libraries need Dev Hours. Not built yet. |
+| Variant         | Model             | Speed | Profile                                                                                             |
+| --------------- | ----------------- | ----- | --------------------------------------------------------------------------------------------------- |
+| Kestrel (start) | Async thread pool | 1.10  | Fast, async by default. Tiered JIT warmup is shorter than the JVM's.                                |
+| Native AOT      | Async thread pool | 0.90  | Fast startup, smaller memory. Reflection-heavy libraries need Dev Hours. Built; 100 MB is proposed. |
 
 ### Go
 
 | Variant            | Model      | Speed | Profile                                                                                                                                                                  |
 | ------------------ | ---------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `net/http` (start) | Goroutines | 1.00  | A goroutine starts with a 2 KB stack. Static binary, instant startup. `net/http` recovers panics in handlers, but a panic in a background goroutine crashes the process. |
-| fasthttp           | Goroutines | 1.25  | Faster, with a non-standard API. No HTTP/2. Some middleware does not work: −10% velocity. Not built yet.                                                                 |
+| fasthttp           | Goroutines | 1.25  | Faster, with a non-standard API. No HTTP/2. Some middleware does not work: −10% velocity. Built.                                                                         |
 
 | `GOGC` setting     | Memory | GC CPU | p99 effect                           |
 | ------------------ | ------ | ------ | ------------------------------------ |
@@ -286,19 +287,19 @@ built yet: Insight comes only from samples and failures, with no bonus for the J
 
 ### Elixir
 
-| Variant                     | Model          | Speed                    | Profile                                                                                                                                                            |
-| --------------------------- | -------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Phoenix on the BEAM (start) | BEAM processes | 0.45 (0.55 with the JIT) | Preemptive scheduling, per-process GC, supervisors. Very flat p99. Best for `rt`.                                                                                  |
-| + Distributed Erlang        | —              | —                        | Nodes form a cluster with built-in presence and pub/sub. Replaces a separate Realtime Hub backbone. Network partitions cause split-brain incidents. Not built yet. |
-| + NIFs                      | —              | ×3 on CPU-heavy kinds    | Native code for heavy work. Not preempted, and a crash takes down the whole VM: blast radius becomes "Process". Not built yet.                                     |
+| Variant                     | Model          | Speed                    | Profile                                                                                                                                                                                                                                 |
+| --------------------------- | -------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phoenix on the BEAM (start) | BEAM processes | 0.45 (0.55 with the JIT) | Preemptive scheduling, per-process GC, supervisors. Very flat p99. Best for `rt`.                                                                                                                                                       |
+| + Distributed Erlang        | —              | —                        | Nodes form a cluster with built-in presence and pub/sub. Replaces a separate Realtime Hub backbone. Network partitions cause split-brain incidents. Built: a BEAM Realtime Hub clusters without the option; split brain is not modeled. |
+| + NIFs                      | —              | ×3 on CPU-heavy kinds    | Native code for heavy work. Not preempted, and a crash takes down the whole VM: blast radius becomes "Process". Built: the VM stops absorbing the supervisor's crashes.                                                                 |
 
 ### Rust
 
 | Variant                 | Model             | Speed | Profile                                                                                                                                                              |
 | ----------------------- | ----------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tokio with Axum (start) | Async thread pool | 1.40  | Lowest memory and no GC. Cooperative scheduling: a CPU-heavy task blocks one worker thread, a milder form of the Node.js problem. A task panic fails that task only. |
-| + `spawn_blocking`      | —                 | —     | Moves CPU-heavy kinds to a blocking pool. Removes the tail. Not built yet.                                                                                           |
-| Allocator: jemalloc     | —                 | ×1.05 | Less fragmentation in long-running services. +5% memory at start. Not built yet.                                                                                     |
+| + `spawn_blocking`      | —                 | —     | Moves CPU-heavy kinds to a blocking pool. Removes the tail. Built; the pool's own memory is not modeled.                                                             |
+| Allocator: jemalloc     | —                 | ×1.05 | Less fragmentation in long-running services. +5% memory at start. Built.                                                                                             |
 
 Rust's cost is not on the server. It is in Dev Hours: velocity 0.60 and 12-minute builds, which lower
 deploy frequency ([Team](/design/08-team-and-velocity#deploy-frequency)).
@@ -312,10 +313,10 @@ deploy frequency ([Team](/design/08-team-and-velocity#deploy-frequency)).
 | PHP-FPM, Gunicorn sync, Unicorn | Not supported         | A worker per connection would hold the whole pool.              |
 | Java with platform threads      | ~1 MB                 | A thread per connection.                                        |
 | Ruby (Action Cable on Puma)     | ~100 KB               |                                                                 |
-| Python ASGI                     | ~30 KB                | Not built yet: the only Python runtime, Gunicorn, refuses them. |
+| Python ASGI                     | ~30 KB                | Built: Uvicorn ASGI holds them, at the design's figure.         |
 | Node.js                         | ~20 KB                |                                                                 |
 | Go                              | ~10 KB                | Goroutine plus buffers.                                         |
-| Java with virtual threads       | ~10 KB                | Not built yet: only platform threads.                           |
+| Java with virtual threads       | ~10 KB                | Built.                                                          |
 | Rust                            | ~5 KB                 |                                                                 |
 | Elixir                          | ~5 KB                 | Phoenix reached 2 million connections on one large box in 2015. |
 
@@ -341,16 +342,16 @@ and a special effect. The default for each language is "No framework".
 | Sinatra      | Ruby     | 1.1×              | 1.10×    | Light.                                                                                                                                                                                                                                            |
 | Django       | Python   | 1.4×              | 1.40×    | ORM N+1. The admin site: internal tools cost −30% Dev Hours. Not built yet.                                                                                                                                                                       |
 | Flask        | Python   | 1.1×              | 1.10×    | Light.                                                                                                                                                                                                                                            |
-| FastAPI      | Python   | 1.15× (ASGI only) | 1.30×    | Validation with Pydantic. `ai` value +15% (best ecosystem for model glue). Not built yet.                                                                                                                                                         |
-| Express      | Node.js  | 1.1×              | 1.20×    | Minimal and everywhere. Middleware sprawl: +10% tech debt growth. Not built yet.                                                                                                                                                                  |
-| Fastify      | Node.js  | 1.0×              | 1.15×    | Schema-based serialization: `read` CPU −20%. Not built yet.                                                                                                                                                                                       |
-| NestJS       | Node.js  | 1.3×              | 1.30×    | Structure for large teams: the coordination penalty is 30% smaller ([Team](/design/08-team-and-velocity#coordination)). Not built yet.                                                                                                            |
-| Next.js      | Node.js  | 1.6× on `page`    | 1.35×    | Server rendering and incremental static regeneration: `page` value ×1.5, and 40% of `page` becomes CDN-cacheable. Not built yet.                                                                                                                  |
-| Spring Boot  | Java     | 1.3×, +200 MB     | 1.10×    | Structure for large teams (coordination penalty −30%). Slow startup (+15 s). Not built yet: only Symfony's structure lowers the penalty.                                                                                                          |
-| Quarkus      | Java     | 1.1×              | 1.05×    | Built for native images: halves GraalVM build time. Not built yet.                                                                                                                                                                                |
+| FastAPI      | Python   | 1.15× (ASGI only) | 1.30×    | Validation with Pydantic. `ai` value +15% (best ecosystem for model glue). Built: the overhead applies only on an ASGI server, and 10 MB is proposed.                                                                                             |
+| Express      | Node.js  | 1.1×              | 1.20×    | Minimal and everywhere. Middleware sprawl: +10% tech debt growth. Built, but the tech-debt growth is not modeled.                                                                                                                                 |
+| Fastify      | Node.js  | 1.0×              | 1.15×    | Schema-based serialization: `read` CPU −20%. Built; 5 MB is proposed.                                                                                                                                                                             |
+| NestJS       | Node.js  | 1.3×              | 1.30×    | Structure for large teams: the coordination penalty is 30% smaller ([Team](/design/08-team-and-velocity#coordination)). Built, but the coordination penalty is not modeled.                                                                       |
+| Next.js      | Node.js  | 1.6× on `page`    | 1.35×    | Server rendering and incremental static regeneration: `page` value ×1.5, and 40% of `page` becomes CDN-cacheable. Built, except the CDN hit; 30 MB is proposed.                                                                                   |
+| Spring Boot  | Java     | 1.3×, +200 MB     | 1.10×    | Structure for large teams (coordination penalty −30%). Slow startup (+15 s). Built, but only Symfony lowers the coordination penalty.                                                                                                             |
+| Quarkus      | Java     | 1.1×              | 1.05×    | Built for native images: halves GraalVM build time. Built, except the build time; 100 MB is proposed.                                                                                                                                             |
 | ASP.NET Core | C#       | 1.05×             | 1.15×    | Fast and complete.                                                                                                                                                                                                                                |
 | Gin          | Go       | 1.05×             | 1.10×    | Light router.                                                                                                                                                                                                                                     |
-| Fiber        | Go       | 1.0× (fasthttp)   | 1.15×    | Express-style API. Inherits fasthttp limits. Not built yet.                                                                                                                                                                                       |
+| Fiber        | Go       | 1.0× (fasthttp)   | 1.15×    | Express-style API. Inherits fasthttp limits. Built.                                                                                                                                                                                               |
 | Phoenix      | Elixir   | 1.1×              | 1.30×    | Channels for `rt` built in. LiveView: `page` value +30%, and each connected user holds a BEAM process (memory per user).                                                                                                                          |
 | Axum         | Rust     | 1.0×              | 1.15×    | Built on Tokio and Tower.                                                                                                                                                                                                                         |
 | Actix Web    | Rust     | 0.95×             | 1.10×    | Among the fastest in benchmarks.                                                                                                                                                                                                                  |
@@ -360,18 +361,18 @@ and a special effect. The default for each language is "No framework".
 These scenarios are the dominance test in prose. Each runtime wins at least one. One known gap: BEAM
 never beats Go or Kestrel on any score, and the dominance test logs that as a known gap.
 
-| Situation                                                                      | Strong choice                  | Why                                                                                                                                    |
-| ------------------------------------------------------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Garage, tiny team, mostly `page` and `read`, cheap hires                       | PHP-FPM with Laravel, or Rails | Velocity matters more than CPU. One box is enough. Shared nothing means no leaks.                                                      |
-| Slow database you cannot fix yet, lots of I/O wait                             | Node.js, Go, or Tokio          | Waiting does not hold a worker.                                                                                                        |
-| Many `login` or `upload` requests on the same service                          | Go, Java, or Elixir            | No event-loop stall. Node.js stalls its loop until the libuv pool Research.                                                            |
-| `rt` at scale                                                                  | Elixir, then Go or Rust        | Memory per connection and flat p99.                                                                                                    |
-| Steady, CPU-bound, high volume, long-lived processes                           | Java with ZGC, C#, or Rust     | Highest throughput per dollar once warm.                                                                                               |
-| Spiky traffic on Serverless Functions                                          | Go or Rust                     | Cold starts. A GraalVM native image would fit here too, and is Not built yet.                                                          |
-| `ai` glue, embeddings, reranking                                               | Python with FastAPI            | The ML ecosystem bonus. Not built yet: no language or framework earns a value bonus.                                                   |
-| A hot path service where p99 matters more than Dev Hours (Discord read states) | Rust                           | No GC pauses. Discord moved a service from Go to Rust for this reason in 2020.                                                         |
-| 40 engineers in one codebase                                                   | Symfony                        | The only framework the build models as structured: −30% tech debt and coordination. Spring Boot and NestJS structure is Not built yet. |
-| Pre-IPO cost cutting on a large fleet                                          | Go or Rust on ARM instances    | Low memory and good speed on cheaper instances.                                                                                        |
+| Situation                                                                      | Strong choice                  | Why                                                                                                                                               |
+| ------------------------------------------------------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Garage, tiny team, mostly `page` and `read`, cheap hires                       | PHP-FPM with Laravel, or Rails | Velocity matters more than CPU. One box is enough. Shared nothing means no leaks.                                                                 |
+| Slow database you cannot fix yet, lots of I/O wait                             | Node.js, Go, or Tokio          | Waiting does not hold a worker.                                                                                                                   |
+| Many `login` or `upload` requests on the same service                          | Go, Java, or Elixir            | No event-loop stall. Node.js stalls its loop until the libuv pool Research.                                                                       |
+| `rt` at scale                                                                  | Elixir, then Go or Rust        | Memory per connection and flat p99.                                                                                                               |
+| Steady, CPU-bound, high volume, long-lived processes                           | Java with ZGC, C#, or Rust     | Highest throughput per dollar once warm.                                                                                                          |
+| Spiky traffic on Serverless Functions                                          | Go or Rust                     | Cold starts. A GraalVM native image fits here too: it starts in under 100 ms.                                                                     |
+| `ai` glue, embeddings, reranking                                               | Python with FastAPI            | The ML ecosystem bonus: +20% on `ai` in Python, and FastAPI adds 15%.                                                                             |
+| A hot path service where p99 matters more than Dev Hours (Discord read states) | Rust                           | No GC pauses. Discord moved a service from Go to Rust for this reason in 2020.                                                                    |
+| 40 engineers in one codebase                                                   | Symfony                        | The only framework the build models as structured: −30% tech debt and coordination. Spring Boot and NestJS are built, but their structure is not. |
+| Pre-IPO cost cutting on a large fleet                                          | Go or Rust on ARM instances    | Low memory and good speed on cheaper instances.                                                                                                   |
 
 ## Migrations
 

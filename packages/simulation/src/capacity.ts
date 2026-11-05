@@ -17,6 +17,16 @@ import {
   LOCAL_DB_RAM_PER_USER,
   LOGIN_DELEGATED_CPU,
   OPCACHE_SPEED,
+  YJIT_SPEED,
+  YJIT_MEMORY,
+  JEMALLOC_SPEED,
+  JEMALLOC_MEMORY,
+  PHP_JIT_SPEED,
+  PHP_JIT_HEAVY,
+  NIF_SPEED,
+  CPU_HEAVY_KINDS,
+  WORKER_THREADS,
+  WORKER_THREAD_MB,
   ORM_READS,
   OS_RAM,
   PM_MODES,
@@ -230,11 +240,61 @@ export const speedOf = (game: Game, node: GameNode): number => {
       ? 1 + (OPCACHE_SPEED - 1) * warmOf(node.life)
       : 1
   const collector = runtime.language === 'java' ? COLLECTORS[node.collector].speed : 1
+  // A variant's speed multiplier: YJIT and jemalloc (06 "Ruby", "Rust").
+  const variant =
+    (runtime.language === 'ruby' && has(game, 'yjit') ? YJIT_SPEED : 1) *
+    (runtime.language === 'rust' && has(game, 'jemalloc') ? JEMALLOC_SPEED : 1)
   return (
     runtime.speed *
     collector *
     opcache *
+    variant *
     (runtime.warmFrom + (1 - runtime.warmFrom) * warmOf(node.life))
+  )
+}
+
+/**
+ * A variant's memory cost: YJIT's 20% and jemalloc's 5% multiply the runtime's base, and Node.js
+ * worker threads add a fixed pool at 10 MB a thread (06 "Variants by language").
+ */
+export const variantMemoryOf = (
+  game: Game,
+  node: GameNode,
+): Readonly<{ factor: number; extraMB: number }> => {
+  const runtime = RUNTIMES[node.runtime]
+  return {
+    factor:
+      (runtime.language === 'ruby' && has(game, 'yjit') ? YJIT_MEMORY : 1) *
+      (runtime.language === 'rust' && has(game, 'jemalloc') ? JEMALLOC_MEMORY : 1),
+    extraMB:
+      runtime.language === 'node' && has(game, 'worker-threads')
+        ? WORKER_THREADS * WORKER_THREAD_MB
+        : 0,
+  }
+}
+
+/**
+ * A variant's per-kind CPU multiplier: the PHP JIT helps CPU-heavy kinds more than web kinds, and
+ * NIFs make Elixir's CPU-heavy kinds 3× faster (06 "PHP", "Elixir").
+ */
+const kindSpeedOf = (game: Game, node: GameNode, kind: RequestKind): number => {
+  const runtime = RUNTIMES[node.runtime]
+  const heavy = CPU_HEAVY_KINDS.includes(kind)
+  let speed = 1
+  if (runtime.language === 'php' && has(game, 'php-jit'))
+    speed *= heavy ? PHP_JIT_HEAVY : PHP_JIT_SPEED
+  if (runtime.language === 'elixir' && has(game, 'nifs') && heavy) speed *= NIF_SPEED
+  return speed
+}
+
+/** Framework CPU overhead per request, which worker mode and Swoole remove (06 "Frameworks"). */
+const overheadOf = (node: GameNode, kind: RequestKind): number => {
+  const runtime = RUNTIMES[node.runtime]
+  const framework = FRAMEWORKS[node.framework]
+  // FastAPI's overhead is ASGI's: on a process-per-request server it does not apply.
+  if (framework.asgi && runtime.model !== 'loop') return framework.cpu?.[kind] ?? 1
+  return (
+    (1 + (framework.overhead - 1) * (runtime.overheadFactor ?? 1)) * (framework.cpu?.[kind] ?? 1)
   )
 }
 
@@ -269,15 +329,18 @@ export const SHED_AT = 0.9
 const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number => {
   const { game, node } = context
   const profile = profileOf(game, kind)
-  const framework = FRAMEWORKS[node.framework]
   const speed = speedOf(game, node)
+  const overhead = overheadOf(node, kind)
   const login = asLogin(game, kind)
+  const variant = kindSpeedOf(game, node, kind)
   let cpu =
     login && context.delegated && !context.worker
-      ? (LOGIN_DELEGATED_CPU * framework.overhead) / speed
+      ? (LOGIN_DELEGATED_CPU * overhead) / speed
       : profile.native
         ? profile.cpu * (login ? context.hashing : 1)
-        : (profile.cpu * framework.overhead) / speed
+        : (profile.cpu * overhead) / speed
+  // The JIT and NIFs change what one request of a kind costs the CPU, native work included.
+  cpu /= variant
   // A Worker runs the part that went async; the App Server keeps the rest.
   if (context.worker) return cpu * profile.offload * (1 + context.sampling)
   if (context.offloaded) cpu *= 1 - profile.offload
@@ -348,6 +411,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const { game, node, arriving } = context
   const runtime = RUNTIMES[node.runtime]
   const framework = FRAMEWORKS[node.framework]
+  const variant = variantMemoryOf(game, node)
   // Copies an Autoscaler added serve as one Node: every resource scales with them.
   const copies = node.replicas
   const vcpu = vcpuOf(node) * context.boost * copies
@@ -388,7 +452,10 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
       : 0
   const ramUsed =
     OS_RAM * copies +
-    (resident * (runtime.memory * (collectorOf(node)?.memory ?? 1) + framework.memory)) / 1024 +
+    (resident *
+      (runtime.memory * variant.factor * (collectorOf(node)?.memory ?? 1) + framework.memory)) /
+      1024 +
+    (resident * variant.extraMB) / 1024 +
     (context.local ? LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER : 0) +
     node.leak +
     connectionRam
@@ -499,9 +566,16 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   // The stall hits LOOP_TAIL_SHARE of requests, above 1%, so it lands on the p99 and not the p95.
   // The libuv pool and an Auth Provider take the login hash off the loop, not the rest.
   const offLoop = (kind: RequestKind): boolean =>
-    asLogin(game, kind) && (has(game, 'libuv-pool') || context.delegated)
-  // Tokio blocks one worker thread of many: the stall lands on a share of requests per core.
-  const onLoop = runtime.blocking !== null ? kinds.filter((kind) => !offLoop(kind)) : []
+    (asLogin(game, kind) && (has(game, 'libuv-pool') || context.delegated)) ||
+    // Worker threads take CPU-heavy kinds off Node.js's loop (06 "Event loops and blocking").
+    (runtime.language === 'node' && has(game, 'worker-threads') && CPU_HEAVY_KINDS.includes(kind))
+  // Tokio blocks one worker thread of many: the stall lands on a share of requests per core. Its
+  // blocking pool removes that, and a runtime that never blocks has none (06 "Rust").
+  const blocking =
+    runtime.blocking === 'worker' && runtime.language === 'rust' && has(game, 'spawn-blocking')
+      ? null
+      : runtime.blocking
+  const onLoop = blocking !== null ? kinds.filter((kind) => !offLoop(kind)) : []
   const callback = (kind: RequestKind): number => cpu[kind] / perRequest
   const loopWork = onLoop.reduce((sum, kind) => sum + (arriving[kind] ?? 0) * callback(kind), 0)
   const loopSquares = onLoop.reduce(
@@ -511,7 +585,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const loopBlock = loopWork > 0 ? loopSquares / loopWork : 0
   const stallP =
     loopBlock > 0
-      ? runtime.blocking === 'worker'
+      ? blocking === 'worker'
         ? LOOP_TAIL_SHARE / Math.max(1, cores)
         : LOOP_TAIL_SHARE
       : pm.spawnShare

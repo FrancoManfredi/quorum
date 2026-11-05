@@ -416,6 +416,19 @@ export const FocusInspector = Command.define('FocusInspector', {
     }),
 })
 
+/** Moves keyboard focus onto the Dashboard's scroll area, so Tab, arrows, and Page Down scroll it. */
+export const FocusDashboard = Command.define('FocusDashboard', {
+  args: {},
+  messages: [Message.Synced],
+  execute: () =>
+    Effect.promise(async () => {
+      // The panel renders in the same update, so wait for its frame before focusing it.
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      document.querySelector<HTMLElement>('[data-scroll="dashboard"]')?.focus()
+      return Message.Synced()
+    }),
+})
+
 export const ToggleFullscreen = Command.define('ToggleFullscreen', {
   args: {},
   messages: [Message.Synced],
