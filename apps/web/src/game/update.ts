@@ -127,6 +127,7 @@ import {
   closed,
   folderList,
   mailed,
+  openingFolder,
   reading,
   resolvedExcept,
   updateInbox,
@@ -3678,7 +3679,10 @@ const handle = (model: Model, message: Message): Result =>
               ...opened,
               board: {
                 ...opened.board,
-                inbox: reading({ ...opened.board.inbox, folder: 'action' }),
+                inbox: reading({
+                  ...opened.board.inbox,
+                  folder: openingFolder(opened.board.inbox),
+                }),
               },
             }
           : opened

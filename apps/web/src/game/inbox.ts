@@ -113,6 +113,13 @@ export const closed = (inbox: Inbox, key: string, time: number, text: string): I
 export const folderList = (inbox: Inbox): ReadonlyArray<Mail> =>
   inbox.mail.filter((mail) => folderHolds(mail, inbox.folder)).reverse()
 
+/** The Inbox opens on Needs action, or on FYI when nothing needs action and FYI has unread Mail. */
+export const openingFolder = (inbox: Inbox): Folder =>
+  !inbox.mail.some((mail) => folderHolds(mail, 'action')) &&
+  inbox.mail.some((mail) => !mail.read && folderHolds(mail, 'fyi'))
+    ? 'fyi'
+    : 'action'
+
 /** The Inbox on one Mail, or the newest in its folder, which counts as read. */
 export const reading = (inbox: Inbox, focus: number | null = null): Inbox => {
   const inFolder = folderList(inbox)

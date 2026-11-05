@@ -16,7 +16,7 @@ import { SHARED } from '@quorum/simulation/playbook'
 import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
 import { titleIsOpen } from './boot-machine.ts'
-import { boardChallenge, boardSandbox, type Model } from './model.ts'
+import { boardChallenge, boardSandbox, type Mail, type Model } from './model.ts'
 import { init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
@@ -1123,4 +1123,31 @@ test('a Company comes back from a Sandbox as it was: its Inbox, history and undo
   expect(back.board.inbox).toEqual(company.board.inbox)
   expect(back.board.dashboard.history).toEqual(company.board.dashboard.history)
   expect(back.board.undo).toEqual(company.board.undo)
+})
+
+test('the Inbox opens on unread FYI Mail when nothing needs action, and on Needs action otherwise', () => {
+  const letter: Mail = {
+    id: 1,
+    key: 'mentor:grow:0',
+    sender: 'mentor',
+    subject: 'On the way to Pre-seed',
+    time: 0,
+    entries: [{ time: 0, text: 'Grow to 1,000 users.' }],
+    actions: [],
+    answer: null,
+    read: false,
+    trashed: false,
+    spam: false,
+    resolved: null,
+  }
+  const offer = { ...letter, id: 2, key: 'offer', actions: [{ id: 'raise', label: 'Raise' }] }
+  const start = inLab()
+  const opened = (mail: ReadonlyArray<Mail>) =>
+    update(
+      { ...start, board: { ...start.board, inbox: { ...start.board.inbox, mail } } },
+      Message.PanelOpened({ panel: 'inbox' }),
+    ).model.board.inbox
+  expect(opened([letter])).toMatchObject({ folder: 'fyi', focus: 1 })
+  expect(opened([{ ...letter, read: true }]).folder).toBe('action')
+  expect(opened([letter, offer])).toMatchObject({ folder: 'action', focus: 2 })
 })
