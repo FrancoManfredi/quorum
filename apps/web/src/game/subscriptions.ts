@@ -8,7 +8,7 @@ import { Message } from './message.ts'
 import { TeamMessage } from './team.ts'
 import { halted, type Model } from './model.ts'
 import { onBoard } from './route.ts'
-import { TICK_MS } from './update.ts'
+import { TICK_MS, REPEAT_MS } from './update.ts'
 
 /* ==========================================================================
    Time and keys. The company runs while the lab is open and not paused, even
@@ -93,6 +93,25 @@ const blurs = Stream.callback<Message>((queue) =>
           window.removeEventListener('blur', blurred)
           window.removeEventListener('focus', focused)
           document.removeEventListener('visibilitychange', changed)
+        }
+      }),
+      (cleanup) => Effect.sync(cleanup),
+    )
+    return yield* Effect.never
+  }),
+)
+
+/** Any pointer lift anywhere ends a hold, even when the button under it has unmounted. */
+const releases = Stream.callback<Message>((queue) =>
+  Effect.gen(function* () {
+    yield* Effect.acquireRelease(
+      Effect.sync(() => {
+        const lifted = () => Queue.offerUnsafe(queue, Message.HoldLifted())
+        window.addEventListener('pointerup', lifted)
+        window.addEventListener('pointercancel', lifted)
+        return () => {
+          window.removeEventListener('pointerup', lifted)
+          window.removeEventListener('pointercancel', lifted)
         }
       }),
       (cleanup) => Effect.sync(cleanup),
@@ -226,6 +245,34 @@ export const subscriptions = {
         }),
         dependenciesToStream: ({ lab, dragging }: { lab: boolean; dragging: boolean }) =>
           lab && !dragging ? keys : Stream.empty,
+      },
+    ),
+
+    /**
+     * A held buy or upgrade control asks the Model to buy again every REPEAT_MS.
+     * `Stream.tick` emits once and then once per interval, and each one is
+     * pulled only when the last was handled, so a slow frame or a tab that was
+     * in the background delivers one repeat, never a catch-up burst.
+     */
+    holds: entry(
+      { nodeId: Schema.NullOr(Schema.String) },
+      {
+        modelToDependencies: (model: Model) => ({ nodeId: model.board.hold?.nodeId ?? null }),
+        dependenciesToStream: ({ nodeId }: { nodeId: string | null }) =>
+          nodeId
+            ? Stream.tick(REPEAT_MS).pipe(
+                Stream.map(() => Message.HoldRepeated({ nodeId, now: Date.now() })),
+              )
+            : Stream.empty,
+      },
+    ),
+
+    /** While something is held, a pointer lift anywhere ends it. */
+    releases: entry(
+      { held: Schema.Boolean },
+      {
+        modelToDependencies: (model: Model) => ({ held: model.board.hold !== null }),
+        dependenciesToStream: ({ held }: { held: boolean }) => (held ? releases : Stream.empty),
       },
     ),
     teamDragScroll: entry(

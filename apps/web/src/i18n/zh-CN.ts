@@ -275,6 +275,10 @@ export const zhCN: Readonly<Record<string, string>> = {
   Resize: '调整规格',
   Scale: '扩容',
   Upgrade: '升级',
+  'Upgrade all': '全部升级',
+  'Upgrade all {0}': '全部升级 {0} 个',
+  'Upgrade every {0} here': '升级此处所有{0}',
+  'One size on every {0} on this board': '本板所有{0}各提升一级',
   Downgrade: '降级',
   Sell: '出售',
   Undo: '撤销',
@@ -1044,6 +1048,16 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Network partition': '网络分区',
   'BGP misconfiguration': 'BGP 配置错误',
   'Audit finding': '审计问题',
+  'Latency regression': '延迟回退',
+  'A deploy put one more synchronous call on every request: each answer is 150 ms slower.':
+    '一次部署给每个请求多加了一个同步调用：每个响应都慢了 150 毫秒。',
+  'Percentiles and tracing on the request path, and a canary that watches p99.':
+    '在请求路径上做百分位与追踪，并用金丝雀监控 p99。',
+  'Deadline day': '截止日',
+  "The contract's deadline landed: every agency sent its work at once, 3× the usual demand.":
+    '合同截止日到来：所有机构同时提交工作，需求是平时的 3 倍。',
+  'Reserved capacity, load shedding, and a Queue for the deadline work.':
+    '预留容量、降载，并为截止日的工作加一个队列。',
   'B2B SaaS': '企业 SaaS',
   'Evening peak': '晚间高峰',
   'Consumer social': '大众社交',
@@ -1058,6 +1072,18 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Flat demand; AI ×3': '需求平稳；AI 流量 ×3',
   'E-commerce': '电子商务',
   'Buy ×2, search ×2': '购买 ×2，搜索 ×2',
+  'Developer platform': '开发者平台',
+  'Flat, bursty; reads ×2; webhooks ×3 from Series C; no naive retries':
+    '需求平稳但有突发；读取 ×2；C 轮起 Webhook ×3；不得使用朴素重试',
+  Healthcare: '医疗健康',
+  'Business hours; writes +50%; data stays in the home region from Series A':
+    '工作时间高峰；写入 +50%；A 轮起数据留在主区域',
+  'Ad tech': '广告科技',
+  'Flat and enormous; page ×1.5, reads ×2; a request over 100 ms earns nothing':
+    '需求平稳且巨大；页面 ×1.5，读取 ×2；超过 100 毫秒的请求不赚钱',
+  'Government contract': '政府合同',
+  'Business hours, deadline spikes; Java or C# only; a placement takes a day':
+    '工作时间高峰与截止日峰值；只能用 Java 或 C#；部署需等待一天',
   'Bootstrapped indie': '自筹资金独立开发',
   'No funding rounds; Equity stays 100%': '无融资轮次；保留 100% 股权',
   'Chaos Monkey': '混沌猴',

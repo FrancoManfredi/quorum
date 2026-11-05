@@ -4,6 +4,7 @@ import {
   ERAS,
   FIRST_INCIDENT_AFTER,
   LINK_TIMEOUT,
+  START_CASH,
   type ComponentId,
 } from './catalog.ts'
 import {
@@ -119,7 +120,7 @@ export const link = (from: string, to: string): GameLink => ({
 
 export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   nextId: 1,
-  cash: 300,
+  cash: START_CASH,
   insight: 0,
   pools: NO_INSIGHT,
   studies: [],
@@ -206,7 +207,7 @@ export const preseedGame = (seed = 20_261_031): Game => {
       node('payments', 'payments', 440, 540),
     ],
     links: [link('users', 'server'), link('server', 'database'), link('server', 'analytics')],
-    cash: 300 + (garage?.grant ?? 0),
+    cash: START_CASH + (garage?.grant ?? 0),
     pools: { ...NO_INSIGHT, write: 20, login: 20 },
     users: 1_050,
     stage: 1,

@@ -66,6 +66,10 @@ export type BoardEvents = Readonly<{
   onNodeTap: (nodeId: string) => void
   onNodeMove: (nodeId: string, x: number, y: number) => void
   onFooter: (nodeId: string) => void
+  /** A held footer bought once and is still down, so the host repeats it (15 "Bulk actions"). */
+  onHoldStart?: (nodeId: string) => void
+  /** The pointer lifted, so the host stops repeating. */
+  onHoldEnd?: (nodeId: string) => void
   onLink: (from: string, to: string) => void
   onUnlink: (from: string, to: string) => void
   onPlace: (x: number, y: number) => void
@@ -1553,6 +1557,8 @@ class BoardController {
   private pressed: string | null = null
   /** When the held footer button went down, in ms. */
   private holdSince = 0
+  /** The Node whose footer bought once and stays down, so the host repeats it. */
+  private holding: string | null = null
   private state: BoardState | null = null
   private gesture: Gesture = null
   private hoverLink: Readonly<{ from: string; to: string }> | null = null
@@ -1716,6 +1722,8 @@ class BoardController {
 
   destroy(): void {
     if (this.destroyed) return
+    // Leaving the screen with the pointer down still ends the hold.
+    this.endHold()
     this.destroyed = true
     this.abort.abort()
     this.resize.disconnect()
@@ -2271,6 +2279,7 @@ class BoardController {
     )
 
     const finish = (event: PointerEvent, cancelled: boolean) => {
+      this.endHold()
       this.touches.delete(event.pointerId)
       if (this.pinch) {
         // The pinch ends with its first finger; the other one does nothing until it lifts.
@@ -2415,6 +2424,17 @@ class BoardController {
     this.syncCards()
     this.views.get(id)?.celebrate()
     this.events.onFooter(id)
+    // The pointer is still down: the host buys again every repeat until it lifts.
+    this.holding = id
+    this.events.onHoldStart?.(id)
+  }
+
+  /** The pointer lifted: the host stops repeating the held footer button. */
+  private endHold(): void {
+    const id = this.holding
+    if (!id) return
+    this.holding = null
+    this.events.onHoldEnd?.(id)
   }
 
   private letGo(): void {

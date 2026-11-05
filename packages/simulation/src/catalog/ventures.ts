@@ -1,7 +1,10 @@
 /* Ventures and Mutators (13 "Ventures", "Mutators"). */
 
 import type { ComponentId } from './components.ts'
+import type { IncidentId } from './incidents.ts'
 import type { RequestKind } from './kinds.ts'
+import type { ResearchId } from './research.ts'
+import type { LanguageId, RuntimeId } from './runtimes.ts'
 
 export const VENTURE_IDS = [
   'b2b-saas',
@@ -11,9 +14,64 @@ export const VENTURE_IDS = [
   'game-backend',
   'ai-startup',
   'e-commerce',
+  'developer-platform',
+  'healthcare',
+  'ad-tech',
   'bootstrapped',
+  'government',
 ] as const
 export type VentureId = (typeof VENTURE_IDS)[number]
+
+/** Cash the Garage starts with, in dollars (13 "Ventures"). */
+export const START_CASH = 300
+
+/** What a Venture starts with, on top of the Garage or Pre-seed board. */
+export type VentureStart = Readonly<{
+  /** Cash on the first day, in dollars. */
+  cash: number
+  /** Equity the founders keep before any round. */
+  equity: number
+  /** The Era it starts in: 0 is the Garage, 1 is Pre-seed. */
+  stage: number
+  /** The Stack its first App Server already runs, or null for the board's own. */
+  runtime: RuntimeId | null
+  /** Research the Company starts with, on top of the board's. */
+  researched: ReadonlyArray<ResearchId>
+}>
+
+/** The Garage start: the default Venture's, unchanged. */
+export const GARAGE_START: VentureStart = {
+  cash: START_CASH,
+  equity: 1,
+  stage: 0,
+  runtime: null,
+  researched: [],
+}
+
+/**
+ * The rule that makes a Venture hard (13 "Ventures"). Every Venture has one;
+ * the default Venture's is the empty constraint. Proposed fields say so above.
+ */
+export type VentureConstraint = Readonly<{
+  /** Customers write their own retry loops: no naive retries on any Link. */
+  noNaiveRetries: boolean
+  /** From this Era (stage) on, data Components stay in the home region; null for none. */
+  residency: number | null
+  /** A request slower than this many milliseconds earns nothing; null for none. */
+  deadline: number | null
+  /** A bought Component runs one calendar day after it is paid for. */
+  procurement: boolean
+  /** Every service runs one of these languages; null for any. */
+  languages: ReadonlyArray<LanguageId> | null
+}>
+
+export const NO_CONSTRAINT: VentureConstraint = {
+  noNaiveRetries: false,
+  residency: null,
+  deadline: null,
+  procurement: false,
+  languages: null,
+}
 
 export type VentureDef = Readonly<{
   id: VentureId
@@ -32,6 +90,12 @@ export type VentureDef = Readonly<{
   market: number
   /** No funding rounds: Equity stays 100%, and declining costs no growth. */
   bootstrapped: boolean
+  /** The Cash, Equity, Era and Stack it starts with. */
+  start: VentureStart
+  /** The rule that makes it hard, enforced in founding.ts. */
+  constraint: VentureConstraint
+  /** The incident that recurs for it, or null for the default Venture's none. */
+  signature: IncidentId | null
   legacy: number
   /** The shape and rule, in one line. */
   summary: string
@@ -47,6 +111,9 @@ const venture = (
   value: 1,
   market: 1,
   bootstrapped: false,
+  start: GARAGE_START,
+  constraint: NO_CONSTRAINT,
+  signature: null,
   ...entry,
 })
 
@@ -116,6 +183,74 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     mix: { buy: 2, search: 2 },
     legacy: 1.2,
     summary: 'Buy ×2, search ×2',
+  }),
+  // Flat, bursty API clients. The no-naive-retries rule and the Series C
+  // webhooks are the design's; the curve, the mix boosts, the market, the start
+  // and the Legacy multiplier are proposed.
+  'developer-platform': venture({
+    id: 'developer-platform',
+    name: 'Developer platform',
+    cost: 20,
+    amplitude: 0.1,
+    mix: { read: 2, hook: 3 },
+    market: 1.5,
+    legacy: 1.35,
+    constraint: { ...NO_CONSTRAINT, noNaiveRetries: true },
+    signature: 'retry-storm',
+    summary: 'Flat, bursty; reads ×2; webhooks ×3 from Series C; no naive retries',
+  }),
+  // Business hours, writes and records. The residency rule, from Series A, is
+  // the design's; the curve, the ×1.5 writes and the Legacy multiplier are
+  // proposed.
+  healthcare: venture({
+    id: 'healthcare',
+    name: 'Healthcare',
+    cost: 30,
+    peak: 14,
+    weekend: 0.4,
+    mix: { write: 1.5 },
+    legacy: 1.4,
+    constraint: { ...NO_CONSTRAINT, residency: 3 },
+    signature: 'audit',
+    summary: 'Business hours; writes +50%; data stays in the home region from Series A',
+  }),
+  // Flat, enormous, and cheap per request. The 100 ms deadline is the design's;
+  // the mix (its bid kind is not built), the market and the value are proposed.
+  'ad-tech': venture({
+    id: 'ad-tech',
+    name: 'Ad tech',
+    cost: 30,
+    amplitude: 0.05,
+    mix: { page: 1.5, read: 2 },
+    value: 0.4,
+    market: 3,
+    start: { ...GARAGE_START, cash: 400 },
+    legacy: 1.3,
+    constraint: { ...NO_CONSTRAINT, deadline: 100 },
+    signature: 'latency-regression',
+    summary: 'Flat and enormous; page ×1.5, reads ×2; a request over 100 ms earns nothing',
+  }),
+  // Business hours and deadline spikes, on a Java or C# service bought through a
+  // procurement cycle. The rule is the design's; the curve, the contract cash
+  // and the Java starter are proposed.
+  government: venture({
+    id: 'government',
+    name: 'Government contract',
+    cost: 40,
+    peak: 14,
+    weekend: 0.2,
+    value: 2,
+    market: 0.8,
+    start: {
+      ...GARAGE_START,
+      cash: 900,
+      runtime: 'tomcat',
+      researched: ['lang-java'],
+    },
+    legacy: 1.5,
+    constraint: { ...NO_CONSTRAINT, procurement: true, languages: ['java', 'csharp'] },
+    signature: 'deadline-day',
+    summary: 'Business hours, deadline spikes; Java or C# only; a placement takes a day',
   }),
   bootstrapped: venture({
     id: 'bootstrapped',

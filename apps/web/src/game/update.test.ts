@@ -11,7 +11,7 @@ import { fromString } from 'foldkit/url'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { SIZES } from '@quorum/simulation/catalog'
 import { COMPONENTS, researchList } from '@quorum/simulation/catalog'
-import { researchReady } from '@quorum/simulation/lookups'
+import { researchReady, resizePrice } from '@quorum/simulation/lookups'
 import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { WorkItem } from '@quorum/simulation/state'
@@ -1258,6 +1258,111 @@ test('buying ten sizes grows a Node once, and Max reaches the largest size', () 
   expect(ten.board.game.cash).toBeLessThan(placed.board.game.cash)
   const max = update(placed, Message.BulkResizeChosen({ nodeId: id, mode: 'max' })).model
   expect(sizeOf(max)).toBe(SIZES.length - 1)
+})
+
+test('a held buy repeats once a tick, and stops on release', () => {
+  const base: Model = {
+    ...inLab(),
+    board: { ...inLab().board, game: { ...newGame(), cash: 1e9 } },
+  }
+  const sizeOf = (model: Model) =>
+    model.board.game.nodes.find((node) => node.id === 'server')?.size ?? -1
+  const held = update(base, Message.HoldStarted({ nodeId: 'server', now: 1_000 })).model
+  expect(held.board.hold).toEqual({ nodeId: 'server', at: 1_000 })
+  // Inside the repeat the hold buys nothing.
+  expect(sizeOf(update(held, Message.HoldRepeated({ nodeId: 'server', now: 1_100 })).model)).toBe(1)
+  const one = update(held, Message.HoldRepeated({ nodeId: 'server', now: 1_250 })).model
+  expect(sizeOf(one)).toBe(2)
+  // A stalled frame delivers stale repeats: the third buys once, and the rest wait.
+  const stale = [1_260, 1_270, 1_280].reduce(
+    (model, now) => update(model, Message.HoldRepeated({ nodeId: 'server', now })).model,
+    one,
+  )
+  expect(sizeOf(stale)).toBe(2)
+  // The next tick counts from when that buy landed, not from the stale ones.
+  expect(sizeOf(update(stale, Message.HoldRepeated({ nodeId: 'server', now: 1_510 })).model)).toBe(
+    3,
+  )
+  // Release ends the hold, and a late repeat buys nothing.
+  const released = update(one, Message.HoldEnded({ nodeId: 'server' })).model
+  expect(released.board.hold).toBe(null)
+  expect(
+    sizeOf(update(released, Message.HoldRepeated({ nodeId: 'server', now: 9_000 })).model),
+  ).toBe(2)
+  // A pointer lift anywhere ends it too, so a button that unmounted cannot keep buying.
+  expect(update(held, Message.HoldLifted()).model.board.hold).toBe(null)
+})
+
+test('a held buy stops at the size cap or when Cash runs out, and says why once', () => {
+  const base = (cash: number): Model => ({
+    ...inLab(),
+    board: { ...inLab().board, game: { ...newGame(), cash } },
+  })
+  const sizeOf = (model: Model) =>
+    model.board.game.nodes.find((node) => node.id === 'server')?.size ?? -1
+  let rising = update(base(1e9), Message.HoldStarted({ nodeId: 'server', now: 0 })).model
+  for (let tick = 1; tick <= 12; tick += 1)
+    rising = update(rising, Message.HoldRepeated({ nodeId: 'server', now: tick * 250 })).model
+  expect(sizeOf(rising)).toBe(SIZES.length - 1)
+  expect(rising.board.hold).toBe(null)
+  expect(rising.toast?.tone).toBe('warn')
+  expect(rising.toast?.message).toContain('largest size')
+  expect(sizeOf(update(rising, Message.HoldRepeated({ nodeId: 'server', now: 9_000 })).model)).toBe(
+    SIZES.length - 1,
+  )
+
+  let broke = update(base(10), Message.HoldStarted({ nodeId: 'server', now: 0 })).model
+  broke = update(broke, Message.HoldRepeated({ nodeId: 'server', now: 250 })).model
+  expect(sizeOf(broke)).toBe(1)
+  expect(broke.board.hold).toBe(null)
+  expect(broke.toast?.tone).toBe('warn')
+})
+
+test('upgrade all of a kind is one action with one undo entry and one toast that says what happened', () => {
+  const start = (cash: number): Model => {
+    let model: Model = { ...inLab(), board: { ...inLab().board, game: { ...newGame(), cash } } }
+    for (const y of [400, 560]) {
+      const picking = update(model, Message.PlacingChosen({ type: 'server' }))
+      model = update(picking.model, Message.NodePlaced({ x: 400, y })).model
+    }
+    return model
+  }
+  const servers = (model: Model) => model.board.game.nodes.filter((node) => node.type === 'server')
+  const base = start(1e9)
+  const id = servers(base)[0]?.id ?? ''
+  const once = update(base, Message.UpgradeAllChosen({ nodeId: id })).model
+  expect(servers(once).map((node) => node.size)).toEqual([2, 2, 2])
+  expect(once.board.undo.length).toBe(base.board.undo.length + 1)
+  expect(once.toast?.message).toContain('App Server ×3 grew one size')
+  expect(once.toast?.message).toContain('Undo (Z) refunds')
+
+  // One at its cap is skipped and named.
+  const capped = update(base, Message.BulkResizeChosen({ nodeId: id, mode: 'max' })).model
+  const partial = update(capped, Message.UpgradeAllChosen({ nodeId: id })).model
+  expect(servers(partial).map((node) => node.size)).toEqual([SIZES.length - 1, 2, 2])
+  expect(partial.toast?.message).toContain('App Server ×2 grew one size')
+  expect(partial.toast?.message).toContain('1 at the largest size')
+
+  // Cash short of the whole run stops where it stands.
+  const step =
+    resizePrice(base.board.game, servers(base)[0] as (typeof base.board.game.nodes)[number]) ?? 0
+  const poor: Model = {
+    ...base,
+    board: { ...base.board, game: { ...base.board.game, cash: step } },
+  }
+  const short = update(poor, Message.UpgradeAllChosen({ nodeId: id })).model
+  expect(servers(short).map((node) => node.size)).toEqual([2, 1, 1])
+  expect(short.toast?.message).toContain('Cash ran out')
+
+  // Every server at its cap refuses, and writes no undo entry.
+  let all = base
+  for (const node of servers(base))
+    all = update(all, Message.BulkResizeChosen({ nodeId: node.id, mode: 'max' })).model
+  const refused = update(all, Message.UpgradeAllChosen({ nodeId: id }))
+  expect(refused.model.board.game).toBe(all.board.game)
+  expect(refused.model.board.undo.length).toBe(all.board.undo.length)
+  expect(refused.model.toast?.tone).toBe('warn')
+  expect(refused.model.toast?.message).toContain('largest size')
 })
 
 describe('Mail actions (GDD 18)', () => {

@@ -22,7 +22,7 @@ import {
   HOME_REGION,
 } from './catalog.ts'
 import { StepEvent } from './events.ts'
-import { mutatorWeight, openActionWeight } from './founding.ts'
+import { mutatorWeight, openActionWeight, signatureWeakness, signatureWeight } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
   clusterOf,
@@ -252,7 +252,8 @@ const busiestRegion = (game: Game): Region | undefined => {
 /** How hard this incident would hit the current Design: 0 when it has nothing to hit, else 0.2 to 3. */
 export const weaknessOf = (game: Game, ledger: Ledger, kind: IncidentId): number => {
   if (INCIDENTS[kind].era > game.stage) return 0
-  const weakness = rawWeakness(game, ledger, kind)
+  // A Venture's signature incident keeps its own floor: only that Venture meets it often.
+  const weakness = Math.max(rawWeakness(game, ledger, kind), signatureWeakness(game, kind))
   return weakness > 0 ? Math.max(MIN_WEAKNESS, weakness) : 0
 }
 
@@ -336,6 +337,9 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
           : 2
         : 0,
     'gc-storm': () => Math.max(0, ...gcTargets(game, ledger).map(([, weight]) => weight)),
+    // A signature-only incident: its weakness is the Venture's floor, and no one else's (13).
+    'latency-regression': () => 0,
+    'deadline-day': () => 0,
     // Naive retries into a Database turn a slowdown into a storm; backoff contains it.
     'retry-storm': () => {
       if (!busiest(game, ledger, 'database')) return 0
@@ -597,6 +601,8 @@ export const directIncidents = (
         [
           id,
           (INCIDENTS[id].severity < cap ? 0 : weaknessOf(game, ledger, id)) *
+            // A Venture's signature incident recurs for it.
+            signatureWeight(game, id) *
             // Tech debt makes every incident likelier (08 "Tech debt").
             (1 + serviceOf(game).debt) *
             (id === game.lastIncident ? REPEAT_WEIGHT : 1) *

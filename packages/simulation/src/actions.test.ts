@@ -10,11 +10,12 @@ import {
   sell,
   setPricing,
   study,
+  upgradeAll,
   type Action,
 } from './actions.ts'
-import { RESERVED_SECONDS } from './catalog.ts'
+import { RESERVED_SECONDS, SIZES } from './catalog.ts'
 import { newGame, node as makeNode, preseedGame } from './company.ts'
-import { burnOf, refundOf, sizeName } from './lookups.ts'
+import { burnOf, refundOf, resizePrice, sizeName } from './lookups.ts'
 import { solve } from './solve.ts'
 import type { Game } from './state.ts'
 
@@ -103,6 +104,85 @@ describe('sizes', () => {
     )
       game = ok(resize(game, 'server', 1))
     expect(refusal(resize(game, 'server', 1))).toBe('NotAllowed')
+  })
+})
+
+describe('upgrade all of a type', () => {
+  /** Two App Servers beside the one the Garage start already has, all at size 1. */
+  const threeServers = (): Game => {
+    let game: Game = { ...newGame(), cash: 1e9 }
+    game = ok(place(game, 'server', 440, 440))
+    game = ok(place(game, 'server', 440, 620))
+    return game
+  }
+  const servers = (game: Game): ReadonlyArray<Game['nodes'][number]> =>
+    game.nodes.filter((node) => node.type === 'server')
+  const outcome = (result: ReturnType<typeof upgradeAll>) => {
+    if (Result.isFailure(result)) throw new Error(JSON.stringify(result.failure))
+    return result.success
+  }
+  const refused = (result: ReturnType<typeof upgradeAll>): string =>
+    Result.isFailure(result) ? result.failure._tag : 'accepted'
+
+  test('it pays the same price as one click each, and every App Server grows one size', () => {
+    const game = threeServers()
+    const steps = servers(game).reduce((sum, node) => sum + (resizePrice(game, node) ?? 0), 0)
+    const bought = outcome(upgradeAll(game, 'server'))
+    expect(bought.upgraded).toBe(3)
+    expect(bought.skipped).toBe(0)
+    expect(bought.short).toBe(false)
+    expect(game.cash - bought.game.cash).toBe(steps)
+    for (const node of servers(bought.game)) expect(node.size).toBe(2)
+  })
+
+  test('it skips an App Server already at its largest size, and leaves it there', () => {
+    const game = threeServers()
+    const capped = servers(game)[1]?.id ?? ''
+    const cap = (entry: Game) =>
+      entry.nodes.find((node) => node.id === capped) as Game['nodes'][number]
+    let grown = game
+    while (resizePrice(grown, cap(grown)) !== null) grown = ok(resize(grown, capped, 1))
+    const bought = outcome(upgradeAll(grown, 'server'))
+    expect(bought.upgraded).toBe(2)
+    expect(bought.skipped).toBe(1)
+    expect(bought.short).toBe(false)
+    expect(cap(bought.game).size).toBe(SIZES.length - 1)
+    for (const node of servers(bought.game).filter((entry) => entry.id !== capped))
+      expect(node.size).toBe(2)
+  })
+
+  test('it stops when Cash runs out, so no App Server is left half paid for', () => {
+    const game = threeServers()
+    const first = servers(game)[0] as Game['nodes'][number]
+    const price = resizePrice(game, first) ?? 0
+    const bought = outcome(upgradeAll({ ...game, cash: price }, 'server'))
+    expect(bought.upgraded).toBe(1)
+    expect(bought.skipped).toBe(0)
+    expect(bought.short).toBe(true)
+    expect(bought.game.cash).toBe(0)
+    expect(servers(bought.game).map((node) => node.size)).toEqual([2, 1, 1])
+  })
+
+  test('it refuses with nothing bought: every server at the cap, or Cash short of one', () => {
+    const game = threeServers()
+    const poor = upgradeAll({ ...game, cash: 10 }, 'server')
+    expect(refused(poor)).toBe('Unaffordable')
+    expect(Result.isFailure(poor) ? poor.failure : null).toMatchObject({ what: 'An upgrade' })
+    // Seven steps take size 1 to metal, the last size there is.
+    let capped = game
+    for (let step = 0; step < SIZES.length - 2; step += 1)
+      capped = outcome(upgradeAll(capped, 'server')).game
+    expect(servers(capped).map((node) => node.size)).toEqual([
+      SIZES.length - 1,
+      SIZES.length - 1,
+      SIZES.length - 1,
+    ])
+    const done = upgradeAll(capped, 'server')
+    expect(refused(done)).toBe('NotAllowed')
+    expect(Result.isFailure(done) ? done.failure : null).toMatchObject({
+      reason: 'Every App Server is at its largest size.',
+    })
+    expect(refused(upgradeAll(game, 'cache'))).toBe('Missing')
   })
 })
 

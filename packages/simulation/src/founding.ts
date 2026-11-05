@@ -1,10 +1,12 @@
 import {
+  CALENDAR_DAY,
   CHAOS_FROM_STAGE,
   CHAOS_WEIGHT,
   COMPONENTS,
   ERAS,
   HN_WEIGHT,
   HOME_REGION,
+  LANGUAGES,
   MONOLITH_DEBT,
   MONOLITH_KLOC,
   MUTATORS,
@@ -25,7 +27,8 @@ import {
   type VentureDef,
 } from './catalog.ts'
 import { newGame, preseedGame } from './company.ts'
-import type { Founding, Game, Region } from './state.ts'
+import { restarting, type Life } from './life.ts'
+import type { Founding, Game, GameNode, Region, Retries } from './state.ts'
 
 /* ==========================================================================
    What a Company's founding changes (13): perk levels, the Venture, and the
@@ -95,14 +98,76 @@ export const placeRefusal = (game: Game, type: ComponentId, region: Region): str
   }
   if (region !== HOME_REGION && hasMutator(game, 'one-region'))
     return `${MUTATORS['one-region'].name}: the home region only.`
-  return null
+  return venturePlaceRefusal(game, type, region)
 }
 
+/* ---------- Venture rules (13 "Ventures") ---------- */
+
+/**
+ * How much likelier a Venture's signature incident is for it, and the weakness
+ * that incident keeps: an incident only its own Venture can suffer often.
+ */
+export const SIGNATURE_WEIGHT = 4
+export const SIGNATURE_WEAKNESS = 2
+
+/** The Venture's signature incident, or null for a Venture without one. */
+export const signatureOf = (game: Game): IncidentId | null => ventureOf(game).signature
+
+/** Whether this incident is the Venture's signature: the rule that only it can suffer. */
+export const isSignature = (game: Game, kind: IncidentId): boolean =>
+  !game.sandbox && signatureOf(game) === kind
+
+/** The weight a signature incident carries for its Venture; 1 for every other. */
+export const signatureWeight = (game: Game, kind: IncidentId): number =>
+  isSignature(game, kind) ? SIGNATURE_WEIGHT : 1
+
+/** The weakness a signature incident keeps for its Venture, and 0 for every other Company. */
+export const signatureWeakness = (game: Game, kind: IncidentId): number =>
+  isSignature(game, kind) ? SIGNATURE_WEAKNESS : 0
+
+/** Why the Venture keeps data out of this region, or null. Healthcare's residency. */
+export const venturePlaceRefusal = (
+  game: Game,
+  type: ComponentId,
+  region: Region,
+): string | null => {
+  const venture = ventureOf(game)
+  const from = venture.constraint.residency
+  if (from === null || game.stage < from || region === HOME_REGION) return null
+  if (COMPONENTS[type].group !== 'data') return null
+  return `${venture.name}: data stays in the home region from ${ERAS[from]?.name ?? 'here'}.`
+}
+
+/** Why the Venture refuses a retry policy, or null. Its customers already retry. */
+export const retryRefusal = (game: Game, retries: Retries): string | null => {
+  const venture = ventureOf(game)
+  return venture.constraint.noNaiveRetries && retries === 'naive'
+    ? `${venture.name}: customers write their own retry loops.`
+    : null
+}
+
+/** What a request may take and still earn: a bid miss earns nothing. */
+export const earnsInTime = (game: Game, ms: number): boolean => {
+  const deadline = ventureOf(game).constraint.deadline
+  return deadline === null || ms <= deadline
+}
+
+/** A bought Component's lifecycle: procurement runs it one calendar day after it is paid for. */
+export const placedLife = (game: Game, node: GameNode): Life =>
+  ventureOf(game).constraint.procurement ? restarting(CALENDAR_DAY, 'restart', 0) : node.life
+
 /** Why a Mutator refuses a runtime, or null. */
-export const runtimeRefusal = (game: Game, runtime: RuntimeId): string | null =>
-  hasMutator(game, 'single-language') && RUNTIMES[runtime].language !== FOUNDING_LANGUAGE
+export const runtimeRefusal = (game: Game, runtime: RuntimeId): string | null => {
+  const venture = ventureOf(game)
+  const languages = venture.constraint.languages
+  if (languages !== null && !languages.includes(RUNTIMES[runtime].language)) {
+    const names = languages.map((id) => LANGUAGES[id].name).join(' or ')
+    return `${venture.name}: the service runs ${names}.`
+  }
+  return hasMutator(game, 'single-language') && RUNTIMES[runtime].language !== FOUNDING_LANGUAGE
     ? `${MUTATORS['single-language'].name}: every App Server runs PHP.`
     : null
+}
 
 /** Strict SLO: the Era's target moves to the next level up. */
 export const sloOf = (game: Game, slo: number): number => {
@@ -113,17 +178,47 @@ export const sloOf = (game: Game, slo: number): number => {
 /* ---------- founding a Company ---------- */
 
 /**
+ * The board a founding starts on: the Garage, or Pre-seed for a Venture that
+ * starts in it or for the Head start perk.
+ */
+const startBoard = (seed: number, founding: Founding): Game => {
+  const venture = VENTURES[founding.venture]
+  if ((founding.perks['head-start'] ?? 0) >= 1 || venture.start.stage >= 1) return preseedGame(seed)
+  const garage = newGame(seed)
+  return { ...garage, cash: venture.start.cash, equity: venture.start.equity }
+}
+
+/** A Venture that comes with a Stack and research: its first App Server, and what it knows. */
+const ventureStart = (game: Game, venture: VentureDef): Game => {
+  const { runtime, researched } = venture.start
+  if (runtime === null && researched.length === 0) return game
+  const firstServer = game.nodes.find((node) => node.type === 'server')?.id ?? null
+  const known = researched.filter((id) => !game.researched.includes(id))
+  return {
+    ...game,
+    researched: [...game.researched, ...known],
+    nodes:
+      runtime === null
+        ? game.nodes
+        : game.nodes.map((node) =>
+            node.id === firstServer ? { ...node, framework: 'none', runtime } : node,
+          ),
+  }
+}
+
+/**
  * A new Company for a founding: the Garage, or Pre-seed with Head start. It
  * starts with the perks' Cash and engineers, the research the Founder kept,
- * and the Legacy monolith's codebase.
+ * the Venture's own Stack and research, and the Legacy monolith's codebase.
  */
 export const foundCompany = (
   seed: number,
   founding: Founding,
   keep: ReadonlyArray<ResearchId> = [],
 ): Game => {
-  const start = (founding.perks['head-start'] ?? 0) >= 1 ? preseedGame(seed) : newGame(seed)
-  const founded: Game = { ...start, founding }
+  const venture = VENTURES[founding.venture]
+  const start = startBoard(seed, founding)
+  const founded: Game = ventureStart({ ...start, founding }, venture)
   const kept = keep.filter((id) => RESEARCH[id] && !founded.researched.includes(id))
   const monolith = founding.mutators.includes('legacy-monolith')
   const service = founded.services[0]
@@ -132,7 +227,7 @@ export const foundCompany = (
     ...founded,
     cash: founded.cash * angelFactor(perkLevel(founded, 'angel-network')),
     researched: [...founded.researched, ...kept],
-    equity: VENTURES[founding.venture].bootstrapped ? 1 : founded.equity,
+    equity: venture.bootstrapped ? 1 : founded.equity,
     services:
       monolith && service
         ? [

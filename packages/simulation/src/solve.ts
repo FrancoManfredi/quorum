@@ -19,6 +19,8 @@ import {
   STORAGE_CLASSES,
   TOKENS_PER_PROMPT,
   STUFFING_MAGNITUDE,
+  DEADLINE_SURGE,
+  LATENCY_REGRESSION_MS,
   COMPONENTS,
   DB_ENGINES,
   DIURNAL_AMPLITUDE,
@@ -45,7 +47,7 @@ import {
   type RegionId,
   type RequestKind,
 } from './catalog.ts'
-import { insightPerk, ventureOf } from './founding.ts'
+import { earnsInTime, insightPerk, ventureOf } from './founding.ts'
 import { calendarMinute, clockOf, cosTurns } from './calendar.ts'
 import { FLAT_CAPACITY, NO_RESOURCES, type Calls } from './capacity.ts'
 import {
@@ -167,6 +169,8 @@ const ventureWeekly = (game: Game): number => {
 export const demandOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const mix = mixOf(game)
   const spike = game.incident?.kind === 'spike' ? game.incident.magnitude : 1
+  // A Government contract's deadline day lands every agency's work at once (13).
+  const deadline = game.incident?.kind === 'deadline-day' ? DEADLINE_SURGE : 1
   const cycle = game.sandbox
     ? game.scenario?.daily && regional(game)
       ? regionalCycle(game.time, userSharesOf(game))
@@ -174,7 +178,7 @@ export const demandOf = (game: Game): Partial<Record<RequestKind, number>> => {
     : regional(game)
       ? regionalCycle(game.time, userSharesOf(game)) * ventureWeekly(game)
       : ventureDiurnal(game) * ventureWeekly(game)
-  const total = game.users * RPS_PER_USER * cycle * spike
+  const total = game.users * RPS_PER_USER * cycle * spike * deadline
   const demand: Partial<Record<RequestKind, number>> = {}
   for (const kind of REQUEST_KINDS) {
     const share = mix[kind] ?? 0
@@ -1182,20 +1186,23 @@ const ledgerOf = (
   outcomes: ReturnType<typeof outcomesOf>,
   routes: ReadonlyArray<UserRoute>,
 ): Ledger => {
+  // A latency regression puts every answer this much further out (13 "Ventures", Ad tech).
+  const regressed = game.incident?.kind === 'latency-regression' ? LATENCY_REGRESSION_MS : 0
   /** What one request of `kind` gets back for each region's users, and what it would with no user hop. */
   const answersOf = (kind: RequestKind): ReadonlyArray<RouteAnswer> =>
     routes.map((entry) => {
       const raw = entry.source ? outcomes.outcome(entry.source, kind) : failed('stranded')
+      const extraMs = entry.extraMs + regressed
       return {
         entry,
         raw,
-        answer: entry.extraMs > 0 ? through(hop({ fixed: entry.extraMs }), [[raw, 1]]) : raw,
+        answer: extraMs > 0 ? through(hop({ fixed: extraMs }), [[raw, 1]]) : raw,
       }
     })
   /** What one request of `kind` gets back, over every region's users. */
   const answerOf = (answers: ReadonlyArray<RouteAnswer>): Outcome => {
     const only = answers.length === 1 ? answers[0] : undefined
-    if (only && only.entry.extraMs === 0) return only.answer
+    if (only && only.entry.extraMs + regressed === 0) return only.answer
     return (
       blend(answers.map(({ entry, answer }) => [answer, entry.share] as const)) ??
       failed('stranded')
@@ -1266,9 +1273,17 @@ const ledgerOf = (
     rateTotal += rate
     served += rate * result.success
     satisfied += rate * result.success * apdex
+    const mean = meanOf(result)
+    // A request that misses the Venture's deadline earns nothing (13 "Ventures", Ad tech).
     revenue +=
-      rate * result.success * apdex * KINDS[kind].value * result.value * valueFactor(game, kind)
-    latencyWeight += rate * result.success * meanOf(result)
+      rate *
+      result.success *
+      apdex *
+      KINDS[kind].value *
+      result.value *
+      valueFactor(game, kind) *
+      (earnsInTime(game, mean) ? 1 : 0)
+    latencyWeight += rate * result.success * mean
     for (const cause of ERROR_CAUSES) errors[cause] += rate * result.fail[cause]
     if (result.success > 0) mixture.push([result, rate * result.success])
     if (result.success < 0.05 && result.fail.stranded >= 0.5) failing.push(kind)

@@ -1475,6 +1475,10 @@ export const fr: Readonly<Record<string, string>> = {
   Repair: 'Réparation',
   Scale: 'Échelle',
   Upgrade: 'Mise à niveau',
+  'Upgrade all': 'Tout mettre à niveau',
+  'Upgrade all {0}': 'Tout mettre à niveau ({0})',
+  'Upgrade every {0} here': 'Mettre à niveau tous les {0} de ce plateau',
+  'One size on every {0} on this board': 'Une taille de plus pour tous les {0} de ce plateau',
   Downgrade: 'Rétrograder',
   'Undo (⌘Z)': 'Annuler (⌘Z)',
   'Redo (⌘⇧Z)': 'Refaire (⌘⇧Z)',
@@ -1865,6 +1869,16 @@ export const fr: Readonly<Record<string, string>> = {
   'Network partition': 'Partition réseau',
   'BGP misconfiguration': 'Mauvaise configuration BGP',
   'Audit finding': 'Anomalie d’audit',
+  'Latency regression': 'Régression de latence',
+  'A deploy put one more synchronous call on every request: each answer is 150 ms slower.':
+    'Un déploiement a ajouté un appel synchrone à chaque requête : chaque réponse est 150 ms plus lente.',
+  'Percentiles and tracing on the request path, and a canary that watches p99.':
+    'Percentiles et traçage sur le chemin des requêtes, et un canari qui surveille le p99.',
+  'Deadline day': 'Jour d’échéance',
+  "The contract's deadline landed: every agency sent its work at once, 3× the usual demand.":
+    "L'échéance du contrat est tombée : toutes les agences ont envoyé leur travail en même temps, 3× la demande habituelle.",
+  'Reserved capacity, load shedding, and a Queue for the deadline work.':
+    "Capacité réservée, délestage, et une file pour le travail de l'échéance.",
   'B2B SaaS': 'SaaS B2B',
   'Evening peak': 'Pic du soir',
   'Consumer social': 'Social de consommation',
@@ -1880,6 +1894,18 @@ export const fr: Readonly<Record<string, string>> = {
   'Flat demand; AI ×3': 'Demande stable ; IA ×3',
   'E-commerce': 'Commerce électronique',
   'Buy ×2, search ×2': 'Achetez ×2, recherchez ×2',
+  'Developer platform': 'Plateforme pour développeurs',
+  'Flat, bursty; reads ×2; webhooks ×3 from Series C; no naive retries':
+    'Demande stable et en rafales ; lectures ×2 ; webhooks ×3 à partir de la série C ; aucune tentative naïve',
+  Healthcare: 'Santé',
+  'Business hours; writes +50%; data stays in the home region from Series A':
+    "Heures d'ouverture ; écritures +50 % ; les données restent dans la région d'origine à partir de la série A",
+  'Ad tech': 'Publicité en ligne',
+  'Flat and enormous; page ×1.5, reads ×2; a request over 100 ms earns nothing':
+    'Demande stable et énorme ; pages ×1,5, lectures ×2 ; une requête de plus de 100 ms ne rapporte rien',
+  'Government contract': 'Marché public',
+  'Business hours, deadline spikes; Java or C# only; a placement takes a day':
+    "Heures d'ouverture, pics d'échéance ; Java ou C# uniquement ; un placement prend un jour",
   'Bootstrapped indie': 'Indépendant bootstrapé',
   'No funding rounds; Equity stays 100%':
     'Pas de ronde de financement ; Les capitaux propres restent à 100 %',

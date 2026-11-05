@@ -282,6 +282,12 @@ import { churnOf } from '@quorum/simulation/churn'
 
 /** The UI reads the Ledger four times a second; the Simulation steps every 100 ms of sim time. */
 export const TICK_MS = 250
+/**
+ * How often a held buy or upgrade control buys again (15 "Bulk actions"). It is
+ * the UI tick: the only cadence the game owns, and the rate the board already
+ * re-reads the Game at, so a hold buys once per tick and never catches up.
+ */
+export const REPEAT_MS = TICK_MS
 /** Steps per tick at 1×: 250 ms over 100 ms Steps. 2.5 is exact in binary, so the carry never drifts. */
 const STEPS_PER_TICK = 2.5
 const SAVE_EVERY = 5
@@ -309,6 +315,7 @@ export const freshBoard = (game: Game): Board => ({
   confirmSell: null,
   clipboard: null,
   buildGroup: null,
+  hold: null,
   team: initTeam(),
   research: EMPTY_RESEARCH,
   insightHelp: false,
@@ -3109,6 +3116,66 @@ const handle = (model: Model, message: Message): Result =>
       )
     },
 
+    UpgradeAllChosen: ({ nodeId }) => {
+      const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
+      if (!node) return { model }
+      const before = model.board.game
+      const outcome = Actions.upgradeAll(before, node.type, node.region)
+      if (Result.isFailure(outcome))
+        return withToast(model, Actions.describeRefusal(outcome.failure), 'warn')
+      const { game, upgraded, skipped, short } = outcome.success
+      const name = COMPONENTS[node.type].name
+      const spent = before.cash - game.cash
+      return act(model, `Upgraded ${name} ×${upgraded}`, Result.succeed(game), {
+        undoable: true,
+        note: () => [
+          `${name} ×${upgraded} grew one size.` +
+            (skipped > 0 ? ` ${skipped} at the largest size.` : '') +
+            (short ? ' Cash ran out.' : '') +
+            (spent > 0 ? ` Undo (Z) refunds ${money(spent)} for ${UNDO_SECONDS} s.` : ''),
+          'ok',
+        ],
+      })
+    },
+
+    HoldStarted: ({ nodeId, now }) => {
+      // A Challenge run replays a fixed list of actions: a hold would flood it.
+      if (boardChallenge(model.board)?._tag === 'Running') return { model }
+      if (!model.board.game.nodes.some((entry) => entry.id === nodeId)) return { model }
+      return { model: { ...model, board: { ...model.board, hold: { nodeId, at: now } } } }
+    },
+
+    HoldRepeated: ({ nodeId, now }) => {
+      const hold = model.board.hold
+      if (!hold || hold.nodeId !== nodeId) return { model }
+      // The board left the screen with the pointer down: nothing is held any more.
+      if (!onBoard(model.route))
+        return { model: { ...model, board: { ...model.board, hold: null } } }
+      // A stalled frame or a refocused tab delivers stale repeats: one buy per
+      // REPEAT_MS, and the next one counts from now instead of catching up.
+      if (now - hold.at < REPEAT_MS) return { model }
+      const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
+      if (!node) return { model: { ...model, board: { ...model.board, hold: null } } }
+      const next = { ...model, board: { ...model.board, hold: { nodeId, at: now } } }
+      const bought = Actions.resize(next.board.game, nodeId, 1)
+      // Cash or the size cap ends the hold where it stands: one refusal, then silence.
+      if (Result.isFailure(bought))
+        return withToast(
+          { ...next, board: { ...next.board, hold: null } },
+          Actions.describeRefusal(bought.failure),
+          'warn',
+        )
+      return act(next, `Resized ${nodeName(next.board.game, nodeId)}`, bought, { undoable: true })
+    },
+
+    HoldEnded: ({ nodeId }) =>
+      model.board.hold?.nodeId === nodeId
+        ? { model: { ...model, board: { ...model.board, hold: null } } }
+        : { model },
+
+    HoldLifted: () =>
+      model.board.hold ? { model: { ...model, board: { ...model.board, hold: null } } } : { model },
+
     ResizeChosen: ({ nodeId, direction }) => {
       const logged = logRunAction(model, { _tag: 'Resize', node: nodeId, direction })
       if (logged) return logged
@@ -3944,10 +4011,14 @@ const handle = (model: Model, message: Message): Result =>
     MoreMenuChanged: ({ message }) => foldMoreMenu(model, message),
     PrefsChanged: ({ message }) => foldPrefs(model, message),
     WindowBlurred: () => {
-      if (!model.prefs.blurPause || halted(model) || !onBoard(model.route)) return { model }
+      // The pointer is not followed outside the window, so a hold ends with the focus.
+      const held: Model = model.board.hold
+        ? { ...model, board: { ...model.board, hold: null } }
+        : model
+      if (!held.prefs.blurPause || halted(held) || !onBoard(held.route)) return { model: held }
       const next: Model = {
-        ...model,
-        board: { ...model.board, clock: { ...model.board.clock, paused: true, away: true } },
+        ...held,
+        board: { ...held.board, clock: { ...held.board.clock, paused: true, away: true } },
       }
       return { model: next }
     },
@@ -4109,6 +4180,7 @@ const QUIET = new Set([
   // Sent by the compute worker several times a second.
   'BottleneckFound',
   'PreviewComputed',
+  'HoldLifted',
 ])
 
 /** A team drag sends a Message per pointer move; only the drop that moves someone is a gesture. */

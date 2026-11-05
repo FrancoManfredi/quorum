@@ -200,16 +200,16 @@ replication mode, a deploy strategy, a pricing model.
 
 The fix for Upload Labs click fatigue ([Influences](/design/02-influences#why-players-quit)).
 
-| Tool                 | Available from | Effect                                                                                         |
-| -------------------- | -------------- | ---------------------------------------------------------------------------------------------- |
-| Buy ×1, ×10, Max     | Start          | Buy ×1 buys one size; ×10 buys up to ten at once, and Max buys to the largest affordable size. |
-| Hold to repeat       | Start          | Not built yet. Holding a card's footer button buys one size; it does not repeat.               |
-| Upgrade all of type  | Start          | Not built yet.                                                                                 |
-| Multi-select         | Start          | Drag a box; act on all                                                                         |
+| Tool                 | Available from | Effect                                                                                                                                                                                                                                                                              |
+| -------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buy ×1, ×10, Max     | Start          | Buy ×1 buys one size; ×10 buys up to ten at once, and Max buys to the largest affordable size.                                                                                                                                                                                      |
+| Hold to repeat       | Start          | Holding a card's footer button, the Inspector's Upgrade, or its Larger buys one size, then one more every UI tick (250 ms, 4 a second) until the pointer lifts, Cash runs out, or the Node reaches its largest size. A stalled frame repeats once, never in a burst.                |
+| Upgrade all of type  | Start          | The Inspector's Upgrade all buys one size on every Node of that Node's kind on the board, in board order. It skips the Nodes at their largest size and stops at the first one Cash cannot pay for; the toast names how many grew and what stopped it. One undo entry, one log line. |
+| Multi-select         | Start          | Drag a box; act on all                                                                                                                                                                                                                                                              |
 | Copy and paste       | Start          | Duplicate a selection with its links and settings, including links to Nodes outside it. A paste keeps links inside the selection and to Users, Payments, and Analytics |
-| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                       |
-| Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"              |
-| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))          |
+| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                                                                                                                                                                                                            |
+| Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"                                                                                                                                                                                                   |
+| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))                                                                                                                                                                                               |
 
 Rule: no action needs more than five repeated clicks without a bulk alternative.
 

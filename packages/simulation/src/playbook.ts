@@ -11,9 +11,9 @@ import {
   type Action,
 } from './actions.ts'
 import { decodeText, encodeText } from './codec.ts'
-import { placeRefusal } from './founding.ts'
+import { placeRefusal, retryRefusal } from './founding.ts'
 import { isUnlocked } from './lookups.ts'
-import { ComponentId, GameLink, GameNode, type Game, type Region } from './state.ts'
+import { ComponentId, GameLink, GameNode, type Game, type Region, type Retries } from './state.ts'
 
 /* ==========================================================================
    Playbooks (13 "Playbooks"): a saved part of a Design. Placing one places
@@ -190,7 +190,11 @@ const linkWith = (game: Game, from: string, to: string, settings: object): Game 
   const linked = connect(game, from, to)
   if (Result.isFailure(linked)) return game
   const made = linked.success.links.find((entry) => entry.from === from && entry.to === to)
-  const merged = made ? decodeLink({ ...made, ...pick(settings, LINK_SETTINGS) }) : null
+  // A Venture that refuses a retry policy keeps the Link's own, so a shared Playbook never breaks its rule.
+  const shared: Record<string, unknown> = { ...pick(settings, LINK_SETTINGS) }
+  if (typeof shared.retries === 'string' && retryRefusal(linked.success, shared.retries as Retries))
+    delete shared.retries
+  const merged = made ? decodeLink({ ...made, ...shared }) : null
   return merged?._tag === 'Some'
     ? {
         ...linked.success,

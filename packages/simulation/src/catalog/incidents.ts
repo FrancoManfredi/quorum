@@ -20,8 +20,10 @@ export const INCIDENT_IDS = [
   'zone',
   'disk-full',
   'repl-lag',
+  'latency-regression',
   'gc-storm',
   'retry-storm',
+  'deadline-day',
   'double-charge',
   'report-db',
   'gpu-shortage',
@@ -64,6 +66,11 @@ export type IncidentDef = Readonly<{
 export const SPOT_WARNING = 10
 /** Sim seconds a reclaimed Spot Node stays down before it comes back. */
 export const SPOT_DOWN = 20
+
+/** A latency regression adds this many ms to every response (13 "Ventures", Ad tech). */
+export const LATENCY_REGRESSION_MS = 150
+/** A deadline day multiplies demand by this much (13 "Ventures", Government contract). */
+export const DEADLINE_SURGE = 3
 
 export const INCIDENTS: Record<IncidentId, IncidentDef> = {
   spike: {
@@ -267,6 +274,18 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     prevention: 'Read-your-writes routing sends those reads to the primary.',
     actions: ['ryw-routing'],
   },
+  // Ad tech's signature (13 "Ventures"): every bid misses its deadline until the path is fixed.
+  'latency-regression': {
+    id: 'latency-regression',
+    name: 'Latency regression',
+    era: 3,
+    severity: 3,
+    escalatesTo: 2,
+    duration: 60,
+    cause: `A deploy put one more synchronous call on every request: each answer is ${LATENCY_REGRESSION_MS} ms slower.`,
+    prevention: 'Percentiles and tracing on the request path, and a canary that watches p99.',
+    actions: ['percentiles', 'tracing'],
+  },
   'gc-storm': {
     id: 'gc-storm',
     name: 'GC pause storm',
@@ -289,6 +308,18 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
       'The Database slowed for 20 s. Callers retried at once, and the retries kept it overloaded.',
     prevention: 'Backoff with jitter, circuit breakers, and load shedding.',
     actions: ['backoff-jitter', 'circuit-breakers', 'load-shedding'],
+  },
+  // Government contract's signature (13 "Ventures"): every agency files on the same day.
+  'deadline-day': {
+    id: 'deadline-day',
+    name: 'Deadline day',
+    era: 2,
+    severity: 2,
+    escalatesTo: 1,
+    duration: 90,
+    cause: `The contract's deadline landed: every agency sent its work at once, ${DEADLINE_SURGE}× the usual demand.`,
+    prevention: 'Reserved capacity, load shedding, and a Queue for the deadline work.',
+    actions: ['load-shedding', 'autoscaling'],
   },
   'double-charge': {
     id: 'double-charge',

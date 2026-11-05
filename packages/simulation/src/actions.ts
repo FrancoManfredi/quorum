@@ -79,6 +79,8 @@ import {
   grantOf,
   perkLevel,
   placeRefusal,
+  placedLife,
+  retryRefusal,
   runtimeRefusal,
   ventureOf,
 } from './founding.ts'
@@ -268,7 +270,7 @@ export const place = (
   return spend(game, priceOf(game, type), def.name, (paid) => ({
     ...paid,
     nextId: paid.nextId + 1,
-    nodes: [...paid.nodes, node],
+    nodes: [...paid.nodes, { ...node, life: placedLife(paid, node) }],
   }))
 }
 
@@ -380,6 +382,8 @@ export const setLinkPolicy = (
     return no(Refusal.Locked({ what: 'Call policy', research: RESEARCH.timeouts.name }))
   if (change.retries === 'backoff' && !has(game, 'backoff-jitter'))
     return no(Refusal.Locked({ what: 'Backoff', research: RESEARCH['backoff-jitter'].name }))
+  const banned = change.retries === undefined ? null : retryRefusal(game, change.retries)
+  if (banned) return notAllowed(banned)
   if (change.breaker && !has(game, 'circuit-breakers'))
     return no(
       Refusal.Locked({ what: 'A circuit breaker', research: RESEARCH['circuit-breakers'].name }),
@@ -440,6 +444,65 @@ export const resize = (game: Game, id: string, direction: 1 | -1): Action =>
       patch(paid, id, { size: node.size + 1, ...(def.sized ? restarted(node) : {}) }),
     )
   })
+
+/** What `upgradeAll` did: the Game it made, and what it left alone (15 "Bulk actions"). */
+export type UpgradeAllOutcome = Readonly<{
+  readonly game: Game
+  /** Nodes that grew one size. */
+  readonly upgraded: number
+  /** Nodes that were already at their largest size. */
+  readonly skipped: number
+  /** Cash ran out before every Node that could grow had. */
+  readonly short: boolean
+}>
+
+/**
+ * Buys one size on every Node of `type` in `region`, in board order (15 "Bulk
+ * actions"). A Node at its largest size is skipped, and the fold stops at the
+ * first Node it cannot pay for, so Cash is never half spent on a step. The
+ * caller applies the outcome as one undo entry and one log line.
+ */
+export const upgradeAll = (
+  game: Game,
+  type: ComponentId,
+  region?: Region,
+): Result.Result<UpgradeAllOutcome, Refusal> => {
+  const nodes = game.nodes.filter(
+    (node) => node.type === type && (region === undefined || node.region === region),
+  )
+  if (nodes.length === 0) return Result.fail(Refusal.Missing())
+  let next = game
+  let upgraded = 0
+  let skipped = 0
+  let short = false
+  let price = 0
+  for (const node of nodes) {
+    const current = next.nodes.find((entry) => entry.id === node.id)
+    if (!current) continue
+    if (current.size >= maxSize(current)) {
+      skipped += 1
+      continue
+    }
+    const step = resize(next, node.id, 1)
+    if (Result.isFailure(step)) {
+      // The cap was checked above, so the only refusal left is Cash.
+      if (step.failure._tag === 'Unaffordable') price = step.failure.price
+      short = true
+      break
+    }
+    next = step.success
+    upgraded += 1
+  }
+  if (upgraded === 0) {
+    // Nothing grew: refuse, so the panel says why and no undo entry is written.
+    if (short)
+      return Result.fail(Refusal.Unaffordable({ what: 'An upgrade', price, currency: 'cash' }))
+    return Result.fail(
+      Refusal.NotAllowed({ reason: `Every ${COMPONENTS[type].name} is at its largest size.` }),
+    )
+  }
+  return Result.succeed({ game: next, upgraded, skipped, short })
+}
 
 export const setFamily = (game: Game, id: string, family: FamilyId): Action =>
   withNode(game, id, (node) => {

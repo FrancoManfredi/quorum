@@ -1,4 +1,5 @@
 import { isDown } from '@quorum/simulation/life'
+import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUp,
@@ -75,6 +76,7 @@ import {
   frameworkReady,
   has,
   hasPricing,
+  maxSize,
   pricingOf,
   ramOf,
   refundOf,
@@ -268,12 +270,21 @@ const picker = <T extends string | number | boolean>(
     h,
   )
 
+/** A control that buys one size at a time while its pointer stays down (15 "Bulk actions"). */
+const holdListeners = (nodeId: string, h: HtmlBuilder<Message>) => [
+  h.OnPointerDown(() => Option.some(Message.HoldStarted({ nodeId, now: Date.now() }))),
+  h.OnPointerUp(() => Option.some(Message.HoldEnded({ nodeId }))),
+  h.OnPointerLeave(() => Option.some(Message.HoldEnded({ nodeId }))),
+]
+
 const smallButton = (
   label: string,
   glyph: Parameters<typeof icon>[1],
   message: Message,
   enabled: boolean,
   h: HtmlBuilder<Message>,
+  /** The Node it buys for, when holding it repeats the buy. */
+  holdFor?: string,
 ) =>
   button(
     {
@@ -281,7 +292,11 @@ const smallButton = (
       isDisabled: !enabled,
       variant: 'outline',
       size: 'icon-sm',
-      attributes: [h.AriaLabel(label), h.Title(label)],
+      attributes: [
+        h.AriaLabel(label),
+        h.Title(label),
+        ...(holdFor ? holdListeners(holdFor, h) : []),
+      ],
     },
     icon(h, glyph, 'size-3.5'),
     h,
@@ -817,6 +832,52 @@ const pricing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/**
+ * One size on every Node of this Node's kind in its region (15 "Bulk actions").
+ * It shows once there is more than one to upgrade, and stays off while nothing
+ * can grow or nothing can be paid for.
+ */
+const upgradeAll = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const peers = game.nodes.filter(
+    (entry) => entry.type === node.type && entry.region === node.region,
+  )
+  if (peers.length < 2) return h.empty
+  const name = COMPONENTS[node.type].name
+  const growable = peers.filter((entry) => entry.size < maxSize(entry))
+  const payable = growable.some((entry) => {
+    const price = resizePrice(game, entry)
+    return price !== null && (game.sandbox || game.cash >= price)
+  })
+  return h.div(
+    [h.Class('px-4 py-3')],
+    [
+      button(
+        {
+          onClick: Message.UpgradeAllChosen({ nodeId: node.id }),
+          isDisabled: !payable,
+          variant: 'outline',
+          size: 'sm',
+          className: 'w-full justify-between',
+          attributes: [
+            h.AriaLabel(`Upgrade every ${name} here`),
+            h.Title(`One size on every ${name} on this board`),
+          ],
+        },
+        [
+          h.span(
+            [h.Class('flex items-center gap-1.5')],
+            [
+              icon(h, ArrowUp, 'size-3.5'),
+              growable.length > 0 ? `Upgrade all ${growable.length}` : 'Upgrade all',
+            ],
+          ),
+        ],
+        h,
+      ),
+    ],
+  )
+}
+
 const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
   const price = resizePrice(game, node)
   return section(
@@ -842,6 +903,7 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
             Message.ResizeChosen({ nodeId: node.id, direction: 1 }),
             price !== null && game.cash >= price,
             h,
+            node.id,
           ),
         ],
       ),
@@ -2553,6 +2615,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'cache' && has(game, 'hybrid-fanout') ? [splitting(node, h)] : []),
           ...(node.type === 'dns' && has(game, 'health-checks') ? [dnsTtl(node, h)] : []),
           ...(has(game, 'timeouts') ? calls(game, node, h) : []),
+          upgradeAll(game, node, h),
         ],
       ),
       h.div(
@@ -2577,7 +2640,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   isDisabled: game.cash < price,
                   size: 'lg',
                   className: 'min-w-0 flex-1 justify-between px-3',
-                  attributes: [h.Title('U')],
+                  attributes: [h.Title('U'), ...holdListeners(node.id, h)],
                 },
                 [
                   h.span(

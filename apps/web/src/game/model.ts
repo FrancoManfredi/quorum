@@ -335,6 +335,13 @@ export const Clock = Schema.Struct({
 export type Clock = typeof Clock.Type
 
 /**
+ * A buy or upgrade control under the pointer that repeats while held (15 "Bulk
+ * actions"): the Node it buys for and the wall clock of the last buy.
+ */
+export const Hold = Schema.Struct({ nodeId: Schema.String, at: Schema.Finite })
+export type Hold = typeof Hold.Type
+
+/**
  * One board: the Company, a Sandbox or a Challenge being played, and
  * everything the player does on it. Entering another board starts a fresh
  * one; the Company's board waits aside while a Sandbox or Challenge is open.
@@ -361,6 +368,8 @@ export const Board = Schema.Struct({
   clipboard: Schema.NullOr(Playbook),
   /** The open build tray, or null when the dock shows only its group icons. */
   buildGroup: Schema.NullOr(BuildGroupKey),
+  /** The buy or upgrade control held down, which repeats while it stays down. */
+  hold: Schema.NullOr(Hold),
   team: Team,
   research: Research,
   /** The Insight card's help section is open. */

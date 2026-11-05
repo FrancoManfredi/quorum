@@ -289,3 +289,45 @@ test('a CI/CD Pipeline shows its deploy strategy, and choosing one sets it', () 
   ).model
   expect(after.board.game.nodes.find((node) => node.id === 'n9')?.strategy).toBe('recreate')
 })
+
+/** A board with two App Servers, the kind the bulk upgrade acts on. */
+const twoServers = (cash: number, size?: number): Model => {
+  const start = initialModel()
+  const base = preseedGame()
+  const game: Game = {
+    ...base,
+    cash,
+    nodes: [
+      ...base.nodes.map((entry) =>
+        size !== undefined && entry.type === 'server' ? { ...entry, size } : entry,
+      ),
+      node('server2', 'server', 440, 620, { size: size ?? 1 }),
+    ],
+  }
+  return { ...start, board: { ...start.board, game, selected: 'server' } }
+}
+
+test('Upgrade all is offered once a kind has two Nodes, and goes dead when nothing can grow', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(twoServers(1e9)),
+    Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeEnabled(),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(twoServers(10)),
+    Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeDisabled(),
+  )
+  // Both at metal: there is nothing left to buy, so the control is dead too.
+  Scene.scene(
+    { update, view },
+    Scene.given(twoServers(1e9, 8)),
+    Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeDisabled(),
+  )
+  // A single App Server has no bulk action.
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeAbsent(),
+  )
+})
