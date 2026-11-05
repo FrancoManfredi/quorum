@@ -171,8 +171,8 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 176 of
-them across all 10.
+a promise that the game offers it. The tables design 187 items across 10 tracks, and the build has all
+187 of them.
 
 ### Recipes
 
