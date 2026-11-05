@@ -91,7 +91,7 @@ export const header = (model: Model, h: H): Html =>
               h.Title(`Every number on the wiki matches game version ${VERSION}`),
               h.Class(cn(FIGURE, 'hidden text-[12px] text-muted-foreground md:inline')),
             ],
-            [`v${VERSION}`],
+            [VERSION],
           ),
           h.a(
             [

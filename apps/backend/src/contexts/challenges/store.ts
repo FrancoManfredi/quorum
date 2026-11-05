@@ -2,7 +2,7 @@ import { Context, Data, type Effect } from 'effect'
 import type { ChallengeScores } from '@quorum/rpc'
 
 /** A Challenge's histogram: results only compare within one Simulation version. */
-export type Board = Readonly<{ challengeId: string; simVersion: number }>
+export type Board = Readonly<{ challengeId: string; simVersion: string }>
 
 export type Axis = keyof ChallengeScores
 

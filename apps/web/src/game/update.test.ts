@@ -18,7 +18,6 @@ import { solveFlow } from '@quorum/simulation/solve'
 import { NEW_ENGINEER, type WorkItem } from '@quorum/simulation/state'
 import { SHARED } from '@quorum/simulation/playbook'
 import { encodeText } from '@quorum/simulation/codec'
-import { SIM_VERSION } from '@quorum/simulation/version'
 import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
 import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
@@ -1233,7 +1232,7 @@ test('a save travels as one line of text, and only a save of this build opens it
 
   // Anything that is not a save of this build is refused, and the open Company stays.
   const other = encodeText('QSV1:', {
-    version: SIM_VERSION - 1,
+    version: 'stale',
     save: { ...playable.board.game, wall: 0 },
   })
   for (const wrong of ['hello', other]) {

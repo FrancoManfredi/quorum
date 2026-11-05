@@ -131,7 +131,7 @@ test('submissions the server cannot trust fail with ApiError', async () => {
   const failure = (effect: ReturnType<typeof submit>) =>
     run(Effect.flip(effect)).then((error) => ({ tag: error._tag, message: error.message }))
 
-  expect(await failure(submit(hello, replayOf(hello, hello.start()), SIM_VERSION - 1))).toEqual({
+  expect(await failure(submit(hello, replayOf(hello, hello.start()), 'stale'))).toEqual({
     tag: 'ApiError',
     message: 'Update Quorum to submit this result.',
   })

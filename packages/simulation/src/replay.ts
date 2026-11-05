@@ -70,7 +70,7 @@ export type ReplayAction = typeof ReplayAction.Type
 export const Replay = Schema.Struct({
   v: Schema.Literal(1),
   challenge: Schema.String,
-  simVersion: Schema.Finite,
+  simVersion: Schema.String,
   design: Design,
   actions: Schema.Array(Schema.Struct({ step: Schema.Finite, action: ReplayAction })),
 })

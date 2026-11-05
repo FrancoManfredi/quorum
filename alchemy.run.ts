@@ -4,6 +4,7 @@ import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import { API_PREFIX, INGEST_PREFIX } from '@quorum/rpc'
+import { simVersion } from './packages/simulation/sim-version.ts'
 
 const compatibility = { date: '2026-10-08' }
 // The Sentry SDK in the API and website Workers needs AsyncLocalStorage, which `nodejs_compat` gives.
@@ -37,20 +38,24 @@ const sentryEnv = {
  * uploads. The maps stay out of the deployed code: Alchemy writes them to `.alchemy`.
  */
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN
-const sentrySourceMaps = sentryAuthToken
-  ? {
-      build: {
-        input: {
-          plugins: [
-            sentryRollupPlugin({
-              authToken: sentryAuthToken,
-              ...(sentryRelease ? { release: { name: sentryRelease } } : {}),
-            }),
-          ],
-        },
-      },
-    }
-  : {}
+const apiBuild = {
+  build: {
+    input: {
+      plugins: [
+        // Fills in the Simulation's version, the git hash of `packages/simulation/src`.
+        simVersion(),
+        ...(sentryAuthToken
+          ? [
+              sentryRollupPlugin({
+                authToken: sentryAuthToken,
+                ...(sentryRelease ? { release: { name: sentryRelease } } : {}),
+              }),
+            ]
+          : []),
+      ],
+    },
+  },
+}
 
 /**
  * The public hostnames of the `prod` stage. The old hostname 301s to the new one, path and query
@@ -106,7 +111,7 @@ export default Alchemy.Stack(
     const ApiWorker = Cloudflare.Worker('Api', {
       main: './apps/backend/src/worker.ts',
       env: { RESULTS: Results, ...sentryEnv },
-      ...sentrySourceMaps,
+      ...apiBuild,
       compatibility: sentryCompatibility,
       observability,
       // The website reaches the API through its service binding only. Remove

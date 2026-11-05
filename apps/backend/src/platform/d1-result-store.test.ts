@@ -3,7 +3,7 @@ import { expect, test } from 'vitest'
 import { d1ResultStore } from './d1-result-store.ts'
 import { sqliteRunner } from './sqlite-runner.ts'
 
-const board = { challengeId: 'hello-world', simVersion: 8 }
+const board = { challengeId: 'hello-world', simVersion: 'a1b2c3d4' }
 const edges = { cost: [0.02, 0.04], tail: [100, 500], complexity: [2, 4] }
 
 test('the D1 store keeps each axis best, and counts percentiles and buckets', async () => {
@@ -22,7 +22,7 @@ test('the D1 store keeps each axis best, and counts percentiles and buckets', as
   await run(store.record(board, 'device-b', { cost: 0.05, tail: 700, complexity: 2 }, 'QRP1:b', 3))
   await run(
     store.record(
-      { ...board, simVersion: 7 },
+      { ...board, simVersion: 'e5f6a7b8' },
       'device-c',
       { cost: 1, tail: 1, complexity: 1 },
       'x',

@@ -1,18 +1,16 @@
 import { availableParallelism } from 'node:os'
 import { configDefaults, defineConfig } from 'vitest/config'
+import { simVersion } from './sim-version.ts'
 
-// `engines/` holds the cross-engine check, which `pnpm test:golden` runs in browsers.
+// `engines/` holds the cross-engine check, which `pnpm test:engines` runs in browsers.
 export default defineConfig({
+  plugins: [simVersion()],
   test: {
     exclude: [...configDefaults.exclude, 'engines/**'],
     // A loaded CI runner takes longer than the 5 s default on a full Company. Tests that need
-    // much more set their own timeout.
+    // much more set their own timeout; a real hang still stops at this cap.
     testTimeout: 20_000,
     // The tests are CPU-bound and the main process idles, so use every core, not Vitest's default of one fewer.
     maxWorkers: availableParallelism(),
-    // Many of these tests step the Simulation through a calendar day or a quarter, so the slowest sit at
-    // two to three seconds on a developer machine and cross Vitest's five-second default on a CI runner.
-    // A real hang still stops at this cap instead of holding the suite open.
-    testTimeout: 20_000,
   },
 })

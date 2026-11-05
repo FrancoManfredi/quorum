@@ -33,7 +33,7 @@ export const saveJson = (save: SaveFile, wall: number): Record<string, unknown> 
 const PREFIX = 'QSV1:'
 
 const SaveText = Schema.Struct({
-  version: Schema.Finite,
+  version: Schema.String,
   save: Schema.Record(Schema.String, Schema.Unknown),
 })
 const decodeSaveText = Schema.decodeUnknownOption(SaveText)
@@ -53,7 +53,7 @@ export const decodeSave = (text: string): Result.Result<string, string> => {
   const { version, save } = parsed.value
   if (version !== SIM_VERSION)
     return Result.fail(
-      `That save is from another build (v${version}; this build is v${SIM_VERSION}).`,
+      `That save is from another build (${version}; this build is ${SIM_VERSION}).`,
     )
   if (Option.isNone(decodeGame(save))) return Result.fail('That save could not be read.')
   return Result.succeed(JSON.stringify(save))

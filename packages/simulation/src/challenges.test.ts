@@ -13,7 +13,6 @@ import {
 import { REFERENCE, referenceReplay, replayOf } from './fixtures/challenges.ts'
 import { decodeReplay, designOf, encodeReplay } from './replay.ts'
 import type { Game } from './state.ts'
-import { SIM_VERSION } from './version.ts'
 
 const ok = (action: Actions.Action): Game => {
   if (Result.isFailure(action)) throw new Error(JSON.stringify(action.failure))
@@ -135,9 +134,9 @@ describe('Challenges', () => {
       },
     }
     expect(Result.isFailure(runChallenge(hello, cached))).toBe(true)
-    expect(
-      runChallenge(hello, { ...replayOf(hello, hello.start()), simVersion: SIM_VERSION - 1 }),
-    ).toEqual(Result.fail('Update Quorum to submit this result.'))
+    expect(runChallenge(hello, { ...replayOf(hello, hello.start()), simVersion: 'stale' })).toEqual(
+      Result.fail('Update Quorum to submit this result.'),
+    )
     const loop = byId('event-loop')
     expect(
       runChallenge(loop, replayOf(loop, ok(Actions.setRuntime(loop.start(), 'server', 'php_fpm')))),

@@ -3,6 +3,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
+import { simVersion } from '../../packages/simulation/sim-version.ts'
 
 /**
  * Source maps go to Sentry only from a build that has the upload token, and never into the
@@ -16,6 +17,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     foldkit(),
+    simVersion(),
     // Last, so it sees the final bundle.
     authToken
       ? sentryVitePlugin({

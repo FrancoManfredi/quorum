@@ -22,7 +22,7 @@ export const histogramQuery = Query.define({
   name: 'ChallengeHistograms',
   data: ChallengeHistograms,
   error: ApiError,
-  args: { challengeId: Schema.String, simVersion: Schema.Finite },
+  args: { challengeId: Schema.String, simVersion: Schema.String },
   toKey: ({ challengeId, simVersion }) => `${challengeId}@${simVersion}`,
   execute: (args) =>
     Effect.gen(function* () {

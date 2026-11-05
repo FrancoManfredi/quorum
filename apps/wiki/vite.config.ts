@@ -2,6 +2,7 @@ import { markdown } from '@foldkit/markdown/vite'
 import { foldkit } from '@foldkit/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
+import { simVersion } from '../../packages/simulation/sim-version.ts'
 import { Frontmatter } from './src/frontmatter.ts'
 import { islandAttributes } from './src/islands.ts'
 import { WIKI_ORIGIN } from './src/site.ts'
@@ -12,6 +13,7 @@ import { WIKI_ORIGIN } from './src/site.ts'
 export default defineConfig({
   plugins: [
     tailwindcss(),
+    simVersion(),
     foldkit({
       ssr: {
         serverEntry: '/src/entry.server.ts',

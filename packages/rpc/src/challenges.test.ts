@@ -8,7 +8,7 @@ const roundTrip = <S extends Schema.Codec<unknown, unknown>>(schema: S, value: S
 test('Challenge schemas round-trip through their wire form', () => {
   roundTrip(ChallengeSubmission, {
     challengeId: 'hello-world',
-    simVersion: 8,
+    simVersion: 'a1b2c3d4',
     deviceId: '3f2c',
     replay: 'QRP1:e30',
   })
@@ -21,7 +21,7 @@ test('Challenge schemas round-trip through their wire form', () => {
   })
   roundTrip(ChallengeHistograms, {
     challengeId: 'daily:2026-11-02',
-    simVersion: 8,
+    simVersion: 'a1b2c3d4',
     players: 1,
     cost: { edges: [0.1, 0.2], counts: [1, 0, 0] },
     tail: { edges: [100], counts: [0, 1] },
@@ -33,7 +33,7 @@ test('a submission without a replay does not decode', () => {
   expect(() =>
     Schema.decodeUnknownSync(ChallengeSubmission)({
       challengeId: 'x',
-      simVersion: 1,
+      simVersion: 'a1b2c3d4',
       deviceId: 'd',
     }),
   ).toThrow()

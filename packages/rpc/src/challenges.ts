@@ -9,7 +9,7 @@ import { ApiError } from './errors.ts'
  */
 export const ChallengeSubmission = Schema.Struct({
   challengeId: Schema.String,
-  simVersion: Schema.Finite,
+  simVersion: Schema.String,
   /** A random id the browser keeps; there are no accounts. */
   deviceId: Schema.String,
   replay: Schema.String,
@@ -46,13 +46,13 @@ export type Histogram = typeof Histogram.Type
 
 export const ChallengeKey = Schema.Struct({
   challengeId: Schema.String,
-  simVersion: Schema.Finite,
+  simVersion: Schema.String,
 })
 export type ChallengeKey = typeof ChallengeKey.Type
 
 export const ChallengeHistograms = Schema.Struct({
   challengeId: Schema.String,
-  simVersion: Schema.Finite,
+  simVersion: Schema.String,
   players: Schema.Finite,
   cost: Histogram,
   tail: Histogram,

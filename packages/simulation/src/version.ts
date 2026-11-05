@@ -1,6 +1,6 @@
 /**
- * The Simulation's version. Bump it with `GOLDEN_HASH` in `golden.test.ts`
- * whenever a change to the catalog, the solver, or the Step changes what a
- * Game replays to, so results from different versions are never compared.
+ * The Simulation's version: the git hash of this directory, filled in at build time by
+ * `sim-version.ts`. A replay, a save text, or a Challenge result carries it, so results from
+ * different versions of the Simulation are never compared.
  */
-export const SIM_VERSION = 36
+export const SIM_VERSION: string = '__SIM_VERSION__'
