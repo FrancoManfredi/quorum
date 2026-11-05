@@ -51,6 +51,7 @@ describe('text at 150%', () => {
       motion: 'system' as const,
       locale: 'en' as const,
       agentAccess: false,
+      analytics: true,
     }
     applySettings(root, { ...settings, text: 'large' })
     expect(root.dataset['text']).toBe('150')

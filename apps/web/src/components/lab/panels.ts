@@ -1,6 +1,17 @@
 import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { ArrowUpRight, Copy, DoorOpen, Download, House, Play, Settings, Trash2, Upload, X } from 'lucide'
+import {
+  ArrowUpRight,
+  Copy,
+  DoorOpen,
+  Download,
+  House,
+  Play,
+  Settings,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide'
 import { UrlRequest } from 'foldkit/navigation'
 import { PRIVACY_URL } from '@/platform/analytics.ts'
 import { offer } from '@quorum/simulation/actions'

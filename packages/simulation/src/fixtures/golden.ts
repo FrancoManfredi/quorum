@@ -170,15 +170,6 @@ export const GOLDEN_STEPS = 10_000
 // costs its caller a serialization's CPU, a Pre-seed Search Engine answers 2% of its answers stale
 // from a dual write, an ARM box runs at 0.95× the CPU, and 17 research items shift what a Company
 // earns toward them.
-<<<<<<< HEAD
-// SIM_VERSION 35: Features roll an outcome when queued (Win, Flat, or Loss), a live Feature can be
-// removed for good (ending its upkeep), each Service deploys on its own timer and rolls its own bad
-// deploy from its own owner's policy and debt, a Security team exists (lowering supply-chain and
-// breach chances), Data residency is a buildable Feature gating the EU market from Pre-IPO, and a
-// Service can be moved to another team. The save gains the outcome roll per Feature and the
-// Security team kind, so every hash moves.
-export const GOLDEN_HASH = '2e008cb4'
-=======
 // SIM_VERSION 35 (the research close-out, part two): the last eleven research items land —
 // `profiling` (names each Node's limiting resource, with `tracing`'s breadth rule at 4 Component
 // types), `tail-sampling` (×2 Failure Insight), `rum` (a device split added to every Sample, and a
@@ -191,47 +182,12 @@ export const GOLDEN_HASH = '2e008cb4'
 // and `savings-plans` (20% off every compute Node's box, stacked on its pricing model). The save
 // gains each Sample's device latency, so every hash moves even where a Company owns none of them.
 export const GOLDEN_HASH = 'ececf521'
->>>>>>> 67a21db (Add the last eleven research items across Observability, Security and Cost)
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-<<<<<<< HEAD
-  'hello-world': 'b41f339a',
-  'split-the-box': '472c397b',
-  slashdotted: '45b14e89',
-  c10k: '92dfa365',
-  'event-loop': '0ea1ee1a',
-  'too-many-connections': '337f2611',
-  shoestring: '801ff109',
-  'n-plus-one': '308b333e',
-  'thirteen-engineers': '67523567',
-  'credential-stuffing': '4c4cc234',
-  'black-friday': '4ebea843',
-  'us-east-1': 'a4fd91a4',
-  'exactly-once': '7ce937c9',
-  'two-million-sockets': '907554b5',
-  'pokemon-go': '19783aa4',
-  'healthcare-launch': 'ad990683',
-  'thundering-herd': '84e06be6',
-  'read-states': 'adcf7b2f',
-  'fail-whale': '3f15c804',
-  'reports-at-noon': '9db79228',
-  'gpu-economics': 'b9464088',
-  metastable: '6fa329af',
-  'regex-of-doom': '13f6a11e',
-  'forty-three-seconds': '781e98e9',
-  'follow-the-sun': '53818fd1',
-  celebrity: '127a8095',
-  'gone-from-the-internet': 'fe3223a3',
-  'the-typo': 'aea73a09',
-  'leap-second': '410227f0',
-  'rule-of-40': '239868c2',
-  'postgres-for-everything': '0202a07a',
-  'five-nines': 'e398b9da',
-=======
   'hello-world': '3669ca6d',
   'split-the-box': 'a12c1d9e',
   slashdotted: 'c327ff14',
@@ -264,5 +220,4 @@ export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
   'rule-of-40': 'b11e6a6b',
   'postgres-for-everything': '41f83182',
   'five-nines': 'd2e7baff',
->>>>>>> 67a21db (Add the last eleven research items across Observability, Security and Cost)
 }

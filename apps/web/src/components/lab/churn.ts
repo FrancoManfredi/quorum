@@ -21,7 +21,10 @@ import { shell } from './panels.ts'
 /** The button that applies a row's fix, or its advice as text. */
 const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
   if (fix._tag === 'advice')
-    return h.span([h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')], [fix.text])
+    return h.span(
+      [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+      [fix.text],
+    )
   const shown = fix._tag === 'node' ? game.nodes.find((node) => node.id === fix.nodeId) : undefined
   const [label, message] =
     fix._tag === 'region'

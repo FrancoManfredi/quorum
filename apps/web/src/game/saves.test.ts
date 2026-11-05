@@ -1,3 +1,4 @@
+import { savedInbox } from './inbox.ts'
 import { describe, expect, test } from 'vitest'
 import { Effect } from 'effect'
 import { newGame, preseedGame } from '@quorum/simulation/company'
@@ -497,6 +498,7 @@ describe('a playtest browser', () => {
           revealed: board.disclosure.revealed,
           pending: board.disclosure.pending,
           dashboard: board.dashboard.history,
+          inbox: savedInbox(board.inbox),
         }),
       )
 
@@ -556,6 +558,7 @@ describe('a playtest browser', () => {
           revealed: board.disclosure.revealed,
           pending: board.disclosure.pending,
           dashboard: board.dashboard.history,
+          inbox: savedInbox(board.inbox),
         }),
       )
       for (const [key, value] of Object.entries(keys)) expect(storage.getItem(key)).toBe(value)

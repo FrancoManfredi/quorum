@@ -4476,7 +4476,7 @@ const handle = (model: Model, message: Message): Result =>
 
     SaveExported: () => {
       if (offCompany(model)) return withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
-      if (!model.saved) return withToast(model, 'There is no Company to export.', 'warn')
+      if (!model.loaded) return withToast(model, 'There is no Company to export.', 'warn')
       return {
         model,
         commands: [

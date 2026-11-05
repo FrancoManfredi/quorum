@@ -26,12 +26,8 @@ import {
 import { churnOf, type RegionChurn } from '@quorum/simulation/churn'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
 import { dilutionOf, grantOf } from '@quorum/simulation/founding'
-<<<<<<< HEAD
-import type { KindLedger, Ledger } from '@quorum/simulation/ledger'
-import { nodeLabel } from '@quorum/simulation/labels'
-=======
 import type { KindLedger, Ledger, NodeLedger } from '@quorum/simulation/ledger'
->>>>>>> 67a21db (Add the last eleven research items across Observability, Security and Cost)
+import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'

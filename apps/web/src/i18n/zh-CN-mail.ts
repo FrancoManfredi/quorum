@@ -2239,4 +2239,58 @@ export const mailZhCN: Readonly<Record<string, string>> = {
   'Our dashboard says we typically reply in a few days. We suggest you reply sooner.':
     '我们的仪表盘显示，通常回复需要几天。建议你早点回复。',
   'Warm regards,\n{0}': '诚挚问候，\n{0}',
+  '[SEV1] Credentials used: a login we did not expect':
+    '[SEV1] 凭据被使用：出现一次我们没预料到的登录',
+  'Incident: credential leak\nUrgency: Critical': '故障：凭据泄露\n紧急程度：严重',
+  'The page was in your Inbox this morning. The address was not.':
+    '这个页面今天早上就在你的收件箱里。那个地址却不在。',
+  'Users are finding out with us.': '用户正在和我们一起发现这件事。',
+  'Unusual login volume from your account': '你的账号登录量异常',
+  'This is not a vulnerability in anything you run. It is a person who read an email and trusted the address on it.':
+    '这不是你所运行的任何系统的漏洞，而是一个人读了一封邮件，并信任了上面的地址。',
+  'We will keep this open until it burns out.': '我们会一直保持打开，直到它自己烧完。',
+  'Suspicious session opened with your key': '有人用你的密钥开启了可疑会话',
+  'Alert: a session was opened with an access key that belongs to you.':
+    '告警：有人用属于你的访问密钥开启了一个会话。',
+  'Location: not where you are\nDevices: one, unfamiliar\nWhat it read: enough\nWhy it worked: the credentials were real, and they were given away on purpose, to a page that was not ours.':
+    '位置：不是你所在的地方\n设备：一台，陌生\n读取内容：足够多\n为何得逞：凭据是真的，而且是被人自愿交出去的，交给了一个不属于我们的页面。',
+  'Wait it out. Next time, read the domain before the logo.':
+    '等它过去吧。下次先看域名，再看标志。',
+  'Postmortem for the memory leak?': '要为内存泄漏写复盘吗？',
+  "Someone has to write it down before the details turn into folklore. I can do it now, and I'd rather do it now.":
+    '得有人在细节变成传说之前把它记下来。我现在就能写，而且我更愿意现在写。',
+  "The obvious action item is Restart. If you want it, I'll file the postmortem and put the study in the queue in one go.":
+    '最明显的行动项是重启。如果你要，我会一并提交复盘，并把调研排进队列。',
+  'critical Memory leak: the write-up': '严重 内存泄漏：事后记录',
+  'Target: Server\nRun: 40 s\nUsers lost: 12\nFailed requests: 400':
+    '目标：服务器\n持续：40 秒\n流失用户：12\n失败请求：400',
+  'Before we forget: Memory leak': '趁还没忘：内存泄漏',
+  'We are all very relieved about Server. Relief is a terrible archivist.':
+    '我们对服务器都松了一口气。而松一口气是个糟糕的档案员。',
+  'Give me the word and it is filed.': '说一声，我就归档。',
+  'Incident report: Memory leak': '故障报告：内存泄漏',
+  'Team,': '各位，',
+  'What: Memory leak (critical)\nWhere: Server\nUsers lost: 12\nRevenue lost: $1.2k\nFailed requests: 400':
+    '事件：内存泄漏（严重）\n位置：服务器\n流失用户：12\n损失收入：$1.2k\n失败请求：400',
+  "I'll write it up properly if you file the postmortem. The action item goes to the study queue and the whole thing joins the Incidents row.":
+    '你提交复盘的话，我会好好把它写完。行动项会进入研究队列，整件事会计入故障一栏。',
+  'You were gone for 3.2 h. The books kept turning.': '你离开了 3.2 小时。账目照常运转。',
+  'Users: 1.2k\nCash: +$1.2k\nStudies finished: 2\nDev Hours: +40':
+    '用户：1.2k\n现金：+$1.2k\n已完成研究：2\n开发工时：+40',
+  'Nothing needed a signature. That is the most we can say for most days.':
+    '没有什么需要签字。对大多数日子来说，这已经是最好的评价了。',
+  'All reconciled to the nearest regret.': '所有账目都对到了最接近遗憾的那一位。',
+  'No invoices were harmed in your absence.': '你不在的时候，没有发票受到伤害。',
+  'While you were away: peak 80% on Server': '你不在时：服务器峰值 80%',
+  'You were away for 3.2 h. Here is what the dials did.': '你离开了 3.2 小时。这是各个仪表的情况。',
+  'Highest load: 80% on Server': '最高负载：服务器 80%',
+  'We lost users while you were out. Nobody paged you about it.':
+    '你不在的时候我们流失了用户。没人为此呼叫你。',
+  'We did not page you. We considered it for a moment, then we looked at your calendar.':
+    '我们没有呼叫你。我们考虑了一会儿，然后看了看你的日历。',
+  'Your graphs missed you (draft, unsent)': '你的图表想你了（草稿，未发送）',
+  'I drafted a few pages while you were away. This is the one I did not send.':
+    '你不在时我起草了几页。这是我没发出去的一页。',
+  '3.2 h away. Peak load 80% on Server. Nothing caught fire, though one graph got warm enough to toast bread.':
+    '离开 3.2 小时。峰值负载：服务器 80%。没有着火，不过有一张图热得能烤面包。',
 }

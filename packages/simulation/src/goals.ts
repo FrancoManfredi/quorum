@@ -1,11 +1,6 @@
 import { canRaise } from './actions.ts'
 import type { Limit } from './capacity.ts'
-import {
-  KINDS,
-  PRICING_FROM_STAGE,
-  RUNTIMES,
-  type RequestKind,
-} from './catalog.ts'
+import { KINDS, PRICING_FROM_STAGE, RUNTIMES, type RequestKind } from './catalog.ts'
 import { nodeLabel } from './labels.ts'
 import type { Ledger } from './ledger.ts'
 import { drawerSize, eraOf, has, hasPricing, nextEra, researchAffordable } from './lookups.ts'

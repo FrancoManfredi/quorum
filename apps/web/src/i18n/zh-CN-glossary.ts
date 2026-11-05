@@ -789,7 +789,6 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
     '完成“按优先级卸载负载”研究后，可以在应用服务器上开启负载卸载。负载超过 90% 时，它会按价值从低到高整类丢弃请求（先机器人，再实时连接，再页面浏览，依此类推），直到负载回到 90%，让价值 $25 的结账请求能在过载时幸存。被丢弃的请求计为错误，会消耗错误预算，但保留下来的请求仍然很快。',
   "AWS Builders' Library: Using load shedding to avoid overload":
     'AWS 构建者文库：利用负载卸载避免过载',
-  'Google SRE book: Handling overload': 'Google SRE 书籍：处理过载',
   'Google SRE book: Addressing cascading failures': 'Google SRE 书籍：应对级联故障',
   'Memory that a long-running process keeps allocated but no longer uses, so its memory use grows with uptime. In garbage-collected languages a leak is usually an object that stays reachable by mistake, such as a cache that only grows or a listener nobody removes. The process slows as it swaps or collects garbage, and the operating system kills it when memory runs out.':
     '长时间运行的进程仍保留分配、却不再使用的内存，使内存用量随运行时间增长。在使用垃圾回收的语言中，泄漏通常是对象因疏忽始终可达，例如只增不减的缓存或从未移除的监听器。进程会因使用交换空间或垃圾回收而变慢，内存耗尽时则会被操作系统终止。',
@@ -1104,4 +1103,38 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
     '证书自动化研究会解锁密钥与证书。只要有一个在运行，它就在第一个模拟秒签发证书，并在寿命的三分之二处续期：90 个日历天，系列 C 起为 45 天。若没有运行，证书会到期，证书过期事故随即开始，来自用户的每个请求都会以下线失败，直到有新的在运行，或玩家点击续期。',
   "On-call rotation (Series A, after Alerting) puts the team on the pager. The rotation acknowledges an Incident five calendar minutes after its first signal, so its MTTA is short even when the player is away, and the Postmortem shows it. Without it a page waits for the player's first click. Every page is counted against the engineers on the team that owns the Service it hit, and each takes a little of their mood: a long quarter on call is one way an engineer comes to ask for time off, a raise, or their notice.":
     '值班轮换（系列 A，需先研究告警）让团队接管呼机。轮换会在事故的第一个信号后五个日历分钟确认，因此即使玩家不在，MTTA 也很短，复盘会显示这一点。没有它，呼叫要等玩家第一次点击。每次呼叫都会计入所影响服务所属团队的工程师，并消耗他们的一点心情：一个漫长的值班季度，正是工程师提出休假、加薪或辞职的原因之一。',
+  'Cascading failure': '级联故障',
+  'From Series A, an Incident nobody answers can start another when it ends, and the second records the first as its cause. A Slow query left alone starts a Retry storm, a Retry storm starts Connection exhaustion, and a Memory leak starts a GC pause storm; the pager names the chain, and the postmortem card says what it followed. Answering an Incident in any way, even acknowledging it, stops it from cascading, and a chain stops after one hop.':
+    '从 A 轮起，无人响应的故障结束时可能引发另一个故障，后者会把前者记为原因。放任不管的慢查询会引发重试风暴，重试风暴会引发连接耗尽，内存泄漏会引发 GC 暂停风暴；呼叫器会点出这条链，复盘卡片会说明它沿着什么发展。以任何方式响应故障（哪怕只是确认），都能阻止它级联，而且一条链最多只传一跳。',
+  'AWS: Automating safe, hands-off deployments': 'AWS：自动化的安全免干预部署',
+  'Google SRE book: Cascading failures': 'Google SRE 书：级联故障',
+  'Before the Continuous delivery Research, a deploy takes 30 minutes by hand. After it, a pipeline deploys in 5 minutes, so more deploys fit in the 8-hour work day with the build and the 15-minute check. It also lets you roll back a Bad deploy, which ends the Incident and puts its Features back in line for the next deploy, and it unlocks the CI/CD Pipeline: place one and its deploy strategy sets the deploy time and the ceiling on what a Bad deploy breaks.':
+    '在持续交付研究之前，一次部署要手动花 30 分钟。研究之后，流水线 5 分钟完成部署，因此在 8 小时工作日里，算上构建和 15 分钟的检查，可以完成更多次部署。它还允许你回滚出错的部署，这会结束该故障，并让其中的功能重新排队等待下次部署；它也会解锁 CI/CD 流水线：放置一条后，它的部署策略决定部署时间，以及部署出错时最多能破坏多少。',
+  'From Pre-seed you can create up to 4 Teams, each with its own policy, and each pays its own coordination cost, so splitting a large group raises total Dev Hours. Building more Services than you have Teams is the mismatch the Conway’s Law achievement marks: fix it by giving each Service a team. A Service’s owner builds its backlog and is paged when it breaks.':
+    '从天使轮起你最多可以创建 4 个团队，每个团队有自己的策略，也各自承担协调成本，因此拆分大团队会提高总开发工时。服务数量多于团队数量，就是康威定律成就所标记的错配：给每个服务配一个团队即可解决。服务的负责人负责建立它的待办列表，并在它出故障时被呼叫。',
+  'Leap smearing': '闰秒平滑',
+  'Google: Leap Smear': 'Google：闰秒平滑',
+  'Cloudflare: How and why we leap smear': 'Cloudflare：我们如何以及为何平滑闰秒',
+  'MTTD and MTTA': 'MTTD 与 MTTA',
+  'Google SRE book: Being on-call': 'Google SRE 书：值班',
+  'Node drain': '节点排空',
+  "With Health checks researched, a Node's card offers Drain. It takes no new traffic at once, its share going to the other Nodes on the path, and it finishes what it holds: a Queue hands its backlog to its Workers. Ten sim seconds later, empty, it rejoins the rotation. Draining the Node an Incident is hitting ends that Incident with the drain, and a Node with no other copy to take the load strands every request sent to it.":
+    '研究健康检查后，节点卡片会提供排空。它立即不再接收新流量，其份额交给路径上的其他节点，并处理完手头的请求：队列会把积压交给它的工作进程。十个模拟秒后，节点清空并重新加入轮转。排空正在遭受故障的节点会随着排空结束该故障；而没有其他副本分担负载的节点，会让发往它的每个请求搁浅。',
+  'Kubernetes docs: Safely drain a node': 'Kubernetes 文档：安全地排空节点',
+  'NGINX docs: Reverse proxy': 'NGINX 文档：反向代理',
+  'AWS docs: Target group deregistration delay': 'AWS 文档：目标组注销延迟',
+  'On-call': '值班',
+  'PagerDuty: What is on-call rotation?': 'PagerDuty：什么是值班轮换？',
+  'A short, tested document that says what to do when a specific alert fires: which checks to run, which command to execute, when to escalate. A runbook that a system can execute by itself is automation; one that a person reads at 3 a.m. is still worth writing.':
+    '一份简短且经过测试的文档，说明某个具体告警触发时该怎么做：运行哪些检查、执行哪条命令、何时升级。系统能自行执行的操作手册就是自动化；凌晨 3 点由人阅读的操作手册，依然值得编写。',
+  'Runbooks (Series A, after On-call) and an SRE team with an engineer unlock Write a runbook, 10 Dev Hours, for one incident kind the team has already ended by hand. Once it is written that kind resolves on its own first Step: the postmortem records it as automatic, as it does a Cluster rescheduling a pod or a standby failing over, and the Runbook achievement reads the record.':
+    '操作手册（A 轮，值班之后）和配有工程师的 SRE 团队会解锁编写操作手册，花费 10 开发工时，针对团队已经手动处理过的一类故障。写好之后，这类故障会在第一步自行解决：复盘会把它记录为自动处理，就像集群重新调度 Pod 或备用节点接管一样，操作手册成就读取的正是这份记录。',
+  'Google SRE book: Postmortem culture': 'Google SRE 书：复盘文化',
+  'PagerDuty: What is a runbook?': 'PagerDuty：什么是操作手册？',
+  Service: '服务',
+  'Martin Fowler: MonolithFirst': 'Martin Fowler：MonolithFirst',
+  'Martin Fowler: Microservices': 'Martin Fowler：微服务',
+  'microservices.io: Monolithic architecture': 'microservices.io：单体架构',
+  'Spot pricing runs a Node at 0.3× the on-demand price, and the provider can reclaim it: a Spot reclaim Incident warns for 10 sim seconds and then takes the Node down. Switching the Node to on-demand inside the warning cancels it. A reserved Node costs 0.6× and holds for a calendar week. The GPU shortage Incident is separate: the provider reclaims a GPU Node, H100s first, and an LLM API as a fallback makes it a quarter as likely.':
+    '竞价定价让节点按按需价格的 0.3× 运行，而云厂商可以收回它：竞价回收故障会先预警 10 个模拟秒，然后让节点下线。在预警期内把节点切换为按需即可取消回收。预留节点价格为 0.6×，并锁定一个日历周。GPU 短缺故障是另一回事：云厂商会收回 GPU 节点，先收 H100，使用 LLM API 作为备用可让它的发生概率降到四分之一。',
 }

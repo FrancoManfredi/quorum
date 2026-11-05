@@ -235,11 +235,17 @@ test('a reload opens the Company with the Mail it had, and the return from away 
   const wall = 1_000_000
   const before = sent([fact('cloud:cpu:a', 'cloud', 'Capacity warning')], 'action')
   const json = JSON.stringify({ ...game, wall, inbox: savedInbox(before) })
-  const loaded = update(initialModel(), Message.SaveLoaded({ json, now: wall })).model
+  const loaded = update(
+    initialModel(),
+    Message.CompanyLoaded({ id: 'c', open: true, json, now: wall }),
+  ).model
   expect(loaded.board.inbox.mail.map((mail) => mail.subject)).toEqual(['Capacity warning'])
 
   // An hour away: Finance and the pager both write "While you were away" (18 "What Mail replaces").
-  const back = update(initialModel(), Message.SaveLoaded({ json, now: wall + 3_600_000 })).model
+  const back = update(
+    initialModel(),
+    Message.CompanyLoaded({ id: 'c', open: true, json, now: wall + 3_600_000 }),
+  ).model
   const kinds = back.board.inbox.mail.map((mail) => senderOf(mail.sender).kind)
   expect(kinds).toContain('finance')
   expect(kinds).toContain('monitoring')

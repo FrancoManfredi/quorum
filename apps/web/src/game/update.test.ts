@@ -1,3 +1,4 @@
+import { EMPTY_SAVE_INDEX, fileFor, withFile } from './saves.ts'
 import { ResearchMessage } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
@@ -1198,7 +1199,20 @@ test('a save this version cannot read is kept aside instead of dropped', () => {
 })
 
 test('a save travels as one line of text, and only a save of this build opens it', () => {
-  const playable: Model = { ...inLab(), saved: true }
+  const start = inLab()
+  const file = fileFor({
+    id: 'c',
+    name: 'Acme',
+    logo: 'bolt',
+    founding: start.board.game.founding,
+    game: start.board.game,
+    now: 0,
+  })
+  const playable: Model = {
+    ...start,
+    loaded: true,
+    saves: { ...withFile(EMPTY_SAVE_INDEX, file), current: 'c' },
+  }
   const exported = update(playable, Message.SaveExported())
   const copied = (
     (exported.commands ?? []) as ReadonlyArray<{
@@ -1210,8 +1224,8 @@ test('a save travels as one line of text, and only a save of this build opens it
   expect(text.startsWith('QSV1:')).toBe(true)
 
   // Pasting it back opens the same Company, on a fresh board to work on.
-  const opened = update(initialModel(), Message.SaveImported({ text }))
-  expect(opened.model.saved).toBe(true)
+  const opened = update(playable, Message.SaveImported({ text }))
+  expect(opened.model.loaded).toBe(true)
   expect(opened.model.toast?.tone).toBe('ok')
   expect(opened.model.board.game.cash).toBe(playable.board.game.cash)
   expect(opened.model.board.game.nodes).toEqual(playable.board.game.nodes)

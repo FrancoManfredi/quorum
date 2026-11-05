@@ -2108,4 +2108,107 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Too early': '为时过早',
   Wins: '胜出',
   Loses: '失败',
+  'Shared Nothing': '无共享',
+  'Reach Seed with only PHP-FPM servers and no memory incident':
+    '只用 PHP-FPM 服务器达到种子轮，且没有发生内存故障',
+  'Have a Node.js service whose p99 rises by 100 ms from one kind':
+    '让一个 Node.js 服务因某一类请求而 p99 上升 100 毫秒',
+  'Off by One Region': '差一个区域',
+  'Serve a user from a region more than 150 ms away': '让用户访问到距离超过 150 毫秒的区域',
+  "Little's Law": '利特尔法则',
+  'Fix an app server bottleneck by fixing the database': '通过修复数据库来解决应用服务器瓶颈',
+  'Big Rewrite': '大重写',
+  'Migrate every service to a new language in one company': '在一家公司内把所有服务迁移到新语言',
+  'Run a wide-column store with R + W > N across three regions':
+    '跨三个区域运行 R + W > N 的宽列存储',
+  Eventually: '最终一致',
+  'Serve a 10-million-follower post with no hot key errors':
+    '在没有热点键错误的情况下服务一条拥有 1000 万粉丝的帖子',
+  'Serve four regions with no Node above 70% at its local peak':
+    '服务四个区域，且没有节点在本地峰值时超过 70%',
+  'Egress Shock': '出站流量冲击',
+  'Have egress be the largest line on the bill': '让出站流量成为账单上最大的一项',
+  'Complete the Five Nines Challenge': '完成五个九挑战',
+  'Everyone Online': '人人在线',
+  'Warm Start': '热启动',
+  'Scale a JVM service during a spike with no p99 regression':
+    '在流量高峰期间扩容 JVM 服务，且 p99 没有退化',
+  'On-demand': '按需',
+  'Full rate. Remove the Node at any time.': '全价。可随时移除节点。',
+  Reserved: '预留',
+  Spot: '竞价',
+  'Bad deploy': '部署出错',
+  'A phishing page took the Company credentials, and a stranger used them.':
+    '一个钓鱼页面骗走了公司凭据，一个陌生人使用了它们。',
+  'Read the domain, not the logo. Report the Mail as phishing and it loses its button.':
+    '看域名，不要看标志。把邮件举报为钓鱼邮件，它就不再有按钮。',
+  'Spot reclaim': '竞价回收',
+  'The provider needed the capacity back. It reclaimed a Spot Node after a 10-second warning.':
+    '云厂商需要收回容量。它在 10 秒预警后回收了一个竞价节点。',
+  'Mixed fleets, graceful shutdown, and on-demand copies behind a Load Balancer.':
+    '混合实例池、优雅关闭，以及负载均衡器后的按需副本。',
+  'Big tenant hot shard': '大租户热点分片',
+  "The biggest tenant's key landed on one shard. Its reads and writes cost 3× the CPU, and everything else on that shard waits behind it.":
+    '最大租户的键落在了同一个分片上。它的读写消耗 3× 的 CPU，该分片上的其他一切都要排在它后面等待。',
+  'Premiere spike': '首映高峰',
+  'A premiere dropped: 4× the usual video demand, all in the same minute.':
+    '一部首映上线了：视频需求是平时的 4×，全部集中在同一分钟。',
+  'Tiered caching at the CDN, reserved capacity, and load shedding.':
+    'CDN 分层缓存、预留容量和负载削减。',
+  'Launch day': '上线日',
+  'The game launched: 6× the usual realtime messages, and every client connects at once.':
+    '游戏上线了：实时消息是平时的 6×，每个客户端同时连接。',
+  'Realtime Hubs sized for the peak, reconnect jitter, and load shedding.':
+    '按峰值配置的实时枢纽、重连抖动和负载削减。',
+  'Flash sale': '闪购',
+  'A flash sale: 20× the usual checkouts for a few minutes.':
+    '一场闪购：几分钟内结账量是平时的 20×。',
+  'A Queue for the checkout work, an Autoscaler, and load shedding.':
+    '结账任务用队列、自动扩缩器和负载削减。',
+  'JVM warmup under load': '负载下的 JVM 预热',
+  'An Autoscaler added Java App Servers during a spike, and the new copies ran cold: 30% speed for their first 30 s.':
+    '自动扩缩器在流量高峰期间添加了 Java 应用服务器，新副本冷启动运行：前 30 秒只有 30% 的速度。',
+  'Slow start on the Load Balancer is not built. Scheduled scaling and a GraalVM native image are: native code starts warm.':
+    '负载均衡器的慢启动尚未实现。定时扩容和 GraalVM 原生镜像可用：原生代码启动即是热的。',
+  'Schema migration lock': '数据库迁移锁',
+  'A migration ran ALTER TABLE on the biggest table. It held the lock while it copied it, and every write queued behind it until it timed out.':
+    '一次迁移对最大的表执行了 ALTER TABLE。它在复制表期间一直持有锁，每个写入都排在它后面，直到超时。',
+  'Online schema migrations change a big table without holding the lock.':
+    '在线表结构迁移可以在不持有锁的情况下修改大表。',
+  'Supply-chain compromise': '供应链攻击',
+  'A dependency published a malicious version, and a deploy installed it. The package ran in the App Servers and shipped data out.':
+    '一个依赖发布了恶意版本，一次部署安装了它。该包在应用服务器中运行，并把数据外传。',
+  'Accidental delete': '误删数据',
+  'An operator deleted data. A table was gone, and every query that needed it failed.':
+    '一名运维人员删除了数据。一张表没了，所有需要它的查询都失败了。',
+  'Point-in-time recovery restores the table to the minute before the delete. Restore drills prove the backup restores.':
+    '时间点恢复可以把表恢复到删除前一分钟。恢复演练证明备份可以恢复。',
+  'Operator typo': '运维手误',
+  'A plan and a review before a change is applied show what it will remove, so a typo stops at the plan.':
+    '变更生效前的计划和评审会显示它将删除什么，因此手误在计划阶段就被拦下。',
+  'Leap second or clock skew': '闰秒或时钟偏移',
+  'Leap smearing spreads the second over a day, so no clock ever jumps.':
+    '闰秒平滑把这一秒分摊到一整天，因此没有时钟会跳变。',
+  'Reserved instances': '预留实例',
+  'Reserved pricing: 0.6× for a calendar-week commitment.': '预留定价：承诺一个日历周，0.6×。',
+  'Spot instances': '竞价实例',
+  'Spot pricing: 0.3×, until the provider reclaims the Node.':
+    '竞价定价：0.3×，直到云厂商收回该节点。',
+  'The PHP 8 JIT: 1.05× CPU on web kinds, 1.6× on CPU-heavy ones. It barely helps page and read.':
+    'PHP 8 JIT：Web 类请求 1.05× CPU，CPU 密集型请求 1.6×。对页面和读取几乎没有帮助。',
+  'Ruby’s JIT: 1.3× CPU work for 20% more memory.': 'Ruby 的 JIT：CPU 工作 1.3×，内存多 20%。',
+  'CPU-heavy kinds move to a blocking pool, so a Tokio task stops stalling a worker thread.':
+    'CPU 密集型请求移到阻塞线程池，因此 Tokio 任务不再卡住工作线程。',
+  'A BEAM Realtime Hub clusters on its own built-in pub/sub, with no separate backbone. Partitions can split the brain.':
+    'BEAM 实时枢纽依靠自带的内置发布/订阅组成集群，不需要单独的骨干。分区可能导致脑裂。',
+  'Native code makes Elixir’s CPU-heavy kinds 3× faster. A NIF is not preempted, and a crash in one takes the whole VM.':
+    '原生代码让 Elixir 的 CPU 密集型请求快 3×。NIF 不会被抢占，其中一次崩溃会拖垮整个虚拟机。',
+  'Less fragmentation in long-running Rust services: 1.05× CPU, for 5% more memory at start.':
+    '长期运行的 Rust 服务内存碎片更少：1.05× CPU，启动时内存多 5%。',
+  'Online schema migrations': '在线表结构迁移',
+  'Changes a big table without holding its lock, so writes keep flowing through a migration.':
+    '在不持有锁的情况下修改大表，因此迁移期间写入仍然畅通。',
+  'Spreads a leap second over the whole day, so no clock jumps and no lease expires early.':
+    '把一个闰秒分摊到全天，因此没有时钟跳变，也没有租约提前过期。',
+  'Required for the EU market: EU data stays in an EU region': '欧盟市场必备：欧盟数据留在欧盟区域',
 }

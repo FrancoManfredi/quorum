@@ -2335,7 +2335,7 @@ const sidecars = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
           : members.map((member) =>
               h.div(
                 [h.Key(member.id), h.Class('flex items-center justify-between gap-2 py-0.5')],
-                [caption(nameOf(game, member), h)],
+                [caption(nodeLabel(game, member), h)],
               ),
             )),
         h.p(
@@ -2380,7 +2380,7 @@ const changes = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
         caption(
           source === undefined || stream === undefined
             ? 'Link a Database into it, and it into an Event Stream, before it carries anything.'
-            : `Reading ${nameOf(game, source)}, publishing to ${nameOf(game, stream)}.`,
+            : `Reading ${nodeLabel(game, source)}, publishing to ${nodeLabel(game, stream)}.`,
           h,
         ),
         h.p(
@@ -3300,16 +3300,12 @@ const breakdown = (
     ],
     [
       h.span(
-        [h.Class('min-w-0 break-words text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-        typeof label === 'string' ? [label] : label,
-      ),
-      h.span(
         [
           h.Class(
             'min-w-0 break-words text-[calc(12.5px*var(--type-scale))] text-muted-foreground',
           ),
         ],
-        [label],
+        typeof label === 'string' ? [label] : label,
       ),
       h.span(
         [
@@ -3599,7 +3595,14 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                 [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
                 [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])],
               ),
-              h.span([h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'))], [def.product]),
+              h.span(
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'),
+                  ),
+                ],
+                [def.product],
+              ),
             ],
           ),
           sizeLabel
@@ -3618,7 +3621,14 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ),
         ],
       ),
-      h.p([h.Class('px-4 pb-3 text-[calc(12.5px*var(--type-scale))] leading-snug text-muted-foreground')], [def.blurb]),
+      h.p(
+        [
+          h.Class(
+            'px-4 pb-3 text-[calc(12.5px*var(--type-scale))] leading-snug text-muted-foreground',
+          ),
+        ],
+        [def.blurb],
+      ),
       ...inboundSummary(game, node, ledger, h),
       ...warnings(game, node, ledger, h),
       h.div(
