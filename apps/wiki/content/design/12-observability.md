@@ -95,13 +95,15 @@ Insight of an incident still pays for a Study after the incident ends. Grants ig
 | Source              | Amount                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------ |
 | Load tests          | Not built yet                                                                              |
-| Chaos experiments   | Not built yet                                                                              |
+| Chaos experiments   | 1 Failure Insight a second while an experiment runs (proposed)                             |
 | DR drill            | Not built yet                                                                              |
 | First time per kind | 20 Insight of that kind, the first time the Design serves more than 50% of it successfully |
 
-Load tests, chaos experiments and the DR drill pay no Insight in the build. The design gave a one-time
-grant per load test to the pools of the kinds it sends, a Failure grant per chaos experiment that
-finds a weakness, and a Failure grant when a DR drill passes.
+Load tests and the DR drill pay no Insight in the build. An experiment that Chaos engineering
+schedules does: for the 10 seconds it runs, the Company earns 1 Failure Insight a second, on top of
+whatever the injected failures earn through Analytics. The design gave a one-time Failure grant per
+chaos experiment that finds a weakness; the build pays through the experiment and lets the failures
+it causes feed the same pool as any other ([Progression](/design/10-progression#track-reliability)).
 
 ## The visibility ladder
 
@@ -287,6 +289,11 @@ Each visibility step adds a row. A row appears only when its research is owned.
 | `tail-sampling`     | —               | Not built yet: exemplars that prefer slow and failed requests, so the dots sit in the tail.                                                                                                                                                                                                                                      |
 | `rum`               | Users           | Users by region against the region's market, with its Apdex and its churn per hour. Not built yet: latency per region and device from the user's side, including the internet hop. The build has no `rum` Research, so this row arrives with Multiple regions, in the same Era.                                                  |
 | `anomaly-detection` | —               | Not built yet: a forecast band on the traffic and latency Charts, and a line at tomorrow's predicted peak.                                                                                                                                                                                                                       |
+
+A chaos experiment ([Progression](/design/10-progression#track-reliability)) writes its injected
+`refused` errors into the Errors row while it runs, so the experiment is visible on the same Chart as
+the failures it causes. The Team panel's Chaos switch names the Node the next experiment will hit,
+which is the Design's weakest.
 
 The Dashboard has eight of these rows: Overview, Errors, Latency, Alerts, Services, Resources, Users
 and SLO. Two more rows read the Game, the Ledger and the Inbox rather than a signal:

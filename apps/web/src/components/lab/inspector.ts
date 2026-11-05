@@ -35,6 +35,10 @@ import {
   GATEWAY_LIMITS,
   KINDS,
   LB_POLICIES,
+  LB_VARIANTS,
+  GPU_PRECISIONS,
+  GPU_BATCHES,
+  GPU_FIRST_TOKEN_MS,
   MAX_ATTEMPTS,
   PM_MODES,
   PREFETCH,
@@ -59,6 +63,8 @@ import {
   ZONES,
   type RequestKind,
   type RuntimeId,
+  type LbVariant,
+  type GpuPrecision,
   BACKUPS,
   DB_ENGINES,
   REGION_INFO,
@@ -1511,6 +1517,29 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
   >
   return [
     section(
+      'Variant',
+      [
+        picker(
+          'lb-variant',
+          (Object.keys(LB_VARIANTS) as ReadonlyArray<LbVariant>).map(
+            (id) => [id, LB_VARIANTS[id].name] as const,
+          ),
+          node.variant,
+          (variant) => Message.LbVariantChosen({ nodeId: node.id, variant }),
+          h,
+          (id) => LB_VARIANTS[id].research === null || has(game, LB_VARIANTS[id].research),
+          'grid-cols-2',
+        ),
+        caption(
+          node.variant === 'l4'
+            ? 'Forwards TCP: ten times the throughput, 0.2 ms, and cheaper. It reads no HTTP, so it cannot route by kind or retry.'
+            : 'Reads HTTP: routes by kind, retries, and checks health. Lower throughput and a longer hop.',
+          h,
+        ),
+      ],
+      h,
+    ),
+    section(
       'Policy',
       [
         picker(
@@ -1860,6 +1889,29 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
           shards > 1
             ? `Writes divide across ${shards} shards, and each one bills. A transaction across shards costs 3×.`
             : 'One primary: a Read Replica is what takes the reads off it.',
+          h,
+        ),
+      ],
+      h,
+    ),
+    section(
+      'Reports',
+      [
+        picker(
+          'materialized',
+          [
+            [false, 'Scan the table'],
+            [true, 'Materialized view'],
+          ],
+          node.materialized,
+          (materialized) => Message.MaterializedChosen({ nodeId: node.id, materialized }),
+          h,
+          (materialized) => !materialized || has(game, 'precompute'),
+        ),
+        caption(
+          node.materialized
+            ? 'Half the scan CPU, and the figures are as old as the last refresh.'
+            : 'Every report scans the table itself. Research Materialized views to store one.',
           h,
         ),
       ],
@@ -2599,7 +2651,7 @@ const splitting = (node: GameNode, h: HtmlBuilder<Message>): Html =>
 
 const MIN_COPIES = [1, 2, 4, 8] as const
 
-const autoscaler = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'Scaling',
     [
@@ -2636,11 +2688,28 @@ const autoscaler = (node: GameNode, h: HtmlBuilder<Message>): Html =>
         h,
         (copies) => copies === 0 || copies >= node.minCopies,
       ),
+      picker(
+        'scale-schedule',
+        [
+          [false, 'On load'],
+          [true, 'Ahead of the peak'],
+        ],
+        node.schedule,
+        (schedule) => Message.AutoscalerChosen({ nodeId: node.id, schedule }),
+        h,
+        (schedule) => !schedule || has(game, 'scheduled-scaling'),
+      ),
+      caption(
+        node.schedule
+          ? 'Two calendar hours before the daily peak it adds the copies the peak will need, so they are warm when it arrives.'
+          : 'It reacts to the load it sees. Research Scheduled scaling to provision for the peak first.',
+        h,
+      ),
     ],
     h,
   )
 
-const gpu = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'GPU',
     [
@@ -2651,6 +2720,40 @@ const gpu = (node: GameNode, h: HtmlBuilder<Message>): Html =>
         ),
         node.gpu,
         (choice) => Message.GpuChosen({ nodeId: node.id, gpu: choice }),
+        h,
+      ),
+      picker(
+        'precision',
+        (Object.keys(GPU_PRECISIONS) as ReadonlyArray<GpuPrecision>).map(
+          (id) => [id, GPU_PRECISIONS[id].name] as const,
+        ),
+        node.precision,
+        (choice) => Message.PrecisionChosen({ nodeId: node.id, precision: choice }),
+        h,
+        (id) => id === 'fp16' || has(game, 'quantization'),
+        'grid-cols-3',
+      ),
+      caption(
+        node.precision === 'fp16'
+          ? 'Full precision: the baseline, and every answer at full value.'
+          : `${GPU_PRECISIONS[node.precision].speed}× the tokens, and each answer is worth ${Math.round((1 - GPU_PRECISIONS[node.precision].value) * 100)}% less.`,
+        h,
+      ),
+      picker(
+        'batch',
+        GPU_BATCHES.map((entry) => [entry.batch, `batch ${entry.batch}`] as const),
+        node.batch,
+        (choice) => Message.BatchChosen({ nodeId: node.id, batch: choice }),
+        h,
+        (batch) => batch === 1 || has(game, 'continuous-batching'),
+        'grid-cols-3',
+      ),
+      caption(
+        node.batch === 1
+          ? 'One prompt at a time: the lowest wait for a first token.'
+          : has(game, 'continuous-batching')
+            ? `${GPU_BATCHES.find((entry) => entry.batch === node.batch)?.gain ?? 1}× the prompts a second, and continuous batching keeps the first token at ${GPU_FIRST_TOKEN_MS} ms.`
+            : `${GPU_BATCHES.find((entry) => entry.batch === node.batch)?.gain ?? 1}× the prompts a second, and the first token waits ${GPU_BATCHES.find((entry) => entry.batch === node.batch)?.ttft ?? 0} ms longer.`,
         h,
       ),
     ],
@@ -2714,6 +2817,19 @@ const routing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
         h,
       ),
     )
+  if (has(game, 'graceful-degradation'))
+    rows.push(
+      picker(
+        'degrade',
+        [
+          [false, 'Keep kinds'],
+          [true, 'Drop dearest'],
+        ],
+        node.degrade,
+        (degrade) => Message.DegradeChosen({ nodeId: node.id, degrade }),
+        h,
+      ),
+    )
   if (has(game, 'ryw-routing'))
     rows.push(
       picker(
@@ -2756,7 +2872,7 @@ const waf = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   )
 
 /** An API Gateway's rate limit, in requests per second; Off lets every request through. */
-const gateway = (node: GameNode, h: HtmlBuilder<Message>): Html =>
+const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'Rate limit',
     [
@@ -2773,6 +2889,23 @@ const gateway = (node: GameNode, h: HtmlBuilder<Message>): Html =>
         node.rateLimit > 0
           ? `Past ${compact(node.rateLimit)} requests a second, they fail as throttled.`
           : 'No limit: every request goes on to the services.',
+        h,
+      ),
+      picker(
+        'gateway-bucket',
+        [
+          [false, 'Flat cap'],
+          [true, 'Token bucket'],
+        ],
+        node.burst > 0,
+        (bucket) => Message.GatewayBucketChosen({ nodeId: node.id, bucket }),
+        h,
+        (bucket) => !bucket || has(game, 'rate-limiting'),
+      ),
+      caption(
+        node.burst > 0
+          ? `A burst of up to ${compact(node.burst)} requests passes whole, and the average holds at the limit.`
+          : 'Every Step over the limit is throttled at once. Research Rate limiting for a token bucket.',
         h,
       ),
     ],
@@ -3025,6 +3158,35 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
                     ],
                     link.breaker,
                     (breaker) => Message.LinkPolicyChosen({ from: node.id, to: link.to, breaker }),
+                    h,
+                  ),
+                ]
+              : []),
+            ...(has(game, 'bulkheads')
+              ? [
+                  picker(
+                    `bulkhead-${link.to}`,
+                    [
+                      [false, 'No bulkhead'],
+                      [true, 'Bulkhead'],
+                    ],
+                    link.bulkhead,
+                    (bulkhead) =>
+                      Message.LinkPolicyChosen({ from: node.id, to: link.to, bulkhead }),
+                    h,
+                  ),
+                ]
+              : []),
+            ...(has(game, 'hedged-requests')
+              ? [
+                  picker(
+                    `hedge-${link.to}`,
+                    [
+                      [false, 'One copy'],
+                      [true, 'Hedge'],
+                    ],
+                    link.hedge,
+                    (hedge) => Message.LinkPolicyChosen({ from: node.id, to: link.to, hedge }),
                     h,
                   ),
                 ]
@@ -3487,7 +3649,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'ws' ? [hubStack(game, node, h)] : []),
           ...(node.type === 'server' ? collector(game, node, h) : []),
           ...(node.type === 'server' ? routing(game, node, h) : []),
-          ...(node.type === 'gpu' ? [gpu(node, h)] : []),
+          ...(node.type === 'gpu' ? [gpu(game, node, h)] : []),
           ...(node.type === 'analytics' ? [sampler(game, node, h)] : []),
           ...(node.type === 'lb' ? loadBalancer(game, node, h) : []),
           ...(node.type === 'cache' ? [cache(game, node, h)] : []),
@@ -3498,7 +3660,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'queue' ? queue(node, h) : []),
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
-          ...(node.type === 'gw' ? [gateway(node, h)] : []),
+          ...(node.type === 'gw' ? [gateway(game, node, h)] : []),
           ...(node.type === 'doc' ? documents(game, node, h) : []),
           ...(node.type === 'vec' ? vector(game, node, h) : []),
           ...(node.type === 'log' ? events(node, h) : []),
@@ -3512,7 +3674,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'ws' ? [hub(node, h)] : []),
           ...(node.type === 'cdn' ? [cdnTtl(node, h)] : []),
           ...(node.type === 'pooler' ? [pooler(node, h)] : []),
-          ...(node.type === 'autoscaler' ? [autoscaler(node, h)] : []),
+          ...(node.type === 'autoscaler' ? [autoscaler(game, node, h)] : []),
           ...(has(game, 'multi-az') && zoned(node) ? [placement(node, h)] : []),
           ...regionSection(game, node, h),
           ...(node.type === 'wide' ? wide(game, node, h) : []),

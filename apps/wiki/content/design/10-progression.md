@@ -171,7 +171,7 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 159 of
+a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 176 of
 them across all 10.
 
 ### Recipes
@@ -357,8 +357,10 @@ range.
 | `edge-compute`        | Edge compute              | Series C | 80,000  | `cdn`             | Edge Function                                                                                 |
 | `notifications`       | Notifications             | Series C | 40,000  | —                 | Push Provider                                                                                 |
 
-**Built: 26 of 34.** Not built yet: `l4-lb`, `rate-limiting`, `esi`, `bot-management`,
-`scheduled-scaling`, `arm-instances`, `quantization`, `continuous-batching`.
+**Built: 34 of 34.** Each option is wired to its Component (05 "Load Balancer", "CDN", "WAF",
+"Autoscaler", "App Server", "GPU Node"): the L4 variant, the Gateway's token bucket, Edge-side
+includes' 20 points of `page`, Bot management's half false positives, Scheduled scaling's lead on the
+peak, the ARM family at 0.8× the price, and the GPU's INT8/INT4 and batch sizes.
 
 ### Track: Data
 
@@ -391,8 +393,10 @@ range.
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
 | `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
 
-**Built: 24 of 26.** Not built yet: `outbox`, `expand-contract`. `online-migrations` is in the build: a
-migration no longer holds a big table's lock ([Incidents](/design/11-incidents#the-six-kinds)).
+**Built: 26 of 26.** `online-migrations` is in the build: a migration no longer holds a big table's
+lock ([Incidents](/design/11-incidents#the-six-kinds)). `expand-contract` removes what is left of it,
+and `outbox` takes dual-write divergence out of the Search Engine's answers
+([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
 
 ### Track: Reliability
 
@@ -419,11 +423,13 @@ migration no longer holds a big table's lock ([Incidents](/design/11-incidents#t
 | `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                                         |
 | `leap-smearing`        | Leap smearing            | Series C | 60,000  | —                                | A clock never jumps, so no timer fires twice ([Incidents](/design/11-incidents#the-six-kinds)) |
 
-**Built: 16 of 20.** Not built yet: `bulkheads`, `graceful-degradation`, `hedged-requests`,
-`chaos-engineering`. `on-call`, `runbooks` and `leap-smearing` are in the build: the rotation answers
+**Built: 20 of 20.** `on-call`, `runbooks` and `leap-smearing` are in the build: the rotation answers
 the page, a written runbook resolves its incident kind by itself
 ([Incidents](/design/11-incidents#runbooks)), and a leap smear keeps a clock jump from timing out a
-region.
+region. `bulkheads`, `graceful-degradation`, `hedged-requests` and `chaos-engineering` are too: a Link
+option that frees a caller's slot after 1,000 ms, a saturated App Server that drops its dearest kinds
+first, a Link that races a second copy, and scheduled experiments that fail the weakest Node and pay
+Failure Insight ([Components](/design/05-components#links)).
 
 ### Track: Observability
 
@@ -459,7 +465,9 @@ region.
 | `binary-rpc`      | Binary RPC between services | Series B | 15,000 | —        | Inter-service serialization CPU −50%                      |
 | `http3`           | HTTP/3                      | Series C | 60,000 | `http2`  | −20% user hop latency for distant and mobile users        |
 
-**Built: 5 of 8.** Not built yet: `denormalization`, `precompute`, `binary-rpc`.
+**Built: 8 of 8.** Denormalization takes 30% off a read's CPU and adds 20% to a write's, Materialized
+views halve a report's scan, and Binary RPC halves the CPU a Node spends serialising its calls
+([Data tier](/design/07-data-tier#data-warehouse)).
 
 ### Track: Runtimes
 

@@ -22,6 +22,7 @@ import {
   GZIP_RATIO,
   HANDSHAKE_MS,
   HOP_MS,
+  L4_BURN,
   POD_BURN,
   PROFILES,
   PRICINGS,
@@ -547,7 +548,9 @@ export const burnOf = (game: Game, node: GameNode): number => {
   // A spread store runs its nodes in each region it replicates to.
   if ((node.type === 'wide' || node.type === 'dsql') && node.spread)
     return def.burn * flatScale(node) * index * spreadCount(game)
-  return def.burn * flatScale(node) * index * (node.standby ? 2 : 1)
+  // An L4 Load Balancer forwards packets and costs less (05 "Load Balancer": "cheaper").
+  const variant = node.type === 'lb' && node.variant === 'l4' ? L4_BURN : 1
+  return def.burn * flatScale(node) * index * (node.standby ? 2 : 1) * variant
 }
 
 /**

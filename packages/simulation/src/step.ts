@@ -30,6 +30,8 @@ import {
   CERT_RENEW,
   DRAIN_SECONDS,
   WARMUP_SECONDS,
+  SCHEDULE_LEAD_MINUTES,
+  CHAOS_INSIGHT,
   type RegionId,
   type Tuning,
 } from './catalog.ts'
@@ -38,7 +40,7 @@ import { advanceIncident, directIncidents, markSignal, startIncident } from './d
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
 import { advanceFeatures, churnFactor, growthFactor } from './features.ts'
-import { growthPerk } from './founding.ts'
+import { growthPerk, ventureOf } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
   certLifeOf,
@@ -56,7 +58,8 @@ import {
 } from './lookups.ts'
 import { causeOf, warming, warmOf, withWarm } from './life.ts'
 import { recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
-import { calendarMinute, solveFlow } from './solve.ts'
+import { cosTurns } from './calendar.ts'
+import { calendarMinute, chaosRunning, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
 import { advanceQuarter } from './quarters.ts'
 import { advanceRunway } from './runway.ts'
@@ -302,6 +305,9 @@ const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): Gam
   const cpu = own.resources.cpu
   const load =
     scaler.signal === 'cpu' ? (cpu && cpu.total > 0 ? cpu.used / cpu.total : 0) : own.utilization
+  // Scheduled scaling provisions for the peak that is coming, not the load of this minute: inside
+  // the lead window, the load it plans for is today's peak (10 "Track: Infrastructure").
+  const planned = scaler.schedule && has(game, 'scheduled-scaling') ? peakLoadOf(game, load) : load
   const most = scaler.maxCopies > 0 ? scaler.maxCopies : Number.POSITIVE_INFINITY
   // A runaway bill is an Autoscaler with no ceiling: it grows every copy it can, and Burn rises.
   const wanted =
@@ -309,7 +315,10 @@ const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): Gam
       ? Math.max(node.replicas, most === Number.POSITIVE_INFINITY ? 16 : most)
       : Math.min(
           most,
-          Math.max(scaler.minCopies, Math.ceil((node.replicas * load) / scaler.target)),
+          Math.max(
+            scaler.minCopies,
+            Math.ceil((node.replicas * Math.max(load, planned)) / scaler.target),
+          ),
         )
   if (wanted > node.replicas)
     return {
@@ -326,6 +335,21 @@ const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): Gam
   )
     return { ...node, replicas: node.replicas - 1, scaledAt: game.time }
   return node
+}
+
+/**
+ * The load a Node will see at the daily peak, from the load it sees now, when the peak is inside
+ * the schedule's lead window. Otherwise the current load: outside the window an Autoscaler waits
+ * (05 "Autoscaler": "Scheduled scaling ... Adds capacity before the known daily peak").
+ */
+export const peakLoadOf = (game: Game, load: number): number => {
+  const venture = ventureOf(game)
+  const minute = calendarMinute(game.time) % 1440
+  const peak = venture.peak * 60
+  const ahead = (((peak - minute) % 1440) + 1440) % 1440
+  if (ahead > SCHEDULE_LEAD_MINUTES) return load
+  const now = 1 + venture.amplitude * cosTurns((minute - peak) / 1440)
+  return now > 0 ? (load * (1 + venture.amplitude)) / now : load
 }
 
 const advanceNode = (
@@ -614,6 +638,9 @@ export const step = (
     errors: ledger.errorShare,
   }
 
+  // A chaos experiment earns Failure Insight for as long as it runs (10 "Reliability").
+  const chaotic = chaosRunning(game)
+  const pools = accrue(game, ledger, seconds, firsts, FIRST_KIND_INSIGHT)
   let next: Game = {
     ...game,
     nodes,
@@ -630,7 +657,9 @@ export const step = (
     alarms,
     falseAlarms,
     insight: 0,
-    pools: accrue(game, ledger, seconds, firsts, FIRST_KIND_INSIGHT),
+    pools: chaotic ? { ...pools, failure: pools.failure + CHAOS_INSIGHT * seconds } : pools,
+    // The Node the next experiment hits: the Design's weakest right now (10 "Chaos engineering").
+    weakest: game.chaos ? (ledger.bottleneck ?? game.weakest) : null,
     servedKinds: firsts.length > 0 ? [...game.servedKinds, ...firsts] : game.servedKinds,
     stored: puts > 0 ? game.stored + (puts * UPLOAD_MB * seconds) / 1_000 : game.stored,
     data,

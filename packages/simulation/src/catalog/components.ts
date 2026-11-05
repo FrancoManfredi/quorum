@@ -1022,6 +1022,13 @@ export const P2C_CAPACITY = 1.5
 export const P2C_IMBALANCE = 0.1
 /** Seconds between a Load Balancer's health checks. All but 10 s need Health checks. */
 export const CHECK_INTERVALS = [2, 10, 30] as const
+/**
+ * What the L4 variant changes (05 "Load Balancer"): ten times the throughput, 0.2 ms instead of
+ * 1 ms, and cheaper. The exact price cut is proposed: 05 says only "cheaper".
+ */
+export const L4_CAPACITY = 10
+export const L4_MS = 0.2
+export const L4_BURN = 0.6
 /** DNS TTLs, in seconds. */
 export const DNS_TTLS = [30, 300, 3_600] as const
 
@@ -1051,6 +1058,12 @@ export const CDN_TTLS = [
   { ttl: 300, factor: 1 },
   { ttl: 3_600, factor: 1.2 },
 ] as const
+/**
+ * Share a page view gains with Edge-side includes (10 "Track: Infrastructure"): the CDN caches the
+ * shared shell of a logged-in page and fills in the personal parts at the edge, which a logged-in
+ * page could not cache at all (05 "CDN": "70% of anonymous traffic").
+ */
+export const ESI_PAGE_HIT = 0.2
 /** Milliseconds a request crosses the internet to reach the origin. A CDN edge sits closer. */
 export const INTERNET_MS = 30
 
@@ -1063,6 +1076,12 @@ export const PARANOIA = [
 ] as const
 /** "Under attack" mode challenges every request: it blocks nearly all junk and some real users, and adds latency. A challenge costs paranoia 1's CPU. */
 export const UNDER_ATTACK = { block: 0.99, falsePositive: 0.01, latency: 40, cpu: 1 } as const
+/**
+ * Share by which Bot management lowers a WAF's false positives (10 "Track: Infrastructure"): a
+ * suspicious client is challenged instead of blocked, so a real user it flags still gets through.
+ * The design gives the direction and no rate, so half is proposed.
+ */
+export const BOT_MANAGEMENT_FALSE = 0.5
 
 /** Messages per second one RabbitMQ node takes (05 "Queue"). */
 export const QUEUE_RATE = 20_000
@@ -1237,6 +1256,18 @@ export const PSP_CAPACITY = 1_000
 export const GATEWAY_PRICE = 0.002
 /** Rate limits a Gateway offers, in requests per second; 0 is no limit at all. */
 export const GATEWAY_LIMITS = [0, 100, 500, 1_000, 2_500, 5_000] as const
+/**
+ * Requests a Gateway's token bucket holds on top of its rate limit, once Rate limiting is
+ * researched (10 "Track: Infrastructure"). A burst up to this many requests passes whole and the
+ * long-run average holds; the design gives the mechanism and no size, so 200 is proposed.
+ */
+export const GATEWAY_BURST = 200
+/** A Load Balancer's variants (05 "Load Balancer"). */
+export const LB_VARIANTS = {
+  l7: { name: 'L7', research: null },
+  l4: { name: 'L4', research: 'l4-lb' },
+} as const
+export type LbVariant = keyof typeof LB_VARIANTS
 
 /** Zones a Node can sit in (05 "Zones and regions"). */
 export const ZONES = ['a', 'b', 'c'] as const
@@ -1266,6 +1297,12 @@ export const SCALE_TARGETS = [0.4, 0.6, 0.8] as const
 export const SCALE_MAXIMA = [4, 8, 16, 0] as const
 /** A Node scales in when its load falls below this share of the target. */
 export const SCALE_IN = 0.6
+/**
+ * Calendar minutes before the daily peak that Scheduled scaling provisions for it (10 "Track:
+ * Infrastructure": "scale ahead of the daily peak"). Two hours is proposed, long enough for a VM to
+ * boot and warm inside the lead.
+ */
+export const SCHEDULE_LEAD_MINUTES = 120
 /** Kubernetes bin packing: members cost this share of their Burn (05 "Kubernetes Cluster"). */
 export const POD_BURN = 0.85
 /**
@@ -1357,6 +1394,28 @@ export const GPU_TYPES = {
 } as const
 /** Milliseconds to the first token on a GPU Node, and on the LLM API (05 "LLM API": 600 ms). */
 export const GPU_FIRST_TOKEN_MS = 300
+/**
+ * A GPU Node's weight precision (05 "GPU Node"): INT8 and INT4 serve faster and use less memory,
+ * and a lower-precision answer is worth less. The value penalties are the design's 5% and 15%; the
+ * speed multipliers are proposed, since the design says only "faster".
+ */
+export const GPU_PRECISIONS = {
+  fp16: { name: 'FP16', speed: 1, value: 1, memory: 1 },
+  int8: { name: 'INT8', speed: 2, value: 0.95, memory: 0.5 },
+  int4: { name: 'INT4', speed: 3, value: 0.85, memory: 0.25 },
+} as const
+export type GpuPrecision = keyof typeof GPU_PRECISIONS
+
+/**
+ * A GPU Node's batch size (05 "GPU Node"): a larger batch raises throughput and raises the time to
+ * the first token. Continuous batching serves new prompts as they arrive, so it keeps the
+ * throughput and drops the added latency. The design gives the trade and no numbers: all proposed.
+ */
+export const GPU_BATCHES = [
+  { batch: 1, gain: 1, ttft: 0 },
+  { batch: 8, gain: 1.6, ttft: 150 },
+  { batch: 32, gain: 2.2, ttft: 500 },
+] as const
 export const LLM_FIRST_TOKEN_MS = 600
 /**
  * LLM API price per 1,000 tokens, × cost index. It is billed on the GPU's scale, a real hour per
@@ -1371,6 +1430,45 @@ export const LLM_RATE = 100
 /** A circuit breaker opens when this share of a Link's calls fail, and stays open this many seconds. */
 export const BREAKER_THRESHOLD = 0.5
 export const BREAKER_OPEN = 5
+
+/**
+ * Milliseconds a bulkheaded Link lets one call run before it fails it and frees the caller's slot
+ * (10 "Track: Reliability", "Bulkheads"). The bulkhead is a cap on how long one dependency may hold
+ * a caller's capacity; at the design's load, one second stands for a fixed number of slots (Little's
+ * law). Proposed: the design gives the mechanism and no cap.
+ */
+export const BULKHEAD_MS = 1_000
+/** Extra calls a hedged Link sends for each call: the second copy that races the first (proposed, 05). */
+export const HEDGE_LOAD = 0.1
+/**
+ * Reference CPU ms one backend call costs its caller to serialise, before Binary RPC halves it
+ * (10 "Track: Performance": "Inter-service serialization CPU −50%"). Proposed: the build had no
+ * serialization cost before the research, and the design gives none.
+ */
+export const SERIALIZE_MS = 0.02
+/**
+ * Share of search answers that are stale because a dual write lost its publish, until a
+ * Transactional outbox or a CDC Connector carries the change (07 "Keeping copies in sync").
+ * Proposed: the design says the copies diverge and gives no rate, and the build starts it in
+ * Series B, the Era the outbox is offered in, so the fix arrives with the problem.
+ */
+export const DUAL_WRITE_STALE = 0.005
+/** Share of a report's scan CPU a materialized view saves (10 "Track: Performance": 50%). */
+export const MATERIALIZED_SCAN = 0.5
+/** Share of report answers a materialized view serves before its next refresh (proposed, 10). */
+export const MATERIALIZED_STALE = 0.05
+/** Denormalization's CPU multipliers (10 "Track: Performance": read −30%, write +20%). */
+export const DENORMALIZED_READ = 0.7
+export const DENORMALIZED_WRITE = 1.2
+/**
+ * A chaos experiment (10 "Track: Reliability"): every CHAOS_EVERY sim seconds the weakest Node fails
+ * CHAOS_FAILURE of its calls for CHAOS_SECONDS, and the experiment earns CHAOS_INSIGHT Failure
+ * Insight a second. The design gives the mechanism and no numbers: all proposed.
+ */
+export const CHAOS_EVERY = 120
+export const CHAOS_SECONDS = 10
+export const CHAOS_FAILURE = 0.2
+export const CHAOS_INSIGHT = 1
 
 /** Auth Provider price, in dollars per second per user. */
 export const AUTH_PRICE_PER_USER = 0.00006

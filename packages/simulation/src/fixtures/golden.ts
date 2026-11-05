@@ -159,43 +159,54 @@ export const GOLDEN_STEPS = 10_000
 // item. An incident nobody answers can start a second one from Series A, so an Incident and a Postmortem
 // gain `causedBy`; an Incident may also have no second severity. Two research items join the catalog
 // (Online schema migrations, Leap smearing), which shifts what a Company earns toward them.
-export const GOLDEN_HASH = '31bea32c'
+// SIM_VERSION 34 (the research close-out): the eight Infrastructure options (the L4 Load Balancer,
+// the Gateway's token bucket, Edge-side includes, Bot management, Scheduled scaling, the ARM family,
+// quantization and continuous batching), the four Reliability mechanics (bulkheads, graceful
+// degradation, hedged requests, chaos engineering), the three Performance mechanics (denormalization,
+// materialized views, binary RPC) and the two Data mechanics (the outbox, expand and contract) land.
+// The save gains each Node's Load Balancer variant, Gateway burst, GPU precision and batch, degrade,
+// schedule and materialized flags, each Link's bulkhead and hedge, and the Company's chaos switch and
+// weakest Node, so every hash moves. Four rules move the replay's values too: every backend call now
+// costs its caller a serialization's CPU, a Pre-seed Search Engine answers 2% of its answers stale
+// from a dual write, an ARM box runs at 0.95× the CPU, and 17 research items shift what a Company
+// earns toward them.
+export const GOLDEN_HASH = 'db2fd0cb'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-  'hello-world': '1d27242c',
-  'split-the-box': 'f4a287ee',
-  slashdotted: 'f170d0d1',
-  c10k: 'a1d3893e',
-  'event-loop': '331a4786',
-  'too-many-connections': '3ba80c65',
-  shoestring: 'c0deb7f5',
-  'n-plus-one': 'dd1ff5ff',
-  'thirteen-engineers': '3c09cc6b',
-  'credential-stuffing': 'ebab29a0',
-  'black-friday': '70371684',
-  'us-east-1': 'cff0a178',
-  'exactly-once': '987d1809',
-  'two-million-sockets': '3e934ec6',
-  'pokemon-go': 'db54ed4a',
-  'healthcare-launch': 'c600ef49',
-  'thundering-herd': '466f5c09',
-  'read-states': '23523882',
-  'fail-whale': '91ce3fdb',
-  'reports-at-noon': 'f442716c',
-  'gpu-economics': '2949acc8',
-  metastable: '86d3a05e',
-  'regex-of-doom': '79f759e2',
-  'forty-three-seconds': 'd683b6e9',
-  'follow-the-sun': 'ec92b7f1',
-  celebrity: 'b3625521',
-  'gone-from-the-internet': '550132da',
-  'the-typo': 'c7902cb4',
-  'leap-second': '55d012df',
-  'rule-of-40': '17b745fc',
-  'postgres-for-everything': '83c4c7ee',
-  'five-nines': '8e004668',
+  'hello-world': '49f4874d',
+  'split-the-box': '6baf2800',
+  slashdotted: '125d4eae',
+  c10k: '1e84b97e',
+  'event-loop': '8eab8ff1',
+  'too-many-connections': 'a005e4a0',
+  shoestring: '841dff34',
+  'n-plus-one': '1858aeab',
+  'thirteen-engineers': '842bd99a',
+  'credential-stuffing': 'cbb1cd17',
+  'black-friday': '5b863160',
+  'us-east-1': 'e1ba6455',
+  'exactly-once': 'b83ba514',
+  'two-million-sockets': '0cb1081a',
+  'pokemon-go': '24aa1c97',
+  'healthcare-launch': '625b4d54',
+  'thundering-herd': 'a5bf49d3',
+  'read-states': '31f305d8',
+  'fail-whale': 'cb04a8cb',
+  'reports-at-noon': '472abae3',
+  'gpu-economics': 'f1d6dec7',
+  metastable: '72cb4392',
+  'regex-of-doom': '53793f81',
+  'forty-three-seconds': 'd213d6ac',
+  'follow-the-sun': '1e889446',
+  celebrity: '3600908c',
+  'gone-from-the-internet': 'e44b547e',
+  'the-typo': 'ae69adcc',
+  'leap-second': '0bdcb1a3',
+  'rule-of-40': 'f3c4bb55',
+  'postgres-for-everything': '019f9379',
+  'five-nines': '5f269a81',
 }

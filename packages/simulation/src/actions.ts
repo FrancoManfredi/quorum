@@ -63,6 +63,13 @@ import {
   REGION_INFO,
   REGIONS_FROM_STAGE,
   VEC_INDEXES,
+  FAMILIES,
+  LB_VARIANTS,
+  GPU_PRECISIONS,
+  GPU_BATCHES,
+  GATEWAY_BURST,
+  type LbVariant,
+  type GpuPrecision,
 } from './catalog.ts'
 import {
   frameworkReady,
@@ -232,6 +239,8 @@ export const blankNode = (
     compress: stack?.compress ?? false,
     downAt: 0,
     policy: 'weighted',
+    variant: 'l7',
+    burst: 0,
     checkEvery: 10,
     deepCheck: false,
     ttl: type === 'cache' ? 60 : 300,
@@ -276,9 +285,14 @@ export const blankNode = (
     minCopies: 1,
     maxCopies: 8,
     gpu: 't4',
+    precision: 'fp16',
+    batch: 1,
     collector: 'g1',
     gogc: 100,
     shed: false,
+    degrade: false,
+    schedule: false,
+    materialized: false,
     ryw: false,
     region,
     // A Wide-column Store starts with three replicas per key; an Event Stream keeps one copy of
@@ -425,12 +439,18 @@ export const connect = (game: Game, from: string, to: string): Action => {
 /** Timeouts a Link can wait, in seconds. */
 export const LINK_TIMEOUTS = [1, 5, 30] as const
 
-/** Sets a Link's timeout or retry policy. Needs Timeouts and retries. */
+/** Sets a Link's timeout, retry policy, breaker, bulkhead or hedge. Needs Timeouts and retries. */
 export const setLinkPolicy = (
   game: Game,
   from: string,
   to: string,
-  change: Readonly<{ timeout?: number; retries?: Retries; breaker?: boolean }>,
+  change: Readonly<{
+    timeout?: number
+    retries?: Retries
+    breaker?: boolean
+    bulkhead?: boolean
+    hedge?: boolean
+  }>,
 ): Action => {
   const index = game.links.findIndex((entry) => entry.from === from && entry.to === to)
   const current = game.links[index]
@@ -445,6 +465,10 @@ export const setLinkPolicy = (
     return no(
       Refusal.Locked({ what: 'A circuit breaker', research: RESEARCH['circuit-breakers'].name }),
     )
+  if (change.bulkhead && !has(game, 'bulkheads'))
+    return no(Refusal.Locked({ what: 'A bulkhead', research: RESEARCH.bulkheads.name }))
+  if (change.hedge && !has(game, 'hedged-requests'))
+    return no(Refusal.Locked({ what: 'Hedging', research: RESEARCH['hedged-requests'].name }))
   if (
     change.timeout !== undefined &&
     !(LINK_TIMEOUTS as ReadonlyArray<number>).includes(change.timeout)
@@ -571,6 +595,11 @@ export const upgradeAll = (
 export const setFamily = (game: Game, id: string, family: FamilyId): Action =>
   withNode(game, id, (node) => {
     if (!COMPONENTS[node.type].sized) return notAllowed('Only VMs have an instance family.')
+    // 05 "App Server": ARM is its own research item.
+    if (family === 'arm' && !has(game, 'arm-instances'))
+      return no(
+        Refusal.Locked({ what: FAMILIES.arm.name, research: RESEARCH['arm-instances'].name }),
+      )
     if (node.family === family) return ok(game)
     return ok(
       patch(game, id, {
@@ -636,6 +665,18 @@ export const setCompression = (game: Game, id: string, compress: boolean): Actio
     if (!has(game, 'gzip'))
       return no(Refusal.Locked({ what: 'Gzip', research: RESEARCH.gzip.name }))
     return ok(node.compress === compress ? game : patch(game, id, { compress }))
+  })
+
+/** Sets a Load Balancer's variant. L4 needs its research (10 "Track: Infrastructure"). */
+export const setLbVariant = (game: Game, id: string, variant: LbVariant): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'lb') return notAllowed('Only a Load Balancer has a variant.')
+    const research = LB_VARIANTS[variant].research
+    if (research !== null && !has(game, research))
+      return no(
+        Refusal.Locked({ what: LB_VARIANTS[variant].name, research: RESEARCH[research].name }),
+      )
+    return ok(node.variant === variant ? game : patch(game, id, { variant }))
   })
 
 /** Chooses how a Load Balancer splits traffic. Least connections and two choices need research. */
@@ -812,6 +853,21 @@ export const setRateLimit = (game: Game, id: string, rateLimit: number): Action 
     return ok(node.rateLimit === rateLimit ? game : patch(game, id, { rateLimit }))
   })
 
+/**
+ * Turns the Gateway's token bucket on or off (Rate limiting): a burst up to `GATEWAY_BURST`
+ * requests passes whole, and the long-run average holds at the limit.
+ */
+export const setGatewayBucket = (game: Game, id: string, bucket: boolean): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'gw') return notAllowed('Only an API Gateway holds a token bucket.')
+    if (bucket && !has(game, 'rate-limiting'))
+      return no(
+        Refusal.Locked({ what: 'A token bucket', research: RESEARCH['rate-limiting'].name }),
+      )
+    const burst = bucket ? GATEWAY_BURST : 0
+    return ok(node.burst === burst ? game : patch(game, id, { burst }))
+  })
+
 /** Sets a Realtime Hub's Presence, Reconnect backoff, or Clustering (05 "Realtime Hub"). */
 export const setHubOptions = (
   game: Game,
@@ -908,10 +964,15 @@ export const setAutoscaler = (
     target?: number
     minCopies?: number
     maxCopies?: number
+    schedule?: boolean
   }>,
 ): Action =>
   withNode(game, id, (node) => {
     if (node.type !== 'autoscaler') return notAllowed('Only an Autoscaler scales.')
+    if (change.schedule === true && !has(game, 'scheduled-scaling'))
+      return no(
+        Refusal.Locked({ what: 'A schedule', research: RESEARCH['scheduled-scaling'].name }),
+      )
     if (
       change.target !== undefined &&
       !(SCALE_TARGETS as ReadonlyArray<number>).includes(change.target)
@@ -938,6 +999,33 @@ export const setGpuType = (game: Game, id: string, gpu: GpuType): Action =>
     if (gpu === 'h100' && game.incident?.kind === 'gpu-shortage')
       return notAllowed('No H100 capacity this month.')
     return ok(patch(game, id, { gpu, ...restarted(node) }))
+  })
+
+/** Picks a GPU Node's weight precision. INT8 and INT4 need Quantization (05 "GPU Node"). */
+export const setPrecision = (game: Game, id: string, precision: GpuPrecision): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'gpu') return notAllowed('Only a GPU Node has a precision.')
+    if (precision !== 'fp16' && !has(game, 'quantization'))
+      return no(
+        Refusal.Locked({
+          what: GPU_PRECISIONS[precision].name,
+          research: RESEARCH.quantization.name,
+        }),
+      )
+    return ok(node.precision === precision ? game : patch(game, id, { precision }))
+  })
+
+/** Sets a GPU Node's batch size. Continuous batching raises it without the latency (05). */
+export const setBatch = (game: Game, id: string, batch: number): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'gpu') return notAllowed('Only a GPU Node batches prompts.')
+    if (!GPU_BATCHES.some((entry) => entry.batch === batch))
+      return notAllowed(`A batch is ${GPU_BATCHES.map((entry) => entry.batch).join(', ')}.`)
+    if (batch > 1 && !has(game, 'continuous-batching'))
+      return no(
+        Refusal.Locked({ what: 'Batching', research: RESEARCH['continuous-batching'].name }),
+      )
+    return ok(node.batch === batch ? game : patch(game, id, { batch }))
   })
 
 /** Picks a Java App Server's collector. ZGC needs its research. */
@@ -970,6 +1058,17 @@ export const setShed = (game: Game, id: string, shed: boolean): Action =>
     return ok(node.shed === shed ? game : patch(game, id, { shed }))
   })
 
+/** Turns Graceful degradation on or off: a saturated App Server drops its dearest kinds first. */
+export const setDegrade = (game: Game, id: string, degrade: boolean): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'server') return notAllowed('Only App Servers degrade a kind.')
+    if (degrade && !has(game, 'graceful-degradation'))
+      return no(
+        Refusal.Locked({ what: 'Degradation', research: RESEARCH['graceful-degradation'].name }),
+      )
+    return ok(node.degrade === degrade ? game : patch(game, id, { degrade }))
+  })
+
 /** Turns an App Server's read-your-writes routing on or off. */
 export const setRyw = (game: Game, id: string, ryw: boolean): Action =>
   withNode(game, id, (node) => {
@@ -981,8 +1080,19 @@ export const setRyw = (game: Game, id: string, ryw: boolean): Action =>
     return ok(node.ryw === ryw ? game : patch(game, id, { ryw }))
   })
 
-/* ---------- regions (docs/adr/0005) ---------- */
+/**
+ * Turns the Company's scheduled chaos experiments on or off (Chaos engineering). While they run,
+ * every `CHAOS_EVERY` sim seconds the Design's weakest Node fails `CHAOS_FAILURE` of its calls for
+ * a few seconds, and the Company earns Failure Insight for it.
+ */
+export const setChaos = (game: Game, chaos: boolean): Action => {
+  if (game.sandbox) return notAllowed('A Sandbox runs no experiments of its own.')
+  if (chaos && !has(game, 'chaos-engineering'))
+    return no(Refusal.Locked({ what: 'Chaos', research: RESEARCH['chaos-engineering'].name }))
+  return ok(game.chaos === chaos ? game : { ...game, chaos, weakest: chaos ? game.weakest : null })
+}
 
+/* ---------- regions (docs/adr/0005) ---------- */
 /** Opens a region: its own Users Node, and a tab on the board. Needs Multiple regions. */
 export const openRegion = (game: Game, region: Region): Action => {
   if (!has(game, 'multi-region'))
@@ -1082,6 +1192,18 @@ export const setDbEngine = (game: Game, id: string, dbEngine: DbEngine): Action 
     if (node.type !== 'database' && node.type !== 'replica')
       return notAllowed('Only a Database or Read Replica has an engine.')
     return ok(node.dbEngine === dbEngine ? game : patch(game, id, { dbEngine }))
+  })
+
+/**
+ * Turns a Database's materialized view on or off (Materialized views): a report scans the stored
+ * view for half the CPU, and the figures are as old as its refresh.
+ */
+export const setMaterialized = (game: Game, id: string, materialized: boolean): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database') return notAllowed('Only a Database holds a materialized view.')
+    if (materialized && !has(game, 'precompute'))
+      return no(Refusal.Locked({ what: 'A view', research: RESEARCH.precompute.name }))
+    return ok(node.materialized === materialized ? game : patch(game, id, { materialized }))
   })
 
 /** Picks the volume a Database's reads and writes wait on (07 "Capacity"). Needs no research. */

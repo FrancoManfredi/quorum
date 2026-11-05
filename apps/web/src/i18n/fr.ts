@@ -21,6 +21,127 @@ export const fr: Readonly<Record<string, string>> = {
   'Data team': 'Équipe données',
   'Unlocks the Data team: report and AI Features cost 30% less, and a pipeline lags half as much.':
     'Débloque l’équipe données : les fonctionnalités de rapport et d’IA coûtent 30 % de moins, et un pipeline accuse deux fois moins de retard.',
+  // The options and mechanics that closed the research tracks (05, 07, 10).
+  'L4 load balancing': 'Répartition de charge L4',
+  'A Load Balancer forwards TCP instead of reading HTTP: ten times the throughput, a fifth of the hop, and cheaper, with no per-kind routing and no retries.':
+    'Un répartiteur de charge transmet le TCP au lieu de lire le HTTP : dix fois le débit, un cinquième du saut et un prix moindre, sans routage par type ni nouvelles tentatives.',
+  'Rate limiting': 'Limitation de débit',
+  'A token bucket on the Gateway: a burst up to the bucket passes whole, and the long-run average holds at the limit.':
+    'Un seau à jetons sur la passerelle : une rafale jusqu’à la capacité du seau passe entière, et la moyenne dans la durée reste au plafond.',
+  'Edge-side includes': 'Inclusions côté edge',
+  'The CDN caches the shared shell of a logged-in page and fills in the personal parts at the edge, so 20% more page views hit.':
+    'Le CDN met en cache la coquille commune d’une page connectée et remplit les parties personnelles en périphérie, donc 20 % de vues de page de plus touchent le cache.',
+  'Bot management': 'Gestion des robots',
+  'A WAF that challenges suspicious clients instead of blocking them outright: it blocks the same bots and mistakes fewer real users for one.':
+    'Un WAF qui met au défi les clients suspects au lieu de les bloquer : il bloque les mêmes robots et prend moins d’utilisateurs réels pour des robots.',
+  'Scheduled scaling': 'Mise à l’échelle planifiée',
+  'An Autoscaler adds copies before the known daily peak, so the copies are warm when it arrives.':
+    'Un autoscaler ajoute des copies avant le pic quotidien connu, pour qu’elles soient chaudes à son arrivée.',
+  'ARM instances': 'Instances ARM',
+  'Unlocks the ARM instance family: the same vCPU and RAM as General for 0.8× the price.':
+    'Débloque la famille d’instances ARM : les mêmes vCPU et RAM que General pour 0,8× le prix.',
+  Quantization: 'Quantification',
+  'A GPU Node runs INT8 or INT4 weights: faster and smaller, and its answers are worth 5% or 15% less.':
+    'Un nœud GPU exécute des poids INT8 ou INT4 : plus rapide et plus petit, et ses réponses valent 5 % ou 15 % de moins.',
+  'Continuous batching': 'Traitement par lots continu',
+  'A GPU Node batches prompts as they arrive, so a larger batch raises throughput without raising the time to the first token.':
+    'Un nœud GPU regroupe les invites à mesure qu’elles arrivent : un lot plus grand augmente le débit sans augmenter le délai avant le premier jeton.',
+  Bulkheads: 'Cloisons',
+  'A Link caps how many of its caller’s slots one dependency may hold: a slow dependency sheds its own calls and leaves the rest serving.':
+    'Un lien plafonne le nombre de créneaux de son appelant qu’une dépendance peut tenir : une dépendance lente abandonne ses propres appels et laisse le reste servir.',
+  'Graceful degradation': 'Dégradation gracieuse',
+  'A saturated App Server turns off its most expensive kinds first, so the cheap ones keep their latency and the expensive ones fail fast.':
+    'Un serveur applicatif saturé coupe d’abord ses types les plus coûteux : les types bon marché gardent leur latence et les coûteux échouent vite.',
+  'Hedged requests': 'Requêtes redondantes',
+  'A Link sends a second copy of a slow call after the p95 and keeps the faster answer: the tail drops and the callee sees 10% more calls.':
+    'Un lien envoie une seconde copie d’un appel lent après le p95 et garde la réponse la plus rapide : la queue baisse et le destinataire voit 10 % d’appels en plus.',
+  'Chaos engineering': 'Ingénierie du chaos',
+  'A scheduled experiment fails your weakest Node for a few seconds and names it: it earns Failure Insight and proves the Design survives.':
+    'Une expérience planifiée fait échouer votre nœud le plus faible quelques secondes et le nomme : elle rapporte de l’intuition d’échec et prouve que la conception survit.',
+  Denormalization: 'Dénormalisation',
+  'A Database keeps a pre-joined copy: reads cost 30% less CPU, and every write costs 20% more.':
+    'Une base garde une copie pré-jointée : les lectures coûtent 30 % de CPU en moins, et chaque écriture 20 % de plus.',
+  'Materialized views': 'Vues matérialisées',
+  'A Database answers a report from a stored view: half the scan CPU, and the figures are as old as the refresh.':
+    'Une base répond à un rapport depuis une vue stockée : moitié moins de CPU de balayage, et des chiffres aussi anciens que le rafraîchissement.',
+  'Binary RPC between services': 'RPC binaire entre services',
+  'Services serialise calls as binary instead of text: half the serialization CPU on every backend call.':
+    'Les services sérialisent les appels en binaire plutôt qu’en texte : moitié moins de CPU de sérialisation sur chaque appel interne.',
+  'Transactional outbox': 'Boîte d’envoi transactionnelle',
+  'A write and its event land in one transaction, and a relay publishes it: the copies stop diverging when a publish fails.':
+    'Une écriture et son événement arrivent dans une seule transaction, et un relais la publie : les copies cessent de diverger quand une publication échoue.',
+  'Expand and contract': 'Élargir puis contracter',
+  'A schema change adds the new shape, backfills, then drops the old one: no table lock, so a migration can never stall writes.':
+    'Un changement de schéma ajoute la nouvelle forme, la remplit, puis supprime l’ancienne : aucun verrou de table, donc une migration ne peut jamais bloquer les écritures.',
+  ARM: 'ARM',
+  'Same as General for 20% less. Some runtimes and libraries need work to port.':
+    'Comme General pour 20 % de moins. Certains runtimes et bibliothèques demandent un travail de portage.',
+  L4: 'L4',
+  L7: 'L7',
+  FP16: 'FP16',
+  INT8: 'INT8',
+  INT4: 'INT4',
+  // The cards' new options: the L4 variant, the Gateway's token bucket, the GPU's precision and
+  // batch, the Autoscaler's schedule, the App Server's degradation and the Database's view.
+  Variant: 'Variante',
+  'Forwards TCP: ten times the throughput, 0.2 ms, and cheaper. It reads no HTTP, so it cannot route by kind or retry.':
+    'Transmet le TCP : dix fois le débit, 0,2 ms et moins cher. Il ne lit pas le HTTP, donc il ne peut ni router par type ni réessayer.',
+  'Reads HTTP: routes by kind, retries, and checks health. Lower throughput and a longer hop.':
+    'Lit le HTTP : route par type, réessaie et vérifie l’état. Débit plus faible et saut plus long.',
+  'Flat cap': 'Plafond fixe',
+  'A burst of up to {0} requests passes whole, and the average holds at the limit.':
+    'Une rafale jusqu’à {0} requêtes passe entière, et la moyenne reste au plafond.',
+  'Every Step over the limit is throttled at once. Research Rate limiting for a token bucket.':
+    'Chaque pas au-delà du plafond est limité immédiatement. Recherchez Limitation de débit pour un seau à jetons.',
+  Precision: 'Précision',
+  'batch {0}': 'lot {0}',
+  'Full precision: the baseline, and every answer at full value.':
+    'Pleine précision : la référence, et chaque réponse à sa valeur entière.',
+  '{0}× the tokens, and each answer is worth {1}% less.':
+    '{0}× les jetons, et chaque réponse vaut {1} % de moins.',
+  'One prompt at a time: the lowest wait for a first token.':
+    'Une invite à la fois : l’attente la plus courte avant le premier jeton.',
+  '{0}× the prompts a second, and continuous batching keeps the first token at {1} ms.':
+    '{0}× les invites par seconde, et le traitement par lots continu garde le premier jeton à {1} ms.',
+  '{0}× the prompts a second, and the first token waits {1} ms longer.':
+    '{0}× les invites par seconde, et le premier jeton attend {1} ms de plus.',
+  'Ahead of the peak': 'Avant le pic',
+  'On load': 'Selon la charge',
+  'Two calendar hours before the daily peak it adds the copies the peak will need, so they are warm when it arrives.':
+    'Deux heures calendaires avant le pic quotidien, il ajoute les copies dont le pic aura besoin, pour qu’elles soient chaudes à son arrivée.',
+  'It reacts to the load it sees. Research Scheduled scaling to provision for the peak first.':
+    'Il réagit à la charge qu’il voit. Recherchez Mise à l’échelle planifiée pour anticiper le pic.',
+  'Keep kinds': 'Garder les types',
+  'Drop dearest': 'Couper les plus chers',
+  'Scan the table': 'Balayer la table',
+  'Materialized view': 'Vue matérialisée',
+  'Half the scan CPU, and the figures are as old as the last refresh.':
+    'Moitié moins de CPU de balayage, et des chiffres aussi anciens que le dernier rafraîchissement.',
+  'Every report scans the table itself. Research Materialized views to store one.':
+    'Chaque rapport balaie la table elle-même. Recherchez Vues matérialisées pour en stocker une.',
+  Reports: 'Rapports',
+  Chaos: 'Chaos',
+  'Chaos experiments on': 'Expériences de chaos activées',
+  'Chaos experiments off': 'Expériences de chaos désactivées',
+  'Scheduled scaling on': 'Mise à l’échelle planifiée activée',
+  'Scheduled scaling off': 'Mise à l’échelle planifiée désactivée',
+  'Graceful degradation on': 'Dégradation gracieuse activée',
+  'Graceful degradation off': 'Dégradation gracieuse désactivée',
+  'Materialized view on': 'Vue matérialisée activée',
+  'Materialized view off': 'Vue matérialisée désactivée',
+  'L4 load balancer': 'Répartiteur de charge L4',
+  'L7 load balancer': 'Répartiteur de charge L7',
+  'Token bucket on': 'Seau à jetons activé',
+  'Token bucket off': 'Seau à jetons désactivé',
+  'Precision {0}': 'Précision {0}',
+  'Batch {0}': 'Lot {0}',
+  'Bulkhead on': 'Cloisonnement activé',
+  'Bulkhead off': 'Cloisonnement désactivé',
+  'Hedged requests on': 'Requêtes redondantes activées',
+  'Hedged requests off': 'Requêtes redondantes désactivées',
+  'No bulkhead': 'Sans cloison',
+  'One copy': 'Une copie',
+  Hedge: 'Redondance',
 
   'Start migration': 'Démarrer la migration',
   Proposed: 'Proposé',

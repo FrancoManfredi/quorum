@@ -513,3 +513,57 @@ test('Feature Flags offer each Feature’s rollout and the blast radius the flag
     Scene.expect(Scene.selector('[data-inspector]')).toContainText('Behind a flag'),
   )
 })
+
+/** A Board with one more Node of `type`, selected, and the research a card's options need. */
+const cardOfType = (
+  type: 'lb' | 'gpu' | 'database' | 'gw' | 'autoscaler',
+  researched: ReadonlyArray<Game['researched'][number]>,
+  extra: Partial<Game['nodes'][number]> = {},
+): Model => {
+  const start = initialModel()
+  const game: Game = {
+    ...preseedGame(),
+    researched: [...preseedGame().researched, 'metrics', ...researched],
+    nodes: [...preseedGame().nodes, node(type, type, 640, 320, extra)],
+    links: [...preseedGame().links, link('server', type)],
+  }
+  return { ...start, board: { ...start.board, game, selected: type } }
+}
+
+test('a Load Balancer card offers the L4 variant, and the Gateway card its token bucket', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('lb', ['load-balancing', 'l4-lb'])),
+    Scene.expect(Scene.text('Variant')).toExist(),
+    Scene.expect(Scene.text('L4')).toExist(),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('gw', ['api-gateway', 'rate-limiting'])),
+    Scene.expect(Scene.text('Token bucket')).toExist(),
+  )
+})
+
+test('a GPU card offers each precision and batch, and a Database card its view', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('gpu', ['model-serving', 'quantization', 'continuous-batching'])),
+    Scene.expect(Scene.text('GPU')).toExist(),
+    Scene.expect(Scene.text('INT8')).toExist(),
+    Scene.expect(Scene.text('batch 32')).toExist(),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('database', ['precompute'])),
+    Scene.expect(Scene.text('Reports')).toExist(),
+    Scene.expect(Scene.text('Materialized view')).toExist(),
+  )
+})
+
+test('an Autoscaler card offers Scheduled scaling once researched', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('autoscaler', ['autoscaling', 'scheduled-scaling'])),
+    Scene.expect(Scene.text('Ahead of the peak')).toExist(),
+  )
+})

@@ -185,6 +185,12 @@ const NODE_FIELDS = {
   downAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** How a Load Balancer splits traffic. */
   policy: LbPolicy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('weighted' as const))),
+  /** A Load Balancer's variant: L7 reads HTTP, L4 forwards TCP (05 "Load Balancer"). */
+  variant: Schema.Literals(['l7', 'l4']).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('l7' as const)),
+  ),
+  /** Requests a Gateway's token bucket holds on top of its limit; 0 is a flat cap (05). */
+  burst: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Seconds between a Load Balancer's health checks. */
   checkEvery: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(10))),
   /** A deep health check also checks the server's database. */
@@ -275,11 +281,23 @@ const NODE_FIELDS = {
   maxCopies: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(8))),
   /** A GPU Node's GPU type. */
   gpu: GpuType.pipe(Schema.withDecodingDefaultKey(Effect.succeed('t4' as const))),
+  /** A GPU Node's weight precision: FP16, INT8 or INT4 (05 "GPU Node"). */
+  precision: Schema.Literals(['fp16', 'int8', 'int4']).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed('fp16' as const)),
+  ),
+  /** A GPU Node's batch size (05 "GPU Node"). */
+  batch: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
   /** A Java App Server's collector, and a Go App Server's GOGC. */
   collector: Collector.pipe(Schema.withDecodingDefaultKey(Effect.succeed('g1' as const))),
   gogc: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(100))),
   /** A saturated App Server drops the lowest-value kinds first (Priority load shedding). */
   shed: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A saturated App Server drops its most expensive kinds first (Graceful degradation). */
+  degrade: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** An Autoscaler provisions for the coming daily peak (Scheduled scaling). */
+  schedule: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A Database answers reports from a stored view, at half the scan CPU (Materialized views). */
+  materialized: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** An App Server sends reads that follow a write to the primary (Read-your-writes routing). */
   ryw: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   region: Region.pipe(Schema.withDecodingDefaultKey(Effect.succeed('na' as const))),
@@ -356,6 +374,10 @@ export const GameLink = Schema.Struct({
   ),
   /** A circuit breaker on the Link (Circuit breakers). */
   breaker: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A bulkhead caps how long one call may hold its caller's slot (Bulkheads). */
+  bulkhead: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** The Link sends a second copy of a slow call and keeps the faster answer (Hedged requests). */
+  hedge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Seconds the breaker stays open: the Link fails fast and sends nothing. */
   open: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /**
@@ -1041,6 +1063,10 @@ export const Game = Schema.Struct({
   /** The last calendar week of requests and failures, by hour: the SLO window. */
   budget: Schema.Array(BudgetHour).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   drill: Schema.NullOr(Drill).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** The Company runs scheduled chaos experiments (Chaos engineering). */
+  chaos: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** The Node the last experiment hit: the Design's weakest, named for the player (10). */
+  weakest: Schema.NullOr(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The current Public quarter; null before the IPO. */
   quarter: Schema.NullOr(Quarter).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   founding: Founding.pipe(Schema.withDecodingDefaultKey(Effect.succeed(DEFAULT_FOUNDING))),

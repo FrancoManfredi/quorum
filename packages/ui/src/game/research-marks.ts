@@ -255,6 +255,25 @@ export const LOOKS: Record<ResearchId, Look> = {
   'trunk-based': { group: 'compute', glyph: GitBranch, hue: 145 },
   'platform-team': { group: 'ops', glyph: Container, hue: 265 },
   'data-team': { group: 'data', glyph: LineChart, hue: 210 },
+  // The options and mechanics that closed the research tracks (05, 07, 10): a Component option wears
+  // its Component, and a rule change wears the badge of the part of the system it moves.
+  'l4-lb': { component: 'lb' },
+  'rate-limiting': { group: 'edge', glyph: Gauge, hue: 30 },
+  esi: { group: 'edge', glyph: Layers, hue: 185 },
+  'bot-management': { group: 'edge', glyph: ScanEye, hue: 350 },
+  'scheduled-scaling': { group: 'compute', glyph: Timer, hue: 40 },
+  'arm-instances': { group: 'compute', glyph: Cpu, hue: 120 },
+  quantization: { group: 'compute', glyph: Zap, hue: 285 },
+  'continuous-batching': { group: 'compute', glyph: Workflow, hue: 150 },
+  bulkheads: { group: 'edge', glyph: Boxes, hue: 345 },
+  'graceful-degradation': { group: 'compute', glyph: Gauge, hue: 55 },
+  'hedged-requests': { group: 'edge', glyph: Repeat, hue: 195 },
+  'chaos-engineering': { group: 'ops', glyph: TestTube, hue: 25 },
+  denormalization: { group: 'data', glyph: Copy, hue: 40 },
+  precompute: { group: 'data', glyph: DatabaseZap, hue: 260 },
+  'binary-rpc': { group: 'edge', glyph: Cable, hue: 275 },
+  outbox: { group: 'data', glyph: Workflow, hue: 70 },
+  'expand-contract': { group: 'data', glyph: Split, hue: 220 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

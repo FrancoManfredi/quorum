@@ -27,6 +27,9 @@ import {
   CPU_HEAVY_KINDS,
   WORKER_THREADS,
   WORKER_THREAD_MB,
+  MATERIALIZED_SCAN,
+  DENORMALIZED_READ,
+  DENORMALIZED_WRITE,
   ORM_READS,
   OS_RAM,
   PM_MODES,
@@ -55,6 +58,8 @@ import {
   SERVERLESS_IDLE_SECONDS,
   SERVERLESS_MS,
   MESH_OVERHEAD,
+  ARM_SPEED,
+  SERIALIZE_MS,
 } from './catalog.ts'
 import { combineTail } from './distribution.ts'
 import type { Kind } from './catalog.ts'
@@ -263,6 +268,8 @@ export const speedOf = (game: Game, node: GameNode): number => {
   const variant =
     (runtime.language === 'ruby' && has(game, 'yjit') ? YJIT_SPEED : 1) *
     (runtime.language === 'rust' && has(game, 'jemalloc') ? JEMALLOC_SPEED : 1)
+  // An ARM box is 20% cheaper and a little slower: some software needs work to port (05).
+  const arm = node.family === 'arm' ? ARM_SPEED : 1
   // A JVM that scaled up under load runs its new copies cold: the Node answers at its cold
   // speed until the warmup finishes (11 "JVM warmup under load").
   const cold = game.incident?.kind === 'jvm-warmup' && game.incident.nodeId === node.id
@@ -271,6 +278,7 @@ export const speedOf = (game: Game, node: GameNode): number => {
     collector *
     opcache *
     variant *
+    arm *
     (runtime.warmFrom + (1 - runtime.warmFrom) * (cold ? 0 : warmOf(node.life)))
   )
 }
@@ -389,8 +397,14 @@ const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number 
         : (profile.cpu * overhead) / speed
   // The JIT and NIFs change what one request of a kind costs the CPU, native work included.
   cpu /= variant
+  // Every call the code makes is serialised on the way out: a text format costs CPU at the
+  // caller, and Binary RPC halves it (10 "Track: Performance"). Proposed: the design gives the
+  // half and the build had no serialization cost before it.
+  let made = 0
+  for (const backend of BACKEND_KINDS) made += calls[backend] ?? 0
+  const serial = made * SERIALIZE_MS * (has(game, 'binary-rpc') ? 0.5 : 1)
   // A Worker runs the part that went async; the App Server keeps the rest.
-  if (context.worker) return cpu * profile.offload * (1 + context.sampling)
+  if (context.worker) return (cpu + serial) * profile.offload * (1 + context.sampling)
   if (context.offloaded) cpu *= 1 - profile.offload
   if (node.compress && profile.compressible) cpu *= GZIP_CPU
   if (context.local) {
@@ -402,16 +416,23 @@ const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number 
     }
     cpu += queries * LOCAL_DB_CONTENTION
   }
-  return cpu * (1 + context.sampling)
+  return (cpu + serial) * (1 + context.sampling)
 }
 
 /**
  * Priority load shedding: a saturated App Server drops whole kinds, lowest value
  * first, and part of the next, until it runs at SHED_AT. Bots go first.
+ *
+ * Graceful degradation: the same drop, dearest kind first instead: the reports,
+ * exports and uploads that eat a box go quiet, and the cheap kinds keep serving.
+ * It is what a player reaches for when they would rather lose a Feature than the
+ * page.
  */
-const shedding = (context: ServerContext, full: NodeModel): NodeModel => {
+const shedding = (context: ServerContext, full: NodeModel, degrade = false): NodeModel => {
   const kinds = REQUEST_KINDS.filter((kind) => (context.arriving[kind] ?? 0) > 0).toSorted(
-    (a, b) => KINDS[a].value - KINDS[b].value,
+    degrade
+      ? (a, b) => profileOf(context.game, b).cpu - profileOf(context.game, a).cpu
+      : (a, b) => KINDS[a].value - KINDS[b].value,
   )
   const keep = (dropped: number, fraction: number): Partial<Record<RequestKind, number>> => {
     const kept: Partial<Record<RequestKind, number>> = {}
@@ -690,9 +711,11 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     throttled,
     swapping,
   }
-  return shed && utilization > SHED_AT && node.shed && has(game, 'load-shedding') && !context.worker
-    ? shedding(context, model)
-    : model
+  // Priority load shedding drops the cheapest-value kinds first; Graceful degradation drops the
+  // dearest ones instead. A Node with both degrades first (05 "App Server", 10 "Track: Reliability").
+  if (!shed || utilization <= SHED_AT || context.worker) return model
+  if (node.degrade && has(game, 'graceful-degradation')) return shedding(context, model, true)
+  return node.shed && has(game, 'load-shedding') ? shedding(context, model) : model
 }
 
 /* ---------- Serverless Function ---------- */
@@ -847,21 +870,32 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   // Retention (07 "Data volume"): rows older than the window are archived or gone, so a report
   // either restores them first or rebuilds the figures from the event log, at a multiple of the scan.
   const retention = DB_RETENTIONS[node.keep]
+  // A materialized view answers the scan from a stored copy, for half its CPU (10 "Performance").
+  const view = node.materialized && has(game, 'precompute') ? MATERIALIZED_SCAN : 1
   const scanCpu =
     (QUERY_CPU['q-scan'] *
       (game.incident?.kind === 'report-db' ? REPORT_SURGE : 1) *
-      retention.rebuild) /
+      retention.rebuild *
+      view) /
     warmth
   const evicted = scans > 0 ? scanEviction(scans * scanCpu, cores) : 0
   // A big tenant's key lands on one shard: every read and write that shard answers costs more
   // CPU, while the Cache and the other shards serve theirs as usual (13 "Ventures").
   const shard = incident?.kind === 'hot-shard' && incident.nodeId === node.id ? HOT_SHARD_CPU : 1
+  // Denormalization keeps a pre-joined copy: reads cost 30% less CPU and writes 20% more
+  // (10 "Track: Performance").
+  const denormalized = has(game, 'denormalization')
   const readCpu =
     (evicted > 0
       ? ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1 + 0.5 * evicted)) / warmth
-      : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth) * shard
+      : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth) *
+    shard *
+    (denormalized ? DENORMALIZED_READ : 1)
   const writeCpu =
-    ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) * (1 + 0.5 * evicted) * shard
+    ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) *
+    (1 + 0.5 * evicted) *
+    shard *
+    (denormalized ? DENORMALIZED_WRITE : 1)
   // Postgres full-text search and files stored as rows: both work, both badly at volume. MySQL's
   // full-text search is the weaker of the two engines, so it costs it more CPU (07 "Variants").
   const searchCpu =

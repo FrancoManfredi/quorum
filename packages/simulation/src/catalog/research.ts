@@ -169,6 +169,25 @@ export const RESEARCH_IDS = [
   'trunk-based',
   'platform-team',
   'data-team',
+  // The options the built Components were still missing, and the reliability, performance and
+  // data mechanics 10's tracks name (05, 07, 10 "Track: Infrastructure" and the rest).
+  'l4-lb',
+  'rate-limiting',
+  'esi',
+  'bot-management',
+  'scheduled-scaling',
+  'arm-instances',
+  'quantization',
+  'continuous-batching',
+  'bulkheads',
+  'graceful-degradation',
+  'hedged-requests',
+  'chaos-engineering',
+  'denormalization',
+  'precompute',
+  'binary-rpc',
+  'outbox',
+  'expand-contract',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -1664,6 +1683,180 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     blurb:
       'Unlocks the Data team: report and AI Features cost 30% less, and a pipeline lags half as much.',
   }),
+  // The options 05 lists as not built yet (10 "Track: Infrastructure", 05 "Load Balancer", "CDN",
+  // "WAF", "Autoscaler", "App Server", "GPU Node").
+  research({
+    id: 'l4-lb',
+    name: 'L4 load balancing',
+    track: 'infrastructure',
+    cost: 400,
+    era: 2,
+    requires: ['lb-algorithms'],
+    blurb:
+      'A Load Balancer forwards TCP instead of reading HTTP: ten times the throughput, a fifth of the hop, and cheaper, with no per-kind routing and no retries.',
+  }),
+  research({
+    id: 'rate-limiting',
+    name: 'Rate limiting',
+    track: 'infrastructure',
+    cost: 1_800,
+    era: 3,
+    requires: ['api-gateway'],
+    blurb:
+      'A token bucket on the Gateway: a burst up to the bucket passes whole, and the long-run average holds at the limit.',
+  }),
+  research({
+    id: 'esi',
+    name: 'Edge-side includes',
+    track: 'infrastructure',
+    cost: 3_000,
+    era: 3,
+    requires: ['cdn'],
+    blurb:
+      'The CDN caches the shared shell of a logged-in page and fills in the personal parts at the edge, so 20% more page views hit.',
+  }),
+  research({
+    id: 'bot-management',
+    name: 'Bot management',
+    track: 'infrastructure',
+    cost: 2_500,
+    era: 3,
+    requires: ['waf'],
+    blurb:
+      'A WAF that challenges suspicious clients instead of blocking them outright: it blocks the same bots and mistakes fewer real users for one.',
+  }),
+  research({
+    id: 'scheduled-scaling',
+    name: 'Scheduled scaling',
+    track: 'infrastructure',
+    cost: 9_000,
+    era: 4,
+    requires: ['autoscaling'],
+    blurb:
+      'An Autoscaler adds copies before the known daily peak, so the copies are warm when it arrives.',
+  }),
+  research({
+    id: 'arm-instances',
+    name: 'ARM instances',
+    track: 'infrastructure',
+    cost: 12_000,
+    era: 4,
+    requires: [],
+    blurb: 'Unlocks the ARM instance family: the same vCPU and RAM as General for 0.8× the price.',
+  }),
+  research({
+    id: 'quantization',
+    name: 'Quantization',
+    track: 'infrastructure',
+    cost: 18_000,
+    era: 4,
+    requires: ['model-serving'],
+    blurb:
+      'A GPU Node runs INT8 or INT4 weights: faster and smaller, and its answers are worth 5% or 15% less.',
+  }),
+  research({
+    id: 'continuous-batching',
+    name: 'Continuous batching',
+    track: 'infrastructure',
+    cost: 25_000,
+    era: 4,
+    requires: ['model-serving'],
+    blurb:
+      'A GPU Node batches prompts as they arrive, so a larger batch raises throughput without raising the time to the first token.',
+  }),
+  // The Reliability track's four (10 "Track: Reliability", 05 "Links", 07 "Keeping copies in sync").
+  research({
+    id: 'bulkheads',
+    name: 'Bulkheads',
+    track: 'reliability',
+    cost: 3_500,
+    era: 3,
+    requires: ['circuit-breakers'],
+    blurb:
+      'A Link caps how many of its caller’s slots one dependency may hold: a slow dependency sheds its own calls and leaves the rest serving.',
+  }),
+  research({
+    id: 'graceful-degradation',
+    name: 'Graceful degradation',
+    track: 'reliability',
+    cost: 3_000,
+    era: 3,
+    requires: ['feature-flags'],
+    blurb:
+      'A saturated App Server turns off its most expensive kinds first, so the cheap ones keep their latency and the expensive ones fail fast.',
+  }),
+  research({
+    id: 'hedged-requests',
+    name: 'Hedged requests',
+    track: 'reliability',
+    cost: 100_000,
+    era: 5,
+    requires: ['tracing'],
+    blurb:
+      'A Link sends a second copy of a slow call after the p95 and keeps the faster answer: the tail drops and the callee sees 10% more calls.',
+  }),
+  research({
+    id: 'chaos-engineering',
+    name: 'Chaos engineering',
+    track: 'reliability',
+    cost: 300_000,
+    era: 6,
+    requires: ['runbooks'],
+    blurb:
+      'A scheduled experiment fails your weakest Node for a few seconds and names it: it earns Failure Insight and proves the Design survives.',
+  }),
+  // The Performance track's three (10 "Track: Performance", 07 "Keeping copies in sync").
+  research({
+    id: 'denormalization',
+    name: 'Denormalization',
+    track: 'performance',
+    cost: 3_000,
+    era: 3,
+    requires: [],
+    blurb:
+      'A Database keeps a pre-joined copy: reads cost 30% less CPU, and every write costs 20% more.',
+  }),
+  research({
+    id: 'precompute',
+    name: 'Materialized views',
+    track: 'performance',
+    cost: 12_000,
+    era: 4,
+    requires: [],
+    blurb:
+      'A Database answers a report from a stored view: half the scan CPU, and the figures are as old as the refresh.',
+  }),
+  research({
+    id: 'binary-rpc',
+    name: 'Binary RPC between services',
+    track: 'performance',
+    cost: 15_000,
+    era: 4,
+    requires: [],
+    blurb:
+      'Services serialise calls as binary instead of text: half the serialization CPU on every backend call.',
+  }),
+  // The Data track's two (10 "Track: Data", 07 "Schema migrations", "Keeping copies in sync").
+  research({
+    id: 'outbox',
+    name: 'Transactional outbox',
+    track: 'data',
+    cost: 14_000,
+    era: 4,
+    requires: ['queues'],
+    blurb:
+      'A write and its event land in one transaction, and a relay publishes it: the copies stop diverging when a publish fails.',
+  }),
+  research({
+    id: 'expand-contract',
+    name: 'Expand and contract',
+    track: 'data',
+    cost: 10_000,
+    era: 4,
+    requires: ['online-migrations'],
+    blurb:
+      'A schema change adds the new shape, backfills, then drops the old one: no table lock, so a migration can never stall writes.',
+  }),
 ]
 
 export const RESEARCH: Record<ResearchId, ResearchDef> = Object.fromEntries(
@@ -1773,6 +1966,14 @@ const RECIPES: Partial<Record<ResearchId, ReadonlyArray<InsightPool>>> = {
   notifications: ['push'],
   'hybrid-fanout': ['feed'],
   leaderless: ['feed'],
+  // 10's recipe list: the options and mechanics the build was still missing.
+  esi: ['page', 'media'],
+  'bot-management': ['bot'],
+  quantization: ['ai'],
+  'continuous-batching': ['ai'],
+  denormalization: ['read', 'write'],
+  precompute: ['report'],
+  outbox: ['buy', 'job'],
 }
 
 /** Component types an item's recipe kinds must be sampled at: a trace needs more than one hop. */

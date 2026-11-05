@@ -90,13 +90,16 @@ const currentOf = (node: GameNode, option: TradeoffOption): TradeoffOption => {
 export const familyAxes = (family: FamilyId): Axes => {
   const { ram, price } = FAMILIES[family]
   const throttled = family === 'burstable'
+  // ARM is cheaper and 5% slower, and some software needs work to port (05 "App Server"), so it
+  // gives up a point of tail and a point of operability for its price.
+  const arm = family === 'arm'
   return {
     throughput: price <= 0.5 ? 5 : price <= 0.9 ? 4 : price <= 1.05 ? 3 : 2,
-    tail: throttled ? 1 : ram >= 8 ? 5 : 4,
+    tail: throttled ? 1 : arm ? 3 : ram >= 8 ? 5 : 4,
     memory: ram >= 8 ? 5 : ram >= 4 ? 3 : 2,
     velocity: 3,
     resilience: throttled ? 2 : ram >= 8 ? 4 : ram >= 4 ? 3 : 2,
-    operability: throttled ? 2 : 4,
+    operability: throttled ? 2 : arm ? 3 : 4,
   }
 }
 

@@ -91,6 +91,11 @@ fail or queue while the lock is held.
 | Online migration tool (research) | Copies the table in the background. Costs Dev Hours and extra IOPS for a while.     |
 | Expand and contract (research)   | Adds the new shape, backfills, then removes the old shape. No lock, more Dev Hours. |
 
+**Built:** both research items, as a weight on the Schema migration lock Incident
+([Incidents](/design/11-incidents#catalog)). A Database with neither takes the lock in full (weight
+2.5); online migrations leave it a fifth of a chance (0.3); expand and contract removes it entirely
+(0), because no step of the change ever holds a write back.
+
 ## Rows and retention
 
 Research "Retention policies" (Pre-IPO, 250,000 ◇) puts a window on the Database's card.
@@ -356,6 +361,10 @@ Serves `q-scan`. Columnar storage makes scans cheap.
 - Data arrives by batch ETL (hourly, cheap, stale) or by CDC (seconds, more Burn).
 - Running `report` on the primary database instead harms every other kind: scans evict the buffer
   cache and hold locks. Separating analytics from transactions is the Series B lesson.
+- A **materialized view** answers a report from a stored result instead of scanning: half the CPU,
+  and the figures are as old as the last refresh. Research `precompute` puts one on a Database's
+  card ([Progression](/design/10-progression#track-performance)). The build charges half the scan
+  CPU and marks 5% of report answers stale (proposed: 10 gives the half and no refresh interval).
 
 ## Vector Index
 
@@ -436,6 +445,12 @@ disagree.
 | Dual writes from the app        | If one write fails, the copies diverge until a repair job runs. The game counts divergence as `stale` on search results.        |
 | Transactional outbox (research) | The app writes the change and an outbox row in one transaction. A relay publishes it. Correct, with a little lag and Dev Hours. |
 | CDC Connector                   | Reads the database log. Correct, with lag, and no app changes.                                                                  |
+
+**Built:** all three. From Series B, 0.5% of a Search Engine's answers are stale from a lost publish
+(both proposed: the design gives the divergence and no rate, and the build starts it in the Era that
+offers the outbox, so the fix arrives with the problem). The research `outbox`, or a CDC Connector on
+the Board, takes that share to zero: the write and its event land together, and no answer waits on a
+repair job.
 
 ## Delivery semantics
 

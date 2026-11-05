@@ -45,6 +45,11 @@ import {
   WEEKEND_FACTOR,
   MESH_HOP_MS,
   MESH_INSIGHT,
+  BULKHEAD_MS,
+  HEDGE_LOAD,
+  CHAOS_EVERY,
+  CHAOS_SECONDS,
+  CHAOS_FAILURE,
   CDC_CHANGES,
   BACKEND_KINDS,
   isBackendKind,
@@ -61,6 +66,7 @@ import {
   ERROR_CAUSES,
   NO_FAILURES,
   RETRY_BUDGET,
+  hedged,
   attemptsFor,
   taskAttempts,
   taskLost,
@@ -369,9 +375,19 @@ type Policy = Readonly<{
   retry: 'none' | 'naive' | 'backoff'
   /** Its circuit breaker is open: it sends nothing and fails fast. */
   open: boolean
+  /** A bulkhead caps how long one call may hold its caller's slot. */
+  bulkhead: boolean
+  /** It sends a second copy of a slow call and keeps the faster answer. */
+  hedge: boolean
 }>
 
-const NO_POLICY: Policy = { timeout: LINK_TIMEOUT * 1000, retry: 'none', open: false }
+const NO_POLICY: Policy = {
+  timeout: LINK_TIMEOUT * 1000,
+  retry: 'none',
+  open: false,
+  bulkhead: false,
+  hedge: false,
+}
 
 /**
  * A Link's timeout in ms, its retries, and its breaker. Every Link waits 30 s and
@@ -384,7 +400,9 @@ const NO_POLICY: Policy = { timeout: LINK_TIMEOUT * 1000, retry: 'none', open: f
 export const policyOf = (game: Game, link: GameLink | undefined, from?: GameNode): Policy => {
   if (!link) return NO_POLICY
   const meshed = from !== undefined && meshOf(game, from)
-  if (!meshed && !has(game, 'timeouts')) return NO_POLICY
+  // An L4 Load Balancer forwards TCP: it cannot retry a call it cannot read (05 "Load Balancer").
+  const blind = from !== undefined && from.type === 'lb' && from.variant === 'l4'
+  if (blind || (!meshed && !has(game, 'timeouts'))) return NO_POLICY
   const retry =
     link.retries === 'none'
       ? meshed
@@ -399,6 +417,8 @@ export const policyOf = (game: Game, link: GameLink | undefined, from?: GameNode
     timeout: link.timeout * 1000,
     retry,
     open: link.open > 0 && (has(game, 'circuit-breakers') || meshed),
+    bulkhead: link.bulkhead && has(game, 'bulkheads'),
+    hedge: link.hedge && has(game, 'hedged-requests'),
   }
 }
 
@@ -638,8 +658,11 @@ const forward = (inputs: Inputs): Pass => {
       return
     }
     for (const [edge, weight] of targets) {
-      // Retries resend what failed: the callee sees more. An open breaker sends nothing.
-      const amplified = amplification(edge.policy, inputs.failures[edge.index]?.[kind] ?? 0)
+      // Retries resend what failed: the callee sees more. An open breaker sends nothing. A hedged
+      // Link sends its second copy of every call, so the callee sees that much more again (05).
+      const amplified =
+        amplification(edge.policy, inputs.failures[edge.index]?.[kind] ?? 0) *
+        (edge.policy.hedge ? 1 + HEDGE_LOAD : 1)
       const sent = rate * weight * amplified
       const into = arriving[edge.toAt] as Rates
       into[kind] = (into[kind] ?? 0) + sent
@@ -775,9 +798,9 @@ const forward = (inputs: Inputs): Pass => {
 const noticed = (graph: Graph, child: GameNode, after: number): boolean =>
   isDown(child) && (causeOf(child.life) === 'restart' || graph.time - child.downAt >= after)
 
-/** The kinds a Link carries: an L7 Load Balancer Link can carry only some. */
+/** The kinds a Link carries: an L7 Load Balancer Link can carry only some. An L4 carries every kind. */
 const carries = (node: GameNode, edge: Edge, kind: Kind): boolean => {
-  if (node.type !== 'lb') return true
+  if (node.type !== 'lb' || node.variant === 'l4') return true
   const kinds = edge.link.kinds
   return !kinds || (kinds as ReadonlyArray<Kind>).includes(kind)
 }
@@ -905,6 +928,20 @@ const skewed = (game: Game, node: GameNode, answer: Outcome): Outcome => {
   return failSome(through(hop({ fixed: CLOCK_SKEW_MS }), [[answer, 1]]), CLOCK_SKEW_LOSS, 'timeout')
 }
 
+/**
+ * Whether a chaos experiment is running now (10 "Track: Reliability", "Chaos engineering"). An
+ * experiment runs for its first seconds out of every gap, on the clock the Company started at.
+ */
+export const chaosRunning = (game: Game): boolean =>
+  game.chaos && game.time % CHAOS_EVERY < CHAOS_SECONDS
+
+/** The Node an experiment hits: the Design's weakest, or null when nothing runs or nothing is weak. */
+export const chaosTarget = (game: Game): string | null => (chaosRunning(game) ? game.weakest : null)
+
+/** What an experiment injects into its target: a share of that Node's calls fail as `refused`. */
+const chaotic = (game: Game, node: GameNode, answer: Outcome): Outcome =>
+  chaosTarget(game) === node.id ? failSome(answer, CHAOS_FAILURE, 'refused') : answer
+
 const outcomesOf = (inputs: Inputs, pass: Pass) => {
   const { game, graph } = inputs
   const memo = new Map<GameNode, Map<Kind, Outcome>>()
@@ -922,9 +959,14 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
     })
   }
 
-  /** One attempt on a Link: the callee's outcome cut at the Link's timeout. */
-  const attempt = (edge: Edge, kind: Kind): Outcome =>
-    timedOut(outcome(edge.to, kind), edge.policy.timeout)
+  /** One attempt on a Link: the callee's outcome cut at the Link's timeout, or its bulkhead. */
+  const attempt = (edge: Edge, kind: Kind): Outcome => {
+    const policy = edge.policy
+    const wait = policy.bulkhead ? Math.min(policy.timeout, BULKHEAD_MS) : policy.timeout
+    const answer = timedOut(outcome(edge.to, kind), wait)
+    // A hedged Link races a second copy and keeps the faster answer (10 "Reliability").
+    return policy.hedge ? hedged(answer) : answer
+  }
 
   /**
    * A call on a Link: one attempt, and the retries if the Link retries. An open
@@ -988,12 +1030,15 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
       const policy = edge.policy
       if (policy.open) return total
       const attempts = policy.retry === 'none' ? 1 : amplification(policy, failureOn(edge, kind))
+      // A bulkhead frees the slot early; a hedge holds two copies at once (05 "Links").
+      const wait = policy.bulkhead ? Math.min(policy.timeout, BULKHEAD_MS) : policy.timeout
+      const both = policy.hedge ? 1 + HEDGE_LOAD : 1
       const each =
-        heldFor(outcome(edge.to, kind), policy.timeout) +
+        heldFor(outcome(edge.to, kind), wait) +
         extraHop +
         placeMs(game, node, edge.to) +
         (meshOf(game, node) ? MESH_HOP_MS : 0)
-      return total + weight * attempts * Math.min(policy.timeout, each)
+      return total + weight * attempts * both * Math.min(wait, each)
     }, 0)
 
   const outcome = (node: GameNode, kind: Kind): Outcome => {
@@ -1007,21 +1052,25 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
     // A Node the kernel killed for memory fails as `oom` until it is back.
     const result = isDown(node)
       ? failed(causeOf(node.life) === 'oom' ? 'oom' : 'down')
-      : skewed(
+      : chaotic(
           game,
           node,
-          RULES[node.type].outcome(
-            {
-              game,
-              pass,
-              ownHop: (of, value) => ownHop(node, of, value),
-              downstream: (of, extraHop) => downstream(node, of, extraHop),
-              delegates: delegates(graph, node),
-              runsLocalDb: runsLocalDb(graph, node),
-              offloads: offloads(graph, node),
-            },
+          skewed(
+            game,
             node,
-            kind,
+            RULES[node.type].outcome(
+              {
+                game,
+                pass,
+                ownHop: (of, value) => ownHop(node, of, value),
+                downstream: (of, extraHop) => downstream(node, of, extraHop),
+                delegates: delegates(graph, node),
+                runsLocalDb: runsLocalDb(graph, node),
+                offloads: offloads(graph, node),
+              },
+              node,
+              kind,
+            ),
           ),
         )
     byKind.set(kind, result)

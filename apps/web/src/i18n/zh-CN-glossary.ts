@@ -1,5 +1,83 @@
 /** Chinese engineering glossary, keyed by the English presentation copy. */
 export const glossaryZhCN: Readonly<Record<string, string>> = {
+  'Binary RPC': '二进制 RPC',
+  'A remote procedure call that encodes its messages in a binary format, such as Protocol Buffers over gRPC, instead of text such as JSON. The payload is smaller and cheaper to parse, at the cost of a schema both sides must agree on.':
+    '一种远程过程调用，用二进制格式（例如 gRPC 上的 Protocol Buffers）而不是 JSON 这样的文本编码消息。载荷更小、解析更便宜，代价是两端必须约定同一份模式。',
+  'Binary RPC between services research halves the CPU an App Server or a Worker spends serialising each backend call: 0.02 reference ms a call becomes 0.01 (both proposed, since the build had no serialization cost before the research). It shows on the CPU gauge of the Nodes that make the calls, so a Design that ran out of CPU serves more on the same boxes.':
+    '研究服务间二进制 RPC 后，应用服务器或工作进程为每次内部调用做序列化所花的 CPU 减半：每次调用的参考成本从 0.02 毫秒降到 0.01 毫秒（两者都是提议值，因为研究之前游戏没有序列化成本）。它体现在发出调用的节点的 CPU 仪表上，因此 CPU 吃紧的设计可以在同样的机器上服务更多请求。',
+  'gRPC docs: Introduction to gRPC': 'gRPC 文档：gRPC 简介',
+  'Bot management': '机器人管理',
+  'Telling automated traffic from people and handling it on its own terms: challenging a suspicious client, rate limiting it, or blocking it, rather than failing every rule match outright.':
+    '把自动化流量与人区分开，并按各自的方式处理：对可疑客户端发起挑战、限流或拦截，而不是让每条规则匹配都直接失败。',
+  'Bot management research halves a WAF’s false positives and keeps its block rate (the half is proposed, since 10 gives the direction and no rate): a suspicious client gets a challenge, so a real user it flags still loads the page. Bots still earn nothing and still cost capacity when they get through, so the WAF stays the first place to stop them.':
+    '研究机器人管理后，WAF 的误伤率减半而拦截率不变（减半为提议值，10 只给出方向而没有比例）：可疑客户端会收到挑战，因此被误判的真实用户仍能打开页面。机器人依旧不带来收入，通过时依旧占用容量，所以 WAF 仍是拦截它们的第一道关口。',
+  'Cloudflare Learning Center: What is bot management?': 'Cloudflare 学习中心：什么是机器人管理？',
+  'Chaos engineering': '混沌工程',
+  'Injecting failures on purpose, in a controlled way, to find out how a system really behaves: kill a node, add latency, drop a dependency. It turns a guess about a weak spot into a measured one.':
+    '以受控的方式故意注入故障，弄清系统的真实行为：杀掉一个节点、增加延迟、切断一个依赖。它把对弱点的猜测变成一次测量。',
+  'Chaos engineering research adds a Chaos switch to the Team panel. While it is on, every 120 s the Design’s weakest Node fails 20% of its calls for 10 s, and the Company earns 1 Failure Insight a second from the experiment (all proposed). The switch names the Node the next experiment will hit, and its injected `refused` errors show in the Dashboard’s Errors row, beside the failures it is meant to teach you about.':
+    '研究混沌工程后，团队面板多出一个混沌开关。开启期间，每 120 秒最弱节点会让 20% 的调用失败 10 秒，公司由此每秒获得 1 点故障洞察（全部为提议值）。开关会点名下一次实验要打的节点，注入的 `refused` 错误会出现在仪表盘的错误行里，与它要教会你看的故障并列。',
+  'Principles of Chaos Engineering': '混沌工程原则',
+  'Continuous batching': '连续批处理',
+  'A serving technique for language models that adds each new request to the running batch as soon as a slot frees, instead of waiting for the whole batch to finish. Throughput rises and the wait for a first token stays short.':
+    '一种语言模型服务技术：一旦有空位就把新请求加入正在运行的批次，而不是等整批结束。吞吐量上升，首字等待保持很短。',
+  'Continuous batching research adds batch 8 and batch 32 to a GPU Node: 1.6× and 2.2× the prompts a second with the time to the first token unchanged. Without it the larger batches still raise throughput, and they add 150 ms or 500 ms to that wait. Every figure is proposed: 05 gives the trade and no numbers.':
+    '研究连续批处理后，GPU 节点可以使用批次 8 和批次 32：每秒提示数分别为 1.6 倍和 2.2 倍，首字延迟不变。没有它，更大的批次仍然提高吞吐量，但会让首字多等 150 或 500 毫秒。所有数字都是提议值：05 只给出取舍，没有给出数字。',
+  'vLLM docs: Continuous batching': 'vLLM 文档：连续批处理',
+  Denormalization: '反规范化',
+  'Storing the same fact in more than one place, or keeping a pre-joined copy, so a read need not join or compute it. Reads get cheaper, and every write has to update each copy.':
+    '把同一事实存放在多处，或保留一份预连接副本，让读取不必再连接或计算。读取更便宜，而每次写入都要更新每一份副本。',
+  'Denormalization research makes each Database read cost 30% less CPU and each write 20% more (10). It pays on a read-heavy Design and hurts a write-heavy one, which is the trade the Tradeoff card’s preview shows before the player takes it.':
+    '研究反规范化后，数据库每次读取少花 30% 的 CPU，每次写入多花 20%（10）。它在读多的设计上划算，在写多的设计上吃亏，正是权衡卡预览在你动手之前展示的取舍。',
+  'Wikipedia: Denormalization': '维基百科：反规范化',
+  'Edge-side includes': '边缘端包含',
+  'A caching technique where the edge stores the shared part of a page and assembles only the personal fragments for each user, so a logged-in page can still be served mostly from cache.':
+    '一种缓存技术：边缘节点保存页面的公共部分，只为每个用户拼装个性化片段，因此登录页面仍能大部分由缓存提供。',
+  'Edge-side includes research adds 20 points to a CDN’s `page` hit ratio, from 70% to 90% (10), because the edge now caches the shell of a logged-in page. The TTL still multiplies it, and the hit ratio still caps at 95%.':
+    '研究边缘端包含后，CDN 的 `page` 命中率提高 20 个百分点，从 70% 到 90%（10），因为边缘现在可以缓存登录页面的外壳。TTL 仍会乘算，命中率仍以 95% 封顶。',
+  'Fastly docs: Edge Side Includes': 'Fastly 文档：Edge Side Includes',
+  'Expand and contract': '扩展与收缩',
+  'A way to change a schema without locking a table: add the new column or table, write both, backfill, switch the reads, then drop the old one. Every step is backward compatible, so old and new code run side by side.':
+    '一种不锁表修改模式的办法：先加新列或新表，两边都写入，回填数据，切换读取，再删除旧结构。每一步都向后兼容，因此新旧代码可以同时运行。',
+  'Expand and contract research removes the Schema migration lock Incident entirely: with Online schema migrations it is a fifth of a chance, and with Expand and contract it cannot happen. The design says the change costs more Dev Hours; the build charges none, because it has no per-migration work item.':
+    '研究扩展与收缩后，模式迁移锁事故被彻底消除：只有在线模式迁移时它还有五分之一的概率，而使用扩展与收缩就完全不会发生。设计文档说这种改动要多花开发工时；游戏没有按迁移计费的工单项，所以不收取。',
+  'Martin Fowler: Parallel change': 'Martin Fowler：并行变更',
+  'Graceful degradation': '优雅降级',
+  'Keeping the important part of a service working when it is over capacity by turning off the expensive, optional parts instead of failing everything: the page still loads, and the report waits.':
+    '在超出容量时关掉昂贵且可选的部分，而不是让一切失败，从而保住服务中重要的部分：页面仍然打开，报表稍后再说。',
+  'Graceful degradation research adds a switch to an App Server. A saturated Node then drops its dearest request kinds first, exports and uploads before reads, so the cheap kinds keep their latency (10). Load shedding is the other order: it drops the least valuable kinds first, bots and ad bids before pages.':
+    '研究优雅降级后，应用服务器多出一个开关。饱和节点会先丢弃最贵的请求类型，导出和上传先于读取，让便宜的类型保住延迟（10）。优先级降载则相反：它先丢弃价值最低的类型，机器人和竞价先于页面。',
+  'Google SRE book: Handling overload': 'Google SRE 手册：处理过载',
+  'Materialized view': '物化视图',
+  'A stored result of a query, kept on disk and refreshed on a schedule, so a report reads the answer instead of scanning the tables. It is fast, and it is only as fresh as the last refresh.':
+    '把查询结果存到磁盘上并按计划刷新，让报表直接读取答案而不是扫描整表。它很快，新鲜度只到上一次刷新为止。',
+  'Materialized views research adds a view to a Database’s card. A report scans the stored view for half the CPU (10), and 5% of report answers are stale, from before the last refresh (proposed: 10 gives the half and no refresh interval). It is the Database-side twin of the Data Warehouse: the same cheap scans without a second system.':
+    '研究物化视图后，数据库卡片上多出一个视图。报表扫描存储的视图，CPU 减半（10）；5% 的报表答案是陈旧的，来自上次刷新之前（为提议值：10 给出减半，没有给出刷新间隔）。它是数据仓库在数据库一侧的孪生：同样便宜的扫描，无需第二套系统。',
+  'PostgreSQL docs: Materialized views': 'PostgreSQL 文档：物化视图',
+  Quantization: '量化',
+  'Storing a model’s weights at lower precision, such as 8-bit or 4-bit integers rather than 16-bit floats, so the model uses less memory and computes faster, at some cost in answer quality.':
+    '用更低的精度存储模型权重，例如用 8 位或 4 位整数代替 16 位浮点，从而占用更少内存、计算更快，代价是回答质量的损失。',
+  'Quantization research adds FP16, INT8 and INT4 to a GPU Node. INT8 serves 2× the tokens and INT4 3× (both proposed), and each answer is worth 5% or 15% less (05). It pays when the GPU is the bottleneck and the answers can afford to be slightly worse.':
+    '研究量化后，GPU 节点可以用 FP16、INT8 和 INT4。INT8 的令牌吞吐为 2 倍，INT4 为 3 倍（均为提议值），每个回答的价值降低 5% 或 15%（05）。当瓶颈在 GPU、而回答可以稍微差一点时，它就划算。',
+  'Hugging Face docs: Quantization': 'Hugging Face 文档：量化',
+  'Bulkheads research adds a switch to each Link. A bulkheaded Link lets a call run for 1,000 ms; past that the caller gives it up, frees its slot and the request fails as `timeout`, so a slow dependency cannot fill every slot. It is a cap on time rather than on concurrent calls, which is the same thing at a fixed load (Little’s law), and the 1,000 ms is proposed. Without it, each call holds the caller’s slot until it answers or hits the Link’s timeout, 30 s by default.':
+    '研究隔舱后，每条链路多出一个开关。带隔舱的链路允许一次调用运行 1000 毫秒；超过之后调用方放弃它、释放槽位，请求以 `timeout` 失败，因此慢依赖无法占满所有槽位。它限制的是时间而不是并发调用数，在固定负载下二者等价（Little 定律），1000 毫秒为提议值。没有它时，每次调用都会占住调用方的槽位，直到得到回答或触发链路超时（默认 30 秒）。',
+  'Hedged requests research adds a switch to each Link. A hedged Link sends a second copy of every call and the user waits for the faster answer: the mean halves, the p99 falls, and the callee sees 10% more calls, which the Link’s rate shows. Percentiles is what shows the tail before and after. The Wide-column Store’s quorum read is the same idea built into a database: it waits only for the fastest R of its N replicas.':
+    '研究对冲请求后，每条链路多出一个开关。对冲链路为每次调用再发一份副本，用户取更快的回答：平均值减半，p99 下降，被调用方多收到 10% 的调用，链路的速率会显示出来。百分位数展示对冲前后的尾部。宽列存储的法定人数读取是同一思路内建在数据库中：只等 N 个副本中最快的 R 个。',
+  'The LLM API rate-limits you from the client side: it takes 100 prompts per second per usage tier, and past that, prompts fail at once as throttled. The API Gateway turns the same limit on your own services: pick a cap in requests per second and requests past it fail as throttled, one cap for the whole Node rather than a bucket per user or API key. Research Rate limiting makes the cap a token bucket: it refills each Step and holds 200 requests more, so a burst that fits passes whole. To stop abusive traffic, a WAF blocks bots by rule instead: 80% of bots at paranoia 2, with 0.5% of real users blocked too.':
+    'LLM API 在客户端一侧限流：每个用量层级每秒 100 条提示，超过后提示立即以 throttled 失败。API 网关把同样的限制用在自己的服务上：选一个每秒请求上限，超出的请求以 throttled 失败，整个节点一个上限，而不是每个用户或每个 API 密钥一个桶。研究限流后，上限变成令牌桶：每一步回填，并额外容纳 200 个请求，因此装得下的突发整体通过。要挡住滥用流量，WAF 仍按规则拦截机器人：偏执等级 2 时拦截 80% 的机器人，同时误伤 0.5% 的真实用户。',
+  'Burstable instances run on a token bucket of CPU credits. A Burstable Node earns credits while it uses less than 20% of its vCPU, banks up to 100 core-seconds per vCPU, and spends them to run above that baseline. When the bucket is empty it drops to 20% CPU, so a Burstable box that runs hot all day stalls; in exchange it costs 0.4 times a General box. The API Gateway’s Rate limiting research gives it the same bucket: 200 requests of burst on top of its cap.':
+    '突发型实例运行在 CPU 积分的令牌桶上。突发型节点在使用低于其 vCPU 20% 时赚取积分，每个 vCPU 最多存 100 核心秒，并在超过基线时消耗它们。桶空时降到 20% CPU，所以整天高负载的突发型机器会卡住；作为交换，它只花通用型的 0.4 倍。API 网关的限流研究给它同样的桶：在上限之上多 200 个请求的突发额度。',
+  'Until the outbox research, from Series B the app’s dual write loses now and then: 0.5% of a Search Engine’s answers are stale from a publish that never landed (the rate and the Era are proposed). Research Transactional outbox takes that share to zero, and so does a CDC Connector, which reads the change from the database log instead. Neither changes a Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue.':
+    '在研究事务发件箱之前，从 B 轮起应用的双写偶尔会丢失：0.5% 的搜索引擎答案是陈旧的，因为发布从未落地（比例和时期为提议值）。研究事务发件箱可以把这份比例降到零，CDC 连接器也一样，它改为从数据库日志读取变更。两者都不改变队列：接入队列的应用服务器把慢请求的异步部分交给工作进程，用户只等入队完成。',
+  'Web application firewall research unlocks the WAF Component. It blocks a share of bot requests and, by mistake, a share of real users, set by its paranoia level: level 1 blocks 60% of bots and 0.1% of users, level 2 (the default) 80% and 0.5%, level 3 92% and 2%, level 4 98% and 6%. Higher levels cost more CPU per request, up to 4 times level 1. Bot management research challenges a suspicious client instead of blocking it, which halves the false positives (proposed) and keeps the block rate. Under attack mode blocks 99% of bots and 1% of users and adds 40 ms.':
+    '研究 Web 应用防火墙后解锁 WAF 组件。它按偏执等级拦截一部分机器人请求，也误伤一部分真实用户：等级 1 拦截 60% 的机器人和 0.1% 的用户，等级 2（默认）80% 和 0.5%，等级 3 92% 和 2%，等级 4 98% 和 6%。等级越高，每个请求的 CPU 成本越高，最多为等级 1 的 4 倍。研究机器人管理后，对可疑客户端发起挑战而不是直接拦截，误伤率减半（提议值），拦截率不变。Under attack 模式拦截 99% 的机器人和 1% 的用户，并增加 40 毫秒。',
+  'The Autoscaler (Autoscaling Research) controls the App Servers and Workers that you link into it. When a Node runs above its target (40%, 60%, or 80% of CPU or of its whole load), it asks for more copies, up to a max of 4, 8, 16, or no limit. New copies serve after 180 s on VMs or 30 s in a Kubernetes Cluster, and they start cold. It removes one copy when load falls below 60% of the target, and it acts at most once every 30 s, so keep spare capacity for a sudden Traffic spike. Scheduled scaling research makes it plan for the known peak: two calendar hours before the Venture’s peak hour it sizes for the peak’s load instead, so the copies are warm when the peak arrives.':
+    '自动扩缩器（自动扩缩容研究）管理接入它的应用服务器和工作进程。当节点超过目标（CPU 或整体负载的 40%、60%、80%）时，它请求更多副本，最多 4、8、16 个或不设上限。新副本在虚拟机上 180 秒后就绪，在 Kubernetes 集群中 30 秒，且从冷态启动。负载低于目标的 60% 时它会移除一个副本，并且最多每 30 秒动作一次，所以要为突发高峰留出余量。研究定时扩缩容后，它会为已知高峰提前规划：在创业项目的高峰时刻之前两个日历小时，它按高峰负载来定容量，让副本在高峰到来时已经预热。',
+  'The Load Balancing Research unlocks the Load Balancer, which handles 2,000 requests per second per size step and adds 1 ms. By default it splits traffic by each App Server’s capacity. It drops a dead host at its next health check, every 10 s by default, while DNS round robin keeps sending to a dead host. Load balancing algorithms adds least connections and power of two choices, and Health checks lets you check every 2 s or 30 s. L4 load balancing research switches a Node to layer 4: 20,000 requests a second, a 0.2 ms hop and 0.6× the Burn (the price cut is proposed), with no per-kind routing and no retries, because it never reads the HTTP.':
+    '研究负载均衡后解锁负载均衡器，每档规模每秒处理 2000 个请求，并增加 1 毫秒。默认按每台应用服务器的容量分配流量。它在下次健康检查（默认每 10 秒）时移除死掉的主机，而 DNS 轮询会继续把请求发给死主机。负载均衡算法增加最少连接和两次选择，健康检查让你可以每 2 秒或 30 秒检查一次。研究 L4 负载均衡后，节点可以切到四层：每秒 20000 个请求、0.2 毫秒的跳转和 0.6 倍的成本（价格折让为提议值），但不能按类型路由、不能重试，因为它从不读取 HTTP。',
+  'Resizing a sized Node moves it one step between nano (0.5 vCPU) and metal (96 vCPU), and each step doubles vCPU and RAM, but the Node restarts and comes back cold. Some software cannot use the extra cores: Node.js runs one event loop on one core, and Redis answers on one thread. To scale out, put more App Servers behind DNS or a Load Balancer, each copy costing 25% more to place, or let an Autoscaler add copies, which take 180 s on VMs or 30 s in a Kubernetes Cluster. The instance family also matters: ARM instances research adds a family with General’s vCPU and RAM for 0.8× the price, which runs at 0.95× the CPU speed (proposed).':
+    '调整有规格节点的尺寸会让它在一档之间移动，从 nano（0.5 vCPU）到 metal（96 vCPU），每档翻倍 vCPU 和内存，但节点会重启并回到冷态。有些软件用不上多余的核心：Node.js 在一个核心上跑一个事件循环，Redis 用一个线程回答。要横向扩展，可以把更多应用服务器放在 DNS 或负载均衡器后面，每份副本的放置价格高 25%；或者让自动扩缩器增加副本，在虚拟机上需要 180 秒，在 Kubernetes 集群中需要 30 秒。实例族也很重要：研究 ARM 实例后增加一个与通用型同样 vCPU 和内存、价格为 0.8 倍的族，其 CPU 速度为 0.95 倍（提议值）。',
   'A score from 0 to 1 for user satisfaction with response time: satisfied requests (under a target T) count fully, tolerating requests (under 4T) count half, the rest count zero.':
     '衡量用户对响应时间满意度的 0 至 1 分数：满意的请求（耗时低于目标 T）计 1 分，可容忍的请求（低于 4T）计半分，其余计 0 分。',
   'revenue and user growth (Simulation).': '影响收入和用户增长（模拟）。',

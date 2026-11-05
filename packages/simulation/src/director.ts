@@ -476,9 +476,16 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     'cluster-upgrade': () => Math.max(0, ...clusterTargets(game).map(([, weight]) => weight)),
     // Java warms for 30 s, so copies an Autoscaler adds during a spike make p99 worse (11).
     'jvm-warmup': () => Math.max(0, ...javaTargets(game, ledger).map(([, weight]) => weight)),
-    // A big table and no online migrations: the ALTER holds its lock through the copy.
+    // A big table and no online migrations: the ALTER holds its lock through the copy. Expand and
+    // contract never takes the lock at all, so it cannot stall a write (07 "Schema migrations").
     'migration-lock': () =>
-      busiest(game, ledger, 'database') ? (has(game, 'online-migrations') ? 0.3 : 2.5) : 0,
+      busiest(game, ledger, 'database')
+        ? has(game, 'expand-contract')
+          ? 0
+          : has(game, 'online-migrations')
+            ? 0.3
+            : 2.5
+        : 0,
     // Every Service installs its dependencies; scanning is the only thing that reads them.
     'supply-chain': () =>
       game.nodes.some((node) => node.type === 'server' && busy(ledger, node))

@@ -417,3 +417,15 @@ export const kthFastest = (k: number, n: number): number => {
   for (let i = Math.max(1, n - k + 1); i <= n; i += 1) sum += 1 / i
   return sum
 }
+
+/**
+ * The faster of two independent copies of a call: the user waits for whichever answers first, so
+ * the mean halves and the rare slow answer has to be slow twice (10 "Track: Reliability", "Hedged
+ * requests"). The extra copy is the caller's, and the callee's load, not the user's.
+ */
+export const hedged = (call: Outcome): Outcome => ({
+  ...call,
+  variable: call.variable * kthFastest(1, 2),
+  tailP: call.tailP * call.tailP,
+  tailMs: call.tailMs / 2,
+})

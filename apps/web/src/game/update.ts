@@ -3571,6 +3571,14 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    LbVariantChosen: ({ nodeId, variant }) =>
+      act(
+        model,
+        variant === 'l4' ? 'L4 load balancer' : 'L7 load balancer',
+        Actions.setLbVariant(model.board.game, nodeId, variant),
+        { undoable: true },
+      ),
+
     HealthCheckChosen: ({ nodeId, checkEvery, deepCheck }) =>
       act(
         model,
@@ -3599,24 +3607,34 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
-    LinkPolicyChosen: ({ from, to, timeout, retries, breaker }) =>
+    LinkPolicyChosen: ({ from, to, timeout, retries, breaker, bulkhead, hedge }) =>
       act(
         model,
-        breaker !== undefined
-          ? breaker
-            ? 'Circuit breaker on'
-            : 'Circuit breaker off'
-          : timeout === undefined
-            ? retries === 'naive'
-              ? 'Retries on'
-              : retries === 'backoff'
-                ? 'Retries with backoff'
-                : 'Retries off'
-            : `Timeout ${timeout} s`,
+        bulkhead !== undefined
+          ? bulkhead
+            ? 'Bulkhead on'
+            : 'Bulkhead off'
+          : hedge !== undefined
+            ? hedge
+              ? 'Hedged requests on'
+              : 'Hedged requests off'
+            : breaker !== undefined
+              ? breaker
+                ? 'Circuit breaker on'
+                : 'Circuit breaker off'
+              : timeout === undefined
+                ? retries === 'naive'
+                  ? 'Retries on'
+                  : retries === 'backoff'
+                    ? 'Retries with backoff'
+                    : 'Retries off'
+                : `Timeout ${timeout} s`,
         Actions.setLinkPolicy(model.board.game, from, to, {
           ...(timeout === undefined ? {} : { timeout }),
           ...(retries === undefined ? {} : { retries }),
           ...(breaker === undefined ? {} : { breaker }),
+          ...(bulkhead === undefined ? {} : { bulkhead }),
+          ...(hedge === undefined ? {} : { hedge }),
         }),
         { undoable: true },
       ),
@@ -3746,6 +3764,14 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    GatewayBucketChosen: ({ nodeId, bucket }) =>
+      act(
+        model,
+        bucket ? 'Token bucket on' : 'Token bucket off',
+        Actions.setGatewayBucket(model.board.game, nodeId, bucket),
+        { undoable: true },
+      ),
+
     DbEngineChosen: ({ nodeId, dbEngine }) =>
       act(
         model,
@@ -3791,6 +3817,14 @@ const handle = (model: Model, message: Message): Result =>
         model,
         `Retention: ${DB_RETENTIONS[keep].name}`,
         Actions.setDbRetention(model.board.game, nodeId, keep),
+        { undoable: true },
+      ),
+
+    MaterializedChosen: ({ nodeId, materialized }) =>
+      act(
+        model,
+        materialized ? 'Materialized view on' : 'Materialized view off',
+        Actions.setMaterialized(model.board.game, nodeId, materialized),
         { undoable: true },
       ),
 
@@ -3928,21 +3962,39 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
-    AutoscalerChosen: ({ nodeId, signal, target, minCopies, maxCopies }) =>
+    AutoscalerChosen: ({ nodeId, signal, target, minCopies, maxCopies, schedule }) =>
       act(
         model,
-        'Autoscaler set',
+        schedule === undefined
+          ? 'Autoscaler set'
+          : schedule
+            ? 'Scheduled scaling on'
+            : 'Scheduled scaling off',
         Actions.setAutoscaler(model.board.game, nodeId, {
           ...(signal === undefined ? {} : { signal }),
           ...(target === undefined ? {} : { target }),
           ...(minCopies === undefined ? {} : { minCopies }),
           ...(maxCopies === undefined ? {} : { maxCopies }),
+          ...(schedule === undefined ? {} : { schedule }),
         }),
         { undoable: true },
       ),
 
     GpuChosen: ({ nodeId, gpu }) =>
       act(model, `GPU ${gpu.toUpperCase()}`, Actions.setGpuType(model.board.game, nodeId, gpu), {
+        undoable: true,
+      }),
+
+    PrecisionChosen: ({ nodeId, precision }) =>
+      act(
+        model,
+        `Precision ${precision.toUpperCase()}`,
+        Actions.setPrecision(model.board.game, nodeId, precision),
+        { undoable: true },
+      ),
+
+    BatchChosen: ({ nodeId, batch }) =>
+      act(model, `Batch ${batch}`, Actions.setBatch(model.board.game, nodeId, batch), {
         undoable: true,
       }),
 
@@ -3967,6 +4019,14 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       ),
 
+    DegradeChosen: ({ nodeId, degrade }) =>
+      act(
+        model,
+        degrade ? 'Graceful degradation on' : 'Graceful degradation off',
+        Actions.setDegrade(model.board.game, nodeId, degrade),
+        { undoable: true },
+      ),
+
     RywChosen: ({ nodeId, ryw }) =>
       act(
         model,
@@ -3978,6 +4038,14 @@ const handle = (model: Model, message: Message): Result =>
     RuleDisabled: () =>
       logResponse(model, 'disable-rule') ??
       act(model, 'Disabled the WAF rule', Actions.disableRule(model.board.game)),
+
+    ChaosChosen: ({ chaos }) =>
+      act(
+        model,
+        chaos ? 'Chaos experiments on' : 'Chaos experiments off',
+        Actions.setChaos(model.board.game, chaos),
+        { undoable: true },
+      ),
 
     RegionPicked: ({ region }) => {
       const next = { ...model, board: { ...model.board, region, selected: null } }

@@ -170,6 +170,13 @@ Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 
 Teaches: load balancing is a policy choice, and health checks can cause outages as well as prevent them.
 
+**Built:** both variants. L7 is the default: 2,000 requests a second at size 1, 1 ms, and the only one
+that can carry a chosen set of kinds on a Link or retry. L4 carries 20,000 at size 1 in a 0.2 ms hop
+for 0.6× the Burn (proposed: 05 says only "cheaper"), sends every kind whatever a Link asks for, and
+never retries, even with Timeouts and retries. The "long-lived connection as one unit of load" rule
+is not built: the L4 still counts a realtime message as one message. The L4 is research
+`l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
+
 ### CDN
 
 Real products: Cloudflare, Fastly, CloudFront, Akamai.
@@ -189,7 +196,9 @@ egress from a CDN is cheaper than egress from the origin ([Economy](/design/09-e
 | Purge on deploy (Not built yet) | Clears the cache. The origin takes a burst of misses: a small [stampede](/design/glossary#cache-stampede).                                  |
 | Cache key (Not built yet)       | Including query strings or cookies lowers the hit ratio. Ignoring them can serve one user's page to another, which is a data leak incident. |
 
-The TTL is the only cache option the build has. It multiplies the base hit ratio:
+**Built:** the TTL, and Edge-side includes. The research adds 20 points to the `page` base (70% to
+90%), because the edge now assembles the personal parts of a logged-in page around a cached shell.
+The TTL multiplies it:
 
 | TTL    | Hit-ratio factor |
 | ------ | ---------------- |
@@ -211,9 +220,10 @@ A WAF blocks bots and attacks before they reach the app.
 | Paranoia level 4 | 98%            | 6%                                | Very high       |
 
 The OWASP Core Rule Set uses real paranoia levels with this tradeoff. Blocked real users fail as
-`blocked`. Not built yet: research "Bot management". A WAF has Under attack mode instead, which
-challenges every request at paranoia level 1's CPU cost: it blocks 99% of bots and 1% of real users,
-and adds 40 ms.
+`blocked`. Research "Bot management" challenges a suspicious client instead of blocking it outright:
+the block rate stays and the false-positive rate halves (proposed: 10 gives the direction and no
+rate). A WAF has Under attack mode instead, which challenges every request at paranoia level 1's CPU
+cost: it blocks 99% of bots and 1% of real users, and adds 40 ms.
 
 The WAF has a regex cost. Incident "Regex backtracking" makes one rule consume all CPU on every WAF
 Node, which takes the edge down ([Incidents](/design/11-incidents#catalog)).
@@ -233,10 +243,11 @@ not a route table: every kind goes on the same Links.
 | Request coalescing (Not built yet) | Merges identical in-flight reads. Lowers load during spikes.                                                                                      |
 
 The cap is one limit for the whole Node: the game counts requests per second at the gateway, not
-per user or per API key, and a limit of 0 lets everything through. A token bucket with burst
-capacity per client is still to come with `rate-limiting`
-([Progression](/design/10-progression#track-infrastructure)). Past the gateway's own 10,000
-requests per second it drops requests like any other flat-capacity Component.
+per user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes
+it a token bucket: the limit refills every Step and the bucket holds 200 more requests (proposed:
+10 names the bucket and gives no size), so a burst that fits passes whole while the average holds.
+The bucket is still one per Node, not one per client: the build has no clients to count. Past the
+gateway's own 10,000 requests per second it drops requests like any other flat-capacity Component.
 
 Cost is per request, so the gateway is cheap at low volume and expensive at high volume. It is the
 one per-request line on the cloud bill ([Economy](/design/09-economy#the-cloud-bill)).
@@ -250,16 +261,21 @@ Real product: a virtual machine running your code.
 The App Server is the center of the game. Its capacity depends on its instance type, its runtime, its
 runtime variant, and its framework. [Runtimes and frameworks](/design/06-runtimes) defines all four.
 
-| Instance family     | vCPU : RAM    | Price per vCPU | Best for                                                                           |
-| ------------------- | ------------- | -------------- | ---------------------------------------------------------------------------------- |
-| General             | 1 : 4 GB      | 1.0×           | Mixed workloads                                                                    |
-| Compute             | 1 : 2 GB      | 0.85×          | CPU-bound runtimes and kinds: Go, Rust, Java, `login`, `upload`                    |
-| Memory              | 1 : 8 GB      | 1.3×           | Memory-bound runtimes: many PHP-FPM or Ruby workers, the JVM                       |
-| Burstable           | 1 : 2 GB      | 0.4×           | Garage. Earns CPU credits while idle and is throttled to 20% when credits run out. |
-| ARM (Not built yet) | Same as above | 0.8×           | 20% cheaper. Some runtimes and libraries are slower or need work to port.          |
+| Instance family | vCPU : RAM    | Price per vCPU | Best for                                                                           |
+| --------------- | ------------- | -------------- | ---------------------------------------------------------------------------------- |
+| General         | 1 : 4 GB      | 1.0×           | Mixed workloads                                                                    |
+| Compute         | 1 : 2 GB      | 0.85×          | CPU-bound runtimes and kinds: Go, Rust, Java, `login`, `upload`                    |
+| Memory          | 1 : 8 GB      | 1.3×           | Memory-bound runtimes: many PHP-FPM or Ruby workers, the JVM                       |
+| Burstable       | 1 : 2 GB      | 0.4×           | Garage. Earns CPU credits while idle and is throttled to 20% when credits run out. |
+| ARM             | Same as above | 0.8×           | 20% cheaper. Some runtimes and libraries are slower or need work to port.          |
 
 Sizes go from `nano` (0.5 vCPU) to `metal` (96 vCPU): nine sizes, each step doubling vCPU and RAM, and
 `metal` a 1.5× last step.
+
+The ARM family needs research `arm-instances` ([Progression](/design/10-progression#track-infrastructure)).
+It runs at 0.95× a General box's CPU speed, so the 20% it saves costs 5% of the capacity (proposed:
+05 says some software is slower and gives no ratio). Every sized Node takes it, not only the App
+Server.
 
 The App Server answers `page` and `bot` itself and turns other kinds into backend kinds
 ([Simulation](/design/04-simulation#backend-kinds)).
@@ -326,6 +342,13 @@ Serves `infer`. Capacity is measured in tokens per second.
 | Batch size   | Larger batches raise throughput and raise time to first token. Continuous batching (research) keeps latency low at high throughput.                 |
 | Quantization | FP16, INT8, INT4. Lower precision is faster and uses less memory, and it lowers answer quality, which lowers `ai` value by 5% (INT8) or 15% (INT4). |
 | Model size   | Small, medium, large. Larger models earn more per prompt and need more GPU memory. A model that does not fit causes `oom`.                          |
+
+**Built:** the GPU type, and both research items' options. Quantization (`quantization`) adds INT8 and
+INT4: INT8 serves 2× the tokens and INT4 3×, each answer is worth 5% or 15% less, and the memory saving
+is not modelled, because the build has no model size for it to free. Continuous batching
+(`continuous-batching`) adds batch 8 and batch 32: 1.6× and 2.2× the throughput, with the time to the
+first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait (all proposed: 05
+gives the trade and no numbers). Model size is not built: there is one model, and no `oom` from it.
 
 ### Edge Function
 
@@ -472,17 +495,22 @@ Real products: Kubernetes HPA, AWS Auto Scaling groups.
 
 Attaches to a group of App Servers or Workers and adds or removes copies.
 
-| Option                            | Effect                                                                                                                                                                                                       |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Signal                            | CPU utilization or load (CPU, slots, and memory). CPU is wrong for runtimes that wait on I/O, because their CPU stays low while workers are full. Not built yet: request rate, queue depth, and p95 latency. |
-| Target                            | The utilization to hold, for example 60%. Lower is safer and costs more.                                                                                                                                     |
-| Reaction time                     | VMs take 3 minutes to boot and warm. Containers take 30 seconds. A spike that is faster than the reaction time still hurts.                                                                                  |
-| Cooldown                          | Minimum time between scaling actions. Too short causes flapping. Too long reacts late.                                                                                                                       |
-| Min and max                       | The max is a cost guard. Without a max, a bug or an attack scales the bill ([Incidents: runaway bill](/design/11-incidents#catalog)).                                                                        |
-| Scheduled scaling (Not built yet) | Adds capacity before the known daily peak.                                                                                                                                                                   |
+| Option                       | Effect                                                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Signal                       | CPU utilization or load (CPU, slots, and memory). CPU is wrong for runtimes that wait on I/O, because their CPU stays low while workers are full. Not built yet: request rate, queue depth, and p95 latency. |
+| Target                       | The utilization to hold, for example 60%. Lower is safer and costs more.                                                                                                                                     |
+| Reaction time                | VMs take 3 minutes to boot and warm. Containers take 30 seconds. A spike that is faster than the reaction time still hurts.                                                                                  |
+| Cooldown                     | Minimum time between scaling actions. Too short causes flapping. Too long reacts late.                                                                                                                       |
+| Min and max                  | The max is a cost guard. Without a max, a bug or an attack scales the bill ([Incidents: runaway bill](/design/11-incidents#catalog)).                                                                        |
+| Scheduled scaling (research) | Adds capacity before the known daily peak: two calendar hours ahead, it sizes for the peak's load.                                                                                                           |
 
 JVM warmup interacts with autoscaling: new copies are slow for their first seconds, so a scale-up
 under load can make the p99 worse at first ([Runtimes](/design/06-runtimes#runtime-behaviors)).
+
+**Built:** every option in the table. The scheduled scaling research (`scheduled-scaling`, Series B)
+adds a switch: inside the two calendar hours before the Venture's peak hour, the Autoscaler plans
+for the peak's load (current load × the peak's share of today's cycle) instead of the load it sees,
+so the copies it adds are warm when the peak arrives. Outside that window it scales as before.
 
 ### Service Mesh
 
@@ -655,7 +683,16 @@ A link is a network call. Each link has:
 | Timeout         | 30 s           | See [timeouts](/design/04-simulation#capacity-utilization-and-queues).                                         |
 | Retry policy    | None           | See [retries](/design/04-simulation#retries).                                                                  |
 | Circuit breaker | Off (research) | Opens after the error rate passes a threshold. Fails fast while open, then tests again.                        |
-| Bulkhead        | Not built yet  | Limits the share of the caller's slots that this link can hold, so one slow dependency cannot use all of them. |
+| Bulkhead        | Off (research) | Limits the share of the caller's slots that this link can hold, so one slow dependency cannot use all of them. |
+| Hedged requests | Off (research) | Sends a second copy of a slow call after the p95 and keeps the faster answer.                                  |
+
+**Built:** every row but the first three, which [Simulation](/design/04-simulation#retries) explains. A
+bulkhead (research `bulkheads`) caps one call at 1,000 ms: past it the caller gives the call up, frees
+its slot and the request fails as `timeout`. It is a cap on time rather than on slots, which at the
+design's load is the same thing by Little's law; the design gives the mechanism and no cap, so the
+1,000 ms is proposed. Hedging (research `hedged-requests`) sends a second copy of every call on that
+Link: the user waits for the faster of two, the mean halves, the tail thins, and the callee sees 10%
+more calls, which the Link's own rate shows (proposed: 05 gives no extra-load share).
 
 Links that cross zones or regions add egress cost ([Economy](/design/09-economy#egress)).
 

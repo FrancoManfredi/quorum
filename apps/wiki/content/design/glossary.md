@@ -80,7 +80,7 @@ A delivery guarantee where the system resends a message or call until it is ackn
 
 Adding and removing machines automatically so that capacity follows demand. A controller watches a signal such as CPU use, compares it with a target, and changes the number of copies. New capacity takes time to boot, so autoscaling follows slow changes in load well and sudden spikes badly.
 
-**In the game:** The Autoscaler (Autoscaling Research) controls the App Servers and Workers that you link into it. When a Node runs above its target (40%, 60%, or 80% of CPU or of its whole load), it asks for more copies, up to a max of 4, 8, 16, or no limit. New copies serve after 180 s on VMs or 30 s in a Kubernetes Cluster, and they start cold. It removes one copy when load falls below 60% of the target, and it acts at most once every 30 s, so keep spare capacity for a sudden Traffic spike.
+**In the game:** The Autoscaler (Autoscaling Research) controls the App Servers and Workers that you link into it. When a Node runs above its target (40%, 60%, or 80% of CPU or of its whole load), it asks for more copies, up to a max of 4, 8, 16, or no limit. New copies serve after 180 s on VMs or 30 s in a Kubernetes Cluster, and they start cold. It removes one copy when load falls below 60% of the target, and it acts at most once every 30 s, so keep spare capacity for a sudden Traffic spike. Scheduled scaling research makes it plan for the known peak: two calendar hours before the Venture's peak hour it sizes for the peak's load instead, so the copies are warm when the peak arrives.
 
 **Related:** [Vertical and horizontal scaling](#vertical-and-horizontal-scaling), [Diurnal traffic](#diurnal-traffic), [Cold start](#cold-start), [Container orchestration](#container-orchestration)
 
@@ -120,6 +120,18 @@ A password hashing function from 1999, based on the Blowfish cipher, with a buil
 
 **Learn more:** [Provos and Mazieres: A Future-Adaptable Password Scheme (USENIX 1999)](https://www.usenix.org/legacy/events/usenix99/provos/provos.pdf) · [OWASP: Password Storage Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) · [Wikipedia](https://en.wikipedia.org/wiki/Bcrypt)
 
+## Binary RPC
+
+A remote procedure call that encodes its messages in a binary format, such as Protocol Buffers over gRPC, instead of text such as JSON. The payload is smaller and cheaper to parse, at the cost of a schema both sides must agree on.
+
+**In the game:** Binary RPC between services research halves the CPU an App Server or a Worker spends serialising each backend call: 0.02 reference ms a call becomes 0.01 (both proposed, since the build had no serialization cost before the research). It shows on the CPU gauge of the Nodes that make the calls, so a Design that ran out of CPU serves more on the same boxes.
+
+**Design:** [Track: Performance](/design/10-progression#track-performance).
+
+**Related:** [Compression](#compression), [Connection pooling](#connection-pooling), [Utilization](#utilization), [HTTP/2 and HTTP/3](#http2-and-http3)
+
+**Learn more:** [gRPC docs: Introduction to gRPC](https://grpc.io/docs/what-is-grpc/introduction/)
+
 ## BGP (Border Gateway Protocol)
 
 The protocol that networks on the internet use to tell each other which IP addresses they can reach. If a network withdraws its routes by mistake, the rest of the internet can no longer find it, even though its servers still run.
@@ -154,6 +166,18 @@ A release method with two identical production environments. You deploy the new 
 
 **Learn more:** [Martin Fowler: BlueGreenDeployment](https://martinfowler.com/bliki/BlueGreenDeployment.html) · [AWS whitepaper: Blue/Green deployments](https://docs.aws.amazon.com/whitepapers/latest/overview-deployment-options/bluegreen-deployments.html) · [Wikipedia](https://en.wikipedia.org/wiki/Blue%E2%80%93green_deployment)
 
+## Bot management
+
+Telling automated traffic from people and handling it on its own terms: challenging a suspicious client, rate limiting it, or blocking it, rather than failing every rule match outright.
+
+**In the game:** Bot management research halves a WAF's false positives and keeps its block rate (the half is proposed, since 10 gives the direction and no rate): a suspicious client gets a challenge, so a real user it flags still loads the page. Bots still earn nothing and still cost capacity when they get through, so the WAF stays the first place to stop them.
+
+**Design:** [WAF](/design/05-components#waf).
+
+**Related:** [WAF (web application firewall)](#waf-web-application-firewall), [Rate limiting](#rate-limiting), [DDoS (distributed denial of service)](#ddos-distributed-denial-of-service), [Load shedding](#load-shedding)
+
+**Learn more:** [Cloudflare Learning Center: What is bot management?](https://www.cloudflare.com/learning/bots/what-is-bot-management/)
+
 ## Brooks's law
 
 "Adding manpower to a late software project makes it later," from Fred Brooks's 1975 book The Mythical Man-Month. New people need time to ramp up, and the paths of communication grow faster than headcount.
@@ -170,7 +194,7 @@ A release method with two identical production environments. You deploy the new 
 
 A limit on how much of a caller's capacity, such as threads, connections, or slots, one dependency can use. When that dependency slows down, it fills only its own share, and calls to other dependencies keep working. The name comes from the walls that split a ship's hull into compartments.
 
-**In the game:** No bulkhead setting exists yet: one slow dependency can fill every slot. On thread and process runtimes, each call holds the caller's slot until it answers or times out, 30 s by default. The closest tools are short Link timeouts (Timeouts and retries) and Circuit breakers, which stop calls to a failing Node.
+**In the game:** Bulkheads research adds a switch to each Link. A bulkheaded Link lets a call run for 1,000 ms; past that the caller gives it up, frees its slot and the request fails as `timeout`, so a slow dependency cannot fill every slot. It is a cap on time rather than on concurrent calls, which is the same thing at a fixed load (Little's law), and the 1,000 ms is proposed. Without it, each call holds the caller's slot until it answers or hits the Link's timeout, 30 s by default.
 
 **Design:** [Links](/design/05-components#links).
 
@@ -290,6 +314,18 @@ A network of cache servers in many locations that store copies of content close 
 
 **Learn more:** [Cloudflare Learning Center: What is a CDN?](https://www.cloudflare.com/learning/cdn/what-is-a-cdn/) · [MDN: CDN](https://developer.mozilla.org/en-US/docs/Glossary/CDN)
 
+## Chaos engineering
+
+Injecting failures on purpose, in a controlled way, to find out how a system really behaves: kill a node, add latency, drop a dependency. It turns a guess about a weak spot into a measured one.
+
+**In the game:** Chaos engineering research adds a Chaos switch to the Team panel. While it is on, every 120 s the Design's weakest Node fails 20% of its calls for 10 s, and the Company earns 1 Failure Insight a second from the experiment (all proposed). The switch names the Node the next experiment will hit, and its injected `refused` errors show in the Dashboard's Errors row, beside the failures it is meant to teach you about.
+
+**Design:** [Track: Reliability](/design/10-progression#track-reliability).
+
+**Related:** [Blast radius](#blast-radius), [Runbook](#runbook), [Metastable failure](#metastable-failure), [Observability](#observability)
+
+**Learn more:** [Principles of Chaos Engineering](https://principlesofchaos.org/)
+
 ## Circuit breaker
 
 A switch on a call path that watches for failures. When too many calls fail, it opens and fails new calls at once for a while, so callers stop waiting and the struggling service can recover. Then it lets a few calls through to test whether the service is back.
@@ -368,6 +404,18 @@ Software that places containers on a shared pool of machines, restarts them when
 
 **Learn more:** [Kubernetes: Overview](https://kubernetes.io/docs/concepts/overview/) · [Kubernetes: Resource management for pods and containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/) · [Large-scale cluster management at Google with Borg](https://research.google/pubs/large-scale-cluster-management-at-google-with-borg/)
 
+## Continuous batching
+
+A serving technique for language models that adds each new request to the running batch as soon as a slot frees, instead of waiting for the whole batch to finish. Throughput rises and the wait for a first token stays short.
+
+**In the game:** Continuous batching research adds batch 8 and batch 32 to a GPU Node: 1.6× and 2.2× the prompts a second with the time to the first token unchanged. Without it the larger batches still raise throughput, and they add 150 ms or 500 ms to that wait. Every figure is proposed: 05 gives the trade and no numbers.
+
+**Design:** [GPU Node](/design/05-components#gpu-node).
+
+**Related:** [Model inference](#model-inference), [Quantization](#quantization), [Percentile (p50, p95, p99)](#percentile-p50-p95-p99), [Utilization](#utilization)
+
+**Learn more:** [vLLM docs: Continuous batching](https://docs.vllm.ai/en/latest/)
+
 ## Continuous delivery
 
 A practice that keeps software in a state where any change can be released safely at any time, through an automated pipeline that builds, tests, and deploys it. It makes releases small, frequent, and easy to roll back.
@@ -429,6 +477,18 @@ A separate queue that holds messages a consumer cannot process, after a set numb
 **Related:** [At-least-once delivery](#at-least-once-delivery), [Retry with backoff and jitter](#retry-with-backoff-and-jitter), [Idempotency](#idempotency), [Backpressure](#backpressure)
 
 **Learn more:** [AWS: Using dead-letter queues in Amazon SQS](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html) · [RabbitMQ: Dead letter exchanges](https://www.rabbitmq.com/docs/dlx) · [Enterprise Integration Patterns: Dead Letter Channel](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DeadLetterChannel.html)
+
+## Denormalization
+
+Storing the same fact in more than one place, or keeping a pre-joined copy, so a read need not join or compute it. Reads get cheaper, and every write has to update each copy.
+
+**In the game:** Denormalization research makes each Database read cost 30% less CPU and each write 20% more (10). It pays on a read-heavy Design and hurts a write-heavy one, which is the trade the Tradeoff card's preview shows before the player takes it.
+
+**Design:** [Relational database](/design/07-data-tier#relational-database).
+
+**Related:** [N+1 query](#n1-query), [Cache hit rate](#cache-hit-rate), [OLTP and OLAP](#oltp-and-olap), [Eventual consistency](#eventual-consistency)
+
+**Learn more:** [Wikipedia: Denormalization](https://en.wikipedia.org/wiki/Denormalization)
 
 ## Dependency scanning
 
@@ -518,6 +578,18 @@ Data that leaves a cloud provider's network, to the internet or to another zone 
 
 **Learn more:** [Cloudflare Learning Center: What are data egress fees?](https://www.cloudflare.com/learning/cloud/what-are-data-egress-fees/) · [AWS Architecture Blog: Data transfer costs](https://aws.amazon.com/blogs/architecture/overview-of-data-transfer-costs-for-common-architectures/)
 
+## Edge-side includes
+
+A caching technique where the edge stores the shared part of a page and assembles only the personal fragments for each user, so a logged-in page can still be served mostly from cache.
+
+**In the game:** Edge-side includes research adds 20 points to a CDN's `page` hit ratio, from 70% to 90% (10), because the edge now caches the shell of a logged-in page. The TTL still multiplies it, and the hit ratio still caps at 95%.
+
+**Design:** [CDN](/design/05-components#cdn).
+
+**Related:** [CDN (content delivery network)](#cdn-content-delivery-network), [Cache hit rate](#cache-hit-rate), [Tiered caching](#tiered-caching), [Egress](#egress)
+
+**Learn more:** [Fastly docs: Edge Side Includes](https://www.fastly.com/documentation/reference/vcl/statements/esi/)
+
 ## Encryption at rest
 
 Encrypting stored data, such as disks, database files, and backups, so that someone who gets the storage media cannot read it without the keys. It protects against stolen disks and leaked backups, not against an attacker who can query the live system.
@@ -563,6 +635,18 @@ A consistency model where replicas can return old data for a while after a write
 **Related:** [Replication lag](#replication-lag), [Read-your-writes consistency](#read-your-writes-consistency), [Quorum](#quorum), [Leaderless replication](#leaderless-replication)
 
 **Learn more:** [Werner Vogels: Eventually Consistent (ACM Queue)](https://queue.acm.org/detail.cfm?id=1466448) · [Wikipedia](https://en.wikipedia.org/wiki/Eventual_consistency)
+
+## Expand and contract
+
+A way to change a schema without locking a table: add the new column or table, write both, backfill, switch the reads, then drop the old one. Every step is backward compatible, so old and new code run side by side.
+
+**In the game:** Expand and contract research removes the Schema migration lock Incident entirely: with Online schema migrations it is a fifth of a chance, and with Expand and contract it cannot happen. The design says the change costs more Dev Hours; the build charges none, because it has no per-migration work item.
+
+**Design:** [Schema migrations](/design/07-data-tier#schema-migrations).
+
+**Related:** [Blue-green deployment](#blue-green-deployment), [Feature flag](#feature-flag), [Tech debt](#tech-debt), [Strangler pattern](#strangler-pattern)
+
+**Learn more:** [Martin Fowler: Parallel change](https://martinfowler.com/bliki/ParallelChange.html)
 
 ## Fallacies of distributed computing
 
@@ -668,6 +752,18 @@ A way to run infrastructure where the desired state lives in Git as declarative 
 
 **Learn more:** [OpenGitOps: GitOps Principles](https://opengitops.dev/) · [Argo CD docs: Automated Sync Policy](https://argo-cd.readthedocs.io/en/stable/user-guide/auto_sync/) · [Flux docs: Core Concepts](https://fluxcd.io/flux/concepts/)
 
+## Graceful degradation
+
+Keeping the important part of a service working when it is over capacity by turning off the expensive, optional parts instead of failing everything: the page still loads, and the report waits.
+
+**In the game:** Graceful degradation research adds a switch to an App Server. A saturated Node then drops its dearest request kinds first, exports and uploads before reads, so the cheap kinds keep their latency (10). Load shedding is the other order: it drops the least valuable kinds first, bots and ad bids before pages.
+
+**Design:** [App Server](/design/05-components#app-server).
+
+**Related:** [Load shedding](#load-shedding), [Backpressure](#backpressure), [Utilization](#utilization), [Bulkhead](#bulkhead)
+
+**Learn more:** [Google SRE book: Handling overload](https://sre.google/sre-book/handling-overload/)
+
 ## Green threads
 
 Lightweight threads that a language runtime schedules instead of the operating system. Goroutines, Java virtual threads, and Erlang processes are examples. Each costs a few KB, so one server can keep many thousands waiting at once.
@@ -696,7 +792,7 @@ A periodic probe, such as an HTTP request to a status endpoint, that decides whe
 
 Sending a second copy of a request to another replica when the first is slower than expected, for example past the 95th-percentile latency, and using whichever answer arrives first. It cuts tail latency for a small amount of extra load.
 
-**In the game:** Not modeled yet: no Link or research sends a hedged copy. The closest is the Wide-column Store, where a read waits only for the fastest R of its N replicas, so a lower R gives a faster read. Percentiles shows the p99 that hedging would cut.
+**In the game:** Hedged requests research adds a switch to each Link. A hedged Link sends a second copy of every call and the user waits for the faster answer: the mean halves, the p99 falls, and the callee sees 10% more calls, which the Link's rate shows. Percentiles is what shows the tail before and after. The Wide-column Store's quorum read is the same idea built into a database: it waits only for the fastest R of its N replicas.
 
 **Design:** research `hedged-requests` ([Progression](/design/10-progression#track-reliability)).
 
@@ -820,7 +916,7 @@ In any stable system, the average number of items inside (L) equals the average 
 
 A server that spreads incoming requests across a group of backend servers, and stops sending to a backend that fails its health check. It lets you add servers behind one address, and it decides which server gets each request.
 
-**In the game:** The Load Balancing Research unlocks the Load Balancer, which handles 2,000 requests per second per size step and adds 1 ms. By default it splits traffic by each App Server's capacity. It drops a dead host at its next health check, every 10 s by default, while DNS round robin keeps sending to a dead host. Load balancing algorithms adds least connections and power of two choices, and Health checks lets you check every 2 s or 30 s.
+**In the game:** The Load Balancing Research unlocks the Load Balancer, which handles 2,000 requests per second per size step and adds 1 ms. By default it splits traffic by each App Server's capacity. It drops a dead host at its next health check, every 10 s by default, while DNS round robin keeps sending to a dead host. Load balancing algorithms adds least connections and power of two choices, and Health checks lets you check every 2 s or 30 s. L4 load balancing research switches a Node to layer 4: 20,000 requests a second, a 0.2 ms hop and 0.6× the Burn (the price cut is proposed), with no per-kind routing and no retries, because it never reads the HTTP.
 
 **Related:** [Health check](#health-check), [Power of two choices](#power-of-two-choices), [Vertical and horizontal scaling](#vertical-and-horizontal-scaling), [Consistent hashing](#consistent-hashing)
 
@@ -849,6 +945,18 @@ Memory that a long-running process keeps allocated but no longer uses, so its me
 **Related:** [Shared nothing](#shared-nothing), [GC pause](#gc-pause), [Process per request](#process-per-request), [Health check](#health-check)
 
 **Learn more:** [Wikipedia: Memory leak](https://en.wikipedia.org/wiki/Memory_leak) · [Node.js Learn: Memory diagnostics](https://nodejs.org/en/learn/diagnostics/memory) · [Oracle Java docs: Troubleshoot memory leaks](https://docs.oracle.com/en/java/javase/21/troubleshoot/troubleshooting-memory-leaks.html)
+
+## Materialized view
+
+A stored result of a query, kept on disk and refreshed on a schedule, so a report reads the answer instead of scanning the tables. It is fast, and it is only as fresh as the last refresh.
+
+**In the game:** Materialized views research adds a view to a Database's card. A report scans the stored view for half the CPU (10), and 5% of report answers are stale, from before the last refresh (proposed: 10 gives the half and no refresh interval). It is the Database-side twin of the Data Warehouse: the same cheap scans without a second system.
+
+**Design:** [Data Warehouse](/design/07-data-tier#data-warehouse).
+
+**Related:** [OLTP and OLAP](#oltp-and-olap), [CDC (change data capture)](#cdc-change-data-capture), [Cache hit rate](#cache-hit-rate), [Read replica](#read-replica)
+
+**Learn more:** [PostgreSQL docs: Materialized views](https://www.postgresql.org/docs/current/rules-materializedviews.html)
 
 ## Metastable failure
 
@@ -1052,6 +1160,18 @@ A server model in which each request in flight occupies a whole worker process u
 
 **Learn more:** [Apache HTTP Server: MPM prefork](https://httpd.apache.org/docs/2.4/mod/prefork.html) · [PHP manual: FastCGI Process Manager (FPM)](https://www.php.net/manual/en/install.fpm.php) · [Gunicorn docs: Design](https://gunicorn.org/design/)
 
+## Quantization
+
+Storing a model's weights at lower precision, such as 8-bit or 4-bit integers rather than 16-bit floats, so the model uses less memory and computes faster, at some cost in answer quality.
+
+**In the game:** Quantization research adds FP16, INT8 and INT4 to a GPU Node. INT8 serves 2× the tokens and INT4 3× (both proposed), and each answer is worth 5% or 15% less (05). It pays when the GPU is the bottleneck and the answers can afford to be slightly worse.
+
+**Design:** [GPU Node](/design/05-components#gpu-node).
+
+**Related:** [Model inference](#model-inference), [Continuous batching](#continuous-batching), [Utilization](#utilization), [Cold start](#cold-start)
+
+**Learn more:** [Hugging Face docs: Quantization](https://huggingface.co/docs/transformers/main/en/quantization/overview)
+
 ## Quorum
 
 The number of replicas that must take part in a read or a write. With N replicas, read quorum R, and write quorum W, R + W > N means every read asks at least one replica that acknowledged the latest write. That is not linearizability: concurrent writes, failed writes, and sloppy quorums can still return old values.
@@ -1080,7 +1200,7 @@ A consensus algorithm that keeps a replicated log identical on a group of server
 
 Capping how many requests a client can make in a period and rejecting the rest, often with HTTP 429 Too Many Requests. It protects a service from abuse, scrapers, and one noisy client, and lets a provider share capacity fairly. Common algorithms are the token bucket, the leaky bucket, and fixed or sliding windows.
 
-**In the game:** The LLM API rate-limits you from the client side: it takes 100 prompts per second per usage tier, and past that, prompts fail at once as throttled. The API Gateway turns the same limit on your own services: pick a cap in requests per second and requests past it fail as throttled, one cap for the whole Node rather than a bucket per user or API key. To stop abusive traffic, a WAF blocks bots by rule instead: 80% of bots at paranoia 2, with 0.5% of real users blocked too.
+**In the game:** The LLM API rate-limits you from the client side: it takes 100 prompts per second per usage tier, and past that, prompts fail at once as throttled. The API Gateway turns the same limit on your own services: pick a cap in requests per second and requests past it fail as throttled, one cap for the whole Node rather than a bucket per user or API key. Research Rate limiting makes the cap a token bucket: it refills each Step and holds 200 requests more, so a burst that fits passes whole. To stop abusive traffic, a WAF blocks bots by rule instead: 80% of bots at paranoia 2, with 0.5% of real users blocked too.
 
 **Design:** [API Gateway](/design/05-components#api-gateway).
 
@@ -1364,7 +1484,7 @@ A signed file that binds a domain name to a public key, issued by a certificate 
 
 A rate limiting algorithm. A bucket holds up to B tokens and refills at a fixed rate r; each request takes a token, and a request that finds the bucket empty waits or is rejected. It allows short bursts of up to B while it holds the long-run average to r.
 
-**In the game:** Burstable instances run on a token bucket of CPU credits. A Burstable Node earns credits while it uses less than 20% of its vCPU, banks up to 100 core-seconds per vCPU, and spends them to run above that baseline. When the bucket is empty it drops to 20% CPU, so a Burstable box that runs hot all day stalls; in exchange it costs 0.4 times a General box.
+**In the game:** Burstable instances run on a token bucket of CPU credits. A Burstable Node earns credits while it uses less than 20% of its vCPU, banks up to 100 core-seconds per vCPU, and spends them to run above that baseline. When the bucket is empty it drops to 20% CPU, so a Burstable box that runs hot all day stalls; in exchange it costs 0.4 times a General box. The API Gateway's Rate limiting research gives it the same bucket: 200 requests of burst on top of its cap.
 
 **Design:** [API Gateway](/design/05-components#api-gateway).
 
@@ -1376,7 +1496,7 @@ A rate limiting algorithm. A bucket holds up to B tokens and refills at a fixed 
 
 A way to update a database and publish an event without losing either. The service writes the change and an outbox row in the same database transaction, and a separate relay reads the outbox and publishes each event to the message broker, at least once. It avoids the dual-write problem, where the database commit succeeds and the publish fails, or the reverse.
 
-**In the game:** The outbox is designed but not in the game yet. The closest mechanic is the Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue. The game does not model an event lost or duplicated between a database write and a publish.
+**In the game:** Until the outbox research, from Series B the app's dual write loses now and then: 0.5% of a Search Engine's answers are stale from a publish that never landed (the rate and the Era are proposed). Research Transactional outbox takes that share to zero, and so does a CDC Connector, which reads the change from the database log instead. Neither changes a Queue: an App Server linked to a Queue hands the async part of slow requests to Workers, and users wait only for the enqueue.
 
 **Design:** [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync).
 
@@ -1412,7 +1532,7 @@ The share of a resource's capacity in use over a period: offered work divided by
 
 Vertical scaling (scaling up) moves a workload to a bigger machine with more CPU and memory. Horizontal scaling (scaling out) adds more machines and splits the work among them. Scaling up is simple but has a ceiling and usually a restart; scaling out needs a load balancer and stateless servers, but has no hard ceiling and survives the loss of one machine.
 
-**In the game:** Resizing a sized Node moves it one step between nano (0.5 vCPU) and metal (96 vCPU), and each step doubles vCPU and RAM, but the Node restarts and comes back cold. Some software cannot use the extra cores: Node.js runs one event loop on one core, and Redis answers on one thread. To scale out, put more App Servers behind DNS or a Load Balancer, each copy costing 25% more to place, or let an Autoscaler add copies, which take 180 s on VMs or 30 s in a Kubernetes Cluster.
+**In the game:** Resizing a sized Node moves it one step between nano (0.5 vCPU) and metal (96 vCPU), and each step doubles vCPU and RAM, but the Node restarts and comes back cold. Some software cannot use the extra cores: Node.js runs one event loop on one core, and Redis answers on one thread. To scale out, put more App Servers behind DNS or a Load Balancer, each copy costing 25% more to place, or let an Autoscaler add copies, which take 180 s on VMs or 30 s in a Kubernetes Cluster. The instance family also matters: ARM instances research adds a family with General's vCPU and RAM for 0.8× the price, which runs at 0.95× the CPU speed (proposed).
 
 **Design:** [Vertical and horizontal](/design/16-balancing#vertical-and-horizontal).
 
@@ -1424,7 +1544,7 @@ Vertical scaling (scaling up) moves a workload to a bigger machine with more CPU
 
 A filter in front of a web application that inspects HTTP requests and blocks those that match attack or bot rules. Stricter rule sets catch more attacks and also block more real users by mistake (false positives).
 
-**In the game:** Web application firewall research unlocks the WAF Component. It blocks a share of bot requests and, by mistake, a share of real users, set by its paranoia level: level 1 blocks 60% of bots and 0.1% of users, level 2 (the default) 80% and 0.5%, level 3 92% and 2%, level 4 98% and 6%. Higher levels cost more CPU per request, up to 4 times level 1. Under attack mode blocks 99% of bots and 1% of users and adds 40 ms.
+**In the game:** Web application firewall research unlocks the WAF Component. It blocks a share of bot requests and, by mistake, a share of real users, set by its paranoia level: level 1 blocks 60% of bots and 0.1% of users, level 2 (the default) 80% and 0.5%, level 3 92% and 2%, level 4 98% and 6%. Higher levels cost more CPU per request, up to 4 times level 1. Bot management research challenges a suspicious client instead of blocking it, which halves the false positives (proposed) and keeps the block rate. Under attack mode blocks 99% of bots and 1% of users and adds 40 ms.
 
 **Related:** [DDoS (distributed denial of service)](#ddos-distributed-denial-of-service), [Credential stuffing](#credential-stuffing), [ReDoS (regular expression denial of service)](#redos-regular-expression-denial-of-service), [Rate limiting](#rate-limiting)
 

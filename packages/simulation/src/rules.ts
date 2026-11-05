@@ -7,6 +7,15 @@ import {
   CACHE_TTLS,
   CDN_HIT,
   CDN_TTLS,
+  ESI_PAGE_HIT,
+  BOT_MANAGEMENT_FALSE,
+  STEP_SECONDS,
+  L4_CAPACITY,
+  L4_MS,
+  GPU_PRECISIONS,
+  GPU_BATCHES,
+  DUAL_WRITE_STALE,
+  MATERIALIZED_STALE,
   PSP_CAPACITY,
   GPU_FIRST_TOKEN_MS,
   GPU_TYPES,
@@ -374,7 +383,10 @@ export const cdnHitOf = (node: GameNode, kind: Kind, game?: Game): number => {
       ? TIERED_MEDIA_HIT
       : kind === 'read' && game && hasEdge(game)
         ? EDGE_READ_HIT
-        : (CDN_HIT[kind] ?? 0)
+        : // Edge-side includes cache the shell of a logged-in page, which the base rate leaves out.
+          kind === 'page' && game && has(game, 'esi')
+          ? (CDN_HIT.page ?? 0) + ESI_PAGE_HIT
+          : (CDN_HIT[kind] ?? 0)
   return Math.min(0.95, base * ttl.factor)
 }
 
@@ -392,17 +404,23 @@ export const edgeRuns = (node: GameNode): boolean =>
 export const edgeFits = (game: Game, node: GameNode, kind: Kind, delegated = false): boolean =>
   !isBackendKind(kind) && requestCpuMs(game, node, kind, delegated) <= EDGE_CPU_MS
 
-/** A WAF's paranoia level, or Under attack mode. */
-export const wafOf = (node: GameNode) => {
+/** A WAF's paranoia level, or Under attack mode. Bot management halves its false positives. */
+export const wafOf = (node: GameNode, game?: Game) => {
   const level =
     PARANOIA[Math.max(0, Math.min(PARANOIA.length - 1, node.paranoia - 1))] ?? PARANOIA[1]
+  const challenged = game !== undefined && has(game, 'bot-management')
+  const soften = (rate: number): number => (challenged ? rate * BOT_MANAGEMENT_FALSE : rate)
   return node.underAttack
     ? {
         block: UNDER_ATTACK.block,
-        falsePositive: UNDER_ATTACK.falsePositive,
+        falsePositive: soften(UNDER_ATTACK.falsePositive),
         cpu: UNDER_ATTACK.cpu,
       }
-    : level
+    : {
+        block: level.block,
+        falsePositive: soften(level.falsePositive),
+        cpu: level.cpu,
+      }
 }
 
 /* ---------- the API Gateway ---------- */
@@ -411,12 +429,19 @@ export const wafOf = (node: GameNode) => {
 export const gatewayLimitOf = (node: GameNode): number =>
   node.rateLimit > 0 ? node.rateLimit : Number.POSITIVE_INFINITY
 
-/** Share of its arrivals a Gateway's rate limit lets through; the rest fails as throttled. */
-export const gatewayShare = (node: GameNode, arriving: Rates): number => {
+/**
+ * Share of its arrivals a Gateway's rate limit lets through; the rest fails as throttled. With
+ * Rate limiting the cap becomes a token bucket: the limit refills over a Step and the bucket holds
+ * `node.burst` more, so a burst that fits the bucket passes whole while the average still holds.
+ */
+export const gatewayShare = (node: GameNode, arriving: Rates, dt = STEP_SECONDS): number => {
   let total = 0
   for (const kind of Object.keys(arriving) as Array<Kind>) total += arriving[kind] ?? 0
   const limit = gatewayLimitOf(node)
-  return total > 0 && limit < total ? limit / total : 1
+  if (total <= 0 || limit === Number.POSITIVE_INFINITY) return 1
+  const allowed = limit * dt + Math.max(0, node.burst)
+  const asked = total * dt
+  return allowed < asked ? allowed / asked : 1
 }
 
 /* ---------- the Realtime Hub ---------- */
@@ -586,9 +611,11 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     model: (solver, node, arriving) =>
       flatModel(
         flatCapacity(node) *
+          (node.variant === 'l4' ? L4_CAPACITY : 1) *
           (node.policy === 'p2c' && has(solver.game, 'lb-algorithms') ? P2C_CAPACITY : 1),
         arriving,
-        { fixed: 1, variable: 0.1 },
+        // An L4 forwards TCP: no HTTP parsing, so a fifth of the hop (05 "Load Balancer").
+        { fixed: node.variant === 'l4' ? L4_MS : 1, variable: 0.1 },
         solver.boost(node),
       ),
     serve: passOn,
@@ -654,10 +681,18 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         return failed('refused')
       const pool = answer.pass.connections[slotOf(answer.pass, node)]
       const refused = pool && pool.used > pool.max ? 1 - pool.max / pool.used : 0
+      // A report read from a materialized view is as fresh as its last refresh (10 "Performance").
+      const staleScan =
+        kind === 'q-scan' && node.materialized && has(answer.game, 'precompute')
+          ? MATERIALIZED_STALE
+          : 0
       const reply: Outcome = {
         ...answered(0, 0),
         success: 1 - refused,
-        stale: node.type === 'replica' && kind === 'q-read' ? answer.pass.staleShare : 0,
+        stale: Math.max(
+          node.type === 'replica' && kind === 'q-read' ? answer.pass.staleShare : 0,
+          staleScan,
+        ),
         fail: { ...NO_FAILURES, refused },
       }
       return through(answer.ownHop(kind), [[reply, 1]])
@@ -777,10 +812,18 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         { fixed: 15, variable: 2 },
         solver.boost(node),
       ),
-    // A slower refresh saves indexing CPU and answers staler: a new document waits to be seen.
+    // A slower refresh saves indexing CPU and answers staler: a new document waits to be seen. On
+    // top of that, the app's dual write loses now and then: without a Transactional outbox or a CDC
+    // Connector, a write's publish can fail and the index keeps the old document (07 "Keeping
+    // copies in sync"). The design counts that divergence as stale search results.
     outcome: (answer, node, kind) => {
       const own = through(answer.ownHop(kind))
-      return kind === 'q-search' ? { ...own, stale: refreshOf(node).stale } : own
+      if (kind !== 'q-search') return own
+      const carried =
+        has(answer.game, 'outbox') || answer.game.nodes.some((entry) => entry.type === 'cdc')
+      // The copies can only diverge once the app writes to several of them: Series B (07).
+      const diverged = carried || answer.game.stage < 4 ? 0 : DUAL_WRITE_STALE
+      return { ...own, stale: Math.max(refreshOf(node).stale, diverged) }
     },
     ...terminal,
   },
@@ -1021,7 +1064,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
   waf: {
     model: (solver, node, arriving) =>
       flatModel(
-        (flatCapacity(node) / wafOf(node).cpu) *
+        (flatCapacity(node) / wafOf(node, solver.game).cpu) *
           (solver.game.incident?.kind === 'regex' ? REGEX_CAPACITY : 1),
         arriving,
         { fixed: 2 + (node.underAttack ? UNDER_ATTACK.latency : 0), variable: 0.1 },
@@ -1029,7 +1072,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       ),
     // Bots stop here at the block rate; real users at the false positive rate.
     serve: (serve, node, rates, share) => {
-      const waf = wafOf(node)
+      const waf = wafOf(node, serve.solver.game)
       each(rates, share, (kind, processed) =>
         serve.route(kind, processed * (1 - (kind === 'bot' ? waf.block : waf.falsePositive))),
       )
@@ -1037,7 +1080,7 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     outcome: (answer, node, kind) =>
       failSome(
         relay(answer, node, kind),
-        kind === 'bot' ? wafOf(node).block : wafOf(node).falsePositive,
+        kind === 'bot' ? wafOf(node, answer.game).block : wafOf(node, answer.game).falsePositive,
         'blocked',
       ),
     connections: noConnections,
@@ -1158,14 +1201,22 @@ export const RULES: Record<ComponentId, ComponentRule> = {
   },
   // Prompts per second: tokens per second over the tokens in a prompt. A cold Node loads its model.
   gpu: {
-    model: (solver, node, arriving) =>
-      flatModel(
-        gpuCapacity(node) * Math.max(0.1, warmOf(node.life)),
+    model: (solver, node, arriving) => {
+      const precision = GPU_PRECISIONS[node.precision]
+      const batch = GPU_BATCHES.find((entry) => entry.batch === node.batch) ?? GPU_BATCHES[0]
+      // Continuous batching serves the batch as it arrives, so the throughput stays and the wait
+      // for a first token does not (05 "GPU Node").
+      const batched = has(solver.game, 'continuous-batching')
+      return flatModel(
+        gpuCapacity(node) * precision.speed * batch.gain * Math.max(0.1, warmOf(node.life)),
         arriving,
-        { fixed: GPU_FIRST_TOKEN_MS, variable: 100 },
+        { fixed: GPU_FIRST_TOKEN_MS + (batched ? 0 : batch.ttft), variable: 100 },
         solver.boost(node),
-      ),
-    outcome: (answer, _, kind) => through(answer.ownHop(kind)),
+      )
+    },
+    // A quantized answer is worth less: 5% at INT8 and 15% at INT4 (05 "GPU Node").
+    outcome: (answer, node, kind) =>
+      through(answer.ownHop(kind, GPU_PRECISIONS[node.precision].value)),
     ...terminal,
   },
   // Small handlers next to the user (05 "Edge Function"): 5 ms, no cold start, and a CPU ceiling

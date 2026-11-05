@@ -25,6 +25,123 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Data team': '数据团队',
   'Unlocks the Data team: report and AI Features cost 30% less, and a pipeline lags half as much.':
     '解锁数据团队：报表与 AI 功能成本降低 30%，管道的延迟减半。',
+  // The options and mechanics that closed the research tracks (05, 07, 10).
+  'L4 load balancing': 'L4 负载均衡',
+  'A Load Balancer forwards TCP instead of reading HTTP: ten times the throughput, a fifth of the hop, and cheaper, with no per-kind routing and no retries.':
+    '负载均衡器直接转发 TCP 而不解析 HTTP：吞吐量提升十倍，跳转耗时只有五分之一，价格更低，但无法按请求类型路由，也无法重试。',
+  'Rate limiting': '限流',
+  'A token bucket on the Gateway: a burst up to the bucket passes whole, and the long-run average holds at the limit.':
+    '网关上的令牌桶：不超过桶容量的突发流量整体放行，长期平均值保持在限额。',
+  'Edge-side includes': '边缘端包含',
+  'The CDN caches the shared shell of a logged-in page and fills in the personal parts at the edge, so 20% more page views hit.':
+    'CDN 缓存登录页面的公共外壳，在边缘填充个人部分，因此页面浏览量命中率提高 20%。',
+  'Bot management': '机器人管理',
+  'A WAF that challenges suspicious clients instead of blocking them outright: it blocks the same bots and mistakes fewer real users for one.':
+    'WAF 对可疑客户端发起挑战而不是直接拦截：拦截的机器人一样多，被误伤的真人更少。',
+  'Scheduled scaling': '定时扩缩容',
+  'An Autoscaler adds copies before the known daily peak, so the copies are warm when it arrives.':
+    '自动扩缩器在已知的每日高峰之前增加副本，高峰到来时副本已经预热。',
+  'ARM instances': 'ARM 实例',
+  'Unlocks the ARM instance family: the same vCPU and RAM as General for 0.8× the price.':
+    '解锁 ARM 实例族：vCPU 和内存与通用型相同，价格为 0.8 倍。',
+  Quantization: '量化',
+  'A GPU Node runs INT8 or INT4 weights: faster and smaller, and its answers are worth 5% or 15% less.':
+    'GPU 节点运行 INT8 或 INT4 权重：更快、更省内存，每个回答的价值降低 5% 或 15%。',
+  'Continuous batching': '连续批处理',
+  'A GPU Node batches prompts as they arrive, so a larger batch raises throughput without raising the time to the first token.':
+    'GPU 节点随到随批处理提示，因此更大的批次提高吞吐量，却不增加首字延迟。',
+  Bulkheads: '隔舱',
+  'A Link caps how many of its caller’s slots one dependency may hold: a slow dependency sheds its own calls and leaves the rest serving.':
+    '链路限制单个依赖最多占用调用者的多少槽位：慢依赖丢弃自己的调用，其余请求照常处理。',
+  'Graceful degradation': '优雅降级',
+  'A saturated App Server turns off its most expensive kinds first, so the cheap ones keep their latency and the expensive ones fail fast.':
+    '饱和的应用服务器先关闭最耗资源的功能类型：便宜的类型保持时延，昂贵的类型快速失败。',
+  'Hedged requests': '对冲请求',
+  'A Link sends a second copy of a slow call after the p95 and keeps the faster answer: the tail drops and the callee sees 10% more calls.':
+    '链路在 p95 之后为慢调用再发一份副本，取更快的回答：长尾下降，被调用方多收到 10% 的请求。',
+  'Chaos engineering': '混沌工程',
+  'A scheduled experiment fails your weakest Node for a few seconds and names it: it earns Failure Insight and proves the Design survives.':
+    '定时实验让你的最弱节点失败几秒并点名它：实验带来故障洞察，也证明设计能够存活。',
+  Denormalization: '反规范化',
+  'A Database keeps a pre-joined copy: reads cost 30% less CPU, and every write costs 20% more.':
+    '数据库保留一份预连接副本：读取的 CPU 成本降低 30%，每次写入增加 20%。',
+  'Materialized views': '物化视图',
+  'A Database answers a report from a stored view: half the scan CPU, and the figures are as old as the refresh.':
+    '数据库用存储的视图回答报表：扫描 CPU 减半，数字的陈旧程度与刷新周期相同。',
+  'Binary RPC between services': '服务间二进制 RPC',
+  'Services serialise calls as binary instead of text: half the serialization CPU on every backend call.':
+    '服务用二进制而不是文本序列化调用：每次内部调用的序列化 CPU 减半。',
+  'Transactional outbox': '事务发件箱',
+  'A write and its event land in one transaction, and a relay publishes it: the copies stop diverging when a publish fails.':
+    '写入与其事件在同一事务中提交，再由中继发布：发布失败时副本不再分叉。',
+  'Expand and contract': '扩展与收缩',
+  'A schema change adds the new shape, backfills, then drops the old one: no table lock, so a migration can never stall writes.':
+    '模式变更先加入新结构、回填数据，再删除旧结构：不加表锁，迁移永远不会阻塞写入。',
+  ARM: 'ARM',
+  'Same as General for 20% less. Some runtimes and libraries need work to port.':
+    '与通用型相同但便宜 20%。部分运行时和库需要移植工作。',
+  L4: 'L4',
+  L7: 'L7',
+  FP16: 'FP16',
+  INT8: 'INT8',
+  INT4: 'INT4',
+  Variant: '变体',
+  'Forwards TCP: ten times the throughput, 0.2 ms, and cheaper. It reads no HTTP, so it cannot route by kind or retry.':
+    '转发 TCP：吞吐量十倍、0.2 毫秒，价格更低。它不解析 HTTP，因此无法按类型路由，也无法重试。',
+  'Reads HTTP: routes by kind, retries, and checks health. Lower throughput and a longer hop.':
+    '解析 HTTP：可按类型路由、重试并做健康检查。吞吐量较低，跳转更长。',
+  'Flat cap': '固定上限',
+  'A burst of up to {0} requests passes whole, and the average holds at the limit.':
+    '最多 {0} 个请求的突发整体放行，平均值保持在限额。',
+  'Every Step over the limit is throttled at once. Research Rate limiting for a token bucket.':
+    '每一步超出上限都立即限流。研究限流即可使用令牌桶。',
+  Precision: '精度',
+  'batch {0}': '批次 {0}',
+  'Full precision: the baseline, and every answer at full value.':
+    '全精度：基准，每个回答都是完整价值。',
+  '{0}× the tokens, and each answer is worth {1}% less.': '{0} 倍令牌数，每个回答的价值降低 {1}%。',
+  'One prompt at a time: the lowest wait for a first token.': '一次一个提示：首字等待最短。',
+  '{0}× the prompts a second, and continuous batching keeps the first token at {1} ms.':
+    '每秒提示数为 {0} 倍，连续批处理让首字保持在 {1} 毫秒。',
+  '{0}× the prompts a second, and the first token waits {1} ms longer.':
+    '每秒提示数为 {0} 倍，首字多等 {1} 毫秒。',
+  'Ahead of the peak': '提前应对高峰',
+  'On load': '按负载',
+  'Two calendar hours before the daily peak it adds the copies the peak will need, so they are warm when it arrives.':
+    '在每日高峰前两个日历小时，它增加高峰所需的副本，高峰到来时已经预热。',
+  'It reacts to the load it sees. Research Scheduled scaling to provision for the peak first.':
+    '它只对当前负载作出反应。研究定时扩缩容即可提前为高峰准备。',
+  'Keep kinds': '保留类型',
+  'Drop dearest': '先丢弃最贵的',
+  'Scan the table': '扫描整表',
+  'Materialized view': '物化视图',
+  'Half the scan CPU, and the figures are as old as the last refresh.':
+    '扫描 CPU 减半，数字与上次刷新一样陈旧。',
+  'Every report scans the table itself. Research Materialized views to store one.':
+    '每个报表都扫描整张表。研究物化视图即可存储一份。',
+  Reports: '报表',
+  Chaos: '混沌',
+  'Chaos experiments on': '混沌实验已开启',
+  'Chaos experiments off': '混沌实验已关闭',
+  'Scheduled scaling on': '定时扩缩容已开启',
+  'Scheduled scaling off': '定时扩缩容已关闭',
+  'Graceful degradation on': '优雅降级已开启',
+  'Graceful degradation off': '优雅降级已关闭',
+  'Materialized view on': '物化视图已开启',
+  'Materialized view off': '物化视图已关闭',
+  'L4 load balancer': 'L4 负载均衡器',
+  'L7 load balancer': 'L7 负载均衡器',
+  'Token bucket on': '令牌桶已开启',
+  'Token bucket off': '令牌桶已关闭',
+  'Precision {0}': '精度 {0}',
+  'Batch {0}': '批次 {0}',
+  'Bulkhead on': '隔舱已开启',
+  'Bulkhead off': '隔舱已关闭',
+  'Hedged requests on': '对冲请求已开启',
+  'Hedged requests off': '对冲请求已关闭',
+  'No bulkhead': '无隔舱',
+  'One copy': '一份副本',
+  Hedge: '对冲',
 
   'Start migration': '开始迁移',
   Proposed: '提议',

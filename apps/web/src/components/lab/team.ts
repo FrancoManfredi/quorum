@@ -22,12 +22,14 @@ import {
   Rocket,
   Scale,
   Siren,
+  FlaskConical,
   Trash2,
   UserMinus,
   X,
   Zap,
 } from 'lucide'
 import {
+  COMPONENTS,
   ERAS,
   FEATURES,
   FEATURE_IDS,
@@ -1751,6 +1753,50 @@ const autopilot = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** Chaos experiments (10 "Track: Reliability"): the Company's own failure injection, once researched. */
+const chaos = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const game = model.board.game
+  const target = game.weakest
+    ? COMPONENTS[game.nodes.find((entry) => entry.id === game.weakest)?.type ?? 'server'].name
+    : null
+  return h.button(
+    [
+      h.Type('button'),
+      h.Role('switch'),
+      h.AriaChecked(game.chaos),
+      h.AriaLabel(
+        target ? `Chaos experiments: next experiment hits ${target}` : 'Chaos experiments',
+      ),
+      h.Title(target ? `Next experiment hits ${target}` : 'Chaos experiments'),
+      h.OnClick(Message.ChaosChosen({ chaos: !game.chaos })),
+      h.Class(
+        cn(
+          'press inline-flex h-7 items-center gap-1.5 rounded-full pr-1 pl-2.5 text-[calc(11.5px*var(--type-scale))] font-medium',
+          game.chaos
+            ? 'bg-primary-fill text-on-primary-fill shadow-primary'
+            : 'text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)] hover:text-foreground',
+        ),
+      ),
+    ],
+    [
+      icon(h, FlaskConical, 'size-3.5'),
+      'Chaos',
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'rounded-full px-1.5 py-0.5 text-[calc(10px*var(--type-scale))]',
+              game.chaos ? 'bg-white/20' : 'bg-well',
+            ),
+          ),
+        ],
+        [game.chaos ? 'ON' : 'OFF'],
+      ),
+    ],
+  )
+}
+
 /* ---------- the roadmap ---------- */
 
 const costPill = (cost: number, h: HtmlBuilder<Message>): Html =>
@@ -1976,7 +2022,14 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
     [h.Class(`flex min-h-0 flex-col gap-3 p-4 ${SCROLL}`)],
     [
       migrationCard(game, h),
-      heading('Board', autopilot(model, h), h),
+      heading(
+        'Board',
+        h.div(
+          [h.Class('flex items-center gap-2')],
+          [autopilot(model, h), ...(has(game, 'chaos-engineering') ? [chaos(model, h)] : [])],
+        ),
+        h,
+      ),
       board(game, h),
       heading(
         'Features',

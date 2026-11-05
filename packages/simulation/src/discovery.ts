@@ -153,6 +153,24 @@ export const BY_RESEARCH: Partial<Record<ResearchId, ReadonlyArray<string>>> = {
   'sync-replication': ['synchronous-replication'],
   'cert-automation': ['tls-certificate'],
   waf: ['waf-web-application-firewall'],
+  // The research that closed the tracks (05, 07, 10): each links to what it teaches.
+  'l4-lb': ['load-balancer'],
+  'rate-limiting': ['rate-limiting', 'token-bucket'],
+  esi: ['edge-side-includes', 'cache-hit-rate'],
+  'bot-management': ['bot-management', 'waf-web-application-firewall'],
+  'scheduled-scaling': ['autoscaling', 'diurnal-traffic'],
+  'arm-instances': ['vertical-and-horizontal-scaling'],
+  quantization: ['quantization', 'model-inference'],
+  'continuous-batching': ['continuous-batching', 'model-inference'],
+  bulkheads: ['bulkhead', 'circuit-breaker'],
+  'graceful-degradation': ['graceful-degradation', 'load-shedding'],
+  'hedged-requests': ['hedged-request', 'tail-at-scale'],
+  'chaos-engineering': ['chaos-engineering', 'blast-radius'],
+  denormalization: ['denormalization', 'n1-query'],
+  precompute: ['materialized-view', 'oltp-and-olap'],
+  'binary-rpc': ['binary-rpc', 'compression'],
+  outbox: ['transactional-outbox', 'at-least-once-delivery'],
+  'expand-contract': ['expand-and-contract', 'tech-debt'],
 }
 
 export const BY_INCIDENT: Partial<Record<IncidentId, ReadonlyArray<string>>> = {

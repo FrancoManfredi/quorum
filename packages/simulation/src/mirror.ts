@@ -623,6 +623,8 @@ const land = (game: Game, mirror: Mirror): Game => {
       retries: settings?.retries ?? 'none',
       kinds: settings?.kinds ?? null,
       breaker: settings?.breaker ?? false,
+      bulkhead: settings?.bulkhead ?? false,
+      hedge: settings?.hedge ?? false,
       open: 0,
       failure: 0,
     })

@@ -17,6 +17,7 @@ import {
   type RequestKind,
   type RuntimeId,
 } from './catalog.ts'
+import { serverModel } from './capacity.ts'
 import { company, link, node } from './company.ts'
 import { runtimeReady, frameworkReady, researchReady } from './lookups.ts'
 import { mlValueOf, hubConnections } from './rules.ts'
@@ -255,9 +256,25 @@ describe('the runtime variants', () => {
 
   test('Tokio’s blocking pool removes its worker-thread stall', () => {
     const mix = { read: 10, report: 1 }
+    // The stall is a tail event on the App Server, and the Database's scan hides it in the report's
+    // own p99, so the test reads the tail the server adds.
+    const tail = (game: Game): number =>
+      serverModel({
+        game,
+        node: game.nodes.find((entry) => entry.type === 'server') as GameNode,
+        arriving: mix,
+        callLatency: {},
+        delegated: false,
+        local: false,
+        inflight: 0,
+        boost: 1,
+        sampling: 0,
+        hashing: 1,
+      }).tailP
     const plain = without(board('tokio', {}, [], mix), 'spawn-blocking')
     const pool = board('tokio', {}, [], mix)
-    expect(p99Of(pool, 'report')).toBeLessThan(p99Of(plain, 'report'))
+    expect(tail(pool)).toBe(0)
+    expect(tail(plain)).toBeGreaterThan(0)
   })
 
   test('Swoole holds realtime connections; PHP-FPM and PHP worker mode refuse them', () => {

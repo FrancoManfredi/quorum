@@ -17,7 +17,7 @@ export const SIZES = [
   { name: 'metal', vcpu: 96, gbps: 100 },
 ] as const
 
-export const FAMILY_IDS = ['burstable', 'general', 'compute', 'memory'] as const
+export const FAMILY_IDS = ['burstable', 'general', 'compute', 'memory', 'arm'] as const
 export type FamilyId = (typeof FAMILY_IDS)[number]
 
 export type FamilyDef = Readonly<{
@@ -41,7 +41,21 @@ export const FAMILIES: Record<FamilyId, FamilyDef> = {
   general: { id: 'general', name: 'General', ram: 4, price: 1, blurb: '1 vCPU : 4 GB.' },
   compute: { id: 'compute', name: 'Compute', ram: 2, price: 0.85, blurb: '1 vCPU : 2 GB.' },
   memory: { id: 'memory', name: 'Memory', ram: 8, price: 1.3, blurb: '1 vCPU : 8 GB.' },
+  // 05 "App Server": the same vCPU and RAM as General for 0.8× the price, and some software runs
+  // slower or needs work to port (the speed penalty is proposed; the design gives the price).
+  arm: {
+    id: 'arm',
+    name: 'ARM',
+    ram: 4,
+    price: 0.8,
+    blurb: 'Same as General for 20% less. Some runtimes and libraries need work to port.',
+  },
 }
+
+/** CPU speed of an ARM box, relative to a General one: the port is not free (proposed, 05). */
+export const ARM_SPEED = 0.95
+/** The family ARM instances unlock, and the research that unlocks it. */
+export const ARM_RESEARCH = 'arm-instances' as const
 
 /** Dollars per second for one General vCPU. */
 export const VCPU_PRICE = 0.05
