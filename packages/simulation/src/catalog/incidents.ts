@@ -674,6 +674,22 @@ export const ROWS_PER_USER = 100
 
 /** An incident whose action item is still open is this many times as likely. */
 export const OPEN_ACTION_WEIGHT = 2
+
+/* ---------- the incident loop (11 "The incident loop", "Runbooks") ---------- */
+
+/**
+ * Sim seconds an on-call rotation takes to answer a page: five calendar minutes. With `on-call`
+ * the rotation acknowledges for the player, so the MTTA is this and not however long the player
+ * took to act.
+ */
+export const ON_CALL_ACK = 5
+/** The SRE team restores service this much faster: MTTR −40%, so an incident runs 60% as long. */
+export const SRE_MTTR = 0.4
+/**
+ * Share of a calendar week's subscription revenue an SLA pays back while availability sits below
+ * it (11 "SLA credits", 13 "Ventures"). The design's figure.
+ */
+export const SLA_CREDIT = 0.1
 /** Share of its RAM a leaking server gains per second. */
 export const LEAK_RATE = 1 / 40
 

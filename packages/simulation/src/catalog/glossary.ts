@@ -1604,13 +1604,33 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     ],
   },
   {
+    id: 'mttd-and-mtta',
+    term: 'MTTD and MTTA',
+    category: 'reliability',
+    definition:
+      "Mean time to detect is the average time from the start of a failure until a signal shows it. Mean time to acknowledge is the average time from that signal until someone takes the incident. Google's SRE book counts both beside MTTR, because a team that fixes fast but notices late is still slow.",
+    inGame:
+      "Every Incident records the sim second its first signal lands and the second a player first acts on it, and its Postmortem shows MTTD and MTTA beside MTTR. With Alerting the signal is the pager, the Step a rule's threshold is crossed; without it the board is, at the first second more than 1% of requests fail. On-call answers the page five calendar minutes after it lands, which is the MTTA a rotation holds; otherwise the player's first action is the acknowledgement.",
+    related: ['mttr', 'slo-sla-sli', 'four-golden-signals'],
+    links: [
+      {
+        label: 'Google SRE book: Being on-call',
+        url: 'https://sre.google/sre-book/being-on-call/',
+      },
+      {
+        label: 'Wikipedia: Mean time to recovery',
+        url: 'https://en.wikipedia.org/wiki/Mean_time_to_recovery',
+      },
+    ],
+  },
+  {
     id: 'mttr',
     term: 'MTTR',
     category: 'reliability',
     definition:
       'Mean time to restore (or recover): the average time from the start of a failure until the service works again. It measures how fast a team detects, diagnoses, and fixes problems. DORA now measures a narrower version, failed deployment recovery time.',
     inGame:
-      "Every Incident ends with a Postmortem that shows its MTTR: the calendar minutes in which more than 1% of requests failed. An Incident that has hurt users more than half the time by its halfway point escalates one severity and runs 1.5 times as long. Keep MTTR down by acting fast: restart, replace, or fail over the hit Node, and research the Postmortem's action item.",
+      "Every Incident ends with a Postmortem that shows its MTTR: the calendar minutes in which more than 1% of requests failed. It also shows the MTTD and MTTA that came before it, and an SRE team with an engineer on it cuts the run, and so the MTTR, by 40%. An Incident that has hurt users more than half the time by its halfway point escalates one severity and runs 1.5 times as long. Keep MTTR down by acting fast: restart, replace, drain, or fail over the hit Node, and research the Postmortem's action item.",
     related: ['slo-sla-sli', 'error-budget', 'dora-metrics', 'blast-radius'],
     links: [
       {
@@ -1666,6 +1686,30 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
         url: 'https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/',
       },
       { label: 'Wikipedia', url: 'https://en.wikipedia.org/wiki/Network_partition' },
+    ],
+  },
+  {
+    id: 'node-drain',
+    term: 'Node drain',
+    category: 'reliability',
+    definition:
+      "Taking a server out of rotation on purpose: stop sending it new work, let the requests and jobs it already holds finish, then shut it down or upgrade it. A load balancer's connection draining and Kubernetes' `kubectl drain` both work this way. Killing a busy server instead drops whatever it was doing.",
+    inGame:
+      "With Health checks researched, a Node's card offers Drain. It takes no new traffic at once, its share going to the other Nodes on the path, and it finishes what it holds: a Queue hands its backlog to its Workers. Ten sim seconds later, empty, it rejoins the rotation. Draining the Node an Incident is hitting ends that Incident with the drain, and a Node with no other copy to take the load strands every request sent to it.",
+    related: ['health-check', 'load-balancer', 'mttr', 'blast-radius'],
+    links: [
+      {
+        label: 'Kubernetes docs: Safely drain a node',
+        url: 'https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/',
+      },
+      {
+        label: 'NGINX docs: Reverse proxy',
+        url: 'https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/',
+      },
+      {
+        label: 'AWS docs: Target group deregistration delay',
+        url: 'https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html',
+      },
     ],
   },
   {
@@ -1731,6 +1775,26 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
       {
         label: 'Wikipedia: Online transaction processing',
         url: 'https://en.wikipedia.org/wiki/Online_transaction_processing',
+      },
+    ],
+  },
+  {
+    id: 'on-call',
+    term: 'On-call',
+    category: 'reliability',
+    definition:
+      'A rotation of engineers who carry the pager and answer alerts outside working hours, so a page reaches a person rather than whoever happens to be looking at a dashboard. A good rotation is quiet, bounded, and paid for in sleep.',
+    inGame:
+      "On-call rotation (Series A, after Alerting) puts the team on the pager. The rotation acknowledges an Incident five calendar minutes after its first signal, so its MTTA is short even when the player is away, and the Postmortem shows it. Without it a page waits for the player's first click.",
+    related: ['mttd-and-mtta', 'mttr', 'slo-sla-sli'],
+    links: [
+      {
+        label: 'Google SRE book: Being on-call',
+        url: 'https://sre.google/sre-book/being-on-call/',
+      },
+      {
+        label: 'PagerDuty: What is on-call rotation?',
+        url: 'https://www.pagerduty.com/resources/learn/what-is-on-call-rotation/',
       },
     ],
   },
@@ -2092,6 +2156,26 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     ],
   },
   {
+    id: 'runbook',
+    term: 'Runbook',
+    category: 'reliability',
+    definition:
+      'A short, tested document that says what to do when a specific alert fires: which checks to run, which command to execute, when to escalate. A runbook that a system can execute by itself is automation; one that a person reads at 3 a.m. is still worth writing.',
+    inGame:
+      'Runbooks (Series A, after On-call) and an SRE team with an engineer unlock Write a runbook, 10 Dev Hours, for one incident kind the team has already ended by hand. Once it is written that kind resolves on its own first Step: the postmortem records it as automatic, as it does a Cluster rescheduling a pod or a standby failing over, and the Runbook achievement reads the record.',
+    related: ['mttr', 'mttd-and-mtta', 'on-call', 'blast-radius'],
+    links: [
+      {
+        label: 'Google SRE book: Postmortem culture',
+        url: 'https://sre.google/sre-book/postmortem-culture/',
+      },
+      {
+        label: 'PagerDuty: What is a runbook?',
+        url: 'https://www.pagerduty.com/resources/automation/learn/what-is-a-runbook/',
+      },
+    ],
+  },
+  {
     id: 'service',
     term: 'Service',
     category: 'team',
@@ -2163,7 +2247,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'A service level indicator (SLI) is a measurement of service behavior, such as the share of requests that succeed. A service level objective (SLO) is a target for an SLI over a window, such as 99.9% over 30 days. A service level agreement (SLA) is a contract with customers that sets consequences, such as service credits, when a promised level is missed; it is usually looser than the internal SLO.',
     inGame:
-      'The SLI is availability: the share of user requests answered over the last calendar week, without bots and WAF blocks. Each Era sets the SLO, from 99% in Garage to 99.99% in Public, and from Series A the failures it allows are your error budget. SLO dashboards put that budget on the HUD, and the IPO checklist needs 99.95%. The game has no SLA yet.',
+      'The SLI is availability: the share of user requests answered over the last calendar week, without bots and WAF blocks. Each Era sets the SLO, from 99% in Garage to 99.99% in Public, and from Series A the failures it allows are your error budget. SLO dashboards put that budget on the HUD, and the IPO checklist needs 99.95%. B2B SaaS signs an SLA from Series B, one level above its Era’s target, and while a week sits below it Enterprise sales pays credits back to the customers: 10% of subscription revenue.',
     related: ['error-budget', 'percentile-p50-p95-p99', 'mttr', 'apdex'],
     links: [
       {

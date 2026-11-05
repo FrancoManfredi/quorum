@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FileBadge,
   Lock,
+  Radar,
   Timer,
   Undo2,
   Users,
@@ -222,6 +223,10 @@ const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Messag
   )
 }
 
+/** A recorded time in calendar minutes, or a dash when the Game has none (an old save, no signal). */
+const minutesOf = (seconds: number | null | undefined): string =>
+  seconds === null || seconds === undefined ? '—' : `${Math.round(Math.max(0, seconds))}m`
+
 /** A postmortem: one compact row with its action item, the details folded away. */
 const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
   const def = INCIDENTS[postmortem.kind]
@@ -276,7 +281,27 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
             [h.Class(`grid grid-cols-3 divide-x divide-hairline ${WELL}`)],
             (
               [
-                ['MTTR', Timer, `${Math.round(postmortem.mttr)}m`],
+                ['MTTD', Radar, minutesOf(postmortem.mttd)],
+                ['MTTA', BellRing, minutesOf(postmortem.mtta)],
+                ['MTTR', Timer, minutesOf(postmortem.mttr)],
+              ] as const
+            ).map(([name, glyph, value]) =>
+              h.div(
+                [h.Key(name), h.Class('flex flex-col gap-1 px-2.5 py-1.5')],
+                [
+                  h.span(
+                    [h.Class(cn(EYEBROW, 'flex items-center gap-1'))],
+                    [icon(h, glyph, 'size-3 shrink-0'), name],
+                  ),
+                  h.span([h.Class(`${FIGURE} text-[calc(12.5px*var(--type-scale))]`)], [value]),
+                ],
+              ),
+            ),
+          ),
+          h.div(
+            [h.Class(`grid grid-cols-2 divide-x divide-hairline ${WELL}`)],
+            (
+              [
                 ['Users', Users, `−${compact(postmortem.lostUsers)}`],
                 ['Revenue', Wallet, `−${money(postmortem.lostRevenue)}`],
               ] as const

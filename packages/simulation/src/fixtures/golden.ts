@@ -130,6 +130,13 @@ export const GOLDEN_STEPS = 10_000
 // save gains the Service's rollouts and the Company's certificate, so every hash moves; three
 // sequences move too: a CDC Connector's feed into a stream, a mesh's place in a Design, and the
 // certificate's clock, plus four research items that shift what a Company earns toward them.
+// SIM_VERSION 31 (the incident loop): an Incident records the second its first signal landed and the
+// second it was acknowledged, so a Postmortem gains `mttd` and `mtta`, an Incident `signalAt` and
+// `ackAt`, every Node the `draining` window, and the Game the kinds it has handled by hand and the
+// runbooks written. Four research items (On-call, Runbooks, SRE team, Enterprise sales) join the
+// catalog, an SRE team runs every incident 40% shorter and halves an open action item's weight, a
+// drained Node leaves the routing, and an SLA pays credits when its week is missed. The replay's
+// values are unchanged; the new fields and the shift in what a Company earns toward move every hash.
 // SIM_VERSION 30 (Services and Ownership): a Service carries its Features, the team that owns it,
 // and the Database it reads. A bad deploy fails only the Service that shipped it and names that
 // Service in its incident and postmortem, a team works the backlog of the Service it owns, and two
@@ -137,43 +144,43 @@ export const GOLDEN_STEPS = 10_000
 // owner, Features and datastore, the incident's and postmortem's Service, a backlog item's Service,
 // and the split work kind, so every hash moves. One research item (Service boundaries) shifts what
 // a Company earns toward it.
-export const GOLDEN_HASH = '3ec3a369'
+export const GOLDEN_HASH = '94376bce'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-  'hello-world': '7522527f',
-  'split-the-box': 'cf1c19f5',
-  slashdotted: '0d1f6aee',
-  c10k: 'c6cb683d',
-  'event-loop': '836c84dd',
-  'too-many-connections': 'a1b8e883',
-  shoestring: '617e4c4e',
-  'n-plus-one': '1ed15256',
-  'thirteen-engineers': '787d5666',
-  'credential-stuffing': 'f0fa3cc5',
-  'black-friday': 'e71a848d',
-  'us-east-1': '7e8c8753',
-  'exactly-once': '92e2c90a',
-  'two-million-sockets': 'bb48826b',
-  'pokemon-go': 'b45fb0f1',
-  'healthcare-launch': '506ce818',
-  'thundering-herd': '1ee532ec',
-  'read-states': '7ae93adb',
-  'fail-whale': '82fdf0cc',
-  'reports-at-noon': '5d4055c2',
-  'gpu-economics': '639db707',
-  metastable: '43d920ff',
-  'regex-of-doom': '02ad3d88',
-  'forty-three-seconds': 'f7e4e2bc',
-  'follow-the-sun': '22f636aa',
-  celebrity: '7b12ea75',
-  'gone-from-the-internet': 'd51b22cc',
-  'the-typo': '8180a79d',
-  'leap-second': 'ae39bfd6',
-  'rule-of-40': '02f2ae3d',
-  'postgres-for-everything': '976ec865',
-  'five-nines': '2fb6042e',
+  'hello-world': '96f02748',
+  'split-the-box': 'd79202aa',
+  slashdotted: '9262c9ed',
+  c10k: 'e5843e6a',
+  'event-loop': '8d0fa60a',
+  'too-many-connections': '80fd33a9',
+  shoestring: 'f4839bc9',
+  'n-plus-one': '959a301b',
+  'thirteen-engineers': 'fb579a27',
+  'credential-stuffing': '02b24d4e',
+  'black-friday': 'b75f7662',
+  'us-east-1': '30f9db8c',
+  'exactly-once': '8f49ff5d',
+  'two-million-sockets': '9ae2fb42',
+  'pokemon-go': 'db0e51c8',
+  'healthcare-launch': 'f985d473',
+  'thundering-herd': 'f2435685',
+  'read-states': 'f8527966',
+  'fail-whale': '5790681f',
+  'reports-at-noon': 'e721b680',
+  'gpu-economics': '2799ffc4',
+  metastable: 'd604b19a',
+  'regex-of-doom': '061e55e6',
+  'forty-three-seconds': '9a06e263',
+  'follow-the-sun': 'b522c0c3',
+  celebrity: 'e250c8eb',
+  'gone-from-the-internet': '57e4e9ee',
+  'the-typo': '30ba55b0',
+  'leap-second': '2576fb51',
+  'rule-of-40': '66f820be',
+  'postgres-for-everything': 'fdde97aa',
+  'five-nines': '87204522',
 }

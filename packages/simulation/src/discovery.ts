@@ -70,6 +70,9 @@ export const BY_RESEARCH: Partial<Record<ResearchId, ReadonlyArray<string>>> = {
   'cache-warming': ['cache-stampede', 'cache-warming'],
   'testing-culture': ['canary-deployment', 'dora-metrics', 'feature-flag'],
   'data-warehouse': ['cdc-change-data-capture', 'oltp-and-olap'],
+  'on-call': ['mttd-and-mtta', 'on-call'],
+  runbooks: ['runbook'],
+  'sre-team': ['runbook'],
   'document-db': ['hot-key', 'sharding'],
   'event-streaming': ['at-least-once-delivery', 'cdc-change-data-capture'],
   embeddings: ['model-inference'],
@@ -231,7 +234,10 @@ export const discoverTerms = (
   for (const event of events) {
     if (event._tag === 'IncidentStarted')
       for (const term of BY_INCIDENT[event.incident.kind] ?? []) found.add(term)
-    if (event._tag === 'IncidentResolved') found.add('mttr')
+    if (event._tag === 'IncidentResolved') {
+      found.add('mttr')
+      found.add('mttd-and-mtta')
+    }
     if (event._tag === 'MigrationShifted') found.add('strangler-pattern')
     if (event._tag === 'CreditsExhausted') found.add('token-bucket')
   }
@@ -239,5 +245,6 @@ export const discoverTerms = (
   if (game.engineers.length >= 8) found.add('brookss-law')
   if (game.teams.length > 1) found.add('conways-law')
   if (game.quarter) found.add('rule-of-40')
+  if (game.nodes.some((node) => node.draining)) found.add('node-drain')
   return [...found]
 }

@@ -81,6 +81,9 @@ lasts at most its starting severity's calendar duration:
 | SEV2              | 20          | 20 minutes    |
 | SEV1              | 60          | 60 minutes    |
 
+An SRE team with an engineer on it restores service 40% faster, so every duration in this document,
+and the recovery it drives, runs 60% as long ([Team](/design/08-team-and-velocity#teams)).
+
 Only failed requests spend the error budget, so a design with spare capacity or redundancy loses
 little or nothing.
 
@@ -90,18 +93,29 @@ little or nothing.
 SIGNAL ──► TRIAGE ──► MITIGATE ──► RESOLVE ──► POSTMORTEM ──► ACTION ITEMS
 ```
 
-| Metric | Meaning                                         | Shown after   |
-| ------ | ----------------------------------------------- | ------------- |
-| MTTD   | Mean time to detect: from start to first signal | Not built yet |
-| MTTA   | Mean time to acknowledge                        | Not built yet |
-| MTTR   | Mean time to restore service                    | Always        |
+| Metric | Meaning                                                         | Shown after |
+| ------ | --------------------------------------------------------------- | ----------- |
+| MTTD   | Mean time to detect: from the start to the first signal         | Always      |
+| MTTA   | Mean time to acknowledge: from the first signal to the response | Always      |
+| MTTR   | Mean time to restore service                                    | Always      |
 
-Not built yet: MTTD, MTTA, and the `on-call` and `anomaly-detection` research. The postmortem records
-MTTR, the seconds users were impaired, and nothing measures detection or acknowledgement.
+**Built: all three times.** An Incident records the sim second its first signal lands and the sim
+second a player first acts on it, so its Postmortem, its card and the Incidents panel show MTTD, MTTA
+and MTTR beside each other. MTTD is measured from the start, MTTA from the signal, and both may be
+unknown: a run that never signalled, and one nobody answered, show a dash. A Game saved before the
+fields decodes them as unknown, so an old save opens with dashes rather than failing to load.
 
-Without research `alerting`, the first signal is the board itself, and users start to leave before
-the player knows. With alerting, a pager banner appears when the error rate or p99 crosses a
-threshold. With `anomaly-detection`, a warning appears before the incident peaks.
+The signal is the pager when the Company has researched `alerting`: the Step a rule's threshold is
+crossed. Without it the board is the first signal, and the board only shows the trouble when requests
+fail, at the same 1% the errors rule watches. The pager also catches an incident that has not failed
+a request yet but has pushed p99 or saturation past its threshold, which is where alerting earns its
+Insight.
+
+The acknowledgement is the player's first action while the Incident runs: any action counts, because
+it means the player is at the board. With `on-call` a rotation answers the page instead, five sim
+seconds (five calendar minutes) after it lands, so a Company with a rotation logs a five-minute MTTA
+whether or not the player was watching. `anomaly-detection` is still not built: it would warn before
+the peak.
 
 ## Catalog
 
@@ -224,23 +238,35 @@ Actions the player can take during an incident. Most need research.
 | Under attack mode    | Challenges every request at the WAF: +latency, blocks bots    | `waf`              |
 | Fail over            | Promotes a replica or moves traffic to another zone or region | `multi-az`         |
 | Open circuit breaker | Stops calls to a failing dependency                           | `circuit-breakers` |
-| Drain a Node         | Stops new traffic to a Node and lets it finish                | Not built yet      |
+| Drain a Node         | Stops new traffic to a Node and lets it finish                | `health-checks`    |
 | Static fallback      | Serves cached pages for `page` and errors for others          | `cdn`              |
 
-There is no drain action in the build yet: a Node is restarted or sold, and there is no
-`health-checks` way to take it out of rotation first.
+**Draining a Node** takes it out of rotation at once, without waiting for a health check, and sends
+its traffic to the other Nodes on the path, which may be none of them: a drained Database with no
+replica strands every query sent to it. It finishes what it holds, and a Queue hands its backlog to
+its Workers while it is out. Ten sim seconds later, empty, it rejoins the rotation. A Node that is
+already down cannot be drained, because it has already stopped. Draining the Node an Incident is
+hitting cuts that Incident's run to the drain window: the traffic it was hurting users through has
+moved, so the Incident is over when the Node is empty.
 
 ## Runbooks
 
-Partially built: the Design's own automatic responses. A Cluster that reschedules a pod, a standby
-that fails over, a Spot Node that comes back, and a retry storm that drains behind backoff all end
-their incident with no player action, and the postmortem records it in its `auto` field. The
-[Runbook achievement](/design/14-challenges#achievements) reads that record.
+**Built: the runbooks research, the SRE team, and the "Write a runbook" task.** A runbook covers one
+incident kind, and it runs the known response by itself: that kind ends on the first Step of its next
+Incident with no player action, and the postmortem records it in its `auto` field. The
+[Runbook achievement](/design/14-challenges#achievements) reads that record, so a written runbook
+earns it as a Design's own healing does.
 
-Not built yet: the `runbooks` research, the SRE team, and the "Write a runbook" task. With those,
-each task turns one incident type into an automatic response that runs when the incident starts. This
-is automation as a reward ([pillar 5](/design/01-vision#pillar-5-respect-the-player)): the player must
-have handled the incident by hand at least once before writing its runbook.
+Three things must be true to write one. The team must have handled that kind by hand at least once,
+so automation is a reward for a lesson already learned
+([pillar 5](/design/01-vision#pillar-5-respect-the-player)): the Game keeps the list of kinds the
+player ended themselves, because the postmortem record only holds the last four. `runbooks` must be
+researched, and an SRE team must have an engineer on it, because someone has to keep the runbook
+current. The task costs 10 Dev Hours and names its kind in the Add work menu.
+
+The Design's own responses come for free, before any of that: a Cluster that reschedules a pod, a
+standby that fails over, a Spot Node that comes back, and a retry storm that drains behind backoff all
+end their incident with no player action. Those, too, are recorded as `auto`.
 
 ## Postmortems
 
@@ -289,6 +315,13 @@ The budget counts failed requests, not clock time, so a partial failure spends a
 SEV1 incident that fails 100% of requests for its full 60 calendar minutes spends six times a 99.9%
 budget. A design that fails 2% of requests for the same hour spends about 12% of it.
 
-**SLA credits.** Not built yet: there is no SLA and no `enterprise-sales` research. The design was an
-SLA under which each calendar week below it pays credits to customers: 10% of that week's subscription
-revenue.
+**SLA credits.** **Built for the Venture that signs an SLA.** B2B SaaS runs under one from Series B
+([Ventures](/design/13-prestige#ventures)): its availability target is one level above the Era's. While
+the trailing week sits below that target, the Company pays credits back to its customers, at 10% of
+its subscription revenue, and the Cash falls with the Burn. The credits need `enterprise-sales`, which
+is what signs the contract. A Venture with no SLA, one that has not reached the Era it signs in, a
+week that met the target, or a Company without that research pays nothing.
+
+The design's figure is 10% of a week's subscription revenue. The build pays it as a rate while the
+week is short, which is the same money in a steady week and simpler to read on the Cash series: the
+player sees the line fall, and the fix is the same as any other SLO miss.

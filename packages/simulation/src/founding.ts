@@ -28,6 +28,7 @@ import {
 } from './catalog.ts'
 import { newGame, preseedGame } from './company.ts'
 import { restarting, type Life } from './life.ts'
+import { sreStaffed } from './lookups.ts'
 import type { Founding, Game, GameNode, Region, Retries } from './state.ts'
 
 /* ==========================================================================
@@ -70,10 +71,14 @@ export const dilutionOf = (game: Game, dilution: number): number =>
 export const grantOf = (game: Game, grant: number): number =>
   hasMutator(game, 'tight-budget') ? grant / 2 : grant
 
-/** How much an open action item multiplies its incident's weight: War stories halves the excess. */
+/**
+ * How much an open action item multiplies its incident's weight: War stories halves the excess,
+ * and so does an SRE team, which works the items instead of only filing them (08 "Teams").
+ */
 export const openActionWeight = (game: Game): number => {
   let excess = OPEN_ACTION_WEIGHT - 1
   for (let level = 0; level < perkLevel(game, 'war-stories'); level += 1) excess /= 2
+  if (sreStaffed(game)) excess /= 2
   return 1 + excess
 }
 

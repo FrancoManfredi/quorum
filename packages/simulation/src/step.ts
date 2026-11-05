@@ -28,12 +28,13 @@ import {
   UPLOAD_MB,
   VM_REACTION,
   CERT_RENEW,
+  DRAIN_SECONDS,
   WARMUP_SECONDS,
   type RegionId,
   type Tuning,
 } from './catalog.ts'
 import { advanceCves } from './cve.ts'
-import { advanceIncident, directIncidents, startIncident } from './director.ts'
+import { advanceIncident, directIncidents, markSignal, startIncident } from './director.ts'
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
 import { churnFactor, growthFactor } from './features.ts'
@@ -54,7 +55,7 @@ import {
   warmAfterRestart,
 } from './lookups.ts'
 import { causeOf, warming, warmOf, withWarm } from './life.ts'
-import { recordBudget, spendBudget } from './slo.ts'
+import { recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
 import { calendarMinute, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
 import { advanceQuarter } from './quarters.ts'
@@ -366,6 +367,30 @@ const advanceNode = (
   if (node.type === 'queue' || node.type === 'log')
     next = { ...next, depth: depthAfter(game, ledger, node, seconds) }
   if (node.lost > 0) next = { ...next, lost: Math.max(0, node.lost - seconds) }
+  // A drained Node takes no new traffic (the solver routes around it) and finishes what it holds:
+  // a Queue hands its backlog to its Workers at its own rate, and a lost replica comes back. Empty
+  // for DRAIN_SECONDS, it rejoins the rotation.
+  if (next.draining) {
+    // It finishes what it holds at whatever it can hand on: its own rate, or what the Nodes it
+    // feeds could take if that is more.
+    const handoff = ledger.links
+      .filter((link) => link.from === node.id)
+      .reduce((sum, link) => sum + (ledger.nodes[link.to]?.capacity ?? 0), 0)
+    const held =
+      next.depth > 0
+        ? Math.max(
+            0,
+            next.depth - Math.max(ledger.nodes[node.id]?.capacity ?? 0, handoff) * seconds,
+          )
+        : next.depth
+    if (
+      Math.round((time + seconds) * 1e6) / 1e6 - node.drainAt >= DRAIN_SECONDS &&
+      held <= 0 &&
+      next.lost <= 0
+    )
+      next = { ...next, depth: held, draining: false }
+    else if (held !== next.depth) next = { ...next, depth: held }
+  }
   // A Database in a retry storm queues what it cannot take, and drains once it can.
   if (
     node.type === 'database' &&
@@ -532,7 +557,8 @@ export const step = (
     pending += Math.min(room, earned)
     spilled += Math.max(0, earned - room)
   }
-  if (!game.sandbox) cash -= ledger.burn * seconds
+  // An SLA pays its credits back to customers: 10% of subscription revenue while the week misses.
+  if (!game.sandbox) cash -= (ledger.burn + slaCreditsOf(game, ledger)) * seconds
 
   const nodes = game.nodes.map((node) => advanceNode(game, node, ledger, seconds, events))
   // Object Storage keeps every file it is sent: data never shrinks by itself (07 "Data volume").
@@ -617,6 +643,8 @@ export const step = (
     history: crossedSecond ? [...game.history, sample].slice(-HISTORY) : game.history,
   }
 
+  // The first signal of the running Incident: the pager, or the board's failed requests.
+  next = markSignal(next, ledger)
   const running = advanceIncident(next, ledger, seconds)
   next = running.game
   events.push(...running.events)

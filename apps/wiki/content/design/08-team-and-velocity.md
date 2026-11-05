@@ -70,16 +70,17 @@ Morale is global: one team's layoff slows every team.
 
 Engineers belong to teams. The player creates teams and assigns engineers.
 
-| Team type     | Unlocked | Owns                                       | Effect                                                                                                                                                                   |
-| ------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Product team  | Pre-seed | One or more services                       | Produces DH for features and engineering tasks on its services.                                                                                                          |
-| Platform team | Series A | Kubernetes, CI/CD, the Service Mesh        | Removes the per-cluster DH tax. Halves deploy time.                                                                                                                      |
-| SRE team      | Series A | On-call, runbooks, incident response       | **Not built yet.** MTTR −40%. Open action items raise incident odds by half as much. Runbooks become automatic mitigations ([Incidents](/design/11-incidents#runbooks)). |
-| Data team     | Series B | The warehouse, CDC, the Vector Index       | **Not built yet.** `report` and `ai` features cost −30% DH. Pipelines have half the lag.                                                                                 |
-| Security team | Pre-IPO  | WAF rules, dependency scanning, compliance | **Not built yet.** Required for the SOC 2 milestone. Lowers supply-chain and breach incident chances.                                                                    |
+| Team type     | Unlocked | Owns                                       | Effect                                                                                                                                                                                                        |
+| ------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product team  | Pre-seed | One or more services                       | Produces DH for features and engineering tasks on its services.                                                                                                                                               |
+| Platform team | Series A | Kubernetes, CI/CD, the Service Mesh        | Removes the per-cluster DH tax. Halves deploy time.                                                                                                                                                           |
+| SRE team      | Series A | On-call, runbooks, incident response       | MTTR −40%: an incident, and the recovery it drives, runs 60% as long. Open action items raise incident odds by half as much. It holds the pager a runbook needs ([Incidents](/design/11-incidents#runbooks)). |
+| Data team     | Series B | The warehouse, CDC, the Vector Index       | **Not built yet.** `report` and `ai` features cost −30% DH. Pipelines have half the lag.                                                                                                                      |
+| Security team | Pre-IPO  | WAF rules, dependency scanning, compliance | **Not built yet.** Required for the SOC 2 milestone. Lowers supply-chain and breach incident chances.                                                                                                         |
 
-Only product and Platform teams exist in the build; SRE, Data and Security teams and their effects
-are not built.
+Product, Platform and SRE teams exist in the build. An SRE team needs `sre-team` research and an
+engineer on it, and its Dev Hours build no backlog, as a Platform team's do not. Data and Security
+teams and their effects are not built.
 
 ## Coordination
 
@@ -147,8 +148,8 @@ A Service has one owning team. The build ties the two together:
 - **What it costs.** A team's velocity uses the tech debt of the Service it owns, not the whole
   Design's.
 
-Not built yet: a restructure action that moves a Service from one team to another, and the SRE team
-that would take the pager for every Service.
+The SRE team takes the pager for every Service. Not built yet: a restructure action that moves a
+Service from one team to another.
 
 ### Blast radius
 
@@ -345,7 +346,7 @@ and removes the ones that lose or stay flat.
 
 Tasks are DH spent on the system instead of the product. Many come from incident action items.
 
-Ten tasks are designed. The build has seven, and four of those are not in this list.
+Ten tasks are designed. The build has eight, and four of those are not in this list.
 
 | Task                        | DH  | Effect                                                                      | Status                                      |
 | --------------------------- | --- | --------------------------------------------------------------------------- | ------------------------------------------- |
@@ -357,7 +358,7 @@ Ten tasks are designed. The build has seven, and four of those are not in this l
 | Add timeouts and retries    | 8   | Applies a link policy to every link of one service.                         | Research "Timeouts and retries", not a task |
 | Graceful shutdown           | 6   | Deploys and scale-downs finish in-flight requests instead of failing them.  | Not built yet                               |
 | Health check endpoint       | 4   | Enables deep health checks.                                                 | Research "Health checks", not a task        |
-| Write a runbook             | 10  | Enables automatic mitigation for one incident type (with an SRE team).      | Not built yet                               |
+| Write a runbook             | 10  | Enables automatic mitigation for one incident type (with an SRE team).      | Built                                       |
 | Load test                   | 15  | Shows the capacity of each Node at 2× current demand, for one calendar day. | Not built yet                               |
 
 The build's other four tasks:

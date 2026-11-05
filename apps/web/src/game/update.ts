@@ -597,12 +597,14 @@ const act = (
 ): Result =>
   Result.match(action, {
     onFailure: (refusal) => withToast(model, Actions.describeRefusal(refusal), 'warn'),
-    onSuccess: (game) => {
-      if (game === model.board.game) return { model }
+    onSuccess: (applied) => {
+      if (applied === model.board.game) return { model }
       // A run replays the Design it started with: only logged run actions may change it.
       const challenge = boardChallenge(model.board)
       if (challenge && challenge._tag !== 'Building')
         return withToast(model, 'Rebuild to change the Design.', 'warn')
+      // The player is at the board while an Incident runs: the first action acknowledges it.
+      const game = Actions.acknowledge(applied)
       const measured = beginChange(model.board, label, figuresOf(solveFlow(model.board.game)))
       const next: Model = {
         ...model,
@@ -3607,6 +3609,14 @@ const handle = (model: Model, message: Message): Result =>
         Actions.restart(model.board.game, nodeId),
       ),
 
+    DrainChosen: ({ nodeId }) =>
+      act(
+        model,
+        `Drained ${nodeName(model.board.game, nodeId)}`,
+        Actions.drain(model.board.game, nodeId),
+        { note: () => ['Draining: no new traffic until it finishes what it holds.', 'plain'] },
+      ),
+
     IndexAdded: ({ nodeId }) =>
       act(model, 'Added an index', Work.addIndex(model.board.game, nodeId), {
         note: (game) =>
@@ -4103,6 +4113,12 @@ const handle = (model: Model, message: Message): Result =>
     TeamChanged: ({ message }) => foldTeam(model, message),
     TaskQueued: ({ id }) =>
       act(model, `Queued ${TASKS[id].name}`, Work.queueTask(model.board.game, id)),
+    RunbookQueued: ({ kind }) =>
+      act(
+        model,
+        `Queued a runbook for ${INCIDENTS[kind].name}`,
+        Work.queueRunbook(model.board.game, kind),
+      ),
     WorkMoved: ({ id, direction }) =>
       act(model, 'Reordered the backlog', Work.moveItem(model.board.game, id, direction)),
     WorkCancelled: ({ id }) => act(model, 'Cancelled work', Work.cancelItem(model.board.game, id)),

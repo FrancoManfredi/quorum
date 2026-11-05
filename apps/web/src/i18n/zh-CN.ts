@@ -1007,6 +1007,20 @@ export const zhCN: Readonly<Record<string, string>> = {
   Ceilings: '上限',
   'Edge cache': '边缘缓存',
   Bill: '账单',
+  // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").
+  'On-call rotation': '值班轮换',
+  'A rotation answers the page, so an incident is acknowledged in minutes.':
+    '值班人员接听呼叫，所以事故在几分钟内得到确认。',
+  Runbooks: '操作手册',
+  'Write a runbook for an incident kind the team has handled: it then resolves itself.':
+    '为团队处理过的事故类型编写手册：此后它会自行解决。',
+  'SRE team': 'SRE 团队',
+  'Unlocks the SRE team: MTTR −40%, and an open action item weighs half as much.':
+    '解锁 SRE 团队：MTTR 降低 40%，未关闭的行动项权重减半。',
+  'Enterprise sales': '企业销售',
+  'Write a runbook': '编写操作手册',
+  'One incident kind resolves by itself, with no player action':
+    '一种事故类型会自行解决，无需玩家操作',
   'SLO dashboards': 'SLO 仪表盘',
   'The error budget, on the HUD.': '在顶部仪表盘显示错误预算。',
   'Error budgets': '错误预算',

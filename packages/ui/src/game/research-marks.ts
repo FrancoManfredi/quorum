@@ -4,6 +4,8 @@ import {
   Antenna,
   ArchiveRestore,
   BadgeCheck,
+  BellRing,
+  BookOpen,
   Boxes,
   DatabaseZap,
   FileLock,
@@ -235,6 +237,11 @@ export const LOOKS: Record<ResearchId, Look> = {
   'secrets-management': { group: 'ops', glyph: KeySquare, hue: 150 },
   // Splitting a Service: the same compute chip a migration wears.
   'service-boundaries': { group: 'compute', glyph: Split, hue: 320 },
+  // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").
+  'on-call': { group: 'ops', glyph: BellRing, hue: 20 },
+  runbooks: { group: 'ops', glyph: BookOpen, hue: 60 },
+  'sre-team': { group: 'ops', glyph: Siren, hue: 340 },
+  'enterprise-sales': { group: 'ops', glyph: Handshake, hue: 110 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

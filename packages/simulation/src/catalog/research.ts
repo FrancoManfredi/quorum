@@ -155,6 +155,11 @@ export const RESEARCH_IDS = [
   'service-mesh',
   'feature-flags',
   'secrets-management',
+  // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").
+  'on-call',
+  'runbooks',
+  'sre-team',
+  'enterprise-sales',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -1541,6 +1546,43 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     era: 2,
     requires: [],
     blurb: 'Keys live in a vault, so a phishing page has nothing to steal.',
+  }),
+  // The incident loop and the SLA (11 "The incident loop", "Runbooks", "SLA credits").
+  research({
+    id: 'on-call',
+    name: 'On-call rotation',
+    track: 'reliability',
+    cost: 2_000,
+    era: 3,
+    requires: ['alerting'],
+    blurb: 'A rotation answers the page, so an incident is acknowledged in minutes.',
+  }),
+  research({
+    id: 'runbooks',
+    name: 'Runbooks',
+    track: 'reliability',
+    cost: 5_000,
+    era: 3,
+    requires: ['on-call'],
+    blurb: 'Write a runbook for an incident kind the team has handled: it then resolves itself.',
+  }),
+  research({
+    id: 'sre-team',
+    name: 'SRE team',
+    track: 'product',
+    cost: 4_000,
+    era: 3,
+    requires: ['on-call'],
+    blurb: 'Unlocks the SRE team: MTTR −40%, and an open action item weighs half as much.',
+  }),
+  research({
+    id: 'enterprise-sales',
+    name: 'Enterprise sales',
+    track: 'product',
+    cost: 20_000,
+    era: 4,
+    requires: [],
+    blurb: 'Signs the SLA: a missed week of availability pays credits back to customers.',
   }),
 ]
 

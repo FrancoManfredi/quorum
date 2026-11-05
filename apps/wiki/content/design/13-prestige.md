@@ -141,7 +141,9 @@ Java or C# (`runtimeRefusal`), and a bought Component runs a calendar day after 
 
 Three of the older Ventures have their row's rule too. B2B SaaS signs its SLA from Series B: the
 availability target it is held to moves one level above the Era's (`sloOf`), so its error budget is
-the contract's and a missed week is a breach. Game backend keeps one Realtime Hub per region from
+the contract's and a missed week is a breach. With Enterprise sales researched, that breach pays
+credits back at 10% of subscription revenue while the week is short
+([Economy](/design/09-economy#sla-credits)). Game backend keeps one Realtime Hub per region from
 Series A (`venturePlaceRefusal`): realtime is served where the players are. AI startup may hold two
 GPU Nodes, whatever their size, and resizes them rather than buying more
 (`venturePlaceRefusal`): GPUs are scarce.

@@ -228,6 +228,7 @@ export const Message = defineMessageUnion({
   SampleChosen: { nodeId: Schema.String, sampleRate: Schema.Finite },
   ReplaceBought: { nodeId: Schema.String },
   RestartChosen: { nodeId: Schema.String },
+  DrainChosen: { nodeId: Schema.String },
   IndexAdded: { nodeId: Schema.String },
   CacheGuardChosen: {
     nodeId: Schema.String,
@@ -341,6 +342,8 @@ export const Message = defineMessageUnion({
   /** The Team panel: engineers, teams, the backlog, migrations, and deploys. */
   TeamChanged: { message: TeamMessage },
   TaskQueued: { id: Schema.Literals(TASK_IDS) },
+  /** "Write a runbook" for one incident kind (11 "Runbooks"). */
+  RunbookQueued: { kind: IncidentId },
   WorkMoved: { id: Schema.Finite, direction: Schema.Literals([1, -1]) },
   WorkCancelled: { id: Schema.Finite },
   WorkRushed: { id: Schema.Finite },

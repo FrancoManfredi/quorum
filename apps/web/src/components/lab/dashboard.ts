@@ -29,7 +29,7 @@ import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
-import { budgetOf } from '@quorum/simulation/slo'
+import { budgetOf, slaCreditsOf } from '@quorum/simulation/slo'
 import type { Game, Postmortem, Sample } from '@quorum/simulation/state'
 import { ignored } from '@quorum/simulation/step'
 import { teamOutputs } from '@quorum/simulation/team'
@@ -310,9 +310,10 @@ const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
   return rounds.reverse()
 }
 
-const TEAM_KIND: Readonly<Record<'product' | 'platform', string>> = {
+const TEAM_KIND: Readonly<Record<'product' | 'platform' | 'sre', string>> = {
   product: 'Product',
   platform: 'Platform',
+  sre: 'SRE',
 }
 
 /** Dev Hours per real minute, as the Team panel counts them. */
@@ -322,6 +323,20 @@ const dhPerMinute = (rate: number): string => {
 }
 
 const minutesText = (seconds: number): string => `${Math.round(Math.max(0, seconds))}m`
+
+/** A time the Game did not record, in a save from before the field or a run that never signalled. */
+const minutesOrUnknown = (seconds: number | null | undefined): string =>
+  seconds === null || seconds === undefined ? '—' : minutesText(seconds)
+
+/** Seconds from an Incident's start to its first signal, or null before it signals. */
+const mttdOf = (incident: NonNullable<Game['incident']>): number | null =>
+  incident.signalAt === null ? null : Math.max(0, incident.signalAt - incident.startedAt)
+
+/** Seconds from that signal to the acknowledgement, or null before anyone answers. */
+const mttaOf = (incident: NonNullable<Game['incident']>): number | null =>
+  incident.ackAt === null || incident.signalAt === null
+    ? null
+    : Math.max(0, incident.ackAt - incident.signalAt)
 
 /** What an Incident is hitting: a Node, a zone, a region, or every region. */
 const incidentTarget = (game: Game, incident: NonNullable<Game['incident']>): string => {
@@ -1964,6 +1979,7 @@ const companyPanels = (
   const teamUnit = `${people} ${people === 1 ? 'person' : 'people'} · velocity${
     morale ? ` · morale −${Math.round((1 - LAYOFF_MORALE) * 100)}%` : ''
   }`
+  const credits = slaCreditsOf(game, ledger)
   const moneyRows: ReadonlyArray<readonly [string, string, Message?]> = [
     ['Cash', money(game.cash)],
     ['Revenue', `${money(ledger.revenue)}/s`],
@@ -1972,6 +1988,8 @@ const companyPanels = (
     ['Payroll', `${money(ledger.salaries)}/s`],
     ['Equity', percent(game.equity)],
     ['Runway', runwayText(runway)],
+    // The SLA pays its credits back on top of Burn, so Cash falls faster than the bill (09).
+    ...(credits > 0 ? [['SLA credits', `−${money(credits)}/s`] as const] : []),
     // Cash is short and the investors' bridge waits: its terms and the way to take it (09).
     ...(game.bridge
       ? [
@@ -2188,6 +2206,8 @@ const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
         bar: { share: total > 0 ? Math.min(1, elapsed / total) : 0, color: RED },
       },
     ],
+    ['MTTD', { text: minutesOrUnknown(mttdOf(incident)) }],
+    ['MTTA', { text: minutesOrUnknown(mttaOf(incident)) }],
     ['MTTR so far', { text: minutesText(incident.impaired) }],
     ['Users lost', { text: `−${compact(Math.max(0, incident.usersAtStart - game.users))}` }],
     ['Revenue lost', { text: `−${money(incident.lostRevenue)}` }],
@@ -2210,7 +2230,19 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
     'col-span-16',
     'Incident history',
     `${game.postmortems.length} postmortems`,
-    ['Incident', 'SEV', 'Target', 'Run', 'MTTR', 'Users', 'Revenue', 'Failed', 'Action'],
+    [
+      'Incident',
+      'SEV',
+      'Target',
+      'Run',
+      'MTTD',
+      'MTTA',
+      'MTTR',
+      'Users',
+      'Revenue',
+      'Failed',
+      'Action',
+    ],
     [...game.postmortems].reverse().map((postmortem) => ({
       key: `pm-${postmortem.id}`,
       cells: [
@@ -2224,6 +2256,8 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
         { text: `SEV${postmortem.severity}` },
         { text: postmortem.target ?? '—' },
         { text: minutesText(postmortem.duration) },
+        { text: minutesOrUnknown(postmortem.mttd) },
+        { text: minutesOrUnknown(postmortem.mtta) },
         { text: minutesText(postmortem.mttr) },
         { text: `−${compact(postmortem.lostUsers)}` },
         { text: `−${money(postmortem.lostRevenue)}` },
@@ -2238,6 +2272,8 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
   const def = INCIDENTS[postmortem.kind]
   const facts: ReadonlyArray<readonly [string, string]> = [
     ['Run', minutesText(postmortem.duration)],
+    ['MTTD', minutesOrUnknown(postmortem.mttd)],
+    ['MTTA', minutesOrUnknown(postmortem.mtta)],
     ['MTTR', minutesText(postmortem.mttr)],
     ['Users lost', `−${compact(postmortem.lostUsers)}`],
     ['Revenue lost', `−${money(postmortem.lostRevenue)}`],
@@ -2258,7 +2294,7 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
             [def.cause],
           ),
           h.div(
-            [h.Class('grid grid-cols-5 divide-x divide-hairline')],
+            [h.Class('grid grid-cols-7 divide-x divide-hairline')],
             facts.map(([name, value]) =>
               h.div(
                 [h.Key(name), h.Class('flex flex-col gap-1 px-2.5 py-1.5')],

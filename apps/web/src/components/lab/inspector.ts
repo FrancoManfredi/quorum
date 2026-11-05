@@ -2,6 +2,7 @@ import { isDown } from '@quorum/simulation/life'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
+  ArrowDownToLine,
   ArrowUp,
   ChevronLeft,
   ChevronRight,
@@ -439,6 +440,15 @@ const warnings = (
       ),
     )
   }
+  if (node.draining)
+    list.push(
+      callout(
+        'Draining: it takes no new traffic, and rejoins once the work it holds is finished.',
+        'warn',
+        null,
+        h,
+      ),
+    )
   if (node.type === 'cluster' && !game.sandbox) {
     const upgrade = button(
       {
@@ -3568,6 +3578,21 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   ],
                 },
                 icon(h, RotateCcw, 'size-4'),
+                h,
+              )
+            : h.empty,
+          has(game, 'health-checks') && !def.fixed && !isDown(node.life) && !node.draining
+            ? button(
+                {
+                  onClick: Message.DrainChosen({ nodeId: node.id }),
+                  variant: 'outline',
+                  size: 'icon-lg',
+                  attributes: [
+                    h.Title('Drain: stop new traffic and let it finish what it holds'),
+                    h.AriaLabel('Drain'),
+                  ],
+                },
+                icon(h, ArrowDownToLine, 'size-4'),
                 h,
               )
             : h.empty,

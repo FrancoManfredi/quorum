@@ -13,6 +13,7 @@ import {
   CREDIT_CAP,
   DEPLOY_STRATEGY_IDS,
   DEPLOY_STRATEGIES,
+  DRAIN_SECONDS,
   STRATEGY_RESEARCH,
   GOGC,
   DEFAULT_FPM_WORKERS,
@@ -224,6 +225,8 @@ export const blankNode = (
     credits: 0,
     leak: 0,
     shut: false,
+    draining: false,
+    drainAt: 0,
     compress: stack?.compress ?? false,
     downAt: 0,
     policy: 'weighted',
@@ -1391,6 +1394,38 @@ export const restart = (game: Game, id: string): Action =>
         ? notAllowed('It is already down.')
         : ok(patch(game, id, { ...restarted(node), leak: 0 })),
   )
+
+/**
+ * Drains a Node (11 "Mitigation toolbox"): it takes no new traffic, finishes the work it holds,
+ * and rejoins the rotation when it is empty. The Incident on it ends with the drain, because the
+ * Node it was hurting users through stops answering.
+ */
+export const drain = (game: Game, id: string): Action =>
+  withNode(game, id, (node) => {
+    if (!has(game, 'health-checks'))
+      return no(
+        Refusal.Locked({ what: 'Draining a Node', research: RESEARCH['health-checks'].name }),
+      )
+    if (node.shut) return notAllowed('It is shut down.')
+    if (isDown(node)) return notAllowed('It is already down.')
+    if (node.draining) return notAllowed('It is already draining.')
+    const incident =
+      game.incident?.nodeId === id
+        ? { ...game.incident, remaining: Math.min(game.incident.remaining, DRAIN_SECONDS) }
+        : game.incident
+    return ok({ ...patch(game, id, { draining: true, drainAt: game.time }), incident })
+  })
+
+/**
+ * The player's first action while an Incident runs acknowledges it (11 "The incident loop"): MTTA
+ * counts from the signal to this second. Any action counts, because it means the player is at the
+ * board; a Sandbox and a Company otherwise are the same here.
+ */
+export const acknowledge = (game: Game): Game => {
+  const incident = game.incident
+  if (!incident || incident.ackAt !== null) return game
+  return { ...game, incident: { ...incident, ackAt: game.time } }
+}
 
 /**
  * Files a postmortem. Taking its action item researches the prevention at its

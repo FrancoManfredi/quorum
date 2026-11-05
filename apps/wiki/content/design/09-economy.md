@@ -46,6 +46,20 @@ Revenue first goes to the **Payments** drawer. The player clicks Collect to move
 This keeps the Garage Era active and then removes the click before it becomes a chore
 ([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
 
+### SLA credits
+
+**Built for B2B SaaS from Series B.** The Venture runs under an SLA, a promise of availability one
+level above its Era's target ([Ventures](/design/13-prestige#ventures)). While the trailing calendar
+week sits below that promise, the Company pays credits back to its customers: 10% of the subscription
+revenue it is earning, charged with the Burn, so a Company on a 99.95% SLA that misses a week watches
+Cash fall faster without a single extra Node on the board.
+
+The credits need `enterprise-sales` research, which is what signs the contract
+([Progression](/design/10-progression#research)). No other Venture signs an SLA, one that has not
+reached Series B has not signed yet, and a week that met the target costs nothing. This is the one
+place where reliability is a line on the P&L rather than a figure in the HUD
+([Incidents](/design/11-incidents#slos-and-error-budgets)).
+
 ## The cloud bill
 
 **Burn** is the total Cash spent per second. The HUD shows Cash with its net change per second,

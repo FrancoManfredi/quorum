@@ -1,5 +1,5 @@
-import { sloOf } from './founding.ts'
-import { ERROR_BUDGET_FACTORS, SLO_FROM_STAGE, SLO_WINDOW_HOURS } from './catalog.ts'
+import { sloOf, ventureOf } from './founding.ts'
+import { ERROR_BUDGET_FACTORS, SLA_CREDIT, SLO_FROM_STAGE, SLO_WINDOW_HOURS } from './catalog.ts'
 import { ERROR_CAUSES } from './distribution.ts'
 import type { Ledger } from './ledger.ts'
 import { eraOf, has } from './lookups.ts'
@@ -99,4 +99,18 @@ export const spendBudget = (game: Game, failed: number): ReadonlyArray<BudgetHou
   const last = game.budget.at(-1)
   if (!budgeted(game) || !last || failed <= 0) return game.budget
   return [...game.budget.slice(0, -1), { ...last, failed: last.failed + failed }]
+}
+
+/**
+ * Dollars per second an SLA pays back to its customers (11 "SLA credits", 13 "Ventures"). While the
+ * trailing week's availability sits below the target the Company signed, it credits 10% of its
+ * subscription revenue. A Venture with no SLA, or one whose Era has not reached it, pays nothing;
+ * neither does a Company that cannot sell to enterprises, so the credits need `enterprise-sales`.
+ */
+export const slaCreditsOf = (game: Game, ledger: Ledger): number => {
+  if (game.sandbox || !has(game, 'enterprise-sales')) return 0
+  const signed = ventureOf(game).constraint.sla
+  if (signed === null || game.stage < signed) return 0
+  const { availability, slo } = budgetOf(game)
+  return availability < slo ? ledger.subscriptions * SLA_CREDIT : 0
 }

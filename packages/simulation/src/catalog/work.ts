@@ -373,6 +373,7 @@ export const TASK_IDS = [
   'refactor',
   'fix-bugs',
   'upgrade-cluster',
+  'runbook',
 ] as const
 export type TaskId = (typeof TASK_IDS)[number]
 
@@ -443,6 +444,14 @@ export const TASKS: Record<TaskId, TaskDef> = {
     dh: 24,
     research: 'containers',
     effect: 'Every Kubernetes Cluster runs a supported version for a quarter',
+    internal: false,
+  },
+  runbook: {
+    id: 'runbook',
+    name: 'Write a runbook',
+    dh: 10,
+    research: 'runbooks',
+    effect: 'One incident kind resolves by itself, with no player action',
     internal: false,
   },
 }

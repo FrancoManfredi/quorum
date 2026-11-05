@@ -11,6 +11,8 @@ import {
   FEATURES,
   FEATURE_IDS,
   FIXES,
+  INCIDENTS,
+  INCIDENT_IDS,
   HOTFIX_DEBT,
   KLOC_PER_DH,
   LIVE_TUNING,
@@ -27,6 +29,7 @@ import {
   type FixId,
   type FrameworkId,
   type PolicyId,
+  type IncidentId,
   type RuntimeId,
   type TaskId,
   type Tuning,
@@ -35,7 +38,7 @@ import { Refusal, setFramework, setRuntime, shortOfCash, type Action } from './a
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { has, isDown, restarted } from './lookups.ts'
+import { has, isDown, restarted, sreStaffed } from './lookups.ts'
 import {
   bugsFixed,
   cancelMigration,
@@ -91,7 +94,13 @@ const AUTO_REFACTOR = 0.3
 /** What a backlog item is called. */
 export const itemName = (item: WorkItem): string => {
   if (item.kind === 'feature') return FEATURES[item.ref as FeatureId]?.name ?? item.ref
-  if (item.kind === 'task') return TASKS[item.ref as TaskId]?.name ?? item.ref
+  if (item.kind === 'task') {
+    const name = TASKS[item.ref as TaskId]?.name ?? item.ref
+    // A runbook names the incident kind it covers, so two on the backlog are told apart.
+    return item.ref === 'runbook' && item.target
+      ? `${name}: ${INCIDENTS[item.target as IncidentId]?.name ?? item.target}`
+      : name
+  }
   if (item.kind === 'patch')
     return `Patch ${COMPONENTS[item.target as ComponentId]?.name ?? 'Design'}`
   if (item.kind === 'spike') return `Spike: ${RESEARCH[item.ref as ResearchId]?.name ?? item.ref}`
@@ -141,8 +150,51 @@ export const taskRefusal = (game: Game, id: TaskId): Refusal | null => {
     return Refusal.NotAllowed({ reason: 'There is no tech debt.' })
   if (id === 'upgrade-cluster' && !game.nodes.some((node) => node.type === 'cluster'))
     return Refusal.NotAllowed({ reason: 'There is no Kubernetes Cluster to upgrade.' })
+  // A runbook names one incident kind, which the Add work menu picks (11 "Runbooks").
+  if (id === 'runbook')
+    return Refusal.NotAllowed({ reason: 'Choose the incident a runbook covers.' })
   return null
 }
+
+/**
+ * Incidents no runbook covers: a drill tests the team rather than the design, and a breach and a
+ * credential leak run their course by design, with no mitigation to automate (11 "Catalog").
+ */
+const NO_RUNBOOK: ReadonlyArray<IncidentId> = ['dr-drill', 'breach', 'credential-leak']
+
+/**
+ * Why a runbook cannot be written for this incident kind, or null. The team must have handled it
+ * by hand once, so automation is a reward for a lesson already learned (11 "Runbooks"), and an SRE
+ * team must be staffed to keep the runbook current.
+ */
+export const runbookRefusal = (game: Game, kind: IncidentId): Refusal | null => {
+  const name = INCIDENTS[kind].name
+  if (game.sandbox) return Refusal.NotAllowed({ reason: SANDBOX })
+  if (NO_RUNBOOK.includes(kind))
+    return Refusal.NotAllowed({ reason: `${name} has no response to automate.` })
+  if (!has(game, 'runbooks'))
+    return Refusal.Locked({ what: 'A runbook', research: RESEARCH.runbooks.name })
+  if (!sreStaffed(game))
+    return Refusal.NotAllowed({ reason: 'A runbook needs an SRE team with an engineer on it.' })
+  if (game.runbooks.includes(kind))
+    return Refusal.NotAllowed({ reason: `${name} already has a runbook.` })
+  if (!game.handled.includes(kind))
+    return Refusal.NotAllowed({ reason: `Handle ${name} by hand first.` })
+  if (
+    game.backlog.some(
+      (item) => item.kind === 'task' && item.ref === 'runbook' && item.target === kind,
+    )
+  )
+    return Refusal.NotAllowed({ reason: `${name}’s runbook is on the backlog.` })
+  return null
+}
+
+/** The incident kinds a runbook may be written for now: handled by hand, without one yet. */
+export const runbookKinds = (game: Game): ReadonlyArray<IncidentId> =>
+  INCIDENT_IDS.filter(
+    (kind) =>
+      game.handled.includes(kind) && !game.runbooks.includes(kind) && !NO_RUNBOOK.includes(kind),
+  )
 
 const refused = (refusal: Refusal | null, apply: () => Game): Action =>
   refusal ? no(refusal) : ok(apply())
@@ -170,6 +222,12 @@ export const queueFeature = (game: Game, id: FeatureId): Action =>
 
 export const queueTask = (game: Game, id: TaskId): Action =>
   refused(taskRefusal(game, id), () => enqueue(game, 'task', id, TASKS[id].dh))
+
+/** Queues "Write a runbook" for one incident kind (11 "Runbooks"). */
+export const queueRunbook = (game: Game, kind: IncidentId): Action =>
+  refused(runbookRefusal(game, kind), () =>
+    enqueue(game, 'task', 'runbook', TASKS.runbook.dh, false, { target: kind }),
+  )
 
 /* ---------- splitting a Service (08 "Services") ---------- */
 
@@ -506,6 +564,11 @@ export const setTeamKind = (game: Game, teamId: string, kind: TeamKind): Action 
       )
     if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
   }
+  if (kind === 'sre') {
+    if (!has(game, 'sre-team'))
+      return no(Refusal.Locked({ what: 'An SRE team', research: RESEARCH['sre-team'].name }))
+    if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
+  }
   return ok({
     ...game,
     teams: game.teams.map((entry) => (entry.id === teamId ? { ...entry, kind } : entry)),
@@ -678,6 +741,13 @@ const complete = (game: Game, item: WorkItem): Game => {
           : after.incident
       return { ...after, nodes, incident }
     }
+    case 'runbook': {
+      // The incident kind the item was written for now resolves by itself (11 "Runbooks").
+      const kind = item.target as IncidentId | undefined
+      return kind && INCIDENT_IDS.includes(kind) && !after.runbooks.includes(kind)
+        ? { ...after, runbooks: [...after.runbooks, kind] }
+        : after
+    }
   }
 }
 
@@ -816,8 +886,8 @@ export const advanceTeam = (
   let pool = next.devHours
   let paydown = 0
   for (const output of teamOutputs(next, ledger, tuning)) {
-    // A Platform team runs the Clusters and the pipeline: its Dev Hours build no backlog.
-    if (output.team.kind === 'platform') continue
+    // A Platform or SRE team runs the system: its Dev Hours build no backlog.
+    if (output.team.kind !== 'product') continue
     const made = output.rate * seconds
     const kept = made * policyNow(next, output.team, tuning).paydown
     paydown += kept

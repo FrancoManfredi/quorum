@@ -91,6 +91,15 @@ export const has = (game: Game, id: ResearchId): boolean => {
 export const insightTotal = (pools: Readonly<Record<string, number>>): number =>
   Object.values(pools).reduce((sum, value) => sum + value, 0)
 
+/**
+ * An SRE team with at least one engineer holds the pager (08 "Teams"): more than a team of a
+ * kind, it needs someone on it, as a Platform team does to run the Clusters.
+ */
+export const sreStaffed = (game: Game): boolean =>
+  game.teams.some(
+    (team) => team.kind === 'sre' && game.engineers.some((engineer) => engineer.team === team.id),
+  )
+
 export const eraOf = (game: Game): EraDef => ERAS[Math.min(game.stage, ERAS.length - 1)] as EraDef
 
 export const nextEra = (game: Game): EraDef | undefined => ERAS[game.stage + 1]

@@ -170,6 +170,12 @@ const NODE_FIELDS = {
    * the board until the player replaces or sells it.
    */
   shut: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /**
+   * The player drained this Node (11 "Drain a Node"): it takes no new traffic and finishes the
+   * work it holds, then rejoins. `drainAt` is the sim second it started.
+   */
+  draining: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  drainAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Supervised process crashes a BEAM App Server has absorbed (06 "Fault isolation"). */
   crashes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** The App Server gzips page and read responses. */
@@ -372,6 +378,13 @@ export const Incident = Schema.Struct({
   impaired: Schema.Finite,
   lostRevenue: Schema.Finite,
   failed: Schema.Finite,
+  /**
+   * The sim second its first signal landed: the pager when the Company has Alerting, else the
+   * board (11 "The incident loop"). Null until it does, and in a save from before the field.
+   */
+  signalAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** The sim second a player first acted on it, or the on-call rotation answered the page. */
+  ackAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** SEV level now: it starts at the incident's own and can step up once. */
   severity: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
   /** How many times normal demand a spike sends. */
@@ -394,6 +407,13 @@ export const Postmortem = Schema.Struct({
   target: Schema.NullOr(Schema.String),
   duration: Schema.Finite,
   mttr: Schema.Finite,
+  /**
+   * Seconds from the start to the first signal, and from that signal to the acknowledgement
+   * (11 "The incident loop"). Null in a save from before the fields, and for a run whose signal
+   * or acknowledgement never came.
+   */
+  mttd: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  mtta: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   lostUsers: Schema.Finite,
   lostRevenue: Schema.Finite,
   failed: Schema.Finite,
@@ -488,7 +508,7 @@ export const Hire = Schema.Struct({
 export type Hire = typeof Hire.Type
 
 /** A product team builds the backlog; a platform team runs the Kubernetes Clusters and the deploy pipeline. */
-export const TeamKind = Schema.Literals(['product', 'platform'])
+export const TeamKind = Schema.Literals(['product', 'platform', 'sre'])
 export type TeamKind = typeof TeamKind.Type
 
 export const Team = Schema.Struct({
@@ -871,6 +891,13 @@ export const Game = Schema.Struct({
   postmortemSeq: Schema.Finite,
   /** Action items from postmortems. Each stays open until its research is owned. */
   openActions: Schema.Array(ResearchId),
+  /**
+   * The incident kinds the team has handled by hand at least once: what a runbook may be written
+   * for (11 "Runbooks"). The postmortem record only holds the last four, so this is permanent.
+   */
+  handled: Schema.Array(IncidentId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /** The incident kinds a written runbook now resolves with no player action. */
+  runbooks: Schema.Array(IncidentId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   alarms: Alarms,
   /** Request kinds users have been served, so the first of each pays Insight once. */
   servedKinds: Schema.Array(RequestKindId).pipe(

@@ -101,6 +101,15 @@ describe('old saves', () => {
     expect(game.history).not.toHaveLength(0)
     expect(game.history.every((sample) => sample.cash === 0)).toBe(true)
     expect(game.postmortems.map((postmortem) => postmortem.endedAt)).toEqual([null])
+    // The incident loop (SIM_VERSION 31): an old Incident has no signal or acknowledgement, and an
+    // old Postmortem no MTTD or MTTA, so each reads unknown. No Node drains and no runbook is written.
+    expect(game.incident?.signalAt).toBeNull()
+    expect(game.incident?.ackAt).toBeNull()
+    expect(game.postmortems.every((postmortem) => postmortem.mttd === null)).toBe(true)
+    expect(game.postmortems.every((postmortem) => postmortem.mtta === null)).toBe(true)
+    expect(game.nodes.every((node) => !node.draining)).toBe(true)
+    expect(game.handled).toEqual([])
+    expect(game.runbooks).toEqual([])
     expect(solve(game).revenue).toBeGreaterThan(0)
     expect(step(game, 1).game.time).toBe(game.time + 1)
   })
@@ -123,6 +132,8 @@ describe('old saves', () => {
    */
   test('a save from build 2559d8c decodes, solves, and steps', () => {
     const game = decode(m3Save)
+    expect(game.runbooks).toEqual([])
+    expect(game.nodes.every((node) => !node.draining)).toBe(true)
     expect(game.stage).toBe(0)
     expect(game.time).toBe(300)
     expect(game.nodes.map((node) => node.type)).toEqual([

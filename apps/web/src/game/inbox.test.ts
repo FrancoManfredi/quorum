@@ -152,6 +152,8 @@ test('a resolved incident asks a teammate to file the postmortem', () => {
     target: 'App Server',
     duration: 60,
     mttr: 40,
+    mttd: 4,
+    mtta: 9,
     lostUsers: 120,
     lostRevenue: 1_200,
     failed: 400,

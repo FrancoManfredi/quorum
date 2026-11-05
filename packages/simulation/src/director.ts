@@ -1,5 +1,6 @@
 import { Match } from 'effect'
 import {
+  ALERT_RULES,
   CALENDAR_DURATION,
   COMPONENTS,
   ERAS,
@@ -10,10 +11,12 @@ import {
   INCIDENT_IDS,
   LEAK_RATE,
   MIN_WEAKNESS,
+  ON_CALL_ACK,
   POD_RESCHEDULE,
   RUNTIMES,
   SLO_FROM_STAGE,
   SPOT_WARNING,
+  SRE_MTTR,
   STORM_TRIGGER,
   SPIKE_MAGNITUDE,
   WARMED,
@@ -21,7 +24,7 @@ import {
   type IncidentId,
   HOME_REGION,
 } from './catalog.ts'
-import { StepEvent } from './events.ts'
+import { StepEvent, type AlertRule } from './events.ts'
 import { mutatorWeight, openActionWeight, signatureWeakness, signatureWeight } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
@@ -34,6 +37,7 @@ import {
   ramOf,
   researchReady,
   restarted,
+  sreStaffed,
   zoned,
 } from './lookups.ts'
 import { nodeLabel } from './labels.ts'
@@ -54,18 +58,23 @@ import { fixed, platformStaffed, quartersBehind, serviceOf } from './team.ts'
 
 /**
  * Sim seconds an incident runs unmitigated. Once the error budget counts, it runs on
- * the calendar: at most 5, 20 or 60 sim seconds by severity (11 "Duration").
+ * the calendar: at most 5, 20 or 60 sim seconds by severity (11 "Duration"). An SRE team
+ * restores service 40% faster (08 "Teams"), so the incident and the recovery it drives run
+ * 60% as long.
  */
 export const incidentDuration = (game: Game, kind: IncidentId): number => {
   const def = INCIDENTS[kind]
-  // A retry storm ends when the backlog drains, not on the clock; a Sandbox gives it no clock.
-  if (kind === 'retry-storm') return game.sandbox ? SANDBOX_STORM : def.duration
-  // A spot reclaim warns for 10 s before it takes the Node, longer than a SEV3 calendar
-  // duration, so it runs on its own clock (09 "Pricing models").
-  if (kind === 'spot-reclaim') return def.duration
-  return !game.sandbox && game.stage >= SLO_FROM_STAGE
-    ? Math.min(def.duration, CALENDAR_DURATION[def.severity])
-    : def.duration
+  const clock = (): number => {
+    // A retry storm ends when the backlog drains, not on the clock; a Sandbox gives it no clock.
+    if (kind === 'retry-storm') return game.sandbox ? SANDBOX_STORM : def.duration
+    // A spot reclaim warns for 10 s before it takes the Node, longer than a SEV3 calendar
+    // duration, so it runs on its own clock (09 "Pricing models").
+    if (kind === 'spot-reclaim') return def.duration
+    return !game.sandbox && game.stage >= SLO_FROM_STAGE
+      ? Math.min(def.duration, CALENDAR_DURATION[def.severity])
+      : def.duration
+  }
+  return clock() * (sreStaffed(game) ? 1 - SRE_MTTR : 1)
 }
 
 /** Sim seconds a Sandbox retry storm may last: long enough that only draining ends it. */
@@ -550,6 +559,8 @@ export const startIncident = (
     impaired: 0,
     lostRevenue: 0,
     failed: 0,
+    signalAt: null,
+    ackAt: null,
     severity: INCIDENTS[kind].severity,
     magnitude:
       kind === 'spike'
@@ -684,6 +695,12 @@ const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem 
     target: target ? nodeLabel(game, target) : null,
     duration: game.time - incident.startedAt,
     mttr: incident.impaired,
+    mttd: incident.signalAt === null ? null : Math.max(0, incident.signalAt - incident.startedAt),
+    // An acknowledgement before the signal still costs no time to acknowledge.
+    mtta:
+      incident.ackAt === null || incident.signalAt === null
+        ? null
+        : Math.max(0, incident.ackAt - incident.signalAt),
     lostUsers: Math.max(0, incident.usersAtStart - game.users),
     lostRevenue: incident.lostRevenue,
     failed: incident.failed,
@@ -697,6 +714,12 @@ const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem 
     ...(incident.service ? { service: incident.service } : {}),
   }
 }
+
+/**
+ * The `runbooks` research and the "Write a runbook" task (11 "Runbooks"): a runbook the team wrote
+ * for an incident kind runs the response by itself, so that kind ends with no player action.
+ */
+export const runbookCovers = (game: Game, kind: IncidentId): boolean => game.runbooks.includes(kind)
 
 /**
  * The incidents the Design ends by itself, with no player action (11 "Runbooks"): a Cluster
@@ -738,6 +761,14 @@ const resolve = (
       node.life._tag === 'Restarting'
     )
       return { ...node, ...restarted(node) }
+    // A resolution with no player action puts back the Nodes the Incident took down with it.
+    if (
+      auto &&
+      node.downAt === incident.startedAt &&
+      causeOf(node.life) === 'failure' &&
+      node.life._tag === 'Restarting'
+    )
+      return { ...node, ...restarted(node) }
     if (node.id !== incident.nodeId) return node
     if (incident.kind === 'instance' && node.life._tag === 'Stopped')
       return { ...node, ...restarted(node) }
@@ -757,12 +788,32 @@ const resolve = (
         postmortem.action && !game.openActions.includes(postmortem.action)
           ? [...game.openActions, postmortem.action]
           : game.openActions,
+      // A run that a player ended is one the team has handled by hand, so it may get a runbook.
+      handled:
+        auto || game.handled.includes(incident.kind)
+          ? game.handled
+          : [...game.handled, incident.kind],
     },
     events: [
       ...(killed ? [StepEvent.OutOfMemory({ nodeId: killed.id })] : []),
       StepEvent.IncidentResolved({ postmortem }),
     ],
   }
+}
+
+/**
+ * The first signal of the running Incident (11 "The incident loop"): with Alerting it is the pager,
+ * which fires the Step a rule's threshold is crossed; without it, the board shows nothing until
+ * requests fail. Recorded once, at the Step it lands.
+ */
+export const markSignal = (game: Game, ledger: Ledger): Game => {
+  const incident = game.incident
+  if (!incident || incident.signalAt !== null) return game
+  const rules = Object.keys(ALERT_RULES) as ReadonlyArray<AlertRule>
+  const signalled = has(game, 'alerting')
+    ? rules.some((rule) => game.alarms[rule] > 0)
+    : ledger.errorShare > ALERT_RULES.errors.threshold
+  return signalled ? { ...game, incident: { ...incident, signalAt: game.time } } : game
 }
 
 /** Advances the running incident by some seconds: its effect, its cost, and its end. */
@@ -773,6 +824,8 @@ export const advanceIncident = (
 ): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
   const incident = game.incident
   if (!incident) return { game, events: [] }
+  // A runbook the team wrote runs the known response: this kind ends with no player action.
+  if (runbookCovers(game, incident.kind)) return resolve(game, true)
   const counted: Incident = {
     ...incident,
     remaining: incident.remaining - seconds,
@@ -798,6 +851,14 @@ export const advanceIncident = (
         magnitude: incident.kind === 'spike' ? incident.magnitude * ESCALATION : incident.magnitude,
       }
     : counted
+  // On-call answers the page: the rotation acknowledges it a few seconds after the signal.
+  const acked: Incident =
+    tracked.ackAt === null &&
+    has(game, 'on-call') &&
+    tracked.signalAt !== null &&
+    game.time >= tracked.signalAt + ON_CALL_ACK
+      ? { ...tracked, ackAt: tracked.signalAt + ON_CALL_ACK }
+      : tracked
   const target = game.nodes.find((node) => node.id === incident.nodeId)
   // A spot reclaim warns first: 10 s in, the provider takes the Node for the rest of it.
   const reclaims =
@@ -818,13 +879,13 @@ export const advanceIncident = (
             node.id === target.id
               ? {
                   ...node,
-                  ...takeDown(node.life, tracked.remaining, 'failure'),
+                  ...takeDown(node.life, acked.remaining, 'failure'),
                   downAt: game.time,
                 }
               : node,
           )
         : game.nodes
-  const next: Game = { ...game, nodes, incident: tracked }
+  const next: Game = { ...game, nodes, incident: acked }
   const elapsedAfter = game.time - incident.startedAt
   const held = nodes.find((node) => node.id === incident.nodeId)
   const fixed =
@@ -851,8 +912,8 @@ export const advanceIncident = (
     // The Hub is warm again: the reconnect wave is over.
     (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running'))
   // Fixed before its clock ran out, by a path the Design takes on its own: record that.
-  const healed = fixed && tracked.remaining > 0 && resolvesItself(game, incident, target)
-  return tracked.remaining <= 0 || fixed ? resolve(next, healed) : { game: next, events: [] }
+  const healed = fixed && acked.remaining > 0 && resolvesItself(game, incident, target)
+  return acked.remaining <= 0 || fixed ? resolve(next, healed) : { game: next, events: [] }
 }
 
 /** Starts an incident on demand, for the playtest panel and Sandbox scripts. */

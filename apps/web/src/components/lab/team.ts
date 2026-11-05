@@ -20,6 +20,7 @@ import {
   Rabbit,
   Rocket,
   Scale,
+  Siren,
   Trash2,
   UserMinus,
   X,
@@ -29,6 +30,7 @@ import {
   ERAS,
   FEATURES,
   FEATURE_IDS,
+  INCIDENTS,
   LANGUAGES,
   MIGRATION_STEPS,
   POLICIES,
@@ -71,6 +73,8 @@ import {
   featureRefusal,
   itemName,
   MAX_TEAMS,
+  runbookKinds,
+  runbookRefusal,
   splitCost,
   splitRefusal,
   taskRefusal,
@@ -491,12 +495,13 @@ const policySwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
 const KINDS: ReadonlyArray<readonly [TeamKind, string, typeof Code]> = [
   ['product', 'Product', Code],
   ['platform', 'Platform', Container],
+  ['sre', 'SRE', Siren],
 ]
 
 /** Product teams build the backlog; a Platform team runs the Clusters and the pipeline (08 "Teams"). */
 const kindSwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
   h.div(
-    [h.Class(cn('grid grid-cols-2 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
+    [h.Class(cn('grid grid-cols-3 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
     KINDS.map(([kind, label, mark]) => {
       const selected = team.kind === kind
       return h.button(
@@ -595,8 +600,8 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
         ],
       ),
       index > 0 && !sandbox && game.stage >= PLATFORM_STAGE ? kindSwitch(team, h) : h.empty,
-      team.kind === 'platform' ? h.empty : policySwitch(team, h),
-      team.kind !== 'platform' && now.id !== team.policy
+      team.kind === 'product' ? policySwitch(team, h) : h.empty,
+      team.kind === 'product' && now.id !== team.policy
         ? h.span(
             [h.Class('-mt-1.5 px-1 text-[calc(11px*var(--type-scale))] text-muted-foreground')],
             [`${now.label} until tomorrow`],
@@ -650,15 +655,36 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
         ? h.empty
         : team.kind === 'platform'
           ? platformWork(h)
-          : working(
-              game.backlog[
-                game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
-              ],
-              h,
-            ),
+          : team.kind === 'sre'
+            ? sreWork(game, h)
+            : working(
+                game.backlog[
+                  game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
+                ],
+                h,
+              ),
     ],
   )
 }
+
+/** What an SRE pod has on its desk: the pager, the runbooks, and the MTTR it holds down. */
+const sreWork = (game: Game, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
+    [
+      icon(h, Siren, 'size-3.5 text-muted-foreground'),
+      h.span(
+        [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+        [
+          game.runbooks.length === 0
+            ? 'Holds the pager: MTTR −40%'
+            : `Holds the pager: MTTR −40% · ${game.runbooks.length} runbook${
+                game.runbooks.length === 1 ? '' : 's'
+              }`,
+        ],
+      ),
+    ],
+  )
 
 /** What the pod has on its desk: the backlog item its team builds. */
 const platformWork = (h: HtmlBuilder<Message>): Html =>
@@ -1801,28 +1827,75 @@ const featureTile = (game: Game, id: FeatureId, review: boolean, h: HtmlBuilder<
   )
 }
 
+/** A runbook names one incident kind: a chip per kind the team has handled, waiting for one. */
+const runbookPicker = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const kinds = runbookKinds(game)
+  if (kinds.length === 0)
+    return h.span(
+      [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+      ['Handle an incident by hand first.'],
+    )
+  return h.div(
+    [h.Class('flex flex-wrap gap-1')],
+    kinds.map((kind) => {
+      const refusal = runbookRefusal(game, kind)
+      const queued = game.backlog.some(
+        (item) => item.kind === 'task' && item.ref === 'runbook' && item.target === kind,
+      )
+      return h.button(
+        [
+          h.Key(`runbook-${kind}`),
+          h.Type('button'),
+          h.OnClick(Message.RunbookQueued({ kind })),
+          h.Disabled(refusal !== null),
+          h.Title(
+            refusal ? describeRefusal(refusal) : `Write the runbook for ${INCIDENTS[kind].name}`,
+          ),
+          h.Class(
+            'flex h-6 items-center gap-1 rounded-md border border-hairline px-1.5 text-[calc(11px*var(--type-scale))] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50',
+          ),
+        ],
+        [
+          icon(h, queued ? Hourglass : Plus, 'size-3'),
+          h.span([h.Class('truncate')], [INCIDENTS[kind].name]),
+        ],
+      )
+    }),
+  )
+}
+
 const taskTile = (game: Game, id: TaskId, h: HtmlBuilder<Message>) => {
   const done = serviceOf(game).fixes.includes(id as never)
   const queued = game.backlog.some((item) => item.ref === id)
-  const refusal = taskRefusal(game, id)
+  // A runbook tile picks its incident kind in the tile, so its own refusal is only the research.
+  const refusal = id === 'runbook' && has(game, 'runbooks') ? null : taskRefusal(game, id)
+  const runbooks = game.runbooks.length
   return tile(
     id,
     codeOf('task', id),
     TASKS[id].name,
     TASKS[id].dh,
-    TASKS[id].effect,
+    id === 'runbook' && runbooks > 0
+      ? `${TASKS[id].effect} · ${runbooks} written`
+      : TASKS[id].effect,
     null,
     done ? 'done' : queued ? 'queued' : refusal !== null ? 'locked' : 'open',
-    done
-      ? badge({ variant: 'secondary', className: 'text-ok' }, [icon(h, Check, 'size-3'), 'Done'], h)
-      : queued
-        ? badge({ variant: 'outline' }, ['Queued'], h)
-        : queueButton(
-            'Queue',
-            Message.TaskQueued({ id }),
-            refusal ? describeRefusal(refusal) : null,
+    id === 'runbook'
+      ? runbookPicker(game, h)
+      : done
+        ? badge(
+            { variant: 'secondary', className: 'text-ok' },
+            [icon(h, Check, 'size-3'), 'Done'],
             h,
-          ),
+          )
+        : queued
+          ? badge({ variant: 'outline' }, ['Queued'], h)
+          : queueButton(
+              'Queue',
+              Message.TaskQueued({ id }),
+              refusal ? describeRefusal(refusal) : null,
+              h,
+            ),
     h,
   )
 }

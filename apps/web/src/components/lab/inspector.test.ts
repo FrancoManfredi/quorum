@@ -10,6 +10,7 @@ import { ledgerOf, type Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
 import { sampleNode, type NodeSample } from '@/game/node-metrics.ts'
 import { inspector } from './inspector.ts'
+import { AppendLog, ClearToast, PlaySound, SyncBoard } from '@/game/commands.ts'
 
 const fixture = (evidence: Partial<NodeSample> = {}): Model => {
   const start = initialModel()
@@ -58,6 +59,41 @@ const view = (model: Model, h: HtmlBuilder<Message>) => inspector(model, ledgerO
 
 const diskHint =
   'The working set exceeds RAM and reads hit disk. Consider more RAM, caching, or a read replica.'
+
+test('a Node with Health checks offers Drain, which takes it out of rotation', () => {
+  const measurable: Model = {
+    ...fixture(),
+    board: {
+      ...fixture().board,
+      game: {
+        ...fixture().board.game,
+        researched: [...preseedGame().researched, 'metrics', 'health-checks'],
+      },
+    },
+  }
+  Scene.scene(
+    { update, view },
+    Scene.given(measurable),
+    Scene.click(Scene.role('button', { name: 'Drain' })),
+    Scene.expectHandled(),
+    Scene.Command.resolveAll(
+      [PlaySound, Message.Synced()],
+      [SyncBoard, Message.Synced()],
+      [AppendLog, Message.Synced()],
+      [ClearToast, Message.ToastCleared({ id: 1 })],
+    ),
+    Scene.expect(Scene.role('button', { name: 'Drain' })).toBeAbsent(),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('Draining'),
+  )
+})
+
+test('a Node without Health checks offers no Drain', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.expect(Scene.role('button', { name: 'Drain' })).toBeAbsent(),
+  )
+})
 
 test('selecting a spike shows its operation rates, deltas, and former source instead of live traffic', () => {
   Scene.scene(

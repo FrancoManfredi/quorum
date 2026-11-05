@@ -860,11 +860,23 @@ Running a trained machine learning model to produce an answer, as opposed to tra
 
 **Learn more:** [Cloudflare: AI inference vs. training](https://www.cloudflare.com/learning/ai/inference-vs-training/) · [vLLM documentation](https://docs.vllm.ai/en/stable/) · [PagedAttention paper (vLLM)](https://arxiv.org/abs/2309.06180)
 
+## MTTD and MTTA
+
+Mean time to detect is the average time from the start of a failure until a signal shows it. Mean time to acknowledge is the average time from that signal until someone takes the incident. Google's SRE book counts both beside MTTR, because a team that fixes fast but notices late is still slow.
+
+**In the game:** Every Incident records the sim second its first signal lands and the second a player first acts on it, and its Postmortem shows MTTD and MTTA beside MTTR. With Alerting the signal is the pager, the Step a rule's threshold is crossed; without it the board is, at the first second more than 1% of requests fail. On-call answers the page five calendar minutes after it lands, which is the MTTA a rotation holds; otherwise the player's first action is the acknowledgement.
+
+**Design:** [The incident loop](/design/11-incidents#the-incident-loop).
+
+**Related:** [MTTR](#mttr), [SLO, SLA, SLI](#slo-sla-sli), [Four golden signals](#four-golden-signals)
+
+**Learn more:** [Google SRE book: Being on-call](https://sre.google/sre-book/being-on-call/) · [Wikipedia: Mean time to recovery](https://en.wikipedia.org/wiki/Mean_time_to_recovery)
+
 ## MTTR
 
 Mean time to restore (or recover): the average time from the start of a failure until the service works again. It measures how fast a team detects, diagnoses, and fixes problems. DORA now measures a narrower version, failed deployment recovery time.
 
-**In the game:** Every Incident ends with a Postmortem that shows its MTTR: the calendar minutes in which more than 1% of requests failed. An Incident that has hurt users more than half the time by its halfway point escalates one severity and runs 1.5 times as long. Keep MTTR down by acting fast: restart, replace, or fail over the hit Node, and research the Postmortem's action item.
+**In the game:** Every Incident ends with a Postmortem that shows its MTTR: the calendar minutes in which more than 1% of requests failed. It also shows the MTTD and MTTA that came before it, and an SRE team with an engineer on it cuts the run, and so the MTTR, by 40%. An Incident that has hurt users more than half the time by its halfway point escalates one severity and runs 1.5 times as long. Keep MTTR down by acting fast: restart, replace, drain, or fail over the hit Node, and research the Postmortem's action item.
 
 **Design:** [The incident loop](/design/11-incidents#the-incident-loop).
 
@@ -893,6 +905,18 @@ A network failure that splits a system into groups of nodes that cannot reach ea
 **Related:** [Fallacies of distributed computing](#fallacies-of-distributed-computing), [Quorum](#quorum), [Raft](#raft), [Timeout](#timeout)
 
 **Learn more:** [ACM Queue: The Network is Reliable](https://queue.acm.org/detail.cfm?id=2655736) · [InfoQ: CAP Twelve Years Later](https://www.infoq.com/articles/cap-twelve-years-later-how-the-rules-have-changed/) · [Wikipedia](https://en.wikipedia.org/wiki/Network_partition)
+
+## Node drain
+
+Taking a server out of rotation on purpose: stop sending it new work, let the requests and jobs it already holds finish, then shut it down or upgrade it. A load balancer's connection draining and Kubernetes' `kubectl drain` both work this way. Killing a busy server instead drops whatever it was doing.
+
+**In the game:** With Health checks researched, a Node's card offers Drain. It takes no new traffic at once, its share going to the other Nodes on the path, and it finishes what it holds: a Queue hands its backlog to its Workers. Ten sim seconds later, empty, it rejoins the rotation. Draining the Node an Incident is hitting ends that Incident with the drain, and a Node with no other copy to take the load strands every request sent to it.
+
+**Design:** [Mitigation toolbox](/design/11-incidents#mitigation-toolbox).
+
+**Related:** [Health check](#health-check), [Load balancer](#load-balancer), [MTTR](#mttr), [Blast radius](#blast-radius)
+
+**Learn more:** [Kubernetes docs: Safely drain a node](https://kubernetes.io/docs/tasks/administer-cluster/safely-drain-node/) · [NGINX docs: Reverse proxy](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) · [AWS docs: Target group deregistration delay](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html)
 
 ## Object storage
 
@@ -925,6 +949,18 @@ Online transaction processing (OLTP) runs many small, fast reads and writes on c
 **Related:** [CDC (change data capture)](#cdc-change-data-capture), [Read replica](#read-replica), [Operating margin](#operating-margin)
 
 **Learn more:** [AWS: OLTP vs OLAP](https://aws.amazon.com/compare/the-difference-between-olap-and-oltp/) · [Wikipedia: Online analytical processing](https://en.wikipedia.org/wiki/Online_analytical_processing) · [Wikipedia: Online transaction processing](https://en.wikipedia.org/wiki/Online_transaction_processing)
+
+## On-call
+
+A rotation of engineers who carry the pager and answer alerts outside working hours, so a page reaches a person rather than whoever happens to be looking at a dashboard. A good rotation is quiet, bounded, and paid for in sleep.
+
+**In the game:** On-call rotation (Series A, after Alerting) puts the team on the pager. The rotation acknowledges an Incident five calendar minutes after its first signal, so its MTTA is short even when the player is away, and the Postmortem shows it. Without it a page waits for the player's first click.
+
+**Design:** [The incident loop](/design/11-incidents#the-incident-loop).
+
+**Related:** [MTTD and MTTA](#mttd-and-mtta), [MTTR](#mttr), [SLO, SLA, SLI](#slo-sla-sli)
+
+**Learn more:** [Google SRE book: Being on-call](https://sre.google/sre-book/being-on-call/) · [PagerDuty: What is on-call rotation?](https://www.pagerduty.com/resources/learn/what-is-on-call-rotation/)
 
 ## Operating margin
 
@@ -1120,6 +1156,18 @@ A heuristic for software-as-a-service companies: annual revenue growth rate plus
 
 **Learn more:** [Wikipedia: Rule of 40](https://en.wikipedia.org/wiki/Rule_of_40) · [McKinsey: SaaS and the Rule of 40](https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/saas-and-the-rule-of-40-keys-to-the-critical-value-creation-metric)
 
+## Runbook
+
+A short, tested document that says what to do when a specific alert fires: which checks to run, which command to execute, when to escalate. A runbook that a system can execute by itself is automation; one that a person reads at 3 a.m. is still worth writing.
+
+**In the game:** Runbooks (Series A, after On-call) and an SRE team with an engineer unlock Write a runbook, 10 Dev Hours, for one incident kind the team has already ended by hand. Once it is written that kind resolves on its own first Step: the postmortem records it as automatic, as it does a Cluster rescheduling a pod or a standby failing over, and the Runbook achievement reads the record.
+
+**Design:** [Runbooks](/design/11-incidents#runbooks).
+
+**Related:** [MTTR](#mttr), [MTTD and MTTA](#mttd-and-mtta), [On-call](#on-call), [Blast radius](#blast-radius)
+
+**Learn more:** [Google SRE book: Postmortem culture](https://sre.google/sre-book/postmortem-culture/) · [PagerDuty: What is a runbook?](https://www.pagerduty.com/resources/automation/learn/what-is-a-runbook/)
+
 ## Service
 
 A codebase with its own deploy pipeline, owned by one team. Splitting a monolith into services lets each team ship and scale on its own, at the price of a network hop between services and failures that can travel across them.
@@ -1160,7 +1208,7 @@ An architecture in which nodes, or requests, share no memory or disk and coordin
 
 A service level indicator (SLI) is a measurement of service behavior, such as the share of requests that succeed. A service level objective (SLO) is a target for an SLI over a window, such as 99.9% over 30 days. A service level agreement (SLA) is a contract with customers that sets consequences, such as service credits, when a promised level is missed; it is usually looser than the internal SLO.
 
-**In the game:** The SLI is availability: the share of user requests answered over the last calendar week, without bots and WAF blocks. Each Era sets the SLO, from 99% in Garage to 99.99% in Public, and from Series A the failures it allows are your error budget. SLO dashboards put that budget on the HUD, and the IPO checklist needs 99.95%. The game has no SLA yet.
+**In the game:** The SLI is availability: the share of user requests answered over the last calendar week, without bots and WAF blocks. Each Era sets the SLO, from 99% in Garage to 99.99% in Public, and from Series A the failures it allows are your error budget. SLO dashboards put that budget on the HUD, and the IPO checklist needs 99.95%. B2B SaaS signs an SLA from Series B, one level above its Era's target, and while a week sits below it Enterprise sales pays credits back to the customers: 10% of subscription revenue.
 
 **Design:** [SLOs and error budgets](/design/11-incidents#slos-and-error-budgets).
 

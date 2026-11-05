@@ -544,6 +544,8 @@ describe('Kubernetes Clusters and the Platform team (08 "Teams")', () => {
         impaired: 0,
         lostRevenue: 0,
         failed: 0,
+        signalAt: null,
+        ackAt: null,
         severity: 2,
         magnitude: 3,
         zone: null,
