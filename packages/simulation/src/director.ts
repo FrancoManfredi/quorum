@@ -16,6 +16,7 @@ import {
   ON_CALL_ACK,
   POD_RESCHEDULE,
   RUNTIMES,
+  SECURITY_TEAM_SUPPLY_CHAIN,
   SLO_FROM_STAGE,
   SPOT_WARNING,
   SRE_MTTR,
@@ -40,6 +41,7 @@ import {
   ramOf,
   researchReady,
   restarted,
+  securityStaffed,
   sreStaffed,
   zoned,
 } from './lookups.ts'
@@ -486,12 +488,12 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
             ? 0.3
             : 2.5
         : 0,
-    // Every Service installs its dependencies; scanning is the only thing that reads them.
+    // Every Service installs its dependencies; scanning is the only thing that reads them. A
+    // Security team halves the weakness again, stacking with scanning (08 "Teams").
     'supply-chain': () =>
       game.nodes.some((node) => node.type === 'server' && busy(ledger, node))
-        ? has(game, 'dependency-scanning')
-          ? 0.5
-          : 2
+        ? (has(game, 'dependency-scanning') ? 0.5 : 2) *
+          (securityStaffed(game) ? SECURITY_TEAM_SUPPLY_CHAIN : 1)
         : 0,
     // A table with no restorable backup is gone for good; a drill proves the backup.
     'accidental-delete': () => {

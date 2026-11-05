@@ -1016,11 +1016,29 @@ const teamAction = (model: Model, out: TeamOutMessage): Result => {
     SetKind: ({ teamId, kind }) =>
       act(
         model,
-        kind === 'platform' ? 'Platform team' : 'Product team',
+        kind === 'platform'
+          ? 'Platform team'
+          : kind === 'sre'
+            ? 'SRE team'
+            : kind === 'data'
+              ? 'Data team'
+              : kind === 'security'
+                ? 'Security team'
+                : 'Product team',
         Work.setTeamKind(game, teamId, kind),
       ),
     QueueFeature: ({ id }) =>
       act(model, `Queued ${FEATURES[id].name}`, Work.queueFeature(game, id)),
+    RemoveFeature: ({ id }) =>
+      act(model, `Removed ${FEATURES[id].name}`, Work.removeFeature(game, id), {
+        note: () => [`${FEATURES[id].name} is gone. Its upkeep ends with it.`, 'warn'],
+      }),
+    MoveService: ({ serviceId, teamId }) =>
+      act(
+        model,
+        `Moved a Service to ${game.teams.find((team) => team.id === teamId)?.name ?? 'a team'}`,
+        Work.moveService(game, serviceId, teamId),
+      ),
     SplitService: ({ name, owner, features }) =>
       act(
         model,
@@ -4201,6 +4219,12 @@ const handle = (model: Model, message: Message): Result =>
     CertificateRenewed: () =>
       logResponse(model, 'renew-certificate') ??
       act(model, 'Renewed the certificate', Actions.renewCertificate(model.board.game)),
+
+    ProviderSwitched: () =>
+      logResponse(model, 'switch-provider') ??
+      act(model, 'Switched provider', Actions.switchProvider(model.board.game), {
+        note: () => ['Switched to a second Payment Provider mid-outage.', 'ok'],
+      }),
 
     MessageDeleted: () =>
       logResponse(model, 'delete-message') ??

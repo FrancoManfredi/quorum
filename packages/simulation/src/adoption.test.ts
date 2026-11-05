@@ -125,7 +125,7 @@ describe('measured lift', () => {
     expect(liftReading(some, 'landing-page')?.verdict).toBe('early')
     const many = advanceLifts(game, 1_000, 1_000)
     const read = liftReading(many, 'landing-page')
-    expect(read?.lift).toBeCloseTo(liftOf('landing-page'), 12)
+    expect(read?.lift).toBeCloseTo(liftOf(many, 'landing-page'), 12)
     expect(read?.verdict).toBe('wins')
     expect(read?.halfWidth).toBeLessThan(0.05)
     // The half width follows the formula, and a full sample rate is far tighter than the floor.

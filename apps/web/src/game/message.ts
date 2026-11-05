@@ -332,6 +332,7 @@ export const Message = defineMessageUnion({
   ReportCancelled: {},
   VolumeExpanded: {},
   CertificateRenewed: {},
+  ProviderSwitched: {},
   MessageDeleted: {},
   /** Responses the six hand-written incident kinds need (11 "The six kinds"). */
   SchemaMigrationCancelled: {},

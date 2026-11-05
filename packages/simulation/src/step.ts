@@ -9,6 +9,7 @@ import {
   CHURN,
   CREDIT_CAP,
   DECLINED_GROWTH,
+  FEATURES,
   FICKLE_SHARE,
   FIRST_KIND_INSIGHT,
   FUNNEL_GROWTH,
@@ -119,7 +120,18 @@ const flowsOf = (game: Game, ledger: Ledger, pace: number): Readonly<Record<Regi
       flows[region] = { fickle: churn * (own - steady), steady: churn * STEADY_CHURN * steady }
       continue
     }
-    const market = split ? ledger.market * REGION_INFO[region].share : ledger.market
+    // Data residency is required for the EU market (08 "Features"): EU data must stay in an EU
+    // region, so without it the Company cannot grow there once this is a real choice to make, from
+    // the Pre-IPO Era (08 "Features": Data residency's own Era) on. Earlier Eras play as they did,
+    // so Series C's region split is not gated by a Feature two Eras away.
+    const reachable =
+      region === 'eu' &&
+      split &&
+      game.stage >= FEATURES['data-residency'].era &&
+      !game.shipped.includes('data-residency')
+        ? 0
+        : REGION_INFO[region].share
+    const market = split ? ledger.market * reachable : ledger.market
     const talk = split ? own + BORDER_MIXING * (total - own) : own
     const growth = rate * talk * Math.max(0, 1 - own / market) * health
     flows[region] = { fickle: growth * FICKLE_SHARE, steady: growth * (1 - FICKLE_SHARE) }

@@ -68,6 +68,7 @@ import {
   GPU_PRECISIONS,
   GPU_BATCHES,
   GATEWAY_BURST,
+  SWITCH_PROVIDER_PRICE,
   type LbVariant,
   type GpuPrecision,
 } from './catalog.ts'
@@ -1476,6 +1477,20 @@ export const renewCertificate = (game: Game): Action =>
         certificate: game.time,
       })
     : notAllowed('No certificate has expired.')
+
+/**
+ * Switches Payment Provider mid-outage (18 "Senders": "Switch provider"): a rush integration with
+ * a second provider, for Cash, ends the Payment provider outage at once. Their outage, not yours,
+ * so nothing on the Design remains broken once it ends.
+ */
+export const switchProvider = (game: Game): Action =>
+  game.incident?.kind === 'psp-outage'
+    ? spend(game, SWITCH_PROVIDER_PRICE, 'Switch provider', (paid) =>
+        paid.incident
+          ? { ...paid, incident: { ...answering(paid, paid.incident), remaining: 0 } }
+          : paid,
+      )
+    : notAllowed('The Payment Provider is not down.')
 
 /** Deletes the poison message: the Workers get back to the queue. */
 export const deleteMessage = (game: Game): Action =>

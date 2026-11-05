@@ -26,6 +26,7 @@ import { alertActions, cloudActions } from '@quorum/simulation/goals'
 import { has } from '@quorum/simulation/lookups'
 import { compact, money } from '@quorum/ui/game/format'
 import type { WorkItem } from '@quorum/simulation/state'
+import { unhappy } from '@quorum/simulation/team'
 import { featureRefusal, itemName } from '@quorum/simulation/work'
 import {
   ADVICE,
@@ -375,13 +376,15 @@ const CAUSE_TEXT: Record<ChurnCause, string> = {
 
 const spamFact = (pitch: Pitch, game: Game, salt: number): Fact => {
   const key = `spam:${pitch.sender}`
-  return fact(
-    key,
-    pitch.sender,
-    write(pitch.letters, {}, pitch.sender, game, key, salt),
-    pitch.actions,
-    true,
-  )
+  const written = write(pitch.letters, {}, pitch.sender, game, key, salt)
+  // The recruiter's pitch is flavour, but a hint rides along once mood exists (18 "Spam and
+  // phishing": "Recruiter: a hint that a teammate is unhappy."). It names nobody: the pitch itself
+  // still only offers a job, so the player reads the Team panel to find out who.
+  const hint =
+    pitch.sender === 'spam-recruiter' && game.engineers.some(unhappy)
+      ? { ...written, body: `${written.body}\n\nP.S. One of your engineers looks ready to listen.` }
+      : written
+  return fact(key, pitch.sender, hint, pitch.actions, true)
 }
 
 /**

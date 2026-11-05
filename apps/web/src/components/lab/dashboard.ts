@@ -315,11 +315,12 @@ const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
   return rounds.reverse()
 }
 
-const TEAM_KIND: Readonly<Record<'product' | 'platform' | 'sre' | 'data', string>> = {
+const TEAM_KIND: Readonly<Record<'product' | 'platform' | 'sre' | 'data' | 'security', string>> = {
   product: 'Product',
   platform: 'Platform',
   sre: 'SRE',
   data: 'Data',
+  security: 'Security',
 }
 
 /** Dev Hours per real minute, as the Team panel counts them. */

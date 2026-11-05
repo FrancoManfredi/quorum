@@ -154,6 +154,12 @@ export const OPERATOR_TYPO_SECONDS = 120
 export const LEAP_SECOND_SECONDS = 60
 /** Share of the Users the supply-chain compromise drives away at once (proposed). */
 export const SUPPLY_CHAIN_CHURN = 0.1
+/**
+ * Cash to switch Payment Provider mid-outage (18 "Senders": "Switch provider"), scaled by the
+ * Era's cost index like a signing bonus. The design gives no number: proposed. A rush integration
+ * with a second provider ends the Payment provider outage at once.
+ */
+export const SWITCH_PROVIDER_PRICE = 5_000
 /** Share of the Users a restore that finds no good backup loses (proposed, 07 "Backups"). */
 export const DELETE_CHURN = 0.1
 /** Milliseconds a clock jump adds to a Node in the region, and the share of its answers that time out. */

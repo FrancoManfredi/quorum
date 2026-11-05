@@ -573,7 +573,7 @@ export const Hire = Schema.Struct({
 export type Hire = typeof Hire.Type
 
 /** A product team builds the backlog; a platform team runs the Clusters and the pipeline; a data team runs the warehouse and the pipelines' copies. */
-export const TeamKind = Schema.Literals(['product', 'platform', 'sre', 'data'])
+export const TeamKind = Schema.Literals(['product', 'platform', 'sre', 'data', 'security'])
 export type TeamKind = typeof TeamKind.Type
 
 export const Team = Schema.Struct({
@@ -1032,6 +1032,15 @@ export const Game = Schema.Struct({
   /** The CVEs already disclosed, so each one comes once. */
   cves: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   shipped: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /**
+   * A Feature's realized outcome (08 "Outcomes"): the share of its win effect on market, growth,
+   * churn, and value that actually lands, rolled when the Feature is queued. A Feature not named
+   * here rolled before the mechanic existed, or has not been queued yet, and plays at its full win
+   * effect (1), which is what a save from before Outcomes kept.
+   */
+  outcomes: Schema.Record(Schema.String, Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
   /**
    * Each live Feature's adoption share (08 "Adoption"), from 0 at the deploy that ships it to 1. A
    * Feature not named here is fully adopted, which is what a save from before adoption kept.

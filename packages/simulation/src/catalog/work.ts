@@ -30,6 +30,7 @@ export const FEATURE_IDS = [
   'localization',
   'offline-mode',
   'single-sign-on',
+  'data-residency',
   'status-page',
   'usage-pricing',
 ] as const
@@ -345,6 +346,15 @@ export const FEATURES: Record<FeatureId, FeatureDef> = {
     requires: ['password-login'],
     market: 1.1,
     effect: 'Market +10%: enterprises sign in with SAML',
+  }),
+  'data-residency': feature({
+    id: 'data-residency',
+    name: 'Data residency',
+    era: 6,
+    // 3 engineers, 3 months: a week is 40 DH, so 3 × 12 weeks × 40 = 1,440 (08 "Sizes").
+    dh: 1_440,
+    // An open EU region gates it instead, checked in `featureRefusal` (08 "Features").
+    effect: 'Required for the EU market: EU data stays in an EU region',
   }),
   'status-page': feature({
     id: 'status-page',

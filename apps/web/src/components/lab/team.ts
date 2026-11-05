@@ -21,6 +21,7 @@ import {
   Rabbit,
   Rocket,
   Scale,
+  Shield,
   Siren,
   FlaskConical,
   Trash2,
@@ -55,13 +56,16 @@ import {
   badDeployChance,
   deployEvery,
   devHoursRate,
+  doraMetrics,
   languageOfService,
   membersOf,
   payrollOf,
   policyNow,
   rampSeconds,
   ownerOf,
+  pipelineOf,
   salaryOf,
+  serviceBurnOf,
   serviceOf,
   serviceOfFeature,
   sharesDatabase,
@@ -78,6 +82,7 @@ import {
   featureRefusal,
   itemName,
   MAX_TEAMS,
+  removeRefusal,
   runbookKinds,
   runbookRefusal,
   splitCost,
@@ -502,12 +507,16 @@ const KINDS: ReadonlyArray<readonly [TeamKind, string, typeof Code]> = [
   ['platform', 'Platform', Container],
   ['sre', 'SRE', Siren],
   ['data', 'Data', Database],
+  ['security', 'Security', Shield],
 ]
 
-/** Product teams build the backlog; Platform, SRE and Data teams run the system (08 "Teams"). */
+/**
+ * Product teams build the backlog; Platform, SRE, Data and Security teams run the system
+ * (08 "Teams"). A locked kind still shows: the backend refuses it, as the other three always have.
+ */
 const kindSwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
   h.div(
-    [h.Class(cn('grid grid-cols-4 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
+    [h.Class(cn('grid grid-cols-5 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
     KINDS.map(([kind, label, mark]) => {
       const selected = team.kind === kind
       return h.button(
@@ -665,12 +674,14 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
             ? sreWork(game, h)
             : team.kind === 'data'
               ? dataWork(h)
-              : working(
-                  game.backlog[
-                    game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
-                  ],
-                  h,
-                ),
+              : team.kind === 'security'
+                ? securityWork(h)
+                : working(
+                    game.backlog[
+                      game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
+                    ],
+                    h,
+                  ),
     ],
   )
 }
@@ -716,6 +727,19 @@ const platformWork = (h: HtmlBuilder<Message>): Html =>
       h.span(
         [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
         ['Runs Clusters and deploys'],
+      ),
+    ],
+  )
+
+/** What a Security pod has on its desk: WAF rules, dependency scanning, and compliance. */
+const securityWork = (h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
+    [
+      icon(h, Shield, 'size-3.5 text-muted-foreground'),
+      h.span(
+        [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+        ['WAF rules, dependency scanning, compliance: fewer supply-chain and breach incidents'],
       ),
     ],
   )
@@ -820,7 +844,9 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ),
               ],
-              [`${service.codebase.toFixed(0)} KLOC · debt ${Math.round(service.debt * 100)}%`],
+              [
+                `${service.codebase.toFixed(0)} KLOC · debt ${Math.round(service.debt * 100)}% · ${money(serviceBurnOf(game, ledgerOf(model), service))}/s burn`,
+              ],
             ),
             h.span(
               [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
@@ -830,6 +856,39 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   : `Carries ${service.features.map((id) => FEATURES[id].name).join(', ')}`,
               ],
             ),
+            game.teams.length > 1
+              ? h.div(
+                  [h.Class('flex items-center gap-1.5 pt-0.5')],
+                  [
+                    h.span(
+                      [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
+                      ['Move to'],
+                    ),
+                    h.select(
+                      [
+                        h.AriaLabel(`The team that owns ${service.name}`),
+                        h.OnChange((teamId) =>
+                          Message.TeamChanged({
+                            message: TeamMessage.ServiceMoved({ serviceId: service.id, teamId }),
+                          }),
+                        ),
+                        h.Class(
+                          cn(WELL, 'h-6 rounded-lg px-1.5 text-[calc(11px*var(--type-scale))]'),
+                        ),
+                      ],
+                      game.teams.map((entry) =>
+                        h.option(
+                          [
+                            h.Value(entry.id),
+                            ...(entry.id === service.owner ? [h.Selected(true)] : []),
+                          ],
+                          [entry.name],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : h.empty,
           ],
         )
       }),
@@ -948,6 +1007,39 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/**
+ * DORA metrics (08 "Deploy frequency"): deploy frequency, lead time for changes, change failure
+ * rate, and failed deployment recovery time. Shown once a CI/CD Pipeline is placed, as the design
+ * names; before that the one shared deploy pipeline has nothing to measure.
+ */
+const doraCard = (game: Game, h: HtmlBuilder<Message>): Html => {
+  if (game.sandbox || !pipelineOf(game)) return h.empty
+  const dora = doraMetrics(game)
+  const stat = (label: string, value: string): Html =>
+    h.div(
+      [h.Class('flex flex-col gap-0.5')],
+      [
+        h.span([h.Class(EYEBROW)], [label]),
+        h.span([h.Class(cn(FIGURE, 'text-[calc(13px*var(--type-scale))]'))], [value]),
+      ],
+    )
+  return h.section(
+    [h.Key('dora'), h.Class(cn(PANEL, 'flex shrink-0 flex-col gap-2.5 px-4 pt-3.5 pb-3'))],
+    [
+      heading('DORA metrics', h.empty, h),
+      h.div(
+        [h.Class('grid grid-cols-4 gap-3')],
+        [
+          stat('Deploy frequency', `${dora.deploysPerDay.toFixed(1)}/day`),
+          stat('Lead time', wait(dora.leadTime)),
+          stat('Change failure rate', `${Math.round(dora.changeFailureRate * 100)}%`),
+          stat('MTTR', dora.mttr === null ? '—' : wait(dora.mttr)),
+        ],
+      ),
+    ],
+  )
+}
+
 const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   return h.div(
@@ -960,6 +1052,7 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
     [
       game.sandbox ? h.empty : servicesCard(model, h),
+      doraCard(game, h),
       game.teams.length > 1 && game.engineers.length > 0
         ? h.p(
             [h.Class('px-1 text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
@@ -1689,7 +1782,16 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
                 1,
                 h.empty,
                 [featureReadout(game, id, h)],
-                [],
+                [
+                  iconButton(
+                    'Remove: its code is gone, and its upkeep ends',
+                    Trash2,
+                    Message.TeamChanged({ message: TeamMessage.FeatureRemoved({ id }) }),
+                    removeRefusal(game, id) === null,
+                    h,
+                    'text-danger',
+                  ),
+                ],
                 false,
                 h,
               ),

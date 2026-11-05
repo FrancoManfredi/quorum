@@ -62,6 +62,7 @@ import {
   trancheBuilt,
 } from './migration.ts'
 import { nextRandom } from './random.ts'
+import { openRegions } from './regions.ts'
 import { NEW_ENGINEER } from './state.ts'
 import type { BlockKind, Game, Service, Team, TeamKind, WorkItem } from './state.ts'
 import {
@@ -91,6 +92,7 @@ import {
   withService,
   withServiceId,
 } from './team.ts'
+import { rollOutcome } from './features.ts'
 import { budgetVelocity } from './slo.ts'
 
 /* ==========================================================================
@@ -154,6 +156,10 @@ export const featureRefusal = (game: Game, id: FeatureId): Refusal | null => {
     return Refusal.NotAllowed({
       reason: `${def.name} needs ${missing.map((needed) => FEATURES[needed].name).join(' and ')}.`,
     })
+  // Data residency needs an open EU region, not a Feature (08 "Features"): nowhere else is EU
+  // data allowed to leave the region it names.
+  if (id === 'data-residency' && !openRegions(game).includes('eu'))
+    return Refusal.NotAllowed({ reason: `${def.name} needs an open EU region.` })
   return null
 }
 
@@ -245,13 +251,61 @@ const DATA_KINDS: ReadonlyArray<RequestKind> = ['report', 'ai']
 
 export const queueFeature = (game: Game, id: FeatureId): Action =>
   refused(featureRefusal(game, id), () =>
-    enqueue(game, 'feature', id, featureHoursOf(game, id), false, {
+    enqueue(rollOutcome(game, id), 'feature', id, featureHoursOf(game, id), false, {
       service: serviceOfFeature(game, id).id,
     }),
   )
 
 export const queueTask = (game: Game, id: TaskId): Action =>
   refused(taskRefusal(game, id), () => enqueue(game, 'task', id, TASKS[id].dh))
+
+/* ---------- remove (08 "Rollout", "Upkeep") ---------- */
+
+/**
+ * Why a live Feature cannot be removed, or null. A turned-off Feature still pays its upkeep
+ * (08 "Rollout"); removing it is the only thing that ends it. A Feature another live or planned
+ * Feature requires stays, so the dependency graph the backlog checks never breaks underfoot.
+ */
+export const removeRefusal = (game: Game, id: FeatureId): Refusal | null => {
+  const def = FEATURES[id]
+  if (game.sandbox) return Refusal.NotAllowed({ reason: SANDBOX })
+  if (!game.shipped.includes(id)) return Refusal.NotAllowed({ reason: `${def.name} is not live.` })
+  const dependents = FEATURE_IDS.filter(
+    (other) => other !== id && FEATURES[other].requires.includes(id) && planned(game, other),
+  )
+  if (dependents.length > 0)
+    return Refusal.NotAllowed({
+      reason: `${dependents.map((other) => FEATURES[other].name).join(' and ')} need${dependents.length === 1 ? 's' : ''} it.`,
+    })
+  return null
+}
+
+/**
+ * Removes a live Feature for good (08 "Rollout"): its code is gone, so it stops costing upkeep,
+ * and every effect it had (market, growth, churn, value, load, the kind it unlocked) stops too.
+ * Unlike a flag turned off, there is no bringing it back: building it again queues it from zero.
+ */
+export const removeFeature = (game: Game, id: FeatureId): Action => {
+  const refusal = removeRefusal(game, id)
+  if (refusal) return no(refusal)
+  const service = serviceOfFeature(game, id)
+  const removed: Game = {
+    ...game,
+    shipped: game.shipped.filter((entry) => entry !== id),
+    adoption: Object.fromEntries(Object.entries(game.adoption).filter(([entry]) => entry !== id)),
+    lifts: Object.fromEntries(Object.entries(game.lifts).filter(([entry]) => entry !== id)),
+    outcomes: Object.fromEntries(Object.entries(game.outcomes).filter(([entry]) => entry !== id)),
+  }
+  return ok(
+    withServiceId(removed, service.id, {
+      features: service.features.filter((entry) => entry !== id),
+      lastDeploy: service.lastDeploy.filter((entry) => entry !== id),
+      rollouts: Object.fromEntries(
+        Object.entries(service.rollouts).filter(([entry]) => entry !== id),
+      ),
+    }),
+  )
+}
 
 /** Queues "Write a runbook" for one incident kind (11 "Runbooks"). */
 export const queueRunbook = (game: Game, kind: IncidentId): Action =>
@@ -360,6 +414,20 @@ export const splitService = (game: Game, request: SplitRequest): Action => {
     ],
   }
   return ok(enqueue(next, 'split', service.id, splitCost(features), false, { service: service.id }))
+}
+
+/**
+ * Moves a Service to another team (08 "Ownership"): the new owner's engineers take its backlog
+ * first, and the next bad deploy on it pages them. Instant, with no Dev Hours of its own; what it
+ * costs is implicit in the coordination and debt the new owner now carries.
+ */
+export const moveService = (game: Game, serviceId: string, teamId: string): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const service = game.services.find((entry) => entry.id === serviceId)
+  if (!service) return no(Refusal.Missing())
+  if (!game.teams.some((team) => team.id === teamId)) return no(Refusal.Missing())
+  if (service.owner === teamId) return ok(game)
+  return ok(withServiceId(game, serviceId, { owner: teamId }))
 }
 
 /** The item's Service: a Feature's own codebase, or the Service the item names. */
@@ -731,6 +799,13 @@ export const setTeamKind = (game: Game, teamId: string, kind: TeamKind): Action 
       return no(Refusal.Locked({ what: 'A Data team', research: RESEARCH['data-team'].name }))
     if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
   }
+  if (kind === 'security') {
+    if (!has(game, 'security-team'))
+      return no(
+        Refusal.Locked({ what: 'A Security team', research: RESEARCH['security-team'].name }),
+      )
+    if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
+  }
   return ok({
     ...game,
     teams: game.teams.map((entry) => (entry.id === teamId ? { ...entry, kind } : entry)),
@@ -957,62 +1032,48 @@ const complete = (game: Game, item: WorkItem): Game => {
   }
 }
 
-/** Ships what waits, at the next deploy slot. Nothing ships on top of a bad deploy. */
-const deploy = (
+/**
+ * Ships what one Service's own deploy slot has waiting. Each Service deploys on its own timer and
+ * rolls its own bad deploy, from its own owner's policy and its own tech debt (08 "Services": "every
+ * Service still shares the one deploy pipeline", built now as one shared cadence and strategy, not
+ * one shared slot). Nothing ships on top of a bad deploy already running.
+ */
+const deployService = (
   game: Game,
   ledger: Ledger,
   tuning: Tuning,
   events: Array<StepEvent>,
   offline: boolean,
+  service: Service,
+  hotUpgrade: boolean,
 ): Game => {
-  const service = serviceOf(game)
   if (game.time < service.nextDeployAt) return game
-  // A hot upgrade costs Elixir Dev Hours per release (06 "Runtime behaviors"): the next slot is
-  // that many Dev Hours later. Proposed: the design gives the cost, not its length in seconds.
-  const hotUpgrade = game.nodes.some(
-    (node) =>
-      node.type === 'server' &&
-      !node.shut &&
-      RUNTIMES[node.runtime].language === 'elixir' &&
-      RUNTIMES[node.runtime].hotReload === true,
-  )
-  const slot: Game = {
-    ...game,
-    services: game.services.map((entry) => ({
-      ...entry,
-      nextDeployAt:
-        game.time +
-        deployEvery(game, tuning) +
-        (hotUpgrade ? ELIXIR_HOT_UPGRADE_DEV_HOURS * SIM_SECONDS_PER_DEV_HOUR : 0),
-    })),
-  }
-  if (game.awaiting.length === 0 || game.incident?.kind === 'bad-deploy') return slot
-  const batch = game.awaiting
-  // Each Service ships its own code: its Features, its query shapes, its codebase.
-  const shippedBy = (service: Service): ReadonlyArray<FeatureId> =>
-    batch.filter((id) => serviceOfFeature(game, id).id === service.id)
+  const after: Game = withServiceId(game, service.id, {
+    nextDeployAt:
+      game.time +
+      deployEvery(game, tuning) +
+      (hotUpgrade ? ELIXIR_HOT_UPGRADE_DEV_HOURS * SIM_SECONDS_PER_DEV_HOUR : 0),
+  })
+  if (game.incident?.kind === 'bad-deploy') return after
+  const batch = game.awaiting.filter((id) => serviceOfFeature(game, id).id === service.id)
+  if (batch.length === 0) return after
   let next: Game = {
-    ...slot,
-    shipped: [...slot.shipped, ...batch],
-    awaiting: [],
-    deploys: slot.deploys + 1,
+    ...after,
+    shipped: [...after.shipped, ...batch],
+    awaiting: after.awaiting.filter((id) => !batch.includes(id)),
+    deploys: after.deploys + 1,
     // A shipped Feature is new to its users: adoption starts at 0 and climbs (08 "Adoption").
     adoption: {
-      ...slot.adoption,
+      ...after.adoption,
       ...Object.fromEntries(batch.map((id) => [id, 0])),
     },
-    services: slot.services.map((entry) => {
-      const mine = shippedBy(entry)
-      if (mine.length === 0) return entry
-      return {
-        ...entry,
-        lastDeploy: mine,
-        shapes: entry.shapes + mine.reduce((sum, id) => sum + FEATURES[id].shapes, 0),
-        // A new Feature can leak again.
-        fixes: entry.fixes.filter((fix) => fix !== 'fix-leak'),
-      }
-    }),
   }
+  next = withServiceId(next, service.id, {
+    lastDeploy: batch,
+    shapes: service.shapes + batch.reduce((sum, id) => sum + FEATURES[id].shapes, 0),
+    // A new Feature can leak again.
+    fixes: service.fixes.filter((fix) => fix !== 'fix-leak'),
+  })
   // A release swaps the code. PHP and Elixir reload it in place; every other runtime restarts its
   // App Servers cold (06 "Runtime behaviors", "Hot code reload").
   next = {
@@ -1027,19 +1088,13 @@ const deploy = (
     ),
   }
   // No incident starts while the player is away (04 "Offline progress").
-  const chance = offline ? 0 : badDeployChance(next, tuning)
+  const chance = offline ? 0 : badDeployChance(next, tuning, service)
   let bad = false
   if (chance > 0) {
     const [roll, seed] = nextRandom(next.seed)
     next = { ...next, seed }
-    // The Service that shipped the most code in this batch is the one that broke.
-    const weight = (service: Service): number =>
-      service.lastDeploy.reduce((sum, id) => sum + FEATURES[id].dh, 0)
-    const broke = next.services.reduce((worst, entry) =>
-      weight(entry) > weight(worst) ? entry : worst,
-    )
     const started =
-      roll < chance ? startIncident(next, ledger, 'bad-deploy', roll, undefined, broke.id) : null
+      roll < chance ? startIncident(next, ledger, 'bad-deploy', roll, undefined, service.id) : null
     if (started) {
       next = { ...started.game, badDeploys: next.badDeploys + 1 }
       bad = true
@@ -1048,6 +1103,38 @@ const deploy = (
   }
   events.push(StepEvent.Deployed({ features: batch, bad }))
   return next
+}
+
+/** Ships what every Service's own deploy slot has waiting, in Service order. */
+const deploy = (
+  game: Game,
+  ledger: Ledger,
+  tuning: Tuning,
+  events: Array<StepEvent>,
+  offline: boolean,
+): Game => {
+  // A hot upgrade costs Elixir Dev Hours per release (06 "Runtime behaviors"): the next slot is
+  // that many Dev Hours later. Proposed: the design gives the cost, not its length in seconds.
+  const hotUpgrade = game.nodes.some(
+    (node) =>
+      node.type === 'server' &&
+      !node.shut &&
+      RUNTIMES[node.runtime].language === 'elixir' &&
+      RUNTIMES[node.runtime].hotReload === true,
+  )
+  return game.services.reduce(
+    (current, service) =>
+      deployService(
+        current,
+        ledger,
+        tuning,
+        events,
+        offline,
+        current.services.find((entry) => entry.id === service.id) ?? service,
+        hotUpgrade,
+      ),
+    game,
+  )
 }
 
 /** Whether a Team can work on an item: a Spike waits for its Study, and a blocked item for the player. */

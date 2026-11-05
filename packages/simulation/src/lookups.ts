@@ -101,6 +101,16 @@ export const sreStaffed = (game: Game): boolean =>
     (team) => team.kind === 'sre' && game.engineers.some((engineer) => engineer.team === team.id),
   )
 
+/**
+ * A Security team with at least one engineer runs WAF rules, dependency scanning, and compliance
+ * (08 "Teams"). Needs `security-team` research, which the SOC 2 milestone needs in turn.
+ */
+export const securityStaffed = (game: Game): boolean =>
+  game.teams.some(
+    (team) =>
+      team.kind === 'security' && game.engineers.some((engineer) => engineer.team === team.id),
+  )
+
 export const eraOf = (game: Game): EraDef => ERAS[Math.min(game.stage, ERAS.length - 1)] as EraDef
 
 export const nextEra = (game: Game): EraDef | undefined => ERAS[game.stage + 1]

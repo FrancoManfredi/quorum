@@ -18,11 +18,15 @@ export const TeamMessage = defineMessageUnion({
   PolicyChosen: { teamId: Schema.String, policy: PolicyId },
   KindChosen: { teamId: Schema.String, kind: TeamKind },
   FeatureQueued: { id: FeatureId },
+  /** Removes a live Feature for good: its code is gone, so its upkeep ends (08 "Rollout"). */
+  FeatureRemoved: { id: FeatureId },
   /** The split's draft: its name, its owner, and the Features it moves. */
   ServiceNamed: { name: Schema.String },
   ServiceOwnerChosen: { teamId: Schema.String },
   ServiceFeatureToggled: { id: FeatureId },
   SplitChosen: {},
+  /** Moves a live Service to another team (08 "Ownership"). */
+  ServiceMoved: { serviceId: Schema.String, teamId: Schema.String },
 })
 export type TeamMessage = typeof TeamMessage.Type
 
@@ -35,7 +39,9 @@ export const TeamOutMessage = defineMessageUnion({
   SetPolicy: { teamId: Schema.String, policy: PolicyId },
   SetKind: { teamId: Schema.String, kind: TeamKind },
   QueueFeature: { id: FeatureId },
+  RemoveFeature: { id: FeatureId },
   SplitService: { name: Schema.String, owner: Schema.String, features: Schema.Array(FeatureId) },
+  MoveService: { serviceId: Schema.String, teamId: Schema.String },
 })
 export type TeamOutMessage = typeof TeamOutMessage.Type
 
@@ -80,6 +86,7 @@ export const updateTeam = (team: Team, message: TeamMessage): TeamReturn =>
     PolicyChosen: ({ teamId, policy }) => out(team, TeamOutMessage.SetPolicy({ teamId, policy })),
     KindChosen: ({ teamId, kind }) => out(team, TeamOutMessage.SetKind({ teamId, kind })),
     FeatureQueued: ({ id }) => out(team, TeamOutMessage.QueueFeature({ id })),
+    FeatureRemoved: ({ id }) => out(team, TeamOutMessage.RemoveFeature({ id })),
     ServiceNamed: ({ name }) => ({
       model: { ...team, service: { ...team.service, name } },
     }),
@@ -106,4 +113,6 @@ export const updateTeam = (team: Team, message: TeamMessage): TeamReturn =>
           features: [...team.service.features],
         }),
       ),
+    ServiceMoved: ({ serviceId, teamId }) =>
+      out(team, TeamOutMessage.MoveService({ serviceId, teamId })),
   })

@@ -239,10 +239,13 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 ### The Services card
 
 The Team panel opens with the Company's Services ([Services](/design/08-team-and-velocity#services)),
-one row per codebase: its name, a badge naming the team that owns it, its KLOC and tech debt, and the
-Features it carries. The row rings when an incident names it, and a `Paged` badge marks the Service
-whose code broke. The starting Service's row reads that it carries every Feature no other Service
-names, so a Company with one Service shows one row and no split form.
+one row per codebase: its name, a badge naming the team that owns it, its KLOC, tech debt and Burn
+(its share of the Company's total Burn by its share of the Company's total codebase, proposed, since
+no Node belongs to a Service), and the Features it carries. The row rings when an incident names it,
+and a `Paged` badge marks the Service whose code broke. The starting Service's row reads that it
+carries every Feature no other Service names, so a Company with one Service shows one row and no
+split form. With more than one team, each row also holds a **Move to** select: choosing another team
+moves the Service there at once ([Ownership](/design/08-team-and-velocity#ownership)).
 
 With Service boundaries, the card holds the split's form: a name, a select of the teams, and a chip
 per live Feature no other Service carries. The button says what the split costs (`Split · 48 DH`),
@@ -251,14 +254,23 @@ takes effect at once, so the new row appears with its owner, and its Dev Hours a
 as a split item the owner's team builds. The build has no Service filter on the Dashboard: the
 Services row still draws one row per request kind ([Observability](/design/12-observability#the-dashboard)).
 
+Below the Services card, a **DORA metrics** card shows deploy frequency, lead time for changes,
+change failure rate and failed deployment recovery time (MTTR) once a CI/CD Pipeline is placed
+([Deploy frequency](/design/08-team-and-velocity#deploy-frequency)); it reads nothing in a Sandbox
+and nothing before a Pipeline, since the one shared pipeline has nothing yet to measure.
+
 ### The Live column
 
 A live Feature's card carries what its users have and what Analytics reads from it
 ([Adoption](/design/08-team-and-velocity#adoption), [Measured lift](/design/08-team-and-velocity#measured-lift)):
 `63% adopted`, and once `ab-testing` is done and its rollout leaves a holdout, `Lift +20% ±4% · Wins`,
-`· Loses`, or `· Too early` while the interval still contains zero. The column's header shows the
-share of the Team's Dev Hours that keeps those Features running, `Upkeep 12% of Dev Hours`
+`· Loses`, or `· Too early` while the interval still contains zero; a Feature whose roll landed a
+Loss reads a negative lift and can read `· Loses` once the interval clears zero below it
+([Outcomes](/design/08-team-and-velocity#outcomes)). The column's header shows the share of the
+Team's Dev Hours that keeps those Features running, `Upkeep 12% of Dev Hours`
 ([Upkeep](/design/08-team-and-velocity#upkeep)), and nothing while the Company has no live Feature.
+Each live Feature's card also carries a **Remove** button: its code is gone, and its upkeep ends
+with it, which a flag turned Off does not do.
 
 A teammate's Mail carries the buttons its thread needs (18 "Teammates"): **Approve** and **Later** on a
 blocked item, **Give time off**, **Raise salary** and **Accept resignation** on an unhappy engineer,

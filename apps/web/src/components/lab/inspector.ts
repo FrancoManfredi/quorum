@@ -558,6 +558,12 @@ const warnings = (
     fix('A rule backtracks. CPU at 100%.', 'Disable rule', Message.RuleDisabled())
   if (node.type === 'database' && game.incident?.kind === 'report-db')
     fix('A report is scanning every table.', 'Cancel report', Message.ReportCancelled())
+  if (node.type === 'psp' && game.incident?.kind === 'psp-outage')
+    fix(
+      'Their outage, not yours. Every checkout fails.',
+      'Switch provider',
+      Message.ProviderSwitched(),
+    )
   if (
     node.type === 'database' &&
     game.incident?.kind === 'disk-full' &&

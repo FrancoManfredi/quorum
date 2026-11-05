@@ -2896,6 +2896,8 @@ export const fr: Readonly<Record<string, string>> = {
   'Single sign-on': 'Authentification unique',
   'Market +10%: enterprises sign in with SAML':
     'Marché +10 % : les entreprises se connectent avec SAML',
+  'Required for the EU market: EU data stays in an EU region':
+    "Requis pour le marché européen : les données de l'UE restent dans une région de l'UE",
   'Status page': "Page d'état",
   'Churn −10%: users see you are on it':
     'Attrition −10% : les utilisateurs voient que vous intervenez',

@@ -121,10 +121,12 @@ buttons follow the sender:
 - **Add to backlog** queues the Feature a customer asks for at the end of the Team backlog, which is
   what the Team panel's own Queue does.
 
-Not built yet: **Switch provider**. No Component has a second provider, and a button whose only
-effect is a toast that the mechanic is not modelled would be worse than no button, so a vendor pitch
-carries none. A hire request offers Approve hire and Later, not Decline: Later says the same thing
-to a teammate and keeps the door open.
+**Switch provider** lives on the Payment Provider itself, not on a vendor pitch: no Component has a
+second provider to pick between, so while a Payment provider outage runs, the Inspector's own
+mitigation button ends it at once, for a proposed Cash cost, as a rush integration with a second
+provider would. A vendor pitch about anything else still carries no Switch provider, because
+nothing else has an outage with a second provider to switch to. A hire request offers Approve hire
+and Later, not Decline: Later says the same thing to a teammate and keeps the door open.
 
 Capacity facts that live in the Simulation today (`nextGoal`: out of CPU credits, out of RAM, workers
 busy, connections, network) belong to **Cloud** or **Monitoring**, not to the Mentor. The bottleneck
@@ -323,13 +325,14 @@ and one gift.
 | Recruiter        | Offers to your engineers                                                   | A hint that a teammate is unhappy.                                |
 | Real CVE in Spam | A true advisory that the filter sorted wrongly                             | Ignoring it starts the CVE clock without a warning.               |
 
-Not built yet: two of the effects in that table. **Fake CVE alert**: a backdoor needs a lasting
+**Recruiter** is built: once an engineer's mood is low enough to write
+([Burnout and quitting](#burnout-and-quitting)), the pitch's letter carries a line that hints one of
+them is unhappy, without naming who; the player still reads the Team panel to find out. Not built
+yet: two of the other effects in that table. **Fake CVE alert**: a backdoor needs a lasting
 compromise to install itself into, and the build has none, so its button still raises the toast "That
 was phishing. Check the sender address first." Its id is not in the Glossary, which is the tell that
-catches it before the click. **Recruiter**: the game now tracks the unhappiness the hint would read
-([Burnout and quitting](#burnout-and-quitting)), but the pitch itself still only offers a job. **Vendor
-pitch**: no research discount exists, and the discount would have to live in the Simulation, which
-prices every Study.
+catches it before the click. **Vendor pitch**: no research discount exists, and the discount would
+have to live in the Simulation's research catalog, which prices every Study.
 
 What is built: a phishing button starts the Credential leak incident and takes 10% of the Users (a
 proposed share), the pager writes about it, and the trap's thread keeps the line that says the
@@ -559,13 +562,19 @@ Teammates draw a name from a pool and keep it for life.
   advisory's id is one the player can look up.
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
   The Company also has a 0.5× speed.
+- **Switch provider:** while a Payment provider outage runs, the Inspector's own mitigation button
+  ends it at once, for a proposed Cash cost: a rush integration with a second provider. No Component
+  has a second provider to pick between on the board, so this is the one place the mechanic lives.
+- **The recruiter's hint:** once an engineer's mood is low enough to write
+  ([Burnout and quitting](#burnout-and-quitting)), the recruiter spam's letter carries a line that
+  hints one of them is unhappy, without naming who.
 
-Not built yet: a vendor's **Switch provider** (no Component has a second provider, so a vendor pitch
-carries no button); the **spam filter** as a research item and a setting (the design says there is
+Not built yet: the **spam filter** as a research item and a setting (the design says there is
 none to research, so nothing gates it); the **fake CVE trap's backdoor**, which needs a lasting
-compromise to install itself into; the **recruiter's hint**, which waits on the pitch reading an
-engineer's mood; and a vendor's **research discount**, which the Simulation would have to price. Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
-reader's keys are built: `1` to `9` press a button, `E` deletes or restores, `J` and `K` move, `S`
+compromise to install itself into; and a vendor's **research discount**, which the Simulation's
+research catalog would have to price. Reviewing a rewrite proposal opens the Tradeoff card for the
+migration, not Team. The reader's keys are built: `1` to `9` press a button, `E` deletes or
+restores, `J` and `K` move, `S`
 reports spam. The funding offer panel still exists beside the investor Mail.
 
 ## What happened in the Design

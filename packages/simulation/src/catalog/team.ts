@@ -105,6 +105,21 @@ export const UPKEEP_SHARE = 0.4
 export const UPKEEP_HALF = 2_000
 export const UPKEEP_CEILING = 0.6
 
+/* ---------- outcomes (08 "Outcomes") ---------- */
+
+/**
+ * A Feature's outcome, rolled from the Company's seed when it is queued (08 "Outcomes"): the share
+ * of its win effect that lands on market, growth, churn, and value. Each band is a third of the
+ * roll, and the realized share is uniform across its range. A Feature that only unlocks a kind or
+ * meets a requirement always does that: the roll never touches `unlocks`, `load`, `payload`,
+ * `queries`, or `shapes`, because "users call the new code whether it helps them or not."
+ */
+export const OUTCOME_BANDS: ReadonlyArray<Readonly<{ lo: number; hi: number }>> = [
+  { lo: 0.6, hi: 1.4 }, // Win
+  { lo: -0.1, hi: 0.2 }, // Flat
+  { lo: -0.5, hi: -0.1 }, // Loss
+]
+
 /* ---------- adoption and measured lift (08 "Adoption", "Measured lift") ---------- */
 
 /** Calendar days a Feature takes to reach about 63% of its effect. */
@@ -151,6 +166,15 @@ export const TRUNK_FREQUENCY = 1.5
 export const DATA_TEAM_HOURS = 0.7
 /** A Data team: a pipeline has half the lag. */
 export const DATA_TEAM_LAG = 0.5
+/**
+ * A Security team (08 "Teams": "Lowers supply-chain and breach incident chances"). It halves the
+ * weakness that draws a Supply-chain compromise, same as Dependency scanning research does and
+ * stacking with it, and doubles the patch grace before an overdue CVE is exploited into a Data
+ * breach, so the player has more time to patch before one starts. Proposed: the design names the
+ * effect, not these factors.
+ */
+export const SECURITY_TEAM_SUPPLY_CHAIN = 0.5
+export const SECURITY_TEAM_GRACE = 2
 
 /* ---------- deploys ---------- */
 

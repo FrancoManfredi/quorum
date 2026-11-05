@@ -216,6 +216,18 @@ export const upkeepShare = (game: Game, service: Service): number => {
   )
 }
 
+/**
+ * A Service's share of the Company's Burn (08 "Services": "every Service still shares the one...
+ * Burn"). The design gives no split, because Nodes belong to the board, not to a Service: this
+ * build attributes Burn by each Service's share of the Company's total codebase (KLOC), the one
+ * size every Service already tracks. Proposed. The starting Service, which carries every Feature
+ * no other Service names, reads the whole Burn on a Company that never splits.
+ */
+export const serviceBurnOf = (game: Game, ledger: Ledger, service: Service): number => {
+  const total = game.services.reduce((sum, entry) => sum + entry.codebase, 0)
+  return total > 0 ? (ledger.burn * service.codebase) / total : ledger.burn
+}
+
 /* ---------- pay and mood (08 "Hiring", 18 "Burnout and quitting") ---------- */
 
 /** The salary index an engineer is paid at: the one set at hire or by a raise, else the Era's. */
@@ -445,17 +457,58 @@ export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number 
 export const deployEvery = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
   CALENDAR_DAY / deploysPerDay(game, tuning) / tuning.calendarPace
 
-/** The chance one deploy ships a bug (11 "Bad deploy"). */
-export const badDeployChance = (game: Game, tuning: Tuning = LIVE_TUNING): number => {
-  const team = game.teams[0]
-  const policy = team ? policyNow(game, team, tuning) : POLICIES.balanced
+/**
+ * The chance one deploy ships a bug (11 "Bad deploy"), for a Service: its own owner's policy and
+ * its own tech debt, not the whole Design's (08 "Ownership"). Each Service still ships through the
+ * one deploy pipeline, so every other factor is the Company's.
+ */
+export const badDeployChance = (
+  game: Game,
+  tuning: Tuning = LIVE_TUNING,
+  service: Service = serviceOf(game),
+): number => {
+  const team = ownerOf(game, service)
+  const policy = policyNow(game, team, tuning)
   return (
     (BAD_DEPLOY_BASE[game.stage] ?? BAD_DEPLOY_BASE.at(-1) ?? 0) *
     policy.badDeploy *
-    (1 + 2 * serviceOf(game).debt) *
+    (1 + 2 * service.debt) *
     (has(game, 'testing-culture') ? 1 - TESTS_FACTOR : 1) *
     (has(game, 'code-review') ? 1 - CODE_REVIEW_FACTOR : 1)
   )
+}
+
+/* ---------- DORA metrics (08 "Deploy frequency") ---------- */
+
+export type DoraMetrics = Readonly<{
+  /** Deploys per calendar day. */
+  deploysPerDay: number
+  /** Sim seconds from a backlog item's start to the deploy that ships it: one deploy slot. */
+  leadTime: number
+  /** Share of deploys that shipped a bug, over every deploy the Company has made. */
+  changeFailureRate: number
+  /** Mean seconds to recover from a Bad deploy, over every Bad deploy postmortem; null with none yet. */
+  mttr: number | null
+}>
+
+/**
+ * The five DORA metrics 08 "Deploy frequency" names, minus rework rate, which the build does not
+ * track: deploy frequency, lead time for changes, change failure rate, and failed deployment
+ * recovery time (MTTR). They read the Company's own counters, so they need no history the save
+ * does not already keep, and they are shown once a CI/CD Pipeline is placed (08 "Deploy frequency").
+ */
+export const doraMetrics = (game: Game, tuning: Tuning = LIVE_TUNING): DoraMetrics => {
+  const recovered = game.postmortems.filter((entry) => entry.kind === 'bad-deploy')
+  const mttr =
+    recovered.length > 0
+      ? recovered.reduce((sum, entry) => sum + entry.mttr, 0) / recovered.length
+      : null
+  return {
+    deploysPerDay: deploysPerDay(game, tuning),
+    leadTime: deployEvery(game, tuning),
+    changeFailureRate: game.deploys > 0 ? game.badDeploys / game.deploys : 0,
+    mttr,
+  }
 }
 
 /**

@@ -54,6 +54,7 @@ export const RESPONSES = [
   'pin-and-redeploy',
   'restore-backup',
   'restart-clocks',
+  'switch-provider',
 ] as const
 export type Response = (typeof RESPONSES)[number]
 
@@ -319,6 +320,7 @@ const RESPOND: Record<Response, (game: Game) => Actions.Action> = {
   'pin-and-redeploy': Actions.pinAndRedeploy,
   'restore-backup': Actions.restoreBackup,
   'restart-clocks': Actions.restartClocks,
+  'switch-provider': Actions.switchProvider,
 }
 
 /** Applies one run action. A refused action changes nothing, as a refused click does. */

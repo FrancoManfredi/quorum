@@ -1,7 +1,15 @@
-import { CVE_DEFS, CVE_EVERY, PATCH_GRACE, patchCost, patchWindow } from './catalog.ts'
+import {
+  CVE_DEFS,
+  CVE_EVERY,
+  PATCH_GRACE,
+  SECURITY_TEAM_GRACE,
+  patchCost,
+  patchWindow,
+} from './catalog.ts'
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
+import { securityStaffed } from './lookups.ts'
 import { nextRandom } from './random.ts'
 import type { Game, WorkItem } from './state.ts'
 import { enqueue, memberOf, ownerOf, serviceOf } from './team.ts'
@@ -76,9 +84,11 @@ export const advanceCves = (
     }
   }
 
-  // One breach at a time: an expired patch waits for the running incident to end.
+  // One breach at a time: an expired patch waits for the running incident to end. A Security team
+  // doubles the grace, so the player has more time to patch before one starts (08 "Teams").
+  const grace = PATCH_GRACE * (securityStaffed(next) ? SECURITY_TEAM_GRACE : 1)
   const expired = next.backlog.find(
-    (item) => item.kind === 'patch' && overdueBy(next, item) >= PATCH_GRACE,
+    (item) => item.kind === 'patch' && overdueBy(next, item) >= grace,
   )
   if (expired && !next.incident) {
     const started = startIncident(next, ledger, 'breach', 0)
