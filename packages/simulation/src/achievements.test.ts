@@ -58,6 +58,7 @@ const postmortem = (change: Partial<Postmortem>): Postmortem => ({
   failed: 0,
   action: null,
   severity: 3,
+  endedAt: 600,
   ...change,
 })
 const resolved = (change: Partial<Postmortem>) =>
@@ -88,6 +89,7 @@ const sample = (change: Partial<Sample> = {}): Sample => ({
   served: 0,
   revenue: 0,
   burn: 0,
+  cash: 0,
   latency: 0,
   p99: 0,
   apdex: 1,

@@ -375,6 +375,12 @@ export const Postmortem = Schema.Struct({
   action: Schema.NullOr(ResearchId),
   /** The SEV level it ended at. */
   severity: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
+  /**
+   * The sim second it ended at, so the Dashboard can place it on a time axis
+   * (12 "The Dashboard"). Null in a Save from before the field, which has no
+   * time to place it at.
+   */
+  endedAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The Design resolved it by itself, with no player action (11 "Runbooks"). */
   auto: Schema.optionalKey(Schema.Boolean),
 })
@@ -387,6 +393,8 @@ export const Sample = Schema.Struct({
   served: Schema.Finite,
   revenue: Schema.Finite,
   burn: Schema.Finite,
+  /** Cash in the bank at the end of the second; 0 in a Sample saved before the series. */
+  cash: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   latency: Schema.Finite,
   p99: Schema.Finite,
   apdex: Schema.Finite,

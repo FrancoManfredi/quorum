@@ -543,6 +543,7 @@ export const step = (
     served: ledger.served,
     revenue: ledger.revenue,
     burn: ledger.burn,
+    cash,
     latency: ledger.latency,
     p99: ledger.p99,
     apdex: ledger.apdex,

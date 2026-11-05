@@ -55,6 +55,17 @@ describe('a Garage minute', () => {
     expect(game.cash).toBeGreaterThan(start.cash)
   })
 
+  test('each Sample carries the Cash its second ended on, so the Money card can draw it', () => {
+    const start = newGame()
+    const { game } = run(start, 5)
+    expect(game.history).toHaveLength(5)
+    // The last Sample's figure is the Cash the Money card shows now.
+    expect(game.history[game.history.length - 1]?.cash).toBe(game.cash)
+    // Burn moves Cash every second, so the series has more than one value to draw.
+    expect(new Set(game.history.map((sample) => sample.cash)).size).toBeGreaterThan(1)
+    expect(game.history[0]?.cash).toBeLessThan(start.cash)
+  })
+
   test('only a BEAM App Server counts the process crashes its supervisor absorbs', () => {
     const start = newGame()
     const beam = {
@@ -147,6 +158,19 @@ describe('Pre-seed incidents', () => {
     expect(started).toBeDefined()
     expect(resolved).toBeDefined()
     expect(game.postmortems.length).toBe(1)
+  })
+
+  test('a Postmortem records the sim second it ended at, so its run can sit on a time axis', () => {
+    const due = { ...preseedGame(), nextIncidentAt: Number.MAX_SAFE_INTEGER }
+    const spiked = forceIncident(due, solve(due), 'spike') as Game
+    const startedAt = spiked.incident?.startedAt ?? -1
+    const { game } = run(spiked, 60)
+    const postmortem = game.postmortems[0]
+    expect(postmortem?.endedAt).not.toBeNull()
+    // The run began where the Incident started and ended where the Postmortem was filed.
+    expect((postmortem?.endedAt ?? 0) - (postmortem?.duration ?? 0)).toBeCloseTo(startedAt, 9)
+    expect(postmortem?.endedAt).toBeGreaterThan(startedAt)
+    expect(postmortem?.endedAt).toBeLessThanOrEqual(game.time)
   })
 
   test('a postmortem pays nothing and leaves its action item open until it is researched', () => {

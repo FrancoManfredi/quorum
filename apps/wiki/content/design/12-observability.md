@@ -287,11 +287,13 @@ Each visibility step adds a row. A row appears only when its research is owned.
 | `anomaly-detection` | —               | Not built yet: a forecast band on the traffic and latency Charts, and a line at tomorrow's predicted peak.                                                                                                                                                                                        |
 
 The Dashboard has eight of these rows: Overview, Errors, Latency, Alerts, Services, Resources, Users
-and SLO. Two more rows carry no chart: Company and Incidents
-([Interface](/design/15-ui-ux#company-and-incidents-panels)). They read the Game, the Ledger and the
-Inbox, and they exist because a Chart cannot say who is on the Team, how long the money lasts, or
-what the last Incident cost. They are not visibility steps: they gather facts the player already
-has, not a new signal.
+and SLO. Two more rows read the Game, the Ledger and the Inbox rather than a signal:
+[Company and Incidents](/design/15-ui-ux#company-and-incidents-panels). They exist because a Chart
+cannot say who is on the Team, how long the money lasts, or what the last Incident cost. Each adds
+one series drawn from history the Board cannot show, and no new figure: the Company's Money card
+draws Cash from the Samples' `cash`, and the Incidents row draws each Postmortem's run from `endedAt`
+less its `duration` to `endedAt`, with the running Incident last. They are not visibility steps: they
+gather facts the player already has, not a new signal.
 
 ### Component rows
 
@@ -330,7 +332,8 @@ The Deploy, Incident and Company marks come from the Inbox, which is the only re
 of when an event happened: the Game holds no Deploy, Study or round time. That bounds them to the
 Threads the Inbox still keeps, and it is why a mark names its kind rather than its detail. The running
 Incident is marked once, with the SEV it holds now; every other Incident is marked where its Thread
-started. An Incident has no band to its end.
+started. The marks show when an Incident began; its band, from start to end, is on the Incidents row
+([Interface](/design/15-ui-ux#company-and-incidents-panels)).
 
 Not built yet: Research marks, which need the sim second each Study finished, and the per-group
 toggles, which need a field on the Dashboard's model.

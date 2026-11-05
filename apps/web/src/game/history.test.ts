@@ -2,12 +2,13 @@ import { expect, test } from 'vitest'
 import type { Sample } from '@quorum/simulation/state'
 import { EMPTY_HISTORY, TIERS, historyOfSave, newSamples, record, startOf } from './history.ts'
 
-const sample = (p99: number, users = 100): Sample => ({
+const sample = (p99: number, users = 100, cash = 500): Sample => ({
   users,
   demand: 10,
   served: 10,
   revenue: 1,
   burn: 1,
+  cash,
   latency: 20,
   p99,
   apdex: 1,
@@ -25,6 +26,15 @@ test('blocks split at the clock quarter and keep min, max, sum, and count', () =
   expect(second!.max.p99).toBe(90)
   expect(second!.sum.p99).toBe(140)
   expect(history.hour.map((block) => block.count)).toEqual([3])
+})
+
+test('a block folds Cash like every other figure, so a long range can draw it', () => {
+  // Sim seconds 15 and 16 share a clock quarter.
+  const history = record(EMPTY_HISTORY, [sample(30, 100, 400), sample(90, 100, 600)], 16)
+  const block = history.quarter[0]
+  expect(block?.min.cash).toBe(400)
+  expect(block?.max.cash).toBe(600)
+  expect(block?.sum.cash).toBe(1_000)
 })
 
 test('a Game that went back in time drops the blocks after it', () => {

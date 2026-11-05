@@ -242,11 +242,11 @@ Cash divided by net Burn, which [Economy](/design/09-economy#runway-and-running-
 
 **The Company row** does not appear in a Sandbox or a Challenge, because neither has a Company.
 
-| Panel   | Shows                                                                                                                                                                                              | Reads                                                                                                    |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Money   | Cash, Revenue per second, Burn per second, their net, Payroll, Equity, Runway in 30-day months (∞ while revenue covers the bill), and while Cash is short, the bridge's grant, dilution and Accept | `Game.cash`, `Game.equity` and `Game.bridge`; the Ledger's `revenue`, `burn` and `salaries`              |
-| Team    | Each Team's kind, headcount with the founder included, effective engineers, velocity, and Dev Hours per real minute, with a layoff's morale hit named while it runs                                | `Game.teams`, `Game.engineers` and `Game.moraleUntil`; the Ledger's `velocity` and the Team's own output |
-| Funding | Every round the Company entered, newest first: the Users milestone, the grant and dilution after its Mutators and perks, the answer, and when it happened                                          | `Game.stage` and `Game.founding`; the Era catalog; the Inbox's term-sheet Thread                         |
+| Panel   | Shows                                                                                                                                                                                                                                        | Reads                                                                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Money   | Cash and its series over the Dashboard's range, Revenue per second, Burn per second, their net, Payroll, Equity, Runway in 30-day months (∞ while revenue covers the bill), and while Cash is short, the bridge's grant, dilution and Accept | `Game.cash`, `Game.equity` and `Game.bridge`; the Ledger's `revenue`, `burn` and `salaries`; the Samples' `cash` |
+| Team    | Each Team's kind, headcount with the founder included, effective engineers, velocity, and Dev Hours per real minute, with a layoff's morale hit named while it runs                                                                          | `Game.teams`, `Game.engineers` and `Game.moraleUntil`; the Ledger's `velocity` and the Team's own output         |
+| Funding | Every round the Company entered, newest first: the Users milestone, the grant and dilution after its Mutators and perks, the answer, and when it happened                                                                                    | `Game.stage` and `Game.founding`; the Era catalog; the Inbox's term-sheet Thread                                 |
 
 The funding row's time and answer come from the Inbox, the only record the client keeps of when a
 round happened. The Game holds no round time, and a round raised from the funding offer panel
@@ -256,30 +256,37 @@ market" and its answer "Listed", because it pays Burn rather than a fixed grant 
 declined. Not built yet: the round time and answer on the Game, which would make the funding history
 independent of the Inbox.
 
-Not built yet: a Cash series. A `Sample` holds revenue and Burn but no Cash, so the Money panel
-shows the figure now and no sparkline. The series needs a `cash` field on `Sample`, written with the
-rest of the sample each sim second.
+The Money card carries the Cash series under its figures: one point per Sample, on the Dashboard's
+time range, so the player sees Cash fall through the Garage and step up at a round. The last point is
+the Cash the row above it shows. A Sample from a save made before the field holds no Cash and reads
+0, so a loaded save's oldest series starts flat and fills in as the clock runs.
 
 **The Incidents row** appears when an Incident is running or the Game holds a Postmortem.
 
-| Panel            | Shows                                                                                                                                                           | Reads                                                                   |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Running Incident | The incident's kind, SEV, target, elapsed and total run as an LCD bar, MTTR so far, users lost, revenue lost, and failed requests                               | `Game.incident`, `Game.time` and `Game.users`                           |
-| Incident history | One row per Postmortem, newest first: incident, SEV, target, run, MTTR, users lost, revenue lost, failed requests, and the action item with whether it is owned | `Game.postmortems` and `Game.researched`                                |
-| Postmortem       | The chosen row's cause, run, MTTR, cost, prevention, and the action item's state                                                                                | The chosen `Postmortem`, the incident catalog, and the research catalog |
+| Panel             | Shows                                                                                                                                                           | Reads                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Running Incident  | The incident's kind, SEV, target, elapsed and total run as an LCD bar, MTTR so far, users lost, revenue lost, and failed requests                               | `Game.incident`, `Game.time` and `Game.users`                                                            |
+| Incident history  | One row per Postmortem, newest first: incident, SEV, target, run, MTTR, users lost, revenue lost, failed requests, and the action item with whether it is owned | `Game.postmortems` and `Game.researched`                                                                 |
+| Postmortem        | The chosen row's cause, run, MTTR, cost, prevention, and the action item's state                                                                                | The chosen `Postmortem`, the incident catalog, and the research catalog                                  |
+| Incident timeline | One lane per Postmortem, from the second its run began to the one it ended at, tinted by its SEV, with the running Incident as the last lane                    | `Game.postmortems` (`endedAt` and `duration`), `Game.incident` and `Game.time`; the rows the Charts draw |
 
 Choosing a row is Dashboard view state: it changes no Game state, adds no undo entry, and writes no
 log line. The Game keeps its last four Postmortems, so the history reaches back that far.
+
+Below the two cards, the Incident timeline places each Postmortem on the Dashboard's time axis: one
+lane per Postmortem, named for its Incident and tinted by its SEV, from the second its run began to
+the one it ended at. Its axis is the rows the Charts above draw, so a run lines up with the traffic
+beside it and slides left as time passes. A run that ended before the axis began is left out, and so
+is a Postmortem from a save made before the field, which has no end time to place. The running
+Incident is the last lane, drawn from where it started to now.
 
 Neither row needs a key of its own, and neither is a panel: `D` opens the Dashboard that holds them,
 beside the charts of the system. The Dashboard's scroll area takes focus when the panel opens, and
 `Tab` reaches it too, so a keyboard player scrolls down to these last rows; a focus ring shows where
 the keyboard is.
 
-Not built yet: MTTD, MTTA, and runbooks ([Incidents](/design/11-incidents#the-incident-loop)), and a
-chart of Incident history. A `Postmortem` holds a run and an MTTR but no time at which it ended, so a
-history row could only be placed on a timeline from the Inbox's Threads, and the row draws a table
-instead. The chart needs an `endedAt` field on `Postmortem`.
+Not built yet: MTTD, MTTA, and runbooks ([Incidents](/design/11-incidents#the-incident-loop)). The
+timeline draws when each Incident ran, not how long it took the team to notice it or to respond.
 
 ## Research screen
 

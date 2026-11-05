@@ -685,6 +685,7 @@ const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem 
     lostRevenue: incident.lostRevenue,
     failed: incident.failed,
     severity: incident.severity,
+    endedAt: game.time,
     action: game.sandbox
       ? null
       : (INCIDENTS[incident.kind].actions.find((id) => !has(game, id) && researchReady(game, id)) ??

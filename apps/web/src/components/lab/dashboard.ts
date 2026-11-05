@@ -137,6 +137,7 @@ const rowsOf = (model: Model, slo: number): ReadonlyArray<Row> => {
     errors: value('errors') * 100,
     revenue: value('revenue'),
     burn: value('burn'),
+    cash: value('cash'),
     burnRate: value('errors') / (1 - slo),
   })
   if (tier === null) {
@@ -414,7 +415,7 @@ const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html 
       h.span([h.Class('text-[calc(13px*var(--type-scale))] font-semibold')], [label]),
       h.span(
         [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
-        [`(${count} panels)`],
+        [`(${count} ${count === 1 ? 'panel' : 'panels'})`],
       ),
     ],
   )
@@ -1480,6 +1481,8 @@ const tablePanel = (
   head: ReadonlyArray<string>,
   rows: ReadonlyArray<Readonly<{ key: string; cells: ReadonlyArray<Cell> }>>,
   h: HtmlBuilder<Message>,
+  /** A plot under the table, as the Money card's Cash series. */
+  extra: ReadonlyArray<Html> = [],
 ): Html => {
   const border = 'border-b border-hairline px-2 py-1.5'
   return panel(
@@ -1594,6 +1597,7 @@ const tablePanel = (
               ),
             ],
       ),
+      ...extra,
     ],
     h,
   )
@@ -1682,9 +1686,71 @@ const barList = (
    every round the Company entered. It reads the Game, the Ledger and the Inbox.
    ========================================================================== */
 
+/**
+ * The Money card's Cash series: the same Area the stat panels draw, over the
+ * Dashboard's range. A Sample carries Cash since SIM_VERSION 26, so the row
+ * that shows Cash now also shows where it has been (15 "Company and Incidents
+ * panels"). The line turns red once Cash is short, like the HUD's figure.
+ */
+const cashSpark = (rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
+  const values = rows.map((row) => Number(row.cash))
+  const short = (values[values.length - 1] ?? 0) < 0
+  const color = short ? RED : GREEN
+  const spec: SeriesSpec = {
+    key: 'cash-series',
+    span: '',
+    title: 'Cash',
+    unit: '$',
+    series: [{ key: 'cash', name: 'Cash', color }],
+    format: (value) => money(value),
+  }
+  return h.div(
+    [h.Class('mt-1.5 flex shrink-0 flex-col gap-0.5')],
+    [
+      h.div(
+        [h.Class(cn(SCREEN, 'relative flex h-[76px] flex-col justify-end px-1 pt-1'))],
+        [
+          ComposedChart(
+            {
+              data: rows,
+              responsive: true,
+              width: 320,
+              height: 76,
+              margin: { top: 4, right: 6, bottom: 2, left: 6 },
+              defs: [gradient('cash-series', color, h)],
+              children: [
+                XAxis({ dataKey: 't', hide: true }),
+                // Cash can run below zero, so the axis starts at the lowest point, not at zero.
+                YAxis({
+                  hide: true,
+                  domain: [Math.min(0, ...values), Math.max(1, ...values) * 1.1],
+                }),
+                ReferenceLine({ y: 0, stroke: MUTED, strokeDasharray: '3 3' }),
+                Tooltip({ content: 'none' }),
+                Area({
+                  dataKey: 'cash',
+                  name: 'Cash',
+                  stroke: color,
+                  strokeWidth: 1.5,
+                  fill: 'url(#cash-series)',
+                  fillOpacity: 1,
+                  type: 'linear',
+                }),
+              ],
+            },
+            h,
+          ),
+        ],
+      ),
+      seriesLegend(rows, spec, undefined, h),
+    ],
+  )
+}
+
 const companyPanels = (
   model: Model,
   ledger: Ledger,
+  rows: ReadonlyArray<Row>,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
   const game = model.board.game
@@ -1721,7 +1787,7 @@ const companyPanels = (
       'company-money',
       'col-span-8',
       'Money',
-      'now',
+      `now · cash ${rangeLabel(model.board.dashboard.range)}`,
       ['Line', 'Value'],
       moneyRows.map(([name, value, onClick]) => ({
         key: name,
@@ -1737,6 +1803,7 @@ const companyPanels = (
         ],
       })),
       h,
+      [cashSpark(rows, h)],
     ),
     tablePanel(
       'company-team',
@@ -1786,6 +1853,111 @@ const companyPanels = (
    The Incidents panel (15 "Panels"): the running Incident and the Postmortems
    the Game keeps. The chosen row opens its Postmortem below the list.
    ========================================================================== */
+
+/** SEV1 is the worst Incident, so the bars soften down the game's hues as the SEV does. */
+const SEVERITY_COLOR: Readonly<Record<number, string>> = { 1: RED, 2: AMBER, 3: PURPLE }
+
+/**
+ * The Incident history on the Dashboard's time axis (15 "Company and Incidents
+ * panels"): one lane per Postmortem, from the second its run began to the one it
+ * ended at, and the running Incident as the last lane. The axis is the rows the
+ * Charts above draw, so a run lines up with the traffic that ran beside it. A
+ * Postmortem saved before `endedAt` has no time to place it at, so it stays in
+ * the table only.
+ */
+const incidentTimeline = (
+  model: Model,
+  rows: ReadonlyArray<Row>,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const game = model.board.game
+  const range = model.board.dashboard.range
+  const first = Number(rows[0]?.at ?? Math.floor(game.time))
+  const last = Number(rows[rows.length - 1]?.at ?? first) + Number(rows[rows.length - 1]?.span ?? 1)
+  const span = Math.max(1, last - first)
+  const lane = (key: string, name: string, from: number, to: number, severity: number): Lane => {
+    const start = Math.max(first, from)
+    const end = Math.min(last, to)
+    return {
+      key,
+      name,
+      runs: [
+        {
+          from: start - first,
+          to: end - first,
+          color: SEVERITY_COLOR[severity] ?? MUTED,
+          label: `SEV${severity} · ${hhmm(start)}–${hhmm(end)}`,
+        },
+      ],
+    }
+  }
+  const lanes: Array<Lane> = []
+  const severities = new Set<number>()
+  for (const postmortem of game.postmortems) {
+    const endedAt = postmortem.endedAt
+    if (endedAt === null) continue
+    const startedAt = endedAt - postmortem.duration
+    // A run that ended before the axis began, or began after it ends, has nothing to place.
+    if (endedAt < first || startedAt > last) continue
+    severities.add(postmortem.severity)
+    lanes.push(
+      lane(
+        `pm-${postmortem.id}`,
+        INCIDENTS[postmortem.kind].name,
+        startedAt,
+        endedAt,
+        postmortem.severity,
+      ),
+    )
+  }
+  const incident = game.incident
+  const now = Math.floor(game.time)
+  if (incident !== null && incident.startedAt <= now) {
+    severities.add(incident.severity)
+    lanes.push(
+      lane(
+        'running',
+        `Running · ${INCIDENTS[incident.kind].name}`,
+        incident.startedAt,
+        now,
+        incident.severity,
+      ),
+    )
+  }
+  if (lanes.length === 0)
+    return panel(
+      'incident-timeline',
+      'col-span-24',
+      'Incident timeline',
+      rangeLabel(range),
+      [
+        h.div(
+          [h.Class(cn(SCREEN, 'px-2 py-3'))],
+          [
+            h.span(
+              [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
+              ['No run in this range.'],
+            ),
+          ],
+        ),
+      ],
+      h,
+    )
+  return laneTimeline(
+    'incident-timeline',
+    'col-span-24',
+    'Incident timeline',
+    `run · ${rangeLabel(range)}`,
+    lanes,
+    span,
+    first,
+    last,
+    h,
+    [...severities]
+      .sort()
+      .map((severity) => swatch(`SEV${severity}`, SEVERITY_COLOR[severity] ?? MUTED, h)),
+  )
+}
 
 /** The action item's state in the Dashboard's status colours: done, open, or none. */
 const actionColor = (game: Game, postmortem: Postmortem): string =>
@@ -1923,7 +2095,11 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
   )
 }
 
-const incidentPanels = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+const incidentPanels = (
+  model: Model,
+  rows: ReadonlyArray<Row>,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => {
   const game = model.board.game
   const chosen = game.postmortems.find(
     (postmortem) => postmortem.id === model.board.dashboard.postmortem,
@@ -1931,6 +2107,7 @@ const incidentPanels = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Ht
   return [
     runningIncident(game, h),
     incidentHistory(game, h),
+    incidentTimeline(model, rows, h),
     ...(chosen === undefined ? [] : [postmortemDetail(game, chosen, h)]),
   ]
 }
@@ -2814,7 +2991,9 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ? [rowHeader('Users', 1, h), usersTable(game, ledger, h)]
             : []),
 
-          ...(game.sandbox ? [] : [rowHeader('Company', 3, h), ...companyPanels(model, ledger, h)]),
+          ...(game.sandbox
+            ? []
+            : [rowHeader('Company', 3, h), ...companyPanels(model, ledger, rows, h)]),
           ...(game.incident === null && game.postmortems.length === 0
             ? []
             : [
@@ -2823,11 +3002,11 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   game.postmortems.some(
                     (postmortem) => postmortem.id === model.board.dashboard.postmortem,
                   )
-                    ? 3
-                    : 2,
+                    ? 4
+                    : 3,
                   h,
                 ),
-                ...incidentPanels(model, h),
+                ...incidentPanels(model, rows, h),
               ]),
         ]
 

@@ -21,6 +21,7 @@ export const FIELDS = [
   'errors',
   'revenue',
   'burn',
+  'cash',
 ] as const satisfies ReadonlyArray<keyof Sample>
 export type Field = (typeof FIELDS)[number]
 

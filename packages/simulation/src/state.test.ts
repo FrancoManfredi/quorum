@@ -96,6 +96,11 @@ describe('old saves', () => {
     ).toBe(true)
     expect(game.data).toBe(0)
     expect(game.uploads).toBe(0)
+    // The Dashboard's Cash series (SIM_VERSION 26): an old Sample holds no Cash, and an old
+    // Postmortem no end time, so each reads unknown rather than failing to load.
+    expect(game.history).not.toHaveLength(0)
+    expect(game.history.every((sample) => sample.cash === 0)).toBe(true)
+    expect(game.postmortems.map((postmortem) => postmortem.endedAt)).toEqual([null])
     expect(solve(game).revenue).toBeGreaterThan(0)
     expect(step(game, 1).game.time).toBe(game.time + 1)
   })

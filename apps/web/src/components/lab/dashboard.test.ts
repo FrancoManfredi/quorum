@@ -11,6 +11,7 @@ import {
   type ComponentId,
   type ResearchId,
 } from '@quorum/simulation/catalog'
+import { clockOf } from '@quorum/simulation/calendar'
 import { churnOf } from '@quorum/simulation/churn'
 import { preseedGame } from '@quorum/simulation/company'
 import type { KindLedger } from '@quorum/simulation/ledger'
@@ -48,6 +49,7 @@ const sampleOf = (over: Partial<Sample> = {}): Sample => ({
   served: 28,
   revenue: 0.5,
   burn: 0.2,
+  cash: 12_000,
   latency: 80,
   p99: 300,
   apdex: 0.9,
@@ -472,6 +474,27 @@ test('the Company row draws Cash, Burn, Equity, runway and each team’s velocit
   )
 })
 
+test('the Money card draws the Cash series its Samples carry, ending on the Cash it shows', () => {
+  const history = [
+    sampleOf({ cash: 8_000 }),
+    sampleOf({ cash: 10_000 }),
+    sampleOf({ cash: 12_000 }),
+  ]
+  const model = fixture({ game: { cash: 12_000, history } })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(panelOf('company-money')).toContainText('Cash'),
+    Scene.expect(panelOf('company-money')).toContainText(money(12_000)),
+    // The series' figures come from the Samples, one per sim second.
+    Scene.expect(panelOf('company-money')).toContainText(`mean ${money(10_000)}`),
+    Scene.expect(panelOf('company-money')).toContainText(`max ${money(12_000)}`),
+    Scene.expect(panelOf('company-money')).toContainText(`last ${money(12_000)}`),
+    Scene.expect(Scene.selector('[fill="url(#cash-series)"]')).toExist(),
+    Scene.expect(panelOf('company-money')).toContainText('cash 6h'),
+  )
+})
+
 test('the Company row draws the bridge offer’s terms, and taking it pays the grant', () => {
   const model = fixture({
     game: {
@@ -572,6 +595,7 @@ const POSTMORTEMS: ReadonlyArray<Postmortem> = [
     failed: 800,
     action: 'health-checks',
     severity: 3,
+    endedAt: 940,
   },
   {
     id: 2,
@@ -584,6 +608,7 @@ const POSTMORTEMS: ReadonlyArray<Postmortem> = [
     failed: 90,
     action: null,
     severity: 2,
+    endedAt: 1_000,
   },
 ]
 
@@ -605,6 +630,90 @@ test('the Incidents row lists each Postmortem’s run, MTTR, cost and action ite
     Scene.expect(panelOf('incident-history')).toContainText(RESEARCH['health-checks'].name),
     Scene.expect(panelOf('incident-history')).toContainText(INCIDENTS.leak.name),
     Scene.expect(panelOf('incident-history')).toContainText('—'),
+  )
+})
+
+const clock = (time: number): string => {
+  const { hour, minute } = clockOf(time)
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+/** A lane block of the Incident timeline, titled with its run's clock times. */
+const laneOf = (name: string, severity: number, from: number, to: number) =>
+  Scene.selector(`[title="${name}: SEV${severity} · ${clock(from)}–${clock(to)}"]`)
+
+/** `seconds` one-second Samples, ending at the Game's clock. */
+const samplesOf = (seconds: number): ReadonlyArray<Sample> =>
+  Array.from({ length: seconds }, () => sampleOf())
+
+test('the Incident timeline places each Postmortem by the time it ran, and the running Incident last', () => {
+  const model = fixture({
+    game: {
+      // 151 Samples, so the axis runs from 850 to 1,001: both runs sit inside it.
+      history: [...samplesOf(151)],
+      postmortems: [...POSTMORTEMS],
+      incident: {
+        kind: 'zone',
+        remaining: 12,
+        nodeId: null,
+        startedAt: 960,
+        baseline: 1,
+        usersAtStart: 1_200,
+        impaired: 25,
+        lostRevenue: 340,
+        failed: 900,
+        severity: 2,
+        magnitude: 3,
+        zone: 'b',
+        region: null,
+      },
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(panelOf('incident-timeline')).toExist(),
+    // Each Postmortem sits where its run began and ended, on the Dashboard's one time axis.
+    Scene.expect(laneOf(INCIDENTS.instance.name, 3, 850, 940)).toExist(),
+    Scene.expect(laneOf(INCIDENTS.leak.name, 2, 970, 1_000)).toExist(),
+    // The running Incident is the last lane, from when it started to now.
+    Scene.expect(laneOf(`Running · ${INCIDENTS.zone.name}`, 2, 960, 1_000)).toExist(),
+    Scene.expect(panelOf('incident-timeline')).toContainText(INCIDENTS.instance.name),
+    Scene.expect(panelOf('incident-timeline')).toContainText(INCIDENTS.leak.name),
+    Scene.expect(panelOf('incident-timeline')).toContainText('SEV2'),
+  )
+})
+
+test('the timeline leaves out a run that ended before the axis, and one with no end time', () => {
+  const early = fixture({
+    game: {
+      time: 30_000,
+      // The axis runs from 29,960 to 30,001.
+      history: [...samplesOf(41)],
+      postmortems: [
+        { ...POSTMORTEMS[0]!, endedAt: 10 },
+        { ...POSTMORTEMS[1]!, endedAt: 29_990 },
+      ],
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(early),
+    Scene.expect(row('Incidents')).toExist(),
+    Scene.expect(laneOf(INCIDENTS.leak.name, 2, 29_960, 29_990)).toExist(),
+    Scene.expect(laneOf(INCIDENTS.instance.name, 3, -80, 10)).toBeAbsent(),
+  )
+  // A Postmortem saved before `endedAt` has no second to sit at, so the card says so.
+  const old = fixture({
+    game: {
+      history: [...samplesOf(41)],
+      postmortems: [{ ...POSTMORTEMS[0]!, endedAt: null }],
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(old),
+    Scene.expect(panelOf('incident-timeline')).toContainText('No run in this range.'),
   )
 })
 
