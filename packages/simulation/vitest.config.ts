@@ -10,5 +10,9 @@ export default defineConfig({
     testTimeout: 20_000,
     // The tests are CPU-bound and the main process idles, so use every core, not Vitest's default of one fewer.
     maxWorkers: availableParallelism(),
+    // Many of these tests step the Simulation through a calendar day or a quarter, so the slowest sit at
+    // two to three seconds on a developer machine and cross Vitest's five-second default on a CI runner.
+    // A real hang still stops at this cap instead of holding the suite open.
+    testTimeout: 20_000,
   },
 })
