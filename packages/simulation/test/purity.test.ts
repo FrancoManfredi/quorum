@@ -10,7 +10,7 @@ import { expect, test } from 'vitest'
  * own files, touch no host globals, and use only exact math.
  */
 
-const root = dirname(fileURLToPath(import.meta.url))
+const root = join(dirname(fileURLToPath(import.meta.url)), '../src')
 
 const listSources = async (directory: string): Promise<Array<string>> => {
   const entries = await readdir(directory, { withFileTypes: true })

@@ -1,11 +1,11 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { resize, setRuntime, type Action } from './actions.ts'
-import { preseedGame } from './company.ts'
-import { previewOf, type Preview } from './preview.ts'
-import { solveFlow } from './solve.ts'
-import type { Game } from './state.ts'
-import { step } from './step.ts'
+import { resize, setRuntime, type Action } from '../src/actions.ts'
+import { preseedGame } from '../src/company.ts'
+import { previewOf, type Preview } from '../src/preview.ts'
+import { solveFlow } from '../src/solve.ts'
+import type { Game } from '../src/state.ts'
+import { step } from '../src/step.ts'
 
 /*
  * The preview against what really happens. The preview runs 10 sim seconds

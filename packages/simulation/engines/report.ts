@@ -1,7 +1,7 @@
 import { Result } from 'effect'
 import { CHALLENGES, runChallenge } from '../src/challenges.ts'
-import { referenceReplay } from '../src/fixtures/challenges.ts'
-import { GOLDEN_STEPS, goldenGame, replay } from '../src/fixtures/golden.ts'
+import { referenceReplay } from '../test/fixtures/challenges.ts'
+import { GOLDEN_STEPS, goldenGame, replay } from '../test/fixtures/golden.ts'
 import { hashGame } from '../src/hash.ts'
 
 /* What every engine computes for the cross-engine check (04 "Determinism and randomness"). */

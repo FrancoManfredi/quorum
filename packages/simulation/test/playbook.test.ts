@@ -1,9 +1,15 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { place } from './actions.ts'
-import { preseedGame } from './company.ts'
-import { capture, decodePlaybook, duplicate, encodePlaybook, placePlaybook } from './playbook.ts'
-import type { Game } from './state.ts'
+import { place } from '../src/actions.ts'
+import { preseedGame } from '../src/company.ts'
+import {
+  capture,
+  decodePlaybook,
+  duplicate,
+  encodePlaybook,
+  placePlaybook,
+} from '../src/playbook.ts'
+import type { Game } from '../src/state.ts'
 
 /* Playbooks (13): capture a Design, place it in another Company, share it as text. */
 

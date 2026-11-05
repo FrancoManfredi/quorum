@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'vitest'
-import { SLOW } from '../slow.ts'
-import { CHALLENGE_TUNING } from './catalog.ts'
-import { runBot } from './pacing.ts'
-import { budgetOf } from './slo.ts'
+import { SLOW } from './slow.ts'
+import { CHALLENGE_TUNING } from '../src/catalog.ts'
+import { runBot } from '../src/pacing.ts'
+import { budgetOf } from '../src/slo.ts'
 
 /*
  * The Balanced bot at the Challenge pace (16 "Pacing model", plan D16: five seeds).

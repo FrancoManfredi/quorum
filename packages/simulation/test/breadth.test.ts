@@ -1,13 +1,13 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { connect, place } from './actions.ts'
-import { COMPONENT_IDS, COMPONENTS, INCIDENT_IDS } from './catalog.ts'
-import { forceIncident } from './director.ts'
-import { hashGame } from './hash.ts'
-import { freeSandbox } from './sandbox.ts'
-import { solveFlow } from './solve.ts'
-import { Game } from './state.ts'
-import { step } from './step.ts'
+import { connect, place } from '../src/actions.ts'
+import { COMPONENT_IDS, COMPONENTS, INCIDENT_IDS } from '../src/catalog.ts'
+import { forceIncident } from '../src/director.ts'
+import { hashGame } from '../src/hash.ts'
+import { freeSandbox } from '../src/sandbox.ts'
+import { solveFlow } from '../src/solve.ts'
+import { Game } from '../src/state.ts'
+import { step } from '../src/step.ts'
 
 /*
  * The Simulation end to end, across the whole catalog. Every Component is built, every incident

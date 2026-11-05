@@ -1,13 +1,13 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { SLOW } from '../slow.ts'
-import * as Actions from './actions.ts'
-import type { Action } from './actions.ts'
+import { SLOW } from './slow.ts'
+import * as Actions from '../src/actions.ts'
+import type { Action } from '../src/actions.ts'
 import { Result as R } from 'effect'
-import { COMPONENTS, COMPONENT_IDS, FRAMEWORK_IDS, RUNTIME_IDS } from './catalog.ts'
-import { newGame } from './company.ts'
-import { frameworkReady, runtimeReady } from './lookups.ts'
-import { previewOf } from './preview.ts'
+import { COMPONENTS, COMPONENT_IDS, FRAMEWORK_IDS, RUNTIME_IDS } from '../src/catalog.ts'
+import { newGame } from '../src/company.ts'
+import { frameworkReady, runtimeReady } from '../src/lookups.ts'
+import { previewOf } from '../src/preview.ts'
 import {
   GUIDED,
   START,
@@ -17,11 +17,11 @@ import {
   sandboxOf,
   type Progress,
   type SandboxId,
-} from './sandbox.ts'
-import { solve, solveFlow } from './solve.ts'
-import { addIndex } from './work.ts'
-import { step } from './step.ts'
-import type { Game } from './state.ts'
+} from '../src/sandbox.ts'
+import { solve, solveFlow } from '../src/solve.ts'
+import { addIndex } from '../src/work.ts'
+import { step } from '../src/step.ts'
+import type { Game } from '../src/state.ts'
 
 const ok = (action: Action): Game => {
   if (Result.isFailure(action)) throw new Error(JSON.stringify(action.failure))

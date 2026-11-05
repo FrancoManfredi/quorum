@@ -1,11 +1,11 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { GLOSSARY } from './catalog.ts'
-import { newGame } from './company.ts'
-import { DISCOVERABLE, discoverTerms } from './discovery.ts'
-import { StepEvent } from './events.ts'
-import type { Incident } from './state.ts'
+import { GLOSSARY } from '../src/catalog.ts'
+import { newGame } from '../src/company.ts'
+import { DISCOVERABLE, discoverTerms } from '../src/discovery.ts'
+import { StepEvent } from '../src/events.ts'
+import type { Incident } from '../src/state.ts'
 
 const incident: Incident = {
   kind: 'spike',

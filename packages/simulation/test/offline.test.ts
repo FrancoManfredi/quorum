@@ -1,9 +1,9 @@
-import { stopped, warmOf } from './life.ts'
+import { stopped, warmOf } from '../src/life.ts'
 import { describe, expect, test } from 'vitest'
-import { OFFLINE_CAP } from './catalog.ts'
-import { preseedGame } from './company.ts'
-import { OFFLINE_CHURN, offlineCap, simulateAway } from './offline.ts'
-import type { Game } from './state.ts'
+import { OFFLINE_CAP } from '../src/catalog.ts'
+import { preseedGame } from '../src/company.ts'
+import { OFFLINE_CHURN, offlineCap, simulateAway } from '../src/offline.ts'
+import type { Game } from '../src/state.ts'
 
 /* Offline progress (04 "Offline progress"). */
 

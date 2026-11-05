@@ -1,6 +1,6 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import * as Actions from './actions.ts'
+import * as Actions from '../src/actions.ts'
 import {
   CHALLENGES,
   bucketOf,
@@ -9,10 +9,10 @@ import {
   dailyDrill,
   runChallenge,
   type Challenge,
-} from './challenges.ts'
+} from '../src/challenges.ts'
 import { REFERENCE, referenceReplay, replayOf } from './fixtures/challenges.ts'
-import { decodeReplay, designOf, encodeReplay } from './replay.ts'
-import type { Game } from './state.ts'
+import { decodeReplay, designOf, encodeReplay } from '../src/replay.ts'
+import type { Game } from '../src/state.ts'
 
 const ok = (action: Actions.Action): Game => {
   if (Result.isFailure(action)) throw new Error(JSON.stringify(action.failure))

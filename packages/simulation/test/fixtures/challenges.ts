@@ -1,10 +1,10 @@
 import { Result } from 'effect'
-import * as Actions from '../actions.ts'
-import type { Challenge } from '../challenges.ts'
-import { designOf, type Replay } from '../replay.ts'
-import type { Game } from '../state.ts'
-import { SIM_VERSION } from '../version.ts'
-import { setFix } from '../work.ts'
+import * as Actions from '../../src/actions.ts'
+import type { Challenge } from '../../src/challenges.ts'
+import { designOf, type Replay } from '../../src/replay.ts'
+import type { Game } from '../../src/state.ts'
+import { SIM_VERSION } from '../../src/version.ts'
+import { setFix } from '../../src/work.ts'
 
 /* Each Challenge's reference solution, built with the board's actions. Node, the browsers and workerd replay them. */
 

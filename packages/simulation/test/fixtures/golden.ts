@@ -1,6 +1,6 @@
-import { preseedGame } from '../company.ts'
-import type { Game } from '../state.ts'
-import { step } from '../step.ts'
+import { preseedGame } from '../../src/company.ts'
+import type { Game } from '../../src/state.ts'
+import { step } from '../../src/step.ts'
 
 /** Sim seconds in one golden Step. */
 export const GOLDEN_STEP = 0.25

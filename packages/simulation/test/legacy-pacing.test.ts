@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
-import { runBot } from './pacing.ts'
-import type { Founding } from './state.ts'
+import { runBot } from '../src/pacing.ts'
+import type { Founding } from '../src/state.ts'
 
 /*
  * A second Company (13, plan M7): the Legacy a first Exit pays buys perks, and

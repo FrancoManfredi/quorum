@@ -23,7 +23,7 @@ Considered options:
   a Challenge submission crosses the wire as an encoded string that the backend decodes with the
   Simulation's schemas.
 - The Simulation imports only `effect` and its own files. Its tsconfig has no DOM library, and
-  `src/purity.test.ts` rejects any other import, host globals such as `Date` and `window`, and the
+  `test/purity.test.ts` rejects any other import, host globals such as `Date` and `window`, and the
   math that engines may compute differently (`Math.cos`, `Math.exp`, `Math.pow`, `**`, and the
   rest), as [GDD 04](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/04-simulation.md#determinism-and-randomness) requires.
 - `SIM_VERSION` is the git tree hash of `packages/simulation/src`, filled in at build time by
