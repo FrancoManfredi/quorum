@@ -1,4 +1,5 @@
 import type { ToolName } from 'quorum-mcp-relay/tools'
+import { nodeLabel } from '@quorum/simulation/labels'
 import { boardChallenge, ledgerOf, offCompany, boardSandbox, type Model } from './model.ts'
 
 /* ==========================================================================
@@ -62,7 +63,11 @@ const runs: Record<ToolName, (model: Model, input: Input) => unknown> = {
   get_design: (m) => {
     const ledger = ledgerOf(m)
     return {
-      nodes: m.board.game.nodes.map((node) => ({ ...node, ledger: ledger.nodes[node.id] ?? null })),
+      nodes: m.board.game.nodes.map((node) => ({
+        ...node,
+        label: nodeLabel(m.board.game, node),
+        ledger: ledger.nodes[node.id] ?? null,
+      })),
       links: m.board.game.links.map((link) => ({
         ...link,
         ledger: ledger.links.find((l) => l.from === link.from && l.to === link.to) ?? null,

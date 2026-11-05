@@ -7,6 +7,7 @@ import { isDown } from './lookups.ts'
 import { migrationCost } from './migration.ts'
 import { serviceOf, stackOf, withService } from './team.ts'
 import { company, link, node } from './company.ts'
+import { normalizeOrdinals } from './labels.ts'
 import { forceIncident } from './director.ts'
 import { hashGame } from './hash.ts'
 import { SHARED } from './playbook.ts'
@@ -108,17 +109,18 @@ const board = (
   nodes: ReadonlyArray<GameNode>,
   links: ReadonlyArray<readonly [string, string]>,
   seed = SEED,
-): Game => ({
-  ...company(seed),
-  sandbox: true,
-  cash: 0,
-  stage: era,
-  users,
-  researched: ['stripe', 'logs', 'metrics', 'percentiles', ...palette],
-  nodes: [node('users', 'users', 120, 280), ...nodes],
-  links: links.map(([from, to]): GameLink => link(from, to)),
-  nextId: 1,
-})
+): Game =>
+  normalizeOrdinals({
+    ...company(seed),
+    sandbox: true,
+    cash: 0,
+    stage: era,
+    users,
+    researched: ['stripe', 'logs', 'metrics', 'percentiles', ...palette],
+    nodes: [node('users', 'users', 120, 280), ...nodes],
+    links: links.map(([from, to]): GameLink => link(from, to)),
+    nextId: 1,
+  })
 
 const servers = (game: Game) => game.nodes.filter((entry) => entry.type === 'server')
 

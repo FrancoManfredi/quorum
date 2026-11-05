@@ -11,6 +11,7 @@ import {
   type DataPatternId,
   type RegionId,
 } from '@quorum/simulation/catalog'
+import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import {
   applyCost,
@@ -128,11 +129,11 @@ const nodeName = (game: Game, id: string, mirror: Mirror): string => {
     if (!source) return 'Node'
     return source.type === 'database' && mirror.data[source.id] === 'replica'
       ? COMPONENTS.replica.name
-      : COMPONENTS[source.type].name
+      : nodeLabel(game, source)
   }
   const node = game.nodes.find((entry) => entry.id === id)
   if (!node) return 'Node'
-  const name = COMPONENTS[node.type].name
+  const name = nodeLabel(game, node)
   return node.region === mirror.region ? name : `${name} ${REGION_INFO[node.region].short}`
 }
 

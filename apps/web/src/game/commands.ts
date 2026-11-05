@@ -3,9 +3,10 @@ import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
-import { fitBoard, setBoard } from '@quorum/ui/board/board'
+import { fitBoard, focusBoard, setBoard } from '@quorum/ui/board/board'
 import { solveFlow } from '@quorum/simulation/solve'
 import { compute } from '@quorum/ui/board/compute'
+import { nodeOrdinals } from '@quorum/simulation/labels'
 import { regionView } from '@quorum/simulation/regions'
 import { ComponentId, Game, Region } from '@quorum/simulation/state'
 import { Message } from './message.ts'
@@ -67,6 +68,8 @@ export const SyncBoard = Command.define('SyncBoard', {
     cue: Schema.NullOr(Schema.String),
     /** Fit the view to the new Design once it is drawn. */
     fit: Schema.Boolean,
+    /** Bring this Node into view after the state is drawn, as a reveal does. */
+    focus: Schema.NullOr(Schema.String),
   },
   messages: [Message.Synced],
   execute: ({
@@ -83,12 +86,14 @@ export const SyncBoard = Command.define('SyncBoard', {
     suspended,
     cue,
     fit,
+    focus,
   }) =>
     Effect.sync(() => {
       setBoard('board', {
         locale,
         translate: (text) => translate(locale, text),
         game: regionView(game, region),
+        ordinals: nodeOrdinals(game),
         ledger: { ...solveFlow(game), bottleneck },
         selected,
         selection,
@@ -101,6 +106,7 @@ export const SyncBoard = Command.define('SyncBoard', {
         cue,
       })
       if (fit) fitBoard('board')
+      if (focus) focusBoard('board', focus)
     }).pipe(Effect.as(Message.Synced())),
 })
 

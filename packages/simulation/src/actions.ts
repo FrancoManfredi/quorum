@@ -63,6 +63,7 @@ import {
   runtimeReady,
   vcpuOf,
 } from './lookups.ts'
+import { nextOrdinal } from './labels.ts'
 import { link } from './company.ts'
 import { goGlobal, isGlobal, openRegions } from './regions.ts'
 import {
@@ -165,6 +166,7 @@ export const blankNode = (
   return {
     id,
     type,
+    ordinal: nextOrdinal(game, type),
     x: Math.round(x),
     y: Math.round(y),
     size: 1,

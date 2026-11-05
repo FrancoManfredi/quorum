@@ -34,6 +34,7 @@ import {
   restarted,
   zoned,
 } from './lookups.ts'
+import { nodeLabel } from './labels.ts'
 
 export { zoned }
 import { causeOf, down as takeDown, withWarm } from './life.ts'
@@ -598,7 +599,7 @@ const postmortemOf = (game: Game, incident: Incident): Postmortem => {
   return {
     id: game.postmortemSeq + 1,
     kind: incident.kind,
-    target: target ? COMPONENTS[target.type].name : null,
+    target: target ? nodeLabel(game, target) : null,
     duration: game.time - incident.startedAt,
     mttr: incident.impaired,
     lostUsers: Math.max(0, incident.usersAtStart - game.users),

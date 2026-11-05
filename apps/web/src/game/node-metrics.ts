@@ -1,6 +1,7 @@
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 import { BACKEND_KINDS, COMPONENTS, REQUEST_KINDS } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
+import { nodeLabelOf } from '@quorum/simulation/labels'
 import { isDown } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 
@@ -14,7 +15,12 @@ export const NodeSample = Schema.Struct({
   utilization: Schema.Finite,
   traffic: Rates,
   sources: Schema.Array(
-    Schema.Struct({ id: Schema.String, name: Schema.String, rate: Schema.Finite }),
+    Schema.Struct({
+      id: Schema.String,
+      name: Schema.String,
+      ordinal: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+      rate: Schema.Finite,
+    }),
   ),
   limit: Schema.Literals([
     'cpu',
@@ -66,7 +72,8 @@ export const sampleNode = (game: Game, node: GameNode, ledger: Ledger): NodeSamp
       .filter((link) => link.to === node.id && link.rate > 0)
       .map((link) => {
         const source = game.nodes.find((entry) => entry.id === link.from)!
-        return { id: source.id, name: COMPONENTS[source.type].name, rate: link.rate }
+        const label = nodeLabelOf(game, source)
+        return { id: source.id, name: label.name, ordinal: label.ordinal, rate: link.rate }
       }),
     limit: own.limit,
     dropped: own.dropped,

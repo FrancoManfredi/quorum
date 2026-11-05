@@ -139,6 +139,8 @@ export const Message = defineMessageUnion({
   PlacingChosen: { type: Schema.NullOr(ComponentId) },
   NodePlaced: { x: Schema.Finite, y: Schema.Finite },
   NodeTapped: { nodeId: Schema.String },
+  /** Reveals a Node from a route row or a mail action: switch region, select, center. */
+  RevealNode: { nodeId: Schema.String },
   /** Inspect a recorded component sample, or return to live traffic. */
   NodeSampleChosen: { nodeId: Schema.String, time: Schema.NullOr(Schema.Finite) },
   NodeMoved: { nodeId: Schema.String, x: Schema.Finite, y: Schema.Finite },

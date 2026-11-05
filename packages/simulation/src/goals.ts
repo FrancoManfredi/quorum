@@ -1,6 +1,7 @@
 import { canRaise } from './actions.ts'
 import type { Limit } from './capacity.ts'
-import { COMPONENTS, KINDS, RUNTIMES, type RequestKind } from './catalog.ts'
+import { KINDS, RUNTIMES, type RequestKind } from './catalog.ts'
+import { nodeLabel } from './labels.ts'
 import type { Ledger } from './ledger.ts'
 import { drawerSize, eraOf, has, nextEra, researchAffordable } from './lookups.ts'
 import type { Game, GameNode } from './state.ts'
@@ -93,7 +94,7 @@ const advice = <T extends AdviceTopic>(
 ): Advice => ({ key, from, subject, text, topic, vars, actions })
 
 const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
-  const name = COMPONENTS[node.type].name
+  const name = nodeLabel(game, node)
   const key = (kind: string) => `${kind}:${limit}:${node.id}`
   switch (limit) {
     case 'credits':
@@ -223,27 +224,31 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       {},
     )
   const failed = game.nodes.find((node) => node.life._tag === 'Stopped')
-  if (failed)
+  if (failed) {
+    const name = nodeLabel(game, failed)
     return advice(
       `monitoring:failed:${failed.id}`,
       'monitoring',
-      `${COMPONENTS[failed.type].name} failed`,
-      `${COMPONENTS[failed.type].name} failed. Select it and click Replace, or wait for the provider.`,
+      `${name} failed`,
+      `${name} failed. Select it and click Replace, or wait for the provider.`,
       'failed',
-      { node: COMPONENTS[failed.type].name },
+      { node: name },
       [SHOW(failed.id)],
     )
+  }
   const restarting = game.nodes.find((node) => node.life._tag === 'Restarting')
-  if (restarting)
+  if (restarting) {
+    const name = nodeLabel(game, restarting)
     return advice(
       `monitoring:restart:${restarting.id}`,
       'monitoring',
-      `${COMPONENTS[restarting.type].name} is restarting`,
-      `${COMPONENTS[restarting.type].name} is restarting. Requests fail until it is up.`,
+      `${name} is restarting`,
+      `${name} is restarting. Requests fail until it is up.`,
       'restarting',
-      { node: COMPONENTS[restarting.type].name },
+      { node: name },
       [SHOW(restarting.id)],
     )
+  }
   if (game.incident?.kind === 'slow-query')
     return has(game, 'query-analysis')
       ? advice(
@@ -273,30 +278,34 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       { kind: KINDS[failing].label },
     )
   const stranded = game.nodes.find((node) => (ledger.nodes[node.id]?.stranded ?? 0) > 0.01)
-  if (stranded)
+  if (stranded) {
+    const name = nodeLabel(game, stranded)
     return advice(
       `monitoring:stranded:${stranded.id}`,
       'monitoring',
-      `${COMPONENTS[stranded.type].name}: requests with nowhere to go`,
-      `${COMPONENTS[stranded.type].name} has requests with nowhere to go. Link it to something that takes them.`,
+      `${name}: requests with nowhere to go`,
+      `${name} has requests with nowhere to go. Link it to something that takes them.`,
       'stranded',
-      { node: COMPONENTS[stranded.type].name },
+      { node: name },
       [SHOW(stranded.id)],
     )
+  }
   const draining = game.nodes.find((node) => {
     const rate = ledger.nodes[node.id]?.resources.credits?.rate ?? 0
     return node.credits >= 1 && rate < 0 && node.credits / -rate < CREDIT_WARNING
   })
-  if (draining)
+  if (draining) {
+    const name = nodeLabel(game, draining)
     return advice(
       `cloud:draining:${draining.id}`,
       'cloud',
-      `${COMPONENTS[draining.type].name}: CPU credits nearly gone`,
-      `${COMPONENTS[draining.type].name} runs out of CPU credits soon and drops to 20% CPU. Switch it to General or resize it.`,
+      `${name}: CPU credits nearly gone`,
+      `${name} runs out of CPU credits soon and drops to 20% CPU. Switch it to General or resize it.`,
       'draining',
-      { node: COMPONENTS[draining.type].name },
+      { node: name },
       [SHOW(draining.id)],
     )
+  }
   const bottleneck = game.nodes.find((node) => node.id === ledger.bottleneck)
   if (bottleneck)
     return {

@@ -51,6 +51,7 @@ import {
   BACKUPS,
   REGION_INFO,
 } from '@quorum/simulation/catalog'
+import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
 import { platformTax, quartersBehind } from '@quorum/simulation/team'
 import type { Ledger } from '@quorum/simulation/ledger'
@@ -952,10 +953,34 @@ const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   )
 
 /** A Node's name, numbered when the Design has more than one of its kind. */
-const nameOf = (game: Game, node: GameNode): string => {
-  const same = game.nodes.filter((entry) => entry.type === node.type)
-  const name = COMPONENTS[node.type].name
-  return same.length > 1 ? `${name} ${same.indexOf(node) + 1}` : name
+const nodeCaption = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const label = nodeLabelOf(game, node)
+  return h.span([], [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])])
+}
+
+/** A Node's name as a button that reveals it on the Board. */
+const nodeLink = (game: Game, node: GameNode, h: HtmlBuilder<Message>, className = ''): Html => {
+  const label = nodeLabelOf(game, node)
+  return h.button(
+    [
+      h.Type('button'),
+      h.OnClick(Message.RevealNode({ nodeId: node.id })),
+      h.AriaLabel(`Open ${nodeLabel(game, node)}`),
+      h.Class(
+        cn(
+          'flex min-w-0 items-center gap-1 text-left text-[12px] font-medium text-muted-foreground hover:text-foreground',
+          className,
+        ),
+      ),
+    ],
+    [
+      h.span(
+        [h.Class('truncate')],
+        [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])],
+      ),
+      icon(h, ChevronRight, 'size-3.5 shrink-0'),
+    ],
+  )
 }
 
 /** The routing Links out of a Node, with the Node at the far end. */
@@ -1032,7 +1057,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
         return h.div(
           [h.Key(link.to), h.Class('flex flex-col gap-1.5')],
           [
-            caption(nameOf(game, target), h),
+            nodeLink(game, target, h),
             segmented(
               'grid-cols-4',
               REQUEST_KINDS.map((kind) => {
@@ -1074,6 +1099,101 @@ const KIND_SHORT: Record<RequestKind, string> = {
   feed: 'Feed',
   hook: 'Webhook',
   push: 'Push',
+}
+
+/** The Links that route traffic into a Node. Taps and control Links are separate. */
+const inboundLinks = (game: Game, node: GameNode): ReadonlyArray<readonly [GameLink, GameNode]> =>
+  game.links.flatMap((link) => {
+    const source = game.nodes.find((entry) => entry.id === link.from)
+    return link.to === node.id &&
+      source &&
+      !COMPONENTS[source.type].control &&
+      !COMPONENTS[source.type].tap
+      ? [[link, source] as const]
+      : []
+  })
+
+/** The routing settings that live on the source Node. */
+const routeSummaryOf = (node: GameNode): string => {
+  switch (node.type) {
+    case 'lb':
+      return `${LB_POLICIES[node.policy].label} · checks every ${duration(node.checkEvery)}${
+        node.deepCheck ? ' · deep' : ''
+      }`
+    case 'dns':
+      return `TTL ${duration(node.ttl)}`
+    case 'cdn':
+      return `TTL ${duration(node.ttl)}`
+    case 'waf':
+      return `Paranoia ${node.paranoia}${node.underAttack ? ' · under attack' : ''}`
+    case 'users':
+      return 'Where traffic starts'
+    default:
+      return COMPONENTS[node.type].name
+  }
+}
+
+const kindsOf = (link: GameLink): string =>
+  link.kinds === null ? 'Every kind' : link.kinds.map((kind) => KIND_SHORT[kind]).join(', ')
+
+const liveRateOf = (ledger: Ledger, from: string, to: string): number =>
+  ledger.links.find((link) => link.from === from && link.to === to)?.rate ?? 0
+
+/** The always-visible answer to "what routes to this Node?" */
+const inboundSummary = (
+  game: Game,
+  node: GameNode,
+  ledger: Ledger,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> => {
+  const links = inboundLinks(game, node)
+  if (links.length === 0) return []
+  return [
+    h.div(
+      [h.Class('flex flex-col gap-1.5 px-4 pb-2')],
+      [
+        h.p([h.Class(`${EYEBROW} text-muted-foreground`)], ['Inbound']),
+        ...links.map(([link, source]) => {
+          const live = liveRateOf(ledger, source.id, node.id)
+          return h.button(
+            [
+              h.Key(`in-${source.id}`),
+              h.Type('button'),
+              h.OnClick(Message.RevealNode({ nodeId: source.id })),
+              h.AriaLabel(`Open ${nodeLabel(game, source)}`),
+              h.Class(
+                'flex w-full items-center gap-2 rounded-lg bg-well px-2.5 py-2 text-left transition-colors hover:bg-foreground/5',
+              ),
+            ],
+            [
+              h.span(
+                [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
+                [
+                  h.span(
+                    [h.Class('flex items-center gap-1 text-[12px] font-medium')],
+                    [
+                      nodeCaption(game, source, h),
+                      icon(h, ChevronRight, 'size-3.5 shrink-0 text-muted-foreground'),
+                    ],
+                  ),
+                  h.span(
+                    [h.Class('text-[11px] text-muted-foreground')],
+                    [`${routeSummaryOf(source)} · ${kindsOf(link)}`],
+                  ),
+                ],
+              ),
+              live > 0.01
+                ? h.span(
+                    [h.Class(`${FIGURE} text-[11px] text-muted-foreground`)],
+                    [`${rate(live)}/s`],
+                  )
+                : h.empty,
+            ],
+          )
+        }),
+      ],
+    ),
+  ]
 }
 
 const dnsTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
@@ -1577,7 +1697,7 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
         h.div(
           [h.Key(link.to), h.Class('flex flex-col gap-1.5')],
           [
-            caption(nameOf(game, target), h),
+            nodeLink(game, target, h),
             picker(
               `timeout-${link.to}`,
               LINK_TIMEOUTS.map((seconds) => [seconds, `${seconds} s`] as const),
@@ -1706,16 +1826,22 @@ const difference = (value: number): string =>
 
 /** A share of incoming traffic, with its change since the previous sample. */
 const breakdown = (
-  label: string,
+  label: string | ReadonlyArray<string>,
   value: number,
   total: number,
   previous: number | null,
   h: HtmlBuilder<Message>,
 ): Html =>
   h.div(
-    [h.Key(label), h.Class('flex items-baseline justify-between gap-3 px-3 py-1.5')],
     [
-      h.span([h.Class('min-w-0 break-words text-[12.5px] text-muted-foreground')], [label]),
+      h.Key(typeof label === 'string' ? label : label.join('')),
+      h.Class('flex items-baseline justify-between gap-3 px-3 py-1.5'),
+    ],
+    [
+      h.span(
+        [h.Class('min-w-0 break-words text-[12.5px] text-muted-foreground')],
+        typeof label === 'string' ? [label] : label,
+      ),
       h.span(
         [
           h.Class(
@@ -1921,7 +2047,7 @@ const trafficBreakdown = (
                   [h.Class(NESTED)],
                   sources.map((source) =>
                     breakdown(
-                      `${source.name} · ${source.id}`,
+                      [source.name, ...(source.ordinal > 0 ? [` ${source.ordinal}`] : [])],
                       source.rate,
                       sample.inbound,
                       previous
@@ -1959,6 +2085,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
   const node = game.nodes.find((entry) => entry.id === model.board.selected)
   if (!node) return h.empty
   const def = COMPONENTS[node.type]
+  const label = nodeLabelOf(game, node)
   const history = model.board.nodeHistory[node.id] ?? []
   const price = resizePrice(game, node)
   const sizeLabel = def.sized || def.steps > 1 ? sizeLabelOf(node) : null
@@ -1968,7 +2095,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
       h.Key('inspector'),
       h.DataAttribute('exit', 'gesture'),
       h.DataAttribute('inspector', ''),
-      h.AriaLabel(def.name),
+      h.AriaLabel(nodeLabel(game, node)),
       h.Class(
         `absolute top-[76px] right-3 bottom-3 z-20 flex w-[348px] flex-col overflow-hidden ${PANEL} enter-panel compact:inset-x-2 compact:top-auto compact:bottom-[max(8px,env(safe-area-inset-bottom))] compact:z-30 compact:max-h-[62%] compact:w-auto short:inset-x-auto short:top-[132px] short:right-[max(8px,env(safe-area-inset-right))] short:w-[320px] short:max-h-none`,
       ),
@@ -1981,7 +2108,10 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           h.div(
             [h.Class('flex min-w-0 flex-1 flex-col')],
             [
-              h.span([h.Class('text-[17px] font-semibold tracking-[-0.025em]')], [def.name]),
+              h.span(
+                [h.Class('text-[17px] font-semibold tracking-[-0.025em]')],
+                [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])],
+              ),
               h.span([h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))], [def.product]),
             ],
           ),
@@ -2002,6 +2132,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
         ],
       ),
       h.p([h.Class('px-4 pb-3 text-[12.5px] leading-snug text-muted-foreground')], [def.blurb]),
+      ...inboundSummary(game, node, ledger, h),
       ...warnings(game, node, ledger, h),
       h.div(
         [h.Class(`flex min-h-0 flex-1 flex-col divide-y divide-hairline ${SCROLL}`)],

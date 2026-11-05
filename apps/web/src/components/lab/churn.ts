@@ -1,6 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { churnOf, type ChurnFix, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
-import { COMPONENTS, KINDS, REGION_INFO, RESEARCH } from '@quorum/simulation/catalog'
+import { KINDS, REGION_INFO, RESEARCH } from '@quorum/simulation/catalog'
+import { nodeLabel } from '@quorum/simulation/labels'
 import { has } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Game } from '@quorum/simulation/state'
@@ -21,6 +22,7 @@ import { shell } from './panels.ts'
 const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
   if (fix._tag === 'advice')
     return h.span([h.Class('text-[12px] leading-snug text-muted-foreground')], [fix.text])
+  const shown = fix._tag === 'node' ? game.nodes.find((node) => node.id === fix.nodeId) : undefined
   const [label, message] =
     fix._tag === 'region'
       ? [
@@ -40,7 +42,7 @@ const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
             Message.ChurnFixTaken({ fix: 'research', target: fix.research }),
           ]
         : [
-            `Show ${COMPONENTS[game.nodes.find((node) => node.id === fix.nodeId)?.type ?? 'server'].name}`,
+            `Show ${shown ? nodeLabel(game, shown) : 'Node'}`,
             Message.ChurnFixTaken({ fix: 'node', target: fix.nodeId }),
           ]
   return button(

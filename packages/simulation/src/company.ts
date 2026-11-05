@@ -17,6 +17,7 @@ import {
   type GameLink,
   type GameNode,
 } from './state.ts'
+import { normalizeOrdinals } from './labels.ts'
 
 /* ==========================================================================
    A new Company: the Garage start the design describes, and a Pre-seed start
@@ -32,6 +33,7 @@ export const node = (
 ): GameNode => ({
   id,
   type,
+  ordinal: 0,
   x,
   y,
   size: 1,
@@ -164,25 +166,26 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
  * The Garage: one Burstable box runs PHP under Apache and Postgres on the same
  * machine, linked to Users. Analytics samples the box.
  */
-export const newGame = (seed = 20_261_031): Game => ({
-  ...company(seed),
-  nodes: [
-    node('users', 'users', 120, 280),
-    node('server', 'server', 440, 280, {
-      family: 'burstable',
-      localDb: true,
-      credits: CREDIT_CAP,
-    }),
-    node('analytics', 'analytics', 760, 520),
-    node('payments', 'payments', 440, 540),
-  ],
-  links: [link('users', 'server'), link('server', 'analytics')],
-})
+export const newGame = (seed = 20_261_031): Game =>
+  normalizeOrdinals({
+    ...company(seed),
+    nodes: [
+      node('users', 'users', 120, 280),
+      node('server', 'server', 440, 280, {
+        family: 'burstable',
+        localDb: true,
+        credits: CREDIT_CAP,
+      }),
+      node('analytics', 'analytics', 760, 520),
+      node('payments', 'payments', 440, 540),
+    ],
+    links: [link('users', 'server'), link('server', 'analytics')],
+  })
 
 /** Pre-seed with the Garage lessons already learned: Postgres split out, PHP-FPM, Stripe. */
 export const preseedGame = (seed = 20_261_031): Game => {
   const garage = ERAS[0]
-  return {
+  return normalizeOrdinals({
     ...company(seed),
     nodes: [
       node('users', 'users', 120, 280),
@@ -200,5 +203,5 @@ export const preseedGame = (seed = 20_261_031): Game => {
     researched: ['stripe', 'php-fpm', 'logs', 'metrics', 'load-balancing'],
     time: 12 * 60,
     nextIncidentAt: 12 * 60 + FIRST_INCIDENT_AFTER,
-  }
+  })
 }

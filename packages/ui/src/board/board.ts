@@ -97,6 +97,8 @@ export type BoardState = Readonly<{
   stamp: Stamp | null
   /** Each Node's utilization, one point per 10 sim seconds. */
   history: Readonly<Record<string, ReadonlyArray<number>>>
+  /** Each Node's ordinal to draw beside its card, or 0 when its kind is alone. */
+  ordinals: Readonly<Record<string, number>>
   /** The region tab on show; its Nodes, and the Nodes they reach elsewhere, are drawn. */
   region: Region
   /** The company is paused: belts hold still. */
@@ -124,6 +126,9 @@ export const setBoard = (key: string, state: BoardState): void => {
 }
 
 export const fitBoard = (key: string): void => controllers.get(key)?.fit()
+
+/** Centers the view on a Node after a reveal, zooming in if the Board was far out. */
+export const focusBoard = (key: string, nodeId: string): void => controllers.get(key)?.focus(nodeId)
 
 /* ---------- colours, resolved once through the DOM ---------- */
 
@@ -744,6 +749,7 @@ class NodeView {
   private readonly mark = glyph(12)
   private readonly title = label(15, SANS, '700')
   private readonly level = label(10.5, MONO)
+  private readonly ordinal = label(9, MONO, '700')
   private readonly glyphs: Array<Sprite> = []
   private readonly names: Array<Text> = []
   private readonly values: Array<Text> = []
@@ -833,6 +839,7 @@ class NodeView {
       this.mark,
       this.title,
       this.level,
+      this.ordinal,
       this.foot,
       this.footMark,
       this.markRing,
@@ -843,6 +850,8 @@ class NodeView {
     this.title.anchor.set(0, 0.5)
     this.title.position.set(TITLE_X, HEAD / 2)
     this.level.anchor.set(1, 0.5)
+    this.ordinal.anchor.set(1, 0)
+    this.ordinal.position.set(CARD_W - 10, 3)
     for (let index = 0; index < layout.rows; index += 1) {
       const mark = glyph(13)
       const name = label(11, SANS, '500')
@@ -1003,6 +1012,7 @@ class NodeView {
     pressed: boolean,
     colors: Palette,
     history: ReadonlyArray<number>,
+    ordinal: number,
     region: Region | null,
     locale: string,
     t: (text: string) => string,
@@ -1031,6 +1041,7 @@ class NodeView {
       Math.ceil(leftOf(node.life)),
       warmOf(node.life) < 1,
       levelOf(game, node, region),
+      ordinal,
     ])
     if (digest === this.digest) return
     this.digest = digest
@@ -1203,12 +1214,12 @@ class NodeView {
     paint(this.mark, COMPONENT_ICONS[node.type], 0xffffff)
     const title =
       node.life._tag === 'Stopped'
-        ? `${def.name} · failed`
+        ? t(`${def.name} · failed`)
         : node.life._tag === 'Restarting'
-          ? `${def.name} · restart`
+          ? t(`${def.name} · restart`)
           : warmOf(node.life) < 1 && (def.sized || node.type === 'cache')
-            ? `${def.name} · cold`
-            : def.name
+            ? t(`${def.name} · cold`)
+            : t(def.name)
     this.title.style.fill = isDown(node.life) ? colors.danger : colors.ink
     const size = sizePips(node)
     const barsKey = JSON.stringify([size, badgeTone, rows.map((row) => row.trend ?? row.bar)])
@@ -1231,12 +1242,15 @@ class NodeView {
         )
       right -= width + 7
     }
+    this.ordinal.text = ordinal > 0 ? `#${ordinal}` : ''
+    this.ordinal.visible = ordinal > 0
+    this.ordinal.style.fill = colors.muted
     this.level.text = t(levelOf(game, node, region))
     this.level.style.fill = colors.muted
     this.level.position.set(right, HEAD / 2)
     if (this.level.text) right -= this.level.width + 8
     // A long title gives way to the level: it is cut with an ellipsis before the two touch.
-    fitText(this.title, t(title), right - 4 - this.title.x)
+    fitText(this.title, title, right - 4 - this.title.x)
 
     rows.forEach((row, index) => {
       const mark = this.glyphs[index]
@@ -1747,6 +1761,28 @@ class BoardController {
         ? -minX * scale
         : left + across / 2 - ((minX + maxX) / 2) * scale
     this.world.position.set(x, top + room / 2 - ((minY + maxY) / 2) * scale)
+    this.fitted = true
+  }
+
+  /** Centers a Node in the room the HUD, dock, and Inspector leave free. */
+  focus(nodeId: string): void {
+    const node = this.state?.game.nodes.find((entry) => entry.id === nodeId)
+    if (!node) return
+    const { clientWidth: w, clientHeight: h } = this.host
+    if (w === 0 || h === 0) return
+    const phone = isPhone()
+    const top = phone ? 160 : 120
+    const bottom = phone ? 90 : 210
+    const left = phone ? 0 : 380
+    const right = phone ? 0 : 380
+    const roomW = Math.max(1, w - left - right)
+    const roomH = Math.max(1, h - top - bottom)
+    const scale = Math.max(this.world.scale.x, phone ? MIN_FIT_SCALE_PHONE : MIN_FIT_SCALE)
+    this.world.scale.set(scale)
+    this.world.position.set(
+      left + roomW / 2 - (node.x + CARD_W / 2) * scale,
+      top + roomH / 2 - (node.y + heightOf(node.type) / 2) * scale,
+    )
     this.fitted = true
   }
 
@@ -2425,6 +2461,7 @@ class BoardController {
         this.pressed === node.id,
         colors,
         state.history[node.id] ?? [],
+        state.ordinals[node.id] ?? 0,
         state.region,
         state.locale,
         state.translate,

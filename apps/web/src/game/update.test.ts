@@ -278,7 +278,9 @@ describe('the clock', () => {
     expect(sample.time).toBe(first.board.game.time)
     expect(sample.traffic).toEqual(own.traffic)
     expect(sample.traffic['q-read']).toBeGreaterThan(0)
-    expect(sample.sources).toEqual([{ id: 'server', name: 'App Server', rate: own.inbound }])
+    expect(sample.sources).toEqual([
+      { id: 'server', name: 'App Server', ordinal: 0, rate: own.inbound },
+    ])
     const chosen = update(
       first,
       Message.NodeSampleChosen({ nodeId: 'database', time: sample.time }),
@@ -366,6 +368,23 @@ describe('collecting the Payments drawer', () => {
     const tapped = send(inLab(), Message.NodeTapped({ nodeId: 'payments' }))
     expect(tapped.board.selected).toBe('payments')
   })
+})
+
+test('RevealNode switches to the Node region and selects it', () => {
+  const base = preseedGame()
+  const game = {
+    ...base,
+    nodes: base.nodes.map((node) =>
+      node.type === 'database' ? { ...node, region: 'eu' as const } : node,
+    ),
+  }
+  const start: Model = {
+    ...inLab(),
+    board: { ...inLab().board, game, region: 'na', selected: null },
+  }
+  const next = update(start, Message.RevealNode({ nodeId: 'database' })).model
+  expect(next.board.selected).toBe('database')
+  expect(next.board.region).toBe('eu')
 })
 
 describe('Tradeoff cards', () => {

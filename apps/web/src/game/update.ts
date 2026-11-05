@@ -140,6 +140,7 @@ import { EMPTY_RESEARCH, ResearchMessage, ResearchOutMessage, updateResearch } f
 import { TeamOutMessage, initTeam, updateTeam, type TeamMessage } from './team.ts'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has, isFinalEra, nextEra, zoned } from '@quorum/simulation/lookups'
+import { nodeLabel, normalizeOrdinals } from '@quorum/simulation/labels'
 import { cheatCash, cheatInsight } from './cheats.ts'
 import {
   advanceSandbox,
@@ -292,7 +293,7 @@ export const speedsOf = (game: Game): ReadonlyArray<number> => [
 
 /** A board that starts on `game`: nothing selected, nothing measured yet, and an empty Inbox. */
 export const freshBoard = (game: Game): Board => ({
-  game,
+  game: normalizeOrdinals(game),
   session: { _tag: 'Company' },
   exited: null,
   away: null,
@@ -399,9 +400,10 @@ const closePanel = (model: Model): Model => ({
   glossary: { ...model.glossary, returnTo: 'none' },
 })
 
-const sync = (model: Model, fit: boolean): AnyCommand =>
+const sync = (model: Model, fit: boolean, focus: string | null = null): AnyCommand =>
   SyncBoard({
     fit,
+    focus,
     game: model.board.game,
     locale: model.prefs.locale,
     bottleneck: model.board.bottleneck,
@@ -633,7 +635,7 @@ const sellAll = (game: Game, ids: ReadonlyArray<string>): Actions.Action => {
 
 const nodeName = (game: Game, id: string): string => {
   const node = game.nodes.find((entry) => entry.id === id)
-  return node ? COMPONENTS[node.type].name : 'A Node'
+  return node ? nodeLabel(game, node) : 'A Node'
 }
 
 const percent = (share: number): string => `${Math.round(share * 100)}%`
@@ -841,7 +843,7 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
     case 'rush':
       return route(model, Message.WorkRushed({ id: Number(target) }))
     case 'show':
-      return { model: { ...model, board: { ...model.board, selected: target } } }
+      return target === null ? { model } : route(model, Message.RevealNode({ nodeId: target }))
     case 'trap':
       return withToast(model, 'That was phishing. Check the sender address first.', 'danger')
     default:
@@ -1601,12 +1603,13 @@ const enterSandbox = (model: Model, game: Game, run: SandboxRun): Result => {
 /** Swaps the free Sandbox's Game, keeping the player's view. */
 const replaceFree = (model: Model, game: Game, text: string): Result => {
   if (boardSandbox(model.board)?.id !== null) return { model }
+  const normalized = normalizeOrdinals(game)
   const next: Model = {
     ...model,
-    freeBoard: game,
+    freeBoard: normalized,
     board: {
       ...model.board,
-      game,
+      game: normalized,
       selected: null,
       tool: null,
       undo: [],
@@ -1659,7 +1662,7 @@ const applyCompany = (
           simulateAway(game, away),
         )
       : null
-  const played = back?.game ?? game
+  const played = normalizeOrdinals(back?.game ?? game)
   const next: Model = {
     ...model,
     loaded: true,
@@ -2797,6 +2800,25 @@ const handle = (model: Model, message: Message): Result =>
       }
       return { model: next }
     },
+    RevealNode: ({ nodeId }) => {
+      const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
+      if (!node) return { model }
+      const next: Model = {
+        ...model,
+        panel: 'none',
+        board: {
+          ...model.board,
+          region: node.region,
+          selected: nodeId,
+          selection: [],
+          tool: null,
+          confirmSell: null,
+          nodeSample: null,
+          tradeoff: null,
+        },
+      }
+      return { model: next, commands: [sync(next, false, nodeId), FocusInspector({})] }
+    },
     NodeToggled: ({ nodeId }) => {
       const selection = model.board.selection.includes(nodeId)
         ? model.board.selection.filter((id) => id !== nodeId)
@@ -3744,10 +3766,7 @@ const handle = (model: Model, message: Message): Result =>
       if (fix === 'node') {
         const node = game.nodes.find((entry) => entry.id === target)
         if (!node) return { model: board }
-        return route(
-          { ...board, board: { ...board.board, region: node.region } },
-          Message.NodeTapped({ nodeId: node.id }),
-        )
+        return route(board, Message.RevealNode({ nodeId: node.id }))
       }
       const region = target as Region
       const shown = route(

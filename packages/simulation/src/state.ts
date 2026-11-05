@@ -94,6 +94,8 @@ export type ScaleSignal = typeof ScaleSignal.Type
 const NODE_FIELDS = {
   id: Schema.String,
   type: ComponentId,
+  /** Stable per-Component ordinal for display. 0 on old saves until normalized. */
+  ordinal: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   x: Schema.Finite,
   y: Schema.Finite,
   /** Index into SIZES for sized Components; the drawer or sampler size otherwise. */

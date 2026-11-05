@@ -33,6 +33,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { foundingOf, levelOf, perkPrice } from '@quorum/simulation/founder'
 import { legacyMultiplier, startEra } from '@quorum/simulation/founding'
+import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf } from '@quorum/simulation/lookups'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { Game } from '@quorum/simulation/state'
@@ -862,7 +863,7 @@ const busiest = (game: Game): { name: string; load: number } | null => {
   for (const node of game.nodes) {
     if (COMPONENTS[node.type].fixed) continue
     const load = flow.nodes[node.id]?.utilization ?? 0
-    if (!best || load > best.load) best = { name: COMPONENTS[node.type].name, load }
+    if (!best || load > best.load) best = { name: nodeLabel(game, node), load }
   }
   return best
 }

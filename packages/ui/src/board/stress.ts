@@ -1,5 +1,6 @@
 import type { ComponentId } from '@quorum/simulation/catalog'
 import { link, node } from '@quorum/simulation/company'
+import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { freeSandbox } from '@quorum/simulation/sandbox'
 import type { Game } from '@quorum/simulation/state'
 import { CARD_W, boxOf, freeSpot, heightOf } from './geometry.ts'
@@ -52,13 +53,14 @@ export const stressNodes = (): ReadonlyArray<RoutedNode> =>
   }, [])
 
 /** The free Sandbox with the stress board on it. */
-export const stressBoard = (): Game => ({
-  ...freeSandbox(),
-  nodes: stressNodes().map((entry) =>
-    node(entry.id, entry.type, entry.x, entry.y, entry.id === 'app2' ? { zone: 'b' } : {}),
-  ),
-  links: STRESS_LINKS.map((entry) => link(entry.from, entry.to)),
-})
+export const stressBoard = (): Game =>
+  normalizeOrdinals({
+    ...freeSandbox(),
+    nodes: stressNodes().map((entry) =>
+      node(entry.id, entry.type, entry.x, entry.y, entry.id === 'app2' ? { zone: 'b' } : {}),
+    ),
+    links: STRESS_LINKS.map((entry) => link(entry.from, entry.to)),
+  })
 
 /*
  * The big board: a later screenshot of the same player's NA board, at 61 Nodes and
@@ -162,15 +164,16 @@ export const bigNodes = (): ReadonlyArray<RoutedNode> =>
   }, [])
 
 /** The free Sandbox with the big board on it, at Public-era demand. */
-export const bigBoard = (): Game => ({
-  ...freeSandbox(),
-  users: 2_000_000,
-  nodes: bigNodes().map((entry, index) =>
-    node(entry.id, entry.type, entry.x, entry.y, {
-      zone: index % 3 === 0 ? 'a' : index % 3 === 1 ? 'b' : 'c',
-      ...(entry.type === 'server' ? { size: 4, runtime: 'go', workers: 64 } : {}),
-      ...(entry.type === 'database' ? { size: 5 } : {}),
-    }),
-  ),
-  links: BIG_LINKS.map((entry) => link(entry.from, entry.to)),
-})
+export const bigBoard = (): Game =>
+  normalizeOrdinals({
+    ...freeSandbox(),
+    users: 2_000_000,
+    nodes: bigNodes().map((entry, index) =>
+      node(entry.id, entry.type, entry.x, entry.y, {
+        zone: index % 3 === 0 ? 'a' : index % 3 === 1 ? 'b' : 'c',
+        ...(entry.type === 'server' ? { size: 4, runtime: 'go', workers: 64 } : {}),
+        ...(entry.type === 'database' ? { size: 5 } : {}),
+      }),
+    ),
+    links: BIG_LINKS.map((entry) => link(entry.from, entry.to)),
+  })

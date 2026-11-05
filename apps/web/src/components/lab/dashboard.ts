@@ -2,15 +2,10 @@ import { DashboardMessage } from '@/game/dashboard.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChevronDown, Clock3, LayoutGrid, RefreshCw, Star, X } from 'lucide'
 import { clockOf } from '@quorum/simulation/calendar'
-import {
-  COMPONENTS,
-  INCIDENTS,
-  KINDS,
-  type Kind,
-  type ResearchId,
-} from '@quorum/simulation/catalog'
+import { INCIDENTS, KINDS, type Kind, type ResearchId } from '@quorum/simulation/catalog'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
 import type { Ledger } from '@quorum/simulation/ledger'
+import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import { budgetOf } from '@quorum/simulation/slo'
 import type { Sample } from '@quorum/simulation/state'
@@ -153,22 +148,15 @@ const labelAt = (rows: ReadonlyArray<Row>, time: number): string | null => {
 
 type NodeTrack = Readonly<{ id: string; name: string; values: ReadonlyArray<number> }>
 
-/** Utilization per Node from the Model's 10-second history, with numbered names. */
-const tracksOf = (model: Model): ReadonlyArray<NodeTrack> => {
-  const names = new Map<string, number>()
-  return model.board.game.nodes
+/** Utilization per Node from the Model's 10-second history, with the same labels as the Board. */
+const tracksOf = (model: Model): ReadonlyArray<NodeTrack> =>
+  model.board.game.nodes
     .filter((node) => node.type !== 'users')
-    .map((node) => {
-      const base = COMPONENTS[node.type].name
-      const count = (names.get(base) ?? 0) + 1
-      names.set(base, count)
-      return {
-        id: node.id,
-        name: count > 1 ? `${base} ${count}` : base,
-        values: (model.board.nodeHistory[node.id] ?? []).map((sample) => sample.utilization),
-      }
-    })
-}
+    .map((node) => ({
+      id: node.id,
+      name: nodeLabel(model.board.game, node),
+      values: (model.board.nodeHistory[node.id] ?? []).map((sample) => sample.utilization),
+    }))
 
 /* ==========================================================================
    Panel chrome

@@ -4,6 +4,7 @@ import { company, link, node } from './company.ts'
 import { forceIncident } from './director.ts'
 import type { Ledger } from './ledger.ts'
 import { RESEARCH_IDS, SIZES } from './catalog.ts'
+import { normalizeOrdinals } from './labels.ts'
 import type { Game, GameLink, GameNode } from './state.ts'
 
 /* ==========================================================================
@@ -138,17 +139,18 @@ const board = (
   researched: ReadonlyArray<ResearchId>,
   nodes: ReadonlyArray<GameNode>,
   links: ReadonlyArray<readonly [string, string]>,
-): Game => ({
-  ...company(SEED),
-  sandbox: true,
-  cash: 0,
-  stage,
-  users,
-  researched: ['stripe', 'logs', 'metrics', ...researched],
-  nodes: [node('users', 'users', 120, 280), ...nodes],
-  links: links.map(([from, to]): GameLink => link(from, to)),
-  nextId: 1,
-})
+): Game =>
+  normalizeOrdinals({
+    ...company(SEED),
+    sandbox: true,
+    cash: 0,
+    stage,
+    users,
+    researched: ['stripe', 'logs', 'metrics', ...researched],
+    nodes: [node('users', 'users', 120, 280), ...nodes],
+    links: links.map(([from, to]): GameLink => link(from, to)),
+    nextId: 1,
+  })
 
 /* ---------- the tracks ---------- */
 

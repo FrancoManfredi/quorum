@@ -1,5 +1,6 @@
 import { HOME_REGION, type ComponentId } from '@quorum/simulation/catalog'
 import { blankNode } from '@quorum/simulation/actions'
+import { nodeOrdinals } from '@quorum/simulation/labels'
 import { freeSandbox } from '@quorum/simulation/sandbox'
 import { solveFlow } from '@quorum/simulation/solve'
 import { attachBoard, setBoard, type BoardState } from '@quorum/ui/board/board'
@@ -28,6 +29,7 @@ export const drawNodeCard = (key: string, type: ComponentId, host: HTMLElement):
     placing: null,
     stamp: null,
     history: {},
+    ordinals: nodeOrdinals(full),
     region: HOME_REGION,
     paused: true,
     suspended: false,

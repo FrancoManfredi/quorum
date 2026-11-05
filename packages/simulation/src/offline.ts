@@ -9,6 +9,7 @@ import {
 } from './catalog.ts'
 import { clockOf } from './calendar.ts'
 import { perkLevel } from './founding.ts'
+import { nodeLabel } from './labels.ts'
 import { perRegion, regional, regionUsers, withRegionUsers } from './regions.ts'
 import type { Game } from './state.ts'
 import { step } from './step.ts'
@@ -85,7 +86,7 @@ export const simulateAway = (
       if (utilization > peak) {
         peak = utilization
         peakHour = clockOf(current.time).hour
-        peakNode = COMPONENTS[node.type].name
+        peakNode = nodeLabel(current, node)
       }
     }
     current = floored(result.game)
