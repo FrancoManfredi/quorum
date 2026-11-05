@@ -68,6 +68,7 @@ export const node = (
   paranoia: 2,
   underAttack: false,
   rateLimit: 0,
+  strategy: 'rolling',
   presence: false,
   backoff: false,
   clustering: false,

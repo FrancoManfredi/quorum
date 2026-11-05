@@ -22,6 +22,7 @@ import {
   INCIDENTS,
   BACKUPS,
   COLLECTORS,
+  DEPLOY_STRATEGIES,
   LANGUAGES,
   REGION_INFO,
   IAC_TOOL_INFO,
@@ -3384,6 +3385,14 @@ const handle = (model: Model, message: Message): Result =>
         model,
         rateLimit > 0 ? `Rate limit ${rateLimit}/s` : 'Rate limit off',
         Actions.setRateLimit(model.board.game, nodeId, rateLimit),
+        { undoable: true },
+      ),
+
+    DeployStrategyChosen: ({ nodeId, strategy }) =>
+      act(
+        model,
+        `Deploy strategy: ${DEPLOY_STRATEGIES[strategy].name}`,
+        Actions.setDeployStrategy(model.board.game, nodeId, strategy),
         { undoable: true },
       ),
 

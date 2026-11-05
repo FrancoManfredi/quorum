@@ -66,6 +66,7 @@ export const NODE_SETTINGS = [
   'warming',
   'paranoia',
   'rateLimit',
+  'strategy',
   'presence',
   'backoff',
   'clustering',

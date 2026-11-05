@@ -397,7 +397,7 @@ range.
 | ID                     | Name                     | Era      | ◇       | Requires                         | Effect                                                                        |
 | ---------------------- | ------------------------ | -------- | ------- | -------------------------------- | ----------------------------------------------------------------------------- |
 | `timeouts`             | Timeouts and retries     | Pre-seed | 60      | —                                | Link timeout and naive retries                                                |
-| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline (recreate, rolling)                                            |
+| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline, with all four deploy strategies                               |
 | `backoff-jitter`       | Backoff with jitter      | Seed     | 400     | `timeouts`                       | Retry policy option                                                           |
 | `cert-automation`      | Certificate automation   | Seed     | 300     | —                                | Secrets and Certificates                                                      |
 | `blue-green`           | Blue-green deploys       | Seed     | 900     | `ci`                             | Deploy strategy                                                               |

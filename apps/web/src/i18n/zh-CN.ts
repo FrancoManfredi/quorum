@@ -594,6 +594,25 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Reconnect backoff off': '重连退避已关闭',
   'Clustering on': '集群已开启',
   'Clustering off': '集群已关闭',
+  'CI/CD Pipeline': 'CI/CD 流水线',
+  'Ships what waits. Its deploy strategy sets how long a deploy takes, what it burns, and how bad a bad deploy is.':
+    '发布等待中的内容。部署策略决定部署耗时、成本，以及糟糕部署的影响范围。',
+  Recreate: '重建部署',
+  Rolling: '滚动部署',
+  'Blue-green': '蓝绿部署',
+  Canary: '金丝雀部署',
+  'Deploy strategy': '部署策略',
+  'Deploys in {0} min; a bad deploy breaks up to {1} of requests.':
+    '部署耗时 {0} 分钟；糟糕的部署最多会让 {1} 的请求失败。',
+  '{0} deploys a day at this build and strategy.': '按此构建与策略，每天部署 {0} 次。',
+  'Deploy strategy: {0}': '部署策略：{0}',
+  'Only a CI/CD Pipeline ships deploys.': '只有 CI/CD 流水线负责发布部署。',
+  Deploys: '部署次数',
+  'Deploy time': '部署耗时',
+  'Blast radius': '影响范围',
+  'up to {0}': '最多 {0}',
+  Strategy: '策略',
+  Blast: '影响',
   'Only App Servers, Workers and Realtime Hubs run a Stack.':
     '只有应用服务器、工作进程和实时中枢可运行运行时。',
   '{0} holds no connections. Pick a runtime that does.':

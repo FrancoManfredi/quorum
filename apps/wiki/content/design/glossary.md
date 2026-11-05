@@ -146,7 +146,7 @@ The share of a system, its users, or its traffic that one failure affects. Fault
 
 A release method with two identical production environments. You deploy the new version to the idle one, switch all traffic to it at once, and switch back if it fails, so rollback is fast.
 
-**In the game:** The game has no blue-green option yet. The closest is the Continuous delivery research: a deploy takes 5 minutes instead of 30, and you can roll back a Bad deploy. A rollback ends the Incident at once and puts its Features back in line for the next deploy.
+**In the game:** The CI/CD Pipeline offers Blue-green as a deploy strategy. The old fleet keeps serving while the new one comes up and is checked, so a Bad deploy shows on that slice first: it breaks up to 10% of App Server requests, deploys in 7 minutes, and bills twice the Pipeline's Burn.
 
 **Design:** [CI/CD Pipeline](/design/05-components#cicd-pipeline).
 
@@ -248,7 +248,7 @@ A caching pattern where the application checks the cache first. On a miss it rea
 
 A release method that sends a small share of traffic to a new version first and compares its errors and latency with the old version. If the canary looks healthy, the rollout continues; if not, it is rolled back before most users see it.
 
-**In the game:** The game has no canary deploy option yet: a deploy ships to every App Server at once. The closest is a Stack migration, which moves traffic to the new Stack in steps of 5%, 25%, 50%, and 100%. The new Stack fails 3% of its requests until you pay to fix its bugs, so early steps limit the damage.
+**In the game:** The CI/CD Pipeline offers Canary as a deploy strategy. A deploy sends 5% of traffic to the new version first, so a Bad deploy breaks up to 5% of App Server requests until you roll back. It is the slowest and dearest strategy: 10-minute deploys and 1.5 times the Pipeline's Burn.
 
 **Design:** [CI/CD Pipeline](/design/05-components#cicd-pipeline).
 
@@ -360,7 +360,7 @@ Software that places containers on a shared pool of machines, restarts them when
 
 A practice that keeps software in a state where any change can be released safely at any time, through an automated pipeline that builds, tests, and deploys it. It makes releases small, frequent, and easy to roll back.
 
-**In the game:** Before the Continuous delivery Research, a deploy takes 30 minutes by hand. After it, a pipeline deploys in 5 minutes, so more deploys fit in the 8-hour work day with the build and the 15-minute check. It also lets you roll back a Bad deploy, which ends the Incident and puts its Features back in line for the next deploy. A bad deploy fails 8% of App Server requests per item it shipped, up to 40%, so smaller deploys break less.
+**In the game:** Before the Continuous delivery Research, a deploy takes 30 minutes by hand. After it, a pipeline deploys in 5 minutes, so more deploys fit in the 8-hour work day with the build and the 15-minute check. It also lets you roll back a Bad deploy, which ends the Incident and puts its Features back in line for the next deploy, and it unlocks the CI/CD Pipeline: place one and its deploy strategy sets the deploy time and the ceiling on what a Bad deploy breaks.
 
 **Related:** [DORA metrics](#dora-metrics), [Code review](#code-review), [Canary deployment](#canary-deployment), [Blue-green deployment](#blue-green-deployment)
 

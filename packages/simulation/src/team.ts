@@ -6,6 +6,7 @@ import {
   CI_DEPLOY_MINUTES,
   CODE_REVIEW_FACTOR,
   COORDINATION,
+  DEPLOY_STRATEGIES,
   DEV_HOURS_PER_DAY,
   ERAS,
   FOUNDER_OUTPUT,
@@ -29,6 +30,7 @@ import {
   TESTS_FACTOR,
   VERIFY_MINUTES,
   WORK_MINUTES,
+  type DeployStrategyDef,
   type FixId,
   type FrameworkId,
   type LanguageId,
@@ -235,13 +237,27 @@ export const signingOf = (game: Game, language: LanguageId): number =>
 
 /* ---------- deploys ---------- */
 
+/** The CI/CD Pipeline a Company has placed, or null. Its strategy needs the Node, not just the research. */
+export const pipelineOf = (game: Game): GameNode | null =>
+  game.nodes.find((node) => node.type === 'ci') ?? null
+
+/** How a Company ships, or null without a Pipeline, which keeps the manual (or research) deploy. */
+export const deployStrategyOf = (game: Game): DeployStrategyDef | null => {
+  const pipeline = pipelineOf(game)
+  return pipeline ? DEPLOY_STRATEGIES[pipeline.strategy] : null
+}
+
 export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number => {
   const team = game.teams[0]
   const policy = team ? policyNow(game, team, tuning) : POLICIES.balanced
+  const strategy = deployStrategyOf(game)
+  const minutes = strategy
+    ? strategy.deployMinutes
+    : has(game, 'ci')
+      ? CI_DEPLOY_MINUTES
+      : MANUAL_DEPLOY_MINUTES
   // A Platform team halves deploy time (08 "Teams").
-  const deploy =
-    (has(game, 'ci') ? CI_DEPLOY_MINUTES : MANUAL_DEPLOY_MINUTES) *
-    (platformStaffed(game) ? 0.5 : 1)
+  const deploy = minutes * (platformStaffed(game) ? 0.5 : 1)
   const build = LANGUAGES[languageOfService(game)].buildMinutes
   return Math.min(policy.deploysPerDay, WORK_MINUTES / (build + deploy + VERIFY_MINUTES))
 }
@@ -263,9 +279,13 @@ export const badDeployChance = (game: Game, tuning: Tuning = LIVE_TUNING): numbe
   )
 }
 
-/** Share of App Server requests a bad deploy fails: bigger deploys break more. */
+/** Share of App Server requests a bad deploy fails: bigger deploys break more, up to the ceiling. */
 export const badDeployShare = (game: Game): number =>
-  Math.min(BAD_DEPLOY_MAX, BAD_DEPLOY_ERRORS * Math.max(1, serviceOf(game).lastDeploy.length))
+  Math.min(
+    // Without a Pipeline the cap is 16's 40%; with one, its deploy strategy sets the cap.
+    deployStrategyOf(game)?.blast ?? BAD_DEPLOY_MAX,
+    BAD_DEPLOY_ERRORS * Math.max(1, serviceOf(game).lastDeploy.length),
+  )
 
 /* ---------- the backlog ---------- */
 

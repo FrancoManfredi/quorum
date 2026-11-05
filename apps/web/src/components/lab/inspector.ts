@@ -19,6 +19,8 @@ import {
   CHECK_INTERVALS,
   COLLECTORS,
   COMPONENTS,
+  DEPLOY_STRATEGIES,
+  DEPLOY_STRATEGY_IDS,
   GOGC,
   GPU_TYPES,
   CREDIT_CAP,
@@ -60,7 +62,7 @@ import {
 import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions, regional, regionUsers } from '@quorum/simulation/regions'
 import { hubConnections } from '@quorum/simulation/rules'
-import { platformTax, quartersBehind } from '@quorum/simulation/team'
+import { deploysPerDay, platformTax, quartersBehind } from '@quorum/simulation/team'
 import type { Ledger } from '@quorum/simulation/ledger'
 import {
   burnOf,
@@ -593,6 +595,20 @@ const stats = (
         row('Messages', `${rate(own.inbound)}/s`, 'plain', h),
         row('Latency', ms(own.latency), 'plain', h),
         row('Dropped', `${rate(own.dropped)}/s`, own.dropped > 0.05 ? 'danger' : 'plain', h),
+        row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      ]
+    }
+    case 'ci': {
+      const strategy = DEPLOY_STRATEGIES[node.strategy]
+      return [
+        row('Deploys', `${deploysPerDay(game).toFixed(1)}/day`, 'plain', h),
+        row('Deploy time', `${strategy.deployMinutes} min`, 'plain', h),
+        row(
+          'Blast radius',
+          `up to ${percent(strategy.blast)}`,
+          strategy.blast >= 1 ? 'danger' : strategy.blast <= 0.05 ? 'ok' : 'plain',
+          h,
+        ),
         row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
       ]
     }
@@ -1852,6 +1868,29 @@ const hub = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     h,
   )
 
+/** A CI/CD Pipeline's deploy strategy (05 "CI/CD Pipeline"): its blast radius and price. */
+const pipeline = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const strategy = DEPLOY_STRATEGIES[node.strategy]
+  return section(
+    'Deploy strategy',
+    [
+      picker(
+        'deploy-strategy',
+        DEPLOY_STRATEGY_IDS.map((id) => [id, DEPLOY_STRATEGIES[id].name] as const),
+        node.strategy,
+        (chosen) => Message.DeployStrategyChosen({ nodeId: node.id, strategy: chosen }),
+        h,
+      ),
+      caption(
+        `Deploys in ${strategy.deployMinutes} min; a bad deploy breaks up to ${percent(strategy.blast)} of requests.`,
+        h,
+      ),
+      caption(`${deploysPerDay(game).toFixed(1)} deploys a day at this build and strategy.`, h),
+    ],
+    h,
+  )
+}
+
 const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
     'TTL',
@@ -2386,6 +2425,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(node.type === 'worker' ? [prefetching(node, h)] : []),
           ...(node.type === 'waf' ? [waf(node, h)] : []),
           ...(node.type === 'gw' ? [gateway(node, h)] : []),
+          ...(node.type === 'ci' ? [pipeline(game, node, h)] : []),
           ...(node.type === 'ws' ? [hub(node, h)] : []),
           ...(node.type === 'cdn' ? [cdnTtl(node, h)] : []),
           ...(node.type === 'pooler' ? [pooler(node, h)] : []),

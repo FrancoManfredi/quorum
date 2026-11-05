@@ -18,6 +18,7 @@ import {
   REGIONS,
   RESEARCH_IDS,
   RUNTIME_IDS,
+  DEPLOY_STRATEGY_IDS,
   START_KLOC,
   MIGRATION_STEPS,
   IAC_TOOLS,
@@ -96,6 +97,10 @@ export type ScaleSignal = typeof ScaleSignal.Type
 export const Pricing = Schema.Literals(PRICING_IDS)
 export type Pricing = typeof Pricing.Type
 
+/** How a CI/CD Pipeline ships a deploy (05 "CI/CD Pipeline"). */
+export const DeployStrategy = Schema.Literals(DEPLOY_STRATEGY_IDS)
+export type DeployStrategy = typeof DeployStrategy.Type
+
 const NODE_FIELDS = {
   id: Schema.String,
   type: ComponentId,
@@ -162,6 +167,8 @@ const NODE_FIELDS = {
   underAttack: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Requests per second an API Gateway lets through; 0 is no limit (05 "API Gateway"). */
   rateLimit: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** How a CI/CD Pipeline ships: Recreate, Rolling, Blue-green or Canary (05 "CI/CD Pipeline"). */
+  strategy: DeployStrategy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('rolling' as const))),
   /** A Realtime Hub tracks who is online: more per message, and CPU spent on each join. */
   presence: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** A Realtime Hub lets clients reconnect with jittered backoff after a restart. */

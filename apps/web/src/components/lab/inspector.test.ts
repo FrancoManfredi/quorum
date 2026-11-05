@@ -261,3 +261,31 @@ test('a Realtime Hub shows its connections and its options, and choosing one set
   const after = update(before, Message.HubOptionsChosen({ nodeId: 'n9', presence: true })).model
   expect(after.board.game.nodes.find((node) => node.id === 'n9')?.presence).toBe(true)
 })
+
+/** A board with a CI/CD Pipeline on Canary, selected. */
+const pipelineBoard = (): Model => {
+  const start = initialModel()
+  const base = preseedGame(7)
+  const game: Game = {
+    ...base,
+    researched: [...base.researched, 'ci'],
+    nodes: [...base.nodes, node('n9', 'ci', 240, 280, { strategy: 'canary' })],
+  }
+  return { ...start, board: { ...start.board, game, selected: 'n9' } }
+}
+
+test('a CI/CD Pipeline shows its deploy strategy, and choosing one sets it', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(pipelineBoard()),
+    Scene.expect(Scene.text('Deploy strategy')).toExist(),
+    Scene.expect(Scene.text('Blast radius')).toExist(),
+    Scene.expect(Scene.text('up to 5%')).toExist(),
+  )
+  const before = pipelineBoard()
+  const after = update(
+    before,
+    Message.DeployStrategyChosen({ nodeId: 'n9', strategy: 'recreate' }),
+  ).model
+  expect(after.board.game.nodes.find((node) => node.id === 'n9')?.strategy).toBe('recreate')
+})

@@ -45,6 +45,7 @@ import {
   MSGP_PRICE,
   REGION_INFO,
   RT_HOLD_SECONDS,
+  DEPLOY_STRATEGIES,
   rttOf,
 } from '@quorum/simulation/catalog'
 import { POOL_ORDER } from '../game/pools.ts'
@@ -61,7 +62,7 @@ import {
 } from '@quorum/simulation/lookups'
 import { isGlobal, regional, regionApdexOf, regionUsers } from '@quorum/simulation/regions'
 import { hubConnections } from '@quorum/simulation/rules'
-import { quartersBehind } from '@quorum/simulation/team'
+import { deploysPerDay, quartersBehind } from '@quorum/simulation/team'
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import { compact, money, ms, priceLabel, queueWait, rate } from '../game/format.ts'
 import { layoutOf } from './geometry.ts'
@@ -422,6 +423,19 @@ export const rowsOf = (
           glyph: 'policy',
           name: 'Range',
           value: `${node.minCopies}–${node.maxCopies > 0 ? node.maxCopies : '∞'}`,
+        },
+      ]
+    }
+    case 'ci': {
+      const strategy = DEPLOY_STRATEGIES[node.strategy]
+      return [
+        { glyph: 'policy', name: 'Strategy', value: strategy.name },
+        { glyph: 'load', name: 'Deploys', value: `${deploysPerDay(game).toFixed(1)}/day` },
+        {
+          glyph: 'cost',
+          name: 'Blast',
+          value: pct(strategy.blast),
+          tone: strategy.blast >= 1 ? 'danger' : strategy.blast <= 0.05 ? 'ok' : 'plain',
         },
       ]
     }

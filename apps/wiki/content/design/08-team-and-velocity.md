@@ -403,8 +403,9 @@ deploys_per_calendar_day = min(policy's cap, 480 minutes of work / (build_time +
   builds and Java's 6-minute builds slow shipping. PHP's 30-second builds and file-copy deploys speed
   it up.
 - Deploy time comes from the strategy ([Components](/design/05-components#cicd-pipeline)) and the runtime
-  startup and warmup. A manual deploy takes 30 minutes and a pipeline 5, and checking the result
-  takes 15.
+  startup and warmup. A manual deploy takes 30 minutes and a pipeline 5 without a Pipeline placed,
+  and checking the result takes 15. A placed CI/CD Pipeline deploys in 2 minutes on Recreate, 5 on
+  Rolling, 7 on Blue-green and 10 on Canary; a Platform team halves any of them.
 - More deploys per day ship features sooner and make each deploy smaller, which lowers the size of a
   bad deploy. DORA research links deployment frequency and short lead times to better
   delivery performance. Its 2024 report found that change failure rate does not fall in step: the
@@ -413,8 +414,9 @@ deploys_per_calendar_day = min(policy's cap, 480 minutes of work / (build_time +
 
 Every deploy then rolls for a bug: 10% from Pre-seed on (none in the Garage), times the policy's
 bad-deploy chance, times (1 + 2 × debt), times 0.7 with automated tests and 0.8 with code review. A
-bad deploy fails 8% of the requests for each item it shipped, up to 40%.
+bad deploy fails 8% of the requests for each item it shipped, up to the ceiling its deploy strategy
+sets: 40% without a Pipeline and on Rolling, 100% on Recreate, 10% on Blue-green and 5% on Canary.
 
-The five DORA metrics appear on the Team panel once the player has a CI/CD Pipeline: deploy
-frequency, lead time for changes, change failure rate, failed deployment recovery time, and rework
-rate.
+The five DORA metrics are not built yet. They would appear on the Team panel once the player has a
+CI/CD Pipeline: deploy frequency, lead time for changes, change failure rate, failed deployment
+recovery time, and rework rate.

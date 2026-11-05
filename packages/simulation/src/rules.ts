@@ -796,6 +796,12 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     outcome: () => failed('stranded'),
     ...terminal,
   },
+  // The Pipeline ships deploys and carries no traffic: nothing routes into it.
+  ci: {
+    model: () => flatModel(Number.POSITIVE_INFINITY, {}, { fixed: 0, variable: 0 }, 1),
+    outcome: () => failed('stranded'),
+    ...terminal,
+  },
   cluster: {
     model: () => flatModel(Number.POSITIVE_INFINITY, {}, { fixed: 0, variable: 0 }, 1),
     outcome: () => failed('stranded'),

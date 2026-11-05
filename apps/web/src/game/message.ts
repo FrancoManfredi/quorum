@@ -26,6 +26,7 @@ import {
   Zone,
   Backup,
   Fanout,
+  DeployStrategy,
   Region,
   IacTool,
   SyncMode,
@@ -223,6 +224,7 @@ export const Message = defineMessageUnion({
   ParanoiaChosen: { nodeId: Schema.String, paranoia: Schema.Finite },
   UnderAttackChosen: { nodeId: Schema.String, underAttack: Schema.Boolean },
   RateLimitChosen: { nodeId: Schema.String, rateLimit: Schema.Finite },
+  DeployStrategyChosen: { nodeId: Schema.String, strategy: DeployStrategy },
   HubOptionsChosen: {
     nodeId: Schema.String,
     presence: Schema.optional(Schema.Boolean),

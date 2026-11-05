@@ -11,6 +11,7 @@ import {
   STANDBY_TYPES,
   CHECK_INTERVALS,
   CREDIT_CAP,
+  DEPLOY_STRATEGY_IDS,
   GOGC,
   DEFAULT_FPM_WORKERS,
   DNS_TTLS,
@@ -102,6 +103,7 @@ import type {
   Region,
   Backup,
   Fanout,
+  DeployStrategy,
 } from './state.ts'
 
 /* ==========================================================================
@@ -207,6 +209,7 @@ export const blankNode = (
     paranoia: 2,
     underAttack: false,
     rateLimit: 0,
+    strategy: 'rolling',
     presence: false,
     backoff: false,
     clustering: false,
@@ -669,6 +672,15 @@ export const setHubOptions = (
   withNode(game, id, (node) =>
     node.type === 'ws' ? ok(patch(game, id, change)) : notAllowed('Only a Realtime Hub has these.'),
   )
+
+/** Sets how a CI/CD Pipeline ships: Recreate, Rolling, Blue-green or Canary (05 "CI/CD Pipeline"). */
+export const setDeployStrategy = (game: Game, id: string, strategy: DeployStrategy): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'ci') return notAllowed('Only a CI/CD Pipeline ships deploys.')
+    if (!(DEPLOY_STRATEGY_IDS as ReadonlyArray<string>).includes(strategy))
+      return notAllowed(`Deploy strategies are ${DEPLOY_STRATEGY_IDS.join(', ')}.`)
+    return ok(node.strategy === strategy ? game : patch(game, id, { strategy }))
+  })
 
 /** Moves a Node to another zone. Needs Multiple zones; a sized Node restarts there. */
 export const setZone = (game: Game, id: string, zone: Zone): Action =>

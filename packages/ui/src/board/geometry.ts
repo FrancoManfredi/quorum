@@ -63,6 +63,8 @@ export const layoutOf = (type: ComponentId): Layout => {
       return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'autoscaler':
       return { rows: 3, inRow: 0, outRow: null, footer: false }
+    case 'ci':
+      return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'cluster':
       return { rows: 3, inRow: 0, outRow: null, footer: false }
     case 'warehouse':

@@ -166,6 +166,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['split'], (game, id, node) => Actions.setSplit(game, id, node.split)],
   [['pricing'], (game, id, node) => Actions.setPricing(game, id, node.pricing)],
   [['rateLimit'], (game, id, node) => Actions.setRateLimit(game, id, node.rateLimit)],
+  [['strategy'], (game, id, node) => Actions.setDeployStrategy(game, id, node.strategy)],
   [
     ['presence', 'backoff', 'clustering'],
     (game, id, node) =>

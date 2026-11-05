@@ -427,6 +427,26 @@ export const fr: Readonly<Record<string, string>> = {
   'Reconnect backoff off': 'Attente de reconnexion désactivée',
   'Clustering on': 'Grappe activée',
   'Clustering off': 'Grappe désactivée',
+  'CI/CD Pipeline': 'Pipeline CI/CD',
+  'Ships what waits. Its deploy strategy sets how long a deploy takes, what it burns, and how bad a bad deploy is.':
+    "Livre ce qui attend. Sa stratégie de déploiement fixe la durée d'un déploiement, son coût, et la gravité d'un mauvais déploiement.",
+  Recreate: 'Recréation',
+  Rolling: 'Progressive',
+  'Blue-green': 'Bleu-vert',
+  Canary: 'Canari',
+  'Deploy strategy': 'Stratégie de déploiement',
+  'Deploys in {0} min; a bad deploy breaks up to {1} of requests.':
+    "Déploie en {0} min ; un mauvais déploiement casse jusqu'à {1} des requêtes.",
+  '{0} deploys a day at this build and strategy.':
+    '{0} déploiements par jour avec ce build et cette stratégie.',
+  'Deploy strategy: {0}': 'Stratégie de déploiement : {0}',
+  'Only a CI/CD Pipeline ships deploys.': 'Seul un Pipeline CI/CD livre les déploiements.',
+  Deploys: 'Déploiements',
+  'Deploy time': 'Durée du déploiement',
+  'Blast radius': 'Rayon d’impact',
+  'up to {0}': 'jusqu’à {0}',
+  Strategy: 'Stratégie',
+  Blast: 'Impact',
   'A new query has no index. Every read scans the table.':
     "Une nouvelle requête n'a pas d'index. Chaque lecture analyse la table.",
   'A new query has no index. Research Query analysis to find it.':

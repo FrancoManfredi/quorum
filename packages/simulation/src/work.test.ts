@@ -1,25 +1,32 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { connect, place, setPoolerMode, type Action } from './actions.ts'
+import { connect, place, setDeployStrategy, setPoolerMode, type Action } from './actions.ts'
 import { callsOf } from './capacity.ts'
 import {
+  BAD_DEPLOY_ERRORS,
+  BAD_DEPLOY_MAX,
   CALENDAR_DAY,
   CHALLENGE_TUNING,
+  DEPLOY_STRATEGIES,
+  FEATURE_IDS,
   FEATURES,
   PAYING_SHARE,
   PLAN_PER_DAY,
   POOLER_CONNECTIONS,
+  type DeployStrategyId,
   type FeatureId,
 } from './catalog.ts'
 import { preseedGame } from './company.ts'
 import { forceIncident } from './director.ts'
 import type { Ledger } from './ledger.ts'
+import { burnOf } from './lookups.ts'
 import { nextRandom } from './random.ts'
 import { solve, solveFlow } from './solve.ts'
 import { Game, type GameNode } from './state.ts'
 import { growthOf } from './step.ts'
 import {
   badDeployChance,
+  badDeployShare,
   deploysPerDay,
   quarterSeconds,
   quartersBehind,
@@ -159,6 +166,106 @@ describe('deploys', () => {
     )
     // Balanced caps the day at 8 deploys.
     expect(deploysPerDay({ ...preseed(), researched: ['ci'] }, CHALLENGE_TUNING)).toBe(8)
+  })
+
+  /** Pre-seed with a placed Pipeline on `strategy`: the research alone leaves the old path. */
+  const piped = (strategy: DeployStrategyId): Game => {
+    const base = preseed()
+    const placed = ok(place({ ...base, researched: [...base.researched, 'ci'] }, 'ci', 520, 80))
+    const pipeline = placed.nodes.find((entry) => entry.type === 'ci') as GameNode
+    return ok(setDeployStrategy(placed, pipeline.id, strategy))
+  }
+
+  const pipelineIn = (game: Game): GameNode =>
+    game.nodes.find((entry) => entry.type === 'ci') as GameNode
+
+  /** Move fast on a Rust Stack, so the cap leaves the strategy's deploy time room to show. */
+  const moveFastRust = (game: Game): Game => {
+    const switched = ok(setTeamPolicy(game, 'core', 'move-fast', CHALLENGE_TUNING))
+    return {
+      ...switched,
+      time: switched.time + CALENDAR_DAY,
+      nodes: switched.nodes.map((entry) =>
+        entry.type === 'server' ? { ...entry, runtime: 'tokio' } : entry,
+      ),
+    }
+  }
+
+  test('each deploy strategy sets how much of a bad deploy reaches users', () => {
+    const batch = FEATURE_IDS.slice(0, 6)
+    const share = (strategy: DeployStrategyId): number =>
+      badDeployShare(withService(piped(strategy), { lastDeploy: batch }))
+    // Six Features at 8% each is 48%: Recreate takes it all, Rolling stops at 16's 40%.
+    expect(share('recreate')).toBeCloseTo(BAD_DEPLOY_ERRORS * 6)
+    expect(share('rolling')).toBeCloseTo(BAD_DEPLOY_MAX)
+    expect(share('blue-green')).toBeCloseTo(0.1)
+    expect(share('canary')).toBeCloseTo(0.05)
+    // A batch big enough to break everything does, under Recreate.
+    expect(
+      badDeployShare(withService(piped('recreate'), { lastDeploy: FEATURE_IDS.slice(0, 13) })),
+    ).toBe(1)
+  })
+
+  test('without a Pipeline the blast radius stays 16’s, whatever a Node’s strategy would do', () => {
+    const batch = FEATURE_IDS.slice(0, 6)
+    const research: Game = { ...preseed(), researched: [...preseed().researched, 'ci'] }
+    expect(badDeployShare(withService(preseed(), { lastDeploy: batch }))).toBeCloseTo(
+      BAD_DEPLOY_MAX,
+    )
+    expect(badDeployShare(withService(research, { lastDeploy: batch }))).toBeCloseTo(BAD_DEPLOY_MAX)
+    // The research alone still deploys in 5 minutes, against 30 by hand.
+    expect(deploysPerDay(moveFastRust(research), CHALLENGE_TUNING)).toBeCloseTo(480 / (12 + 5 + 15))
+    expect(deploysPerDay(moveFastRust(preseed()), CHALLENGE_TUNING)).toBeCloseTo(
+      480 / (12 + 30 + 15),
+    )
+    expect(deploysPerDay(moveFastRust(piped('rolling')), CHALLENGE_TUNING)).toBeCloseTo(
+      deploysPerDay(moveFastRust(research), CHALLENGE_TUNING),
+    )
+  })
+
+  test('a slower strategy deploys less often', () => {
+    const days = (strategy: DeployStrategyId): number =>
+      deploysPerDay(moveFastRust(piped(strategy)), CHALLENGE_TUNING)
+    const minutes = (strategy: DeployStrategyId): number =>
+      DEPLOY_STRATEGIES[strategy].deployMinutes
+    expect(days('canary')).toBeCloseTo(480 / (12 + minutes('canary') + 15))
+    expect(days('blue-green')).toBeCloseTo(480 / (12 + minutes('blue-green') + 15))
+    // Recreate still fits inside Move fast's 16 a day; every slower strategy loses deploys.
+    expect(days('recreate')).toBe(16)
+    expect(days('recreate')).toBeGreaterThan(days('rolling'))
+    expect(days('rolling')).toBeGreaterThan(days('canary'))
+  })
+
+  test('blue-green and canary cost more Burn on the Pipeline', () => {
+    const burn = (strategy: DeployStrategyId): number => {
+      const game = piped(strategy)
+      return burnOf(game, pipelineIn(game))
+    }
+    // A second fleet and the canary's metrics bill on the Pipeline's own line.
+    expect(burn('recreate')).toBeCloseTo(burn('rolling'))
+    expect(burn('blue-green')).toBeCloseTo(burn('rolling') * 2)
+    expect(burn('canary')).toBeCloseTo(burn('rolling') * 1.5)
+  })
+
+  test('the Pipeline waits for Continuous delivery, and carries no traffic', () => {
+    expect(Result.isFailure(place(preseed(), 'ci', 520, 80))).toBe(true)
+    const placed = piped('rolling')
+    const pipeline = pipelineIn(placed)
+    expect(pipeline.type).toBe('ci')
+    const ledger = solveFlow(placed)
+    // Nothing routes into it: it ships deploys, and the solve leaves it alone.
+    expect(ledger.nodes[pipeline.id]?.inbound).toBe(0)
+    expect(ledger.nodes[pipeline.id]?.stranded).toBe(0)
+  })
+
+  test('a save from before the strategy opens on Rolling', () => {
+    const saved = JSON.parse(JSON.stringify(piped('canary'))) as {
+      nodes: Array<Record<string, unknown>>
+    }
+    for (const entry of saved.nodes) delete entry.strategy
+    const opened = Schema.decodeUnknownSync(Game)(saved)
+    expect(opened.nodes.find((entry) => entry.type === 'ci')?.strategy).toBe('rolling')
+    expect(opened.nodes.find((entry) => entry.type === 'ci')).toBeDefined()
   })
 
   test('the bad-deploy chance follows the policy, the debt, tests, and review', () => {

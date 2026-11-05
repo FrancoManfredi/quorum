@@ -62,7 +62,7 @@ Compute, Data, and Ops — and this document keeps the seven as a reading order.
 | Async         | [CDC Connector](#cdc-connector) — Not built yet                       | `cdc`  | Change data capture      | Series B |
 | Platform      | [Autoscaler](#autoscaler)                                             | `hpa`  | Autoscaling              | Series A |
 | Platform      | [Service Mesh](#service-mesh) — Not built yet                         | `mesh` | Service mesh             | Series B |
-| Platform      | [CI/CD Pipeline](#cicd-pipeline) — Not built yet                      | `ci`   | Continuous delivery      | Pre-seed |
+| Platform      | [CI/CD Pipeline](#cicd-pipeline)                                      | `ci`   | Continuous delivery      | Pre-seed |
 | Platform      | [Feature Flags](#feature-flags) — Not built yet                       | `ff`   | Feature flags            | Seed     |
 | Platform      | [Secrets and Certificates](#secrets-and-certificates) — Not built yet | `pki`  | Certificate automation   | Seed     |
 | Observability | [Analytics](#analytics)                                               | `otel` | Starter                  | Garage   |
@@ -105,7 +105,7 @@ Compute, Data, and Ops — and this document keeps the seven as a reading order.
 | CDC Connector            | 300       | 0.05                      | 20,000 changes/s                            | Lag-based              | —     |
 | Autoscaler               | 200       | 0                         | —                                           | —                      | —     |
 | Service Mesh             | 600       | Sidecar overhead          | —                                           | +1 ms per hop          | —     |
-| CI/CD Pipeline           | 100       | 0.02                      | —                                           | —                      | —     |
+| CI/CD Pipeline           | 100       | 0.02                      | —                                           | 1 ms                   | —     |
 | Feature Flags            | 150       | 0.01                      | —                                           | —                      | —     |
 | Secrets and Certificates | 80        | 0.005                     | —                                           | —                      | —     |
 | Analytics                | 40        | 0.05 + storage            | Samples per second                          | —                      | 8     |
@@ -474,20 +474,36 @@ Adds a sidecar proxy to every service in a Kubernetes Cluster.
 
 ### CI/CD Pipeline
 
-Not built yet: the CI/CD Pipeline and its four deploy strategies; there is no `ci` Component in the
-catalog, and only research `ci` (Continuous delivery) stands in, which makes a deploy take 5 minutes
-and lets a bad deploy roll back.
+Built: the `ci` Component, unlocked by research `ci` (Continuous delivery), and its four deploy
+strategies. The research alone still cuts a deploy from 30 minutes to 5 and lets a bad deploy roll
+back; the Pipeline is what picks a strategy. Without one placed, the Company keeps the old path: a
+5-minute deploy with research `ci`, 30 minutes by hand, and the 40% ceiling on a bad deploy.
 
 Real products: GitHub Actions, GitLab CI, Argo CD.
 
 Decides how code reaches production. It affects how fast features ship and how bad a bad deploy is.
+It carries no traffic: nothing links into or out of it.
 
-| Deploy strategy | Downtime               | Bad deploy blast radius       | Extra cost                        |
-| --------------- | ---------------------- | ----------------------------- | --------------------------------- |
-| Recreate        | Seconds of full outage | 100% until rollback           | None                              |
-| Rolling         | None                   | Grows as the rollout proceeds | None                              |
-| Blue-green      | None                   | 100%, with instant rollback   | Double capacity during deploy     |
-| Canary          | None                   | 5% until promotion            | Needs metrics to judge the canary |
+| Deploy strategy | Deploy time | Bad deploy blast radius                           | Burn              |
+| --------------- | ----------- | ------------------------------------------------- | ----------------- |
+| Recreate        | 2 min       | 100% until rollback                               | 1× the Pipeline   |
+| Rolling         | 5 min       | Grows as the rollout proceeds, to 40%             | 1× the Pipeline   |
+| Blue-green      | 7 min       | 10%: the old fleet serves until the new one is up | 2× the Pipeline   |
+| Canary          | 10 min      | 5% until promotion                                | 1.5× the Pipeline |
+
+A bad deploy fails 8% of App Server requests for each Feature in its batch; the strategy sets the
+ceiling on that share, so Recreate's 100% arrives with a batch of thirteen Features. The ceiling is
+the design's own number for Recreate (100%) and Canary (5%), and Rolling keeps 16's 40%.
+
+Blue-green is the one number the build changes: the design gives it 100% with instant rollback, and
+neither is worth anything here, because a deploy never interrupts traffic and rollback already ends
+a Bad deploy at once for every Company with the research. So the build reads the design's own
+shield, "the old fleet keeps serving until the new one is up", as the number: the new fleet is
+checked on a slice before the switch, and a bad deploy breaks 10% of traffic.
+
+Deploy minutes and Burn multipliers are proposed: the design named the four strategies and the shape
+of their cost, a second fleet and a canary's metrics, but no time or rate. Burn is a multiple of the
+Pipeline's own rate, standing for that fleet and those metrics.
 
 Build time depends on the language ([Runtimes](/design/06-runtimes#language-profiles)). Deploy frequency
 multiplies feature velocity ([Team and velocity](/design/08-team-and-velocity#deploy-frequency)).

@@ -173,9 +173,10 @@ chance = base(Era) × policy_factor × (1 + 2 × tech_debt) × (1 − tests) × 
 ```
 
 The blast radius depends on the deploy batch ([Components](/design/05-components#cicd-pipeline)): a bad
-deploy fails 8% of App Server requests for each Feature in the batch it shipped, capped at 40%. A
-rolling Cluster deploy stops after its first batch of pods, so pods there take a quarter of that.
-Canary deploys and per-Feature rollouts are not built yet.
+deploy fails 8% of App Server requests for each Feature in the batch it shipped. The ceiling on that
+share is the CI/CD Pipeline's deploy strategy: 40% without a Pipeline and on Rolling, 100% on
+Recreate, 10% on Blue-green and 5% on Canary. A rolling Cluster deploy stops after its first batch
+of pods, so pods there take a quarter of that. Per-Feature rollouts are not built yet.
 
 ## Mitigation toolbox
 

@@ -116,7 +116,7 @@ export const LOOKS: Record<ResearchId, Look> = {
   gzip: { group: 'edge', glyph: FileArchive, hue: 95 },
   timeouts: { group: 'edge', glyph: Timer, hue: 60 },
   'lb-algorithms': { group: 'edge', glyph: Shuffle, hue: 240 },
-  ci: { group: 'ops', glyph: GitBranch, hue: 160 },
+  ci: { component: 'ci' },
   'code-review': { group: 'ops', glyph: ScanEye, hue: 300 },
   'testing-culture': { group: 'ops', glyph: TestTube, hue: 110 },
   'full-text-search': { component: 'search' },

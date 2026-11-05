@@ -25,6 +25,7 @@ import {
   POD_BURN,
   PROFILES,
   PRICINGS,
+  DEPLOY_STRATEGIES,
   RESTART_SECONDS,
   SELL_REFUND,
   SIZES,
@@ -301,6 +302,15 @@ export const burnOf = (game: Game, node: GameNode): number => {
       index
     )
   if (node.type === 'auth') return game.users * AUTH_PRICE_PER_USER
+  // A blue-green second fleet or a canary's metrics bill on the Pipeline's own line, as a multiple.
+  if (node.type === 'ci')
+    return (
+      def.burn *
+      DEPLOY_STRATEGIES[node.strategy].burn *
+      flatScale(node) *
+      index *
+      (node.standby ? 2 : 1)
+    )
   if (node.type === 'storage') return (def.burn + game.stored * STORAGE_PRICE) * index
   if (node.type === 'gpu') return GPU_TYPES[node.gpu].burn * flatScale(node) * index
   // A spread store runs its nodes in each region it replicates to.
