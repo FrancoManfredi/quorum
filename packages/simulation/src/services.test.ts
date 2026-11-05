@@ -3,7 +3,14 @@ import { describe, expect, test } from 'vitest'
 import { newGame, preseedGame } from './company.ts'
 import { codeCrashes } from './rules.ts'
 import type { Action } from './actions.ts'
-import { CORE_TEAM, Game, type Game as Board, type Incident, type Team } from './state.ts'
+import {
+  CORE_TEAM,
+  Game,
+  NEW_ENGINEER,
+  type Game as Board,
+  type Incident,
+  type Team,
+} from './state.ts'
 import {
   badDeployShareOf,
   failsKind,
@@ -155,8 +162,24 @@ describe('Ownership', () => {
     const next = split(seriesB(), ['checkout'])
     const made = next.services[1]!
     expect(ownerOf(next, made).id).toBe('payments')
-    const feature = { id: 1, kind: 'feature' as const, ref: 'checkout', cost: 320, spent: 0 }
-    const other = { id: 2, kind: 'task' as const, ref: 'refactor', cost: 10, spent: 0 }
+    const feature = {
+      id: 1,
+      kind: 'feature' as const,
+      ref: 'checkout',
+      cost: 320,
+      spent: 0,
+      blockedBy: null,
+      answered: null,
+    }
+    const other = {
+      id: 2,
+      kind: 'task' as const,
+      ref: 'refactor',
+      cost: 10,
+      spent: 0,
+      blockedBy: null,
+      answered: null,
+    }
     expect(worksOn(next, team('payments', 'Payments'), feature)).toBe(true)
     expect(worksOn(next, CORE_TEAM, feature)).toBe(false)
     expect(worksOn(next, CORE_TEAM, other)).toBe(true)
@@ -168,7 +191,15 @@ describe('Ownership', () => {
 
   test('a team with no Service keeps working on the starting one', () => {
     const game = { ...seriesB(), teams: [CORE_TEAM, team('growth', 'Growth')] }
-    const item = { id: 1, kind: 'feature' as const, ref: 'checkout', cost: 320, spent: 0 }
+    const item = {
+      id: 1,
+      kind: 'feature' as const,
+      ref: 'checkout',
+      cost: 320,
+      spent: 0,
+      blockedBy: null,
+      answered: null,
+    }
     expect(worksOn(game, team('growth', 'Growth'), item)).toBe(true)
     expect(worksOn(game, CORE_TEAM, item)).toBe(true)
   })
@@ -218,6 +249,7 @@ describe('the shared-database penalty', () => {
         team: entry.id,
         language: 'php' as const,
         hiredAt: Number.MIN_SAFE_INTEGER,
+        ...NEW_ENGINEER,
       })),
     ),
   })

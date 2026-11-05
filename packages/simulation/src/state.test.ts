@@ -4,7 +4,7 @@ import save from './fixtures/save-02f8200.json' with { type: 'json' }
 import m3Save from './fixtures/save-v2-m3.json' with { type: 'json' }
 import { sizeName } from './lookups.ts'
 import { solve } from './solve.ts'
-import { Game } from './state.ts'
+import { Engineer, Game } from './state.ts'
 import { step } from './step.ts'
 
 /*
@@ -57,6 +57,22 @@ describe('old saves', () => {
     expect(game.engineers).toEqual([])
     expect(game.backlog).toEqual([])
     expect(game.shipped).toEqual([])
+    // Adoption and the A/B counts (08): a save from before them reads every Feature as adopted,
+    // and has measured nothing.
+    expect(game.adoption).toEqual({})
+    expect(game.lifts).toEqual({})
+    // An engineer from before mood and pay decodes content, at the Era's rate, never paged.
+    const engineer = Schema.decodeSync(Engineer)({
+      id: 'e1',
+      team: 'core',
+      language: 'php',
+      hiredAt: 0,
+    })
+    expect(engineer.mood).toBe(1)
+    expect(engineer.salary).toBe(null)
+    expect(engineer.pages).toBe(0)
+    expect(engineer.offUntil).toBe(0)
+    expect(engineer.unhappyAt).toBe(0)
     expect(game.autopilot).toBe(true)
     expect(game.devHours).toBe(0)
     expect(game.nodes.every((node) => node.mode === 'transaction')).toBe(true)

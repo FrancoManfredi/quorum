@@ -50,6 +50,13 @@ export type EventVars = {
   readonly deployed: { readonly features: string }
   readonly 'deployed-bad': { readonly features: string }
   readonly migration: { readonly share: string }
+  readonly blocked: { readonly item: string; readonly reason: string }
+  readonly unhappy: { readonly pages: string; readonly gap: string }
+  readonly 'patch-proposed': {
+    readonly item: string
+    readonly target: string
+    readonly due: string
+  }
 }
 
 export type EventTopic = keyof EventVars

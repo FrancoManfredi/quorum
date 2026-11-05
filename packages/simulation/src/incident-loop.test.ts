@@ -9,7 +9,7 @@ import { openActionWeight } from './founding.ts'
 import { sreStaffed } from './lookups.ts'
 import { budgetOf, slaCreditsOf } from './slo.ts'
 import { solve } from './solve.ts'
-import { DEFAULT_FOUNDING, type Game, type Team } from './state.ts'
+import { DEFAULT_FOUNDING, NEW_ENGINEER, type Game, type Team } from './state.ts'
 import { step } from './step.ts'
 import { advanceTeam, queueRunbook, runbookRefusal } from './work.ts'
 
@@ -107,6 +107,7 @@ describe('runbooks', () => {
       team: 'sre',
       language: 'php' as const,
       hiredAt: 0,
+      ...NEW_ENGINEER,
     }
     const game = board({
       stage: 3,
@@ -143,7 +144,7 @@ describe('the SRE team', () => {
       game.teams[0] as Team,
       { id: 'sre', name: 'SRE', kind: 'sre', policy: 'balanced', previous: 'balanced', since: 0 },
     ],
-    engineers: [{ id: 'e1', team: 'sre', language: 'php', hiredAt: 0 }],
+    engineers: [{ id: 'e1', team: 'sre', language: 'php', hiredAt: 0, ...NEW_ENGINEER }],
   })
 
   test('it holds the pager once someone is on it', () => {

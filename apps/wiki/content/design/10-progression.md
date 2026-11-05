@@ -171,7 +171,7 @@ track, with the locked items of the next Era visible so that the player can plan
 
 The track tables below are design intent. Each one is followed by a status line saying how many of its
 items the build has and which ones it does not, so that an item's presence in a table is never read as
-a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 154 of
+a promise that the game offers it. The tables design 187 items across 10 tracks; the build has 159 of
 them across all 10.
 
 ### Recipes
@@ -586,9 +586,17 @@ compute Node from Series A ([Economy](/design/09-economy#pricing-models)). Not b
 | `investor-relations` | Investor relations      | Pre-IPO  | 300,000   | —                          | Valuation multiple +2                                |
 | `guidance-modeling`  | Guidance modeling       | Public   | 1,000,000 | —                          | Shows the probability of beating each guidance level |
 
-**Built: 10 of 15.** Not built yet: `ab-testing`, `hiring-pipeline`, `trunk-based`, `platform-team`,
-`data-team`. `sre-team` unlocks the SRE team ([Team](/design/08-team-and-velocity#teams)).
-`enterprise-sales` signs the SLA and its credits; its B2B market +30% is not built.
+**Built: 15 of 15.** Each item does what its Effect column says:
+
+- `ab-testing` reads a Feature's lift and its interval on the Team card, between 5% and 50% rollout
+  ([Measured lift](/design/08-team-and-velocity#measured-lift)).
+- `hiring-pipeline` takes 30% off the time to hire.
+- `trunk-based` raises the deploy frequency by half, on top of the policy's own cap.
+- `platform-team` and `data-team` unlock their team types ([Team](/design/08-team-and-velocity#teams)).
+  A Platform team runs the Clusters and halves deploy time; a Data team makes `report` and `ai`
+  Features cost 30% less and halves a CDC pipeline's lag.
+- `sre-team` unlocks the SRE team.
+- `enterprise-sales` signs the SLA and its credits; its B2B market +30% is not built.
 
 ## Pacing targets for the first company
 

@@ -33,6 +33,9 @@ import {
   KeySquare,
   Target,
   GitBranch,
+  Users,
+  LineChart,
+  Container,
   Copy,
   Gauge,
   HeartPulse,
@@ -245,6 +248,13 @@ export const LOOKS: Record<ResearchId, Look> = {
   // The two preventions the six hand-written incident kinds open (11 "The six kinds").
   'online-migrations': { group: 'data', glyph: Split, hue: 200 },
   'leap-smearing': { group: 'ops', glyph: Timer, hue: 250 },
+  // The Team's remaining research (08 "Adoption", "Measured lift", "Hiring", "Deploy frequency",
+  // "Teams"): two team types wear the person a team badge wears, and the rest change how it works.
+  'ab-testing': { group: 'ops', glyph: Funnel, hue: 190 },
+  'hiring-pipeline': { group: 'ops', glyph: Users, hue: 25 },
+  'trunk-based': { group: 'compute', glyph: GitBranch, hue: 145 },
+  'platform-team': { group: 'ops', glyph: Container, hue: 265 },
+  'data-team': { group: 'data', glyph: LineChart, hue: 210 },
 }
 
 /** The item's own colour: its group's, its brand's, or its hue. */

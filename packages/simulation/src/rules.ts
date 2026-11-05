@@ -73,6 +73,7 @@ import {
   CDC_CHANGES,
   CDC_RATE,
   CDC_MS,
+  DATA_TEAM_LAG,
   isBackendKind,
   type ComponentId,
   type Kind,
@@ -119,7 +120,7 @@ import { buggy } from './migration.ts'
 import { spreadRegions } from './regions.ts'
 import type { Game, GameNode } from './state.ts'
 import { RUNNING, warmOf } from './life.ts'
-import { badDeployShareOf, blastService, failsKind, fixed } from './team.ts'
+import { badDeployShareOf, blastService, dataStaffed, failsKind, fixed } from './team.ts'
 
 /* ==========================================================================
    What each Component does in the flow solve, one rule per Component. The
@@ -1290,7 +1291,8 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       flatModel(
         CDC_RATE * flatScale(node),
         arriving,
-        { fixed: CDC_MS, variable: 0.05 },
+        // A Data team owns the pipelines, and a pipeline has half the lag with one (08 "Teams").
+        { fixed: CDC_MS * (dataStaffed(solver.game) ? DATA_TEAM_LAG : 1), variable: 0.05 },
         solver.boost(node),
       ),
     serve: (serve, node, rates, share) => {

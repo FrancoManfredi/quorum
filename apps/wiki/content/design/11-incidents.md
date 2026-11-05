@@ -118,6 +118,13 @@ seconds (five calendar minutes) after it lands, so a Company with a rotation log
 whether or not the player was watching. `anomaly-detection` is still not built: it would warn before
 the peak.
 
+**Who it pages, and what a page costs.** An Incident pages the team that owns the Service whose code
+failed ([Team](/design/08-team-and-velocity#services)). Every page is recorded against the engineers
+on that team and takes a little of their mood: it is how a bad quarter on call turns into a
+resignation, and why the three answers to an unhappy engineer include time off
+([Mail](/design/18-mail#teammates)). A Company with no engineer on the owning team pages nobody, so
+the Garage founds alone.
+
 ## Catalog
 
 | Incident                     | Era      | Sev | Trigger and weakness                                                                                  | Symptoms on the board                                                        | Mitigation                                     | Prevention                                                                         | Real reference                                                              |

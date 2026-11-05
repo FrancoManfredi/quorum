@@ -14,7 +14,7 @@ import { COMPONENTS, researchList } from '@quorum/simulation/catalog'
 import { researchReady, resizePrice } from '@quorum/simulation/lookups'
 import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
-import type { WorkItem } from '@quorum/simulation/state'
+import { NEW_ENGINEER, type WorkItem } from '@quorum/simulation/state'
 import { SHARED } from '@quorum/simulation/playbook'
 import { encodeText } from '@quorum/simulation/codec'
 import { SIM_VERSION } from '@quorum/simulation/version'
@@ -64,7 +64,7 @@ test('dropping an engineer on another team moves them', () => {
             since: 0,
           },
         ],
-        engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: 0 }],
+        engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: 0, ...NEW_ENGINEER }],
       },
     },
   }
@@ -1648,6 +1648,8 @@ describe('Mail actions (GDD 18)', () => {
       ref: 'CVE-2026-0451',
       cost: 4,
       spent: 0,
+      blockedBy: null,
+      answered: null,
       due: game.time + 180,
       target: 'server',
     }
@@ -1699,6 +1701,8 @@ describe('Mail actions (GDD 18)', () => {
         ref: 'CVE-2026-0451',
         cost: 4,
         spent: 0,
+        blockedBy: null,
+        answered: null,
         due: game.time + 180,
         target: 'server',
       },

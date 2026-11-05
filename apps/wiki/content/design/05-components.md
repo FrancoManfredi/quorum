@@ -560,10 +560,11 @@ enable graceful degradation: turning off expensive features during an incident
 Feature has a rollout: dark, 5%, 25%, 50%, or every user, and a Feature with none is live for
 everyone. A bad deploy fails 8% of App Servers' requests for each Feature its batch shipped, and a
 flag cuts that Feature's share to its rollout, so Recreate's 100% ceiling cannot outrun a 5% rollout:
-thirteen Features at 5% break 5.2% of traffic instead of everything. **Not built yet:** the rollout
-does not scale a Feature's effects or load, because outcomes, adoption and upkeep are not in the
-build; there is no Shift or Remove item; and the holdout that measures lift waits on `ab-testing`
-([Team and velocity](/design/08-team-and-velocity#rollout)).
+thirteen Features at 5% break 5.2% of traffic instead of everything. The rollout also scales a
+Feature's effects and load, through its exposure, its rollout times its adoption, and `ab-testing`
+measures its lift against the users it holds out
+([Team and velocity](/design/08-team-and-velocity#rollout)). **Not built yet:** Shift and Remove, so
+code never disappears and a Feature turned off still pays its upkeep.
 
 ### Secrets and Certificates
 

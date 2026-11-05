@@ -18,6 +18,7 @@ import type { KindLedger } from '@quorum/simulation/ledger'
 import { regionUsers, withRegionUsers } from '@quorum/simulation/regions'
 import {
   DEFAULT_FOUNDING,
+  NEW_ENGINEER,
   type Game,
   type GameLink,
   type GameNode,
@@ -500,7 +501,7 @@ test('the Company row draws Cash, Burn, Equity, runway and each team’s velocit
       cash: 12_000,
       equity: 0.81,
       moraleUntil: 2_000,
-      engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: 0 }],
+      engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: 0, ...NEW_ENGINEER }],
     },
   })
   const game = model.board.game

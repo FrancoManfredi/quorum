@@ -24,6 +24,7 @@ import {
   IAC_TOOLS,
   SYNC_MODES,
   ZONES,
+  MOOD_START,
 } from './catalog.ts'
 
 /* ==========================================================================
@@ -505,8 +506,40 @@ export const Engineer = Schema.Struct({
   language: LanguageId,
   /** Sim time they joined, for the ramp-up. */
   hiredAt: Schema.Finite,
+  /**
+   * The salary index they are paid at (08 "Hiring"): set when they are hired and by a raise, so a
+   * Team that never raises falls behind the Era's going rate. Null reads the Era's index, which is
+   * what a save from before pay kept, so an old save plays unchanged.
+   */
+  salary: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /**
+   * Morale, 0 to 1 (18 "Burnout and quitting"). A long freeze, a page and a pay gap wear it down;
+   * time off and a raise restore it. 1 in a save from before mood.
+   */
+  mood: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(MOOD_START))),
+  /** Times an incident paged them, for the Burnout Mail. */
+  pages: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** Sim time a spell of time off ends: they produce nothing until then. */
+  offUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /**
+   * The sim second their slump was last put to the player, or 0 when they are content. One Mail per
+   * slump: it clears when they are content again, so a later one writes again (18).
+   */
+  unhappyAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
 })
 export type Engineer = typeof Engineer.Type
+
+/**
+ * What a new engineer starts with (08 "Hiring", 18 "Burnout and quitting"): the Era's rate rather
+ * than a set index, content, never paged, and no time off.
+ */
+export const NEW_ENGINEER = {
+  salary: null,
+  mood: MOOD_START,
+  pages: 0,
+  offUntil: 0,
+  unhappyAt: 0,
+} as const
 
 /** An offer accepted: the engineer joins at `readyAt`. */
 export const Hire = Schema.Struct({
@@ -517,8 +550,8 @@ export const Hire = Schema.Struct({
 })
 export type Hire = typeof Hire.Type
 
-/** A product team builds the backlog; a platform team runs the Kubernetes Clusters and the deploy pipeline. */
-export const TeamKind = Schema.Literals(['product', 'platform', 'sre'])
+/** A product team builds the backlog; a platform team runs the Clusters and the pipeline; a data team runs the warehouse and the pipelines' copies. */
+export const TeamKind = Schema.Literals(['product', 'platform', 'sre', 'data'])
 export type TeamKind = typeof TeamKind.Type
 
 export const Team = Schema.Struct({
@@ -637,6 +670,24 @@ export type Service = typeof Service.Type
 export const WorkKind = Schema.Literals(['feature', 'task', 'migration', 'spike', 'patch', 'split'])
 export type WorkKind = typeof WorkKind.Type
 
+/** What a backlog item waits on when it cannot move (18 "Teammates"): the four the design names. */
+export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'hire'])
+export type BlockKind = typeof BlockKind.Type
+
+/** Why an item stopped, who owns it, and when to say so again. */
+export const Block = Schema.Struct({
+  kind: BlockKind,
+  /** The engineer whose item it is: they write the Mail. */
+  owner: Schema.String,
+  /** Sim second it stopped. */
+  at: Schema.Finite,
+  /** Sim second the Mail lands again after Later. */
+  remindAt: Schema.Finite,
+  /** The player approved it: the work moves again. A cleared block never stops it twice. */
+  cleared: Schema.Boolean,
+})
+export type Block = typeof Block.Type
+
 /**
  * One backlog item. `ref` is a Feature or task id; a migration item names its
  * step; a Spike names the research of the Study it speeds; a patch names its CVE.
@@ -653,8 +704,28 @@ export const WorkItem = Schema.Struct({
   target: Schema.optionalKey(Schema.String),
   /** The Service the work belongs to, so its owner team takes it first (08 "Ownership"). */
   service: Schema.optionalKey(Schema.String),
+  /**
+   * The engineer whose item it is (18 "Teammates"): the one a patch's CVE proposal names, and the
+   * one who writes when the item is blocked.
+   */
+  owner: Schema.optionalKey(Schema.String),
+  /** What stopped it, or null while it moves (18 "Blocked"). */
+  blockedBy: Schema.NullOr(Block).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** How the player answered a patch proposal: to the top now, or queued where it is. */
+  answered: Schema.NullOr(Schema.Literals(['now', 'queued'])).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed(null)),
+  ),
 })
 export type WorkItem = typeof WorkItem.Type
+
+/** One Feature's A/B samples (08 "Measured lift"): the exposed and holdout requests since its step. */
+export const LiftSample = Schema.Struct({
+  exposed: Schema.Finite,
+  holdout: Schema.Finite,
+  /** The rollout step the counts belong to: a new step starts the count again. */
+  step: Schema.Finite,
+})
+export type LiftSample = typeof LiftSample.Type
 
 export const CORE_TEAM: Team = {
   id: 'core',
@@ -939,6 +1010,17 @@ export const Game = Schema.Struct({
   /** The CVEs already disclosed, so each one comes once. */
   cves: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   shipped: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /**
+   * Each live Feature's adoption share (08 "Adoption"), from 0 at the deploy that ships it to 1. A
+   * Feature not named here is fully adopted, which is what a save from before adoption kept.
+   */
+  adoption: Schema.Record(Schema.String, Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
+  /** The samples a Feature's A/B test has taken since its current rollout step (08 "Measured lift"). */
+  lifts: Schema.Record(Schema.String, LiftSample).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
   /** Features built and waiting for the next deploy. */
   awaiting: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   /** Idle teams pick the next Feature, shift migrations, and pay down debt on their own. */

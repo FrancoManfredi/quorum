@@ -1,12 +1,19 @@
+import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import { CVE_EVERY, PATCH_GRACE, patchCost, patchWindow } from './catalog.ts'
 import { preseedGame } from './company.ts'
 import { overdueBy } from './cve.ts'
-import { cancelItem, itemName } from './work.ts'
+import { cancelItem, itemName, patchNow, queuePatch } from './work.ts'
 import { step } from './step.ts'
-import type { Game } from './state.ts'
+import type { StepEvent } from './events.ts'
+import { CORE_TEAM, NEW_ENGINEER, type Game } from './state.ts'
 
 /* GDD 18 "CVEs and patches": a disclosure is a ticket with a deadline. */
+
+const ok = (action: ReturnType<typeof patchNow>): Game => {
+  if (Result.isFailure(action)) throw new Error(JSON.stringify(action.failure))
+  return action.success
+}
 
 /** No team builds and no incident rolls, so only the ticket moves the Company. */
 const base = (): Game => ({
@@ -97,5 +104,70 @@ describe('deadline', () => {
     expect(patchCost(9.9)).toBe(5)
     expect(patchCost(5.3)).toBe(3)
     expect(patchWindow(9.9)).toBeLessThan(patchWindow(5.3))
+  })
+})
+
+/* 18 "Proposal to patch": the Service's owner proposes the patch, and the two answers differ. */
+describe('proposal to patch', () => {
+  /** The base Company with one engineer on the Service's owner, and product work already queued. */
+  const staffed = (): Game => ({
+    ...base(),
+    teams: [CORE_TEAM],
+    engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: -1e6, ...NEW_ENGINEER }],
+    workSeq: 1,
+    backlog: [
+      {
+        id: 1,
+        kind: 'feature',
+        ref: 'mobile-app',
+        cost: 960,
+        spent: 0,
+        blockedBy: null,
+        answered: null,
+      },
+    ],
+  })
+
+  /** Steps until a CVE arrives, and reports what the Step said. */
+  const propose = (): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
+    let now = staffed()
+    const events: Array<StepEvent> = []
+    for (
+      let second = 0;
+      second < 600 && !now.backlog.some((item) => item.kind === 'patch');
+      second += 1
+    ) {
+      const result = step(now, 1)
+      now = result.game
+      events.push(...result.events)
+    }
+    return { game: now, events }
+  }
+
+  test('the owner of the Service proposes the ticket, and it names them', () => {
+    const { game, events } = propose()
+    const ticket = game.backlog.find((item) => item.kind === 'patch')
+    expect(ticket).toBeDefined()
+    expect(ticket?.owner).toBe('e1')
+    expect(ticket?.service).toBe('monolith')
+    const proposed = events.find((event) => event._tag === 'PatchProposed')
+    expect(proposed && proposed._tag === 'PatchProposed' ? proposed.engineerId : null).toBe('e1')
+    // Security still files the advisory, with its deadline.
+    expect(events.some((event) => event._tag === 'CveDisclosed')).toBe(true)
+  })
+
+  test('Patch now moves the ticket to the top; Queue the patch leaves it behind the product', () => {
+    const { game } = propose()
+    const ticket = game.backlog.find((item) => item.kind === 'patch')!
+    expect(game.backlog[0]?.kind).toBe('feature')
+    const now = ok(patchNow(game, ticket.id))
+    expect(now.backlog[0]?.id).toBe(ticket.id)
+    expect(now.backlog[0]?.answered).toBe('now')
+    const queued = ok(queuePatch(game, ticket.id))
+    expect(queued.backlog[0]?.kind).toBe('feature')
+    expect(queued.backlog.find((item) => item.id === ticket.id)?.answered).toBe('queued')
+    // Neither answer applies to work that is not an advisory.
+    expect(cancelItem(game, game.backlog[0]!.id)._tag).toBe('Success')
+    expect(patchNow(game, game.backlog[0]!.id)._tag).toBe('Failure')
   })
 })

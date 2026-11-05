@@ -1,6 +1,6 @@
 import { Data } from 'effect'
 import type { FeatureId, ResearchId } from './catalog.ts'
-import type { Incident, Postmortem, WorkItem } from './state.ts'
+import type { BlockKind, Incident, Postmortem, WorkItem } from './state.ts'
 
 /* What a Step reports besides the new Game: things the player should hear about. */
 
@@ -24,6 +24,12 @@ export type StepEvent = Data.TaggedEnum<{
   MigrationShifted: { readonly step: number }
   /** A CVE was disclosed in something the Design runs: its patch ticket is at the end of the backlog. */
   CveDisclosed: { readonly item: WorkItem }
+  /** The Service's owner proposes the patch: the teammate whose item it is writes (18). */
+  PatchProposed: { readonly item: WorkItem; readonly engineerId: string }
+  /** A backlog item stopped on something only the player can clear (18 "Blocked"). */
+  Blocked: { readonly item: WorkItem; readonly reason: BlockKind; readonly engineerId: string }
+  /** An engineer is unhappy: a long freeze, many pages, or a pay gap (18 "Burnout and quitting"). */
+  EngineerUnhappy: { readonly engineerId: string }
   /** A patch ticket expired: the CVE was exploited and a Data breach started. */
   CveExploited: { readonly cve: string; readonly target: string }
   /** A Study completed: its research is the Company's now. */

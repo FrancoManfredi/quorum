@@ -12,6 +12,7 @@ import {
   Check,
   Code,
   Container,
+  Database,
   Crown,
   Gem,
   Hourglass,
@@ -64,8 +65,10 @@ import {
   sharesDatabase,
   signingOf,
   teamOutputs,
+  upkeepShare,
 } from '@quorum/simulation/team'
 import { overdueBy } from '@quorum/simulation/cve'
+import { liftReading } from '@quorum/simulation/features'
 import { isReady, stepOf } from '@quorum/simulation/migration'
 import { PLATFORM_STAGE } from '@quorum/simulation/work'
 import {
@@ -464,7 +467,7 @@ const pendingSeat = (game: Game, id: string, readyAt: number, h: HtmlBuilder<Mes
 
 const policySwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
   h.div(
-    [h.Class(cn('grid grid-cols-3 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
+    [h.Class(cn('grid grid-cols-4 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
     POLICY_IDS.map((policy) => {
       const selected = team.policy === policy
       return h.button(
@@ -496,12 +499,13 @@ const KINDS: ReadonlyArray<readonly [TeamKind, string, typeof Code]> = [
   ['product', 'Product', Code],
   ['platform', 'Platform', Container],
   ['sre', 'SRE', Siren],
+  ['data', 'Data', Database],
 ]
 
-/** Product teams build the backlog; a Platform team runs the Clusters and the pipeline (08 "Teams"). */
+/** Product teams build the backlog; Platform, SRE and Data teams run the system (08 "Teams"). */
 const kindSwitch = (team: Team, h: HtmlBuilder<Message>): Html =>
   h.div(
-    [h.Class(cn('grid grid-cols-3 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
+    [h.Class(cn('grid grid-cols-4 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
     KINDS.map(([kind, label, mark]) => {
       const selected = team.kind === kind
       return h.button(
@@ -657,12 +661,14 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
           ? platformWork(h)
           : team.kind === 'sre'
             ? sreWork(game, h)
-            : working(
-                game.backlog[
-                  game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
-                ],
-                h,
-              ),
+            : team.kind === 'data'
+              ? dataWork(h)
+              : working(
+                  game.backlog[
+                    game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
+                  ],
+                  h,
+                ),
     ],
   )
 }
@@ -682,6 +688,19 @@ const sreWork = (game: Game, h: HtmlBuilder<Message>): Html =>
                 game.runbooks.length === 1 ? '' : 's'
               }`,
         ],
+      ),
+    ],
+  )
+
+/** What a Data pod has on its desk: the warehouse, the copies, and the Features they make cheaper. */
+const dataWork = (h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
+    [
+      icon(h, Database, 'size-3.5 text-muted-foreground'),
+      h.span(
+        [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+        ['Runs the warehouse: report and AI Features cost −30% DH'],
       ),
     ],
   )
@@ -1220,6 +1239,47 @@ const label = (kind: WorkKind, h: HtmlBuilder<Message>): Html =>
     [h.span([h.Class(cn('size-1.5 rounded-full', KIND[kind].fill))], []), KIND[kind].label],
   )
 
+/**
+ * What a live Feature's users have and what A/B testing reads from it (08 "Adoption", "Measured
+ * lift"): the adoption share, and the lift with its interval once the research is done.
+ */
+const featureReadout = (game: Game, id: FeatureId, h: HtmlBuilder<Message>): Html => {
+  const adopted = Math.round((game.adoption[id] ?? 1) * 100)
+  const reading = liftReading(game, id)
+  const lift = reading
+    ? `Lift ${reading.lift >= 0 ? '+' : ''}${Math.round(reading.lift * 100)}% ±${
+        Number.isFinite(reading.halfWidth) ? Math.round(reading.halfWidth * 100) : '—'
+      } · ${reading.verdict === 'wins' ? 'Wins' : reading.verdict === 'loses' ? 'Loses' : 'Too early'}`
+    : null
+  return h.span(
+    [h.Class('flex flex-wrap items-center gap-1')],
+    [
+      badge({ variant: 'secondary' }, [`${adopted}% adopted`], h),
+      ...(lift ? [badge({ variant: 'secondary' }, [lift], h)] : []),
+    ],
+  )
+}
+
+/** The share of the Team's Dev Hours that keeps the live Features running (08 "Upkeep"). */
+const upkeepPill = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const share = upkeepShare(game, serviceOf(game))
+  if (share <= 0) return h.empty
+  return h.div(
+    [
+      h.Key('upkeep'),
+      h.Class(
+        cn(
+          'flex items-center gap-2 rounded-[10px] px-2.5 py-2 text-[calc(11.5px*var(--type-scale))] text-muted-foreground shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
+        ),
+      ),
+    ],
+    [
+      h.span([h.Class('flex-1')], ['Upkeep']),
+      h.span([h.Class(FIGURE)], [`${Math.round(share * 100)}% of Dev Hours`]),
+    ],
+  )
+}
+
 /** A patch's clock: the time left, then red and counting how long it is overdue until it is exploited. */
 const deadline = (game: Game, item: WorkItem, h: HtmlBuilder<Message>): Html => {
   if (item.due === undefined) return h.empty
@@ -1614,7 +1674,7 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
         'live',
         'Live',
         live.length,
-        h.empty,
+        upkeepPill(game, h),
         [
           ...live
             .slice(0, LIVE_SHOWN)
@@ -1626,7 +1686,7 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
                 'live',
                 1,
                 h.empty,
-                [],
+                [featureReadout(game, id, h)],
                 [],
                 false,
                 h,

@@ -602,7 +602,7 @@ Building each user's feed when a post is written: the post is copied into the ti
 
 A switch in the code, controlled at runtime, that turns a feature on or off without a new deploy. Teams use flags to release a feature to a share of users, test it, or turn it off fast when it breaks.
 
-**In the game:** Feature Flags research unlocks the Feature Flags Component. Each Feature in a deploy's batch has a rollout: dark, 5%, 25%, 50%, or every user. A bad deploy fails 8% of App Server requests for each Feature in its batch, and a flag cuts that Feature's share to its rollout, so a Feature at 5% breaks at most 5% of what it would have, whatever the deploy strategy. Turning it off is the one click that stops the blast.
+**In the game:** Feature Flags research unlocks the Feature Flags Component. Each Feature in a deploy's batch has a rollout: dark, 5%, 25%, 50%, or every user. A bad deploy fails 8% of App Server requests for each Feature in its batch, and a flag cuts that Feature's share to its rollout, so a Feature at 5% breaks at most 5% of what it would have, whatever the deploy strategy. Turning it off is the one click that stops the blast. A Feature's effects and the load it adds follow its exposure, its rollout times the share of its users who have adopted it, so a dark Feature earns nothing and a Feature at 50% reaches half once users adopt it; A/B testing measures the lift against the users its rollout holds out.
 
 **Design:** [Feature Flags](/design/05-components#feature-flags).
 
@@ -978,7 +978,7 @@ Online transaction processing (OLTP) runs many small, fast reads and writes on c
 
 A rotation of engineers who carry the pager and answer alerts outside working hours, so a page reaches a person rather than whoever happens to be looking at a dashboard. A good rotation is quiet, bounded, and paid for in sleep.
 
-**In the game:** On-call rotation (Series A, after Alerting) puts the team on the pager. The rotation acknowledges an Incident five calendar minutes after its first signal, so its MTTA is short even when the player is away, and the Postmortem shows it. Without it a page waits for the player's first click.
+**In the game:** On-call rotation (Series A, after Alerting) puts the team on the pager. The rotation acknowledges an Incident five calendar minutes after its first signal, so its MTTA is short even when the player is away, and the Postmortem shows it. Without it a page waits for the player's first click. Every page is counted against the engineers on the team that owns the Service it hit, and each takes a little of their mood: a long quarter on call is one way an engineer comes to ask for time off, a raise, or their notice.
 
 **Design:** [The incident loop](/design/11-incidents#the-incident-loop).
 

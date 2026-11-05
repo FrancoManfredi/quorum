@@ -10,6 +10,22 @@ export const zhCN: Readonly<Record<string, string>> = {
   ...interfaceZhCN,
   ...zhCNCurrent,
   'Review {0} migration': '评估迁移到 {0}',
+  // The Team's remaining research (08, 10 "Track: Product and business").
+  'A/B testing': 'A/B 测试',
+  'Measures a Feature’s lift against the users its flag holds out, with a confidence interval.':
+    '用功能开关留下的对照用户衡量功能增益，并给出置信区间。',
+  'Hiring pipeline': '招聘管道',
+  'Recruiters keep a pipeline warm, so every hire takes 30% less calendar time.':
+    '招聘人员维护人才管道，因此每次招聘少花 30% 的日历时间。',
+  'Trunk-based development': '主干开发',
+  'Small changes land on one branch many times a day, so the Team ships 50% more often.':
+    '小改动每天多次合入同一分支，因此团队交付频率提高 50%。',
+  'Unlocks the Platform team: it runs the Clusters and the pipeline, and halves deploy time.':
+    '解锁平台团队：它负责集群与流水线，并将部署时间减半。',
+  'Data team': '数据团队',
+  'Unlocks the Data team: report and AI Features cost 30% less, and a pipeline lags half as much.':
+    '解锁数据团队：报表与 AI 功能成本降低 30%，管道的延迟减半。',
+
   'Start migration': '开始迁移',
   Proposed: '提议',
   'Zig threaded server': 'Zig 多线程服务器',
@@ -225,7 +241,6 @@ export const zhCN: Readonly<Record<string, string>> = {
   Overview: '概览',
   Traffic: '流量',
   Compute: '计算',
-  Data: '数据',
   Operations: '运维',
   Infrastructure: '基础设施',
   Network: '网络',
@@ -1869,4 +1884,75 @@ export const zhCN: Readonly<Record<string, string>> = {
   '{0} engineers': '{0} 名工程师',
   '{0} of {1}': '{0} / {1}',
   '{0} d': '{0} 天',
+
+  // Teammate Mail (18 "Teammates"): Blocked, burnout and quitting, and a proposal to patch.
+  'Blocked on {0}': '卡在 {0} 上',
+  'I cannot move {0}. It is {1}.': '我无法推进 {0}。原因是{1}。',
+  'I am not going to guess my way past this one: it is your call, and I would rather wait an hour than ship the wrong thing for a week.':
+    '这一件我不打算靠猜。你来决定。我宁愿等一个小时，也不想把错的东西发出去一周。',
+  'Approve it and I am back on it before the coffee goes cold. Later is fine too. I will ask again tomorrow, in the same words, because nothing about it will have changed.':
+    '批准它，咖啡还没凉我就接着做。稍后也行。明天我会用同样的话再问一次，因为这件事不会有任何变化。',
+  '{0} is stuck': '{0} 卡住了',
+  'A short one: {0} is stuck, and the reason is simple. It is {1}.':
+    '简短说：{0} 卡住了，原因很简单：{1}。',
+  'Everything else on the backlog is moving. This is the only thing on my desk that needs a person rather than an afternoon.':
+    '待办里的其他事都在推进。我桌上只有这一件需要一个人拍板，而不是一个下午。',
+  'Approve and I will finish it. Later and I will bring it back to you tomorrow, which is the same request with a day’s worth of dust on it.':
+    '批准，我就把它做完。稍后，我明天再拿给你看：同一个请求，只是多落了一天灰。',
+  'Can we talk?': '我们能谈谈吗？',
+  'I have been meaning to say this for a while, and the pager has made the decision for me.':
+    '这话我想说很久了，是值班呼机替我做了决定。',
+  'I have been paged {0} times, and my pay sits {1} below what this Era pays for my work. I am not angry. I am tired, and tired is worse, because it lasts.':
+    '我被呼叫了 {0} 次，而我的薪水比这个时代为我的工作支付的少 {1}。我不生气。我只是累，而累更糟，因为它会持续。',
+  'Three things would help. Give me time off, and I will come back the person you hired. Raise my salary and I will stop reading job posts on my phone. Or accept my resignation, and I will leave with good things to say about you, which is rarer than it sounds.':
+    '三件事会有帮助。给我假期，我会变回你招进来的那个人。给我加薪，我就不再在手机上看招聘信息。或者接受我的辞呈，我会带着好话离开，这比听起来更少见。',
+  'Before I decide anything': '在我做任何决定之前',
+  '{0} here.': '我是{0}。',
+  'I want to be direct, because the alternative is being quiet and then leaving.':
+    '我想直说，因为另一种选择是先沉默，然后离开。',
+  'The on-call has woken me {0} times. My pay is {1} under the going rate for what I do now. I can carry one of those. Not both, not forever.':
+    '值班把我叫醒了 {0} 次。我的薪水比现在这份工作的市场价低 {1}。其中一件我能扛。两件不行，也不会永远扛下去。',
+  'Time off, a raise, or my notice. Any of the three is an honest answer, and I will respect it. What I cannot do is pretend I am fine for another month.':
+    '假期、加薪，或者我的辞呈。三者都是诚实的回答，我都会尊重。我不能做的，是再假装一个月没事。',
+  '{0}: I can patch this': '{0}：这个我能修',
+  'The advisory that just landed is in code I own: {0}. The ticket is {1}, due in {2}.':
+    '刚发布的公告涉及的正是我负责的代码：{0}。工单是 {1}，还有 {2} 到期。',
+  'I can take it now and put the product work down, or it can wait its turn at the back of the backlog like everything else. My preference is now, and my preference is not the one that ships the Feature.':
+    '我可以现在接手，把手上的产品工作放下；也可以让它像其他事一样在队伍最后排队。我倾向现在，但我的倾向并不能把功能发出去。',
+  'Patch now moves it to the top. Queue the patch leaves it where it is. Both are a decision; only one of them is a decision I can make.':
+    '立即修复把它放到最前面。排队修复让它留在原处。两者都是决定；只有一个是我能做的决定。',
+  'My name is on the {0} patch': '这个 {0} 补丁上写着我的名字',
+  'Quick note from the person who will be reading the postmortem. {0} has a published vulnerability, and the ticket is {1}, due in {2}.':
+    '来自那个将要读复盘的人。{0} 有一个已公开的漏洞，工单是 {1}，还有 {2} 到期。',
+  'I know the code, I know the exploit, and I know how long the fix takes, which is not long. What I do not know is whether you would rather have this than the next Feature.':
+    '我了解这段代码，了解这个利用方式，也知道修复要多久——并不久。我不知道的是，你更想要这个，还是下一个功能。',
+  'Patch now, if you want it gone. Queue the patch, if you want to gamble on a deadline. I will be here either way.':
+    '想让它消失就立即修复。想和截止时间赌一把就排队。不管怎样我都在。',
+  // The Team's new answers and readouts (08, 18).
+  Approve: '批准',
+  Later: '稍后',
+  'Give time off': '给予休假',
+  'Raise salary': '加薪',
+  'Accept resignation': '接受辞呈',
+  'Queue the patch': '排队修复',
+  'You approved it. The work moves again.': '你已批准，工作继续推进。',
+  'Later. They will ask again tomorrow.': '稍后。他们明天会再问一次。',
+  'You patched now: the ticket goes to the top.': '你选择立即修复：工单排到最前。',
+  'You queued the patch behind the product work.': '你把修复排在了产品工作之后。',
+  'You gave them time off.': '你给了他们休假。',
+  'You raised their salary to the Era’s rate.': '你把他们的薪水提高到本时代的水平。',
+  'You accepted the resignation.': '你接受了辞呈。',
+  'waiting on a decision': '等待决定',
+  'waiting on an index': '等待索引',
+  'waiting on a database copy': '等待数据库副本',
+  'waiting on a hire': '等待招聘',
+  Data: '数据',
+  'Runs the warehouse: report and AI Features cost −30% DH':
+    '负责数据仓库：报表与 AI 功能节省 30% 开发工时',
+  Upkeep: '维护',
+  'of Dev Hours': '的开发工时',
+  adopted: '已采用',
+  'Too early': '为时过早',
+  Wins: '胜出',
+  Loses: '失败',
 }

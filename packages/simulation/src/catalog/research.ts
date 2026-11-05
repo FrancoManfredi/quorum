@@ -163,6 +163,12 @@ export const RESEARCH_IDS = [
   // Two preventions the incident catalog names (11 "Catalog", 10 "Track: Data", "Track: Reliability").
   'online-migrations',
   'leap-smearing',
+  // The Team's remaining research (08 "Adoption", "Measured lift", "Hiring", "Deploy frequency", "Teams").
+  'ab-testing',
+  'hiring-pipeline',
+  'trunk-based',
+  'platform-team',
+  'data-team',
 ] as const
 export type ResearchId = (typeof RESEARCH_IDS)[number]
 
@@ -1608,6 +1614,55 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     requires: [],
     blurb:
       'Spreads a leap second over the whole day, so no clock jumps and no lease expires early.',
+  }),
+  // 10 "Track: Product and business": the Team's four remaining research items and the two team types.
+  research({
+    id: 'ab-testing',
+    name: 'A/B testing',
+    track: 'product',
+    cost: 700,
+    era: 2,
+    requires: ['funnels', 'feature-flags'],
+    blurb:
+      'Measures a Feature’s lift against the users its flag holds out, with a confidence interval.',
+  }),
+  research({
+    id: 'hiring-pipeline',
+    name: 'Hiring pipeline',
+    track: 'product',
+    cost: 600,
+    era: 2,
+    requires: [],
+    blurb: 'Recruiters keep a pipeline warm, so every hire takes 30% less calendar time.',
+  }),
+  research({
+    id: 'trunk-based',
+    name: 'Trunk-based development',
+    track: 'product',
+    cost: 800,
+    era: 2,
+    requires: ['ci'],
+    blurb: 'Small changes land on one branch many times a day, so the Team ships 50% more often.',
+  }),
+  research({
+    id: 'platform-team',
+    name: 'Platform team',
+    track: 'product',
+    cost: 3_000,
+    era: 3,
+    requires: ['containers'],
+    blurb:
+      'Unlocks the Platform team: it runs the Clusters and the pipeline, and halves deploy time.',
+  }),
+  research({
+    id: 'data-team',
+    name: 'Data team',
+    track: 'product',
+    cost: 10_000,
+    era: 4,
+    requires: ['data-warehouse'],
+    blurb:
+      'Unlocks the Data team: report and AI Features cost 30% less, and a pipeline lags half as much.',
   }),
 ]
 

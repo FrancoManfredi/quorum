@@ -12,6 +12,7 @@ import {
   FEATURES,
   FOUNDER_OUTPUT,
   HIRE_DAYS,
+  HIRING_PIPELINE,
   LANGUAGES,
   LAYOFF_MORALE,
   LIVE_TUNING,
@@ -32,6 +33,11 @@ import {
   STRUCTURED_COORDINATION,
   SUPPORTED_QUARTERS,
   TESTS_FACTOR,
+  TRUNK_FREQUENCY,
+  UPKEEP_CEILING,
+  UPKEEP_HALF,
+  UPKEEP_SHARE,
+  UNHAPPY_MOOD,
   VERIFY_MINUTES,
   WORK_MINUTES,
   type DeployStrategyDef,
@@ -187,6 +193,68 @@ export const languageOfService = (game: Game): LanguageId => {
 /** A structured framework lowers coordination and slows tech debt (Symfony). */
 export const structured = (game: Game): boolean => stackOf(game).framework === 'symfony'
 
+/* ---------- ownership and upkeep (08 "Upkeep") ---------- */
+
+/** The Dev Hours of the Features a Service carries and has not removed. */
+export const featureHoursOn = (game: Game, service: Service): number =>
+  game.shipped.reduce(
+    (sum, id) => (serviceOfFeature(game, id).id === service.id ? sum + FEATURES[id].dh : sum),
+    0,
+  )
+
+/**
+ * The share of a Service's Dev Hours that keeps its live Features running (08 "Upkeep"):
+ * `0.4 × S / (S + 2,000) × (1 + debt)`, capped at 0.6, where S is the Dev Hours of the Features
+ * shipped on the Service. 500 DH costs 8%, 4,000 DH 27%, and it approaches 40% with no debt.
+ */
+export const upkeepShare = (game: Game, service: Service): number => {
+  const hours = featureHoursOn(game, service)
+  if (hours <= 0) return 0
+  return Math.min(
+    UPKEEP_CEILING,
+    (UPKEEP_SHARE * hours * (1 + service.debt)) / (hours + UPKEEP_HALF),
+  )
+}
+
+/* ---------- pay and mood (08 "Hiring", 18 "Burnout and quitting") ---------- */
+
+/** The salary index an engineer is paid at: the one set at hire or by a raise, else the Era's. */
+export const paidIndex = (game: Game, engineer: Engineer): number =>
+  engineer.salary ?? eraOf(game).salaryIndex
+
+/** Dollars per second one engineer costs: the salary index they are paid at, times their language. */
+export const payOf = (game: Game, engineer: Engineer): number =>
+  SALARY_BASE * paidIndex(game, engineer) * LANGUAGES[engineer.language].salary
+
+/**
+ * How far an engineer's pay sits below the Era's going rate for their language, as a share: 0 when
+ * they are paid the Era's rate, and 0.5 when they earn half of it (18 "a lower salary than the
+ * Era's"). An engineer hired in an earlier Era falls behind unless the player raises them.
+ */
+export const payGapOf = (game: Game, engineer: Engineer): number => {
+  const rate = eraOf(game).salaryIndex
+  if (rate <= 0) return 0
+  return Math.max(0, Math.min(1, 1 - paidIndex(game, engineer) / rate))
+}
+
+/** Whether an engineer is unhappy enough to write to the player (18 "Burnout and quitting"). */
+export const unhappy = (engineer: Engineer): boolean => engineer.mood <= UNHAPPY_MOOD
+
+/** A Data team with at least one engineer runs the warehouse and the copies (08 "Teams"). */
+export const dataStaffed = (game: Game): boolean =>
+  game.teams.some(
+    (team) => team.kind === 'data' && game.engineers.some((engineer) => engineer.team === team.id),
+  )
+
+/**
+ * The engineer from a Team who owns a piece of work: the same one for the same salt, so a Thread
+ * keeps one sender and a replay keeps one name. Undefined when the Team has nobody on it.
+ */
+export const memberOf = (game: Game, teamId: string, salt: number): Engineer | undefined => {
+  const members = game.engineers.filter((engineer) => engineer.team === teamId)
+  return members[Math.abs(Math.trunc(salt)) % Math.max(1, members.length)]
+}
+
 /* ---------- calendar time ---------- */
 
 const days = (count: number, tuning: Tuning): number => (count * CALENDAR_DAY) / tuning.calendarPace
@@ -205,10 +273,22 @@ export const rampSeconds = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
 }
 
 export const outputOf = (game: Game, engineer: Engineer, tuning: Tuning = LIVE_TUNING): number =>
-  game.time - engineer.hiredAt < rampSeconds(game, tuning) ? RAMP_OUTPUT : 1
+  // On time off an engineer produces nothing at all (18 "Burnout and quitting").
+  game.time < engineer.offUntil
+    ? 0
+    : game.time - engineer.hiredAt < rampSeconds(game, tuning)
+      ? RAMP_OUTPUT
+      : 1
 
-export const hireSeconds = (language: LanguageId, tuning: Tuning = LIVE_TUNING): number =>
-  days(HIRE_DAYS * LANGUAGES[language].hireTime, tuning)
+/** Sim seconds to hire: the Era's days, less 30% with the Hiring pipeline. */
+export const hireSeconds = (
+  game: Game,
+  language: LanguageId,
+  tuning: Tuning = LIVE_TUNING,
+): number => {
+  const factor = has(game, 'hiring-pipeline') ? HIRING_PIPELINE : 1
+  return days(HIRE_DAYS * LANGUAGES[language].hireTime * factor, tuning)
+}
 
 export const moraleSeconds = (tuning: Tuning = LIVE_TUNING): number => days(MORALE_DAYS, tuning)
 
@@ -295,7 +375,11 @@ export const teamOutputs = (
       policyNow(game, team, tuning).velocity *
       morale *
       budgetVelocity(game)
-    const rate = (effective * velocity * DEV_HOURS_PER_DAY * tuning.calendarPace) / CALENDAR_DAY
+    // A live Feature costs Dev Hours before the backlog gets any (08 "Upkeep"), on the Service the
+    // team owns. A team that runs the system, not the product, builds no backlog to tax.
+    const upkeep = team.kind === 'product' ? 1 - upkeepShare(game, owned) : 1
+    const rate =
+      (effective * velocity * upkeep * DEV_HOURS_PER_DAY * tuning.calendarPace) / CALENDAR_DAY
     return { team, headcount, effective, velocity, rate }
   })
   // Each Cluster takes engineers' worth of Dev Hours from the product teams, in proportion.
@@ -317,9 +401,9 @@ export const devHoursRate = (game: Game, ledger: Ledger, tuning: Tuning = LIVE_T
 export const salaryOf = (game: Game, language: LanguageId): number =>
   SALARY_BASE * eraOf(game).salaryIndex * LANGUAGES[language].salary
 
-/** Dollars per second of payroll. The founder draws no salary. */
+/** Dollars per second of payroll, at the salary index each engineer is paid. The founder draws none. */
 export const payrollOf = (game: Game): number =>
-  game.engineers.reduce((sum, engineer) => sum + salaryOf(game, engineer.language), 0)
+  game.engineers.reduce((sum, engineer) => sum + payOf(game, engineer), 0)
 
 /** One-time Cash to sign an engineer: $2,000 × the language's salary in Pre-seed, scaled by the Era. */
 export const signingOf = (game: Game, language: LanguageId): number =>
@@ -352,7 +436,9 @@ export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number 
   // A Platform team halves deploy time (08 "Teams").
   const deploy = minutes * (platformStaffed(game) ? 0.5 : 1)
   const build = LANGUAGES[languageOfService(game)].buildMinutes
-  return Math.min(policy.deploysPerDay, WORK_MINUTES / (build + deploy + VERIFY_MINUTES))
+  const base = Math.min(policy.deploysPerDay, WORK_MINUTES / (build + deploy + VERIFY_MINUTES))
+  // Trunk-based development ships 50% more often (10 "Track: Product and business").
+  return base * (has(game, 'trunk-based') ? TRUNK_FREQUENCY : 1)
 }
 
 /** Sim seconds between deploy slots. */
@@ -412,7 +498,16 @@ export const enqueue = (
   top = false,
   extra: Pick<WorkItem, 'due' | 'target' | 'service'> = {},
 ): Game => {
-  const item: WorkItem = { id: game.workSeq + 1, kind, ref, cost, spent: 0, ...extra }
+  const item: WorkItem = {
+    id: game.workSeq + 1,
+    kind,
+    ref,
+    cost,
+    spent: 0,
+    blockedBy: null,
+    answered: null,
+    ...extra,
+  }
   return {
     ...game,
     workSeq: game.workSeq + 1,

@@ -2495,4 +2495,48 @@ export const frMail: Readonly<Record<string, string>> = {
     '{0} d’absence. Charge de pointe {1} sur {2}. Rien n’a pris feu, même si un graphique est devenu assez chaud pour griller du pain.',
   "Read this instead of a page and we'll call it even.":
     'Lisez ceci à la place d’une alerte et nous serons quittes.',
+
+  // Teammate Mail (18 "Teammates"): Blocked, burnout and quitting, and a proposal to patch.
+  'Blocked on {0}': 'Bloqué sur {0}',
+  'I cannot move {0}. It is {1}.': 'Je ne peux pas avancer sur {0}. La raison : {1}.',
+  'I am not going to guess my way past this one: it is your call, and I would rather wait an hour than ship the wrong thing for a week.':
+    'Je ne vais pas deviner pour passer outre : c’est votre décision, et je préfère attendre une heure que livrer la mauvaise chose pendant une semaine.',
+  'Approve it and I am back on it before the coffee goes cold. Later is fine too. I will ask again tomorrow, in the same words, because nothing about it will have changed.':
+    'Approuvez et j’y retourne avant que le café refroidisse. Plus tard me va aussi. Je redemanderai demain, dans les mêmes termes, parce que rien n’aura changé.',
+  '{0} is stuck': '{0} est bloqué',
+  'A short one: {0} is stuck, and the reason is simple. It is {1}.':
+    'Court : {0} est bloqué, et la raison est simple. C’est {1}.',
+  'Everything else on the backlog is moving. This is the only thing on my desk that needs a person rather than an afternoon.':
+    'Tout le reste de la file avance. C’est la seule chose sur mon bureau qui demande une personne plutôt qu’un après-midi.',
+  'Approve and I will finish it. Later and I will bring it back to you tomorrow, which is the same request with a day’s worth of dust on it.':
+    'Approuvez et je le termine. Plus tard et je vous le rapporte demain : la même demande, avec un jour de poussière dessus.',
+  'Can we talk?': 'On peut parler ?',
+  'I have been meaning to say this for a while, and the pager has made the decision for me.':
+    'Je voulais le dire depuis un moment, et le bip du pager a décidé pour moi.',
+  'I have been paged {0} times, and my pay sits {1} below what this Era pays for my work. I am not angry. I am tired, and tired is worse, because it lasts.':
+    'J’ai été appelé {0} fois, et mon salaire est {1} sous ce que cette ère paie pour mon travail. Je ne suis pas en colère. Je suis fatigué, et la fatigue est pire, parce qu’elle dure.',
+  'Three things would help. Give me time off, and I will come back the person you hired. Raise my salary and I will stop reading job posts on my phone. Or accept my resignation, and I will leave with good things to say about you, which is rarer than it sounds.':
+    'Trois choses aideraient. Donnez-moi du temps libre et je reviendrai la personne que vous avez embauchée. Augmentez mon salaire et j’arrêterai de lire des offres d’emploi sur mon téléphone. Ou acceptez ma démission, et je partirai en disant du bien de vous, ce qui est plus rare qu’on ne le croit.',
+  'Before I decide anything': 'Avant de décider quoi que ce soit',
+  '{0} here.': '{0} à l’appareil.',
+  'I want to be direct, because the alternative is being quiet and then leaving.':
+    'Je préfère être direct, parce que l’alternative c’est de me taire puis de partir.',
+  'The on-call has woken me {0} times. My pay is {1} under the going rate for what I do now. I can carry one of those. Not both, not forever.':
+    'La garde m’a réveillé {0} fois. Mon salaire est {1} sous le tarif actuel pour ce que je fais. Je peux supporter l’un. Pas les deux, pas indéfiniment.',
+  'Time off, a raise, or my notice. Any of the three is an honest answer, and I will respect it. What I cannot do is pretend I am fine for another month.':
+    'Du temps libre, une augmentation, ou ma démission. Les trois sont des réponses honnêtes, et je les respecterai. Ce que je ne peux pas faire, c’est prétendre que tout va bien un mois de plus.',
+  '{0}: I can patch this': '{0} : je peux corriger ceci',
+  'The advisory that just landed is in code I own: {0}. The ticket is {1}, due in {2}.':
+    'L’avis qui vient de tomber concerne du code qui m’appartient : {0}. Le ticket est {1}, échéance dans {2}.',
+  'I can take it now and put the product work down, or it can wait its turn at the back of the backlog like everything else. My preference is now, and my preference is not the one that ships the Feature.':
+    'Je peux le prendre maintenant et poser le travail produit, ou il peut attendre son tour au fond de la file comme tout le reste. Ma préférence est maintenant, et ma préférence n’est pas celle qui livre la fonctionnalité.',
+  'Patch now moves it to the top. Queue the patch leaves it where it is. Both are a decision; only one of them is a decision I can make.':
+    'Corriger maintenant le place en haut. Mettre la correction en file le laisse où il est. Les deux sont des décisions ; une seule est à ma portée.',
+  'My name is on the {0} patch': 'Mon nom est sur la correction {0}',
+  'Quick note from the person who will be reading the postmortem. {0} has a published vulnerability, and the ticket is {1}, due in {2}.':
+    'Un mot de la personne qui lira le post-mortem. {0} a une vulnérabilité publiée, et le ticket est {1}, échéance dans {2}.',
+  'I know the code, I know the exploit, and I know how long the fix takes, which is not long. What I do not know is whether you would rather have this than the next Feature.':
+    'Je connais le code, je connais l’exploit, et je sais combien de temps prend la correction, et ce n’est pas long. Ce que je ne sais pas, c’est si vous préférez ceci à la prochaine fonctionnalité.',
+  'Patch now, if you want it gone. Queue the patch, if you want to gamble on a deadline. I will be here either way.':
+    'Corrigez maintenant si vous voulez que ça disparaisse. Mettez en file si vous voulez parier contre une échéance. Je serai là dans les deux cas.',
 }

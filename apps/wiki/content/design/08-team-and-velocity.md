@@ -33,7 +33,7 @@ ramp-up, and deploys. The live game runs the Team's calendar 24× faster than th
 | `velocity`            | Language × framework × tech debt factor ([Runtimes](/design/06-runtimes#language-profiles)).                            |
 | `policy`              | The team policy ([Team policy](#team-policy)).                                                                          |
 | `error_budget_factor` | 1.1 with budget to spare, 1.0 normally, 0.5 during a freeze ([Incidents](/design/11-incidents#slos-and-error-budgets)). |
-| `upkeep_share`        | The share that keeps live Features running ([Upkeep](#upkeep)). Not built yet: it is always 0.                          |
+| `upkeep_share`        | The share that keeps live Features running ([Upkeep](#upkeep)).                                                         |
 
 Dev Hours are spent on six kinds of work:
 
@@ -47,7 +47,8 @@ Dev Hours are spent on six kinds of work:
 | Spikes            | Make the running Study faster                                    | [Spikes](#spikes)                       |
 
 Work items sit in a **backlog** with a priority order. Engineers work on the top items in parallel,
-up to one item per team at a time.
+up to one item per team at a time. An item can stop before it starts, waiting on something only the
+player can give it; the owner writes, and Approve or Later is the answer ([Blocked](#blocked)).
 
 Dev Hours a team does not spend stay in a company-wide **pool**, and the Team panel shows the pool
 and its fill rate. **Rush** spends the pool on one backlog item: it pays as much of that item's
@@ -56,31 +57,56 @@ The autopilot rushes the item at the top of the backlog, and Add index rushes it
 
 ## Hiring
 
-| Property     | Detail                                                                                                                                          |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signing cost | One-time Cash: $2,000 × salary multiplier in the Pre-seed Era, scaling with the Era.                                                            |
-| Salary       | Burn per engineer, multiplied by the language's salary factor ([Runtimes](/design/06-runtimes#hiring-and-salaries)).                            |
-| Time to hire | Calendar days, multiplied by the language's time-to-hire factor. A company with services in several languages hires for the service's language. |
-| Ramp-up      | A new hire produces 30% for the first calendar week, then 100%. Rails conventions halve the ramp.                                               |
+| Property     | Detail                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signing cost | One-time Cash: $2,000 × salary multiplier in the Pre-seed Era, scaling with the Era.                                                                                             |
+| Salary       | Burn per engineer, multiplied by the language's salary factor ([Runtimes](/design/06-runtimes#hiring-and-salaries)).                                                             |
+| Time to hire | Calendar days, multiplied by the language's time-to-hire factor, and −30% with `hiring-pipeline`. A company with services in several languages hires for the service's language. |
+| Ramp-up      | A new hire produces 30% for the first calendar week, then 100%. Rails conventions halve the ramp.                                                                                |
 
 Layoffs refund nothing, end the salary Burn, and cost 10% velocity for a calendar week (morale).
 Morale is global: one team's layoff slows every team.
+
+### Pay and mood
+
+An engineer signs at the Era's going rate, and the salary index keeps climbing. Their pay does not
+climb with it: an engineer hired in Pre-seed still earns Pre-seed's rate in Seed, which is half of
+what a new hire commands. That is the **pay gap**. A raise pays them the Era's rate and raises the
+payroll with them.
+
+Three things wear an engineer's **mood** down, and the game tracks each:
+
+- **A long freeze.** While the error budget is spent and Features run at half speed
+  ([Incidents](/design/11-incidents#slos-and-error-budgets)), a calendar week of it takes all of a
+  mood.
+- **Pages.** Every incident that pages their team costs the engineer a little of it: −0.08, so a
+  dozen pages is a slump.
+- **A pay gap.** At a 50% gap the mood falls by a third of a point a calendar day.
+
+An engineer at 0.35 mood writes to the player, once per slump. The three answers are theirs to
+choose ([Mail](/design/18-mail#teammates)): **Give time off** (three calendar days with no Dev
+Hours, and they come back content), **Raise salary** (to the Era's rate), or **Accept resignation**
+(they leave, the payroll ends, and there is no layoff's morale hit). An engineer on time off
+produces nothing; the rest of the team carries the backlog.
+
+Mood, the page count, and the salary index each engineer is paid at are saved with the Company. A
+save from before them has every engineer content, on the Era's rate, with no pages.
 
 ## Teams
 
 Engineers belong to teams. The player creates teams and assigns engineers.
 
-| Team type     | Unlocked | Owns                                       | Effect                                                                                                                                                                                                        |
-| ------------- | -------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product team  | Pre-seed | One or more services                       | Produces DH for features and engineering tasks on its services.                                                                                                                                               |
-| Platform team | Series A | Kubernetes, CI/CD, the Service Mesh        | Removes the per-cluster DH tax. Halves deploy time.                                                                                                                                                           |
-| SRE team      | Series A | On-call, runbooks, incident response       | MTTR −40%: an incident, and the recovery it drives, runs 60% as long. Open action items raise incident odds by half as much. It holds the pager a runbook needs ([Incidents](/design/11-incidents#runbooks)). |
-| Data team     | Series B | The warehouse, CDC, the Vector Index       | **Not built yet.** `report` and `ai` features cost −30% DH. Pipelines have half the lag.                                                                                                                      |
-| Security team | Pre-IPO  | WAF rules, dependency scanning, compliance | **Not built yet.** Required for the SOC 2 milestone. Lowers supply-chain and breach incident chances.                                                                                                         |
+| Team type     | Unlocked                  | Owns                                       | Effect                                                                                                                                                                                                        |
+| ------------- | ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product team  | Pre-seed                  | One or more services                       | Produces DH for features and engineering tasks on its services.                                                                                                                                               |
+| Platform team | Series A, `platform-team` | Kubernetes, CI/CD, the Service Mesh        | Removes the per-cluster DH tax. Halves deploy time.                                                                                                                                                           |
+| SRE team      | Series A                  | On-call, runbooks, incident response       | MTTR −40%: an incident, and the recovery it drives, runs 60% as long. Open action items raise incident odds by half as much. It holds the pager a runbook needs ([Incidents](/design/11-incidents#runbooks)). |
+| Data team     | Series B, `data-team`     | The warehouse, CDC, the Vector Index       | `report` and `ai` features cost −30% DH. A CDC pipeline has half the lag.                                                                                                                                     |
+| Security team | Pre-IPO                   | WAF rules, dependency scanning, compliance | **Not built yet.** Required for the SOC 2 milestone. Lowers supply-chain and breach incident chances.                                                                                                         |
 
-Product, Platform and SRE teams exist in the build. An SRE team needs `sre-team` research and an
-engineer on it, and its Dev Hours build no backlog, as a Platform team's do not. Data and Security
-teams and their effects are not built.
+Product, Platform, SRE and Data teams exist in the build. A Platform team needs `platform-team`
+research, an SRE team `sre-team`, and a Data team `data-team`, each with an engineer on it. Their
+Dev Hours build no backlog: they run the system instead. The Security team is not built.
 
 ## Coordination
 
@@ -233,7 +259,7 @@ ships.
 ### Outcomes
 
 **Not built yet.** The build does not roll outcomes: a Feature's effects apply at full strength as
-soon as it ships.
+soon as its users have adopted it.
 
 The "Win effect" column is what a Feature does when it works. Most product changes do not work as
 planned. When Microsoft ran controlled experiments, about a third of ideas improved the metric they
@@ -272,16 +298,19 @@ user, which is what a Design with no Feature Flags Node does with all of them, s
 unchanged. One click sets a step to Off, which is the mitigation an incident needs. The share counts
 the moment it is set, and the Deploy bar and the flags card read it.
 
-**Not built yet:** the rest of the lifecycle. The **rollout** share does not scale a Feature's effects
-or its load, because outcomes, adoption and upkeep are not in the build
-([Features](#features)); a dark Feature still earns and still costs its capacity. There is no
-**Shift** or **Remove** item, so code never disappears and upkeep never ends. Measured lift waits on
-`ab-testing` ([Measured lift](#measured-lift)).
+**Built:** the rollout scales what users get. Effects and load follow the Feature's exposure, its
+rollout times its adoption ([Adoption](#adoption)), so a dark Feature earns nothing and costs no
+capacity, and a Feature at 50% reaches half its effect once its users have adopted it.
+
+**Not built yet:** **Shift** and **Remove**, so code never disappears and upkeep never ends. A
+Feature turned off still pays its upkeep ([Upkeep](#upkeep)).
 
 ### Adoption
 
-**Not built yet.** The build has no adoption share: a Feature has its full effect from the deploy
-that ships it.
+**Built.** A Feature's **adoption** share starts at 0 in the deploy that ships it and approaches 1
+with calendar time. Its **exposure** is the product of its rollout and its adoption, and every
+effect and every load change an exposure of 0 has none of and an exposure of 1 has all of. The
+Team panel shows each live Feature's adopted share.
 
 Users do not adopt a Feature on the day it ships. Each Feature has an **adoption** share that
 approaches 1 as calendar time passes:
@@ -298,7 +327,16 @@ exact arithmetic ([Simulation](/design/04-simulation)).
 
 ### Measured lift
 
-**Not built yet.** A/B testing does not exist, so the player never measures a Feature's lift.
+**Built.** With `ab-testing` researched, a Feature between 5% and 50% rollout reports its lift with
+a confidence interval on its Team card. The counts are sampled requests from the exposed users and
+from the holdout, since the Feature reached its current rollout step; a new step starts the count
+again. Analytics' sample rate sets the rate, and a Design with no Analytics tap counts 1% of
+requests.
+
+Because the build does not roll outcomes yet ([Outcomes](#outcomes)), the lift it measures is the
+win effect: the interval narrows and the verdict becomes Wins, but it cannot become Loses until the
+roll lands. Reading a Feature before A/B testing still means comparing the metrics before and after
+its launch.
 
 Analytics measures a Feature's **lift**, its realized effect, under two conditions:
 
@@ -325,7 +363,8 @@ controlled experiments.
 
 ### Upkeep
 
-**Not built yet.** No team pays upkeep: every live Feature is free to keep.
+**Built.** Each product team loses a share of its Dev Hours to the Features its Service carries,
+before the backlog gets any.
 
 Every live Feature needs upkeep: bug fixes, dependency updates, and support questions. Upkeep takes
 a share of each team's Dev Hours before the backlog gets any:
@@ -340,7 +379,27 @@ and it approaches 40% with no debt. Developers in Stripe's survey spent about 42
 maintenance and bad code. Turning a Feature off does not end its upkeep. Removing it does.
 
 Upkeep makes a large product slower to change. The player chooses which Features earn their upkeep
-and removes the ones that lose or stay flat.
+and removes the ones that lose or stay flat. Until Remove lands, the only lever is what the Company
+ships, which is the trap the section describes.
+
+A team that runs the system instead of the product, a Platform, SRE or Data team, pays no upkeep: its
+Dev Hours build no backlog. The Team panel's Live column shows the share.
+
+### Blocked
+
+An item can stop before its team does any work on it. The build checks the four waits the design
+names, and the first that holds is the reason:
+
+| Wait       | Holds when                                                                                      |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| An index   | The Service has a query shape with no index ([Data tier](/design/07-data-tier#indexes)).        |
+| A copy     | The Service shares its Database with another ([the distributed monolith](#blast-radius)).       |
+| A hire     | The team has eight engineers (proposed), near where the coordination table flattens.            |
+| A decision | The Design is below its Apdex target: what to build first is the player's call, not the team's. |
+
+An item with none of them moves. The team's owner writes and the item waits: its Dev Hours go to the
+pool, and later items go ahead of it. **Approve** clears the wait for good, because an item never
+stops twice. **Later** keeps it waiting and brings the Mail back after a calendar day.
 
 ## Engineering tasks
 

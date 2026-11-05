@@ -1,12 +1,22 @@
 import { Result } from 'effect'
 import {
+  BLOCK_HIRE_AT,
+  BLOCK_REMIND_DAYS,
+  CALENDAR_DAY,
   COMPONENTS,
+  CONTENT_MOOD,
+  DATA_TEAM_HOURS,
   DOC_PATTERN_FACTOR,
   DOC_SHAPE_DH,
   ELIXIR_HOT_UPGRADE_DEV_HOURS,
   ERAS,
+  FREEZE_MOOD_DAYS,
+  PAGE_MOOD,
+  PAY_GAP_MOOD_DAYS,
   RUNTIMES,
   SIM_SECONDS_PER_DEV_HOUR,
+  TIME_OFF_DAYS,
+  UNHAPPY_MOOD,
   type ComponentId,
   FEATURES,
   FEATURE_IDS,
@@ -18,6 +28,7 @@ import {
   LIVE_TUNING,
   MIGRATION_FACTORS,
   MIGRATION_FEATURE_SPEED,
+  MOOD_START,
   POLICIES,
   REFACTOR_PER_DH,
   RESEARCH,
@@ -30,6 +41,7 @@ import {
   type FrameworkId,
   type PolicyId,
   type IncidentId,
+  type RequestKind,
   type RuntimeId,
   type TaskId,
   type Tuning,
@@ -38,7 +50,7 @@ import { Refusal, setFramework, setRuntime, shortOfCash, type Action } from './a
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { has, isDown, restarted, sreStaffed } from './lookups.ts'
+import { has, eraOf, isDown, restarted, sreStaffed } from './lookups.ts'
 import {
   bugsFixed,
   cancelMigration,
@@ -50,19 +62,28 @@ import {
   trancheBuilt,
 } from './migration.ts'
 import { nextRandom } from './random.ts'
-import type { Game, Service, Team, TeamKind, WorkItem } from './state.ts'
+import { NEW_ENGINEER } from './state.ts'
+import type { BlockKind, Game, Service, Team, TeamKind, WorkItem } from './state.ts'
 import {
   badDeployChance,
+  blastService,
+  dataStaffed,
   deployEvery,
   enqueue,
   hireSeconds,
   languageOfService,
+  memberOf,
+  membersOf,
   moraleSeconds,
+  ownerOf,
+  paidIndex,
+  payGapOf,
   platformStaffed,
   policyNow,
   serviceOf,
   serviceOfFeature,
   serviceOfId,
+  sharesDatabase,
   signingOf,
   stackOf,
   structured,
@@ -70,6 +91,7 @@ import {
   withService,
   withServiceId,
 } from './team.ts'
+import { budgetVelocity } from './slo.ts'
 
 /* ==========================================================================
    Work (08): the backlog, the Team, and deploys. Each team builds the first
@@ -208,10 +230,18 @@ const refused = (refusal: Refusal | null, apply: () => Game): Action =>
  */
 export const featureHoursOf = (game: Game, id: FeatureId): number => {
   const def = FEATURES[id]
+  // A Data team makes the analytics and AI Features cheaper (08 "Teams").
+  const data =
+    dataStaffed(game) && def.unlocks && DATA_KINDS.includes(def.unlocks.kind as RequestKind)
+      ? DATA_TEAM_HOURS
+      : 1
   const documents = game.nodes.some((node) => node.type === 'doc' && !isDown(node) && !node.shut)
-  if (!documents) return def.dh
-  return def.dh * (def.shapes > 0 ? DOC_SHAPE_DH : DOC_PATTERN_FACTOR)
+  if (!documents) return def.dh * data
+  return def.dh * data * (def.shapes > 0 ? DOC_SHAPE_DH : DOC_PATTERN_FACTOR)
 }
+
+/** The request kinds a Data team makes cheaper to build: `report` and `ai` (08 "Teams"). */
+const DATA_KINDS: ReadonlyArray<RequestKind> = ['report', 'ai']
 
 export const queueFeature = (game: Game, id: FeatureId): Action =>
   refused(featureRefusal(game, id), () =>
@@ -430,6 +460,86 @@ export const rushItem = (game: Game, id: number): Action =>
 
 export const setAutopilot = (game: Game, autopilot: boolean): Game => ({ ...game, autopilot })
 
+/* ---------- blocked work (18 "Blocked") ---------- */
+
+/** Sim seconds after which a block the player put off writes again. */
+export const blockRemind = (tuning: Tuning = LIVE_TUNING): number =>
+  (BLOCK_REMIND_DAYS * CALENDAR_DAY) / tuning.calendarPace
+
+/**
+ * Why an item stops (18 "Teammates"): the first of the four waits that holds. It waits on an index
+ * while its Service has a query shape with none; on a copy while the Service shares its Database
+ * with another; on a hire while its Team is too big to coordinate; and on a decision while the
+ * Design is failing its Apdex target, when what to build first is the player's call.
+ */
+export const blockReason = (game: Game, item: WorkItem): BlockKind | null => {
+  const service = serviceOfItem(game, item)
+  if (service.shapes > 0) return 'index'
+  if (sharesDatabase(game, service)) return 'copy'
+  if (membersOf(game, ownerOf(game, service)).length >= BLOCK_HIRE_AT) return 'hire'
+  if (game.apdex < eraOf(game).apdexTarget) return 'decision'
+  return null
+}
+
+/** Approves the thing a blocked item waits for: the work moves again. */
+export const approveBlock = (game: Game, id: number): Action =>
+  withItem(game, id, (index) => {
+    const item = game.backlog[index]
+    if (!item?.blockedBy || item.blockedBy.cleared)
+      return notAllowed('Nothing on that item waits on you.')
+    return ok({
+      ...game,
+      backlog: game.backlog.map((entry, at) =>
+        at === index && entry.blockedBy
+          ? { ...entry, blockedBy: { ...entry.blockedBy, cleared: true } }
+          : entry,
+      ),
+    })
+  })
+
+/** Later: the block stays, and the owner writes again after a calendar day. */
+export const laterBlock = (game: Game, id: number, tuning: Tuning = LIVE_TUNING): Action =>
+  withItem(game, id, (index) => {
+    const item = game.backlog[index]
+    if (!item?.blockedBy || item.blockedBy.cleared)
+      return notAllowed('Nothing on that item waits on you.')
+    return ok({
+      ...game,
+      backlog: game.backlog.map((entry, at) =>
+        at === index && entry.blockedBy
+          ? {
+              ...entry,
+              blockedBy: { ...entry.blockedBy, remindAt: game.time + blockRemind(tuning) },
+            }
+          : entry,
+      ),
+    })
+  })
+
+/* ---------- a proposal to patch (18 "Proposal to patch") ---------- */
+
+const answerPatch = (game: Game, id: number, answer: 'now' | 'queued'): Action =>
+  withItem(game, id, (index) => {
+    const item = game.backlog[index]
+    if (item?.kind !== 'patch') return notAllowed('No advisory waits on that item.')
+    const answered = game.backlog.map((entry, at) =>
+      at === index ? { ...entry, answered: answer } : entry,
+    )
+    return ok({
+      ...game,
+      backlog:
+        answer === 'now'
+          ? [answered[index]!, ...answered.filter((_, at) => at !== index)]
+          : answered,
+    })
+  })
+
+/** Patch now: the owner's ticket goes to the top of the backlog, ahead of the product. */
+export const patchNow = (game: Game, id: number): Action => answerPatch(game, id, 'now')
+
+/** Queue the patch: the ticket stays where it is, behind the product work. */
+export const queuePatch = (game: Game, id: number): Action => answerPatch(game, id, 'queued')
+
 /**
  * Adds the missing index. Needs Query analysis to find it. A Sandbox adds it at
  * once; a Company puts the task at the top of the backlog and rushes it from the pool.
@@ -481,7 +591,7 @@ export const hire = (game: Game, tuning: Tuning = LIVE_TUNING): Action => {
         id: `e${game.workSeq + 1}`,
         team,
         language,
-        readyAt: game.time + hireSeconds(language, tuning),
+        readyAt: game.time + hireSeconds(game, language, tuning),
       },
     ],
   })
@@ -494,6 +604,49 @@ export const layoff = (game: Game, engineerId: string, tuning: Tuning = LIVE_TUN
     ...game,
     engineers: game.engineers.filter((engineer) => engineer.id !== engineerId),
     moraleUntil: game.time + moraleSeconds(tuning),
+  })
+}
+
+/** Gives an engineer time off: they produce nothing for three calendar days, and come back content. */
+export const giveTimeOff = (
+  game: Game,
+  engineerId: string,
+  tuning: Tuning = LIVE_TUNING,
+): Action => {
+  if (!game.engineers.some((engineer) => engineer.id === engineerId)) return no(Refusal.Missing())
+  const off = (TIME_OFF_DAYS * CALENDAR_DAY) / tuning.calendarPace
+  return ok({
+    ...game,
+    engineers: game.engineers.map((engineer) =>
+      engineer.id === engineerId
+        ? { ...engineer, offUntil: game.time + off, mood: MOOD_START, unhappyAt: 0 }
+        : engineer,
+    ),
+  })
+}
+
+/** Raises an engineer to the Era's going rate: they stay, and the payroll grows with them. */
+export const raiseSalary = (game: Game, engineerId: string): Action => {
+  const engineer = game.engineers.find((entry) => entry.id === engineerId)
+  if (!engineer) return no(Refusal.Missing())
+  if (paidIndex(game, engineer) >= eraOf(game).salaryIndex)
+    return notAllowed('They already earn the Era’s rate.')
+  return ok({
+    ...game,
+    engineers: game.engineers.map((entry) =>
+      entry.id === engineerId
+        ? { ...entry, salary: eraOf(game).salaryIndex, mood: MOOD_START, unhappyAt: 0 }
+        : entry,
+    ),
+  })
+}
+
+/** Accepts a resignation: the engineer leaves, and the payroll ends without a layoff's morale hit. */
+export const acceptResignation = (game: Game, engineerId: string): Action => {
+  if (!game.engineers.some((engineer) => engineer.id === engineerId)) return no(Refusal.Missing())
+  return ok({
+    ...game,
+    engineers: game.engineers.filter((engineer) => engineer.id !== engineerId),
   })
 }
 
@@ -562,11 +715,20 @@ export const setTeamKind = (game: Game, teamId: string, kind: TeamKind): Action 
       return no(
         Refusal.TooEarly({ what: 'A Platform team', era: ERAS[PLATFORM_STAGE]?.name ?? '' }),
       )
+    if (!has(game, 'platform-team'))
+      return no(
+        Refusal.Locked({ what: 'A Platform team', research: RESEARCH['platform-team'].name }),
+      )
     if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
   }
   if (kind === 'sre') {
     if (!has(game, 'sre-team'))
       return no(Refusal.Locked({ what: 'An SRE team', research: RESEARCH['sre-team'].name }))
+    if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
+  }
+  if (kind === 'data') {
+    if (!has(game, 'data-team'))
+      return no(Refusal.Locked({ what: 'A Data team', research: RESEARCH['data-team'].name }))
     if (game.teams[0]?.id === teamId) return notAllowed('The founder’s team builds the product.')
   }
   return ok({
@@ -637,6 +799,10 @@ export const rollback = (game: Game): Action => {
     ...game,
     shipped: game.shipped.filter((id) => !batch.includes(id)),
     awaiting: [...batch, ...game.awaiting.filter((id) => !batch.includes(id))],
+    // The rollout leaves again with the Feature: its adoption starts over at the next deploy.
+    adoption: Object.fromEntries(
+      Object.entries(game.adoption).filter(([id]) => !batch.includes(id as FeatureId)),
+    ),
     incident: { ...game.incident, remaining: 0 },
   }
   return ok(withServiceId(rolled, service.id, { lastDeploy: [] }))
@@ -676,6 +842,46 @@ const autopilot = (game: Game, events: Array<StepEvent>): Game => {
     break
   }
   return next
+}
+
+/* ---------- burnout and quitting (18 "Burnout and quitting") ---------- */
+
+const clampMood = (mood: number): number => Math.max(0, Math.min(MOOD_START, mood))
+
+/**
+ * What a Step does to the Team's people: a new incident pages the Team that owns the Service it
+ * hit, a spent error budget is a long freeze, and an engineer paid below the Era's rate carries a
+ * pay gap. Each wears mood down; time off and a raise restore it. An engineer whose mood falls to
+ * the threshold writes once, and a later recovery lets them write again.
+ */
+export const advanceMorale = (
+  game: Game,
+  before: Game,
+  seconds: number,
+  tuning: Tuning = LIVE_TUNING,
+  events: Array<StepEvent> = [],
+): Game => {
+  if (game.sandbox || game.engineers.length === 0) return game
+  const days = (seconds * tuning.calendarPace) / CALENDAR_DAY
+  const freeze = budgetVelocity(game) < 1 ? days / FREEZE_MOOD_DAYS : 0
+  const fresh =
+    game.incident !== null && game.incident.startedAt !== (before.incident?.startedAt ?? -1)
+  const pagedId = fresh ? ownerOf(game, blastService(game)).id : null
+  const engineers = game.engineers.map((engineer) => {
+    const page = pagedId !== null && engineer.team === pagedId ? PAGE_MOOD : 0
+    const wear = freeze + payGapOf(game, engineer) * (days / PAY_GAP_MOOD_DAYS) + page
+    const mood = clampMood(engineer.mood - wear)
+    const unhappyAt =
+      mood >= CONTENT_MOOD
+        ? 0
+        : engineer.unhappyAt === 0 && mood <= UNHAPPY_MOOD
+          ? game.time
+          : engineer.unhappyAt
+    if (unhappyAt !== engineer.unhappyAt && unhappyAt !== 0)
+      events.push(StepEvent.EngineerUnhappy({ engineerId: engineer.id }))
+    return { ...engineer, mood, pages: engineer.pages + (page > 0 ? 1 : 0), unhappyAt }
+  })
+  return { ...game, engineers }
 }
 
 /** What a finished item does. */
@@ -790,6 +996,11 @@ const deploy = (
     shipped: [...slot.shipped, ...batch],
     awaiting: [],
     deploys: slot.deploys + 1,
+    // A shipped Feature is new to its users: adoption starts at 0 and climbs (08 "Adoption").
+    adoption: {
+      ...slot.adoption,
+      ...Object.fromEntries(batch.map((id) => [id, 0])),
+    },
     services: slot.services.map((entry) => {
       const mine = shippedBy(entry)
       if (mine.length === 0) return entry
@@ -839,9 +1050,10 @@ const deploy = (
   return next
 }
 
-/** Whether a Team can work on an item: a Spike waits while its Study is not the running one. */
+/** Whether a Team can work on an item: a Spike waits for its Study, and a blocked item for the player. */
 export const takeable = (game: Game, item: WorkItem): boolean =>
-  item.kind !== 'spike' || game.studies[0]?.id === item.ref
+  (item.kind !== 'spike' || game.studies[0]?.id === item.ref) &&
+  (item.blockedBy === null || item.blockedBy.cleared)
 
 /**
  * Advances the Team by some seconds: hires join, idle teams pick work, Dev
@@ -871,6 +1083,9 @@ export const advanceTeam = (
           team: teams.has(entry.team) ? entry.team : (next.teams[0]?.id ?? 'core'),
           language: entry.language,
           hiredAt: entry.readyAt,
+          ...NEW_ENGINEER,
+          // They sign at the Era's going rate; later Eras leave them behind until a raise (18).
+          salary: eraOf(next).salaryIndex,
         })),
       ],
     }
@@ -885,8 +1100,21 @@ export const advanceTeam = (
   const taken = new Set<number>()
   let pool = next.devHours
   let paydown = 0
+  // A block the player put off writes again (18 "Blocked"): Later is not a no.
+  for (const item of backlog) {
+    const block = item.blockedBy
+    if (!block || block.cleared || block.remindAt > next.time) continue
+    item.blockedBy = { ...block, remindAt: next.time + blockRemind(tuning) }
+    events.push(
+      StepEvent.Blocked({
+        item: { ...item },
+        reason: block.kind,
+        engineerId: block.owner,
+      }),
+    )
+  }
   for (const output of teamOutputs(next, ledger, tuning)) {
-    // A Platform or SRE team runs the system: its Dev Hours build no backlog.
+    // A Platform, SRE or Data team runs the system: its Dev Hours build no backlog.
     if (output.team.kind !== 'product') continue
     const made = output.rate * seconds
     const kept = made * policyNow(next, output.team, tuning).paydown
@@ -897,6 +1125,24 @@ export const advanceTeam = (
     if (!item) {
       pool += made - kept
       continue
+    }
+    // An item that has not started can stop on a decision, an index, a copy or a hire (18). The
+    // roll happens once: a block marks the item, and work that starts leaves `spent` above zero.
+    if (item.blockedBy === null && item.spent <= 0 && item.kind !== 'spike') {
+      const reason = blockReason(next, item)
+      const owner = memberOf(next, ownerOf(next, serviceOfItem(next, item)).id, item.id)
+      if (reason !== null && owner) {
+        item.blockedBy = {
+          kind: reason,
+          owner: owner.id,
+          at: next.time,
+          remindAt: next.time + blockRemind(tuning),
+          cleared: false,
+        }
+        events.push(StepEvent.Blocked({ item: { ...item }, reason, engineerId: owner.id }))
+        pool += made - kept
+        continue
+      }
     }
     taken.add(item.id)
     const speed = item.kind === 'feature' && migrating ? MIGRATION_FEATURE_SPEED : 1

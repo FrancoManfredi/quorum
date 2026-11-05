@@ -37,7 +37,7 @@ import { advanceCves } from './cve.ts'
 import { advanceIncident, directIncidents, markSignal, startIncident } from './director.ts'
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
-import { churnFactor, growthFactor } from './features.ts'
+import { advanceFeatures, churnFactor, growthFactor } from './features.ts'
 import { growthPerk } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
@@ -63,7 +63,7 @@ import { advanceRunway } from './runway.ts'
 import { accrue, advanceStudies } from './studies.ts'
 import { perRegion, regional, regionApdexOf, regionUsers, withRegionUsers } from './regions.ts'
 import type { Alarms, FalseAlarms, Game, GameLink, GameNode, PerRegion, Sample } from './state.ts'
-import { advanceTeam } from './work.ts'
+import { advanceMorale, advanceTeam } from './work.ts'
 
 /* ==========================================================================
    Time. `step` advances a Game by some seconds: money moves, credits drain,
@@ -662,6 +662,10 @@ export const step = (
     next = directed.game
     events.push(...directed.events)
   }
+  // Users adopt a Feature over a calendar week, and Analytics counts the A/B samples (08).
+  next = advanceFeatures(next, ledger.demand, seconds, tuning)
+  // The pager, a freeze and a pay gap wear the Team down (18 "Burnout and quitting").
+  next = advanceMorale(next, game, seconds, tuning, events)
   // A crashed Worker's prefetched tasks are lost: they spend the error budget like failed requests.
   const lost = lostOnCrash(next, game.time, seconds)
   if (lost > 0)

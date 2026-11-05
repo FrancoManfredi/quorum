@@ -144,49 +144,58 @@ export const GOLDEN_STEPS = 10_000
 // owner, Features and datastore, the incident's and postmortem's Service, a backlog item's Service,
 // and the split work kind, so every hash moves. One research item (Service boundaries) shifts what
 // a Company earns toward it.
+// SIM_VERSION 33 (Team, upkeep, adoption and the Mail the design waits on): a live Feature takes a
+// share of its Team's Dev Hours as upkeep, a backlog item can wait on a decision, an index, a copy
+// or a hire until the player approves it, an engineer carries a mood, a page count and a salary and
+// can burn out, a CVE's patch is proposed by the Service's owner, and a shipped Feature reaches its
+// effects as users adopt it, with A/B testing to measure the lift. The save gains a Feature's
+// adoption, its A/B samples, an engineer's pay, mood, pages and time off, and an item's block, owner
+// and answer. Five research items join the catalog (A/B testing, Hiring pipeline, Trunk-based
+// development, Platform team, Data team), which shifts what a Company earns toward them, and the
+// Platform team now needs its research.
 // SIM_VERSION 32 (the six kinds and cascades): the six incident kinds 11's catalog names by hand land —
 // JVM warmup under load, schema migration lock, supply-chain compromise, accidental delete, operator typo,
 // and leap second or clock skew — each with its Era, severity, duration, effect, mitigation and action
 // item. An incident nobody answers can start a second one from Series A, so an Incident and a Postmortem
 // gain `causedBy`; an Incident may also have no second severity. Two research items join the catalog
 // (Online schema migrations, Leap smearing), which shifts what a Company earns toward them.
-export const GOLDEN_HASH = 'd736ca6f'
+export const GOLDEN_HASH = '31bea32c'
 
 /**
  * The hash of the Game each Challenge's reference solution ends on
  * (`fixtures/challenges.ts`). Node, the browsers and workerd must agree.
  */
 export const REFERENCE_HASHES: Readonly<Record<string, string>> = {
-  'hello-world': '96f02748',
-  'split-the-box': 'd79202aa',
-  slashdotted: '9262c9ed',
-  c10k: 'e5843e6a',
-  'event-loop': '8d0fa60a',
-  'too-many-connections': '80fd33a9',
-  shoestring: 'f4839bc9',
-  'n-plus-one': '959a301b',
-  'thirteen-engineers': 'fb579a27',
-  'credential-stuffing': '02b24d4e',
-  'black-friday': 'b75f7662',
-  'us-east-1': '30f9db8c',
-  'exactly-once': '8f49ff5d',
-  'two-million-sockets': '9ae2fb42',
-  'pokemon-go': 'db0e51c8',
-  'healthcare-launch': 'f985d473',
-  'thundering-herd': 'f2435685',
-  'read-states': 'f8527966',
-  'fail-whale': '5790681f',
-  'reports-at-noon': 'e721b680',
-  'gpu-economics': '2799ffc4',
-  metastable: 'd604b19a',
-  'regex-of-doom': '061e55e6',
-  'forty-three-seconds': '9a06e263',
-  'follow-the-sun': 'b522c0c3',
-  celebrity: 'e250c8eb',
-  'gone-from-the-internet': '57e4e9ee',
-  'the-typo': '30ba55b0',
-  'leap-second': '2576fb51',
-  'rule-of-40': '66f820be',
-  'postgres-for-everything': 'fdde97aa',
-  'five-nines': '87204522',
+  'hello-world': '1d27242c',
+  'split-the-box': 'f4a287ee',
+  slashdotted: 'f170d0d1',
+  c10k: 'a1d3893e',
+  'event-loop': '331a4786',
+  'too-many-connections': '3ba80c65',
+  shoestring: 'c0deb7f5',
+  'n-plus-one': 'dd1ff5ff',
+  'thirteen-engineers': '3c09cc6b',
+  'credential-stuffing': 'ebab29a0',
+  'black-friday': '70371684',
+  'us-east-1': 'cff0a178',
+  'exactly-once': '987d1809',
+  'two-million-sockets': '3e934ec6',
+  'pokemon-go': 'db54ed4a',
+  'healthcare-launch': 'c600ef49',
+  'thundering-herd': '466f5c09',
+  'read-states': '23523882',
+  'fail-whale': '91ce3fdb',
+  'reports-at-noon': 'f442716c',
+  'gpu-economics': '2949acc8',
+  metastable: '86d3a05e',
+  'regex-of-doom': '79f759e2',
+  'forty-three-seconds': 'd683b6e9',
+  'follow-the-sun': 'ec92b7f1',
+  celebrity: 'b3625521',
+  'gone-from-the-internet': '550132da',
+  'the-typo': 'c7902cb4',
+  'leap-second': '55d012df',
+  'rule-of-40': '17b745fc',
+  'postgres-for-everything': '83c4c7ee',
+  'five-nines': '8e004668',
 }

@@ -256,6 +256,8 @@ const sampleTicket = (cve: Cve, game: Game, id: number): WorkItem => {
     ref: cve.id,
     cost: patchCost(def?.score ?? 5),
     spent: 0,
+    blockedBy: null,
+    answered: null,
     due: game.time + patchWindow(def?.score ?? 5),
     ...(def?.affects[0] ? { target: def.affects[0] } : {}),
   }
@@ -524,6 +526,17 @@ const EVENT_SAMPLES: {
   deployed: { label: 'Deployed', tag: 'Deployed', vars: { features: 'Search, Uploads' } },
   'deployed-bad': { label: 'Bad deploy', tag: 'Deployed', vars: { features: 'Checkout' } },
   migration: { label: 'Migration step', tag: 'MigrationShifted', vars: { share: '25%' } },
+  blocked: {
+    label: 'Blocked item',
+    tag: 'Blocked',
+    vars: { item: 'Checkout', reason: 'waiting on a decision' },
+  },
+  unhappy: { label: 'Engineer unhappy', tag: 'EngineerUnhappy', vars: { pages: '6', gap: '5%' } },
+  'patch-proposed': {
+    label: 'Proposal to patch',
+    tag: 'PatchProposed',
+    vars: { item: 'Patch App Server', target: 'App Server', due: '6 min' },
+  },
 }
 
 const entries = <K extends string, V>(record: { readonly [P in K]: V }): ReadonlyArray<[K, V]> =>
@@ -584,7 +597,24 @@ export const SAMPLES: ReadonlyArray<Sample> = [
     make: (game, n) =>
       own(
         eventFact(
-          { _tag: sample.tag, engineerId: mateOf(game, n).replace('mate:', '') },
+          {
+            _tag: sample.tag,
+            engineerId: mateOf(game, n).replace('mate:', ''),
+            // A bench sample of a teammate's Mail carries a ticket, so its buttons are on screen.
+            ...(topic === 'blocked' || topic === 'patch-proposed'
+              ? {
+                  item: {
+                    id: n,
+                    kind: 'feature',
+                    ref: 'checkout',
+                    cost: 320,
+                    spent: 0,
+                    blockedBy: null,
+                    answered: null,
+                  } satisfies WorkItem,
+                }
+              : {}),
+          },
           { topic, vars: sample.vars } as EventMail,
           game,
           n,
@@ -745,6 +775,35 @@ const eventActions = (
       ? alertActions(nodeId)
       : []
 
+/**
+ * A teammate's buttons (18 "Teammates"): Approve or Later a blocked item, the three answers to
+ * burnout, and the two answers to a proposal to patch.
+ */
+const workActions = (
+  event: { readonly [field: string]: unknown },
+  mail: EventMail,
+): ReadonlyArray<AdviceAction> => {
+  const item = event.item as WorkItem | undefined
+  if (mail.topic === 'blocked' && item)
+    return [
+      { id: `approve:${item.id}`, label: 'Approve' },
+      { id: `defer:${item.id}`, label: 'Later' },
+    ]
+  if (mail.topic === 'unhappy' && typeof event.engineerId === 'string')
+    return [
+      { id: `timeoff:${event.engineerId}`, label: 'Give time off' },
+      { id: `payrise:${event.engineerId}`, label: 'Raise salary' },
+      { id: `resign:${event.engineerId}`, label: 'Accept resignation' },
+    ]
+  if (mail.topic === 'patch-proposed' && item)
+    return [
+      { id: `patch:${item.id}`, label: 'Patch now' },
+      { id: `queue:${item.id}`, label: 'Queue the patch' },
+      { id: 'team', label: 'Open Team' },
+    ]
+  return []
+}
+
 /** One Step event as Mail: the party that would know writes, and repeats join the Thread. */
 export const eventFact = (
   event: { readonly _tag: string; readonly [field: string]: unknown },
@@ -752,8 +811,15 @@ export const eventFact = (
   game: Game,
   salt: number | string = '',
 ): Fact => {
+  // A blocked item and a patch proposal are about one backlog item each, so two of them from the
+  // same engineer start two Threads; the rest are about a Node, a rule, or the engineer.
+  const work = event.item as { readonly id?: unknown } | undefined
+  const itemKey =
+    (mail.topic === 'blocked' || mail.topic === 'patch-proposed') && typeof work?.id === 'number'
+      ? `item:${work.id}`
+      : null
   const about =
-    [event.nodeId, event.rule, event.engineerId].find((v) => typeof v === 'string') ?? ''
+    itemKey ?? [event.nodeId, event.rule, event.engineerId].find((v) => typeof v === 'string') ?? ''
   // Each kind of news keeps its own Thread: a zone outage does not join a cache stampede.
   const key = `event:${mail.topic}:${about}`
   const from = EVENT_FROM[event._tag]
@@ -764,10 +830,8 @@ export const eventFact = (
       : `mate:${typeof event.engineerId === 'string' ? event.engineerId : (game.engineers[0]?.id ?? 'e0')}`)
   // Each topic carries its own vars; the record type cannot say so.
   const letters = EVENTS[mail.topic] as unknown as Letters<EventMail['vars']>
-  return fact(
-    key,
-    sender,
-    write(letters, mail.vars, sender, game, key, salt),
-    eventActions(game, from, eventNode(event)),
-  )
+  return fact(key, sender, write(letters, mail.vars, sender, game, key, salt), [
+    ...workActions(event, mail),
+    ...eventActions(game, from, eventNode(event)),
+  ])
 }

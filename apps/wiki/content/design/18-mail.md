@@ -185,19 +185,57 @@ People are the richest source of Mail. Each hired engineer is a named sender ([T
 velocity](/design/08-team-and-velocity)). They write in a few fixed shapes, with a body drawn from their
 language, seniority, and the state of the Design.
 
-| Mail                 | Triggers on                                                                                        | Actions                                                         |
-| -------------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Shipped              | A feature or task finishes                                                                         | Show on Board                                                   |
-| Blocked              | A task cannot move: waiting for a decision, an index, a database copy, or a hire                   | Approve, Later. Not built yet.                                  |
-| Rewrite proposal     | An engineer who knows a language well and sees a service with high **tech debt** or a slow runtime | Review \<language\> migration, Decline                          |
-| Hire request         | A team is past its coordination limit or its backlog is long                                       | Approve hire, Later                                             |
-| Incident follow-up   | An Incident resolved                                                                               | File postmortem, File and research the action item              |
-| Burnout and quitting | Long freeze, many pages, or a pay gap                                                              | Give time off, Raise salary, Accept resignation. Not built yet. |
-| Proposal to patch    | A CVE affects a service the engineer owns                                                          | Patch now, Queue the patch. Not built yet.                      |
+| Mail                 | Triggers on                                                                                        | Actions                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Shipped              | A feature or task finishes                                                                         | Show on Board                                      |
+| Blocked              | A task cannot move: waiting for a decision, an index, a database copy, or a hire                   | Approve, Later                                     |
+| Rewrite proposal     | An engineer who knows a language well and sees a service with high **tech debt** or a slow runtime | Review \<language\> migration, Decline             |
+| Hire request         | A team is past its coordination limit or its backlog is long                                       | Approve hire, Later                                |
+| Incident follow-up   | An Incident resolved                                                                               | File postmortem, File and research the action item |
+| Burnout and quitting | Long freeze, many pages, or a pay gap                                                              | Give time off, Raise salary, Accept resignation    |
+| Proposal to patch    | A CVE affects a service the engineer owns                                                          | Patch now, Queue the patch, Open Team              |
 
-Not built yet: Blocked, Burnout and quitting, and Proposal to patch. The world event draws only a hire
-request or a rewrite proposal. Incident follow-up is built: the teammate's Mail carries File postmortem
+The world event still draws only a hire request or a rewrite proposal; a block, a slump and a CVE
+proposal come from the Step, not the event tick. Incident follow-up is built: the teammate's Mail carries File postmortem
 and File and research the action item.
+
+### Blocked
+
+A backlog item can stop before its team does any work on it. The Simulation checks the four waits the
+Team section names ([Team](/design/08-team-and-velocity#blocked)), and the first that holds is the
+reason: an index the Service needs, a copy of a Database it shares, a hire its team has outgrown, or a
+decision the player has to make. The engineer whose item it is writes; the item waits, its Dev Hours go
+to the pool, and later items go ahead of it.
+
+**Approve** clears the wait for good. **Later** keeps it waiting and brings the Mail back after a
+calendar day, in the same thread, because the same thing is still true. A block never stops the same
+item twice.
+
+### Burnout and quitting
+
+An engineer's mood falls with a long freeze, with every page an incident sends them, and with a pay
+gap: they were hired at an Era's rate, and the salary index has climbed since
+([Team](/design/08-team-and-velocity#pay-and-mood)). At 0.35 mood they write once, and the Mail says
+which of the three it is, in their own words: the pages they have answered, or the gap between their
+pay and the Era's rate.
+
+| Answer                 | What it does                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| **Give time off**      | Three calendar days with no Dev Hours, and they come back content. The Team carries the backlog. |
+| **Raise salary**       | Their pay rises to the Era's rate, and the payroll with it.                                      |
+| **Accept resignation** | They leave, the payroll ends, and there is no layoff's morale hit.                               |
+
+A slump that recovers, because the player answered or the freeze ended, lets a later one write again.
+The Mail reports the count; a recruiter's pitch is still flavour without the hint it would carry.
+
+### A proposal to patch
+
+A CVE is filed as a patch ticket at the end of the backlog ([CVEs](#cves-and-patches)). The Simulation
+names the engineer from the Service's owning team whose item it is, and they write: the ticket, its
+deadline, and the choice. **Patch now** moves the ticket to the top of the backlog, ahead of the
+product. **Queue the patch** leaves it where it is, behind the product, and the deadline runs either
+way. **Open Team** shows the backlog it sits on. The Security advisory is a separate Mail from a
+separate sender: one tells the player what is exposed, the other tells them who fixes it.
 
 ### Rewrite proposals
 
@@ -237,7 +275,9 @@ a Security sender and a spam folder together.
   reader shows every button a Mail carries ([Actions](#actions)), so an advisory with four of them
   keeps all four.
 - **The ticket.** The Simulation files each disclosure as a **patch ticket** at the end of the Team
-  backlog, so a team does not build it until the player moves it up ("Patch now") or rushes it: "Patch App Server, 5 DH, due in 3 min". A higher score means a bigger patch and a shorter
+  backlog, owned by an engineer on the Service's owning team, who proposes the patch in their own Mail
+  ([A proposal to patch](#a-proposal-to-patch)). A team does not build it until the player moves it up
+  ("Patch now"), queues it on purpose, or rushes it: "Patch App Server, 5 DH, due in 3 min". A higher score means a bigger patch and a shorter
   deadline. The ticket turns red on the backlog and the HUD when it is overdue. A grace of 60 sim
   seconds later it expires: the ticket is gone and a SEV1 **Data breach** starts, which costs 15% of
   the Users. A breach waits while another incident runs. The ticket can be rushed but not cancelled.
@@ -283,13 +323,13 @@ and one gift.
 | Recruiter        | Offers to your engineers                                                   | A hint that a teammate is unhappy.                                |
 | Real CVE in Spam | A true advisory that the filter sorted wrongly                             | Ignoring it starts the CVE clock without a warning.               |
 
-Not built yet: three of the effects in that table. **Fake CVE alert**: a backdoor needs a lasting
+Not built yet: two of the effects in that table. **Fake CVE alert**: a backdoor needs a lasting
 compromise to install itself into, and the build has none, so its button still raises the toast "That
 was phishing. Check the sender address first." Its id is not in the Glossary, which is the tell that
-catches it before the click. **Recruiter**: the hint needs the unhappiness that
-[Burnout and quitting](#teammates) would track, and that thread is not built. **Vendor pitch**: no
-research discount exists, and the discount would have to live in the Simulation, which prices every
-Study.
+catches it before the click. **Recruiter**: the game now tracks the unhappiness the hint would read
+([Burnout and quitting](#burnout-and-quitting)), but the pitch itself still only offers a job. **Vendor
+pitch**: no research discount exists, and the discount would have to live in the Simulation, which
+prices every Study.
 
 What is built: a phishing button starts the Credential leak incident and takes 10% of the Users (a
 proposed share), the pager writes about it, and the trap's thread keeps the line that says the
@@ -498,11 +538,17 @@ Teammates draw a name from a pool and keep it for life.
   Reserved (cloud, which open the Node's Inspector and its pricing control); Acknowledge and Mute
   for 1 h (alerts, which the Inbox carries out itself);
   Raise and Decline (investor); Approve hire and Later (a teammate's hire request); Review
-  \<language\> migration and Decline (a rewrite); Patch now, Rush patch, and Open Team (security);
-  Open Churn breakdown and Add to backlog (customers); File postmortem and File and research the
-  action item (a teammate, after an incident); and the phishing traps. Raise, Decline,
-  Approve hire, Patch now, Rush patch, Add to backlog, and the postmortem buttons send the real
-  Messages. Every button is on screen and takes a number key from `1` to `9`.
+  \<language\> migration and Decline (a rewrite); Approve and Later (a blocked item); Give time off,
+  Raise salary and Accept resignation (an unhappy engineer); Patch now and Queue the patch (a
+  proposal to patch); Patch now, Rush patch, and Open Team (security); Open Churn breakdown and Add
+  to backlog (customers); File postmortem and File and research the action item (a teammate, after an
+  incident); and the phishing traps. Raise, Decline, Approve hire, Approve, Give time off, Raise
+  salary, Accept resignation, Patch now, Queue the patch, Add to backlog, and the postmortem buttons
+  send the real Messages. Every button is on screen and takes a number key from `1` to `9`.
+- **Teammates' own threads:** a blocked item, an unhappy engineer, and a proposal to patch, each with
+  its buttons (Approve and Later; Give time off, Raise salary and Accept resignation; Patch now,
+  Queue the patch and Open Team). The Team panel shows each live Feature's adopted share and its
+  measured lift, and the share of Dev Hours upkeep takes.
 - **World events:** every 45 sim seconds from Pre-seed, the Company's seed draws spam, a
   teammate (hire request or rewrite proposal), or a customer: a slow-page ticket when a page is slow,
   and otherwise a Feature that a big customer asks for.
@@ -516,9 +562,9 @@ Teammates draw a name from a pool and keep it for life.
 
 Not built yet: a vendor's **Switch provider** (no Component has a second provider, so a vendor pitch
 carries no button); the **spam filter** as a research item and a setting (the design says there is
-none to research, so nothing gates it); the **fake CVE trap's backdoor** and the **recruiter's hint**
-(neither has a mechanic to land in); and a vendor's research discount, which the Simulation would have
-to price. Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
+none to research, so nothing gates it); the **fake CVE trap's backdoor**, which needs a lasting
+compromise to install itself into; the **recruiter's hint**, which waits on the pitch reading an
+engineer's mood; and a vendor's **research discount**, which the Simulation would have to price. Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The
 reader's keys are built: `1` to `9` press a button, `E` deletes or restores, `J` and `K` move, `S`
 reports spam. The funding offer panel still exists beside the investor Mail.
 

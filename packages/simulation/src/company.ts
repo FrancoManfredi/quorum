@@ -179,6 +179,8 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   workSeq: 0,
   cves: [],
   shipped: [],
+  adoption: {},
+  lifts: {},
   awaiting: [],
   autopilot: true,
   deploys: 0,

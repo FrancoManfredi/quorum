@@ -6,6 +6,22 @@ export const fr: Readonly<Record<string, string>> = {
   ...frGlossary,
   ...frMail,
   'Review {0} migration': 'Examiner la migration vers {0}',
+  // The Team's remaining research (08, 10 "Track: Product and business").
+  'A/B testing': 'Test A/B',
+  'Measures a Feature’s lift against the users its flag holds out, with a confidence interval.':
+    'Mesure le gain d’une fonctionnalité face aux utilisateurs mis de côté par son drapeau, avec un intervalle de confiance.',
+  'Hiring pipeline': 'Pipeline de recrutement',
+  'Recruiters keep a pipeline warm, so every hire takes 30% less calendar time.':
+    'Les recruteurs entretiennent un vivier, donc chaque embauche prend 30 % de temps calendaire en moins.',
+  'Trunk-based development': 'Développement sur tronc commun',
+  'Small changes land on one branch many times a day, so the Team ships 50% more often.':
+    'De petits changements arrivent sur une seule branche plusieurs fois par jour, donc l’équipe livre 50 % plus souvent.',
+  'Unlocks the Platform team: it runs the Clusters and the pipeline, and halves deploy time.':
+    'Débloque l’équipe plateforme : elle gère les clusters et le pipeline, et divise par deux le temps de déploiement.',
+  'Data team': 'Équipe données',
+  'Unlocks the Data team: report and AI Features cost 30% less, and a pipeline lags half as much.':
+    'Débloque l’équipe données : les fonctionnalités de rapport et d’IA coûtent 30 % de moins, et un pipeline accuse deux fois moins de retard.',
+
   'Start migration': 'Démarrer la migration',
   Proposed: 'Proposé',
   'Zig threaded server': 'Serveur Zig multithread',
@@ -219,7 +235,6 @@ export const fr: Readonly<Record<string, string>> = {
   Performance: 'Performance',
   Reliability: 'Fiabilité',
   Observability: 'Observabilité',
-  Data: 'Données',
   Runtimes: 'Environnements d’exécution',
   Network: 'Réseau',
   Security: 'Sécurité',
@@ -1070,7 +1085,6 @@ export const fr: Readonly<Record<string, string>> = {
   'e{0}': 'e{0}',
   'team:hire:{0}': 'équipe:embauche:{0}',
   'Approve hire': "Approuver l'embauche",
-  Later: 'Plus tard',
   'team:rewrite:{0}': 'équipe: réécriture: {0}',
   'slow:{0}': 'lent : {0}',
   'spam:{0}': 'spam : {0}',
@@ -3924,4 +3938,32 @@ export const fr: Readonly<Record<string, string>> = {
     'Modifie une grande table sans tenir son verrou, donc les écritures continuent pendant une migration.',
   'Spreads a leap second over the whole day, so no clock jumps and no lease expires early.':
     "Répartit la seconde intercalaire sur toute la journée : aucune horloge ne saute et aucun bail n'expire trop tôt.",
+  // The Team's new answers and readouts (08, 18).
+  Approve: 'Approuver',
+  Later: 'Plus tard',
+  'Give time off': 'Accorder du temps libre',
+  'Raise salary': 'Augmenter le salaire',
+  'Accept resignation': 'Accepter la démission',
+  'Queue the patch': 'Mettre la correction en file',
+  'You approved it. The work moves again.': 'Vous avez approuvé. Le travail reprend.',
+  'Later. They will ask again tomorrow.': 'Plus tard. On vous le redemandera demain.',
+  'You patched now: the ticket goes to the top.': 'Correction immédiate : le ticket passe en haut.',
+  'You queued the patch behind the product work.':
+    'Correction mise en file derrière le travail produit.',
+  'You gave them time off.': 'Vous leur avez accordé du temps libre.',
+  'You raised their salary to the Era’s rate.': 'Vous avez porté leur salaire au tarif de l’ère.',
+  'You accepted the resignation.': 'Vous avez accepté la démission.',
+  'waiting on a decision': 'en attente d’une décision',
+  'waiting on an index': 'en attente d’un index',
+  'waiting on a database copy': 'en attente d’une copie de base de données',
+  'waiting on a hire': 'en attente d’une embauche',
+  Data: 'Données',
+  'Runs the warehouse: report and AI Features cost −30% DH':
+    'Gère l’entrepôt : les fonctionnalités de rapport et d’IA coûtent −30 % de DH',
+  Upkeep: 'Maintenance',
+  'of Dev Hours': 'des heures de dev',
+  adopted: 'adopté',
+  'Too early': 'Trop tôt',
+  Wins: 'Gagne',
+  Loses: 'Perd',
 }

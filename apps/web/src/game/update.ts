@@ -172,7 +172,7 @@ import { IPO_BURN_SECONDS, PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { firstQuarter } from '@quorum/simulation/quarters'
 import * as Runway from '@quorum/simulation/runway'
 import { step } from '@quorum/simulation/step'
-import { serviceOf } from '@quorum/simulation/team'
+import { payGapOf, serviceOf } from '@quorum/simulation/team'
 import * as Work from '@quorum/simulation/work'
 import {
   AskPlaybook,
@@ -889,6 +889,20 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
     }
     case 'first':
       return route(model, Message.WorkPrioritized({ id: Number(target) }))
+    case 'approve':
+      return route(model, Message.WorkApproved({ id: Number(target) }))
+    case 'defer':
+      return route(model, Message.WorkDeferred({ id: Number(target) }))
+    case 'patch':
+      return route(model, Message.WorkPatched({ id: Number(target) }))
+    case 'queue':
+      return route(model, Message.WorkPatchQueued({ id: Number(target) }))
+    case 'timeoff':
+      return route(model, Message.EngineerGivenTimeOff({ engineerId: target ?? '' }))
+    case 'payrise':
+      return route(model, Message.EngineerGivenRaise({ engineerId: target ?? '' }))
+    case 'resign':
+      return route(model, Message.EngineerResigned({ engineerId: target ?? '' }))
     case 'rush':
       return route(model, Message.WorkRushed({ id: Number(target) }))
     case 'show':
@@ -1219,6 +1233,14 @@ type Note = readonly [string, Tone] | null
 /** A Step event's toast, and the Mail behind it. */
 type EventNote = readonly [string, Tone, EventMail] | null
 
+/** What a blocked item waits on, in the words the Mail uses (18 "Teammates"). */
+const BLOCK_TEXT: Readonly<Record<'decision' | 'index' | 'copy' | 'hire', string>> = {
+  decision: 'waiting on a decision',
+  index: 'waiting on an index',
+  copy: 'waiting on a database copy',
+  hire: 'waiting on a hire',
+}
+
 const eventText = (event: StepEvent, game: Game): EventNote =>
   StepEvent.$match(event, {
     IncidentStarted: ({ incident }): EventNote =>
@@ -1331,7 +1353,31 @@ const eventText = (event: StepEvent, game: Game): EventNote =>
     Hired: (): EventNote => ['An engineer joined the team.', 'ok', { topic: 'hired', vars: {} }],
     // A disclosure and its exploit are written by `security`, not by the event table.
     CveDisclosed: (): EventNote => null,
+    // The owner also proposes the patch, which is a teammate's Mail of its own (18).
+    PatchProposed: ({ item }): EventNote => {
+      const target = COMPONENTS[item.target as keyof typeof COMPONENTS]?.name ?? 'the Design'
+      const due = `${Math.max(1, Math.round(((item.due ?? game.time) - game.time) / 60))} min`
+      return [
+        `${target}: its owner proposes the patch.`,
+        'warn',
+        { topic: 'patch-proposed', vars: { item: Work.itemName(item), target, due } },
+      ]
+    },
     CveExploited: (): EventNote => null,
+    Blocked: ({ item, reason }): EventNote => [
+      `${Work.itemName(item)} waits on you: ${BLOCK_TEXT[reason]}.`,
+      'warn',
+      { topic: 'blocked', vars: { item: Work.itemName(item), reason: BLOCK_TEXT[reason] } },
+    ],
+    EngineerUnhappy: ({ engineerId }): EventNote => {
+      const mate = game.engineers.find((engineer) => engineer.id === engineerId)
+      const gap = mate ? Math.round(payGapOf(game, mate) * 100) : 0
+      return [
+        'An engineer is unhappy: a long freeze, too many pages, or a pay gap.',
+        'warn',
+        { topic: 'unhappy', vars: { pages: String(mate?.pages ?? 0), gap: `${gap}%` } },
+      ]
+    },
     WorkFinished: ({ item }): EventNote =>
       item.kind === 'task'
         ? [
@@ -1373,6 +1419,13 @@ const eventLog = (event: StepEvent): Record<string, unknown> =>
     AlertIgnored: ({ rule }) => ({ rule }),
     Hired: ({ engineerId }) => ({ engineer: engineerId }),
     CveDisclosed: ({ item }) => ({ cve: item.ref, due: item.due }),
+    PatchProposed: ({ item, engineerId }) => ({ cve: item.ref, engineer: engineerId }),
+    Blocked: ({ item, reason, engineerId }) => ({
+      item: item.id,
+      reason,
+      engineer: engineerId,
+    }),
+    EngineerUnhappy: ({ engineerId }) => ({ engineer: engineerId }),
     CveExploited: ({ cve, target }) => ({ cve, target }),
     WorkFinished: ({ item }) => ({ kind: item.kind, ref: item.ref, cost: item.cost }),
     Deployed: ({ features, bad }) => ({ features, bad }),
@@ -4138,6 +4191,19 @@ const handle = (model: Model, message: Message): Result =>
     WorkMoved: ({ id, direction }) =>
       act(model, 'Reordered the backlog', Work.moveItem(model.board.game, id, direction)),
     WorkCancelled: ({ id }) => act(model, 'Cancelled work', Work.cancelItem(model.board.game, id)),
+    WorkApproved: ({ id }) =>
+      act(model, 'Unblocked the work', Work.approveBlock(model.board.game, id)),
+    WorkDeferred: ({ id }) =>
+      act(model, 'Put the block off', Work.laterBlock(model.board.game, id)),
+    WorkPatched: ({ id }) => act(model, 'Patched now', Work.patchNow(model.board.game, id)),
+    WorkPatchQueued: ({ id }) =>
+      act(model, 'Queued the patch', Work.queuePatch(model.board.game, id)),
+    EngineerGivenTimeOff: ({ engineerId }) =>
+      act(model, 'Gave time off', Work.giveTimeOff(model.board.game, engineerId)),
+    EngineerGivenRaise: ({ engineerId }) =>
+      act(model, 'Raised the salary', Work.raiseSalary(model.board.game, engineerId)),
+    EngineerResigned: ({ engineerId }) =>
+      act(model, 'Accepted the resignation', Work.acceptResignation(model.board.game, engineerId)),
     WorkPrioritized: ({ id }) =>
       act(model, 'Moved work to the top', Work.prioritizeItem(model.board.game, id)),
     WorkRushed: ({ id }) => act(model, 'Rushed work', Work.rushItem(model.board.game, id)),

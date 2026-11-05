@@ -251,6 +251,20 @@ takes effect at once, so the new row appears with its owner, and its Dev Hours a
 as a split item the owner's team builds. The build has no Service filter on the Dashboard: the
 Services row still draws one row per request kind ([Observability](/design/12-observability#the-dashboard)).
 
+### The Live column
+
+A live Feature's card carries what its users have and what Analytics reads from it
+([Adoption](/design/08-team-and-velocity#adoption), [Measured lift](/design/08-team-and-velocity#measured-lift)):
+`63% adopted`, and once `ab-testing` is done and its rollout leaves a holdout, `Lift +20% ±4% · Wins`,
+`· Loses`, or `· Too early` while the interval still contains zero. The column's header shows the
+share of the Team's Dev Hours that keeps those Features running, `Upkeep 12% of Dev Hours`
+([Upkeep](/design/08-team-and-velocity#upkeep)), and nothing while the Company has no live Feature.
+
+A teammate's Mail carries the buttons its thread needs (18 "Teammates"): **Approve** and **Later** on a
+blocked item, **Give time off**, **Raise salary** and **Accept resignation** on an unhappy engineer,
+and **Patch now**, **Queue the patch** and **Open Team** on a proposal to patch. Every one names where
+it goes when hovered, as every button does ([Interface rule 3](#interface-rules)).
+
 ## Company and Incidents panels
 
 Both are rows of the [Dashboard](/design/12-observability#the-dashboard), not panels with keys of

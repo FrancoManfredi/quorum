@@ -23,7 +23,7 @@ import type { Ledger } from './ledger.ts'
 import { burnOf } from './lookups.ts'
 import { nextRandom } from './random.ts'
 import { solve, solveFlow } from './solve.ts'
-import { Game, type GameNode } from './state.ts'
+import { Game, NEW_ENGINEER, type GameNode } from './state.ts'
 import { growthOf } from './step.ts'
 import {
   badDeployChance,
@@ -38,8 +38,11 @@ import {
 import {
   addIndex,
   advanceTeam,
+  approveBlock,
   assign,
+  blockReason,
   createTeam,
+  laterBlock,
   moveItem,
   queueFeature,
   queueTask,
@@ -99,7 +102,7 @@ describe('the backlog', () => {
     const team = second.teams[1]?.id ?? ''
     const staffed: Game = {
       ...second,
-      engineers: [{ id: 'e1', team, language: 'php', hiredAt: -1e6 }],
+      engineers: [{ id: 'e1', team, language: 'php', hiredAt: -1e6, ...NEW_ENGINEER }],
     }
     // A twelfth of a calendar day: the founder makes 6.4 / 12 DH, an engineer 8 / 12.
     const after = work(staffed, 5)
@@ -475,12 +478,13 @@ describe('Kubernetes Clusters and the Platform team (08 "Teams")', () => {
     const base: Game = {
       ...preseed(),
       stage: 3,
-      researched: [...preseed().researched, 'containers'],
+      researched: [...preseed().researched, 'containers', 'platform-team'],
       engineers: ['e1', 'e2', 'e3'].map((id) => ({
         id,
         team: 'core',
         language: 'php' as const,
         hiredAt: -1e6,
+        ...NEW_ENGINEER,
       })),
     }
     return ok(place(base, 'cluster', 900, 80))
@@ -558,5 +562,115 @@ describe('Kubernetes Clusters and the Platform team (08 "Teams")', () => {
     expect(quartersBehind(upgraded, after, CHALLENGE_TUNING)).toBe(0)
     expect(upgraded.incident?.remaining ?? 0).toBeLessThanOrEqual(0)
     expect(Result.isFailure(queueTask(preseed(), 'upgrade-cluster'))).toBe(true)
+  })
+})
+
+/* 18 "Blocked": an item a team cannot move waits on the player, and the owner writes. */
+describe('blocked work', () => {
+  /** A Pre-seed Company with one engineer on the founder's team and a quiet clock. */
+  const staffed = (change: Partial<Game> = {}): Game => ({
+    ...preseed(),
+    engineers: [{ id: 'e1', team: 'core', language: 'php', hiredAt: -1e6, ...NEW_ENGINEER }],
+    ...change,
+  })
+
+  /** One Step of Team work, with what it reported. */
+  const oneStep = (game: Game) => {
+    const ready: Game = { ...game, time: game.time + 1 }
+    return advanceTeam(ready, at(ready), 1, CHALLENGE_TUNING)
+  }
+
+  test('an item waits on an index its Service needs, and the owner writes', () => {
+    const shaped: Game = {
+      ...staffed(),
+      services: [{ ...serviceOf(staffed()), shapes: 1 }],
+    }
+    const queued = ok(queueFeature(shaped, 'landing-page'))
+    const { game: after, events } = oneStep(queued)
+    const blocked = events.find((event) => event._tag === 'Blocked')
+    expect(blocked?._tag).toBe('Blocked')
+    expect(blocked && blocked._tag === 'Blocked' ? blocked.reason : null).toBe('index')
+    expect(blocked && blocked._tag === 'Blocked' ? blocked.engineerId : null).toBe('e1')
+    const item = after.backlog[0]
+    expect(item?.blockedBy).toMatchObject({ kind: 'index', owner: 'e1', cleared: false })
+    // The Team cannot move it, so its Dev Hours go to the pool.
+    expect(item?.spent).toBe(0)
+    expect(after.devHours).toBeGreaterThan(0)
+  })
+
+  test('Approve clears it and the work moves again; Later brings the Mail back', () => {
+    const shaped: Game = {
+      ...staffed(),
+      services: [{ ...serviceOf(staffed()), shapes: 1 }],
+    }
+    const queued = ok(queueFeature(shaped, 'landing-page'))
+    const blocked = oneStep(queued).game
+    const id = blocked.backlog[0]?.id ?? 0
+    const approved = ok(approveBlock(blocked, id))
+    expect(approved.backlog[0]?.blockedBy?.cleared).toBe(true)
+    // The same item never stops twice, even with the shape still there.
+    const moving = advanceTeam(
+      { ...approved, time: approved.time + 1 },
+      at(approved),
+      1,
+      CHALLENGE_TUNING,
+    )
+    expect(moving.game.backlog[0]?.spent).toBeGreaterThan(0)
+    expect(moving.events.some((event) => event._tag === 'Blocked')).toBe(false)
+    // Later leaves it blocked, and the owner writes again a calendar day later.
+    const deferred = ok(laterBlock(blocked, id, CHALLENGE_TUNING))
+    let now = deferred
+    const again: Array<string> = []
+    for (let second = 0; second < 70; second += 1) {
+      const step = advanceTeam({ ...now, time: now.time + 1 }, at(now), 1, CHALLENGE_TUNING)
+      now = step.game
+      for (const event of step.events) if (event._tag === 'Blocked') again.push(event.engineerId)
+    }
+    expect(again).toEqual(['e1'])
+  })
+
+  test('the four waits, in order: an index, a copy, a hire, a decision', () => {
+    const game = staffed()
+    const feature = {
+      id: 1,
+      kind: 'feature' as const,
+      ref: 'landing-page',
+      cost: 8,
+      spent: 0,
+      blockedBy: null,
+      answered: null,
+    }
+    expect(blockReason(game, feature)).toBe(null)
+    expect(blockReason({ ...game, services: [{ ...serviceOf(game), shapes: 2 }] }, feature)).toBe(
+      'index',
+    )
+    // Two Services on one Database need a copy before the schema moves.
+    const split: Game = {
+      ...game,
+      services: [
+        { ...serviceOf(game), shapes: 0 },
+        {
+          ...serviceOf(game),
+          id: 'service-2',
+          name: 'Checkout',
+          features: ['checkout'],
+          owner: 'core',
+        },
+      ],
+    }
+    expect(blockReason(split, feature)).toBe('copy')
+    const big: Game = {
+      ...game,
+      engineers: Array.from({ length: 8 }, (_, index) => ({
+        id: `e${index + 1}`,
+        team: 'core',
+        language: 'php' as const,
+        hiredAt: -1e6,
+        ...NEW_ENGINEER,
+      })),
+    }
+    expect(blockReason(big, feature)).toBe('hire')
+    // A Design missing its Apdex target needs a decision on what to build first.
+    expect(blockReason({ ...game, apdex: 0.5 }, feature)).toBe('decision')
   })
 })

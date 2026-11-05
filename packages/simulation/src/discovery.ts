@@ -73,6 +73,11 @@ export const BY_RESEARCH: Partial<Record<ResearchId, ReadonlyArray<string>>> = {
   'on-call': ['mttd-and-mtta', 'on-call'],
   runbooks: ['runbook'],
   'sre-team': ['runbook'],
+  // The Team's remaining research (08 "Adoption", "Deploy frequency", "Teams").
+  'ab-testing': ['feature-flag'],
+  'trunk-based': ['continuous-delivery', 'dora-metrics'],
+  'data-team': ['cdc-change-data-capture', 'oltp-and-olap'],
+  'platform-team': ['conways-law', 'container-orchestration'],
   'document-db': ['hot-key', 'sharding'],
   'event-streaming': ['at-least-once-delivery', 'cdc-change-data-capture'],
   embeddings: ['model-inference'],

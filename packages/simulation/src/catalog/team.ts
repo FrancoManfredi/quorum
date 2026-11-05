@@ -94,6 +94,64 @@ export const HOTFIX_DEBT = 0.02
 /** A structured framework grows debt this much slower (06 Symfony). */
 export const STRUCTURED_DEBT = 0.7
 
+/* ---------- upkeep (08 "Upkeep") ---------- */
+
+/**
+ * What a live Feature costs to keep: `0.4 × S / (S + 2,000) × (1 + debt)`, capped at 0.6, where S
+ * is the Dev Hours of the Features shipped on a Service and not yet removed (08 "Upkeep"). The
+ * design gives every one of these numbers.
+ */
+export const UPKEEP_SHARE = 0.4
+export const UPKEEP_HALF = 2_000
+export const UPKEEP_CEILING = 0.6
+
+/* ---------- adoption and measured lift (08 "Adoption", "Measured lift") ---------- */
+
+/** Calendar days a Feature takes to reach about 63% of its effect. */
+export const ADOPTION_DAYS = 7
+/** The spread of a relative effect, for the confidence interval (08 "Measured lift"). */
+export const LIFT_SPREAD = 1
+/** 95% confidence: the z-score the interval uses. */
+export const LIFT_CONFIDENCE = 1.96
+/** The rollout band that leaves a holdout group to measure against: 5% to 50%. */
+export const LIFT_MIN_ROLLOUT = 0.05
+export const LIFT_MAX_ROLLOUT = 0.5
+
+/* ---------- blocked work (18 "Teammates") ---------- */
+
+/** Calendar days after which Later brings a block back to the Inbox. Proposed. */
+export const BLOCK_REMIND_DAYS = 1
+/** A Team this big waits on a hire before it can move: past the coordination table's flat part. Proposed. */
+export const BLOCK_HIRE_AT = 8
+
+/* ---------- burnout and quitting (18 "Teammates") ---------- */
+
+/** Where an engineer's mood starts. */
+export const MOOD_START = 1
+/** Mood at or below this makes an engineer unhappy: they write, and ask to be heard. Proposed. */
+export const UNHAPPY_MOOD = 0.35
+/** Mood recovered above this, a later slump writes again. Proposed. */
+export const CONTENT_MOOD = 0.7
+/** Mood a calendar week of a spent error budget costs: 1 at the week, 0 before. Proposed. */
+export const FREEZE_MOOD_DAYS = 7
+/** Mood each page costs the engineer it wakes. Proposed. */
+export const PAGE_MOOD = 0.08
+/** Mood a calendar day costs at a full pay gap: paid nothing against the Era's rate. Proposed. */
+export const PAY_GAP_MOOD_DAYS = 3
+/** Calendar days a spell of time off lasts. Proposed. */
+export const TIME_OFF_DAYS = 3
+
+/* ---------- the three Team research effects (10 "Track: Product and business") ---------- */
+
+/** Hiring pipeline: time to hire −30%. */
+export const HIRING_PIPELINE = 0.7
+/** Trunk-based development: deploy frequency +50%. */
+export const TRUNK_FREQUENCY = 1.5
+/** A Data team: `report` and `ai` Features cost −30% Dev Hours. */
+export const DATA_TEAM_HOURS = 0.7
+/** A Data team: a pipeline has half the lag. */
+export const DATA_TEAM_LAG = 0.5
+
 /* ---------- deploys ---------- */
 
 /** Work hours in a calendar day, in minutes: deploys happen in them. */

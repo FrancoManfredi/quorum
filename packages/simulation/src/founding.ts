@@ -29,6 +29,7 @@ import {
 import { newGame, preseedGame } from './company.ts'
 import { restarting, type Life } from './life.ts'
 import { sreStaffed } from './lookups.ts'
+import { NEW_ENGINEER } from './state.ts'
 import type { Founding, Game, GameNode, Region, Retries } from './state.ts'
 
 /* ==========================================================================
@@ -274,6 +275,7 @@ export const alumniOf = (game: Game, count: number) =>
     team: game.teams[0]?.id ?? 'core',
     language: FOUNDING_LANGUAGE,
     hiredAt: Number.MIN_SAFE_INTEGER,
+    ...NEW_ENGINEER,
   }))
 
 /** The Era a founding starts in. */

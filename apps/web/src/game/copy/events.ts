@@ -1,4 +1,5 @@
 import type { EventLetters } from './letter.ts'
+import { PEOPLE_EVENTS } from './people.ts'
 
 /* ==========================================================================
    Step events (GDD 18): Mail about something that just happened in the
@@ -10,6 +11,7 @@ import type { EventLetters } from './letter.ts'
 const first = (from: string): string => from.split(' ')[0] ?? from
 
 export const EVENTS: EventLetters = {
+  ...PEOPLE_EVENTS,
   'incident-instance': [
     ({ from, node }) => ({
       subject: `[TRIGGERED] 1 incident: ${node} is down`,

@@ -320,6 +320,20 @@ const answerOf = (kind: string | undefined, mail: Mail): string | null => {
       return 'Later. They will ask again.'
     case 'first':
       return 'You moved the patch to the top.'
+    case 'approve':
+      return 'You approved it. The work moves again.'
+    case 'defer':
+      return 'Later. They will ask again tomorrow.'
+    case 'patch':
+      return 'You patched now: the ticket goes to the top.'
+    case 'queue':
+      return 'You queued the patch behind the product work.'
+    case 'timeoff':
+      return 'You gave them time off.'
+    case 'payrise':
+      return 'You raised their salary to the Era’s rate.'
+    case 'resign':
+      return 'You accepted the resignation.'
     case 'rush':
       return 'You rushed the patch.'
     case 'ack':
@@ -347,6 +361,13 @@ const answersOnly = (kind: string | undefined, mail: Mail): boolean =>
 const QUIET = new Set(['ack', 'mute'])
 
 const ACTING = new Set([
+  'approve',
+  'defer',
+  'patch',
+  'queue',
+  'timeoff',
+  'payrise',
+  'resign',
   'raise',
   'decline',
   'hire',

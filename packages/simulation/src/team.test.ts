@@ -3,8 +3,10 @@ import { describe, expect, test } from 'vitest'
 import type { Action } from './actions.ts'
 import {
   CALENDAR_DAY,
+  FEATURES,
   CHALLENGE_TUNING,
   ERAS,
+  FEATURE_IDS,
   LANGUAGES,
   LIVE_TUNING,
   SALARY_BASE,
@@ -13,9 +15,19 @@ import {
 import { newGame, preseedGame } from './company.ts'
 import type { Ledger } from './ledger.ts'
 import { solveFlow } from './solve.ts'
-import type { Engineer, Game } from './state.ts'
-import { devHoursRate, effectiveEngineers, signingOf, teamOutputs } from './team.ts'
-import { advanceTeam, hire, layoff } from './work.ts'
+import { NEW_ENGINEER, type Engineer, type Game } from './state.ts'
+import {
+  deploysPerDay,
+  devHoursRate,
+  effectiveEngineers,
+  featureHoursOn,
+  hireSeconds,
+  serviceOf,
+  signingOf,
+  teamOutputs,
+  upkeepShare,
+} from './team.ts'
+import { advanceTeam, createTeam, featureHoursOf, hire, layoff, setTeamKind } from './work.ts'
 
 /* 08 "Dev Hours", "Hiring", and "Coordination", at the design's calendar unless a test says otherwise. */
 
@@ -34,6 +46,7 @@ const engineer = (id: string, hiredAt = -1e6, team = 'core'): Engineer => ({
   team,
   language: 'php',
   hiredAt,
+  ...NEW_ENGINEER,
 })
 
 describe('coordination', () => {
@@ -86,6 +99,70 @@ describe('Dev Hours', () => {
     const game: Game = { ...newGame(), sandbox: true }
     expect(devHoursRate(game, at(game))).toBe(0)
     expect(Result.isFailure(hire({ ...game, stage: 1, cash: 1e6 }))).toBe(true)
+  })
+})
+
+describe('upkeep (08 "Upkeep")', () => {
+  test('a Company with no live Feature pays nothing to keep one', () => {
+    const game = preseed()
+    expect(featureHoursOn(game, serviceOf(game))).toBe(0)
+    expect(upkeepShare(game, serviceOf(game))).toBe(0)
+    const dry = teamOutputs(game, at(game), CHALLENGE_TUNING)[0]?.rate ?? 0
+    const live: Game = { ...game, shipped: [] }
+    expect(teamOutputs(live, at(live), CHALLENGE_TUNING)[0]?.rate).toBeCloseTo(dry, 12)
+  })
+
+  test('a live Feature costs 0.4 × S / (S + 2,000) of the Team’s Dev Hours, and debt adds to it', () => {
+    const game = preseed()
+    const before = teamOutputs(game, at(game), CHALLENGE_TUNING)[0]?.rate ?? 0
+    // 500 DH of live Features is the design's first example: 8% of Dev Hours.
+    const fiveHundred: Game = { ...game, shipped: ['video', 'pagination', 'status-page'] }
+    const after = teamOutputs(fiveHundred, at(fiveHundred), CHALLENGE_TUNING)[0]?.rate ?? 0
+    expect(featureHoursOn(fiveHundred, serviceOf(fiveHundred))).toBe(500)
+    expect(upkeepShare(fiveHundred, serviceOf(fiveHundred))).toBeCloseTo((0.4 * 500) / 2_500, 12)
+    expect(after / before).toBeCloseTo(1 - 0.08, 12)
+    // 4,000 DH is the second: 27% of Dev Hours, and more where the code carries debt.
+    const fourThousand: Game = {
+      ...game,
+      shipped: [
+        'video',
+        'chat',
+        'dashboards',
+        'ai-assistant',
+        'recommendations',
+        'activity-feed',
+        'localization',
+        'offline-mode',
+        'public-api',
+      ],
+    }
+    expect(featureHoursOn(fourThousand, serviceOf(fourThousand))).toBe(4_000)
+    expect(upkeepShare(fourThousand, serviceOf(fourThousand))).toBeCloseTo(
+      (0.4 * 4_000) / 6_000,
+      12,
+    )
+    const indebted: Game = {
+      ...fourThousand,
+      services: [{ ...serviceOf(fourThousand), debt: 0.5 }],
+    }
+    expect(upkeepShare(indebted, serviceOf(indebted))).toBeCloseTo((0.4 * 4_000 * 1.5) / 6_000, 12)
+    // A team that runs the system instead of the product builds no backlog, so it pays none.
+    const platform: Game = { ...fiveHundred, teams: [{ ...game.teams[0]!, kind: 'platform' }] }
+    expect(teamOutputs(platform, at(platform), CHALLENGE_TUNING)[0]?.rate).toBeCloseTo(
+      (teamOutputs(fiveHundred, at(fiveHundred), CHALLENGE_TUNING)[0]?.rate ?? 0) / 0.92,
+      9,
+    )
+  })
+
+  test('upkeep approaches 40% and stops at the 60% ceiling', () => {
+    const game = preseed()
+    const huge: Game = { ...game, shipped: [...FEATURE_IDS] }
+    expect(upkeepShare(huge, serviceOf(huge))).toBeLessThanOrEqual(0.6)
+    const ceiling: Game = {
+      ...huge,
+      services: [{ ...serviceOf(huge), debt: 1 }],
+    }
+    expect(upkeepShare(ceiling, serviceOf(ceiling))).toBeLessThanOrEqual(0.6)
   })
 })
 
@@ -155,5 +232,54 @@ describe('hiring', () => {
     expect(
       hurt / (teamOutputs(healed, at(healed), CHALLENGE_TUNING)[0]?.velocity ?? 1),
     ).toBeCloseTo(0.9)
+  })
+})
+
+/* 10 "Track: Product and business": the four research items this pass builds, and the two teams. */
+describe('the Team research', () => {
+  test('Hiring pipeline makes a hire join 30% sooner', () => {
+    const base = preseed()
+    const quick: Game = { ...base, researched: [...base.researched, 'hiring-pipeline'] }
+    expect(hireSeconds(quick, 'php', CHALLENGE_TUNING)).toBeCloseTo(
+      hireSeconds(base, 'php', CHALLENGE_TUNING) * 0.7,
+      9,
+    )
+  })
+
+  test('Trunk-based development deploys 50% more often', () => {
+    const base = preseed()
+    const trunk: Game = { ...base, researched: [...base.researched, 'trunk-based'] }
+    expect(deploysPerDay(trunk, CHALLENGE_TUNING)).toBeCloseTo(
+      deploysPerDay(base, CHALLENGE_TUNING) * 1.5,
+      9,
+    )
+  })
+
+  test('a Platform team needs its research, and a Data team makes report and AI work cheaper', () => {
+    const base = preseed()
+    const made = ok(createTeam(base))
+    const id = made.teams[1]?.id ?? ''
+    const seriesA: Game = { ...made, stage: 3 }
+    // Containers alone is not enough: the Platform team is a research item of its own.
+    expect(Result.isFailure(setTeamKind(seriesA, id, 'platform'))).toBe(true)
+    const researched: Game = {
+      ...seriesA,
+      researched: [...seriesA.researched, 'containers', 'platform-team'],
+    }
+    expect(Result.isSuccess(setTeamKind(researched, id, 'platform'))).toBe(true)
+    // A Data team, from Series B and its research, saves 30% of the Dev Hours of a report or AI Feature.
+    const data: Game = {
+      ...made,
+      stage: 4,
+      researched: [...made.researched, 'data-team'],
+      teams: made.teams.map((team, index) => (index === 1 ? { ...team, kind: 'data' } : team)),
+      engineers: [{ id: 'e1', team: id, language: 'php', hiredAt: -1e6, ...NEW_ENGINEER }],
+    }
+    expect(featureHoursOf(data, 'dashboards')).toBeCloseTo(FEATURES.dashboards.dh * 0.7, 9)
+    expect(featureHoursOf(data, 'ai-assistant')).toBeCloseTo(FEATURES['ai-assistant'].dh * 0.7, 9)
+    // Only the report and AI Features: a chat Feature costs what it always did.
+    expect(featureHoursOf(data, 'chat')).toBe(FEATURES.chat.dh)
+    // Its Dev Hours build no backlog, like a Platform or an SRE team's.
+    expect(teamOutputs(data, at(data), CHALLENGE_TUNING)[1]?.team.kind).toBe('data')
   })
 })

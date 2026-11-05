@@ -4,7 +4,7 @@ import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
 import { nextRandom } from './random.ts'
 import type { Game, WorkItem } from './state.ts'
-import { enqueue } from './team.ts'
+import { enqueue, memberOf, ownerOf, serviceOf } from './team.ts'
 
 /* ==========================================================================
    CVEs (GDD 18): a disclosure is a ticket with a deadline. It joins the end
@@ -46,9 +46,33 @@ export const advanceCves = (
     if (chosen) {
       const { def, target } = chosen
       const due = next.time + patchWindow(def.score)
-      next = enqueue(next, 'patch', def.id, patchCost(def.score), false, { due, target })
+      const service = serviceOf(next)
+      next = enqueue(next, 'patch', def.id, patchCost(def.score), false, {
+        due,
+        target,
+        service: service.id,
+      })
+      const item = next.backlog.at(-1) as WorkItem
+      // The Service's owner proposes the patch: their engineer writes, and the player answers
+      // Patch now or Queue the patch (18 "Proposal to patch").
+      const owner = memberOf(next, ownerOf(next, service).id, item.id)
+      if (owner) {
+        next = {
+          ...next,
+          backlog: next.backlog.map((entry) =>
+            entry.id === item.id ? { ...entry, owner: owner.id } : entry,
+          ),
+        }
+        events.push(
+          StepEvent.PatchProposed({
+            item: next.backlog.find((entry) => entry.id === item.id) as WorkItem,
+            engineerId: owner.id,
+          }),
+        )
+      }
       next = { ...next, cves: [...next.cves, def.id].slice(-RECENT_CVES) }
-      events.push(StepEvent.CveDisclosed({ item: next.backlog.at(-1) as WorkItem }))
+      const filed = next.backlog.find((entry) => entry.id === item.id) as WorkItem
+      events.push(StepEvent.CveDisclosed({ item: filed }))
     }
   }
 
