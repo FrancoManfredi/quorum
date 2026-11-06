@@ -29,7 +29,14 @@ const defineRevealed = () =>
 let revealed: ReturnType<typeof defineRevealed> | null = null
 
 /** One row. The current page gets a filled row with its kind's colour as a bar, and scrolls into view. */
-const navLink = (page: Page, current: string, color: string, h: H, nested = false): Html => {
+const navLink = (
+  page: Page,
+  current: string,
+  color: string,
+  h: H,
+  nested = false,
+  room = false,
+): Html => {
   const active = page.path === current
   return h.a(
     [
@@ -39,7 +46,7 @@ const navLink = (page: Page, current: string, color: string, h: H, nested = fals
       h.Class(
         cn(
           'relative block rounded-md py-1.5 text-[13.5px] leading-snug transition-colors',
-          nested ? 'pr-2 pl-3' : 'px-2.5',
+          nested ? 'pr-2 pl-3' : room ? 'pr-14 pl-2.5' : 'px-2.5',
           active
             ? 'bg-muted font-medium text-foreground'
             : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -68,14 +75,17 @@ const hubLink = (hub: Page, current: string, isOpen: boolean, color: string, h: 
   return h.div(
     [h.Key(`${hub.path}-row`), h.Class('relative flex items-center')],
     [
-      h.div([h.Class('min-w-0 flex-1')], [navLink(hub, current, color, h)]),
+      h.div([h.Class('min-w-0 flex-1')], [navLink(hub, current, color, h, false, count > 0)]),
       count > 0
-        ? h.span(
+        ? h.button(
             [
-              h.AriaHidden(true),
+              h.Type('button'),
+              h.AriaLabel(`${isOpen ? 'Collapse' : 'Expand'} ${hub.title}`),
+              h.AriaExpanded(isOpen),
+              h.OnClick(Message.NavToggled({ path: hub.path })),
               h.Class(
                 cn(
-                  'pointer-events-none absolute right-2 flex items-center gap-1 text-muted-foreground',
+                  'absolute right-1 flex h-6 cursor-pointer items-center gap-1 rounded px-1.5 text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground',
                   isOpen && 'text-foreground',
                 ),
               ),
@@ -96,6 +106,7 @@ export const sidebar = (model: Model, h: H): Html => {
   // Home has no section of its own; it lists the play pages, where a new player starts.
   const section = model.path === '/' ? 'play' : (page?.section ?? 'play')
   const color = quadrantColor(section)
+  const isOpen = (path: string): boolean => (path === open) !== model.navToggled.includes(path)
   return h.nav(
     [
       h.AriaLabel(QUADRANTS[section].label),
@@ -121,8 +132,8 @@ export const sidebar = (model: Model, h: H): Html => {
       h.div(
         [h.Class('flex flex-col gap-0.5')],
         navOf(section).flatMap((hub) => [
-          hubLink(hub, model.path, hub.path === open, color, h),
-          ...(hub.path === open
+          hubLink(hub, model.path, isOpen(hub.path), color, h),
+          ...(isOpen(hub.path) && childrenOf(hub.path).length > 0
             ? [
                 h.div(
                   [

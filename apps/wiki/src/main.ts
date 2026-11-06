@@ -21,6 +21,8 @@ export const Model = Schema.Struct({
   path: Schema.String,
   /** The navigation drawer is open on a phone. */
   menu: Schema.Boolean,
+  /** Hubs the reader opened or closed by hand, against whether the current page opens them. */
+  navToggled: Schema.Array(Schema.String),
   search: Search.Model,
   spoilers: Spoilers.Model,
   progress: Progress.Model,
@@ -33,6 +35,7 @@ export const Message = defineMessageUnion({
   ChangedUrl: { url: Url },
   Navigated: {},
   MenuToggled: {},
+  NavToggled: { path: Schema.String },
   SearchChanged: { message: Search.Message },
   SpoilersChanged: { message: Spoilers.Message },
   ProgressChanged: { message: Progress.Message },
@@ -107,6 +110,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
     model: {
       path,
       menu: false,
+      navToggled: [],
       search: Search.init,
       spoilers: Spoilers.init,
       progress: Progress.init,
@@ -136,13 +140,21 @@ export const update = (model: Model, message: Message): Return =>
       const scroll = path === model.path && !hash ? [] : [ScrollTo({ hash })]
       // A new page closes the search and the menu, and counts as read.
       const visited = foldProgress(
-        { ...model, path, menu: false, search: Search.init },
+        { ...model, path, menu: false, navToggled: [], search: Search.init },
         Progress.Message.Visited({ path }),
       )
       return { model: visited.model, commands: [...scroll, ...(visited.commands ?? [])] }
     },
     Navigated: () => ({ model }),
     MenuToggled: () => ({ model: { ...model, menu: !model.menu } }),
+    NavToggled: ({ path }) => ({
+      model: {
+        ...model,
+        navToggled: model.navToggled.includes(path)
+          ? model.navToggled.filter((entry) => entry !== path)
+          : [...model.navToggled, path],
+      },
+    }),
     SearchChanged: ({ message }) => foldSearch(model, message),
     SpoilersChanged: ({ message }) => foldSpoilers(model, message),
     ProgressChanged: ({ message }) => foldProgress(model, message),
