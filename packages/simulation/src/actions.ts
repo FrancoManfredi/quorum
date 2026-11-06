@@ -1320,16 +1320,23 @@ export const study = (game: Game, id: ResearchId, first = false): Action => {
   return ok({ ...game, studies: first ? [added, ...game.studies] : [...game.studies, added] })
 }
 
+/** Moves a queued Study to a position. The first one runs. */
+export const moveStudyTo = (game: Game, id: ResearchId, index: number): Action => {
+  const from = game.studies.findIndex((item) => item.id === id)
+  if (from === -1) return no(Refusal.Missing())
+  const to = Math.max(0, Math.min(game.studies.length - 1, Math.trunc(index)))
+  if (to === from) return ok(game)
+  const studies = [...game.studies]
+  const [item] = studies.splice(from, 1)
+  if (item) studies.splice(to, 0, item)
+  return ok({ ...game, studies })
+}
+
 /** Moves a queued Study up or down. The first one runs. */
 export const moveStudy = (game: Game, id: ResearchId, direction: 1 | -1): Action => {
   const index = game.studies.findIndex((item) => item.id === id)
   if (index === -1) return no(Refusal.Missing())
-  const to = index + direction
-  if (to < 0 || to >= game.studies.length) return ok(game)
-  const studies = [...game.studies]
-  const [item] = studies.splice(index, 1)
-  if (item) studies.splice(to, 0, item)
-  return ok({ ...game, studies })
+  return moveStudyTo(game, id, index + direction)
 }
 
 /** Takes a Study off the queue. Its progress and the Insight it took are lost, and its Spike ends. */

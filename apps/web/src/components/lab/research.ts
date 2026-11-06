@@ -1,7 +1,9 @@
 import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
-import { ResearchMessage } from '@/game/research.ts'
+import { ResearchMessage, STUDY_QUEUE } from '@/game/research.ts'
+import { Option } from 'effect'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
+import { DragAndDrop } from '@foldkit/ui'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowDown,
@@ -632,94 +634,177 @@ const queueButton = (
     h,
   )
 
-/** The Study queue, in order: the first one runs. */
+/** The Study queue, in order: the first one runs. Drag a row to reorder it. */
 const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
   const game = model.board.game
   const studies = game.studies
   const ledger = ledgerOf(model)
+  const drag = model.board.research.drag
+  const dragging = DragAndDrop.isDragging(drag)
+  const draggedId = DragAndDrop.maybeDraggedItemId(drag)
+  const overQueue =
+    dragging &&
+    Option.exists(DragAndDrop.maybeDropTarget(drag), (target) => target.containerId === STUDY_QUEUE)
   if (studies.length === 0) return h.empty
   return h.section(
     [
       h.Key('queue'),
-      h.AriaLabel(t.research.studyQueue),
-      h.Class(
-        'flex max-h-[40%] shrink-0 flex-col gap-0.5 border-b border-hairline p-1.5 ' + SCROLL,
+      ...(dragging ? [h.DataAttribute('research-drag-active', '')] : []),
+      h.Class(cn('flex max-h-[40%] shrink-0 flex-col border-b border-hairline p-1.5', SCROLL)),
+      // The queue is a listbox, so the window-level shortcuts ignore it; Escape still closes
+      // the panel unless a drag is running (the drag component handles that Escape itself).
+      h.OnKeyDownPreventDefault((key) =>
+        key === 'Escape' && !dragging ? Option.some(Message.PanelClosed()) : Option.none(),
       ),
     ],
     [
-      h.span([h.Class(cn(EYEBROW, 'px-2 pt-1 pb-0.5'))], [t.research.queue]),
-      ...studies.map((item, index) => {
-        const entry = localized(RESEARCH[item.id], t.catalog.research[item.id])
-        const stall = studyStall(game, ledger, item.id)
-        return h.div(
-          [
-            h.Key(item.id),
-            h.Class(
-              cn('flex items-center gap-1 rounded-lg pl-1', item.id === focus ? 'bg-nested' : ''),
+      h.div(
+        [
+          ...DragAndDrop.droppable(STUDY_QUEUE, t.research.studyQueue),
+          // Team pods ring their whole rounded card; the queue gets the same treatment, inset
+          // by the section's padding so the ring follows its corners instead of the card edge.
+          h.Class(
+            cn(
+              'flex flex-col gap-0.5 rounded-xl transition-shadow',
+              overQueue && 'ring-2 ring-primary ring-offset-2',
             ),
-          ],
-          [
-            h.button(
+          ),
+        ],
+        [
+          h.span([h.Class(cn(EYEBROW, 'px-2 pt-1 pb-0.5'))], [t.research.queue]),
+          ...studies.map((item, index) => {
+            const entry = localized(RESEARCH[item.id], t.catalog.research[item.id])
+            const stall = studyStall(game, ledger, item.id)
+            const isDragged = Option.exists(draggedId, (id) => id === item.id)
+            return h.div(
               [
-                h.Type('button'),
-                h.OnClick(
-                  Message.ResearchChanged({ message: ResearchMessage.Focused({ id: item.id }) }),
-                ),
+                h.Key(item.id),
                 h.Class(
-                  'flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 text-left text-[calc(12.5px*var(--type-scale))] hover:text-foreground',
+                  cn(
+                    'flex items-center gap-1 rounded-lg pl-1',
+                    item.id === focus ? 'bg-nested' : '',
+                    isDragged && 'opacity-45',
+                  ),
                 ),
               ],
               [
-                researchMark(entry, 'sm', false, h),
-                h.span([h.Class('truncate font-medium')], [t.catalog.research[entry.id].name]),
+                // The icon is the drag handle, so the row's buttons keep their own keys.
                 h.span(
                   [
-                    ...(stall ? [h.Title(stallReasonIn(t, stall))] : []),
+                    ...DragAndDrop.draggable(
+                      {
+                        model: drag,
+                        toParentMessage: (message) =>
+                          Message.ResearchChanged({
+                            message: ResearchMessage.DragChanged({ message }),
+                          }),
+                        itemId: item.id,
+                        containerId: STUDY_QUEUE,
+                        index,
+                      },
+                      h,
+                    ),
+                    ...DragAndDrop.sortable(item.id),
+                    h.AriaLabel(t.research.reorder(entry.name)),
+                    h.Title(t.research.dragToReorder),
                     h.Class(
-                      cn(
-                        FIGURE,
-                        'ml-auto flex shrink-0 items-center gap-1 text-[calc(11.5px*var(--type-scale))]',
-                        stall ? 'text-warn' : 'text-muted-foreground',
-                      ),
+                      'grid cursor-grab touch-none self-stretch place-items-center rounded-md px-0.5 active:cursor-grabbing focus-visible:outline-2 focus-visible:outline-primary',
+                    ),
+                  ],
+                  [researchMark(entry, 'sm', false, h)],
+                ),
+                h.button(
+                  [
+                    h.Type('button'),
+                    h.OnClick(
+                      Message.ResearchChanged({
+                        message: ResearchMessage.Focused({ id: item.id }),
+                      }),
+                    ),
+                    h.Class(
+                      'flex min-w-0 flex-1 items-center gap-2 rounded-md py-1 text-left text-[calc(12.5px*var(--type-scale))] hover:text-foreground',
                     ),
                   ],
                   [
-                    stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
-                    `${Math.floor(Math.min(1, item.progress) * 100)}%`,
+                    h.span([h.Class('truncate font-medium')], [t.catalog.research[entry.id].name]),
+                    h.span(
+                      [
+                        ...(stall ? [h.Title(stallReasonIn(t, stall))] : []),
+                        h.Class(
+                          cn(
+                            FIGURE,
+                            'ml-auto flex shrink-0 items-center gap-1 text-[calc(11.5px*var(--type-scale))]',
+                            stall ? 'text-warn' : 'text-muted-foreground',
+                          ),
+                        ),
+                      ],
+                      [
+                        stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
+                        `${Math.floor(Math.min(1, item.progress) * 100)}%`,
+                      ],
+                    ),
                   ],
                 ),
+                queueButton(
+                  t.research.moveUp,
+                  ArrowUp,
+                  Message.ResearchChanged({
+                    message: ResearchMessage.StudyMoved({ id: item.id, direction: -1 }),
+                  }),
+                  index > 0,
+                  h,
+                ),
+                queueButton(
+                  t.research.moveDown,
+                  ArrowDown,
+                  Message.ResearchChanged({
+                    message: ResearchMessage.StudyMoved({ id: item.id, direction: 1 }),
+                  }),
+                  index < studies.length - 1,
+                  h,
+                ),
+                queueButton(
+                  t.research.cancel,
+                  X,
+                  Message.ResearchChanged({
+                    message: ResearchMessage.StudyCancelled({ id: item.id }),
+                  }),
+                  true,
+                  h,
+                ),
               ],
-            ),
-            queueButton(
-              t.research.moveUp,
-              ArrowUp,
-              Message.ResearchChanged({
-                message: ResearchMessage.StudyMoved({ id: item.id, direction: -1 }),
+            )
+          }),
+          Option.match(DragAndDrop.ghostStyle(drag), {
+            onNone: () => h.empty,
+            onSome: (style) =>
+              Option.match(draggedId, {
+                onNone: () => h.empty,
+                onSome: (id) => {
+                  const entry = localized(
+                    RESEARCH[id as ResearchId],
+                    t.catalog.research[id as ResearchId],
+                  )
+                  return h.div(
+                    [
+                      h.AriaHidden(true),
+                      h.Style(style),
+                      h.Class(
+                        cn(
+                          FLOAT,
+                          'pointer-events-none z-50 flex items-center gap-2 px-3 py-2 text-[calc(12.5px*var(--type-scale))] font-medium',
+                        ),
+                      ),
+                    ],
+                    [researchMark(entry, 'sm', false, h), t.catalog.research[entry.id].name],
+                  )
+                },
               }),
-              index > 0,
-              h,
-            ),
-            queueButton(
-              t.research.moveDown,
-              ArrowDown,
-              Message.ResearchChanged({
-                message: ResearchMessage.StudyMoved({ id: item.id, direction: 1 }),
-              }),
-              index < studies.length - 1,
-              h,
-            ),
-            queueButton(
-              t.research.cancel,
-              X,
-              Message.ResearchChanged({ message: ResearchMessage.StudyCancelled({ id: item.id }) }),
-              true,
-              h,
-            ),
-          ],
-        )
-      }),
+          }),
+        ],
+      ),
     ],
   )
 }

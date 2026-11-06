@@ -356,7 +356,11 @@ export const Team = Schema.Struct({ drag: DragAndDrop.Model, service: ServiceDra
 export type Team = typeof Team.Type
 
 /** The research item the Research panel shows in its side pane; null picks one. */
-export const Research = Schema.Struct({ focus: Schema.NullOr(ResearchId) })
+export const Research = Schema.Struct({
+  focus: Schema.NullOr(ResearchId),
+  /** The Study queue's drag gesture. */
+  drag: DragAndDrop.Model,
+})
 export type Research = typeof Research.Type
 
 export const Glossary = Schema.Struct({

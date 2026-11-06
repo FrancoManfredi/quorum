@@ -8,6 +8,8 @@ export const research = {
   queue: 'Queue',
   moveUp: 'Move up',
   moveDown: 'Move down',
+  reorder: (p0: string | number | null) => `Reorder ${p0} in the Study queue`,
+  dragToReorder: 'Drag to reorder',
   cancel: 'Cancel',
   startStudy: (p0: string | number | null) => `Start Study · ${p0}`,
   opensIn: (p0: string | number | null) => `Opens in ${p0}`,

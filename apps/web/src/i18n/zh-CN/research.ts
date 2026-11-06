@@ -10,6 +10,8 @@ export const research: Messages['research'] = {
   queue: '队列',
   moveUp: '上移',
   moveDown: '下移',
+  reorder: (p0: string | number | null) => `在研究队列中调整${p0}的顺序`,
+  dragToReorder: '拖动以排序',
   cancel: '取消',
   startStudy: (p0) => `开始研究 · ${p0}`,
   opensIn: (p0) => `${p0}后开放`,

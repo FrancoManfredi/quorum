@@ -10,6 +10,8 @@ export const research: Messages['research'] = {
   queue: 'File d’attente',
   moveUp: 'Monter',
   moveDown: 'Descendre',
+  reorder: (p0: string | number | null) => `Réorganiser ${p0} dans la file d’attente des études`,
+  dragToReorder: 'Glisser pour réorganiser',
   cancel: 'Annuler',
   startStudy: (p0) => `Commencer l'étude · ${p0}`,
   opensIn: (p0) => `Disponible à l’étape ${p0}`,
