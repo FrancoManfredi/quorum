@@ -304,8 +304,18 @@ const modelAt = (path: string): Model => {
 
 const inert = inertHtml as unknown as HtmlBuilder<Message>
 
-/** One page as Markdown: its title and summary, its body, and what it links on to. */
+const rendered = new Map<string, string>()
+
+/** One page as Markdown: its title and summary, its body, and what it links on to. A page never changes, so its text is made once. */
 export const pageMarkdown = (page: Page): string => {
+  const cached = rendered.get(page.path)
+  if (cached !== undefined) return cached
+  const text = renderMarkdown(page)
+  rendered.set(page.path, text)
+  return text
+}
+
+const renderMarkdown = (page: Page): string => {
   const document = documentOf(page.path)
   const model = modelAt(page.path)
   const body = document ? blocksMarkdown(document.blocks) : htmlMarkdown(page.body(model, inert))
