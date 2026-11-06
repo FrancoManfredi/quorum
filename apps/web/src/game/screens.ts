@@ -52,9 +52,9 @@ import {
 const TOP =
   'contents compact:pointer-events-none compact:absolute compact:inset-x-0 compact:top-0 compact:z-20 compact:flex compact:flex-col compact:gap-1.5 compact:[--toolbar-w:calc(196px*var(--type-scale))] compact:pt-[max(8px,env(safe-area-inset-top))] compact:pr-[max(8px,env(safe-area-inset-right))] compact:pb-0 compact:pl-[max(8px,env(safe-area-inset-left))]'
 
-/** The desktop's top row, right of the HUD (left-3 + 248px + a 12px gap). */
+/** The desktop's top row, right of the HUD; its left is set from the HUD's width. */
 const TOP_ROW =
-  'pointer-events-none absolute top-3 right-3 left-[calc(272px*var(--type-scale))] z-20 flex items-start gap-3 compact:contents'
+  'pointer-events-none absolute top-3 right-3 z-20 flex items-start gap-3 compact:contents'
 
 /** Board context first, so it holds still while incidents come and go below it. */
 const LANE = 'flex min-w-0 flex-1 flex-col items-center gap-2 compact:items-stretch compact:gap-1.5'
@@ -76,6 +76,7 @@ const bottomNotices = (model: Model, h: HtmlBuilder<Message>): Html =>
 
 export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
   const ledger = ledgerOf(model)
+  const hudWidth: 248 | 276 = boardChallenge(model.board) || boardSandbox(model.board) ? 248 : 276
   return h.main(
     [h.Class('relative h-full overflow-hidden bg-canvas')],
     [
@@ -94,7 +95,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
           // On a desktop the top row runs from the HUD's right edge to the screen's: the lane
           // centres in what the toolbar leaves, so the two never overlap. On a phone it dissolves.
           h.div(
-            [h.Class(TOP_ROW)],
+            [h.Class(TOP_ROW), h.Style({ left: `calc(${hudWidth + 24}px * var(--type-scale))` })],
             [
               h.div(
                 [h.DataAttribute('flip', 'notice'), h.Class(LANE)],

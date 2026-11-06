@@ -6,6 +6,7 @@ import { DragAndDrop } from '@foldkit/ui'
 import { Subscription } from 'foldkit'
 import { Message } from './message.ts'
 import { TeamMessage } from './team.ts'
+import { ResearchMessage } from './research.ts'
 import { halted, type Model } from './model.ts'
 import { onBoard } from './route.ts'
 import { TICK_MS, REPEAT_MS } from './update.ts'
@@ -42,7 +43,12 @@ const keys = Stream.callback<KeyMessage>((queue) =>
       Effect.sync(() => {
         const listener = (event: KeyboardEvent) => {
           if (event.defaultPrevented) return
-          if (event.key === 'Escape' && document.querySelector('[data-team-drag-active]')) return
+          if (
+            event.key === 'Escape' &&
+            (document.querySelector('[data-team-drag-active]') ||
+              document.querySelector('[data-research-drag-active]'))
+          )
+            return
           const target = event.target as HTMLElement | null
           if (target?.closest('[data-language-picker], [role="listbox"]')) return
           if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
@@ -135,6 +141,13 @@ const teamDrag = Subscription.lift(DragAndDrop.subscriptions)<Model, Message>({
     Message.TeamChanged({ message: TeamMessage.DragChanged({ message }) }),
 })
 
+const researchDrag = Subscription.lift(DragAndDrop.subscriptions)<Model, Message>({
+  read: (model) =>
+    model.panel === 'research' ? Option.some(model.board.research.drag) : Option.none(),
+  toParentMessage: (message) =>
+    Message.ResearchChanged({ message: ResearchMessage.DragChanged({ message }) }),
+})
+
 const teamDragScroll = Stream.callback<Message>((queue) =>
   Effect.gen(function* () {
     yield* Effect.acquireRelease(
@@ -219,6 +232,10 @@ const teamDragScroll = Stream.callback<Message>((queue) =>
 
 export const subscriptions = {
   ...teamDrag,
+  researchDragPointer: researchDrag.documentPointer,
+  researchDragEscape: researchDrag.documentEscape,
+  researchDragKeyboard: researchDrag.documentKeyboard,
+  researchDragAutoScroll: researchDrag.autoScroll,
   ...Subscription.make<Model, Message>()((entry) => ({
     tick: entry(
       { running: Schema.Boolean },
@@ -250,7 +267,9 @@ export const subscriptions = {
       {
         modelToDependencies: (model: Model) => ({
           lab: onBoard(model.route),
-          dragging: model.panel === 'team' && model.board.team.drag.dragState._tag !== 'Idle',
+          dragging:
+            (model.panel === 'team' && model.board.team.drag.dragState._tag !== 'Idle') ||
+            (model.panel === 'research' && model.board.research.drag.dragState._tag !== 'Idle'),
         }),
         dependenciesToStream: ({ lab, dragging }: { lab: boolean; dragging: boolean }) =>
           lab && !dragging ? keys : Stream.empty,

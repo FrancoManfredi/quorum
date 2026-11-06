@@ -1,5 +1,5 @@
 import { EMPTY_SAVE_INDEX, fileFor, withFile } from './saves.ts'
-import { ResearchMessage } from './research.ts'
+import { ResearchMessage, STUDY_QUEUE } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
 import { GlossaryMessage } from './glossary.ts'
@@ -1150,6 +1150,56 @@ test('a queued Study can run now, keeping the running one’s progress, and be c
     Message.ResearchChanged({ message: ResearchMessage.StudyCancelled({ id: first.id }) }),
   ).model
   expect(cancelled.board.game.studies).toEqual([{ id: second.id, progress: 0 }])
+})
+
+test('dragging a Study row reorders the queue and keeps its progress', () => {
+  const ready = researchList.filter((entry) => researchReady(newGame(), entry.id))
+  const [first, second] = ready
+  if (!first || !second) throw new Error('needs two open items')
+  const lab = inLab()
+  const queued: Model = {
+    ...lab,
+    panel: 'research',
+    board: {
+      ...lab.board,
+      game: {
+        ...lab.board.game,
+        studies: [
+          { id: first.id, progress: 0.25 },
+          { id: second.id, progress: 0 },
+        ],
+      },
+    },
+  }
+  const send = (model: Model, message: DragAndDrop.Message) =>
+    update(model, Message.ResearchChanged({ message: ResearchMessage.DragChanged({ message }) }))
+      .model
+  const picked = send(
+    queued,
+    DragAndDrop.Message.PressedDraggable({
+      itemId: first.id,
+      containerId: STUDY_QUEUE,
+      index: 0,
+      screenX: 0,
+      screenY: 0,
+    }),
+  )
+  // The component counts the dragged row where it started, so index 2 is the end of the queue.
+  const over = send(
+    picked,
+    DragAndDrop.Message.MovedPointer({
+      screenX: 0,
+      screenY: 40,
+      clientX: 0,
+      clientY: 40,
+      maybeDropTarget: Option.some({ containerId: STUDY_QUEUE, index: 2 }),
+    }),
+  )
+  const dropped = send(over, DragAndDrop.Message.ReleasedPointer())
+  expect(dropped.board.game.studies).toEqual([
+    { id: second.id, progress: 0 },
+    { id: first.id, progress: 0.25 },
+  ])
 })
 
 test('pointer-rate Messages stay out of the playtest log, and gestures go in', () => {

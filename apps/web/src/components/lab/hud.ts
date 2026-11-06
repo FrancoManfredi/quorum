@@ -160,10 +160,11 @@ const stat = (
       note
         ? h.span(
             [
+              h.Title(note),
               h.Class(
                 cn(
                   FIGURE,
-                  'ml-auto text-[calc(10px*var(--type-scale))] leading-none whitespace-nowrap compact:ml-0.5',
+                  'ml-auto min-w-0 truncate text-[calc(10px*var(--type-scale))] leading-none compact:ml-0.5',
                   tone === 'plain' ? 'text-muted-foreground' : toneText(tone),
                 ),
               ),
@@ -688,7 +689,7 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   return h.div(
     [
       h.Class(
-        'absolute top-3 left-3 z-20 flex w-[calc(248px*var(--type-scale))] flex-col gap-2 compact:contents',
+        'absolute top-3 left-3 z-20 flex w-[calc(276px*var(--type-scale))] flex-col gap-2 compact:contents',
       ),
       h.Style({
         '--hud-label-width':

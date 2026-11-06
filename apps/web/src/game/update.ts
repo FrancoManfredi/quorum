@@ -861,7 +861,10 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
         return withToast(
           {
             ...opened.model,
-            board: { ...opened.model.board, research: { focus: research } },
+            board: {
+              ...opened.model.board,
+              research: { ...opened.model.board.research, focus: research },
+            },
           },
           `Research ${RESEARCH[research].name}, then review the proposal again in Inbox.`,
           'warn',
@@ -1124,6 +1127,8 @@ const foldResearch = (model: Model, message: ResearchMessage): Result =>
                 : [`Study queued: ${RESEARCH[id].name}.`, 'primary']
             },
           }),
+        MovedTo: ({ id, index }) =>
+          act(parent, 'Reordered research', Actions.moveStudyTo(parent.board.game, id, index)),
         Move: ({ id, direction }) =>
           act(parent, 'Reordered research', Actions.moveStudy(parent.board.game, id, direction)),
         StudyNow: ({ id }) =>
@@ -5001,7 +5006,7 @@ const quiet = (model: Model, message: Message, after: Model): boolean =>
   // Postmortem reads the Game without changing it, as the Inspector's sample does.
   (message._tag === 'DashboardChanged' &&
     (message.message._tag === 'Hovered' || message.message._tag === 'PostmortemChosen')) ||
-  (message._tag === 'TeamChanged' &&
+  ((message._tag === 'TeamChanged' || message._tag === 'ResearchChanged') &&
     message.message._tag === 'DragChanged' &&
     after.board.game === model.board.game)
 
