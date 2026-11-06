@@ -1,5 +1,7 @@
 import type { ComponentId } from '@quorum/simulation/catalog'
 import type { GameNode } from '@quorum/simulation/state'
+import { COMPONENT_VIEWS } from '../components/index.ts'
+import type { Layout } from '../components/shared.ts'
 
 /* Card and port geometry, shared by the board, placement and link routing. */
 
@@ -12,95 +14,10 @@ export const ROW = 24
 export const FOOT = 44
 export const PORT_R = 6
 
-export type Layout = Readonly<{
-  rows: number
-  inRow: number | null
-  outRow: number | null
-  footer: boolean
-}>
+export type { Layout }
 
 /** Row count and port rows per Component. Fixed per type, so hit tests need no flow. */
-export const layoutOf = (type: ComponentId): Layout => {
-  switch (type) {
-    case 'users':
-      return { rows: 3, inRow: null, outRow: 2, footer: false }
-    case 'payments':
-      return { rows: 2, inRow: null, outRow: null, footer: true }
-    case 'analytics':
-      return { rows: 5, inRow: 0, outRow: null, footer: true }
-    case 'server':
-      return { rows: 5, inRow: 0, outRow: 4, footer: true }
-    case 'database':
-      return { rows: 6, inRow: 0, outRow: null, footer: true }
-    case 'replica':
-      return { rows: 6, inRow: 0, outRow: null, footer: true }
-    case 'auth':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'dns':
-      return { rows: 3, inRow: 0, outRow: 2, footer: false }
-    case 'lb':
-      return { rows: 4, inRow: 0, outRow: 3, footer: false }
-    case 'cache':
-    case 'pooler':
-      return { rows: 4, inRow: 0, outRow: 3, footer: false }
-    case 'search':
-      return { rows: 3, inRow: 0, outRow: null, footer: true }
-    case 'storage':
-      return { rows: 4, inRow: 0, outRow: null, footer: false }
-    case 'doc':
-      return { rows: 4, inRow: 0, outRow: null, footer: true }
-    case 'queue':
-      return { rows: 4, inRow: 0, outRow: 3, footer: true }
-    case 'worker':
-      return { rows: 4, inRow: 0, outRow: 3, footer: true }
-    case 'log':
-      return { rows: 4, inRow: 0, outRow: 3, footer: true }
-    case 'fn':
-      return { rows: 5, inRow: 0, outRow: 4, footer: true }
-    case 'cdn':
-      return { rows: 3, inRow: 0, outRow: 2, footer: false }
-    case 'waf':
-      return { rows: 4, inRow: 0, outRow: 3, footer: true }
-    case 'gw':
-      return { rows: 4, inRow: 0, outRow: 3, footer: false }
-    case 'ws':
-      return { rows: 4, inRow: 0, outRow: null, footer: true }
-    case 'psp':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'autoscaler':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'ci':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'cluster':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'warehouse':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'vec':
-      return { rows: 4, inRow: 0, outRow: null, footer: true }
-    case 'gpu':
-      return { rows: 4, inRow: 0, outRow: null, footer: true }
-    case 'edge':
-      return { rows: 4, inRow: 0, outRow: 3, footer: true }
-    case 'llm':
-      return { rows: 3, inRow: 0, outRow: null, footer: true }
-    case 'msgp':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'wide':
-      return { rows: 4, inRow: 0, outRow: null, footer: true }
-    case 'dsql':
-      return { rows: 3, inRow: 0, outRow: null, footer: true }
-    // It reads a Database and publishes to a Stream: one port each way. It has one size, so it has
-    // no resize footer to click.
-    case 'cdc':
-      return { rows: 4, inRow: 0, outRow: 3, footer: false }
-    case 'mesh':
-      return { rows: 3, inRow: 0, outRow: null, footer: false }
-    case 'ff':
-      return { rows: 3, inRow: null, outRow: null, footer: false }
-    case 'pki':
-      return { rows: 3, inRow: null, outRow: null, footer: false }
-  }
-}
+export const layoutOf = (type: ComponentId): Layout => COMPONENT_VIEWS[type].layout
 
 export const rowTop = (index: number): number => HEAD + 4 + index * ROW
 export const rowMid = (index: number): number => rowTop(index) + ROW / 2
