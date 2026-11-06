@@ -86,7 +86,7 @@ With the existing Era 3 recipe multiplier, the effective costs are 2625 each of 
 
 ## Existing-model limits
 
-The relevant local sources are [GDD 06](../gdd/06-runtimes.md),
+The relevant local sources are [GDD 06](https://wiki.playquorum.dev/design/06-runtimes),
 [the runtime catalog](../../packages/simulation/src/catalog/runtimes.ts),
 [the research catalog](../../packages/simulation/src/catalog/research.ts), and
 [`serverModel`](../../packages/simulation/src/capacity.ts).

@@ -6,23 +6,23 @@ order: 4
 ---
 
 The **Simulation** turns a **Design** and the current demand into the **Ledger**: every rate,
-latency, error, and dollar the game shows. This document defines the model. Constants are in
+latency, error, and dollar the game shows. This page defines the model. Constants are in
 [Balancing](/design/16-balancing#constants). Runtime-specific capacity rules are in
 [Runtimes](/design/06-runtimes#the-capacity-model).
 
 ## Design goals for the model
 
-1. **Real shape, simple math.** The curves must have the shape of real systems: latency rises
-   sharply near full utilization, tails grow with fan-out, retries amplify overload. The math must be
-   cheap enough to run ten times a second in a browser tab.
-2. **Deterministic.** The same save, seed, and actions produce the same result. Tests and Challenge
-   replays depend on it.
-3. **Explainable.** Every number on a card can be broken down into terms that the player can see
-   once they unlock the matching observability tool ([Observability](/design/12-observability)).
+1. **Real shape, simple math.** The curves have the shape of real systems: latency rises sharply
+   near full utilization, tails grow with fan-out, and retries amplify overload. The math is cheap
+   enough to run ten times a second in a browser tab.
+2. **Deterministic.** The same save, seed, and actions produce the same result, and tests and
+   Challenge replays depend on that.
+3. **Explainable.** Every number on a card breaks down into terms. The player sees them once they
+   unlock the matching observability tool ([Observability](/design/12-observability)).
 
 ## Time
 
-The game has two clocks.
+Two clocks drive the game.
 
 | Clock     | Rate                                     | Used for                                                                                                       |
 | --------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -31,8 +31,8 @@ The game has two clocks.
 
 So one calendar day lasts 24 real minutes, and one calendar week lasts 2 hours 48 minutes.
 
-Operational durations, such as a JVM warmup or a spot interruption notice, use the sim clock and are
-stylized for play. Their real values are in [Reality check](/design/reality-check).
+Operational durations, such as a JVM warmup or a spot interruption notice, run on the sim clock and
+are stylized for play. [Reality check](/design/reality-check) lists their real values.
 
 **The step.** The simulation advances in steps of 100 ms of sim time. Each step runs the flow solve,
 updates queues, and accrues money. The UI reads the Ledger four times a second.
@@ -82,8 +82,8 @@ runtime built for it ([Components](/design/05-components#realtime-hub)).
 
 ### Backend kinds
 
-App servers turn user requests into backend kinds. Backend kinds earn nothing by themselves. They
-carry load to the data tier.
+App servers turn user requests into backend kinds. A backend kind earns nothing by itself and only
+carries load to the data tier.
 
 | Kind       | Meaning                           | Typical target                            |
 | ---------- | --------------------------------- | ----------------------------------------- |
@@ -118,15 +118,15 @@ demand_rps(kind) = Σ_r Users_r × R_user × diurnal_r(t) × weekly(t) × mix(ki
 | `mix(kind)`    | The share of each unlocked kind. The mix changes with Era and features ([Progression](/design/10-progression#eras)). |
 | `feature_mult` | Product features that raise usage of a kind ([Team and velocity](/design/08-team-and-velocity#features)).            |
 
-Real traffic follows a daily cycle, so the player must choose: provision for the peak and pay for
-idle capacity at night, or scale with demand ([Components: Autoscaler](/design/05-components#autoscaler)).
+Real traffic follows a daily cycle, so the player chooses: provision for the peak and pay for idle
+capacity at night, or scale with demand ([Components: Autoscaler](/design/05-components#autoscaler)).
 
 **Incidents** add to demand: spikes multiply it, bots add `bot` traffic, and DDoS adds very large
 volumes of junk ([Incidents](/design/11-incidents)).
 
 ## The flow solve
 
-The Design is a directed acyclic graph. The game refuses a link that would create a cycle.
+The Design is a directed acyclic graph, and the game refuses a link that would create a cycle.
 
 Each step, the solve walks the graph from the sources (**Users**) in topological order:
 
@@ -147,20 +147,20 @@ Each step, the solve walks the graph from the sources (**Users**) in topological
 
 A synchronous request holds a slot on the caller while it waits for the callee. So a slow database
 reduces the capacity of every app server that uses a worker pool. This is
-[Little's law](/design/glossary#littles-law):
+[Little's law](/glossary/littles-law):
 
 ```text
 in_flight(node) = throughput(node) × residence_time(node)
 residence_time  = own_CPU_time + Σ synchronous_downstream_latency
 ```
 
-The coupling makes the solve circular: the app server's capacity depends on the database's latency,
-which depends on the load that the app server sends. The solve resolves this with a damped fixed-point
-iteration: six passes per step, each blending 50% of the new value with the previous one. This
-converges in practice because latency changes slowly between steps.
+The coupling makes the solve circular. The app server's capacity depends on the database's latency,
+and that latency depends on the load the app server sends. The solve resolves the loop with a damped
+fixed-point iteration: six passes per step, each blending 50% of the new value with the previous
+one. It converges in practice because latency changes slowly between steps.
 
-This coupling is the reason that "the database is slow" shows up as "the app servers are full" in
-the Garage Era, as it does in production.
+The same coupling makes "the database is slow" show up as "the app servers are full" in the Garage
+Era, as it does in production.
 
 ## Capacity, utilization, and queues
 
@@ -178,8 +178,7 @@ utilization ρ = offered_work / capacity
 | 0.9 ≤ ρ < 1   | Card turns red. Tail latency is several times the median.                                                                                                                                      |
 | ρ ≥ 1         | Saturated. The Node serves `capacity / arrivals` of the work and drops the rest. Utilization is capped at 0.98 in the queueing curve, so latency levels off instead of climbing without bound. |
 
-**Queueing delay.** The model uses the M/M/1 waiting time as its curve, which gives the real
-"hockey stick" ([Reality check](/design/reality-check#queueing)):
+**Queueing delay.** The curve is the M/M/1 waiting time, which gives the real "hockey stick" ([Reality check](/design/reality-check#queueing)):
 
 ```text
 wait = service_time × ρ / (1 − ρ)          with ρ capped at 0.98
@@ -191,8 +190,8 @@ utilisation at 0.98. Worker pools have a listen backlog. Event loops have only m
 they fail later and harder ([Runtimes](/design/06-runtimes#concurrency-models)).
 
 **Timeouts.** Each link has a timeout (30 s by default, which is common for HTTP clients). A request
-that waits longer fails, but it has already used capacity downstream. Work done for a request that
-has already timed out is wasted. This is one way that overload becomes worse than it looks.
+that waits longer fails, but it has already used capacity downstream, and that work is wasted. This
+is one way overload gets worse than it looks.
 
 ## Latency
 
@@ -215,7 +214,7 @@ asynchronous ([Components](/design/05-components#queue)).
 
 ### Percentiles
 
-The game shows the mean in the Garage Era and earns the right to show percentiles later
+The HUD shows the mean in the Garage Era, and the player earns percentiles later
 ([Observability](/design/12-observability#the-visibility-ladder)). When shown, percentiles come from this
 model:
 
@@ -228,7 +227,7 @@ model:
 
 **Fan-out amplifies the tail.** If a request calls N backends in parallel and waits for all of them,
 the chance that at least one is slow is `1 − (1 − p)^N`. With N = 20 and a 1% slow rate per backend,
-18% of requests are slow. This is [the tail at scale](/design/glossary#tail-at-scale). It matters for
+18% of requests are slow. This is [the tail at scale](/glossary/tail-at-scale). It matters for
 `feed`, `search`, and any service split ([Data tier](/design/07-data-tier#fan-out)).
 
 ## Errors
@@ -260,10 +259,10 @@ Retries turn a failure into extra load:
 effective_λ = λ × (1 + f + f² + … + f^max_retries)      f = failure rate on the link
 ```
 
-With naive retries and a 50% failure rate, the load on the callee nearly doubles. This can push a
-recovering Node back into overload. The overload then continues after the original trigger is gone,
-which is a [metastable failure](/design/glossary#metastable-failure). Backoff with jitter spreads
-retries out. A circuit breaker stops them completely
+With naive retries and a 50% failure rate, the load on the callee nearly doubles. That can push a
+recovering Node back into overload, and the overload continues after the original trigger is gone.
+This is a [metastable failure](/glossary/metastable-failure). Backoff with jitter spreads
+retries out, and a circuit breaker stops them completely
 ([Incidents: retry storm](/design/11-incidents#retry-storm)).
 
 ## Connections
@@ -277,8 +276,8 @@ connections_needed(db) = Σ_upstream_processes pool_size
 ```
 
 Every app process holds its own pool. Ten app servers with four processes each and a pool of 10
-need 400 connections. When the need exceeds the limit, the excess requests fail as `refused`.
-Adding app servers makes this worse. A **Connection Pooler** fixes it
+need 400 connections. When the need exceeds the limit, the excess requests fail as `refused`, and
+adding app servers makes it worse. A **Connection Pooler** fixes it
 ([Components](/design/07-data-tier#connection-pooler)).
 
 ## Apdex and revenue
@@ -297,8 +296,8 @@ Apdex   = (satisfied + tolerating / 2) / total
 revenue = Σ_kind value(kind) × (satisfied + tolerating / 2) × multipliers
 ```
 
-This is the real [Apdex](/design/glossary#apdex) formula. It ties money to latency in a way that
-players can read: slow pages earn half, very slow pages earn nothing.
+This is the real [Apdex](/glossary/apdex) formula. It ties money to latency in a way players
+can read: slow pages earn half, and very slow pages earn nothing.
 
 `job` and `upload` use their completion window instead of the acknowledgement when a Queue runs them,
 with T measured in seconds. `hook` and `push` have no completion window, so they are scored on their
@@ -328,8 +327,6 @@ Users    = Σ_r Users_r
   users in every other region. A region with few users still grows from the Company's users
   elsewhere, so a region that lost its users can recover once the player serves it well
   (Putsis et al. 1997; Takada and Jain 1991).
-- Before the Series C Era there is one region, North America, and the formula is the same as one
-  global count.
 - `A_r` counts the requests that region r's users send, wherever the Design serves them. A Europe
   user whose read crosses the ocean to a North America App Server counts in Europe's Apdex.
 - `A_target` is 0.85 in the Garage Era and rises to 0.94 in the Public Era. It is the same for every
@@ -368,18 +365,17 @@ The bottleneck marker shows the one Node that costs the most revenue right now:
 lost_revenue(node) = revenue that would be earned if this Node had infinite capacity − current revenue
 ```
 
-The game estimates this by re-solving the flow with the Node's capacity doubled, for the top three
-candidates by utilization. The Node with the largest gain gets the marker. This is a real technique:
-it is a sensitivity analysis, and it is cheaper than it sounds because only three extra solves run,
-once per second.
+The Simulation estimates this by re-solving the flow with the Node's capacity doubled, for the top
+three candidates by utilization. The Node with the largest gain gets the marker. This is a sensitivity
+analysis, and it is cheaper than it sounds because only three extra solves run, once per second.
 
-The marker is a learning aid. Research "Distributed tracing" refines it to show the bottleneck per
+The marker is a learning aid, and research "Distributed tracing" refines it to show the bottleneck per
 request kind ([Observability](/design/12-observability)).
 
 ## Particles
 
-Particles on the board are a visual sample of the flow, not individual requests. Each link shows at
-most 9 particles at once, colored by kind, with a density proportional to the log of the rate and to
+Particles on the board sample the flow visually and do not represent individual requests. Each link
+shows at most 9 particles at once, colored by kind, with a density proportional to the log of the rate and to
 the link's length. A failed request shows as a particle that turns red and fades. Particle math never
 feeds the Ledger.
 
@@ -403,7 +399,7 @@ feeds the Ledger.
 
 ## Offline progress
 
-When the player returns, the game simulates the time they were away:
+When the player returns, the Simulation replays the time they were away:
 
 - Steps are 10 sim seconds instead of 100 ms.
 - The day and night cycle and the weekly cycle apply, so a design that cannot hold the peak loses
@@ -426,6 +422,6 @@ When the player returns, the game simulates the time they were away:
 | Offline simulation of 8 hours | Under 1 second                   |
 | Bottleneck analysis           | Under 3 ms, once per second      |
 
-The simulation is a pure function of the save and the step. It lives in the
+The Simulation is a pure function of the save and the step. It lives in the
 `packages/simulation` workspace package ([ADR 0004](https://github.com/elianiva/quorum/blob/main/docs/adr/0004-simulation-package.md)), imports only
 `effect`, and has no access to the UI.

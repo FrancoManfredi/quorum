@@ -5,6 +5,6 @@ section: tutorials
 order: 0
 ---
 
-Quorum is an incremental systems game. You are the first engineer of a startup. You wire
-Components on a board, and requests flow through your Design. Each fix moves the bottleneck
+Quorum is an incremental systems game. You are the first engineer of a startup, and you wire
+Components on a board while requests flow through your Design. Each fix moves the bottleneck
 somewhere else.

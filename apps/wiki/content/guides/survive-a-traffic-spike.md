@@ -17,7 +17,7 @@ leave.
 
 ## Recognize the spike
 
-- A red **▲ Traffic spike** line appears on the Dashboard charts (D).
+- A red line labelled **▲ SEV3 Traffic spike** appears on the Dashboard charts (D).
 - The **Requests** row on the Users Node jumps. Every Node card turns amber, then red.
 - With [Alerting](/research/alerting), the pager banner fires on errors, p99, or saturation.
 
@@ -81,9 +81,8 @@ order of cost.
     [Find the bottleneck](/guides/find-the-bottleneck).
 
 :::Note{tone="real"}
-Real sites get this from a link on a front page: the "Slashdot effect" or "hug of death". Teams
-answer it with caches, a CDN, and spare capacity, because autoscaling on virtual machines reacts in
-minutes.
+A link on a front page causes this: the "Slashdot effect" or "hug of death". Teams answer it with
+caches, a CDN, and spare capacity, because autoscaling on virtual machines reacts in minutes.
 :::
 
 ## Practice

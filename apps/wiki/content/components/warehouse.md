@@ -1,16 +1,19 @@
-## What it does
-
 The Data Warehouse stands for BigQuery: a columnar database built to scan large tables for reports.
+
+## When to place it
+
+- Place it when Reports appear in the mix and the Database slows across every kind, not just reports. It unlocks with [Data warehousing](/research/data-warehouse).
+- Place it before the Series B Era's reports grow, not after the first incident.
+
+The [Analytics on Primary](/sandboxes/analytics-primary) Sandbox shows it.
+
+::Sandbox{id="analytics-primary"}
+
+## How it works
 
 It takes report scans and sends nothing on. Each scan is slow but has no capacity limit, and you pay for each scan on top of a small Burn. See [OLTP and OLAP](/glossary/oltp-and-olap).
 
 Until you link a Data Warehouse, the [Database](/components/database) runs report scans on the primary. A scan there evicts the buffer cache and holds locks, so reads and writes of every kind slow. When an App Server links to both, scans go to the Warehouse, and the primary stops running them.
-
-## When to place it
-
-Place it when Reports appear in the mix and the Database slows across every kind, not just reports. The [Analytics on Primary](/sandboxes/analytics-primary) Sandbox shows it. It unlocks with [Data warehousing](/research/data-warehouse).
-
-::Sandbox{id="analytics-primary"}
 
 ## How it fails
 
@@ -23,7 +26,3 @@ The Warehouse itself does not overload in the game. What goes wrong:
 :::Note{tone="real"}
 Separating analytics from transactions is a classic lesson. Real teams copy data to a warehouse so reports never compete with checkouts.
 :::
-
-## Tips
-
-- Place it before the Series B Era's reports grow, not after the first incident.

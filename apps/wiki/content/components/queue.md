@@ -1,19 +1,20 @@
-## What it does
-
 The Queue stands for RabbitMQ: a broker that holds work now so that [Workers](/components/worker) can do it later.
-
-When an App Server links to a Queue, kinds that can go async hand most of their work to it as tasks: uploads, exports, webhooks, and notifications. The user waits only for the enqueue. The Queue offers its Workers what arrives, plus part of its backlog when they have room. It has a throughput limit, which each size step doubles.
-
-Queue depth is the number of tasks waiting. A large backlog slows each enqueue a little.
-
-Settings on its card:
-
-- **Max length**: refuses new tasks when full, instead of growing without limit. See [backpressure](/glossary/backpressure).
-- **Dead-letter queue**: moves a task aside after its max attempts. Without one, a failing task retries forever. See [dead-letter queue](/glossary/dead-letter-queue).
 
 ## When to place it
 
-Place it when slow kinds hold App Server slots, for example uploads from slow clients or exports. A growing depth is the earliest sign that Workers are too slow.
+- Place it when slow kinds hold App Server slots, for example uploads from slow clients or exports.
+- Resize it or add Workers when its depth keeps growing: that is the earliest sign that Workers are too slow.
+
+## How it works
+
+When an App Server links to a Queue, kinds that can go async hand most of their work to it as tasks: uploads, exports, webhooks, and notifications. The user waits only for the enqueue. The Queue offers its Workers what arrives, plus part of its backlog when they have room. It has a throughput limit, and each size step doubles it.
+
+Queue depth is the number of tasks waiting. A large backlog slows each enqueue a little.
+
+## Options
+
+- **Max length**: refuses new tasks when full, instead of growing without limit. See [backpressure](/glossary/backpressure).
+- **Dead-letter queue**: moves a task aside after its max attempts. Without one, a failing task retries forever. See [dead-letter queue](/glossary/dead-letter-queue).
 
 ## How it fails
 

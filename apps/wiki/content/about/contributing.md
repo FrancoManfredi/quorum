@@ -22,8 +22,8 @@ The wiki has two sources:
 3. Change the text and open a pull request.
 
 Keep sentences short and use the words the game uses, such as **Node**, **Design**, and
-**Insight**. Do not type a number that the game owns. Describe the behavior instead, and let the
-page's facts box show the number.
+**Insight**. Do not type a number that the game owns. Describe the behavior and let the page's
+facts box show the number.
 
 ## Live views
 

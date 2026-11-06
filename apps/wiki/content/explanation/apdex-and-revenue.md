@@ -7,9 +7,9 @@ aliases: apdex, revenue, income, satisfied, tolerating, frustrated, payments dra
 gdd: /design/04-simulation
 ---
 
-In Quorum, speed is money. A request earns its full value only if the user gets an answer fast
-enough. The game measures "fast enough" with Apdex, a real industry score, and uses the same score to
-decide whether users stay.
+A slow answer pays less than a fast one, and a very slow answer pays nothing. A request earns its
+full value only if the user gets an answer fast enough. Quorum measures "fast enough" with Apdex, an
+industry score, and uses the same score to decide whether users stay.
 
 ## Satisfied, tolerating, frustrated
 
@@ -36,12 +36,12 @@ wait, or that half were satisfied and half gave up.
 
 ## Why Apdex and not average latency
 
-Average latency mixes everyone into one number. Apdex counts people. A user who waited 5 seconds is
-lost no matter how fast the others were, and Apdex gives that request zero. A user who waited a little
-too long is not lost, and Apdex gives half credit.
+Average latency mixes everyone into one number, and Apdex counts people. A user who waited 5 seconds
+is lost no matter how fast the others were, so Apdex gives that request zero. A user who waited a
+little too long is not lost, so Apdex gives half credit.
 
-This matches how the game computes latency. Response times spread out along a curve, so some share of
-every kind is always slower than its target. The game computes, for each kind, the exact share of
+Apdex also fits how Quorum computes latency. Response times spread along a curve, so some share of
+every kind is always slower than its target. For each kind, the Simulation computes the exact share of
 answered requests below T and below 4T. That share falls smoothly as a Node fills up, long before the
 average looks bad. See [Latency and percentiles](/explanation/latency).
 
@@ -57,7 +57,8 @@ revenue = Σ kinds: rate × value × (satisfied + tolerating / 2)
 ```
 
 Values differ a lot between kinds. A checkout is worth far more than a page view, and a bot is worth
-nothing. So the same latency problem costs more on the money path. Other things scale the value:
+nothing, so the same latency problem costs more on the money path. Three things change a kind's
+value:
 
 - **Features.** Some Features make a kind earn more. See the [Team](/team#features) reference.
 - **The Stack.** The framework that answers a request can change what it earns.
@@ -67,30 +68,30 @@ The **Paid plans** Feature adds a second source: a subscription per paying user 
 does not depend on requests, so it smooths income and rewards keeping users.
 
 :::Note{tone="real"}
-The Apdex formula is a real standard from the Apdex Alliance, and monitoring tools still report it.
-Real revenue does not halve at exactly T, but the shape is right. A 2009 Google study found that
+The Apdex Alliance published the formula as a standard, and monitoring tools still report it. Real
+revenue does not halve at exactly T, but the shape is right. A 2009 Google study found that
 400 ms of extra delay lowered how much people searched, and the loss lasted after the delay was gone.
 :::
 
 ## Apdex also moves your users
 
 The same score decides growth. Each Era sets an Apdex target. While your users' Apdex over the last
-calendar hour beats it, users grow. When it falls below, they leave. So a slow Design loses money
+calendar hour beats it, users grow, and when it falls below, they leave. So a slow Design loses money
 twice: once on each request, and again as users go. See [Users and growth](/explanation/users-and-growth).
 
 ## The Payments drawer
 
-Revenue does not go straight to Cash. It goes to the [Payments](/components/payments) drawer first,
-and you select Collect to move it. The drawer holds about a minute of revenue at the current rate.
-Bigger sizes hold more. Revenue that arrives while the drawer is full is lost.
+Revenue waits in the [Payments](/components/payments) drawer, and you select Collect to move it into
+Cash. The drawer holds about a minute of revenue at the current rate, and bigger sizes hold more.
+Revenue that arrives while the drawer is full is lost.
 
-The drawer keeps the first minutes of the Garage active, and then it gets out of the way. The
-[Stripe Billing](/research/stripe) research collects automatically. While you are away, the game pays
-revenue straight into Cash. Where Cash goes after that is in [Cash, Burn, and funding](/explanation/money).
+The drawer gives the first minutes of the Garage something to do, and then it gets out of the way. The
+[Stripe Billing](/research/stripe) research collects automatically, and while you are away, revenue
+goes straight into Cash. Where Cash goes after that is in [Cash, Burn, and funding](/explanation/money).
 
 ## How to raise income
 
-Income per second is the best score for a change. Compare it before and after, once the system
+Income per second is the best score for a change, so compare it before and after, once the system
 settles. Most gains come from one of three moves:
 
 1. Remove the bottleneck, so more requests get answered.

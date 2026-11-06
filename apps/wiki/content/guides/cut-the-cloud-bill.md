@@ -107,7 +107,7 @@ Traffic follows a daily cycle. A fleet sized for the evening peak is idle at nig
 ## Practice
 
 The [Out of Credits](/sandboxes/out-of-credits) Sandbox ends with a Burn limit at night traffic.
-The [Read Mostly](/sandboxes/read-mostly) Sandbox asks you to double capacity under a Burn limit.
+The [Read Mostly](/sandboxes/read-mostly) Sandbox doubles the demand and sets a Burn limit.
 
 ## Related
 

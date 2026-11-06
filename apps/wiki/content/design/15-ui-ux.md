@@ -34,11 +34,11 @@ and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player
 │                                                                              │       │
 │   [Payments]                      [Analytics]                                │       │
 ├──────────────────────────────────────────────────────────────────────────────┴───────┤
-│ Dock: Edge · Compute · Data · Ops                             Research · Team · Cost  │
+│ Dock: Edge · Compute · Data · Messaging · … (seven groups)    Research · Team · Cost  │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The layout shows every element. A new Company starts with fewer
+The layout shows every element, but a new Company starts with fewer
 ([Progressive disclosure](#progressive-disclosure)).
 
 ## Progressive disclosure
@@ -86,6 +86,7 @@ time the game state makes it useful.
 
 ### The build dock
 
+- The dock has seven groups: Edge, Compute, Data, Messaging, Platform, Observability and Managed.
 - A group lists the Components the player can place, then at most one locked Component: the one with
   the cheapest available Research item. Other locked Components do not show.
 - A group with nothing to place and nothing one Research item away does not show.
@@ -130,7 +131,7 @@ Each card is a small window, like Upload Labs. The card is the main information 
 
 With research `profiling`, the card carries the `Limit` row. The gauges that explain the limit live in
 the Inspector: a goal bar names the tightest limit, and a bar follows for every limit the Ledger can
-measure — CPU, RAM, worker slots, connections, CPU credits, and the network card. A limit it cannot
+measure: CPU, RAM, worker slots, connections, CPU credits, and the network card. A limit it cannot
 measure, such as disk IOPS or a flat Component's throughput, is named with no bar.
 
 | Element      | Rule                                                                                                                  |
@@ -144,7 +145,7 @@ measure, such as disk IOPS or a flat Component's throughput, is named with no ba
 
 ## Feedback after a change
 
-The Factorio pleasure of watching a system settle is a feature
+Watching a system settle is a Factorio pleasure, and Quorum keeps it
 ([Influences](/design/02-influences#factorio)).
 
 1. The player makes a change.
@@ -190,7 +191,7 @@ replication mode, a deploy strategy, a pricing model.
 - **Preview** runs a ghost copy of the simulation for 10 sim seconds with the option applied and
   shows the result. The player sees the effect on their own design before they pay.
 - The card names the real behavior behind each axis and links to the
-  [engineering glossary](/design/glossary).
+  [engineering glossary](/glossary).
 - After the first time, the card collapses to one line with the preview numbers.
 - The preview shows the settled effect: the changed Nodes start up and warm. The restart is stated
   on its own, as "restarts cold for N s".
@@ -239,11 +240,10 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 
 The Team panel opens with the Company's Services ([Services](/design/08-team-and-velocity#services)),
 one row per codebase: its name, a badge naming the team that owns it, its KLOC, tech debt and Burn
-(its share of the Company's total Burn by its share of the Company's total codebase, since
-no Node belongs to a Service), and the Features it carries. The row rings when an incident names it,
-and a `Paged` badge marks the Service whose code broke. The starting Service's row reads that it
-carries every Feature no other Service names, so a Company with one Service shows one row and no
-split form. With more than one team, each row also holds a **Move to** select: choosing another team
+(its share of the Company's total Burn, in proportion to its share of the codebase, because no
+Node belongs to a Service), and the Features it carries. The row rings when an incident names it,
+and a `Paged` badge marks the Service whose code broke. The starting Service's row says it carries
+every Feature no other Service names, so a Company with one Service shows one row and no split form. With more than one team, each row also holds a **Move to** select: choosing another team
 moves the Service there at once ([Ownership](/design/08-team-and-velocity#ownership)).
 
 With Service boundaries, the card holds the split's form: a name, a select of the teams, and a chip
@@ -256,20 +256,24 @@ as a split item the owner's team builds. The Dashboard's Service drop-down narro
 Below the Services card, a **DORA metrics** card shows deploy frequency, lead time for changes,
 change failure rate and failed deployment recovery time (MTTR) once a CI/CD Pipeline is placed
 ([Deploy frequency](/design/08-team-and-velocity#deploy-frequency)); it reads nothing in a Sandbox
-and nothing before a Pipeline, since the one shared pipeline has nothing yet to measure.
+and nothing before a Pipeline, because the one shared pipeline has nothing to measure yet.
 
 ### The Live column
 
-A live Feature's card carries what its users have and what Analytics reads from it
-([Adoption](/design/08-team-and-velocity#adoption), [Measured lift](/design/08-team-and-velocity#measured-lift)):
-`63% adopted`, and once `ab-testing` is done and its rollout leaves a holdout, `Lift +20% ±4% · Wins`,
-`· Loses`, or `· Too early` while the interval still contains zero; a Feature whose roll landed a
-Loss reads a negative lift and can read `· Loses` once the interval clears zero below it
-([Outcomes](/design/08-team-and-velocity#outcomes)). The column's header shows the share of the
-Team's Dev Hours that keeps those Features running, `Upkeep 12% of Dev Hours`
-([Upkeep](/design/08-team-and-velocity#upkeep)), and nothing while the Company has no live Feature.
-Each live Feature's card also carries a **Remove** button: its code is gone, and its upkeep ends
-with it, which a flag turned Off does not do.
+A live Feature's card shows what its users have and what Analytics reads from it. It carries up to
+three readings:
+
+- Adoption, such as `63% adopted` ([Adoption](/design/08-team-and-velocity#adoption)).
+- Measured lift, once `ab-testing` is done and its rollout leaves a holdout: `Lift +20% ±4% · Wins`,
+  `· Loses`, or `· Too early` while the interval still contains zero
+  ([Measured lift](/design/08-team-and-velocity#measured-lift)).
+- A negative lift, when the Feature's roll landed a Loss. It can read `· Loses` once the interval
+  clears zero below it ([Outcomes](/design/08-team-and-velocity#outcomes)).
+
+The column's header shows the share of the Team's Dev Hours that keeps those Features running, such as
+`Upkeep 12% of Dev Hours` ([Upkeep](/design/08-team-and-velocity#upkeep)). It shows nothing while the
+Company has no live Feature. Each live Feature's card also carries a **Remove** button. Removing a
+Feature deletes its code and ends its upkeep, which a flag turned Off does not do.
 
 A teammate's Mail carries the buttons its thread needs (18 "Teammates"): **Approve** and **Later** on a
 blocked item, **Give time off**, **Raise salary** and **Accept resignation** on an unhappy engineer,
@@ -398,8 +402,8 @@ its worst utilization, and one suggestion if users were lost at peak.
   ("420/s") on a small plate. A still belt draws the arrows in place of its chevrons, so its flow
   is read once, not twice.
 - Most actions have a keyboard shortcut, and the board supports keyboard navigation between Nodes.
-  A list that the canvas cannot give names every Node on the board — its kind, its size, and its
-  load — in board order; it stays hidden until a keyboard player tabs into it, and each entry is a
+  A list that the canvas cannot give names every Node on the board in board order, with its kind,
+  its size, and its load. It stays hidden until a keyboard player tabs into it, and each entry is a
   button that opens that Node's Inspector. So the board is usable without seeing the canvas.
   The keyboard also places: with a part in hand, `Enter` drops it in the next free spot, as a click
   on the board does. `L` starts a link from the selected Node, the arrows pick the other end, and
@@ -417,10 +421,10 @@ its worst utilization, and one suggestion if users were lost at peak.
 
 ## Save
 
-- Autosave to local storage every 10 seconds and on every Era change, per Company.
+- Autosave to local storage every 5 sim seconds and on every Era change, per Company.
 - The player names each Company and picks its logo before founding it.
 - Any number of Companies are kept; the Companies page lists them and opens, or deletes, one.
-- The single save from the build before Company files is never deleted. Settings offers a hidden
+- The single save from before Company files is never deleted. Settings offers a hidden
   "Recover previous save" action that imports it into the Companies list. This action is temporary.
 - Export and import as text: Settings › Copy save as text puts the save on the clipboard as one line
   (`QSV1:` and base64url JSON), and Settings › Import a save asks for one and opens it; the title

@@ -5,7 +5,7 @@ its users, one bottleneck at a time. The full design is in [the design document]
 
 This file is the game vocabulary. Code, UI copy, and the design documents use these words. Real
 engineering terms that the game teaches are in the
-[engineering glossary](https://wiki.playquorum.dev/design/glossary).
+[engineering glossary](https://wiki.playquorum.dev/glossary).
 
 ## Language
 

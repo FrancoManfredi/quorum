@@ -40,7 +40,7 @@ while you wait, so act now.
 
 ## Move the database to its own Node
 
-Real companies take this step early: they give the database its own machine.
+The first fix is to give the database its own machine, which is what most teams do early.
 
 1. In the build dock at the bottom, select the **Data** group. You can also press its number key.
 2. Select **Database** in the list. Its price shows at the right of the row.
@@ -61,7 +61,7 @@ If you made a mistake, press **Z** to undo. An undo within 30 seconds refunds th
 
 :::Note{tone="real"}
 One box for the app and the database is how most products start. Moving the database out is the
-classic first scaling step. Each part can now grow on its own.
+classic first scaling step. Each part can grow on its own.
 :::
 
 ## Wait for the second limit
@@ -79,8 +79,8 @@ The **Load** row turns red, and the **BOTTLENECK** tag comes back to the App Ser
 ## Leave Burstable
 
 1. Select the App Server.
-2. Find the **Instance** section in the Inspector. It shows four families: **Burstable**,
-   **General**, **Compute**, and **Memory**.
+2. Find the **Instance** section in the Inspector. It shows five families: **Burstable**,
+   **General**, **Compute**, **Memory**, and **ARM**. ARM needs research.
 3. Select **General**.
 4. If a Tradeoff card opens, read its preview and select **Confirm**.
 

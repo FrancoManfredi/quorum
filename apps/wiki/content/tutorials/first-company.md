@@ -20,10 +20,10 @@ Cash. You need about ten minutes. You do not build anything yet.
    the game menu.
 5. Leave **B2B SaaS** selected. It is the only Venture at the start. Mutators are locked until you
    earn them.
-6. Select **Found**, at the bottom of the screen.
+6. Select **Found** followed by your Company's name, at the bottom of the screen.
 
 The board opens in the **Garage**, the first [Era](/eras/garage). The game shows only a few
-controls now. Other controls appear one at a time, when they become useful.
+controls at first. The rest appear one at a time, as they become useful.
 
 ## Read the board
 
@@ -76,7 +76,7 @@ game warns you. Collect at least once a minute while you play.
 
 :::Note{tone="tip"}
 When the drawer is half full for the first time, the Collect button glows. The glow is the game's
-only hint. It stops when you use the button.
+only hint, and it stops once you use the button.
 :::
 
 ## Control the clock
@@ -112,7 +112,7 @@ Press **H** at any time to open **How to play**. It lists the keys and the six c
 - Each Company is saved separately, with its own name and logo.
 
 :::Note{tone="tip"}
-Quorum saves this Company every ten seconds. To start another, go to the title screen and select
+Quorum saves this Company every 5 sim seconds. To start another, go to the title screen and select
 **Start a company**; this one stays in **Companies**. If you played the playtest build, read
 [Import your playtest save](/guides/import-your-playtest-save).
 :::

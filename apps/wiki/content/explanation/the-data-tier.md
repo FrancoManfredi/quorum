@@ -8,22 +8,23 @@ aliases: database, postgres, cache, redis, replica, replication lag, stale, slow
 gdd: /design/07-data-tier
 ---
 
-App Servers are easy to copy. They hold no data, so ten copies are as correct as one. Data is
-different. Every copy of data must agree with the others, or users see the wrong answer. That is why
-the data tier becomes the long-term challenge of every Company.
+State is the hard part of scaling. App Servers are easy to copy because they hold no data, so ten
+copies are as correct as one. Data is different, because every copy must agree with the others or
+users see the wrong answer. That is why the data tier becomes the long-term challenge of every
+Company.
 
 ## The Database is the source of truth
 
 The [Database](/components/database) answers read queries, write queries, and transactions. Until you
-link a better Component, it also does other jobs badly. It runs full-text search, stores uploaded
-files as rows, and runs report scans. Each of these costs it far more CPU than a normal read. A
+link a better Component, it also does three other jobs badly: full-text search, uploaded files stored
+as rows, and report scans. Each costs far more CPU than a normal read. A
 [Search Engine](/components/search), [Object Storage](/components/storage), and a
 [Data Warehouse](/components/warehouse) take those jobs away.
 
 Four limits cap a Database:
 
-- **CPU.** Every query costs CPU. A cold Database, just restarted, needs more of it per query.
-- **Connections.** Postgres runs one process per connection and accepts a fixed number; MySQL gives
+- **CPU.** Every query costs CPU, and a cold Database, just restarted, needs more of it per query.
+- **Connections.** Postgres runs one process per connection and accepts a fixed number. MySQL gives
   each connection a thread and holds several times as many. Read
   [Errors and retries](/explanation/errors-and-retries) for why more App Servers make this worse.
 - **The volume's IOPS.** Every write and every read that misses the buffer cache waits on the disk.
@@ -32,15 +33,15 @@ Four limits cap a Database:
   writes wait behind the scans. This is why analytics and transactions should not share a Database.
   See [OLTP and OLAP](/glossary/oltp-and-olap).
 
-A bigger box lifts the first two. Sharding lifts the CPU limit on writes: each shard takes its share
-of them, and bills like a Database of its own.
+A bigger box lifts the first two limits. Sharding lifts the CPU limit on writes, because each shard
+takes its share of them, but each shard bills like a Database of its own.
 
 ## Slow queries hide until you grow
 
 Two code problems cost little at first and a lot later.
 
 An **unindexed query** scans the table. Its cost grows with the number of rows, and the rows grow with
-your users. It is invisible in the Garage and becomes the bottleneck later. The
+your users, so it is invisible in the Garage and becomes the bottleneck later. The
 [Slow query](/incidents/slow-query) incident is this problem. [Query analysis](/research/query-analysis)
 shows it, and the Add index task fixes it.
 
@@ -58,25 +59,25 @@ hit ratio = √(memory / hot data) × TTL factor × write penalty × warmth
 ```
 
 The square root models skewed access. Most reads ask for a few hot keys, so a small Cache already
-holds the hottest ones. The first gigabyte of Cache is worth more than the tenth. Hot data grows with
-your users, so a Cache that was big enough last Era may not be now.
+holds the hottest ones, and the first gigabyte is worth more than the tenth. Hot data grows with your
+users, so a Cache that was big enough last Era may be too small in the next.
 
 Writes invalidate keys, so a write-heavy mix lowers the hit ratio. A longer TTL keeps more hits but
 serves more stale data. A Cache that restarts comes back cold, and every miss goes to the Database at
-once. That is a [cache stampede](/glossary/cache-stampede).
+once, which is a [cache stampede](/glossary/cache-stampede).
 [Stampede protection](/research/stampede-protection) and [Cache warming](/research/cache-warming)
 soften it.
 
 :::Note{tone="real"}
 Redis answers commands on one main thread, so one core caps a Redis node and one slow command blocks
-every client. Memcached uses every core but keeps nothing on restart. The game models both, as Cache
+every client. Memcached uses every core but keeps nothing on restart. Quorum models both as Cache
 engines with different limits.
 :::
 
 ## Read Replicas: more reads, older data
 
-A [Read Replica](/components/replica) runs like a Database but answers only reads. Writes still go to
-the primary and then stream to the replica. The replica is always a little behind, and the lag grows
+A [Read Replica](/components/replica) runs like a Database but answers only reads. Writes go to the
+primary and then stream to the replica, so the replica is always a little behind, and the lag grows
 with your write rate. See [replication lag](/glossary/replication-lag).
 
 A read from a lagging replica can return old data. Whether that matters depends on the kind:
@@ -86,7 +87,7 @@ A read from a lagging replica can return old data. Whether that matters depends 
 - A checkout that reads its own write fails as `stale`, which costs real money.
 
 [Read-your-writes routing](/research/ryw-routing) sends the reads that care to the primary. That
-fixes most stale errors and keeps some read load on the primary.
+fixes most stale errors, at the price of some read load on the primary.
 
 ::Sandbox{id="stale-checkout"}
 
@@ -101,29 +102,29 @@ R + W ≤ N   a read can miss the latest write: eventual consistency
 ```
 
 Smaller R and W are faster, because each operation waits for an earlier reply, and they cost fewer
-replica operations. But a weak quorum serves stale reads. A quorum that needs every replica fails while
-one replica is down. See [quorum](/glossary/quorum).
+replica operations. The price is that a weak quorum serves stale reads. A quorum that needs every
+replica fails while one replica is down. See [quorum](/glossary/quorum).
 
 ::Quiz{question="A Wide-column Store keeps N = 3 replicas. Which setting makes every read see the latest write?" options="R = 1, W = 1|R = 1, W = 2|R = 2, W = 2" answer="3" explain="Only R = 2 and W = 2 gives R + W > N. The other settings let a read ask only replicas that missed the latest write."}
 
-Overlap is not the same as a single, ordered history. Concurrent writes can still conflict, so even a
+Overlap does not give a single, ordered history. Concurrent writes can still conflict, so even a
 strong quorum gets an occasional stale read or duplicate on checkouts. A
 [Distributed SQL](/components/dsql) Node fixes that with consensus: every write waits for a majority of
-its replicas. Inside one region, that is cheap. Across regions, every write pays a long round trip.
+its replicas. Inside one region, that is cheap, but across regions every write pays a long round trip.
 See [Raft](/glossary/raft).
 
 ## Hot keys
 
 Spreading data across nodes only helps if the load spreads too. In the [Hot key](/incidents/hot-key)
 incident, a large share of reads asks for one key, such as a celebrity's post. That key lives on one
-shard, which saturates while the others idle. [Hybrid fan-out](/research/hybrid-fanout) lets you split
+shard, so that shard saturates while the others idle. [Hybrid fan-out](/research/hybrid-fanout) lets you split
 hot keys across shards. See [hot key](/glossary/hot-key).
 
 ## The pattern behind all of it
 
-Every data choice in Quorum trades among three things: speed, freshness, and survival. A Cache and a
-replica buy speed with freshness. A strong quorum and consensus buy freshness with speed. Copies in
-other zones and regions buy survival with Burn. The Data track shows the research behind each tool:
+Every data choice in Quorum trades among speed, freshness, and survival. A Cache and a replica buy
+speed with freshness, and a strong quorum and consensus buy freshness with speed. Copies in other
+zones and regions buy survival with Burn. The Data track shows the research behind each tool:
 
 ::Track{track="data"}
 

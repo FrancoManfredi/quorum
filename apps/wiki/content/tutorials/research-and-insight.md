@@ -64,7 +64,7 @@ pools fall slowly. The pool that runs low first sets the pace.
    bar.
 
 When the Study ends, look at the Payments card. Its button now reads **Collected automatically**,
-and revenue goes straight to Cash. You no longer need to press **C**.
+and revenue goes straight to Cash. Pressing **C** is optional.
 
 ## Queue a second Study
 

@@ -45,8 +45,8 @@ itself.
 ## Why
 
 The data answers four questions: how many people play, where new players stop, how players build and
-progress, and whether the client is healthy. We use it to tune pacing, difficulty, and onboarding. We
-do not use it for advertising.
+progress, and whether the client is healthy. We use it to tune pacing, difficulty, and onboarding, and
+never for advertising.
 
 ## Who processes it
 
@@ -67,8 +67,7 @@ days.
 1. Open **Settings** in the game.
 2. Turn off **Share anonymous usage data**.
 
-The game stops sending events, crash reports, and performance data immediately and remembers the choice in your browser. It also respects
-your browser's Do Not Track setting. Clearing your browser storage removes the device ID and the
+The game stops sending events, crash reports, and performance data immediately, and remembers the choice in your browser. It also respects your browser's Do Not Track setting. Clearing your browser storage removes the device ID and the
 stored choice.
 
 Turning analytics off does not affect the game. Every feature works the same.

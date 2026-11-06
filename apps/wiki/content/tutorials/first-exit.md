@@ -88,8 +88,9 @@ If you prefer to save your Legacy, skip the purchase. Legacy also unlocks new
 2. Type a name in **Company name** and select a logo. Each Company keeps its own name and logo.
 3. Read the **Venture** list. A Venture sets the kind of company: its request mix, its demand
    shape, and its rules. Your first Venture is selected.
-4. Read the **Mutators** list. Mutators make a Company harder for more Legacy. You unlock them with
-   achievements, so they may all show a lock now.
+4. Read the **Mutators** list. Mutators make a Company harder for more Legacy. Your first Exit opens four
+   of them: Legacy monolith, One region forever, Shared tenancy, and Tight budget. Achievements open
+   the rest, so those still show a lock.
 5. Select **Found**. Its row shows the starting Era and the Legacy multiplier.
 
 The new Company starts over: new Cash, new users, no Research, and a new board. Your Legacy, your

@@ -5,13 +5,14 @@ section: design
 order: 8
 ---
 
-Servers are half of the game. The other half is the people who change them. This system makes
-runtime choices bite in both directions: Rust saves servers and costs engineer time, Rails saves
-engineer time and costs servers. It also makes microservices a real decision with a real reason, as
-described by [Conway's law](/design/glossary#conways-law) and [Brooks's law](/design/glossary#brookss-law).
+Servers are half of the game, and the people who change them are the other half. Runtime choices
+bite in both directions: Rust saves servers and costs engineer time, and Rails saves engineer time
+and costs servers. Microservices become a real decision with a real reason, as
+[Conway's law](/glossary/conways-law) and [Brooks's law](/glossary/brookss-law)
+describe.
 
-The Team system arrives in two steps. In the Garage Era, the player is the only engineer and
-produces Dev Hours. Hiring unlocks in the Pre-seed Era.
+The Team system opens in two steps. In the Garage Era the player is the only engineer and produces
+Dev Hours. Hiring unlocks in the Pre-seed Era.
 
 ## Dev Hours
 
@@ -81,7 +82,8 @@ Three things wear an engineer's **mood** down, and the game tracks each:
   mood.
 - **Pages.** Every incident that pages their team costs the engineer a little of it: −0.08, so a
   dozen pages is a slump.
-- **A pay gap.** At a 50% gap the mood falls by a third of a point a calendar day.
+- **A pay gap.** At a full gap, paid nothing against the Era's rate, the mood falls by a third of a
+  point a calendar day. At a 50% gap it falls by a sixth.
 
 An engineer at 0.35 mood writes to the player, once per slump. The three answers are theirs to
 choose ([Mail](/design/18-mail#teammates)): **Give time off** (three calendar days with no Dev
@@ -139,8 +141,8 @@ Worker belongs to a Service. The starting company has one Service: the monolith.
 
 A Service **carries Features**. The request kinds those Features put on the wire, the load they add
 and the kind they unlock, are the Service's traffic. Features that no other Service names stay with
-the starting Service, so a Company that never splits runs exactly as it did before Services existed,
-and an old save opens on one Service.
+the starting Service, so a Company that never splits plays the same, and an old save opens on one
+Service.
 
 **Splitting** a service (research "Service boundaries", Series B) moves some live Features to a new
 codebase with a name and an owning team.
@@ -154,12 +156,14 @@ split costs the same 0.3 of the moved part as the [Migrations](#migrations) tabl
 Checkout, 320 DH, is 48 Dev Hours. The Dev Hours go on the backlog as one **split** item, owned by
 the team the split gives the Service, and the moved code leaves the codebase it came from.
 
-Each Service now deploys on its own timer and rolls its own bad deploy, from its own owner's
-policy and its own tech debt, not the Design's: the one shared CI/CD Pipeline still sets the
-cadence and the strategy every Service ships through, so two Services on the same policy still
-deploy about as often, but a bad deploy on one no longer waits behind, or pulls down, another's.
-Burn has no Node-level ownership to split exactly, so each Service's reported Burn is its share of
-the Company's total Burn by its share of the Company's total codebase (KLOC). A Stack change still migrates the whole Design rather than one Service.
+Each Service deploys on its own timer and rolls its own bad deploy. The odds come from its owner's
+policy and its own tech debt, not the Design's. One shared CI/CD Pipeline still sets the cadence and
+strategy for every Service, so two Services on the same policy deploy about as often. The difference
+is that a bad deploy on one Service never waits behind another's and never pulls it down.
+
+Burn has no Node-level ownership, so it cannot be split exactly. Each Service reports its share of
+the Company's Burn, in proportion to its share of the codebase (KLOC). A Stack change still migrates
+the whole Design, not one Service.
 
 | Gain                                           | Cost                                                                                              |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -224,13 +228,13 @@ engineers for six weeks. A week is 40 DH.
 
 | Feature              | Era      | Requires                         | Size                  | DH    | Win effect on users and money                 | Effect on load                                     |
 | -------------------- | -------- | -------------------------------- | --------------------- | ----- | --------------------------------------------- | -------------------------------------------------- |
-| Landing page         | Garage   | —                                | 1 day                 | 8     | Market +20%                                   | `page` +10%                                        |
-| Signup flow          | Garage   | —                                | 2 days                | 16    | Growth +15%                                   | Unlocks `write` early at a low share               |
-| Pagination           | Garage   | —                                | Half a day            | 4     | —                                             | `read` payload −50%, adds an unindexed query shape |
+| Landing page         | Garage   | None                             | 1 day                 | 8     | Market +20%                                   | `page` +10%                                        |
+| Signup flow          | Garage   | None                             | 2 days                | 16    | Growth +15%                                   | Unlocks `write` early at a low share               |
+| Pagination           | Garage   | None                             | Half a day            | 4     | None                                          | `read` payload −50%, adds an unindexed query shape |
 | Password login       | Pre-seed | Signup flow                      | 1 week                | 40    | Required for paid plans                       | Unlocks `login`                                    |
-| Paid plans           | Pre-seed | Password login                   | 2 weeks               | 80    | `write` value +30%                            | —                                                  |
+| Paid plans           | Pre-seed | Password login                   | 2 weeks               | 80    | `write` value +30%                            | None                                               |
 | Email digests        | Pre-seed | Signup flow, a Queue             | 1 week                | 40    | Churn −10%                                    | `job` demand ×2: a burst through the Queue         |
-| Search filters       | Seed     | —                                | 1 week                | 40    | `search` value +25%                           | `q-search` cost +40%                               |
+| Search filters       | Seed     | None                             | 1 week                | 40    | `search` value +25%                           | `q-search` cost +40%                               |
 | Profile photos       | Seed     | Password login                   | 1 week                | 40    | Growth +10%                                   | Unlocks `upload`                                   |
 | Public API           | Seed     | Password login                   | 4 weeks               | 160   | Market +25%                                   | `read` +30%, bursty clients, bots                  |
 | Infinite scroll      | Seed     | Pagination                       | 3 days                | 24    | `read` value +10%, time in app +25%           | `read` +40%                                        |
@@ -239,26 +243,26 @@ engineers for six weeks. A week is 40 DH.
 | Checkout             | Series A | Paid plans                       | 2 engineers, 4 weeks  | 320   | Unlocks `buy`                                 | `q-tx`, Payment Provider dependency                |
 | Notifications center | Series A | Chat                             | 2 weeks               | 80    | Growth +10%                                   | `rt` +20%                                          |
 | Mobile app           | Series A | Public API                       | 2 engineers, 3 months | 960   | Market +60%                                   | `read` +50%                                        |
-| Data export          | Series B | —                                | 2 weeks               | 80    | Enterprise plans: `write` value +20%          | Unlocks `job`                                      |
-| Dashboards           | Series B | —                                | 2 engineers, 6 weeks  | 480   | Enterprise plans: Market +10%                 | Unlocks `report`                                   |
-| AI assistant         | Series B | —                                | 2 engineers, 6 weeks  | 480   | Unlocks `ai`                                  | GPU or LLM API dependency                          |
+| Data export          | Series B | None                             | 2 weeks               | 80    | Enterprise plans: `write` value +20%          | Unlocks `job`                                      |
+| Dashboards           | Series B | None                             | 2 engineers, 6 weeks  | 480   | Enterprise plans: Market +10%                 | Unlocks `report`                                   |
+| AI assistant         | Series B | None                             | 2 engineers, 6 weeks  | 480   | Unlocks `ai`                                  | GPU or LLM API dependency                          |
 | Recommendations      | Series B | Video, Data export               | 2 engineers, 6 weeks  | 480   | `media` and `job` usage +30%                  | Batch `job` and a model                            |
 | Audit log            | Series B | Password login                   | 3 weeks               | 120   | Market +10%: enterprises can buy              | `q-write` +20%                                     |
-| Activity feed        | Series C | —                                | 2 engineers, 6 weeks  | 480   | Market +50%                                   | Unlocks `feed`                                     |
+| Activity feed        | Series C | None                             | 2 engineers, 6 weeks  | 480   | Market +50%                                   | Unlocks `feed`                                     |
 | Webhooks             | Series C | Public API                       | 3 weeks               | 120   | Market +20% (integrations)                    | Unlocks `hook`                                     |
 | Push notifications   | Series C | Mobile app, Notifications center | 2 weeks               | 80    | Growth +15%, churn +5% if over-sent           | Unlocks `push`                                     |
-| Localization         | Series C | —                                | 2 engineers, 6 weeks  | 480   | Market +40% outside North America             | More regions matter                                |
+| Localization         | Series C | None                             | 2 engineers, 6 weeks  | 480   | Market +40% outside North America             | More regions matter                                |
 | Offline mode         | Series C | Mobile app                       | 2 engineers, 6 weeks  | 480   | Churn −10%                                    | Sync bursts on reconnect                           |
 | Single sign-on       | Pre-IPO  | Password login                   | 6 weeks               | 240   | Enterprise market +10%                        | `login` moves to SAML or OIDC                      |
 | Data residency       | Pre-IPO  | An open EU region                | 3 engineers, 3 months | 1,440 | Required for the EU market                    | EU data stays in an EU region                      |
-| Status page          | Pre-IPO  | —                                | 2 days                | 16    | Churn −10%                                    | —                                                  |
+| Status page          | Pre-IPO  | None                             | 2 days                | 16    | Churn −10%                                    | None                                               |
 | Usage-based pricing  | Public   | Paid plans                       | 2 engineers, 6 weeks  | 480   | `job`, `write`, `ai` and `hook` requests +15% | Metering `job` and `q-write`                       |
 
 The largest Feature after Data residency is Mobile app at 960 DH; Data residency, at 1,440 DH, is larger
 still but needs an open EU region, checked when it is queued, rather than another Feature. From the
 Pre-IPO Era on, a Company with the EU region open cannot grow it without Data residency: the
 Region's share of the market reads zero until it ships. Earlier Eras, and every Era before regions
-split, play as they did before this Feature existed.
+split, are unaffected.
 
 Market gains multiply, up to a ceiling: together the Features add at most +100% to the Era's market,
 so the Company's market never exceeds twice the Era's, however many Features ship. Features reach
@@ -302,15 +306,15 @@ in the deploy that ships it.
 With Feature Flags, each shipped Feature has a rollout. The player moves it through the design's
 steps: dark, 5%, 25%, 50%, 100% of users.
 
-the `ff` Component, a rollout share per Feature, and the blast-radius rule. The steps are
-the design's four. A bad deploy that comes from a flagged Feature hits only its rollout share, so a
+The `ff` Component gives each Feature a rollout share, and the blast-radius rule follows from it.
+The steps are the design's five. A bad deploy that comes from a flagged Feature hits only its rollout share, so a
 Feature at 5% cannot break more than 5% of what it would have
 ([Incidents](/design/11-incidents#mitigation-toolbox)). A Feature with no step set is live for every
 user, which is what a Design with no Feature Flags Node does with all of them, so an old save opens
 unchanged. One click sets a step to Off, which is the mitigation an incident needs. The share counts
 the moment it is set, and the Deploy bar and the flags card read it.
 
-the rollout scales what users get. Effects and load follow the Feature's exposure, its
+The rollout scales what users get. Effects and load follow the Feature's exposure, its
 rollout times its adoption ([Adoption](#adoption)), so a dark Feature earns nothing and costs no
 capacity, and a Feature at 50% reaches half its effect once its users have adopted it.
 
@@ -329,8 +333,7 @@ with calendar time. Its **exposure** is the product of its rollout and its adopt
 effect and every load change an exposure of 0 has none of and an exposure of 1 has all of. The
 Team panel shows each live Feature's adopted share.
 
-Users do not adopt a Feature on the day it ships. Each Feature has an **adoption** share that
-approaches 1 as calendar time passes:
+Users do not adopt a Feature on the day it ships. Adoption approaches 1 as calendar time passes:
 
 ```text
 adoption += (1 − adoption) × Δt / τ        τ = 7 calendar days
@@ -355,14 +358,9 @@ the interval narrows toward the rolled market, growth, and churn effects, so the
 Wins for a Win or a strong Flat, and Loses for a Loss. Reading a Feature before A/B testing still
 means comparing the metrics before and after its launch.
 
-Analytics measures a Feature's **lift**, its realized effect, under two conditions:
-
-- Research "A/B testing" is done.
-- The Feature is between 5% and 50% rollout, so some users still do not have it and form a holdout
-  group.
-
-The Feature card then shows the lift with a 95% confidence interval. The interval narrows as
-Analytics samples more requests from both groups:
+The 5% to 50% band leaves a holdout group of users who do not have the Feature. The card shows the
+lift with a 95% confidence interval, which narrows as Analytics samples more requests from both
+groups:
 
 ```text
 half_width = 1.96 × σ × sqrt(1 / n_exposed + 1 / n_holdout)
@@ -380,11 +378,9 @@ controlled experiments.
 
 ### Upkeep
 
-Each product team loses a share of its Dev Hours to the Features its Service carries,
-before the backlog gets any.
-
-Every live Feature needs upkeep: bug fixes, dependency updates, and support questions. Upkeep takes
-a share of each team's Dev Hours before the backlog gets any:
+Every live Feature needs upkeep: bug fixes, dependency updates, and support questions. Each
+product team loses a share of its Dev Hours to the Features its Service carries, before the
+backlog gets any:
 
 ```text
 upkeep_share(service) = 0.4 × S / (S + 2,000) × (1 + debt)        capped at 0.6
@@ -430,7 +426,7 @@ point-in-time recovery, restore drills and infrastructure as code
 cancel the migration, pin and redeploy, restore from a backup, restart the Nodes a clock jump hit
 ([Mitigation toolbox](/design/11-incidents#mitigation-toolbox)).
 
-Ten tasks are in this list, and each one changes a mechanic. Five of them are **fixes**: once the
+Ten tasks are in this list, and each one changes a mechanic. Six of them are **fixes**: once the
 task is done, the Service's code has it for good, and the mechanic that reads it stops failing.
 Sandboxes and Challenges without a Dev Hour budget start with every fix in place.
 
@@ -439,10 +435,10 @@ Sandboxes and Challenges without a Dev Hour budget start with every fix in place
 | Add index (per query shape) | 4   | Removes one slow query shape ([Data tier](/design/07-data-tier#indexes)).                                                                                              |
 | Eager loading               | 10  | Removes N+1 multipliers on one service.                                                                                                                                |
 | Fix memory leak             | 15  | Stops RSS growth on one service until the next big feature.                                                                                                            |
-| Idempotency keys            | 20  | Needs research "Idempotency keys". A retried charge no longer fails as `duplicate`, and the Double charge incident cannot start.                                       |
+| Idempotency keys            | 20  | Needs research "Idempotency keys". A retried charge does not fail as `duplicate`, and the Double charge incident cannot start.                                         |
 | Move CPU work off the loop  | 12  | Needs research "Worker threads", and a Node.js or Python event-loop App Server. Moves the CPU-heavy kinds (`upload`, `report`, `job`) to worker threads, off the loop. |
 | Add timeouts and retries    | 8   | Needs research "Timeouts and retries". Every Link out of an App Server or Worker gets a 5 s timeout and backoff retries.                                               |
-| Graceful shutdown           | 6   | A deploy no longer takes App Servers down: the new copies start cold and the old ones finish their in-flight requests first.                                           |
+| Graceful shutdown           | 6   | A deploy does not take App Servers down: the new copies start cold and the old ones finish their in-flight requests first.                                             |
 | Health check endpoint       | 4   | Needs research "Health checks". A Load Balancer's health checks, including the deep check, work only once the endpoint exists.                                         |
 | Write a runbook             | 10  | Enables automatic mitigation for one incident type (with an SRE team).                                                                                                 |
 | Load test                   | 15  | Shows the Inspector's utilization of each Node at 2× current demand, for one calendar day.                                                                             |
@@ -451,7 +447,7 @@ The other four tasks:
 
 | Task               | DH  | Effect                                                                    |
 | ------------------ | --- | ------------------------------------------------------------------------- |
-| Drop session state | 8   | Transaction pooling stops breaking queries.                               |
+| Drop session state | 8   | A fix too: transaction pooling stops breaking queries.                    |
 | Refactor           | 10  | Tech debt −20 points ([Tech debt](#tech-debt)).                           |
 | Fix migration bugs | 1   | Queued by a migration: the new Stack stops failing requests.              |
 | Upgrade clusters   | 24  | Every Kubernetes Cluster runs a supported version for a calendar quarter. |
@@ -465,7 +461,7 @@ instead of to Features or tasks. The Spike ends when its Study completes or the 
 Only one Team can spike a Study.
 
 So research competes with the product for engineers, as it does at real companies. A player who
-needs `caching` now can buy it with a Team's time instead of waiting.
+needs `caching` can buy it with a Team's time instead of waiting.
 
 ## Migrations
 
@@ -549,7 +545,7 @@ bad-deploy chance, times (1 + 2 × debt), times 0.7 with automated tests and 0.8
 bad deploy fails 8% of the requests for each item it shipped, up to the ceiling its deploy strategy
 sets: 40% without a Pipeline and on Rolling, 100% on Recreate, 10% on Blue-green and 5% on Canary.
 
-four of the five DORA metrics appear on the Team panel once the player has a CI/CD
+Four of the five DORA metrics appear on the Team panel once the player has a CI/CD
 Pipeline: deploy frequency, lead time for changes (the sim seconds between deploy slots), change
 failure rate (bad deploys over every deploy the Company has made), and failed deployment recovery
 time (the mean MTTR of every Bad deploy postmortem, a dash with none yet). The panel shows no rework rate, because a deploy keeps no record of a change that a later deploy

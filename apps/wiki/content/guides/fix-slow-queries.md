@@ -27,7 +27,7 @@ game tells you that a query has no index, but you cannot add one.
 3. Click **Add index** in the callout. The **Add index** task goes to the top of the Team backlog,
    and the Team spends the Dev Hours it has on it at once.
 4. Watch the line with the hammer icon at the bottom of the HUD. It names the work that the Team
-   builds now.
+   is building.
 5. When the task ships, the incident ends. Check that the Database **Load** row falls back.
 
 If the callout says "Research Query analysis to find it", start that Research first. While you

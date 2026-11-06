@@ -108,7 +108,7 @@ Mutators that make a Company harder for more Legacy.
 
 - [Game design document](https://wiki.playquorum.dev/design) — the full design, from simulation to balancing.
 - [Reality check](https://wiki.playquorum.dev/design/reality-check) — the real behavior behind each rule.
-- [Engineering glossary](https://wiki.playquorum.dev/design/glossary) — the engineering terms the game teaches.
+- [Engineering glossary](https://wiki.playquorum.dev/glossary) — the engineering terms the game teaches.
 
 ## Contribute
 

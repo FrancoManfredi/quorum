@@ -5,22 +5,21 @@ section: design
 order: 0
 ---
 
-This is the internal design document behind Quorum. The game is the source of truth for every
-number; these pages describe what it does.
-
-Quorum is an incremental systems game in the spirit of Upload Labs
-and Factorio, built on real engineering behavior.
+This is the internal design document behind Quorum, an incremental systems game in the spirit of
+Upload Labs and Factorio, built on real engineering behavior. The game is the source of truth for
+every number, and these pages describe what it does.
 
 ## The game in one paragraph
 
-You are the first engineer of a startup. Users send requests. You wire Components on a board, pick
-the runtime and framework that each server runs, and watch requests flow through your design as
-particles. Served requests earn Cash. Sampled traffic earns Insight, which buys research. Each fix
-moves the bottleneck somewhere else. Funding rounds bring new kinds of requests that break your
-design in new ways. At the end of a company you Exit, earn Legacy, and found a new company with
-different rules. Every number in the game comes from a real behavior: PHP-FPM workers run out of
-memory, a Node.js event loop stalls on bcrypt, a JVM is slow until it warms up, and an average
-latency hides the p99.
+You are the first engineer of a startup. Users send requests, and you wire Components on a board,
+pick the runtime and framework that each server runs, and watch requests flow through your design
+as particles. Served requests earn Cash. Sampled traffic earns Insight, which buys research. Each
+fix moves the bottleneck somewhere else, and funding rounds bring new kinds of requests that break
+your design in new ways. At the end of a company you Exit, earn Legacy, and found a new company with
+different rules.
+
+Every number comes from a real behavior. PHP-FPM workers run out of memory, a Node.js event loop
+stalls on bcrypt, a JVM is slow until it warms up, and an average latency hides the p99.
 
 ## Table of Contents
 
@@ -51,7 +50,7 @@ latency hides the p99.
 | Document                                                                  | Use it for                                                                            |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md)     | The game vocabulary. Code, UI copy, and these documents use these words.              |
-| [Engineering glossary](/design/glossary)                                  | Real engineering terms that the game teaches, each linked to its mechanic.            |
+| [Engineering glossary](/glossary)                                         | Real engineering terms that the game teaches, each linked to its mechanic.            |
 | [Reality check](/design/reality-check)                                    | Each real-world claim, the game rule built on it, the simplification, and its source. |
 | [Decision records](https://github.com/elianiva/quorum/tree/main/docs/adr) | The reasons behind load-bearing decisions.                                            |
 
@@ -59,8 +58,8 @@ latency hides the p99.
 
 - **Bold Capitalized** words, such as **Node**, **Era**, and **Insight**, are game terms defined in
   [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md).
-- Engineering terms, such as [event loop](/design/glossary#event-loop), link to the
-  [engineering glossary](/design/glossary).
+- Engineering terms, such as [event loop](/glossary/event-loop), link to the
+  [engineering glossary](/glossary).
 - Every number is a balance target unless the text says otherwise. The source of truth for numbers
   in code is `packages/simulation/src/catalog.ts`. When this document and the catalog disagree,
   [Balancing](/design/16-balancing) records which one wins.

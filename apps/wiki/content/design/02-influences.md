@@ -5,15 +5,14 @@ section: design
 order: 2
 ---
 
-This document records what we learned from comparable games and from players, and how each lesson
-becomes a rule in Quorum. Research was done in October 2026 with web search. Sources are listed at
-the end.
+This page records what comparable games and their players teach, and the Quorum rule each lesson
+becomes. The research comes from web search in October 2026. Sources are listed at the end.
 
 ## Upload Labs
 
-Upload Labs (EnigmaDev Studios, October 2025) is a free-to-play incremental game. The player
-connects window-like Nodes that download, process, and upload files. It has about 5,000 English
-Steam reviews, and about 89–90% of them are positive.
+Upload Labs (EnigmaDev Studios, October 2025) is a free-to-play incremental game where the player
+connects window-like Nodes that download, process, and upload files. About 5,000 English Steam
+reviews exist, and about 89–90% of them are positive.
 
 ### Why players like it
 
@@ -42,7 +41,7 @@ Steam reviews, and about 89–90% of them are positive.
 
 ## Factorio
 
-Factorio is the reference for automation games and is popular with software developers.
+Factorio is the reference for automation games, and software developers love it.
 
 | Observation                                                                                                                                                                                              | Evidence                                                                                                                |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -75,8 +74,8 @@ Factorio is the reference for automation games and is popular with software deve
 
 ## Research in factory games
 
-Research done in November 2026, after the live Insight rate ran far ahead of research costs from
-the Seed Era on ([Balancing](/design/16-balancing)).
+Research in factory games matters here because the live Insight rate runs far ahead of research
+costs from the Seed Era on ([Balancing](/design/16-balancing)). The research comes from November 2026.
 
 | Observation                                                                                                                                                                         | Evidence                                                    |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
@@ -90,7 +89,7 @@ the Seed Era on ([Balancing](/design/16-balancing)).
 
 ## Translation table
 
-This table turns each lesson into a Quorum rule and names the document that owns it.
+Each row turns one lesson into a Quorum rule and links the document that owns the rule.
 
 | Lesson                           | Quorum rule                                                                                                                          | Owner                                                     |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
@@ -105,7 +104,7 @@ This table turns each lesson into a Quorum rule and names the document that owns
 | **Fix:** shallow late game       | Each Era adds a new failure mode, not a bigger number.                                                                               | [Progression](/design/10-progression#eras)                |
 | **Fix:** meaningless numbers     | Real units only: users, rps, ms, $/s. The user count stops near 6 billion.                                                           | [Balancing](/design/16-balancing#number-ranges)           |
 | **Fix:** click tedium            | Buy ×10 and Buy Max from day one, hold to repeat, policies at Series A, and Playbooks after the first Exit.                          | [Interface](/design/15-ui-ux#bulk-actions)                |
-| **Fix:** poor documentation      | Every Component, runtime, and incident has an in-game card that names the real behavior. The engineering glossary ships in the game. | [Glossary](/design/glossary)                              |
+| **Fix:** poor documentation      | Every Component, runtime, and incident has an in-game card that names the real behavior. The engineering glossary ships in the game. | [Glossary](/glossary)                                     |
 | **Fix:** monetization pressure   | No paid currency. No timers that payment can skip.                                                                                   | [Vision](/design/01-vision#pillar-5-respect-the-player)   |
 | **Fix:** confusing tutorial      | No tutorial screens. The Garage Era is the tutorial: one box, two request kinds, one choice at a time.                               | [Progression](/design/10-progression#era-0-garage)        |
 | **Fix:** learning needs a replay | Guided Sandboxes teach each later mechanic outside the Company, like Factorio tutorial levels. The free Sandbox is a test bench.     | [Sandbox](/design/14-challenges#sandbox)                  |

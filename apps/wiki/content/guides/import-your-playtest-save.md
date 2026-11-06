@@ -13,7 +13,7 @@ before then if you want to keep it.
 :::
 
 The playtest build saved one Company in your browser. This build saves any number of Companies, each
-with a name and a logo. The old Company can move into the new Companies list.
+with a name and a logo. You can move the old Company into the new Companies list.
 
 ## What the import keeps
 
@@ -68,9 +68,9 @@ Only the Company moves into the Companies list.
 
 ## After the import
 
-- Each Company saves every ten seconds. Starting another Company does not overwrite the first one.
+- Each Company saves every 5 sim seconds. Starting another Company does not overwrite the first one.
 - An Exit closes that Company's file. Its history row and Legacy stay with the Founder.
-- Export and import of a Company as text does not exist yet.
+- To move a Company by hand, use **Copy save as text** and **Import a save** in Settings. That is a
+  different path from **Recover previous save**.
 
-When Quorum leaves alpha, this recovery action is deleted. The old save key is not part of the
-released save format.
+The old save key is not part of the released save format.

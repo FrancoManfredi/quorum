@@ -7,7 +7,7 @@ title screen needs.
 Before this, the browser held one Company under `quorum.save.v2`. Starting another Company
 overwrote the first, and the founding settings were the Founder's "next Company" fields rather than
 a property of the Company that started. The GDD asked for three save slots ([Interface and game
-feel](../gdd/15-ui-ux.md#save)); a fixed number is a limit with no engineering purpose, so the
+feel](https://wiki.playquorum.dev/design/15-ui-ux#save)); a fixed number is a limit with no engineering purpose, so the
 index has no cap.
 
 ## Decision
@@ -20,7 +20,7 @@ index has no cap.
    An autosave writes that Company and the index, never another Company.
 4. `apps/web` owns the index, the logos, and the founding draft. `packages/simulation` keeps the
    Game, the Founding, and the Venture and Mutator rules; a Company's name reaches the history row
-   at Exit, because that row records the Company ([Exit and Legacy](../gdd/13-prestige.md#company-history)).
+   at Exit, because that row records the Company ([Exit and Legacy](https://wiki.playquorum.dev/design/13-prestige#company-history)).
 5. The old `quorum.save.v2` is read once. If it decodes, it becomes the first Company file named
    "Recovered company", and the old key is left in place. If the player already has a Company list,
    the old save is not imported automatically: Settings offers "Recover previous save", a hidden,
@@ -39,5 +39,5 @@ index has no cap.
 - The old single save is never deleted. A player can open an older build and continue that save, and
   the hidden recovery action reads the same key. The action is transitional: after the migration
   window, it can be removed with no change to the index or the Game.
-- Export and import of a Company as text ([Interface and game feel](../gdd/15-ui-ux.md#save)) is not
+- Export and import of a Company as text ([Interface and game feel](https://wiki.playquorum.dev/design/15-ui-ux#save)) is not
   built. The file boundary makes it a serialization of one Game plus its metadata, not a new format.

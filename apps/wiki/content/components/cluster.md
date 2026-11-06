@@ -1,8 +1,12 @@
-## What it does
+The Kubernetes Cluster packs your services onto shared machines, as Kubernetes does.
 
-The Kubernetes Cluster stands for Kubernetes: an orchestrator that packs your services onto shared machines.
+## When to place it
 
-It takes no traffic. Link App Servers or Workers into it, and they run as pods. Pods pack onto shared nodes, so they cost less Burn for the same capacity. An [Autoscaler](/components/autoscaler) adds pods in seconds instead of booting VMs for minutes. See [container orchestration](/glossary/container-orchestration).
+- Place it when you run many App Servers and Workers, and Burn or scaling speed matters more than simplicity. It unlocks with [Container orchestration](/research/containers).
+
+## How it works
+
+It takes no traffic. Link App Servers or Workers into it and they run as pods. Pods pack onto shared nodes, so they cost less Burn for the same capacity. An [Autoscaler](/components/autoscaler) adds pods in seconds instead of booting VMs for minutes. See [container orchestration](/glossary/container-orchestration).
 
 It also brings:
 
@@ -15,17 +19,13 @@ The costs:
 - **Platform work**: without a Platform team, each Cluster takes Dev Hours from your product teams. See [Team and velocity](/explanation/team-and-velocity).
 - **Upgrades**: each Kubernetes version is supported for a limited time.
 
-## When to place it
-
-Place it when you run many App Servers and Workers, and Burn or scaling speed matters more than simplicity. It unlocks with [Container orchestration](/research/containers).
-
 ## How it fails
 
 - [Forced cluster upgrade](/incidents/cluster-upgrade): the provider upgrades a Cluster off an unsupported version, and pods that used removed APIs crash. Run the "Upgrade clusters" task each quarter, or staff a Platform team. See [Team tasks](/team#tasks).
-- If the Cluster goes down, its pods run as plain VMs again: full Burn and slow scaling.
+- If the Cluster goes down, its pods run as plain VMs again, with full Burn and slow scaling.
 - Noisy neighbours raise p99 when the shared nodes run busy.
 
 ## Tips
 
-- One Cluster for many services costs less platform time than several Clusters.
+- Use one Cluster for many services. It costs less platform time than several Clusters.
 - Pair a Cluster with an Autoscaler. Fast pod scaling is most of its value.

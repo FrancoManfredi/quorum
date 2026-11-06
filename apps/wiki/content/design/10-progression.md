@@ -25,8 +25,8 @@ Above the company, [Exit and Legacy](/design/13-prestige) carries progress betwe
 | 3   | Series A | 150,000 users                          | 200,000             | `media`, `rt`, `buy`, `bid` | Zone failures, egress cost, money correctness, long-lived connections | 99.9%  | 0.90         |
 | 4   | Series B | 1,000,000 users                        | 1,400,000           | `job`, `report`, `ai`       | OLTP against OLAP, GPU economics, team scaling                        | 99.9%  | 0.91         |
 | 5   | Series C | 10,000,000 users                       | 14,000,000          | `feed`, `hook`, `push`      | Fan-out, hot keys, geography, region failures                         | 99.95% | 0.92         |
-| 6   | Pre-IPO  | 50,000,000 users and the IPO checklist | 70,000,000          | —                           | Compliance, disaster recovery, margin                                 | 99.95% | 0.93         |
-| 7   | Public   | None (endless)                         | Up to 6,000,000,000 | —                           | Quarterly targets                                                     | 99.99% | 0.94         |
+| 6   | Pre-IPO  | 50,000,000 users and the IPO checklist | 70,000,000          | None                        | Compliance, disaster recovery, margin                                 | 99.95% | 0.93         |
+| 7   | Public   | None (endless)                         | Up to 6,000,000,000 | None                        | Quarterly targets                                                     | 99.99% | 0.94         |
 
 Market size is multiplied by features, regions, and Venture rules. It caps user growth inside an Era
 ([Simulation](/design/04-simulation#users-and-growth)).
@@ -39,25 +39,25 @@ Shares of demand, in percent. Features and Ventures shift these shares.
 | -------- | ------ | -------- | ---- | -------- | -------- | --------- |
 | `page`   | 60     | 45       | 30   | 21       | 17       | 13        |
 | `read`   | 40     | 35       | 30   | 25       | 22       | 18        |
-| `write`  | —      | 15       | 12   | 10       | 9        | 8         |
-| `login`  | —      | 5        | 4    | 3        | 3        | 2         |
-| `search` | —      | —        | 10   | 8        | 7        | 6         |
-| `upload` | —      | —        | 4    | 3        | 3        | 2         |
-| `bot`    | —      | —        | 10   | 8        | 7        | 7         |
-| `media`  | —      | —        | —    | 10       | 10       | 10        |
-| `rt`     | —      | —        | —    | 8        | 8        | 8         |
-| `buy`    | —      | —        | —    | 3        | 3        | 3         |
-| `bid`    | —      | —        | —    | 1        | 1        | 1         |
-| `job`    | —      | —        | —    | —        | 2        | 2         |
-| `report` | —      | —        | —    | —        | 3        | 2         |
-| `ai`     | —      | —        | —    | —        | 5        | 6         |
-| `feed`   | —      | —        | —    | —        | —        | 8         |
-| `hook`   | —      | —        | —    | —        | —        | 2         |
-| `push`   | —      | —        | —    | —        | —        | 2         |
+| `write`  |        | 15       | 12   | 10       | 9        | 8         |
+| `login`  |        | 5        | 4    | 3        | 3        | 2         |
+| `search` |        |          | 10   | 8        | 7        | 6         |
+| `upload` |        |          | 4    | 3        | 3        | 2         |
+| `bot`    |        |          | 10   | 8        | 7        | 7         |
+| `media`  |        |          |      | 10       | 10       | 10        |
+| `rt`     |        |          |      | 8        | 8        | 8         |
+| `buy`    |        |          |      | 3        | 3        | 3         |
+| `bid`    |        |          |      | 1        | 1        | 1         |
+| `job`    |        |          |      |          | 2        | 2         |
+| `report` |        |          |      |          | 3        | 2         |
+| `ai`     |        |          |      |          | 5        | 6         |
+| `feed`   |        |          |      |          |          | 8         |
+| `hook`   |        |          |      |          |          | 2         |
+| `push`   |        |          |      |          |          | 2         |
 
 ### Era 0: Garage
 
-The tutorial, without tutorial screens. A player who wants to learn a later Era's mechanics first
+Garage is the tutorial, without tutorial screens. A player who wants to learn a later Era's mechanics first
 plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
 
 - **Start.** 150 users, $300, and one Burstable App Server running PHP with Apache `mod_php` and
@@ -67,7 +67,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
   2. Upgrade the box (it is out of CPU credits).
   3. Research "Structured logs" or "Stripe Billing" with the first Insight.
   4. The box runs out of RAM because the database and Apache share it. Split the database onto its
-     own Node. This is the classic first scaling step of real companies.
+     own Node. It is the classic first scaling step.
   5. Research "DNS round robin" or "Load balancing" and add a second App Server.
 - **The lesson.** Vertical scaling first, then the first horizontal step. Measure income per second.
 - **Unlocks available.** Stack: PHP-FPM, OPcache, Laravel, Ruby with Rails, Node.js with Express.
@@ -101,7 +101,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
   double charges. `bid` is worth a tenth of a cent and has to answer inside 100 ms; every Venture
   serves a little of it, and Ad tech serves ten times as much
   ([Exit and Legacy](/design/13-prestige#ventures)).
-- **New problems.** Availability. Zone outages begin. A single database is now a single point of
+- **New problems.** Availability. Zone outages begin, so a single database is a single point of
   failure. Users expect 99.9%.
 - **New systems.** Zones ([Components](/design/05-components#zones-and-regions)), pricing models
   ([Economy](/design/09-economy#pricing-models)), SLOs and error budgets
@@ -132,7 +132,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
 
 ### Era 6: Pre-IPO
 
-No new kinds. The game changes from growth to proof.
+Pre-IPO brings no new kinds. Play shifts from growth to proof.
 
 **The IPO checklist.** All items must be true at the same time:
 
@@ -145,12 +145,12 @@ No new kinds. The game changes from growth to proof.
 | Data residency    | EU users served from an EU region                                           |
 | Rule of 40        | Growth plus margin of at least 40 ([Economy](/design/09-economy#valuation)) |
 
-This list gives the late game concrete goals that are not "more users". It is the Upload Labs fix for
-a missing end target ([Influences](/design/02-influences#why-players-quit)).
+The list gives the late game concrete goals that are not "more users". It answers the missing end
+target that Upload Labs has ([Influences](/design/02-influences#why-players-quit)).
 
 ### Era 7: Public
 
-The company is listed. The game becomes an endless series of quarters.
+The company is listed, and play becomes an endless series of quarters.
 
 - A **quarter** lasts 7 calendar days (2 hours 48 minutes of real time at 1×).
 - At the start of each quarter, the player sets **guidance**: a revenue growth target and a margin
@@ -164,8 +164,8 @@ The company is listed. The game becomes an endless series of quarters.
 
 ## Research
 
-Research costs Insight of named request kinds and takes time: each item is a **Study**. Each item
-belongs to a track, needs an Era, and may need other items. The research screen shows the tree by
+Research costs Insight of named request kinds and takes time, and each item is a **Study**. Each
+item belongs to a track, needs an Era, and may need other items. The research screen shows the tree by
 track, with the locked items of the next Era visible so that the player can plan
 ([Interface](/design/15-ui-ux#research-screen)).
 
@@ -192,12 +192,13 @@ the Checkout Feature itself needs research, so a Series A default of `buy` could
 | Pre-IPO  | Every request kind except `bot` and `bid` |
 | Public   | Every request kind except `bot` and `bid` |
 
-So the player cannot study Series B research before Series A's Features bring their traffic, and
-more `page` traffic never buys it. Items that teach a new kind's problem ask for that kind, so the
-player ships the Feature first: it is the production line for that kind's Insight. No item that a
-Feature needs costs the kind that Feature brings. A Venture's request mix changes which recipes are cheap: Fintech serves 4×
-`buy`, so its Series A research is fast. Every Venture serves every request kind, so every recipe
-can be paid.
+A player cannot study Series B research before Series A's Features bring their traffic, and more
+`page` traffic never buys it. Items that teach a new kind's problem ask for that kind, so the player
+ships the Feature first. The Feature is the production line for that kind's Insight, and no item a
+Feature needs costs the kind that Feature brings.
+
+A Venture's request mix changes which recipes are cheap. Fintech serves 4× `buy`, so its Series A
+research is fast. Every Venture serves every request kind, so every recipe can be paid.
 
 **Reliability track rule.** Half of every Reliability item's cost is Failure Insight. The other half
 uses the item's recipe.
@@ -249,8 +250,8 @@ Component types. A trace needs more than one hop.
 | `profiling` | 4 Component types    |
 | `rum`       | Sampled in 2 regions |
 
-`rum`'s rule reads the Ledger's `breadthRegions`: each of its kinds must be sampled by an Analytics tap
-on a Node in two regions, so the Study stalls until a second region has its own tap.
+The `rum` rule reads the Ledger's `breadthRegions`. Each of its kinds must be sampled by an Analytics
+tap on a Node in two regions, so the Study stalls until a second region has its own tap.
 
 ### Studies
 
@@ -319,21 +320,21 @@ range.
 
 | ID                    | Name                      | Era      | ◇       | Requires          | Effect                                                                                        |
 | --------------------- | ------------------------- | -------- | ------- | ----------------- | --------------------------------------------------------------------------------------------- |
-| `dns-rr`              | DNS round robin           | Garage   | 15      | —                 | DNS Component                                                                                 |
-| `load-balancing`      | Load balancing            | Garage   | 25      | —                 | Load Balancer (L7, round robin and weighted)                                                  |
+| `dns-rr`              | DNS round robin           | Garage   | 15      | None              | DNS Component                                                                                 |
+| `load-balancing`      | Load balancing            | Garage   | 25      | None              | Load Balancer (L7, round robin and weighted)                                                  |
 | `health-checks`       | Health checks             | Pre-seed | 90      | `load-balancing`  | Health-checked DNS, deep checks, check intervals                                              |
 | `lb-algorithms`       | Load balancing algorithms | Pre-seed | 120     | `load-balancing`  | Least connections, power of two choices, consistent hashing                                   |
-| `auth-provider`       | Managed identity          | Pre-seed | 140     | —                 | Auth Provider; logins stop costing your CPU                                                   |
-| `background-jobs`     | Background jobs           | Seed     | 300     | —                 | Worker                                                                                        |
+| `auth-provider`       | Managed identity          | Pre-seed | 140     | None              | Auth Provider; logins stop costing your CPU                                                   |
+| `background-jobs`     | Background jobs           | Seed     | 300     | None              | Worker                                                                                        |
 | `queues`              | Message queues            | Seed     | 600     | `background-jobs` | Queue (RabbitMQ, SQS)                                                                         |
-| `cdn`                 | Content delivery          | Seed     | 350     | —                 | CDN                                                                                           |
-| `waf`                 | Web application firewall  | Seed     | 500     | —                 | WAF                                                                                           |
+| `cdn`                 | Content delivery          | Seed     | 350     | None              | CDN                                                                                           |
+| `waf`                 | Web application firewall  | Seed     | 500     | None              | WAF                                                                                           |
 | `l4-lb`               | L4 load balancing         | Seed     | 400     | `lb-algorithms`   | L4 variant                                                                                    |
 | `multi-az`            | Multiple zones            | Series A | 3,000   | `health-checks`   | Zone placement                                                                                |
 | `autoscaling`         | Autoscaling               | Series A | 4,000   | `load-balancing`  | Autoscaler                                                                                    |
 | `containers`          | Container orchestration   | Series A | 5,000   | `autoscaling`     | Kubernetes Cluster                                                                            |
-| `serverless`          | Serverless                | Series A | 3,500   | —                 | Serverless Function                                                                           |
-| `websockets`          | WebSockets                | Series A | 2,500   | —                 | Realtime Hub                                                                                  |
+| `serverless`          | Serverless                | Series A | 3,500   | None              | Serverless Function                                                                           |
+| `websockets`          | WebSockets                | Series A | 2,500   | None              | Realtime Hub                                                                                  |
 | `api-gateway`         | API gateway               | Series A | 2,000   | `load-balancing`  | API Gateway                                                                                   |
 | `rate-limiting`       | Rate limiting             | Series A | 1,800   | `api-gateway`     | Token bucket limits on the gateway                                                            |
 | `tiered-caching`      | Tiered caching            | Series A | 2,000   | `cdn`             | CDN `media` hit ratio 92%                                                                     |
@@ -341,9 +342,9 @@ range.
 | `bot-management`      | Bot management            | Series A | 2,500   | `waf`             | Challenges suspicious clients; lowers false positives                                         |
 | `scheduled-scaling`   | Scheduled scaling         | Series B | 9,000   | `autoscaling`     | Scale ahead of the daily peak                                                                 |
 | `service-mesh`        | Service mesh              | Series B | 20,000  | `containers`      | Service Mesh                                                                                  |
-| `arm-instances`       | ARM instances             | Series B | 12,000  | —                 | ARM family, 0.8× price                                                                        |
-| `hosted-models`       | Hosted models             | Series B | 8,000   | —                 | LLM API                                                                                       |
-| `model-serving`       | Model serving             | Series B | 15,000  | —                 | GPU Node                                                                                      |
+| `arm-instances`       | ARM instances             | Series B | 12,000  | None              | ARM family, 0.8× price                                                                        |
+| `hosted-models`       | Hosted models             | Series B | 8,000   | None              | LLM API                                                                                       |
+| `model-serving`       | Model serving             | Series B | 15,000  | None              | GPU Node                                                                                      |
 | `quantization`        | Quantization              | Series B | 18,000  | `model-serving`   | INT8 and INT4 options                                                                         |
 | `continuous-batching` | Continuous batching       | Series B | 25,000  | `model-serving`   | Batch throughput without the latency cost                                                     |
 | `multi-region`        | Multiple regions          | Series C | 60,000  | `multi-az`        | Regions as boards                                                                             |
@@ -352,7 +353,7 @@ range.
 | `gitops`              | GitOps                    | Series C | 90,000  | `infra-as-code`   | Mirrors sync on their own, all at once or staged ([Components](/design/05-components#gitops)) |
 | `anycast`             | Anycast                   | Series C | 120,000 | `geo-dns`         | −20 ms on the user hop everywhere                                                             |
 | `edge-compute`        | Edge compute              | Series C | 80,000  | `cdn`             | Edge Function                                                                                 |
-| `notifications`       | Notifications             | Series C | 40,000  | —                 | Push Provider                                                                                 |
+| `notifications`       | Notifications             | Series C | 40,000  | None              | Push Provider                                                                                 |
 
 Each option is wired to its Component (05 "Load Balancer", "CDN", "WAF",
 "Autoscaler", "App Server", "GPU Node"): the L4 variant, the Gateway's token bucket, Edge-side
@@ -363,35 +364,34 @@ peak, the ARM family at 0.8× the price, and the GPU's INT8/INT4 and batch sizes
 
 | ID                    | Name                       | Era      | ◇       | Requires                            | Effect                                               |
 | --------------------- | -------------------------- | -------- | ------- | ----------------------------------- | ---------------------------------------------------- |
-| `query-analysis`      | Query analysis (`EXPLAIN`) | Garage   | 40      | —                                   | Shows unindexed query shapes; enables "Add index"    |
-| `caching`             | Caching                    | Pre-seed | 80      | —                                   | Cache (Redis, Memcached), cache-aside                |
-| `pooling`             | Connection pooling         | Pre-seed | 120     | —                                   | Connection Pooler                                    |
-| `replication`         | Read replicas              | Pre-seed | 220     | —                                   | Read Replica (asynchronous)                          |
+| `query-analysis`      | Query analysis (`EXPLAIN`) | Garage   | 40      | None                                | Shows unindexed query shapes; enables "Add index"    |
+| `caching`             | Caching                    | Pre-seed | 80      | None                                | Cache (Redis, Memcached), cache-aside                |
+| `pooling`             | Connection pooling         | Pre-seed | 120     | None                                | Connection Pooler                                    |
+| `replication`         | Read replicas              | Pre-seed | 220     | None                                | Read Replica (asynchronous)                          |
 | `cache-strategies`    | Cache strategies           | Seed     | 600     | `caching`                           | Read-through, write-through, write-behind            |
 | `stampede-protection` | Stampede protection        | Seed     | 900     | `caching`                           | Coalescing, early expiration, stale-while-revalidate |
-| `full-text-search`    | Full-text search           | Seed     | 450     | —                                   | Search Engine                                        |
-| `object-storage`      | Object storage             | Seed     | 500     | —                                   | Object Storage                                       |
-| `pitr`                | Point-in-time recovery     | Seed     | 700     | —                                   | Backup options                                       |
+| `full-text-search`    | Full-text search           | Seed     | 450     | None                                | Search Engine                                        |
+| `object-storage`      | Object storage             | Seed     | 500     | None                                | Object Storage                                       |
+| `pitr`                | Point-in-time recovery     | Seed     | 700     | None                                | Backup options                                       |
 | `cache-warming`       | Cache warming              | Series A | 2,000   | `stampede-protection`               | Warm before traffic                                  |
 | `sync-replication`    | Synchronous replication    | Series A | 2,500   | `replication`                       | Synchronous replica option                           |
 | `ryw-routing`         | Read-your-writes routing   | Series A | 3,000   | `replication`                       | Removes most `stale` after writes                    |
 | `lifecycle-rules`     | Storage lifecycle rules    | Series A | 1,500   | `object-storage`                    | Automatic storage classes                            |
-| `document-db`         | Document databases         | Series A | 3,500   | —                                   | Document Store                                       |
+| `document-db`         | Document databases         | Series A | 3,500   | None                                | Document Store                                       |
 | `online-migrations`   | Online schema migrations   | Series A | 4,000   | `query-analysis`                    | Migrations without table locks                       |
 | `event-streaming`     | Event streaming            | Series B | 15,000  | `queues`                            | Event Stream                                         |
-| `data-warehouse`      | Data warehousing           | Series B | 12,000  | —                                   | Data Warehouse                                       |
+| `data-warehouse`      | Data warehousing           | Series B | 12,000  | None                                | Data Warehouse                                       |
 | `cdc`                 | Change data capture        | Series B | 18,000  | `event-streaming`, `data-warehouse` | CDC Connector                                        |
 | `outbox`              | Transactional outbox       | Series B | 14,000  | `queues`                            | Removes dual-write divergence                        |
 | `sharding`            | Sharding                   | Series B | 25,000  | `replication`                       | Database partitioning                                |
 | `expand-contract`     | Expand and contract        | Series B | 10,000  | `online-migrations`                 | Zero-lock schema changes                             |
-| `embeddings`          | Embeddings                 | Series B | 16,000  | —                                   | Vector Index                                         |
+| `embeddings`          | Embeddings                 | Series B | 16,000  | None                                | Vector Index                                         |
 | `hybrid-fanout`       | Hybrid fan-out             | Series C | 90,000  | `caching`                           | Push for normal accounts, pull for celebrities       |
 | `leaderless`          | Leaderless replication     | Series C | 70,000  | `sharding`                          | Wide-column Store with tunable quorums               |
 | `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
-| `retention`           | Retention policies         | Pre-IPO  | 250,000 | —                                   | Archive or delete old data                           |
+| `retention`           | Retention policies         | Pre-IPO  | 250,000 | None                                | Archive or delete old data                           |
 
-`online-migrations` is in the build: a migration no longer holds a big table's
-lock ([Incidents](/design/11-incidents#the-six-kinds)). `expand-contract` removes what is left of it,
+With `online-migrations`, a migration does not hold a big table's lock ([Incidents](/design/11-incidents#the-six-kinds)). `expand-contract` removes what is left of it,
 and `outbox` takes dual-write divergence out of the Search Engine's answers
 ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
 
@@ -399,10 +399,10 @@ and `outbox` takes dual-write divergence out of the Search Engine's answers
 
 | ID                     | Name                     | Era      | ◇       | Requires                         | Effect                                                                                         |
 | ---------------------- | ------------------------ | -------- | ------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `timeouts`             | Timeouts and retries     | Pre-seed | 60      | —                                | Link timeout and naive retries                                                                 |
-| `ci`                   | Continuous delivery      | Pre-seed | 100     | —                                | CI/CD Pipeline, with Recreate and Rolling                                                      |
+| `timeouts`             | Timeouts and retries     | Pre-seed | 60      | None                             | Link timeout and naive retries                                                                 |
+| `ci`                   | Continuous delivery      | Pre-seed | 100     | None                             | CI/CD Pipeline, with Recreate and Rolling                                                      |
 | `backoff-jitter`       | Backoff with jitter      | Seed     | 400     | `timeouts`                       | Retry policy option                                                                            |
-| `cert-automation`      | Certificate automation   | Seed     | 300     | —                                | Secrets and Certificates                                                                       |
+| `cert-automation`      | Certificate automation   | Seed     | 300     | None                             | Secrets and Certificates                                                                       |
 | `blue-green`           | Blue-green deploys       | Seed     | 900     | `ci`                             | Blue-green deploy strategy                                                                     |
 | `feature-flags`        | Feature flags            | Seed     | 800     | `ci`                             | Feature Flags                                                                                  |
 | `circuit-breakers`     | Circuit breakers         | Series A | 2,500   | `backoff-jitter`                 | Link option                                                                                    |
@@ -418,15 +418,19 @@ and `outbox` takes dual-write divergence out of the Search Engine's answers
 | `hedged-requests`      | Hedged requests          | Series C | 100,000 | `tracing`                        | Send a second request after the p95; cuts the tail, adds load                                  |
 | `chaos-engineering`    | Chaos engineering        | Pre-IPO  | 300,000 | `runbooks`                       | Scheduled failure injection that earns Failure Insight and reveals weak spots                  |
 | `dr-drills`            | Disaster recovery drills | Pre-IPO  | 400,000 | `restore-drills`, `multi-region` | Run the DR drill for the IPO checklist                                                         |
-| `leap-smearing`        | Leap smearing            | Series C | 60,000  | —                                | A clock never jumps, so no timer fires twice ([Incidents](/design/11-incidents#the-six-kinds)) |
+| `leap-smearing`        | Leap smearing            | Series C | 60,000  | None                             | A clock never jumps, so no timer fires twice ([Incidents](/design/11-incidents#the-six-kinds)) |
 
-`on-call`, `runbooks` and `leap-smearing` are in the build: the rotation answers
-the page, a written runbook resolves its incident kind by itself
-([Incidents](/design/11-incidents#runbooks)), and a leap smear keeps a clock jump from timing out a
-region. `bulkheads`, `graceful-degradation`, `hedged-requests` and `chaos-engineering` are too: a Link
-option that frees a caller's slot after 1,000 ms, a saturated App Server that drops its dearest kinds
-first, a Link that races a second copy, and scheduled experiments that fail the weakest Node and pay
-Failure Insight ([Components](/design/05-components#links)).
+Four items act on incidents. With `on-call` the rotation answers the page. With `runbooks` a written
+runbook resolves its incident kind by itself ([Incidents](/design/11-incidents#runbooks)). With
+`leap-smearing` a clock jump does not time out a region.
+
+`bulkheads`, `graceful-degradation`, `hedged-requests` and `chaos-engineering` each add a behavior
+([Components](/design/05-components#links)):
+
+- `bulkheads`: a Link option that frees a caller's slot after 1,000 ms.
+- `graceful-degradation`: a saturated App Server drops its dearest kinds first.
+- `hedged-requests`: a Link races a second copy.
+- `chaos-engineering`: scheduled experiments fail the weakest Node and pay Failure Insight.
 
 ### Track: Observability
 
@@ -434,8 +438,8 @@ Failure Insight ([Components](/design/05-components#links)).
 
 | ID                  | Name                 | Era      | ◇      | Requires       | Effect                                                 |
 | ------------------- | -------------------- | -------- | ------ | -------------- | ------------------------------------------------------ |
-| `logs`              | Structured logs      | Garage   | 20     | —              | Error breakdown by cause                               |
-| `metrics`           | Metrics              | Garage   | 50     | —              | History graphs per Node; the Dashboard                 |
+| `logs`              | Structured logs      | Garage   | 20     | None           | Error breakdown by cause                               |
+| `metrics`           | Metrics              | Garage   | 50     | None           | History graphs per Node; the Dashboard                 |
 | `percentiles`       | Percentiles          | Pre-seed | 150    | `metrics`      | p50, p95, p99 on cards                                 |
 | `alerting`          | Alerting             | Pre-seed | 250    | `metrics`      | Pager banner before users notice                       |
 | `tracing`           | Distributed tracing  | Seed     | 800    | `percentiles`  | Per-kind waterfalls; bottleneck per kind               |
@@ -450,7 +454,7 @@ Failure Insight ([Components](/design/05-components#links)).
 `profiling` names each Node's limiting resource and arrives with the Resources
 (USE) row ([Observability](/design/12-observability#the-visibility-ladder)); it carries `tracing`'s
 breadth rule at 4 Component types. `tail-sampling` doubles Failure Insight. `rum` adds a device
-split — desktop, mobile, and tablet — to the Users row; the device shares and each one's extra
+split (desktop, mobile, and tablet) to the Users row; the device shares and each one's extra
 round trip are the game's own stylization. `anomaly-detection` halves how
 long a threshold must hold before the pager fires, and adds a forecast line at tomorrow's peak,
 projected from the known diurnal cycle rather than fit from history.
@@ -459,13 +463,13 @@ projected from the known diurnal cycle rather than fit from history.
 
 | ID                | Name                        | Era      | ◇      | Requires | Effect                                                    |
 | ----------------- | --------------------------- | -------- | ------ | -------- | --------------------------------------------------------- |
-| `keepalive`       | Connection reuse            | Garage   | 25     | —        | −1 ms per internal hop (no new TCP handshake)             |
-| `gzip`            | Compression                 | Garage   | 30     | —        | `page` and `read` payload −70%, +CPU                      |
-| `eager-loading`   | Eager loading               | Pre-seed | 100    | —        | Enables the "Eager loading" task                          |
-| `http2`           | HTTP/2                      | Seed     | 350    | —        | −15% user hop latency on `page`                           |
-| `denormalization` | Denormalization             | Series A | 3,000  | —        | Read cost −30%, write cost +20%                           |
-| `precompute`      | Materialized views          | Series B | 12,000 | —        | `report` cost −50%, data is stale by the refresh interval |
-| `binary-rpc`      | Binary RPC between services | Series B | 15,000 | —        | Inter-service serialization CPU −50%                      |
+| `keepalive`       | Connection reuse            | Garage   | 25     | None     | −1 ms per internal hop (no new TCP handshake)             |
+| `gzip`            | Compression                 | Garage   | 30     |          | `page` and `read` payload −70%, +CPU                      |
+| `eager-loading`   | Eager loading               | Pre-seed | 100    | None     | Enables the "Eager loading" task                          |
+| `http2`           | HTTP/2                      | Seed     | 350    |          | −15% user hop latency on `page`                           |
+| `denormalization` | Denormalization             | Series A | 3,000  | None     | Read cost −30%, write cost +20%                           |
+| `precompute`      | Materialized views          | Series B | 12,000 | None     | `report` cost −50%, data is stale by the refresh interval |
+| `binary-rpc`      | Binary RPC between services | Series B | 15,000 | None     | Inter-service serialization CPU −50%                      |
 | `http3`           | HTTP/3                      | Series C | 60,000 | `http2`  | −20% user hop latency for distant and mobile users        |
 
 Denormalization takes 30% off a read's CPU and adds 20% to a write's, Materialized
@@ -479,25 +483,25 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 
 | ID                   | Name                   | Era      | ◇      | Requires      |
 | -------------------- | ---------------------- | -------- | ------ | ------------- |
-| `php-fpm`            | PHP-FPM                | Garage   | 25     | —             |
+| `php-fpm`            | PHP-FPM                | Garage   | 25     | None          |
 | `opcache`            | OPcache                | Garage   | 45     | `php-fpm`     |
-| `lang-ruby`          | Ruby                   | Garage   | 30     | —             |
-| `lang-node`          | Node.js                | Garage   | 40     | —             |
-| `lang-python`        | Python                 | Pre-seed | 120    | —             |
+| `lang-ruby`          | Ruby                   | Garage   | 30     | None          |
+| `lang-node`          | Node.js                | Garage   | 40     | None          |
+| `lang-python`        | Python                 | Pre-seed | 120    | None          |
 | `node-cluster`       | Node.js cluster mode   | Pre-seed | 100    | `lang-node`   |
 | `libuv-pool`         | libuv thread pool      | Pre-seed | 120    | `lang-node`   |
-| `lang-go`            | Go                     | Seed     | 600    | —             |
-| `lang-java`          | Java                   | Seed     | 800    | —             |
-| `lang-csharp`        | C#                     | Seed     | 800    | —             |
+| `lang-go`            | Go                     | Seed     | 600    | None          |
+| `lang-java`          | Java                   | Seed     | 800    | None          |
+| `lang-csharp`        | C#                     | Seed     | 800    | None          |
 | `php-jit`            | PHP JIT                | Seed     | 500    | `opcache`     |
 | `worker-threads`     | Node.js worker threads | Seed     | 500    | `lang-node`   |
 | `yjit`               | YJIT                   | Seed     | 400    | `lang-ruby`   |
 | `gevent`             | gevent                 | Seed     | 400    | `lang-python` |
 | `asgi`               | ASGI with Uvicorn      | Seed     | 500    | `lang-python` |
-| `lang-elixir`        | Elixir                 | Series A | 2,500  | —             |
-| `lang-rust`          | Rust                   | Series A | 4,000  | —             |
-| `lang-zig`           | Zig                    | Series A | 3,500  | —             |
-| `lang-haskell`       | Haskell                | Series A | 3,000  | —             |
+| `lang-elixir`        | Elixir                 | Series A | 2,500  | None          |
+| `lang-rust`          | Rust                   | Series A | 4,000  | None          |
+| `lang-zig`           | Zig                    | Series A | 3,500  | None          |
+| `lang-haskell`       | Haskell                | Series A | 3,000  | None          |
 | `php-worker-mode`    | PHP worker mode        | Series A | 2,500  | `php-fpm`     |
 | `swoole`             | Swoole                 | Series A | 3,000  | `php-fpm`     |
 | `bun`                | Bun                    | Series A | 2,000  | `lang-node`   |
@@ -521,10 +525,10 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 
 | Framework    | Era      | ◇      | Requires      |
 | ------------ | -------- | ------ | ------------- |
-| Laravel      | Garage   | 20     | —             |
+| Laravel      | Garage   | 20     | None          |
 | Rails        | Garage   | 30     | `lang-ruby`   |
 | Express      | Garage   | 30     | `lang-node`   |
-| Symfony      | Pre-seed | 80     | —             |
+| Symfony      | Pre-seed | 80     | None          |
 | Sinatra      | Pre-seed | 60     | `lang-ruby`   |
 | Django       | Pre-seed | 150    | `lang-python` |
 | Flask        | Pre-seed | 100    | `lang-python` |
@@ -545,16 +549,16 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 
 | ID                      | Name                           | Era      | ◇       | Requires                                                      | Effect                                                       |
 | ----------------------- | ------------------------------ | -------- | ------- | ------------------------------------------------------------- | ------------------------------------------------------------ |
-| `tls-everywhere`        | TLS everywhere                 | Seed     | 300     | —                                                             | Encrypts internal links; +0.2 ms per hop; required for SOC 2 |
-| `secrets-management`    | Secrets management             | Seed     | 400     | —                                                             | Removes the "Leaked credentials" incident                    |
+| `tls-everywhere`        | TLS everywhere                 | Seed     | 300     | None                                                          | Encrypts internal links; +0.2 ms per hop; required for SOC 2 |
+| `secrets-management`    | Secrets management             | Seed     | 400     | None                                                          | Removes the "Leaked credentials" incident                    |
 | `credential-protection` | Credential stuffing protection | Series A | 2,500   | `rate-limiting`                                               | Blocks bot `login` bursts                                    |
 | `dependency-scanning`   | Dependency scanning            | Series A | 3,000   | `ci`                                                          | Supply-chain incident chance −70%                            |
-| `encryption-at-rest`    | Encryption at rest             | Series B | 9,000   | —                                                             | Required for SOC 2                                           |
-| `pen-testing`           | Penetration testing            | Pre-IPO  | 200,000 | —                                                             | Reveals one weakness per calendar week                       |
+| `encryption-at-rest`    | Encryption at rest             | Series B | 9,000   | None                                                          | Required for SOC 2                                           |
+| `pen-testing`           | Penetration testing            | Pre-IPO  | 200,000 | None                                                          | Reveals one weakness per calendar week                       |
 | `soc2`                  | SOC 2 program                  | Pre-IPO  | 300,000 | `tls-everywhere`, `encryption-at-rest`, `dependency-scanning` | IPO checklist item                                           |
 | `gdpr-residency`        | Data residency controls        | Pre-IPO  | 350,000 | `multi-region`                                                | IPO checklist item                                           |
-| `security-team`         | Security team                  | Pre-IPO  | 200,000 | —                                                             | Team type                                                    |
-| `spam-filter`           | Spam filter                    | Pre-seed | 300     | —                                                             | Postbox filter setting; spam sorts into its own folder       |
+| `security-team`         | Security team                  | Pre-IPO  | 200,000 | None                                                          | Team type                                                    |
+| `spam-filter`           | Spam filter                    | Pre-seed | 300     | None                                                          | Postbox filter setting; spam sorts into its own folder       |
 
 `credential-protection` cuts the Credential stuffing incident's weakness and its
 bot-login magnitude once a WAF is also in place. `pen-testing` reveals one weakness a calendar
@@ -565,18 +569,18 @@ incidents by) and opens its prevention research as an action item, the same way 
 
 | ID                    | Name                | Era      | ◇       | Requires             | Effect                                    |
 | --------------------- | ------------------- | -------- | ------- | -------------------- | ----------------------------------------- |
-| `reserved-instances`  | Reserved instances  | Series A | 2,000   | —                    | Reserved pricing model                    |
-| `spot-instances`      | Spot instances      | Series A | 3,000   | —                    | Spot pricing model                        |
+| `reserved-instances`  | Reserved instances  | Series A | 2,000   | `autoscaling`        | Reserved pricing model                    |
+| `spot-instances`      | Spot instances      | Series A | 3,000   | `autoscaling`        | Spot pricing model                        |
 | `rightsizing`         | Rightsizing report  | Series A | 2,500   | `metrics`            | Marks Nodes below 30% utilization at peak |
 | `egress-optimization` | Egress optimization | Series A | 3,500   | `object-storage`     | R2 variant; egress line breakdown         |
-| `unit-economics`      | Unit economics      | Series B | 8,000   | —                    | Cost per request for each kind            |
+| `unit-economics`      | Unit economics      | Series B | 8,000   | None                 | Cost per request for each kind            |
 | `cost-allocation`     | Cost allocation     | Series B | 10,000  | `unit-economics`     | Cost per service and team                 |
 | `savings-plans`       | Savings plans       | Pre-IPO  | 250,000 | `reserved-instances` | −20% compute with no per-Node lock        |
 
 `reserved-instances` and `spot-instances` unlock the two pricing models on a
 compute Node from Series A ([Economy](/design/09-economy#pricing-models)). `rightsizing` marks a
-Node whose peak utilization stayed under 30% over its kept history, in the Inspector; this reads
-the client-side Inspector history, not a new Ledger field, so it needs no save change.
+Node whose peak utilization stayed under 30% over its kept history, in the Inspector. It reads the
+client-side Inspector history, not a Ledger field, so it needs no save change.
 `egress-optimization` moves `upload` and `media` traffic that reaches an Object Storage Node onto
 an R2-priced path at $0 origin egress, lowering the Egress line by that share
 ([Economy](/design/09-economy#egress)). `unit-economics` and `cost-allocation` split Burn by
@@ -588,21 +592,21 @@ it already runs, with no per-Node commitment. These five numbers are the game's 
 
 | ID                   | Name                    | Era      | ◇         | Requires                   | Effect                                               |
 | -------------------- | ----------------------- | -------- | --------- | -------------------------- | ---------------------------------------------------- |
-| `stripe`             | Stripe Billing          | Garage   | 30        | —                          | Payments collect automatically                       |
-| `funnels`            | Funnel analytics        | Pre-seed | 150       | —                          | Growth +10%                                          |
-| `code-review`        | Code review             | Pre-seed | 120       | —                          | Shows hidden costs of features before they ship      |
+| `stripe`             | Stripe Billing          | Garage   | 30        | None                       | Payments collect automatically                       |
+| `funnels`            | Funnel analytics        | Pre-seed | 150       | None                       | Growth +10%                                          |
+| `code-review`        | Code review             | Pre-seed | 120       | None                       | Shows hidden costs of features before they ship      |
 | `testing-culture`    | Automated tests         | Pre-seed | 150       | `ci`                       | Bad-deploy chance −30%                               |
 | `ab-testing`         | A/B testing             | Seed     | 700       | `funnels`, `feature-flags` | Measures each Feature's lift against a holdout group |
-| `hiring-pipeline`    | Hiring pipeline         | Seed     | 600       | —                          | Time to hire −30%                                    |
+| `hiring-pipeline`    | Hiring pipeline         | Seed     | 600       | None                       | Time to hire −30%                                    |
 | `trunk-based`        | Trunk-based development | Seed     | 800       | `ci`                       | Deploy frequency +50%                                |
 | `platform-team`      | Platform team           | Series A | 3,000     | `containers`               | Team type                                            |
 | `sre-team`           | SRE team                | Series A | 4,000     | `on-call`                  | Team type                                            |
-| `checkout`           | Checkout                | Series A | 1,500     | —                          | Payment Provider and the Checkout Feature            |
-| `service-boundaries` | Service boundaries      | Series B | 15,000    | —                          | Split a Service                                      |
+| `checkout`           | Checkout                | Series A | 1,500     | None                       | Payment Provider and the Checkout Feature            |
+| `service-boundaries` | Service boundaries      | Series B | 15,000    | None                       | Split a Service                                      |
 | `data-team`          | Data team               | Series B | 10,000    | `data-warehouse`           | Team type                                            |
-| `enterprise-sales`   | Enterprise sales        | Series B | 20,000    | —                          | Signs the SLA: a missed week costs SLA credits       |
-| `investor-relations` | Investor relations      | Pre-IPO  | 300,000   | —                          | Valuation multiple +2                                |
-| `guidance-modeling`  | Guidance modeling       | Public   | 1,000,000 | —                          | Shows the probability of beating each guidance level |
+| `enterprise-sales`   | Enterprise sales        | Series B | 20,000    | None                       | Signs the SLA: a missed week costs SLA credits       |
+| `investor-relations` | Investor relations      | Pre-IPO  | 300,000   | None                       | Valuation multiple +2                                |
+| `guidance-modeling`  | Guidance modeling       | Public   | 1,000,000 | None                       | Shows the probability of beating each guidance level |
 
 Each item does what its Effect column says:
 
@@ -618,7 +622,7 @@ Each item does what its Effect column says:
 
 ## Pacing targets for the first company
 
-These are measured, not targeted: the Balanced bot at the live pace
+The times are measured, not targeted: the Balanced bot at the live pace
 ([pacing model](/design/16-balancing#pacing-model)), at `SIM_VERSION` 17 on seeds 1 and 3, reaches each
 Era at the sim minutes below. The numbers are re-measured when the tuning changes.
 

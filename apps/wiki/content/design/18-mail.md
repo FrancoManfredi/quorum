@@ -5,24 +5,23 @@ section: design
 order: 18
 ---
 
-This document applies [pillar 4: the board is the dashboard](/design/01-vision#pillar-4-the-board-is-the-dashboard)
-and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player). It changes the main
-channel between the game and the player. The Board shows what the system is doing now. **Mail** tells
-the player what happened, who is asking for what, and what to decide. It arrives in an **Inbox** that
-works like an email app.
+**Mail** is the main channel from the game to the player. It applies
+[pillar 4: the board is the dashboard](/design/01-vision#pillar-4-the-board-is-the-dashboard) and
+[pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player). The Board shows what
+the system is doing now. Mail says what happened, who is asking for what, and what to decide. It
+arrives in an **Inbox** that works like an email app.
 
 ## Why
 
-- A founder's day is email. The cloud provider warns about limits. Engineers ask for time. Investors
-  write. A security list announces a vulnerability. Spam arrives all day. A game that shows these as
-  one sentence in a pill feels like a tutorial. A game that shows them as email feels like a job.
-- The source changes the meaning. "CPU is maxed" from the cloud provider is a capacity warning from a
-  vendor. The same fact from a teammate is a request for help. The player learns who to trust and what
-  to do with each kind of sender.
-- An Inbox is a record. The player can reread a warning, find the offer from three Eras ago, and see
+- A founder's day is email. The cloud provider warns about limits, engineers ask for time, investors
+  write, and a security list announces a vulnerability. Spam arrives all day. Shown as one sentence
+  in a pill, these events feel like a tutorial. Shown as email, they feel like a job.
+- The source changes the meaning. "CPU is maxed" from the cloud provider is a capacity warning. The
+  same fact from a teammate is a request for help. The player learns whom to trust and what to do
+  with each kind of sender.
+- An Inbox is a record. The player can reread a warning, find the offer from three Eras ago, or check
   what the team asked for before the outage.
-- It scales. A new Era, incident, or system adds a sender and some templates. It does not add a
-  panel.
+- It scales. A new Era, incident, or system adds a sender and some templates, not a panel.
 
 ## Rules
 
@@ -34,8 +33,8 @@ works like an email app.
    Inbox by colour before reading a word.
 4. **Mail never covers the Board.** One corner button shows the unread count. The Inbox is a small
    window docked above it that leaves the Board in view and clickable. `I` opens it, `Esc` closes it.
-5. **Mail asks, the player answers with buttons.** Actions send the same Messages the old panels
-   sent. There is no free text and no reply box.
+5. **Mail asks, the player answers with buttons.** Actions send the same Messages the matching
+   panels send. There is no free text and no reply box.
 6. **One click to the cause.** Mail about a Node or Link has a "Show on Board" button that selects it
    ([Interface rule 3](/design/15-ui-ux#interface-rules)).
 7. **Mail stays until the player deletes it.** Deleted Mail goes to Trash and can be restored.
@@ -64,9 +63,9 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
 └───────────────────────┴───────────────────────────────────────────────┘
 ```
 
-- **Folders:** Needs action, FYI, Spam, Trash. Needs action holds Mail with a button that does something
-  and no answer yet; its count is the open threads. FYI holds the rest and shows its unread count. Spam shows its own
-  count so the player knows something is there.
+- **Folders:** Needs action, FYI, Spam, Trash. Needs action holds Mail with a button that does
+  something and no answer yet, and its count is the open threads. FYI holds the rest and shows its
+  unread count. Spam shows its own count so the player knows something is there.
 - **List:** newest first, grouped by thread ([Threads](#threads)). Each row shows the sender's colour
   chip, the sender's kind label, the sender, the time, and the subject. Unread Mail has a dot and a
   bold subject, and Mail that wants the player carries the [priority bar](#pacing-and-volume) on its
@@ -75,15 +74,15 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
   address, the body, the sign-off, and the action buttons. The time appears only on a thread with
   more than one entry: a single letter shows no timestamp.
 - **Labels:** each Mail has one label from its sender kind (Cloud, Team, Investor, Security, and so
-  on). Labels are the filter chips above the list: `All`, then every kind the open folder holds, with
-  its count. Choosing a chip shows that kind alone and selects the newest of them; choosing `All`
-  brings the folder back. Changing folder clears the chip, so a folder is never quietly empty. A row
-  carries the same label as the chip, so a filtered list reads the same in both places.
+  on). The labels are the filter chips above the list: `All`, then every kind the open folder holds,
+  with its count. Choosing a chip shows that kind alone and selects the newest of them. Choosing
+  `All` brings the folder back. Changing folder clears the chip, so a folder is never quietly empty.
+  A row carries the same label as the chip, so a filtered list reads the same in both places.
 - **Hover:** a button names where it really goes. A game button names the control it opens ("Team: the
   patch goes to the top of the backlog"); a trap's names the site it leaves for (see
   [A button is a commitment](#spam-and-phishing)).
 - Opening the Inbox always resets it to Needs action and selects the newest Mail in that folder, not
-  the newest unread Mail. On a phone the two panes stack.
+  the newest unread Mail. On a phone (below 640 px wide or 500 px tall) the two panes stack; the compact layout is a fallback, not a design target ([Scope](/design/17-scope-and-roadmap#out-of-scope)).
 - Time is the Company clock.
 
 ## Senders
@@ -91,29 +90,53 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
 Each sender has one voice and one reason to write. All names and companies are fictional. A sender
 has a **kind**, a **name**, an **address**, and a colour.
 
-| Kind       | Examples                                                                      | Writes when                                                                                                                                                                                                                        | Actions                                                |
-| ---------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Cloud      | AWOL Web Services, Gooble Cloud Platypus, Azzure Compute Services, Cloudscare | A Node nears or passes a hard limit: CPU credits, RAM, bandwidth, disk, quota; the monthly bill; a zone or region incident on the provider's side; Spot reclaim notices; maintenance windows                                       | Show on Board, Resize, Raise quota, Switch to Reserved |
-| Monitoring | PagerDooty, Grafauna, Centry                                                  | An alert rule fires or clears: error rate, p99, saturation. It is the pager's inbox copy ([Observability](/design/12-observability))                                                                                               | Show on Board, Acknowledge, Mute for 1 h               |
-| Vendor     | Swipe Payments, PayPaul                                                       | A managed Component has an outage, a price change, or a new limit                                                                                                                                                                  | Show on Board, Switch provider (when a second exists)  |
-| Teammate   | Each hired engineer, by name                                                  | They finish work, hit a blocker, propose a rewrite, ask for a hire, or want to quit ([Team](#teammates))                                                                                                                           | Approve, Decline, Later                                |
-| Investor   | Sand Hill Road Runner Capital, Sequel Capital, Why Combinator                 | A Milestone is met ([Economy](/design/09-economy#funding)); a term sheet changes; a board update is due                                                                                                                            | Raise, Decline                                         |
-| Security   | Commonly Vulnerable & Exposed, National Vulnerability Dumpster                | A vulnerability is disclosed in something the Design runs ([CVEs](#cves-and-patches)); a patch is overdue; an audit finding                                                                                                        | Show on Board, Patch now, Rush patch                   |
-| Finance    | QuickBroke Books, Zero Accounting                                             | A Quarter closes: **Guidance** met or missed; runway under 6 months                                                                                                                                                                | None                                                   |
-| Customers  | Zenfail Support Desk, Intercomatose                                           | Users complain: slow checkout, errors, a lost region; a region's users fall for one calendar hour, with the top two rows of the [Churn breakdown](/design/12-observability#the-churn-breakdown); a big customer asks for a feature | Open Churn breakdown, Add to backlog                   |
-| Mentor     | Dr. Leslie Lamportant, Prof. Edsger Dijkstrah, Grace Hoppertunity             | A strategic nudge the other senders would not give: research to open, a shape worth trying. She is the tutorial voice in the Garage and Pre-seed Eras and speaks rarely after                                                      | None                                                   |
-| Spam       | Anyone ([Spam](#spam-and-phishing))                                           | Always                                                                                                                                                                                                                             | Usually none; a few are traps                          |
+| Kind       | Examples                                                                      | Actions                                                |
+| ---------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ |
+| Cloud      | AWOL Web Services, Gooble Cloud Platypus, Azzure Compute Services, Cloudscare | Show on Board, Resize, Raise quota, Switch to Reserved |
+| Monitoring | PagerDooty, Grafauna, Centry                                                  | Show on Board, Acknowledge, Mute for 1 h               |
+| Vendor     | Swipe Payments, PayPaul                                                       | Show on Board, Switch provider (when a second exists)  |
+| Teammate   | Each hired engineer, by name                                                  | Approve, Decline, Later                                |
+| Investor   | Sand Hill Road Runner Capital, Sequel Capital, Why Combinator                 | Raise, Decline                                         |
+| Security   | Commonly Vulnerable & Exposed, National Vulnerability Dumpster                | Show on Board, Patch now, Rush patch                   |
+| Finance    | QuickBroke Books, Zero Accounting                                             | None                                                   |
+| Customers  | Zenfail Support Desk, Intercomatose                                           | Open Churn breakdown, Add to backlog                   |
+| Mentor     | Dr. Leslie Lamportant, Prof. Edsger Dijkstrah, Grace Hoppertunity             | None                                                   |
+| Spam       | Anyone ([Spam](#spam-and-phishing))                                           | Usually none; a few are traps                          |
+
+What each kind writes about:
+
+- **Cloud:** a Node nears or passes a hard limit (CPU credits, RAM, bandwidth, disk, quota). It also
+  writes the monthly bill, a zone or region incident on the provider's side, Spot reclaim notices,
+  and maintenance windows.
+- **Monitoring:** an alert rule fires or clears (error rate, p99, saturation). It is the pager's
+  inbox copy ([Observability](/design/12-observability)).
+- **Vendor:** a managed Component has an outage, a price change, or a new limit.
+- **Teammate:** an engineer finishes work, hits a blocker, proposes a rewrite, asks for a hire, or
+  wants to quit ([Team](#teammates)).
+- **Investor:** a Milestone is met ([Economy](/design/09-economy#funding)), a term sheet changes,
+  or a board update is due.
+- **Security:** a vulnerability is disclosed in something the Design runs
+  ([CVEs](#cves-and-patches)), a patch is overdue, or an audit finding arrives.
+- **Finance:** a Quarter closes with **Guidance** met or missed, or runway falls under 6 months.
+- **Customers:** users complain about slow checkout, errors, or a lost region. A region's users
+  falling for one calendar hour brings the top two rows of the
+  [Churn breakdown](/design/12-observability#the-churn-breakdown). A big customer can also ask for a
+  feature.
+- **Mentor:** a strategic nudge the other senders would not give, such as research to open or a
+  shape worth trying. The Mentor is the tutorial voice in the Garage and Pre-seed Eras and speaks
+  rarely after.
+- **Spam:** always.
 
 Every Mail that names a Node carries **Show on Board**, which selects that Node
-([Interface rule 3](/design/15-ui-ux#interface-rules)): capacity Mail, out-of-CPU-credits and
-out-of-memory Mail, an incident that names the Node it hit, and a CVE advisory. The rest of the
+([Interface rule 3](/design/15-ui-ux#interface-rules)). That covers capacity Mail, out-of-CPU-credits
+and out-of-memory Mail, an incident that names the Node it hit, and a CVE advisory. The other
 buttons follow the sender:
 
 - **Resize**, **Raise quota**, and **Switch to Reserved** are Cloud's. Each selects the Node and
   opens its Inspector, because that is the one place a Node is resized, its limit raised, and its
-  pricing model chosen. None of them answers the Mail: the warning stays in Needs action until the
-  cause is gone. Switch to Reserved appears only where that control exists, on a sized compute Node
-  from the Era that has pricing models ([Economy](/design/09-economy#pricing-models)); a Cloud Mail
+  pricing model chosen. None of them answers the Mail, so the warning stays in Needs action until the
+  cause is gone. Switch to Reserved appears only where that control exists: on a sized compute Node,
+  from the Era that has pricing models ([Economy](/design/09-economy#pricing-models)). A Cloud Mail
   about anything else carries three buttons.
 - **Acknowledge** marks the Mail read and dismisses its card above the Inbox button.
 - **Mute for 1 h** silences that sender for one calendar hour: their Mail lands read, with no dot,
@@ -121,19 +144,24 @@ buttons follow the sender:
 - **Add to backlog** queues the Feature a customer asks for at the end of the Team backlog, which is
   what the Team panel's own Queue does.
 
-**Switch provider** lives on the Payment Provider itself, not on a vendor pitch: the Inspector's Provider setting moves its checkouts to a second provider, and while a Payment provider outage runs the Inspector's mitigation button does the same at once. A vendor pitch about anything else carries no Switch provider. A hire request offers Approve hire
-and Later, not Decline: Later says the same thing to a teammate and keeps the door open.
+**Switch provider** lives on the Payment Provider itself, not on a vendor pitch. The Inspector's
+Provider setting moves its checkouts to a second provider. While a Payment provider outage runs, the
+Inspector's mitigation button does the same at once. A vendor pitch about anything else carries no
+Switch provider.
 
-Capacity facts that live in the Simulation today (`nextGoal`: out of CPU credits, out of RAM, workers
-busy, connections, network) belong to **Cloud** or **Monitoring**, not to the Mentor. The bottleneck
-tells the player what is wrong. The sender and its buttons tell the player what is possible.
+A hire request offers Approve hire and Later, not Decline. Later says the same thing to a teammate
+and keeps the door open.
+
+Capacity facts in the Simulation (`nextGoal`: out of CPU credits, out of RAM, workers busy,
+connections, network) belong to **Cloud** or **Monitoring**, not to the Mentor. The bottleneck tells
+the player what is wrong. The sender and its buttons tell the player what is possible.
 
 ## Colour code
 
 A sender wears the app's own **badge**: the shape and glyph knocked out in white, as on the dock
 ([Interface](/design/15-ui-ux)). The shape and glyph say what kind of party wrote. The colour is the
-brand colour of the real company the sender parodies, so AWOL is the orange of the cloud it mocks
-and the joke reads before the name.
+brand colour of the real company the sender parodies. AWOL is the orange of the cloud it mocks, so
+the joke reads before the name.
 
 | Kind       | Shape (build group) | Glyph       | Colours                                                                                                                                 |
 | ---------- | ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,28 +188,27 @@ Rules:
 ## Threads
 
 Mail groups by **thread**: one subject from one sender about one thing. A repeat of the same fact
-joins its thread instead of adding a new row, and the row shows a count.
+joins its thread instead of adding a row, and the row shows a count.
 
 - A thread has a **key**: sender plus subject kind plus the thing it is about, such as
   `cloud:cpu:app-01`.
 - A repeat bumps the thread to the top, marks it unread, and adds a dated line to the reader. It does
   not add a new row.
-- A thread **resolves** when its cause is gone: the CPU warning resolves when `app-01` is below its
-  limit. The reader shows "Resolved at 3\:41" and the thread stays in the Inbox as a record. The churn
-  thread for a region, `customers:churn:eu`, resolves when that region's users grow again.
+- A thread **resolves** when its cause is gone. The CPU warning resolves when `app-01` is below its
+  limit, and the reader shows "Resolved at 3\:41". The thread stays in the Inbox as a record. The
+  churn thread for a region, `customers:churn:eu`, resolves when that region's users grow again.
 - A thread **reopens** if the cause returns after it resolved.
 - Deleting a thread removes the whole thread. A later repeat starts a new one.
-- A thread keeps its newest 20 entries. Older entries are dropped without a marker, so a long thread
-  has no "N earlier messages" line and the reader shows no sign that anything is missing.
+- A thread keeps its newest 20 entries. Older entries are dropped without a marker. A long thread has
+  no "N earlier messages" line, and the reader shows no sign that anything is missing.
 
-This replaces the "same text in the last six" rule of the first build, which could not tell a repeat
-from a new problem.
+Matching on the key, not on the text, lets Mail tell a repeat from a new problem.
 
 ## Teammates
 
-People are the richest source of Mail. Each hired engineer is a named sender ([Team and
-velocity](/design/08-team-and-velocity)). They write in a few fixed shapes, with a body drawn from their
-language, seniority, and the state of the Design.
+Teammates write the most varied Mail. Each hired engineer is a named sender ([Team and
+velocity](/design/08-team-and-velocity)). They write in a few fixed shapes, and the body draws on
+their language, their seniority, and the state of the Design.
 
 | Mail                 | Triggers on                                                                                        | Actions                                            |
 | -------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
@@ -193,17 +220,23 @@ language, seniority, and the state of the Design.
 | Burnout and quitting | Long freeze, many pages, or a pay gap                                                              | Give time off, Raise salary, Accept resignation    |
 | Proposal to patch    | A CVE affects a service the engineer owns                                                          | Patch now, Queue the patch, Open Team              |
 
-The world event still draws only a hire request or a rewrite proposal; a block, a slump and a CVE
-proposal come from the Step, not the event tick. Incident follow-up is built: the teammate's Mail carries File postmortem
+The world event draws only a hire request or a rewrite proposal. A block, a slump, and a CVE
+proposal come from the Step, not the event tick. The incident follow-up Mail carries File postmortem
 and File and research the action item.
 
 ### Blocked
 
 A backlog item can stop before its team does any work on it. The Simulation checks the four waits the
-Team section names ([Team](/design/08-team-and-velocity#blocked)), and the first that holds is the
-reason: an index the Service needs, a copy of a Database it shares, a hire its team has outgrown, or a
-decision the player has to make. The engineer whose item it is writes; the item waits, its Dev Hours go
-to the pool, and later items go ahead of it.
+Team section names ([Team](/design/08-team-and-velocity#blocked)). The first that holds is the
+reason:
+
+- an index the Service needs
+- a copy of a Database it shares
+- a hire its team has outgrown
+- a decision the player has to make
+
+The engineer whose item it is writes. The item waits, its Dev Hours go to the pool, and later items
+go ahead of it.
 
 **Approve** clears the wait for good. **Later** keeps it waiting and brings the Mail back after a
 calendar day, in the same thread, because the same thing is still true. A block never stops the same
@@ -224,21 +257,25 @@ pay and the Era's rate.
 | **Accept resignation** | They leave, the payroll ends, and there is no layoff's morale hit.                               |
 
 A slump that recovers, because the player answered or the freeze ended, lets a later one write again.
-The Mail reports the count; a recruiter's pitch is still flavour without the hint it would carry.
+The Mail reports the count. Without the hint it would carry, a recruiter's pitch is still flavour.
 
 ### A proposal to patch
 
-A CVE is filed as a patch ticket at the end of the backlog ([CVEs](#cves-and-patches)). The Simulation
-names the engineer from the Service's owning team whose item it is, and they write: the ticket, its
-deadline, and the choice. **Patch now** moves the ticket to the top of the backlog, ahead of the
-product. **Queue the patch** leaves it where it is, behind the product, and the deadline runs either
-way. **Open Team** shows the backlog it sits on. The Security advisory is a separate Mail from a
-separate sender: one tells the player what is exposed, the other tells them who fixes it.
+A CVE is filed as a patch ticket at the end of the backlog ([CVEs](#cves-and-patches)). The
+Simulation names the engineer from the Service's owning team whose item it is. That engineer writes
+about the ticket, its deadline, and the choice:
+
+- **Patch now** moves the ticket to the top of the backlog, ahead of the product.
+- **Queue the patch** leaves it behind the product. The deadline runs either way.
+- **Open Team** shows the backlog it sits on.
+
+The Security advisory is a separate Mail from a separate sender. One tells the player what is
+exposed, and the other tells them who fixes it.
 
 ### Rewrite proposals
 
-A rewrite proposal is how the "big rewrite" trap ([Team and velocity](/design/08-team-and-velocity#migrations))
-becomes a decision with a person behind it.
+A rewrite proposal turns the "big rewrite" trap
+([Team and velocity](/design/08-team-and-velocity#migrations)) into a decision with a person behind it.
 
 - The proposal names the service, the target language, the DH cost from the migration table, and the
   engineer's own estimate, which is too low by a factor that grows with their enthusiasm.
@@ -247,8 +284,8 @@ becomes a decision with a person behind it.
   **Decline** keeps the service. There is no Later: a proposal carries two buttons.
 - The engineer's mood moves with the answer. A declined senior engineer who has asked three times
   may write a resignation.
-- A proposal that is right is common. A proposal that is wrong sounds just as sure. The player judges
-  it from the numbers in the Mail and on the Board: p99, errors, tech debt, velocity.
+- A right proposal is common, and a wrong one sounds just as sure. The player judges it from the
+  numbers in the Mail and on the Board: p99, errors, tech debt, velocity.
 
 ## CVEs and patches
 
@@ -263,53 +300,57 @@ a Security sender and a spam folder together.
   data leak). The score sets the clock: how long until it is exploited in the wild.
 - **Who tells the player.** Security mail names the CVE id, the score, the title, and the Component
   the vulnerability affects: an App Server, a Database, a Cache. Which of the player's Nodes run it
-  is the **exposure gate**: with Dependency scanning researched the advisory names them, as the
-  Dashboard names them (App Server, App Server 2), so a Design with two copies sees both, and Show
-  on Board selects the first. Without Dependency scanning the Mail cannot tell, says "Check whether
-  you run this", and carries no Show on Board: the gate would mean nothing if a button gave it away.
-- **The patch** is an engineering task with a DH cost ([Team and velocity](/design/08-team-and-velocity#engineering-tasks)),
-  often followed by a deploy. A **Patch now** button moves it to the top of the backlog, and a
-  **Rush patch** button rushes it, and **Open Team** opens the backlog the ticket sits on. The
-  reader shows every button a Mail carries ([Actions](#actions)), so an advisory with four of them
-  keeps all four.
+  is the **exposure gate**.
+  - With Dependency scanning researched, the advisory names the Nodes, as the Dashboard names them
+    (App Server, App Server 2). A Design with two copies sees both, and Show on Board selects the
+    first.
+  - Without Dependency scanning, the Mail cannot tell. It says "Check whether you run this" and
+    carries no Show on Board, because the gate would mean nothing if a button gave it away.
+- **The patch** is an engineering task with a DH cost
+  ([Team and velocity](/design/08-team-and-velocity#engineering-tasks)), often followed by a deploy.
+  **Patch now** moves it to the top of the backlog, **Rush patch** rushes it, and **Open Team**
+  opens the backlog the ticket sits on. The reader shows every button a Mail carries
+  ([Actions](#actions)), so an advisory with four of them keeps all four.
 - **The ticket.** The Simulation files each disclosure as a **patch ticket** at the end of the Team
-  backlog, owned by an engineer on the Service's owning team, who proposes the patch in their own Mail
-  ([A proposal to patch](#a-proposal-to-patch)). A team does not build it until the player moves it up
-  ("Patch now"), queues it on purpose, or rushes it: "Patch App Server, 5 DH, due in 3 min". A higher score means a bigger patch and a shorter
-  deadline. The ticket turns red on the backlog and the HUD when it is overdue. A grace of 60 sim
-  seconds later it expires: the ticket is gone and a SEV1 **Data breach** starts, which costs 15% of
-  the Users. A breach waits while another incident runs. The ticket can be rushed but not cancelled.
-  The advisory thread closes with the ticket, patched or exploited.
-- **The clock (design).** While an exposed CVE is unpatched, its exploit chance rises each calendar day. When
-  it fires, the **Data breach** incident starts: data loss, users lost, a Reputation hit, and a
-  postmortem. Patching before the clock runs out removes the risk.
+  backlog. An engineer on the Service's owning team owns it and proposes the patch in their own Mail
+  ([A proposal to patch](#a-proposal-to-patch)). A team does not build it until the player moves it
+  up ("Patch now"), queues it on purpose, or rushes it: "Patch App Server, 5 DH, due in 3 min". A
+  higher score means a bigger patch and a shorter deadline.
+  - The ticket turns red on the backlog and the HUD when it is overdue.
+  - A grace of 60 sim seconds later it expires. The ticket is gone and a SEV1 **Data breach**
+    starts, which costs 15% of the Users.
+  - A breach waits while another incident runs.
+  - The ticket can be rushed but not cancelled.
+  - The advisory thread closes with the ticket, patched or exploited.
+- **The clock (design).** While an exposed CVE is unpatched, its exploit chance rises each calendar
+  day. When it fires, the **Data breach** incident starts: data loss, users lost, a Reputation hit,
+  and a postmortem. Patching before the clock runs out removes the risk.
 - **The cost of speed.** Patching in a hurry steals DH from features and risks a **Bad deploy**.
   Patching late risks a breach. The player trades these off from the Mail.
-- **Supply chain.** The existing Supply-chain compromise incident ([Incidents](/design/11-incidents#catalog))
-  arrives as a CVE with a false "safe" advisory first, then a correction: Security mail, then a
-  second thread entry that says to pin and redeploy.
+- **Supply chain.** The Supply-chain compromise incident ([Incidents](/design/11-incidents#catalog))
+  arrives as a CVE with a false "safe" advisory first, then a correction. That is Security mail,
+  then a second thread entry that says to pin and redeploy.
 
-Two incidents are new, and both have catalog entries: **Data breach** (from an exploited CVE) and
-**Credential leak** (from phishing). A Credential leak is SEV1, runs 90 sim seconds, and takes 10% of
-the Users when it starts; those are its numbers. The director never
-draws it: only a trap the player clicks starts one. Its postmortem opens the WAF as its action item,
-when that research is ready.
+Two incidents come from Mail, and both have catalog entries: **Data breach** (from an exploited CVE)
+and **Credential leak** (from phishing). A Credential leak is SEV1, runs 90 sim seconds, and takes
+10% of the Users when it starts. The director never draws it: only a trap the player clicks starts
+one. Its postmortem opens the WAF as its action item, when that research is ready.
 
-The rate does not scale with the size of the stack. Every 420 sim seconds from Pre-seed the
-Simulation discloses one CVE, drawn from those that affect something the Design runs. A bigger stack
-does not attract more advisories; it only changes which one is drawn.
+The disclosure rate does not scale with the size of the stack. Every 420 sim seconds from Pre-seed,
+the Simulation discloses one CVE, drawn from those that affect something the Design runs. A bigger
+stack does not attract more advisories. It only changes which one is drawn.
 
 ## Spam and phishing
 
-Real inboxes are mostly noise. The Spam folder teaches the player to read, and it hides a few traps
+Real inboxes are mostly noise, and the Spam folder makes the player read. It also hides a few traps
 and one gift.
 
 - **Spam arrives from Pre-seed on, at a fixed rate.** Every 45 sim seconds the Company's seed draws
-  one world event, and 45 of every 100 draws are spam. The rate does not grow with Users or press. It
-  is flavour with a purpose: it fills the Inbox with sound.
+  one world event, and 45 of every 100 draws are spam. The rate does not grow with Users or press.
+  The spam is flavour with a purpose: it fills the Inbox with sound.
 - **The spam filter is a research.** `spam-filter` adds a Postbox setting, on by default once
-  researched. With the filter on, every piece of spam is written straight into the Spam folder, and now
-  and then a real security advisory goes with it. Without the research, spam lands in the folder
+  researched. With the filter on, every piece of spam is written straight into the Spam folder, and
+  now and then a real security advisory goes with it. Without the research, spam lands in the folder
   its content belongs to, beside real Mail.
 - **Kinds of spam.**
 
@@ -322,65 +363,71 @@ and one gift.
 | Recruiter        | Offers to your engineers                                                   | A hint that a teammate is unhappy.                                |
 | Real CVE in Spam | A true advisory that the filter sorted wrongly                             | Ignoring it starts the CVE clock without a warning.               |
 
-**Recruiter:** once an engineer's mood is low enough to write
-([Burnout and quitting](#burnout-and-quitting)), the pitch's letter carries a line that hints one of
-them is unhappy, without naming who; the player still reads the Team panel to find out.
-**Fake CVE alert:** its button runs a patcher that leaves a backdoor in the Company, and the
-Simulation records when. Five calendar minutes later the attacker uses it and a Data breach starts. A
-Security team finds the backdoor in half that time and closes it, and Dependency scanning stops the
-dropper before it runs. Its id is not in the Glossary, which is the tell that catches it before the
-click. **Vendor pitch:** about one in four is a real demo of an unstudied Observability research, with a
-Book the demo button; taking it takes a fifth off that item's Insight cost.
+Four of these kinds need more detail:
 
-A phishing button starts the Credential leak incident and takes 10% of the Users, the pager writes about it, and the trap's thread keeps the line that says the
-address was not the real one. A fake invoice and a domain notice charge the amount printed on them:
-$4,812 (the Azzure invoice's $4,812.44, rounded) and $389, both refused when the Cash is not there.
-Reporting a phishing Mail as spam takes its button away, so the risk goes with it.
+- **Recruiter.** Once an engineer's mood is low enough to write
+  ([Burnout and quitting](#burnout-and-quitting)), the pitch's letter carries a line that hints one
+  of them is unhappy. It does not name who, so the player still reads the Team panel to find out.
+- **Fake CVE alert.** Its button runs a patcher that leaves a backdoor in the Company, and the
+  Simulation records when. 300 sim seconds later the attacker uses it and a Data breach
+  starts. A Security team finds the backdoor in half that time and closes it. Dependency scanning
+  stops the dropper before it runs. The alert's id is not in the Glossary, which is the tell that
+  catches it before the click.
+- **Vendor pitch.** About one in four is a real demo of an unstudied Observability research, with a
+  Book the demo button. Taking it takes a fifth off that item's Insight cost.
+- **Phishing and fake invoices.** A phishing button starts the Credential leak incident and takes
+  10% of the Users. The pager writes about it, and the trap's thread keeps the line that says the
+  address was not the real one. A fake invoice and a domain notice charge the amount printed on
+  them: $4,812 (the Azzure invoice's $4,812.44, rounded) and $389. Both are refused when the Cash is
+  not there. Reporting a phishing Mail as spam takes its button away, so the risk goes with it.
 
-- **How to tell.** Two tells. The first is the sender's address, which is on a lookalike domain
-  (`billing@awol-cloud.support` against `no-reply@awol.cloud`). The second is the CVE id: a real
-  advisory names one the Glossary lists (its advisory block carries every CVE the Simulation can
-  disclose, with the score and the Components it affects), and a fake one names an id the Glossary
-  does not know, so there is nothing to open. The reader marks a known id with "In the Glossary" and
-  leaves an unknown one bare.
+- **How to tell.** There are two tells.
+  - The first is the sender's address, which is on a lookalike domain (`billing@awol-cloud.support`
+    against `no-reply@awol.cloud`).
+  - The second is the CVE id. A real advisory names one the Glossary lists, because its advisory
+    block carries every CVE the Simulation can disclose, with the score and the Components it
+    affects. A fake one names an id the Glossary does not know, so there is nothing to open. The
+    reader marks a known id with "In the Glossary" and leaves an unknown one bare.
 - **A button is a commitment.** A trap's action button looks normal, and clicking it is the player's
-  act, not the game's. Every button names where it really goes when the player hovers: a game button
-  names the control it opens, and a trap's names the off-site address it leaves for, on a cheap TLD.
-  The two carry the same number key, and the hover is what separates them before the click.
+  act, not the game's. On hover, every button names where it really goes. A game button names the
+  control it opens, and a trap's names the off-site address it leaves for, on a cheap TLD. The two
+  carry the same number key, so the hover is what separates them before the click.
 - **Report spam.** Marking a Mail as spam teaches the filter and, for phishing, removes the risk.
-  Reporting a real Mail as spam is a mistake the player can undo from Spam. A
-  phishing Mail reported as spam loses its trap button for good.
+  A phishing Mail reported as spam loses its trap button for good. Reporting a real Mail as spam is a
+  mistake the player can undo from Spam.
 - **Tone.** Spam is funny and plausible, never cruel. Real vendor names are not used.
 
-Spam is pillar 5's mirror: the player is never punished for opening Mail, only for acting on a
-trap. The cost is one click and one lesson.
+Spam mirrors pillar 5. The player is never punished for opening Mail, only for acting on a trap, and
+the cost is one click and one lesson.
 
 ## Actions
 
-- An action is a button in the reader. Choosing it sends the Message the matching panel sends today
-  and ends the question: the buttons are replaced by one line, such as "You raised $2,500 for 10%".
-  A button that opens a control instead of answering, such as Show on Board, Resize, or Raise quota,
+- An action is a button in the reader. Choosing it sends the Message the matching panel sends and
+  ends the question. The buttons are replaced by one line, such as "You raised $2,500 for 10%". A
+  button that opens a control instead of answering, such as Show on Board, Resize, or Raise quota,
   leaves the question open, because the cause is still there.
-- The reader shows **every** button its Mail carries, in the order the sender offers them, and wraps
-  onto a second row when four of them do not fit. There is no third-button cap: an advisory keeps
-  Patch now, Rush patch, Show on Board, and Open Team.
+- The reader shows every button its Mail carries, in the order the sender offers them. It wraps onto
+  a second row when four of them do not fit. There is no third-button cap: an advisory keeps Patch
+  now, Rush patch, Show on Board, and Open Team.
 - A standing offer lasts while its condition holds. If Users fall below the Milestone, the offer
   expires and the thread says so.
 - Mail the player has answered stays in the Inbox as the record.
-- Every action has a keyboard shortcut in the reader: `1` to `9` press the buttons in order, `E` to
-  delete, `J` and `K` to move, `S` to mark spam.
+- The reader has keyboard shortcuts: `1` to `9` press the buttons in order, `E` deletes, `J` and `K`
+  move, and `S` marks spam.
 
 ## What Mail replaces
 
-| Today                              | With Mail                                                          |
+Mail takes over some Board and panel messages and leaves others where they are.
+
+| Replaced                           | By                                                                 |
 | ---------------------------------- | ------------------------------------------------------------------ |
-| Goal pill at the top of the Board  | Cloud, Monitoring, and Mentor Mail. Partly done: the pill is gone. |
+| Goal pill at the top of the Board  | Cloud, Monitoring, and Mentor Mail                                 |
 | Funding round modal and pager chip | Investor Mail with Raise and Decline                               |
-| Postmortem card                    | Teammate Mail with the file actions. Built.                        |
-| Away card                          | A Mail from Finance and Monitoring, "While you were away". Built.  |
-| Team panel requests                | Teammate Mail; the panel stays for the roster                      |
-| Era card                           | Stays. An Era transition is a scene, not a message.                |
-| Sandbox and Challenge objectives   | Stay on the Board. Mail belongs to a Company.                      |
+| Postmortem card                    | Teammate Mail with the file actions                                |
+| Away card                          | A Mail from Finance and Monitoring, "While you were away"          |
+| Team panel requests                | Teammate Mail, and the panel stays for the roster                  |
+| Era card                           | Nothing: an Era transition is a scene, not a message               |
+| Sandbox and Challenge objectives   | Nothing: they stay on the Board, because Mail belongs to a Company |
 
 ## How it works
 
@@ -399,13 +446,13 @@ The Simulation emits **facts**: typed, deterministic records of things that happ
 
 - **Quiet at the start.** The Garage Era sends at most one Mail a minute, mostly from the Mentor.
 - **Priority.** Mail that needs a decision, such as an offer or a CVE with a clock, sits above the
-  rest. Built: a coloured bar on the row's left edge marks it, in the design's tones. Red (`$danger`)
-  while a clock is running, which is a CVE advisory; amber (`$warn`) while a decision waits; nothing
-  on Mail that only informs, on Mail already answered or resolved, and on Spam, because noise is
-  never something the Design needs.
-- **Digest.** Built: when more than eight threads in a folder are unread, the oldest low-priority
-  ones (FYI, so nothing that waits on a decision) fold into one "Digest" row where the newest of them
-  was. Its reader lists them, and each line opens the Mail it stands for.
+  rest. A coloured bar on the row's left edge marks it, in the design's tones. The bar is red
+  (`$danger`) while a clock is running, which is a CVE advisory, and amber (`$warn`) while a
+  decision waits. Mail that only informs has no bar, nor does Mail already answered or resolved, nor
+  does Spam, because noise is never something the Design needs.
+- **Digest.** When more than eight threads in a folder are unread, the oldest low-priority ones fold
+  into one "Digest" row where the newest of them was. Low priority means FYI, so nothing that waits
+  on a decision. The Digest's reader lists them, and each line opens the Mail it stands for.
 - **No guilt.** Unread Mail never expires a decision the player has not been told about, and never
   costs anything on its own. Clocks start when the Mail arrives and are shown in it.
 
@@ -421,7 +468,7 @@ The Simulation emits **facts**: typed, deterministic records of things that happ
 | Are teammates procedurally named?          | Yes, from the seed, with a pool of names and a short bio each. A teammate keeps their name for life.                     |
 | Is Spam only flavour in the first release? | Yes: spam and phishing ship with the CVE system, not before.                                                             |
 | How many CVEs per hour of play?            | One every 420 sim seconds from Pre-seed, whatever the size of the stack. A balancing item.                               |
-| Does the Mentor stay?                      | Yes, but rarely after Pre-seed. Her voice is the only one that is not about a fact.                                      |
+| Does the Mentor stay?                      | Yes, but rarely after Pre-seed. The Mentor's voice is the only one that is not about a fact.                             |
 
 ## Names
 
@@ -509,10 +556,10 @@ Teammates draw a name from a pool and keep it for life.
 
 - **Senders and colour:** the Simulation's `nextAdvice` names who would say each fact and a Thread
   key. Each sender wears an app badge: a shape, a glyph, and a colour.
-- **Threads:** a repeat with the same key joins its Thread; a Thread resolves when advice moves on
+- **Threads:** a repeat with the same key joins its Thread. A Thread resolves when advice moves on
   and reopens when it returns. Deleting removes the whole Thread.
 - **Letters:** every Mail has about five hand-written letters in `apps/web/src/game/copy/`, each
-  with its own subject, greeting, and close. The Simulation names the topic and its values; the
+  with its own subject, greeting, and close. The Simulation names the topic and its values. The
   Inbox picks a letter by the Company's seed, the Thread, and the time, so a Company reads the same
   on every device and a Thread rarely repeats itself. Each teammate has their own footer.
 - **Folders and labels:** Needs action, FYI, Spam, Trash, with "Report spam" and "Not spam", and the
@@ -522,42 +569,50 @@ Teammates draw a name from a pool and keep it for life.
   names the off-site address it leaves for. The Glossary lists the CVEs the Simulation can disclose,
   so a real advisory's id opens an entry and a fake one has nothing to open.
 - **Saving the Inbox:** the Company save keeps the Mail, the mutes, and the last event tick the world
-  wrote for. A save from before the Inbox was saved opens with an empty Inbox rather than failing.
-- **The Digest:** more than eight unread threads in a folder fold their oldest low-priority ones into
-  one row, whose reader lists them.
+  wrote for. An older save opens with an empty Inbox rather than failing.
+- **The Digest:** when more than eight threads in a folder are unread, the oldest low-priority ones
+  fold into one row, whose reader lists them.
 - **Postmortems:** when an Incident resolves, a teammate writes with File postmortem and File and
   research the action item, which send the same Action the Dashboard's Incidents row sends. The
-  Dashboard row still lists the Postmortems.
+  Dashboard row also lists the Postmortems.
 - **Away Mail:** on a return from away, Finance writes "While you were away" with users, Cash, Studies
-  and Dev Hours, and the pager writes the peak load and what was lost. The Away panel still opens.
+  and Dev Hours, and the pager writes the peak load and what was lost. The Away panel also opens.
 - **The Credential leak:** a phishing trap starts it, the pager writes about it, and the trap's Thread
-  records the click. A fake invoice and a domain notice cost the Cash printed on them; reporting a
+  records the click. A fake invoice and a domain notice cost the Cash printed on them. Reporting a
   phishing Mail as spam takes its button away.
-- **Actions:** Show on Board wherever a Mail names a Node; Resize, Raise quota, and Switch to
-  Reserved (cloud, which open the Node's Inspector and its pricing control); Acknowledge and Mute
-  for 1 h (alerts, which the Inbox carries out itself);
-  Raise and Decline (investor); Approve hire and Later (a teammate's hire request); Review
-  \<language\> migration and Decline (a rewrite); Approve and Later (a blocked item); Give time off,
-  Raise salary and Accept resignation (an unhappy engineer); Patch now and Queue the patch (a
-  proposal to patch); Patch now, Rush patch, and Open Team (security); Open Churn breakdown and Add
-  to backlog (customers); File postmortem and File and research the action item (a teammate, after an
-  incident); and the phishing traps. Raise, Decline, Approve hire, Approve, Give time off, Raise
-  salary, Accept resignation, Patch now, Queue the patch, Add to backlog, and the postmortem buttons
-  send the real Messages. Every button is on screen and takes a number key from `1` to `9`.
+- **Actions:** every button is on screen and takes a number key from `1` to `9`.
+  - Show on Board: wherever a Mail names a Node.
+  - Resize, Raise quota, and Switch to Reserved: Cloud, which open the Node's Inspector and its
+    pricing control.
+  - Acknowledge and Mute for 1 h: alerts, which the Inbox carries out itself.
+  - Raise and Decline: an investor.
+  - Approve hire and Later: a teammate's hire request.
+  - Review \<language\> migration and Decline: a rewrite.
+  - Approve and Later: a blocked item.
+  - Give time off, Raise salary, and Accept resignation: an unhappy engineer.
+  - Patch now and Queue the patch: a proposal to patch.
+  - Patch now, Rush patch, and Open Team: Security.
+  - Open Churn breakdown and Add to backlog: Customers.
+  - File postmortem and File and research the action item: a teammate, after an incident.
+  - The phishing traps.
+
+  Raise, Decline, Approve hire, Approve, Give time off, Raise salary, Accept resignation, Patch
+  now, Queue the patch, Add to backlog, and the postmortem buttons send the real Messages.
+
 - **Teammates' own threads:** a blocked item, an unhappy engineer, and a proposal to patch, each with
-  its buttons (Approve and Later; Give time off, Raise salary and Accept resignation; Patch now,
-  Queue the patch and Open Team). The Team panel shows each live Feature's adopted share and its
-  measured lift, and the share of Dev Hours upkeep takes.
+  its buttons (Approve and Later; Give time off, Raise salary, and Accept resignation; Patch now,
+  Queue the patch, and Open Team). The Team panel shows each live Feature's adopted share and its
+  measured lift, and the share of Dev Hours that upkeep takes.
 - **World events:** every 45 sim seconds from Pre-seed, the Company's seed draws spam, a
-  teammate (hire request or rewrite proposal), or a customer: a slow-page ticket when a page is slow,
-  and otherwise a Feature that a big customer asks for.
+  teammate (hire request or rewrite proposal), or a customer. A customer sends a slow-page ticket
+  when a page is slow, and otherwise asks for a Feature.
 - **CVEs:** every 420 sim seconds the Simulation discloses one CVE that affects a Component the
-  Design runs, as a patch ticket. Security writes the advisory; "Rush patch" sends the rush Action,
+  Design runs, as a patch ticket. Security writes the advisory. "Rush patch" sends the rush Action,
   and the Node list is behind Dependency scanning ("Check whether you run this" without it). Every
   CVE the Simulation can disclose is a Glossary entry, with its score and what it affects, so the
   advisory's id is one the player can look up.
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
-  The Company also has a 0.5× speed.
+  The Company also offers a 0.5× speed.
 - **Switch provider:** a Payment Provider Node has a Provider setting, First or Second. Switching is a
   rush integration that costs Cash and ends a running Payment provider outage at once. The second
   provider keeps serving through an outage of the first and charges 15% more per checkout.
@@ -567,32 +622,43 @@ Teammates draw a name from a pool and keep it for life.
 - **The Security team's mail:** with a Security team, it writes the credential-leak and breach
   warnings itself instead of the pager.
 
-Reviewing a rewrite proposal opens the Tradeoff card for the
-migration, not Team. The reader's keys are built: `1` to `9` press a button, `E` deletes or
-restores, `J` and `K` move, `S`
-reports spam. The funding offer panel still exists beside the investor Mail.
+Reviewing a rewrite proposal opens the Tradeoff card for the migration, not Team. The reader's keys
+are `1` to `9` to press a button, `E` to delete or restore, `J` and `K` to move, and `S` to report
+spam. The funding offer panel exists beside the investor Mail.
 
 ## What happened in the Design
 
-Step events (CPU credits gone, out of memory, drawer full, an alert fires, an incident starts or
-ends, a hire, a deploy, a migration step) are Mail, not toasts. The party that would know writes:
-the cloud for credits and memory, the alarm for alerts and incidents, the vendor for the drawer, a
-teammate for hires and deploys. A repeat joins its Thread. Mail from a cloud, an alarm, or an
-advisory plays the warning chime. Toasts remain for the click that just happened, and in a
-Challenge, which has no Inbox.
+Step events are Mail, not toasts: CPU credits gone, out of memory, drawer full, an alert firing, an
+incident starting or ending, a hire, a deploy, a migration step. The party that would know writes.
+The cloud covers credits and memory, the alarm covers alerts and incidents, the vendor covers the
+drawer, and a teammate covers hires and deploys. A repeat joins its Thread. Mail from a cloud, an
+alarm, or an advisory plays the warning chime. Toasts stay for the click that just happened, and in
+a Challenge, which has no Inbox.
 
 ## Mail bench (Sandbox)
 
 Mail belongs to a Company, but a Sandbox shows the Inbox too, with a **bench** under the tabs for
-trying Mail without waiting for it. Pick a sample and Send it, or send ×10 or ×50 random samples. The picker groups one sample per advice topic, one per Step event topic, each CVE and a CVE misfiled in Spam, the hire request, each rewrite language, the customer ticket, the customer's feature request, and every spam and trap sender, plus a **repeating thread** that reuses one key and a random world event. A topic without a sample fails typecheck. Each send picks another of the topic's letters. **Resolve threads** resolves open advice; **Clear** empties
-the Inbox. Sandbox Mail follows the same rules as a Company's, and the Inbox keeps the newest 40,
+trying Mail without waiting for it. Pick a sample and Send it, or send ×10 or ×50 random samples. The picker holds:
+
+- one sample per advice topic
+- one per Step event topic
+- each CVE, and a CVE misfiled in Spam
+- the hire request
+- each rewrite language
+- the customer ticket and the customer's feature request
+- every spam and trap sender
+- a **repeating thread** that reuses one key
+- a random world event
+
+A topic without a sample fails typecheck. Each send picks another of the topic's letters. **Resolve
+threads** resolves open advice, and **Clear** empties the Inbox. Sandbox Mail follows the same rules as a Company's, and the Inbox keeps the newest 40,
 so a ×50 burst also tests the cap. Challenges have no Inbox.
 
 ## Delivery order
 
 1. **Senders and colour.** Give every fact a sender kind, move capacity facts to Cloud and Monitoring,
    add the colour chip and glyph, and keep Dr. Leslie Lamportant for strategy.
-2. **Threads.** Group repeats, resolve and reopen threads, and replace the six-message rule.
+2. **Threads.** Group repeats, and resolve and reopen threads.
 3. **Offers and postmortems.** Move the funding round and the Postmortem into Investor and Teammate
    Mail with action buttons, and remove their panels.
 4. **Teammates.** Named engineers, Shipped and Blocked mail, hire requests, and rewrite proposals.

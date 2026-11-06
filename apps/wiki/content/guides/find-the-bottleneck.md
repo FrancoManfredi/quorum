@@ -23,8 +23,8 @@ A Design is only as fast as its slowest Node. That Node is the
    - Amber: 70% or more. Waiting time rises fast.
    - Red: 90% or more. The tail latency is several times the median.
 
-The game finds the bottleneck again once per second. It tries each of the busiest Nodes with
-double the capacity and marks the one that earns the most revenue. Only Nodes above 60% load can get the
+The game rechecks once per second. It tries each of the busiest Nodes with double the capacity
+and marks the one that earns the most revenue. Only Nodes above 60% load can get the
 marker.
 
 If no Node has the tag, capacity does not limit your revenue. Go to "When there is no marker"

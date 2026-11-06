@@ -48,16 +48,16 @@ This keeps the Garage Era active and then removes the click before it becomes a 
 
 ### SLA credits
 
-**Built for B2B SaaS from Series B.** The Venture runs under an SLA, a promise of availability one
-level above its Era's target ([Ventures](/design/13-prestige#ventures)). While the trailing calendar
-week sits below that promise, the Company pays credits back to its customers: 10% of the subscription
-revenue it is earning, charged with the Burn, so a Company on a 99.95% SLA that misses a week watches
-Cash fall faster without a single extra Node on the board.
+B2B SaaS Ventures from Series B run under an SLA, a promise of availability one level above the
+Era's target ([Ventures](/design/13-prestige#ventures)). While the trailing calendar week sits below
+that promise, the Company pays credits back to its customers: 10% of the subscription revenue it is
+earning, charged with the Burn. A Company on a 99.95% SLA that misses a week watches Cash fall
+faster without a single extra Node on the board.
 
-The credits need `enterprise-sales` research, which is what signs the contract
-([Progression](/design/10-progression#research)). No other Venture signs an SLA, one that has not
-reached Series B has not signed yet, and a week that met the target costs nothing. This is the one
-place where reliability is a line on the P&L rather than a figure in the HUD
+The credits need `enterprise-sales` research, which signs the contract
+([Progression](/design/10-progression#research)). No other Venture signs an SLA, a Venture that has
+not reached Series B has not signed yet, and a week that met the target costs nothing. This is the
+one place where reliability is a line on the P&L rather than a figure in the HUD
 ([Incidents](/design/11-incidents#slos-and-error-budgets)).
 
 ## The cloud bill
@@ -77,15 +77,15 @@ beside them. The table is the bill:
 | Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                                                                                                                                                                                      |
 | Salaries      | Σ engineers × salary × language factor                                                                                                                                                                                                                                               |
 
-Real teams are often surprised by the egress, observability, and third-party lines. The game
-surfaces them on purpose.
+Egress, observability, and third-party fees are the lines real teams tend to miss until the invoice
+arrives. The Cost panel shows each one on purpose.
 
 ### Base prices
 
 | Resource                          | Price                                                                                                                                  |
 | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | vCPU, general family              | $0.05/s                                                                                                                                |
-| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×                                                                                 |
+| vCPU, family multiplier           | Burstable 0.4×, Compute 0.85×, General 1×, Memory 1.3×, ARM 0.8×                                                                       |
 | RAM                               | Implied by the family, inside the vCPU price: 2 GB per vCPU (Burstable, Compute), 4 (General), 8 (Memory)                              |
 | Object storage, standard          | $0.000032/s per GB                                                                                                                     |
 | Serverless Function request       | $0.00024 per request: Lambda's $0.20 per million × 1,200, so the cost curve crosses where 05 puts it                                   |
@@ -124,26 +124,26 @@ Request values set what a user is worth. A user sends about 0.02 requests a seco
 time-billed rule is 0.02 an hour in real time, at about $0.25 each, so revenue is about $4 per user
 per real month. Meta's 2025 worldwide ARPU was $57 a year, about $4.75 a month.
 
-The two rules do not agree with each other: per-use prices are about 3,600 times cheaper, relative
-to compute, than in a real bill. This is on purpose. At the time-billed rate, every page view would
-pay half its value in egress. Request values, the cost index, and the salary index are balance
-controls and do not follow a real price.
+The two rules disagree, and the gap is deliberate. Per-use prices are about 3,600 times cheaper,
+relative to compute, than in a real bill, because at the time-billed rate every page view would pay
+half its value in egress. Request values, the cost index, and the salary index are balance controls
+and do not follow a real price.
 
-The per-use prices of a function, a Queue, and Object Storage are the exception: the list prices of
-Lambda, Workers, SQS, and S3 and R2 are multiplied by 1,200. For a function that puts the crossover at
-about 30% of an equal VM's steady load, where
-[Components](/design/05-components#serverless-function) puts it; at the straight list prices a
+The per-use prices of a function, a Queue, and Object Storage are the exception. The list prices of
+Lambda, Workers, SQS, and S3 and R2 are multiplied by 1,200. For a function that puts the crossover
+at about 30% of an equal VM's steady load, where
+[Components](/design/05-components#serverless-function) puts it. At the straight list prices a
 function would never cost as much as the VM it replaces.
 
 ## Pricing models
 
-Every Node bills at one rate until the Series A Era. From Series A, each compute Node — an App
-Server or a Worker — has a pricing model. The player picks it on the Node's card, and the box price
+Every Node bills at one rate until the Series A Era. From Series A, each compute Node (an App
+Server or a Worker) has a pricing model. The player picks it on the Node's card, and the box price
 in the cloud bill is multiplied by it.
 
-**Built:** On-demand, Reserved and Spot, on sized compute Nodes; and Serverless, which is not a model on
-a box but the Serverless Function's own bill: each request and each GB-second on the Requests line, with
-nothing standing while it idles ([Components](/design/05-components#serverless-function)).
+Sized compute Nodes take On-demand, Reserved, or Spot. Serverless is not a model on a box. It is the
+Serverless Function's own bill: each request and each GB-second on the Requests line, with nothing
+standing while it idles ([Components](/design/05-components#serverless-function)).
 
 | Model      | Price   | Condition                                                                                                                                                                                                                                                                                         |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -152,12 +152,12 @@ nothing standing while it idles ([Components](/design/05-components#serverless-f
 | Spot       | 0.3×    | The provider can reclaim the Node at any time. The player gets a 10-second warning (stylized; the real AWS notice is two minutes). A reclaimed Node goes down for 20 sim seconds. Good for Workers and stateless servers behind a load balancer with spare capacity. Fatal for a single database. |
 | Serverless | Per use | Only for Serverless Functions and managed services. A function bills on the Requests line, never as a box.                                                                                                                                                                                        |
 
-The real lesson: the cheapest fleet mixes all three. Reserved instances cover the base load, on-demand
-instances cover the daily peak, and spot instances run batch work.
+The cheapest fleet mixes all three. Reserved instances cover the base load, on-demand instances
+cover the daily peak, and spot instances run batch work.
 
-**Built.** `savings-plans` ([Progression](/design/10-progression#track-cost)) takes a further 20%
-off every compute Node's box, on top of whichever model above it already runs, with no per-Node
-commitment: it is a Company-wide discount, not a fifth model on the card.
+`savings-plans` ([Progression](/design/10-progression#track-cost)) takes a further 20% off every
+compute Node's box, on top of whichever model it already runs. It needs no per-Node commitment, so
+it is a Company-wide discount and not a fifth model on the card.
 
 ## Egress
 
@@ -172,10 +172,10 @@ commitment: it is a Company-wide discount, not a fifth model on the card.
 `media` at 5 MB per request makes egress the largest line on the bill in the Series A Era unless a CDN
 or R2 serves it. A player who ignores egress sees revenue rise and margin fall.
 
-**Built.** `egress-optimization` ([Progression](/design/10-progression#track-cost)) moves the share
-of a server's egress bytes that `upload` and `media` traffic reaching an R2 Object Storage Node
-accounts for onto the R2 row: $0 instead of the origin price. It reads this from the server's own
-traffic mix rather than a per-byte trace, and only an Object Storage Node that is R2 counts.
+`egress-optimization` ([Progression](/design/10-progression#track-cost)) moves part of a server's
+egress bytes onto the R2 row: $0 instead of the origin price. The part is the share that `upload` and
+`media` traffic reaching an R2 Object Storage Node accounts for. The research reads this from the
+server's own traffic mix, not a per-byte trace, and only an Object Storage Node that is R2 counts.
 
 ## Third-party fees
 
@@ -241,17 +241,16 @@ far above real figures. The scale converts a year of game revenue into the real-
 company would report ([Balancing](/design/16-balancing#valuation-scale)). The Valuation, Exit payout,
 and Legacy use real dollars. Cash, revenue, and Burn use game dollars.
 
-The [Rule of 40](/design/glossary#rule-of-40) is a real heuristic for software companies: growth plus
+The [Rule of 40](/glossary/rule-of-40) is a real heuristic for software companies: growth plus
 profit margin should be at least 40%. It gives the late game a reason to care about margin, not only
 growth.
 
 ## Runway and running out of Cash
 
-**Runway** is Cash divided by net Burn. The HUD shows it when net Burn is positive.
+**Runway** is Cash divided by net Burn.
 
-**Built.** The HUD shows runway beside Cash's net change in 30-day months while net Burn is
-positive, and the Dashboard's Company panel shows the same figure. The rest of the rule is not a
-figure but a sequence of events, below.
+The HUD shows runway beside Cash's net change in 30-day months while net Burn is positive, and the
+Dashboard's Company panel shows the same figure. What happens at zero is a sequence of events.
 
 When Cash reaches zero:
 
@@ -266,12 +265,12 @@ When Cash reaches zero:
    Nodes shut down, most expensive first, until net Burn is zero. A shut Node serves nothing, bills
    nothing, and stays on the board until the player sells it or pays to replace it.
 
-The Company never ends. Running out of money is a setback, not a game over
+Running out of money is a setback and the Company continues
 ([pillar 5](/design/01-vision#pillar-5-respect-the-player)). The Company row of the Dashboard shows
 the bridge's grant, dilution, and Accept while the offer waits
 ([Interface](/design/15-ui-ux#company-and-incidents-panels)).
 
-The thresholds, the grant, the dilution, and the shutdown read as follows:
+Some details of the thresholds, the grant, the dilution, and the shutdown:
 
 - The two thresholds count the gross Burn, which this document calls Burn. The shutdown counts net
   Burn, which this document names.
@@ -300,5 +299,5 @@ Exit (Equity × valuation) ──► LEGACY ──► Permanent perks, Playbooks
 ```
 
 The three main currencies (Cash, Insight, Dev Hours) compete for the player's attention, not for
-each other. No exchange between them exists, except that Cash hires engineers and pays for Analytics.
-This keeps each choice legible.
+each other. Nothing converts one into another, except that Cash hires engineers and pays for
+Analytics. That keeps each choice legible.

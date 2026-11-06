@@ -45,6 +45,6 @@ Considered options:
 
 ## Amendment
 
-[ADR 0012](./0012-the-design-document-lives-in-the-wiki.md) moved the design document into the
+[ADR 0014](./0014-the-design-document-lives-in-the-wiki.md) moved the design document into the
 wiki's `design` section. The reasoning above still holds for the four Diátaxis kinds; the sentence
 that the GDD stays outside the wiki no longer does.

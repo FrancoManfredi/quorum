@@ -8,14 +8,14 @@ aliases: errors, timeout, retry, retry storm, backoff, jitter, circuit breaker, 
 gdd: /design/04-simulation
 ---
 
-A failed request earns nothing and counts as a frustrated user. Quorum gives every failure one cause,
-and each cause points to a different fix. Some failures also create more load, which is how small
-problems become outages.
+A failed request earns nothing and counts as a frustrated user. Every failure has one cause, and each
+cause points to a different fix. Some failures also create more load, which is how a small problem
+becomes an outage.
 
 ## Every failure has a cause
 
-Before research, the game shows errors as one number. The
-[Structured logs](/research/logs) research splits them by cause:
+Until you study [Structured logs](/research/logs), the screen shows errors as one number. The
+research splits that number by cause:
 
 - `stranded`: no Node on the path accepts the kind.
 - `dropped`: the Node was over capacity and had no room.
@@ -30,7 +30,7 @@ Before research, the game shows errors as one number. The
 - `throttled`: a rate limit rejected the request.
 - `duplicate`: a retried checkout charged a card twice.
 
-The breakdown turns "errors are up" into a question you can answer.
+With the split, "errors are up" becomes a question you can answer.
 
 ## Timeouts protect the caller
 
@@ -40,8 +40,8 @@ After it, you set each Link's timeout and retry policy.
 
 A [timeout](/glossary/timeout) is a trade. On a runtime that holds a slot per request, a caller
 holds its slot until the call answers or times out. A short timeout frees the slot sooner, so one
-slow Database cannot fill every App Server. But the slow calls now fail instead of finishing late. And
-the work the callee already did for them is wasted, because nobody uses the answer.
+slow Database cannot fill every App Server. The price is that slow calls fail instead of finishing
+late, and the work the callee already did for them is wasted, because nobody uses the answer.
 
 ## Retries multiply load
 
@@ -52,20 +52,20 @@ three times. If a share `f` of calls fails, each call becomes this many attempts
 attempts = 1 + f + f² + f³
 ```
 
-At a 50% failure rate, that is nearly twice the load on the callee. The callee was failing because it
-was overloaded, and now it gets almost double the work.
+At a 50% failure rate, that is nearly twice the load on the callee. It was failing because it was
+overloaded, so retries hand it almost double the work.
 
 ::Quiz{question="A Link retries at once, up to three times. Half of its calls fail. About how much load does the callee now get, compared with no retries?" options="1.5 times|Nearly 2 times|4 times" answer="2" explain="Attempts per call are 1 + 0.5 + 0.25 + 0.125, which is about 1.9. Load nearly doubles exactly when the callee can least take it."}
 
 ## How a retry storm outlives its cause
 
-Retries create a feedback loop. Overload causes failures. Failures cause retries. Retries cause more
-overload. The game carries each retrying Link's failure share into the next Step, so the loop keeps
-going on its own.
+Retries form a feedback loop: overload causes failures, failures cause retries, and retries cause
+more overload. The Simulation carries each retrying Link's failure share into the next Step, so the
+loop keeps going on its own.
 
 In the [Retry storm](/incidents/retry-storm) incident, the Database slows down for a short time. With
-naive retries, the load stays above its capacity after the slowdown ends, and it queues what it cannot
-take. The incident ends only when that backlog drains. This is a
+naive retries, the load stays above its capacity after the slowdown ends, and the Database queues what
+it cannot take. The incident ends only when that backlog drains. This is a
 [metastable failure](/glossary/metastable-failure): the system has two stable states, and the bad
 one keeps itself going.
 
@@ -81,8 +81,8 @@ Three tools break the loop:
   Server, so the requests it keeps stay fast.
 
 :::Note{tone="real"}
-Metastable failures are well documented. Bronson and others described them at HotOS 2021, and Huang
-and others measured them across real outages at OSDI 2022. Cloud providers advise exponential backoff
+Bronson and others described metastable failures at HotOS 2021, and Huang and others measured them
+across real outages at OSDI 2022. Cloud providers advise exponential backoff
 with jitter for every client, and many services also cap retries with a budget.
 :::
 
@@ -91,7 +91,7 @@ For a step-by-step fix during play, see [Stop a retry storm](/guides/stop-a-retr
 ## Connections: why more servers can break the Database
 
 The Database runs one process per connection, so it accepts only a limited number of them. Every App
-Server process holds its own pool of connections. The total need is the sum of every process's pool.
+Server process holds its own pool of connections, and the Database needs the sum of every pool.
 
 So adding App Servers raises the need. Past the limit, the extra queries fail as `refused`, and the
 fix you made for CPU breaks the Database instead. The [Connection exhaustion](/incidents/connections)
@@ -105,10 +105,11 @@ task that removes it. See [connection pooling](/glossary/connection-pooling).
 
 ## Retries and money
 
-Some calls must not run twice. A checkout sends a charge to the Payment Provider. If the charge times
-out and the Link retries, the first attempt may have succeeded already. The customer pays twice, and
-the request fails as `duplicate`.
+A checkout must not run twice. It sends a charge to the Payment Provider, and if the charge times out
+and the Link retries, the first attempt may have succeeded already. The customer pays twice, and the
+request fails as `duplicate`.
 
-The [Idempotency keys](/research/idempotency-keys) research, and the Idempotency keys engineering task that puts
-it in the code, give each charge a key, so a retry never charges twice. Without them, set the charge Link's retries to none. See
-[idempotency](/glossary/idempotency) and the [Double charge](/incidents/double-charge) incident.
+The [Idempotency keys](/research/idempotency-keys) research and the Idempotency keys engineering task
+that puts it in the code give each charge a key, so a retry never charges twice. Without them, set the
+charge Link's retries to none. See [idempotency](/glossary/idempotency) and the
+[Double charge](/incidents/double-charge) incident.

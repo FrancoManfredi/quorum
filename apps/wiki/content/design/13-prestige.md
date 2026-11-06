@@ -5,10 +5,10 @@ section: design
 order: 13
 ---
 
-The prestige layer. A company ends in an **Exit**. The Exit pays **Legacy**. Legacy buys permanent
-perks and opens new **Ventures**, which change the rules of the next company. This follows the idle
-game prestige pattern ([Influences](/design/02-influences#idle-game-theory)), and it uses Ventures and
-Mutators to keep each company different, which answers the Upload Labs complaint about repetition.
+A company ends in an **Exit**, and the Exit pays **Legacy**. Legacy buys permanent perks and opens new
+**Ventures**, which change the rules of the next company. This is the idle game prestige pattern
+([Influences](/design/02-influences#idle-game-theory)). Ventures and Mutators keep each company
+different, which answers the Upload Labs complaint about repetition.
 
 ## Exits
 
@@ -21,7 +21,7 @@ Mutators to keep each company different, which answers the Upload Labs complaint
 
 ```text
 payout = equity × valuation × exit_multiplier
-legacy = floor( sqrt( payout / $1,000,000 ) )
+legacy = floor( sqrt( payout / $1,000,000 ) × founding_multiplier )
 ```
 
 | Payout       | Legacy |
@@ -32,7 +32,10 @@ legacy = floor( sqrt( payout / $1,000,000 ) )
 | $10 billion  | 100    |
 | $100 billion | 316    |
 
-The square root follows the common prestige curve: each Exit is worth more than the last, but not
+The table is for a founding multiplier of 1. The multiplier is the Venture's Legacy multiplier times
+one plus the sum of the Mutators' shares ([Ventures](#ventures), [Mutators](#mutators)).
+
+The square root is the common prestige curve. Each Exit is worth more than the last, but not
 exponentially more, so the player keeps a reason to improve rather than repeat
 ([Balancing](/design/16-balancing#prestige-curve)).
 
@@ -58,13 +61,13 @@ Ventures and Mutators, and the engineering glossary entries the player has disco
 | War stories             | 3      | 8, 24, 72          | Open action items raise incident odds by half as much                                                                                                                                                                      |
 | Head start              | 3      | 25, 75, 225        | Start the next company in the Pre-seed Era, then in Seed, then in Series A, with that Era's Cash, Equity, Users and research, and a Design that has a Cache (and a Load Balancer behind a second App Server from Series A) |
 
-The twelve perks cost 1,563 ★ in all, and costs grow so that a full shop takes several Exits, which
-is the target for 80 to 150 hours.
+The twelve perks cost 1,563 ★ in all. Costs grow so that a full shop takes several Exits, which is
+the target for 80 to 150 hours.
 
 ## Playbooks
 
-A **Playbook** is a saved sub-design: Nodes, links, Stacks, and settings. It is Quorum's version of
-Factorio blueprints ([Influences](/design/02-influences#factorio)).
+A **Playbook** is a saved sub-design: Nodes, links, Stacks, and settings. It plays the role of a
+Factorio blueprint ([Influences](/design/02-influences#factorio)).
 
 - The player saves a selection on the board as a Playbook.
 - Placing a Playbook places all its Nodes in one action, if the player has the Cash and the research.
@@ -91,19 +94,18 @@ or come from achievements.
 | Game backend        | 15 ★                        | Evening peak by region                                 | `rt` ×4                            | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
 | AI startup          | 15 ★                        | Flat, with launch spikes                               | `ai` ×3 from Series B              | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
 | E-commerce          | 20 ★                        | Daily, with a yearly event                             | `buy` ×2, `search` ×2              | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
-| Developer platform  | 20 ★ — built                | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
-| Healthcare          | 30 ★ — built                | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                       | Data Components stay in the home region from Series A                                                          | Audit finding               |
-| Ad tech             | 30 ★ — built                | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
+| Developer platform  | 20 ★                        | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
+| Healthcare          | 30 ★                        | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                       | Data Components stay in the home region from Series A                                                          | Audit finding               |
+| Ad tech             | 30 ★                        | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
 | Bootstrapped indie  | Achievement "Default Alive" | Any                                                    | Default                            | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
-| Government contract | 40 ★ — built                | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
+| Government contract | 40 ★                        | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
 
-All twelve Ventures are built. The four that arrived last — Developer platform, Healthcare, Ad tech,
-and Government contract — each have their demand shape, their rule, and their signature incident. The
-eight that shipped earlier each meet the signature incident their row names, with one exception:
+Every Venture has its demand shape and its rule. Developer platform, Healthcare, Ad tech, and
+Government contract also have their signature incident. So do the other Ventures, with one exception:
 Bootstrapped indie's row names Runway, which is a figure rather than an incident, so it has none.
-Four of the eight now have the rule their row names: Bootstrapped indie's no-funding rule, and the
-three below. Consumer social's celebrity post is the build's **Hot key** incident, and its own row
-names what the player meets.
+Four of those eight enforce the rule their row names: Bootstrapped indie's no-funding rule, and the
+three below. Consumer social's celebrity post is the **Hot key** incident, and its own row names what
+the player meets.
 
 What each Venture starts with:
 
@@ -119,17 +121,23 @@ What each Venture starts with:
 | Developer platform  | $300 | 100%   | The Garage's                       | 1.35×    | Retry storm          |
 | Healthcare          | $300 | 100%   | The Garage's                       | 1.4×     | Audit finding        |
 | Ad tech             | $400 | 100%   | The Garage's                       | 1.3×     | Latency regression   |
-| Bootstrapped indie  | $300 | 100%   | The Garage's                       | 1.4×     | —                    |
+| Bootstrapped indie  | $300 | 100%   | The Garage's                       | 1.4×     | None                 |
 | Government contract | $900 | 100%   | Tomcat, and `lang-java` researched | 1.5×     | Deadline day         |
 
-All twelve start in the Garage, and the Head start perk still opens Pre-seed. Cash, Equity, the demand
-curves and amplitudes, the market and value multipliers, the mix boosts, and the Legacy multipliers
-above are this game's own; the unlock costs, the 100 ms bid deadline, the Java-or-C# rule, the
-calendar-day procurement, the Series A residency, the no-naive-retry rule, the Series B SLA, the
-realtime regions from Series A, the scarce GPUs, and the signature incidents are this document's. The
-SLA's one SLO level and the AI startup's two GPU Nodes are the game's own. Incident magnitudes: a hot shard costs three times the CPU per query, a
-premiere lifts video four times, a launch day lifts realtime six times, and a flash sale lifts
-checkouts ×20, for a few minutes.
+All twelve Ventures start in the Garage, and the Head start perk still opens Pre-seed.
+
+The game owns Cash, Equity, the demand curves and amplitudes, the market and value multipliers, the
+mix boosts, and the Legacy multipliers. This document sets the rest: the unlock costs, the 100 ms bid deadline, the Java-or-C# rule,
+calendar-day procurement, Series A residency, the no-naive-retry rule, the Series B SLA, realtime
+regions from Series A, scarce GPUs, and the signature incidents. The SLA's one SLO level and the AI
+startup's two GPU Nodes are the game's own.
+
+Each signature incident hits for a few minutes:
+
+- A hot shard costs three times the CPU per query.
+- A premiere lifts video four times.
+- A launch day lifts realtime six times.
+- A flash sale lifts checkouts ×20.
 
 The rule of each Venture is enforced where the player meets it. Developer platform refuses
 `naive` retries on a Link (`retryRefusal`). Healthcare refuses to place a data Component outside the
@@ -163,10 +171,10 @@ The other four rows name a rule that is not a refusal or a target. Each runs in 
 
 A signature incident weighs four times as much for its own Venture (`SIGNATURE_WEIGHT`) and keeps a
 weakness of 2 (`SIGNATURE_WEAKNESS`), so it can fire on a well-built Design. Six incidents exist only
-as signatures — Latency regression, Deadline day, Big tenant hot shard, Premiere spike, Launch day and
-Flash sale — so no other Venture's weakness can start them. Retry storm, Audit finding, Hot key,
-Double charge and GPU shortage stay general incidents, and Developer platform, Healthcare, Consumer
-social, Fintech and AI startup simply meet theirs four times as often.
+as signatures: Latency regression, Deadline day, Big tenant hot shard, Premiere spike, Launch day and
+Flash sale. No other Venture's weakness can start them. Retry storm, Audit finding, Hot key, Double
+charge and GPU shortage stay general incidents, so Developer platform, Healthcare, Consumer social,
+Fintech and AI startup meet theirs four times as often.
 
 Ad tech serves the bid request kind the design names (value $0.001, Apdex T 100 ms, ×10 volume). The
 kind arrives with the Series A mix at a 1% share and Ad tech multiplies it tenfold, so its Earn per
@@ -178,9 +186,9 @@ Each Venture has its own Legacy multiplier (1.0× to 1.5×), shown before foundi
 
 ## Mutators
 
-A **Mutator** is an optional rule that makes a company harder in exchange for more Legacy. Three
-Mutators — Legacy monolith, One region forever, and Tight budget — open on the first Exit, and the
-other six come from achievements ([Challenges](/design/14-challenges#achievements)). Each one adds a
+A **Mutator** is an optional rule that makes a company harder in exchange for more Legacy. Four
+Mutators open on the first Exit: Legacy monolith, One region forever, Shared tenancy, and Tight
+budget. The other six come from achievements ([Challenges](/design/14-challenges#achievements)). Each one adds a
 Legacy multiplier.
 
 | Mutator                 | Rule                                                                                      | Legacy |
@@ -196,12 +204,12 @@ Legacy multiplier.
 | Postgres for everything | The Cache, the Wide-column Store, Distributed SQL and the Data Warehouse cannot be placed | +30%   |
 | Strict SLO              | The SLO is one level higher in every Era                                                  | +20%   |
 
-"Postgres for everything" is a real engineering argument. With this Mutator the game supports it:
+"Postgres for everything" is a real engineering argument, and this Mutator lets the player make it.
 Postgres can serve `q-search` with full-text search, `ai` lookups with pgvector, and queues with
 `SKIP LOCKED`, each with a lower ceiling than the dedicated Component.
 
 ## Company history
 
 Each Exit adds a row to the company history: the Company's name, Venture, Mutators, time played, peak users, Exit type,
-payout, Legacy earned, final Stack mix, and a snapshot of the board. The history is a record of how
-the player's engineering changed over time.
+payout, Legacy earned, final Stack mix, and a snapshot of the board. The history shows how the
+player's engineering changed over time.

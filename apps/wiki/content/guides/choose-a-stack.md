@@ -45,7 +45,7 @@ service, so a rare language makes the Team more expensive and slower to grow. Se
 
 ## Start the migration
 
-In a Company, a new Stack is a migration of the whole service, not a click.
+In a Company, switching Stack starts a migration of the whole service.
 
 7. Select the new runtime or framework on any App Server. The first time you pick from a section,
    the Tradeoff card stays open. Click **Confirm** on it. The game starts a migration and puts its

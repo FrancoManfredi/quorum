@@ -1,7 +1,7 @@
 # Accessibility checklist
 
-The M9 exit check ([GDD 17](./gdd/17-scope-and-roadmap.md#milestones)). Items come from
-[GDD 15 "Accessibility"](./gdd/15-ui-ux.md) plus the WCAG 2.2 AA items that apply to the panels.
+The M9 exit check ([GDD 17](https://wiki.playquorum.dev/design/17-scope-and-roadmap#milestones)). Items come from
+[GDD 15 "Accessibility"](https://wiki.playquorum.dev/design/15-ui-ux) plus the WCAG 2.2 AA items that apply to the panels.
 Run it before a release: axe-core on the title screen, the lab with a panel open, and a Challenge,
 then the keyboard-only run below.
 

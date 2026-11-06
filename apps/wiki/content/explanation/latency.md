@@ -7,9 +7,10 @@ aliases: latency, p99, p95, p50, percentile, tail latency, mean, fan-out, gc pau
 gdd: /design/04-simulation
 ---
 
-Latency is the time a user waits for an answer. Quorum computes it for every request kind on every
-path through your Design. Latency decides how much each request earns and whether users stay, so it
-is worth understanding where the time goes.
+The Garage view shows mean latency, and it is the least useful number on the screen. Your users do
+not experience the mean. They experience their own request, and a few of them wait much longer than the
+rest. Quorum computes latency for every request kind on every path through your Design, and it pays
+you by the wait, so the slow tail costs real revenue.
 
 ## Where the time goes
 
@@ -33,16 +34,16 @@ result is ready instead.
 
 ## Why the mean lies
 
-Queueing and service time do not give every request the same latency. The game models them like the
-textbook single-server queue: response times follow an exponential curve. Most requests are fast and a
-long tail is slow. On that curve, the 99th percentile is about 4.6 times the mean of the variable part.
+Most requests are fast and a few are very slow. The game models this like the textbook
+single-server queue, where response times follow an exponential curve. On that curve the 99th
+percentile is about 4.6 times the mean of the variable part.
 
-So a mean of 100 ms can hide users who wait half a second. And the mean barely moves when a tail
-event hits 2% of requests, because 98% of requests are unchanged. The p99 moves a lot.
+So a mean of 100 ms can hide users who wait half a second. A tail event that hits 2% of requests
+barely moves the mean, because the other 98% are unchanged. The p99 jumps.
 
-A [percentile](/glossary/percentile-p50-p95-p99) answers a better question: "How slow is the
-slowest share of my users?" The p50 is the typical request. The p95 and p99 are your unlucky users,
-and on a busy site they are many people.
+A [percentile](/glossary/percentile-p50-p95-p99) asks the better question: how slow is the slowest
+share of my users? The p50 is the typical request. The p95 and p99 are your unlucky users, and on a
+busy site that is a lot of people.
 
 ::Quiz{question="A GC pause adds 150 ms to about 2% of the requests on one App Server. Which number moves the most?" options="The mean|The p50|The p99" answer="3" explain="Only the slowest few percent of requests get the pause, so it lands in the p99. The p50 does not change, and the mean rises only a little."}
 

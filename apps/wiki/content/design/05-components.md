@@ -5,9 +5,9 @@ section: design
 order: 5
 ---
 
-A **Component** is an entry in the catalog. A **Node** is one placed copy of it. This document lists
-every Component, the real products it stands for, its stats, and its options. Database and cache
-details are in [Data tier](/design/07-data-tier). Runtime details for App Servers are in
+A **Component** is an entry in the catalog. A **Node** is one placed copy of it. This page lists every
+Component with the real product it stands for, its stats, and its options. Database and cache details
+are in [Data tier](/design/07-data-tier). Runtime details for App Servers are in
 [Runtimes](/design/06-runtimes).
 
 ## Rules for all Components
@@ -19,8 +19,8 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
   idle and each use on the Requests line ([Economy](/design/09-economy#the-cloud-bill)).
 - **Resize.** Most Components have sizes. A size step doubles resources and doubles Burn. A resize
   restarts the Node, so it is briefly down unless a redundant Node carries the load. Real cloud
-  prices scale linearly with size, so vertical scaling is not a discount. It saves a network hop, a
-  load balancer, and per-process overhead ([Balancing](/design/16-balancing#vertical-and-horizontal)).
+  prices scale linearly with size, so a bigger box earns no discount. What it saves is a network hop,
+  a load balancer, and per-process overhead ([Balancing](/design/16-balancing#vertical-and-horizontal)).
 - **Sell.** Removing a Node refunds 50% of its placement cost and stops its Burn. Reserved Nodes keep
   burning until their term ends ([Economy](/design/09-economy#pricing-models)).
 - **Options.** A Tradeoff card presents each option. An option belongs to the choice, not to the
@@ -30,11 +30,16 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
 
 ## Catalog overview
 
-The dock groups Components into seven groups: Edge, Compute, Data, Messaging (Queue, Event Stream,
-CDC Connector, Realtime Hub), Platform (Autoscaler, CI/CD Pipeline, Service Mesh, Feature Flags,
-Secrets and Certificates), Observability (Analytics, Payments) and Managed (Auth Provider, Payment
-Provider, LLM API, Push Provider). The number keys follow the visible groups, and a Component's badge
-wears the colour and shape of the Edge, Compute, Data or Ops family it belongs to.
+The dock has seven groups: Edge, Compute, Data, Messaging, Platform, Observability and Managed. Four
+of them have members that are not obvious from the name:
+
+- **Messaging:** Queue, Event Stream, CDC Connector, Realtime Hub.
+- **Platform:** Autoscaler, CI/CD Pipeline, Service Mesh, Feature Flags, Secrets and Certificates.
+- **Observability:** Analytics, Payments.
+- **Managed:** Auth Provider, Payment Provider, LLM API, Push Provider.
+
+The number keys follow the visible groups. A Component's badge takes the colour and shape of the
+family it belongs to: Edge, Compute, Data or Ops.
 
 | Group         | Component                                                   | Code   | Unlocked by              | Era      |
 | ------------- | ----------------------------------------------------------- | ------ | ------------------------ | -------- |
@@ -53,7 +58,7 @@ wears the colour and shape of the Edge, Compute, Data or Ops family it belongs t
 | Data          | [Database](/design/07-data-tier#relational-database)        | `sql`  | Starter                  | Garage   |
 | Data          | [Connection Pooler](/design/07-data-tier#connection-pooler) | `pool` | Connection pooling       | Pre-seed |
 | Data          | [Cache](/design/07-data-tier#cache)                         | `kv`   | Caching                  | Pre-seed |
-| Data          | [Read Replica](/design/07-data-tier#read-replica)           | `rep`  | Replication              | Pre-seed |
+| Data          | [Read Replica](/design/07-data-tier#read-replica)           | `rep`  | Read replicas            | Pre-seed |
 | Data          | [Search Engine](/design/07-data-tier#search-engine)         | `fts`  | Full-text search         | Seed     |
 | Data          | [Object Storage](/design/07-data-tier#object-storage)       | `s3`   | Object storage           | Seed     |
 | Data          | [Document Store](/design/07-data-tier#document-store)       | `doc`  | Document databases       | Series A |
@@ -61,10 +66,10 @@ wears the colour and shape of the Edge, Compute, Data or Ops family it belongs t
 | Data          | [Vector Index](/design/07-data-tier#vector-index)           | `vec`  | Embeddings               | Series B |
 | Data          | [Wide-column Store](/design/07-data-tier#wide-column-store) | `wide` | Leaderless replication   | Series C |
 | Data          | [Distributed SQL](/design/07-data-tier#distributed-sql)     | `dsql` | Consensus databases      | Series C |
-| Async         | [Queue](#queue)                                             | `mq`   | Message queues           | Seed     |
-| Async         | [Realtime Hub](#realtime-hub)                               | `ws`   | WebSockets               | Series A |
-| Async         | [Event Stream](#event-stream)                               | `log`  | Event streaming          | Series B |
-| Async         | [CDC Connector](#cdc-connector)                             | `cdc`  | Change data capture      | Series B |
+| Messaging     | [Queue](#queue)                                             | `mq`   | Message queues           | Seed     |
+| Messaging     | [Realtime Hub](#realtime-hub)                               | `ws`   | WebSockets               | Series A |
+| Messaging     | [Event Stream](#event-stream)                               | `log`  | Event streaming          | Series B |
+| Messaging     | [CDC Connector](#cdc-connector)                             | `cdc`  | Change data capture      | Series B |
 | Platform      | [Autoscaler](#autoscaler)                                   | `hpa`  | Autoscaling              | Series A |
 | Platform      | [Service Mesh](#service-mesh)                               | `mesh` | Service mesh             | Series B |
 | Platform      | [CI/CD Pipeline](#cicd-pipeline)                            | `ci`   | Continuous delivery      | Pre-seed |
@@ -75,50 +80,50 @@ wears the colour and shape of the Edge, Compute, Data or Ops family it belongs t
 | Managed       | [Payment Provider](#payment-provider)                       | `psp`  | Checkout                 | Series A |
 | Managed       | [Auth Provider](#auth-provider)                             | `idp`  | Managed identity         | Pre-seed |
 | Managed       | [LLM API](#llm-api)                                         | `llm`  | Hosted models            | Series B |
-| Managed       | [Push and Email Provider](#push-and-email-provider)         | `msgp` | Notifications            | Series C |
+| Managed       | [Push Provider](#push-and-email-provider)                   | `msgp` | Notifications            | Series C |
 
 ## Stats
 
 | Component                | Place ($) | Burn at base ($/s)        | Capacity at base                            | Base latency           | Sizes |
 | ------------------------ | --------- | ------------------------- | ------------------------------------------- | ---------------------- | ----- |
-| Users                    | —         | —                         | —                                           | 30 ms                  | —     |
-| DNS                      | 20        | 0.01                      | Unlimited                                   | 0 ms (cached)          | —     |
+| Users                    |           |                           |                                             | 30 ms                  |       |
+| DNS                      | 20        | 0.01                      | Unlimited                                   | 0 ms (cached)          |       |
 | Load Balancer            | 120       | 0.08                      | 2,000 rps (L7), 20,000 rps (L4)             | 1 ms (L7), 0.2 ms (L4) | 6     |
-| CDN                      | 220       | 0.05 + egress             | Unlimited                                   | 8 ms at edge           | —     |
+| CDN                      | 220       | 0.05 + egress             | Unlimited                                   | 8 ms at edge           |       |
 | WAF                      | 260       | 0.10                      | 5,000 rps                                   | 2 ms                   | 6     |
-| API Gateway              | 300       | 0.002 per request         | 10,000 rps                                  | 6 ms                   | —     |
+| API Gateway              | 300       | 0.002 per request         | 10,000 rps                                  | 6 ms                   |       |
 | App Server               | 60        | Instance price            | Runtime model                               | 2 ms                   | 9     |
-| Worker                   | 60        | Instance price            | Runtime model                               | —                      | 9     |
-| Serverless Function      | 0         | Per request + GB-s        | 1,000 concurrent                            | Cold start             | —     |
-| Kubernetes Cluster       | 500       | 0.10 control plane        | Holds services                              | —                      | —     |
+| Worker                   | 60        | Instance price            | Runtime model                               |                        | 9     |
+| Serverless Function      | 0         | Per request + GB-s        | 1,000 concurrent                            | Cold start             |       |
+| Kubernetes Cluster       | 500       | 0.10 control plane        | Holds services                              |                        |       |
 | GPU Node                 | 900       | 0.53 (T4) to 3.30 (H100)  | Tokens per second                           | Model-based            | 8     |
-| Edge Function            | 0         | Per request               | Unlimited                                   | 5 ms                   | —     |
+| Edge Function            | 0         | Per request               | Unlimited                                   | 5 ms                   |       |
 | Database                 | 90        | Instance price            | CPU and connections                         | 2.5 ms                 | 9     |
 | Connection Pooler        | 80        | 0.03                      | 10,000 client connections                   | 0.3 ms                 | 4     |
 | Cache                    | 150       | 0.06                      | 50,000 ops/s per core                       | 0.5 ms                 | 8     |
 | Read Replica             | 160       | As Database               | As Database (reads only)                    | 2.5 ms                 | 9     |
 | Search Engine            | 300       | 0.25                      | 400 queries/s per node                      | 15 ms                  | 8     |
-| Object Storage           | 280       | 0.01 + $0.000032 per GB   | Unlimited                                   | 40 ms first byte       | —     |
+| Object Storage           | 280       | 0.01 + $0.000032 per GB   | Unlimited                                   | 40 ms first byte       |       |
 | Document Store           | 260       | 0.20                      | 3,000 ops/s                                 | 3 ms                   | 8     |
-| Data Warehouse           | 800       | 0.05 + $0.02 per scan     | Scan throughput                             | 1,500 ms               | —     |
+| Data Warehouse           | 800       | 0.05 + $0.02 per scan     | Scan throughput                             | 1,500 ms               |       |
 | Vector Index             | 400       | 0.30                      | 500 queries/s                               | 20 ms                  | 6     |
 | Wide-column Store        | 1,200     | 0.40 per node             | 30,000 replica ops/s (10,000 writes at N=3) | 3 ms                   | 6     |
 | Distributed SQL          | 2,500     | 0.65 per node             | 2,000 tx/s per node                         | Quorum-based           | 6     |
 | Queue                    | 360       | 0.10                      | 20,000 msg/s per node                       | 2 ms enqueue           | 6     |
 | Realtime Hub             | 400       | 0.15                      | Connections by runtime                      | 1 ms                   | 8     |
 | Event Stream             | 900       | 0.30                      | 100,000 msg/s per broker                    | 5 ms                   | 6     |
-| CDC Connector            | 300       | 0.05                      | 20,000 changes/s                            | Lag-based              | —     |
-| Autoscaler               | 200       | 0                         | —                                           | —                      | —     |
-| Service Mesh             | 600       | Sidecar overhead          | —                                           | +1 ms per hop          | —     |
-| CI/CD Pipeline           | 100       | 0.02                      | —                                           | 1 ms                   | —     |
-| Feature Flags            | 150       | 0.01                      | —                                           | —                      | —     |
-| Secrets and Certificates | 80        | 0.005                     | —                                           | —                      | —     |
-| Analytics                | 40        | 0.05 + storage            | Samples per second                          | —                      | 8     |
-| Payments                 | —         | —                         | Drawer size                                 | —                      | 6     |
+| CDC Connector            | 300       | 0.05                      | 20,000 changes/s                            | Lag-based              |       |
+| Autoscaler               | 200       | 0                         |                                             |                        |       |
+| Service Mesh             | 600       | Sidecar overhead          |                                             | +1 ms per hop          |       |
+| CI/CD Pipeline           | 100       | 0.02                      |                                             | 1 ms                   |       |
+| Feature Flags            | 150       | 0.01                      |                                             |                        |       |
+| Secrets and Certificates | 80        | 0.005                     |                                             |                        |       |
+| Analytics                | 40        | 0.05 + storage            | Samples per second                          |                        | 8     |
+| Payments                 |           |                           | Drawer size                                 |                        | 6     |
 | Payment Provider         | 0         | 2.9% + $0.30 per checkout | 1,000 tx/s                                  | 400 ms                 | 8     |
-| Auth Provider            | 0         | Per monthly user          | Unlimited                                   | 120 ms                 | —     |
+| Auth Provider            | 0         | Per monthly user          | Unlimited                                   | 120 ms                 |       |
 | LLM API                  | 0         | Per token                 | 100 prompts/s per tier                      | 600 ms first token     | 8     |
-| Push and Email Provider  | 0         | Per message               | 10,000 msg/s                                | Async                  | —     |
+| Push Provider            | 0         | Per message               | 10,000 msg/s                                | Async                  |       |
 
 ## Edge
 
@@ -163,7 +168,6 @@ Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 | Least connections    | Sends to the target with the fewest in-flight requests. Adapts to slow targets. Best with mixed instance sizes.                                                                                    |
 | Power of two choices | Picks two targets at random and sends to the less loaded one. Nearly as good as least connections, with no global state. Research "Load balancing algorithms".                                     |
 | Consistent hash      | Places each key on a ring of the targets: every target takes an equal share of the keys whatever its load, and a target that leaves moves only its own keys. Research "Load balancing algorithms". |
-| Consistent hashing   | The same key always goes to the same target. Improves cache hit ratio on the targets. One hot key overloads one target.                                                                            |
 
 | Option                | Effect                                                                                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -174,20 +178,20 @@ Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 
 Teaches: load balancing is a policy choice, and health checks can cause outages as well as prevent them.
 
-**Built:** both variants. L7 is the default: 2,000 requests a second at size 1, 1 ms, and the only one
-that can carry a chosen set of kinds on a Link or retry. L4 carries 20,000 at size 1 in a 0.2 ms hop
-for 0.6× the Burn, sends every kind whatever a Link asks for, and
-never retries, even with Timeouts and retries. The L4 counts a realtime message as one message. The
-L4 is research `l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
+L7 is the default: 2,000 requests a second at size 1, with a 1 ms hop. It is the only variant that can
+carry a chosen set of kinds on a Link, and the only one that can retry. L4 carries 20,000 at size 1 in
+a 0.2 ms hop for 0.6× the Burn. It sends every kind whatever a Link asks for and never retries, even
+with Timeouts and retries. It counts a realtime message as one message. L4 is unlocked by research
+`l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
 
 Sticky sessions are a switch on the card. With it on, 40% of the Load Balancer's traffic belongs to
-users already pinned to a target, whatever the algorithm would send now, and the other 60% follows
-the algorithm. Pinned users do not move when a copy is added, so the oldest target holds the most:
-each later target holds 0.8× the pinned users of the one before. An App Server behind a sticky
-Load Balancer answers 15% of its `q-read` calls from its own memory, and a restarted Realtime Hub
-behind one takes half the reconnect wave it would take otherwise, because its own clients return to
-it. A target that dies keeps its pinned share until the Load Balancer notices, and those users lose
-their session.
+users already pinned to a target, whatever the algorithm would send now. The other 60% follows the
+algorithm. Pinned users do not move when a copy is added, so the oldest target holds the most: each
+later target holds 0.8× the pinned users of the one before. An App Server behind a sticky Load
+Balancer answers 15% of its `q-read` calls from its own memory. A restarted Realtime Hub behind one
+takes half the reconnect wave it would take otherwise, because its own clients return to it. A target
+that dies keeps its pinned share until the Load Balancer notices, and those users lose their
+session.
 
 ### CDN
 
@@ -205,19 +209,21 @@ egress from a CDN is cheaper than egress from the origin ([Economy](/design/09-e
 | Option          | Effect                                                                                                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | TTL             | Longer TTL, higher hit ratio, staler content.                                                                                               |
-| Purge on deploy | Clears the cache. The origin takes a burst of misses: a small [stampede](/design/glossary#cache-stampede).                                  |
+| Purge on deploy | Clears the cache. The origin takes a burst of misses: a small [stampede](/glossary/cache-stampede).                                         |
 | Cache key       | Including query strings or cookies lowers the hit ratio. Ignoring them can serve one user's page to another, which is a data leak incident. |
 
-**Built:** the TTL, Purge on deploy, the cache key, and Edge-side includes. Purge on deploy is a
-switch on the card. With it on, a deploy empties the CDN and it refills from the origin as it warms,
-so the origin takes the misses. With it off, the edge keeps serving the last deploy's pages: 30% of
-`page` answers are stale until the TTL passes. The cache key is Path, query and cookies (the
-default), Path and query, or Path only. A smaller key multiplies the hit ratio by 1.1× or 1.2×. With
-Edge-side includes a logged-in page is cached, so a key that leaves out the cookie can serve one
-user's page to another: the Cached page leak incident (weight 1 for Path and query, 2.5 for Path
-only) drives 5% of the Users away at once. The research adds 20 points to the `page` base (70% to
-90%), because the edge now assembles the personal parts of a logged-in page around a cached shell.
-The TTL multiplies it:
+Purge on deploy is a switch on the card. With it on, a deploy empties the CDN and it refills from the
+origin as it warms, so the origin takes the misses. With it off, the edge keeps serving the last
+deploy's pages, and 30% of `page` answers are stale until the TTL passes.
+
+The cache key is Path, query and cookies (the default), Path and query, or Path only. A smaller key
+multiplies the hit ratio by 1.1× or 1.2×. With Edge-side includes a logged-in page is cached, so a
+key that leaves out the cookie can serve one user's page to another. That is the Cached page leak
+incident (weight 1 for Path and query, 2.5 for Path only), and it drives 5% of the Users away at
+once. The research adds 20 points to the `page` base (70% to 90%), because the edge assembles the
+personal parts of a logged-in page around a cached shell.
+
+The TTL multiplies the hit ratio:
 
 | TTL    | Hit-ratio factor |
 | ------ | ---------------- |
@@ -240,19 +246,22 @@ A WAF blocks bots and attacks before they reach the app.
 
 The OWASP Core Rule Set uses real paranoia levels with this tradeoff. Blocked real users fail as
 `blocked`. Research "Bot management" challenges a suspicious client instead of blocking it outright:
-the block rate stays and the false-positive rate halves. A WAF has Under attack mode instead, which challenges every request at paranoia level 1's CPU
-cost: it blocks 99% of bots and 1% of real users, and adds 40 ms.
+the block rate stays and the false-positive rate halves.
 
-The WAF has a regex cost. Incident "Regex backtracking" makes one rule consume all CPU on every WAF
-Node, which takes the edge down ([Incidents](/design/11-incidents#catalog)).
+Under attack mode is a switch on the card. While it is on, it replaces the paranoia level: the Node
+challenges every request at paranoia level 1's CPU cost, blocks 99% of bots and 1% of real users, and
+adds 40 ms. Turn it off and the paranoia level applies again.
+
+Rules cost CPU. The Regex backtracking incident makes one rule consume all CPU on every WAF Node,
+which takes the edge down ([Incidents](/design/11-incidents#catalog)).
 
 ### API Gateway
 
 Real products: Kong, AWS API Gateway, Apigee.
 
 Routes requests to services by path, checks authentication, and applies rate limits. It takes every
-request kind and sends on what it lets through, adding its own hop. It is one front door,
-not a route table: every kind goes on the same Links.
+request kind and sends on what it lets through, adding its own hop. It is one front door with no
+route table, so every kind goes on the same Links.
 
 | Option             | Effect                                                                                                                                                                                                                                            |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -260,11 +269,12 @@ not a route table: every kind goes on the same Links.
 | Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms to the Gateway's hop, and takes 0.02 ms of CPU off each authenticated request a service answers.                                                                                            |
 | Request coalescing | Merges identical in-flight reads: 30% of `page`, `read`, `feed` and `search` ask for popular objects, and λw / (1 + λw) of them find an identical read in flight (w = 50 ms). The busier the Gateway, the more it merges, so spikes send less on. |
 
-The cap is one limit for the whole Node: the game counts requests per second at the gateway, not
-per user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes
-it a token bucket: the limit refills every Step and the bucket holds 200 more requests, so a burst that fits passes whole while the average holds.
-The bucket is one per Node, not one per client: the game has no clients to count. Past the
-gateway's own 10,000 requests per second it drops requests like any other flat-capacity Component.
+The cap is one limit for the whole Node. The game counts requests per second at the gateway, not per
+user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes it a
+token bucket: the limit refills every Step and the bucket holds 200 more requests, so a burst that
+fits passes whole while the average holds. The bucket is one per Node because the game has no clients
+to count. Past the gateway's own 10,000 requests per second it drops requests like any other
+flat-capacity Component.
 
 Cost is per request, so the gateway is cheap at low volume and expensive at high volume. It is the
 one per-request line on the cloud bill ([Economy](/design/09-economy#the-cloud-bill)).
@@ -290,8 +300,8 @@ Sizes go from `nano` (0.5 vCPU) to `metal` (96 vCPU): nine sizes, each step doub
 `metal` a 1.5× last step.
 
 The ARM family needs research `arm-instances` ([Progression](/design/10-progression#track-infrastructure)).
-It runs at 0.95× a General box's CPU speed, so the 20% it saves costs 5% of the capacity. Every sized Node takes it, not only the App
-Server.
+It runs at 0.95× a General box's CPU speed, so the 20% it saves costs 5% of the capacity. Any sized
+Node can take it, not just the App Server.
 
 The App Server answers `page` and `bot` itself and turns other kinds into backend kinds
 ([Simulation](/design/04-simulation#backend-kinds)).
@@ -304,11 +314,9 @@ A Worker runs the same runtimes as an App Server, but it pulls `task` from a Que
 receiving user requests. Its latency does not count toward user latency. Its throughput decides
 how long the queue grows.
 
-| Option       | Effect                                                                                           |
-| ------------ | ------------------------------------------------------------------------------------------------ |
-| Concurrency  | Jobs in parallel per process. More is faster until CPU or memory runs out.                       |
-| Prefetch     | Jobs taken from the queue ahead of time. Higher prefetch is faster, and a crash loses more jobs. |
-| Max attempts | Retries for failed jobs before the dead-letter queue.                                            |
+| Option   | Effect                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| Prefetch | Jobs taken from the queue ahead of time. Higher prefetch is faster, and a crash loses more jobs. |
 
 ### Serverless Function
 
@@ -317,11 +325,11 @@ Real products: AWS Lambda, Google Cloud Functions, Azure Functions.
 Pay per request and per GB-second. Scales from zero to 1,000 concurrent executions with no
 placement cost.
 
-The Component has its per-use bill on the Requests line, the concurrency cap (per Node: two
-functions in one region have 1,000 each), the cold start after idle, and the connections each
+A Serverless Function bills per use on the Requests line. It has a concurrency cap per Node (two
+functions in one region have 1,000 each), a cold start after idle, and the database connections each
 execution opens. The price is Lambda's list price × 1,200, so the cost curve below crosses where the
-design puts it ([Economy](/design/09-economy#the-cloud-bill)). No request kind in the game runs
-as long as an export takes ([Duration limit](#serverless-function)).
+design puts it ([Economy](/design/09-economy#the-cloud-bill)). No request kind in the game runs as
+long as an export takes ([Duration limit](#serverless-function)).
 
 | Tradeoff        | Detail                                                                                                                                                                              |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -359,14 +367,16 @@ Serves `infer`. Capacity is measured in tokens per second.
 | Quantization | FP16, INT8, INT4. Lower precision is faster and uses less memory, and it lowers answer quality, which lowers `ai` value by 5% (INT8) or 15% (INT4).                                                                    |
 | Model size   | Small (3B), medium (7B), large (34B). Larger models earn more per prompt (0.6×, 1×, 1.8×), serve fewer tokens (2×, 1×, 0.25×) and need more GPU memory (6, 14, 68 GB at FP16). A model that does not fit causes `oom`. |
 
-The GPU has a type, a model, a precision and a batch. T4 holds 16 GB per GPU, A100 and H100 80 GB;
-the Node needs the model's weights at its precision plus 0.25 GB of attention cache for each prompt
-in a batch, and a Node whose GPUs hold less fails every prompt as `oom` until a lower precision, a
-smaller model, a smaller batch or a bigger GPU fits it. Changing the model reloads the weights, so the
-Node comes back cold. Quantization (`quantization`) adds INT8 and INT4: INT8 serves 2× the tokens and
-INT4 3×, their weights take half and a quarter of the memory, and each answer is worth 5% or 15% less.
-Continuous batching (`continuous-batching`) adds batch 8 and batch 32: 1.6× and 2.2× the throughput,
-with the time to the first token unchanged; without it a larger batch adds 150 ms or 500 ms to that wait.
+The GPU has a type, a model, a precision and a batch. T4 holds 16 GB per GPU, A100 and H100 80 GB.
+The Node needs the model's weights at its precision plus 0.25 GB of attention cache for each prompt in
+a batch. A Node whose GPUs hold less fails every prompt as `oom` until a lower precision, a smaller
+model, a smaller batch or a bigger GPU fits it. Changing the model reloads the weights, so the Node
+comes back cold.
+
+Quantization (`quantization`) adds INT8 and INT4. INT8 serves 2× the tokens and INT4 3×, their weights
+take half and a quarter of the memory, and each answer is worth 5% or 15% less. Continuous batching
+(`continuous-batching`) adds batch 8 and batch 32, at 1.6× and 2.2× the throughput with the time to
+the first token unchanged. Without it a larger batch adds 150 ms or 500 ms to that wait.
 
 ### Edge Function
 
@@ -379,11 +389,11 @@ instead of containers.
 - Supports JavaScript, TypeScript, and WebAssembly only. Rust and Go can compile to WebAssembly.
 - Has a CPU time limit per request. CPU-heavy kinds fail as `timeout`.
 
-**Built:** the Component, its 5 ms hop in every region, its 10 ms CPU ceiling per request (past it the
-request fails as `timeout`), the 128 MB isolate ceiling, the 30% of `read` it adds to a CDN's cache,
-its per-request bill on the Requests line, and the Stack gate: only JavaScript and TypeScript, or
-Rust and Go compiled to WebAssembly, run there. Personalizing cached pages is the same 30% effect, and the 128 MB isolate ceiling is a cap no
-response the game sends comes near.
+The Component has a 5 ms hop in every region and a 10 ms CPU ceiling per request, past which the
+request fails as `timeout`. It adds 30% of `read` to a CDN's cache and bills per request on the
+Requests line. Its 128 MB isolate ceiling is a cap no response the game sends comes near. The Stack
+gate lets only JavaScript and TypeScript, or Rust and Go compiled to WebAssembly, run there.
+Personalizing cached pages is the same 30% effect.
 
 ## Data
 
@@ -422,7 +432,7 @@ asynchronous: the user does not wait for it ([Simulation](/design/04-simulation#
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Delivery           | At-most-once: fast, loses work on a crash. At-least-once: safe, delivers duplicates, so jobs must be idempotent ([Async patterns](/design/07-data-tier#delivery-semantics)). |
 | Visibility timeout | How long a job stays hidden after a Worker takes it. Too short: a slow job runs twice. Too long: a crashed job waits.                                                        |
-| Dead-letter queue  | Moves jobs that fail too often aside. Without one, a poison message blocks the queue forever ([Incidents](/design/11-incidents#catalog)).                                    |
+| Dead-letter queue  | Moves a job aside after its max attempts, set on the Queue. Without one, a poison message blocks the queue forever ([Incidents](/design/11-incidents#catalog)).              |
 | Max length         | Rejects new work when full (backpressure) instead of growing without limit.                                                                                                  |
 
 Queue depth is a game stat. A growing depth is the earliest sign that Workers are too slow.
@@ -435,17 +445,17 @@ Holds the long-lived connections that `rt` needs and fans messages out to them. 
 measured in concurrent connections and depends on the runtime: a thread per connection holds about
 1 MB of memory, and a BEAM process holds a few KB ([Runtimes](/design/06-runtimes#realtime-connections)).
 
-- **It holds connections, not requests.** A realtime message keeps one connection open for 300 s
+- **It holds connections.** A realtime message keeps one connection open for 300 s
   ([Simulation](/design/04-simulation#request-kinds)), so a Hub serving `rt` at 100 a second holds
   30,000 connections. Its capacity is those connections: an 8 GB box given to connections, divided
   by the runtime's memory per connection. Each size step doubles the RAM, and a larger Hub needs
   Clustering to use it.
 - **It takes `rt` and nothing else, and sends nothing on.** Put it behind the Load Balancer next to
-  the App Servers, and give its Link only `rt` ([Links](#links)), so the two runtimes each take the
-  traffic they are good at. A runtime that holds a worker per connection still refuses `rt` on the
-  App Server, which is why a PHP or Gunicorn design places a Hub on a runtime that can hold them.
+  the App Servers and give its Link only `rt` ([Links](#links)), so each runtime takes the traffic it
+  is good at. A runtime that holds a worker per connection still refuses `rt` on the App Server, so a
+  PHP or Gunicorn design places a Hub on a runtime that can hold them.
 - **Its limit is memory, so the runtime is the upgrade.** Request handling, CPU, and the data tier
-  stay on the App Servers; only `rt` reaches it.
+  stay on the App Servers. Only `rt` reaches it.
 
 | Option            | Effect                                                                                                                     |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -473,16 +483,22 @@ A partitioned, replicated log. Producers append, consumers read at their own pac
 
 Consumer lag is a game stat. It is the stream's version of queue depth.
 
-**Built:** the Component, its options, and its consumer lag. The log keeps a message for its
-retention window, in sim seconds, so a consumer further behind than the window loses the oldest
-events; a stream hands on one consumer's 20,000 messages a second per partition; and round robin
-with more than one partition loses order, which the game counts as a stale result. The 20,000, the
-three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies and the half-broker
-Burn a replica adds are the Event Stream's own numbers. Durability follows the replication factor and `acks`: a broker that fails takes the events its
-replicas did not have. With one replica it held the only copy and loses all of them; with more,
-`acks=all` waited for every replica and loses none, `acks=1` acknowledged after the leader alone and
-loses 5%, and `acks=0` did not wait and loses 10%. The replication factor is chosen on the card, and
-partition key skew is the Hot key incident rather than a model of the key's distribution.
+The log keeps a message for its retention window, in sim seconds, so a consumer further behind than
+the window loses the oldest events. A stream hands on one consumer's 20,000 messages a second per
+partition. Round robin with more than one partition loses order, which the game counts as a stale
+result. The 20,000, the three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies
+and the half-broker Burn a replica adds are the Event Stream's own numbers.
+
+Durability follows the replication factor and `acks`. A broker that fails takes the events its
+replicas did not have:
+
+- **One replica:** it holds the only copy, so the broker loses all of the events.
+- **More replicas with `acks=all`:** the write waits for every replica, so none are lost.
+- **`acks=1`:** the write is acknowledged after the leader alone, and 5% are lost.
+- **`acks=0`:** the write does not wait, and 10% are lost.
+
+The replication factor is chosen on the card. Partition key skew is the Hot key incident, not a model
+of the key's distribution.
 
 ### CDC Connector
 
@@ -495,13 +511,15 @@ Search Engine, the Data Warehouse, and caches without dual writes from the app.
   leave them out of sync ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
 - Adds lag. Search results and reports are seconds behind.
 
-**Built:** the `cdc` Component, unlocked by Change data capture in Series B. Link a Database into it
-and it into an Event Stream: it copies the writes that Database processed, one change each, and
-publishes them as `task` at 20,000 changes a second. It takes none of the Database's traffic and
-adds no latency to a write: its own hop is 2 ms, and the lag it adds is the Stream's, which is the
-game stat its card shows. A Stream's key decides order, so a change reaches a consumer in order only
-inside a partition. Past its rate it drops changes, as any flat-capacity Component does. The "dual write" it removes does not exist in the game, because App Servers write to the Database
-only and no path writes to a second copy; and a `cdc` Node keeps no backlog of its own.
+The `cdc` Component is unlocked by Change data capture in Series B. Link a Database into it and it
+into an Event Stream. It copies the writes that Database processed, one change each, and publishes
+them as `task` at 20,000 changes a second. It takes none of the Database's traffic and adds no latency
+to a write. Its own hop is 2 ms, and the lag it adds is the Stream's, which is the game stat its card
+shows. A Stream's key decides order, so a change reaches a consumer in order only inside a partition.
+Past its rate it drops changes, as any flat-capacity Component does.
+
+The "dual write" it removes does not exist in the game, because App Servers write to the Database only
+and no path writes to a second copy. A `cdc` Node keeps no backlog of its own.
 
 ## Platform
 
@@ -511,22 +529,27 @@ Real products: Kubernetes HPA, AWS Auto Scaling groups.
 
 Attaches to a group of App Servers or Workers and adds or removes copies.
 
-| Option                       | Effect                                                                                                                                                                                                                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Signal                       | CPU utilization or load (CPU, slots, and memory). CPU is wrong for runtimes that wait on I/O, because their CPU stays low while workers are full. Request rate reads each copy's requests a second against 100 a vCPU, and queue depth reads the tasks waiting in the Queues that feed it against 100 a copy. |
-| Target                       | The utilization to hold, for example 60%. Lower is safer and costs more.                                                                                                                                                                                                                                      |
-| Reaction time                | VMs take 3 minutes to boot and warm. Containers take 30 seconds. A spike that is faster than the reaction time still hurts.                                                                                                                                                                                   |
-| Cooldown                     | Minimum time between scaling actions. Too short causes flapping. Too long reacts late.                                                                                                                                                                                                                        |
-| Min and max                  | The max is a cost guard. Without a max, a bug or an attack scales the bill ([Incidents: runaway bill](/design/11-incidents#catalog)).                                                                                                                                                                         |
-| Scheduled scaling (research) | Adds capacity before the known daily peak: two calendar hours ahead, it sizes for the peak's load.                                                                                                                                                                                                            |
+| Option                       | Effect                                                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Signal                       | CPU utilization or load (CPU, slots, and memory).                                                                                     |
+| Signal: CPU                  | Wrong for runtimes that wait on I/O, because their CPU stays low while workers are full.                                              |
+| Signal: request rate         | Reads each copy's requests a second against 100 a vCPU.                                                                               |
+| Signal: queue depth          | Reads the tasks waiting in the Queues that feed it against 100 a copy.                                                                |
+| Target                       | The utilization to hold, for example 60%. Lower is safer and costs more.                                                              |
+| Reaction time                | VMs take 3 minutes to boot and warm. Containers take 30 seconds. A spike that is faster than the reaction time still hurts.           |
+| Cooldown                     | Minimum time between scaling actions. Too short causes flapping. Too long reacts late.                                                |
+| Min and max                  | The max is a cost guard. Without a max, a bug or an attack scales the bill ([Incidents: runaway bill](/design/11-incidents#catalog)). |
+| Scheduled scaling (research) | Adds capacity before the known daily peak: two calendar hours ahead, it sizes for the peak's load.                                    |
 
 JVM warmup interacts with autoscaling: new copies are slow for their first seconds, so a scale-up
 under load can make the p99 worse at first ([Runtimes](/design/06-runtimes#runtime-behaviors)).
 
-**Built:** every option in the table. A Node that no Queue feeds reads 0 on the queue-depth signal. The scheduled scaling research (`scheduled-scaling`, Series B)
-adds a switch: inside the two calendar hours before the Venture's peak hour, the Autoscaler plans
-for the peak's load (current load × the peak's share of today's cycle) instead of the load it sees,
-so the copies it adds are warm when the peak arrives. Outside that window it scales as before.
+Every option in the table works. A Node that no Queue feeds reads 0 on the queue-depth signal.
+
+The scheduled scaling research (`scheduled-scaling`, Series B) adds a switch. Inside the two calendar
+hours before the Venture's peak hour, the Autoscaler plans for the peak's load (current load × the
+peak's share of today's cycle) instead of the load it sees, so the copies it adds are warm when the
+peak arrives. Outside that window it scales as usual.
 
 ### Service Mesh
 
@@ -540,27 +563,30 @@ Adds a sidecar proxy to every service in a Kubernetes Cluster.
 | Retries, timeouts, and circuit breakers on every link                | CPU and memory per sidecar (about 5% per replica) |
 | Per-link metrics without code changes (+20% Insight on mesh traffic) | Platform Dev Hours                                |
 
-**Built:** the `mesh` Component, unlocked by Service mesh in Series B. Link App Servers and Workers
-into it: a sidecar sits beside each one, and the Design changes at every Link out of it. Those Links
-retry at once and open a breaker when half their calls fail, with no research for either, unless the
-player set a policy of its own. Each hop costs the design's 1 ms, each member loses 5% of its CPU,
-the mesh bills 5% of each member's Burn as the sidecar's share, and it takes 0.5 engineers of
-Platform Dev Hours, or none with a Platform team. A Node it watches also earns the design's 20% more
-Insight where Analytics samples it. The sidecar rides in the pod beside its service, so only an App Server or Worker that runs in a Kubernetes Cluster can link into a mesh, and one that leaves its Cluster loses its sidecar.
-Mutual TLS is a property the card reports, not a failure the game produces.
+The `mesh` Component is unlocked by Service mesh in Series B. Link App Servers and Workers into it,
+and a sidecar sits beside each one. The Design changes at every Link out of it: those Links retry at
+once and open a breaker when half their calls fail, with no research for either, unless the player set
+a policy of its own. Each hop costs the design's 1 ms, and each member loses 5% of its CPU. The mesh
+bills 5% of each member's Burn as the sidecar's share, and it takes 0.5 engineers of Platform Dev
+Hours, or none with a Platform team. A Node it watches also earns the design's 20% more Insight where
+Analytics samples it.
+
+The sidecar rides in the pod beside its service. So only an App Server or Worker that runs in a
+Kubernetes Cluster can link into a mesh, and one that leaves its Cluster loses its sidecar. Mutual
+TLS is a property the card reports. It produces no failure.
 
 ### CI/CD Pipeline
 
-Built: the `ci` Component, unlocked by research `ci` (Continuous delivery), and its four deploy
-strategies. Recreate and Rolling come with the Pipeline; Blue-green needs the `blue-green` research
-and Canary needs `canary` ([Progression](/design/10-progression#track-reliability)). The research
-alone still cuts a deploy from 30 minutes to 5 and lets a bad deploy roll back; the Pipeline is what
-picks a strategy. Without one placed, the Company keeps the old path: a
-5-minute deploy with research `ci`, 30 minutes by hand, and the 40% ceiling on a bad deploy.
-
 Real products: GitHub Actions, GitLab CI, Argo CD.
 
-Decides how code reaches production. It affects how fast features ship and how bad a bad deploy is.
+The `ci` Component is unlocked by research `ci` (Continuous delivery) and has four deploy strategies.
+Recreate and Rolling come with the Pipeline. Blue-green needs the `blue-green` research and Canary
+needs `canary` ([Progression](/design/10-progression#track-reliability)). The research alone cuts a
+deploy from 30 minutes to 5 and lets a bad deploy roll back, and the Pipeline is what picks a
+strategy. Without one placed, the Company keeps the default path: a 5-minute deploy with research
+`ci`, 30 minutes by hand, and the 40% ceiling on a bad deploy.
+
+The Pipeline decides how code reaches production. It affects how fast features ship and how bad a bad deploy is.
 It carries no traffic: nothing links into or out of it.
 
 | Deploy strategy | Deploy time | Bad deploy blast radius                           | Burn              |
@@ -572,15 +598,15 @@ It carries no traffic: nothing links into or out of it.
 
 A bad deploy fails 8% of App Server requests for each Feature in its batch; the strategy sets the
 ceiling on that share, so Recreate's 100% arrives with a batch of thirteen Features. The ceiling is
-100% for Recreate and 5% for Canary, and Rolling keeps 16's 40%.
+100% for Recreate and 5% for Canary, and Rolling keeps its 40%.
 
 Blue-green's ceiling is 10%: the old fleet keeps serving until the new one is up, so the new fleet is
 checked on a slice before the switch, and a bad deploy breaks 10% of traffic. A deploy never
-interrupts traffic, and rollback already ends a Bad deploy at once for every Company with the
+interrupts traffic, and rollback ends a Bad deploy at once for every Company with the
 research, so neither is worth a number here.
 
-Each strategy has a deploy time and a Burn multiple. Burn is a multiple of the Pipeline's own rate,
-standing for a second fleet and a canary's metrics.
+Each strategy has a deploy time and a Burn multiple. The multiple is of the Pipeline's own rate and
+stands for a second fleet or a canary's metrics.
 
 Build time depends on the language ([Runtimes](/design/06-runtimes#language-profiles)). Deploy frequency
 multiplies feature velocity ([Team and velocity](/design/08-team-and-velocity#deploy-frequency)).
@@ -597,39 +623,43 @@ do not have a feature yet form the holdout group that measures its lift
 enable graceful degradation: turning off expensive features during an incident
 ([Incidents](/design/11-incidents#mitigation-toolbox)).
 
-**Built:** the `ff` Component, unlocked by Feature flags in Seed. It carries no traffic. Each shipped
-Feature has a rollout: dark, 5%, 25%, 50%, or every user, and a Feature with none is live for
-everyone. A bad deploy fails 8% of App Servers' requests for each Feature its batch shipped, and a
-flag cuts that Feature's share to its rollout, so Recreate's 100% ceiling cannot outrun a 5% rollout:
-thirteen Features at 5% break 5.2% of traffic instead of everything. The rollout also scales a
-Feature's effects and load, through its exposure, its rollout times its adoption, and `ab-testing`
-measures its lift against the users it holds out
-([Team and velocity](/design/08-team-and-velocity#rollout)). A flag's Shift moves a live Feature's rollout, including to Off, and a Feature turned off still pays
-its upkeep. Remove takes the code out for good.
+The `ff` Component is unlocked by Feature flags in Seed. It carries no traffic. Each shipped Feature
+has a rollout: dark, 5%, 25%, 50%, or every user, and a Feature with none is live for everyone.
+
+A bad deploy fails 8% of App Servers' requests for each Feature its batch shipped, and a flag cuts
+that Feature's share to its rollout. So Recreate's 100% ceiling cannot outrun a 5% rollout: thirteen
+Features at 5% break 5.2% of traffic instead of everything. The rollout also scales a Feature's
+effects and load, through its exposure (its rollout times its adoption), and `ab-testing` measures its
+lift against the users it holds out ([Team and velocity](/design/08-team-and-velocity#rollout)).
+
+A flag's Shift moves a live Feature's rollout, including to Off. A Feature turned off still pays its
+upkeep. Remove takes the code out for good.
 
 ### Secrets and Certificates
 
 Real products: Let's Encrypt with ACME, HashiCorp Vault, AWS Secrets Manager.
 
 Without this Component, TLS certificates expire on the calendar, and the incident "Certificate
-expired" takes down every Node that terminates TLS. Let's Encrypt certificates last 90 days, which is
-why automation matters. With this Component, renewal is automatic.
+expired" takes down every Node that terminates TLS. Let's Encrypt certificates last 90 days, so
+automation matters. With this Component, renewal is automatic.
 
 Real lifetimes are shrinking: the industry maximum is 200 days since March 2026 and falls to 47 days
-in March 2029, and Let's Encrypt moves to 45 days by 2028. The game follows the trend. Certificates
+in March 2029, and Let's Encrypt moves to 45 days by 2028. The game follows that trend. Certificates
 last 90 calendar days until Series C and 45 calendar days from Series C, so manual renewal gets
 harder with each Era.
 
-**Built:** the `pki` Component, unlocked by Certificate automation, and the countdown. Each Node that
+The `pki` Component is unlocked by Certificate automation and owns the countdown. Each Node that
 terminates TLS (Load Balancer, CDN, WAF, API Gateway, Realtime Hub, Edge Function) holds a certificate
-of its own. The first Step with a manager live issues one to each of them, and it renews itself two
-thirds of the way through its life, which is where an ACME client renews with a third left. With none
-live, nothing renews them: when one reaches its expiry date every request through that Node fails as
-`down` and the Certificate expired incident starts, and it starts again after the incident ends until a
-manager is live again or the player presses Renew, which reissues every certificate. Selling the
-manager leaves the certificates it issued running down, so the Component owns the calendar. A Node
-placed after the manager gets its certificate on the next Step; a Company that never placed a manager
-holds none, and the director's own Certificate expired incident fails every request from Users.
+of its own. The first Step with a manager live issues one to each of them, and each renews itself two
+thirds of the way through its life, which is where an ACME client renews with a third left.
+
+With no manager live, nothing renews them. When one reaches its expiry date, every request through
+that Node fails as `down` and the Certificate expired incident starts. It starts again after the
+incident ends until a manager is live again or the player presses Renew, which reissues every
+certificate. Selling the manager leaves the certificates it issued running down, so the Component owns
+the calendar. A Node placed after the manager gets its certificate on the next Step. A Company that
+never placed a manager holds none, and the director's own Certificate expired incident fails every
+request from Users.
 
 ## Observability and money
 
@@ -643,8 +673,8 @@ sampling rate tradeoff, retention, and what Analytics reveals.
 
 ### Payments
 
-The drawer where revenue waits until the player collects it. It has a size. Revenue beyond the size
-is lost until the player collects or upgrades the drawer. Research "Stripe Billing" collects
+Payments is the drawer where revenue waits until the player collects it. It has a size, and revenue
+beyond that size is lost until the player collects or upgrades the drawer. Research "Stripe Billing" collects
 automatically ([Economy](/design/09-economy#cash)).
 
 ## Managed Components
@@ -700,12 +730,12 @@ A link is a network call. Each link has:
 | Bulkhead        | Off (research) | Limits the share of the caller's slots that this link can hold, so one slow dependency cannot use all of them. |
 | Hedged requests | Off (research) | Sends a second copy of a slow call after the p95 and keeps the faster answer.                                  |
 
-**Built:** every row but the first three, which [Simulation](/design/04-simulation#retries) explains. A
-bulkhead (research `bulkheads`) caps one call at 1,000 ms: past it the caller gives the call up, frees
-its slot and the request fails as `timeout`. It is a cap on time rather than on slots, which at the
-game's load is the same thing by Little's law. Hedging (research `hedged-requests`) sends a second copy of every call on that
-Link: the user waits for the faster of two, the mean halves, the tail thins, and the callee sees 10%
-more calls, which the Link's own rate shows.
+[Simulation](/design/04-simulation#retries) explains the first three rows. A bulkhead (research
+`bulkheads`) caps one call at 1,000 ms: past it the caller gives the call up, frees its slot, and the
+request fails as `timeout`. It caps time rather than slots, which at the game's load is the same thing
+by Little's law. Hedging (research `hedged-requests`) sends a second copy of every call on that Link.
+The user waits for the faster of two, the mean halves, the tail thins, and the callee sees 10% more
+calls, which the Link's own rate shows.
 
 Links that cross zones or regions add egress cost ([Economy](/design/09-economy#egress)).
 
@@ -842,16 +872,18 @@ The game uses each tool's default plan behavior and nothing else.
 
 ### GitOps
 
-Research `gitops` applies each source change to every Mirror on its own. The Mirror is never behind
-for long, and hand changes revert at the next sync, because a GitOps controller reconciles against
-live state with every tool, so overrides are the only way to tune a region.
+Research `gitops` applies each source change to every Mirror on its own, so a Mirror is never behind
+for long. Hand changes revert at the next sync, because a GitOps controller reconciles against live
+state with every tool. Overrides are the only way to tune a region.
+
 All at once syncs at the next poll, `sync_poll` calendar minutes after the drift starts, as Argo CD
-checks its repository at most every three minutes by default, and reverting hand changes
-matches Argo CD with self-heal on. A sync pays for its plan like an Apply; without
-the Cash, the Mirror stays behind. A new data Node still waits for the player to pick its pattern, and
-GitOps never removes a data Node. The cost
-moves from drift to blast radius: a bad change now reaches every region. The player picks the sync
-mode on a Tradeoff card:
+checks its repository at most every three minutes by default. Reverting hand changes matches Argo CD
+with self-heal on. A sync pays for its plan like an Apply, and without the Cash the Mirror stays
+behind. A new data Node still waits for the player to pick its pattern, and GitOps never removes a
+data Node.
+
+The cost moves from drift to blast radius: a bad change reaches every region. The player picks the
+sync mode on a Tradeoff card:
 
 | Sync mode   | Drift                                         | A bad change                                                                  |
 | ----------- | --------------------------------------------- | ----------------------------------------------------------------------------- |

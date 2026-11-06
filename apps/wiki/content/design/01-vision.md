@@ -11,14 +11,13 @@ Quorum is an incremental systems game for software engineers. You grow a startup
 virtual machine in a garage to a public company that serves billions of people. You do it by
 building and tuning the system that serves your users, one bottleneck at a time.
 
-The genre is a node-graph automation game, like Upload Labs, with the long-term pull of Factorio
-and the replay layer of an idle game. The subject is real backend engineering.
+The genre is a node-graph automation game like Upload Labs, with the long-term pull of Factorio and
+the replay layer of an idle game. The subject is real backend engineering.
 
 ## The fantasy
 
-"I am the engineer who keeps it up." The player is the person who sees the graph go red at 3 AM
-and knows why. The player is also the person who argues that PHP-FPM is fine, and then proves it
-with numbers.
+"I am the engineer who keeps it up." The player sees the graph go red at 3 AM and knows why. The same
+player argues that PHP-FPM is fine, then proves it with numbers.
 
 ## Audience
 
@@ -46,16 +45,15 @@ The other rows decide how the game teaches and paces.
 
 ## Design pillars
 
-Every design decision must follow these five pillars. When two pillars conflict, the earlier pillar
-wins.
+Five pillars govern every design decision. When two conflict, the earlier one wins.
 
 ### Pillar 1: Every number is a real thing
 
 Each mechanic models a real behavior. The game simplifies, but it never invents a behavior that
-contradicts how real systems work. If an engineer asks "why does this happen", the answer is a
-real concept, such as [Little's law](/design/glossary#littles-law), a
-[GIL](/design/glossary#gil-global-interpreter-lock), or a
-[replication lag](/design/glossary#replication-lag).
+contradicts how real systems work. When an engineer asks "why does this happen", the answer is a
+real concept such as [Little's law](/glossary/littles-law), a
+[GIL](/glossary/gil-global-interpreter-lock), or a
+[replication lag](/glossary/replication-lag).
 
 Test: every rule has a row in [Reality check](/design/reality-check).
 
@@ -63,16 +61,15 @@ Test: every rule has a row in [Reality check](/design/reality-check).
 
 No upgrade strictly dominates another. Each choice moves the player along a cost profile with at
 least two axes: throughput, tail latency, memory, money, Dev Hours, reliability, and operational
-risk. Rust is fast and slow to write. Node.js handles many idle connections and stalls on CPU
-work. PHP-FPM is slow per request and cannot leak memory between requests.
+risk. Rust is fast but slow to write. Node.js handles many idle connections but stalls on CPU work.
+PHP-FPM is slow per request, but it cannot leak memory between requests.
 
 Test: for each runtime, framework, and Component variant, at least one realistic design exists in
 which it is the best choice. [Balancing](/design/16-balancing#the-dominance-test) defines the check.
 
 ### Pillar 3: The bottleneck is the content
 
-The game creates content by moving the bottleneck. Each fix shifts the constraint to a different
-place. A new unlock must introduce a new problem, not a bigger number with a new label. This pillar
+Content comes from moving the bottleneck: each fix shifts the constraint to a different place. A new unlock must introduce a new problem, not a bigger number with a new label. This pillar
 answers the main complaint about Upload Labs: "the same loop with different labels"
 ([Influences](/design/02-influences#why-players-quit)).
 
@@ -81,15 +78,15 @@ Test: each Era brings at least one new failure mode that the previous Era's tool
 ### Pillar 4: The board is the dashboard
 
 The player reads the state of the system from the board, not from menus. Node cards show live
-load, throughput, latency, and stack. Particles show request kinds. Link thickness shows volume.
-Color shows health. Menus hold configuration, not information.
+load, throughput, latency, and stack. Particles show request kinds, link thickness shows volume,
+and color shows health. Menus hold configuration, not information.
 
 Test: during normal play, the player can find the bottleneck without opening a panel.
 
 ### Pillar 5: Respect the player
 
-The game has no paid timers, no energy, no loot boxes, and no fear of missing out. Tedium is a
-design bug. Automation of repeated actions is a reward that the player earns, and it arrives before
+Quorum has no paid timers, no energy, no loot boxes, and no fear of missing out. Tedium is a
+design bug, so automation of repeated actions is a reward the player earns, and it arrives before
 the action becomes tiresome. The game stops nagging when the player stops.
 
 Test: no action needs more than five repeated clicks without a bulk alternative.

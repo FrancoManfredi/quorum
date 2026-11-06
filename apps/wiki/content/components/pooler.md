@@ -1,24 +1,26 @@
-## What it does
-
 The Connection Pooler stands for PgBouncer: a proxy that lets many app connections share a few database connections.
 
-Place it between your App Servers or Workers and the [Database](/components/database). It takes the same queries the Database takes and passes them on, with almost no added latency. It has a throughput limit, which each size step doubles.
+## When to place it
+
+- Place it when the Database refuses connections: errors show `refused` while its CPU is not full. This happens when you add App Servers, or when a runtime opens a large pool per process.
+
+The [Connection Limit](/sandboxes/connection-limit) Sandbox shows it.
+
+::Sandbox{id="connection-limit"}
+
+## How it works
+
+Place it between your App Servers or Workers and the [Database](/components/database). It takes the same queries the Database takes and passes them on, with almost no added latency. It has a throughput limit, and each size step doubles it.
+
+Both pooled modes break session state the same way: prepared statements and `SET` at session level belong to a connection the client no longer holds. See [connection pooling](/glossary/connection-pooling).
+
+## Options
 
 Its mode sets how many Database connections it opens:
 
 - **Transaction** (the default): every client shares 20 server connections. Code that keeps session state breaks, and a share of requests crash until your team finishes the "Drop session state" task on the [Team](/team#tasks) page.
-- **Statement**: one server connection per statement, the fewest of the three. A transaction that spans several statements cannot run through it, so every checkout fails. Only choose it in a Design whose writes are single statements.
+- **Statement**: one server connection per statement. It shares the same 20 server connections as Transaction, so it packs no tighter here. A transaction that spans several statements cannot run through it, so every checkout fails. Choose it only in a Design whose writes are single statements.
 - **Session**: one server connection per client. Nothing breaks, and it barely helps.
-
-Both pooled modes break session state the same way: prepared statements and `SET` at session level belong to a connection the client no longer holds.
-
-See [connection pooling](/glossary/connection-pooling).
-
-## When to place it
-
-Place it when the Database refuses connections: errors show `refused` while its CPU is not full. This happens when you add App Servers, or when a runtime opens a large pool per process. The [Connection Limit](/sandboxes/connection-limit) Sandbox shows it.
-
-::Sandbox{id="connection-limit"}
 
 ## How it fails
 

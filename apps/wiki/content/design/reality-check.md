@@ -5,25 +5,25 @@ section: design
 order: 20
 ---
 
-[Pillar 1](/design/01-vision#pillar-1-every-number-is-a-real-thing) says every number is a real thing.
-This document lists each real-world claim the game depends on, the rule built on it, how the game
-simplifies it, and a source. A rule without a row here is a bug in the design.
+Every game rule has a row here: the real-world claim, the rule built on it, the simplification, and a
+source ([pillar 1](/design/01-vision#pillar-1-every-number-is-a-real-thing)). A rule without a row is
+a bug in the design.
 
-Facts about specific products and versions can change. Check this list again before each content
+Facts about specific products and versions change, so check this list again before each content
 milestone ([Roadmap](/design/17-scope-and-roadmap#milestones)).
 
 ## Scale
 
-| Claim                                             | Game rule                                | Simplification                                          | Source                                                                                                       |
-| ------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| About 6 billion people used the internet in 2025. | Users stop near 6 billion.               | Rounded; the limit does not grow during play.           | ITU, Facts and Figures 2025: <https://www.itu.int/en/mediacentre/Pages/PR-2025-11-17-Facts-and-Figures.aspx> |
-| Traffic follows a daily cycle.                    | Diurnal demand curve with a 20\:00 peak. | One sine wave; real curves have two humps and holidays. | General operations knowledge                                                                                 |
+| Claim                                             | Game rule                                | Simplification                                            | Source                                                                                                       |
+| ------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| About 6 billion people used the internet in 2025. | Users stop near 6 billion.               | Rounded; the limit does not grow during play.             | ITU, Facts and Figures 2025: <https://www.itu.int/en/mediacentre/Pages/PR-2025-11-17-Facts-and-Figures.aspx> |
+| Traffic follows a daily cycle.                    | Diurnal demand curve with a 20\:00 peak. | One cosine wave; real curves have two humps and holidays. | General operations knowledge                                                                                 |
 
 ## Determinism
 
-| Claim                                                                                                                                                                       | Game rule                                                         | Simplification                       | Source                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| ECMAScript defines `+ − × ÷` and `Math.sqrt` as exact IEEE 754 operations. It leaves `sin`, `cos`, `exp`, `log`, and `pow` to the engine, and engines differ by 1 to 4 ulp. | The Simulation uses only exact operations, tables, and constants. | A table replaces the diurnal cosine. | ECMA-262; cross-engine probe: <https://github.com/mdedys/omaha/blob/main/docs/research/determinism-across-browsers.md> |
+| Claim                                                                                                                                                                       | Game rule                                                         | Simplification                                              | Source                                                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| ECMAScript defines `+ − × ÷` and `Math.sqrt` as exact IEEE 754 operations. It leaves `sin`, `cos`, `exp`, `log`, and `pow` to the engine, and engines differ by 1 to 4 ulp. | The Simulation uses only exact operations, tables, and constants. | The diurnal cosine is a series built from exact operations. | ECMA-262; cross-engine probe: <https://github.com/mdedys/omaha/blob/main/docs/research/determinism-across-browsers.md> |
 
 ## Queueing
 
@@ -50,7 +50,7 @@ milestone ([Roadmap](/design/17-scope-and-roadmap#milestones)).
 | Discord moved its Read States service from Go to Rust because of latency spikes from Go's GC.                              | GC pause tail; Rust has none.                                       | Go's GC has improved since 2020; the game uses a smaller pause for Go. | Discord, "Why Discord is switching from Go to Rust": <https://discord.com/blog/why-discord-is-switching-from-go-to-rust>                                                     |
 | The JVM starts in an interpreter and compiles hot code over time.                                                          | Java warmup from 30% to 100%.                                       | Real warmup depends on code paths; the game uses 30 s of sim time.     | OpenJDK HotSpot documentation                                                                                                                                                |
 | GraalVM native images start fast with lower peak throughput than a warm JIT.                                               | Native image variant.                                               | Fixed factors.                                                         | GraalVM documentation                                                                                                                                                        |
-| Java virtual threads make blocking I/O cheap. Since JDK 24, `synchronized` no longer pins; native frames still do.         | Virtual threads variant.                                            | Native pinning is a flat penalty.                                      | JEP 444; JEP 491 (<https://openjdk.org/jeps/491>)                                                                                                                            |
+| Java virtual threads make blocking I/O cheap. From JDK 24, `synchronized` does not pin; native frames still do.            | Virtual threads variant.                                            | Native pinning is a flat penalty.                                      | JEP 444; JEP 491 (<https://openjdk.org/jeps/491>)                                                                                                                            |
 | Relative speeds: compiled and JIT runtimes are faster than CPython, CRuby, and PHP on CPU-bound work.                      | Speed factors from 0.15 to 1.4.                                     | Compressed so no runtime is useless; order follows public benchmarks.  | TechEmpower Framework Benchmarks; Computer Language Benchmarks Game                                                                                                          |
 | PHP OPcache removes script compilation on each request; the PHP 8 JIT helps CPU-bound code more than typical web requests. | OPcache ×2.5; JIT helps CPU-heavy kinds only.                       | Fixed factors.                                                         | PHP manual, OPcache and JIT                                                                                                                                                  |
 | Node.js exits on an unhandled exception or unhandled promise rejection by default.                                         | Node.js blast radius is "Process".                                  | Ignores process managers that restart instantly.                       | Node.js documentation, process events                                                                                                                                        |

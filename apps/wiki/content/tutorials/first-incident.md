@@ -23,7 +23,7 @@ only after the Garage. Begin with a Company that has its database on its own Nod
    Select **Continue**.
 
 The HUD now shows **Pre-seed**. Two new request kinds arrive: writes and logins. Prices go up, and
-incidents can now happen. See [Pre-seed](/eras/pre-seed) for the numbers.
+incidents can start. See [Pre-seed](/eras/pre-seed) for the numbers.
 
 ## Prepare
 
@@ -33,8 +33,8 @@ Your first incident comes soon after the raise. Get ready while you wait.
 2. Select each Node and check its **Load** row. A row under 70% leaves room for more traffic.
 3. If a row is amber or red, fix it as in [Your first bottleneck](/tutorials/first-bottleneck).
 
-An incident is a test of your Design. The game picks the incident that hits your weakest point. A
-Design with one copy of each Node and little spare capacity is weak against the first incidents.
+An incident tests your Design. The game picks the one that hits your weakest point, and a Design
+with one copy of each Node and little spare capacity is weak against the first incidents.
 For the rules, see [How incidents work](/explanation/incidents).
 
 ## Notice the incident

@@ -1,18 +1,28 @@
-## What it does
-
 Object Storage stands for Amazon S3: a store for files that grows without limit.
 
-It takes object puts and object gets: uploaded files and video. It sends nothing on. It has no capacity limit, and each request waits for the first byte, which is slower than a database query. See [object storage](/glossary/object-storage).
+## When to place it
+
+- Place it when uploads and video load the Database: its CPU and latency climb as the Upload or Video share of the mix grows. It unlocks with [Object storage](/research/object-storage).
+- Add a [CDN](/components/cdn) once you serve video.
+- Check its Burn in the Ledger as the Company ages, because it only grows.
+
+The [Slow Uploads](/sandboxes/slow-uploads) Sandbox shows a slow upload holding an App Server slot.
+
+::Sandbox{id="slow-uploads"}
+
+## How it works
+
+It takes object puts and object gets, which carry uploaded files and video. It sends nothing on. It has no capacity limit, and each request waits for the first byte, which is slower than a database query. See [object storage](/glossary/object-storage).
 
 Its Burn grows with the data it holds, and that data never shrinks. Every upload adds to it.
 
-## Product
+Until you link Object Storage, the [Database](/components/database) stores files as rows. When an App Server links to both, files go to Object Storage, and the Database stops taking them.
 
-The store is S3, or R2 with [Egress optimization](/research/egress-optimization). R2 has no egress to the internet, and a read waits a little longer for its first byte unless a CDN is on the board. Every read and write also bills per request, at its product's price.
+## Options
 
-## Storage class
+**Product.** The store is S3, or R2 with [Egress optimization](/research/egress-optimization). R2 has no egress to the internet, and a read waits a little longer for its first byte unless a CDN is on the board. Every read and write also bills per request, at its product's price.
 
-The class sets what the bytes cost to keep, and what they cost to read back.
+**Storage class.** The class sets what the bytes cost to keep, and what they cost to read back.
 
 | Class             | Storage price | Reading it back                                                       |
 | ----------------- | ------------- | --------------------------------------------------------------------- |
@@ -20,27 +30,17 @@ The class sets what the bytes cost to keep, and what they cost to read back.
 | Infrequent access | Half price    | At once, and a retrieval fee per GB, on the same bill line.           |
 | Archive           | A tenth of it | Only after a restore. A `media` request fails as `timeout` meanwhile. |
 
-Infrequent access is the class for files that are written once and rarely read, and archive for the ones kept only because a rule says so. Neither is free to read: the retrieval fee and the restore are the price of the cheaper storage. The Inspector and [Data tier](/design/07-data-tier#object-storage) hold the prices.
+Infrequent access suits files that are written once and rarely read. Archive suits the ones kept only because a rule says so. Neither is free to read, because the retrieval fee and the restore are the price of the cheaper storage. The Inspector and [Data tier](/design/07-data-tier#object-storage) hold the prices.
 
-## Lifecycle
-
-[Lifecycle rules](/research/lifecycle-rules) move objects on their own once they are old enough: each object past the window drops one class, from Standard to Infrequent access and from Infrequent access to Archive. A store that has been filling for a while holds most of its bytes in the cheaper class, and the oldest share of its reads fails as a timeout until those objects are restored. The Inspector shows how much of the store is past the window; [Data tier](/design/07-data-tier#object-storage) holds the rule.
-
-Until you link Object Storage, the [Database](/components/database) stores files as rows. When an App Server links to both, files go to Object Storage, and the Database stops taking them.
-
-## When to place it
-
-Place it when uploads and video load the Database: its CPU and latency climb as the Upload or Video share of the mix grows. It unlocks with [Object storage](/research/object-storage).
+**Lifecycle.** [Lifecycle rules](/research/lifecycle-rules) move objects on their own once they are old enough. Each object past the window drops one class, from Standard to Infrequent access and from Infrequent access to Archive. A store that has been filling for a while holds most of its bytes in the cheaper class, and the oldest share of its reads fails as a timeout until those objects are restored. The Inspector shows how much of the store is past the window, and [Data tier](/design/07-data-tier#object-storage) holds the rule.
 
 ## How it fails
 
 Object Storage does not overload or fail in the game. Its problems are latency and cost.
 
-- First-byte latency adds to every video and upload. A [CDN](/components/cdn) answers most video at the edge.
+- First-byte latency adds to every video and upload. A CDN answers most video at the edge.
 - Storage Burn only grows. Check it in the Ledger as the Company ages.
-- A slow upload holds an App Server slot while the file comes up the wire. Send uploads through a [Queue](/components/queue) so the App Server keeps only the short sync part. The [Slow Uploads](/sandboxes/slow-uploads) Sandbox shows it.
-
-::Sandbox{id="slow-uploads"}
+- A slow upload holds an App Server slot while the file comes up the wire. Send uploads through a [Queue](/components/queue) so the App Server keeps only the short sync part.
 
 ## Tips
 

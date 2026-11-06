@@ -5,7 +5,7 @@ section: design
 order: 16
 ---
 
-This document collects every formula and tunable constant, and describes how balance is checked.
+Every formula and tunable constant is here, with the checks that hold balance in place.
 
 **Source of truth.** The build is normative: every number below is checked against the catalog in
 `packages/simulation/src/catalog` at the build this page ships with. [Live tuning](#live-tuning)
@@ -22,9 +22,9 @@ Upload Labs players lose interest when numbers become meaningless
 | --------- | -------------- | ------------------------------------- | ------------------------------------- |
 | Users     | 150            | 50 million                            | About 6 billion (online population)   |
 | Demand    | 3 rps          | 1 million rps                         | Users × R_user                        |
-| Latency   | 30–500 ms      | 30–500 ms                             | —                                     |
-| Cash      | $300           | Trillions of game dollars             | —                                     |
-| Valuation | —              | About $1 billion at the IPO           | About $100 billion at 6 billion users |
+| Latency   | 30–500 ms      | 30–500 ms                             |                                       |
+| Cash      | $300           | Trillions of game dollars             |                                       |
+| Valuation |                | About $1 billion at the IPO           | About $100 billion at 6 billion users |
 
 Cash, revenue, and Burn are game dollars. Valuation, payout, and Legacy use real dollars, converted
 by the [valuation scale](#valuation-scale).
@@ -35,21 +35,21 @@ Formatting: SI suffixes only (k, M, B, T). No letter suffixes such as "aa".
 
 | Constant              | Symbol         | Value                                                                        | Where used                                                                 |
 | --------------------- | -------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Step length           | —              | 100 ms                                                                       | [Simulation](/design/04-simulation#time)                                   |
-| Calendar rate         | —              | 1 sim s = 1 calendar min                                                     | [Simulation](/design/04-simulation#time)                                   |
+| Step length           |                | 100 ms                                                                       | [Simulation](/design/04-simulation#time)                                   |
+| Calendar rate         |                | 1 sim s = 1 calendar min                                                     | [Simulation](/design/04-simulation#time)                                   |
 | Requests per user     | `R_user`       | 0.02 rps                                                                     | [Demand](/design/04-simulation#demand)                                     |
 | Diurnal amplitude     | `A`            | 0.45                                                                         | [Demand](/design/04-simulation#demand)                                     |
-| Copy price growth     | —              | 1.25×                                                                        | [Prices](#prices)                                                          |
-| Resize price growth   | —              | 2× per size step                                                             | [Vertical and horizontal](#vertical-and-horizontal)                        |
-| Sell refund           | —              | 50%                                                                          | [Components](/design/05-components#rules-for-all-components)               |
-| Insight yield         | —              | 1 × √(sampled rps), per Component type and kind                              | [Observability](/design/12-observability#earning-insight)                  |
-| Default sample rate   | —              | 10%                                                                          | [Observability](/design/12-observability#earning-insight)                  |
-| Default retention     | —              | 15 min; pool cap at least 100                                                | [Observability](/design/12-observability#retention)                        |
-| Study duration        | —              | 20 s (Garage) to 60 min (Public)                                             | [Progression](/design/10-progression#studies)                              |
-| Spike speed           | —              | 2×                                                                           | [Team](/design/08-team-and-velocity#spikes)                                |
+| Copy price growth     |                | 1.25×                                                                        | [Prices](#prices)                                                          |
+| Resize price growth   |                | 2× per size step                                                             | [Vertical and horizontal](#vertical-and-horizontal)                        |
+| Sell refund           |                | 50%                                                                          | [Components](/design/05-components#rules-for-all-components)               |
+| Insight yield         |                | 1 × √(sampled rps), per Component type and kind                              | [Observability](/design/12-observability#earning-insight)                  |
+| Default sample rate   |                | 10%                                                                          | [Observability](/design/12-observability#earning-insight)                  |
+| Default retention     |                | 15 min; pool cap at least 100                                                | [Observability](/design/12-observability#retention)                        |
+| Study duration        |                | 20 s (Garage) to 60 min (Public)                                             | [Progression](/design/10-progression#studies)                              |
+| Spike speed           |                | 2×                                                                           | [Team](/design/08-team-and-velocity#spikes)                                |
 | Growth rate           | `g`            | See [User growth](#user-growth)                                              |                                                                            |
 | Churn rate            | `c`            | 0.004/s                                                                      | [User growth](#user-growth)                                                |
-| Declined-round growth | —              | 0.7 × `g`                                                                    | [Funding](/design/09-economy#funding)                                      |
+| Declined-round growth |                | 0.7 × `g`                                                                    | [Funding](/design/09-economy#funding)                                      |
 | Abroad seed share     | `seed_share`   | 0.05                                                                         | [Going global](/design/04-simulation#going-global)                         |
 | Fickle share          | `f`            | 0.5                                                                          | [Users and growth](/design/04-simulation#users-and-growth)                 |
 | Steady churn          | `s`            | 0.2 × `c`                                                                    | [Users and growth](/design/04-simulation#users-and-growth)                 |
@@ -59,48 +59,48 @@ Formatting: SI suffixes only (k, M, B, T). No letter suffixes such as "aa".
 | GitOps poll           | `sync_poll`    | 3 calendar minutes (Argo CD's default)                                       | [GitOps](/design/05-components#gitops)                                     |
 | Plan refresh          | `refresh_time` | 0.5 calendar minutes per Node                                                | [IaC tools](/design/05-components#iac-tools)                               |
 | IaC tool switch       | `iac_switch`   | 1,440 calendar minutes                                                       | [IaC tools](/design/05-components#iac-tools)                               |
-| Valuation scale       | —              | 1.5 × 10⁻⁴                                                                   | [Valuation scale](#valuation-scale)                                        |
+| Valuation scale       |                | 1.5 × 10⁻⁴                                                                   | [Valuation scale](#valuation-scale)                                        |
 | Coordination penalty  | `k`            | 0.08                                                                         | [Team](/design/08-team-and-velocity#coordination)                          |
-| Dev Hours per day     | —              | 8 per engineer, 6.4 founder                                                  | [Team](/design/08-team-and-velocity#dev-hours)                             |
+| Dev Hours per day     |                | 8 per engineer, 6.4 founder                                                  | [Team](/design/08-team-and-velocity#dev-hours)                             |
 | Adoption time         | `τ`            | 7 calendar days                                                              | [Adoption](/design/08-team-and-velocity#adoption)                          |
 | Lift spread           | `σ`            | 1.0                                                                          | [Measured lift](/design/08-team-and-velocity#measured-lift)                |
-| Upkeep ceiling        | —              | 0.4 × S / (S + 2,000), max 0.6                                               | [Upkeep](/design/08-team-and-velocity#upkeep)                              |
-| Unhappy mood          | —              | 0.35, one Mail per slump; content again at 0.7                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Page mood             | —              | −0.08 per page                                                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Freeze mood           | —              | a calendar week of a spent budget takes all of it                            | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Pay-gap mood          | —              | a third of a point a calendar day at a 50% gap                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Time off              | —              | 3 calendar days                                                              | [Burnout](/design/18-mail#burnout-and-quitting)                            |
-| Block reminder        | —              | 1 calendar day after Later                                                   | [Blocked](/design/08-team-and-velocity#blocked)                            |
-| Block hire threshold  | —              | 8 engineers on one team                                                      | [Blocked](/design/08-team-and-velocity#blocked)                            |
-| Market gain cap       | —              | +100% of the Era market                                                      | [Sizes](/design/08-team-and-velocity#sizes)                                |
-| Link timeout          | —              | 30 s                                                                         | [Simulation](/design/04-simulation#capacity-utilization-and-queues)        |
-| Drawer size           | —              | `max($25, 60 s of revenue)`                                                  | [Economy](/design/09-economy#the-payments-drawer)                          |
-| Offline cap           | —              | 8 h; 12, 18, 24 h with Night shift                                           | [Simulation](/design/04-simulation#offline-progress)                       |
-| Offline churn cap     | —              | 5%                                                                           | [Simulation](/design/04-simulation#offline-progress)                       |
-| SLA credit            | —              | 10% of subscription revenue while the trailing week misses the signed target | [Incidents](/design/11-incidents#sla-credits)                              |
-| On-call ack           | —              | 5 sim s after the page                                                       | [Incidents](/design/11-incidents#the-incident-loop)                        |
-| CDC change rate       | —              | 20,000 changes/s (05)                                                        | [CDC Connector](/design/05-components#cdc-connector)                       |
-| Sidecar overhead      | —              | 5% of a member's CPU and Burn (05)                                           | [Service Mesh](/design/05-components#service-mesh)                         |
-| Sidecar hop           | —              | 1 ms per hop (05)                                                            | [Service Mesh](/design/05-components#service-mesh)                         |
-| Mesh Insight          | —              | +20% on watched traffic (05)                                                 | [Service Mesh](/design/05-components#service-mesh)                         |
-| Mesh Platform tax     | —              | 0.5 engineers per mesh                                                       | [Team](/design/08-team-and-velocity#teams)                                 |
-| Rollout steps         | —              | off, 5%, 25%, 50%, 100% (05)                                                 | [Feature Flags](/design/05-components#feature-flags)                       |
-| Certificate life      | —              | 90 calendar days; 45 from Series C (05)                                      | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
-| Certificate renewal   | —              | two thirds of the life                                                       | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
-| L4 multiplier         | —              | 10× the capacity, 0.2 ms, 0.6× the Burn                                      | [Load Balancer](/design/05-components#load-balancer)                       |
-| Gateway burst         | —              | 200 requests on top of the limit                                             | [API Gateway](/design/05-components#api-gateway)                           |
-| ESI page gain         | —              | +20 points of `page` hit ratio (10)                                          | [CDN](/design/05-components#cdn)                                           |
-| Bot management        | —              | false positives × 0.5                                                        | [WAF](/design/05-components#waf)                                           |
-| Schedule lead         | —              | 120 calendar minutes before the peak                                         | [Autoscaler](/design/05-components#autoscaler)                             |
-| ARM price, speed      | —              | 0.8×, and 0.95× CPU                                                          | [App Server](/design/05-components#app-server)                             |
-| Quantization value    | —              | INT8 0.95, INT4 0.85; speed 2× and 3×                                        | [GPU Node](/design/05-components#gpu-node)                                 |
-| Batch gain, TTFT      | —              | batch 8: 1.6×, +150 ms; batch 32: 2.2×, +500 ms                              | [GPU Node](/design/05-components#gpu-node)                                 |
-| Bulkhead wait         | —              | 1,000 ms per call                                                            | [Links](/design/05-components#links)                                       |
-| Hedge load            | —              | +10% calls on the Link                                                       | [Links](/design/05-components#links)                                       |
-| Serialization CPU     | —              | 0.02 reference ms per backend call                                           | [Performance](/design/10-progression#track-performance)                    |
-| Dual-write stale      | —              | 0.5% of search answers, from Series B                                        | [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync)      |
-| Materialized view     | —              | 0.5× scan CPU, 5% stale answers                                              | [Data Warehouse](/design/07-data-tier#data-warehouse)                      |
-| Chaos experiment      | —              | every 120 s, 10 s long, 20% of the target's calls fail, 1 ◇ Failure a second | [Reliability](/design/10-progression#track-reliability)                    |
+| Upkeep ceiling        |                | 0.4 × S / (S + 2,000), max 0.6                                               | [Upkeep](/design/08-team-and-velocity#upkeep)                              |
+| Unhappy mood          |                | 0.35, one Mail per slump; content again at 0.7                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Page mood             |                | −0.08 per page                                                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Freeze mood           |                | a calendar week of a spent budget takes all of it                            | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Pay-gap mood          |                | a third of a point a calendar day at a 50% gap                               | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Time off              |                | 3 calendar days                                                              | [Burnout](/design/18-mail#burnout-and-quitting)                            |
+| Block reminder        |                | 1 calendar day after Later                                                   | [Blocked](/design/08-team-and-velocity#blocked)                            |
+| Block hire threshold  |                | 8 engineers on one team                                                      | [Blocked](/design/08-team-and-velocity#blocked)                            |
+| Market gain cap       |                | +100% of the Era market                                                      | [Sizes](/design/08-team-and-velocity#sizes)                                |
+| Link timeout          |                | 30 s                                                                         | [Simulation](/design/04-simulation#capacity-utilization-and-queues)        |
+| Drawer size           |                | `max($25, 60 s of revenue)`                                                  | [Economy](/design/09-economy#the-payments-drawer)                          |
+| Offline cap           |                | 8 h; 12, 18, 24 h with Night shift                                           | [Simulation](/design/04-simulation#offline-progress)                       |
+| Offline churn cap     |                | 5%                                                                           | [Simulation](/design/04-simulation#offline-progress)                       |
+| SLA credit            |                | 10% of subscription revenue while the trailing week misses the signed target | [Incidents](/design/11-incidents#sla-credits)                              |
+| On-call ack           |                | 5 sim s after the page                                                       | [Incidents](/design/11-incidents#the-incident-loop)                        |
+| CDC change rate       |                | 20,000 changes/s (05)                                                        | [CDC Connector](/design/05-components#cdc-connector)                       |
+| Sidecar overhead      |                | 5% of a member's CPU and Burn (05)                                           | [Service Mesh](/design/05-components#service-mesh)                         |
+| Sidecar hop           |                | 1 ms per hop (05)                                                            | [Service Mesh](/design/05-components#service-mesh)                         |
+| Mesh Insight          |                | +20% on watched traffic (05)                                                 | [Service Mesh](/design/05-components#service-mesh)                         |
+| Mesh Platform tax     |                | 0.5 engineers per mesh                                                       | [Team](/design/08-team-and-velocity#teams)                                 |
+| Rollout steps         |                | off, 5%, 25%, 50%, 100% (05)                                                 | [Feature Flags](/design/05-components#feature-flags)                       |
+| Certificate life      |                | 90 calendar days; 45 from Series C (05)                                      | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
+| Certificate renewal   |                | two thirds of the life                                                       | [Secrets and Certificates](/design/05-components#secrets-and-certificates) |
+| L4 multiplier         |                | 10× the capacity, 0.2 ms, 0.6× the Burn                                      | [Load Balancer](/design/05-components#load-balancer)                       |
+| Gateway burst         |                | 200 requests on top of the limit                                             | [API Gateway](/design/05-components#api-gateway)                           |
+| ESI page gain         |                | +20 points of `page` hit ratio (10)                                          | [CDN](/design/05-components#cdn)                                           |
+| Bot management        |                | false positives × 0.5                                                        | [WAF](/design/05-components#waf)                                           |
+| Schedule lead         |                | 120 calendar minutes before the peak                                         | [Autoscaler](/design/05-components#autoscaler)                             |
+| ARM price, speed      |                | 0.8×, and 0.95× CPU                                                          | [App Server](/design/05-components#app-server)                             |
+| Quantization value    |                | INT8 0.95, INT4 0.85; speed 2× and 3×                                        | [GPU Node](/design/05-components#gpu-node)                                 |
+| Batch gain, TTFT      |                | batch 8: 1.6×, +150 ms; batch 32: 2.2×, +500 ms                              | [GPU Node](/design/05-components#gpu-node)                                 |
+| Bulkhead wait         |                | 1,000 ms per call                                                            | [Links](/design/05-components#links)                                       |
+| Hedge load            |                | +10% calls on the Link                                                       | [Links](/design/05-components#links)                                       |
+| Serialization CPU     |                | 0.02 reference ms per backend call                                           | [Performance](/design/10-progression#track-performance)                    |
+| Dual-write stale      |                | 0.5% of search answers, from Series B                                        | [Keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync)      |
+| Materialized view     |                | 0.5× scan CPU, 5% stale answers                                              | [Data Warehouse](/design/07-data-tier#data-warehouse)                      |
+| Chaos experiment      |                | every 120 s, 10 s long, 20% of the target's calls fail, 1 ◇ Failure a second | [Reliability](/design/10-progression#track-reliability)                    |
 
 The rollout steps and the certificate's two lifetimes are 05's own. A mesh takes a Cluster's half an engineer of Platform Dev Hours. The pages that own each mechanic give the rate it runs at.
 
@@ -116,8 +116,8 @@ place_price(component, k) = base_price(component) × 1.25^(k − 1)      k = cop
 ```
 
 The 1.25 growth on copies is a soft push toward bigger instances and toward better design over more
-copies. It is stylized: real clouds charge the same for the hundredth VM as the first. The
-justification is operational overhead, and the game says so on the card. Selling refunds half of what
+copies. It is stylized, because real clouds charge the same for the hundredth VM as the first. The
+justification is operational overhead, and the card says so. Selling refunds half of what
 the last copy cost, at the copy markup.
 
 ### Cost index
@@ -158,8 +158,8 @@ billion users the Valuation is about $100 billion.
 
 ## Vertical and horizontal
 
-A size step doubles vCPU, RAM, and Burn. Price is linear in resources, as in real clouds. So the
-choice between one big box and many small ones is not about price per vCPU. It is about:
+A size step doubles vCPU, RAM, and Burn. Price is linear in resources, as in real clouds, so price per
+vCPU does not decide between one big box and many small ones. These tradeoffs do:
 
 | One big box                                                                                    | Many small boxes                                           |
 | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
@@ -171,7 +171,8 @@ choice between one big box and many small ones is not about price per vCPU. It i
 
 Flat Components have size steps of their own, and each step doubles both capacity and Burn: Payments
 6, Analytics 8, Load Balancer 6, Connection Pooler 4, Cache 8, Search Engine 8, Queue 6, WAF 6,
-Payment Provider 8, GPU Node 8, LLM API 8, Wide-column Store 6, and Distributed SQL 6.
+Payment Provider 8, GPU Node 8, LLM API 8, Wide-column Store 6, Distributed SQL 6, Document Store 8,
+Event Stream 6, Realtime Hub 8, and Vector Index 6.
 
 ## User growth
 
@@ -188,7 +189,7 @@ growth = g(Era) × Users × (1 − Users / Market) × h(A)
 | Series B | 0.0007               | 1 hour 12 minutes, from 150,000 to 1 million              |
 | Series C | 0.0005               | 1 hour 56 minutes, from 1 million to 10 million           |
 | Pre-IPO  | 0.0003               | 2 hours 30 minutes, from 10 million to 50 million         |
-| Public   | 0.0002               | —                                                         |
+| Public   | 0.0002               |                                                           |
 
 The times solve the logistic equation from the Era's start to its milestone with the market sizes in
 [Progression](/design/10-progression#eras): `t = ln(((M − U₀) / U₀) × (U₁ / (M − U₁))) / g`. The sum is
@@ -216,11 +217,13 @@ Brutlag also found that searches stayed low for a while after the delay was remo
 not model that lag: users respond to the last calendar hour only, so a fix shows its effect within
 the hour. A lag would hide the feedback the Churn breakdown exists to give.
 
-These are lower bounds: capacity, Cash, and research make a real player slower, while Features raise
-`g` and the market, which makes growth faster still. Growth alone sets the length of the first two
-Eras: at `g` × 1 the Garage takes 12 sim minutes to go from 150 to 1,000 users and Pre-seed 21 more to
-5,000, so Seed arrives at about 33 sim minutes whatever the Design does. At the Company pace, where
-`g` is doubled, the same growth takes half as long.
+These are lower bounds. Capacity, Cash, and research make a real player slower, while Features raise
+`g` and the market, which makes growth faster still.
+
+Growth alone sets the length of the first two Eras. At `g` × 1 the Garage takes 12 sim minutes to go
+from 150 to 1,000 users and Pre-seed 21 more to 5,000, so Seed arrives at about 33 sim minutes
+whatever the Design does. At the Company pace, where `g` is doubled, the same growth takes half as
+long.
 
 ## Pacing model
 
@@ -252,8 +255,7 @@ self-sized pool, or one of the six axes of its profile. Across languages, BEAM h
 realtime connections per GB, beating Go and Kestrel. The option sets are the 28 runtimes, each
 language's frameworks, the instance families (Burstable, General, Compute, Memory), and the PHP-FPM pool
 modes. Axum and Actix are within about 5% of each other on CPU and velocity, and ARM runs at 0.8× the
-price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's. A dominated option is fixed
-by changing the option, not by a number tweak.
+price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's. The fix for a dominated option is to change the option, not to tweak a number.
 
 ## Runtime balance targets
 

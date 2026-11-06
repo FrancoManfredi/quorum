@@ -7,8 +7,8 @@ order: 12
 
 A Hacker News comment on Factorio says: "The only thing preventing you from doing this to your
 application is the lack of visibility into the problems." Quorum makes visibility a progression track.
-The player starts with almost nothing, like a real early startup, and earns better tools. This is fog
-of war for systems.
+The player starts with almost nothing, as an early startup does, and earns better tools. It is fog of
+war for systems.
 
 Observability does two jobs:
 
@@ -21,7 +21,7 @@ Observability does two jobs:
 sample of its traffic.
 
 Insight has a request kind. A sampled `read` gives `read` Insight, a sampled `buy` gives `buy`
-Insight, and so on. The Company holds one pool for each of the 16 request kinds and one **Failure**
+Insight, and so on. The Company holds one pool for each of the 17 request kinds and one **Failure**
 pool. Research costs Insight from named pools ([Progression](/design/10-progression#research)), so a
 new Era's research needs that Era's traffic. This is the Factorio science pack pattern, with request
 kinds as the packs ([Influences](/design/02-influences#research-in-factory-games)).
@@ -40,10 +40,10 @@ insight(Failure)  = 3 × yield × Σ Component types c: √failed(c) × multipli
 | `yield`          | 1 ([Balancing](/design/16-balancing#constants)).                                                                                                                                        |
 | `multipliers(c)` | The Pattern recognition Perk, +20% per level.                                                                                                                                           |
 
-A Service Mesh's +20% is built ([Components](/design/05-components#service-mesh)): the samples that come
-from a Node with a sidecar earn a fifth more, under the same square root, so a Design whose sampled
-Nodes are all meshed earns 20% more. `tail-sampling` is built too: it doubles the whole Failure
-Insight formula below, outside the square root.
+A Service Mesh adds +20% ([Components](/design/05-components#service-mesh)). Samples from a Node with
+a sidecar earn a fifth more, under the same square root, so a Design whose sampled Nodes are all
+meshed earns 20% more. `tail-sampling` doubles the whole Failure Insight formula above, outside the
+square root.
 
 Analytics has a capacity in samples per second. Samples beyond it are dropped.
 
@@ -58,12 +58,12 @@ The rules behind the formula:
 - **`bot` Insight is real.** Bots teach how bots behave. Only security research asks for it.
 - **Failure Insight comes from failures.** Reliability research asks for it, so the player learns
   reliability by seeing failures, as real teams do. Failures also cost users, revenue, and error
-  budget, so failing on purpose is a bad trade. Postmortems still pay no Insight
+  budget, so failing on purpose is a bad trade. Postmortems pay no Insight
   ([Incidents](/design/11-incidents#postmortems)).
 
 ### The cost of seeing
 
-Sampling is not free. That is real, and observability bills are a common surprise.
+Sampling is not free, and real observability bills surprise teams in the same way.
 
 | Sample rate | CPU overhead on tapped Nodes | Latency per tapped hop | Storage Burn | Insight |
 | ----------- | ---------------------------- | ---------------------- | ------------ | ------- |
@@ -74,7 +74,7 @@ Sampling is not free. That is real, and observability bills are a common surpris
 | 100%        | +15%                         | +5 ms                  | 10×          | 3.16×   |
 
 Ten times the samples gives about three times the Insight, and it costs capacity and Apdex while it
-is on. A high sample rate is a choice to learn faster at a known price, not free Insight.
+is on. A high sample rate buys faster learning at a known price.
 
 ### Retention
 
@@ -108,19 +108,19 @@ Chaos engineering schedules pays for the 10 seconds it runs
 
 ## The visibility ladder
 
-| Step | Research            | Era      | What the player can now see                                                                                                                                                                                                                                                                  |
-| ---- | ------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Starting view       | Garage   | Load bars, inbound rps, mean latency, a red "Stranded" row, the bottleneck marker. Errors as one number.                                                                                                                                                                                     |
-| 1    | `logs`              | Garage   | The error breakdown by cause: `timeout`, `refused`, `oom`, and the rest ([Simulation](/design/04-simulation#errors)).                                                                                                                                                                        |
-| 2    | `metrics`           | Garage   | A history graph on each Node card for the last calendar day, and [the Dashboard](#the-dashboard). Before this, the player sees only "now".                                                                                                                                                   |
-| 3    | `percentiles`       | Pre-seed | p99 on cards and the HUD, next to the mean. The mean is still shown, so the player sees how much it hides.                                                                                                                                                                                   |
-| 4    | `alerting`          | Pre-seed | A pager banner when thresholds are crossed ([Alerting](#alerting)).                                                                                                                                                                                                                          |
-| 5    | `tracing`           | Seed     | The Dashboard's Services and Resources rows, and a waterfall of a request kind's path: `NodeLedger` gained `hopByKind` and `waitByKind`, so each hop and each Queue wait can be split by kind, and `Ledger.bottleneckByKind` names the busiest limiting Node on each kind's own path.        |
-| 6    | `slo-dashboards`    | Series A | The error budget panel and burn rate.                                                                                                                                                                                                                                                        |
-| 7    | `profiling`         | Series A | Its own Research now, at the breadth `tracing` carried: 4 Component types. The Dashboard's Resources row names the resource that limits each Node ([Runtimes](/design/06-runtimes#the-capacity-model)), and it is locked behind `profiling` rather than arriving with `tracing`.             |
-| 8    | `tail-sampling`     | Series B | Failure Insight doubles ([Charts by research](#charts-by-research)).                                                                                                                                                                                                                         |
-| 9    | `rum`               | Series C | A device split — desktop, mobile, and tablet — on the Users row, with each device's own mean latency including a stylized round trip. Its Study needs `page` and `feed` sampled in two regions, each through an Analytics tap on a Node there ([Research](/design/10-progression#research)). |
-| 10   | `anomaly-detection` | Series C | A shorter hold before the pager fires, so the warning lands while an incident is still ramping up, and a forecast line at tomorrow's predicted peak, projected from the known diurnal cycle. The cycle gives one line, not a range, so the forecast is a line.                               |
+| Step | Research            | Era      | What the player can see                                                                                                                                                                                                                                                                    |
+| ---- | ------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0    | Starting view       | Garage   | Load bars, inbound rps, mean latency, a red "Stranded" row, the bottleneck marker. Errors as one number.                                                                                                                                                                                   |
+| 1    | `logs`              | Garage   | The error breakdown by cause: `timeout`, `refused`, `oom`, and the rest ([Simulation](/design/04-simulation#errors)).                                                                                                                                                                      |
+| 2    | `metrics`           | Garage   | A history graph on each Node card for the last calendar day, and [the Dashboard](#the-dashboard). Before this, the player sees only "now".                                                                                                                                                 |
+| 3    | `percentiles`       | Pre-seed | p99 on cards and the HUD, next to the mean. The mean stays beside it, so the player sees how much it hides.                                                                                                                                                                                |
+| 4    | `alerting`          | Pre-seed | A pager banner when thresholds are crossed ([Alerting](#alerting)).                                                                                                                                                                                                                        |
+| 5    | `tracing`           | Seed     | The Dashboard's Services and Resources rows, and a waterfall of a request kind's path. `NodeLedger` carries `hopByKind` and `waitByKind`, so each hop and each Queue wait splits by kind, and `Ledger.bottleneckByKind` names the busiest limiting Node on each kind's own path.           |
+| 6    | `slo-dashboards`    | Series A | The error budget panel and burn rate.                                                                                                                                                                                                                                                      |
+| 7    | `profiling`         | Series A | Its own Research, with the same breadth rule as `tracing` at 4 Component types, not 3. The Dashboard's Resources row names the resource that limits each Node ([Runtimes](/design/06-runtimes#the-capacity-model)). It is locked behind `profiling` rather than arriving with `tracing`.   |
+| 8    | `tail-sampling`     | Series B | Failure Insight doubles ([Charts by research](#charts-by-research)).                                                                                                                                                                                                                       |
+| 9    | `rum`               | Series C | A device split (desktop, mobile, and tablet) on the Users row, with each device's own mean latency including a stylized round trip. Its Study needs `page` and `feed` sampled in two regions, each through an Analytics tap on a Node there ([Research](/design/10-progression#research)). |
+| 10   | `anomaly-detection` | Series C | A shorter hold before the pager fires, so the warning lands while an incident is still ramping up. Also a forecast line at tomorrow's predicted peak, projected from the known diurnal cycle. The cycle gives one line, not a range.                                                       |
 
 ### What the player sees at each step: an example
 
@@ -147,19 +147,19 @@ With `alerting`, the player can set alert rules. The defaults:
 | Queue growth    | A Queue's oldest task older than 30 s for 60 s |
 | Budget burn     | Error budget burning above 10× for 30 s        |
 
-Queue growth reads the age of the oldest task in any Queue, and Budget burn the error budget's burn
+Queue growth reads the age of the oldest task in any Queue. Budget burn reads the error budget's burn
 rate: the share of requests failing against the share the SLO allows, so 1 spends exactly the whole
 budget over the SLO window. Each rule's threshold has three settings, and a rule pages like the
 others. Budget burn counts from Series A, when the budget starts.
 
 Alerts that fire too often lower their own value: after five false alarms in a calendar day, the
-banner shows "Ignored" and the player must tune the rule. This is alert fatigue, and it is real.
+banner shows "Ignored" and the player must tune the rule. That models alert fatigue.
 
 ## The Ledger and what is hidden
 
 The Ledger always holds every number. Visibility research changes what the UI shows, not what the
 simulation computes. A player who has not researched `percentiles` still loses revenue to slow
-requests. They just cannot see the p99.
+requests. They only cannot see the p99.
 
 The bottleneck marker is always visible. It is the safety net that keeps the game playable at step 0.
 
@@ -183,8 +183,8 @@ Europe   Apdex 0.91 · target 0.92 · −1.8% users per hour · 1 day at this ra
 ```
 
 In the Series C Era, one point of Apdex under target costs a region about a third of its users in a
-calendar day, when half of them are steady. The Churn breakdown
-exists because nothing else on the screen says so.
+calendar day, when half of them are steady. Nothing else on the screen says so, which is why the
+Churn breakdown exists.
 
 - Each row is one Request kind and one cause. Its bar is the Apdex points that the row takes from
   the region: the share of the region's requests in that row, times 1 for a failure and ½ for a
@@ -208,8 +208,8 @@ rows ([Mail](/design/18-mail#senders)).
 
 ## The Inspector
 
-Click a Node and the Inspector opens on its numbers. It also breaks the Node's load down, so a spike
-can be traced to the operations and the upstream Nodes that caused it.
+Click a Node and the Inspector opens on its numbers. It also breaks the Node's load down, so the
+player can trace a spike to the operations and the upstream Nodes that caused it.
 
 - **Incoming operations.** Offered traffic per request kind, largest first, as a rate and as a share
   of the Node's inbound traffic, with the change since the previous sample. Shares describe incoming
@@ -221,19 +221,20 @@ can be traced to the operations and the upstream Nodes that caused it.
   limit, and it names that limit. A large traffic share alone raises nothing.
 
 The Inspector keeps a one-day history per Node in session state, not in the Game: 144 samples, one
-every 10 sim seconds. With `metrics`, Traffic & load draws it. Click a point on the chart, or use
-Earlier sample and Later sample, to read a past sample: the panel labels it "Recorded sample" and
-every rate, share and delta is the one recorded then. Selecting a sample changes no Game state and no
-time, so the Board keeps running. Back to live returns to now. The selection clears when its sample
-expires or its Node is sold.
+every 10 sim seconds. With `metrics`, Traffic & load draws it.
+
+Click a point on the chart, or use Earlier sample and Later sample, to read a past sample. The panel
+labels it "Recorded sample", and every rate, share and delta is the one recorded then. Selecting a
+sample changes no Game state and no time, so the Board keeps running. Back to live returns to now.
+The selection clears when its sample expires or its Node is sold.
 
 ## The Dashboard
 
 The Board shows the system **now**. The **Dashboard** shows it **over time**. It is a full-screen
 view of Charts, with the look of a Grafana dashboard, from the Monitoring sender Grafauna
 ([Mail](/design/18-mail#senders)). It opens with `D` once `metrics` is researched, and each later
-visibility step adds Charts to it. The player does not buy the Dashboard with its own research.
-It grows as they climb the ladder.
+visibility step adds Charts to it. It has no research of its own to buy. It grows as the player
+climbs the ladder.
 
 ### The Dashboard and pillar 4
 
@@ -259,7 +260,7 @@ Rules:
 
 ### How real teams build dashboards
 
-The Dashboard copies the methods that real teams use, so that what the player learns transfers.
+The Dashboard copies the methods real teams use, so what the player learns transfers.
 
 | Practice                    | What it is                                                                                                                                                      | In the Dashboard                                                                                                                                                                                                                                                                                                                                                    |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -290,9 +291,9 @@ Each visibility step adds a row. A row appears only when its research is owned.
 | `tracing`           | Services (RED)  | One row per Request kind, with its rate, its share of the traffic, its errors, and its mean and p99 duration, and the Waterfall table under it: every Node a selected kind's traffic touches, its hop time, its Queue wait, and whether it is that kind's bottleneck. The latency Charts carry no exemplar dots.                 |
 | `slo-dashboards`    | SLO             | Availability this calendar week as a stat, error budget left as a gauge, the SLA credit the Venture owes as a figure, and burn rate over the last day. The HUD keeps availability and the budget left, and adds an SLA row while the credit pays.                                                                                |
 | `profiling`         | Resources (USE) | A state timeline per Node that colours the resource that limited it: CPU, workers, memory, connections, network, disk, or throughput; locked behind its own Research rather than arriving with `tracing`. Pool waits and queue depths are on the Queue row.                                                                      |
-| `tail-sampling`     | —               | No Chart. The research doubles Failure Insight (12 "Earning Insight").                                                                                                                                                                                                                                                           |
+| `tail-sampling`     | None            | No Chart. The research doubles Failure Insight (12 "Earning Insight").                                                                                                                                                                                                                                                           |
 | `rum`               | Users           | Users by region against the region's market, with its Apdex and its churn per hour, and a Real user monitoring table under it: mean latency from each device's side. Latency is per device, not per region.                                                                                                                      |
-| `anomaly-detection` | —               | A rule at tomorrow's predicted peak on the Traffic Chart, projected from the diurnal cycle. The cycle gives one line, not a range.                                                                                                                                                                                               |
+| `anomaly-detection` | None            | A rule at tomorrow's predicted peak on the Traffic Chart, projected from the diurnal cycle. The cycle gives one line, not a range.                                                                                                                                                                                               |
 
 A chaos experiment ([Progression](/design/10-progression#track-reliability)) writes its injected
 `refused` errors into the Errors row while it runs, so the experiment is visible on the same Chart as
@@ -301,14 +302,16 @@ which is the Design's weakest.
 
 The Dashboard has eight of these rows: Overview, Errors, Latency, Alerts, Services, Resources, Users
 and SLO. Two more rows read the Game, the Ledger and the Inbox rather than a signal:
-[Company and Incidents](/design/15-ui-ux#company-and-incidents-panels). They exist because a Chart
-cannot say who is on the Team, how long the money lasts, or what the last Incident cost. Each adds
-one series drawn from history the Board cannot show, and no new figure: the Company's Money card
-draws Cash from the Samples' `cash`, and the Incidents row draws each Postmortem's run from `endedAt`
+[Company and Incidents](/design/15-ui-ux#company-and-incidents-panels). A Chart cannot say who is on
+the Team, how long the money lasts, or what the last Incident cost, so these rows exist.
+
+Each adds one series drawn from history the Board cannot show, and no new figure. The Company's Money
+card draws Cash from the Samples' `cash`. The Incidents row draws each Postmortem's run from `endedAt`
 less its `duration` to `endedAt`, split at the first signal and the acknowledgement so the spans
 before each show, with the running Incident last. It reaches back only as far as the four Postmortems
 the Game keeps and the Chart history behind its axis, so a run older than either stays in the table
-alone. They are not visibility steps: they gather facts the player already has, not a new signal.
+alone. These rows are not visibility steps: they gather facts the player already has, not a new
+signal.
 
 ### Component rows
 
@@ -326,7 +329,8 @@ Component, after `metrics`, and each Chart reads a number the Ledger already hol
 | CDN               | Hit ratio, beside the Design's Egress                                                   |
 | Managed Component | Calls, latency and outage state                                                         |
 
-The Cache row also carries its evictions: the keys a second it pushes out because the hot data does not fit its memory, which is 0 while it fits.
+The Cache row's evictions count the keys a second it pushes out because the hot data does not fit
+its memory. They stay at 0 while it fits.
 
 ### Annotations
 
@@ -344,24 +348,27 @@ of a change; the switch shows each group in its colour.
 
 The Deploy, Incident and Company marks come from the Inbox, which is the only record the client keeps
 of when an event happened: the Game holds no Deploy, Study or round time. That bounds them to the
-Threads the Inbox still keeps, and it is why a mark names its kind rather than its detail. The running
-Incident is marked once, with the SEV it holds now; every other Incident is marked where its Thread
-started. The marks show when an Incident began; its band, with the spans before it was seen and
-answered, is on the Incidents row ([Interface](/design/15-ui-ux#company-and-incidents-panels)).
+Threads the Inbox still keeps, and it is why a mark names its kind rather than its detail.
+
+The running Incident is marked once, with the SEV it holds now. Every other Incident is marked where
+its Thread started. The marks show when an Incident began. Its band, with the spans before it was
+seen and answered, is on the Incidents row ([Interface](/design/15-ui-ux#company-and-incidents-panels)).
 
 Research marks read the same Inbox, and they are the one group the Game does not date. A Study is
-`{ id, progress }` while it runs, and `advanceStudies` takes it off `studies` and adds its id to
-`researched` when it completes, so no field holds the second it finished. The mark is the
-`event:finished` entry that names a Research, at the second the Inbox wrote it. That Thread carries
-a finished task's Mail too, and a letter names its item rather than its kind, so the mark is read
-from the item name in the text: the mark says Research for an entry that names a Research item. A
-per-item field on the Thread's entry would make the mark exact, and so would the time on the Game.
+`{ id, progress }` while it runs. When it completes, `advanceStudies` takes it off `studies` and adds
+its id to `researched`, so no field holds the second it finished. The mark is the `event:finished`
+entry that names a Research, at the second the Inbox wrote it.
+
+That Thread also carries a finished task's Mail, and a letter names its item rather than its kind.
+So the mark is read from the item name in the text: an entry that names a Research item becomes a
+Research mark. A per-item field on the Thread's entry would make the mark exact, and so would the
+time on the Game.
 
 Era markers are in the Company group: the Game holds `stageAt`, the sim second the current Era began,
 and the Dashboard marks it with the Era's name.
 
-Design changes are the most important group. The player changes the Board to fix a problem, and
-the marker shows whether the line moved after the change. This closes the loop that the
+Design changes matter most. The player changes the Board to fix a problem, and the marker shows
+whether the line moved after the change. This closes the loop that the
 [ghost-simulation preview](/design/15-ui-ux#feedback-after-a-change) opens before the change.
 
 ### Controls
@@ -370,15 +377,15 @@ the marker shows whether the line moved after the change. This closes the loop t
   time. At 1× speed, 1 calendar hour is 1 real minute.
 - **Compare.** A switch that draws yesterday's line for the same time range as a faint dashed line
   under the current series, on the Traffic Chart (Served) and the Latency Chart (p99, or the mean
-  before Percentiles), so the player can separate the daily cycle from a real change. Grafana calls
+  before Percentiles). The player can then separate the daily cycle from a real change. Grafana calls
   this a time shift. It reads the Dashboard's own blocks, so a range under 10 hours compares against
   15-minute means, and a row whose day the history no longer reaches leaves a gap rather than a
   guess. The line is drawn by default and the switch takes it away.
 - **Variables.** A Request kind and a Region, as drop-downs at the top of the page. They narrow every
   panel that reads a per-kind or a per-region figure: the Request mix and the Services row by kind;
   the Users row, the Users stat and the Apdex gauge by region. The Charts over time read the
-  Simulation's global Samples, which carry no kind and no region, so a filter cannot narrow them;
-  a Sample history per Request kind and per Region would be needed to narrow them. The bar keeps
+  Simulation's global Samples, which carry no kind and no region, so a filter cannot narrow them.
+  Narrowing them would need a Sample history per Request kind and per Region. The bar keeps
   read-only chips for the Era and the SLO, and the region drop-down appears from Series C, when
   users live in more than one place.
 - **Service.** A drop-down that appears with a second Service
@@ -417,7 +424,7 @@ does not grow the Simulation's state or change replays
 starts with empty Charts. Offline progress has no per-minute history: the Dashboard shows the time
 away as one band labelled "Away", with the values from the away card.
 
-The error budget is the one exception: the Simulation already keeps it per calendar hour
+The error budget is the one exception: the Simulation keeps it per calendar hour
 (`BudgetHour`), so the SLO row reads it from the Game.
 
 The Dashboard redraws once per real second, not on every frame.

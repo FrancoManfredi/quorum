@@ -22,8 +22,7 @@ first, and a far user pays the round trip across the ocean twice for each reques
    figures before Series C.
 3. Read the [Series C](/eras/series-c) page for each region's share of your users.
 
-No change to capacity fixes this. The time is the distance. You must serve users from a region near
-them.
+More capacity does not help, because the delay is distance. Serve users from a region near them.
 
 ## Open a second region
 

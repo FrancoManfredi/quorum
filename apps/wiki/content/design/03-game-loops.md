@@ -5,8 +5,8 @@ section: design
 order: 3
 ---
 
-Quorum has six nested loops. Each loop feeds the one above it. A short loop must pay off before the
-player loses interest, and a long loop must give a reason to keep playing the short loops.
+Quorum has six nested loops, and each feeds the one above it. A short loop must pay off before the
+player loses interest, and a long loop must give a reason to keep playing the short ones.
 
 ```text
 L5  Mastery      Challenges, daily drills, histograms          unbounded
@@ -29,13 +29,13 @@ The player glances at the board.
    ([Progression](/design/10-progression#track-product-and-business)).
 3. **React.** The player clicks Upgrade on a red card, or ignores it.
 
-The pulse exists so that an idle player always has a small, satisfying action available. It becomes
-automatic by the end of the Garage Era, because a pulse that never changes becomes a chore
+The pulse gives an idle player a small, satisfying action at any moment. It becomes automatic by the
+end of the Garage Era, because a pulse that never changes turns into a chore
 ([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
 
 ## L1: Bottleneck (30 seconds to 3 minutes)
 
-This is the core loop. It is Factorio's loop, applied to requests.
+This is the core loop: Factorio's loop, applied to requests.
 
 ```text
 OBSERVE ──► DIAGNOSE ──► CHANGE ──► SETTLE ──► MEASURE
@@ -56,11 +56,11 @@ Rules that keep this loop deep:
 - **One tightest Node.** The simulation is a flow network. At any time, one Node limits each request
   path ([Simulation](/design/04-simulation#the-bottleneck)).
 - **Several kinds of bottleneck.** A Node can run out of CPU, workers, memory, connections, disk
-  I/O, or network. The fix differs for each. More hardware fixes only some of them.
-- **Fixes have side effects.** A cache removes database load and adds staleness. A replica adds read
-  capacity and adds replication lag. More app servers add database connections.
-- **The bottleneck moves downstream and upstream.** Faster app servers send more queries to the
-  database. A faster database lets app servers finish sooner, which frees workers.
+  I/O, or network. Each needs a different fix, and more hardware fixes only some of them.
+- **Fixes have side effects.** A cache removes database load but adds staleness. A replica adds read
+  capacity but adds replication lag. More app servers add database connections.
+- **The bottleneck moves both ways.** Faster app servers send more queries to the database, and a
+  faster database lets app servers finish sooner, which frees workers.
 
 ## L2: Growth (5 to 20 minutes)
 
@@ -74,7 +74,7 @@ Rules that keep this loop deep:
      DEV HOURS ──► FEATURES ──► more demand per user, new mix, more revenue per request ◄──┘
 ```
 
-- **Users** grow while the design keeps [Apdex](/design/glossary#apdex) above the Era target, and they
+- **Users** grow while the design keeps [Apdex](/glossary/apdex) above the Era target, and they
   leave when it drops ([Simulation](/design/04-simulation#users-and-growth)).
 - **Cash** buys capacity. **Insight** buys research. **Dev Hours** buy features, migrations, and
   fixes ([Economy](/design/09-economy)).
@@ -154,8 +154,8 @@ SIGNAL ──► TRIAGE ──► MITIGATE ──► RESOLVE ──► POSTMORTE
 
 ## Pacing
 
-The pacing model targets a steady stream of goals, as Factorio does
-([Influences](/design/02-influences#factorio)).
+Pacing aims for a steady stream of goals, as Factorio does
+([Influences](/design/02-influences#factorio)). The times below are for a person playing in real time. The Balanced bot in [Balancing](/design/16-balancing#pacing-model) runs on sim minutes and moves faster, so its Era times do not match this table.
 
 | Phase                      | Time since start | A new goal every | Typical goal                                     |
 | -------------------------- | ---------------- | ---------------- | ------------------------------------------------ |
