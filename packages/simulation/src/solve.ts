@@ -217,6 +217,12 @@ export const solveFlow = (game: Game): Ledger => {
   return ledger
 }
 
+/** `to` reads the Ledger `from` solved: the Step that made it changed nothing the solve reads. */
+export const carryLedger = (from: Game, to: Game): void => {
+  const ledger = flows.get(from)
+  if (ledger) flows.set(to, ledger)
+}
+
 /** The full Ledger, with the bottleneck searched now. For tests and one-off checks. Cached per Game. */
 export const solve = (game: Game): Ledger => {
   const cached = marked.get(game)

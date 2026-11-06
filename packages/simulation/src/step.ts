@@ -80,7 +80,7 @@ import {
 import { causeOf, warming, warmOf, withWarm } from './life.ts'
 import { burnRateOf, recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
 import { cosTurns } from './calendar.ts'
-import { calendarMinute, chaosRunning, solveFlow } from './solve.ts'
+import { calendarMinute, carryLedger, chaosRunning, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
 import { advanceQuarter, QUARTER_SECONDS } from './quarters.ts'
 import { advanceRunway } from './runway.ts'
@@ -870,5 +870,31 @@ export const step = (
   // Money out: Burn keeps billing, and a shortfall brings the bridge or the shutdown.
   next = advanceRunway(next, ledger)
 
+  if (solveHolds(game, next, events)) carryLedger(game, next)
   return { game: next, ledger, events }
 }
+
+/**
+ * The flow solve runs on the sim-time grid: at each whole second, and whenever something it reads
+ * changes in kind, or while an incident runs or a Node warms or scales. The Steps between share one Ledger, so ten 100 ms Steps cost one solve, and a
+ * Company plays out the same at every game speed.
+ */
+const solveHolds = (before: Game, after: Game, events: ReadonlyArray<StepEvent>): boolean =>
+  events.length === 0 &&
+  Math.floor(after.time) === Math.floor(before.time) &&
+  after.stage === before.stage &&
+  before.incident === null &&
+  after.incident === null &&
+  after.nodes.length === before.nodes.length &&
+  after.links.length === before.links.length &&
+  after.nodes.every((node, index) => {
+    const was = before.nodes[index]
+    // A Node still warming or scaling changes what it can take within a second: solve every Step.
+    return (
+      was !== undefined &&
+      node.life._tag === 'Running' &&
+      was.life._tag === 'Running' &&
+      node.readyIn === 0 &&
+      node.replicas === was.replicas
+    )
+  })
