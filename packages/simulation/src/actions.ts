@@ -85,6 +85,8 @@ import {
   frameworkReady,
   has,
   eraOf,
+  certLifeOf,
+  inCluster,
   isDown,
   isFinalEra,
   isUnlocked,
@@ -254,6 +256,7 @@ export const blankNode = (
     draining: false,
     drainAt: 0,
     compress: stack?.compress ?? false,
+    certUntil: null,
     recycle: stack?.recycle ?? false,
     authEdge: false,
     merge: false,
@@ -373,6 +376,29 @@ export const place = (
   }))
 }
 
+/** Draws a box around the chosen Nodes, named in order: Box 1, Box 2. A Node leaves the box it was in. */
+export const boxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
+  const chosen = ids.filter((id) => game.nodes.some((node) => node.id === id))
+  if (chosen.length < 2) return notAllowed('Select two or more Nodes to box.')
+  const number =
+    game.boxes.reduce((most, box) => Math.max(most, Number(box.id.slice(3)) || 0), 0) + 1
+  const kept = game.boxes
+    .map((box) => ({ ...box, nodes: box.nodes.filter((id) => !chosen.includes(id)) }))
+    .filter((box) => box.nodes.length >= 2)
+  return ok({
+    ...game,
+    boxes: [...kept, { id: `box${number}`, name: `Box ${number}`, nodes: chosen }],
+  })
+}
+
+/** Takes the box off a group of Nodes: the Nodes stay. */
+export const unboxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
+  const boxes = game.boxes.filter((box) => !box.nodes.some((id) => ids.includes(id)))
+  return boxes.length === game.boxes.length
+    ? notAllowed('No box holds these Nodes.')
+    : ok({ ...game, boxes })
+}
+
 export const sell = (game: Game, id: string): Action =>
   withNode(game, id, (node) =>
     COMPONENTS[node.type].fixed
@@ -428,6 +454,11 @@ export const connect = (game: Game, from: string, to: string): Action => {
         game.nodes.some((node) => node.id === entry.to && node.type === target.type),
     )
     if (taken) return notAllowed(`${sourceDef.name} already has a ${targetDef.name}.`)
+    // A mesh puts a sidecar in each pod: the service has to run in a Kubernetes Cluster first.
+    if (target.type === 'mesh' && !inCluster(game, source))
+      return notAllowed(
+        `Link ${sourceDef.name} into a Kubernetes Cluster first: the sidecar rides in its pod.`,
+      )
     return ok({ ...game, links: [...game.links, link(from, to)] })
   }
   // A CDC Connector reads one Database's write log: that Database keeps all of its traffic.
@@ -1671,7 +1702,9 @@ export const renewCertificate = (game: Game): Action =>
       ok({
         ...game,
         incident: { ...answering(game, game.incident), remaining: 0 },
-        certificate: game.time,
+        nodes: game.nodes.map((node) =>
+          node.certUntil === null ? node : { ...node, certUntil: game.time + certLifeOf(game) },
+        ),
       })
     : notAllowed('No certificate has expired.')
 

@@ -32,6 +32,7 @@ Place it when reads dominate and the Database CPU is high. The [Read Mostly](/sa
 - [Cache stampede](/incidents/stampede): the Cache restarts empty, and every miss hits the Database at once. While the Database is overloaded, refills time out and the Cache stays cold. [Stampede protection](/research/stampede-protection) and [Cache warming](/research/cache-warming) prevent it.
 - [Hot key](/incidents/hot-key): one key takes a large share of reads and saturates one shard. [Hybrid fan-out](/research/hybrid-fanout) lets you split hot keys.
 - A long TTL serves stale data, which fails reads that need fresh data.
+- When the hot data does not fit its memory, every refill pushes an older key out: the card and the Dashboard's Cache row show the evictions a second, and the hit ratio falls with them. A bigger Cache fits the data and stops them.
 - A Cache does not reduce connections: it passes its callers' connections through.
 
 ::Sandbox{id="stampede"}

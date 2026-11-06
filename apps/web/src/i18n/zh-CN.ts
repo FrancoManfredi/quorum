@@ -2279,4 +2279,18 @@ export const zhCN: Readonly<Record<string, string>> = {
   '{0} replicas': '{0} 个副本',
   'Replicas: {0}': '副本：{0}',
   'Model {0}': '模型 {0}',
+  Messaging: '消息',
+  Managed: '托管',
+  'Box the Nodes': '框选节点',
+  'Unboxed the Nodes': '已取消框选',
+  'Boxed {0}': '已框选 {0}',
+  'Select two or more Nodes to box.': '请选择两个或更多节点进行框选。',
+  'No box holds these Nodes.': '没有框包含这些节点。',
+  '{0} d left': '剩余 {0} 天',
+  'Cache evictions': '缓存驱逐',
+  'keys evicted · now': '已驱逐的键 · 当前',
+  Exemplars: '示例',
+  'No exemplar in this range.': '此范围内没有示例。',
+  'Link {0} into a Kubernetes Cluster first: the sidecar rides in its pod.':
+    '请先将 {0} 链接到 Kubernetes 集群：sidecar 运行在它的 pod 中。',
 }

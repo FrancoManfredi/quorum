@@ -159,6 +159,7 @@ import {
   agedShareOf,
   certDaysLeft,
   certDaysOf,
+  nodeCertDaysLeft,
   meshMembers,
   shardingOf,
 } from '@quorum/simulation/lookups'
@@ -983,7 +984,22 @@ const stats = (
           ? row('Requeued', `${rate(own.dropped)}/s`, own.dropped > 0.05 ? 'warn' : 'plain', h)
           : row('Dropped', `${rate(own.dropped)}/s`, own.dropped > 0.05 ? 'danger' : 'plain', h),
         ...(own.hitRatio !== null ? [row('Hit ratio', percent(own.hitRatio), 'plain', h)] : []),
+        ...(own.evictions !== null
+          ? [row('Evictions', `${rate(own.evictions)}/s`, own.evictions > 0 ? 'warn' : 'plain', h)]
+          : []),
         ...(own.lag !== null ? [row('Lag', ms(own.lag), 'plain', h)] : []),
+        ...(node.certUntil !== null
+          ? [
+              row(
+                'Certificate',
+                (nodeCertDaysLeft(game, node) ?? 0) <= 0
+                  ? 'expired'
+                  : `${Math.round(nodeCertDaysLeft(game, node) ?? 0)} d left`,
+                (nodeCertDaysLeft(game, node) ?? 0) <= 1 ? 'danger' : 'plain',
+                h,
+              ),
+            ]
+          : []),
         row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
       ]
     }

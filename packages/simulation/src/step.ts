@@ -32,7 +32,9 @@ import {
   UPLOAD_MB,
   WRITE_BEHIND_SECONDS,
   VM_REACTION,
+  CERT_FROM_STAGE,
   CERT_RENEW,
+  TLS_TERMINATORS,
   DRAIN_SECONDS,
   WARMUP_SECONDS,
   SCHEDULE_LEAD_MINUTES,
@@ -42,6 +44,7 @@ import {
   NO_DEVICE_LATENCY,
   ANOMALY_DETECTION_HOLD,
   type RegionId,
+  type RequestKind,
   type Tuning,
 } from './catalog.ts'
 import { advanceCves } from './cve.ts'
@@ -58,8 +61,10 @@ import { advanceFeatures, churnFactor, growthFactor } from './features.ts'
 import { growthPerk, ventureOf } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
+  certExpired,
   certLifeOf,
   certManaged,
+  certNodes,
   copiesOf,
   drawerSize,
   eraOf,
@@ -98,6 +103,21 @@ export type StepResult = Readonly<{
 }>
 
 const HISTORY = 600
+
+/** The scored Request kind with the highest p99 this Step, or null when none was served. */
+const slowestKind = (ledger: Ledger): RequestKind | null => {
+  let slowest: RequestKind | null = null
+  let worst = 0
+  for (const kind of REQUEST_KINDS) {
+    const entry = ledger.kinds[kind]
+    if (!PROFILES[kind].scored || !entry || entry.rate <= 0) continue
+    if (entry.p99 > worst) {
+      worst = entry.p99
+      slowest = kind
+    }
+  }
+  return slowest
+}
 
 /** Users per second one region gains, before the split into fickle and steady. */
 type Flow = Readonly<{ fickle: number; steady: number }>
@@ -571,21 +591,25 @@ const advanceCertificate = (
   ledger: Ledger,
   tuning: Tuning,
 ): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
-  const issued = game.certificate ?? null
+  if (game.sandbox || game.stage < CERT_FROM_STAGE) return { game, events: [] }
   const life = certLifeOf(game, tuning)
-  if (certManaged(game)) {
-    // The manager issues it the first time, and afterwards renews it before it can run out.
-    if (issued === null) return { game: { ...game, certificate: game.time }, events: [] }
-    return game.time >= issued + life * CERT_RENEW
-      ? { game: { ...game, certificate: game.time }, events: [] }
-      : { game, events: [] }
-  }
-  if (game.sandbox || issued === null || game.time < issued + life || game.incident)
-    return { game, events: [] }
-  const started = startIncident(game, ledger, 'certificate', 0)
+  const managed = certManaged(game)
+  let changed = false
+  // Each Node that terminates TLS holds its own certificate. A live manager issues it the first
+  // time and renews it before it can run out; with none live nothing renews it.
+  const nodes = game.nodes.map((node) => {
+    if (!TLS_TERMINATORS.includes(node.type) || !managed) return node
+    if (node.certUntil !== null && game.time < node.certUntil - life * (1 - CERT_RENEW)) return node
+    changed = true
+    return { ...node, certUntil: game.time + life }
+  })
+  const next = changed ? { ...game, nodes } : game
+  if (!certNodes(next).some((node) => certExpired(next, node)) || next.incident)
+    return { game: next, events: [] }
+  const started = startIncident(next, ledger, 'certificate', 0)
   return started
     ? { game: started.game, events: [StepEvent.IncidentStarted({ incident: started.incident })] }
-    : { game, events: [] }
+    : { game: next, events: [] }
 }
 
 /**
@@ -754,6 +778,7 @@ export const step = (
     apdex: ledger.apdex,
     errors: ledger.errorShare,
     device: has(game, 'rum') ? ledger.deviceLatency : NO_DEVICE_LATENCY,
+    slow: slowestKind(ledger),
   }
 
   // A chaos experiment earns Failure Insight for as long as it runs (10 "Reliability").

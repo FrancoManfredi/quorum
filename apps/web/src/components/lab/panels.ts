@@ -497,6 +497,11 @@ export const eraPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('stagger flex flex-col gap-4 px-5 pt-1 pb-5')],
         [
+          h.img([
+            h.Src(`/art/era-${Math.min(7, model.board.game.stage)}.svg`),
+            h.Alt(''),
+            h.Class('w-full max-w-[520px] self-center short:max-h-[20dvh] short:w-auto'),
+          ]),
           h.span(
             [
               h.Class(

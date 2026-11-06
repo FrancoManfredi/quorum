@@ -15,6 +15,7 @@ const sample = (p99: number, users = 100, cash = 500): Sample => ({
   apdex: 1,
   errors: 0,
   device: NO_DEVICE_LATENCY,
+  slow: null,
 })
 
 test('blocks split at the clock quarter and keep min, max, sum, and count', () => {

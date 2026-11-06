@@ -1,10 +1,10 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { Lock, X } from 'lucide'
+import { ChartLine, Lock, MessagesSquare, Plug, Wrench, X, type IconNode } from 'lucide'
 import {
-  BUILD_GROUPS,
+  DOCK_GROUPS,
   COMPONENTS,
   RESEARCH,
-  type BuildGroup,
+  type DockGroup,
   type ComponentId,
 } from '@quorum/simulation/catalog'
 import { isUnlocked, priceOf } from '@quorum/simulation/lookups'
@@ -19,13 +19,31 @@ import { cn } from '@/lib/utils'
 import { FIGURE, GROUP_TEXT, PANEL, groupBadge, tool } from '@quorum/ui/game/bits'
 
 /* ==========================================================================
-   The build dock, disclosed in steps: four group icons. A group opens a list
+   The build dock, disclosed in steps: seven group icons. A group opens a list
    of its Components; picking one closes the list and arms it, then a click
    on the board places it.
    ========================================================================== */
 
 /** The highlight's offset under the open tab, by the tab's place in the dock. */
-const TAB_OFFSET = ['translate-x-0', 'translate-x-11', 'translate-x-22', 'translate-x-33']
+const TAB_OFFSET = [
+  'translate-x-0',
+  'translate-x-11',
+  'translate-x-22',
+  'translate-x-33',
+  'translate-x-44',
+  'translate-x-55',
+  'translate-x-66',
+]
+
+const DOCK_ICONS: Record<DockGroup, IconNode> = {
+  edge: GROUP_ICONS.edge,
+  compute: GROUP_ICONS.compute,
+  data: GROUP_ICONS.data,
+  messaging: MessagesSquare,
+  platform: Wrench,
+  insight: ChartLine,
+  managed: Plug,
+}
 
 const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Message>): Html => {
   const def = COMPONENTS[type]
@@ -118,7 +136,7 @@ const armed = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
 
 /** The open group's parts, keyed by group, so switching groups swaps the list
  *  in place while the dock morphs to its new height. */
-const list = (model: Model, group: BuildGroup, h: HtmlBuilder<Message>): Html =>
+const list = (model: Model, group: DockGroup, h: HtmlBuilder<Message>): Html =>
   h.div(
     [
       h.Key(`list-${group}`),
@@ -136,7 +154,7 @@ const list = (model: Model, group: BuildGroup, h: HtmlBuilder<Message>): Html =>
 export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
   const open = model.board.buildGroup
   const placing = placingOf(model)
-  const groups = BUILD_GROUPS.filter((group) => dockGroups(model.board.game).includes(group.key))
+  const groups = DOCK_GROUPS.filter((group) => dockGroups(model.board.game).includes(group.key))
   return h.div(
     [
       h.Key('dock'),
@@ -188,7 +206,7 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
                     ),
                   ],
                   [
-                    groupBadge(group.key, GROUP_ICONS[group.key], 'size-6', h),
+                    groupBadge(group.family, DOCK_ICONS[group.key], 'size-6', h),
                     // The open tab carries its group colour as an underline.
                     h.span(
                       [
@@ -196,7 +214,7 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
                           cn(
                             'absolute bottom-1 h-0.5 rounded-full bg-current transition-[width] duration-200',
                             group.key === open ? 'w-4' : 'w-0',
-                            GROUP_TEXT[group.key],
+                            GROUP_TEXT[group.family],
                           ),
                         ),
                       ],

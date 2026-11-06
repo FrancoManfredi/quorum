@@ -30,6 +30,10 @@ import {
   PRESENCE_CPU,
   PRESENCE_VALUE,
   REGEX_CAPACITY,
+  BLAST_FACTOR,
+  LANGUAGES,
+  EXPORT_MS_PER_GB,
+  FUNCTION_LIMIT_MS,
   RUNTIME_INCIDENT_FAILURES,
   GATEWAY_AUTH_MS,
   COALESCE_KINDS,
@@ -122,6 +126,7 @@ import {
   blend,
   failSome,
   failed,
+  hop,
   kthFastest,
   through,
   type Hop,
@@ -135,6 +140,7 @@ import {
   has,
   hasEdge,
   hopMs,
+  certNodes,
   inCluster,
   isDown,
   meshOf,
@@ -302,7 +308,12 @@ export const codeCrashes = (
   // A runtime incident fails a share of the requests of the Node it runs on.
   const runtime =
     incident && incident.nodeId === node.id ? (RUNTIME_INCIDENT_FAILURES[incident.kind] ?? 0) : 0
-  return deploy + upgrade + runtime + (buggy(game, node) ? MIGRATION_BUGS : 0)
+  // A crash fails what the process holds: Node.js and Zig lose the whole process, Rust one task.
+  const blast = BLAST_FACTOR[LANGUAGES[RUNTIMES[node.runtime].language].blast]
+  return Math.min(
+    1,
+    (deploy + upgrade + runtime + (buggy(game, node) ? MIGRATION_BUGS : 0)) * blast,
+  )
 }
 
 /** What `outcome` may ask: this Node's own hop, and what its calls get back. */
@@ -397,6 +408,15 @@ export const refreshOf = (node: GameNode) =>
   (SEARCH_REFRESH[0] as (typeof SEARCH_REFRESH)[number])
 
 /** Share of read queries a Cache answers: sqrt(memory / hot data) × TTL × invalidation × warmth. */
+/**
+ * Share of a Cache's refills that push an older key out: 0 while the hot data fits its memory,
+ * and the share that does not fit once it does not (07 \"Cache\").
+ */
+export const evictionShareOf = (game: Game, node: GameNode): number => {
+  const hot = (game.users * HOT_KB_PER_USER) / 1_000_000
+  return hot > 0 ? Math.max(0, 1 - Math.min(1, flatScale(node) / hot)) : 0
+}
+
 export const hitRatioOf = (game: Game, node: GameNode, writeShare: number): number => {
   const memory = flatScale(node)
   const hot = (game.users * HOT_KB_PER_USER) / 1_000_000
@@ -655,7 +675,8 @@ export const RULES: Record<ComponentId, ComponentRule> = {
     serve: passOn,
     // An expired certificate: every browser refuses the site until it is renewed.
     outcome: (answer, node, kind) =>
-      answer.game.incident?.kind === 'certificate' || answer.game.incident?.kind === 'bgp'
+      (answer.game.incident?.kind === 'certificate' && certNodes(answer.game).length === 0) ||
+      answer.game.incident?.kind === 'bgp'
         ? failed('down')
         : relay(answer, node, kind),
     connections: noConnections,
@@ -1145,7 +1166,14 @@ export const RULES: Record<ComponentId, ComponentRule> = {
         boost: solver.boost(node),
       }),
     serve: serveCalls,
-    outcome: answerCalls,
+    outcome: (answer, node, kind) => {
+      const own = answerCalls(answer, node, kind)
+      if (kind !== 'job') return own
+      // An export runs as long as the rows it reads take; past 15 minutes the function is killed.
+      const ms = answer.game.data * EXPORT_MS_PER_GB
+      if (ms > FUNCTION_LIMIT_MS) return failed('timeout')
+      return through({ ...hop({ fixed: ms }) }, [[own, 1]])
+    },
     // Each concurrent execution opens its own connections: a spike exhausts the Database's pool.
     connections: (_, node, model) => (model?.processes ?? 0) * RUNTIMES[node.runtime].connections,
     // An LB weighs it by the Era's mix, as it weighs an App Server.

@@ -3291,6 +3291,18 @@ const handle = (model: Model, message: Message): Result =>
         { undoable: true },
       )
     },
+    NodesBoxed: () => {
+      const ids = chosenIds(model)
+      const game = model.board.game
+      const boxed = game.boxes.some(
+        (box) => ids.length > 0 && ids.every((id) => box.nodes.includes(id)),
+      )
+      return boxed
+        ? act(model, 'Unboxed the Nodes', Actions.unboxNodes(game, ids), { undoable: true })
+        : act(model, `Boxed ${countNodes(ids.length)}`, Actions.boxNodes(game, ids), {
+            undoable: true,
+          })
+    },
     NodesNudged: ({ dx, dy }) => {
       const ids = chosenIds(model)
       if (ids.length === 0) return { model }

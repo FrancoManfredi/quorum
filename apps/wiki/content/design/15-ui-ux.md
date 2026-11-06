@@ -11,7 +11,7 @@ and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player
 ## Interface rules
 
 1. **Information over decoration.** Squares on the board carry numbers. Illustrations appear only on
-   the title screen and the Exit screens.
+   the title screen, the Era cards, and the Exit screens.
 2. **No helper text.** No taglines, subtitles, or secondary labels. If a screen needs them to make
    sense, the layout is wrong. Explanations live in Tradeoff cards and the glossary, opened on demand.
 3. **One click to the cause.** From any red number, one click opens the Node or link that causes it.
@@ -212,7 +212,7 @@ The fix for Upload Labs click fatigue ([Influences](/design/02-influences#why-pl
 | Buy ×1, ×10, Max     | Start          | Buy ×1 buys one size; ×10 buys up to ten at once, and Max buys to the largest affordable size.                                                                                                                                                                                      |
 | Hold to repeat       | Start          | Holding a card's footer button, the Inspector's Upgrade, or its Larger buys one size, then one more every UI tick (250 ms, 4 a second) until the pointer lifts, Cash runs out, or the Node reaches its largest size. A stalled frame repeats once, never in a burst.                |
 | Upgrade all of type  | Start          | The Inspector's Upgrade all buys one size on every Node of that Node's kind on the board, in board order. It skips the Nodes at their largest size and stops at the first one Cash cannot pay for; the toast names how many grew and what stopped it. One undo entry, one log line. |
-| Multi-select         | Start          | Drag a box; act on all                                                                                                                                                                                                                                                              |
+| Multi-select         | Start          | Drag a box; act on all. The selection bar's **Box the Nodes** draws a dashed, named box (Box 1, Box 2) around two or more Nodes, under the belts. A Node is in at most one box, selecting a boxed group and pressing the button again takes the box off, and the Nodes stay.        |
 | Copy and paste       | Start          | Duplicate a selection with its links and settings, including links to Nodes outside it. A paste keeps links inside the selection and to Users, Payments, and Analytics                                                                                                              |
 | Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                                                                                                                                                                                                            |
 | Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"                                                                                                                                                                                                   |
@@ -379,7 +379,7 @@ Advice and offers are Mail ([Mail](/design/18-mail)). The rules below cover what
   priority.
 - No sounds or popups for routine events. A short sound for an incident and for an Era milestone,
   both mutable.
-- Era transitions use a full-screen card with the new kinds and the new problem in one sentence. One
+- Era transitions use a full-screen card with an illustration of that Era's machines (one more machine in each Era, joined by cables), the new kinds and the new problem in one sentence. One
   click to continue.
 
 ## Offline return

@@ -30,6 +30,7 @@ const sampleOf = (): Sample => ({
   p99: 300,
   apdex: 0.9,
   errors: 0.01,
+  slow: null,
   device: NO_DEVICE_LATENCY,
 })
 

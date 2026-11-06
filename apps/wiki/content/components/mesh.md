@@ -3,7 +3,7 @@
 The Service Mesh stands for Istio and Linkerd: a **sidecar proxy** beside every service. In the real
 product the proxy sits in the same pod as the service and takes over its network calls.
 
-Link App Servers and Workers into it. Each one gets a sidecar, and every Link out of it changes:
+Link App Servers and Workers into it. They have to run in a [Kubernetes Cluster](/components/cluster) first: the sidecar rides in the pod. Each one gets a sidecar, and every Link out of it changes:
 
 | Gives                                                         | Costs                                                   |
 | ------------------------------------------------------------- | ------------------------------------------------------- |

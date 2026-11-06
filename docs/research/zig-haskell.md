@@ -104,7 +104,8 @@ The relevant local sources are [GDD 06](../gdd/06-runtimes.md),
   nurseries, or the optional nonmoving collector.
 - `persistent` enables existing leak behavior. It cannot distinguish Zig ownership bugs from
   Haskell retained objects. The axes are descriptive ratings, not extra runtime penalties.
-  The model has no field for Zig memory corruption or Warp exception isolation.
+  Zig's blast radius is its process (memory corruption takes every request it holds) and Haskell's
+  is one request (Warp isolates exceptions), which scales the share of requests a crash fails.
 - Hiring and velocity factors have no empirical evidence here. Rebalance through playtests,
   not claims that official language documentation proves salaries or developer productivity.
 

@@ -21,7 +21,7 @@ Place it when traffic is spiky, or when one endpoint needs its own capacity with
 - **The cap.** A spike above 1,000 concurrent executions is throttled, and the requests are lost.
 - **Cold starts after a quiet minute.** A Java function can pay two seconds before its code runs; Go and Rust pay 50 ms. A trickle of traffic pays it most often.
 - **Connections.** Every concurrent execution opens its own database connections. Without a [Connection Pooler](/components/pooler), a spike exhausts Postgres.
-- **Duration.** An execution holds its request for as long as the kind takes, and every kind finishes in seconds, far inside a real function's 15-minute limit. Long `job` work still belongs on a [Worker](/components/worker) behind a [Queue](/components/queue).
+- **Duration.** A function stops an execution after 15 minutes. An export (`job`) runs 4 seconds for each GB the Databases hold, so past 225 GB it fails as `timeout`. Long `job` work belongs on a [Worker](/components/worker) behind a [Queue](/components/queue), which has no limit.
 
 ## Tips
 

@@ -4283,4 +4283,18 @@ export const fr: Readonly<Record<string, string>> = {
   '{0} replicas': '{0} répliques',
   'Replicas: {0}': 'Répliques : {0}',
   'Model {0}': 'Modèle {0}',
+  Messaging: 'Messagerie',
+  Managed: 'Géré',
+  'Box the Nodes': 'Encadrer les nœuds',
+  'Unboxed the Nodes': 'Nœuds désencadrés',
+  'Boxed {0}': '{0} encadrés',
+  'Select two or more Nodes to box.': 'Sélectionnez au moins deux nœuds à encadrer.',
+  'No box holds these Nodes.': 'Aucun cadre ne contient ces nœuds.',
+  '{0} d left': '{0} j restants',
+  'Cache evictions': 'Évictions du cache',
+  'keys evicted · now': 'clés évincées · maintenant',
+  Exemplars: 'Exemplaires',
+  'No exemplar in this range.': 'Aucun exemplaire dans cette plage.',
+  'Link {0} into a Kubernetes Cluster first: the sidecar rides in its pod.':
+    "Reliez d'abord {0} à un cluster Kubernetes : le sidecar vit dans son pod.",
 }

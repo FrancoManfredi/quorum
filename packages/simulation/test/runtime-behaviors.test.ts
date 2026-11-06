@@ -5,7 +5,10 @@ import { GPU_MODELS } from '../src/catalog.ts'
 import { gpuFits } from '../src/rules.ts'
 import { requestCpuMs } from '../src/capacity.ts'
 import { buildMinutesOf, coordinationOf, debtGrowthOf, effectiveEngineers } from '../src/team.ts'
-import { logLoss } from '../src/lookups.ts'
+import { certExpired, logLoss } from '../src/lookups.ts'
+import { evictionShareOf } from '../src/rules.ts'
+import { solveFlow } from '../src/solve.ts'
+import { step } from '../src/step.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import type { Game, GameNode } from '../src/state.ts'
 
@@ -81,5 +84,40 @@ describe('options', () => {
     expect(logLoss({ ...node, n: 1 })).toBe(1)
     expect(logLoss({ ...node, n: 3, acks: 'all' })).toBe(0)
     expect(logLoss({ ...node, n: 3, acks: '1' })).toBeGreaterThan(0)
+  })
+})
+
+describe('certificates, evictions and boxes', () => {
+  test('a manager issues a certificate to each Node that terminates TLS, and none renews without it', () => {
+    let game = { ...freeSandbox(), sandbox: false, stage: 2, cash: 1e9 }
+    game = ok(Actions.place(game, 'lb', 100, 100))
+    game = ok(Actions.place(game, 'pki', 100, 400))
+    game = step(game, 1).game
+    const lb = game.nodes.find((node) => node.type === 'lb') as GameNode
+    expect(lb.certUntil).not.toBeNull()
+    expect(game.nodes.find((node) => node.type === 'pki')?.certUntil).toBeNull()
+    const expired = { ...game, time: (lb.certUntil ?? 0) + 1 }
+    expect(certExpired(expired, lb)).toBe(true)
+  })
+
+  test('a Cache the hot data does not fit evicts, and one that fits does not', () => {
+    const game = { ...freeSandbox(), users: 5_000_000 }
+    const placed = ok(Actions.place(game, 'cache', 100, 100))
+    const cache = placed.nodes.find((node) => node.type === 'cache') as GameNode
+    expect(evictionShareOf(placed, cache)).toBeGreaterThan(0)
+    expect(evictionShareOf({ ...placed, users: 10 }, cache)).toBe(0)
+    expect(solveFlow(placed).nodes[cache.id]?.evictions).not.toBeNull()
+  })
+
+  test('boxing two Nodes draws one box, and unboxing keeps the Nodes', () => {
+    const base = ok(Actions.place(freeSandbox(), 'lb', 100, 100))
+    const game = ok(Actions.place(base, 'dns', 100, 400))
+    const ids = game.nodes.slice(-2).map((node) => node.id)
+    const boxed = ok(Actions.boxNodes(game, ids))
+    expect(boxed.boxes).toHaveLength(1)
+    const loose = ok(Actions.unboxNodes(boxed, ids))
+    expect(loose.boxes).toHaveLength(0)
+    expect(loose.nodes).toHaveLength(game.nodes.length)
+    expect(Result.isFailure(Actions.boxNodes(game, ids.slice(0, 1)))).toBe(true)
   })
 })

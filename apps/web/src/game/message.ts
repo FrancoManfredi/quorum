@@ -180,6 +180,8 @@ export const Message = defineMessageUnion({
   SellDismissed: {},
   /** Places a copy of the selected Nodes just beside them. */
   NodesDuplicated: {},
+  /** Draws a box around the selected Nodes, or takes the box off if they already sit in one. */
+  NodesBoxed: {},
   /** Moves the selected Nodes by a few board units. */
   NodesNudged: { dx: Schema.Finite, dy: Schema.Finite },
   /** The button at the bottom of a Node card. */

@@ -38,7 +38,8 @@ import {
   USER_MBPS,
   USER_UP_MBPS,
   VM_RESTART_SECONDS,
-  type BuildGroup,
+  type DockGroup,
+  DOCK_OF,
   type ComponentId,
   type EraDef,
   type FrameworkId,
@@ -66,6 +67,7 @@ import {
   CERT_DAYS,
   CERT_DAYS_SHORT,
   CERT_SHORT_FROM,
+  TLS_TERMINATORS,
   MESH_OVERHEAD,
   LIVE_TUNING,
   SHARD_KEYS,
@@ -131,8 +133,8 @@ export const nextEra = (game: Game): EraDef | undefined => ERAS[game.stage + 1]
 export const isFinalEra = (game: Game): boolean => game.stage >= ERAS.length - 1
 
 /** The Components a player can place from one build group, in catalog order. */
-export const buildItems = (group: BuildGroup): ReadonlyArray<ComponentId> =>
-  COMPONENT_IDS.filter((type) => COMPONENTS[type].group === group && !COMPONENTS[type].fixed)
+export const buildItems = (group: DockGroup): ReadonlyArray<ComponentId> =>
+  COMPONENT_IDS.filter((type) => DOCK_OF[type] === group && !COMPONENTS[type].fixed)
 
 export const isUnlocked = (game: Game, type: ComponentId): boolean => {
   const unlock = COMPONENTS[type].unlock
@@ -355,6 +357,8 @@ const meshMembersOf = (game: Game): ReadonlyMap<string, ReadonlyArray<GameNode>>
       if (!live.has(link.to)) continue
       const member = byId.get(link.from)
       if (!member || (member.type !== 'server' && member.type !== 'worker')) continue
+      // A sidecar rides in the pod beside its service: only a pod in a live Cluster has one.
+      if (!inCluster(game, member)) continue
       found.set(link.to, [...(found.get(link.to) ?? []), member])
     }
     map = found
@@ -390,18 +394,40 @@ export const certLifeOf = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
   ((game.stage >= CERT_SHORT_FROM ? CERT_DAYS_SHORT : CERT_DAYS) * CALENDAR_DAY) /
   tuning.calendarPace
 
-/** Sim seconds left on the Company's certificate, or null when no secrets manager has ever run. */
-export const certLeftOf = (game: Game, tuning: Tuning = LIVE_TUNING): number | null =>
-  game.certificate == null ? null : game.certificate + certLifeOf(game, tuning) - game.time
+/** The Nodes that terminate TLS and hold a certificate. */
+export const certNodes = (game: Game): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => TLS_TERMINATORS.includes(node.type) && node.certUntil !== null)
+
+/** Whether this Node's certificate has run out: every request through it fails. */
+export const certExpired = (game: Game, node: GameNode): boolean =>
+  node.certUntil !== null && game.time >= node.certUntil
+
+/** Sim seconds left on a Node's certificate; null when none is issued. */
+export const certLeftOf = (game: Game, node: GameNode): number | null =>
+  node.certUntil === null ? null : node.certUntil - game.time
 
 /** Calendar days a certificate lasts in this Era, for the cards: 90, or 45 from Series C. */
 export const certDaysOf = (game: Game): number =>
   game.stage >= CERT_SHORT_FROM ? CERT_DAYS_SHORT : CERT_DAYS
 
-/** Calendar days left on the certificate, negative once it has run out; null when none is tracked. */
-export const certDaysLeft = (game: Game, tuning: Tuning = LIVE_TUNING): number | null => {
-  const left = certLeftOf(game, tuning)
+/** Calendar days left on a Node's certificate, negative once it has run out; null when none is issued. */
+export const nodeCertDaysLeft = (
+  game: Game,
+  node: GameNode,
+  tuning: Tuning = LIVE_TUNING,
+): number | null => {
+  const left = certLeftOf(game, node)
   return left === null ? null : (left * tuning.calendarPace) / CALENDAR_DAY
+}
+
+/** Calendar days left on the soonest certificate; null when no Node holds one. */
+export const certDaysLeft = (game: Game, tuning: Tuning = LIVE_TUNING): number | null => {
+  let soonest: number | null = null
+  for (const node of certNodes(game)) {
+    const left = nodeCertDaysLeft(game, node, tuning)
+    if (left !== null && (soonest === null || left < soonest)) soonest = left
+  }
+  return soonest
 }
 
 /** Whether a Secrets and Certificates Node is live to renew the certificate (05). */

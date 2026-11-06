@@ -65,6 +65,8 @@ export type NodeLedger = Readonly<{
   connections: Readonly<{ used: number; max: number }> | null
   /** Cache or CDN hit ratio. */
   hitRatio: number | null
+  /** Keys per second a Cache evicts to make room for its refills; null for any other Node. */
+  evictions: number | null
   /** Seconds a new task waits in this Queue before a Worker takes it; infinite with none draining. */
   age: number | null
   /** Milliseconds a replica lags behind the primary. */

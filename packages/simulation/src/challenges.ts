@@ -120,6 +120,7 @@ const board = (
     nodes: [node('users', 'users', 120, 280), ...nodes],
     links: links.map(([from, to]): GameLink => link(from, to)),
     nextId: 1,
+    boxes: [],
   })
 
 const servers = (game: Game) => game.nodes.filter((entry) => entry.type === 'server')

@@ -1750,6 +1750,11 @@ class BoardController {
   /** The round trip a link between regions pays, under its belt. */
   private readonly places = new NoteLayer()
   private readonly cards = new Container()
+  /** The boxes drawn around Nodes, under the belts, and their names. */
+  private readonly boxLayer = new Container()
+  private readonly boxes = new Graphics()
+  private readonly boxNames = new Container()
+  private boxesKey = ''
   private readonly overlay = new Graphics()
   /** The "!" badges on links that cross zones: they move only with the links, so they
    *  redraw only then, not every frame like the overlay. */
@@ -1862,7 +1867,10 @@ class BoardController {
     this.bottleneckTag.visible = false
     this.chevrons.init(this.app.renderer)
     this.wires.addChild(this.bodies, this.chevrons.root, this.mouths, this.splitters)
+    this.boxLayer.addChild(this.boxes, this.boxNames)
+    this.boxLayer.isRenderGroup = true
     this.world.addChild(
+      this.boxLayer,
       this.wires,
       this.packets,
       this.notes.root,
@@ -2793,6 +2801,43 @@ class BoardController {
     this.ghost.addChild(frame, name, mark)
   }
 
+  /** Draws a dashed box and a name around each group of Nodes, when one moved, came or went. */
+  private drawBoxes(game: Game, colors: Palette): void {
+    const pad = 18
+    const found: Array<Readonly<{ name: string; x: number; y: number; w: number; h: number }>> = []
+    for (const box of game.boxes) {
+      const members = game.nodes.filter((node) => box.nodes.includes(node.id))
+      if (members.length < 2) continue
+      const left = Math.min(...members.map((node) => node.x))
+      const top = Math.min(...members.map((node) => node.y))
+      const right = Math.max(...members.map((node) => node.x + CARD_W))
+      const bottom = Math.max(...members.map((node) => node.y + heightOf(node.type)))
+      found.push({
+        name: box.name,
+        x: left - pad,
+        y: top - pad - 16,
+        w: right - left + 2 * pad,
+        h: bottom - top + 2 * pad + 16,
+      })
+    }
+    const key = `${this.state?.locale ?? 'en'}|${found.map((box) => `${box.name}:${box.x}:${box.y}:${box.w}:${box.h}`).join(';')}`
+    if (key === this.boxesKey) return
+    this.boxesKey = key
+    this.boxes.clear()
+    this.boxNames.removeChildren().forEach((child) => child.destroy())
+    for (const box of found) {
+      this.boxes
+        .roundRect(box.x, box.y, box.w, box.h, 16)
+        .fill({ color: colors.accent, alpha: 0.05 })
+        .stroke({ color: colors.accent, width: 1.5, alpha: 0.55 })
+      const name = label(12, SANS, '600')
+      name.text = (this.state?.translate ?? String)(box.name)
+      name.style.fill = colors.accent
+      name.position.set(box.x + 12, box.y + 6)
+      this.boxNames.addChild(name)
+    }
+  }
+
   /** Redraws the zone badges when one moved, came or went. `at` holds x, y pairs. */
   private drawBadges(at: ReadonlyArray<number>, colors: Palette): void {
     const last = this.badgesAt
@@ -2999,6 +3044,7 @@ class BoardController {
     this.places.end()
     this.chevrons.end()
     this.drawBadges(badges, colors)
+    this.drawBoxes(state.game, colors)
 
     // A port that feeds several belts has a splitter over the point where they part.
     const fans = new Map<string, { x: number; top: number; bottom: number; belts: number }>()

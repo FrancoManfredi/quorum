@@ -127,9 +127,10 @@ as TechEmpower and the Computer Language Benchmarks Game, compressed so that no 
 
 Blast radius is what a poison request (a request that triggers a crash) takes down. "Request" means
 only that request fails. "Process" means every in-flight request on that process fails and the
-process restarts. Node.js exits on an unhandled exception or rejection by default. This column is
-display only: it describes the resilience axis, and every instance failure takes the
-whole Node down whatever the runtime.
+process restarts. Node.js exits on an unhandled exception or rejection by default. A crash caused by
+the code (a bad deploy, a migration's bugs, a runtime incident) fails 1× the requests a request-radius
+runtime holds, 1.5× for a process radius (Node.js and Zig, capped at all of them), and 0.75× for a
+task radius (Rust). Haskell's Warp isolates exceptions per request, so its radius is a request.
 
 ### Zig and Haskell profiles
 

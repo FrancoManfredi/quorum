@@ -3,7 +3,7 @@ import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Locale } from '../i18n/index.ts'
 import { Effect, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
-import { BUILD_GROUPS, REQUEST_KINDS, type BuildGroup } from '@quorum/simulation/catalog'
+import { DOCK_GROUPS, REQUEST_KINDS, type DockGroup } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { solveFlow } from '@quorum/simulation/solve'
 import { HistoryRow, exitOffers } from '@quorum/simulation/exit'
@@ -61,7 +61,7 @@ export const Panel = Schema.Literals([
 export type Panel = typeof Panel.Type
 
 export const BuildGroupKey = Schema.Literals(
-  BUILD_GROUPS.map((group) => group.key) as [BuildGroup, ...Array<BuildGroup>],
+  DOCK_GROUPS.map((group) => group.key) as [DockGroup, ...Array<DockGroup>],
 )
 
 /** The title menu's page. */

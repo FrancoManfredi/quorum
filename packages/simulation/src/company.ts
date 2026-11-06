@@ -54,6 +54,7 @@ export const node = (
   draining: false,
   drainAt: 0,
   compress: false,
+  certUntil: null,
   recycle: false,
   authEdge: false,
   merge: false,
@@ -163,6 +164,7 @@ export const link = (from: string, to: string): GameLink => ({
 })
 
 export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
+  boxes: [],
   nextId: 1,
   cash: START_CASH,
   bridge: null,

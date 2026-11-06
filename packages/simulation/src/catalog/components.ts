@@ -56,6 +56,70 @@ export const BUILD_GROUPS: ReadonlyArray<Readonly<{ key: BuildGroup; label: stri
   { key: 'ops', label: 'Ops' },
 ]
 
+/** The dock's seven groups: each wears the colour and badge shape of its `family`. */
+export type DockGroup =
+  | 'edge'
+  | 'compute'
+  | 'data'
+  | 'messaging'
+  | 'platform'
+  | 'insight'
+  | 'managed'
+
+export const DOCK_GROUPS: ReadonlyArray<
+  Readonly<{ key: DockGroup; label: string; family: BuildGroup }>
+> = [
+  { key: 'edge', label: 'Edge', family: 'edge' },
+  { key: 'compute', label: 'Compute', family: 'compute' },
+  { key: 'data', label: 'Data', family: 'data' },
+  { key: 'messaging', label: 'Messaging', family: 'compute' },
+  { key: 'platform', label: 'Platform', family: 'ops' },
+  { key: 'insight', label: 'Observability', family: 'ops' },
+  { key: 'managed', label: 'Managed', family: 'data' },
+]
+
+/** The dock group each Component is listed under. */
+export const DOCK_OF: Readonly<Record<ComponentId, DockGroup>> = {
+  users: 'edge',
+  dns: 'edge',
+  lb: 'edge',
+  cdn: 'edge',
+  waf: 'edge',
+  gw: 'edge',
+  server: 'compute',
+  worker: 'compute',
+  fn: 'compute',
+  cluster: 'compute',
+  gpu: 'compute',
+  edge: 'compute',
+  database: 'data',
+  pooler: 'data',
+  cache: 'data',
+  replica: 'data',
+  search: 'data',
+  storage: 'data',
+  doc: 'data',
+  warehouse: 'data',
+  vec: 'data',
+  wide: 'data',
+  dsql: 'data',
+  queue: 'messaging',
+  log: 'messaging',
+  cdc: 'messaging',
+  ws: 'messaging',
+  autoscaler: 'platform',
+  ci: 'platform',
+  mesh: 'platform',
+  ff: 'platform',
+  pki: 'platform',
+  analytics: 'insight',
+  payments: 'insight',
+  auth: 'managed',
+  psp: 'managed',
+  llm: 'managed',
+  msgp: 'managed',
+}
+
 export type ComponentDef = Readonly<{
   id: ComponentId
   /** Short mark for chips on the board and in the dock. */
@@ -340,6 +404,19 @@ export const ROLLOUT_ALL = 1
  */
 export const CERT_DAYS = 90
 export const CERT_DAYS_SHORT = 45
+/**
+ * A Serverless Function stops an execution after 15 minutes (05 \"Serverless Function\"). An export
+ * (`job`) reads the rows the Databases hold, so its run time grows with them: `EXPORT_MS_PER_GB`
+ * milliseconds for each GB. A Function that has to export more than the limit allows fails it
+ * as `timeout`; a Worker behind a Queue has no limit.
+ */
+export const FUNCTION_LIMIT_MS = 900_000
+export const EXPORT_MS_PER_GB = 4_000
+
+/** The Components that terminate TLS, so each one holds a certificate of its own (05). */
+export const TLS_TERMINATORS: ReadonlyArray<ComponentId> = ['lb', 'cdn', 'waf', 'gw', 'ws', 'edge']
+/** The Era from which a Node's certificate is tracked: the one the Certificate expired incident starts in. */
+export const CERT_FROM_STAGE = 2
 /** The Era from which certificates last the shorter life: Series C. */
 export const CERT_SHORT_FROM = 5
 /**

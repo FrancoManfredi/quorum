@@ -1,5 +1,16 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { BookCopy, Clipboard, Copy, CopyPlus, Plus, Stamp, Trash2, Upload, X } from 'lucide'
+import {
+  BookCopy,
+  Clipboard,
+  Copy,
+  CopyPlus,
+  Plus,
+  SquareDashed,
+  Stamp,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide'
 import { COMPONENTS, ERAS, EXITS, RESEARCH } from '@quorum/simulation/catalog'
 import { exitOffers } from '@quorum/simulation/exit'
 import { keepSlots, playbookSlots } from '@quorum/simulation/founder'
@@ -296,6 +307,7 @@ export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html =>
               [
                 [Message.NodesCopied(), Copy, 'Copy (Ctrl+C)'],
                 [Message.NodesDuplicated(), CopyPlus, 'Duplicate (Ctrl+D)'],
+                [Message.NodesBoxed(), SquareDashed, 'Box the Nodes'],
                 [Message.SellAsked(), Trash2, 'Sell (Del)'],
                 [Message.PlaybookSaved(), BookCopy, 'Save as Playbook'],
                 [Message.SelectionCleared(), X, 'Clear selection (Esc)'],

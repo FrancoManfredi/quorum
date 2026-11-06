@@ -1474,7 +1474,7 @@ The longest time a caller waits for a response before it gives up. A timeout fre
 
 A signed file that binds a domain name to a public key, issued by a certificate authority. Browsers check it before they open an HTTPS connection, and refuse the site once it expires. Certificates are short-lived, so teams renew them automatically, for example with ACME and Let's Encrypt.
 
-**In the game:** Certificate automation research unlocks Secrets and Certificates. While one runs it issues the certificate on the first Step and renews it two thirds of the way through its life: 90 calendar days, and 45 from Series C. With none live, the certificate runs out, the Certificate expired Incident starts, and every request from Users fails as down until one runs again or the player presses Renew.
+**In the game:** Certificate automation research unlocks Secrets and Certificates. Each Node that terminates TLS (Load Balancer, CDN, WAF, API Gateway, Realtime Hub, Edge Function) holds its own certificate. While a manager runs it issues each one on the first Step and renews it two thirds of the way through its life: 90 calendar days, and 45 from Series C. With none live, the certificates run out one by one: every request through a Node whose certificate expired fails as down and the Certificate expired Incident starts, until a manager runs again or the player presses Renew.
 
 **Related:** [SOC 2](#soc-2), [MTTR](#mttr), [Blast radius](#blast-radius)
 

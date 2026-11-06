@@ -1,5 +1,5 @@
-import { BUILD_GROUPS, COMPONENTS, RESEARCH } from '@quorum/simulation/catalog'
-import type { BuildGroup, ComponentId } from '@quorum/simulation/catalog'
+import { DOCK_GROUPS, COMPONENTS, RESEARCH } from '@quorum/simulation/catalog'
+import type { DockGroup, ComponentId } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import {
   buildItems,
@@ -189,7 +189,7 @@ export const revealsOfSave = (saved: unknown): Pick<Disclosure, 'revealed' | 'pe
 /* ---------- the build dock ---------- */
 
 /** A group's Components the dock lists: those the player can place, then the next one to unlock. */
-export const dockItems = (game: Game, group: BuildGroup): ReadonlyArray<ComponentId> => {
+export const dockItems = (game: Game, group: DockGroup): ReadonlyArray<ComponentId> => {
   const items = buildItems(group)
   const placeable = items.filter((type) => isUnlocked(game, type))
   const next = items
@@ -206,5 +206,5 @@ export const dockItems = (game: Game, group: BuildGroup): ReadonlyArray<Componen
 }
 
 /** The dock's groups with something to list, in order: the number keys follow it. */
-export const dockGroups = (game: Game): ReadonlyArray<BuildGroup> =>
-  BUILD_GROUPS.map((group) => group.key).filter((key) => dockItems(game, key).length > 0)
+export const dockGroups = (game: Game): ReadonlyArray<DockGroup> =>
+  DOCK_GROUPS.map((group) => group.key).filter((key) => dockItems(game, key).length > 0)

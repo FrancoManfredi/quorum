@@ -30,8 +30,11 @@ details are in [Data tier](/design/07-data-tier). Runtime details for App Server
 
 ## Catalog overview
 
-The dock groups Components into four groups: Edge, Compute, Data, and Ops. The catalog below lists
-each Component under its group.
+The dock groups Components into seven groups: Edge, Compute, Data, Messaging (Queue, Event Stream,
+CDC Connector, Realtime Hub), Platform (Autoscaler, CI/CD Pipeline, Service Mesh, Feature Flags,
+Secrets and Certificates), Observability (Analytics, Payments) and Managed (Auth Provider, Payment
+Provider, LLM API, Push Provider). The number keys follow the visible groups, and a Component's badge
+wears the colour and shape of the Edge, Compute, Data or Ops family it belongs to.
 
 | Group         | Component                                                   | Code   | Unlocked by              | Era      |
 | ------------- | ----------------------------------------------------------- | ------ | ------------------------ | -------- |
@@ -318,15 +321,15 @@ The Component has its per-use bill on the Requests line, the concurrency cap (pe
 functions in one region have 1,000 each), the cold start after idle, and the connections each
 execution opens. The price is Lambda's list price × 1,200, so the cost curve below crosses where the
 design puts it ([Economy](/design/09-economy#the-cloud-bill)). No request kind in the game runs
-long enough to meet Lambda's 15-minute duration limit: every request kind finishes in seconds.
+as long as an export takes ([Duration limit](#serverless-function)).
 
-| Tradeoff        | Detail                                                                                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Cost curve      | Cheap at low and spiky volume. Above about 30% steady utilization of an equal VM, it costs more than the VM.                                                |
-| Cold starts     | A new execution environment starts cold. Cold start by runtime: Rust and Go 50 ms, Node and Python 200 ms, .NET 500 ms, JVM 2,000 ms (native image 100 ms). |
-| Concurrency cap | 1,000 per region by default. Spikes above the cap are throttled.                                                                                            |
-| Connections     | Each concurrent execution opens its own database connections. Without a pooler, a spike exhausts Postgres.                                                  |
-| Duration limit  | 15 minutes in a real function; every request kind here finishes in seconds, so a long `job` belongs on a Worker behind a Queue for cost, not for the limit. |
+| Tradeoff        | Detail                                                                                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cost curve      | Cheap at low and spiky volume. Above about 30% steady utilization of an equal VM, it costs more than the VM.                                                                        |
+| Cold starts     | A new execution environment starts cold. Cold start by runtime: Rust and Go 50 ms, Node and Python 200 ms, .NET 500 ms, JVM 2,000 ms (native image 100 ms).                         |
+| Concurrency cap | 1,000 per region by default. Spikes above the cap are throttled.                                                                                                                    |
+| Connections     | Each concurrent execution opens its own database connections. Without a pooler, a spike exhausts Postgres.                                                                          |
+| Duration limit  | 15 minutes. An export (`job`) runs 4 seconds for each GB the Databases hold, so past 225 GB a function cuts it off and it fails as `timeout`. A Worker behind a Queue has no limit. |
 
 ### Kubernetes Cluster
 
@@ -543,7 +546,7 @@ retry at once and open a breaker when half their calls fail, with no research fo
 player set a policy of its own. Each hop costs the design's 1 ms, each member loses 5% of its CPU,
 the mesh bills 5% of each member's Burn as the sidecar's share, and it takes 0.5 engineers of
 Platform Dev Hours, or none with a Platform team. A Node it watches also earns the design's 20% more
-Insight where Analytics samples it. The sidecar attaches by Link, not through a Cluster, so a mesh works without one.
+Insight where Analytics samples it. The sidecar rides in the pod beside its service, so only an App Server or Worker that runs in a Kubernetes Cluster can link into a mesh, and one that leaves its Cluster loses its sidecar.
 Mutual TLS is a property the card reports, not a failure the game produces.
 
 ### CI/CD Pipeline
@@ -617,14 +620,16 @@ in March 2029, and Let's Encrypt moves to 45 days by 2028. The game follows the 
 last 90 calendar days until Series C and 45 calendar days from Series C, so manual renewal gets
 harder with each Era.
 
-**Built:** the `pki` Component, unlocked by Certificate automation, and the countdown. The first Step
-with one live issues the certificate; it renews itself two thirds of the way through its life, which
-is where an ACME client renews with a third left. With none live, nothing renews it: when it reaches
-its expiry date the Certificate expired incident starts, every request from Users fails as `down`,
-and it starts again after the incident ends until a manager is live again or the player presses Renew.
-Selling the manager leaves the certificate it issued running down, so the Component owns the
-calendar. One certificate covers the Company, so every Node that terminates TLS goes down together when it
-expires; the director's own Certificate expired incident covers a Company that never placed a manager.
+**Built:** the `pki` Component, unlocked by Certificate automation, and the countdown. Each Node that
+terminates TLS (Load Balancer, CDN, WAF, API Gateway, Realtime Hub, Edge Function) holds a certificate
+of its own. The first Step with a manager live issues one to each of them, and it renews itself two
+thirds of the way through its life, which is where an ACME client renews with a third left. With none
+live, nothing renews them: when one reaches its expiry date every request through that Node fails as
+`down` and the Certificate expired incident starts, and it starts again after the incident ends until a
+manager is live again or the player presses Renew, which reissues every certificate. Selling the
+manager leaves the certificates it issued running down, so the Component owns the calendar. A Node
+placed after the manager gets its certificate on the next Step; a Company that never placed a manager
+holds none, and the director's own Certificate expired incident fails every request from Users.
 
 ## Observability and money
 

@@ -29,6 +29,7 @@ import { dilutionOf, grantOf } from '@quorum/simulation/founding'
 import type { KindLedger, Ledger, NodeLedger } from '@quorum/simulation/ledger'
 import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
+import { evictionShareOf } from '@quorum/simulation/rules'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
 import { budgetOf, burnRateOf, slaCreditsOf } from '@quorum/simulation/slo'
@@ -644,6 +645,62 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
     shown.includes(mark.group),
   )
 }
+
+/**
+ * Exemplars (12 \"Practices\"): the three slowest seconds of the range, each pointing at one trace.
+ * A one-minute Sample knows the Request kind that was slowest in it; the hour and quarter-hour
+ * blocks keep no kind, so a longer range carries none.
+ */
+type Exemplar = Readonly<{ t: string; p99: number; kind: RequestKind }>
+
+const exemplarsOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<Exemplar> => {
+  if (tierOf(model.board.dashboard.range) !== null) return []
+  const history = model.board.game.history
+  const kept = history.slice(Math.max(0, history.length - rows.length))
+  const found: Array<Exemplar> = []
+  kept.forEach((sample, index) => {
+    const row = rows[index]
+    if (sample.slow !== null && sample.p99 > 0 && row !== undefined)
+      found.push({ t: String(row.t), p99: sample.p99, kind: sample.slow })
+  })
+  return found.toSorted((a, b) => b.p99 - a.p99).slice(0, 3)
+}
+
+const exemplarMarks = (exemplars: ReadonlyArray<Exemplar>): ReadonlyArray<CartesianChild> =>
+  exemplars.map((exemplar) =>
+    ReferenceLine({
+      x: exemplar.t,
+      stroke: 'var(--accent)',
+      strokeOpacity: 0.6,
+      label: { value: '●', dx: 0, dy: TOP_OF_PLOT + 14, fill: 'var(--accent)' },
+    }),
+  )
+
+/** The exemplars as buttons: each opens the Waterfall of the Request kind it caught. */
+const exemplarStrip = (exemplars: ReadonlyArray<Exemplar>, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Key('exemplars'), h.Class('col-span-24 flex flex-wrap items-center gap-2')],
+    [
+      h.span(
+        [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
+        [exemplars.length === 0 ? 'No exemplar in this range.' : 'Exemplars'],
+      ),
+      ...exemplars.map((exemplar) =>
+        button(
+          {
+            size: 'sm',
+            variant: 'outline',
+            onClick: Message.DashboardChanged({
+              message: DashboardMessage.KindChosen({ kind: exemplar.kind }),
+            }),
+            attributes: [h.Title(`Open the ${KINDS[exemplar.kind].label} waterfall`)],
+          },
+          [`● ${exemplar.t} · ${ms(exemplar.p99)} · ${KINDS[exemplar.kind].label}`],
+          h,
+        ),
+      ),
+    ],
+  )
 
 /** The annotations, as labelled vertical markers on every time series. */
 const markersOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<CartesianChild> =>
@@ -2984,6 +3041,31 @@ const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
   )
 }
 
+/** A Cache's evictions: the keys a second it pushes out because the hot data does not fit its memory. */
+const evictions = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const names = namesOf(game)
+  return barList(
+    'evictions',
+    'col-span-24',
+    'Cache evictions',
+    'keys evicted · now',
+    game.nodes
+      .filter((node) => node.type === 'cache')
+      .map((node) => {
+        const own = ledger.nodes[node.id]
+        const share = Math.min(1, evictionShareOf(game, node))
+        return {
+          key: node.id,
+          name: names.get(node.id) ?? COMPONENTS[node.type].name,
+          value: share,
+          text: `${compact(Math.round(own?.evictions ?? 0))}/s`,
+          color: PINK,
+        }
+      }),
+    h,
+  )
+}
+
 /** A Cache's or a CDN's hit ratio: the share of the queries it answers itself. */
 const hits = (
   key: string,
@@ -3420,7 +3502,17 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         : best,
     null,
   )
-  const series = (spec: SeriesSpec) => timeSeries(model, rows, markers, spec, h)
+  const exemplars = exemplarsOf(model, rows)
+  const series = (spec: SeriesSpec) =>
+    timeSeries(
+      model,
+      rows,
+      spec.key === 'latency' && has(game, 'tracing')
+        ? [...markers, ...exemplarMarks(exemplars)]
+        : markers,
+      spec,
+      h,
+    )
 
   const panels: ReadonlyArray<Html> =
     rows.length < 2 || !latest
@@ -3546,6 +3638,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   rules: [{ y: latencyRule, label: `alert > ${ms(latencyRule)}`, color: AMBER }],
                 }),
           }),
+          ...(has(game, 'tracing') ? [exemplarStrip(exemplars, h)] : []),
           has(game, 'logs')
             ? series({
                 key: 'errors-series',
@@ -3701,6 +3794,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ? [
                 rowHeader('Cache', 1, h),
                 hits('cache', 'Cache', 'hit ratio · now', 'cache', game, ledger, h),
+                evictions(game, ledger, h),
               ]
             : []),
           ...(hasNode('queue') ? [rowHeader('Queue', 1, h), queues(game, ledger, h)] : []),

@@ -68,6 +68,7 @@ const sampleOf = (over: Partial<Sample> = {}): Sample => ({
   apdex: 0.9,
   errors: 0.01,
   device: NO_DEVICE_LATENCY,
+  slow: null,
   ...over,
 })
 

@@ -259,6 +259,8 @@ const NODE_FIELDS = {
   ttl: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(300))),
   /** PHP-FPM's process manager. */
   pm: PmMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('static' as const))),
+  /** The sim second this Node's TLS certificate runs out, or null until one is issued (05 "Secrets and Certificates"). */
+  certUntil: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The Cache's engine. */
   engine: CacheEngine.pipe(Schema.withDecodingDefaultKey(Effect.succeed('redis' as const))),
   /** The Database's or Read Replica's engine (07 "Variants"). */
@@ -551,6 +553,11 @@ export const Sample = Schema.Struct({
   device: Schema.Record(Schema.Literals(DEVICES), Schema.Finite).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(NO_DEVICE_LATENCY)),
   ),
+  /**
+   * The Request kind with the highest p99 that second: the trace an exemplar on the latency Chart
+   * opens (12 "Dashboard"). Null when nothing was served, and in a Sample saved before the field.
+   */
+  slow: Schema.NullOr(RequestKindId).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
 })
 export type Sample = typeof Sample.Type
 
@@ -1087,8 +1094,18 @@ export const NO_FALSE_ALARMS: FalseAlarms = {
   budget: 0,
 }
 
+/** A box the player drew around some Nodes: a name on the board, and the Nodes it holds. */
+export const Box = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  nodes: Schema.Array(Schema.String),
+})
+export type Box = typeof Box.Type
+
 export const Game = Schema.Struct({
   nodes: Schema.Array(GameNode),
+  /** Boxes around Nodes (15 \"The board\"): a Node is in at most one. */
+  boxes: Schema.Array(Box).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   links: Schema.Array(GameLink),
   nextId: Schema.Finite,
   cash: Schema.Finite,
@@ -1224,11 +1241,6 @@ export const Game = Schema.Struct({
   data: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** GB per sim second Object Storage takes in, so Lifecycle rules know an object's age. */
   uploads: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /**
-   * The sim second the Company's TLS certificate was issued, or null when it has never run a
-   * Secrets and Certificates Node (05 "Secrets and Certificates"). Absent in a save from before it.
-   */
-  certificate: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
   /** The last calendar week of requests and failures, by hour: the SLO window. */
   budget: Schema.Array(BudgetHour).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   drill: Schema.NullOr(Drill).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),

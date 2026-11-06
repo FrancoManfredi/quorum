@@ -29,12 +29,41 @@ export type LanguageDef = Readonly<{
   hireTime: number
   /** Minutes one build takes (06 "Language profiles"). */
   buildMinutes: number
+  /** What a poison request takes down (06 "Language profiles"): its request, its process, or its task. */
+  blast: 'request' | 'whole' | 'task'
 }>
 
+/** A crash fails this multiple of the requests a process holds, by blast radius. */
+export const BLAST_FACTOR = { request: 1, whole: 1.5, task: 0.75 } as const
+
 export const LANGUAGES: Record<LanguageId, LanguageDef> = {
-  php: { id: 'php', name: 'PHP', velocity: 1.2, salary: 0.85, hireTime: 1, buildMinutes: 0.5 },
-  ruby: { id: 'ruby', name: 'Ruby', velocity: 1.1, salary: 1.1, hireTime: 1.5, buildMinutes: 1 },
-  node: { id: 'node', name: 'Node.js', velocity: 1.15, salary: 1, hireTime: 1, buildMinutes: 3 },
+  php: {
+    id: 'php',
+    name: 'PHP',
+    velocity: 1.2,
+    salary: 0.85,
+    hireTime: 1,
+    buildMinutes: 0.5,
+    blast: 'request',
+  },
+  ruby: {
+    id: 'ruby',
+    name: 'Ruby',
+    velocity: 1.1,
+    salary: 1.1,
+    hireTime: 1.5,
+    buildMinutes: 1,
+    blast: 'request',
+  },
+  node: {
+    id: 'node',
+    name: 'Node.js',
+    velocity: 1.15,
+    salary: 1,
+    hireTime: 1,
+    buildMinutes: 3,
+    blast: 'whole',
+  },
   python: {
     id: 'python',
     name: 'Python',
@@ -42,10 +71,35 @@ export const LANGUAGES: Record<LanguageId, LanguageDef> = {
     salary: 1.05,
     hireTime: 1,
     buildMinutes: 1,
+    blast: 'request',
   },
-  go: { id: 'go', name: 'Go', velocity: 0.95, salary: 1.15, hireTime: 1.4, buildMinutes: 1.5 },
-  java: { id: 'java', name: 'Java', velocity: 0.9, salary: 1.05, hireTime: 1.1, buildMinutes: 6 },
-  csharp: { id: 'csharp', name: 'C#', velocity: 1, salary: 1, hireTime: 1.1, buildMinutes: 4 },
+  go: {
+    id: 'go',
+    name: 'Go',
+    velocity: 0.95,
+    salary: 1.15,
+    hireTime: 1.4,
+    buildMinutes: 1.5,
+    blast: 'request',
+  },
+  java: {
+    id: 'java',
+    name: 'Java',
+    velocity: 0.9,
+    salary: 1.05,
+    hireTime: 1.1,
+    buildMinutes: 6,
+    blast: 'request',
+  },
+  csharp: {
+    id: 'csharp',
+    name: 'C#',
+    velocity: 1,
+    salary: 1,
+    hireTime: 1.1,
+    buildMinutes: 4,
+    blast: 'request',
+  },
   elixir: {
     id: 'elixir',
     name: 'Elixir',
@@ -53,9 +107,26 @@ export const LANGUAGES: Record<LanguageId, LanguageDef> = {
     salary: 1.2,
     hireTime: 2.5,
     buildMinutes: 2,
+    blast: 'request',
   },
-  rust: { id: 'rust', name: 'Rust', velocity: 0.6, salary: 1.25, hireTime: 2, buildMinutes: 12 },
-  zig: { id: 'zig', name: 'Zig', velocity: 0.7, salary: 1.25, hireTime: 3, buildMinutes: 6 },
+  rust: {
+    id: 'rust',
+    name: 'Rust',
+    velocity: 0.6,
+    salary: 1.25,
+    hireTime: 2,
+    buildMinutes: 12,
+    blast: 'task',
+  },
+  zig: {
+    id: 'zig',
+    name: 'Zig',
+    velocity: 0.7,
+    salary: 1.25,
+    hireTime: 3,
+    buildMinutes: 6,
+    blast: 'whole',
+  },
   haskell: {
     id: 'haskell',
     name: 'Haskell',
@@ -63,6 +134,7 @@ export const LANGUAGES: Record<LanguageId, LanguageDef> = {
     salary: 1.4,
     hireTime: 2.5,
     buildMinutes: 8,
+    blast: 'request',
   },
 }
 

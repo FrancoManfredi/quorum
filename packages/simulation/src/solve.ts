@@ -112,6 +112,7 @@ import {
   grown,
   has,
   hopMs,
+  certExpired,
   isDown,
   languageOf,
   meshOf,
@@ -125,6 +126,7 @@ import {
   slotOf,
   accepts,
   cdnHitOf,
+  evictionShareOf,
   flatCapacity,
   gatewayShare,
   taskMixOf,
@@ -1109,27 +1111,30 @@ const outcomesOf = (inputs: Inputs, pass: Pass) => {
     // A Node the kernel killed for memory fails as `oom` until it is back.
     const result = isDown(node)
       ? failed(causeOf(node.life) === 'oom' ? 'oom' : 'down')
-      : chaotic(
-          game,
-          node,
-          skewed(
+      : // A Node whose TLS certificate ran out is refused by every browser.
+        certExpired(game, node)
+        ? failed('down')
+        : chaotic(
             game,
             node,
-            RULES[node.type].outcome(
-              {
-                game,
-                pass,
-                ownHop: (of, value) => ownHop(node, of, value),
-                downstream: (of, extraHop) => downstream(node, of, extraHop),
-                delegates: delegates(graph, node),
-                runsLocalDb: runsLocalDb(graph, node),
-                offloads: offloads(graph, node),
-              },
+            skewed(
+              game,
               node,
-              kind,
+              RULES[node.type].outcome(
+                {
+                  game,
+                  pass,
+                  ownHop: (of, value) => ownHop(node, of, value),
+                  downstream: (of, extraHop) => downstream(node, of, extraHop),
+                  delegates: delegates(graph, node),
+                  runsLocalDb: runsLocalDb(graph, node),
+                  offloads: offloads(graph, node),
+                },
+                node,
+                kind,
+              ),
             ),
-          ),
-        )
+          )
     byKind.set(kind, result)
     return result
   }
@@ -1588,6 +1593,10 @@ const ledgerOf = (
       strandedKinds: strand ? [...strand.kinds] : [],
       connections: pool,
       hitRatio: node.type === 'cache' || node.type === 'cdn' ? (pass.hits[slot] ?? 0) : null,
+      evictions:
+        node.type === 'cache'
+          ? (rates['q-read'] ?? 0) * (1 - (pass.hits[slot] ?? 0)) * evictionShareOf(game, node)
+          : null,
       age:
         node.type === 'queue' || node.type === 'log' ? (completion.waits.get(node.id) ?? 0) : null,
       lag: node.type === 'replica' ? pass.lag : null,

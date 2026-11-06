@@ -5,13 +5,16 @@ Manager: the place the keys live, and the automation that renews the certificate
 
 It takes no traffic. What it owns is the calendar:
 
-- The first Step with one live **issues** the certificate, and its card counts what is left of it.
-- It renews the certificate **two thirds of the way through** its life, which is where an ACME client
+- Each Node that terminates TLS holds a certificate of its own: a Load Balancer, a CDN, a WAF, an API
+  Gateway, a Realtime Hub or an Edge Function.
+- The first Step with one live **issues** each certificate, and the card counts what is left of the
+  soonest one.
+- It renews every certificate **two thirds of the way through** its life, which is where an ACME client
   renews with a third still to go.
 - A certificate lasts **90 calendar days**, and **45 from Series C**, following the industry maximum
   as it shrinks.
 
-Selling the Node or leaving it down does not reset the clock: the certificate it issued keeps running
+Selling the Node or leaving it down does not reset the clock: the certificates it issued keep running
 down.
 
 ## When to place it
@@ -25,14 +28,14 @@ cause left, unless the manager itself stops.
 
 ## How it fails
 
-- **An expired certificate.** Past its expiry date every browser refuses the site: every request from
-  Users fails as `down`. The incident starts again after it ends until a manager is live or the
+- **An expired certificate.** Past its expiry date every browser refuses that Node: every request
+  through it fails as `down`. The incident starts again after it ends until a manager is live or the
   player presses Renew, because the certificate is still expired.
 - **A manager that is down renews nothing.** A restart, an OOM kill or a sold Node is enough to stop
   renewal, and the countdown does not care.
 - **A shorter life every Era.** 45 days from Series C is half the room manual renewal had.
-- **One certificate.** It covers the Company, so every Node that terminates TLS goes down
-  together when it expires.
+- **One clock per Node.** A Node placed late is issued late, and each certificate runs out on its own
+  day, so one expired Load Balancer takes only the traffic that goes through it.
 
 ## Tips
 
