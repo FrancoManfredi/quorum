@@ -48,8 +48,8 @@ late, and the work the callee already did for them is wasted, because nobody use
 A retry turns one failure into another attempt. With naive retries, a Link retries at once, up to
 three times. If a share `f` of calls fails, each call becomes this many attempts:
 
-```formula
-attempts = 1 + f + f² + f³
+```latex
+\text{attempts} = 1 + f + f^{2} + f^{3}
 ```
 
 At a 50% failure rate, that is nearly twice the load on the callee. It was failing because it was

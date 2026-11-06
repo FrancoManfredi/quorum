@@ -111,8 +111,11 @@ Features' market gains together at +100% of the Era's market.
 
 ## Prices
 
-```text
-place_price(component, k) = base_price(component) × 1.25^(k − 1)      k = copy number
+```latex
+\begin{aligned}
+\text{place price} \left(\text{component} ,\  k\right) &= \text{base price} \left(\text{component}\right) \times 1.25^{k-1} \\
+&\quad \text{k = copy number}
+\end{aligned}
 ```
 
 The 1.25 growth on copies is a soft push toward bigger instances and toward better design over more
@@ -176,8 +179,8 @@ Event Stream 6, Realtime Hub 8, and Vector Index 6.
 
 ## User growth
 
-```text
-growth = g(Era) × Users × (1 − Users / Market) × h(A)
+```latex
+\text{growth} = g \left(\text{Era}\right) \times \text{Users} \times \left(1 - \text{Users} / \text{Market}\right) \times h \left(A\right)
 ```
 
 | Era      | `g` (per sim second) | Time to the milestone at Apdex 1.0 with no capacity limit |
@@ -275,8 +278,8 @@ to p99.
 
 ## Prestige curve
 
-```text
-legacy = floor( sqrt( payout / $1,000,000 ) )
+```latex
+\text{legacy} = \operatorname{floor}\left(\sqrt{\text{payout} / \$1{,}000{,}000}\right)
 ```
 
 | Company | Expected payout | Legacy | Cumulative | Shop progress (1,563 ★)        |

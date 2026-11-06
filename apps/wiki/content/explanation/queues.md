@@ -16,8 +16,8 @@ explains most of the slowdowns you meet in Quorum.
 [Utilization](/glossary/utilization), written ρ (rho), is the work that arrives divided by the work the
 Node can do:
 
-```formula
-utilization = offered work / capacity
+```latex
+\text{utilization} = \frac{\text{offered work}}{\text{capacity}}
 ```
 
 Work is measured in the Node's own unit. An App Server counts CPU time, worker slots, memory, and

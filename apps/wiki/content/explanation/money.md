@@ -84,10 +84,12 @@ The Bootstrapped indie [Venture](/prestige#ventures) takes no rounds at all. Its
 
 Your Valuation is annual revenue times a multiple:
 
-```formula
-ARR       = revenue per calendar day × 365 × 0.00015
-multiple  = 4 + 0.15 × max(0, Rule of 40)          kept between 2 and 30
-Valuation = ARR × multiple
+```latex
+\begin{aligned}
+\text{ARR} &= \text{revenue per calendar day} \times 365 \times 0.00015 \\
+\text{multiple} &= 4 + 0.15 \times \operatorname{max}\left(0{,}\ \text{Rule of}\ 40\right) && \qquad \text{kept between 2 and 30} \\
+\text{Valuation} &= \text{ARR} \times \text{multiple}
+\end{aligned}
 ```
 
 Request values are game dollars, so Cash and revenue run far above real figures. The scale factor

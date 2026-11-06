@@ -104,8 +104,10 @@ carries load to the data tier.
 
 ## Demand
 
-```text
-demand_rps(kind) = Σ_r Users_r × R_user × diurnal_r(t) × weekly(t) × mix(kind) × feature_mult(kind)
+```latex
+\begin{aligned}
+\text{demand rps} \left(\text{kind}\right) &= \sum_{\text{regions}} \text{Users} \left(\text{region}\right) \times \text{requests per user} \times \text{diurnal} \left(\text{region} ,\  t\right) \\ &\quad \times \text{weekly} \left(t\right) \times \text{mix} \left(\text{kind}\right) \times \text{feature mult} \left(\text{kind}\right)
+\end{aligned}
 ```
 
 | Term           | Meaning                                                                                                              |
@@ -149,9 +151,11 @@ A synchronous request holds a slot on the caller while it waits for the callee. 
 reduces the capacity of every app server that uses a worker pool. This is
 [Little's law](/glossary/littles-law):
 
-```text
-in_flight(node) = throughput(node) × residence_time(node)
-residence_time  = own_CPU_time + Σ synchronous_downstream_latency
+```latex
+\begin{aligned}
+\text{in flight} \left(\text{node}\right) &= \text{throughput} \left(\text{node}\right) \times \text{residence time} \left(\text{node}\right) \\
+\text{residence time} &= \text{own CPU time} + \sum_{\text{synchronous calls}} \text{downstream latency}
+\end{aligned}
 ```
 
 The coupling makes the solve circular. The app server's capacity depends on the database's latency,
@@ -166,9 +170,12 @@ Era, as it does in production.
 
 For each Node:
 
-```text
-offered_work  = Σ_kind λ(kind) × work(kind)        work in the Node's own unit (CPU ms, worker ms, IOPS)
-utilization ρ = offered_work / capacity
+```latex
+\begin{aligned}
+\text{offered work} &= \sum_{\text{kinds}} \lambda \left(\text{kind}\right) \times \text{work} \left(\text{kind}\right) \\
+&\quad \text{work in the Node's own unit (CPU ms, worker ms, IOPS)} \\
+\text{utilization}\ \rho &= \frac{\text{offered work}}{\text{capacity}}
+\end{aligned}
 ```
 
 | Utilization   | Behavior                                                                                                                                                                                       |
@@ -180,8 +187,10 @@ utilization ρ = offered_work / capacity
 
 **Queueing delay.** The curve is the M/M/1 waiting time, which gives the real "hockey stick" ([Reality check](/design/reality-check#queueing)):
 
-```text
-wait = service_time × ρ / (1 − ρ)          with ρ capped at 0.98
+```latex
+\begin{aligned}
+\text{wait} &= \text{service time} \times \frac{\rho}{1 - \rho} && \qquad \text{with $\rho$ capped at 0.98}
+\end{aligned}
 ```
 
 **Overload.** There is no per-Node backlog limit and no backlog-derived wait: work over a Node's
@@ -197,8 +206,10 @@ is one way overload gets worse than it looks.
 
 The latency of one request is the sum along its synchronous path:
 
-```text
-latency = Σ_hops (base_latency + service_time + wait + network_hop) + tail_events
+```latex
+\begin{aligned}
+\text{latency} &= \sum_{\text{hops}} \left(\text{base latency} + \text{service time} + \text{wait} + \text{network hop}\right) \\ &\quad + \text{tail events}
+\end{aligned}
 ```
 
 | Term           | Source                                                                                                                                                              |
@@ -255,8 +266,11 @@ player researches Structured logs ([Observability](/design/12-observability#the-
 Each link has a retry policy: none, naive (retry at once, up to 3 times), or backoff with jitter.
 Retries turn a failure into extra load:
 
-```text
-effective_λ = λ × (1 + f + f² + … + f^max_retries)      f = failure rate on the link
+```latex
+\begin{aligned}
+\text{effective}\ \lambda &= \lambda \times \left(1 + f + f^{2} + \ldots + f^{\text{max retries}}\right) \\
+&\quad \text{f = failure rate on the link}
+\end{aligned}
 ```
 
 With naive retries and a 50% failure rate, the load on the callee nearly doubles. That can push a
@@ -271,8 +285,8 @@ Some Nodes have a connection limit. Postgres starts one process per connection, 
 (100 by default); MySQL gives each connection a thread and holds 500
 ([Data tier](/design/07-data-tier#variants)).
 
-```text
-connections_needed(db) = Σ_upstream_processes pool_size
+```latex
+\text{connections needed} \left(\text{db}\right) = \sum_{\text{upstream processes}} \text{pool size}
 ```
 
 Every app process holds its own pool. Ten app servers with four processes each and a pool of 10
@@ -291,9 +305,11 @@ Each kind has a target `T`. A served request is:
 | Frustrated | latency > 4T     | 0%            |
 | Failed     | any error        | 0%            |
 
-```text
-Apdex   = (satisfied + tolerating / 2) / total
-revenue = Σ_kind value(kind) × (satisfied + tolerating / 2) × multipliers
+```latex
+\begin{aligned}
+\text{Apdex} &= \frac{\text{satisfied} + \text{tolerating} / 2}{\text{total}} \\
+\text{revenue} &= \sum_{\text{kinds}} \text{value} \left(\text{kind}\right) \times \left(\text{satisfied} + \text{tolerating} / 2\right) \times \text{multipliers}
+\end{aligned}
 ```
 
 This is the real [Apdex](/glossary/apdex) formula. It ties money to latency in a way players
@@ -308,12 +324,17 @@ synchronous latency like every other kind.
 Users grow along an S-curve toward the market size, and only while the design keeps users happy.
 From the Series C Era, each region counts its own Users and applies the formula on its own figures:
 
-```text
-h(A_r)   = clamp((A_r − A_target) / (1 − A_target), −1, 1)    A_r = Apdex of region r's users over the last calendar hour
-talk_r   = Users_r + m × (Users − Users_r)                     word of mouth, own users plus users elsewhere
-growth_r = g × funding_mult × talk_r × (1 − Users_r / Market_r) × h(A_r)    when h(A_r) ≥ 0
-churn_r  = c × (Fickle_r + s × Steady_r) × h(A_r)                           when h(A_r) < 0
-Users    = Σ_r Users_r
+```latex
+\begin{aligned}
+h \left(r\right) &= \operatorname{clamp}\left(\left(A \left(r\right) - A\ \text{target}\right) / \left(1 - A\ \text{target}\right),\  1{,}\ 1\right) \\
+&\quad \text{A(r) = Apdex of region r's users over the last calendar hour} \\
+\text{talk} \left(r\right) &= \text{Users} \left(r\right) + m \times \left(\text{Users} - \text{Users} \left(r\right)\right) \\
+&\quad \text{word of mouth: own users plus users elsewhere} \\
+\text{growth} \left(r\right) &= g \times \text{funding mult} \times \text{talk} \left(r\right) \times \left(1 - \text{Users} \left(r\right) / \text{Market} \left(r\right)\right) \\ &\quad \times h \left(r\right) \\
+&\quad \text{when h(r) $\geq$ 0} \\
+\text{churn} \left(r\right) &= c \times \left(\text{Fickle} \left(r\right) + s \times \text{Steady} \left(r\right)\right) \times h \left(r\right) && \qquad \text{when h(r) < 0} \\
+\text{Users} &= \sum_{\text{regions}} \text{Users} \left(r\right)
+\end{aligned}
 ```
 
 - Before the Series C Era there is one region, North America, and the formula is the same as one
@@ -361,8 +382,8 @@ reads the cause of each region's churn in the
 
 The bottleneck marker shows the one Node that costs the most revenue right now:
 
-```text
-lost_revenue(node) = revenue that would be earned if this Node had infinite capacity − current revenue
+```latex
+\text{lost revenue} \left(\text{node}\right) = \text{revenue if this Node had infinite capacity} - \text{current revenue}
 ```
 
 The Simulation estimates this by re-solving the flow with the Node's capacity doubled, for the top

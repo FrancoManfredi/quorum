@@ -32,8 +32,8 @@ the simulated effect on the player's own design ([Interface](/design/15-ui-ux#tr
 An App Server's capacity is the minimum of four limits. The tightest one is the bottleneck, and
 the card always names it ([Observability](/design/12-observability#the-visibility-ladder)).
 
-```text
-capacity = min(cpu_limit, concurrency_limit, memory_limit, network_limit)
+```latex
+\text{capacity} = \operatorname{min}\left(\text{cpu limit},\ \text{concurrency limit},\ \text{memory limit},\ \text{network limit}\right)
 ```
 
 | Limit               | Formula                                    | What it means                                                                                                   |
@@ -45,10 +45,12 @@ capacity = min(cpu_limit, concurrency_limit, memory_limit, network_limit)
 
 Where:
 
-```text
-cpu_time_per_request = Σ_kind share(kind) × ref_cpu_ms(kind) × framework_overhead / speed
-residence_time       = cpu_time_per_request + Σ synchronous_downstream_latency
-usable_cores         = min(vCPU, processes × cores_per_process)
+```latex
+\begin{aligned}
+\text{cpu time per request} &= \sum_{\text{kinds}} \text{share} \left(\text{kind}\right) \times \text{ref cpu ms} \left(\text{kind}\right) \times \frac{\text{framework overhead}}{\text{speed}} \\
+\text{residence time} &= \text{cpu time per request} + \sum_{\text{synchronous calls}} \text{downstream latency} \\
+\text{usable cores} &= \operatorname{min}\left(\text{vCPU},\ \text{processes} \times \text{cores per process}\right)
+\end{aligned}
 ```
 
 The concurrency model decides what `slots` and `cores_per_process` are. That is where runtimes
@@ -79,9 +81,11 @@ more workers (more RAM), a faster database, or a runtime that does not hold a wo
 A CPU-heavy request blocks every other request on its process until it finishes, because an event
 loop runs one piece of JavaScript at a time per process. The Simulation models this as a tail event:
 
-```text
-loop_block_ms = Σ_kind share(kind) × cpu_ms(kind)²  /  Σ_kind share(kind) × cpu_ms(kind)
-added_p99     = loop_block_ms × min(1, ρ × 2)
+```latex
+\begin{aligned}
+\text{loop block ms} &= \left(\sum_{\text{kinds}} \text{share} \left(\text{kind}\right) \times \text{cpu ms} \left(\text{kind}\right) \times \text{cpu ms} \left(\text{kind}\right)\right) / \left(\sum_{\text{kinds}} \text{share} \left(\text{kind}\right) \times \text{cpu ms} \left(\text{kind}\right)\right) \\
+\text{added p99} &= \text{loop block ms} \times \operatorname{min}\left(1{,}\ \rho \times 2\right)
+\end{aligned}
 ```
 
 The squared term means rare heavy requests dominate. With 2% `login` at 80 ms of bcrypt and 98%

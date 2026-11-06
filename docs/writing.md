@@ -93,6 +93,10 @@ These habits make prose read as machine-written. One use is fine. A repeat is a 
 
 Put personality where the reader feels it: incidents, guides, tutorial outcomes, and the opening of an explanation. A retry storm taking down a service at 3 AM is a story, so tell it in one sentence. Keep reference tables and design formulas neutral. Do not add jokes, puns or exclamation marks. A dry observation is enough.
 
+## Formulas and diagrams
+
+Write a rule as a ` ```latex ` fence; KaTeX typesets it. Write a flow as a ` ```mermaid ` fence; Pele draws it in the wiki's colours. A fence that does not parse fails the build. Keep a diagram under about 800 pixels wide, or split it, so its text stays at reading size.
+
 ## Numbers
 
 Player pages (`tutorials/`, `guides/`, `explanation/`, `components/`) take every game number from the catalog. Do not type one by hand. `design/` is the one place that states numbers by hand, as the record of the design.

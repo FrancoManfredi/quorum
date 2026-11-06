@@ -272,9 +272,12 @@ the Study completes.
 
 A Study takes its Insight as it runs, like a Factorio lab takes packs. In each Step:
 
-```text
-draw(pool) = cost(pool) × speed × dt / base_duration
-progress  += speed × dt × min(1, min over recipe pools: balance(pool) / draw(pool))
+```latex
+\begin{aligned}
+\text{draw} \left(\text{pool}\right) &= \text{cost} \left(\text{pool}\right) \times \text{speed} \times \frac{\text{dt}}{\text{base duration}} \\
+\text{progress} \left(\text{next}\right) &= \text{progress} + \text{speed} \times \text{dt} \times \operatorname{min}\left(1{,}\ \text{balance} \left(\text{pool}\right) / \text{draw} \left(\text{pool}\right)\right) \\
+&\quad \text{the lowest ratio across the recipe's pools}
+\end{aligned}
 ```
 
 Each pool pays `draw(pool)` times the same factor. When a pool is empty, the Study runs at the rate

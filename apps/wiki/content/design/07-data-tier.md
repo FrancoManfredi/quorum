@@ -48,8 +48,8 @@ The Database is the source of truth. It serves `q-read`, `q-write`, and `q-tx`. 
 
 ### Capacity
 
-```text
-capacity = min(cpu_limit, connection_limit, iops_limit)
+```latex
+\text{capacity} = \operatorname{min}\left(\text{cpu limit},\ \text{connection limit},\ \text{iops limit}\right)
 ```
 
 | Limit        | Detail                                                                                                                                                                   |
@@ -171,10 +171,12 @@ the database read.
 
 ### Hit ratio
 
-```text
-hit_ratio = working_set_coverage × ttl_factor × (1 − invalidation_rate) × warmth
-working_set_coverage = min(1, cache_memory / hot_data_size) ^ 0.5
-invalidation_rate = min(0.5, 2 × write_share)
+```latex
+\begin{aligned}
+\text{hit ratio} &= \text{working set coverage} \times \text{ttl factor} \times \left(1 - \text{invalidation rate}\right) \\ &\quad \times \text{warmth} \\
+\text{working set coverage} &= \sqrt{\operatorname{min}\left(1{,}\ \text{cache memory} / \text{hot data size}\right)} \\
+\text{invalidation rate} &= \operatorname{min}\left(0.5,\ 2 \times \text{write share}\right)
+\end{aligned}
 ```
 
 The square root models a skewed access pattern. A small cache already holds the hottest keys, so the
@@ -462,10 +464,15 @@ Real products: Apache Cassandra, ScyllaDB.
 The Wide-column Store is the game's namesake. It replicates each key to N nodes and uses quorums for
 reads and writes.
 
-```text
-N = replication factor (1 to 5)     W = nodes that must acknowledge a write     R = nodes asked on a read
-R + W > N  →  every read asks at least one replica that acknowledged the latest write
-R + W ≤ N  →  a read can miss the latest write: eventual consistency
+```latex
+\begin{aligned}
+N &= \text{replication factor} \left(1\ \text{to}\ 5\right) \\
+W &= \text{nodes that must acknowledge}\ a\ \text{write} \\
+R &= \text{nodes asked on}\ a\ \text{read} \\
+R + W &> N \\
+&\quad \text{every read asks at least one replica that acknowledged the latest write} \\
+R + W &\leq N && \qquad \text{a read can miss the latest write: eventual consistency}
+\end{aligned}
 ```
 
 At its base size the store answers 30,000 replica operations per second, from three nodes at 10,000

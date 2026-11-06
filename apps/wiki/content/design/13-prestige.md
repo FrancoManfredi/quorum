@@ -19,9 +19,11 @@ different, which answers the Upload Labs complaint about repetition.
 | IPO         | Pre-IPO checklist | Equity × valuation at listing | 1.5                         | Continues into the Public Era.                          |
 | Step down   | Public            | Equity × current market value | 1.5, + quarter streak bonus | Ends the company from the Public Era.                   |
 
-```text
-payout = equity × valuation × exit_multiplier
-legacy = floor( sqrt( payout / $1,000,000 ) × founding_multiplier )
+```latex
+\begin{aligned}
+\text{payout} &= \text{equity} \times \text{valuation} \times \text{exit multiplier} \\
+\text{legacy} &= \operatorname{floor}\left(\sqrt{\text{payout} / \$1{,}000{,}000} \times \text{founding multiplier}\right)
+\end{aligned}
 ```
 
 | Payout       | Legacy |

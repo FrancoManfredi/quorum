@@ -224,14 +224,29 @@ which is above a typical real founder stake at IPO.
 
 The company has a valuation at all times. It decides the Exit payout.
 
-```text
-ARR        = revenue per calendar day × 365 × valuation_scale
-growth     = user growth over the last calendar week, annualized, in percent
-margin     = (income − Burn) / income, in percent
-rule_of_40 = growth + margin
-base       = 4 + 0.15 × max(0, rule_of_40)            clamped to [2, 30]
-multiple   = max(1, base + 2 with Investor relations + the quarter's bonus)
-valuation  = ARR × multiple
+```latex
+\begin{aligned}
+\text{ARR} &= \text{revenue per calendar day} \times 365 \times \text{valuation scale} \\
+\text{rule of}\ 40 &= \text{growth} + \text{margin} \\
+\text{base} &= 4 + 0.15 \times \operatorname{max}\left(0{,}\ \text{rule of}\ 40\right) && \qquad \text{clamped to [2, 30]} \\
+\text{multiple} &= \operatorname{max}\left(1{,}\ \text{base} + 2\ \text{with Investor relations} + \text{the quarter's bonus}\right) \\
+\text{valuation} &= \text{ARR} \times \text{multiple}
+\end{aligned}
+```
+
+| Term   | Meaning                                                         |
+| ------ | --------------------------------------------------------------- |
+| growth | User growth over the last calendar week, annualized, in percent |
+| margin | (income − Burn) / income, in percent                            |
+
+```mermaid
+flowchart TB
+  revenue["Revenue per calendar day"] --> arr["ARR<br/>× 365 × valuation scale"]
+  growth[Growth] --> rule["Rule of 40"]
+  margin[Margin] --> rule
+  rule --> base["Base multiple<br/>4 + 0.15 × rule, kept in 2 to 30"] --> multiple["Multiple<br/>+ Investor relations, + quarter bonus"]
+  arr --> valuation[Valuation]
+  multiple --> valuation
 ```
 
 The clamp applies to `base` only. Investor relations adds 2 to the multiple, and a public quarter
@@ -284,20 +299,33 @@ Some details of the thresholds, the grant, the dilution, and the shutdown:
 
 ## Sources and sinks summary
 
-```text
-Users ──requests──► Revenue ──► Payments ──collect──► CASH ──► Nodes, Burn, salaries, hires
-  ▲                                                     ▲
-  │                                                     └── Funding (costs Equity)
-  │
-  └── Apdex ◄── design quality ◄── capacity, research, features
+```mermaid
+flowchart LR
+  users[Users] -->|requests| revenue[Revenue] --> payments[Payments] -->|collect| cash[Cash] --> spend["Nodes, Burn, salaries, hires"]
+  funding["Funding (costs Equity)"] --> cash
+```
 
-Sampled traffic ──► INSIGHT ──► Research ──► Components, variants, techniques, visibility
-Postmortems ──► action items (open until researched) ──┘
+```mermaid
+flowchart LR
+  capacity["Capacity, research, features"] --> design["Design quality"] --> apdex[Apdex] --> users[Users]
+```
 
-Engineers ──► DEV HOURS ──► Features (more users, revenue, load)
-                         ──► Tasks, migrations, debt paydown (cheaper and safer system)
+```mermaid
+flowchart LR
+  sampled["Sampled traffic"] --> insight[Insight] --> research[Research] --> unlocks["Components, variants, techniques, visibility"]
+  postmortems[Postmortems] --> actions["Action items (open until researched)"] --> research
+```
 
-Exit (Equity × valuation) ──► LEGACY ──► Permanent perks, Playbooks, Ventures
+```mermaid
+flowchart LR
+  engineers[Engineers] --> dev["Dev hours"]
+  dev --> features["Features (more users, revenue, load)"]
+  dev --> tasks["Tasks, migrations, debt paydown<br/>(cheaper and safer system)"]
+```
+
+```mermaid
+flowchart LR
+  exit["Exit (Equity × valuation)"] --> legacy[Legacy] --> perks["Permanent perks, Playbooks, Ventures"]
 ```
 
 The three main currencies (Cash, Insight, Dev Hours) compete for the player's attention, not for

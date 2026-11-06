@@ -16,8 +16,8 @@ New users come from word of mouth, so the more users you have, the more people h
 Growth also slows as you approach the size of the market, because fewer people are left to win.
 Together these give an S-curve:
 
-```formula
-growth = rate × users × (1 − users / market) × health
+```latex
+\text{growth} = \text{rate} \times \text{users} \times \left(1 - \text{users} / \text{market}\right) \times \text{health}
 ```
 
 Early on, growth is slow because few people talk about you. In the middle it is fastest, and near
@@ -34,8 +34,10 @@ role.
 
 The `health` term compares your users' Apdex over the last calendar hour with the Era's target:
 
-```formula
-health = (Apdex − target) / (1 − target)     kept between −1 and 1
+```latex
+\begin{aligned}
+\text{health} &= \frac{\text{Apdex} - \text{target}}{1 - \text{target}} && \qquad \text{kept between $-$1 and 1}
+\end{aligned}
 ```
 
 Above the target, health is positive and users grow. At exactly the target, growth stops. Below it,

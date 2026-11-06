@@ -35,8 +35,8 @@ each quarter in your current streak of beaten guidance adds 0.1 to its multiplie
 
 ## From payout to Legacy
 
-```formula
-Legacy = floor( √(payout / $1,000,000) × founding multiplier )
+```latex
+\text{Legacy} = \operatorname{floor}\left(\sqrt{\text{payout} / \$1{,}000{,}000} \times \text{founding multiplier}\right)
 ```
 
 A $1 million payout gives 1 Legacy. A $100 million payout gives 10, and $10 billion gives 100. The

@@ -44,8 +44,10 @@ kind ([Insight and observability](/explanation/observability)).
 
 Demand is your user count times the requests each user sends, shaped by the clock and the mix:
 
-```formula
-demand(kind) = users × requests per user × daily cycle × weekly cycle × mix(kind) × features
+```latex
+\begin{aligned}
+\text{demand} \left(\text{kind}\right) &= \text{users} \times \text{requests per user} \times \text{daily cycle} \times \text{weekly cycle} \\ &\quad \times \text{mix} \left(\text{kind}\right) \times \text{features}
+\end{aligned}
 ```
 
 The daily cycle peaks in the evening and falls in the morning, like real

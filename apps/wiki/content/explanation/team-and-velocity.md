@@ -19,9 +19,11 @@ the Company, and you draw no salary. Hiring opens in Pre-seed.
 
 Each team makes Dev Hours by this rule:
 
-```formula
-DH per Team day = effective engineers × velocity × 8
-velocity        = Stack velocity × (1 − 0.5 × tech debt) × policy × morale × error budget
+```latex
+\begin{aligned}
+\text{DH per Team day} &= \text{effective engineers} \times \text{velocity} \times 8 \\
+\text{velocity} &= \text{Stack velocity} \times \left(1 - 0.5 \times \text{tech debt}\right) \times \text{policy} \\ &\quad \times \text{morale} \times \text{error budget}
+\end{aligned}
 ```
 
 An engineer works an 8-hour day. At 1× speed, one Team day passes in one real minute, so one
@@ -48,8 +50,8 @@ Every person on a team must agree with the others, and the number of conversatio
 the headcount. The Simulation models this as a coordination penalty, its version of
 [Brooks's law](/glossary/brookss-law):
 
-```formula
-effective engineers = n / (1 + 0.08 × (n − 1) + 0.0004 × n × (n − 1))
+```latex
+\text{effective engineers} = n / \left(1 + 0.08 \times \left(n - 1\right) + 0.0004 \times n \times \left(n - 1\right)\right)
 ```
 
 Eight people work like about five. Past about 48 people, a team gets slower as it grows. The penalty
@@ -72,8 +74,8 @@ team picks the next Feature it can build, and it queues a Refactor when debt get
 
 A finished Feature does not reach users at once. It waits for the next deploy:
 
-```formula
-deploys per Team day = min(policy cap, 480 work minutes / (build + deploy + 15 verify))
+```latex
+\text{deploys per Team day} = \operatorname{min}\left(\text{policy cap},\ 480\ \text{work minutes} / \left(\text{build} + \text{deploy} + 15\ \text{verify}\right)\right)
 ```
 
 Build time comes from the language. PHP builds in seconds, and Rust takes many minutes. A deploy by

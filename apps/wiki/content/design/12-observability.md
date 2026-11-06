@@ -26,10 +26,12 @@ pool. Research costs Insight from named pools ([Progression](/design/10-progress
 new Era's research needs that Era's traffic. This is the Factorio science pack pattern, with request
 kinds as the packs ([Influences](/design/02-influences#research-in-factory-games)).
 
-```text
-sampled(c, kind)  = Σ tapped Nodes of Component c: λ(node, kind) × sample_rate
-insight(kind)     = yield × Σ Component types c: √sampled(c, kind) × multipliers(c)
-insight(Failure)  = 3 × yield × Σ Component types c: √failed(c) × multipliers(c)
+```latex
+\begin{aligned}
+\text{sampled} \left(c ,\  \text{kind}\right) &= \sum_{\text{tapped Nodes of c}} \lambda \left(\text{node} ,\  \text{kind}\right) \times \text{sample rate} \\
+\text{insight} \left(\text{kind}\right) &= \text{yield} \times \sum_{\text{Component types c}} \sqrt{\text{sampled} \left(c ,\  \text{kind}\right)} \times \text{multipliers} \left(c\right) \\
+\text{insight} \left(\text{Failure}\right) &= 3 \times \text{yield} \times \sum_{\text{Component types c}} \sqrt{\text{failed} \left(c\right)} \times \text{multipliers} \left(c\right)
+\end{aligned}
 ```
 
 | Term             | Value                                                                                                                                                                                   |
@@ -81,8 +83,8 @@ is on. A high sample rate buys faster learning at a known price.
 Analytics keeps traces for a window: 15 minutes (default), 1 hour, or 6 hours of sim time. A
 longer window multiplies the tap's Storage Burn by 1, 2, or 4.
 
-```text
-cap(pool) = max(floor(pool), retention_window × insight(pool))
+```latex
+\text{cap} \left(\text{pool}\right) = \operatorname{max}\left(\operatorname{floor}\left(\text{pool}\right),\ \text{retention window} \times \text{insight} \left(\text{pool}\right)\right)
 ```
 
 Insight above a pool's cap is not added. The cap follows the live rate, so the player cannot save

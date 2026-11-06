@@ -29,9 +29,11 @@ checks whether the design survives a real failure mode that its Era makes likely
 
 The director picks the next incident and its time.
 
-```text
-time_between_incidents = base_interval(Era) × random(0.6, 1.4)
-weight(type)           = weakness(type, design) × (1 + tech_debt)
+```latex
+\begin{aligned}
+\text{time between incidents} &= \text{base interval} \left(\text{Era}\right) \times \operatorname{random}\left(0.6,\ 1.4\right) \\
+\text{weight} \left(\text{type}\right) &= \text{weakness} \left(\text{type} ,\  \text{design}\right) \times \left(1 + \text{tech debt}\right)
+\end{aligned}
 ```
 
 There is no per-type base weight: every incident the Era allows starts from the same weight, before
@@ -91,8 +93,9 @@ little or nothing.
 
 ## The incident loop
 
-```text
-SIGNAL ──► TRIAGE ──► MITIGATE ──► RESOLVE ──► POSTMORTEM ──► ACTION ITEMS
+```mermaid
+flowchart LR
+  signal[Signal] --> triage[Triage] --> mitigate[Mitigate] --> resolve[Resolve] --> postmortem[Postmortem] --> actions[Action items]
 ```
 
 | Metric | Meaning                                                         | Shown after |
@@ -275,8 +278,10 @@ Mitigation: limit traffic until the cache fills. Prevention: stampede protection
 
 Bad-deploy chance per deploy:
 
-```text
-chance = base(Era) × policy_factor × (1 + 2 × tech_debt) × (1 − tests) × (1 − code_review)
+```latex
+\begin{aligned}
+\text{chance} &= \text{base} \left(\text{Era}\right) \times \text{policy factor} \times \left(1 + 2 \times \text{tech debt}\right) \\ &\quad \times \left(1 - \text{tests}\right) \times \left(1 - \text{code review}\right)
+\end{aligned}
 ```
 
 The blast radius depends on the deploy batch ([Components](/design/05-components#cicd-pipeline)): a bad
@@ -398,9 +403,11 @@ its Study completes. When the design already has every prevention, the card open
 From the Series A Era, the company has an **SLO**: an availability target per calendar week
 ([Progression](/design/10-progression#eras)).
 
-```text
-error_budget = (1 − SLO) × requests in the window
-budget_left  = error_budget − failed requests
+```latex
+\begin{aligned}
+\text{error budget} &= \left(1 - \text{SLO}\right) \times \text{requests in the window} \\
+\text{budget left} &= \text{error budget} - \text{failed requests}
+\end{aligned}
 ```
 
 | Budget state       | Effect                                                                   |

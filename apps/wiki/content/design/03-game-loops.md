@@ -8,16 +8,15 @@ order: 3
 Quorum has six nested loops, and each feeds the one above it. A short loop must pay off before the
 player loses interest, and a long loop must give a reason to keep playing the short ones.
 
-```text
-L5  Mastery      Challenges, daily drills, histograms          unbounded
- └─ L4  Company     Found → Eras → Exit → Legacy                  6–15 hours
-     └─ L3  Era        Raise → new kinds → new failure mode         30–120 minutes
-         └─ L2  Growth     Users ↑ → demand ↑ → spend → research       5–20 minutes
-             └─ L1  Bottleneck Observe → diagnose → change → settle       30 seconds–3 minutes
-                 └─ L0  Pulse      Glance → collect → react                    1–10 seconds
-
-Interrupt:  Incident  Alert → triage → mitigate → resolve → postmortem
-```
+| Loop      | Name       | What the player does                             | How long it runs     |
+| --------- | ---------- | ------------------------------------------------ | -------------------- |
+| L5        | Mastery    | Challenges, daily drills, histograms             | Unbounded            |
+| L4        | Company    | Found → Eras → Exit → Legacy                     | 6–15 hours           |
+| L3        | Era        | Raise → new kinds → new failure mode             | 30–120 minutes       |
+| L2        | Growth     | Users ↑ → demand ↑ → spend → research            | 5–20 minutes         |
+| L1        | Bottleneck | Observe → diagnose → change → settle             | 30 seconds–3 minutes |
+| L0        | Pulse      | Glance → collect → react                         | 1–10 seconds         |
+| Interrupt | Incident   | Alert → triage → mitigate → resolve → postmortem | Whenever one starts  |
 
 ## L0: Pulse (1–10 seconds)
 
@@ -37,10 +36,10 @@ end of the Garage Era, because a pulse that never changes turns into a chore
 
 This is the core loop: Factorio's loop, applied to requests.
 
-```text
-OBSERVE ──► DIAGNOSE ──► CHANGE ──► SETTLE ──► MEASURE
-   ▲                                              │
-   └──────────── the bottleneck moves ────────────┘
+```mermaid
+flowchart LR
+  observe[Observe] --> diagnose[Diagnose] --> change[Change] --> settle[Settle] --> measure[Measure]
+  measure -->|the bottleneck moves| observe
 ```
 
 | Step     | What the player does                                                                          | What the game provides                                                                              |
@@ -64,14 +63,16 @@ Rules that keep this loop deep:
 
 ## L2: Growth (5 to 20 minutes)
 
-```text
-         ┌────────── Apdex ≥ target ──────────┐
-         ▼                                    │
-     USERS ↑ ──► DEMAND ↑ ──► LOAD ↑ ──► (L1 loop) ──► SERVED ──► CASH ──► CAPACITY
-                                                          │
-                                                          └──► SAMPLED ──► INSIGHT ──► RESEARCH
-                                                                                            │
-     DEV HOURS ──► FEATURES ──► more demand per user, new mix, more revenue per request ◄──┘
+```mermaid
+flowchart LR
+  users["Users ↑"] --> demand["Demand ↑"] --> load["Load ↑"] --> l1(["L1 loop"]) --> served[Served] --> cash[Cash] --> capacity[Capacity]
+  l1 -->|Apdex ≥ target| users
+```
+
+```mermaid
+flowchart LR
+  served[Served] --> sampled[Sampled] --> insight[Insight] --> research[Research] --> more["More demand per user,<br/>new mix, more revenue<br/>per request"]
+  dev[Dev hours] --> features[Features] --> more
 ```
 
 - **Users** grow while the design keeps [Apdex](/glossary/apdex) above the Era target, and they
@@ -89,8 +90,9 @@ Rules that keep this loop deep:
 An **Era** is a stage of the company, from Garage to Public. When users reach the Era's milestone,
 the player can raise a funding round.
 
-```text
-MILESTONE ──► RAISE (or decline) ──► GRANT + NEW KINDS + NEW CONSTRAINT ──► REDESIGN ──► MILESTONE
+```mermaid
+flowchart LR
+  milestone[Milestone] --> raise["Raise (or decline)"] --> grant["Grant + new kinds + new constraint"] --> redesign[Redesign] --> milestone
 ```
 
 Each Era is a phase shift: it changes what the player optimizes.
@@ -110,8 +112,9 @@ Each Era is a phase shift: it changes what the player optimizes.
 
 ## L4: Company (6 to 15 hours)
 
-```text
-FOUND (pick a Venture, Mutators) ──► Eras ──► EXIT ──► LEGACY ──► FOUND the next company
+```mermaid
+flowchart LR
+  found["Found (pick a Venture, Mutators)"] --> eras[Eras] --> exit[Exit] --> legacy[Legacy] --> next["Found the next company"]
 ```
 
 - An **Exit** ends a company. Its payout depends on Equity and valuation
@@ -139,8 +142,9 @@ the early Eras and Playbooks remove repeated setup.
 
 Incidents break into any loop from the Pre-seed Era on.
 
-```text
-SIGNAL ──► TRIAGE ──► MITIGATE ──► RESOLVE ──► POSTMORTEM ──► ACTION ITEMS
+```mermaid
+flowchart LR
+  signal[Signal] --> triage[Triage] --> mitigate[Mitigate] --> resolve[Resolve] --> postmortem[Postmortem] --> actions[Action items]
 ```
 
 | Step         | Detail                                                                                                                                                             |

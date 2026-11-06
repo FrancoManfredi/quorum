@@ -25,8 +25,8 @@ expect a page to take a moment. Each served request falls into one class:
 
 [Apdex](/glossary/apdex) is the share of satisfied requests plus half the share of tolerating ones:
 
-```formula
-Apdex = (satisfied + tolerating / 2) / total
+```latex
+\text{Apdex} = \frac{\text{satisfied} + \text{tolerating} / 2}{\text{total}}
 ```
 
 An Apdex of 1 means every user was satisfied. An Apdex of 0.5 can mean that every user tolerated the
@@ -52,8 +52,8 @@ scored on when their result is ready, not on the enqueue.
 
 Revenue is the sum, over every kind, of its value times its Apdex credit:
 
-```formula
-revenue = Σ kinds: rate × value × (satisfied + tolerating / 2)
+```latex
+\text{revenue} = \sum_{\text{kinds}} \text{rate} \times \text{value} \times \left(\text{satisfied} + \text{tolerating} / 2\right)
 ```
 
 Values differ a lot between kinds. A checkout is worth far more than a page view, and a bot is worth

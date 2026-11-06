@@ -54,8 +54,8 @@ make extra reads on page views and API reads until you ship Eager loading. See
 A [Cache](/components/cache) answers read queries from memory and sends misses on to the Database. Its
 hit ratio decides how much load it takes off:
 
-```formula
-hit ratio = √(memory / hot data) × TTL factor × write penalty × warmth
+```latex
+\text{hit ratio} = \sqrt{\frac{\text{memory}}{\text{hot data}}} \times \text{TTL factor} \times \text{write penalty} \times \text{warmth}
 ```
 
 The square root models skewed access. Most reads ask for a few hot keys, so a small Cache already
@@ -96,9 +96,11 @@ fixes most stale errors, at the price of some read load on the primary.
 A [Wide-column Store](/components/wide) keeps each key on N replicas. You choose two numbers: R, the
 replicas a read asks, and W, the replicas a write waits for.
 
-```formula
-R + W > N   every read asks at least one replica that has the latest write
-R + W ≤ N   a read can miss the latest write: eventual consistency
+```latex
+\begin{aligned}
+R + W &> N && \qquad \text{every read asks at least one replica that has the latest write} \\
+R + W &\leq N && \qquad \text{a read can miss the latest write: eventual consistency}
+\end{aligned}
 ```
 
 Smaller R and W are faster, because each operation waits for an earlier reply, and they cost fewer

@@ -20,9 +20,11 @@ explains why Insight comes in kinds.
 
 The yield follows a square root:
 
-```formula
-Insight(kind) = Σ over Component types: √(sampled requests of that kind per second)
-Failure       = 3 × Σ over Component types: √(sampled failed requests per second)
+```latex
+\begin{aligned}
+\text{Insight} \left(\text{kind}\right) &= \sum_{\text{over Component types}} \sqrt{\text{sampled requests of that kind per second}} \\
+\text{Failure} &= 3 \times \sum_{\text{over Component types}} \sqrt{\text{sampled failed requests per second}}
+\end{aligned}
 ```
 
 Two rules follow from the square root:

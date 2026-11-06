@@ -18,8 +18,10 @@ Dev Hours. Hiring unlocks in the Pre-seed Era.
 
 **Dev Hours** (DH) are the currency of engineering work.
 
-```text
-DH per calendar day = Σ_teams effective_engineers(team) × 8 × velocity(team) × policy × error_budget_factor × (1 − upkeep_share)
+```latex
+\begin{aligned}
+\text{DH per calendar day} &= \sum_{\text{teams}} \text{effective engineers} \left(\text{team}\right) \times 8 \times \text{velocity} \left(\text{team}\right) \\ &\quad \times \text{policy} \times \text{error budget factor} \times \left(1 - \text{upkeep share}\right)
+\end{aligned}
 ```
 
 One DH is one engineer-hour. An engineer works 8 hours in a calendar day (the same work window that
@@ -115,10 +117,13 @@ instead.
 
 Communication cost grows with the number of people who must agree. The game models this per team:
 
-```text
-effective_engineers(team) = n / (1 + k × (n − 1) + β × n × (n − 1))
-k = 0.08 by default, × 0.7 with a structured framework (Spring Boot, NestJS, Symfony)
-β = 0.0004
+```latex
+\begin{aligned}
+\text{effective engineers} \left(\text{team}\right) &= n / \left(1 + k \times \left(n - 1\right) + \beta \times n \times \left(n - 1\right)\right) \\
+k &= 0.08 \\
+&\quad \text{by default, $\times$ 0.7 with a structured framework (Spring Boot, NestJS, Symfony)} \\
+\beta &= 0.0004
+\end{aligned}
 ```
 
 | Engineers in one team | Effective engineers |
@@ -147,8 +152,10 @@ Service.
 **Splitting** a service (research "Service boundaries", Series B) moves some live Features to a new
 codebase with a name and an owning team.
 
-```text
-split_DH = 0.3 × 0.5 × Σ DH of the moved Features      (at least 0.5 DH, to a tenth)
+```latex
+\begin{aligned}
+\text{split DH} &= 0.3 \times 0.5 \times \sum_{\text{Features moved}} \text{DH} && \qquad \text{at least 0.5 DH, to a tenth}
+\end{aligned}
 ```
 
 The 0.3 is the migration factor for a split and the 0.5 is the codebase's KLOC per Dev Hour, so a
@@ -335,9 +342,12 @@ Team panel shows each live Feature's adopted share.
 
 Users do not adopt a Feature on the day it ships. Adoption approaches 1 as calendar time passes:
 
-```text
-adoption += (1 − adoption) × Δt / τ        τ = 7 calendar days
-exposure  = rollout × adoption
+```latex
+\begin{aligned}
+\text{adoption} \left(\text{next}\right) &= \text{adoption} + \left(1 - \text{adoption}\right) \times \frac{\Delta t}{\tau} \\
+&\quad \text{$\tau$ = 7 calendar days} \\
+\text{exposure} &= \text{rollout} \times \text{adoption}
+\end{aligned}
 ```
 
 All effects and load scale with `exposure`. After one calendar week, a Feature at 100% rollout
@@ -362,9 +372,11 @@ The 5% to 50% band leaves a holdout group of users who do not have the Feature. 
 lift with a 95% confidence interval, which narrows as Analytics samples more requests from both
 groups:
 
-```text
-half_width = 1.96 × σ × sqrt(1 / n_exposed + 1 / n_holdout)
-σ = 1.0 (the spread of a relative effect, tunable)
+```latex
+\begin{aligned}
+\text{half width} &= 1.96 \times \sigma \times \sqrt{\frac{1}{n\ \text{exposed}} + \frac{1}{n\ \text{holdout}}} \\
+\sigma &= 1.0 && \qquad \text{the spread of a relative effect, tunable}
+\end{aligned}
 ```
 
 `n_exposed` and `n_holdout` count sampled requests from each group since the Feature reached its
@@ -382,9 +394,11 @@ Every live Feature needs upkeep: bug fixes, dependency updates, and support ques
 product team loses a share of its Dev Hours to the Features its Service carries, before the
 backlog gets any:
 
-```text
-upkeep_share(service) = 0.4 × S / (S + 2,000) × (1 + debt)        capped at 0.6
-S = DH of the Features shipped on the service and not yet removed
+```latex
+\begin{aligned}
+\text{upkeep share} \left(\text{service}\right) &= 0.4 \times \frac{S}{S + 2{,}000} \times \left(1 + \text{debt}\right) && \qquad \text{capped at 0.6} \\
+S &= \text{DH of the Features shipped on the service and not yet removed}
+\end{aligned}
 ```
 
 A product with 500 DH of Features spends 8% of its Dev Hours on upkeep. With 4,000 DH it spends 27%,
@@ -467,9 +481,12 @@ needs `caching` can buy it with a Team's time instead of waiting.
 
 A migration changes a service's language, moves a capability between Components, or splits a service.
 
-```text
-migration_DH = codebase_size × migration_factor
-codebase_size grows with every feature shipped on that service (in thousands of lines)
+```latex
+\begin{aligned}
+\text{migration DH} &= \text{codebase size} \times \text{migration factor} \\
+\text{codebase size} &= \text{thousands of lines} \\
+&\quad \text{grows with every Feature shipped on that service}
+\end{aligned}
 ```
 
 | Migration                                 | Factor                | Notes                                                                                                                                        |
@@ -523,8 +540,8 @@ One setting per team, changeable at any time with a one-calendar-day transition.
 
 Features ship in deploys. A feature finished between deploys waits for the next one.
 
-```text
-deploys_per_calendar_day = min(policy's cap, 480 minutes of work / (build_time + deploy_time + verify_time))
+```latex
+\text{deploys per calendar day} = \operatorname{min}\left(\text{policy cap},\ 480\ \text{minutes of work} / \left(\text{build time} + \text{deploy time} + \text{verify time}\right)\right)
 ```
 
 - Build time comes from the language ([Runtimes](/design/06-runtimes#language-profiles)). Rust's 12-minute

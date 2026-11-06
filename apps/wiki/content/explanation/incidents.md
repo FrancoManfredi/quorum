@@ -26,8 +26,10 @@ nothing strikes the moment you return.
 The director favors the incident that would hurt your Design most. Each incident type gets a weight
 from how hard it would hit your current Design:
 
-```formula
-weight = weakness × (1 + tech debt) × repeat × open action item × Mutators
+```latex
+\begin{aligned}
+\text{weight} &= \text{weakness} \times \left(1 + \text{tech debt}\right) \times \text{repeat} \times \text{open action item} \\ &\quad \times \text{Mutators}
+\end{aligned}
 ```
 
 - **Weakness** is 0 when the Design has nothing the incident can hit. Otherwise it runs from 0.2 to 3.
@@ -94,8 +96,8 @@ From Series A, each Era has an availability SLO, such as 99.9%. The Simulation c
 requests and failures over the last calendar week. The failures the SLO allows are your
 [error budget](/glossary/error-budget):
 
-```formula
-error budget = (1 − SLO) × requests in the last calendar week
+```latex
+\text{error budget} = \left(1 - \text{SLO}\right) \times \text{requests in the last calendar week}
 ```
 
 Bots do not count, and neither do real users the WAF blocked, because a block is a client error and
