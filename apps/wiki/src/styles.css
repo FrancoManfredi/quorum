@@ -166,6 +166,11 @@ input[type='search']::-webkit-search-cancel-button {
 .math .katex-display {
   margin: 0;
 }
+@media (max-width: 639px) {
+  .math {
+    font-size: 15px;
+  }
+}
 
 .diagram {
   --pele-bg: var(--background);

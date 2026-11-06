@@ -83,7 +83,7 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
             h.Autocomplete('off'),
             h.Spellcheck(false),
             h.Class(
-              'h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground',
+              'h-full min-w-0 flex-1 bg-transparent text-[16px] text-foreground sm:text-[13px] outline-none placeholder:text-muted-foreground',
             ),
             h.OnInput((query) => Message.QueryChanged({ query })),
             h.Role('combobox'),
@@ -119,7 +119,7 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
               h.Role('listbox'),
               h.AriaLabel('Search results'),
               h.Class(
-                'absolute top-10 right-0 left-0 z-50 overflow-hidden rounded-lg border border-border bg-card p-1 shadow-lg',
+                'fixed top-[52px] right-3 left-3 z-50 max-h-[70dvh] overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-lg sm:absolute sm:top-10 sm:right-0 sm:left-0 sm:max-h-none sm:overflow-hidden',
               ),
             ],
             hits.length === 0

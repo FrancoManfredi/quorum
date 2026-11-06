@@ -53,17 +53,20 @@ export const header = (model: Model, h: H): Html =>
               h.AriaLabel(model.menu ? 'Close the menu' : 'Open the menu'),
               h.AriaExpanded(model.menu),
               h.Class(
-                '-ml-1 grid size-8 place-items-center rounded-md text-muted-foreground hover:text-foreground lg:hidden',
+                '-ml-1 grid size-9 place-items-center rounded-md text-muted-foreground hover:text-foreground lg:hidden',
               ),
               h.OnClick(Message.MenuToggled()),
             ],
             [icon(h, model.menu ? X : Menu, 'size-[18px]')],
           ),
           h.a(
-            [h.Href('/'), h.Class('flex shrink-0 items-center gap-2 pr-3')],
+            [h.Href('/'), h.Class('flex shrink-0 items-center gap-2 pr-1 sm:pr-3')],
             [
               mark(h),
-              h.span([h.Class('text-[14.5px] font-semibold tracking-tight')], ['Quorum']),
+              h.span(
+                [h.Class('hidden text-[14.5px] font-semibold tracking-tight min-[430px]:inline')],
+                ['Quorum'],
+              ),
               h.span([h.Class('hidden text-[14.5px] text-muted-foreground sm:inline')], ['Wiki']),
             ],
           ),
@@ -74,13 +77,7 @@ export const header = (model: Model, h: H): Html =>
             viewInputs: INDEX,
             toParentMessage: (message) => Message.SearchChanged({ message }),
           }),
-          h.div([h.Class('flex-1')], []),
-          h.submodel({
-            slotId: 'spoilers',
-            model: model.spoilers,
-            view: Spoilers.view,
-            toParentMessage: (message) => Message.SpoilersChanged({ message }),
-          }),
+          h.div([h.Class('hidden flex-1 sm:block')], []),
           h.a(
             [
               h.Href(GAME_ORIGIN),
@@ -103,33 +100,44 @@ const sections = (model: Model, h: H): Html => {
     [h.AriaLabel('Sections')],
     [
       h.div(
+        [h.Class('mx-auto flex max-w-[1400px] items-center gap-2 pr-4 sm:pr-6')],
         [
-          h.Class(
-            'mx-auto flex h-11 max-w-[1400px] items-stretch gap-6 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none]',
-          ),
-        ],
-        SECTION_ORDER.flatMap((section) => {
-          const first = navOf(section)[0]
-          if (!first) return []
-          return [
-            h.a(
-              [
-                h.Key(section),
-                h.Href(first.path),
-                ...(section === current ? [h.AriaCurrent('true')] : []),
-                h.Class(
-                  cn(
-                    'flex shrink-0 items-center gap-2 border-b-2 text-[13.5px] transition-colors',
-                    section === current
-                      ? 'border-foreground font-medium text-foreground'
-                      : 'border-transparent text-muted-foreground hover:text-foreground',
-                  ),
+          h.div(
+            [
+              h.Class(
+                'flex h-11 min-w-0 flex-1 items-stretch gap-6 overflow-x-auto pl-4 sm:pl-6 [scrollbar-width:none]',
+              ),
+            ],
+            SECTION_ORDER.flatMap((section) => {
+              const first = navOf(section)[0]
+              if (!first) return []
+              return [
+                h.a(
+                  [
+                    h.Key(section),
+                    h.Href(first.path),
+                    ...(section === current ? [h.AriaCurrent('true')] : []),
+                    h.Class(
+                      cn(
+                        'flex shrink-0 items-center gap-2 border-b-2 text-[13.5px] transition-colors',
+                        section === current
+                          ? 'border-foreground font-medium text-foreground'
+                          : 'border-transparent text-muted-foreground hover:text-foreground',
+                      ),
+                    ),
+                  ],
+                  [icon(h, QUADRANTS[section].icon, 'size-4'), QUADRANTS[section].label],
                 ),
-              ],
-              [icon(h, QUADRANTS[section].icon, 'size-4'), QUADRANTS[section].label],
-            ),
-          ]
-        }),
+              ]
+            }),
+          ),
+          h.submodel({
+            slotId: 'spoilers',
+            model: model.spoilers,
+            view: Spoilers.view,
+            toParentMessage: (message) => Message.SpoilersChanged({ message }),
+          }),
+        ],
       ),
     ],
   )

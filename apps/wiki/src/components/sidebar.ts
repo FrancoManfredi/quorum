@@ -113,8 +113,11 @@ export const sidebar = (model: Model, h: H): Html => {
       h.Class(
         cn(
           SCROLL,
-          'sticky top-[100px] h-[calc(100dvh-100px)] self-start border-border py-6 pr-4 lg:block lg:border-r',
-          model.menu ? 'block' : 'hidden',
+          // A phone opens the menu over the page; a desktop keeps it as a sticky rail.
+          'border-border lg:sticky lg:top-[100px] lg:block lg:h-[calc(100dvh-100px)] lg:self-start lg:border-r lg:py-6 lg:pr-4',
+          model.menu
+            ? 'fixed inset-x-0 top-[100px] bottom-0 z-30 block bg-background px-4 py-4 lg:static lg:bg-transparent lg:px-0'
+            : 'hidden',
         ),
       ),
     ],

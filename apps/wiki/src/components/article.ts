@@ -196,8 +196,8 @@ export const article = (page: Page, model: Model, h: H): Html =>
               ? h.div(
                   [h.Class('grid gap-10 lg:grid-cols-[minmax(0,1fr)_272px]')],
                   [
-                    h.div([h.Class('order-2 min-w-0 lg:order-1')], [page.body(model, h)]),
-                    h.div([h.Class('order-1 lg:order-2')], [page.aside(model, h)]),
+                    h.div([h.Class('order-1 min-w-0')], [page.body(model, h)]),
+                    h.div([h.Class('order-2')], [page.aside(model, h)]),
                   ],
                 )
               : page.body(model, h),

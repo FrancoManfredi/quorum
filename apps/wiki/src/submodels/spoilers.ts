@@ -80,7 +80,7 @@ export const hides = (model: Model, era: number | null): boolean =>
 
 export const view = defineView<Model, Message>((model, h) =>
   h.div(
-    [h.Class('hidden lg:block')],
+    [h.Class('shrink-0')],
     [
       h.submodel({
         slotId: 'era-listbox',
@@ -95,7 +95,7 @@ export const view = defineView<Model, Message>((model, h) =>
           ariaLabel: 'Hide content after an Era',
           anchor: { placement: 'bottom-end', gap: 6, portal: true },
           buttonClassName:
-            'flex h-8 min-w-36 cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-background px-2.5 text-[13px] text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
+            'flex h-8 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-background px-2.5 text-[13px] text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
           buttonContent: h.span(
             [
               h.Title('Spoilers: hide content after the Era you reached'),

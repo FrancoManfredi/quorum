@@ -11,5 +11,13 @@ const OPTIONS = {
   fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif',
 }
 
-export const diagramView = <M>(source: string, h: HtmlBuilder<M>): Html =>
-  h.figure([h.Class('diagram'), h.InnerHTML(render(source, OPTIONS).svg)], [])
+/** A diagram may shrink to fit its column, but not below this share of its own size: past that, a phone scrolls it. */
+const SHRINK_LIMIT = 0.85
+
+export const diagramView = <M>(source: string, h: HtmlBuilder<M>): Html => {
+  const { svg, width } = render(source, OPTIONS)
+  return h.figure(
+    [h.Class('diagram')],
+    [h.div([h.Style({ minWidth: `${Math.round(width * SHRINK_LIMIT)}px` }), h.InnerHTML(svg)], [])],
+  )
+}
