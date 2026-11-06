@@ -28,6 +28,8 @@ export const islandAttributes = {
     answer: Schema.Literals(['1', '2', '3', '4', '5']),
     explain: Schema.String,
   }),
+  /** A live board to practice on, drawn by the game's own board: `::Practice{id="place"}`. */
+  Practice: Schema.Struct({ id: Schema.Literals(['place', 'wire', 'rearrange']) }),
   /** One Research track, as the tree draws it: `::Track{track="data"}`. */
   Track: Schema.Struct({ track: Schema.Literals(RESEARCH_TRACKS.map((entry) => entry.key)) }),
 }

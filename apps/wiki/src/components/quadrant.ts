@@ -1,5 +1,14 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { BookOpen, FileText, GraduationCap, Info, Lightbulb, Wrench, type IconNode } from 'lucide'
+import {
+  BookOpen,
+  FileText,
+  Gamepad2,
+  GraduationCap,
+  Info,
+  Lightbulb,
+  Wrench,
+  type IconNode,
+} from 'lucide'
 import type { BuildGroup } from '@quorum/simulation/catalog'
 import { groupBadge } from '@quorum/ui/game/bits'
 import type { Section } from '../frontmatter.ts'
@@ -19,6 +28,7 @@ export type Quadrant = Readonly<{
 }>
 
 export const QUADRANTS: Readonly<Record<Section, Quadrant>> = {
+  play: { label: 'Play the game', purpose: 'Learn the controls', icon: Gamepad2, group: 'edge' },
   tutorials: {
     label: 'Tutorials',
     purpose: 'Learn by playing',

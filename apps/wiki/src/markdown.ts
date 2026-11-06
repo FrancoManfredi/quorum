@@ -64,7 +64,7 @@ const inlines = (content: ReadonlyArray<Inline>): string =>
         case 'Link':
           return `[${inlines(node.content)}](${target(node.url)})`
         case 'Image':
-          return `![${node.alt}](${target(node.url)})`
+          return `![${node.alt}](${node.url.startsWith('/') && !node.url.startsWith('//') ? `${WIKI_ORIGIN}${node.url}` : node.url})`
       }
     })
     .join('')
@@ -105,6 +105,10 @@ const island = (block: Extract<Block, { _tag: 'Island' }>): string => {
       const def = GUIDED[id]
       const goal = def.objectives[0]?.goal
       return `Sandbox: [${def.name}](${markdownUrl(`/sandboxes/${id}`)})${goal ? `: ${goal}` : ''}`
+    }
+    case 'Practice': {
+      const { id } = block.attributes as { id?: string }
+      return `Interactive practice board: ${id ?? ''}, open the page to use it.`
     }
     case 'Component': {
       const { id } = decode.Component(block.attributes)
@@ -330,6 +334,7 @@ export const pageMarkdown = (page: Page): string => {
 /* ---- The index (llmstxt.org) ------------------------------------------- */
 
 const SECTION_LABELS: Record<Section, string> = {
+  play: 'Play the game',
   tutorials: 'Tutorials',
   guides: 'Guides',
   explanation: 'Explanation',

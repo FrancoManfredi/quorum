@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
-import { llmsTxt, markdownFiles, markdownPath, pageMarkdown } from './markdown.ts'
+import * as Markdown from '@foldkit/markdown'
+import { blocksMarkdown, llmsTxt, markdownFiles, markdownPath, pageMarkdown } from './markdown.ts'
 import { PAGES, pageAt } from './pages.ts'
 
 /* The agent-facing contract: /llms.txt indexes every page, and every page has a Markdown twin. */
@@ -27,4 +28,19 @@ test('directives convert to readable Markdown with no :: syntax left', () => {
   for (const [name, content] of Object.entries(markdownFiles())) {
     if (name.endsWith('.md')) expect(content, name).not.toMatch(/^\s*:{2,3}[A-Za-z]/m)
   }
+})
+
+test('an image keeps its alt text with an absolute URL, and a practice board becomes a text line', () => {
+  const document = Markdown.decodeDocument({
+    blocks: [
+      {
+        _tag: 'Paragraph',
+        content: [{ _tag: 'Image', alt: 'The dock', url: '/play/dock.png', maybeTitle: null }],
+      },
+      { _tag: 'Island', name: 'Practice', attributes: { id: 'place' }, blocks: [] },
+    ],
+  })
+  const text = blocksMarkdown(document.blocks)
+  expect(text).toContain('![The dock](https://wiki.playquorum.dev/play/dock.png)')
+  expect(text).toContain('Interactive practice board: place, open the page to use it')
 })

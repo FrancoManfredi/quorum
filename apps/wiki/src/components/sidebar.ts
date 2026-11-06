@@ -35,8 +35,8 @@ const navLink = (page: Page, current: string, h: H, nested = false): Html =>
 export const sidebar = (model: Model, h: H): Html => {
   const page = pageAt(model.path)
   const open = page?.parent ?? page?.path ?? null
-  // Home has no section of its own; it lists the tutorials, where a new player starts.
-  const section = model.path === '/' ? 'tutorials' : (page?.section ?? 'tutorials')
+  // Home has no section of its own; it lists the play pages, where a new player starts.
+  const section = model.path === '/' ? 'play' : (page?.section ?? 'play')
   return h.nav(
     [
       h.AriaLabel(QUADRANTS[section].label),

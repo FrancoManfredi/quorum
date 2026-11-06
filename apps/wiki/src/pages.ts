@@ -14,8 +14,9 @@ const byPath = new Map(PAGES.map((page) => [page.path, page]))
 
 export const pageAt = (path: string): Page | null => byPath.get(path) ?? null
 
-/** The top level of the navigation: the four Diátaxis kinds, in the order a new player needs them. */
+/** The top level of the navigation: "Play the game" and the four Diátaxis kinds, in the order a new player needs them. */
 export const SECTION_ORDER: ReadonlyArray<Section> = [
+  'play',
   'tutorials',
   'guides',
   'explanation',

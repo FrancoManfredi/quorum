@@ -5,6 +5,7 @@ import { Schema } from 'effect'
    its title and facts come from the catalog. */
 
 export const SECTIONS = [
+  'play',
   'tutorials',
   'guides',
   'explanation',

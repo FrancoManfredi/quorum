@@ -12,7 +12,7 @@ import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
 import { prosePaths } from './content.ts'
 import { normalize } from './main.ts'
 import { renderPage, prerenderPaths } from './entry.server.ts'
-import { PAGES, pageAt } from './pages.ts'
+import { PAGES, SECTION_ORDER, navOf, pageAt } from './pages.ts'
 import { indexOf, search } from './search.ts'
 
 /* The wiki's contract: every page has one clean path, renders at build time, and can be found. */
@@ -72,4 +72,11 @@ test('search ranks a title match first and finds a page by its alias', () => {
   expect(search(index, 'improve the wiki')[0]?.page.path).toBe('/about/contributing')
   expect(search(index, 'github')[0]?.page.path).toBe('/about/contributing')
   expect(search(index, 'zzzz-no-match')).toEqual([])
+})
+
+test('the play section comes first and its pages follow their order', () => {
+  expect(SECTION_ORDER[0]).toBe('play')
+  const orders = navOf('play').map((page) => page.order)
+  expect(orders).toEqual([...orders].sort((a, b) => a - b))
+  expect(PAGES.filter((page) => page.section === 'play' && page.era !== null)).toEqual([])
 })

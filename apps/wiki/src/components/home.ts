@@ -150,9 +150,9 @@ export const homeView = (page: Page, model: Model, h: H): Html =>
             [h.Class('mt-4')],
             [
               grid(
-                'sm:grid-cols-2 xl:grid-cols-4',
-                (['tutorials', 'guides', 'explanation', 'reference'] as const).map((section) =>
-                  kind(section, h),
+                'sm:grid-cols-2 xl:grid-cols-5',
+                (['play', 'tutorials', 'guides', 'explanation', 'reference'] as const).map(
+                  (section) => kind(section, h),
                 ),
                 h,
               ),

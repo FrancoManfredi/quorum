@@ -89,6 +89,19 @@ export const prose = (
               ? h.h3([h.Id(id), h.Class('group')], [...content, anchor])
               : h.h4([h.Id(id)], content)
         },
+        Image: ({ url, alt }) => h.img([h.Src(url), h.Alt(alt), h.Loading('lazy')]),
+        Paragraph: (paragraph, content) => {
+          const [only] = paragraph.content
+          return paragraph.content.length === 1 && only?._tag === 'Image'
+            ? h.figure(
+                [h.Class('prose-figure')],
+                [
+                  h.img([h.Src(only.url), h.Alt(only.alt), h.Loading('lazy')]),
+                  ...(only.alt ? [h.figcaption([], [only.alt])] : []),
+                ],
+              )
+            : h.p([], content)
+        },
         Link: ({ url }, content) =>
           h.a(
             [h.Href(url), ...(external(url) ? [h.Rel('noopener'), h.Target('_blank')] : [])],

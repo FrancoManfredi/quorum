@@ -1,4 +1,4 @@
-import { pageAt } from './pages.ts'
+import { navOf, pageAt } from './pages.ts'
 import type { Page } from './page.ts'
 
 /* ==========================================================================
@@ -16,6 +16,13 @@ export type Path = Readonly<{
 }>
 
 export const PATHS: ReadonlyArray<Path> = [
+  {
+    id: 'play',
+    title: 'Play the game',
+    summary:
+      'Learn the controls and screens of Quorum, from your first Company to your first minutes.',
+    steps: navOf('play').map((page) => page.path),
+  },
   {
     id: 'first-steps',
     title: 'First steps',
