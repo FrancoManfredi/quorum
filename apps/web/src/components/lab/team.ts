@@ -53,7 +53,15 @@ import {
 import { POLICY_LEVEL } from '@quorum/simulation/catalog'
 import { perkLevel } from '@quorum/simulation/founding'
 import { has } from '@quorum/simulation/lookups'
-import type { Engineer, Game, Team, TeamKind, WorkItem, WorkKind } from '@quorum/simulation/state'
+import type {
+  Engineer,
+  Game,
+  GameNode,
+  Team,
+  TeamKind,
+  WorkItem,
+  WorkKind,
+} from '@quorum/simulation/state'
 import {
   badDeployChance,
   deployEvery,
@@ -78,7 +86,8 @@ import {
 import { overdueBy } from '@quorum/simulation/cve'
 import { liftReading } from '@quorum/simulation/features'
 import { isReady, stepOf } from '@quorum/simulation/migration'
-import { PLATFORM_STAGE } from '@quorum/simulation/work'
+import { PLATFORM_STAGE, loadBalancersOf, nodesOfService } from '@quorum/simulation/work'
+import { nodeLabel } from '@quorum/simulation/labels'
 import {
   featureHoursOf,
   featureRefusal,
@@ -775,6 +784,38 @@ const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html =>
         ],
   )
 
+/** A Service's Nodes as buttons that reveal each on the Board. */
+const nodeRow = (
+  label: string,
+  nodes: ReadonlyArray<GameNode>,
+  empty: string,
+  game: Game,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [
+      h.Class(
+        'flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[calc(11.5px*var(--type-scale))]',
+      ),
+    ],
+    [
+      h.span([h.Class('text-muted-foreground')], [`${label}:`]),
+      ...(nodes.length === 0
+        ? [h.span([h.Class('text-muted-foreground')], [empty])]
+        : nodes.map((node) =>
+            h.button(
+              [
+                h.Type('button'),
+                h.OnClick(Message.RevealNode({ nodeId: node.id })),
+                h.AriaLabel(`Open ${nodeLabel(game, node)}`),
+                h.Class('font-medium hover:underline'),
+              ],
+              [nodeLabel(game, node)],
+            ),
+          )),
+    ],
+  )
+
 /** The Services a Company runs (08 "Services"): its codebases, their owners, and the split. */
 const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
@@ -859,6 +900,8 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   : `Carries ${service.features.map((id) => FEATURES[id].name).join(', ')}`,
               ],
             ),
+            nodeRow('Nodes', nodesOfService(game, service.id), 'None yet', game, h),
+            nodeRow('Load Balancers', loadBalancersOf(game, service.id), 'Not behind one', game, h),
             game.teams.length > 1
               ? h.div(
                   [h.Class('flex items-center gap-1.5 pt-0.5')],

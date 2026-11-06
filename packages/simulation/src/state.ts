@@ -367,6 +367,11 @@ const NODE_FIELDS = {
   /** An App Server sends reads that follow a write to the primary (Read-your-writes routing). */
   ryw: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   region: Region.pipe(Schema.withDecodingDefaultKey(Effect.succeed('na' as const))),
+  /**
+   * The Service an App Server or Worker belongs to (08 "Ownership"). Absent means the starting
+   * Service, so old saves and their hashes stay as they were.
+   */
+  serviceId: Schema.optionalKey(Schema.String),
   /** Wide-column Store: replicas per key, replicas a read asks, replicas a write waits for. */
   n: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
   r: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),

@@ -168,9 +168,11 @@ policy and its own tech debt, not the Design's. One shared CI/CD Pipeline still 
 strategy for every Service, so two Services on the same policy deploy about as often. The difference
 is that a bad deploy on one Service never waits behind another's and never pulls it down.
 
-Burn has no Node-level ownership, so it cannot be split exactly. Each Service reports its share of
-the Company's Burn, in proportion to its share of the codebase (KLOC). A Stack change still migrates
-the whole Design, not one Service.
+Each App Server and Worker belongs to one Service: a new Node starts on the starting Service, a
+copy stays with its source, and the Node's Inspector moves it to another Service for free. The
+Team panel lists each Service's Nodes and the Load Balancers that send traffic to them. Burn is
+still reported per Service in proportion to its share of the codebase (KLOC), not from its Nodes. A
+Stack change still migrates the whole Design, not one Service.
 
 | Gain                                           | Cost                                                                                              |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |

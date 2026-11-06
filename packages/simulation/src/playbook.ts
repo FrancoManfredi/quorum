@@ -297,7 +297,20 @@ export const duplicate = (
     const outside = (id: string) =>
       !placed.ids.has(id) &&
       game.nodes.some((node) => node.id === id && !SHARED.includes(node.type))
-    let next = placed.game
+    // A copy stays with its source's Service.
+    const owners = new Map(
+      [...placed.ids].flatMap(([key, id]) => {
+        const serviceId = game.nodes.find((node) => node.id === key)?.serviceId
+        return serviceId ? [[id, serviceId] as const] : []
+      }),
+    )
+    let next: Game = {
+      ...placed.game,
+      nodes: placed.game.nodes.map((node) => {
+        const serviceId = owners.get(node.id)
+        return serviceId ? { ...node, serviceId } : node
+      }),
+    }
     for (const link of game.links) {
       const from = placed.ids.get(link.from)
       const to = placed.ids.get(link.to)

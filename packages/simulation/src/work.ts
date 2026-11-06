@@ -79,6 +79,7 @@ import { openRegions } from './regions.ts'
 import { NEW_ENGINEER } from './state.ts'
 import { warming } from './life.ts'
 import type {
+  GameNode,
   BlockKind,
   DbEngine,
   ShardKey,
@@ -608,6 +609,39 @@ export const moveService = (game: Game, serviceId: string, teamId: string): Acti
   if (!game.teams.some((team) => team.id === teamId)) return no(Refusal.Missing())
   if (service.owner === teamId) return ok(game)
   return ok(withServiceId(game, serviceId, { owner: teamId }))
+}
+
+/** The Service an App Server or Worker belongs to: its own, or the starting Service when none is set. */
+export const serviceOfNode = (game: Game, node: GameNode): Service =>
+  game.services.find((entry) => entry.id === node.serviceId) ?? serviceOf(game)
+
+/** Moves an App Server or Worker to another Service (08 "Ownership"). Instant and free. */
+export const assignService = (game: Game, nodeId: string, serviceId: string): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const node = game.nodes.find((entry) => entry.id === nodeId)
+  if (!node || !game.services.some((entry) => entry.id === serviceId)) return no(Refusal.Missing())
+  if (node.type !== 'server' && node.type !== 'worker')
+    return notAllowed('Only an App Server or a Worker belongs to a Service.')
+  if (serviceOfNode(game, node).id === serviceId) return ok(game)
+  return ok({
+    ...game,
+    nodes: game.nodes.map((entry) => (entry.id === nodeId ? { ...entry, serviceId } : entry)),
+  })
+}
+
+/** The App Servers and Workers of a Service. */
+export const nodesOfService = (game: Game, serviceId: string): ReadonlyArray<GameNode> =>
+  game.nodes.filter(
+    (node) =>
+      (node.type === 'server' || node.type === 'worker') &&
+      serviceOfNode(game, node).id === serviceId,
+  )
+
+/** The Load Balancers that send traffic to a Service's App Servers. */
+export const loadBalancersOf = (game: Game, serviceId: string): ReadonlyArray<GameNode> => {
+  const members = new Set(nodesOfService(game, serviceId).map((node) => node.id))
+  const ids = new Set(game.links.filter((link) => members.has(link.to)).map((link) => link.from))
+  return game.nodes.filter((node) => node.type === 'lb' && ids.has(node.id))
 }
 
 /** The item's Service: a Feature's own codebase, or the Service the item names. */

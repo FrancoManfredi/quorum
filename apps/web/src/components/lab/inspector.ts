@@ -186,6 +186,7 @@ import type {
   VecIndexType,
 } from '@quorum/simulation/state'
 import { compact, duration, money, ms, priceLabel, queueWait, rate } from '@quorum/ui/game/format'
+import { serviceOfNode } from '@quorum/simulation/work'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
 import { hasTraffic, hintOf, oversized, sampleNode, TRAFFIC_KINDS } from '@/game/node-metrics.ts'
@@ -1632,6 +1633,31 @@ const hubStack = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
     h,
   )
 }
+
+/** The Service an App Server or Worker belongs to (08 "Ownership"); empty while there is one Service. */
+const serviceOwnership = (
+  game: Game,
+  node: GameNode,
+  h: HtmlBuilder<Message>,
+): ReadonlyArray<Html> =>
+  game.services.length < 2
+    ? []
+    : [
+        section(
+          'Service',
+          [
+            picker(
+              'service',
+              game.services.map((service) => [service.id, service.name] as const),
+              serviceOfNode(game, node).id,
+              (serviceId) => Message.ServiceAssigned({ nodeId: node.id, serviceId }),
+              h,
+            ),
+          ],
+          h,
+          true,
+        ),
+      ]
 
 const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
   section(
@@ -4230,6 +4256,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   ? model.board.tradeoff.option.id
                   : null,
               )
+            : []),
+          ...(node.type === 'server' || node.type === 'worker'
+            ? serviceOwnership(game, node, h)
             : []),
           ...(node.type === 'ws' ? [hubStack(game, node, h)] : []),
           ...(node.type === 'server' ? collector(game, node, h) : []),

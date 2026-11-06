@@ -3167,6 +3167,12 @@ const handle = (model: Model, message: Message): Result =>
       }
       return { model: next }
     },
+    ServiceAssigned: ({ nodeId, serviceId }) =>
+      act(
+        model,
+        `Moved a Node to ${model.board.game.services.find((entry) => entry.id === serviceId)?.name ?? 'a Service'}`,
+        Work.assignService(model.board.game, nodeId, serviceId),
+      ),
     RevealNode: ({ nodeId }) => {
       const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
       if (!node) return { model }
