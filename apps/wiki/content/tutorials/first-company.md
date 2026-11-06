@@ -27,7 +27,8 @@ controls at first. The rest appear one at a time, as they become useful.
 
 ## Read the board
 
-The board holds four Nodes, joined by Links. Requests move along the Links from left to right.
+The board holds four Nodes. Users, the App Server and Analytics are joined by Links, and requests
+move along them from left to right. Payments stands alone.
 
 - **Users** is where traffic starts. Its card shows your user count, your Apdex, and the requests
   per second that users send.
@@ -101,7 +102,8 @@ of its resources runs out. The next lesson shows you how to find and fix that li
 The Garage ends at 1,000 users. When you reach it, a button for the **Pre-seed offer** appears
 under the Era name on the HUD. You raise that round in [Your first incident](/tutorials/first-incident).
 
-Press **H** at any time to open **How to play**. It lists the keys and the six core actions.
+Press **H** at any time to open **How to play**. It lists the keys and the six core actions. Press
+**Esc** with nothing open to reach the **Menu**.
 
 ## What you learned
 

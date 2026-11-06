@@ -24,7 +24,7 @@ and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ HUD: Cash (net $/s) · Users (growth) · Apdex · p99 · Error % · Insight · DH · Date    │
+│ HUD: Cash (net $/s) · Users (growth) · Apdex · p99 · Error % · Insight    Toolbar: Research · Team · … │
 ├──────────────────────────────────────────────────────────────────────────────┬───────┤
 │                                                                              │       │
 │                                   BOARD                                       │ Inspector
@@ -34,12 +34,14 @@ and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player
 │                                                                              │       │
 │   [Payments]                      [Analytics]                                │       │
 ├──────────────────────────────────────────────────────────────────────────────┴───────┤
-│ Dock: Edge · Compute · Data · Messaging · … (seven groups)    Research · Team · Cost  │
+│ Dock: Edge · Compute · Data · Messaging · … (seven groups)                    Inbox │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 The layout shows every element, but a new Company starts with fewer
-([Progressive disclosure](#progressive-disclosure)).
+([Progressive disclosure](#progressive-disclosure)). The toolbar at the top right holds Research
+(`R`), Team (`T`), Playbooks, Dashboard, How to play, Glossary, Undo, Redo, Pause, Speed, Tidy, Fit and
+Fullscreen. The dock holds only the build groups. Cost has no button: `$` opens it.
 
 ## Progressive disclosure
 
@@ -90,7 +92,10 @@ time the game state makes it useful.
 - A group lists the Components the player can place, then at most one locked Component: the one with
   the cheapest available Research item. Other locked Components do not show.
 - A group with nothing to place and nothing one Research item away does not show.
-- The number keys follow the visible order.
+- The number keys follow the visible order: `1` to `7` pick a group, then a digit picks an item in it.
+- Picking an item arms one placement. The list closes, the board shows "Click the board", and the
+  first click, or `Enter` for the next free spot, places the part and clears the tool. Placing a
+  second Node means picking again. `Esc` drops the part without placing it.
 
 ## The board
 
@@ -208,16 +213,16 @@ replication mode, a deploy strategy, a pricing model.
 
 The fix for Upload Labs click fatigue ([Influences](/design/02-influences#why-players-quit)).
 
-| Tool                 | Available from | Effect                                                                                                                                                                                                                                                                              |
-| -------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Buy ×1, ×10, Max     | Start          | Buy ×1 buys one size; ×10 buys up to ten at once, and Max buys to the largest affordable size.                                                                                                                                                                                      |
-| Hold to repeat       | Start          | Holding a card's footer button, the Inspector's Upgrade, or its Larger buys one size, then one more every UI tick (250 ms, 4 a second) until the pointer lifts, Cash runs out, or the Node reaches its largest size. A stalled frame repeats once, never in a burst.                |
-| Upgrade all of type  | Start          | The Inspector's Upgrade all buys one size on every Node of that Node's kind on the board, in board order. It skips the Nodes at their largest size and stops at the first one Cash cannot pay for; the toast names how many grew and what stopped it. One undo entry, one log line. |
-| Multi-select         | Start          | Drag a box; act on all. The selection bar's **Box the Nodes** draws a dashed, named box (Box 1, Box 2) around two or more Nodes, under the belts. A Node is in at most one box, selecting a boxed group and pressing the button again takes the box off, and the Nodes stay.        |
-| Copy and paste       | Start          | Duplicate a selection with its links and settings, including links to Nodes outside it. A paste keeps links inside the selection and to Users, Payments, and Analytics                                                                                                              |
-| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                                                                                                                                                                                                            |
-| Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"                                                                                                                                                                                                   |
-| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))                                                                                                                                                                                               |
+| Tool                 | Available from | Effect                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Buy ×1, ×10, Max     | Start          | Buy ×1 buys one size; ×10 buys up to ten at once, and Max buys to the largest affordable size.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Hold to repeat       | Start          | A card's footer button that buys a size must be held for about 0.6 s, while a fill crosses the button, before the first buy; a quick click buys nothing. Collect and Replace in the footer, and the Inspector's Upgrade and Larger, buy on a click. A hold then buys one more every UI tick (250 ms, 4 a second) until the pointer lifts, Cash runs out, or the Node reaches its largest size. A stalled frame repeats once, never in a burst.                                                          |
+| Upgrade all of type  | Start          | The Inspector's Upgrade all buys one size on every Node of that Node's kind on the board, in board order. It skips the Nodes at their largest size and stops at the first one Cash cannot pay for; the toast names how many grew and what stopped it. One undo entry, one log line.                                                                                                                                                                                                                     |
+| Multi-select         | Start          | Shift+click toggles a Node, and Shift+drag on empty space draws a selection box (Shift+Ctrl or Shift+Cmd adds, Shift+Alt subtracts). The selection bar shows the count and acts on all: **Copy**, **Duplicate**, **Box the Nodes**, **Sell** and **Save as Playbook**. **Box the Nodes** draws a dashed, named box (Box 1, Box 2) around two or more Nodes, under the belts. A Node is in at most one box, selecting a boxed group and pressing the button again takes the box off, and the Nodes stay. |
+| Copy and paste       | Start          | Duplicate a selection with its links and settings, including links to Nodes outside it. A paste keeps links inside the selection and to Users, Payments, and Analytics                                                                                                                                                                                                                                                                                                                                  |
+| Autoscaler           | Series A       | Capacity follows demand ([Components](/design/05-components#autoscaler))                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Policies (Autopilot) | Legacy         | Rules such as "keep App Servers below 70% at peak" and "queue the cheapest Study"                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Playbooks            | Legacy         | Place a saved design in one action ([Exit and Legacy](/design/13-prestige#playbooks))                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 Rule: no action needs more than five repeated clicks without a bulk alternative.
 
@@ -229,7 +234,7 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 | Research  | `R`          | The tree by track ([Research screen](#research-screen))                                                                              |
 | Dashboard | `D`          | Charts over time, with its template variables, compare line and table view ([Observability](/design/12-observability#the-dashboard)) |
 | Team      | `T`          | Teams, engineers, the Services and the split, the backlog, policies, DORA metrics                                                    |
-| Cost      | `$`          | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
+| Cost      | `$` only     | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
 | Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                                                                          |
 | Incidents | `D`          | The running Incident and its Postmortems with their three times, as a Dashboard row ([below](#company-and-incidents-panels)).        |
 | Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                                                                        |
@@ -407,8 +412,12 @@ its worst utilization, and one suggestion if users were lost at peak.
   button that opens that Node's Inspector. So the board is usable without seeing the canvas.
   The keyboard also places: with a part in hand, `Enter` drops it in the next free spot, as a click
   on the board does. `L` starts a link from the selected Node, the arrows pick the other end, and
-  `Enter` or `L` joins them; `Esc` cancels. `Shift+T` tidies by zone, `Shift+F` fits the board, and
-  `Enter` confirms a pinned Tradeoff card that has a preview.
+  `Enter` or `L` joins them; `Esc` cancels. `Shift+T` tidies by zone, `Shift+F` fits the board, `F` toggles fullscreen,
+  `Shift+Arrows` nudges the selection, `I` opens the Inbox, and `Enter` confirms a pinned Tradeoff
+  card that has a preview. `Esc` closes the topmost layer first and opens the Menu when nothing is
+  open.
+- A click on a Link selects it and shows an **x** badge at its middle. Clicking the badge, or
+  pressing `Delete`, cuts the Link. A click alone never cuts it.
 - The Dashboard's Table view turns each time series into the table of the figures it plots: one row
   per time, one column per series, formatted as the Chart formats them, under a caption naming the
   Chart and its unit. A screen reader reads the numbers a plot cannot say, and any player reads an

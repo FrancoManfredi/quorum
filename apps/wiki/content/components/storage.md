@@ -45,7 +45,7 @@ Object Storage does not overload or fail on its own in the game. Its problems ar
 ### [Region outage](/incidents/region)
 
 - **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
-- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Do now:** Nothing speeds it up. **Fail over** moves only Nodes that hold no data, so this one stays down until the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts. A store spread across regions needs nothing from you.
 - **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips

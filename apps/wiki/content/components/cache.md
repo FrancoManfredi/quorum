@@ -58,19 +58,19 @@ With [Stampede protection](/research/stampede-protection) the card has three swi
 ### [Instance failure](/incidents/instance)
 
 - **Signs:** The Cache card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
-- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold. A Node with a **Standby** fails over by itself.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold. A Node with a **Standby** fails over by itself, or at once when you press **Fail over**.
 - **Prevent:** Turn on **Standby** in the Zone section, which needs [Multiple zones](/research/multi-az), or run a second Cache.
 
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once, the Cache with them.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds. A Node with a **Standby** fails over by itself.
+- **Do now:** Press **Fail over** on the banner, or on the Node's card. It needs [Multiple zones](/research/multi-az) and promotes the Node's **Standby** at once; the Node then keeps no standby until you give it one. A Node with no standby stays down until the incident ends, at most 120 sim seconds, and one with a standby also fails over by itself after a share of that time.
 - **Prevent:** Research [Multiple zones](/research/multi-az), turn on **Standby** in the Zone section, and keep a copy in a second zone.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** One region's board goes grey and the Cache in it goes down.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Do now:** Press **Fail over** on the banner. It needs [Multiple zones](/research/multi-az) and a second open region, and starts the Node again in the nearest other region, cold, for the price of a replacement. Otherwise it comes back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
 - **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
 
 ::Sandbox{id="stampede"}

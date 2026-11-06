@@ -89,19 +89,19 @@ A window caps the rows at what the Company writes inside it, so an old Company t
 ### [Instance failure](/incidents/instance)
 
 - **Signs:** The Database card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
-- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold. A Node with a **Standby** fails over by itself.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold. A Node with a **Standby** fails over by itself, or at once when you press **Fail over**.
 - **Prevent:** Turn on **Standby** in the Zone section, which needs [Multiple zones](/research/multi-az). The standby takes over by itself.
 
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once, the Database with them.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds. A Node with a **Standby** fails over by itself.
+- **Do now:** Press **Fail over** on the banner, or on the Node's card. It needs [Multiple zones](/research/multi-az) and promotes the Node's **Standby** at once; the Node then keeps no standby until you give it one. A Node with no standby stays down until the incident ends, at most 120 sim seconds, and one with a standby also fails over by itself after a share of that time.
 - **Prevent:** Research [Multiple zones](/research/multi-az), turn on **Standby** in the Zone section, and keep a copy in a second zone.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** One region's board goes grey and the Database in it goes down.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Do now:** Nothing speeds it up. **Fail over** moves only Nodes that hold no data, so this one stays down until the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts. A store spread across regions needs nothing from you.
 - **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there. The Database is tied to its region, so a second region needs its own Database or a store that spreads across regions, such as [Distributed SQL](/components/dsql).
 
 ### [Big tenant hot shard](/incidents/hot-shard)

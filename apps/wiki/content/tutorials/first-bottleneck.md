@@ -43,10 +43,12 @@ while you wait, so act now.
 The first fix is to give the database its own machine, which is what most teams do early.
 
 1. In the build dock at the bottom, select the **Data** group. You can also press its number key.
+   Each pick arms one part, so pick again for every Node you place.
 2. Select **Database** in the list. Its price shows at the right of the row.
 3. Click the board to the right of the App Server. The Database card appears.
 4. Find the blue output port on the App Server card.
-5. Drag from that port to the Database card. A Link appears.
+5. Drag from that port to the Database card. A Link appears. To cut a Link later, click it, then
+   click the **x** that appears on it or press **Delete**.
 
 When you link the first box to a Database, PostgreSQL moves off the box for good. Select the App
 Server again. The red box is gone, and the **RAM** gauge is far from full.
@@ -91,6 +93,9 @@ but it never throttles.
 You can also make the box bigger. Select **Larger** in the **Instance** section, or press **U** with
 the Node selected. A larger box has more CPU and RAM, and a higher price. This is
 [vertical scaling](/glossary/vertical-and-horizontal-scaling).
+
+The size button in the card footer buys only if you hold it for about 0.6 seconds, so a quick click
+does nothing. Keep holding to buy more sizes.
 
 ## Practice
 

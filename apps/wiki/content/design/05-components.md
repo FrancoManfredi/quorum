@@ -755,7 +755,8 @@ overhead. Typical round trips: US East to US West 65 ms, US East to Europe 75 ms
 ms, US East to Sydney 200 ms.
 
 - **Multi-zone** (Series A) protects against a zone outage. It costs cross-zone traffic and
-  redundancy.
+  redundancy. A data Node's standby takes over by itself after a share of the outage; the player's
+  **Fail over** promotes it at once ([Mitigation toolbox](/design/11-incidents#mitigation-toolbox)).
 - **Multi-region** (Series C) brings latency down for distant users and protects against a region
   outage. It forces a data decision: where does each write go? ([Data tier](/design/07-data-tier#multi-region-data)).
 - **Data residency** (Pre-IPO) requires European users' data to stay in Europe.

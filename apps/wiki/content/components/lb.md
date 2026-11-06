@@ -39,7 +39,7 @@ By default it splits traffic by each target's capacity, so a large App Server ge
 ### [Region outage](/incidents/region)
 
 - **Signs:** One region's board goes grey and the Load Balancer in it goes down.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Do now:** Press **Fail over** on the banner. It needs [Multiple zones](/research/multi-az) and a second open region, and starts the Node again in the nearest other region, cold, for the price of a replacement. Otherwise it comes back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
 - **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
 
 :::Note{tone="real"}

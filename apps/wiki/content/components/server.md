@@ -28,13 +28,13 @@ The Garage box runs Postgres on the same machine. When you link it to a [Databas
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once.
-- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Do now:** Nothing brings the zone back sooner. **Fail over** promotes a **Standby**, and this Component keeps none, so it ends on its own after at most 120 s.
 - **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
-- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Do now:** Press **Fail over** on the banner. It needs [Multiple zones](/research/multi-az) and a second open region, and starts the Node again in the nearest other region, cold, for the price of a replacement. Otherwise it comes back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
 - **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ### [Memory leak](/incidents/leak)
@@ -46,7 +46,7 @@ The Garage box runs Postgres on the same machine. When you link it to a [Databas
 ### [Event loop block](/incidents/loop)
 
 - **Signs:** p99 rises on every kind that service answers, because a CPU-heavy kind such as `login` holds the event loop.
-- **Do now:** Nothing speeds it up; it ends on its own after at most 35 s.
+- **Do now:** Press **Move login** on the banner. It needs an L7 [Load Balancer](/components/lb) in front of an App Server on an event loop, and another App Server behind it on a runtime without one: the Load Balancer then sends `login` there only, and the incident ends once no login reaches a loop. Without that, it ends on its own after at most 35 s.
 - **Prevent:** Research [libuv thread pool](/research/libuv-pool) and [Managed identity](/research/auth-provider), which move the heavy work off the loop.
 
 ### [GC pause storm](/incidents/gc-storm)
@@ -64,19 +64,19 @@ The Garage box runs Postgres on the same machine. When you link it to a [Databas
 ### [Stale OPcache](/incidents/stale-opcache)
 
 - **Signs:** A busy PHP App Server with OPcache fails 30% of its requests, running the old code against the new schema.
-- **Do now:** Press **Restart** in the Inspector. It resets the cache.
+- **Do now:** Press **Restart** on the banner or in the Inspector. It resets the cache and ends the incident.
 - **Prevent:** Research [Continuous delivery](/research/ci). A CI/CD Pipeline resets the cache on every deploy.
 
 ### [Library incompatibility](/incidents/gevent-compat)
 
 - **Signs:** A busy gevent App Server fails 15% of its requests.
-- **Do now:** Press **Restart** in the Inspector.
+- **Do now:** Press **Restart** on the banner or in the Inspector. It ends the incident.
 - **Prevent:** Research [Automated tests](/research/testing-culture).
 
 ### [Runtime compatibility](/incidents/bun-compat)
 
 - **Signs:** A busy Bun App Server fails 20% of its requests.
-- **Do now:** Press **Restart** in the Inspector.
+- **Do now:** Press **Restart** on the banner or in the Inspector. It ends the incident.
 - **Prevent:** Research [Automated tests](/research/testing-culture).
 
 ### [Spot reclaim](/incidents/spot-reclaim)

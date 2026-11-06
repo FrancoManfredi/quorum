@@ -52,13 +52,13 @@ A hot shard from incident [Hot key](/incidents/hot-key) divides its rate, the sa
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once, the Document Store with them.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds.
+- **Do now:** Nothing brings the zone back sooner. **Fail over** promotes a **Standby**, and this Component keeps none, so it ends on its own after at most 120 s.
 - **Prevent:** Research [Multiple zones](/research/multi-az) and keep a copy of the Component in a second zone.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** One region's board goes grey and the Document Store in it goes down.
-- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Do now:** Nothing speeds it up. **Fail over** moves only Nodes that hold no data, so this one stays down until the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts. A store spread across regions needs nothing from you.
 - **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
 
 ### [Operator typo](/incidents/operator-typo)

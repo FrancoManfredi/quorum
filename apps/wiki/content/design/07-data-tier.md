@@ -540,6 +540,10 @@ From the Series C Era, the player decides where each kind of data lives.
 | Leaderless (wide-column)        | Local quorum                                    | Local quorum                  | Fine, with eventual consistency across regions.                  |
 | Consensus (distributed SQL)     | Local (follower reads, stale) or remote (fresh) | Majority across regions, slow | Fine, no data loss.                                              |
 
+In a region outage or the DR drill, **Fail over** starts the stateless Nodes again in another region
+but never moves a single-region data store, so data that does not live in both regions stays down
+([Incidents](/design/11-incidents#mitigation-toolbox)).
+
 [RPO and RTO](/glossary/rpo-and-rto) are scored in the Pre-IPO Era, when a disaster recovery audit
 is part of the IPO checklist ([Progression](/design/10-progression#era-6-pre-ipo)).
 

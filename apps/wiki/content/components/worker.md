@@ -29,13 +29,13 @@ An export runs many read queries in its task, so link the Worker to the data it 
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once.
-- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Do now:** Nothing brings the zone back sooner. **Fail over** promotes a **Standby**, and this Component keeps none, so it ends on its own after at most 120 s.
 - **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
-- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Do now:** Press **Fail over** on the banner. It needs [Multiple zones](/research/multi-az) and a second open region, and starts the Node again in the nearest other region, cold, for the price of a replacement. Otherwise it comes back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
 - **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ### [Poison message](/incidents/poison)

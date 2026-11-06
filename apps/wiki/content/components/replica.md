@@ -38,13 +38,13 @@ With [Synchronous replication](/research/sync-replication) a replica can be made
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once.
-- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Do now:** Nothing brings the zone back sooner. **Fail over** promotes a **Standby**, and this Component keeps none, so it ends on its own after at most 120 s.
 - **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
-- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Do now:** Nothing speeds it up. **Fail over** moves only Nodes that hold no data, so this one stays down until the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts. A store spread across regions needs nothing from you.
 - **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips

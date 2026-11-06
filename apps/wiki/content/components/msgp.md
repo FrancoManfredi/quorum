@@ -27,7 +27,7 @@ Notifications reach it from your code. A Notify request does most of its work as
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once.
-- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Do now:** Nothing brings the zone back sooner. **Fail over** promotes a **Standby**, and this Component keeps none, so it ends on its own after at most 120 s.
 - **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
 
 ## Tips

@@ -64,7 +64,9 @@ one place where reliability is a line on the P&L rather than a figure in the HUD
 
 **Burn** is the total Cash spent per second. The HUD shows Cash with its net change per second,
 income minus Burn. The Cost panel (`$`) splits Burn into the lines below, with Revenue and the margin
-beside them. The table is the bill:
+beside them. A data Node's standby is a second box and doubles that Node's Burn; failing over to it
+makes the standby the primary and halves the Burn again until the player adds a new standby
+([Incidents](/design/11-incidents#mitigation-toolbox)). The table is the bill:
 
 | Line          | Formula                                                                                                                                                                                                                                                                              |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

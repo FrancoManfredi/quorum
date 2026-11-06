@@ -35,25 +35,25 @@ It takes `rt` and nothing else, and sends nothing on: it answers the message its
 ### [Zone outage](/incidents/zone)
 
 - **Signs:** Every Node in one zone goes grey at once.
-- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Do now:** Nothing brings the zone back sooner. **Fail over** promotes a **Standby**, and this Component keeps none, so it ends on its own after at most 120 s.
 - **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
 
 ### [Region outage](/incidents/region)
 
 - **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
-- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Do now:** Press **Fail over** on the banner. It needs [Multiple zones](/research/multi-az) and a second open region, and starts the Node again in the nearest other region, cold, for the price of a replacement. Otherwise it comes back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
 - **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ### [Reconnect storm](/incidents/reconnect)
 
 - **Signs:** A Hub that restarts comes back cold, every client reconnects at once, and without Reconnect backoff a restart drops half the clients that come back. The Hub refuses what it cannot take.
-- **Do now:** Nothing speeds it up; it ends when the Hub has warmed, after at most 20 s.
+- **Do now:** Press **Throttle connects** on the banner or the Hub's card. The Hub then admits the wave at the rate it can take, as Reconnect backoff does, so it refuses nobody while it warms. It needs no research. Otherwise it ends when the Hub has warmed, after at most 20 s.
 - **Prevent:** Set **Backoff with jitter** in the Clients section. A sticky Load Balancer sends each client back to the Hub it had, so a restarted Hub takes only its own half. Research [WebSockets](/research/websockets).
 
 ### [Split brain](/incidents/split-brain)
 
 - **Signs:** Half of the Hub's realtime messages fail as `stale`. It strikes a busy Elixir Hub in a Distributed Erlang cluster.
-- **Do now:** Nothing speeds it up, because a Hub has no Restart button; it ends on its own after at most 90 s.
+- **Do now:** Press **Restart Hub** on the banner, or **Restart** on the Hub's card. The restart rejoins the cluster and ends the incident, and the Hub comes back cold, so its clients reconnect (see [Reconnect storm](#reconnect-storm)). Otherwise it ends on its own after at most 90 s.
 - **Prevent:** Research [Chaos engineering](/research/chaos-engineering).
 
 ### [Launch day](/incidents/launch-day)
