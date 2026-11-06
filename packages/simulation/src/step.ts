@@ -80,7 +80,7 @@ import {
 import { causeOf, warming, warmOf, withWarm } from './life.ts'
 import { burnRateOf, recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
 import { cosTurns } from './calendar.ts'
-import { calendarMinute, chaosRunning, handOver, solveFlow } from './solve.ts'
+import { calendarMinute, chaosRunning, solveFlow } from './solve.ts'
 import { advanceDrill } from './ipo.ts'
 import { advanceQuarter, QUARTER_SECONDS } from './quarters.ts'
 import { advanceRunway } from './runway.ts'
@@ -703,8 +703,6 @@ export const step = (
   seconds: number,
   tuning: Tuning = LIVE_TUNING,
   offline = false,
-  /** A warm Step solves from the previous Step's answer; Challenges solve cold, so replays stay exact. */
-  warm = true,
 ): StepResult => {
   const ledger = solveFlow(game)
   const events: Array<StepEvent> = []
@@ -872,6 +870,5 @@ export const step = (
   // Money out: Burn keeps billing, and a shortfall brings the bridge or the shutdown.
   next = advanceRunway(next, ledger)
 
-  if (warm) handOver(game, next)
   return { game: next, ledger, events }
 }
