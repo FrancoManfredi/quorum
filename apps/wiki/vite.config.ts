@@ -40,11 +40,14 @@ const markdownTwins = (): Plugin => ({
 /* Every page is rendered at build time from src/entry.server.ts and hydrated by src/entry.ts
    (ADR 0009). Markdown in content/ compiles to data, validated against the frontmatter and
    island schemas, so a bad page fails the build. */
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     tailwindcss(),
     simVersion(),
     foldkit({
+      // A dev server restart would otherwise mint a new build id while the browser still holds the
+      // cached dependency with the old one, and hydration refuses the page. Builds stay unique.
+      ...(command === 'serve' ? { buildId: 'development' } : {}),
       ssr: {
         serverEntry: '/src/entry.server.ts',
         clientEntry: '/src/entry.ts',
@@ -55,4 +58,4 @@ export default defineConfig({
     markdownTwins(),
   ],
   resolve: { dedupe: ['effect', 'foldkit'] },
-})
+}))
