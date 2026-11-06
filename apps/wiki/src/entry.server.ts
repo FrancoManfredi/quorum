@@ -31,7 +31,7 @@ export const renderDocument: Server.DocumentRenderer = (application, assets) => 
       '<meta property="og:site_name" content="Quorum Wiki">',
       `<meta property="og:title" content="${title}">`,
       `<meta property="og:description" content="${description}">`,
-      '<meta property="og:image" content="https://playquorum.dev/og.png">',
+      `<meta property="og:image" content="${WIKI_ORIGIN}/og.png">`,
       '<meta name="twitter:card" content="summary_large_image">',
       ...(page
         ? [
