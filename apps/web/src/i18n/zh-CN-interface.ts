@@ -747,9 +747,50 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   'That threshold is not on offer.': '没有这个阈值选项。',
   'Only Analytics has a sample rate.': '只有分析节点拥有采样率。',
   'Only Analytics keeps traces.': '只有分析节点保留调用链。',
+  'Failed over {0}': '已对 {0} 故障转移',
+  'Throttled connects on {0}': '已限制 {0} 的连接',
+  'Moved login': '已迁移登录',
+  'Failed over the zone': '已对可用区故障转移',
+  'Failed over the region': '已对区域故障转移',
+  'Failing over': '故障转移',
+  '{0} has no process of yours to restart.': '{0} 没有可由你重启的进程。',
+  '{0} is down for good. Replace it.': '{0} 已彻底宕机，请更换它。',
+  'It is already restarting.': '它已经在重启了。',
+  '{0} keeps no standby. Copies of an App Server spread across zones.':
+    '{0} 没有备用节点。应用服务器的副本分散在各个可用区。',
+  '{0} has no standby. Give it one before a zone fails.':
+    '{0} 没有备用节点。请在可用区故障前为它配置一个。',
+  '{0} is serving: there is nothing to fail over.': '{0} 正在提供服务：无需故障转移。',
+  'No zone is down.': '没有可用区宕机。',
+  'No Node in that zone has a standby to promote. Give one a standby first.':
+    '该可用区没有带备用节点可提升的节点。请先为其中一个配置备用节点。',
+  'No region is down.': '没有区域宕机。',
+  'Open a second region first: there is nowhere to fail over to.':
+    '请先开通第二个区域：没有可转移的目的地。',
+  'Nothing here can move: the data of the region stays until it is back.':
+    '这里没有可迁移的内容：该区域的数据会留在原处，直到区域恢复。',
+  'Only a Realtime Hub takes connects.': '只有实时中枢接受连接。',
+  'No reconnect wave is hitting this Hub.': '没有重连浪潮冲击这个中枢。',
+  'Its connects are already throttled.': '它的连接已被限流。',
+  'No event loop is blocked.': '没有事件循环被阻塞。',
+  'Put a Load Balancer in front of the App Servers to route login elsewhere.':
+    '请在应用服务器前放置负载均衡器，把登录路由到别处。',
+  'An L4 Load Balancer carries every kind. Make it L7 to route login elsewhere.':
+    'L4 负载均衡器会转发所有类型。请改为 L7，才能把登录路由到别处。',
+  'No other Service takes login off an event loop: add one on a runtime without it.':
+    '没有其他服务能把登录移出事件循环：请在没有事件循环的运行时上再加一个。',
+  'Fail over': '故障转移',
+  'Fail over: the standby takes over now': '故障转移：备用节点立即接管',
+  'Throttle connects': '限制连接',
+  'Move login': '迁移登录',
+  'Restart Hub': '重启中枢',
+  'Every client is reconnecting at once. The Hub refuses what it cannot take.':
+    '所有客户端同时重连。中枢会拒绝它接不下的部分。',
+  'A heavy login hash blocks this event loop, and every kind behind it waits.':
+    '沉重的登录哈希阻塞了这个事件循环，后面的所有类型都在等待。',
+  'Its standby takes over in a few seconds.': '它的备用节点几秒后接管。',
   '{0} has not failed.': '{0} 并未发生故障。',
   'A replacement': '替换实例',
-  'Only App Servers restart.': '只有应用服务器能重启。',
   'It is already down.': '它已经宕机了。',
   '{0} is already yours.': '{0} 已经属于你了。',
   'a later Era': '后续时代',

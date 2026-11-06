@@ -240,6 +240,11 @@ export const Message = defineMessageUnion({
   ReplaceBought: { nodeId: Schema.String },
   RestartChosen: { nodeId: Schema.String },
   DrainChosen: { nodeId: Schema.String },
+  FailedOver: { nodeId: Schema.String },
+  ConnectsThrottled: { nodeId: Schema.String },
+  KindMoved: {},
+  ZoneFailedOver: {},
+  RegionFailedOver: {},
   IndexAdded: { nodeId: Schema.String },
   CacheGuardChosen: {
     nodeId: Schema.String,

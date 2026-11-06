@@ -81,6 +81,9 @@ const gestureCue = (before: Model, message: Message, after: Model): Cue | null =
       return gesture('tick', message.direction > 0 ? 1.25 : 0.8)
     case 'ReplaceBought':
     case 'RestartChosen':
+    case 'FailedOver':
+    case 'ZoneFailedOver':
+    case 'RegionFailedOver':
       return gesture('reboot')
     case 'IndexAdded':
       return gesture('success')

@@ -10,6 +10,7 @@ import {
   Minus,
   Plus,
   RotateCcw,
+  ArrowRightLeft,
   Trash2,
   X,
 } from 'lucide'
@@ -163,7 +164,7 @@ import {
   meshMembers,
   shardingOf,
 } from '@quorum/simulation/lookups'
-import { LINK_TIMEOUTS } from '@quorum/simulation/actions'
+import { LINK_TIMEOUTS, restartable } from '@quorum/simulation/actions'
 import type {
   Acks,
   CacheEngine,
@@ -445,6 +446,65 @@ const warnings = (
       ),
     )
   }
+  const incident = game.incident
+  if (incident?.nodeId === node.id && incident.kind === 'reconnect' && incident.throttled !== true)
+    list.push(
+      callout(
+        'Every client is reconnecting at once. The Hub refuses what it cannot take.',
+        'danger',
+        button(
+          {
+            onClick: Message.ConnectsThrottled({ nodeId: node.id }),
+            variant: 'outline',
+            size: 'sm',
+            className: 'self-start text-danger',
+          },
+          ['Throttle connects'],
+          h,
+        ),
+        h,
+      ),
+    )
+  if (
+    incident?.kind === 'loop' &&
+    node.type === 'server' &&
+    RUNTIMES[node.runtime].blocking === 'loop'
+  )
+    list.push(
+      callout(
+        'A heavy login hash blocks this event loop, and every kind behind it waits.',
+        'danger',
+        button(
+          {
+            onClick: Message.KindMoved(),
+            variant: 'outline',
+            size: 'sm',
+            className: 'self-start text-danger',
+          },
+          ['Move login'],
+          h,
+        ),
+        h,
+      ),
+    )
+  if (isDown(node.life) && node.life._tag === 'Restarting' && node.standby && has(game, 'multi-az'))
+    list.push(
+      callout(
+        'Its standby takes over in a few seconds.',
+        'warn',
+        button(
+          {
+            onClick: Message.FailedOver({ nodeId: node.id }),
+            variant: 'outline',
+            size: 'sm',
+            className: 'self-start',
+          },
+          ['Fail over'],
+          h,
+        ),
+        h,
+      ),
+    )
   if (own.stranded > 0.01) {
     const names = own.strandedKinds.map((kind) => KINDS[kind].label.toLowerCase()).join(', ')
     list.push(callout(`${rate(own.stranded)}/s of ${names} have nowhere to go.`, 'danger', null, h))
@@ -4254,7 +4314,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                 h,
               )
             : h.empty,
-          (node.type === 'server' || node.type === 'worker') && !isDown(node.life)
+          restartable(node) && !isDown(node.life)
             ? button(
                 {
                   onClick: Message.RestartChosen({ nodeId: node.id }),
@@ -4266,6 +4326,21 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   ],
                 },
                 icon(h, RotateCcw, 'size-4'),
+                h,
+              )
+            : h.empty,
+          node.standby && isDown(node.life) && has(game, 'multi-az')
+            ? button(
+                {
+                  onClick: Message.FailedOver({ nodeId: node.id }),
+                  variant: 'outline',
+                  size: 'icon-lg',
+                  attributes: [
+                    h.Title('Fail over: the standby takes over now'),
+                    h.AriaLabel('Fail over'),
+                  ],
+                },
+                icon(h, ArrowRightLeft, 'size-4'),
                 h,
               )
             : h.empty,

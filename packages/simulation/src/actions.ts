@@ -9,6 +9,8 @@ import {
   SCALE_MAXIMA,
   SCALE_TARGETS,
   STANDBY_TYPES,
+  ZONES,
+  rttOf,
   CHECK_INTERVALS,
   CREDIT_CAP,
   DEPLOY_STRATEGY_IDS,
@@ -100,12 +102,13 @@ import {
   researchReady,
   resizePrice,
   restarted,
+  warmAfterRestart,
   runtimeReady,
   vcpuOf,
 } from './lookups.ts'
 import { nextOrdinal } from './labels.ts'
 import { link } from './company.ts'
-import { goGlobal, isGlobal, openRegions } from './regions.ts'
+import { goGlobal, isGlobal, openRegions, survivesRegion } from './regions.ts'
 import {
   alumniOf,
   dilutionOf,
@@ -1842,15 +1845,209 @@ export const replace = (game: Game, id: string): Action =>
         ),
   )
 
-/** Restarts an App Server: frees leaked memory, comes back cold. */
+/**
+ * Whether a Node is a box or process the player can restart: not the fixed Nodes, a Managed or
+ * edge Component the provider runs, or a control, tap or mirror with no process of its own.
+ */
+export const restartable = (node: GameNode): boolean => {
+  const def = COMPONENTS[node.type]
+  return !def.fixed && !def.control && !def.tap && !def.mirror && !isGlobal(node)
+}
+
+/** Incidents a restart of the Node they hit ends: a stale cache, a bad package, a split cluster. */
+const RESTART_FIXES: ReadonlyArray<IncidentId> = [
+  'stale-opcache',
+  'bun-compat',
+  'gevent-compat',
+  'split-brain',
+  'gc-storm',
+]
+
+/**
+ * Restarts a running Node (11 "Mitigation toolbox"): it goes down for its restart time and comes
+ * back by the same rules as any restart, `restarted(node)`: cold, with leaked memory freed, a
+ * Cache emptied (Redis reloads its data), a Realtime Hub's clients dropped to reconnect. A Node
+ * that is already down is not restarted: a Stopped one is replaced.
+ */
 export const restart = (game: Game, id: string): Action =>
-  withNode(game, id, (node) =>
-    node.type !== 'server' && node.type !== 'worker'
-      ? notAllowed('Only App Servers restart.')
-      : isDown(node)
-        ? notAllowed('It is already down.')
-        : ok(patch(game, id, { ...restarted(node), leak: 0 })),
+  withNode(game, id, (node) => {
+    const name = COMPONENTS[node.type].name
+    if (!restartable(node)) return notAllowed(`${name} has no process of yours to restart.`)
+    if (node.life._tag === 'Stopped') return notAllowed(`${name} is down for good. Replace it.`)
+    if (isDown(node)) return notAllowed('It is already restarting.')
+    const restarting = patch(game, id, { ...restarted(node), leak: 0 })
+    // The restart is the fix for these incidents on the Node they hit: it ends them (11).
+    const incident = game.incident
+    return ok(
+      incident?.nodeId === id && RESTART_FIXES.includes(incident.kind)
+        ? { ...restarting, incident: { ...answering(game, incident), remaining: 0 } }
+        : restarting,
+    )
+  })
+
+/** Fails over every Node in the zone that is down and has a standby (11 "Zone outage"). */
+export const failOverZone = (game: Game): Action => {
+  if (!has(game, 'multi-az'))
+    return no(Refusal.Locked({ what: 'Failing over', research: RESEARCH['multi-az'].name }))
+  const zone = game.incident?.kind === 'zone' ? game.incident.zone : null
+  if (zone === null) return notAllowed('No zone is down.')
+  const standbys = game.nodes.filter((node) => node.zone === zone && node.standby && isDown(node))
+  if (standbys.length === 0)
+    return notAllowed('No Node in that zone has a standby to promote. Give one a standby first.')
+  let next = game
+  for (const node of standbys) {
+    const promoted = failOver(next, node.id)
+    if (Result.isFailure(promoted)) return promoted
+    next = promoted.success
+  }
+  return ok(next)
+}
+
+/** Data a region outage leaves behind: only the Nodes that hold no state move to another region. */
+const holdsState = (node: GameNode): boolean =>
+  (COMPONENTS[node.type].group === 'data' && node.type !== 'cache' && node.type !== 'pooler') ||
+  node.type === 'queue' ||
+  node.type === 'log'
+
+/**
+ * Fails over a Node to its standby (11 "Mitigation toolbox", 05 "Zones"): the standby in another
+ * zone takes over at once instead of after the usual failover time. The standby becomes the
+ * primary and nothing keeps a copy any more, so the Burn halves until the player gives it a new
+ * standby. A Node with no standby has nothing to promote. Needs Multiple zones.
+ */
+export const failOver = (game: Game, id: string): Action =>
+  withNode(game, id, (node) => {
+    if (!has(game, 'multi-az'))
+      return no(Refusal.Locked({ what: 'Failing over', research: RESEARCH['multi-az'].name }))
+    const name = COMPONENTS[node.type].name
+    if (!STANDBY_TYPES.includes(node.type))
+      return notAllowed(`${name} keeps no standby. Copies of an App Server spread across zones.`)
+    if (!node.standby) return notAllowed(`${name} has no standby. Give it one before a zone fails.`)
+    if (!isDown(node)) return notAllowed(`${name} is serving: there is nothing to fail over.`)
+    const out = game.incident?.zone ?? null
+    const zone = ZONES.find((entry) => entry !== node.zone && entry !== out) ?? node.zone
+    const promoted = patch(game, id, {
+      life: warming(warmAfterRestart(node)),
+      zone,
+      standby: false,
+    })
+    return ok(game.incident ? { ...promoted, incident: answering(game, game.incident) } : promoted)
+  })
+
+/**
+ * Fails the region over (11 "Mitigation toolbox", "Region outage", "DR drill"): every stateless
+ * Node the outage took down starts again in the nearest other open region, cold, and the Design
+ * pays a replacement for each. Data that lives in one region stays down: only a store spread
+ * across regions survives, and a drill still tests that. Needs Multiple zones and a second region.
+ */
+export const failOverRegion = (game: Game): Action => {
+  if (!has(game, 'multi-az'))
+    return no(Refusal.Locked({ what: 'Failing over', research: RESEARCH['multi-az'].name }))
+  const incident = game.incident
+  if ((incident?.kind !== 'region' && incident?.kind !== 'dr-drill') || incident.region === null)
+    return notAllowed('No region is down.')
+  const out = incident.region
+  const target = openRegions(game)
+    .filter((region) => region !== out)
+    .reduce<Region | undefined>(
+      (best, region) => (!best || rttOf(out, region) < rttOf(out, best) ? region : best),
+      undefined,
+    )
+  if (!target) return notAllowed('Open a second region first: there is nowhere to fail over to.')
+  const moving = game.nodes.filter(
+    (node) =>
+      node.region === out &&
+      isDown(node) &&
+      !survivesRegion(game, node) &&
+      !holdsState(node) &&
+      !COMPONENTS[node.type].fixed,
   )
+  if (moving.length === 0)
+    return notAllowed('Nothing here can move: the data of the region stays until it is back.')
+  const price = moving.reduce((sum, node) => sum + replacePrice(game, node), 0)
+  return spend(game, price, 'Failing over', (paid) => ({
+    ...paid,
+    nodes: paid.nodes.map((node) =>
+      moving.some((entry) => entry.id === node.id)
+        ? { ...node, region: target, ...restarted(node) }
+        : node,
+    ),
+    incident: paid.incident ? answering(paid, paid.incident) : paid.incident,
+  }))
+}
+
+/**
+ * Throttles the connects of a Realtime Hub during a Reconnect storm (11 "Reconnect storm"): the
+ * Hub admits the wave at the rate it can take instead of refusing what it cannot, which is what
+ * jittered backoff does, so the herd stops refusing clients while the Hub warms.
+ */
+export const throttleConnects = (game: Game, id: string): Action =>
+  withNode(game, id, (node) => {
+    const incident = game.incident
+    if (node.type !== 'ws') return notAllowed('Only a Realtime Hub takes connects.')
+    if (incident?.kind !== 'reconnect' || incident.nodeId !== id)
+      return notAllowed('No reconnect wave is hitting this Hub.')
+    if (incident.throttled === true) return notAllowed('Its connects are already throttled.')
+    return ok({ ...game, incident: { ...answering(game, incident), throttled: true } })
+  })
+
+/** An App Server whose runtime runs one event loop, which a heavy callback stalls. */
+const onLoop = (node: GameNode): boolean =>
+  node.type === 'server' && RUNTIMES[node.runtime].blocking === 'loop'
+
+/**
+ * Moves login off the blocked event loop (11 "Event loop block", 08 "Services", 05 "Load
+ * Balancer"): each L7 Load Balancer in front of an App Server on an event loop stops sending it
+ * `login` and sends it to a Service behind the same Load Balancer on a runtime with no event
+ * loop. The incident ends once no login reaches a loop.
+ */
+export const moveKind = (game: Game): Action => {
+  const incident = game.incident
+  if (incident?.kind !== 'loop') return notAllowed('No event loop is blocked.')
+  const behind = (lb: GameNode): ReadonlyArray<GameNode> =>
+    game.links
+      .filter((entry) => entry.from === lb.id)
+      .map((entry) => game.nodes.find((candidate) => candidate.id === entry.to))
+      .filter(
+        (to): to is GameNode =>
+          to !== undefined && (to.type === 'server' || to.type === 'fn') && !isDown(to),
+      )
+  const fronts = game.nodes.filter(
+    (lb) => lb.type === 'lb' && behind(lb).some((child) => onLoop(child)),
+  )
+  if (fronts.length === 0)
+    return notAllowed('Put a Load Balancer in front of the App Servers to route login elsewhere.')
+  const l7 = fronts.filter((lb) => lb.variant === 'l7')
+  if (l7.length === 0)
+    return notAllowed(
+      'An L4 Load Balancer carries every kind. Make it L7 to route login elsewhere.',
+    )
+  const moving = l7.filter((lb) => behind(lb).some((child) => !onLoop(child)))
+  if (moving.length === 0)
+    return notAllowed(
+      'No other Service takes login off an event loop: add one on a runtime without it.',
+    )
+  const routed = new Set(moving.map((lb) => lb.id))
+  const links = game.links.map((entry) => {
+    if (!routed.has(entry.from)) return entry
+    const child = game.nodes.find((candidate) => candidate.id === entry.to)
+    if (!child) return entry
+    if (onLoop(child))
+      return {
+        ...entry,
+        kinds: REQUEST_KINDS.filter(
+          (kind) => kind !== 'login' && (entry.kinds === null || entry.kinds.includes(kind)),
+        ),
+      }
+    return entry.kinds === null || entry.kinds.includes('login')
+      ? entry
+      : {
+          ...entry,
+          kinds: REQUEST_KINDS.filter((kind) => kind === 'login' || entry.kinds?.includes(kind)),
+        }
+  })
+  return ok({ ...game, links, incident: answering(game, incident) })
+}
 
 /**
  * Drains a Node (11 "Mitigation toolbox"): it takes no new traffic, finishes the work it holds,

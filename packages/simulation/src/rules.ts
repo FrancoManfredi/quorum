@@ -1280,9 +1280,12 @@ export const RULES: Record<ComponentId, ComponentRule> = {
       if (RUNTIMES[node.runtime].connectionKB === null) return failed('refused')
       // A Hub that just came back takes the fleet's whole reconnect wave at once. Jittered
       // backoff spreads it over the hold time; without it, the Hub refuses what it cannot take.
-      const herd = node.life._tag === 'Warming' && !node.backoff
-      // A split cluster loses the messages that cross the cut.
+      // A throttled storm admits the wave at the rate the Hub can take, as backoff does.
       const incident = answer.game.incident
+      const throttled =
+        incident?.kind === 'reconnect' && incident.nodeId === node.id && incident.throttled === true
+      const herd = node.life._tag === 'Warming' && !node.backoff && !throttled
+      // A split cluster loses the messages that cross the cut.
       const split =
         incident?.kind === 'split-brain' && incident.nodeId === node.id
           ? (RUNTIME_INCIDENT_FAILURES['split-brain'] ?? 0)

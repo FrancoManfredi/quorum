@@ -492,6 +492,8 @@ export const Incident = Schema.Struct({
    * (11 "One at a time, early"). Null in a save from before cascades.
    */
   causedBy: Schema.NullOr(IncidentId).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** The player throttled the connects of the Hub a Reconnect storm hit (11 "Reconnect storm"). */
+  throttled: Schema.optionalKey(Schema.Boolean),
 })
 export type Incident = typeof Incident.Type
 

@@ -55,6 +55,9 @@ export const RESPONSES = [
   'restore-backup',
   'restart-clocks',
   'switch-provider',
+  'fail-over-region',
+  'fail-over-zone',
+  'move-kind',
 ] as const
 export type Response = (typeof RESPONSES)[number]
 
@@ -62,6 +65,8 @@ export type Response = (typeof RESPONSES)[number]
 export const ReplayAction = Schema.Union([
   Schema.TaggedStruct('Restart', { node: Schema.String }),
   Schema.TaggedStruct('Replace', { node: Schema.String }),
+  Schema.TaggedStruct('FailOver', { node: Schema.String }),
+  Schema.TaggedStruct('Throttle', { node: Schema.String }),
   Schema.TaggedStruct('Resize', { node: Schema.String, direction: Schema.Literals([1, -1]) }),
   Schema.TaggedStruct('Respond', { response: Schema.Literals(RESPONSES) }),
 ])
@@ -353,6 +358,9 @@ const RESPOND: Record<Response, (game: Game) => Actions.Action> = {
   'restore-backup': Actions.restoreBackup,
   'restart-clocks': Actions.restartClocks,
   'switch-provider': Actions.switchProvider,
+  'fail-over-region': Actions.failOverRegion,
+  'fail-over-zone': Actions.failOverZone,
+  'move-kind': Actions.moveKind,
 }
 
 /** Applies one run action. A refused action changes nothing, as a refused click does. */
@@ -362,9 +370,13 @@ export const applyAction = (game: Game, action: ReplayAction): Game => {
       ? Actions.restart(game, action.node)
       : action._tag === 'Replace'
         ? Actions.replace(game, action.node)
-        : action._tag === 'Resize'
-          ? Actions.resize(game, action.node, action.direction)
-          : RESPOND[action.response](game)
+        : action._tag === 'FailOver'
+          ? Actions.failOver(game, action.node)
+          : action._tag === 'Throttle'
+            ? Actions.throttleConnects(game, action.node)
+            : action._tag === 'Resize'
+              ? Actions.resize(game, action.node, action.direction)
+              : RESPOND[action.response](game)
   return Result.isSuccess(result) ? result.success : game
 }
 

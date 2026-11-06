@@ -188,12 +188,64 @@ const BANNERS = {
   'supply-chain': { label: 'Pin and redeploy', message: Message.DependencyPinned() },
   'accidental-delete': { label: 'Restore', message: Message.TableRestored() },
   'leap-second': { label: 'Restart Nodes', message: Message.ClocksRestarted() },
+  loop: { label: 'Move login', message: Message.KindMoved() },
+  zone: { label: 'Fail over', message: Message.ZoneFailedOver() },
+  region: { label: 'Fail over', message: Message.RegionFailedOver() },
+  'dr-drill': { label: 'Fail over', message: Message.RegionFailedOver() },
+} as const
+
+/** Incidents one action on the Node they hit ends: the banner presses it for that Node. */
+const NODE_BANNERS = {
+  'stale-opcache': {
+    label: 'Restart',
+    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
+  },
+  'gevent-compat': {
+    label: 'Restart',
+    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
+  },
+  'bun-compat': {
+    label: 'Restart',
+    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
+  },
+  'split-brain': {
+    label: 'Restart Hub',
+    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
+  },
+  reconnect: {
+    label: 'Throttle connects',
+    message: (nodeId: string) => Message.ConnectsThrottled({ nodeId }),
+  },
 } as const
 
 type BannerKind = keyof typeof BANNERS
 
 export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const kind = model.board.game.incident?.kind as BannerKind | undefined
+  const incident = model.board.game.incident
+  const kind = incident?.kind as BannerKind | undefined
+  const onNode =
+    incident?.nodeId && incident.kind in NODE_BANNERS
+      ? NODE_BANNERS[incident.kind as keyof typeof NODE_BANNERS]
+      : undefined
+  if (onNode && incident?.nodeId) {
+    const nodeId = incident.nodeId
+    return h.div(
+      [
+        h.Key(incident.kind),
+        h.Class(
+          'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
+        ),
+      ],
+      [
+        h.span([], [INCIDENTS[incident.kind].name]),
+        button(
+          { onClick: onNode.message(nodeId), size: 'sm', variant: 'outline' },
+          [icon(h, FileBadge, 'size-3.5'), onNode.label],
+          h,
+        ),
+      ],
+    )
+  }
   if (kind === undefined || !(kind in BANNERS)) return h.empty
   const banner = BANNERS[kind]
   return h.div(

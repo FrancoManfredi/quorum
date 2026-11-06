@@ -2450,9 +2450,52 @@ export const fr: Readonly<Record<string, string>> = {
   'That threshold is not on offer.': 'Ce seuil n’est pas proposé.',
   'Only Analytics has a sample rate.': "Seul Analytique dispose d'une fréquence d'échantillonnage.",
   'Only Analytics keeps traces.': 'Seul Analytique garde des traces.',
+  'Failed over {0}': '{0} basculé',
+  'Throttled connects on {0}': 'Connexions limitées sur {0}',
+  'Moved login': 'Connexion déplacée',
+  'Failed over the zone': 'Zone basculée',
+  'Failed over the region': 'Région basculée',
+  'Failing over': 'Basculement',
+  '{0} has no process of yours to restart.': '{0} n’a aucun processus à vous à redémarrer.',
+  '{0} is down for good. Replace it.': '{0} est définitivement en panne. Remplacez-le.',
+  'It is already restarting.': 'Il redémarre déjà.',
+  '{0} keeps no standby. Copies of an App Server spread across zones.':
+    '{0} n’a pas de réplique de secours. Les copies d’un serveur applicatif se répartissent entre les zones.',
+  '{0} has no standby. Give it one before a zone fails.':
+    '{0} n’a pas de réplique de secours. Donnez-lui-en une avant qu’une zone tombe.',
+  '{0} is serving: there is nothing to fail over.': '{0} répond : il n’y a rien à basculer.',
+  'No zone is down.': 'Aucune zone n’est en panne.',
+  'No Node in that zone has a standby to promote. Give one a standby first.':
+    'Aucun nœud de cette zone n’a de réplique de secours à promouvoir. Donnez-en une à l’un d’eux d’abord.',
+  'No region is down.': 'Aucune région n’est en panne.',
+  'Open a second region first: there is nowhere to fail over to.':
+    'Ouvrez d’abord une seconde région : il n’y a nulle part où basculer.',
+  'Nothing here can move: the data of the region stays until it is back.':
+    'Rien ne peut être déplacé ici : les données de la région restent jusqu’à son retour.',
+  'Only a Realtime Hub takes connects.': 'Seul un hub temps réel accepte des connexions.',
+  'No reconnect wave is hitting this Hub.': 'Aucune vague de reconnexion ne frappe ce hub.',
+  'Its connects are already throttled.': 'Ses connexions sont déjà limitées.',
+  'No event loop is blocked.': 'Aucune boucle d’événements n’est bloquée.',
+  'Put a Load Balancer in front of the App Servers to route login elsewhere.':
+    'Placez un répartiteur de charge devant les serveurs applicatifs pour router la connexion ailleurs.',
+  'An L4 Load Balancer carries every kind. Make it L7 to route login elsewhere.':
+    'Un répartiteur L4 transporte tous les types. Passez-le en L7 pour router la connexion ailleurs.',
+  'No other Service takes login off an event loop: add one on a runtime without it.':
+    'Aucun autre service ne décharge la boucle d’événements de la connexion : ajoutez-en un sur un runtime qui n’en a pas.',
+  'Fail over': 'Basculer',
+  'Fail over: the standby takes over now':
+    'Basculer : la réplique de secours prend le relais tout de suite',
+  'Throttle connects': 'Limiter les connexions',
+  'Move login': 'Déplacer la connexion',
+  'Restart Hub': 'Redémarrer le hub',
+  'Every client is reconnecting at once. The Hub refuses what it cannot take.':
+    'Tous les clients se reconnectent en même temps. Le hub refuse ce qu’il ne peut pas prendre.',
+  'A heavy login hash blocks this event loop, and every kind behind it waits.':
+    'Un hachage de connexion coûteux bloque cette boucle d’événements, et tous les types derrière elle attendent.',
+  'Its standby takes over in a few seconds.':
+    'Sa réplique de secours prend le relais dans quelques secondes.',
   '{0} has not failed.': '{0} n’est pas en panne.',
   'A replacement': 'Un remplacement',
-  'Only App Servers restart.': 'Seuls les serveurs applicatifs redémarrent.',
   'It is already down.': 'Il est déjà en panne.',
   '{0} is already yours.': '{0} est déjà le vôtre.',
   'a later Era': 'une étape ultérieure',

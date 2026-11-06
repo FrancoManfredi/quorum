@@ -3743,6 +3743,34 @@ const handle = (model: Model, message: Message): Result =>
         Actions.restart(model.board.game, nodeId),
       ),
 
+    FailedOver: ({ nodeId }) =>
+      logRunAction(model, { _tag: 'FailOver', node: nodeId }) ??
+      act(
+        model,
+        `Failed over ${nodeName(model.board.game, nodeId)}`,
+        Actions.failOver(model.board.game, nodeId),
+      ),
+
+    ConnectsThrottled: ({ nodeId }) =>
+      logRunAction(model, { _tag: 'Throttle', node: nodeId }) ??
+      act(
+        model,
+        `Throttled connects on ${nodeName(model.board.game, nodeId)}`,
+        Actions.throttleConnects(model.board.game, nodeId),
+      ),
+
+    KindMoved: () =>
+      logResponse(model, 'move-kind') ??
+      act(model, 'Moved login', Actions.moveKind(model.board.game)),
+
+    ZoneFailedOver: () =>
+      logResponse(model, 'fail-over-zone') ??
+      act(model, 'Failed over the zone', Actions.failOverZone(model.board.game)),
+
+    RegionFailedOver: () =>
+      logResponse(model, 'fail-over-region') ??
+      act(model, 'Failed over the region', Actions.failOverRegion(model.board.game)),
+
     DrainChosen: ({ nodeId }) =>
       act(
         model,

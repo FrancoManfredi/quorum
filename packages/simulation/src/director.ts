@@ -1234,6 +1234,15 @@ export const advanceIncident = (
     // A restart resets OPcache, and rejoins the halves of a split cluster.
     ((incident.kind === 'stale-opcache' || incident.kind === 'split-brain') &&
       (!target || target.life._tag === 'Restarting')) ||
+    // The login traffic has been moved off the blocked event loop.
+    (incident.kind === 'loop' &&
+      incident.ackAt !== null &&
+      !game.nodes.some(
+        (node) =>
+          node.type === 'server' &&
+          RUNTIMES[node.runtime].blocking === 'loop' &&
+          (ledger.nodes[node.id]?.traffic.login ?? 0) > 0,
+      )) ||
     // The Hub is warm again: the reconnect wave is over.
     (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running')) ||
     // Re-adding capacity: a Node of the Component the command emptied serves again (11).
