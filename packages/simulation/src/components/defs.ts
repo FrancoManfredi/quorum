@@ -1,38 +1,38 @@
 import type { ComponentDef, ComponentId } from '../catalog/components.ts'
 import { usersDef } from './users.ts'
 import { paymentsDef } from './payments.ts'
-import { analyticsDef } from './analytics.ts'
-import { serverDef } from './server.ts'
+import { analyticsDef, analyticsGlossary } from './analytics.ts'
+import { serverDef, serverGlossary } from './server.ts'
 import { databaseDef } from './database.ts'
-import { dnsDef } from './dns.ts'
-import { lbDef } from './lb.ts'
-import { poolerDef } from './pooler.ts'
-import { cacheDef } from './cache.ts'
-import { replicaDef } from './replica.ts'
-import { authDef } from './auth.ts'
-import { searchDef } from './search.ts'
-import { storageDef } from './storage.ts'
-import { docDef } from './doc.ts'
-import { queueDef } from './queue.ts'
+import { dnsDef, dnsGlossary } from './dns.ts'
+import { lbDef, lbGlossary } from './lb.ts'
+import { poolerDef, poolerGlossary } from './pooler.ts'
+import { cacheDef, cacheGlossary } from './cache.ts'
+import { replicaDef, replicaGlossary } from './replica.ts'
+import { authDef, authGlossary } from './auth.ts'
+import { searchDef, searchGlossary } from './search.ts'
+import { storageDef, storageGlossary } from './storage.ts'
+import { docDef, docGlossary } from './doc.ts'
+import { queueDef, queueGlossary } from './queue.ts'
 import { workerDef } from './worker.ts'
-import { logDef } from './log.ts'
+import { logDef, logGlossary } from './log.ts'
 import { fnDef } from './fn.ts'
-import { cdnDef } from './cdn.ts'
-import { wafDef } from './waf.ts'
+import { cdnDef, cdnGlossary } from './cdn.ts'
+import { wafDef, wafGlossary } from './waf.ts'
 import { gwDef } from './gw.ts'
 import { wsDef } from './ws.ts'
-import { pspDef } from './psp.ts'
-import { autoscalerDef } from './autoscaler.ts'
+import { pspDef, pspGlossary } from './psp.ts'
+import { autoscalerDef, autoscalerGlossary } from './autoscaler.ts'
 import { ciDef } from './ci.ts'
-import { clusterDef } from './cluster.ts'
-import { warehouseDef } from './warehouse.ts'
-import { vecDef } from './vec.ts'
-import { gpuDef } from './gpu.ts'
+import { clusterDef, clusterGlossary } from './cluster.ts'
+import { warehouseDef, warehouseGlossary } from './warehouse.ts'
+import { vecDef, vecGlossary } from './vec.ts'
+import { gpuDef, gpuGlossary } from './gpu.ts'
 import { edgeDef } from './edge.ts'
-import { llmDef } from './llm.ts'
+import { llmDef, llmGlossary } from './llm.ts'
 import { msgpDef } from './msgp.ts'
-import { wideDef } from './wide.ts'
-import { dsqlDef } from './dsql.ts'
+import { wideDef, wideGlossary } from './wide.ts'
+import { dsqlDef, dsqlGlossary } from './dsql.ts'
 import { cdcDef } from './cdc.ts'
 import { meshDef } from './mesh.ts'
 import { ffDef } from './ff.ts'
@@ -78,4 +78,32 @@ export const COMPONENT_DEFS: Record<ComponentId, ComponentDef> = {
   mesh: meshDef,
   ff: ffDef,
   pki: pkiDef,
+}
+
+/** The Glossary entries each Component teaches once a Company runs it. */
+export const COMPONENT_GLOSSARY: Partial<Record<ComponentId, ReadonlyArray<string>>> = {
+  queue: queueGlossary,
+  autoscaler: autoscalerGlossary,
+  auth: authGlossary,
+  cache: cacheGlossary,
+  cdn: cdnGlossary,
+  warehouse: warehouseGlossary,
+  cluster: clusterGlossary,
+  pooler: poolerGlossary,
+  wide: wideGlossary,
+  dns: dnsGlossary,
+  replica: replicaGlossary,
+  lb: lbGlossary,
+  psp: pspGlossary,
+  search: searchGlossary,
+  doc: docGlossary,
+  vec: vecGlossary,
+  log: logGlossary,
+  gpu: gpuGlossary,
+  llm: llmGlossary,
+  storage: storageGlossary,
+  analytics: analyticsGlossary,
+  server: serverGlossary,
+  dsql: dsqlGlossary,
+  waf: wafGlossary,
 }

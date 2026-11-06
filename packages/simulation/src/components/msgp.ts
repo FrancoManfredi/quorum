@@ -1,5 +1,9 @@
 import { def } from './define.ts'
 
+/** Push Provider: messages per second, and the price of one × cost index (05 "Push and Email Provider"): Amazon SES's $0.10 per 1,000. */
+export const MSGP_RATE = 10_000
+export const MSGP_PRICE = 0.0001
+
 export const msgpDef = def({
   id: 'msgp',
   code: 'msgp',

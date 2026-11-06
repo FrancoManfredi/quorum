@@ -18,7 +18,6 @@ import {
   REGIONS,
   RESEARCH_IDS,
   RUNTIME_IDS,
-  DEPLOY_STRATEGY_IDS,
   START_KLOC,
   MIGRATION_STEPS,
   IAC_TOOLS,
@@ -28,6 +27,7 @@ import {
   DEVICES,
   NO_DEVICE_LATENCY,
 } from './catalog.ts'
+import { COMPONENT_FIELDS } from './components/fields.ts'
 
 /* ==========================================================================
    The saved game. Everything the Simulation needs to continue lives here, and
@@ -49,67 +49,14 @@ export const FixId = Schema.Literals(FIXES)
 export const VentureId = Schema.Literals(VENTURE_IDS)
 export const MutatorId = Schema.Literals(MUTATOR_IDS)
 
-export const LbPolicy = Schema.Literals(['weighted', 'round-robin', 'least-conn', 'p2c', 'hash'])
-export type LbPolicy = typeof LbPolicy.Type
-
-export const PmMode = Schema.Literals(['static', 'dynamic', 'ondemand'])
-export type PmMode = typeof PmMode.Type
-
-export const CacheEngine = Schema.Literals(['redis', 'memcached'])
-export type CacheEngine = typeof CacheEngine.Type
-
 /** A relational Database's engine (07 "Variants"). */
 export const DbEngine = Schema.Literals(['postgres', 'mysql'])
 export type DbEngine = typeof DbEngine.Type
 
-/** The volume a Database's reads and writes wait on (07 "Capacity"). */
-export const IopsClass = Schema.Literals(['general', 'provisioned'])
-export type IopsClass = typeof IopsClass.Type
-
-/** What a Database does with rows older than its window (07 "Data volume"). */
-export const DbRetention = Schema.Literals(['keep', 'archive', 'delete'])
-export type DbRetention = typeof DbRetention.Type
-
-/** What a Cache does on a write (07 "Strategies"). */
-export const CacheStrategy = Schema.Literals([
-  'aside',
-  'read-through',
-  'write-through',
-  'write-behind',
-])
-export type CacheStrategy = typeof CacheStrategy.Type
-
-/** A Vector Index's type (07 "Vector Index"): exact, or approximate HNSW. */
-export const VecIndexType = Schema.Literals(['exact', 'hnsw'])
-export type VecIndexType = typeof VecIndexType.Type
-
-/** What an Event Stream's producer waits for before it moves on (07 "Event Stream"). */
-export const Acks = Schema.Literals(['0', '1', 'all'])
-export type Acks = typeof Acks.Type
-
-/** A Search Engine's refresh interval, in seconds (07 "Search Engine"). */
-export const SearchRefresh = Schema.Finite
-export type SearchRefresh = typeof SearchRefresh.Type
-
-/** The class Object Storage keeps its objects in (07 "Object Storage"). */
-export const StorageClass = Schema.Literals(['standard', 'infrequent', 'archive'])
-export type StorageClass = typeof StorageClass.Type
-
 export { DownCause } from './life.ts'
-
-export const PoolerMode = Schema.Literals(['session', 'transaction', 'statement'])
-export type PoolerMode = typeof PoolerMode.Type
 
 export const Zone = Schema.Literals(ZONES)
 export type Zone = typeof Zone.Type
-
-/** A GPU Node's GPU type (05 "GPU Node"). */
-export const GpuType = Schema.Literals(['t4', 'a100', 'h100'])
-export type GpuType = typeof GpuType.Type
-
-/** A Java App Server's garbage collector. */
-export const Collector = Schema.Literals(['g1', 'parallel', 'zgc'])
-export type Collector = typeof Collector.Type
 
 /** What an Autoscaler reads: CPU, or the Node's whole load, slots and memory included. */
 export const Region = Schema.Literals(REGIONS)
@@ -127,42 +74,146 @@ export type PerRegion = typeof PerRegion.Type
 export const Backup = Schema.Literals(['none', 'nightly', 'pitr'])
 export type Backup = typeof Backup.Type
 
-export const Fanout = Schema.Literals(['pull', 'push'])
-export type Fanout = typeof Fanout.Type
-
-/** What an Autoscaler reads (05 "Autoscaler"): CPU, the Node's whole load, requests per copy, or queue depth. */
-export const ScaleSignal = Schema.Literals(['cpu', 'load', 'rps', 'queue'])
-export type ScaleSignal = typeof ScaleSignal.Type
-
 /** A compute Node's pricing model. */
 export const Pricing = Schema.Literals(PRICING_IDS)
 export type Pricing = typeof Pricing.Type
 
-/** How a CI/CD Pipeline ships a deploy (05 "CI/CD Pipeline"). */
-export const DeployStrategy = Schema.Literals(DEPLOY_STRATEGY_IDS)
-export type DeployStrategy = typeof DeployStrategy.Type
+export { LbPolicy } from './components/lb.ts'
+export { PmMode, Collector, Fanout } from './components/server.ts'
+export { CacheEngine, CacheStrategy } from './components/cache.ts'
+export { IopsClass, DbRetention, ShardKey } from './components/database.ts'
+import { ShardKey } from './components/database.ts'
+export { VecIndexType } from './components/vec.ts'
+export { Acks } from './components/log.ts'
+export { SearchRefresh, SearchVariant, SearchHeap } from './components/search.ts'
+export { StorageClass, StoreVariant } from './components/storage.ts'
+export { PoolerMode } from './components/pooler.ts'
+export { GpuType } from './components/gpu.ts'
+export { ScaleSignal } from './components/autoscaler.ts'
+export { DeployStrategy } from './components/ci.ts'
+export { CacheKey } from './components/cdn.ts'
 
-/** What a CDN's cache key holds (05 "CDN"): path, query string and cookies, or less of them. */
-export const CacheKey = Schema.Literals(['full', 'query', 'path'])
-export type CacheKey = typeof CacheKey.Type
+/**
+ * The wire order of a Node's keys. The golden hashes hash the encoded JSON, so this
+ * order is part of the save format: a new field goes at the end, never in the middle.
+ */
+const NODE_FIELD_ORDER = [
+  'id',
+  'type',
+  'ordinal',
+  'x',
+  'y',
+  'size',
+  'family',
+  'runtime',
+  'framework',
+  'workers',
+  'localDb',
+  'sample',
+  'sampleRate',
+  'retention',
+  'credits',
+  'leak',
+  'shut',
+  'draining',
+  'drainAt',
+  'crashes',
+  'recycle',
+  'compress',
+  'downAt',
+  'policy',
+  'sticky',
+  'provider',
+  'slowStart',
+  'purge',
+  'cacheKey',
+  'staleUntil',
+  'earlyExpiry',
+  'swr',
+  'shardKey',
+  'sync',
+  'searchVariant',
+  'searchShards',
+  'searchReplicas',
+  'heap',
+  'storeVariant',
+  'variant',
+  'authEdge',
+  'merge',
+  'burst',
+  'checkEvery',
+  'deepCheck',
+  'ttl',
+  'pm',
+  'certUntil',
+  'engine',
+  'dbEngine',
+  'iops',
+  'shards',
+  'storageClass',
+  'keep',
+  'lifecycle',
+  'cacheStrategy',
+  'refresh',
+  'restore',
+  'mode',
+  'depth',
+  'dlq',
+  'attempts',
+  'maxLength',
+  'prefetch',
+  'upgradedAt',
+  'coalesce',
+  'warming',
+  'paranoia',
+  'underAttack',
+  'rateLimit',
+  'strategy',
+  'presence',
+  'backoff',
+  'clustering',
+  'zone',
+  'standby',
+  'pricing',
+  'pricingUntil',
+  'replicas',
+  'pending',
+  'readyIn',
+  'scaledAt',
+  'signal',
+  'target',
+  'minCopies',
+  'maxCopies',
+  'gpu',
+  'precision',
+  'gpuModel',
+  'batch',
+  'collector',
+  'gogc',
+  'shed',
+  'degrade',
+  'schedule',
+  'materialized',
+  'ryw',
+  'region',
+  'serviceId',
+  'n',
+  'r',
+  'w',
+  'lost',
+  'spread',
+  'backup',
+  'fanout',
+  'split',
+  'transactions',
+  'indexType',
+  'partitions',
+  'acks',
+  'retain',
+  'keyed',
+] as const
 
-/** The key a Database shards on (07 "Partitioning"). */
-export const ShardKey = Schema.Literals(['hash', 'range', 'tenant', 'region'])
-export type ShardKey = typeof ShardKey.Type
-
-/** A Search Engine's product (07 "Search Engine"). */
-export const SearchVariant = Schema.Literals(['elasticsearch', 'opensearch', 'meilisearch'])
-export type SearchVariant = typeof SearchVariant.Type
-
-/** The share of a Search Engine's RAM the JVM heap takes (07 "Search Engine"). */
-export const SearchHeap = Schema.Literals(['small', 'half', 'large'])
-export type SearchHeap = typeof SearchHeap.Type
-
-/** The product an Object Storage Node is (07 "Object Storage"). */
-export const StoreVariant = Schema.Literals(['s3', 'r2'])
-export type StoreVariant = typeof StoreVariant.Type
-
-const NODE_FIELDS = {
+const NODE_FIELDS_UNORDERED = {
   id: Schema.String,
   type: ComponentId,
   /** Stable per-Component ordinal for display. 0 on old saves until normalized. */
@@ -174,16 +225,8 @@ const NODE_FIELDS = {
   family: FamilyId,
   runtime: RuntimeId,
   framework: FrameworkId,
-  /** Pool size for pooled runtimes. */
-  workers: Schema.Finite,
-  /** Postgres runs on this App Server. Only the starting box has it. */
-  localDb: Schema.Boolean,
   /** Old saves' index into the sample rates. Unused: `sampleRate` holds the rate by value. */
   sample: Schema.Finite,
-  /** Share of requests Analytics samples. */
-  sampleRate: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0.1))),
-  /** Seconds of traces Analytics keeps. */
-  retention: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(900))),
   /** Burstable CPU credits, in core-seconds. */
   credits: Schema.Finite,
   /** GB leaked by a memory leak. */
@@ -200,125 +243,24 @@ const NODE_FIELDS = {
    */
   draining: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   drainAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** Supervised process crashes a BEAM App Server has absorbed (06 "Fault isolation"). */
-  crashes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** A persistent App Server recycles its workers every so many requests (pm.max_requests, a worker killer). */
-  recycle: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** The App Server gzips page and read responses. */
-  compress: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Sim time the Node last went down, so health checks and DNS notice it late. */
   downAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** How a Load Balancer splits traffic. */
-  policy: LbPolicy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('weighted' as const))),
-  /** A Load Balancer keeps a user on one target (05 "Load Balancer"). */
-  sticky: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** The Payment Provider a checkout goes to: the first, or a second that an outage of the first leaves alone (18). */
-  provider: Schema.Literals(['first', 'second']).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('first' as const)),
-  ),
-  /** A Load Balancer lets a new copy take traffic gradually (11 "JVM warmup under load"). */
-  slowStart: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A CDN clears its cache when a deploy ships (05 "CDN"). */
-  purge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** What a CDN's cache key holds (05 "CDN"). */
-  cacheKey: CacheKey.pipe(Schema.withDecodingDefaultKey(Effect.succeed('full' as const))),
-  /** Sim time until a CDN that did not purge still serves the old deploy's pages. */
-  staleUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** A Cache refreshes a key a little before it expires, at random (07 "Stampedes"). */
-  earlyExpiry: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Cache serves the old value while one request refreshes it (07 "Stampedes"). */
-  swr: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** The key a Database shards on (07 "Partitioning"). */
-  shardKey: ShardKey.pipe(Schema.withDecodingDefaultKey(Effect.succeed('hash' as const))),
-  /** A Read Replica every write waits for (07 "Read Replica"). */
-  sync: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Search Engine's product, and its replicas and heap (07 "Search Engine"). */
-  searchVariant: SearchVariant.pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('elasticsearch' as const)),
-  ),
-  searchShards: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  searchReplicas: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  heap: SearchHeap.pipe(Schema.withDecodingDefaultKey(Effect.succeed('half' as const))),
-  /** The product an Object Storage Node is (07 "Object Storage"). */
-  storeVariant: StoreVariant.pipe(Schema.withDecodingDefaultKey(Effect.succeed('s3' as const))),
-  /** A Load Balancer's variant: L7 reads HTTP, L4 forwards TCP (05 "Load Balancer"). */
-  variant: Schema.Literals(['l7', 'l4']).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('l7' as const)),
-  ),
-  /** A Gateway validates each request's token once, so the services behind it skip it (05 "API Gateway"). */
-  authEdge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Gateway merges identical reads that are in flight at once (05 "API Gateway"). */
-  merge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** Requests a Gateway's token bucket holds on top of its limit; 0 is a flat cap (05). */
-  burst: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** Seconds between a Load Balancer's health checks. */
-  checkEvery: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(10))),
-  /** A deep health check also checks the server's database. */
-  deepCheck: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** DNS or Cache TTL, in seconds. */
   ttl: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(300))),
-  /** PHP-FPM's process manager. */
-  pm: PmMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('static' as const))),
   /** The sim second this Node's TLS certificate runs out, or null until one is issued (05 "Secrets and Certificates"). */
   certUntil: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
-  /** The Cache's engine. */
-  engine: CacheEngine.pipe(Schema.withDecodingDefaultKey(Effect.succeed('redis' as const))),
   /** The Database's or Read Replica's engine (07 "Variants"). */
   dbEngine: DbEngine.pipe(Schema.withDecodingDefaultKey(Effect.succeed('postgres' as const))),
-  /** The Database's volume (07 "Capacity"): general purpose, or provisioned for more IOPS. */
-  iops: IopsClass.pipe(Schema.withDecodingDefaultKey(Effect.succeed('general' as const))),
-  /** Shards the Database splits into (07 "Partitioning"): writes scale with them. */
-  shards: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  /** The class Object Storage keeps its objects in (07 "Object Storage"). */
-  storageClass: StorageClass.pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('standard' as const)),
-  ),
-  /** What a Database does with rows past its window (07 "Data volume"). */
-  keep: DbRetention.pipe(Schema.withDecodingDefaultKey(Effect.succeed('keep' as const))),
-  /** The class an object older than this many calendar days moves to (07 "Object Storage"). */
-  lifecycle: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** What a Cache does on a write (07 "Strategies"). */
-  cacheStrategy: CacheStrategy.pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('aside' as const)),
-  ),
-  /** Seconds a Search Engine waits before a new document is searchable (07 "Search Engine"). */
-  refresh: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
   /** A backup that a restore drill found broken (07 "Backups"). */
   restore: Schema.Literals(['ok', 'failed']).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed('ok' as const)),
   ),
-  /** The Connection Pooler's mode. Saves from before modes pooled by transaction. */
-  mode: PoolerMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('transaction' as const))),
   /** Tasks waiting in a Queue. */
   depth: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** A Queue moves a task that keeps failing to a dead-letter queue. */
-  dlq: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Attempts a Queue with a dead-letter queue gives a task before it parks it there. */
   attempts: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(25))),
-  /** Most tasks a Queue holds; past it, new tasks are refused. 0 means no limit. */
-  maxLength: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Tasks each Worker process takes from its Queue ahead of time. */
   prefetch: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(10))),
-  /** Sim time a Kubernetes Cluster was last upgraded. */
-  upgradedAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** A Cache coalesces misses for the same key (Stampede protection). */
-  coalesce: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Cache refills before it takes traffic after a restart (Cache warming). */
-  warming: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A WAF's paranoia level, 1 to 4. */
-  paranoia: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
-  /** A WAF challenges every request. */
-  underAttack: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** Requests per second an API Gateway lets through; 0 is no limit (05 "API Gateway"). */
-  rateLimit: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** How a CI/CD Pipeline ships: Recreate, Rolling, Blue-green or Canary (05 "CI/CD Pipeline"). */
-  strategy: DeployStrategy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('rolling' as const))),
-  /** A Realtime Hub tracks who is online: more per message, and CPU spent on each join. */
-  presence: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Realtime Hub lets clients reconnect with jittered backoff after a restart. */
-  backoff: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Realtime Hub runs several boxes behind one pub/sub backbone; without it, one box takes all. */
-  clustering: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The zone the Node runs in. */
   zone: Zone.pipe(Schema.withDecodingDefaultKey(Effect.succeed('a' as const))),
   /** A data Node keeps a standby in another zone and fails over to it. */
@@ -336,36 +278,6 @@ const NODE_FIELDS = {
   readyIn: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Sim time an Autoscaler last changed this Node's copies. */
   scaledAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** An Autoscaler's signal, target load, and copy limits. A max of 0 means none. */
-  signal: ScaleSignal.pipe(Schema.withDecodingDefaultKey(Effect.succeed('cpu' as const))),
-  target: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0.6))),
-  minCopies: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  maxCopies: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(8))),
-  /** A GPU Node's GPU type. */
-  gpu: GpuType.pipe(Schema.withDecodingDefaultKey(Effect.succeed('t4' as const))),
-  /** A GPU Node's weight precision: FP16, INT8 or INT4 (05 "GPU Node"). */
-  precision: Schema.Literals(['fp16', 'int8', 'int4']).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('fp16' as const)),
-  ),
-  /** The model a GPU Node serves: small, medium or large (05 "GPU Node"). */
-  gpuModel: Schema.Literals(['small', 'medium', 'large']).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed('medium' as const)),
-  ),
-  /** A GPU Node's batch size (05 "GPU Node"). */
-  batch: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  /** A Java App Server's collector, and a Go App Server's GOGC. */
-  collector: Collector.pipe(Schema.withDecodingDefaultKey(Effect.succeed('g1' as const))),
-  gogc: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(100))),
-  /** A saturated App Server drops the lowest-value kinds first (Priority load shedding). */
-  shed: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A saturated App Server drops its most expensive kinds first (Graceful degradation). */
-  degrade: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** An Autoscaler provisions for the coming daily peak (Scheduled scaling). */
-  schedule: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Database answers reports from a stored view, at half the scan CPU (Materialized views). */
-  materialized: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** An App Server sends reads that follow a write to the primary (Read-your-writes routing). */
-  ryw: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   region: Region.pipe(Schema.withDecodingDefaultKey(Effect.succeed('na' as const))),
   /**
    * The Service an App Server or Worker belongs to (08 "Ownership"). Absent means the starting
@@ -374,29 +286,15 @@ const NODE_FIELDS = {
   serviceId: Schema.optionalKey(Schema.String),
   /** Wide-column Store: replicas per key, replicas a read asks, replicas a write waits for. */
   n: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
-  r: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  w: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  /** Sim seconds one of its replicas stays lost (a Wide-column Store keeps serving). */
-  lost: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** A Wide-column Store or Distributed SQL Node replicates across regions. */
   spread: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   backup: Backup.pipe(Schema.withDecodingDefaultKey(Effect.succeed('none' as const))),
-  fanout: Fanout.pipe(Schema.withDecodingDefaultKey(Effect.succeed('pull' as const))),
-  /** A Cache splits hot keys across its shards. */
-  split: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Document Store runs multi-document transactions: atomic checkouts, and slower writes (07). */
-  transactions: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** A Vector Index's type: exact, or approximate HNSW (07 "Vector Index"). */
-  indexType: VecIndexType.pipe(Schema.withDecodingDefaultKey(Effect.succeed('exact' as const))),
-  /** Partitions an Event Stream splits into (07 "Event Stream"): its readers, and its order. */
-  partitions: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
-  /** What a producer waits for before it moves on: `0`, `1`, or `all` (07 "Event Stream"). */
-  acks: Acks.pipe(Schema.withDecodingDefaultKey(Effect.succeed('all' as const))),
-  /** Sim seconds an Event Stream keeps a message, for replay (07 "Event Stream"). */
-  retain: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3_600))),
-  /** An Event Stream keys its partitions by entity, so one entity's events stay in order (07). */
-  keyed: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
+  ...COMPONENT_FIELDS,
 } as const
+
+const NODE_FIELDS = Object.fromEntries(
+  NODE_FIELD_ORDER.map((key) => [key, NODE_FIELDS_UNORDERED[key]]),
+) as typeof NODE_FIELDS_UNORDERED
 
 /** A save from before the machine carries these three fields instead of `life`. */
 const GameNodeStored = Schema.Struct({
