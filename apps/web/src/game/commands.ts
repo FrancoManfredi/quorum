@@ -504,7 +504,11 @@ export const LoadFounder = Command.define('LoadFounder', {
   execute: () =>
     Effect.sync(() => {
       // A device id for Challenge histograms, used only if the Founder has none yet.
-      const fresh = { deviceId: crypto.randomUUID(), today: new Date().toISOString().slice(0, 10) }
+      // Not `crypto.randomUUID`: it exists only in secure contexts, and a page opened over HTTP is not one.
+      const deviceId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+        byte.toString(16).padStart(2, '0'),
+      ).join('')
+      const fresh = { deviceId, today: new Date().toISOString().slice(0, 10) }
       try {
         return Message.FounderLoaded({ json: window.localStorage.getItem(FOUNDER_KEY), ...fresh })
       } catch {

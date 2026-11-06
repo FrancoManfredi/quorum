@@ -49,7 +49,8 @@ const keys = Stream.callback<KeyMessage>((queue) =>
               document.querySelector('[data-research-drag-active]'))
           )
             return
-          const target = event.target as HTMLElement | null
+          // A keydown dispatched on the window itself has the window as its target.
+          const target = event.target instanceof Element ? event.target : null
           if (target?.closest('[data-language-picker], [role="listbox"]')) return
           if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
           if (event.altKey) return
