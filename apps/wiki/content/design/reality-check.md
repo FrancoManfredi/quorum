@@ -10,7 +10,8 @@ source ([pillar 1](/design/01-vision#pillar-1-every-number-is-a-real-thing)). A 
 a bug in the design.
 
 Facts about specific products and versions change, so check this list again before each content
-milestone ([Roadmap](/design/17-scope-and-roadmap#milestones)).
+milestone ([Roadmap](/design/17-scope-and-roadmap#milestones)). The player-facing version of this
+promise is [Quorum is a game](/about/disclaimer).
 
 ## Scale
 

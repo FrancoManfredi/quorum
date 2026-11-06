@@ -26,6 +26,7 @@ const FORCED =
 
 export const WIKI_URL = 'https://wiki.playquorum.dev'
 export const PRIVACY_URL = `${WIKI_URL}/about/privacy`
+export const DISCLAIMER_URL = `${WIKI_URL}/about/disclaimer`
 
 let client: Client | null = null
 let starting = false

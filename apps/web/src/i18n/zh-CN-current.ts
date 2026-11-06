@@ -33,6 +33,8 @@ export const zhCNCurrent: Readonly<Record<string, string>> = {
   '{0} Mutators · ': '{0} 个变异条件 · ',
   'Share anonymous usage data': '分享匿名使用数据',
   'Privacy policy': '隐私政策',
+  'Quorum is a game and simplifies real systems on purpose. Check the real thing before you decide.':
+    'Quorum 是一款游戏，有意简化了真实系统。做决定前，请查阅真实产品的资料。',
   'Angel network {0}/{1}': '天使投资人脉 {0}/{1}',
   'Alumni network {0}/{1}': '校友人脉 {0}/{1}',
   'Institutional knowledge {0}/{1}': '组织经验 {0}/{1}',

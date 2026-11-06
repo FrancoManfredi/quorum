@@ -300,7 +300,15 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                   ],
                   ['what changed this week'],
                 ),
-                '.',
+                '. Quorum is a game, and it simplifies real systems on purpose. ',
+                h.a(
+                  [
+                    h.Href('/about/disclaimer'),
+                    h.Class('text-foreground underline underline-offset-4'),
+                  ],
+                  ['Read what that means'],
+                ),
+                ' before you act on what you learn here.',
               ],
             ),
           ],

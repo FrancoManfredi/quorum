@@ -894,6 +894,8 @@ export const fr: Readonly<Record<string, string>> = {
   Menu: 'Menu',
   Resume: 'Reprendre',
   Settings: 'Paramètres',
+  'Quorum is a game and simplifies real systems on purpose. Check the real thing before you decide.':
+    'Quorum est un jeu et simplifie volontairement les systèmes réels. Vérifiez le vrai produit avant de décider.',
   'Export playtest log': 'Exporter le journal de test',
   'Exit company': 'Céder l’entreprise',
   'Title screen': 'Écran d’accueil',

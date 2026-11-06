@@ -126,7 +126,15 @@ const footer = (page: Page, h: H): Html => {
           h.span(
             [h.Class('ml-auto')],
             [
-              'Quorum changes every week, so this page can lag behind the game. ',
+              'Quorum is a game and simplifies real systems on purpose. ',
+              h.a(
+                [
+                  h.Href('/about/disclaimer'),
+                  h.Class('underline underline-offset-2 hover:text-foreground'),
+                ],
+                ['Check the real thing'],
+              ),
+              ' before you decide. It changes every week, so this page can lag behind the game. ',
               h.a(
                 [
                   h.Href('/about/changelog'),

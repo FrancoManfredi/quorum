@@ -1,7 +1,7 @@
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
-import { PRIVACY_URL, WIKI_URL } from '@/platform/analytics.ts'
+import { DISCLAIMER_URL, PRIVACY_URL, WIKI_URL } from '@/platform/analytics.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUpRight,
@@ -1112,6 +1112,20 @@ const desk = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
+/** Under the keyboard: the reminder that the game simplifies on purpose. */
+const disclaimer = (h: HtmlBuilder<Message>): Html =>
+  h.a(
+    [
+      h.Class('booth-disclaimer'),
+      h.Href(DISCLAIMER_URL),
+      h.Target('_blank'),
+      h.Rel('noreferrer noopener'),
+    ],
+    [
+      'Quorum is a game and simplifies real systems on purpose. Check the real thing before you decide.',
+    ],
+  )
+
 /** The edge of the screen: the playtest tools and the warning that saves can break. */
 const strip = (h: HtmlBuilder<Message>): Html =>
   h.header(
@@ -1151,6 +1165,7 @@ const booth = (model: Model, h: HtmlBuilder<Message>): Html =>
         [h.Class('booth-stage')],
         [
           desk(h),
+          disclaimer(h),
           h.div([h.Class('booth-neck')], []),
           h.div(
             [h.Class('booth-monitor')],
