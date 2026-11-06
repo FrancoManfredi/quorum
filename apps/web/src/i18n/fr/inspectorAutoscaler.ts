@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorAutoscaler: Messages['inspectorAutoscaler'] = {
@@ -6,9 +5,9 @@ export const inspectorAutoscaler: Messages['inspectorAutoscaler'] = {
   load: 'Charge',
   requests: 'Requêtes',
   queueDepth: 'Profondeur de file',
-  min: (p0) => `min ${arg(p0)}`,
+  min: (p0) => `min ${p0}`,
   noMax: 'pas de maximum',
-  max: (p0) => `maximum ${arg(p0)}`,
+  max: (p0) => `maximum ${p0}`,
   onLoad: 'Selon la charge',
   aheadOfThePeak: 'Avant le pic',
   twoCalendarHoursBeforeTheDaily:

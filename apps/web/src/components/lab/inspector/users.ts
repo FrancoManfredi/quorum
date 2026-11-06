@@ -1,11 +1,13 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { PROFILES, REQUEST_KINDS } from '@quorum/simulation/catalog'
 import { regional, regionUsers } from '@quorum/simulation/regions'
+import type { ErrorCause } from '@quorum/simulation/distribution'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
-import { compact, ms, rate } from '@quorum/ui/game/format'
+import { compact, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { packetMark } from '@quorum/ui/game/packets'
 import { FIGURE, NESTED, row } from '@quorum/ui/game/bits'
@@ -39,7 +41,7 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
                 t.inspectorUsers.sOk(
                   rate(entry?.rate ?? 0),
                   percent(entry?.success ?? 0),
-                  percentiles ? '' : ` · ${ms(entry?.mean ?? 0)}`,
+                  percentiles ? '' : ` · ${formats(t).ms(entry?.mean ?? 0)}`,
                 ),
               ],
             ),
@@ -57,7 +59,12 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
                 ),
               ],
               [
-                `mean ${ms(entry?.mean ?? 0)} · p50 ${ms(entry?.p50 ?? 0)} · p95 ${ms(entry?.p95 ?? 0)} · p99 ${ms(entry?.p99 ?? 0)}`,
+                t.inspectorUsers.percentileLine(
+                  formats(t).ms(entry?.mean ?? 0),
+                  formats(t).ms(entry?.p50 ?? 0),
+                  formats(t).ms(entry?.p95 ?? 0),
+                  formats(t).ms(entry?.p99 ?? 0),
+                ),
               ],
             ),
           ],
@@ -73,8 +80,14 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
         [
           h.div(
             [h.Class(NESTED)],
-            Object.entries(ledger.errors).map(([cause, value]) =>
-              row(cause, t.inspectorUsers.s(rate(value)), value > 0.01 ? 'danger' : 'plain', h),
+            (Object.entries(ledger.errors) as ReadonlyArray<[ErrorCause, number]>).map(
+              ([cause, value]) =>
+                row(
+                  t.inspectorUsers.causes[cause],
+                  t.inspectorUsers.s(rate(value)),
+                  value > 0.01 ? 'danger' : 'plain',
+                  h,
+                ),
             ),
           ),
         ],

@@ -21,4 +21,8 @@ export const glossary = {
   delivery: 'Delivery',
   team: 'Team',
   business: 'Business',
+  cveDefinition: (score: string | number, components: string | number) =>
+    `Score ${score} of 10. Affects ${components}.`,
+  cveInGame: (cost: string | number, minutes: string | number) =>
+    `Security mail names it and files a patch ticket: ${cost}, due ${minutes} minutes after disclosure. Overdue, it turns red on the Team backlog, and a minute later it is exploited.`,
 }

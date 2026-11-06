@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorLb: Messages['inspectorLb'] = {
@@ -15,8 +14,14 @@ export const inspectorLb: Messages['inspectorLb'] = {
   off: 'Désactivé',
   on: 'Sur',
   healthChecks: 'Sondes de disponibilité',
-  s: (p0) => `${arg(p0)} s`,
+  s: (p0) => `${p0} s`,
   shallow: 'Superficielles',
   deep: 'Approfondies',
   routes: 'Routes',
+  stickyHolds:
+    'Un utilisateur reste sur la cible qu’il a atteinte en premier. La plus ancienne copie porte le plus d’utilisateurs, une cible qui tombe emporte ses sessions, et les caches en processus et les clients temps réel restent chauds.',
+  slowStart: 'Démarrage progressif',
+  slowStartOn:
+    'Une nouvelle copie reçoit le trafic progressivement, donc une copie Java à froid ne répond jamais à sa vitesse à froid.',
+  slowStartOff: 'Une nouvelle copie prend toute sa part d’un coup.',
 }

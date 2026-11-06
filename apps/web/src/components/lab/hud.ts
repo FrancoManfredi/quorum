@@ -1,4 +1,5 @@
-import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
+import { formats } from '@/i18n/format.ts'
+import { type Messages, copy, eraWords, insightName, localized } from '@/i18n/messages.ts'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -45,9 +46,15 @@ import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
 import { tabDrift } from './mirror.ts'
 import { canRaise } from '@quorum/simulation/actions'
 import type { Ledger } from '@quorum/simulation/ledger'
-import { eraOf, has, nextEra, researchReady } from '@quorum/simulation/lookups'
-import { limitingPool, recipeOf as simRecipe, studyStall } from '@quorum/simulation/studies'
-import { PRE_IPO_STAGE, checklistOf } from '@quorum/simulation/ipo'
+import { eraOf, has, nextEra, researchReady, securityStaffed } from '@quorum/simulation/lookups'
+import {
+  limitingPool,
+  recipeOf as simRecipe,
+  studyStall,
+  type StudyStall,
+} from '@quorum/simulation/studies'
+import { DRILL_RPO } from '@quorum/simulation/catalog'
+import { PRE_IPO_STAGE, brokenRestore, checklistOf, residencyMet } from '@quorum/simulation/ipo'
 import {
   GUIDANCE_GROWTH,
   GUIDANCE_MARGIN,
@@ -59,12 +66,12 @@ import { marginOf, valuationOf } from '@quorum/simulation/valuation'
 import { clockOf } from '@quorum/simulation/solve'
 import { devHoursRate } from '@quorum/simulation/team'
 import { overdueBy } from '@quorum/simulation/cve'
-import { itemName } from '@quorum/simulation/work'
-import { describeDelta, redoAvailable, settleProgress, undoAvailable } from '@/game/feedback.ts'
-import { clock as mmss, compact, money, ms, rate } from '@quorum/ui/game/format'
+import { workItemName } from './team.ts'
+import { redoAvailable, settleProgress, undoAvailable } from '@/game/feedback.ts'
+import { clock as mmss, compact, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { exitLegacy, offCompany, type Board, type Model } from '@/game/model.ts'
-import { POOL_ICONS, POOL_ORDER, poolColor, stallReason } from '@quorum/ui/game/pools'
+import { exitLegacy, offCompany, type Board, type Delta, type Model } from '@/game/model.ts'
+import { POOL_ICONS, POOL_ORDER, poolColor } from '@quorum/ui/game/pools'
 import { moreMenu, type MoreItem } from '@/game/more.ts'
 import { glowing, playbooksShown, shown } from '@/game/reveal.ts'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -172,6 +179,16 @@ const stat = (
         : h.empty,
     ],
   )
+
+/** Why a Study stalls, in one sentence (10 "Studies"). */
+export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
+  stall._tag === 'Breadth'
+    ? t.hud.stalledBreadth(stall.types)
+    : stall.feature
+      ? t.hud.stalledShip(insightName(t, stall.pool), t.catalog.features[stall.feature].name)
+      : stall.pool === 'failure'
+        ? t.hud.stalledFailure
+        : t.hud.stalledPool(insightName(t, stall.pool))
 
 /** What Insight is, how it is earned and spent, and how much a pool keeps. */
 const insightHelpOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
@@ -314,7 +331,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
           h.button(
             [
               h.Type('button'),
-              h.Title(stall ? t.hud.researchR(stallReason(stall)) : t.hud.researchR2),
+              h.Title(stall ? t.hud.researchR(stallReasonIn(t, stall)) : t.hud.researchR2),
               h.OnClick(
                 Message.PanelOpened({ panel: model.panel === 'research' ? 'none' : 'research' }),
               ),
@@ -420,13 +437,13 @@ const slo = (game: Board['game'], h: HtmlBuilder<Message>): Html => {
     has(game, 'slo-dashboards')
       ? budget.left > 0
         ? t.hud.left(Math.round(left * 100))
-        : 'spent'
+        : t.hud.spent
       : `/ ${Number((budget.slo * 100).toFixed(2))}%`,
     budget.left > 0.5 ? 'ok' : budget.left > 0 ? 'warn' : 'danger',
     h,
     t.hud.availabilityThisWeekAgainstTheError(
       percent(budget.slo),
-      budget.left > 0 ? t.hud.left(Math.round(left * 100)) : 'spent',
+      budget.left > 0 ? t.hud.left(Math.round(left * 100)) : t.hud.spent,
     ),
   )
 }
@@ -546,7 +563,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
                 ),
               ),
             ],
-            [item ? itemName(item) : t.hud.idle],
+            [item ? workItemName(t, item) : t.hud.idle],
           ),
           due !== null
             ? h.span(
@@ -601,14 +618,16 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   // The SLA pays its credits on top of Burn: its own HUD row names them beside the runway (11).
   const credit = slaCreditsOf(game, ledger)
   const cashNote = game.bridge
-    ? 'Bridge offered'
+    ? t.hud.bridgeOffered
     : short
-      ? 'Out of Cash'
-      : `${net >= 0 ? '+' : ''}${money(net)}/s${runway === null ? '' : ` · ${(runway / RUNWAY_MONTH).toFixed(1)} mo`}`
+      ? t.hud.outOfCash
+      : `${t.units.perSecond(`${net >= 0 ? '+' : ''}${money(net)}`)}${runway === null ? '' : ` · ${t.hud.runwayMonths((runway / RUNWAY_MONTH).toFixed(1))}`}`
   const errorTitle = has(game, 'logs')
     ? Object.entries(ledger.errors)
         .filter(([, value]) => value > 0.005)
-        .map(([cause, value]) => t.hud.s2(cause, rate(value)))
+        .map(([cause, value]) =>
+          t.hud.s2(t.churn.causes[cause as keyof typeof t.churn.causes], rate(value)),
+        )
         .join(' · ') || t.hud.noErrors
     : t.hud.researchStructuredLogsToSeeCauses
 
@@ -629,9 +648,7 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             cashNote,
             game.cash < 0 || game.bridge ? 'danger' : net >= 0 && income > 0 ? 'ok' : 'plain',
             h,
-            game.bridge
-              ? 'Cash is short: the investors’ bridge waits in the Company row'
-              : 'Cash and its net change; runway in 30-day months',
+            game.bridge ? t.hud.cashShortBridge : t.hud.cashAndNet,
             short || game.bridge ? 'cursor-pointer rounded-lg hover:bg-muted' : '',
             short || game.bridge ? Message.PanelOpened({ panel: 'dashboard' }) : undefined,
           ),
@@ -674,18 +691,18 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             ? stat(
                 'SLA',
                 Wallet,
-                `−${money(credit)}/s`,
+                `−${t.units.perSecond(money(credit))}`,
                 '',
                 'danger',
                 h,
-                `SLA credits: the Venture pays ${money(credit)}/s back to customers while the week sits under ${percent(budgetOf(game).slo)}`,
+                t.hud.slaCredits(t.units.perSecond(money(credit)), percent(budgetOf(game).slo)),
               )
             : h.empty,
           stat(
             percentiles ? 'p99' : t.hud.latency,
             Timer,
-            ms(percentiles ? ledger.p99 : ledger.latency),
-            percentiles ? `μ ${ms(ledger.latency)}` : '',
+            formats(t).ms(percentiles ? ledger.p99 : ledger.latency),
+            percentiles ? `μ ${formats(t).ms(ledger.latency)}` : '',
             'plain',
             h,
           ),
@@ -744,6 +761,40 @@ const line = (name: string, value: string, tone: Tone, h: HtmlBuilder<Message>, 
     ],
   )
 
+type ChecklistItem = ReturnType<typeof checklistOf>[number]
+
+const checklistLabel = (t: Messages, id: ChecklistItem['id']): string =>
+  id === 'users'
+    ? t.hud.checkUsers
+    : id === 'reliability'
+      ? t.hud.checkReliability
+      : id === 'soc2'
+        ? t.hud.checkSoc2
+        : id === 'drill'
+          ? t.hud.checkDrill
+          : id === 'residency'
+            ? t.hud.checkResidency
+            : t.hud.checkRule40
+
+/** What an item's figure says: the Simulation's English words told again from the same state. */
+const checklistValue = (t: Messages, game: Board['game'], item: ChecklistItem): string => {
+  const drill = game.drill
+  if (item.id === 'soc2')
+    return has(game, 'soc2')
+      ? securityStaffed(game)
+        ? t.hud.checkDone
+        : t.hud.checkSecurityTeam
+      : t.hud.checkSoc2
+  if (item.id === 'residency') return residencyMet(game) ? t.hud.checkEu : t.hud.checkNotYet
+  if (item.id !== 'drill') return item.value
+  if (!drill) return t.hud.checkNotRun
+  if (!drill.done) return t.hud.checkRunning
+  if (drill.passed) return t.hud.checkRto(Math.round(drill.rto ?? 0))
+  if (brokenRestore(game)) return t.hud.checkRestoreFailed
+  if (drill.rto === null) return t.hud.checkNotRecovered
+  return drill.rpo >= DRILL_RPO ? t.hud.checkDataLost : t.hud.checkRto(Math.round(drill.rto))
+}
+
 /** The IPO checklist (10 "Era 6"): every item at once opens the IPO. */
 const checklist = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -754,7 +805,15 @@ const checklist = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
   return h.div(
     [h.Key('ipo'), h.Class(`flex flex-col py-1 ${WELL} compact:hidden`)],
     [
-      ...items.map((item) => line(item.label, item.value, item.met ? 'ok' : 'plain', h, item.met)),
+      ...items.map((item) =>
+        line(
+          checklistLabel(t, item.id),
+          checklistValue(t, game, item),
+          item.met ? 'ok' : 'plain',
+          h,
+          item.met,
+        ),
+      ),
       has(game, 'dr-drills')
         ? h.div(
             [h.Class('px-1.5 pt-1')],
@@ -800,7 +859,7 @@ const guidance = (
         h.button(
           [
             h.Type('button'),
-            h.Title(`${levelsOf(t)[level]}: ${value}%`),
+            h.Title(t.hud.levelTitle(levelsOf(t)[level] ?? '', value)),
             h.Disabled(!open && level !== chosen),
             h.AriaPressed(level === chosen ? 'true' : 'false'),
             h.OnClick(pick(level)),
@@ -1280,6 +1339,26 @@ const undoButton = (danger: boolean, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+const signed = (value: number, digits: number): string =>
+  `${value >= 0 ? '+' : '−'}${Math.abs(value).toFixed(digits)}`
+
+/** What a change did, in words: "+$1.40/s (+18%) · p99 −120 ms · errors −2.1%". */
+export const deltaText = (t: Messages, delta: Delta, percentiles: boolean): string => {
+  const revenue = delta.after.revenue - delta.before.revenue
+  const share = delta.before.revenue > 0 ? (revenue / delta.before.revenue) * 100 : 0
+  const latency = percentiles
+    ? t.hud.deltaP99(t.units.ms(signed(delta.after.p99 - delta.before.p99, 0)))
+    : t.hud.deltaLatency(t.units.ms(signed(delta.after.latency - delta.before.latency, 0)))
+  const errors = (delta.after.errors - delta.before.errors) * 100
+  return [
+    `${t.units.perSecond(`${revenue >= 0 ? '+' : '−'}$${Math.abs(revenue).toFixed(2)}`)} (${signed(share, 0)}%)`,
+    latency,
+    Math.abs(errors) >= 0.05 ? t.hud.deltaErrors(`${signed(errors, 1)}%`) : null,
+  ]
+    .filter((part) => part !== null)
+    .join(' · ')
+}
+
 /** One pill from the first change to the delta: Settling morphs into the result,
  *  and the pill leaves when the delta expires. */
 export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: string): Html => {
@@ -1320,7 +1399,7 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
           ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))]'))],
-            [delta ? describeDelta(delta, has(model.board.game, 'percentiles')) : ''],
+            [delta ? deltaText(t, delta, has(model.board.game, 'percentiles')) : ''],
           ),
           model.board.stableTicks > 0
             ? h.span(

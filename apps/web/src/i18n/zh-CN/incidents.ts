@@ -1,15 +1,28 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const incidents: Messages['incidents'] = {
   ignored: '已忽略',
-  s: (p0) => `${arg(p0)} 秒`,
+  s: (p0) => `${p0} 秒`,
   rollBack: '回滚',
-  researchToRollBack: (p0) => `研究${arg(p0)}后可回滚`,
+  researchToRollBack: (p0) => `研究${p0}后可回滚`,
   file: '归档',
-  actionItem: (p0) => `待办事项：${arg(p0)}`,
+  actionItem: (p0) => `待办事项：${p0}`,
   fileAndLeaveTheActionItem: '归档并保留待办项：此故障的发生概率仍为两倍',
   showDetails: '查看详情',
   users: '用户',
   revenue: '收入',
+  after: '在',
+  leftAlone: '被搁置之后',
+  followedLeftAlone: (incident) => `紧随${incident}之后，而它被搁置了。`,
+  renew: '续期',
+  fenceLeader: '隔离主节点',
+  cancelMigration: '取消迁移',
+  pinAndRedeploy: '锁定版本并重新部署',
+  restore: '恢复',
+  restartNodes: '重启节点',
+  moveLogin: '迁移登录',
+  failOver: '故障转移',
+  restart: '重启',
+  restartHub: '重启中枢',
+  throttleConnects: '限制连接',
 }

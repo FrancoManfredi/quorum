@@ -17,4 +17,8 @@ export const inspectorGw = {
   requestCoalescing: 'Request coalescing',
   identicalReadsInFlightAtOnce:
     'Identical reads in flight at once become one call. The busier the Gateway, the more it merges, so a spike sends less on.',
+  theGatewayValidatesEachToken: (validation: string | number, check: string | number) =>
+    `The Gateway validates each token once, for ${validation}, and the services skip the ${check} check.`,
+  everyServiceValidatesTheToken: (check: string | number) =>
+    `Every service validates the token itself: ${check} of CPU on each authenticated request.`,
 }

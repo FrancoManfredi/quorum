@@ -1,9 +1,9 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { CACHE_ENGINES, CACHE_TTLS, CACHE_STRATEGIES } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
 import type { CacheEngine, Game, GameNode, CacheStrategy } from '@quorum/simulation/state'
-import { duration } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section, splitting } from './shared.ts'
 
@@ -94,7 +94,7 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
       ),
       picker(
         'cache-ttl',
-        CACHE_TTLS.map((entry) => [entry.ttl, duration(entry.ttl)] as const),
+        CACHE_TTLS.map((entry) => [entry.ttl, formats(t).duration(entry.ttl)] as const),
         node.ttl,
         (ttl) => Message.TtlChosen({ nodeId: node.id, ttl }),
         h,

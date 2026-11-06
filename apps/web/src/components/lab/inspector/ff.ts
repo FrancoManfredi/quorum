@@ -1,13 +1,21 @@
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { ROLLOUT_STEPS } from '@quorum/simulation/catalog'
+import { BAD_DEPLOY_ERRORS, ROLLOUT_STEPS } from '@quorum/simulation/catalog'
 import { badDeployShareOf, blastService, rolloutOf } from '@quorum/simulation/team'
 import { burnOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import { money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
-import { type Panel, caption, choice, percent, section, segmented } from './shared.ts'
+import {
+  type Panel,
+  caption,
+  choice,
+  percentNumber,
+  section,
+  segmented,
+  serviceNameIn,
+} from './shared.ts'
 
 /** A Feature Flags Node's rollouts: each Feature's share, and what a bad deploy of it can break. */
 const flags = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
@@ -55,7 +63,12 @@ const flags = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [
-            `A bad deploy fails 8% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. The last deploy of ${service.name} shipped ${batch.length} Feature${batch.length === 1 ? '' : 's'}, so its ceiling is ${percent(badDeployShareOf(game, service))}. Only that Service's traffic breaks.`,
+            t.inspectorFf.aBadDeployFails(
+              percentNumber(BAD_DEPLOY_ERRORS),
+              serviceNameIn(t, service),
+              batch.length,
+              percentNumber(badDeployShareOf(game, service)),
+            ),
           ],
         ),
       ],
@@ -86,12 +99,12 @@ export const ffPanel: Panel = {
     const rolled = batch.filter((feature) => rolloutOf(game, feature) < 1)
     const blast = badDeployShareOf(game, service)
     return [
-      row(t.inspectorFf.service, service.name, 'plain', h),
+      row(t.inspectorFf.service, serviceNameIn(t, service), 'plain', h),
       row(t.inspectorFf.inTheBatch, `${batch.length}`, 'plain', h),
       row(t.inspectorFf.behindAFlag, `${rolled.length}`, rolled.length > 0 ? 'ok' : 'plain', h),
       row(
         t.inspectorFf.badDeploy,
-        `up to ${percent(blast)} of its traffic`,
+        t.inspectorFf.upToOfItsTraffic(percentNumber(blast)),
         blast >= 0.4 ? 'warn' : blast <= 0.1 ? 'ok' : 'plain',
         h,
       ),

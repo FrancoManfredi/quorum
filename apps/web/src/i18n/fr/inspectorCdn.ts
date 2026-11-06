@@ -10,4 +10,6 @@ export const inspectorCdn: Messages['inspectorCdn'] = {
     "Après un déploiement, le bord sert une partie des anciennes pages jusqu'à la fin du TTL.",
   theKeyHoldsThePathThe:
     "La clé contient le chemin, la requête et les cookies : rien n'est partagé entre utilisateurs.",
+  aSmallerKeyLifts: (lift) =>
+    `Une clé plus petite augmente le taux de succès de ${lift} %, et une page d’utilisateur connecté mise en cache sous cette clé peut être servie à un autre utilisateur : une fuite de données.`,
 }

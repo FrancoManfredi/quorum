@@ -20,4 +20,15 @@ export const inspectorLog = {
   s2: (p0: string | number | null) => `${p0} s`,
   replicas: 'Replicas',
   burn: 'Burn',
+  aProducerWaitsForTheAppend: (multiple: string | number) =>
+    `A producer waits ${multiple}× the 5 ms append. A replica past the first bills half a broker's Burn again.`,
+  replicaCount: (count: number) => `${count} ${count === 1 ? 'replica' : 'replicas'}`,
+  oneReplicaHoldsTheOnlyCopy:
+    'One replica holds the only copy: a broker that fails takes every event it held.',
+  aBrokerThatFailsLoses: (share: string | number) =>
+    `A broker that fails loses ${share}% of the events it held: the ones its replicas had not copied.`,
+  everyReplicaHadEveryEvent:
+    'Every replica had every acknowledged event, so a broker that fails loses none.',
+  events: (count: string | number) => `${count} events`,
+  replicasAndAcks: (replicas: string | number, acks: string) => `${replicas} · acks ${acks}`,
 }

@@ -16,4 +16,10 @@ export const inspectorLb = {
   shallow: 'Shallow',
   deep: 'Deep',
   routes: 'Routes',
+  stickyHolds:
+    'A user stays on the target it first reached. The oldest copy holds the most users, a target that dies takes its sessions with it, and in-process caches and realtime clients stay warm.',
+  slowStart: 'Slow start',
+  slowStartOn:
+    'A new copy takes traffic gradually, so a cold Java copy never answers at its cold speed.',
+  slowStartOff: 'A new copy takes its full share at once.',
 }

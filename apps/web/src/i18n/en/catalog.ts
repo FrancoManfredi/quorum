@@ -78,7 +78,7 @@ export const catalog = {
   regionInfo: copyOf(REGION_INFO, ['name', 'short'], []),
   research: copyOf(RESEARCH, ['blurb', 'name'], []),
   researchTracks: copyOfList(RESEARCH_TRACKS, 'key', ['label'], []),
-  runtimes: copyOf(RUNTIMES, ['blurb', 'name'], ['blocking']),
+  runtimes: copyOf(RUNTIMES, ['blurb', 'name'], []),
   shardKeys: copyOf(SHARD_KEYS, ['name'], []),
   storageClasses: copyOf(STORAGE_CLASSES, ['name'], []),
   storageIops: copyOf(STORAGE_IOPS, ['name'], []),

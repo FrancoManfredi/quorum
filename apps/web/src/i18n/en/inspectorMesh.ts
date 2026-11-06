@@ -12,4 +12,6 @@ export const inspectorMesh = {
   engineers: (p0: string | number | null) => `${p0} engineers`,
   burn: 'Burn',
   s: (p0: string | number | null) => `${p0}/s`,
+  eachSidecarRetries: (insight: string | number, hop: string | number, overhead: string | number) =>
+    `Each sidecar retries and breaks the Links out of its Node, watches them for Insight (+${insight}%), adds ${hop} to each hop, and takes ${overhead}% of the box's CPU. Every member's Burn pays for its sidecar, and each mesh takes Platform Dev Hours.`,
 }

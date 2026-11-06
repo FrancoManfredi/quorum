@@ -1,3 +1,4 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import { Schema } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -23,7 +24,7 @@ import type { Ledger } from '@quorum/simulation/ledger'
 import { has } from '@quorum/simulation/lookups'
 import { IncidentId } from '@quorum/simulation/state'
 import { GUIDED, TRACKS, type SandboxId } from '@quorum/simulation/sandbox'
-import { clock, money, ms, rate } from '@quorum/ui/game/format'
+import { clock, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { isPhone } from '@/game/viewport.ts'
 import { boardSandbox, hasCompany, type Model, type SandboxRun } from '@/game/model.ts'
@@ -99,6 +100,7 @@ const figures = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
   // A guided objective sets the Apdex and Burn it asks for, and may be measured on another figure.
   const open = boardSandbox(model.board)
   const objective = open?.id ? GUIDED[open.id].objectives[open.progress.objective] : undefined
+  const words = open?.id ? t.catalog.guided[open.id].objectives[open.progress.objective] : undefined
   const apdex = objective?.apdex ?? 0.85
   const watch = objective?.watch
   const watched = watch?.value(ledger) ?? 0
@@ -134,15 +136,15 @@ const figures = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
       figureRow(
         percentiles ? 'p99' : t.sandbox.latency,
         Timer,
-        ms(percentiles ? ledger.p99 : ledger.latency),
+        formats(t).ms(percentiles ? ledger.p99 : ledger.latency),
         'plain',
         h,
       ),
       watch
         ? figureRow(
-            watch.label,
+            words?.watch?.label ?? watch.label,
             Flag,
-            watch.unit === 'ms' ? ms(watched) : `${(watched * 100).toFixed(1)}%`,
+            watch.unit === 'ms' ? formats(t).ms(watched) : `${(watched * 100).toFixed(1)}%`,
             'plain',
             h,
           )
@@ -211,6 +213,7 @@ const steps = (run: SandboxRun, id: SandboxId, h: HtmlBuilder<Message>): Html =>
 
 /** The current objective, in the goal slot, with how long it has held. */
 export const objectiveBar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
   const run = boardSandbox(model.board)
   if (!run?.id) return h.empty
   const objective = GUIDED[run.id].objectives[run.progress.objective]
@@ -229,7 +232,10 @@ export const objectiveBar = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.Class('flex items-start gap-2.5')],
         [
           icon(h, Flag, 'mt-0.5 size-3.5 shrink-0 text-primary-strong'),
-          h.span([h.Class('flex-1 leading-snug')], [objective.goal]),
+          h.span(
+            [h.Class('flex-1 leading-snug')],
+            [t.catalog.guided[run.id].objectives[run.progress.objective]?.goal ?? objective.goal],
+          ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
             [`${clock(run.progress.held)} / ${clock(objective.hold)}`],
@@ -327,7 +333,12 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.span([h.Class(cn(EYEBROW, 'mr-auto'))], [t.sandbox.mix]),
           ...ERAS.slice(0, 3).map((era, stage) =>
-            tiny(era.name, Message.MixChosen({ stage }), h, model.board.game.stage === stage),
+            tiny(
+              t.catalog.eras[stage]?.name ?? era.name,
+              Message.MixChosen({ stage }),
+              h,
+              model.board.game.stage === stage,
+            ),
           ),
         ],
       ),

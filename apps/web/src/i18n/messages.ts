@@ -3,7 +3,7 @@ import { fr } from './fr/index.ts'
 import { zhCN } from './zh-CN/index.ts'
 import { nodeLabelOf } from '@quorum/simulation/labels'
 import type { Game, GameNode } from '@quorum/simulation/state'
-import type { Locale } from './index.ts'
+import { translate, type Locale } from './index.ts'
 
 /** A message is a string, or a function that fills values into one. */
 type Widen<T> = T extends string
@@ -63,3 +63,10 @@ export const nodeTitle = (t: Messages, game: Game, node: GameNode): string => {
 /** An Insight pool's name in the builder's language, such as "Page view Insight". */
 export const insightName = (t: Messages, pool: keyof Messages['catalog']['pools']): string =>
   t.pools.insightName(t.catalog.pools[pool].label)
+
+/**
+ * Text the Model stores in English, shown in the builder's language: Mail, and the Toast. A save
+ * keeps the words it was written with, so they are translated when they are shown, by the
+ * English-keyed lookup. Copy the views own is typed and never comes through here.
+ */
+export const stored = (h: object, text: string): string => translate(localeOf(h), text)

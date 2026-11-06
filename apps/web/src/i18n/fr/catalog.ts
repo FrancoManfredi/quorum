@@ -174,7 +174,7 @@ export const catalog: Messages['catalog'] = {
   },
   collectors: {
     g1: { label: 'G1' },
-    parallel: { label: 'Parallel' },
+    parallel: { label: 'Parallèle' },
     zgc: { label: 'ZGC' },
   },
   components: {
@@ -688,7 +688,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         "Chaque série temporelle sur le tableau de bord trace des lignes verticales étiquetées pour cinq types d’événements : modifications d’architecture (bleu, une par modification que vous pouvez encore annuler), déploiements (violet), incidents (rouge), recherche (vert) et événements de l’entreprise (rose). Un interrupteur par groupe dans la barre de variables le masque. Utilisez ces lignes pour vérifier qu'un graphique a bougé après votre correctif, et non avant.",
       links: [{ label: 'Documents Grafana : Annoter des visualisations' }],
-      design: [{ label: 'Dashboard annotations' }],
+      design: [{ label: 'Annotations du tableau de bord' }],
     },
     anycast: {
       term: 'Anycast',
@@ -714,7 +714,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Nouveaux documents Relic : Apdex' },
         { label: "Le groupe d'utilisateurs Apdex" },
       ],
-      design: [{ label: 'Apdex and revenue' }],
+      design: [{ label: 'Apdex et revenus' }],
     },
     'async-io': {
       term: 'Entrées-sorties asynchrones',
@@ -727,7 +727,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Documents Python : asyncio' },
         { label: 'Wikipédia' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: 'Modèles de concurrence' }],
     },
     'at-least-once-delivery': {
       term: 'Livraison au moins une fois',
@@ -740,7 +740,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'RabbitMQ : Remerciements des consommateurs' },
         { label: 'RabbitMQ : Guide de fiabilité' },
       ],
-      design: [{ label: 'Delivery semantics' }],
+      design: [{ label: 'Sémantique de livraison' }],
     },
     autoscaling: {
       term: "Mise à l'échelle automatique",
@@ -799,7 +799,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'OWASP : aide-mémoire pour le stockage des mots de passe' },
         { label: 'Wikipédia' },
       ],
-      design: [{ label: 'Request kinds' }],
+      design: [{ label: 'Types de requêtes' }],
     },
     'binary-rpc': {
       term: 'RPC binaire',
@@ -808,7 +808,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche RPC binaire entre services divise par deux le CPU qu’un serveur applicatif ou un worker consacre à sérialiser chaque appel interne : 0,02 ms de référence par appel deviennent 0,01. Cela se voit sur la jauge CPU des nœuds qui émettent les appels : une conception à court de CPU sert davantage sur les mêmes machines.',
       links: [{ label: 'Documentation gRPC : introduction à gRPC' }],
-      design: [{ label: 'Performance research' }],
+      design: [{ label: 'Recherche en performance' }],
     },
     'bgp-border-gateway-protocol': {
       term: 'BGP (protocole de routage interdomaines)',
@@ -833,7 +833,7 @@ export const catalog: Messages['catalog'] = {
         { label: "AWS Well-Architected : Utiliser l'isolation des pannes" },
         { label: 'Livre blanc AWS : Architecture basée sur les cellules' },
       ],
-      design: [{ label: 'Language profiles' }, { label: 'Pipeline CI/CD' }],
+      design: [{ label: 'Profils de langage' }, { label: 'Pipeline CI/CD' }],
     },
     'blue-green-deployment': {
       term: 'Déploiement bleu-vert',
@@ -869,7 +869,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Wikipédia : loi de Brooks' },
         { label: 'Wikipédia : le mois-homme mythique' },
       ],
-      design: [{ label: 'Team coordination' }],
+      design: [{ label: 'Coordination des équipes' }],
     },
     bulkhead: {
       term: 'Cloisonnement',
@@ -881,7 +881,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Azure Architecture Center : modèle de cloison' },
         { label: 'Wikipédia : cloison (cloison)' },
       ],
-      design: [{ label: 'Link settings' }],
+      design: [{ label: 'Réglages des liens' }],
     },
     'burn-rate': {
       term: 'Rythme de consommation',
@@ -890,7 +890,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         "Avec les tableaux de bord SLO recherchés, le tableau de bord (D) trace le rythme de consommation du budget d'erreurs au fil du temps : votre taux d'échec divisé par la part d'échecs permise par le SLO. Les lignes marquent 1× et 10× ; au-dessus de 10×, le budget est épuisé bien avant la fin du week-end. Corrigez la cause ou ralentissez vos déploiements jusqu'à ce que la ligne descende en dessous de 1×.",
       links: [{ label: 'Classeur Google SRE : alertes sur les SLO' }],
-      design: [{ label: 'Dashboard charts' }],
+      design: [{ label: 'Graphiques du tableau de bord' }],
     },
     'bytecode-cache': {
       term: 'Cache de bytecode',
@@ -927,7 +927,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Wikipédia' },
         { label: "Nishtala et al. : Mise à l'échelle de Memcache sur Facebook (NSDI 2013)" },
       ],
-      design: [{ label: 'Cache stampedes' }, { label: 'Cache stampede Incident' }],
+      design: [{ label: 'Bousculades de cache' }, { label: 'Incident de bousculade du cache' }],
     },
     'cache-warming': {
       term: 'Préchauffage du cache',
@@ -968,14 +968,14 @@ export const catalog: Messages['catalog'] = {
     'cascading-failure': {
       term: 'Défaillance en cascade',
       definition:
-        'A failure that jumps from one part of a system to another: one slow or broken component overloads its callers, whose retries and queues in turn overload theirs. The first failure is the trigger, and the later ones are what turn a small incident into a long one.',
+        'Une défaillance qui saute d’une partie d’un système à une autre : un composant lent ou en panne surcharge ses appelants, dont les retries et les files d’attente surchargent à leur tour les leurs. La première défaillance est le déclencheur, et les suivantes transforment un petit incident en un long incident.',
       inGame:
         'À partir de la série A, un incident que personne ne traite peut en déclencher un autre à sa fin, et le second enregistre le premier comme sa cause. Une requête lente laissée seule déclenche une tempête de retries, une tempête de retries déclenche l’épuisement des connexions, et une fuite mémoire déclenche une tempête de pauses GC. Le second incident ne démarre que si la conception y est vulnérable. Le bip nomme la chaîne et la fiche post-mortem dit ce qu’il a suivi. Toute réponse, même un simple accusé de réception, l’empêche de se propager, et une chaîne s’arrête après un saut.',
       links: [
         { label: 'AWS: Automating safe, hands-off deployments' },
         { label: 'Google SRE book: Cascading failures' },
       ],
-      design: [{ label: 'Incident cascades' }],
+      design: [{ label: 'Cascades d’incidents' }],
     },
     'cdc-change-data-capture': {
       term: 'CDC (capture des modifications de données)',
@@ -1009,7 +1009,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Ingénierie du chaos ajoute un interrupteur Chaos au panneau Équipe. Tant qu’il est actif, toutes les 120 s le nœud le plus faible de la conception fait échouer 20 % de ses appels pendant 10 s, et l’entreprise gagne 1 intuition d’échec par seconde grâce à l’expérience. L’interrupteur nomme le nœud que la prochaine expérience frappera, et ses erreurs `refused` injectées apparaissent dans la ligne Erreurs du tableau de bord, à côté des pannes qu’il doit faire comprendre.',
       links: [{ label: 'Principes de l’ingénierie du chaos' }],
-      design: [{ label: 'Reliability research' }],
+      design: [{ label: 'Recherche en fiabilité' }],
     },
     'circuit-breaker': {
       term: 'Coupe-circuit',
@@ -1022,14 +1022,14 @@ export const catalog: Messages['catalog'] = {
         { label: 'Azure Architecture Center : modèle de disjoncteur' },
         { label: 'Wikipédia' },
       ],
-      design: [{ label: 'Link settings' }, { label: 'Tempête de tentatives' }],
+      design: [{ label: 'Réglages des liens' }, { label: 'Tempête de tentatives' }],
     },
     'code-review': {
       term: 'Revue de code',
       definition:
         'Pratique dans laquelle un autre ingénieur lit une modification avant sa fusion, pour détecter des défauts, maintenir la cohérence du code et partager ses connaissances. La révision de code moderne est généralement légère et effectuée dans un outil sur de petites modifications.',
       inGame:
-        "Code review Research lowers the chance that a deploy ships a bug by 20%, and it stacks with Automated tests (30%). It also shows the hidden cost of each Feature on its tile before the Feature ships, such as 'Each write query costs 20% more'. Tech debt raises the bad-deploy chance, so review matters more as debt grows.",
+        'La recherche Revue de code réduit de 20 % le risque qu’un déploiement livre un bogue, et elle se cumule avec les Tests automatisés (30 %). Elle montre aussi le coût caché de chaque Fonctionnalité sur sa tuile avant sa livraison, par exemple « Chaque requête d’écriture coûte 20 % de plus ». La dette technique augmente le risque de mauvais déploiement : la revue compte donc davantage à mesure que la dette grandit.',
       links: [
         { label: "Pratiques d'ingénierie de Google : révision du code" },
         { label: 'Revue de code moderne : une étude de cas chez Google' },
@@ -1047,7 +1047,7 @@ export const catalog: Messages['catalog'] = {
         { label: "Documents AWS Lambda : Cycle de vie de l'environnement d'exécution" },
         { label: 'Wikipédia : Démarrage à froid (informatique)' },
       ],
-      design: [{ label: 'Fonction serverless' }, { label: 'Runtime behaviors' }],
+      design: [{ label: 'Fonction serverless' }, { label: 'Comportements d’exécution' }],
     },
     compression: {
       term: 'Compression',
@@ -1133,7 +1133,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Martin Fowler : ConwaysLoi' },
         { label: 'Wikipédia' },
       ],
-      design: [{ label: 'Services and their owning Teams' }],
+      design: [{ label: 'Services et équipes responsables' }],
     },
     'credential-stuffing': {
       term: 'Bourrage d’identifiants',
@@ -1193,7 +1193,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Dénormalisation fait coûter 30 % de CPU en moins à chaque lecture de base et 20 % de plus à chaque écriture (10). Elle paie sur une conception à dominante de lectures et pénalise une conception à dominante d’écritures : c’est l’arbitrage que l’aperçu de la carte Compromis montre avant de le prendre.',
       links: [{ label: 'Wikipédia : dénormalisation' }],
-      design: [{ label: 'Performance track' }],
+      design: [{ label: 'Voie Performance' }],
     },
     'dependency-scanning': {
       term: 'Analyse des dépendances',
@@ -1255,7 +1255,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'DORA : mesures de performances de livraison de logiciels' },
         { label: 'DORA : un historique des métriques de DORA' },
       ],
-      design: [{ label: 'Deploy frequency' }],
+      design: [{ label: 'Fréquence de déploiement' }],
     },
     downsampling: {
       term: 'Sous-échantillonnage',
@@ -1268,7 +1268,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Documents Prometheus : Stockage' },
         { label: 'Wikipédia : sous-échantillonnage' },
       ],
-      design: [{ label: 'Dashboard time ranges' }],
+      design: [{ label: 'Plages de temps du tableau de bord' }],
     },
     drift: {
       term: 'Dérive',
@@ -1277,11 +1277,14 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'Un Miroir dérive de deux façons : il est en retard quand sa région source a changé, et il a une modification manuelle quand vous avez modifié le Miroir directement. Appliquer ramène le Miroir à sa source et annule les modifications manuelles que son plan voit. Les plans Terraform voient toute modification manuelle tout de suite. Pulumi et Alchemy comparent à l’état qu’ils ont enregistré, donc une modification manuelle n’apparaît qu’après Relire ou Vérifier la dérive. Gardez une différence régionale voulue comme exception.',
       links: [
-        { label: 'Terraform tutorial: Use refresh-only mode to sync Terraform state' },
-        { label: 'Pulumi docs: Detecting and reconciling drift' },
-        { label: 'Alchemy docs: drift' },
+        {
+          label:
+            'Tutoriel Terraform : utiliser le mode refresh-only pour synchroniser l’état Terraform',
+        },
+        { label: 'Documentation Pulumi : détecter et réconcilier la dérive' },
+        { label: 'Documentation Alchemy : dérive' },
       ],
-      design: [{ label: 'Keeping a Mirror in sync' }],
+      design: [{ label: 'Garder un Miroir synchronisé' }],
     },
     egress: {
       term: 'Trafic sortant',
@@ -1327,7 +1330,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Livre Google SRE : Accepter le risque' },
         { label: "Classeur Google SRE : politique budgétaire d'erreur" },
       ],
-      design: [{ label: 'SLOs and error budgets' }],
+      design: [{ label: 'SLO et budgets d’erreur' }],
     },
     'event-loop': {
       term: 'Boucle d’événements',
@@ -1340,7 +1343,7 @@ export const catalog: Messages['catalog'] = {
         { label: "Node.js : Ne bloquez pas la boucle d'événements" },
         { label: "MDN : modèle d'exécution JavaScript" },
       ],
-      design: [{ label: 'Event loops and blocking' }],
+      design: [{ label: 'Boucles d’événements et blocage' }],
     },
     'eventual-consistency': {
       term: 'Cohérence éventuelle',
@@ -1361,7 +1364,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Élargir puis contracter supprime totalement l’incident Verrou de migration de schéma : avec seulement les migrations de schéma en ligne l’incident est environ huit fois moins probable, et avec Élargir puis contracter il ne peut pas arriver. Les deux coûtent des heures de développement : sur une base relationnelle, une fonctionnalité qui ajoute une forme de requête coûte 10% de plus avec les migrations en ligne et 25% de plus avec Élargir puis contracter.',
       links: [{ label: 'Martin Fowler : Parallel change' }],
-      design: [{ label: 'Schema migrations' }],
+      design: [{ label: 'Migrations de schéma' }],
     },
     'fallacies-of-distributed-computing': {
       term: 'Idées reçues sur les systèmes distribués',
@@ -1422,7 +1425,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Livre Google SRE : Surveillance des systèmes distribués' },
         { label: 'Documents Grafana : meilleures pratiques en matière de tableau de bord' },
       ],
-      design: [{ label: 'Dashboard signals' }],
+      design: [{ label: 'Signaux du tableau de bord' }],
     },
     'gc-pause': {
       term: 'Pause du ramasse-miettes',
@@ -1435,7 +1438,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Wiki OpenJDK : ZGC' },
         { label: 'Oracle : guide de réglage Java GC' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: 'Comportements d’exécution' }],
     },
     geodns: {
       term: 'GeoDNS',
@@ -1461,7 +1464,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'PEP 703 : Rendre le GIL facultatif' },
         { label: 'Wikipédia' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: 'Modèles de concurrence' }],
     },
     gitops: {
       term: 'GitOps',
@@ -1471,8 +1474,8 @@ export const catalog: Messages['catalog'] = {
         'GitOps est une recherche de la Série C après Infrastructure as code. Elle applique chaque changement de la source à chaque Miroir tout seul, donc les Miroirs ne prennent plus de retard. Elle annule aussi les modifications manuelles à la synchronisation suivante avec chaque outil IaC, comme Argo CD avec l’auto-réparation activée : les exceptions sont donc le seul moyen d’ajuster une région. En une fois synchronise en 3 minutes calendaires au plus, comme l’interrogation par défaut d’Argo CD. Par étapes garde d’abord un changement 60 minutes sur la source. En une fois échange la dérive contre le périmètre d’impact : un déploiement de configuration défectueux atteint tous les Miroirs ensemble.',
       links: [
         { label: 'OpenGitOps: GitOps Principles' },
-        { label: 'Argo CD docs: Automated Sync Policy' },
-        { label: 'Flux docs: Core Concepts' },
+        { label: 'Documentation Argo CD : politique de synchronisation automatisée' },
+        { label: 'Documentation Flux : concepts clés' },
       ],
       design: [{ label: 'GitOps' }],
     },
@@ -1483,7 +1486,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Dégradation gracieuse ajoute un interrupteur à un serveur applicatif. Un nœud saturé abandonne alors d’abord ses types de requêtes les plus chers, exports et téléversements avant les lectures, pour que les types bon marché gardent leur latence (10). Le délestage prioritaire fait l’inverse : il abandonne d’abord les types de moindre valeur, robots et enchères avant les pages.',
       links: [{ label: 'Livre Google SRE : Gérer la surcharge' }],
-      design: [{ label: 'Reliability track' }],
+      design: [{ label: 'Voie Fiabilité' }],
     },
     'green-threads': {
       term: 'Threads légers',
@@ -1496,7 +1499,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'JEP 444 : thèmes virtuels' },
         { label: 'Wikipédia' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: 'Modèles de concurrence' }],
     },
     'health-check': {
       term: 'Sonde de disponibilité',
@@ -1536,7 +1539,7 @@ export const catalog: Messages['catalog'] = {
         { label: "Documents AWS : partitionnement d'écriture dans DynamoDB" },
         { label: 'Documentation Redis : redis-cli --hotkeys' },
       ],
-      design: [{ label: 'Partitioning' }],
+      design: [{ label: 'Partitionnement' }],
     },
     'http-keep-alive': {
       term: 'Connexions HTTP persistantes',
@@ -1571,12 +1574,12 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Infrastructure as code vous fait choisir Terraform, Pulumi ou Alchemy. Les trois construisent tous les Composants et peuvent régler toute valeur par région. Ils diffèrent dans la façon dont un plan trouve les modifications manuelles, comme dans le flux par défaut de chaque outil : Terraform relit l’état réel à chaque plan, donc ses plans sont complets et chaque application attend cette relecture. Pulumi compare à son état enregistré jusqu’à ce que vous relisiez. Alchemy compare aussi à l’état enregistré ; Vérifier la dérive relit l’état réel, et Réparer annule les modifications manuelles sans prendre les changements de la source. Passer à un autre outil arrête toute synchronisation pendant un jour calendaire.',
       links: [
-        { label: 'Terraform docs: What is Terraform?' },
-        { label: 'Pulumi docs: Infrastructure as code' },
-        { label: 'Alchemy docs: Providers' },
-        { label: 'Wikipedia: Infrastructure as code' },
+        { label: 'Documentation Terraform : qu’est-ce que Terraform ?' },
+        { label: 'Documentation Pulumi : infrastructure as code' },
+        { label: 'Documentation Alchemy : fournisseurs' },
+        { label: 'Wikipédia : infrastructure as code' },
       ],
-      design: [{ label: 'IaC tools' }],
+      design: [{ label: 'Outils IaC' }],
     },
     idempotency: {
       term: 'Idempotence',
@@ -1618,7 +1621,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Microsoft : Comment fonctionne la compilation hiérarchisée dans OpenJDK' },
         { label: 'Wikipédia : compilation juste à temps' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: 'Comportements d’exécution' }],
     },
     'leaderless-replication': {
       term: 'Réplication sans leader',
@@ -1637,9 +1640,9 @@ export const catalog: Messages['catalog'] = {
       definition:
         'Une correction d’horloge pour la seconde intercalaire : un serveur étale la seconde supplémentaire sur une longue fenêtre, souvent une journée entière, si bien que son horloge ralentit très légèrement et ne saute jamais. Google et Amazon le font sur leurs propres horloges. C’est le saut qui fait mal, car une seconde répétée fait déclencher les minuteurs deux fois et expirer les baux trop tôt.',
       inGame:
-        'The Leap second or clock skew Incident makes every Node in one region answer 1,000 ms late and time out 10% of its answers, until you restart the Nodes or it runs out after 60 s. Leap smearing (Series C) is the Research that keeps the jump from happening. The Leap Second Challenge scripts the same event as a regional App Server outage.',
+        'L’incident Seconde intercalaire ou dérive d’horloge fait répondre chaque Nœud d’une région avec 1 000 ms de retard et expirer 10 % de ses réponses, jusqu’à ce que vous redémarriez les Nœuds ou qu’il s’éteigne au bout de 60 s. L’étalement de la seconde intercalaire (Série C) est la recherche qui empêche le saut de se produire. Le Défi Seconde intercalaire met en scène le même événement sous forme de panne régionale du Serveur applicatif.',
       links: [{ label: 'Google: Leap Smear' }, { label: 'Cloudflare: How and why we leap smear' }],
-      design: [{ label: 'The six kinds of Incident' }],
+      design: [{ label: 'Les six types d’incident' }],
     },
     'littles-law': {
       term: 'Loi de Little',
@@ -1651,7 +1654,7 @@ export const catalog: Messages['catalog'] = {
         { label: "Little (1961) : Une preuve de la formule de file d'attente L = λW" },
         { label: 'Wikipédia : la loi de Little' },
       ],
-      design: [{ label: 'Latency coupling between Nodes' }],
+      design: [{ label: 'Couplage de latence entre Nœuds' }],
     },
     'load-balancer': {
       term: 'Répartiteur de charge',
@@ -1680,7 +1683,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Livre Google SRE : Gérer la surcharge' },
         { label: 'Livre Google SRE : Résoudre les échecs en cascade' },
       ],
-      design: [{ label: 'Incident mitigation toolbox' }],
+      design: [{ label: 'Boîte à outils d’atténuation des incidents' }],
     },
     'memory-leak': {
       term: 'Fuite de mémoire',
@@ -1693,7 +1696,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Node.js Apprendre : Diagnostics de la mémoire' },
         { label: 'Documents Oracle Java : Résoudre les fuites de mémoire' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: 'Comportements d’exécution' }],
     },
     'materialized-view': {
       term: 'Vue matérialisée',
@@ -1702,7 +1705,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Vues matérialisées ajoute une vue à la carte d’une base. Un rapport balaie la vue stockée pour moitié moins de CPU (10), et 5 % des réponses de rapport sont périmées, d’avant le dernier rafraîchissement. C’est le jumeau côté base de l’entrepôt de données : les mêmes balayages bon marché sans second système.',
       links: [{ label: 'Documentation PostgreSQL : vues matérialisées' }],
-      design: [{ label: 'Data Warehouse and views' }],
+      design: [{ label: 'Entrepôt de données et vues' }],
     },
     'metastable-failure': {
       term: 'Défaillance métastable',
@@ -1726,10 +1729,10 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'Après la recherche Infrastructure as code, le bouton Miroir à côté des onglets de région copie les Nœuds et Liens d’une région dans une autre. Pour chaque Base de données, choisissez une réplique en lecture, une primaire propre ou l’appel à la source ; pour le Stockage objet, répliquer ou appeler la source. Appliquer paie tout de suite, et les nouveaux Nœuds arrivent froids après le temps de construction. Les Utilisateurs de la région n’ont leurs Liens qu’à l’arrivée du plan. Le Miroir reste lié à sa source, donc il peut dériver ; GitOps le garde synchronisé tout seul.',
       links: [
-        { label: 'Terraform docs: Modules overview' },
-        { label: 'AWS docs: Working with CloudFormation StackSets' },
+        { label: 'Documentation Terraform : vue d’ensemble des modules' },
+        { label: 'Documentation AWS : travailler avec les StackSets CloudFormation' },
       ],
-      design: [{ label: 'Mirror a region' }],
+      design: [{ label: 'Mettre une région en miroir' }],
     },
     'model-inference': {
       term: 'Inférence de modèle',
@@ -1754,7 +1757,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Livre SRE de Google : être d’astreinte' },
         { label: 'Wikipédia : temps moyen de récupération' },
       ],
-      design: [{ label: 'The incident loop' }],
+      design: [{ label: 'La boucle d’incident' }],
     },
     mttr: {
       term: 'MTTR',
@@ -1766,7 +1769,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Wikipédia : temps moyen de récupération' },
         { label: 'DORA : mesures de performances de livraison de logiciels' },
       ],
-      design: [{ label: 'The incident loop' }],
+      design: [{ label: 'La boucle d’incident' }],
     },
     'n1-query': {
       term: 'requête N+1',
@@ -1779,7 +1782,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Documents Django : select_rated' },
         { label: 'Documents Laravel : chargement impatient' },
       ],
-      design: [{ label: 'Framework behaviors' }],
+      design: [{ label: 'Comportements des frameworks' }],
     },
     'network-partition': {
       term: 'Partition réseau',
@@ -1805,7 +1808,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Documentation NGINX : proxy inverse' },
         { label: 'Documentation AWS : délai de dérégistration d’un groupe cible' },
       ],
-      design: [{ label: 'Incident mitigation toolbox' }],
+      design: [{ label: 'Boîte à outils d’atténuation des incidents' }],
     },
     'object-storage': {
       term: 'Stockage objet',
@@ -1856,7 +1859,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Livre SRE de Google : être d’astreinte' },
         { label: 'PagerDuty : qu’est-ce qu’une astreinte ?' },
       ],
-      design: [{ label: 'The incident loop' }],
+      design: [{ label: 'La boucle d’incident' }],
     },
     'operating-margin': {
       term: 'Marge opérationnelle',
@@ -1904,7 +1907,7 @@ export const catalog: Messages['catalog'] = {
         },
         { label: 'Documents NGINX : module en amont (aléatoire)' },
       ],
-      design: [{ label: 'Load Balancer policies' }],
+      design: [{ label: 'Politiques du Répartiteur de charge' }],
     },
     'pre-fork-worker-model': {
       term: 'Modèle de processus précréés',
@@ -1930,7 +1933,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Manuel PHP : Gestionnaire de processus FastCGI (FPM)' },
         { label: 'Documents Gunicorn : Architecture' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: 'Modèles de concurrence' }],
     },
     quantization: {
       term: 'Quantification',
@@ -1939,14 +1942,14 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'La recherche Quantification ajoute FP16, INT8 et INT4 à un nœud GPU. INT8 sert 2× les jetons et INT4 3×, et chaque réponse vaut 5 % ou 15 % de moins. Elle paie quand le GPU est le goulot et que les réponses peuvent être un peu moins bonnes.',
       links: [{ label: 'Documentation Hugging Face : quantification' }],
-      design: [{ label: 'GPU Node and precision' }],
+      design: [{ label: 'Nœud GPU et précision' }],
     },
     quorum: {
       term: 'Quorum',
       definition:
-        'The number of replicas that must answer before a read or a write counts as done. With N replicas, read quorum R, and write quorum W, R + W > N means every read asks at least one replica that has the latest write. That is not linearizability, because concurrent writes, failed writes, and sloppy quorums can still return old values.',
+        'Le nombre de répliques qui doivent répondre avant qu’une lecture ou une écriture soit considérée comme terminée. Avec N répliques, un quorum de lecture R et un quorum d’écriture W, R + W > N signifie que chaque lecture interroge au moins une réplique qui a la dernière écriture. Ce n’est pas de la linéarisabilité, car les écritures concurrentes, les écritures échouées et les quorums approximatifs peuvent encore renvoyer d’anciennes valeurs.',
       inGame:
-        'A Wide-column Store keeps each key on N replicas (1 to 5), and you set R, the replicas a read asks, and W, the replicas a write waits for. With R + W > N, reads never miss the latest write. A weaker quorum costs fewer replica operations and waits for an earlier reply, but some reads come back stale. A quorum that needs every replica fails while one replica is lost. Even a strong quorum gets 2% stale and 1% duplicate checkouts.',
+        'Un Magasin à larges colonnes garde chaque clé sur N répliques (1 à 5), et vous réglez R, les répliques qu’une lecture interroge, et W, les répliques qu’une écriture attend. Avec R + W > N, les lectures ne ratent jamais la dernière écriture. Un quorum plus faible coûte moins d’opérations de réplique et attend une réponse plus tôt, mais certaines lectures reviennent périmées. Un quorum qui exige toutes les répliques échoue tant qu’une réplique est perdue. Même un quorum fort subit 2 % de paiements périmés et 1 % de paiements en double.',
       links: [
         { label: 'Documentation Apache Cassandra : Cohérence réglable' },
         { label: 'DeCandia et coll. (2007) : Dynamo' },
@@ -2020,7 +2023,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Laboratoires Grafana : La méthode RED' },
         { label: 'Livre Google SRE : Surveillance des systèmes distribués' },
       ],
-      design: [{ label: 'Dashboard rows and charts' }],
+      design: [{ label: 'Lignes et graphiques du tableau de bord' }],
     },
     'redos-regular-expression-denial-of-service': {
       term: 'ReDoS (déni de service par expression régulière)',
@@ -2076,7 +2079,10 @@ export const catalog: Messages['catalog'] = {
         },
         { label: 'Documents PostgreSQL : Archivage continu et récupération ponctuelle' },
       ],
-      design: [{ label: 'Multi-region data' }, { label: 'IPO checklist and DR drill' }],
+      design: [
+        { label: 'Données multirégions' },
+        { label: 'Liste de contrôle de l’IPO et exercice de reprise' },
+      ],
     },
     'rule-of-40': {
       term: 'Règle des 40',
@@ -2126,7 +2132,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Documents MongoDB : Partage' },
         { label: "AWS : Qu'est-ce que le partitionnement de base de données ?" },
       ],
-      design: [{ label: 'Partitioning' }],
+      design: [{ label: 'Partitionnement' }],
     },
     'shared-nothing': {
       term: 'Sans ressources partagées',
@@ -2138,7 +2144,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Stonebraker (1986) : Les arguments en faveur du rien partagé' },
         { label: 'Wikipédia : Architecture sans partage' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: 'Comportements d’exécution' }],
     },
     'slo-sla-sli': {
       term: 'SLO, SLA, SLI',
@@ -2151,7 +2157,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Classeur Google SRE : mise en œuvre des SLO' },
         { label: 'Blog Google Cloud : SLI, SLA et SLO' },
       ],
-      design: [{ label: 'SLOs and error budgets' }],
+      design: [{ label: 'SLO et budgets d’erreur' }],
     },
     'soc-2': {
       term: 'SOC 2',
@@ -2176,7 +2182,7 @@ export const catalog: Messages['catalog'] = {
         { label: "Documents AWS EC2 : Avis d'interruption de l'instance Spot" },
         { label: 'Documents Google Cloud : VM Spot' },
       ],
-      design: [{ label: 'Pricing models' }],
+      design: [{ label: 'Modèles de tarification' }],
     },
     'strangler-pattern': {
       term: 'Architecture de l’étrangleur',
@@ -2257,7 +2263,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Wikipédia : problème de troupeau tonitruant' },
         { label: "Blog sur l'architecture AWS : Intervalle exponentiel et gigue" },
       ],
-      design: [{ label: 'Realtime Hub reconnects' }],
+      design: [{ label: 'Reconnexions du Hub temps réel' }],
     },
     'tiered-caching': {
       term: 'Mise en cache à plusieurs niveaux',
@@ -2322,7 +2328,7 @@ export const catalog: Messages['catalog'] = {
         { label: "Conseils prescriptifs AWS : modèle de boîte d'envoi transactionnel" },
         { label: "Documentation Debezium : Routeur d'événements de la boîte d'envoi" },
       ],
-      design: [{ label: 'Keeping copies in sync' }],
+      design: [{ label: 'Garder les copies synchronisées' }],
     },
     'use-method': {
       term: 'Méthode USE',
@@ -2331,7 +2337,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         "La ligne Saturation du tableau de bord affiche l'utilisation de chaque nœud sous forme de jauge à barres, de chronologie d'état et de tableau, afin que vous puissiez voir quel nœud s'est rempli en premier. Une ligne USE complète par ressource n’est pas encore créée. Sur le tableau, la barre de chargement de chaque carte de nœud affiche désormais la même utilisation.",
       links: [{ label: 'Brendan Gregg : La méthode USE' }],
-      design: [{ label: 'Dashboard rows and charts' }],
+      design: [{ label: 'Lignes et graphiques du tableau de bord' }],
     },
     utilization: {
       term: 'Utilisation',
@@ -2343,7 +2349,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Brendan Gregg : La méthode USE' },
         { label: "Wikipédia : file d'attente M/M/1" },
       ],
-      design: [{ label: 'Capacity, utilization, and queues' }],
+      design: [{ label: 'Capacité, utilisation et files d’attente' }],
     },
     'vertical-and-horizontal-scaling': {
       term: "Mise à l'échelle verticale et horizontale",
@@ -2355,7 +2361,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Azure Architecture Center : architecture évolutive' },
         { label: 'Wikipédia : évolutivité (horizontale et verticale)' },
       ],
-      design: [{ label: 'Vertical and horizontal' }],
+      design: [{ label: 'Vertical et horizontal' }],
     },
     'waf-web-application-firewall': {
       term: "WAF (pare-feu d'applications Web)",
@@ -2691,7 +2697,7 @@ export const catalog: Messages['catalog'] = {
     'operator-typo': {
       name: "Faute de frappe d'opérateur",
       cause:
-        'A command meant to remove one Node matched the whole Component, and most of its Nodes went with it.',
+        'Une commande censée retirer un Nœud a visé tout le Composant, et la plupart de ses Nœuds sont partis avec.',
       prevention:
         "Un plan et une revue avant l'application d'un changement montrent ce qu'il supprimera : une faute de frappe s'arrête au plan.",
     },
@@ -2712,35 +2718,35 @@ export const catalog: Messages['catalog'] = {
     'leap-second': {
       name: "Seconde intercalaire ou dérive d'horloge",
       cause:
-        'A leap second repeated a second of the clock. Timers fired twice, leases expired early, and requests and locks across one region timed out.',
+        'Une seconde intercalaire a répété une seconde de l’horloge. Les minuteurs se sont déclenchés deux fois, les baux ont expiré trop tôt, et les requêtes et les verrous de toute une région ont expiré.',
       prevention:
         "L'étalement de la seconde intercalaire répartit la seconde sur une journée, donc aucune horloge ne saute.",
     },
     'stale-opcache': {
       name: 'OPcache périmé',
       cause:
-        'OPcache runs with validate_timestamps off, and a deploy did not reset it. The PHP servers kept running the old code against the new schema, and a share of requests failed.',
+        'OPcache tourne avec validate_timestamps désactivé, et un déploiement ne l’a pas réinitialisé. Les serveurs PHP ont continué d’exécuter l’ancien code sur le nouveau schéma, et une part des requêtes a échoué.',
       prevention:
         'Un pipeline CI/CD réinitialise OPcache à chaque déploiement. Un redémarrage vide le cache à la main.',
     },
     'bun-compat': {
-      name: 'Runtime compatibility',
+      name: 'Compatibilité d’exécution',
       cause:
-        'A package that works on Node.js does not work on Bun, which is less mature. A share of requests that touched it failed until the package was swapped.',
+        'Un paquet qui fonctionne sur Node.js ne fonctionne pas sur Bun, moins mature. Une part des requêtes qui l’utilisaient a échoué jusqu’au remplacement du paquet.',
       prevention:
         "Les tests automatisés s'exécutent sur le runtime où le service est livré et détectent le paquet avant le déploiement.",
     },
     'gevent-compat': {
       name: 'Incompatibilité de bibliothèque',
       cause:
-        'gevent monkey patches the standard library, and one library did not survive it: its calls blocked the hub, and a share of requests failed.',
+        'gevent applique des monkey patches à la bibliothèque standard, et une bibliothèque n’y a pas survécu : ses appels ont bloqué le hub, et une part des requêtes a échoué.',
       prevention:
         'Les tests automatisés exécutent le service sous gevent avant sa livraison et montrent quelle bibliothèque casse.',
     },
     'split-brain': {
       name: 'Double leader',
       cause:
-        'A network partition cut a Distributed Erlang cluster in two. Each half kept serving its own clients, and half of the realtime messages never reached the other.',
+        'Une partition réseau a coupé en deux un cluster Erlang distribué. Chaque moitié a continué de servir ses propres clients, et la moitié des messages temps réel n’a jamais atteint l’autre.',
       prevention:
         "Les expériences de chaos trouvent la partition avant qu'elle ne frappe. Un redémarrage réintègre le cluster.",
     },
@@ -3449,7 +3455,7 @@ export const catalog: Messages['catalog'] = {
     },
     'graal-native': {
       blurb:
-        'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with builds three times as long. A thread per connection, like Tomcat. Great for Serverless Functions.',
+        'Démarre en moins de 100 ms sans échauffement, avec 60 % de la mémoire de la JVM et 0,80× sa vitesse, pour des builds trois fois plus longs. Un thread par connexion, comme Tomcat. Idéal pour les Fonctions serverless.',
       name: 'Image native GraalVM',
     },
     'native-aot': {
@@ -3552,7 +3558,8 @@ export const catalog: Messages['catalog'] = {
       name: 'Équipe SRE',
     },
     'enterprise-sales': {
-      blurb: 'Signs the SLA: a missed week of availability pays credits back to customers.',
+      blurb:
+        'Signe le SLA : une semaine de disponibilité manquée rembourse des crédits aux clients.',
       name: 'Vente aux entreprises',
     },
     'online-migrations': {
@@ -3759,7 +3766,6 @@ export const catalog: Messages['catalog'] = {
       blurb:
         "Des coroutines sur une boucle d'événements, des E/S asynchrones comme Node.js et aucun surcoût de framework par requête. Les extensions bloquantes figent la boucle. Tient des connexions temps réel à 20 Ko chacune.",
       name: 'Swoole',
-      blocking: 'loop',
     },
     puma: {
       blurb:
@@ -3775,31 +3781,26 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Les fibres tiennent de nombreuses connexions inactives par processus. Une gem bloquante fige la boucle. 100 Ko par connexion.',
       name: 'Falcon',
-      blocking: 'loop',
     },
     node: {
       blurb:
         "Une boucle d'événement. L'attente ne coûte rien, mais elle utilise un cœur et une requête lente bloque les autres.",
       name: 'Node.js',
-      blocking: 'loop',
     },
     node_cluster: {
       blurb:
         "Une boucle d'événement par cœur. Utilise chaque noyau ; la mémoire et les connexions augmentent avec les cœurs.",
       name: 'Node.js cluster',
-      blocking: 'loop',
     },
     bun: {
       blurb:
         "Une boucle d'événements plus rapide avec un démarrage instantané : il s'adapte et se déploie mieux que Node.js. 60 Mo et aucun démarrage. Moins mature : un paquet qui fonctionne sur Node.js peut y casser.",
       name: 'Bun',
-      blocking: 'loop',
     },
     deno: {
       blurb:
         'Les permissions bloquent la plupart des attaques de chaîne d’approvisionnement, au prix de 10 % de vélocité : moins de paquets sont compatibles. La même boucle d’événements que Node.js.',
       name: 'Deno',
-      blocking: 'loop',
     },
     gunicorn: {
       blurb:
@@ -3815,7 +3816,6 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Asynchrone comme Node.js, avec un CPU plus lent : un appel bloquant bloque la boucle. Tient les connexions temps réel aux 30 Ko du design chacune.',
       name: 'Uvicorn ASGI',
-      blocking: 'loop',
     },
     python_ft: {
       blurb:
@@ -3851,11 +3851,10 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Très forte concurrence sur une boucle par processus, et 20 % plus lent à écrire et à déboguer. Un appel bloquant fige la boucle, et la JVM chauffe toujours. 400 Mo.',
       name: 'Spring WebFlux',
-      blocking: 'loop',
     },
     graal: {
       blurb:
-        'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with builds three times as long. A thread per connection, like Tomcat. Great for Serverless Functions.',
+        'Démarre en moins de 100 ms sans échauffement, avec 60 % de la mémoire de la JVM et 0,80× sa vitesse, pour des builds trois fois plus longs. Un thread par connexion, comme Tomcat. Idéal pour les Fonctions serverless.',
       name: 'Image native GraalVM',
     },
     kestrel: {
@@ -3877,7 +3876,6 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Tâches asynchrones sur chaque cœur, pas de GC, peu de mémoire. Une tâche lourde CPU bloque un thread de travail.',
       name: 'Tokio',
-      blocking: 'processus',
     },
     zig: {
       blurb:
@@ -3891,8 +3889,8 @@ export const catalog: Messages['catalog'] = {
     },
   },
   shardKeys: {
-    hash: { name: 'Hash of user ID' },
-    range: { name: 'Range of IDs' },
+    hash: { name: 'Hachage de l’ID utilisateur' },
+    range: { name: 'Plage d’ID' },
     tenant: { name: 'Par locataire' },
     region: { name: 'Par région' },
   },
@@ -4083,7 +4081,7 @@ export const catalog: Messages['catalog'] = {
         { goal: 'Maintenez Apdex au-dessus de 0,9 pendant 90 secondes.' },
         { goal: 'Le cache redémarrera. Maintenez Apdex au-dessus de 0,85 pendant 2 minutes.' },
         {
-          goal: 'Demand is up 50%. The Cache restarts again. Keep Apdex above 0.85 with Burn at $8.00/s or less.',
+          goal: 'La demande augmente de 50 %. Le Cache redémarre encore. Maintenez Apdex au-dessus de 0,85 avec dépenses à 8,00 $/s ou moins.',
         },
       ],
     },
@@ -4104,7 +4102,9 @@ export const catalog: Messages['catalog'] = {
       objectives: [
         { goal: 'Maintenez Apdex au-dessus de 0,9 pendant 90 secondes.' },
         { goal: 'Les grattoirs arrivent. Maintenez Apdex au-dessus de 0,9 pendant 2 minutes.' },
-        { goal: 'They are back. Keep Apdex above 0.9 with Burn at $10.80/s or less.' },
+        {
+          goal: 'Ils sont de retour. Maintenez Apdex au-dessus de 0,9 avec dépenses à 10,80 $/s ou moins.',
+        },
       ],
     },
     'zone-outage': {
@@ -4113,7 +4113,7 @@ export const catalog: Messages['catalog'] = {
         { goal: 'Maintenez Apdex au-dessus de 0,9 pendant 90 secondes.' },
         { goal: 'Une zone échouera. Maintenez Apdex au-dessus de 0,85 pendant 2 minutes.' },
         {
-          goal: 'Demand is up 50%. A zone fails again. Keep Apdex above 0.85 with Burn at $22.20/s or less.',
+          goal: 'La demande augmente de 50 %. Une zone tombe encore en panne. Maintenez Apdex au-dessus de 0,85 avec dépenses à 22,20 $/s ou moins.',
         },
       ],
     },
@@ -4121,8 +4121,10 @@ export const catalog: Messages['catalog'] = {
       name: 'Démarrage à froid',
       objectives: [
         { goal: 'Maintenez Apdex au-dessus de 0,9 pendant 90 secondes.' },
-        { goal: 'A 4× spike is coming. Keep Apdex above 0.85 for 2 minutes.' },
-        { goal: 'Night traffic. Keep Apdex above 0.9 with Burn at $17.40/s or less.' },
+        { goal: 'Un pic de 4× arrive. Maintenez Apdex au-dessus de 0,85 pendant 2 minutes.' },
+        {
+          goal: 'Trafic de nuit. Maintenez Apdex au-dessus de 0,9 avec dépenses à 17,40 $/s ou moins.',
+        },
       ],
     },
     'stale-checkout': {
@@ -4143,15 +4145,15 @@ export const catalog: Messages['catalog'] = {
       name: 'Pauses du ramasse-miettes',
       objectives: [
         {
-          goal: 'Keep API reads under 110 ms at the p99 for 90 seconds.',
+          goal: 'Maintenez les lectures de l’API sous 110 ms au p99 pendant 90 secondes.',
           watch: { label: 'p99 en lecture' },
         },
         {
-          goal: 'The heap will fill. Keep API reads under 110 ms at the p99 for 2 minutes.',
+          goal: 'Le tas va se remplir. Maintenez les lectures de l’API sous 110 ms au p99 pendant 2 minutes.',
           watch: { label: 'p99 en lecture' },
         },
         {
-          goal: 'It fills again. Keep reads under 110 ms at the p99 with Burn at $93.20/s or less.',
+          goal: 'Il se remplit encore. Maintenez les lectures sous 110 ms au p99 avec dépenses à 93,20 $/s ou moins.',
           watch: { label: 'p99 en lecture' },
         },
       ],
@@ -4163,7 +4165,9 @@ export const catalog: Messages['catalog'] = {
         {
           goal: 'La base de données ralentira pendant 20 s. Récupérez les erreurs en dessous de 1 % et maintenez pendant 2 minutes.',
         },
-        { goal: 'It slows again. Get errors under 1% and hold with Burn at $197.00/s or less.' },
+        {
+          goal: 'Il ralentit encore. Ramenez les erreurs sous 1 % et tenez avec dépenses à 197,00 $/s ou moins.',
+        },
       ],
     },
     'analytics-primary': {
@@ -4173,7 +4177,9 @@ export const catalog: Messages['catalog'] = {
         {
           goal: 'Fin du trimestre : un rapport analysera chaque tableau. Maintenez Apdex au-dessus de 0,85 pendant 2 minutes.',
         },
-        { goal: 'Demand is up 50%. Keep Apdex above 0.9 with Burn at $254.00/s or less.' },
+        {
+          goal: 'La demande augmente de 50 %. Maintenez Apdex au-dessus de 0,9 avec dépenses à 254,00 $/s ou moins.',
+        },
       ],
     },
     'far-away': {
@@ -4181,7 +4187,7 @@ export const catalog: Messages['catalog'] = {
       objectives: [
         { goal: 'Servir chaque demande pendant 2 minutes.' },
         {
-          goal: 'Half your users live outside North America. Get API reads under 140 ms on average for 2 minutes.',
+          goal: 'La moitié de vos utilisateurs vivent hors d’Amérique du Nord. Ramenez les lectures de l’API sous 140 ms en moyenne pendant 2 minutes.',
           watch: { label: 'Moyenne en lecture' },
         },
       ],
@@ -4242,146 +4248,147 @@ export const catalog: Messages['catalog'] = {
     shoestring: {
       name: 'Stack Overflow avec trois fois rien',
       brief: 'Servez 800 rps avec au plus 12 nœuds.',
-      inspiredBy: 'Stack Overflow serving huge traffic from a small number of servers',
+      inspiredBy: 'Stack Overflow servant un trafic énorme avec un petit nombre de serveurs',
     },
     'n-plus-one': {
       name: 'Le N+1',
       brief: 'Rails avec des requêtes N+1. 12 heures de dev pour le corriger.',
-      inspiredBy: 'ORM lazy loading',
+      inspiredBy: 'Chargement paresseux des ORM',
     },
     'thirteen-engineers': {
       name: 'Treize ingénieurs',
       brief: 'Rails à 400 rps. 13 ingénieurs ont une journée : 104 heures de dev.',
-      inspiredBy: 'Instagram had 13 employees when Facebook acquired it (2012)',
+      inspiredBy: 'Instagram avait 13 employés lorsque Facebook l’a racheté (2012)',
     },
     'credential-stuffing': {
       name: 'Bourrage d’identifiants',
       brief:
         'Des bots essaient des mots de passe divulgués à la connexion. Gardez les vrais utilisateurs connectés.',
-      inspiredBy: 'Common attacks on login endpoints',
+      inspiredBy: 'Attaques courantes sur les points d’accès de connexion',
     },
     'black-friday': {
       name: 'Black Friday',
       brief: 'La demande triple à la minute 5 pendant 5 minutes. Dépensez le moins possible.',
-      inspiredBy: 'Retail peak days',
+      inspiredBy: 'Jours de pic du commerce de détail',
     },
     'us-east-1': {
       name: 'us-east-1',
-      brief: 'A zone dies at minute 5. Keep 99.9% of requests.',
-      inspiredBy: 'Several AWS us-east-1 outages',
+      brief: 'Une zone tombe à la minute 5. Servez 99,9 % des requêtes.',
+      inspiredBy: 'Plusieurs pannes d’AWS us-east-1',
     },
     'exactly-once': {
       name: 'Exactement une fois',
       brief:
         'Le prestataire de paiement ralentit à 2 s, deux fois. Débitez chaque achat une seule fois.',
-      inspiredBy: 'Payment idempotency',
+      inspiredBy: 'Idempotence des paiements',
     },
     'two-million-sockets': {
       name: 'Deux millions de sockets',
       brief:
         'Deux millions de connexions de chat ouvertes. Maintenez-les pour le moins de dollars possible.',
-      inspiredBy: 'Phoenix reached 2 million WebSocket connections on one server (2015)',
+      inspiredBy: 'Phoenix a atteint 2 millions de connexions WebSocket sur un seul serveur (2015)',
     },
     'pokemon-go': {
       name: 'Pokémon GO',
       brief: 'Jour du lancement : la demande atteint 50× la prévision en 10 minutes.',
-      inspiredBy: 'Pokémon GO launch traffic reached about 50× the planned target (2016)',
+      inspiredBy:
+        'Le trafic du lancement de Pokémon GO a atteint environ 50× l’objectif prévu (2016)',
     },
     'healthcare-launch': {
       name: 'Lancement du portail santé',
       brief: 'Le lancement est à la minute 2, et ce design a beaucoup de défauts. Trouvez-les.',
-      inspiredBy: 'The healthcare.gov launch (2013)',
+      inspiredBy: 'Le lancement de healthcare.gov (2013)',
     },
     'thundering-herd': {
       name: 'Troupeau tonitruant',
       brief:
         'Les serveurs de chat redémarrent à la minute 2. 240 000 clients se reconnectent et se connectent en même temps.',
-      inspiredBy: 'Reconnect storms',
+      inspiredBy: 'Tempêtes de reconnexion',
     },
     'read-states': {
       name: 'États de lecture',
       brief: 'Le tas se remplit deux fois. Gardez le p99 sous 90 ms. Tout runtime.',
-      inspiredBy: 'Discord moved a service from Go to Rust to remove GC spikes (2020)',
+      inspiredBy: 'Discord a migré un service de Go vers Rust pour supprimer les pics de GC (2020)',
     },
     'fail-whale': {
       name: 'La baleine de l’échec',
       brief: 'Servez les fils sous 200 ms au p99. Certains comptes ont 10 millions d’abonnés.',
-      inspiredBy: "Twitter's timeline scaling problems",
+      inspiredBy: 'Problèmes de mise à l’échelle de la timeline de Twitter',
     },
     'reports-at-noon': {
       name: 'Rapports à midi',
       brief:
         'La finance lance ses rapports sur le primaire aux minutes 2 et 5, et ils ne peuvent pas être annulés. Gardez les achats rapides.',
-      inspiredBy: 'Analytical queries on transactional databases',
+      inspiredBy: 'Requêtes analytiques sur des bases de données transactionnelles',
     },
     'gpu-economics': {
       name: 'Économie des GPU',
-      brief: 'Serve every AI prompt and keep 15% of revenue as margin.',
-      inspiredBy: 'Self-hosted inference against hosted APIs',
+      brief: 'Servez chaque prompt d’IA et gardez 15 % du revenu en marge.',
+      inspiredBy: 'Inférence auto-hébergée face aux API hébergées',
     },
     metastable: {
       name: 'Métastable',
       brief:
         'Une tempête de nouvelles tentatives est en cours. Rétablissez le service avec le moins de changements.',
-      inspiredBy: 'Metastable failures in distributed systems',
+      inspiredBy: 'Défaillances métastables dans les systèmes distribués',
     },
     'regex-of-doom': {
       name: 'La regex fatale',
       brief:
         'Une nouvelle règle WAF bloque chaque WAF à 100 % de CPU à la minute 2. Rétablissez le service.',
-      inspiredBy: 'Cloudflare outage, 2 July 2019',
+      inspiredBy: 'Panne de Cloudflare, 2 juillet 2019',
     },
     'forty-three-seconds': {
       name: '43 secondes',
       brief: 'Le lien entre les régions tombe à la minute 2. Gardez un seul leader.',
-      inspiredBy: 'GitHub network partition, 21 October 2018',
+      inspiredBy: 'Partition réseau de GitHub, 21 octobre 2018',
     },
     'follow-the-sun': {
       name: 'Suivre le soleil',
       brief:
         'Quatre régions, chacune avec son propre pic du soir, sur une journée. Dépensez moins de $700/s.',
-      inspiredBy: 'Global daily peaks',
+      inspiredBy: 'Pics quotidiens mondiaux',
     },
     celebrity: {
       name: 'Célébrité',
-      brief: 'A celebrity posts at minute 2. 30% of reads ask for one key.',
-      inspiredBy: 'Hot keys from viral accounts',
+      brief: 'Une célébrité publie à la minute 2. 30 % des lectures demandent une seule clé.',
+      inspiredBy: 'Clés très sollicitées issues de comptes viraux',
     },
     'gone-from-the-internet': {
       name: 'Disparu d’Internet',
       brief:
         'Un changement de routage à la minute 2 retire toutes les régions d’Internet. Rétablissez-les.',
-      inspiredBy: 'Facebook outage, 4 October 2021',
+      inspiredBy: 'Panne de Facebook, 4 octobre 2021',
     },
     'the-typo': {
       name: 'La faute de frappe',
       brief:
         'À la minute 2, une commande censée retirer un serveur retire tout le niveau Recherche.',
-      inspiredBy: 'Amazon S3 outage, 28 February 2017',
+      inspiredBy: 'Panne d’Amazon S3, 28 février 2017',
     },
     'leap-second': {
       name: 'Seconde intercalaire',
       brief:
         'À la minute 2, l’horloge en Asie-Pacifique répète une seconde. Chaque serveur d’application y tourne à 100 % de CPU. Gardez le p99 sous 380 ms.',
-      inspiredBy: 'The 2012 leap second',
+      inspiredBy: 'La seconde intercalaire de 2012',
     },
     'rule-of-40': {
       name: 'Règle des 40',
       brief:
         'Les utilisateurs augmentent de 25 % pendant la partie. Atteignez une croissance plus marge de 40 : gardez une marge de 15 %.',
-      inspiredBy: 'The SaaS Rule of 40',
+      inspiredBy: 'La règle des 40 du SaaS',
     },
     'postgres-for-everything': {
       name: 'Postgres pour tout',
       brief:
         'Servez chaque type avec Postgres comme seul stockage de données, avec un p99 sous 800 ms.',
-      inspiredBy: 'The "just use Postgres" argument',
+      inspiredBy: 'L’argument « utilisez simplement Postgres »',
     },
     'five-nines': {
       name: 'Cinq neuf',
       brief:
         'Quatre semaines : deux serveurs et une région tombent, et le trafic triple une fois. Servez 99,999 %.',
-      inspiredBy: '99.999% availability targets',
+      inspiredBy: 'Objectifs de disponibilité de 99,999 %',
     },
   },
 }

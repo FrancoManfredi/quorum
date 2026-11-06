@@ -17,4 +17,9 @@ export const inspectorDoc = {
   noneToPool: 'none to pool',
   latency: 'Latency',
   burn: 'Burn',
+  transactions: 'Transactions',
+  multiDocumentValue: 'multi-document',
+  oneDocumentValue: 'one document',
+  ofOpsPerSecond: (load: string | number, capacity: string | number) =>
+    `${load} of ${capacity} ops/s`,
 }

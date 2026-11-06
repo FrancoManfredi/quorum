@@ -108,4 +108,7 @@ export const panels = {
   playtestPanel: 'Playtest panel',
   esc: 'Esc',
   backOutThenMenu: 'Back out, then Menu',
+  shiftT: 'Shift+T',
+  shiftF: 'Shift+F',
+  pauseOnBlur: 'Pause when the window loses focus',
 }

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
-import { inertHtml } from 'foldkit/html'
 import * as Catalog from '@quorum/simulation/catalog'
 import { CHALLENGES } from '@quorum/simulation/challenges'
 import { GUIDED, TRACKS } from '@quorum/simulation/sandbox'
@@ -245,24 +244,5 @@ describe('localized presentation', () => {
       }),
       Scene.expect(Scene.text(fr_.catalog.glossary['load-balancer']!.term)).toExist(),
     )
-  })
-
-  test('French localizes accessible copy while preserving input values, links, events and keys', () => {
-    const h = localizeBuilder('fr', inertHtml)
-    const node = h.input([
-      h.Key('Research'),
-      h.Value('Research'),
-      h.Placeholder('Search…'),
-      h.AriaLabel('Research'),
-      h.Title('Research'),
-    ])!
-    const localized = node
-    expect(localized.key).toBe('Research')
-    expect(localized.data?.props).toMatchObject({
-      value: 'Research',
-      placeholder: 'Rechercher…',
-      title: 'Recherche',
-    })
-    expect(localized.data?.attrs?.['aria-label']).toBe('Recherche')
   })
 })

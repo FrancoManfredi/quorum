@@ -7,4 +7,11 @@ export const inspectorPayments = {
   subscriptions: 'Subscriptions',
   burn: 'Burn',
   salaries: 'Salaries',
+  provider: 'Provider',
+  firstProvider: 'First',
+  secondProvider: 'Second',
+  aSecondProviderCharges: (extra: string | number) =>
+    `A second provider charges ${extra}% more per checkout and keeps serving when the first is down.`,
+  oneProviderTakesEveryCheckout:
+    'One provider takes every checkout. When it is down, checkouts fail until it is back.',
 }

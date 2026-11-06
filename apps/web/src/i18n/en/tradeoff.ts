@@ -24,4 +24,6 @@ export const tradeoff = {
   horizontalScaling: 'horizontal scaling',
   techDebt: 'tech debt',
   n1Query: 'N+1 query',
+  burnChange: (change: string | number) => `Burn ${change}`,
+  restartsCold: (time: string | number) => `restarts cold for ${time}`,
 }

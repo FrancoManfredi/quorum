@@ -47,9 +47,7 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             [
               picker(
                 'search-shards',
-                SEARCH_SHARDS.map(
-                  (count) => [count, `${count} shard${count === 1 ? '' : 's'}`] as const,
-                ),
+                SEARCH_SHARDS.map((count) => [count, t.inspectorSearch.shardCount(count)] as const),
                 node.searchShards,
                 (searchShards) => Message.SearchOptionsChosen({ nodeId: node.id, searchShards }),
                 h,
@@ -59,7 +57,7 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               picker(
                 'search-replicas',
                 SEARCH_REPLICAS.map(
-                  (count) => [count, `${count} replica${count === 1 ? '' : 's'}`] as const,
+                  (count) => [count, t.inspectorSearch.replicaCount(count)] as const,
                 ),
                 node.searchReplicas,
                 (searchReplicas) =>
@@ -78,7 +76,7 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               picker(
                 'search-heap',
                 (Object.keys(SEARCH_HEAPS) as ReadonlyArray<SearchHeap>).map(
-                  (id) => [id, SEARCH_HEAPS[id].name] as const,
+                  (id) => [id, t.inspectorSearch.heaps[id]] as const,
                 ),
                 node.heap,
                 (heap) => Message.SearchOptionsChosen({ nodeId: node.id, heap }),

@@ -7,7 +7,7 @@ import type { Game, GameNode } from '@quorum/simulation/state'
 import { money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
-import { type Panel, caption, percent, section } from './shared.ts'
+import { type Panel, caption, percent, percentNumber, section } from './shared.ts'
 
 /** The Service Mesh's members and what each sidecar costs them (05 "Service Mesh"). */
 const sidecars = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
@@ -29,7 +29,11 @@ const sidecars = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [
-            `Each sidecar retries and breaks the Links out of its Node, watches them for Insight (+${percent(MESH_INSIGHT)}), adds ${MESH_HOP_MS} ms to each hop, and takes ${percent(MESH_OVERHEAD)} of the box's CPU. Every member's Burn pays for its sidecar, and each mesh takes Platform Dev Hours.`,
+            t.inspectorMesh.eachSidecarRetries(
+              percentNumber(MESH_INSIGHT),
+              t.units.ms(MESH_HOP_MS),
+              percentNumber(MESH_OVERHEAD),
+            ),
           ],
         ),
         caption(t.inspectorMesh.mutualTLSSitsOnEveryMember, h),
@@ -48,7 +52,7 @@ export const meshPanel: Panel = {
     const sidecars = members.length
     return [
       row(t.inspectorMesh.sidecars, `${sidecars}`, sidecars === 0 ? 'warn' : 'plain', h),
-      row(t.inspectorMesh.perHop, `+${MESH_HOP_MS} ms`, 'plain', h),
+      row(t.inspectorMesh.perHop, `+${t.units.ms(MESH_HOP_MS)}`, 'plain', h),
       row(t.inspectorMesh.memberCPU, `−${percent(MESH_OVERHEAD)}`, 'plain', h),
       row(t.inspectorMesh.insight, t.inspectorMesh.onItsLinks(percent(MESH_INSIGHT)), 'ok', h),
       row(

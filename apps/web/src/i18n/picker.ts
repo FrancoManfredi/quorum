@@ -5,7 +5,8 @@ import { Check, ChevronDown } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
 import { Message } from '../game/message.ts'
 import { languageListbox } from './listbox.ts'
-import { supportedLocales, translate, type Locale } from './index.ts'
+import { supportedLocales, type Locale } from './index.ts'
+import { copyIn } from './messages.ts'
 
 /** The interface language, in Settings. */
 export const languagePicker = (locale: Locale, model: Listbox.Model, h: HtmlBuilder<Message>) =>
@@ -22,7 +23,7 @@ export const languagePicker = (locale: Locale, model: Listbox.Model, h: HtmlBuil
           itemToValue: (choice) => choice.value,
           itemToSearchText: (choice) => choice.label,
           maybeSelectedValue: Option.some(locale),
-          ariaLabel: translate(locale, 'Language'),
+          ariaLabel: copyIn(locale).panels.language,
           // Settings clips its overflow, so the menu portals out of it.
           anchor: { placement: 'bottom-end', gap: 6, portal: true },
           buttonClassName:

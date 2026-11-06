@@ -83,4 +83,5 @@ export const zhCNCurrent: Readonly<Record<string, string>> = {
   'You were out for {0}': '你离开了 {0}',
   'Quick note for the record: the Company ran for {0} without you.':
     '备忘：公司在没有你的情况下运行了 {0}。',
+  'Add to backlog': '加入待办',
 }

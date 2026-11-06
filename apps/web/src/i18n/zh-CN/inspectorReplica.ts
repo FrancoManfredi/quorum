@@ -5,4 +5,6 @@ export const inspectorReplica: Messages['inspectorReplica'] = {
   asynchronous: '异步',
   synchronous: '同步',
   noWriteCostAndTheReplica: '没有写入开销,但副本会滞后:写后读可能读到旧数据。',
+  everyWriteWaits: (wait) =>
+    `每次写入都要等待此副本 ${wait}，跨可用区和区域时更久。它不会提供过期读取，而它宕机时写入会停滞。`,
 }

@@ -1,4 +1,5 @@
-import { copy, insightName, localized } from '@/i18n/messages.ts'
+import { formats } from '@/i18n/format.ts'
+import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BellOff,
@@ -19,7 +20,7 @@ import type { AlertRule } from '@quorum/simulation/events'
 import { has } from '@quorum/simulation/lookups'
 import { ignored } from '@quorum/simulation/step'
 import type { Game, Postmortem } from '@quorum/simulation/state'
-import { alertText, compact, money } from '@quorum/ui/game/format'
+import { compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
 import { recipeOf } from '@quorum/ui/game/pools'
@@ -49,14 +50,17 @@ const cause = (game: Game, h: HtmlBuilder<Message>): Html => {
     [h.Key('cascade'), h.Class(cn('flex items-center gap-1.5 py-1 pr-2.5 pl-2', PANEL))],
     [
       icon(h, ChevronRight, 'size-3.5 text-warn'),
-      h.span([h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')], ['After']),
+      h.span(
+        [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+        [t.incidents.after],
+      ),
       h.span(
         [h.Class('text-[calc(12.5px*var(--type-scale))] font-semibold')],
         [t.catalog.incidents[kind].name],
       ),
       h.span(
         [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-        ['left alone'],
+        [t.incidents.leftAlone],
       ),
     ],
   )
@@ -97,7 +101,11 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
                   h.DataAttribute('exit', 'notice'),
                   h.Class('swap whitespace-nowrap'),
                 ],
-                [firing.map((rule) => alertText(rule, game.alertRules[rule])).join(' · ')],
+                [
+                  firing
+                    .map((rule) => formats(t).alertText(rule, game.alertRules[rule]))
+                    .join(' · '),
+                ],
               ),
             ],
           )
@@ -115,7 +123,7 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
           ],
           [
             icon(h, BellOff, 'size-3.5 text-muted-foreground'),
-            h.span([h.Class('font-medium')], [alertText(rule, game.alertRules[rule])]),
+            h.span([h.Class('font-medium')], [formats(t).alertText(rule, game.alertRules[rule])]),
             badge({ variant: 'warn' }, [t.incidents.ignored], h),
             h.div(
               [h.Class(cn('flex gap-[3px] rounded-lg p-[3px]', WELL))],
@@ -193,40 +201,52 @@ export const badDeploy = (model: Model, h: HtmlBuilder<Message>): Html => {
 /** An expired certificate on screen: every request fails until it is renewed. */
 /** Incidents one action ends, with no Node to select: a banner with the fix. */
 const BANNERS = {
-  certificate: { label: 'Renew', message: Message.CertificateRenewed() },
-  bgp: { label: 'Roll back', message: Message.RoutesRolledBack() },
-  config: { label: 'Roll back', message: Message.ConfigRolledBack() },
-  partition: { label: 'Fence leader', message: Message.LeaderFenced() },
-  'migration-lock': { label: 'Cancel migration', message: Message.SchemaMigrationCancelled() },
-  'supply-chain': { label: 'Pin and redeploy', message: Message.DependencyPinned() },
-  'accidental-delete': { label: 'Restore', message: Message.TableRestored() },
-  'leap-second': { label: 'Restart Nodes', message: Message.ClocksRestarted() },
-  loop: { label: 'Move login', message: Message.KindMoved() },
-  zone: { label: 'Fail over', message: Message.ZoneFailedOver() },
-  region: { label: 'Fail over', message: Message.RegionFailedOver() },
-  'dr-drill': { label: 'Fail over', message: Message.RegionFailedOver() },
+  certificate: { label: (t: Messages) => t.incidents.renew, message: Message.CertificateRenewed() },
+  bgp: { label: (t: Messages) => t.incidents.rollBack, message: Message.RoutesRolledBack() },
+  config: { label: (t: Messages) => t.incidents.rollBack, message: Message.ConfigRolledBack() },
+  partition: { label: (t: Messages) => t.incidents.fenceLeader, message: Message.LeaderFenced() },
+  'migration-lock': {
+    label: (t: Messages) => t.incidents.cancelMigration,
+    message: Message.SchemaMigrationCancelled(),
+  },
+  'supply-chain': {
+    label: (t: Messages) => t.incidents.pinAndRedeploy,
+    message: Message.DependencyPinned(),
+  },
+  'accidental-delete': {
+    label: (t: Messages) => t.incidents.restore,
+    message: Message.TableRestored(),
+  },
+  'leap-second': {
+    label: (t: Messages) => t.incidents.restartNodes,
+    message: Message.ClocksRestarted(),
+  },
+  loop: { label: (t: Messages) => t.incidents.moveLogin, message: Message.KindMoved() },
+  zone: { label: (t: Messages) => t.incidents.failOver, message: Message.ZoneFailedOver() },
+  region: { label: (t: Messages) => t.incidents.failOver, message: Message.RegionFailedOver() },
+  'dr-drill': { label: (t: Messages) => t.incidents.failOver, message: Message.RegionFailedOver() },
 } as const
 
 /** Incidents one action on the Node they hit ends: the banner presses it for that Node. */
 const NODE_BANNERS = {
   'stale-opcache': {
-    label: 'Restart',
+    label: (t: Messages) => t.incidents.restart,
     message: (nodeId: string) => Message.RestartChosen({ nodeId }),
   },
   'gevent-compat': {
-    label: 'Restart',
+    label: (t: Messages) => t.incidents.restart,
     message: (nodeId: string) => Message.RestartChosen({ nodeId }),
   },
   'bun-compat': {
-    label: 'Restart',
+    label: (t: Messages) => t.incidents.restart,
     message: (nodeId: string) => Message.RestartChosen({ nodeId }),
   },
   'split-brain': {
-    label: 'Restart Hub',
+    label: (t: Messages) => t.incidents.restartHub,
     message: (nodeId: string) => Message.RestartChosen({ nodeId }),
   },
   reconnect: {
-    label: 'Throttle connects',
+    label: (t: Messages) => t.incidents.throttleConnects,
     message: (nodeId: string) => Message.ConnectsThrottled({ nodeId }),
   },
 } as const
@@ -255,7 +275,7 @@ export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
         h.span([], [t.catalog.incidents[incident.kind].name]),
         button(
           { onClick: onNode.message(nodeId), size: 'sm', variant: 'outline' },
-          [icon(h, FileBadge, 'size-3.5'), onNode.label],
+          [icon(h, FileBadge, 'size-3.5'), onNode.label(t)],
           h,
         ),
       ],
@@ -274,7 +294,7 @@ export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.span([], [t.catalog.incidents[kind].name]),
       button(
         { onClick: banner.message, size: 'sm', variant: 'outline' },
-        [icon(h, FileBadge, 'size-3.5'), banner.label],
+        [icon(h, FileBadge, 'size-3.5'), banner.label(t)],
         h,
       ),
     ],
@@ -332,8 +352,10 @@ const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Messag
 }
 
 /** A recorded time in calendar minutes, or a dash when the Game has none (an old save, no signal). */
-const minutesOf = (seconds: number | null | undefined): string =>
-  seconds === null || seconds === undefined ? '—' : `${Math.round(Math.max(0, seconds))}m`
+const minutesOf = (t: Messages, seconds: number | null | undefined): string =>
+  seconds === null || seconds === undefined
+    ? '—'
+    : t.units.minShort(Math.round(Math.max(0, seconds)))
 
 /** A postmortem: one compact row with its action item, the details folded away. */
 const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
@@ -391,18 +413,16 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
           postmortem.causedBy
             ? h.p(
                 [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-warn')],
-                [
-                  `Followed ${t.catalog.incidents[postmortem.causedBy].name}, which was left alone.`,
-                ],
+                [t.incidents.followedLeftAlone(t.catalog.incidents[postmortem.causedBy].name)],
               )
             : h.empty,
           h.div(
             [h.Class(`grid grid-cols-3 divide-x divide-hairline ${WELL}`)],
             (
               [
-                ['MTTD', Radar, minutesOf(postmortem.mttd)],
-                ['MTTA', BellRing, minutesOf(postmortem.mtta)],
-                ['MTTR', Timer, minutesOf(postmortem.mttr)],
+                ['MTTD', Radar, minutesOf(t, postmortem.mttd)],
+                ['MTTA', BellRing, minutesOf(t, postmortem.mtta)],
+                ['MTTR', Timer, minutesOf(t, postmortem.mttr)],
               ] as const
             ).map(([name, glyph, value]) =>
               h.div(

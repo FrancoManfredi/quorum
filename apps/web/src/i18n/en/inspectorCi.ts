@@ -11,4 +11,5 @@ export const inspectorCi = {
   upTo: (p0: string | number | null) => `up to ${p0}`,
   burn: 'Burn',
   s: (p0: string | number | null) => `${p0}/s`,
+  perDay: (count: string | number) => `${count}/day`,
 }

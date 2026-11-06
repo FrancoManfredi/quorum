@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorMesh: Messages['inspectorMesh'] = {
@@ -8,9 +7,11 @@ export const inspectorMesh: Messages['inspectorMesh'] = {
   perHop: '每跳',
   memberCPU: '成员 CPU',
   insight: '洞察',
-  onItsLinks: (p0) => `在链路上 +${arg(p0)}`,
+  onItsLinks: (p0) => `在链路上 +${p0}`,
   platform: '平台',
-  engineers: (p0) => `${arg(p0)} 名工程师`,
+  engineers: (p0) => `${p0} 名工程师`,
   burn: '支出',
-  s: (p0) => `${arg(p0)}/秒`,
+  s: (p0) => `${p0}/秒`,
+  eachSidecarRetries: (insight, hop, overhead) =>
+    `每个边车都会重试并熔断其节点发出的链路，监视这些链路以获取洞察（+${insight}%），为每一跳增加 ${hop}，并占用机器 ${overhead}% 的 CPU。每个成员的支出要为它的边车买单，每个网格还会占用平台开发工时。`,
 }

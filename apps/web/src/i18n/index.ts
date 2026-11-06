@@ -83,9 +83,3 @@ const translateUncached = (locale: Exclude<Locale, 'en'>, text: string): string 
   }
   return text
 }
-
-/** Fills a value into a message in this language: values from the Simulation are English text. */
-export const inLanguage =
-  (locale: Locale) =>
-  (value: unknown): string =>
-    translate(locale, String(value))

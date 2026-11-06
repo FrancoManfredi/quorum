@@ -16,4 +16,12 @@ export const inspectorFf = {
   badDeploy: 'Bad deploy',
   burn: 'Burn',
   s: (p0: string | number | null) => `${p0}/s`,
+  aBadDeployFails: (
+    failing: string | number,
+    service: string,
+    features: number,
+    ceiling: string | number,
+  ) =>
+    `A bad deploy fails ${failing}% of requests for each Feature its batch shipped, and a flag cuts that to the share of users it reached. The last deploy of ${service} shipped ${features} Feature${features === 1 ? '' : 's'}, so its ceiling is ${ceiling}%. Only that Service's traffic breaks.`,
+  upToOfItsTraffic: (share: string | number) => `up to ${share}% of its traffic`,
 }

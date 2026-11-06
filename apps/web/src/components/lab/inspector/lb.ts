@@ -12,7 +12,6 @@ import { has } from '@quorum/simulation/lookups'
 import type { Game, GameNode, LbPolicy } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
 import {
-  KIND_SHORT,
   type Panel,
   caption,
   choice,
@@ -86,16 +85,14 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
           h,
         ),
         caption(
-          node.sticky
-            ? 'A user stays on the target it first reached. The oldest copy holds the most users, a target that dies takes its sessions with it, and in-process caches and realtime clients stay warm.'
-            : t.inspectorLb.everyRequestGoesWhereTheAlgorithm,
+          node.sticky ? t.inspectorLb.stickyHolds : t.inspectorLb.everyRequestGoesWhereTheAlgorithm,
           h,
         ),
       ],
       h,
     ),
     section(
-      'Slow start',
+      t.inspectorLb.slowStart,
       [
         picker(
           'slow-start',
@@ -107,12 +104,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
           (slowStart) => Message.SlowStartChosen({ nodeId: node.id, slowStart }),
           h,
         ),
-        caption(
-          node.slowStart
-            ? 'A new copy takes traffic gradually, so a cold Java copy never answers at its cold speed.'
-            : 'A new copy takes its full share at once.',
-          h,
-        ),
+        caption(node.slowStart ? t.inspectorLb.slowStartOn : t.inspectorLb.slowStartOff, h),
       ],
       h,
     ),
@@ -164,7 +156,12 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
                   carried.includes(kind),
                   next === null || next.length > 0,
                   Message.LinkKindsChosen({ from: node.id, to: link.to, kinds: next }),
-                  [h.span([h.Class('w-full truncate text-center')], [KIND_SHORT[kind]])],
+                  [
+                    h.span(
+                      [h.Class('w-full truncate text-center')],
+                      [t.inspectorShared.kindShort[kind]],
+                    ),
+                  ],
                   t.catalog.kinds[kind].label,
                   h,
                 )

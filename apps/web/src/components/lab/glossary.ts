@@ -1,16 +1,18 @@
-import { copy, localeOf, type Messages } from '@/i18n/messages.ts'
+import { copy, type Messages } from '@/i18n/messages.ts'
 import { GlossaryMessage } from '@/game/glossary.ts'
-import { translate } from '@/i18n/index.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ArrowUpRight, Check, Search } from 'lucide'
 import {
+  CVE_DEFS,
   GLOSSARY,
   GLOSSARY_CATEGORIES,
   type GlossaryCategory,
+  patchCost,
+  patchWindow,
   type GlossaryEntry,
 } from '@quorum/simulation/catalog'
 import { Message } from '@/game/message.ts'
-import { CVE_TERMS } from '@/game/advisories.ts'
+import { CVE_TERMS, cveTermId } from '@/game/advisories.ts'
 import type { Model } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
@@ -39,15 +41,23 @@ const categoryName = (t: Messages, category: GlossaryCategory): string =>
 
 type Words = Readonly<{ term: string; definition: string; inGame: string }>
 
-/** The entry's words in the builder's language: the catalog has them by id; an advisory is composed at runtime. */
+/** The entry's words in the builder's language: the catalog has them by id; an advisory is told from its CVE. */
 const wordsOf = (entry: GlossaryEntry, h: HtmlBuilder<Message>): Words => {
-  const own = copy(h).catalog.glossary[entry.id]
+  const t = copy(h)
+  const own = t.catalog.glossary[entry.id]
   if (own) return own
-  const locale = localeOf(h)
+  const def = CVE_DEFS.find((cve) => cveTermId(cve.id) === entry.id)
+  if (!def) return { term: entry.term, definition: entry.definition, inGame: entry.inGame }
   return {
-    term: translate(locale, entry.term),
-    definition: translate(locale, entry.definition),
-    inGame: translate(locale, entry.inGame),
+    term: entry.term,
+    definition: t.glossary.cveDefinition(
+      def.score,
+      def.affects.map((id) => t.catalog.components[id].name).join(', '),
+    ),
+    inGame: t.glossary.cveInGame(
+      t.units.devHours(patchCost(def.score)),
+      Math.round(patchWindow(def.score) / 60),
+    ),
   }
 }
 

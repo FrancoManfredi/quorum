@@ -40,7 +40,7 @@ export const ciPanel: Panel = {
 
     const strategy = DEPLOY_STRATEGIES[node.strategy]
     return [
-      row(t.inspectorCi.deploys, `${deploysPerDay(game).toFixed(1)}/day`, 'plain', h),
+      row(t.inspectorCi.deploys, t.inspectorCi.perDay(deploysPerDay(game).toFixed(1)), 'plain', h),
       row(t.inspectorCi.deployTime, t.inspectorCi.min(strategy.deployMinutes), 'plain', h),
       row(
         t.inspectorCi.blastRadius,

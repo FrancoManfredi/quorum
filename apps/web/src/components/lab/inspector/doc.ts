@@ -1,9 +1,10 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { DOC_JOIN_COST, DOC_SHAPE_DH } from '@quorum/simulation/catalog'
 import { burnOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
-import { money, ms, rate } from '@quorum/ui/game/format'
+import { money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, caption, percent, picker, section } from './shared.ts'
@@ -13,7 +14,7 @@ const documents = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonl
   const t = copy(h)
   return [
     section(
-      'Transactions',
+      t.inspectorDoc.transactions,
       [
         picker(
           'transactions',
@@ -63,20 +64,23 @@ export const docPanel: Panel = {
       row(
         t.inspectorDoc.load,
         own.inbound > 0
-          ? `${percent(Math.min(own.utilization, 9.99))} of ${rate(own.capacity)} ops/s`
+          ? t.inspectorDoc.ofOpsPerSecond(
+              percent(Math.min(own.utilization, 9.99)),
+              rate(own.capacity),
+            )
           : t.inspectorDoc.idle,
         own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
         h,
       ),
       row(t.inspectorDoc.joins, t.inspectorDoc.s(rate(ops)), ops > 0 ? 'warn' : 'plain', h),
       row(
-        'Transactions',
-        node.transactions ? 'multi-document' : 'one document',
+        t.inspectorDoc.transactions,
+        node.transactions ? t.inspectorDoc.multiDocumentValue : t.inspectorDoc.oneDocumentValue,
         node.transactions ? 'plain' : 'warn',
         h,
       ),
       row(t.inspectorDoc.connections, t.inspectorDoc.noneToPool, 'ok', h),
-      row(t.inspectorDoc.latency, ms(own.latency), 'plain', h),
+      row(t.inspectorDoc.latency, formats(t).ms(own.latency), 'plain', h),
       row(t.inspectorDoc.burn, t.inspectorDoc.s(money(burnOf(game, node))), 'plain', h),
     ]
   },

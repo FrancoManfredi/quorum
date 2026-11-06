@@ -1,3 +1,5 @@
+import type { SearchHeap } from '@quorum/simulation/state'
+
 export const inspectorSearch = {
   product: 'Product',
   fullFeaturesOnAJVMShards: 'Full features on a JVM: shards, replicas, and a heap to tune.',
@@ -16,4 +18,10 @@ export const inspectorSearch = {
     'A new document is searchable within a second, at the cost of indexing CPU.',
   aNewDocumentWaitsUpTo: (p0: string | number | null) =>
     `A new document waits up to ${p0} s: indexing is cheaper, and answers are staler.`,
+  shardCount: (count: number) => `${count} shard${count === 1 ? '' : 's'}`,
+  replicaCount: (count: number) => `${count} replica${count === 1 ? '' : 's'}`,
+  heaps: { small: '25% of RAM', half: '50% of RAM', large: '75% of RAM' } satisfies Record<
+    SearchHeap,
+    string
+  >,
 }

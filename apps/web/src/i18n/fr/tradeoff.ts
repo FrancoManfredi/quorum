@@ -1,11 +1,10 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const tradeoff: Messages['tradeoff'] = {
   sixAxesNowAndWithThis: 'Six axes : maintenant et avec cette option',
   cancelEscape: 'Annuler (Échap)',
   migrationDHAcrossAllAppServers: (p0) =>
-    `Migration : ${arg(p0)} DH pour tous les serveurs applicatifs. Le développement ralentit et le déploiement peut révéler des bugs. Après le démarrage, gérez le travail et le trafic dans Équipe.`,
+    `Migration : ${p0} DH pour tous les serveurs applicatifs. Le développement ralentit et le déploiement peut révéler des bugs. Après le démarrage, gérez le travail et le trafic dans Équipe.`,
   confirmEnter: 'Confirmer (Entrée)',
   startMigration: 'Démarrer la migration',
   confirm: 'Confirmer',
@@ -27,4 +26,6 @@ export const tradeoff: Messages['tradeoff'] = {
   horizontalScaling: 'mise à l’échelle horizontale',
   techDebt: 'dette technique',
   n1Query: 'requête N+1',
+  burnChange: (change) => `Dépenses ${change}`,
+  restartsCold: (time) => `redémarrage à froid pour ${time}`,
 }

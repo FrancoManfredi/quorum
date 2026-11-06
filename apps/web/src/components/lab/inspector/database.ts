@@ -1,4 +1,4 @@
-import { copy } from '@/i18n/messages.ts'
+import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BACKUPS,
@@ -17,11 +17,20 @@ import { button } from '@quorum/ui/primitives/button'
 import { type Panel, caption, engine, picker, section } from './shared.ts'
 
 /** What a shard key does to the load, in one line. */
-const shardKeyNote = (node: GameNode): string => {
+const shardKeyNote = (t: Messages, node: GameNode): string => {
   const sharding = shardingOf(node)
   const hot = Math.round(sharding.hot * 100)
   const cross = Math.round(sharding.cross * 100)
-  return `The busiest shard takes ${hot}% of the writes. ${cross}% of transactions span shards, so they cost up to 3× and can fail on any shard. Reports and searches touch every shard: +${Math.round((sharding.scatter - 1) * 100)}% CPU and +${sharding.scatterMs} ms.${sharding.farMs > 0 ? ` Users in other regions wait ${Math.round(sharding.farMs)} ms more.` : ''}`
+  const far =
+    sharding.farMs > 0
+      ? ` ${t.inspectorDatabase.usersInOtherRegionsWait(t.units.ms(Math.round(sharding.farMs)))}`
+      : ''
+  return `${t.inspectorDatabase.theBusiestShardTakes(
+    hot,
+    cross,
+    Math.round((sharding.scatter - 1) * 100),
+    t.units.ms(sharding.scatterMs),
+  )}${far}`
 }
 
 /** A Database's engine, its volume, and its shards (07 "Variants", "Capacity", "Partitioning"). */
@@ -65,7 +74,7 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         ),
         caption(
           shards > 1
-            ? `Writes divide across ${shards} shards, and each one bills. Changing the count or the key takes ${RESHARD_DH} Dev Hours and a copy of the data that halves the volume's IOPS.`
+            ? t.inspectorDatabase.writesDivideAcross(shards, RESHARD_DH)
             : t.inspectorDatabase.onePrimaryAReadReplicaIs,
           h,
         ),
@@ -88,7 +97,7 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
                 () => true,
                 'grid-cols-2',
               ),
-              caption(shardKeyNote(node), h),
+              caption(shardKeyNote(t, node), h),
             ],
             h,
           ),

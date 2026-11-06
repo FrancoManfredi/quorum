@@ -17,7 +17,7 @@ export const catalog: Messages['catalog'] = {
     'big-rewrite': { name: '大重写', condition: '在一家公司内把所有服务迁移到新语言' },
     strangler: { name: '绞杀者', condition: '分四步切换流量完成迁移，且错误率低于 1%' },
     quorum: { name: 'Quorum', condition: '跨三个区域运行 R + W > N 的宽列存储' },
-    eventually: { name: '最终一致', condition: 'Run R = 1, W = 1 at a billion users' },
+    eventually: { name: '最终一致', condition: '在十亿用户规模下运行 R = 1、W = 1' },
     polyglot: { name: '多语言专家', condition: '同时在生产环境运行五种语言' },
     'zero-gc': { name: '零垃圾回收', condition: '运行一个承受 100,000 rps 的 Rust 服务' },
     'no-cache': { name: '无缓存', condition: '不使用缓存和 CDN 达到 A 轮' },
@@ -43,7 +43,7 @@ export const catalog: Messages['catalog'] = {
     'default-alive': { name: '默认可持续', condition: '不接受任何融资完成 IPO' },
     unicorn: { name: '独角兽', condition: '达到 10 亿美元估值' },
     decacorn: { name: '超级独角兽', condition: '达到 100 亿美元估值' },
-    'everyone-online': { name: '人人在线', condition: 'Reach 6 billion users' },
+    'everyone-online': { name: '人人在线', condition: '达到 60 亿用户' },
     'warm-start': { name: '热启动', condition: '在流量高峰期间扩容 JVM 服务，且 p99 没有退化' },
     'rule-of-40': { name: '40 法则', condition: '作为上市公司，让“40 法则”得分达到 80' },
     'beat-and-raise': { name: '超预期并上调指引', condition: '连续八个季度超出业绩指引' },
@@ -504,7 +504,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '仪表盘的每张时间序列图都会用带标签的竖线标出五类事件：架构变更（蓝色，每次仍可撤销的变更各一条）、部署（紫色）、故障（红色）、研究（绿色）和公司事件（粉色）。变量栏中每组都有一个开关可将其隐藏。用这些线确认曲线是在修复后才发生变化，而不是修复前。',
       links: [{ label: 'Grafana 文档：为可视化图表添加注释' }],
-      design: [{ label: 'Dashboard annotations' }],
+      design: [{ label: '仪表盘标注' }],
     },
     anycast: {
       term: '任播',
@@ -530,7 +530,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'New Relic 文档：Apdex' },
         { label: 'Apdex 用户组织' },
       ],
-      design: [{ label: 'Apdex and revenue' }],
+      design: [{ label: 'Apdex 与收入' }],
     },
     'async-io': {
       term: '异步 I/O',
@@ -543,7 +543,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Python 文档：asyncio' },
         { label: '维基百科' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: '并发模型' }],
     },
     'at-least-once-delivery': {
       term: '至少一次投递',
@@ -556,7 +556,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'RabbitMQ：消费者确认' },
         { label: 'RabbitMQ：可靠性指南' },
       ],
-      design: [{ label: 'Delivery semantics' }],
+      design: [{ label: '投递语义' }],
     },
     autoscaling: {
       term: '自动扩缩容',
@@ -607,7 +607,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'OWASP：密码存储速查表' },
         { label: '维基百科' },
       ],
-      design: [{ label: 'Request kinds' }],
+      design: [{ label: '请求类型' }],
     },
     'binary-rpc': {
       term: '二进制 RPC',
@@ -616,7 +616,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究服务间二进制 RPC 后，应用服务器或工作进程为每次内部调用做序列化所花的 CPU 减半：每次调用的参考成本从 0.02 毫秒降到 0.01 毫秒（两者都是提议值，因为研究之前游戏没有序列化成本）。它体现在发出调用的节点的 CPU 仪表上，因此 CPU 吃紧的设计可以在同样的机器上服务更多请求。',
       links: [{ label: 'gRPC 文档：gRPC 简介' }],
-      design: [{ label: 'Performance research' }],
+      design: [{ label: '性能研究' }],
     },
     'bgp-border-gateway-protocol': {
       term: 'BGP（边界网关协议）',
@@ -636,16 +636,16 @@ export const catalog: Messages['catalog'] = {
       definition:
         '一次故障所影响的系统、用户或流量的范围。可用区、单元架构和小批量部署等故障隔离措施，可以缩小故障影响范围。',
       inGame:
-        'A Zone outage takes down every Node in that zone. With Multiple zones you can spread copies across three zones and give a data Node a Standby that takes over in seconds. A Bad deploy fails 8% of App Server requests for each item it shipped, up to 40%, so smaller deploys break less. It fails only the traffic of the Service that shipped it. On Node.js one slow request stalls every request on its event loop, while BEAM keeps each request apart.',
+        '可用区故障会让该可用区内的每个节点宕机。启用多可用区后，可以把副本分散到三个可用区，并为数据节点配置几秒内接管的备用节点。部署出错时，每个随版本发布的项目会让应用服务器 8% 的请求失败，上限 40%，因此部署越小，出错越少。它只会让发布该版本的服务的流量失败。在 Node.js 上，一个慢请求会拖住同一事件循环上的所有请求，而 BEAM 会让每个请求彼此隔离。',
       links: [{ label: 'AWS Well-Architected：使用故障隔离' }, { label: 'AWS 白皮书：单元架构' }],
-      design: [{ label: 'Language profiles' }, { label: 'CI/CD 流水线' }],
+      design: [{ label: '语言特性' }, { label: 'CI/CD 流水线' }],
     },
     'blue-green-deployment': {
       term: '蓝绿部署',
       definition:
         '一种使用两套完全相同的生产环境的发布方式。将新版本部署到空闲环境，再一次性把全部流量切过去；出问题时再切回来，因此回滚很快。',
       inGame:
-        "The CI/CD Pipeline offers Blue-green as a deploy strategy. The old fleet keeps serving while the new one comes up and is checked, so a Bad deploy breaks at most 10% of App Server requests. A deploy takes 7 minutes and bills twice the Pipeline's Burn.",
+        'CI/CD 流水线提供蓝绿部署作为部署策略。新的机群启动并通过检查期间，旧机群继续提供服务，因此部署出错时最多让应用服务器 10% 的请求失败。一次部署耗时 7 分钟，并按流水线两倍的支出计费。',
       links: [
         { label: 'Martin Fowler：蓝绿部署' },
         { label: 'AWS 白皮书：蓝绿部署' },
@@ -669,7 +669,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '团队的有效人数为 n / (1 + 0.08(n − 1) + 0.0004·n(n − 1))，因此 8 人的效率约等于 5 人，人数超过约 48 人后，团队反而会变慢。新员工在第一个日历周也只有 30% 的工作效率。此惩罚在各团队内部单独计算，因此将人员拆分到最多 4 个团队会有所帮助，Symfony 还能将惩罚降低 30%。',
       links: [{ label: '维基百科：布鲁克斯定律' }, { label: '维基百科：人月神话' }],
-      design: [{ label: 'Team coordination' }],
+      design: [{ label: '团队协调' }],
     },
     bulkhead: {
       term: '舱壁隔离',
@@ -678,7 +678,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究隔舱后，每条链路多出一个开关。带隔舱的链路允许一次调用运行 1000 毫秒；超过之后调用方放弃它、释放槽位，请求以 `timeout` 失败，因此慢依赖无法占满所有槽位。它限制的是时间而不是并发调用数，在固定负载下二者等价（Little 定律），1000 毫秒为提议值。没有它时，每次调用都会占住调用方的槽位，直到得到回答或触发链路超时（默认 30 秒）。',
       links: [{ label: 'Azure 架构中心：舱壁隔离模式' }, { label: '维基百科：舱壁（隔板）' }],
-      design: [{ label: 'Link settings' }],
+      design: [{ label: '链路设置' }],
     },
     'burn-rate': {
       term: '消耗速率',
@@ -687,7 +687,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '完成“SLO 仪表盘”研究后，仪表盘（D）会绘制错误预算消耗速率的时间曲线：用实际失败率除以 SLO 允许的失败比例。图中标出 1× 和 10×；超过 10× 时，预算会在一周结束很久之前就耗尽。修复原因或放慢部署，直到曲线降至 1× 以下。',
       links: [{ label: 'Google SRE 工作手册：基于 SLO 告警' }],
-      design: [{ label: 'Dashboard charts' }],
+      design: [{ label: '仪表盘图表' }],
     },
     'bytecode-cache': {
       term: '字节码缓存',
@@ -721,7 +721,7 @@ export const catalog: Messages['catalog'] = {
         { label: '维基百科' },
         { label: 'Nishtala 等：Facebook 的 Memcache 扩展实践（NSDI 2013）' },
       ],
-      design: [{ label: 'Cache stampedes' }, { label: 'Cache stampede Incident' }],
+      design: [{ label: '缓存雪崩' }, { label: '缓存雪崩故障' }],
     },
     'cache-warming': {
       term: '缓存预热',
@@ -746,18 +746,18 @@ export const catalog: Messages['catalog'] = {
       definition:
         '一种发布方式：先将少量流量发给新版本，与旧版本比较错误率和延迟。如果金丝雀版本表现良好，就继续上线；否则，在大多数用户接触到它之前回滚。',
       inGame:
-        "The CI/CD Pipeline offers Canary as a deploy strategy. A deploy sends 5% of traffic to the new version first, so a Bad deploy breaks up to 5% of App Server requests until you roll back. It is the slowest strategy, at 10 minutes a deploy, and it bills 1.5 times the Pipeline's Burn.",
+        'CI/CD 流水线提供金丝雀部署作为部署策略。一次部署会先把 5% 的流量导向新版本，因此部署出错时，在你回滚之前最多让应用服务器 5% 的请求失败。它是最慢的策略，每次部署耗时 10 分钟，并按流水线 1.5 倍的支出计费。',
       links: [{ label: 'Martin Fowler：金丝雀发布' }, { label: 'Google SRE 工作手册：金丝雀发布' }],
       design: [{ label: 'CI/CD 流水线' }],
     },
     'cascading-failure': {
       term: '级联故障',
       definition:
-        'A failure that jumps from one part of a system to another: one slow or broken component overloads its callers, whose retries and queues in turn overload theirs. The first failure is the trigger, and the later ones are what turn a small incident into a long one.',
+        '从系统的一个部分跳到另一个部分的故障：一个变慢或损坏的组件会让调用方过载，而调用方的重试和队列又会让它们的上游过载。第一个故障是触发点，后面的故障才会把一次小故障变成长时间的故障。',
       inGame:
         '从 A 轮起，无人响应的故障结束时可能引发另一个故障，后者会把前者记为原因。放任不管的慢查询会引发重试风暴，重试风暴会引发连接耗尽，内存泄漏会引发 GC 暂停风暴。只有设计对后者脆弱时，第二个故障才会启动。呼叫器会点出这条链，复盘卡片会说明它沿着什么发展。以任何方式响应故障（哪怕只是确认），都能阻止它级联，而且一条链最多只传一跳。',
       links: [{ label: 'AWS：自动化的安全免干预部署' }, { label: 'Google SRE 书：级联故障' }],
-      design: [{ label: 'Incident cascades' }],
+      design: [{ label: '故障级联' }],
     },
     'cdc-change-data-capture': {
       term: 'CDC（变更数据捕获）',
@@ -788,7 +788,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究混沌工程后，团队面板多出一个混沌开关。开启期间，每 120 秒最弱节点会让 20% 的调用失败 10 秒，公司由此每秒获得 1 点故障洞察（全部为提议值）。开关会点名下一次实验要打的节点，注入的 `refused` 错误会出现在仪表盘的错误行里，与它要教会你看的故障并列。',
       links: [{ label: '混沌工程原则' }],
-      design: [{ label: 'Reliability research' }],
+      design: [{ label: '可靠性研究' }],
     },
     'circuit-breaker': {
       term: '熔断器',
@@ -801,14 +801,14 @@ export const catalog: Messages['catalog'] = {
         { label: 'Azure 架构中心：熔断器模式' },
         { label: '维基百科' },
       ],
-      design: [{ label: 'Link settings' }, { label: '重试风暴' }],
+      design: [{ label: '链路设置' }, { label: '重试风暴' }],
     },
     'code-review': {
       term: '代码审查',
       definition:
         '在变更合并前，由另一位工程师阅读代码，以发现缺陷、保持代码一致并分享知识。现代代码审查通常比较轻量，借助工具对小批量变更进行。',
       inGame:
-        "Code review Research lowers the chance that a deploy ships a bug by 20%, and it stacks with Automated tests (30%). It also shows the hidden cost of each Feature on its tile before the Feature ships, such as 'Each write query costs 20% more'. Tech debt raises the bad-deploy chance, so review matters more as debt grows.",
+        '代码审查研究会让一次部署引入错误的概率降低 20%，并与自动化测试（30%）叠加。它还会在功能上线之前，在其图块上显示每个功能隐藏的代价，例如“每次写入查询成本增加 20%”。技术债会提高部署出错的概率，因此债务越多，审查越重要。',
       links: [
         { label: 'Google 工程实践：代码审查' },
         { label: '现代代码审查：Google 案例研究' },
@@ -821,12 +821,12 @@ export const catalog: Messages['catalog'] = {
       definition:
         '新进程、容器或函数实例启动时的延迟，以及最初几个请求的缓慢响应。它必须完成启动、加载代码和数据、填充缓存或对热点代码进行 JIT 编译，才能达到全速。',
       inGame:
-        'A new or restarted App Server boots, then warms up. A Java (Tomcat) copy starts at 30% speed and needs 30 s to reach full speed, while Go starts at full speed. A new copy from an Autoscaler serves after 180 s on VMs, or 30 s in a Kubernetes Cluster. A restarted Cache comes back empty with Memcached or half warm with Redis, and a cold Database runs its queries at up to twice the CPU. A Serverless Function keeps no environment while it idles, so the request after a gap starts cold, which costs 50 ms in Rust or Go and up to 2,000 ms on the JVM.',
+        '新启动或重启的应用服务器会先启动，再预热。Java（Tomcat）副本以 30% 的速度起步，需要 30 秒才能达到满速，而 Go 一开始就是满速。自动扩缩容器新增的副本在虚拟机上需要 180 秒才能提供服务，在 Kubernetes 集群中则是 30 秒。重启后的缓存在使用 Memcached 时是空的，使用 Redis 时则预热一半；冷数据库执行查询时最多消耗两倍 CPU。无服务器函数在空闲期间不保留运行环境，因此间隔之后的第一个请求会冷启动，Rust 或 Go 需要 50 毫秒，JVM 最多需要 2,000 毫秒。',
       links: [
         { label: 'AWS Lambda 文档：执行环境生命周期' },
         { label: '维基百科：冷启动（计算）' },
       ],
-      design: [{ label: '无服务器函数' }, { label: 'Runtime behaviors' }],
+      design: [{ label: '无服务器函数' }, { label: '运行时行为' }],
     },
     compression: {
       term: '压缩',
@@ -909,7 +909,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Martin Fowler：康威定律' },
         { label: '维基百科' },
       ],
-      design: [{ label: 'Services and their owning Teams' }],
+      design: [{ label: '服务及其所属团队' }],
     },
     'credential-stuffing': {
       term: '撞库攻击',
@@ -969,7 +969,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究反规范化后，数据库每次读取少花 30% 的 CPU，每次写入多花 20%（10）。它在读多的设计上划算，在写多的设计上吃亏，正是权衡卡预览在你动手之前展示的取舍。',
       links: [{ label: '维基百科：反规范化' }],
-      design: [{ label: 'Performance track' }],
+      design: [{ label: '性能线' }],
     },
     'dependency-scanning': {
       term: '依赖扫描',
@@ -1025,7 +1025,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '其中两项会影响玩法。每天的部署频率最多为 480 个工作分钟 /（构建时间 + 部署时间 + 15 分钟验证），并受团队策略限制，最多为 16、8 或 4 次。“持续交付”将部署时间从 30 分钟缩短到 5 分钟。每次部署引入缺陷的基础概率为 10%，“快速推进”和技术债会提高此概率，“自动化测试”（−30%）和“代码审查”（−20%）会降低此概率；部署卡片会显示具体数值。',
       links: [{ label: 'DORA：软件交付性能指标' }, { label: 'DORA：DORA 指标的历史' }],
-      design: [{ label: 'Deploy frequency' }],
+      design: [{ label: '部署频率' }],
     },
     downsampling: {
       term: '降采样',
@@ -1038,7 +1038,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Prometheus 文档：存储' },
         { label: '维基百科：降采样' },
       ],
-      design: [{ label: 'Dashboard time ranges' }],
+      design: [{ label: '仪表盘时间范围' }],
     },
     drift: {
       term: '漂移',
@@ -1047,11 +1047,11 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '镜像有两种漂移：源区域变更后它会落后；你直接修改镜像则产生手动变更。应用会让镜像回到源区域的状态，并还原计划看到的手动变更。Terraform 的计划会立即看到所有手动变更。Pulumi 和 Alchemy 与其记录的状态比较，因此手动变更只有在刷新或检查漂移之后才会显示。把合理的区域差异保留为覆盖项。',
       links: [
-        { label: 'Terraform tutorial: Use refresh-only mode to sync Terraform state' },
-        { label: 'Pulumi docs: Detecting and reconciling drift' },
-        { label: 'Alchemy docs: drift' },
+        { label: 'Terraform 教程：使用 refresh-only 模式同步 Terraform 状态' },
+        { label: 'Pulumi 文档：检测并调和漂移' },
+        { label: 'Alchemy 文档：drift' },
       ],
-      design: [{ label: 'Keeping a Mirror in sync' }],
+      design: [{ label: '保持镜像同步' }],
     },
     egress: {
       term: '出站流量',
@@ -1097,7 +1097,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Google SRE 书籍：拥抱风险' },
         { label: 'Google SRE 工作手册：错误预算策略' },
       ],
-      design: [{ label: 'SLOs and error budgets' }],
+      design: [{ label: 'SLO 与错误预算' }],
     },
     'event-loop': {
       term: '事件循环',
@@ -1110,7 +1110,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Node.js：不要阻塞事件循环' },
         { label: 'MDN：JavaScript 执行模型' },
       ],
-      design: [{ label: 'Event loops and blocking' }],
+      design: [{ label: '事件循环与阻塞' }],
     },
     'eventual-consistency': {
       term: '最终一致性',
@@ -1128,7 +1128,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究扩展与收缩后，模式迁移锁事故被彻底消除：只有在线模式迁移时该事故的概率约降低为原来的八分之一，而使用扩展与收缩就完全不会发生。两者都要多花开发工时：在关系型数据库上，新增查询形态的功能在线迁移多花 10%，扩展与收缩多花 25%。',
       links: [{ label: 'Martin Fowler：并行变更' }],
-      design: [{ label: 'Schema migrations' }],
+      design: [{ label: '数据库结构迁移' }],
     },
     'fallacies-of-distributed-computing': {
       term: '分布式计算谬误',
@@ -1186,7 +1186,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Google SRE 书籍：监控分布式系统' },
         { label: 'Grafana 文档：仪表盘最佳实践' },
       ],
-      design: [{ label: 'Dashboard signals' }],
+      design: [{ label: '仪表盘信号' }],
     },
     'gc-pause': {
       term: '垃圾回收停顿',
@@ -1199,7 +1199,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'OpenJDK Wiki：ZGC' },
         { label: 'Oracle：Java GC 调优指南' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: '运行时行为' }],
     },
     geodns: {
       term: 'GeoDNS',
@@ -1225,7 +1225,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'PEP 703：让 GIL 变为可选' },
         { label: '维基百科' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: '并发模型' }],
     },
     gitops: {
       term: 'GitOps',
@@ -1234,9 +1234,9 @@ export const catalog: Messages['catalog'] = {
       inGame:
         'GitOps 是 C 轮研究，需要先完成“基础设施即代码”。它会自动把源区域的每个变更应用到每个镜像，镜像不再落后。无论使用哪种 IaC 工具，它都会在下次同步时还原手动变更，相当于开启自愈的 Argo CD，因此覆盖项是调整区域的唯一方式。一次性同步最多在 3 个日历分钟内完成，与 Argo CD 的默认轮询一致。分阶段同步会先把变更在源区域保留 60 分钟。一次性同步以影响范围换取漂移：一次错误配置推送会同时到达所有镜像。',
       links: [
-        { label: 'OpenGitOps: GitOps Principles' },
-        { label: 'Argo CD docs: Automated Sync Policy' },
-        { label: 'Flux docs: Core Concepts' },
+        { label: 'OpenGitOps：GitOps 原则' },
+        { label: 'Argo CD 文档：自动同步策略' },
+        { label: 'Flux 文档：核心概念' },
       ],
       design: [{ label: 'GitOps' }],
     },
@@ -1247,7 +1247,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究优雅降级后，应用服务器多出一个开关。饱和节点会先丢弃最贵的请求类型，导出和上传先于读取，让便宜的类型保住延迟（10）。优先级降载则相反：它先丢弃价值最低的类型，机器人和竞价先于页面。',
       links: [{ label: 'Google SRE 手册：处理过载' }],
-      design: [{ label: 'Reliability track' }],
+      design: [{ label: '可靠性线' }],
     },
     'green-threads': {
       term: '绿色线程',
@@ -1260,7 +1260,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'JEP 444：虚拟线程' },
         { label: '维基百科' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: '并发模型' }],
     },
     'health-check': {
       term: '健康检查',
@@ -1284,20 +1284,20 @@ export const catalog: Messages['catalog'] = {
         { label: 'Dean 和 Barroso：大规模系统中的尾延迟（CACM 2013）' },
         { label: 'gRPC 文档：请求对冲' },
       ],
-      design: [{ label: 'Progression' }],
+      design: [{ label: '进展' }],
     },
     'hot-key': {
       term: '热点键',
       definition:
         '接收了极大比例读写的单个键，例如名人的个人资料。负责该键的单个分片或服务器达到饱和，其他机器却闲着，因此增加服务器也无济于事。',
       inGame:
-        "In the Hot key Incident (Series C), 30% of the reads on a busy Cache or Wide-column Store ask for one key. That Node's capacity divides by 0.3 × its size steps + 0.7, so a size-4 Node keeps about half. Hybrid fan-out research lets you turn on key splitting for a Cache or Wide-column Store. Splitting spreads the hot key and ends the loss.",
+        '在热点键故障（C 轮）中，繁忙的缓存或宽列存储上 30% 的读取请求访问同一个键。该节点的容量会除以 0.3 × 规格档位 + 0.7，因此规格为 4 的节点只剩大约一半。混合扇出研究可以让你为缓存或宽列存储开启键拆分。拆分会分散热点键，并终止损失。',
       links: [
         { label: 'AWS 文档：设计分区键以分散 DynamoDB 工作负载' },
         { label: 'AWS 文档：DynamoDB 中的写入分片' },
         { label: 'Redis 文档：redis-cli --hotkeys' },
       ],
-      design: [{ label: 'Partitioning' }],
+      design: [{ label: '分区' }],
     },
     'http-keep-alive': {
       term: 'HTTP 持久连接',
@@ -1332,12 +1332,12 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '“基础设施即代码”研究会让你选择 Terraform、Pulumi 或 Alchemy。三者都能构建所有组件，并能为每个区域设置任意值。它们的区别在于计划如何发现手动变更，与各工具的默认工作流一致：Terraform 每次计划都会读取实时状态，因此计划完整，每次应用都要等待刷新。Pulumi 与已记录的状态比较，直到你刷新。Alchemy 同样与已记录的状态比较；检查漂移会读取实时状态，修复会还原手动变更但不采用源区域的变更。更换工具会让所有同步暂停一个日历日。',
       links: [
-        { label: 'Terraform docs: What is Terraform?' },
-        { label: 'Pulumi docs: Infrastructure as code' },
-        { label: 'Alchemy docs: Providers' },
-        { label: 'Wikipedia: Infrastructure as code' },
+        { label: 'Terraform 文档：什么是 Terraform？' },
+        { label: 'Pulumi 文档：基础设施即代码' },
+        { label: 'Alchemy 文档：Providers' },
+        { label: '维基百科：基础设施即代码' },
       ],
-      design: [{ label: 'IaC tools' }],
+      design: [{ label: 'IaC 工具' }],
     },
     idempotency: {
       term: '幂等性',
@@ -1376,7 +1376,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Microsoft：OpenJDK 中分层编译的工作原理' },
         { label: '维基百科：即时编译' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: '运行时行为' }],
     },
     'leaderless-replication': {
       term: '无主复制',
@@ -1395,9 +1395,9 @@ export const catalog: Messages['catalog'] = {
       definition:
         '针对闰秒的校时方法：服务器把多出的一秒摊在很长的时间窗口内，常常是一整天，因此时钟只是走得稍慢一点，不会跳变。Google 和 Amazon 在自己的时钟上就是这样做的。真正有害的是跳变，因为重复的一秒会让定时器触发两次，让租约提前过期。',
       inGame:
-        'The Leap second or clock skew Incident makes every Node in one region answer 1,000 ms late and time out 10% of its answers, until you restart the Nodes or it runs out after 60 s. Leap smearing (Series C) is the Research that keeps the jump from happening. The Leap Second Challenge scripts the same event as a regional App Server outage.',
+        '闰秒或时钟偏差故障会让一个区域内的每个节点延迟 1,000 毫秒才响应，并让 10% 的响应超时，直到你重启这些节点，或 60 秒后自行结束。闰秒平滑（C 轮）是防止这种跳变发生的研究。闰秒挑战把同一事件编排为一次区域性应用服务器故障。',
       links: [{ label: 'Google：闰秒平滑' }, { label: 'Cloudflare：我们如何以及为何平滑闰秒' }],
-      design: [{ label: 'The six kinds of Incident' }],
+      design: [{ label: '六种故障' }],
     },
     'littles-law': {
       term: '利特尔定律',
@@ -1409,7 +1409,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Little（1961）：排队公式 L = λW 的证明' },
         { label: '维基百科：利特尔定律' },
       ],
-      design: [{ label: 'Latency coupling between Nodes' }],
+      design: [{ label: '节点之间的延迟耦合' }],
     },
     'load-balancer': {
       term: '负载均衡器',
@@ -1435,7 +1435,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Google SRE 手册：处理过载' },
         { label: 'Google SRE 书籍：应对级联故障' },
       ],
-      design: [{ label: 'Incident mitigation toolbox' }],
+      design: [{ label: '故障缓解工具箱' }],
     },
     'memory-leak': {
       term: '内存泄漏',
@@ -1448,7 +1448,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Node.js 学习：内存诊断' },
         { label: 'Oracle Java 文档：排查内存泄漏' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: '运行时行为' }],
     },
     'materialized-view': {
       term: '物化视图',
@@ -1457,7 +1457,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究物化视图后，数据库卡片上多出一个视图。报表扫描存储的视图，CPU 减半（10）；5% 的报表答案是陈旧的，来自上次刷新之前。它是数据仓库在数据库一侧的孪生：同样便宜的扫描，无需第二套系统。',
       links: [{ label: 'PostgreSQL 文档：物化视图' }],
-      design: [{ label: 'Data Warehouse and views' }],
+      design: [{ label: '数据仓库与视图' }],
     },
     'metastable-failure': {
       term: '亚稳态故障',
@@ -1479,10 +1479,10 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '完成“基础设施即代码”研究后，区域标签旁的“镜像”按钮可以把一个区域的节点和链路复制到另一个区域。每个数据库可选择只读副本、独立主库或调用源区域；对象存储可选择复制或调用源区域。应用会立即付款，新节点在构建时间结束后以冷启动状态上线。该区域的用户只有在计划落地时才会获得链路。镜像与源区域保持关联，因此可能漂移；GitOps 会自动保持同步。',
       links: [
-        { label: 'Terraform docs: Modules overview' },
-        { label: 'AWS docs: Working with CloudFormation StackSets' },
+        { label: 'Terraform 文档：模块概览' },
+        { label: 'AWS 文档：使用 CloudFormation StackSets' },
       ],
-      design: [{ label: 'Mirror a region' }],
+      design: [{ label: '镜像一个区域' }],
     },
     'model-inference': {
       term: '模型推理',
@@ -1500,20 +1500,20 @@ export const catalog: Messages['catalog'] = {
     'mttd-and-mtta': {
       term: 'MTTD 与 MTTA',
       definition:
-        "Mean time to detect is the average time from the start of a failure until a signal shows it. Mean time to acknowledge is the average time from that signal until someone takes the incident. Google's SRE book counts both beside MTTR, because a team that fixes fast but notices late is still slow.",
+        '平均检测时间是从故障开始到出现信号的平均时长。平均确认时间是从该信号出现到有人接手故障的平均时长。Google 的 SRE 一书把这两者与 MTTR 并列统计，因为一个修复很快但发现很晚的团队，依然是慢的。',
       inGame:
-        "Every Incident records the sim second its first signal lands and the second a player first acts on it, and its Postmortem shows MTTD and MTTA beside MTTR. With Alerting the signal is the pager, which fires the Step a rule's threshold is crossed. Without Alerting the signal is the board, at the first second more than 1% of requests fail. On-call answers the page five calendar minutes after it lands, which is the MTTA a rotation holds. Without On-call, the player's first action is the acknowledgement.",
+        '每个故障都会记录其第一个信号出现的模拟秒数，以及玩家第一次对它采取行动的秒数，其故障复盘会在 MTTR 旁显示 MTTD 和 MTTA。启用告警时，信号就是呼叫器，在规则阈值被越过的那一步触发。没有告警时，信号就是看板，即第一次出现超过 1% 请求失败的那一秒。值班人员会在呼叫出现五个日历分钟后响应，这就是轮值所保持的 MTTA。没有值班时，玩家的第一次操作就是确认。',
       links: [{ label: 'Google SRE 书：值班' }, { label: '维基百科：平均恢复时间' }],
-      design: [{ label: 'The incident loop' }],
+      design: [{ label: '故障循环' }],
     },
     mttr: {
       term: 'MTTR',
       definition:
         '平均恢复时间：从故障开始到服务恢复正常的平均时长，衡量团队发现、诊断和修复问题的速度。DORA 采用范围更窄的指标：失败部署恢复时间。',
       inGame:
-        "Every Incident ends with a Postmortem that shows its MTTR: the calendar minutes in which more than 1% of requests failed. The Postmortem also shows the MTTD and MTTA that came before it. An SRE team with an engineer on it cuts the run, and so the MTTR, by 40%. An Incident that has hurt users more than half the time by its halfway point escalates one severity and runs 1.5 times as long. Keep MTTR down by acting fast: restart, replace, drain, or fail over the hit Node, and research the Postmortem's action item.",
+        '每个故障都以一份故障复盘收尾，其中显示它的 MTTR：超过 1% 请求失败的日历分钟数。故障复盘还会显示在此之前的 MTTD 和 MTTA。配有工程师的 SRE 团队会把持续时间，也就是 MTTR，缩短 40%。若故障在进行到一半时已有超过一半的时间伤害了用户，就会升级一个严重级别，并持续 1.5 倍的时间。通过快速行动来压低 MTTR：重启、替换、排空或切换受影响的节点，并研究故障复盘中的行动项。',
       links: [{ label: '维基百科：平均恢复时间' }, { label: 'DORA：软件交付性能指标' }],
-      design: [{ label: 'The incident loop' }],
+      design: [{ label: '故障循环' }],
     },
     'n1-query': {
       term: 'N+1 查询',
@@ -1526,7 +1526,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Django 文档：select_related' },
         { label: 'Laravel 文档：预先加载' },
       ],
-      design: [{ label: 'Framework behaviors' }],
+      design: [{ label: '框架行为' }],
     },
     'network-partition': {
       term: '网络分区',
@@ -1544,7 +1544,7 @@ export const catalog: Messages['catalog'] = {
     'node-drain': {
       term: '节点排空',
       definition:
-        "Taking a server out of rotation on purpose: stop sending it new work, let the requests and jobs it already holds finish, then shut it down or upgrade it. A load balancer's connection draining and Kubernetes' `kubectl drain` both work this way. Killing a busy server instead drops whatever it was doing.",
+        '有意把服务器移出轮转：不再给它分配新工作，让它已持有的请求和任务完成，然后将其关闭或升级。负载均衡器的连接排空和 Kubernetes 的 `kubectl drain` 都是这样工作的。反过来，直接终止一台繁忙的服务器会丢掉它正在处理的一切。',
       inGame:
         '研究健康检查后，节点卡片会提供排空。它立即不再接收新流量，其份额交给路径上的其他节点，并处理完手头的请求：队列会把积压交给它的工作进程。十个模拟秒后，节点清空并重新加入轮转。排空正在遭受故障的节点，会把该故障缩短到 10 秒的排空窗口；而没有其他副本分担负载的节点，会让发往它的每个请求搁浅。',
       links: [
@@ -1552,7 +1552,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'NGINX 文档：反向代理' },
         { label: 'AWS 文档：目标组注销延迟' },
       ],
-      design: [{ label: 'Incident mitigation toolbox' }],
+      design: [{ label: '故障缓解工具箱' }],
     },
     'object-storage': {
       term: '对象存储',
@@ -1596,11 +1596,11 @@ export const catalog: Messages['catalog'] = {
     'on-call': {
       term: '值班',
       definition:
-        'A rotation of engineers who carry the pager and answer alerts outside working hours, so a page reaches a person rather than whoever happens to be looking at a dashboard. A good rotation is quiet, bounded, and paid for in sleep.',
+        '一组带着呼叫器、在工作时间之外响应告警的工程师轮值，这样呼叫会找到一个具体的人，而不是碰巧在看仪表盘的人。好的轮值应当安静、有边界，并且以睡眠为代价。',
       inGame:
         '值班轮换（系列 A，需先研究告警）让团队接管呼机。轮换会在事故的第一个信号后五个日历分钟确认，因此即使玩家不在，MTTA 也很短，复盘会显示这一点。没有它，呼叫要等玩家第一次点击。每次呼叫都会计入所影响服务所属团队的工程师，并消耗他们的一点心情：一个漫长的值班季度，正是工程师提出休假、加薪或辞职的原因之一。',
       links: [{ label: 'Google SRE 书：值班' }, { label: 'PagerDuty：什么是值班轮换？' }],
-      design: [{ label: 'The incident loop' }],
+      design: [{ label: '故障循环' }],
     },
     'operating-margin': {
       term: '营业利润率',
@@ -1642,7 +1642,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Mitzenmacher（2001）：随机负载均衡中二选一的力量' },
         { label: 'NGINX 文档：upstream 模块（random）' },
       ],
-      design: [{ label: 'Load Balancer policies' }],
+      design: [{ label: '负载均衡器策略' }],
     },
     'pre-fork-worker-model': {
       term: '预派生工作进程模型',
@@ -1668,7 +1668,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'PHP 手册：FastCGI 进程管理器（FPM）' },
         { label: 'Gunicorn 文档：设计' },
       ],
-      design: [{ label: 'Concurrency models' }],
+      design: [{ label: '并发模型' }],
     },
     quantization: {
       term: '量化',
@@ -1677,14 +1677,14 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '研究量化后，GPU 节点可以用 FP16、INT8 和 INT4。INT8 的令牌吞吐为 2 倍，INT4 为 3 倍，每个回答的价值降低 5% 或 15%。当瓶颈在 GPU、而回答可以稍微差一点时，它就划算。',
       links: [{ label: 'Hugging Face 文档：量化' }],
-      design: [{ label: 'GPU Node and precision' }],
+      design: [{ label: 'GPU 节点与精度' }],
     },
     quorum: {
       term: 'Quorum',
       definition:
-        'The number of replicas that must answer before a read or a write counts as done. With N replicas, read quorum R, and write quorum W, R + W > N means every read asks at least one replica that has the latest write. That is not linearizability, because concurrent writes, failed writes, and sloppy quorums can still return old values.',
+        '读或写要算完成，必须有多少个副本作出响应。在 N 个副本、读法定人数 R、写法定人数 W 的情况下，R + W > N 意味着每次读取都至少会询问一个拥有最新写入的副本。这并不等于线性一致性，因为并发写入、失败的写入和宽松法定人数仍可能返回旧值。',
       inGame:
-        'A Wide-column Store keeps each key on N replicas (1 to 5), and you set R, the replicas a read asks, and W, the replicas a write waits for. With R + W > N, reads never miss the latest write. A weaker quorum costs fewer replica operations and waits for an earlier reply, but some reads come back stale. A quorum that needs every replica fails while one replica is lost. Even a strong quorum gets 2% stale and 1% duplicate checkouts.',
+        '宽列存储把每个键保存在 N 个副本上（1 到 5 个），你可以设置 R（读取询问的副本数）和 W（写入等待的副本数）。当 R + W > N 时，读取不会错过最新的写入。较弱的法定人数需要的副本操作更少，也更早得到答复，但有些读取会返回过期数据。要求所有副本参与的法定人数，会在丢失一个副本期间失败。即使是强法定人数，也会有 2% 的过期结账和 1% 的重复结账。',
       links: [
         { label: 'Apache Cassandra 文档：可调一致性' },
         { label: 'DeCandia 等（2007）：Dynamo' },
@@ -1746,7 +1746,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '完成“指标”研究后可打开仪表盘（D）。“黄金信号”一行绘制整个系统的流量、延迟随时间变化的曲线，研究“结构化日志”后还会显示错误。目前尚未提供按服务划分的 RED 行；请用黄金信号一行查看用户从何时开始受到影响。',
       links: [{ label: 'Grafana Labs：RED 方法' }, { label: 'Google SRE 书籍：监控分布式系统' }],
-      design: [{ label: 'Dashboard rows and charts' }],
+      design: [{ label: '仪表盘行与图表' }],
     },
     'redos-regular-expression-denial-of-service': {
       term: 'ReDoS（正则表达式拒绝服务）',
@@ -1781,7 +1781,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'AWS 架构博客：指数退避与抖动' },
         { label: 'Google SRE 书籍：应对级联故障' },
       ],
-      design: [{ label: 'Retries' }],
+      design: [{ label: '重试' }],
     },
     'rpo-and-rto': {
       term: 'RPO 与 RTO',
@@ -1793,7 +1793,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'AWS 白皮书：工作负载的灾难恢复（RPO 与 RTO）' },
         { label: 'PostgreSQL 文档：持续归档与时间点恢复' },
       ],
-      design: [{ label: 'Multi-region data' }, { label: 'IPO checklist and DR drill' }],
+      design: [{ label: '多区域数据' }, { label: 'IPO 清单与灾备演练' }],
     },
     'rule-of-40': {
       term: '40 法则',
@@ -1816,28 +1816,28 @@ export const catalog: Messages['catalog'] = {
     service: {
       term: '服务',
       definition:
-        'A codebase with its own deploy pipeline, owned by one team. Splitting a monolith into services lets each team ship and scale on its own, at the price of a network hop between services and failures that can travel across them.',
+        '拥有独立部署流水线、由一个团队负责的代码库。把单体拆分为服务，可以让每个团队各自发布和扩展，代价是服务之间多了一次网络跳转，以及可能在服务间蔓延的故障。',
       inGame:
-        'A Company starts on one Service, the monolith, and every Feature that no other Service names stays with it. The Service boundaries Research (Series B) splits live Features into a new Service with a name and an owning team, for 0.3 of the moved part of the codebase in Dev Hours. The owner builds that Service’s backlog and is paged when it breaks, and a bad deploy fails only the Service that shipped it. Two Services on one Database add half again to the coordination penalty, so k is multiplied by 1.5 until a Service names its own Database Node.',
+        '公司从一个服务，也就是单体开始，所有没有被其他服务点名的功能都留在其中。服务边界研究（B 轮）会把在用的功能拆分到一个有名称和所属团队的新服务中，花费被迁移那部分代码库的 0.3 倍开发工时。负责人会建立该服务的待办列表，并在它出问题时被呼叫，部署出错只会让发布它的服务失败。两个服务共用一个数据库，会让协调惩罚再增加一半，因此 k 乘以 1.5，直到某个服务点名了自己的数据库节点。',
       links: [
         { label: 'Martin Fowler：MonolithFirst' },
         { label: 'Martin Fowler：微服务' },
         { label: 'microservices.io：单体架构' },
       ],
-      design: [{ label: 'Services' }],
+      design: [{ label: '服务' }],
     },
     sharding: {
       term: '分片',
       definition:
         '按照键（例如用户 ID 的哈希）将一个数据集拆分到多个数据库（分片），让每个分片只存储和处理部分数据。它能将写入和存储扩展到单机之外，但跨分片查询必须询问所有分片，一个热键也可能压垮自己的分片，而其他分片仍闲着。',
       inGame:
-        "The Sharding research splits a Database into 1, 2, 4, or 8 shards by key, and it unlocks Leaderless replication. Each shard is another box and bills like one, and the writes divide across them, so two shards answer twice the writes. Reads ask only the one shard that holds their key, which is why a Read Replica is what takes reads off the primary. A transaction across shards costs three times its latency. You choose the shard key (hash, range, tenant or region) on the card. Changing the shard count is a resharding that costs Dev Hours and calendar time for each GB the Database holds. The Hot key Incident hits a Cache or Wide-column Store, where 30% of the reads ask for one key, so the Node's capacity falls to about 1 / (0.3 × size steps + 0.7). With Hybrid fan-out you can split those keys.",
+        '分片研究会按键把数据库拆成 1、2、4 或 8 个分片，并解锁无主复制。每个分片都是另一台机器，按一台机器计费，写入会在它们之间分摊，因此两个分片能应对两倍的写入。读取只会询问持有其键的那一个分片，这就是为什么要靠只读副本来分担主库的读取。跨分片的事务延迟是原来的三倍。你可以在卡片上选择分片键（哈希、范围、租户或区域）。更改分片数量属于重新分片，每个 GB 的数据库数据都会消耗开发工时和日历时间。热点键故障发生在缓存或宽列存储上，其中 30% 的读取请求访问同一个键，因此该节点的容量会降到约 1 / (0.3 × 规格档位 + 0.7)。使用混合扇出可以拆分这些键。',
       links: [
         { label: '维基百科：分片（数据库架构）' },
         { label: 'MongoDB 文档：分片' },
         { label: 'AWS：什么是数据库分片？' },
       ],
-      design: [{ label: 'Partitioning' }],
+      design: [{ label: '分区' }],
     },
     'shared-nothing': {
       term: '无共享架构',
@@ -1849,20 +1849,20 @@ export const catalog: Messages['catalog'] = {
         { label: 'Stonebraker（1986）：支持无共享架构的理由' },
         { label: '维基百科：无共享架构' },
       ],
-      design: [{ label: 'Runtime behaviors' }],
+      design: [{ label: '运行时行为' }],
     },
     'slo-sla-sli': {
       term: 'SLO、SLA、SLI',
       definition:
         '服务等级指标（SLI）是对服务行为的测量，例如请求成功的比例。服务等级目标（SLO）是在一个时间窗口内对 SLI 设定的目标，例如 30 天内达到 99.9%。服务等级协议（SLA）是与客户签订的合同，规定未达到承诺服务等级时的后果，例如提供服务抵扣额度；其要求通常比内部 SLO 宽松。',
       inGame:
-        'The SLI is availability: the share of user requests answered over the last calendar week, not counting bots and WAF blocks. Each Era sets the SLO, from 99% in Garage to 99.99% in Public, and from Series A the failures it allows are your error budget. SLO dashboards put that budget on the HUD, and the IPO checklist needs 99.95%. B2B SaaS signs an SLA from Series B, one level above its Era’s target. While a week sits below it, Enterprise sales pays credits back to the customers: 10% of subscription revenue.',
+        'SLI 是可用性：过去一个日历周内得到响应的用户请求占比，不计机器人和 WAF 拦截。每个阶段都设有 SLO，从车库创业的 99% 到已上市的 99.99%，从 A 轮起，它允许的失败就是你的错误预算。SLO 仪表盘会把该预算放到 HUD 上，IPO 清单要求达到 99.95%。B2B SaaS 从 B 轮起签订 SLA，比所处阶段的目标高一档。只要某一周低于该水平，企业销售就会向客户返还赔偿金：订阅收入的 10%。',
       links: [
         { label: 'Google SRE 书籍：服务等级目标' },
         { label: 'Google SRE 工作手册：实施 SLO' },
         { label: 'Google Cloud 博客：SLI、SLA 与 SLO' },
       ],
-      design: [{ label: 'SLOs and error budgets' }],
+      design: [{ label: 'SLO 与错误预算' }],
     },
     'soc-2': {
       term: 'SOC 2',
@@ -1884,7 +1884,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'AWS EC2 文档：竞价实例中断通知' },
         { label: 'Google Cloud 文档：竞价虚拟机' },
       ],
-      design: [{ label: 'Pricing models' }],
+      design: [{ label: '定价模型' }],
     },
     'strangler-pattern': {
       term: '绞杀者模式',
@@ -1897,7 +1897,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Azure 架构中心：绞杀榕模式' },
         { label: 'AWS 实践指南：绞杀榕模式' },
       ],
-      design: [{ label: 'Migrations' }],
+      design: [{ label: '迁移' }],
     },
     'synchronous-replication': {
       term: '同步复制',
@@ -1954,7 +1954,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '“缓存击穿”故障会让缓存空着重启，所有未命中请求同时访问数据库；数据库负载达到或超过 90% 时，回填超时，缓存持续处于冷状态。“缓存击穿保护”让冷缓存只向下游发送额外未命中请求的 25%，其余请求等待同一次获取；“缓存预热”让缓存恢复到 80% 的预热程度。朴素重试也是惊群：所有调用方立即重试，而带抖动的退避会将它们错开。',
       links: [{ label: '维基百科：惊群问题' }, { label: 'AWS 架构博客：指数退避与抖动' }],
-      design: [{ label: 'Realtime Hub reconnects' }],
+      design: [{ label: '实时中枢重连' }],
     },
     'tiered-caching': {
       term: '分层缓存',
@@ -2010,7 +2010,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'AWS 实践指南：事务发件箱模式' },
         { label: 'Debezium 文档：发件箱事件路由器' },
       ],
-      design: [{ label: 'Keeping copies in sync' }],
+      design: [{ label: '保持副本同步' }],
     },
     'use-method': {
       term: 'USE 方法',
@@ -2019,7 +2019,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '仪表盘的“饱和度”一行以条形仪表、状态时间线和表格显示各节点的利用率，让你看清哪个节点最先占满。完整的逐资源 USE 行目前尚未实现。画布上，各节点卡片的负载条会显示同一利用率的当前值。',
       links: [{ label: 'Brendan Gregg：USE 方法' }],
-      design: [{ label: 'Dashboard rows and charts' }],
+      design: [{ label: '仪表盘行与图表' }],
     },
     utilization: {
       term: '利用率',
@@ -2028,7 +2028,7 @@ export const catalog: Messages['catalog'] = {
       inGame:
         '每个节点都显示其利用率：待处理工作量除以最紧张资源的容量，无论该资源是 CPU、槽位、内存、连接还是网络。排队延迟按 ρ / (1 − ρ) 增长，节点在 70% 时警告，90% 时显示危险，超过 100% 则丢弃超出部分。瓶颈搜索只对超过 60% 的节点进行权衡，自动扩缩容器则以 40%、60% 或 80% 为目标。仪表盘的“饱和度”一行以仪表和 24 小时时间线显示各节点，并标出相同的 70% 和 90% 阈值。',
       links: [{ label: 'Brendan Gregg：USE 方法' }, { label: '维基百科：M/M/1 队列' }],
-      design: [{ label: 'Capacity, utilization, and queues' }],
+      design: [{ label: '容量、利用率与队列' }],
     },
     'vertical-and-horizontal-scaling': {
       term: '纵向与横向扩容',
@@ -2040,7 +2040,7 @@ export const catalog: Messages['catalog'] = {
         { label: 'Azure 架构中心：为横向扩容而设计' },
         { label: '维基百科：可扩展性（横向与纵向）' },
       ],
-      design: [{ label: 'Vertical and horizontal' }],
+      design: [{ label: '纵向与横向' }],
     },
     'waf-web-application-firewall': {
       term: 'WAF（Web 应用防火墙）',
@@ -2277,8 +2277,7 @@ export const catalog: Messages['catalog'] = {
       name: '大租户热点分片',
       cause:
         '最大租户的键落在了同一个分片上。它的读写消耗 3× 的 CPU，该分片上的其他一切都要排在它后面等待。',
-      prevention:
-        'Shard the tenant by key, and keep its reads in a Cache in front of the Database.',
+      prevention: '按键对租户做分片，并把它的读取放在数据库前面的缓存中。',
     },
     'premiere-spike': {
       name: '首映高峰',
@@ -2321,8 +2320,7 @@ export const catalog: Messages['catalog'] = {
     },
     'operator-typo': {
       name: '运维手误',
-      cause:
-        'A command meant to remove one Node matched the whole Component, and most of its Nodes went with it.',
+      cause: '一条本来只想移除一个节点的命令匹配到了整个组件，它的大部分节点也随之消失。',
       prevention: '变更生效前的计划和评审会显示它将删除什么，因此手误在计划阶段就被拦下。',
     },
     'table-bloat': {
@@ -2339,31 +2337,31 @@ export const catalog: Messages['catalog'] = {
     'leap-second': {
       name: '闰秒或时钟偏移',
       cause:
-        'A leap second repeated a second of the clock. Timers fired twice, leases expired early, and requests and locks across one region timed out.',
+        '一次闰秒让时钟重复了一秒。定时器触发了两次，租约提前过期，整个区域内的请求和锁都超时了。',
       prevention: '闰秒平滑把这一秒分摊到一整天，因此没有时钟会跳变。',
     },
     'stale-opcache': {
       name: 'OPcache 过期',
       cause:
-        'OPcache runs with validate_timestamps off, and a deploy did not reset it. The PHP servers kept running the old code against the new schema, and a share of requests failed.',
+        'OPcache 在关闭 validate_timestamps 的情况下运行，而一次部署没有将它重置。PHP 服务器继续用旧代码处理新的数据库结构，一部分请求失败。',
       prevention: 'CI/CD 流水线会在每次部署时重置 OPcache。重启可手动清空缓存。',
     },
     'bun-compat': {
-      name: 'Runtime compatibility',
+      name: '运行时兼容性',
       cause:
-        'A package that works on Node.js does not work on Bun, which is less mature. A share of requests that touched it failed until the package was swapped.',
+        '一个在 Node.js 上能用的包在不够成熟的 Bun 上无法使用。触及它的一部分请求失败，直到该包被替换。',
       prevention: '自动化测试在服务发布所用的运行时上运行，在部署之前就能发现问题包。',
     },
     'gevent-compat': {
       name: '库不兼容',
       cause:
-        'gevent monkey patches the standard library, and one library did not survive it: its calls blocked the hub, and a share of requests failed.',
+        'gevent 会对标准库打猴子补丁，而有一个库经不起这种改动：它的调用阻塞了 hub，一部分请求失败。',
       prevention: '自动化测试在发布前于 gevent 下运行服务，并指出是哪个库出错。',
     },
     'split-brain': {
       name: '脑裂',
       cause:
-        'A network partition cut a Distributed Erlang cluster in two. Each half kept serving its own clients, and half of the realtime messages never reached the other.',
+        '一次网络分区把一个分布式 Erlang 集群切成两半。每一半都继续为自己的客户端提供服务，一半的实时消息从未到达另一半。',
       prevention: '混沌实验能在分区发生之前发现问题。重启可让节点重新加入集群。',
     },
   },
@@ -2475,10 +2473,9 @@ export const catalog: Messages['catalog'] = {
     'on-demand': { name: '按需', blurb: '全价。可随时移除节点。' },
     reserved: {
       name: '预留',
-      blurb:
-        '0.6×, for a commitment of one calendar week. Selling before the term ends owes the Burn.',
+      blurb: '0.6×，承诺期为一个日历周。在期满前出售，仍需支付支出。',
     },
-    spot: { name: '竞价', blurb: '0.3×. The provider can reclaim the Node after 10 s of warning.' },
+    spot: { name: '竞价', blurb: '0.3×。云服务商可以在提前 10 秒通知后回收该节点。' },
   },
   regionInfo: {
     na: { name: '北美', short: '北美' },
@@ -2743,7 +2740,7 @@ export const catalog: Messages['catalog'] = {
       name: 'PHP JIT',
     },
     'worker-threads': {
-      blurb: 'A pool of 4 worker threads (40 MB) takes CPU-heavy kinds off the event loop.',
+      blurb: '一个包含 4 个工作线程（40 MB）的线程池，把 CPU 密集的请求类型移出事件循环。',
       name: 'Node.js 工作线程',
     },
     yjit: { blurb: 'Ruby 的 JIT：CPU 工作 1.3×，内存多 20%。', name: 'YJIT' },
@@ -2807,7 +2804,7 @@ export const catalog: Messages['catalog'] = {
     },
     'graal-native': {
       blurb:
-        'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with builds three times as long. A thread per connection, like Tomcat. Great for Serverless Functions.',
+        '启动时间不到 100 毫秒，无需预热，内存为 JVM 的 60%，速度为其 0.80×，构建时间为三倍。每个连接一个线程，与 Tomcat 相同。非常适合无服务器函数。',
       name: 'GraalVM 原生镜像',
     },
     'native-aot': {
@@ -2881,7 +2878,7 @@ export const catalog: Messages['catalog'] = {
       name: 'SRE 团队',
     },
     'enterprise-sales': {
-      blurb: 'Signs the SLA: a missed week of availability pays credits back to customers.',
+      blurb: '签订 SLA：某一周的可用性未达标，就要向客户返还赔偿金。',
       name: '企业销售',
     },
     'online-migrations': {
@@ -3047,7 +3044,6 @@ export const catalog: Messages['catalog'] = {
       blurb:
         '事件循环上的协程，像 Node.js 一样异步 I/O，每个请求没有框架开销。阻塞扩展会卡住循环。可承载实时连接，每个 20 KB。',
       name: 'Swoole',
-      blocking: 'loop',
     },
     puma: {
       blurb:
@@ -3062,29 +3058,24 @@ export const catalog: Messages['catalog'] = {
     falcon: {
       blurb: '纤程让每个进程可持有大量空闲连接。阻塞的 gem 会卡住循环。每个连接 100 KB。',
       name: 'Falcon',
-      blocking: 'loop',
     },
     node: {
       blurb: '单个事件循环。等待没有额外开销，但只使用一个核心，一个慢请求就会拖住所有其他请求。',
       name: 'Node.js',
-      blocking: 'loop',
     },
     node_cluster: {
       blurb: '每个核心一个事件循环。用上所有核心，内存和连接数也随核心数增加。',
       name: 'Node.js 集群',
-      blocking: 'loop',
     },
     bun: {
       blurb:
         '更快的事件循环，启动即时，因此比 Node.js 更适合自动扩缩和部署。60 MB，无启动时间。不够成熟：在 Node.js 上能用的包可能在它上面出错。',
       name: 'Bun',
-      blocking: 'loop',
     },
     deno: {
       blurb:
         '权限机制挡住大多数供应链攻击，代价是功能开发慢 10%：兼容的软件包更少。事件循环与 Node.js 相同。',
       name: 'Deno',
-      blocking: 'loop',
     },
     gunicorn: {
       blurb: '一组同步工作进程，每个处理一个请求。类似 PHP-FPM，但每个工作进程消耗更多内存。',
@@ -3099,7 +3090,6 @@ export const catalog: Messages['catalog'] = {
       blurb:
         '像 Node.js 一样异步，但 CPU 更慢：阻塞调用会卡住循环。按设计的每个连接 30 KB 保持实时连接。',
       name: 'Uvicorn ASGI',
-      blocking: 'loop',
     },
     python_ft: {
       blurb:
@@ -3135,11 +3125,10 @@ export const catalog: Messages['catalog'] = {
       blurb:
         '每个进程一个循环即可实现极高并发，但构建和调试慢 20%。阻塞调用会卡住循环，JVM 仍需预热。400 MB。',
       name: 'Spring WebFlux',
-      blocking: 'loop',
     },
     graal: {
       blurb:
-        'Starts in under 100 ms with no warmup at 60% of the JVM’s memory and 0.80× its speed, with builds three times as long. A thread per connection, like Tomcat. Great for Serverless Functions.',
+        '启动时间不到 100 毫秒，无需预热，内存为 JVM 的 60%，速度为其 0.80×，构建时间为三倍。每个连接一个线程，与 Tomcat 相同。非常适合无服务器函数。',
       name: 'GraalVM 原生镜像',
     },
     kestrel: {
@@ -3158,7 +3147,6 @@ export const catalog: Messages['catalog'] = {
     tokio: {
       blurb: '异步任务分布于所有核心，无 GC，内存开销小。CPU 密集任务会阻塞一个工作线程。',
       name: 'Tokio',
-      blocking: '工作进程',
     },
     zig: {
       blurb:
@@ -3172,8 +3160,8 @@ export const catalog: Messages['catalog'] = {
     },
   },
   shardKeys: {
-    hash: { name: 'Hash of user ID' },
-    range: { name: 'Range of IDs' },
+    hash: { name: '用户 ID 的哈希' },
+    range: { name: 'ID 范围' },
     tenant: { name: '按租户' },
     region: { name: '按区域' },
   },
@@ -3298,7 +3286,7 @@ export const catalog: Messages['catalog'] = {
         { goal: '持续 90 秒将 Apdex 保持在 0.9 以上。' },
         { goal: '缓存即将重启。持续 2 分钟将 Apdex 保持在 0.85 以上。' },
         {
-          goal: 'Demand is up 50%. The Cache restarts again. Keep Apdex above 0.85 with Burn at $8.00/s or less.',
+          goal: '需求增加 50%。缓存再次重启。将 Apdex 保持在 0.85 以上，支出不超过 $8.00/秒。',
         },
       ],
     },
@@ -3315,7 +3303,7 @@ export const catalog: Messages['catalog'] = {
       objectives: [
         { goal: '持续 90 秒将 Apdex 保持在 0.9 以上。' },
         { goal: '爬虫即将涌入。持续 2 分钟将 Apdex 保持在 0.9 以上。' },
-        { goal: 'They are back. Keep Apdex above 0.9 with Burn at $10.80/s or less.' },
+        { goal: '它们回来了。将 Apdex 保持在 0.9 以上，支出不超过 $10.80/秒。' },
       ],
     },
     'zone-outage': {
@@ -3324,7 +3312,7 @@ export const catalog: Messages['catalog'] = {
         { goal: '持续 90 秒将 Apdex 保持在 0.9 以上。' },
         { goal: '一个可用区即将故障。持续 2 分钟将 Apdex 保持在 0.85 以上。' },
         {
-          goal: 'Demand is up 50%. A zone fails again. Keep Apdex above 0.85 with Burn at $22.20/s or less.',
+          goal: '需求增加 50%。可用区再次故障。将 Apdex 保持在 0.85 以上，支出不超过 $22.20/秒。',
         },
       ],
     },
@@ -3332,8 +3320,8 @@ export const catalog: Messages['catalog'] = {
       name: '冷启动',
       objectives: [
         { goal: '持续 90 秒将 Apdex 保持在 0.9 以上。' },
-        { goal: 'A 4× spike is coming. Keep Apdex above 0.85 for 2 minutes.' },
-        { goal: 'Night traffic. Keep Apdex above 0.9 with Burn at $17.40/s or less.' },
+        { goal: '4 倍的流量尖峰即将到来。持续 2 分钟将 Apdex 保持在 0.85 以上。' },
+        { goal: '夜间流量。将 Apdex 保持在 0.9 以上，支出不超过 $17.40/秒。' },
       ],
     },
     'stale-checkout': {
@@ -3348,15 +3336,15 @@ export const catalog: Messages['catalog'] = {
       name: '垃圾回收停顿',
       objectives: [
         {
-          goal: 'Keep API reads under 110 ms at the p99 for 90 seconds.',
+          goal: '持续 90 秒将 API 读取的 p99 保持在 110 毫秒以内。',
           watch: { label: '读取 p99' },
         },
         {
-          goal: 'The heap will fill. Keep API reads under 110 ms at the p99 for 2 minutes.',
+          goal: '堆即将被填满。持续 2 分钟将 API 读取的 p99 保持在 110 毫秒以内。',
           watch: { label: '读取 p99' },
         },
         {
-          goal: 'It fills again. Keep reads under 110 ms at the p99 with Burn at $93.20/s or less.',
+          goal: '它再次被填满。将读取的 p99 保持在 110 毫秒以内，支出不超过 $93.20/秒。',
           watch: { label: '读取 p99' },
         },
       ],
@@ -3366,7 +3354,7 @@ export const catalog: Messages['catalog'] = {
       objectives: [
         { goal: '持续 90 秒将 Apdex 保持在 0.9 以上。' },
         { goal: '数据库将变慢 20 秒。将错误率降回 1% 以下并保持 2 分钟。' },
-        { goal: 'It slows again. Get errors under 1% and hold with Burn at $197.00/s or less.' },
+        { goal: '它再次变慢。将错误率降到 1% 以下并保持，支出不超过 $197.00/秒。' },
       ],
     },
     'analytics-primary': {
@@ -3374,7 +3362,7 @@ export const catalog: Messages['catalog'] = {
       objectives: [
         { goal: '持续 90 秒将 Apdex 保持在 0.9 以上。' },
         { goal: '季度末：一份报表将扫描所有表。持续 2 分钟将 Apdex 保持在 0.85 以上。' },
-        { goal: 'Demand is up 50%. Keep Apdex above 0.9 with Burn at $254.00/s or less.' },
+        { goal: '需求增加 50%。将 Apdex 保持在 0.9 以上，支出不超过 $254.00/秒。' },
       ],
     },
     'far-away': {
@@ -3382,7 +3370,7 @@ export const catalog: Messages['catalog'] = {
       objectives: [
         { goal: '持续 2 分钟处理所有请求。' },
         {
-          goal: 'Half your users live outside North America. Get API reads under 140 ms on average for 2 minutes.',
+          goal: '一半用户生活在北美以外。持续 2 分钟将 API 读取的平均耗时降到 140 毫秒以下。',
           watch: { label: '读取平均延迟' },
         },
       ],
@@ -3427,7 +3415,7 @@ export const catalog: Messages['catalog'] = {
     c10k: {
       name: 'C10k',
       brief: '10,000 个并发连接。每个请求独占一个进程的服务器会拒绝接入。',
-      inspiredBy: 'Dan Kegel’s C10k problem (1999)',
+      inspiredBy: 'Dan Kegel 提出的 C10k 问题（1999）',
     },
     'event-loop': {
       name: '事件循环',
@@ -3442,77 +3430,77 @@ export const catalog: Messages['catalog'] = {
     shoestring: {
       name: '穷酸版 Stack Overflow',
       brief: '使用不超过 12 个节点，处理 800 rps。',
-      inspiredBy: 'Stack Overflow serving huge traffic from a small number of servers',
+      inspiredBy: 'Stack Overflow 用少量服务器承载巨大流量',
     },
     'n-plus-one': {
       name: 'N+1 问题',
       brief: '存在 N+1 查询的 Rails 应用。修复需要 12 个开发工时。',
-      inspiredBy: 'ORM lazy loading',
+      inspiredBy: 'ORM 延迟加载',
     },
     'thirteen-engineers': {
       name: '十三位工程师',
       brief: 'Rails 应用承受 400 rps。13 位工程师只有一天时间：104 个开发工时。',
-      inspiredBy: 'Instagram had 13 employees when Facebook acquired it (2012)',
+      inspiredBy: 'Facebook 收购 Instagram 时，它只有 13 名员工（2012）',
     },
     'credential-stuffing': {
       name: '撞库攻击',
       brief: '机器人用泄露的密码尝试登录。确保真实用户仍能登录。',
-      inspiredBy: 'Common attacks on login endpoints',
+      inspiredBy: '针对登录端点的常见攻击',
     },
     'black-friday': {
       name: '黑色星期五',
       brief: '第 5 分钟起的 5 分钟内需求翻三倍。尽量少花钱。',
-      inspiredBy: 'Retail peak days',
+      inspiredBy: '零售业的高峰日',
     },
     'us-east-1': {
       name: 'us-east-1',
-      brief: 'A zone dies at minute 5. Keep 99.9% of requests.',
-      inspiredBy: 'Several AWS us-east-1 outages',
+      brief: '第 5 分钟时一个可用区宕机。保持 99.9% 的请求成功。',
+      inspiredBy: 'AWS us-east-1 的多次故障',
     },
     'exactly-once': {
       name: '恰好一次',
       brief: '支付服务商两次变慢，每次响应需要 2 秒。每笔结账只扣款一次。',
-      inspiredBy: 'Payment idempotency',
+      inspiredBy: '支付幂等性',
     },
     'two-million-sockets': {
       name: '两百万个套接字',
       brief: '两百万个聊天长连接。以最低成本维持它们。',
-      inspiredBy: 'Phoenix reached 2 million WebSocket connections on one server (2015)',
+      inspiredBy: 'Phoenix 在单台服务器上达到 200 万个 WebSocket 连接（2015）',
     },
     'pokemon-go': {
       name: 'Pokémon GO',
       brief: '上线首日：需求在 10 分钟内达到预测值的 50 倍。',
-      inspiredBy: 'Pokémon GO launch traffic reached about 50× the planned target (2016)',
+      inspiredBy: 'Pokémon GO 上线时的流量达到计划目标的约 50 倍（2016）',
     },
     'healthcare-launch': {
       name: '医疗网站上线日',
       brief: '第 2 分钟上线，这套设计有不少问题。把它们找出来。',
-      inspiredBy: 'The healthcare.gov launch (2013)',
+      inspiredBy: 'healthcare.gov 上线（2013）',
     },
     'thundering-herd': {
       name: '惊群',
       brief: '聊天服务器在第 2 分钟重启。24 万个客户端同时重连并登录。',
-      inspiredBy: 'Reconnect storms',
+      inspiredBy: '重连风暴',
     },
     'read-states': {
       name: '已读状态',
       brief: '堆内存两次填满。使用任意运行时，将 p99 保持在 90 ms 以下。',
-      inspiredBy: 'Discord moved a service from Go to Rust to remove GC spikes (2020)',
+      inspiredBy: 'Discord 把一个服务从 Go 迁移到 Rust，以消除 GC 尖峰（2020）',
     },
     'fail-whale': {
       name: '故障鲸',
       brief: '将信息流请求的 p99 保持在 200 ms 以下。有些账号拥有 1,000 万粉丝。',
-      inspiredBy: "Twitter's timeline scaling problems",
+      inspiredBy: 'Twitter 的时间线扩展难题',
     },
     'reports-at-noon': {
       name: '正午报表',
       brief: '财务在第 2 和第 5 分钟于主库运行报表，且不允许取消。保持结账流畅。',
-      inspiredBy: 'Analytical queries on transactional databases',
+      inspiredBy: '在事务型数据库上运行分析查询',
     },
     'gpu-economics': {
       name: 'GPU 经济学',
-      brief: 'Serve every AI prompt and keep 15% of revenue as margin.',
-      inspiredBy: 'Self-hosted inference against hosted APIs',
+      brief: '响应每一条 AI 提示，并保留 15% 的收入作为利润。',
+      inspiredBy: '自托管推理与托管 API 的对比',
     },
     metastable: {
       name: '亚稳态',
@@ -3522,53 +3510,53 @@ export const catalog: Messages['catalog'] = {
     'regex-of-doom': {
       name: '致命正则',
       brief: '第 2 分钟，一条新 WAF 规则让所有 WAF 的 CPU 占用达到 100%。恢复服务。',
-      inspiredBy: 'Cloudflare outage, 2 July 2019',
+      inspiredBy: 'Cloudflare 故障，2019 年 7 月 2 日',
     },
     'forty-three-seconds': {
       name: '43 秒',
       brief: '地域间的连接在第 2 分钟断开。保持只有一个主节点。',
-      inspiredBy: 'GitHub network partition, 21 October 2018',
+      inspiredBy: 'GitHub 网络分区，2018 年 10 月 21 日',
     },
     'follow-the-sun': {
       name: '追逐太阳',
       brief: '在一天内应对四个区域各自的晚高峰，将开支控制在每秒 $700 以下。',
-      inspiredBy: 'Global daily peaks',
+      inspiredBy: '全球每日高峰',
     },
     celebrity: {
       name: '名人效应',
-      brief: 'A celebrity posts at minute 2. 30% of reads ask for one key.',
-      inspiredBy: 'Hot keys from viral accounts',
+      brief: '第 2 分钟时一位名人发帖。30% 的读取请求访问同一个键。',
+      inspiredBy: '来自爆红账号的热点键',
     },
     'gone-from-the-internet': {
       name: '从互联网消失',
       brief: '第 2 分钟的一次路由变更让所有地域与互联网断开。恢复连通。',
-      inspiredBy: 'Facebook outage, 4 October 2021',
+      inspiredBy: 'Facebook 故障，2021 年 10 月 4 日',
     },
     'the-typo': {
       name: '一字之差',
       brief: '第 2 分钟，一条本应删除单台服务器的命令删除了整个搜索层。',
-      inspiredBy: 'Amazon S3 outage, 28 February 2017',
+      inspiredBy: 'Amazon S3 故障，2017 年 2 月 28 日',
     },
     'leap-second': {
       name: '闰秒',
       brief:
         '第 2 分钟，亚太地域的时钟重复了一秒，当地所有应用服务器的 CPU 占用飙至 100%。将 p99 保持在 380 ms 以下。',
-      inspiredBy: 'The 2012 leap second',
+      inspiredBy: '2012 年的闰秒',
     },
     'rule-of-40': {
       name: '40 法则',
       brief: '本次运行中用户增长 25%。达到增长率与利润率之和为 40 的目标：保持 15% 的利润率。',
-      inspiredBy: 'The SaaS Rule of 40',
+      inspiredBy: 'SaaS 的 40 法则',
     },
     'postgres-for-everything': {
       name: '一切交给 Postgres',
       brief: '仅用 Postgres 存储数据，处理所有请求类型，且 p99 低于 800 ms。',
-      inspiredBy: 'The "just use Postgres" argument',
+      inspiredBy: '“用 Postgres 就够了”的主张',
     },
     'five-nines': {
       name: '五个九',
       brief: '四周内：两台服务器和一个地域发生故障，流量有一次增至三倍。成功处理 99.999% 的请求。',
-      inspiredBy: '99.999% availability targets',
+      inspiredBy: '99.999% 的可用性目标',
     },
   },
 }

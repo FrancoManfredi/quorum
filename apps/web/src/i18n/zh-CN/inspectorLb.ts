@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorLb: Messages['inspectorLb'] = {
@@ -14,8 +13,13 @@ export const inspectorLb: Messages['inspectorLb'] = {
   off: '关闭',
   on: '开启',
   healthChecks: '健康检查',
-  s: (p0) => `${arg(p0)} 秒`,
+  s: (p0) => `${p0} 秒`,
   shallow: '浅层',
   deep: '深层',
   routes: '路由',
+  stickyHolds:
+    '用户会一直停留在最初访问的目标上。最老的副本承载的用户最多，目标宕机会带走它的会话，而进程内缓存和实时客户端会保持热状态。',
+  slowStart: '慢启动',
+  slowStartOn: '新副本逐步接收流量，因此冷启动的 Java 副本不会以冷启动速度响应。',
+  slowStartOff: '新副本会一次性承担它的全部份额。',
 }

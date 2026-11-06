@@ -1,4 +1,4 @@
-import { copy } from '@/i18n/messages.ts'
+import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   LOG_ACKS,
@@ -12,16 +12,16 @@ import type { Acks, GameNode } from '@quorum/simulation/state'
 import { compact, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
-import { type Panel, caption, percent, picker, section } from './shared.ts'
+import { type Panel, caption, percentNumber, picker, section } from './shared.ts'
 
 /**
  * How long an Event Stream keeps a message, as a calendar reads: one sim second is one calendar
  * minute, so 1,440 sim seconds are a day.
  */
-const retentionLabel = (seconds: number): string =>
+const retentionLabel = (t: Messages, seconds: number): string =>
   seconds >= 1_440
-    ? `${Math.round((seconds / 1_440) * 10) / 10} d`
-    : `${Math.round(seconds / 60)} h`
+    ? t.units.d(Math.round((seconds / 1_440) * 10) / 10)
+    : t.units.h(Math.round(seconds / 60))
 
 /** An Event Stream's partitions, acknowledgements, retention and key (07 "Event Stream"). */
 const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
@@ -67,21 +67,17 @@ const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         picker(
           'acks',
           (Object.entries(LOG_ACKS) as ReadonlyArray<[Acks, (typeof LOG_ACKS)['all']]>).map(
-            ([id, ack]) => [id, ack.name] as const,
+            ([id]) => [id, t.catalog.logAcks[id].name] as const,
           ),
           node.acks,
           (acks) => Message.LogOptionsChosen({ nodeId: node.id, acks }),
           h,
         ),
-        caption(
-          `A producer waits ${LOG_ACKS[node.acks].latency}× the 5 ms append. A replica past the first bills half a broker's Burn again.`,
-          h,
-        ),
+        caption(t.inspectorLog.aProducerWaitsForTheAppend(LOG_ACKS[node.acks].latency), h),
         picker(
           'replicas',
           LOG_REPLICAS.map(
-            (replicas) =>
-              [replicas, `${replicas} ${replicas === 1 ? 'replica' : 'replicas'}`] as const,
+            (replicas) => [replicas, t.inspectorLog.replicaCount(replicas)] as const,
           ),
           logReplicas(node),
           (replicas) => Message.LogOptionsChosen({ nodeId: node.id, replicas }),
@@ -89,10 +85,10 @@ const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         ),
         caption(
           logLoss(node) >= 1
-            ? 'One replica holds the only copy: a broker that fails takes every event it held.'
+            ? t.inspectorLog.oneReplicaHoldsTheOnlyCopy
             : logLoss(node) > 0
-              ? `A broker that fails loses ${percent(logLoss(node))} of the events it held: the ones its replicas had not copied.`
-              : 'Every replica had every acknowledged event, so a broker that fails loses none.',
+              ? t.inspectorLog.aBrokerThatFailsLoses(percentNumber(logLoss(node)))
+              : t.inspectorLog.everyReplicaHadEveryEvent,
           h,
         ),
       ],
@@ -103,7 +99,7 @@ const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
       [
         picker(
           'retain',
-          LOG_RETENTION.map((retain) => [retain, retentionLabel(retain)] as const),
+          LOG_RETENTION.map((retain) => [retain, retentionLabel(t, retain)] as const),
           node.retain,
           (retain) => Message.LogOptionsChosen({ nodeId: node.id, retain }),
           h,
@@ -127,7 +123,7 @@ export const logPanel: Panel = {
       row(t.inspectorLog.inbound, t.inspectorLog.s(rate(own.inbound)), 'plain', h),
       row(
         t.inspectorLog.lag,
-        `${compact(Math.round(node.depth))} events`,
+        t.inspectorLog.events(compact(Math.round(node.depth))),
         node.depth > 0 ? 'warn' : 'plain',
         h,
       ),
@@ -139,14 +135,14 @@ export const logPanel: Panel = {
       ),
       row(
         t.inspectorLog.retention,
-        retentionLabel(node.retain),
+        retentionLabel(t, node.retain),
         lag > node.retain ? 'danger' : 'plain',
         h,
       ),
       row(t.inspectorLog.partitions, `${node.partitions}`, 'plain', h),
       row(
         t.inspectorLog.replicas,
-        `${logReplicas(node)} · acks ${LOG_ACKS[node.acks].name}`,
+        t.inspectorLog.replicasAndAcks(logReplicas(node), t.catalog.logAcks[node.acks].name),
         'plain',
         h,
       ),

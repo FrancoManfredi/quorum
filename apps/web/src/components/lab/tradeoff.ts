@@ -13,7 +13,7 @@ import {
 import { has } from '@quorum/simulation/lookups'
 import { migrationCost, targetOf } from '@quorum/simulation/migration'
 import type { GameNode } from '@quorum/simulation/state'
-import { describeDelta } from '@/game/feedback.ts'
+import { deltaText } from './hud.ts'
 import { money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import type { Model, PreviewFigures, Tradeoff, TradeoffOption } from '@/game/model.ts'
@@ -57,14 +57,14 @@ const termsOf = (t: Messages): Readonly<Record<string, string>> => ({
   'n1-query': t.tradeoff.n1Query,
 })
 
-const nameOf = (option: TradeoffOption): string => {
+const nameOf = (t: Messages, option: TradeoffOption): string => {
   switch (option.kind) {
     case 'runtime':
-      return RUNTIMES[option.id].name
+      return t.catalog.runtimes[option.id].name
     case 'framework':
-      return FRAMEWORKS[option.id].name
+      return t.catalog.frameworks[option.id].name
     case 'family':
-      return FAMILIES[option.id].name
+      return t.catalog.families[option.id].name
   }
 }
 
@@ -204,8 +204,9 @@ const radar = (now: Axes, next: Axes, h: HtmlBuilder<Message>): Html => {
 /* ---------- lines ---------- */
 
 /** "+$0.80/s (+12%) · p99 +40 ms" from the ghost run. */
-const previewLine = (model: Model, preview: PreviewFigures): string =>
-  describeDelta(
+const previewLine = (t: Messages, model: Model, preview: PreviewFigures): string =>
+  deltaText(
+    t,
     {
       id: 0,
       label: '',
@@ -218,13 +219,15 @@ const previewLine = (model: Model, preview: PreviewFigures): string =>
   )
 
 /** Cash now, the change in Burn, and the restart. */
-const costLine = (model: Model, preview: PreviewFigures): string => {
+const costLine = (t: Messages, model: Model, preview: PreviewFigures): string => {
   const [before = 0, after = 0] = preview.burn
   const burn = after - before
   return [
     !model.board.game.sandbox && preview.cash > 0 ? money(preview.cash) : null,
-    Math.abs(burn) >= 0.005 ? `Burn ${burn > 0 ? '+' : '−'}${money(Math.abs(burn))}/s` : null,
-    preview.restart > 0 ? `restarts cold for ${Math.ceil(preview.restart)} s` : null,
+    Math.abs(burn) >= 0.005
+      ? t.tradeoff.burnChange(t.units.perSecond(`${burn > 0 ? '+' : '−'}${money(Math.abs(burn))}`))
+      : null,
+    preview.restart > 0 ? t.tradeoff.restartsCold(t.units.s(Math.ceil(preview.restart))) : null,
   ]
     .filter((part) => part !== null)
     .join(' · ')
@@ -252,18 +255,18 @@ const effect = (model: Model, card: Tradeoff, h: HtmlBuilder<Message>): Html =>
               ),
               h.span(
                 [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))]'))],
-                [previewLine(model, card.preview)],
+                [previewLine(copy(h), model, card.preview)],
               ),
             ],
           ),
-          costLine(model, card.preview)
+          costLine(copy(h), model, card.preview)
             ? h.span(
                 [
                   h.Class(
                     cn(FIGURE, 'pl-4 text-[calc(11.5px*var(--type-scale))] text-muted-foreground'),
                   ),
                 ],
-                [costLine(model, card.preview)],
+                [costLine(copy(h), model, card.preview)],
               )
             : h.empty,
         ],
@@ -285,7 +288,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   const node = model.board.game.nodes.find((entry) => entry.id === card.nodeId)
   if (!node) return h.empty
   const current = currentOf(node, card.option)
-  const title = `${kindTitleOf(t)[card.option.kind]}: ${nameOf(current)} → ${nameOf(card.option)}`
+  const title = `${kindTitleOf(t)[card.option.kind]}: ${nameOf(t, current)} → ${nameOf(t, card.option)}`
 
   // Explicit reviews stay expanded even after this option set has been seen.
   if (!card.pinned && model.prefs.seenTradeoffs.includes(card.option.kind))
@@ -297,7 +300,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
       [
         h.span(
           [h.Class('text-[calc(12.5px*var(--type-scale))] font-semibold')],
-          [nameOf(card.option)],
+          [nameOf(t, card.option)],
         ),
         effect(model, card, h),
       ],

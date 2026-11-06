@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorMesh: Messages['inspectorMesh'] = {
@@ -10,9 +9,11 @@ export const inspectorMesh: Messages['inspectorMesh'] = {
   perHop: 'Par saut',
   memberCPU: 'CPU du membre',
   insight: 'Connaissances',
-  onItsLinks: (p0) => `+${arg(p0)} sur ses liens`,
+  onItsLinks: (p0) => `+${p0} sur ses liens`,
   platform: 'Plateforme',
-  engineers: (p0) => `${arg(p0)} ingénieurs`,
+  engineers: (p0) => `${p0} ingénieurs`,
   burn: 'Dépenses',
-  s: (p0) => `${arg(p0)}/s`,
+  s: (p0) => `${p0}/s`,
+  eachSidecarRetries: (insight, hop, overhead) =>
+    `Chaque proxy réessaie et coupe les liens de son nœud, les surveille pour les connaissances (+${insight} %), ajoute ${hop} à chaque saut, et prend ${overhead} % du CPU de la machine. Les dépenses de chaque membre paient son proxy, et chaque maillage prend des heures de dev de la plateforme.`,
 }

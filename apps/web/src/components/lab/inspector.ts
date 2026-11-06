@@ -1,3 +1,4 @@
+import { formats } from '@/i18n/format.ts'
 import { copy, localized, nodeLabelIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { isDown } from '@quorum/simulation/life'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -19,9 +20,9 @@ import {
   COMPONENTS,
   CREDIT_CAP,
   FAMILY_IDS,
-  LB_POLICIES,
   PRICING_FROM_STAGE,
   PRICING_IDS,
+  RUNTIMES,
   SIZES,
   SPOT_WARNING,
   STANDBY_TYPES,
@@ -45,14 +46,13 @@ import {
   refundOf,
   replacePrice,
   resizePrice,
-  sizeLabel as sizeLabelOf,
   vcpuOf,
   zoned,
   nodeCertDaysLeft,
 } from '@quorum/simulation/lookups'
 import { LINK_TIMEOUTS, restartable } from '@quorum/simulation/actions'
 import type { Game, GameLink, GameNode } from '@quorum/simulation/state'
-import { compact, duration, money, ms, priceLabel, queueWait, rate } from '@quorum/ui/game/format'
+import { compact, money, priceLabel, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
 import { hasTraffic, hintOf, oversized, sampleNode, TRAFFIC_KINDS } from '@/game/node-metrics.ts'
@@ -73,7 +73,7 @@ import {
   row,
 } from '@quorum/ui/game/bits'
 import {
-  KIND_SHORT,
+  sizeLabelIn,
   caption,
   choice,
   holdListeners,
@@ -201,7 +201,7 @@ const warnings = (
   if (
     incident?.kind === 'loop' &&
     node.type === 'server' &&
-    t.catalog.runtimes[node.runtime].blocking === 'loop'
+    RUNTIMES[node.runtime].blocking === 'loop'
   )
     list.push(
       callout(
@@ -270,15 +270,7 @@ const warnings = (
       ),
     )
   }
-  if (node.draining)
-    list.push(
-      callout(
-        'Draining: it takes no new traffic, and rejoins once the work it holds is finished.',
-        'warn',
-        null,
-        h,
-      ),
-    )
+  if (node.draining) list.push(callout(t.inspector.draining, 'warn', null, h))
   if (node.type === 'cluster' && !game.sandbox) {
     const upgrade = button(
       {
@@ -348,8 +340,11 @@ const warnings = (
     list.push(
       callout(
         game.reshard.until > 0
-          ? `Copying its data to ${game.reshard.shards} shard${game.reshard.shards === 1 ? '' : 's'} by ${t.catalog.shardKeys[game.reshard.key].name}. The volume runs at half its IOPS until the copy ends.`
-          : 'Rewriting the code for the new shards. It is on the backlog.',
+          ? t.inspector.copyingToShards(
+              game.reshard.shards,
+              t.catalog.shardKeys[game.reshard.key].name,
+            )
+          : t.inspector.rewritingForTheNewShards,
         'warn',
         null,
         h,
@@ -380,9 +375,7 @@ const warnings = (
     const left = Math.max(0, Math.ceil(SPOT_WARNING - (game.time - game.incident.startedAt)))
     list.push(
       callout(
-        isDown(node.life)
-          ? 'The provider reclaimed this Spot Node.'
-          : `The provider reclaims this Spot Node in ${left} s. Replace it with on-demand.`,
+        isDown(node.life) ? t.inspector.spotReclaimed : t.inspector.spotReclaimsIn(t.units.s(left)),
         'danger',
         node.pricing === 'spot'
           ? button(
@@ -392,7 +385,7 @@ const warnings = (
                 size: 'sm',
                 className: 'self-start text-danger',
               },
-              ['Switch to on-demand'],
+              [t.inspector.switchToOnDemand],
               h,
             )
           : null,
@@ -422,11 +415,7 @@ const warnings = (
       Message.ReportCancelled(),
     )
   if (node.type === 'psp' && game.incident?.kind === 'psp-outage')
-    fix(
-      'Their outage, not yours. Every checkout fails.',
-      'Switch provider',
-      Message.ProviderSwitched(),
-    )
+    fix(t.inspector.providerOutage, t.inspector.switchProvider, Message.ProviderSwitched())
   if (
     node.type === 'database' &&
     game.incident?.kind === 'disk-full' &&
@@ -497,7 +486,7 @@ const stats = (
       util >= 0.9 ? 'danger' : util >= 0.7 ? 'warn' : 'plain',
       h,
     ),
-    row(t.inspector.latency, ms(own.latency), 'plain', h),
+    row(t.inspector.latency, formats(t).ms(own.latency), 'plain', h),
     // What a Worker cannot take waits in its Queue: it is not lost.
     node.type === 'worker'
       ? row(
@@ -525,7 +514,7 @@ const stats = (
           ),
         ]
       : []),
-    ...(own.lag !== null ? [row(t.inspector.lag, ms(own.lag), 'plain', h)] : []),
+    ...(own.lag !== null ? [row(t.inspector.lag, formats(t).ms(own.lag), 'plain', h)] : []),
     ...(node.certUntil !== null
       ? [
           row(
@@ -551,7 +540,7 @@ const limitNameOf = (t: Messages): Record<Limit, string> => ({
   network: t.inspector.network,
   disk: t.inspector.diskIOPS,
   throughput: t.inspector.throughput,
-  none: 'Nothing',
+  none: t.inspector.nothing,
 })
 
 /** One resource gauge's figures, as the Inspector draws them. */
@@ -570,7 +559,7 @@ type GaugeSpec = Readonly<{
  * figure in the Ledger, such as disk IOPS or a flat Component's throughput, has
  * no entry here.
  */
-const gaugesOf = (node: GameNode, own: NodeLedger) => {
+const gaugesOf = (t: Messages, node: GameNode, own: NodeLedger) => {
   const { cpu, ram, slots, credits, network } = own.resources
   const gauges: Partial<Record<Limit, GaugeSpec>> = {}
   if (cpu)
@@ -578,25 +567,25 @@ const gaugesOf = (node: GameNode, own: NodeLedger) => {
       label: 'CPU',
       used: cpu.used,
       total: cpu.total,
-      text: `${cpu.used.toFixed(2)} / ${cpu.total.toFixed(1)} cores`,
+      text: t.inspector.cores(cpu.used.toFixed(2), cpu.total.toFixed(1)),
     }
   if (ram)
     gauges.memory = {
-      label: 'RAM',
+      label: t.inspector.rAM,
       used: ram.used,
       total: ram.total,
-      text: `${ram.used.toFixed(1)} / ${ram.total.toFixed(0)} GB`,
+      text: t.inspector.gigabytes(ram.used.toFixed(1), ram.total.toFixed(0)),
     }
   if (slots)
     gauges.workers = {
-      label: node.type === 'fn' ? 'Executions' : 'Workers busy',
+      label: node.type === 'fn' ? t.inspector.executions : t.inspector.workersBusy,
       used: slots.used,
       total: slots.total,
       text: `${slots.used.toFixed(1)} / ${slots.total}`,
     }
   if (own.connections)
     gauges.connections = {
-      label: 'Connections',
+      label: t.inspector.connections,
       used: own.connections.used,
       total: own.connections.max,
       text: `${Math.round(own.connections.used)} / ${own.connections.max}`,
@@ -604,19 +593,22 @@ const gaugesOf = (node: GameNode, own: NodeLedger) => {
   if (credits) {
     const cap = CREDIT_CAP * vcpuOf(node)
     gauges.credits = {
-      label: 'CPU credits',
+      label: t.inspector.cPUCredits,
       used: credits.balance,
       total: cap,
-      text: `${Math.round(credits.balance)} · ${credits.rate >= 0 ? '+' : ''}${credits.rate.toFixed(2)}/s`,
+      text: `${Math.round(credits.balance)} · ${t.units.perSecond(`${credits.rate >= 0 ? '+' : ''}${credits.rate.toFixed(2)}`)}`,
       invert: true,
     }
   }
   if (network)
     gauges.network = {
-      label: 'Network',
+      label: t.inspector.network,
       used: network.used,
       total: network.total,
-      text: `${(network.used / 1_000).toFixed(1)} / ${(network.total / 1_000).toFixed(0)} MB/s`,
+      text: t.inspector.megabytesPerSecond(
+        (network.used / 1_000).toFixed(1),
+        (network.total / 1_000).toFixed(0),
+      ),
     }
   return gauges
 }
@@ -630,15 +622,17 @@ const resources = (
 
   const own = ledger.nodes[node.id]
   if (!own) return []
-  const gauges = gaugesOf(node, own)
+  const gauges = gaugesOf(t, node, own)
   const list: Array<Html> = []
   // The goal bar names the tightest limit, and the gauge behind it when the Ledger has one.
   const tight = gauges[own.limit]
   if (own.limit === 'none') list.push(row(t.inspector.limit, t.inspector.nothingTight, 'ok', h))
   else if (tight)
-    list.push(gauge(`Limit · ${tight.label}`, tight.used, tight.total, tight.text, h, tight.invert))
+    list.push(
+      gauge(t.inspector.limitOf(tight.label), tight.used, tight.total, tight.text, h, tight.invert),
+    )
   // The Inspector says so rather than leaving a limit unexplained.
-  else list.push(row(t.inspector.limit, `${limitNameOf(t)[own.limit]} · no gauge`, 'warn', h))
+  else list.push(row(t.inspector.limit, t.inspector.noGauge(limitNameOf(t)[own.limit]), 'warn', h))
   for (const limit of ['cpu', 'memory', 'workers', 'connections', 'credits', 'network'] as const) {
     const spec = gauges[limit]
     if (spec) list.push(gauge(spec.label, spec.used, spec.total, spec.text, h, spec.invert))
@@ -741,7 +735,7 @@ const pricing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
     [
       h.span(
         [h.Class(cn(EYEBROW, 'px-1 text-muted-foreground'))],
-        [term === null ? 'Pricing' : `Pricing · reserved for ${term} more d`],
+        [term === null ? t.inspector.pricing : t.inspector.pricingReservedFor(term)],
       ),
       segmented(
         'grid-cols-3',
@@ -815,6 +809,7 @@ const upgradeAll = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
 const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
+  const sizeName = SIZES[node.size]?.name
   const price = resizePrice(game, node)
   return section(
     t.inspector.instance,
@@ -831,7 +826,13 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
           ),
           h.span(
             [h.Class(cn(FIGURE, 'flex-1 text-center text-[calc(12.5px*var(--type-scale))]'))],
-            [t.inspector.vCPUGB(SIZES[node.size]?.name ?? '', vcpuOf(node), ramOf(node))],
+            [
+              t.inspector.vCPUGB(
+                sizeName ? t.nodeList.sizes[sizeName] : '',
+                vcpuOf(node),
+                ramOf(node),
+              ),
+            ],
           ),
           smallButton(
             price === null
@@ -851,14 +852,14 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
         [h.Class('flex items-center gap-2 px-1 pt-1')],
         [
           smallButton(
-            'Buy ten sizes',
+            t.inspector.buyTenSizes,
             ChevronsRight,
             Message.BulkResizeChosen({ nodeId: node.id, mode: 'ten' }),
             price !== null && game.cash >= price,
             h,
           ),
           smallButton(
-            'Buy to the largest size',
+            t.inspector.buyToTheLargestSize,
             ArrowUp,
             Message.BulkResizeChosen({ nodeId: node.id, mode: 'max' }),
             price !== null && game.cash >= price,
@@ -909,27 +910,32 @@ const inboundLinks = (game: Game, node: GameNode): ReadonlyArray<readonly [GameL
   })
 
 /** The routing settings that live on the source Node. */
-const routeSummaryOf = (node: GameNode): string => {
+const routeSummaryOf = (t: Messages, node: GameNode): string => {
   switch (node.type) {
     case 'lb':
-      return `${LB_POLICIES[node.policy].label} · checks every ${duration(node.checkEvery)}${
-        node.deepCheck ? ' · deep' : ''
-      }`
+      return (node.deepCheck ? t.inspector.checksEveryDeep : t.inspector.checksEvery)(
+        t.catalog.lbPolicies[node.policy].label,
+        formats(t).duration(node.checkEvery),
+      )
     case 'dns':
-      return `TTL ${duration(node.ttl)}`
+      return t.inspector.ttl(formats(t).duration(node.ttl))
     case 'cdn':
-      return `TTL ${duration(node.ttl)}`
+      return t.inspector.ttl(formats(t).duration(node.ttl))
     case 'waf':
-      return `Paranoia ${node.paranoia}${node.underAttack ? ' · under attack' : ''}`
+      return (node.underAttack ? t.inspector.paranoiaUnderAttack : t.inspector.paranoia)(
+        node.paranoia,
+      )
     case 'users':
-      return 'Where traffic starts'
+      return t.inspector.whereTrafficStarts
     default:
-      return COMPONENTS[node.type].name
+      return t.catalog.components[node.type].name
   }
 }
 
-const kindsOf = (link: GameLink): string =>
-  link.kinds === null ? 'Every kind' : link.kinds.map((kind) => KIND_SHORT[kind]).join(', ')
+const kindsOf = (t: Messages, link: GameLink): string =>
+  link.kinds === null
+    ? t.inspector.everyKind
+    : link.kinds.map((kind) => t.inspectorShared.kindShort[kind]).join(', ')
 
 const liveRateOf = (ledger: Ledger, from: string, to: string): number =>
   ledger.links.find((link) => link.from === from && link.to === to)?.rate ?? 0
@@ -957,7 +963,7 @@ const inboundSummary = (
               h.Key(`in-${source.id}`),
               h.Type('button'),
               h.OnClick(Message.RevealNode({ nodeId: source.id })),
-              h.AriaLabel(`Open ${nodeTitle(t, game, source)}`),
+              h.AriaLabel(t.inspectorShared.openNode(nodeTitle(t, game, source))),
               h.Class(
                 'flex w-full items-center gap-2 rounded-lg bg-well px-2.5 py-2 text-left transition-colors hover:bg-foreground/5',
               ),
@@ -975,7 +981,7 @@ const inboundSummary = (
                   ),
                   h.span(
                     [h.Class('text-[11px] text-muted-foreground')],
-                    [`${routeSummaryOf(source)} · ${kindsOf(link)}`],
+                    [`${routeSummaryOf(t, source)} · ${kindsOf(t, link)}`],
                   ),
                 ],
               ),
@@ -1136,13 +1142,16 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
   ]
 }
 
-const when = (time: number): string => {
+const when = (t: Messages, time: number): string => {
   const clock = clockOf(time)
-  return `Day ${clock.day} · ${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`
+  return t.inspector.dayAt(
+    clock.day,
+    `${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`,
+  )
 }
 
-const difference = (value: number): string =>
-  `${value > 0 ? '+' : value < 0 ? '−' : ''}${rate(Math.abs(value))}/s`
+const difference = (t: Messages, value: number): string =>
+  `${value > 0 ? '+' : value < 0 ? '−' : ''}${t.units.perSecond(rate(Math.abs(value)))}`
 
 /** A share of incoming traffic, with its change since the previous sample. */
 const breakdown = (
@@ -1151,8 +1160,9 @@ const breakdown = (
   total: number,
   previous: number | null,
   h: HtmlBuilder<Message>,
-): Html =>
-  h.div(
+): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Key(typeof label === 'string' ? label : label.join('')),
       h.Class('flex items-baseline justify-between gap-3 px-3 py-1.5'),
@@ -1176,19 +1186,20 @@ const breakdown = (
           ),
         ],
         [
-          `${rate(value)}/s · ${total > 0 ? percent(value / total) : '0%'}`,
+          t.inspector.rateAndShare(rate(value), total > 0 ? percent(value / total) : '0%'),
           ...(previous === null
             ? []
             : [
                 h.span(
                   [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-                  [difference(value - previous)],
+                  [difference(t, value - previous)],
                 ),
               ]),
         ],
       ),
     ],
   )
+}
 
 /** The live sample or a recorded one, broken down by operation and source. */
 const trafficBreakdown = (
@@ -1213,6 +1224,10 @@ const trafficBreakdown = (
     (kind) => (sample.traffic[kind] ?? 0) > 0 || (previous?.traffic[kind] ?? 0) > 0,
   ).sort((a, b) => (sample.traffic[b] ?? 0) - (sample.traffic[a] ?? 0))
   const sources = [...sample.sources].sort((a, b) => b.rate - a.rate)
+  // A recorded sample names its sources in English: the Node's Component says it in the player's words.
+  const sourceNames = new Map(
+    game.nodes.map((entry) => [entry.id, t.catalog.components[entry.type].name] as const),
+  )
   const load = sample.utilization >= 0.9 ? 'danger' : sample.utilization >= 0.7 ? 'warn' : 'plain'
   const earlier = index === -1 ? history.at(-1) : history[index - 1]
   return section(
@@ -1261,7 +1276,7 @@ const trafficBreakdown = (
                 ),
                 h.span(
                   [h.Class(cn(FIGURE, 'flex-1 text-center text-[calc(12.5px*var(--type-scale))]'))],
-                  [when(sample.time)],
+                  [when(t, sample.time)],
                 ),
                 smallButton(
                   t.inspector.laterSample,
@@ -1327,7 +1342,9 @@ const trafficBreakdown = (
                 row(t.inspector.sentToWorkers, t.inspector.s(rate(sample.queue.out)), 'plain', h),
                 row(
                   t.inspector.queueWait,
-                  queueWait(sample.queue.stalled ? Number.POSITIVE_INFINITY : sample.queue.wait),
+                  formats(t).queueWait(
+                    sample.queue.stalled ? Number.POSITIVE_INFINITY : sample.queue.wait,
+                  ),
                   sample.queue.stalled ? 'warn' : 'plain',
                   h,
                 ),
@@ -1380,7 +1397,10 @@ const trafficBreakdown = (
                   [h.Class(NESTED)],
                   sources.map((source) =>
                     breakdown(
-                      [source.name, ...(source.ordinal > 0 ? [` ${source.ordinal}`] : [])],
+                      [
+                        sourceNames.get(source.id) ?? source.name,
+                        ...(source.ordinal > 0 ? [` ${source.ordinal}`] : []),
+                      ],
                       source.rate,
                       sample.inbound,
                       previous
@@ -1406,15 +1426,7 @@ const trafficBreakdown = (
           ]
         : []),
       ...(!hint && has(game, 'rightsizing') && oversized(history)
-        ? [
-            callout(
-              'Rightsizing report: peak utilization stayed under 30% over the last calendar day. Consider a smaller size.',
-              'warn',
-              null,
-              h,
-              'mx-0 mb-0',
-            ),
-          ]
+        ? [callout(t.inspector.rightsizingReport, 'warn', null, h, 'mx-0 mb-0')]
         : []),
     ],
     h,
@@ -1434,7 +1446,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
   const label = nodeLabelIn(t, game, node)
   const history = model.board.nodeHistory[node.id] ?? []
   const price = resizePrice(game, node)
-  const sizeLabel = def.sized || def.steps > 1 ? sizeLabelOf(node) : null
+  const sizeLabel = def.sized || def.steps > 1 ? sizeLabelIn(t, node) : null
   const panel = PANELS[node.type]
   const context = { model, game, node, ledger, h }
 
@@ -1569,7 +1581,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                         ? t.inspector.biggerDrawer
                         : node.type === 'analytics'
                           ? t.inspector.moreSamples
-                          : sizeLabelOf(node, node.size + 1),
+                          : sizeLabelIn(t, node, node.size + 1),
                     ],
                   ),
                   h.span([h.Class(FIGURE)], [priceLabel(game.sandbox, price)]),
@@ -1613,10 +1625,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   onClick: Message.DrainChosen({ nodeId: node.id }),
                   variant: 'outline',
                   size: 'icon-lg',
-                  attributes: [
-                    h.Title('Drain: stop new traffic and let it finish what it holds'),
-                    h.AriaLabel('Drain'),
-                  ],
+                  attributes: [h.Title(t.inspector.drainTitle), h.AriaLabel(t.inspector.drain)],
                 },
                 icon(h, ArrowDownToLine, 'size-4'),
                 h,

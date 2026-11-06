@@ -1,11 +1,11 @@
+import { formats } from '@/i18n/format.ts'
 import { copy, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { churnOf, type ChurnFix, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
-import { DEVICE_INFO } from '@quorum/simulation/catalog'
+import { churnOf, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
 import { has } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Game } from '@quorum/simulation/state'
-import { compact, ms } from '@quorum/ui/game/format'
+import { compact } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
 import { button } from '@quorum/ui/primitives/button'
@@ -19,31 +19,30 @@ import { shell } from './panels.ts'
    ========================================================================== */
 
 /** The button that applies a row's fix, or its advice as text. */
-const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
+const fixOf = (game: Game, entry: ChurnRow, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+  const fix = entry.fix
 
   if (fix._tag === 'advice')
     return h.span(
       [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-      [fix.text],
+      [entry.cause === 'far' ? '' : t.churn.fixes[entry.cause]],
     )
   const shown = fix._tag === 'node' ? game.nodes.find((node) => node.id === fix.nodeId) : undefined
   const [label, message] =
     fix._tag === 'region'
       ? [
-          `${
-            has(game, 'infra-as-code') &&
-            !game.nodes.some((node) => node.region === fix.region && node.type !== 'users')
-              ? 'Mirror into'
-              : openRegions(game).includes(fix.region)
-                ? 'Build in'
-                : t.churn.open
-          } ${t.catalog.regionInfo[fix.region].name}`,
+          has(game, 'infra-as-code') &&
+          !game.nodes.some((node) => node.region === fix.region && node.type !== 'users')
+            ? t.churn.mirrorInto[fix.region]
+            : openRegions(game).includes(fix.region)
+              ? t.churn.buildIn[fix.region]
+              : t.churn.openRegion[fix.region],
           Message.ChurnFixTaken({ fix: 'region', target: fix.region }),
         ]
       : fix._tag === 'research'
         ? [
-            `Research ${t.catalog.research[fix.research].name}`,
+            t.churn.research(t.catalog.research[fix.research].name),
             Message.ChurnFixTaken({ fix: 'research', target: fix.research }),
           ]
         : [
@@ -63,10 +62,20 @@ const detailOf = (t: Messages, game: Game, entry: ChurnRow): string => {
   const shown = hop ? game.nodes.find((node) => node.id === hop.nodeId) : undefined
   return [
     ...(hop
-      ? [`Slowest hop: ${shown ? nodeTitle(t, game, shown) : 'Node'} adds ${ms(hop.ms)}`]
+      ? [
+          t.churn.slowestHop(
+            shown ? nodeTitle(t, game, shown) : t.churn.node,
+            formats(t).ms(hop.ms),
+          ),
+        ]
       : []),
     ...(entry.device
-      ? [`${DEVICE_INFO[entry.device.device].name} adds ${ms(entry.device.ms)} over the internet`]
+      ? [
+          t.churn.deviceAdds(
+            t.catalog.deviceInfo[entry.device.device].name,
+            formats(t).ms(entry.device.ms),
+          ),
+        ]
       : []),
   ].join(' · ')
 }
@@ -135,12 +144,16 @@ const rowGrid = (
             ),
           ),
         ],
-        [entry.cause],
+        [t.churn.causes[entry.cause]],
       ),
       h.div(
         [
           h.Class('h-1.5 rounded-full bg-muted'),
-          h.Title(entry.p99 === null ? '' : `p99 ${ms(entry.p99)} · T ${ms(entry.target)}`),
+          h.Title(
+            entry.p99 === null
+              ? ''
+              : `p99 ${formats(t).ms(entry.p99)} · T ${formats(t).ms(entry.target)}`,
+          ),
         ],
         [
           h.div(
@@ -158,7 +171,7 @@ const rowGrid = (
         [h.Class(cn(FIGURE, 'text-right text-[calc(12px*var(--type-scale))]'))],
         [entry.points.toFixed(3)],
       ),
-      h.div([h.Class('compact:col-span-4')], fixed ? [fixOf(game, entry.fix, h)] : []),
+      h.div([h.Class('compact:col-span-4')], fixed ? [fixOf(game, entry, h)] : []),
     ],
   )
 }
@@ -193,7 +206,7 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
                 ),
               ),
             ],
-            [`Apdex ${region.now.toFixed(2)} / ${region.target.toFixed(2)}`],
+            [t.churn.apdex(region.now.toFixed(2), region.target.toFixed(2))],
           ),
           h.span(
             [
@@ -205,7 +218,7 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
                 ),
               ),
             ],
-            [`${share >= 0 ? '+' : '−'}${Math.abs(share).toFixed(1)}%/h`],
+            [t.units.perHour(`${share >= 0 ? '+' : '−'}${Math.abs(share).toFixed(1)}%`)],
           ),
           h.span(
             [

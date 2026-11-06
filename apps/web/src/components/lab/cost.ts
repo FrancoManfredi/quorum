@@ -18,18 +18,18 @@ import { shell } from './panels.ts'
 type Line = Readonly<{ key: keyof BurnLines; label: string; note: string }>
 
 const linesOf = (t: Messages): ReadonlyArray<Line> => [
-  { key: 'compute', label: t.cost.compute, note: 'App Servers, Workers, edge, and platform Nodes' },
-  { key: 'data', label: t.cost.data, note: 'Database, cache, pooler, replicas, and the rest' },
-  { key: 'storage', label: t.cost.storage, note: 'GB stored, priced per GB per second' },
-  { key: 'egress', label: t.cost.egress, note: 'Bytes out from the origin and the CDN' },
-  { key: 'thirdParty', label: 'Third parties', note: 'Payment fees, scans, tokens, and messages' },
+  { key: 'compute', label: t.cost.compute, note: t.cost.notes.compute },
+  { key: 'data', label: t.cost.data, note: t.cost.notes.data },
+  { key: 'storage', label: t.cost.storage, note: t.cost.notes.storage },
+  { key: 'egress', label: t.cost.egress, note: t.cost.notes.egress },
+  { key: 'thirdParty', label: t.cost.thirdParties, note: t.cost.notes.thirdParty },
   {
     key: 'requests',
     label: t.cost.requests,
-    note: 'Gateway, Serverless and Edge Function requests, priced per use',
+    note: t.cost.notes.requests,
   },
-  { key: 'observability', label: t.cost.observability, note: 'Analytics sampling and retention' },
-  { key: 'salaries', label: t.cost.salaries, note: 'Engineers, by language and policy' },
+  { key: 'observability', label: t.cost.observability, note: t.cost.notes.observability },
+  { key: 'salaries', label: t.cost.salaries, note: t.cost.notes.salaries },
 ]
 
 const row = (line: Line, value: number, total: number, h: HtmlBuilder<Message>): Html => {
@@ -102,7 +102,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       )
     : []
   return shell(
-    'The cloud bill',
+    t.cost.cloudBill,
     [],
     [
       h.div(
@@ -209,9 +209,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             'px-5 pb-4 text-[calc(12.5px*var(--type-scale))] leading-snug text-muted-foreground',
           ),
         ],
-        [
-          'The bill follows the Era’s cost index, so it rises with the Company. A Gateway bills each request, and so do a Serverless Function’s requests and GB-seconds and an Edge Function’s requests: the Requests line is what they serve.',
-        ],
+        [t.cost.billExplainer],
       ),
     ],
     'max-w-[560px]',

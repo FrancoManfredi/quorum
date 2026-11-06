@@ -1,3 +1,4 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -9,7 +10,7 @@ import {
 import type { Ledger } from '@quorum/simulation/ledger'
 import { burnOf, coldStartMs, serverlessBurnOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
-import { compact, money, ms, rate } from '@quorum/ui/game/format'
+import { compact, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, caption, section } from './shared.ts'
@@ -33,12 +34,13 @@ const serverless = (
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [
-            `One execution holds the request for as long as it runs, up to ${compact(SERVERLESS_CONCURRENCY)} at a time. Past the cap the provider throttles: the requests are dropped, not queued.`,
-          ],
+          [t.inspectorFn.oneExecutionHoldsTheRequest(compact(SERVERLESS_CONCURRENCY))],
         ),
         caption(
-          `${compact(Math.round(used))} of ${compact(slots?.total ?? SERVERLESS_CONCURRENCY)} in flight`,
+          t.inspectorFn.inFlight(
+            compact(Math.round(used)),
+            compact(slots?.total ?? SERVERLESS_CONCURRENCY),
+          ),
           h,
         ),
       ],
@@ -50,11 +52,9 @@ const serverless = (
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [
-            `A new execution environment boots before the code runs: ${ms(coldStartMs(node))} for this Stack. A function that idles loses its environments, so a trickle of traffic pays it more often than a steady one.`,
-          ],
+          [t.inspectorFn.aNewEnvironmentBoots(formats(t).ms(coldStartMs(node)))],
         ),
-        caption('Change the runtime in the Stack to trade the cold start for throughput.', h),
+        caption(t.inspectorFn.changeTheRuntime, h),
       ],
       h,
     ),
@@ -64,10 +64,17 @@ const serverless = (
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [
-            `There is no box to pay for: nothing stands while it idles. Each use bills ${money(SERVERLESS_REQUEST_PRICE * 1_000)} per 1,000 requests plus ${money(SERVERLESS_GB_SECOND)} per GB-second, at ${SERVERLESS_MEMORY_GB} GB an execution, on the Requests line of the bill.`,
+            t.inspectorFn.noBoxToPayFor(
+              money(SERVERLESS_REQUEST_PRICE * 1_000),
+              money(SERVERLESS_GB_SECOND),
+              SERVERLESS_MEMORY_GB,
+            ),
           ],
         ),
-        caption(`This use: ${money(serverlessBurnOf(game, node, done, own?.latency ?? 0))}/s`, h),
+        caption(
+          t.inspectorFn.thisUse(money(serverlessBurnOf(game, node, done, own?.latency ?? 0))),
+          h,
+        ),
       ],
       h,
     ),
@@ -88,7 +95,7 @@ export const fnPanel: Panel = {
         slots && used >= slots.total * 0.9 ? 'danger' : 'plain',
         h,
       ),
-      row(t.inspectorFn.coldStart, ms(coldStartMs(node)), 'plain', h),
+      row(t.inspectorFn.coldStart, formats(t).ms(coldStartMs(node)), 'plain', h),
       row(
         t.inspectorFn.uses,
         t.inspectorFn.s(

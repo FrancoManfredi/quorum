@@ -1,8 +1,8 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { CDN_TTLS, CACHE_KEYS } from '@quorum/simulation/catalog'
 import type { GameNode, CacheKey } from '@quorum/simulation/state'
-import { duration } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section } from './shared.ts'
 
@@ -42,7 +42,7 @@ const cdnOptions = (node: GameNode, h: HtmlBuilder<Message>): Html => {
       caption(
         node.cacheKey === 'full'
           ? t.inspectorCdn.theKeyHoldsThePathThe
-          : `A smaller key lifts the hit ratio ${Math.round((CACHE_KEYS[node.cacheKey].hit - 1) * 100)}%, and a logged-in page cached under it can be served to another user: a data leak.`,
+          : t.inspectorCdn.aSmallerKeyLifts(Math.round((CACHE_KEYS[node.cacheKey].hit - 1) * 100)),
         h,
       ),
     ],
@@ -50,13 +50,14 @@ const cdnOptions = (node: GameNode, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
+const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
     'TTL',
     [
       picker(
         'cdn-ttl',
-        CDN_TTLS.map((entry) => [entry.ttl, duration(entry.ttl)] as const),
+        CDN_TTLS.map((entry) => [entry.ttl, formats(t).duration(entry.ttl)] as const),
         node.ttl,
         (ttl) => Message.TtlChosen({ nodeId: node.id, ttl }),
         h,
@@ -64,6 +65,7 @@ const cdnTtl = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 export const cdnPanel: Panel = {
   body: ({ node, h }) => [cdnTtl(node, h), cdnOptions(node, h)],

@@ -1,3 +1,4 @@
+import { stored } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import type { Message } from '@/game/message.ts'
 import type { Toast } from '@/game/model.ts'
@@ -39,7 +40,7 @@ export const toast = (value: Toast | null, overPanel: boolean, h: HtmlBuilder<Me
             ],
             [
               h.span([h.Class(`size-2 shrink-0 rounded-full ${TOAST_MARK[value.tone]}`)], []),
-              value.message,
+              stored(h, value.message),
             ],
           ),
         ],

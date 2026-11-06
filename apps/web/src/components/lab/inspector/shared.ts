@@ -1,4 +1,4 @@
-import { copy, localized, nodeLabelIn, nodeTitle } from '@/i18n/messages.ts'
+import { copy, localized, nodeLabelIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChevronRight, Minus, Plus } from 'lucide'
@@ -10,14 +10,14 @@ import {
   OS_RAM,
   RUNTIMES,
   RUNTIME_IDS,
-  type RequestKind,
+  SIZES,
   type RuntimeId,
   DB_ENGINES,
 } from '@quorum/simulation/catalog'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
 import { frameworkReady, has, ramOf, runtimeReady } from '@quorum/simulation/lookups'
-import type { DbEngine, Game, GameLink, GameNode, PmMode } from '@quorum/simulation/state'
+import type { DbEngine, Game, GameLink, GameNode, PmMode, Service } from '@quorum/simulation/state'
 import { serviceOfNode } from '@quorum/simulation/work'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
@@ -190,7 +190,22 @@ export const smallButton = (
     h,
   )
 
+/** A Service's name: the first Service is the Monolith, and the player names the rest. */
+export const serviceNameIn = (t: Messages, service: Service): string =>
+  service.id === 'monolith' ? t.inspectorShared.monolith : service.name
+
+/** What a card calls a size: the instance size, or a step number for a flat Component. */
+export const sizeLabelIn = (t: Messages, node: GameNode, size = node.size): string =>
+  COMPONENTS[node.type].sized
+    ? SIZES[size]
+      ? t.nodeList.sizes[SIZES[size].name]
+      : ''
+    : t.nodeList.sizeStep(size)
+
 export const percent = (value: number) => `${Math.round(value * 100)}%`
+
+/** A share as a whole number, for a message that writes its own percent sign. */
+export const percentNumber = (value: number) => Math.round(value * 100)
 
 export const stack = (
   game: Game,
@@ -411,7 +426,7 @@ export const serviceOwnership = (
           [
             picker(
               'service',
-              game.services.map((service) => [service.id, service.name] as const),
+              game.services.map((service) => [service.id, serviceNameIn(t, service)] as const),
               serviceOfNode(game, node).id,
               (serviceId) => Message.ServiceAssigned({ nodeId: node.id, serviceId }),
               h,
@@ -437,7 +452,7 @@ export const nodeLink = (
     [
       h.Type('button'),
       h.OnClick(Message.RevealNode({ nodeId: node.id })),
-      h.AriaLabel(`Open ${nodeTitle(t, game, node)}`),
+      h.AriaLabel(t.inspectorShared.openNode(nodeTitle(t, game, node))),
       h.Class(
         cn(
           'flex min-w-0 items-center gap-1 text-left text-[12px] font-medium text-muted-foreground hover:text-foreground',
@@ -469,26 +484,6 @@ export const outbound = (
 
 export const caption = (text: string, h: HtmlBuilder<Message>): Html =>
   h.span([h.Class('text-[calc(12px*var(--type-scale))] font-medium text-muted-foreground')], [text])
-
-export const KIND_SHORT: Record<RequestKind, string> = {
-  page: 'Page',
-  bid: 'Bid',
-  read: 'Read',
-  write: 'Write',
-  login: 'Login',
-  search: 'Search',
-  upload: 'Upload',
-  bot: 'Bot',
-  media: 'Media',
-  rt: 'Realtime',
-  buy: 'Buy',
-  job: 'Export',
-  report: 'Report',
-  ai: 'AI',
-  feed: 'Feed',
-  hook: 'Webhook',
-  push: 'Push',
-}
 
 /** A Database's or Read Replica's engine (07 "Variants"). */
 export const engine = (node: GameNode, h: HtmlBuilder<Message>): Html => {

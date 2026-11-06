@@ -4,7 +4,6 @@ import { Option, Schema } from 'effect'
 import { Scene } from 'foldkit/test'
 import { Listbox } from '@foldkit/ui'
 import { glossaryPanel } from '../components/lab/glossary.ts'
-import { inertHtml } from 'foldkit/html'
 import { Prefs } from '../game/model.ts'
 import { Message } from '../game/message.ts'
 import { initialModel, update } from '../game/update.ts'
@@ -160,29 +159,5 @@ describe('interface languages', () => {
       'Unknown message with Server in it',
     )
     expect(translate('en', 'Server · cold')).toBe('Server · cold')
-  })
-
-  test('the localized builder translates copy as it builds and keeps attributes, handlers and values', () => {
-    const build = (h: typeof inertHtml) =>
-      h.div(
-        [h.Key('Research'), h.Title('Research'), h.DataAttribute('name', 'Research')],
-        [
-          h.span([], ['Research']),
-          h.input([h.Value('Research'), h.Placeholder('Search…'), h.AriaLabel('Search')]),
-          h.a([h.Href('/Research')], ['Continue']),
-        ],
-      )!
-    const result = build(localizeBuilder('zh-CN', inertHtml))
-    expect(result.key).toBe('Research')
-    expect(result.data?.props?.title).toBe('研究')
-    expect(result.data?.dataset).toEqual(build(inertHtml).data?.dataset)
-    expect(JSON.stringify(result)).toContain('研究')
-    expect(JSON.stringify(result)).toContain('搜索…')
-    expect(JSON.stringify(result)).toContain('/Research')
-    expect(JSON.stringify(result)).toContain('"value":"Research"')
-    // English is the builder itself, and a locale's builder is one object, so a memoized view holds.
-    expect(localizeBuilder('en', inertHtml)).toBe(inertHtml)
-    expect(localizeBuilder('zh-CN', inertHtml)).toBe(localizeBuilder('zh-CN', inertHtml))
-    expect(build(inertHtml).data?.props?.title).toBe('Research')
   })
 })

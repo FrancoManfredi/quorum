@@ -324,7 +324,7 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               key: 'continue',
               mark: companyMark(current.logo, 'booth-logo-mini', h),
               label: t.title.continueText,
-              detail: `${current.name} · ${eraWords(t, game).name} · ${compact(game.users)} users · ${clock(game.time)}`,
+              detail: `${current.name} · ${t.title.eraUsersTime(eraWords(t, game).name, compact(game.users), clock(game.time))}`,
               message: Message.Continued(),
               big: true,
             },
@@ -348,7 +348,7 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             {
               key: 'companies',
               label: t.title.companies,
-              detail: `${count} saved`,
+              detail: t.title.savedCount(count),
               message: Message.MenuChosen({ menu: 'companies' }),
               to: 'companies',
             },
@@ -534,7 +534,7 @@ const companyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
           key: file.id,
           mark: companyMark(file.logo, 'booth-logo-mini', h),
           label: file.name,
-          detail: `${t.catalog.ventures[file.venture].name} · ${t.catalog.eras[file.stage]?.name ?? ''} · ${compact(file.users)} users · ${clock(file.time)}`,
+          detail: `${t.catalog.ventures[file.venture].name} · ${t.title.eraUsersTime(t.catalog.eras[file.stage]?.name ?? '', compact(file.users), clock(file.time))}`,
           side: file.id === model.saves.current ? t.title.current : dateOf(file),
           message: Message.CompanyChosen({ id: file.id }),
         },
@@ -567,15 +567,13 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             h.span(
               [h.Class('booth-detail')],
               [
-                `${t.catalog.ventures[file.venture].name} · ${t.catalog.eras[file.stage]?.name ?? ''} · ${compact(file.users)} users · ${clock(file.time)}`,
+                `${t.catalog.ventures[file.venture].name} · ${t.title.eraUsersTime(t.catalog.eras[file.stage]?.name ?? '', compact(file.users), clock(file.time))}`,
               ],
             ),
             h.span(
               [h.Class('booth-detail')],
               [
-                file.mutators.length > 0
-                  ? `${file.mutators.length} Mutator${file.mutators.length === 1 ? '' : 's'} · `
-                  : '',
+                file.mutators.length > 0 ? `${t.title.mutatorCount(file.mutators.length)} · ` : '',
                 t.title.started(
                   new Date(file.createdAt).toLocaleDateString(undefined, {
                     month: 'short',
@@ -717,7 +715,7 @@ const historyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
                 label:
                   entry.name ||
                   `${t.catalog.exits[entry.exit].name} · ${t.catalog.ventures[entry.founding.venture].name}`,
-                detail: `${entry.name ? `${t.catalog.exits[entry.exit].name} · ` : ''}${t.catalog.ventures[entry.founding.venture].name} · ${t.catalog.eras[entry.stage]?.name ?? ''} · ${compact(entry.peak)} users · ${clock(entry.time)}`,
+                detail: `${entry.name ? `${t.catalog.exits[entry.exit].name} · ` : ''}${t.catalog.ventures[entry.founding.venture].name} · ${t.title.eraUsersTime(t.catalog.eras[entry.stage]?.name ?? '', compact(entry.peak), clock(entry.time))}`,
                 side: `+${entry.legacy}`,
                 message: null,
                 record: true,
@@ -780,7 +778,7 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
     ),
     toggle(
       'blur-pause',
-      'Pause when the window loses focus',
+      t.title.pauseWhenTheWindowLosesFocus,
       model.prefs.blurPause,
       Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
     ),
@@ -841,8 +839,8 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
           row(
             {
               key: 'old-save',
-              label: 'Recover previous save',
-              detail: 'Import a playtest Company. Temporary: removed after alpha.',
+              label: t.title.recoverPreviousSave,
+              detail: t.title.recoverPreviousSaveDetail,
               message: Message.OldSaveImportAsked(),
             },
             h,
@@ -967,7 +965,7 @@ const status = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.span([], [eraWords(t, game).name]), ` · ${clock(game.time)}`],
       ),
       h.span([h.Class('booth-status-users')], [compact(game.users)]),
-      h.span([h.Class('booth-status-unit')], ['users']),
+      h.span([h.Class('booth-status-unit')], [t.title.users]),
       spark
         ? h.svg(
             [
@@ -1080,19 +1078,20 @@ const sessionOf = (model: Model): readonly [string, string] => {
     ]
   return [
     'oncall@prod',
-    `${eraWords(t, game).name} · ${compact(game.users)} users · ${clock(game.time)}`,
+    t.title.eraUsersTime(eraWords(t, game).name, compact(game.users), clock(game.time)),
   ]
 }
 
 /** Leaving the title: the screen connects to the board before it opens. */
 const terminal = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
   const [host, line] = sessionOf(model)
   return h.div(
     [h.Key('term'), h.Class('booth-term'), h.AriaLive('polite')],
     [
       h.p([], [h.b([], [`$ ssh ${host}`])]),
       h.p([], [line]),
-      h.p([h.Class('text-ok')], ['Connected.']),
+      h.p([h.Class('text-ok')], [t.title.connected]),
       h.span([h.Class('booth-caret')], []),
     ],
   )
@@ -1215,7 +1214,7 @@ const strip = (h: HtmlBuilder<Message>): Html => {
         ],
         [
           h.span([h.Class('booth-strip-dot')], []),
-          h.span([h.Class('booth-strip-label')], ['Playtest build ·']),
+          h.span([h.Class('booth-strip-label')], [t.title.playtestBuild]),
           h.span([], [t.title.savesCanReset]),
           ' · ',
           h.span([], [t.title.feedback]),
@@ -1227,9 +1226,9 @@ const strip = (h: HtmlBuilder<Message>): Html => {
           h.Href('https://ko-fi.com/elianiva'),
           h.Target('_blank'),
           h.Rel('noreferrer noopener'),
-          h.AriaLabel('Support Quorum on Ko-fi'),
+          h.AriaLabel(t.title.supportOnKofi),
         ],
-        [icon(h, Coffee, 'size-3.5'), h.span([h.Class('booth-strip-label')], ['Support'])],
+        [icon(h, Coffee, 'size-3.5'), h.span([h.Class('booth-strip-label')], [t.title.support])],
       ),
     ],
   )

@@ -1,11 +1,10 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const tradeoff: Messages['tradeoff'] = {
   sixAxesNowAndWithThis: '六项指标：当前状态与此选项的对比',
   cancelEscape: '取消（Esc）',
   migrationDHAcrossAllAppServers: (p0) =>
-    `迁移所有应用服务器需要 ${arg(p0)} DH。功能开发会减慢，逐步上线可能暴露错误。开始后，请在团队中管理工作并切换流量。`,
+    `迁移所有应用服务器需要 ${p0} DH。功能开发会减慢，逐步上线可能暴露错误。开始后，请在团队中管理工作并切换流量。`,
   confirmEnter: '确认（Enter）',
   startMigration: '开始迁移',
   confirm: '确认',
@@ -27,4 +26,6 @@ export const tradeoff: Messages['tradeoff'] = {
   horizontalScaling: '水平扩展',
   techDebt: '技术债',
   n1Query: 'N+1 查询',
+  burnChange: (change) => `支出 ${change}`,
+  restartsCold: (time) => `重启后冷启动 ${time}`,
 }

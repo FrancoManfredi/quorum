@@ -31,7 +31,7 @@ const storage = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
         ),
         caption(
           node.storeVariant === 'r2'
-            ? `No egress to the internet. A read waits ${R2_FIRST_BYTE_MS} ms more for its first byte unless a CDN is on the board.`
+            ? t.inspectorStorage.noEgressToTheInternet(t.units.ms(R2_FIRST_BYTE_MS))
             : t.inspectorStorage.egressToTheInternetBillsPer,
           h,
         ),

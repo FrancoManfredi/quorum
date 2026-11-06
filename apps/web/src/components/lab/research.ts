@@ -1,4 +1,4 @@
-import { copy, insightName, localized } from '@/i18n/messages.ts'
+import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
 import { ResearchMessage } from '@/game/research.ts'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
@@ -28,8 +28,9 @@ import type { Game } from '@quorum/simulation/state'
 import { limitingPool, studySeconds, studySpeed, studyStall } from '@quorum/simulation/studies'
 import { compact } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
+import { stallReasonIn } from './hud.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
-import { POOL_ORDER, recipeOf, stallReason } from '@quorum/ui/game/pools'
+import { POOL_ORDER, recipeOf } from '@quorum/ui/game/pools'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
@@ -114,9 +115,9 @@ const price = (entry: ResearchDef, state: State, grey: boolean, h: HtmlBuilder<M
 }
 
 /** A Study's duration at the current speed, such as "4 min". */
-const duration = (game: Game, entry: ResearchDef): string => {
+const duration = (t: Messages, game: Game, entry: ResearchDef): string => {
   const seconds = studySeconds(entry.id) / studySpeed(game)
-  return seconds < 90 ? `${Math.round(seconds)} s` : `${Math.round(seconds / 60)} min`
+  return seconds < 90 ? t.units.s(Math.round(seconds)) : t.units.min(Math.round(seconds / 60))
 }
 
 /** Each pool of the recipe: what it costs, what the pool holds, and what it earns. */
@@ -133,7 +134,7 @@ const costRows = (
   return h.div(
     [h.Class('flex flex-col gap-1')],
     [
-      h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.cost(duration(game, entry))]),
+      h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.cost(duration(t, game, entry))]),
       ...recipeOf(entry.id, game.discounts).map(([pool, cost]) =>
         h.div(
           [
@@ -594,13 +595,16 @@ const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
             [
               h.Key(term.id),
               h.Type('button'),
-              h.Title(t.research.glossary(term.term)),
+              h.Title(t.research.glossary(t.catalog.glossary[term.id]?.term ?? term.term)),
               h.OnClick(Message.GlossaryOpened({ id: term.id })),
               h.Class(
                 'flex items-center gap-1 rounded-md bg-nested px-1.5 py-0.5 text-[calc(11.5px*var(--type-scale))] text-muted-foreground hover:text-foreground',
               ),
             ],
-            [icon(h, CircleHelp, 'size-3 shrink-0'), term.term],
+            [
+              icon(h, CircleHelp, 'size-3 shrink-0'),
+              t.catalog.glossary[term.id]?.term ?? term.term,
+            ],
           ),
         ),
       )
@@ -672,7 +676,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                 h.span([h.Class('truncate font-medium')], [t.catalog.research[entry.id].name]),
                 h.span(
                   [
-                    ...(stall ? [h.Title(stallReason(stall))] : []),
+                    ...(stall ? [h.Title(stallReasonIn(t, stall))] : []),
                     h.Class(
                       cn(
                         FIGURE,
@@ -735,9 +739,9 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
     state === 'owned'
       ? t.research.researched
       : state === 'buy'
-        ? t.research.startStudy(duration(game, entry))
+        ? t.research.startStudy(duration(t, game, entry))
         : entry.era > game.stage
-          ? t.research.opensIn(eraName(entry.era))
+          ? t.research.opensIn(t.catalog.eras[entry.era]?.name ?? eraName(entry.era))
           : missing.length > 0
             ? t.research.needs(missing.map((id) => t.catalog.research[id].name).join(', '))
             : queued > 0
@@ -774,7 +778,10 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                     ],
                     [t.catalog.research[entry.id].name],
                   ),
-                  h.span([h.Class(EYEBROW)], [`${track} · ${eraName(entry.era)}`]),
+                  h.span(
+                    [h.Class(EYEBROW)],
+                    [`${track} · ${t.catalog.eras[entry.era]?.name ?? eraName(entry.era)}`],
+                  ),
                 ],
               ),
             ],
@@ -807,8 +814,8 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 [
                   icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
                   queued === 0
-                    ? t.research.everyStudyBehindItWaits(stallReason(stall))
-                    : t.research.atTheFrontOfTheQueue(stallReason(stall)),
+                    ? t.research.everyStudyBehindItWaits(stallReasonIn(t, stall))
+                    : t.research.atTheFrontOfTheQueue(stallReasonIn(t, stall)),
                 ],
               )
             : h.empty,

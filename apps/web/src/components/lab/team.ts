@@ -36,12 +36,15 @@ import {
   LANGUAGES,
   MIGRATION_STEPS,
   POLICY_IDS,
+  RESEARCH,
   RUNTIMES,
-  FRAMEWORKS,
   TASKS,
   TASK_IDS,
+  type ComponentId,
   type FeatureId,
   type FrameworkId,
+  type IncidentId,
+  type ResearchId,
   type PolicyId,
   type RuntimeId,
   type TaskId,
@@ -49,11 +52,13 @@ import {
 } from '@quorum/simulation/catalog'
 import { POLICY_LEVEL } from '@quorum/simulation/catalog'
 import { perkLevel } from '@quorum/simulation/founding'
-import { has } from '@quorum/simulation/lookups'
+import { has, sreStaffed } from '@quorum/simulation/lookups'
+import { openRegions } from '@quorum/simulation/regions'
 import type {
   Engineer,
   Game,
   GameNode,
+  Service,
   Team,
   TeamKind,
   WorkItem,
@@ -87,7 +92,6 @@ import { PLATFORM_STAGE, loadBalancersOf, nodesOfService } from '@quorum/simulat
 import {
   featureHoursOf,
   featureRefusal,
-  itemName,
   MAX_TEAMS,
   removeRefusal,
   runbookKinds,
@@ -96,7 +100,7 @@ import {
   splitRefusal,
   taskRefusal,
 } from '@quorum/simulation/work'
-import { describeRefusal } from '@quorum/simulation/actions'
+import { describeRefusal, type Refusal } from '@quorum/simulation/actions'
 import { money } from '@quorum/ui/game/format'
 import { STACK_LOGOS } from '@quorum/ui/game/icons'
 import { Message } from '@/game/message.ts'
@@ -144,7 +148,7 @@ const hueOf = (id: string): number => HUES[Number(id.slice(1)) % HUES.length] ??
 
 const amount = (value: number): string =>
   value < 10 ? value.toFixed(1) : String(Math.floor(value))
-const dh = (value: number): string => `${amount(value)} DH`
+const dh = (t: Messages, value: number): string => t.units.devHours(amount(value))
 
 /** Dev Hours per sim second, per minute. */
 const perMinute = (rate: number): string => {
@@ -153,8 +157,148 @@ const perMinute = (rate: number): string => {
 }
 
 /** A wait in sim seconds: seconds under a minute and a half, minutes above. */
-const wait = (seconds: number): string =>
-  seconds < 90 ? `${Math.max(0, Math.ceil(seconds))} s` : `${Math.ceil(seconds / 60)} min`
+const wait = (t: Messages, seconds: number): string =>
+  seconds < 90 ? t.units.s(Math.max(0, Math.ceil(seconds))) : t.units.min(Math.ceil(seconds / 60))
+
+/** A team's name: the Simulation names the first "Core" and the rest "Team 2", so those are told in words. */
+export const teamName = (t: Messages, team: Team): string => {
+  if (team.id === 'core' && team.name === 'Core') return t.team.coreTeam
+  const numbered = /^Team (\d+)$/.exec(team.name)
+  return numbered ? t.team.teamN(Number(numbered[1])) : team.name
+}
+
+/** A Service's name: the first is "Monolith" and a split without a name is "Service 2". */
+export const serviceName = (t: Messages, service: Service): string => {
+  if (service.id === 'monolith' && service.name === 'Monolith') return t.team.monolith
+  const numbered = /^Service (\d+)$/.exec(service.name)
+  return numbered ? t.team.serviceN(Number(numbered[1])) : service.name
+}
+
+/** A work item's name in words: the Simulation's `itemName`, from the catalog tables. */
+export const workItemName = (t: Messages, item: WorkItem): string => {
+  if (item.kind === 'feature') return t.catalog.features[item.ref as FeatureId]?.name ?? item.ref
+  if (item.kind === 'task') {
+    const name = t.catalog.tasks[item.ref as TaskId]?.name ?? item.ref
+    return item.ref === 'runbook' && item.target
+      ? t.team.runbookItem(
+          name,
+          t.catalog.incidents[item.target as IncidentId]?.name ?? item.target,
+        )
+      : name
+  }
+  if (item.kind === 'patch') {
+    const component = t.catalog.components[item.target as ComponentId]
+    return component ? t.team.patchOf(component.name) : t.team.patchDesign
+  }
+  if (item.kind === 'spike')
+    return t.team.spikeOf(t.catalog.research[item.ref as ResearchId]?.name ?? item.ref)
+  if (item.kind === 'split') return t.team.splitAService
+  if (item.kind === 'move')
+    return item.ref === 'auth'
+      ? t.team.moveAuthInHouse
+      : item.ref === 'reshard'
+        ? t.team.reshardDatabase
+        : t.team.changeDatabaseEngine
+  return t.team.migrationStep(item.ref.slice(5))
+}
+
+/** Features the Company has, has built, or has queued. */
+const planned = (game: Game, id: FeatureId): boolean =>
+  game.shipped.includes(id) ||
+  game.awaiting.includes(id) ||
+  game.backlog.some((item) => item.ref === id)
+
+/**
+ * Why a Feature cannot be queued, in words. The Simulation's reasons are English, so each is
+ * told again from the same checks, in the same order.
+ */
+const featureWhy = (t: Messages, game: Game, id: FeatureId, refusal: Refusal): string => {
+  const reason = t.team.refusal
+  const def = FEATURES[id]
+  const name = t.catalog.features[id].name
+  if (game.sandbox) return reason.sandbox
+  if (def.era > game.stage) return reason.tooEarly(name, t.catalog.eras[def.era]?.name ?? '')
+  if (def.research && !has(game, def.research))
+    return reason.locked(name, t.catalog.research[def.research].name)
+  const missing = def.requires.filter((needed) => !planned(game, needed))
+  if (missing.length > 0)
+    return reason.needs(
+      name,
+      missing.map((needed) => t.catalog.features[needed].name).join(reason.and),
+    )
+  if (id === 'data-residency' && !openRegions(game).includes('eu'))
+    return reason.needsEuRegion(name)
+  if (id === 'email-digests' && !game.nodes.some((node) => node.type === 'queue'))
+    return reason.needsQueue(name)
+  return describeRefusal(refusal)
+}
+
+/** Why an engineering task cannot be queued, in words: each task has the one reason it names. */
+const taskWhy = (t: Messages, game: Game, id: TaskId, refusal: Refusal): string => {
+  const reason = t.team.refusal
+  const research = TASKS[id].research
+  if (game.sandbox) return reason.sandbox
+  if (research && !has(game, research))
+    return reason.locked(t.catalog.tasks[id].name, t.catalog.research[research].name)
+  return id === 'add-index'
+    ? reason.everyQueryIndexed
+    : id === 'refactor'
+      ? reason.noTechDebt
+      : id === 'upgrade-cluster'
+        ? reason.noCluster
+        : id === 'off-loop'
+          ? reason.noEventLoop
+          : id === 'timeouts-retries'
+            ? reason.everyLinkPolicy
+            : id === 'load-test'
+              ? reason.loadTestRunning
+              : describeRefusal(refusal)
+}
+
+/** Why a runbook cannot be written for an incident kind, in words. */
+const runbookWhy = (t: Messages, game: Game, kind: IncidentId, refusal: Refusal): string => {
+  const reason = t.team.refusal
+  if (game.sandbox) return reason.sandbox
+  if (!has(game, 'runbooks'))
+    return reason.locked(reason.aRunbook, t.catalog.research.runbooks.name)
+  if (!sreStaffed(game)) return reason.needsSre
+  if (
+    game.backlog.some(
+      (item) => item.kind === 'task' && item.ref === 'runbook' && item.target === kind,
+    )
+  )
+    return reason.runbookOnBacklog(t.catalog.incidents[kind].name)
+  return describeRefusal(refusal)
+}
+
+/** Why a Service cannot be split, in words. */
+const splitWhy = (
+  t: Messages,
+  game: Game,
+  draft: Readonly<{ name: string; owner: string; features: ReadonlyArray<FeatureId> }>,
+  refusal: Refusal,
+): string => {
+  const reason = t.team.refusal
+  if (game.sandbox) return reason.sandbox
+  if (!has(game, 'service-boundaries'))
+    return reason.locked(reason.aServiceSplit, t.catalog.research['service-boundaries'].name)
+  if (draft.features.length === 0) return reason.chooseFeature
+  if (!game.teams.some((team) => team.id === draft.owner)) return reason.teamGone
+  const name = draft.name.trim()
+  if (
+    name !== '' &&
+    game.services.some((service) => service.name.toLowerCase() === name.toLowerCase())
+  )
+    return reason.serviceExists(name)
+  for (const id of draft.features) {
+    const featureName = t.catalog.features[id].name
+    if (!game.shipped.includes(id)) return reason.notLive(featureName)
+    const carrier = serviceOfFeature(game, id)
+    if (carrier.id !== serviceOf(game).id)
+      return reason.alreadyOn(featureName, serviceName(t, carrier))
+  }
+  return describeRefusal(refusal)
+}
 
 const clamp = (share: number): number => Math.max(0, Math.min(1, share))
 
@@ -172,7 +316,7 @@ const kindOf = (t: Messages): Record<WorkKind, Readonly<{ label: string; fill: s
   spike: { label: t.team.spike, fill: 'bg-group-ops' },
   patch: { label: t.team.security, fill: 'bg-danger' },
   split: { label: t.team.split, fill: 'bg-group-ops' },
-  move: { label: 'Move', fill: 'bg-group-compute' },
+  move: { label: t.team.move, fill: 'bg-group-compute' },
 })
 
 const STRIPES = 'repeating-linear-gradient(-45deg, oklch(1 0 0 / 0.28) 0 6px, transparent 6px 12px)'
@@ -303,7 +447,6 @@ const face = (
   ring: Html,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const t = copy(h)
   return h.span(
     [
       h.Class(
@@ -316,7 +459,7 @@ const face = (
         ? []
         : [
             h.Style({
-              'background-image': t.team.linearGradientToBottomOklch0(hue, hue),
+              'background-image': `linear-gradient(to bottom, oklch(0.72 0.13 ${hue}), oklch(0.6 0.15 ${hue}))`,
             }),
           ]),
     ],
@@ -371,7 +514,7 @@ const engineerControls = (
       ? corner(
           'left',
           iconButton(
-            t.team.moveTo(next.name),
+            t.team.moveTo(teamName(t, next)),
             ArrowLeftRight,
             Message.TeamChanged({
               message: TeamMessage.EngineerAssigned({ engineerId: engineer.id, teamId: next.id }),
@@ -485,7 +628,7 @@ const pendingSeat = (game: Game, id: string, readyAt: number, h: HtmlBuilder<Mes
       [icon(h, Hourglass, 'size-4')],
     ),
     nameOf(id),
-    t.team.inText(wait(left)),
+    t.team.inText(wait(t, left)),
     [],
     'bg-foreground/[0.025] shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
     h,
@@ -580,7 +723,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
   return h.section(
     [
       h.Key(team.id),
-      ...DragAndDrop.droppable(team.id, team.name),
+      ...DragAndDrop.droppable(team.id, teamName(t, team)),
       h.Class(
         cn(
           PANEL,
@@ -602,13 +745,11 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
                     'truncate text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]',
                   ),
                 ],
-                [team.name],
+                [teamName(t, team)],
               ),
               h.span(
                 [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-                [
-                  `${output?.headcount ?? 0} ${(output?.headcount ?? 0) === 1 ? 'person' : 'people'}`,
-                ],
+                [t.team.people(output?.headcount ?? 0)],
               ),
             ],
           ),
@@ -645,7 +786,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
       team.kind === 'product' && now.id !== team.policy
         ? h.span(
             [h.Class('-mt-1.5 px-1 text-[calc(11px*var(--type-scale))] text-muted-foreground')],
-            [t.team.untilTomorrow(now.label)],
+            [t.team.untilTomorrow(t.catalog.policies[now.id].label)],
           )
         : h.empty,
       h.div(
@@ -670,7 +811,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
                       h,
                     ),
                     ...DragAndDrop.sortable(engineer.id),
-                    h.AriaLabel(t.team.moveFrom(nameOf(engineer.id), team.name)),
+                    h.AriaLabel(t.team.moveFrom(nameOf(engineer.id), teamName(t, team))),
                     h.Class(
                       cn(
                         'cursor-grab touch-none rounded-xl focus-visible:outline-2 focus-visible:outline-primary active:cursor-grabbing',
@@ -713,8 +854,9 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
 }
 
 /** What an SRE pod has on its desk: the pager, the runbooks, and the MTTR it holds down. */
-const sreWork = (game: Game, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const sreWork = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
     [
       icon(h, Siren, 'size-3.5 text-muted-foreground'),
@@ -722,14 +864,13 @@ const sreWork = (game: Game, h: HtmlBuilder<Message>): Html =>
         [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
         [
           game.runbooks.length === 0
-            ? 'Holds the pager: MTTR −40%'
-            : `Holds the pager: MTTR −40% · ${game.runbooks.length} runbook${
-                game.runbooks.length === 1 ? '' : 's'
-              }`,
+            ? t.team.holdsThePager
+            : t.team.holdsThePagerRunbooks(game.runbooks.length),
         ],
       ),
     ],
   )
+}
 
 /** What a Data pod has on its desk: the warehouse, the copies, and the Features they make cheaper. */
 const dataWork = (h: HtmlBuilder<Message>): Html => {
@@ -762,17 +903,19 @@ const platformWork = (h: HtmlBuilder<Message>): Html => {
 }
 
 /** What a Security pod has on its desk: WAF rules, dependency scanning, and compliance. */
-const securityWork = (h: HtmlBuilder<Message>): Html =>
-  h.div(
+const securityWork = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
     [
       icon(h, Shield, 'size-3.5 text-muted-foreground'),
       h.span(
         [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-        ['WAF rules, dependency scanning, compliance: fewer supply-chain and breach incidents'],
+        [t.team.securityDesk],
       ),
     ],
   )
+}
 
 const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -787,7 +930,7 @@ const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html => {
           ),
           h.span(
             [h.Class('min-w-0 flex-1 truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
-            [itemName(item)],
+            [workItemName(t, item)],
           ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'))],
@@ -820,7 +963,7 @@ const nodeRow = (
       ),
     ],
     [
-      h.span([h.Class('text-muted-foreground')], [`${label}:`]),
+      h.span([h.Class('text-muted-foreground')], [t.team.labelColon(label)]),
       ...(nodes.length === 0
         ? [h.span([h.Class('text-muted-foreground')], [empty])]
         : nodes.map((node) =>
@@ -828,7 +971,7 @@ const nodeRow = (
               [
                 h.Type('button'),
                 h.OnClick(Message.RevealNode({ nodeId: node.id })),
-                h.AriaLabel(`Open ${nodeTitle(t, game, node)}`),
+                h.AriaLabel(t.team.openNode(nodeTitle(t, game, node))),
                 h.Class('font-medium hover:underline'),
               ],
               [nodeTitle(t, game, node)],
@@ -858,13 +1001,13 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
     [h.Key('services'), h.Class(cn(PANEL, 'flex shrink-0 flex-col gap-2.5 px-4 pt-3.5 pb-3'))],
     [
       heading(
-        'Services',
+        t.team.services,
         h.span(
           [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
           [
-            `${game.services.length} codebase${game.services.length === 1 ? '' : 's'}${
-              shared > 1 ? ' · one database' : ''
-            }`,
+            shared > 1
+              ? t.team.codebasesOneDatabase(game.services.length)
+              : t.team.codebases(game.services.length),
           ],
         ),
         h,
@@ -888,18 +1031,18 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
               [
                 h.span(
                   [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
-                  [service.name],
+                  [serviceName(t, service)],
                 ),
                 badge(
                   {
                     variant: 'outline',
                     className: 'text-[calc(10.5px*var(--type-scale))]',
                   },
-                  [`Owned by ${owner.name}`],
+                  [t.team.ownedBy(teamName(t, owner))],
                   h,
                 ),
                 paged
-                  ? badge({ variant: 'outline', className: 'text-danger' }, ['Paged'], h)
+                  ? badge({ variant: 'outline', className: 'text-danger' }, [t.team.paged], h)
                   : h.empty,
               ],
             ),
@@ -913,30 +1056,42 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ),
               ],
               [
-                `${service.codebase.toFixed(0)} KLOC · debt ${Math.round(service.debt * 100)}% · ${money(serviceBurnOf(game, ledgerOf(model), service))}/s burn`,
+                t.team.serviceLine(
+                  service.codebase.toFixed(0),
+                  Math.round(service.debt * 100),
+                  t.units.perSecond(money(serviceBurnOf(game, ledgerOf(model), service))),
+                ),
               ],
             ),
             h.span(
               [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
               [
                 service.features.length === 0
-                  ? 'Carries every Feature no other Service names'
-                  : `Carries ${service.features.map((id) => t.catalog.features[id].name).join(', ')}`,
+                  ? t.team.carriesEveryFeature
+                  : t.team.carries(
+                      service.features.map((id) => t.catalog.features[id].name).join(', '),
+                    ),
               ],
             ),
-            nodeRow(t.team.nodes, nodesOfService(game, service.id), 'None yet', game, h),
-            nodeRow('Load Balancers', loadBalancersOf(game, service.id), 'Not behind one', game, h),
+            nodeRow(t.team.nodes, nodesOfService(game, service.id), t.team.noneYet, game, h),
+            nodeRow(
+              t.team.loadBalancers,
+              loadBalancersOf(game, service.id),
+              t.team.notBehindOne,
+              game,
+              h,
+            ),
             game.teams.length > 1
               ? h.div(
                   [h.Class('flex items-center gap-1.5 pt-0.5')],
                   [
                     h.span(
                       [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
-                      ['Move to'],
+                      [t.team.moveServiceTo],
                     ),
                     h.select(
                       [
-                        h.AriaLabel(`The team that owns ${service.name}`),
+                        h.AriaLabel(t.team.teamThatOwns(serviceName(t, service))),
                         h.OnChange((teamId) =>
                           Message.TeamChanged({
                             message: TeamMessage.ServiceMoved({ serviceId: service.id, teamId }),
@@ -952,7 +1107,7 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                             h.Value(entry.id),
                             ...(entry.id === service.owner ? [h.Selected(true)] : []),
                           ],
-                          [entry.name],
+                          [teamName(t, entry)],
                         ),
                       ),
                     ),
@@ -972,8 +1127,8 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   h.input([
                     h.Type('text'),
                     h.Value(draft.name),
-                    h.Placeholder('Name the new Service'),
-                    h.AriaLabel('The new Service’s name'),
+                    h.Placeholder(t.team.nameNewService),
+                    h.AriaLabel(t.team.newServiceName),
                     h.OnInput((name) =>
                       Message.TeamChanged({ message: TeamMessage.ServiceNamed({ name }) }),
                     ),
@@ -986,7 +1141,7 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ]),
                   h.select(
                     [
-                      h.AriaLabel('The team that owns the new Service'),
+                      h.AriaLabel(t.team.teamOwnsNewService),
                       h.OnChange((teamId) =>
                         Message.TeamChanged({
                           message: TeamMessage.ServiceOwnerChosen({ teamId }),
@@ -1002,7 +1157,7 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                           h.Value(entry.id),
                           ...(entry.id === draft.owner ? [h.Selected(true)] : []),
                         ],
-                        [entry.name],
+                        [teamName(t, entry)],
                       ),
                     ),
                   ),
@@ -1011,7 +1166,7 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
               candidates.length === 0
                 ? h.span(
                     [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-                    ['No live Feature is left to move.'],
+                    [t.team.noLiveFeatureLeft],
                   )
                 : h.div(
                     [h.Class('flex flex-wrap gap-1.5')],
@@ -1051,19 +1206,22 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                       attributes: [
                         h.Title(
                           refusal === null
-                            ? 'Move these Features to a new codebase'
-                            : describeRefusal(refusal),
+                            ? t.team.moveFeaturesToCodebase
+                            : splitWhy(t, game, draft, refusal),
                         ),
                       ],
                     },
                     refusal === null
-                      ? [icon(h, Container, 'size-3.5'), `Split · ${splitCost(draft.features)} DH`]
+                      ? [
+                          icon(h, Container, 'size-3.5'),
+                          t.team.splitFor(t.units.devHours(splitCost(draft.features))),
+                        ]
                       : [icon(h, Lock, 'size-3'), t.team.locked],
                     h,
                   ),
                   h.span(
                     [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
-                    [refusal === null ? '' : describeRefusal(refusal)],
+                    [refusal === null ? '' : splitWhy(t, game, draft, refusal)],
                   ),
                 ],
               ),
@@ -1071,7 +1229,12 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
           )
         : h.span(
             [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            ['Service boundaries (Series B) splits a Service.'],
+            [
+              t.team.serviceBoundariesSplits(
+                t.catalog.research['service-boundaries'].name,
+                t.catalog.eras[RESEARCH['service-boundaries'].era]?.name ?? '',
+              ),
+            ],
           ),
     ],
   )
@@ -1102,10 +1265,10 @@ const doraCard = (game: Game, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('grid grid-cols-4 gap-3')],
         [
-          stat('Deploy frequency', `${dora.deploysPerDay.toFixed(1)}/day`),
-          stat('Lead time', wait(dora.leadTime)),
-          stat('Change failure rate', `${Math.round(dora.changeFailureRate * 100)}%`),
-          stat('MTTR', dora.mttr === null ? '—' : wait(dora.mttr)),
+          stat(t.team.deployFrequency, t.team.perDay(dora.deploysPerDay.toFixed(1))),
+          stat(t.team.leadTime, wait(t, dora.leadTime)),
+          stat(t.team.changeFailureRate, `${Math.round(dora.changeFailureRate * 100)}%`),
+          stat(t.team.mttr, dora.mttr === null ? '—' : wait(t, dora.mttr)),
         ],
       ),
     ],
@@ -1170,8 +1333,8 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /* ---------- a migration ---------- */
 
-const stackName = (runtime: RuntimeId, framework: FrameworkId): string =>
-  `${RUNTIMES[runtime].name}${framework === 'none' ? '' : ` · ${FRAMEWORKS[framework].name}`}`
+const stackName = (t: Messages, runtime: RuntimeId, framework: FrameworkId): string =>
+  `${t.catalog.runtimes[runtime].name}${framework === 'none' ? '' : ` · ${t.catalog.frameworks[framework].name}`}`
 
 const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -1205,7 +1368,7 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
                     'truncate text-[calc(13px*var(--type-scale))] text-muted-foreground line-through decoration-foreground/25',
                   ),
                 ],
-                [stackName(migration.fromRuntime, migration.fromFramework)],
+                [stackName(t, migration.fromRuntime, migration.fromFramework)],
               ),
               icon(h, ArrowRight, 'size-3.5 shrink-0 text-muted-foreground'),
               stackLogo(language, 'size-5', h),
@@ -1215,7 +1378,7 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
                     'truncate text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]',
                   ),
                 ],
-                [stackName(migration.runtime, migration.framework)],
+                [stackName(t, migration.runtime, migration.framework)],
               ),
               migration.bugs
                 ? badge({ variant: 'destructive' }, [icon(h, Bug, 'size-3'), t.team.bugs], h)
@@ -1237,7 +1400,7 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
                       isReady(migration)
                         ? t.team.ready
                         : step
-                          ? `${codeOf('migration', step.ref)} · ${amount(step.spent)}/${dh(step.cost)}`
+                          ? `${codeOf('migration', step.ref)} · ${amount(step.spent)}/${dh(t, step.cost)}`
                           : '',
                     ],
                   ),
@@ -1426,14 +1589,20 @@ const featureReadout = (game: Game, id: FeatureId, h: HtmlBuilder<Message>): Htm
   const adopted = Math.round((game.adoption[id] ?? 1) * 100)
   const reading = liftReading(game, id)
   const lift = reading
-    ? `Lift ${reading.lift >= 0 ? '+' : ''}${Math.round(reading.lift * 100)}% ±${
-        Number.isFinite(reading.halfWidth) ? Math.round(reading.halfWidth * 100) : '—'
-      } · ${reading.verdict === 'wins' ? t.team.wins : reading.verdict === 'loses' ? t.team.loses : t.team.tooEarly}`
+    ? t.team.lift(
+        `${reading.lift >= 0 ? '+' : ''}${Math.round(reading.lift * 100)}%`,
+        Number.isFinite(reading.halfWidth) ? Math.round(reading.halfWidth * 100) : '—',
+        reading.verdict === 'wins'
+          ? t.team.wins
+          : reading.verdict === 'loses'
+            ? t.team.loses
+            : t.team.tooEarly,
+      )
     : null
   return h.span(
     [h.Class('flex flex-wrap items-center gap-1')],
     [
-      badge({ variant: 'secondary' }, [`${adopted}% adopted`], h),
+      badge({ variant: 'secondary' }, [t.team.adopted(adopted)], h),
       ...(lift ? [badge({ variant: 'secondary' }, [lift], h)] : []),
     ],
   )
@@ -1456,7 +1625,7 @@ const upkeepPill = (game: Game, h: HtmlBuilder<Message>): Html => {
     ],
     [
       h.span([h.Class('flex-1')], [t.team.upkeep]),
-      h.span([h.Class(FIGURE)], [`${Math.round(share * 100)}% of Dev Hours`]),
+      h.span([h.Class(FIGURE)], [t.team.shareOfDevHours(Math.round(share * 100))]),
     ],
   )
 }
@@ -1481,8 +1650,8 @@ const deadline = (game: Game, item: WorkItem, h: HtmlBuilder<Message>): Html => 
     ],
     [
       late > 0
-        ? t.team.exploitIn(wait(PATCH_GRACE - late))
-        : t.team.dueIn(wait(item.due - game.time)),
+        ? t.team.exploitIn(wait(t, PATCH_GRACE - late))
+        : t.team.dueIn(wait(t, item.due - game.time)),
     ],
   )
 }
@@ -1520,13 +1689,17 @@ const mini = (id: string | null, h: HtmlBuilder<Message>): Html => {
 }
 
 const assignees = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
   const people: ReadonlyArray<string | null> = [
     ...(game.teams[0]?.id === team.id ? [null] : []),
     ...membersOf(game, team).map((engineer) => engineer.id),
   ]
   const shown = people.slice(0, 4)
   return h.span(
-    [h.Class('flex items-center'), h.Title(`${team.name}: ${people.length}`)],
+    [
+      h.Class('flex items-center'),
+      h.Title(t.team.labelColon(teamName(t, team)) + ` ${people.length}`),
+    ],
     [
       ...shown.map((id) => mini(id, h)),
       people.length > shown.length
@@ -1628,7 +1801,7 @@ const card = (
 const rush = (game: Game, item: WorkItem, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return iconButton(
-    t.team.rushWith(dh(game.devHours)),
+    t.team.rushWith(dh(t, game.devHours)),
     Zap,
     Message.WorkRushed({ id: item.id }),
     game.devHours >= 0.1,
@@ -1657,14 +1830,14 @@ const backlogCard = (
   return card(
     `item-${item.id}`,
     codeOf(item.kind, item.ref),
-    itemName(item),
+    workItemName(t, item),
     team ? 'building' : 'queued',
     share,
     team ? assignees(game, team, h) : unassigned(h),
     [
       label(item.kind, h),
       estimate(
-        team || item.spent > 0 ? `${amount(item.spent)}/${dh(item.cost)}` : dh(item.cost),
+        team || item.spent > 0 ? `${amount(item.spent)}/${dh(t, item.cost)}` : dh(t, item.cost),
         h,
       ),
       deadline(game, item, h),
@@ -1709,7 +1882,7 @@ const idleCard = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
       assignees(game, team, h),
       h.span(
         [h.Class('flex-1 truncate text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-        [t.team.idle(team.name)],
+        [t.team.idle(teamName(t, team))],
       ),
     ],
   )
@@ -1799,7 +1972,7 @@ const deployPill = (game: Game, h: HtmlBuilder<Message>): Html => {
                 ? t.team.nothingToShip
                 : stalled
                   ? t.team.held
-                  : t.team.deployIn(wait(left)),
+                  : t.team.deployIn(wait(t, left)),
             ],
           ),
           chance > 0
@@ -1898,7 +2071,7 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
                 [featureReadout(game, id, h)],
                 [
                   iconButton(
-                    'Remove: its code is gone, and its upkeep ends',
+                    t.team.removeFeature,
                     Trash2,
                     Message.TeamChanged({ message: TeamMessage.FeatureRemoved({ id }) }),
                     removeRefusal(game, id) === null,
@@ -1972,13 +2145,14 @@ const autopilot = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** The Autopilot perk's policies (13 "The Legacy shop"): a switch for each level the perk has. */
-const POLICY_COPY: Readonly<Record<'research' | 'hire' | 'upgrade', string>> = {
-  research: 'Queue the cheapest Study',
-  hire: 'Hire while payroll is under a quarter of revenue',
-  upgrade: 'Buy the next size for App Servers above 70% load',
-}
+const policyCopy = (t: Messages): Readonly<Record<'research' | 'hire' | 'upgrade', string>> => ({
+  research: t.team.policyResearch,
+  hire: t.team.policyHire,
+  upgrade: t.team.policyUpgrade,
+})
 
 const policies = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
   const game = model.board.game
   const level = perkLevel(game, 'autopilot')
   return (['research', 'hire', 'upgrade'] as const)
@@ -2000,7 +2174,7 @@ const policies = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             ),
           ),
         ],
-        [POLICY_COPY[policy]],
+        [policyCopy(t)[policy]],
       ),
     )
 }
@@ -2019,10 +2193,8 @@ const chaos = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.Type('button'),
       h.Role('switch'),
       h.AriaChecked(game.chaos),
-      h.AriaLabel(
-        target ? `Chaos experiments: next experiment hits ${target}` : 'Chaos experiments',
-      ),
-      h.Title(target ? `Next experiment hits ${target}` : 'Chaos experiments'),
+      h.AriaLabel(target ? t.team.chaosNextHitsLabel(target) : t.team.chaosExperiments),
+      h.Title(target ? t.team.chaosNextHits(target) : t.team.chaosExperiments),
       h.OnClick(Message.ChaosChosen({ chaos: !game.chaos })),
       h.Class(
         cn(
@@ -2054,8 +2226,9 @@ const chaos = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /* ---------- the roadmap ---------- */
 
-const costPill = (cost: number, h: HtmlBuilder<Message>): Html =>
-  h.span(
+const costPill = (cost: number, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.span(
     [
       h.Class(
         cn(
@@ -2064,8 +2237,9 @@ const costPill = (cost: number, h: HtmlBuilder<Message>): Html =>
         ),
       ),
     ],
-    [dh(cost)],
+    [dh(t, cost)],
   )
+}
 
 type TileState = 'open' | 'locked' | 'queued' | 'done'
 
@@ -2189,7 +2363,7 @@ const featureTile = (game: Game, id: FeatureId, review: boolean, h: HtmlBuilder<
           : queueButton(
               t.team.build,
               Message.TeamChanged({ message: TeamMessage.FeatureQueued({ id }) }),
-              refusal ? describeRefusal(refusal) : null,
+              refusal ? featureWhy(t, game, id, refusal) : null,
               h,
             ),
     h,
@@ -2204,7 +2378,7 @@ const runbookPicker = (game: Game, h: HtmlBuilder<Message>): Html => {
   if (kinds.length === 0)
     return h.span(
       [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-      ['Handle an incident by hand first.'],
+      [t.team.handleIncidentFirst],
     )
   return h.div(
     [h.Class('flex flex-wrap gap-1')],
@@ -2221,8 +2395,8 @@ const runbookPicker = (game: Game, h: HtmlBuilder<Message>): Html => {
           h.Disabled(refusal !== null),
           h.Title(
             refusal
-              ? describeRefusal(refusal)
-              : `Write the runbook for ${t.catalog.incidents[kind].name}`,
+              ? runbookWhy(t, game, kind, refusal)
+              : t.team.writeRunbookFor(t.catalog.incidents[kind].name),
           ),
           h.Class(
             'flex h-6 items-center gap-1 rounded-md border border-hairline px-1.5 text-[calc(11px*var(--type-scale))] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50',
@@ -2251,7 +2425,7 @@ const taskTile = (game: Game, id: TaskId, h: HtmlBuilder<Message>) => {
     t.catalog.tasks[id].name,
     TASKS[id].dh,
     id === 'runbook' && runbooks > 0
-      ? `${t.catalog.tasks[id].effect} · ${runbooks} written`
+      ? t.team.runbooksWritten(t.catalog.tasks[id].effect, runbooks)
       : t.catalog.tasks[id].effect,
     null,
     done ? 'done' : queued ? 'queued' : refusal !== null ? 'locked' : 'open',
@@ -2268,7 +2442,7 @@ const taskTile = (game: Game, id: TaskId, h: HtmlBuilder<Message>) => {
           : queueButton(
               t.team.queue,
               Message.TaskQueued({ id }),
-              refusal ? describeRefusal(refusal) : null,
+              refusal ? taskWhy(t, game, id, refusal) : null,
               h,
             ),
     h,
@@ -2365,7 +2539,7 @@ export const teamPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
         [
-          dh(game.devHours),
+          dh(t, game.devHours),
           h.span(
             [h.Class('text-[calc(11px*var(--type-scale))] text-ok')],
             [t.team.min(perMinute(rate))],

@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const panels: Messages['panels'] = {
@@ -25,19 +24,19 @@ export const panels: Messages['panels'] = {
   importASave: '导入存档',
   copyStateAsJSON: '复制状态为 JSON',
   iPO: 'IPO',
-  round: (p0) => `${arg(p0)}融资`,
+  round: (p0) => `${p0}融资`,
   goPublic: '上市',
   raise: '融资',
-  cash: (p0) => `+${arg(p0)} 现金`,
-  equity: (p0, p1) => `股权 ${arg(p0)}% → ${arg(p1)}%`,
+  cash: (p0) => `+${p0} 现金`,
+  equity: (p0, p1) => `股权 ${p0}% → ${p1}%`,
   quartersBegin: '开始季度经营',
   fullGrowth: '完整增长',
   decline: '拒绝',
   noCash: '不获现金',
-  equityStays: (p0) => `股权保持 ${arg(p0)}%`,
+  equityStays: (p0) => `股权保持 ${p0}%`,
   growth07: '增长 × 0.7',
   nextRound: '下一轮融资',
-  users: (p0) => `${arg(p0)} 位用户`,
+  users: (p0) => `${p0} 位用户`,
   apdexTarget: 'Apdex 目标',
   prices: '价格',
   continueText: '继续',
@@ -50,8 +49,8 @@ export const panels: Messages['panels'] = {
   playtest: '试玩工具',
   speed: '速度',
   skipAhead: '快进',
-  skipTo: (p0) => `跳至${arg(p0)}`,
-  insight: (p0) => `+${arg(p0)} 洞察`,
+  skipTo: (p0) => `跳至${p0}`,
+  insight: (p0) => `+${p0} 洞察`,
   n20Legacy: '+20 传承',
   startAnIncident: '触发故障',
   log: '日志',
@@ -110,4 +109,7 @@ export const panels: Messages['panels'] = {
   playtestPanel: '试玩工具面板',
   esc: 'Esc',
   backOutThenMenu: '逐层退出，最后打开菜单',
+  shiftT: 'Shift+T',
+  shiftF: 'Shift+F',
+  pauseOnBlur: '窗口失去焦点时暂停',
 }

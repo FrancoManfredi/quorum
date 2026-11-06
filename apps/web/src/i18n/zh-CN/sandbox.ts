@@ -1,14 +1,13 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const sandbox: Messages['sandbox'] = {
   demand: '需求',
-  s: (p0) => `${arg(p0)}/秒`,
+  s: (p0) => `${p0}/秒`,
   burn: '支出',
   errors: '错误',
   latency: '延迟',
   sandboxMenu: '沙盒菜单',
-  objectiveOf: (p0, p1) => `目标 ${arg(p0)}/${arg(p1)}`,
+  objectiveOf: (p0, p1) => `目标 ${p0}/${p1}`,
   controls: '控制',
   users: '用户',
   lessDemand: '减少需求',

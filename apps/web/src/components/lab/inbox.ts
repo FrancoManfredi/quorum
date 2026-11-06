@@ -1,4 +1,4 @@
-import { copy, type Messages } from '@/i18n/messages.ts'
+import { type Messages, copy, stored } from '@/i18n/messages.ts'
 import { has } from '@quorum/simulation/lookups'
 import { InboxMessage } from '@/game/inbox.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -25,14 +25,7 @@ import {
 import { badge as chip } from '@quorum/ui/primitives/badge'
 import { button } from '@quorum/ui/primitives/button'
 import { clock } from '@quorum/ui/game/format'
-import {
-  KIND_LABEL,
-  SAMPLES,
-  needsAction,
-  senderOf,
-  type Sender,
-  type SenderKind,
-} from '@/game/mail.ts'
+import { SAMPLES, needsAction, senderOf, type Sender, type SenderKind } from '@/game/mail.ts'
 import type { BuildGroup } from '@quorum/simulation/catalog'
 import { Kbd } from '@quorum/ui/primitives/kbd'
 import {
@@ -41,13 +34,26 @@ import {
   nativeSelectOption,
 } from '@quorum/ui/primitives/native-select'
 import { folderHolds, folderList, digestOf, labelsIn, DIGEST_ID } from '@/game/inbox.ts'
-import { PRIORITY_LABEL, barOf, destinationOf, kindLabelOf, priorityOf } from '@/game/mail-row.ts'
+import { TRAP_SITES, barOf, kindOf, priorityOf } from '@/game/mail-row.ts'
 import { advisoryTell } from '@/game/advisories.ts'
 import { Message } from '@/game/message.ts'
 import { boardSandbox, type Folder, type Mail, type MailLabel, type Model } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, FLOAT, PANEL, SCROLL, WELL, groupBadge } from '@quorum/ui/game/bits'
+
+/** Where a button really goes, in words of the builder's language (a trap's names an off-site address). */
+const destinationIn = (t: Messages, h: object, action: Mail['actions'][number]): string => {
+  const [kind = '', target = ''] = action.id.split(':')
+  if (kind === 'trap') {
+    const site = TRAP_SITES[target]
+    return site ? t.inbox.leadsOffSite(site) : t.inbox.leadsOffSiteUnknown
+  }
+  return (
+    (t.inbox.destinations as Readonly<Record<string, string | undefined>>)[kind] ??
+    t.inbox.answers(stored(h, action.label))
+  )
+}
 
 /* ==========================================================================
    The Inbox (GDD 18): the game's voice, as a mail window docked above its
@@ -106,7 +112,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key(`peek-${mail.id}-${mail.entries.length}`),
       h.Role('status'),
-      h.AriaLabel(t.inbox.newMailFrom(sender.name, mail.subject)),
+      h.AriaLabel(t.inbox.newMailFrom(sender.name, stored(h, mail.subject))),
       h.Class(
         `enter-pop absolute right-3 bottom-[68px] z-20 flex w-[min(380px,calc(100%-24px))] flex-col gap-2.5 p-3 ${FLOAT} compact:static compact:w-auto compact:pointer-events-auto`,
       ),
@@ -133,7 +139,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                     'line-clamp-2 text-[calc(14.5px*var(--type-scale))] leading-snug font-semibold tracking-[-0.01em]',
                   ),
                 ],
-                [mail.subject],
+                [stored(h, mail.subject)],
               ),
             ],
           ),
@@ -160,7 +166,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                 'line-clamp-2 text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground',
               ),
             ],
-            [gist(mail)],
+            [stored(h, gist(mail))],
           ),
         ],
       ),
@@ -176,9 +182,9 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                     message: InboxMessage.Acted({ id: mail.id, action: act.id }),
                   }),
                   size: 'sm',
-                  attributes: [h.Key(act.id), h.Title(destinationOf(act))],
+                  attributes: [h.Key(act.id), h.Title(destinationIn(t, h, act))],
                 },
-                act.label,
+                stored(h, act.label),
                 h,
               )
             : h.empty,
@@ -280,7 +286,7 @@ const row = (
                 [
                   h.Class(cn('absolute inset-y-0 left-0 w-[3px]', bar)),
                   h.Role('img'),
-                  h.AriaLabel(PRIORITY_LABEL[priorityOf(mail)]),
+                  h.AriaLabel(t.inbox.priorities[priorityOf(mail)]),
                 ],
                 [],
               ),
@@ -314,7 +320,7 @@ const row = (
                   ),
                   // The kind label repeats the badge's shape and colour in words
                   // (18 "Colour code").
-                  h.span([h.Class(cn(EYEBROW, 'shrink-0'))], [kindLabelOf(mail)]),
+                  h.span([h.Class(cn(EYEBROW, 'shrink-0'))], [t.inbox.kinds[kindOf(mail)]]),
                   mail.entries.length > 1
                     ? h.span(
                         [
@@ -347,7 +353,7 @@ const row = (
                     ),
                   ),
                 ],
-                [mail.subject],
+                [stored(h, mail.subject)],
               ),
             ],
           ),
@@ -389,11 +395,11 @@ const digestLine = (mail: Mail, h: HtmlBuilder<Message>): Html => {
           ),
           h.span(
             [h.Class('truncate text-[calc(12px*var(--type-scale))] text-foreground/85')],
-            [mail.subject],
+            [stored(h, mail.subject)],
           ),
           h.span(
             [h.Class('truncate text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            [gist(mail)],
+            [stored(h, gist(mail))],
           ),
         ],
       ),
@@ -473,7 +479,7 @@ const digestRow = (
                     ),
                   ),
                 ],
-                [mail.subject],
+                [stored(h, mail.subject)],
               ),
             ],
           ),
@@ -576,7 +582,7 @@ const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Me
                 'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
               ),
             ],
-            [mail.subject],
+            [stored(h, mail.subject)],
           ),
           h.p(
             [h.Class('text-[calc(12px*var(--type-scale))] leading-relaxed text-muted-foreground')],
@@ -620,7 +626,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
       ? [
           h.p(
             [h.Class('flex-1 text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-            [mail.answer],
+            [stored(h, mail.answer)],
           ),
         ]
       : mail.resolved === null
@@ -633,9 +639,12 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 variant: action.id.startsWith('show') ? 'outline' : 'default',
                 size: 'sm',
                 // The hover names where the button really goes: a trap names an off-site address.
-                attributes: [h.Key(action.id), h.Title(destinationOf(action))],
+                attributes: [h.Key(action.id), h.Title(destinationIn(t, h, action))],
               },
-              [action.label, Kbd({ className: 'ml-1 opacity-80' }, [String(index + 1)], h)],
+              [
+                stored(h, action.label),
+                Kbd({ className: 'ml-1 opacity-80' }, [String(index + 1)], h),
+              ],
               h,
             ),
           )
@@ -649,7 +658,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           h.div(
             [h.Class('flex flex-wrap items-center gap-2')],
             [
-              h.span([h.Class(EYEBROW)], [KIND_LABEL[sender.kind]]),
+              h.span([h.Class(EYEBROW)], [t.inbox.kinds[sender.kind]]),
               tell === null
                 ? h.empty
                 : button(
@@ -684,7 +693,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
               ),
             ],
-            [mail.subject],
+            [stored(h, mail.subject)],
           ),
           h.div(
             [h.Class('flex items-center gap-2.5')],
@@ -740,7 +749,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                     : h.empty,
                   h.div(
                     [h.Class('flex flex-col gap-3 whitespace-pre-line')],
-                    entry.text.split('\n\n').map((paragraph) => h.p([], [paragraph])),
+                    entry.text.split('\n\n').map((paragraph) => h.p([], [stored(h, paragraph)])),
                   ),
                 ],
               ),
@@ -748,7 +757,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           ),
           h.p(
             [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            [sender.sign],
+            [t.senders[mail.sender]?.sign ?? stored(h, sender.sign)],
           ),
         ],
       ),
@@ -978,7 +987,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ...labels.map((entry) =>
                     labelChip(
                       entry.label,
-                      KIND_LABEL[entry.label],
+                      t.inbox.kinds[entry.label],
                       entry.count,
                       model.board.inbox.label === entry.label,
                       h,

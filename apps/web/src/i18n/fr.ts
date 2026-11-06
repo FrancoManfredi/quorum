@@ -4372,4 +4372,5 @@ export const fr: Readonly<Record<string, string>> = {
     'La demande triple à la minute 5 pendant 5 minutes. Dépensez le moins possible.',
   'Four regions, each with its own evening peak, over one day. Spend under $700/s.':
     'Quatre régions, chacune avec son propre pic du soir, sur une journée. Dépensez moins de $700/s.',
+  'Add to backlog': 'Ajouter au backlog',
 }

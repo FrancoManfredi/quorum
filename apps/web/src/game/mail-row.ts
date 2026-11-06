@@ -42,7 +42,7 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 /** Where a button really goes, in the game: the hover names the control it opens. */
-const DESTINATIONS: Record<string, string> = {
+export const DESTINATIONS: Record<string, string> = {
   show: 'Selects it on the Board',
   resize: 'Opens the Node Inspector, to resize it',
   quota: 'Opens the Node Inspector, on its limit',
@@ -72,7 +72,7 @@ const DESTINATIONS: Record<string, string> = {
 }
 
 /** The site a trap's button leaves for. A real button never leaves the game. */
-const TRAP_SITES: Record<string, string> = {
+export const TRAP_SITES: Record<string, string> = {
   phish: 'awol-cloud.support/session/verify',
   patcher: 'cve-fyi.top/patch/patcher.sh',
   invoice: 'azzure-invoices.top/pay/AZ-88213',

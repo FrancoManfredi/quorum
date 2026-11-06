@@ -43,8 +43,17 @@ const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
       ),
       caption(
         gpuFits(node)
-          ? `${GPU_MODELS[node.gpuModel].speed}× the medium model's tokens, and each answer is worth ${GPU_MODELS[node.gpuModel].value}× as much. The weights and the batch take ${gpuNeedGB(node).toFixed(1)} of ${gpuHeldGB(node)} GB.`
-          : `The weights and the batch need ${gpuNeedGB(node).toFixed(1)} GB and the GPUs hold ${gpuHeldGB(node)}: the model is killed as it loads, and every prompt fails as oom. A lower precision, a smaller model or a smaller batch fits.`,
+          ? t.inspectorGpu.theModelFits(
+              GPU_MODELS[node.gpuModel].speed,
+              GPU_MODELS[node.gpuModel].value,
+              gpuNeedGB(node).toFixed(1),
+              gpuHeldGB(node),
+            )
+          : t.inspectorGpu.theModelDoesNotFit(
+              gpuNeedGB(node).toFixed(1),
+              gpuHeldGB(node),
+              t.inspectorUsers.causes.oom,
+            ),
         h,
       ),
       picker(

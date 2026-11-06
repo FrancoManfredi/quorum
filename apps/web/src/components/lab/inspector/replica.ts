@@ -28,7 +28,7 @@ const replica = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
         ),
         caption(
           node.sync
-            ? `Every write waits ${SYNC_MS} ms for this replica, more across zones and regions. It serves no stale read, and writes stall while it is down.`
+            ? t.inspectorReplica.everyWriteWaits(t.units.ms(SYNC_MS))
             : t.inspectorReplica.noWriteCostAndTheReplica,
           h,
         ),

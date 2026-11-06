@@ -1,10 +1,9 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorDatabase: Messages['inspectorDatabase'] = {
   volume: '存储卷',
   iOPSAtTheBoxSBurn: (p0, p1) =>
-    `${arg(p0)} IOPS，消耗机器 Burn 的 ${arg(p1)} 倍。未命中缓冲区的读取和每次写入都要等待它。`,
+    `${p0} IOPS，消耗机器 Burn 的 ${p1} 倍。未命中缓冲区的读取和每次写入都要等待它。`,
   shards: '分片',
   onePrimaryAReadReplicaIs: '单个主库：由只读副本分担读取。',
   shardKey: '分片键',
@@ -21,5 +20,10 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   noBackupALostTableIs: '没有备份：丢失的表就永久丢失。',
   aRestoreFailedThisBackupWould: '恢复失败：这份备份会丢失一切。请重新演练。',
   thisBackupRestoresDrillItAgain: '这份备份可以恢复。变更后请再次演练，或研究恢复演练。',
-  restoreDrillDH: (p0) => `恢复演练 · ${arg(p0)} 工时`,
+  restoreDrillDH: (p0) => `恢复演练 · ${p0} 工时`,
+  theBusiestShardTakes: (hot, cross, cpu, scatter) =>
+    `最繁忙的分片承担 ${hot}% 的写入。${cross}% 的事务跨分片，因此成本最多达 3 倍，并且可能在任何一个分片上失败。报表和搜索会触及每个分片：CPU +${cpu}%，延迟 +${scatter}。`,
+  usersInOtherRegionsWait: (wait) => `其他区域的用户要多等 ${wait}。`,
+  writesDivideAcross: (shards, devHours) =>
+    `写入会分散到 ${shards} 个分片，每个分片都计费。更改分片数或分片键需要 ${devHours} 开发工时，并要复制一份数据，使卷的 IOPS 减半。`,
 }

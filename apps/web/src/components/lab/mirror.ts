@@ -1,13 +1,11 @@
 import { copy, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
-  COMPONENTS,
   IAC_TOOLS,
   IAC_TOOL_INFO,
   MIRROR_TIME,
   OPEN_REGION_PRICE,
   REGIONS,
-  REGION_INFO,
   SIZES,
   type DataPatternId,
   type RegionId,
@@ -43,7 +41,7 @@ import { shell } from './panels.ts'
    ========================================================================== */
 
 const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
-  size: 'Size',
+  size: t.mirror.fieldSize,
   family: t.mirror.family,
   runtime: t.mirror.runtime,
   framework: t.mirror.framework,
@@ -54,7 +52,7 @@ const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
   retention: t.mirror.retention,
   policy: t.mirror.policy,
   checkEvery: t.mirror.healthCheck,
-  deepCheck: 'Deep check',
+  deepCheck: t.mirror.deepCheck,
   ttl: 'TTL',
   pm: t.mirror.processManager,
   engine: t.mirror.engine,
@@ -64,24 +62,24 @@ const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
   storageClass: t.mirror.storageClass,
   keep: t.mirror.retention,
   lifecycle: t.mirror.lifecycle,
-  cacheStrategy: 'Cache strategy',
-  refresh: 'Search refresh',
-  sticky: 'Sticky sessions',
-  slowStart: 'Slow start',
+  cacheStrategy: t.mirror.cacheStrategy,
+  refresh: t.mirror.searchRefresh,
+  sticky: t.mirror.stickySessions,
+  slowStart: t.mirror.slowStart,
   purge: t.mirror.purgeOnDeploy,
-  cacheKey: 'Cache key',
-  earlyExpiry: 'Early expiration',
-  swr: 'Stale-while-revalidate',
+  cacheKey: t.mirror.cacheKey,
+  earlyExpiry: t.mirror.earlyExpiration,
+  swr: t.mirror.staleWhileRevalidate,
   shardKey: t.mirror.shardKey,
-  sync: 'Synchronous replica',
-  searchVariant: 'Search product',
-  searchShards: 'Search shards',
-  searchReplicas: 'Search replicas',
-  heap: 'Search heap',
-  storeVariant: 'Storage product',
-  mode: 'Pool mode',
+  sync: t.mirror.synchronousReplica,
+  searchVariant: t.mirror.searchProduct,
+  searchShards: t.mirror.searchShards,
+  searchReplicas: t.mirror.searchReplicas,
+  heap: t.mirror.searchHeap,
+  storeVariant: t.mirror.storageProduct,
+  mode: t.mirror.poolMode,
   dlq: t.mirror.deadLetterQueue,
-  attempts: 'Attempts',
+  attempts: t.mirror.attempts,
   maxLength: t.mirror.maxLength,
   prefetch: t.mirror.prefetch,
   coalesce: t.mirror.stampedeProtection,
@@ -90,9 +88,9 @@ const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
   zone: t.mirror.zone,
   standby: t.mirror.standby,
   signal: t.mirror.signal,
-  target: 'Target',
-  minCopies: 'Min copies',
-  maxCopies: 'Max copies',
+  target: t.mirror.fieldTarget,
+  minCopies: t.mirror.minCopies,
+  maxCopies: t.mirror.maxCopies,
   gpu: 'GPU',
   collector: t.mirror.collector,
   gogc: 'GOGC',
@@ -134,13 +132,13 @@ const toolFactsOf = (
   ],
 })
 
-const valueText = (field: Managed, value: unknown): string =>
+const valueText = (t: Messages, field: Managed, value: unknown): string =>
   field === 'size' && typeof value === 'number'
-    ? (SIZES[value]?.name ?? String(value))
+    ? (t.nodeList.sizes[SIZES[value]?.name ?? 'custom'] ?? String(value))
     : typeof value === 'boolean'
       ? value
-        ? 'on'
-        : 'off'
+        ? t.mirror.valueOn
+        : t.mirror.valueOff
       : String(value)
 
 /**
@@ -150,15 +148,15 @@ const valueText = (field: Managed, value: unknown): string =>
 const nodeName = (t: Messages, game: Game, id: string, mirror: Mirror): string => {
   if (id.startsWith('+')) {
     const source = game.nodes.find((entry) => entry.id === id.slice(1))
-    if (!source) return 'Node'
+    if (!source) return t.mirror.node
     return source.type === 'database' && mirror.data[source.id] === 'replica'
-      ? COMPONENTS.replica.name
+      ? t.catalog.components.replica.name
       : nodeTitle(t, game, source)
   }
   const node = game.nodes.find((entry) => entry.id === id)
-  if (!node) return 'Node'
+  if (!node) return t.mirror.node
   const name = nodeTitle(t, game, node)
-  return node.region === mirror.region ? name : `${name} ${REGION_INFO[node.region].short}`
+  return node.region === mirror.region ? name : `${name} ${t.catalog.regionInfo[node.region].short}`
 }
 
 /** A segmented control: options sunk in a well, the chosen one raised. */
@@ -292,16 +290,14 @@ const gitops = (game: Game, h: HtmlBuilder<Message>): Html => {
 
 /* ---------- the region on the board ---------- */
 
-const driftText = (game: Game, mirror: Mirror, drift: Drift): string => {
+const driftText = (t: Messages, game: Game, mirror: Mirror, drift: Drift): string => {
   if (mirror.readyAt !== null)
-    return `Applying · ${Math.max(1, Math.ceil(mirror.readyAt - game.time))} min`
+    return t.mirror.applying(Math.max(1, Math.ceil(mirror.readyAt - game.time)))
   const parts = [
-    ...(drift.behind > 0 ? [`${drift.behind} behind`] : []),
-    ...(drift.hand > 0
-      ? [`${drift.hand} ${drift.hand === 1 ? 'hand change' : 'hand changes'}`]
-      : []),
+    ...(drift.behind > 0 ? [t.mirror.behind(drift.behind)] : []),
+    ...(drift.hand > 0 ? [t.mirror.handChanges(drift.hand)] : []),
   ]
-  return parts.length === 0 ? 'In sync' : parts.join(' · ')
+  return parts.length === 0 ? t.mirror.inSync : parts.join(' · ')
 }
 
 const changeRow = (
@@ -320,13 +316,13 @@ const changeRow = (
       case 'remove':
         return [
           '−',
-          `${t.catalog.components[change.type].name}${change.data ? ' · needs confirm' : ''}`,
+          `${t.catalog.components[change.type].name}${change.data ? ` · ${t.mirror.needsConfirm}` : ''}`,
           null,
         ]
       case 'set':
         return [
           '~',
-          `${nodeName(t, game, change.node, mirror)} · ${fieldLabelOf(t)[change.field]} ${valueText(change.field, change.from)} → ${valueText(change.field, change.to)}`,
+          `${nodeName(t, game, change.node, mirror)} · ${fieldLabelOf(t)[change.field]} ${valueText(t, change.field, change.from)} → ${valueText(t, change.field, change.to)}`,
           change.hand && overridable(game)
             ? Message.MirrorOverrideSet({
                 region: mirror.region,
@@ -430,7 +426,7 @@ const overrides = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html =>
             h.span(
               [],
               [
-                `${nodeName(t, game, nodeId, mirror)} · ${fieldLabelOf(t)[field]} ${valueText(field, game.nodes.find((node) => node.id === nodeId)?.[field])}`,
+                `${nodeName(t, game, nodeId, mirror)} · ${fieldLabelOf(t)[field]} ${valueText(t, field, game.nodes.find((node) => node.id === nodeId)?.[field])}`,
               ],
             ),
             button(
@@ -498,7 +494,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
                 ),
               ),
             ],
-            [driftText(game, mirror, drift)],
+            [driftText(t, game, mirror, drift)],
           ),
         ],
       ),
@@ -560,7 +556,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
                   size: 'sm',
                   variant: 'destructive',
                 },
-                `Apply and remove ${drift.data} data ${drift.data === 1 ? t.mirror.node : t.mirror.nodes}`,
+                t.mirror.applyAndRemove(drift.data),
                 h,
               )
             : h.empty,
@@ -619,12 +615,7 @@ const startSection = (game: Game, region: RegionId, h: HtmlBuilder<Message>): Ht
   return h.section(
     [h.Key(`start-${region}`), h.Class('flex flex-col gap-2')],
     [
-      heading(
-        empty
-          ? `Mirror into ${t.catalog.regionInfo[region].name} from`
-          : `Mirror ${t.catalog.regionInfo[region].name} into`,
-        h,
-      ),
+      heading(empty ? t.mirror.mirrorIntoFrom[region] : t.mirror.mirrorRegionInto[region], h),
       targets.length === 0
         ? h.span(
             [h.Class('px-1 text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],

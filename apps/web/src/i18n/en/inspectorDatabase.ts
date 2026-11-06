@@ -24,4 +24,14 @@ export const inspectorDatabase = {
   thisBackupRestoresDrillItAgain:
     'This backup restores. Drill it again after a change, or research Restore drills.',
   restoreDrillDH: (p0: string | number | null) => `Restore drill · ${p0} DH`,
+  theBusiestShardTakes: (
+    hot: string | number,
+    cross: string | number,
+    cpu: string | number,
+    scatter: string | number,
+  ) =>
+    `The busiest shard takes ${hot}% of the writes. ${cross}% of transactions span shards, so they cost up to 3× and can fail on any shard. Reports and searches touch every shard: +${cpu}% CPU and +${scatter}.`,
+  usersInOtherRegionsWait: (wait: string | number) => `Users in other regions wait ${wait} more.`,
+  writesDivideAcross: (shards: string | number, devHours: string | number) =>
+    `Writes divide across ${shards} shards, and each one bills. Changing the count or the key takes ${devHours} Dev Hours and a copy of the data that halves the volume's IOPS.`,
 }

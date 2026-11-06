@@ -10,4 +10,18 @@ export const cost = {
   requests: 'Requests',
   observability: 'Observability',
   salaries: 'Salaries',
+  notes: {
+    compute: 'App Servers, Workers, edge, and platform Nodes',
+    data: 'Database, cache, pooler, replicas, and the rest',
+    storage: 'GB stored, priced per GB per second',
+    egress: 'Bytes out from the origin and the CDN',
+    thirdParty: 'Payment fees, scans, tokens, and messages',
+    requests: 'Gateway, Serverless and Edge Function requests, priced per use',
+    observability: 'Analytics sampling and retention',
+    salaries: 'Engineers, by language and policy',
+  },
+  thirdParties: 'Third parties',
+  cloudBill: 'The cloud bill',
+  billExplainer:
+    'The bill follows the Era’s cost index, so it rises with the Company. A Gateway bills each request, and so do a Serverless Function’s requests and GB-seconds and an Edge Function’s requests: the Requests line is what they serve.',
 }

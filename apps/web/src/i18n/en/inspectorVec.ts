@@ -20,4 +20,7 @@ export const inspectorVec = {
   recall: 'Recall',
   latency: 'Latency',
   burn: 'Burn',
+  index: 'Index',
+  nodesRetrieveFromIt: (count: number) =>
+    `${count} Node${count === 1 ? '' : 's'} retrieve from it.`,
 }

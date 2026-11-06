@@ -1,3 +1,5 @@
+import type { RequestKind } from '@quorum/simulation/catalog'
+
 export const inspectorShared = {
   runtime: 'Runtime',
   proposed: 'Proposed',
@@ -24,4 +26,26 @@ export const inspectorShared = {
   hotKeys: 'Hot keys',
   oneShard: 'One shard',
   split: 'Split',
+  monolith: 'Monolith',
+  openNode: (name: string) => `Open ${name}`,
+  kindShort: {
+    page: 'Page',
+    bid: 'Bid',
+    read: 'Read',
+    write: 'Write',
+    login: 'Login',
+    search: 'Search',
+    upload: 'Upload',
+    bot: 'Bot',
+    media: 'Media',
+    rt: 'Realtime',
+    buy: 'Buy',
+    job: 'Export',
+    report: 'Report',
+    ai: 'AI',
+    feed: 'Feed',
+    hook: 'Webhook',
+    push: 'Push',
+  } satisfies Record<RequestKind, string>,
+  quorum: 'Quorum',
 }

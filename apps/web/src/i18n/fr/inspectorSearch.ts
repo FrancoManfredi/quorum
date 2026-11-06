@@ -1,5 +1,5 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
+import { isOne } from '../plural.ts'
 
 export const inspectorSearch: Messages['inspectorSearch'] = {
   product: 'Produit',
@@ -17,9 +17,12 @@ export const inspectorSearch: Messages['inspectorSearch'] = {
   theJVMHeapHoldsCachesWithout:
     'Le tas JVM contient les caches sans priver le cache du système de fichiers.',
   refresh: 'Relire',
-  s: (p0) => `${arg(p0)} s`,
+  s: (p0) => `${p0} s`,
   aNewDocumentIsSearchableWithin:
     'Un nouveau document est cherchable en une seconde, au prix de CPU d’indexation.',
   aNewDocumentWaitsUpTo: (p0) =>
-    `Un nouveau document attend jusqu’à ${arg(p0)} s : l’indexation coûte moins, les réponses sont plus périmées.`,
+    `Un nouveau document attend jusqu’à ${p0} s : l’indexation coûte moins, les réponses sont plus périmées.`,
+  shardCount: (count) => `${count} shard${isOne('fr', count) ? '' : 's'}`,
+  replicaCount: (count) => `${count} ${isOne('fr', count) ? 'réplica' : 'réplicas'}`,
+  heaps: { small: '25 % de la RAM', half: '50 % de la RAM', large: '75 % de la RAM' },
 }

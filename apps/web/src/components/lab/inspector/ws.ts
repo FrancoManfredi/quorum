@@ -1,10 +1,11 @@
+import { formats } from '@/i18n/format.ts'
 import { copy, localized } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { RT_HOLD_SECONDS, RUNTIMES, RUNTIME_IDS } from '@quorum/simulation/catalog'
 import { distributedErlang, hubConnections } from '@quorum/simulation/rules'
 import { burnOf, runtimeReady } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
-import { compact, money, ms, rate } from '@quorum/ui/game/format'
+import { compact, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, caption, picker, section } from './shared.ts'
@@ -104,7 +105,7 @@ export const wsPanel: Panel = {
         h,
       ),
       row(t.inspectorWs.messages, t.inspectorWs.s(rate(own.inbound)), 'plain', h),
-      row(t.inspectorWs.latency, ms(own.latency), 'plain', h),
+      row(t.inspectorWs.latency, formats(t).ms(own.latency), 'plain', h),
       row(
         t.inspectorWs.dropped,
         t.inspectorWs.s(rate(own.dropped)),

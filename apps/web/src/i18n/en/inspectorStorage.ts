@@ -13,4 +13,6 @@ export const inspectorStorage = {
   ofTheStoreIsOlderThan: (p0: string | number | null, p1: string | number | null) =>
     `${p0}% of the store is older than ${p1} days and moves one class cheaper. A read of an archived object fails.`,
   everyObjectKeepsTheClassAbove: 'Every object keeps the class above, however old it is.',
+  noEgressToTheInternet: (wait: string | number) =>
+    `No egress to the internet. A read waits ${wait} more for its first byte unless a CDN is on the board.`,
 }

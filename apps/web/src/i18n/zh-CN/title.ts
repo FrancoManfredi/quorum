@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const title: Messages['title'] = {
@@ -15,13 +14,13 @@ export const title: Messages['title'] = {
   nameYourCompany: '为你的公司命名',
   logo: '标志',
   venture: '创业方向',
-  legacy: (p0) => `${arg(p0)} 传承`,
+  legacy: (p0) => `${p0} 传承`,
   mutators: '变体规则',
-  found: (p0) => `创办 ${arg(p0)}`,
-  legacy2: (p0, p1) => `${arg(p0)} · 传承 ×${arg(p1)}`,
+  found: (p0) => `创办 ${p0}`,
+  legacy2: (p0, p1) => `${p0} · 传承 ×${p1}`,
   current: '当前',
   noCompaniesSavedYet: '尚无公司存档',
-  started: (p0) => `创建于 ${arg(p0)}`,
+  started: (p0) => `创建于 ${p0}`,
   openCompany: '打开公司',
   deleteForever: '永久删除',
   theCompanyAndItsDesignAre: '公司及其架构将被永久删除。',
@@ -69,4 +68,15 @@ export const title: Messages['title'] = {
   escape: 'Escape',
   space: '空格',
   backspace: 'Backspace',
+  eraUsersTime: (era, users, time) => `${era} · ${users} 位用户 · ${time}`,
+  savedCount: (count) => `已保存 ${count} 家`,
+  mutatorCount: (count) => `${count} 个变异条件`,
+  users: '用户',
+  pauseWhenTheWindowLosesFocus: '窗口失去焦点时暂停',
+  recoverPreviousSave: '恢复之前的存档',
+  recoverPreviousSaveDetail: '导入试玩阶段的公司。临时功能：Alpha 测试后移除。',
+  connected: '已连接。',
+  playtestBuild: '试玩版 ·',
+  support: '支持',
+  supportOnKofi: '在 Ko-fi 上支持 Quorum',
 }

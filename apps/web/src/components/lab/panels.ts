@@ -135,8 +135,8 @@ const keysOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
   ['1–7', t.panels.buildGroup],
   [t.panels.enter, t.panels.inspectorPlaceConfirm],
   ['L', t.panels.linkTheSelectedNode],
-  ['Shift+T', t.panels.tidyByZone],
-  ['Shift+F', t.panels.fitTheBoard],
+  [t.panels.shiftT, t.panels.tidyByZone],
+  [t.panels.shiftF, t.panels.fitTheBoard],
   ['R', t.panels.research],
   ['T', t.panels.team],
   ['P', t.panels.playbooks],
@@ -340,7 +340,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           switch_(
             {
               id: 'setting-blur-pause',
-              label: 'Pause when the window loses focus',
+              label: t.panels.pauseOnBlur,
               isChecked: model.prefs.blurPause,
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
             },

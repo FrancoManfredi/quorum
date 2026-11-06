@@ -58,8 +58,11 @@ const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
       ),
       caption(
         node.authEdge
-          ? `The Gateway validates each token once, for ${GATEWAY_AUTH_MS} ms, and the services skip the ${AUTH_CHECK_MS * 1_000} µs check.`
-          : `Every service validates the token itself: ${AUTH_CHECK_MS * 1_000} µs of CPU on each authenticated request.`,
+          ? t.inspectorGw.theGatewayValidatesEachToken(
+              t.units.ms(GATEWAY_AUTH_MS),
+              `${AUTH_CHECK_MS * 1_000} µs`,
+            )
+          : t.inspectorGw.everyServiceValidatesTheToken(`${AUTH_CHECK_MS * 1_000} µs`),
         h,
       ),
       picker(

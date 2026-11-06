@@ -1,7 +1,7 @@
-import { copy } from '@/i18n/messages.ts'
+import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import type { Ledger } from '@quorum/simulation/ledger'
-import { sizeLabel } from '@quorum/simulation/lookups'
+import { COMPONENTS, SIZES } from '@quorum/simulation/catalog'
 import { regionView } from '@quorum/simulation/regions'
 import { rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
@@ -16,10 +16,10 @@ import type { Model } from '@/game/model.ts'
    ========================================================================== */
 
 /** A Node's load as the cards show it: the share of its limiting resource in use. */
-const loadOf = (ledger: Ledger, id: string): string => {
+const loadOf = (t: Messages, ledger: Ledger, id: string): string => {
   const own = ledger.nodes[id]
-  if (!own) return 'no load'
-  if (own.status === 'down') return 'down'
+  if (!own) return t.nodeList.noLoad
+  if (own.status === 'down') return t.nodeList.down
   return `${Math.round(own.utilization * 100)}%`
 }
 
@@ -48,9 +48,16 @@ export const nodeList = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>):
                 [
                   h.span([], [t.catalog.components[node.type].name]),
                   h.span([], [' · ']),
-                  h.span([], [sizeLabel(node)]),
+                  h.span(
+                    [],
+                    [
+                      COMPONENTS[node.type].sized
+                        ? t.nodeList.sizes[SIZES[node.size]?.name ?? 'custom']
+                        : t.nodeList.sizeStep(node.size),
+                    ],
+                  ),
                   h.span([], [' · ']),
-                  h.span([], [loadOf(ledger, node.id)]),
+                  h.span([], [loadOf(t, ledger, node.id)]),
                   h.span([], [' · ']),
                   h.span([], [t.nodeList.s(rate(ledger.nodes[node.id]?.inbound ?? 0))]),
                 ],

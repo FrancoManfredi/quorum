@@ -1,21 +1,21 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorVec: Messages['inspectorVec'] = {
   exactComparesTheQueryToEvery: (p0, p1, p2) =>
-    `Exact compares the query to every vector: every lookup finds its nearest neighbour, at ${arg(p0)} a second per size step. HNSW walks a graph instead: ${arg(p1)}× the lookups, twice the memory in Burn, and ${arg(p2)} recall, so one lookup in twenty quotes the wrong document.`,
-  recallBurnS: (p0, p1) => `召回率 ${arg(p0)} · 消耗 ${arg(p1)}/秒`,
+    `精确索引把查询与每个向量比较：每次查找都能找到最近邻，每个规格档位每秒 ${p0}。HNSW 则遍历一张图：查找量为 ${p1} 倍，内存的支出翻倍，召回率为 ${p2}，所以每二十次查找就有一次引用了错误的文档。`,
+  recallBurnS: (p0, p1) => `召回率 ${p0} · 消耗 ${p1}/秒`,
   retrieval: '检索',
   linkANodeThatAnswersPrompts: (p0) =>
-    `Link a Node that answers prompts into it and each prompt pays one nearest-neighbour lookup for the documents it quotes. Those answers earn ${arg(p0)}% more, and a Python Stack keeps its ML ecosystem bonus only with an index in the path.`,
-  nothingAnswersPromptsThroughItYet:
-    'Nothing answers prompts through it yet. Link an App Server into it.',
+    `把回答提示的节点连接到它，每个提示都要为所引用的文档付出一次最近邻查找。这些回答多赚 ${p0}%，而 Python 技术栈只有在路径上有索引时，才能保留它的 ML 生态加成。`,
+  nothingAnswersPromptsThroughItYet: '目前还没有节点通过它回答提示。请把应用服务器连接到它。',
   lookups: '查询',
-  s: (p0) => `${arg(p0)}/秒`,
+  s: (p0) => `${p0}/秒`,
   load: '负载',
-  ofS: (p0, p1) => `${arg(p0)} / ${arg(p1)}/秒`,
+  ofS: (p0, p1) => `${p0} / ${p1}/秒`,
   idle: '空闲',
   recall: '召回率',
   latency: '延迟',
   burn: '支出',
+  index: '索引',
+  nodesRetrieveFromIt: (count) => `${count} 个节点从中检索。`,
 }

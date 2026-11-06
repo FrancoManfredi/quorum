@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorSearch: Messages['inspectorSearch'] = {
@@ -14,7 +13,10 @@ export const inspectorSearch: Messages['inspectorSearch'] = {
   tooLargeLongPausesAndLess: '太大:暂停很长,文件系统缓存变少。',
   theJVMHeapHoldsCachesWithout: 'JVM 堆放得下缓存,又不挤占文件系统缓存。',
   refresh: '刷新',
-  s: (p0) => `${arg(p0)} 秒`,
+  s: (p0) => `${p0} 秒`,
   aNewDocumentIsSearchableWithin: '新文档在一秒内可被搜索，代价是索引 CPU。',
-  aNewDocumentWaitsUpTo: (p0) => `新文档最多等待 ${arg(p0)} 秒：索引更便宜，结果更陈旧。`,
+  aNewDocumentWaitsUpTo: (p0) => `新文档最多等待 ${p0} 秒：索引更便宜，结果更陈旧。`,
+  shardCount: (count) => `${count} 个分片`,
+  replicaCount: (count) => `${count} 个副本`,
+  heaps: { small: '25% 的 RAM', half: '50% 的 RAM', large: '75% 的 RAM' },
 }

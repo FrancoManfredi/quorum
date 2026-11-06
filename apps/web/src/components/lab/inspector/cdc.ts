@@ -1,8 +1,9 @@
+import { formats } from '@/i18n/format.ts'
 import { copy, nodeTitle } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { burnOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
-import { money, ms, rate } from '@quorum/ui/game/format'
+import { money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, caption, percent, section } from './shared.ts'
@@ -84,7 +85,7 @@ export const cdcPanel: Panel = {
         h,
       ),
       row(t.inspectorCdc.published, t.inspectorCdc.s(rate(own.out.task ?? 0)), 'plain', h),
-      row(t.inspectorCdc.latency, ms(own.latency), 'plain', h),
+      row(t.inspectorCdc.latency, formats(t).ms(own.latency), 'plain', h),
       row(t.inspectorCdc.burn, t.inspectorCdc.s(money(burnOf(game, node))), 'plain', h),
     ]
   },

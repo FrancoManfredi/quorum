@@ -1,3 +1,5 @@
+import { senders } from './senders.ts'
+import { units } from './units.ts'
 import { challenge } from './challenge.ts'
 import { churn } from './churn.ts'
 import { cost } from './cost.ts'
@@ -104,4 +106,6 @@ export const en = {
   title,
   tradeoff,
   catalog,
+  units,
+  senders,
 }

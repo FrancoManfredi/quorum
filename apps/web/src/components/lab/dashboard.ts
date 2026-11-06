@@ -1,3 +1,5 @@
+import { serviceName, teamName } from './team.ts'
+import { formats } from '@/i18n/format.ts'
 import { copyIn, localized, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { copy, eraWords } from '@/i18n/messages.ts'
 import { DashboardMessage } from '@/game/dashboard.ts'
@@ -7,7 +9,6 @@ import { clockOf } from '@quorum/simulation/calendar'
 import type { Limit } from '@quorum/simulation/capacity'
 import {
   ALERT_RULES,
-  COMPONENTS,
   DEVICES,
   ERAS,
   INCIDENTS,
@@ -37,7 +38,7 @@ import type { Game, Postmortem, Sample } from '@quorum/simulation/state'
 import { ignored } from '@quorum/simulation/step'
 import { teamOutputs } from '@quorum/simulation/team'
 import { type Field, TIERS, type Tier, blockIndexAt, startOf } from '@/game/history.ts'
-import { alertText, compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
+import { compact, money, rate as rateText } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import {
   ANNOTATION_GROUPS,
@@ -130,8 +131,8 @@ const tierOf = (range: number): Tier | null =>
   range <= 600 ? null : range <= 10_080 ? 'quarter' : 'hour'
 
 /** A row's label: the clock, and the calendar day when the range spans days. */
-const labelOf = (time: number, range: number): string =>
-  range > 1440 ? `D${clockOf(time).day} ${hhmm(time)}` : hhmm(time)
+const labelOf = (t: Messages, time: number, range: number): string =>
+  range > 1440 ? t.dashboard.dayAt(clockOf(time).day, hhmm(time)) : hhmm(time)
 
 /**
  * The rows in range, each with its label, its start in sim time (`at`), its length in calendar
@@ -139,10 +140,11 @@ const labelOf = (time: number, range: number): string =>
  * which draws the worst minute: a block's mean p99 would hide the spike the tail is about.
  */
 const rowsOf = (model: Model, slo: number): ReadonlyArray<Row> => {
+  const t = copyIn(model.prefs.locale)
   const range = model.board.dashboard.range
   const tier = tierOf(range)
   const figures = (value: (field: Field) => number, at: number, span: number): Row => ({
-    t: labelOf(at, range),
+    t: labelOf(t, at, range),
     at,
     span,
     users: value('users'),
@@ -238,11 +240,11 @@ const yesterdayOf = (
 }
 
 /** Each Node's name, numbered when the Board holds more than one of its type. */
-const namesOf = (game: Game): ReadonlyMap<string, string> => {
+const namesOf = (t: Messages, game: Game): ReadonlyMap<string, string> => {
   const counts = new Map<string, number>()
   const names = new Map<string, string>()
   for (const node of game.nodes) {
-    const base = COMPONENTS[node.type].name
+    const base = t.catalog.components[node.type].name
     const count = (counts.get(base) ?? 0) + 1
     counts.set(base, count)
     names.set(node.id, count > 1 ? `${base} ${count}` : base)
@@ -268,8 +270,8 @@ const tracksOf = (model: Model): ReadonlyArray<NodeTrack> => {
    The Company and Incidents panels (15 "Panels")
    ========================================================================== */
 
-const runwayText = (seconds: number | null): string =>
-  seconds === null ? '∞' : `${(seconds / RUNWAY_MONTH).toFixed(1)} mo`
+const runwayText = (t: Messages, seconds: number | null): string =>
+  seconds === null ? '∞' : t.dashboard.runwayMonths((seconds / RUNWAY_MONTH).toFixed(1))
 
 /** A funding round the Company entered: the offer after its Mutators and perks, and the Inbox's answer. */
 type FundingRound = Readonly<{
@@ -279,7 +281,7 @@ type FundingRound = Readonly<{
   /** The fixed grant, or null for the IPO, which pays public money rather than a round. */
   grant: number | null
   dilution: number
-  answer: string
+  answer: 'listed' | 'raised' | 'declined' | null
   when: string
 }>
 
@@ -289,6 +291,7 @@ type FundingRound = Readonly<{
  * left (12 "Annotations" reads the Inbox for the same reason).
  */
 const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
+  const t = copyIn(model.prefs.locale)
   const game = model.board.game
   const answers = new Map(model.board.inbox.mail.map((mail) => [mail.key, mail]))
   const rounds: Array<FundingRound> = []
@@ -303,18 +306,18 @@ const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
     const ipo = index === ERAS.length - 2
     rounds.push({
       key: `round-${index}`,
-      name: next.name,
+      name: t.catalog.eras[index + 1]?.name ?? next.name,
       users: era.raiseAt,
       grant: ipo ? null : grantOf(game, era.grant),
       dilution: dilutionOf(game, era.dilution),
       answer: ipo
-        ? 'Listed'
+        ? 'listed'
         : mail?.answer === 'You raised the round.'
-          ? 'Raised'
+          ? 'raised'
           : mail?.answer === 'You declined the round.'
-            ? 'Declined'
-            : '—',
-      when: at === undefined ? '—' : `D${clockOf(at.time).day} ${hhmm(at.time)}`,
+            ? 'declined'
+            : null,
+      when: at === undefined ? '—' : t.dashboard.dayAt(clockOf(at.time).day, hhmm(at.time)),
     })
   }
   return rounds.reverse()
@@ -336,11 +339,12 @@ const dhPerMinute = (rate: number): string => {
   return value < 10 ? value.toFixed(1) : String(Math.round(value))
 }
 
-const minutesText = (seconds: number): string => `${Math.round(Math.max(0, seconds))}m`
+const minutesText = (t: Messages, seconds: number): string =>
+  t.units.minShort(Math.round(Math.max(0, seconds)))
 
 /** A time the Game did not record, in a save from before the field or a run that never signalled. */
-const minutesOrUnknown = (seconds: number | null | undefined): string =>
-  seconds === null || seconds === undefined ? '—' : minutesText(seconds)
+const minutesOrUnknown = (t: Messages, seconds: number | null | undefined): string =>
+  seconds === null || seconds === undefined ? '—' : minutesText(t, seconds)
 
 /** Seconds from an Incident's start to its first signal, or null before it signals. */
 const mttdOf = (incident: NonNullable<Game['incident']>): number | null =>
@@ -353,20 +357,24 @@ const mttaOf = (incident: NonNullable<Game['incident']>): number | null =>
     : Math.max(0, incident.ackAt - incident.signalAt)
 
 /** What an Incident is hitting: a Node, a zone, a region, or every region. */
-const incidentTarget = (game: Game, incident: NonNullable<Game['incident']>): string => {
-  if (incident.nodeId !== null) return namesOf(game).get(incident.nodeId) ?? incident.nodeId
-  if (incident.zone !== null) return `Zone ${incident.zone.toUpperCase()}`
-  if (incident.region !== null) return REGION_INFO[incident.region].name
-  return 'Every region'
+const incidentTarget = (
+  t: Messages,
+  game: Game,
+  incident: NonNullable<Game['incident']>,
+): string => {
+  if (incident.nodeId !== null) return namesOf(t, game).get(incident.nodeId) ?? incident.nodeId
+  if (incident.zone !== null) return t.dashboard.zone(incident.zone.toUpperCase())
+  if (incident.region !== null) return t.catalog.regionInfo[incident.region].name
+  return t.dashboard.everyRegion
 }
 
 /** A Postmortem's action item: its research, whether it is owned, or nothing. */
-const actionText = (game: Game, postmortem: Postmortem): string =>
+const actionText = (t: Messages, game: Game, postmortem: Postmortem): string =>
   postmortem.action === null
     ? '—'
     : has(game, postmortem.action)
-      ? `Owned · ${RESEARCH[postmortem.action].name}`
-      : RESEARCH[postmortem.action].name
+      ? t.dashboard.ownedAction(t.catalog.research[postmortem.action].name)
+      : t.catalog.research[postmortem.action].name
 
 /* ==========================================================================
    Panel chrome
@@ -505,7 +513,7 @@ const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html 
       h.span([h.Class('text-[calc(13px*var(--type-scale))] font-semibold')], [label]),
       h.span(
         [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
-        [`(${count} ${count === 1 ? 'panel' : 'panels'})`],
+        [copy(h).dashboard.panelCount(count)],
       ),
     ],
   )
@@ -544,9 +552,9 @@ type Annotation = Readonly<{ group: AnnotationGroup; at: number; label: string }
 const keyParts = (mail: Mail): ReadonlyArray<string> => mail.key.split(':')
 
 /** The Incident kind a Thread's topic names, when the two spell it the same way. */
-const incidentNameOf = (topic: string): string =>
-  (INCIDENTS as Readonly<Record<string, Readonly<{ name: string }> | undefined>>)[topic]?.name ??
-  'Incident'
+const incidentNameOf = (t: Messages, topic: string): string =>
+  (t.catalog.incidents as Readonly<Record<string, Readonly<{ name: string }> | undefined>>)[topic]
+    ?.name ?? t.dashboard.incident
 
 /** Every Research name, longest first, so "Load balancing algorithms" wins over "Load balancing". */
 const RESEARCH_NAMES: ReadonlyArray<readonly [string, ResearchId]> = (
@@ -577,24 +585,27 @@ const researchNamed = (text: string): ResearchId | null => {
  * round time. It keeps only its last Threads, so the marks reach as far back as
  * its Mail does.
  */
-const markOfMail = (mail: Mail): Readonly<{ group: AnnotationGroup; label: string }> | null => {
+const markOfMail = (
+  t: Messages,
+  mail: Mail,
+): Readonly<{ group: AnnotationGroup; label: string }> | null => {
   const [from, topic, about] = keyParts(mail)
   if (from === 'event' && topic !== undefined) {
-    if (topic === 'deployed') return { group: 'deploys', label: '⇢ Deploy' }
-    if (topic === 'deployed-bad') return { group: 'deploys', label: '⇢ Bad deploy' }
+    if (topic === 'deployed') return { group: 'deploys', label: `⇢ ${t.dashboard.deploy}` }
+    if (topic === 'deployed-bad') return { group: 'deploys', label: `⇢ ${t.dashboard.badDeploy}` }
     if (topic.startsWith('incident-'))
       return {
         group: 'incidents',
-        label: `▲ ${incidentNameOf(topic.slice('incident-'.length))}`,
+        label: `▲ ${incidentNameOf(t, topic.slice('incident-'.length))}`,
       }
-    if (topic === 'hired') return { group: 'company', label: '◆ Hired' }
+    if (topic === 'hired') return { group: 'company', label: `◆ ${t.dashboard.hired}` }
   }
   if (mail.key === 'mentor:ipo') return { group: 'company', label: '◆ IPO' }
   // The round a Stage's term sheet offers, which opens the next Era.
   if (from === 'investor' && topic === 'round') {
     const stage = Number(about)
-    const era = ERAS[Number.isFinite(stage) ? stage + 1 : 0]?.name
-    return { group: 'company', label: `◆ ${era ?? 'Funding'} round` }
+    const era = t.catalog.eras[Number.isFinite(stage) ? stage + 1 : 0]?.name
+    return { group: 'company', label: `◆ ${t.dashboard.roundOf(era ?? t.dashboard.funding)}` }
   }
   return null
 }
@@ -615,7 +626,7 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
         {
           group: 'incidents',
           at: incident.startedAt,
-          label: `▲ SEV${incident.severity} ${INCIDENTS[incident.kind].name}`,
+          label: `▲ SEV${incident.severity} ${t.catalog.incidents[incident.kind].name}`,
         },
       ]
     : []
@@ -628,7 +639,7 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
   const marked = new Set(open.map((mark) => `${mark.group}:${Math.floor(mark.at)}`))
   const mail: Array<Annotation> = []
   for (const thread of model.board.inbox.mail) {
-    const mark = markOfMail(thread)
+    const mark = markOfMail(t, thread)
     if (mark === null) continue
     for (const entry of thread.entries)
       if (!marked.has(`${mark.group}:${Math.floor(entry.time)}`))
@@ -640,7 +651,7 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
       thread.entries.flatMap((entry) =>
         researchNamed(entry.text) === null
           ? []
-          : [{ group: 'research' as const, at: entry.time, label: '⬡ Research' }],
+          : [{ group: 'research' as const, at: entry.time, label: `⬡ ${t.dashboard.research}` }],
       ),
     )
   // The Era the Company is in began at the second the Game kept when its round closed.
@@ -651,7 +662,7 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
           {
             group: 'company',
             at: game.stageAt,
-            label: `◇ ${t.catalog.eras[game.stage]?.name ?? 'Era'}`,
+            label: `◇ ${t.catalog.eras[game.stage]?.name ?? ''}`,
           },
         ]
       : []
@@ -708,9 +719,11 @@ const exemplarStrip = (exemplars: ReadonlyArray<Exemplar>, h: HtmlBuilder<Messag
             onClick: Message.DashboardChanged({
               message: DashboardMessage.KindChosen({ kind: exemplar.kind }),
             }),
-            attributes: [h.Title(`Open the ${t.catalog.kinds[exemplar.kind].label} waterfall`)],
+            attributes: [h.Title(t.dashboard.openWaterfall(t.catalog.kinds[exemplar.kind].label))],
           },
-          [`● ${exemplar.t} · ${ms(exemplar.p99)} · ${t.catalog.kinds[exemplar.kind].label}`],
+          [
+            `● ${exemplar.t} · ${formats(t).ms(exemplar.p99)} · ${t.catalog.kinds[exemplar.kind].label}`,
+          ],
           h,
         ),
       ),
@@ -1103,6 +1116,7 @@ const stat = (
             [
               ComposedChart(
                 {
+                  title,
                   data: rows,
                   responsive: true,
                   width: 260,
@@ -1504,7 +1518,7 @@ const mix = (
     'mix',
     'col-span-8',
     t.dashboard.requestMix,
-    'req/s by kind',
+    t.dashboard.reqPerSecondByKind,
     [
       h.div(
         [h.Class(cn(SCREEN, 'flex flex-1 items-center gap-3 p-3'))],
@@ -1514,6 +1528,7 @@ const mix = (
             [
               PieChart(
                 {
+                  title: t.dashboard.requestMix,
                   data: kinds.map(([kind, entry]) => ({ name: kind, value: entry.rate })),
                   width: 120,
                   height: 120,
@@ -1598,7 +1613,7 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
     'causes',
     'col-span-8',
     t.dashboard.errorsByCause,
-    'req/s now',
+    t.dashboard.reqPerSecondNow,
     [
       h.div(
         [h.Class(cn(SCREEN, 'flex flex-1 flex-col justify-center gap-1.5 p-3'))],
@@ -1622,7 +1637,7 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
                         'font-mono text-[calc(11px*var(--type-scale))] text-muted-foreground',
                       ),
                     ],
-                    [cause],
+                    [t.dashboard.errorCauses[cause]],
                   ),
                   h.div(
                     [
@@ -1752,8 +1767,14 @@ const nodeTable = (
                           ),
                         ],
                       ),
-                      h.td([h.Class(cn(cell, FIGURE, 'text-right'))], [ms(own?.latency ?? 0)]),
-                      h.td([h.Class(cn(cell, FIGURE, 'text-right'))], [ms(own?.p99 ?? 0)]),
+                      h.td(
+                        [h.Class(cn(cell, FIGURE, 'text-right'))],
+                        [formats(t).ms(own?.latency ?? 0)],
+                      ),
+                      h.td(
+                        [h.Class(cn(cell, FIGURE, 'text-right'))],
+                        [formats(t).ms(own?.p99 ?? 0)],
+                      ),
                       h.td(
                         [
                           h.Class(
@@ -1780,7 +1801,7 @@ const nodeTable = (
                             background: `color-mix(in oklab, ${LEVEL_COLOR[level]} 85%, transparent)`,
                           }),
                         ],
-                        [own?.status === 'down' ? 'DOWN' : stateLabelOf(t)[level]],
+                        [own?.status === 'down' ? t.dashboard.down : stateLabelOf(t)[level]],
                       ),
                     ],
                   )
@@ -1847,7 +1868,7 @@ const tablePanel = (
                     ),
                   ),
                 ],
-                ['Nothing to show yet.'],
+                [copy(h).dashboard.nothingToShowYet],
               ),
             ]
           : [
@@ -1972,7 +1993,7 @@ const barList = (
                   h.Key('none'),
                   h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground')),
                 ],
-                ['No Node to show.'],
+                [copy(h).dashboard.noNodeToShow],
               ),
             ]
           : entries.map((entry) => {
@@ -2056,6 +2077,7 @@ const cashSpark = (rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
         [
           ComposedChart(
             {
+              title: t.dashboard.cash,
               data: rows,
               responsive: true,
               width: 320,
@@ -2106,26 +2128,28 @@ const companyPanels = (
   const people = teams.reduce((sum, entry) => sum + entry.headcount, 0)
   // A layoff's morale hit is global and already inside each team's velocity (08 "Hiring").
   const morale = game.time < game.moraleUntil
-  const teamUnit = `${people} ${people === 1 ? 'person' : 'people'} · velocity${
-    morale ? ` · morale −${Math.round((1 - LAYOFF_MORALE) * 100)}%` : ''
+  const teamUnit = `${t.dashboard.peopleAndVelocity(people)}${
+    morale ? t.dashboard.moraleDrop(Math.round((1 - LAYOFF_MORALE) * 100)) : ''
   }`
   const credits = slaCreditsOf(game, ledger)
   const moneyRows: ReadonlyArray<readonly [string, string, Message?]> = [
     [t.dashboard.cash, money(game.cash)],
     [t.dashboard.revenue, t.dashboard.s(money(ledger.revenue))],
     [t.dashboard.burn, t.dashboard.s(money(ledger.burn))],
-    ['Net', t.dashboard.s2(net >= 0 ? '+' : '', money(net))],
-    ['Payroll', t.dashboard.s(money(ledger.salaries))],
+    [t.dashboard.net, t.dashboard.s2(net >= 0 ? '+' : '', money(net))],
+    [t.dashboard.payroll, t.dashboard.s(money(ledger.salaries))],
     [t.dashboard.equity, percent(game.equity)],
-    ['Runway', runwayText(runway)],
+    [t.dashboard.runway, runwayText(t, runway)],
     // The SLA pays its credits back on top of Burn, so Cash falls faster than the bill (09).
-    ...(credits > 0 ? [[t.dashboard.sLACredits, `−${money(credits)}/s`] as const] : []),
+    ...(credits > 0
+      ? [[t.dashboard.sLACredits, `−${t.units.perSecond(money(credits))}`] as const]
+      : []),
     // Cash is short and the investors' bridge waits: its terms and the way to take it (09).
     ...(game.bridge
       ? [
           [
-            'Bridge',
-            `${money(game.bridge.grant)} · ${percent(game.bridge.dilution)} · Accept`,
+            t.dashboard.bridge,
+            `${money(game.bridge.grant)} · ${percent(game.bridge.dilution)} · ${t.dashboard.accept}`,
             Message.BridgeAccepted(),
           ] as const,
         ]
@@ -2136,8 +2160,8 @@ const companyPanels = (
       'company-money',
       'col-span-8',
       t.dashboard.money,
-      `now · cash ${rangeLabel(model.board.dashboard.range)}`,
-      ['Line', t.dashboard.value],
+      t.dashboard.nowCash(rangeLabel(t, model.board.dashboard.range)),
+      [t.dashboard.line, t.dashboard.value],
       moneyRows.map(([name, value, onClick]) => ({
         key: name,
         cells: [
@@ -2147,7 +2171,7 @@ const companyPanels = (
             : {
                 text: value,
                 onClick,
-                hint: 'Cash is short: take the grant, or cut costs before the Nodes shut down.',
+                hint: t.dashboard.bridgeHint,
               },
         ],
       })),
@@ -2159,11 +2183,18 @@ const companyPanels = (
       'col-span-16',
       t.dashboard.team,
       teamUnit,
-      [t.dashboard.team, 'Kind', 'People', 'Effective', t.dashboard.velocity, 'DH/min'],
+      [
+        t.dashboard.team,
+        t.dashboard.kindHead,
+        t.dashboard.people,
+        t.dashboard.effective,
+        t.dashboard.velocity,
+        t.dashboard.devHoursPerMinute,
+      ],
       teams.map((entry) => ({
         key: entry.team.id,
         cells: [
-          { text: entry.team.name },
+          { text: teamName(t, entry.team) },
           { text: teamKindOf(t)[entry.team.kind] },
           { text: String(entry.headcount) },
           { text: entry.effective.toFixed(1) },
@@ -2177,18 +2208,25 @@ const companyPanels = (
       'company-funding',
       'col-span-24',
       t.dashboard.funding,
-      'rounds · from the Inbox',
-      ['Round', 'At users', 'Grant', 'Dilution', 'Answer', 'When'],
+      t.dashboard.roundsFromTheInbox,
+      [
+        t.dashboard.round,
+        t.dashboard.atUsers,
+        t.dashboard.grant,
+        t.dashboard.dilution,
+        t.dashboard.answer,
+        t.dashboard.when,
+      ],
       fundingOf(model).map((round) => ({
         key: round.key,
         cells: [
           { text: round.name },
           { text: round.users.toLocaleString('en-US') },
-          { text: round.grant === null ? 'Public market' : money(round.grant) },
+          { text: round.grant === null ? t.dashboard.publicMarket : money(round.grant) },
           { text: percent(round.dilution) },
           {
-            text: round.answer,
-            color: round.answer === 'Raised' ? GREEN : round.answer === 'Declined' ? AMBER : MUTED,
+            text: round.answer === null ? '—' : t.dashboard.fundingAnswers[round.answer],
+            color: round.answer === 'raised' ? GREEN : round.answer === 'declined' ? AMBER : MUTED,
           },
           { text: round.when },
         ],
@@ -2262,7 +2300,7 @@ const incidentTimeline = (
         name,
         runs: [
           pending
-            ? block(start, end, UNSEEN, `not seen · ${minutesText(end - start)}`)
+            ? block(start, end, UNSEEN, t.dashboard.notSeenFor(minutesText(t, end - start)))
             : block(start, end, color, held),
         ],
       }
@@ -2270,10 +2308,19 @@ const incidentTimeline = (
     const answered = ackAt === null ? null : Math.min(end, Math.max(signal, ackAt))
     const runs: Array<Run> = []
     if (signal > start)
-      runs.push(block(start, signal, UNSEEN, `not seen · ${minutesText(signal - start)}`))
+      runs.push(
+        block(start, signal, UNSEEN, t.dashboard.notSeenFor(minutesText(t, signal - start))),
+      )
     const awaited = answered ?? end
     if (awaited > signal)
-      runs.push(block(signal, awaited, AWAITING, `awaiting ack · ${minutesText(awaited - signal)}`))
+      runs.push(
+        block(
+          signal,
+          awaited,
+          AWAITING,
+          t.dashboard.awaitingAckFor(minutesText(t, awaited - signal)),
+        ),
+      )
     if (answered !== null && end > answered)
       runs.push(block(answered, end, color, `SEV${severity} · ${hhmm(answered)}–${hhmm(end)}`))
     // A run with no seconds to split, as a save with equal times, still draws its whole span.
@@ -2308,7 +2355,7 @@ const incidentTimeline = (
     lanes.push(
       lane(
         'running',
-        `Running · ${t.catalog.incidents[incident.kind].name}`,
+        t.dashboard.runningLane(t.catalog.incidents[incident.kind].name),
         incident.startedAt,
         now,
         incident.severity,
@@ -2323,14 +2370,14 @@ const incidentTimeline = (
       'incident-timeline',
       'col-span-24',
       t.dashboard.incidentTimeline,
-      rangeLabel(range),
+      rangeLabel(t, range),
       [
         h.div(
           [h.Class(cn(SCREEN, 'px-2 py-3'))],
           [
             h.span(
               [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
-              ['No run in this range.'],
+              [t.dashboard.noRunInThisRange],
             ),
           ],
         ),
@@ -2341,7 +2388,7 @@ const incidentTimeline = (
     'incident-timeline',
     'col-span-24',
     t.dashboard.incidentTimeline,
-    `run · ${rangeLabel(range)}`,
+    t.dashboard.runRange(rangeLabel(t, range)),
     lanes,
     span,
     first,
@@ -2373,46 +2420,54 @@ const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
     return tablePanel(
       'incident-running',
       'col-span-8',
-      'Running Incident',
-      'none',
-      ['Fact', t.dashboard.value],
-      [{ key: 'none', cells: [{ text: 'State' }, { text: 'No incident running' }] }],
+      t.dashboard.runningIncident,
+      t.dashboard.none,
+      [t.dashboard.fact, t.dashboard.value],
+      [
+        {
+          key: 'none',
+          cells: [{ text: t.dashboard.state }, { text: t.dashboard.noIncidentRunning }],
+        },
+      ],
       h,
     )
   const elapsed = Math.max(0, game.time - incident.startedAt)
   const total = elapsed + Math.max(0, incident.remaining)
   const facts: ReadonlyArray<readonly [string, Cell]> = [
-    ['Severity', { text: `SEV${incident.severity}` }],
-    [t.dashboard.target, { text: incidentTarget(game, incident) }],
+    [t.dashboard.severity, { text: `SEV${incident.severity}` }],
+    [t.dashboard.target, { text: incidentTarget(t, game, incident) }],
     [
-      'Cause',
+      t.dashboard.cause,
       {
         text:
           incident.causedBy === null
             ? '—'
-            : `${t.catalog.incidents[incident.causedBy].name} · left alone`,
+            : t.dashboard.causeLeftAlone(t.catalog.incidents[incident.causedBy].name),
       },
     ],
     [
       t.dashboard.run,
       {
-        text: `${minutesText(elapsed)} / ${minutesText(total)}`,
+        text: `${minutesText(t, elapsed)} / ${minutesText(t, total)}`,
         bar: { share: total > 0 ? Math.min(1, elapsed / total) : 0, color: RED },
       },
     ],
-    ['MTTD', { text: minutesOrUnknown(mttdOf(incident)) }],
-    ['MTTA', { text: minutesOrUnknown(mttaOf(incident)) }],
-    ['MTTR so far', { text: minutesText(incident.impaired) }],
-    ['Users lost', { text: `−${compact(Math.max(0, incident.usersAtStart - game.users))}` }],
-    ['Revenue lost', { text: `−${money(incident.lostRevenue)}` }],
+    ['MTTD', { text: minutesOrUnknown(t, mttdOf(incident)) }],
+    ['MTTA', { text: minutesOrUnknown(t, mttaOf(incident)) }],
+    [t.dashboard.mttrSoFar, { text: minutesText(t, incident.impaired) }],
+    [
+      t.dashboard.usersLost,
+      { text: `−${compact(Math.max(0, incident.usersAtStart - game.users))}` },
+    ],
+    [t.dashboard.revenueLost, { text: `−${money(incident.lostRevenue)}` }],
     [t.dashboard.failed, { text: compact(incident.failed) }],
   ]
   return tablePanel(
     'incident-running',
     'col-span-8',
-    'Running Incident',
+    t.dashboard.runningIncident,
     t.catalog.incidents[incident.kind].name,
-    ['Fact', t.dashboard.value],
+    [t.dashboard.fact, t.dashboard.value],
     facts.map(([name, cell]) => ({ key: name, cells: [{ text: name }, cell] })),
     h,
   )
@@ -2423,11 +2478,11 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html => {
   return tablePanel(
     'incident-history',
     'col-span-16',
-    'Incident history',
-    `${game.postmortems.length} postmortems`,
+    t.dashboard.incidentHistory,
+    t.dashboard.postmortemCount(game.postmortems.length),
     [
       t.dashboard.incident,
-      'Cause',
+      t.dashboard.cause,
       'SEV',
       t.dashboard.target,
       t.dashboard.run,
@@ -2437,7 +2492,7 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html => {
       t.dashboard.users,
       t.dashboard.revenue,
       t.dashboard.failed,
-      'Action',
+      t.dashboard.action,
     ],
     [...game.postmortems].reverse().map((postmortem) => ({
       key: `pm-${postmortem.id}`,
@@ -2447,21 +2502,21 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html => {
           onClick: Message.DashboardChanged({
             message: DashboardMessage.PostmortemChosen({ id: postmortem.id }),
           }),
-          hint: 'Show this postmortem',
+          hint: t.dashboard.showThisPostmortem,
         },
         {
           text: postmortem.causedBy === null ? '—' : t.catalog.incidents[postmortem.causedBy].name,
         },
         { text: `SEV${postmortem.severity}` },
         { text: postmortem.target ?? '—' },
-        { text: minutesText(postmortem.duration) },
-        { text: minutesOrUnknown(postmortem.mttd) },
-        { text: minutesOrUnknown(postmortem.mtta) },
-        { text: minutesText(postmortem.mttr) },
+        { text: minutesText(t, postmortem.duration) },
+        { text: minutesOrUnknown(t, postmortem.mttd) },
+        { text: minutesOrUnknown(t, postmortem.mtta) },
+        { text: minutesText(t, postmortem.mttr) },
         { text: `−${compact(postmortem.lostUsers)}` },
         { text: `−${money(postmortem.lostRevenue)}` },
         { text: compact(postmortem.failed) },
-        { text: actionText(game, postmortem), color: actionColor(game, postmortem) },
+        { text: actionText(t, game, postmortem), color: actionColor(game, postmortem) },
       ],
     })),
     h,
@@ -2473,20 +2528,23 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
 
   const def = localized(INCIDENTS[postmortem.kind], t.catalog.incidents[postmortem.kind])
   const facts: ReadonlyArray<readonly [string, string]> = [
-    [t.dashboard.run, minutesText(postmortem.duration)],
-    ['Cause', postmortem.causedBy === null ? '—' : t.catalog.incidents[postmortem.causedBy].name],
-    ['MTTD', minutesOrUnknown(postmortem.mttd)],
-    ['MTTA', minutesOrUnknown(postmortem.mtta)],
-    ['MTTR', minutesText(postmortem.mttr)],
-    ['Users lost', `−${compact(postmortem.lostUsers)}`],
-    ['Revenue lost', `−${money(postmortem.lostRevenue)}`],
+    [t.dashboard.run, minutesText(t, postmortem.duration)],
+    [
+      t.dashboard.cause,
+      postmortem.causedBy === null ? '—' : t.catalog.incidents[postmortem.causedBy].name,
+    ],
+    ['MTTD', minutesOrUnknown(t, postmortem.mttd)],
+    ['MTTA', minutesOrUnknown(t, postmortem.mtta)],
+    ['MTTR', minutesText(t, postmortem.mttr)],
+    [t.dashboard.usersLost, `−${compact(postmortem.lostUsers)}`],
+    [t.dashboard.revenueLost, `−${money(postmortem.lostRevenue)}`],
     [t.dashboard.failed, compact(postmortem.failed)],
   ]
   const open = postmortem.action !== null && !has(game, postmortem.action)
   return panel(
     `pm-detail-${postmortem.id}`,
     'col-span-24',
-    `Postmortem · ${def.name}`,
+    t.dashboard.postmortemOf(def.name),
     `SEV${postmortem.severity}${postmortem.target === null ? '' : ` · ${postmortem.target}`}`,
     [
       h.div(
@@ -2520,10 +2578,10 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
             ],
             [
               postmortem.action === null
-                ? 'No action item: the Design already owns every prevention.'
+                ? t.dashboard.noActionItem
                 : has(game, postmortem.action)
-                  ? `Action item done: ${t.catalog.research[postmortem.action].name}.`
-                  : `Action item open: ${t.catalog.research[postmortem.action].name}.`,
+                  ? t.dashboard.actionItemDone(t.catalog.research[postmortem.action].name)
+                  : t.dashboard.actionItemOpen(t.catalog.research[postmortem.action].name),
             ],
           ),
         ],
@@ -2562,8 +2620,8 @@ const ruleNameOf = (t: Messages): Record<Rule, string> => ({
   errors: t.dashboard.errorRate,
   latency: t.dashboard.latency,
   saturation: t.dashboard.saturation,
-  queue: 'Queue growth',
-  budget: 'Budget burn',
+  queue: t.dashboard.queueGrowth,
+  budget: t.dashboard.budgetBurn,
 })
 
 type AlertState = 'ok' | 'pending' | 'firing' | 'ignored'
@@ -2571,9 +2629,9 @@ const alertStateCopy = (
   t: Messages,
 ): Record<AlertState, Readonly<{ color: string; label: string }>> => ({
   ok: { color: GREEN, label: t.dashboard.oK },
-  pending: { color: AMBER, label: 'PENDING' },
-  firing: { color: RED, label: 'FIRING' },
-  ignored: { color: MUTED, label: 'IGNORED' },
+  pending: { color: AMBER, label: t.dashboard.pending },
+  firing: { color: RED, label: t.dashboard.firing },
+  ignored: { color: MUTED, label: t.dashboard.ignoredState },
 })
 
 /** A rule's state now, from what the Simulation counts: held seconds, and the false alarms. */
@@ -2668,8 +2726,8 @@ const alertTimeline = (model: Model, rows: ReadonlyArray<Row>, h: HtmlBuilder<Me
   return laneTimeline(
     'alert-state',
     'col-span-12',
-    'Alert state',
-    'pages the Inbox kept',
+    t.dashboard.alertState,
+    t.dashboard.pagesTheInboxKept,
     lanes,
     Math.max(1, rows.length),
     first,
@@ -2708,8 +2766,8 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
     'alert-rules',
     'col-span-12',
     t.dashboard.alertRules,
-    'the pager’s conditions',
-    ['Rule', 'Threshold', 'Now', t.dashboard.held, 'State'],
+    t.dashboard.thePagersConditions,
+    [t.dashboard.rule, t.dashboard.threshold, t.dashboard.now, t.dashboard.held, t.dashboard.state],
     RULES.map((rule) => {
       const state = alertStateCopy(t)[alertStateOf(game, rule)]
       return {
@@ -2717,11 +2775,11 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
         cells: [
           {
             text: ruleNameOf(t)[rule],
-            hint: alertText(rule, game.alertRules[rule]),
+            hint: formats(t).alertText(rule, game.alertRules[rule]),
           },
           { text: limit(rule) },
           { text: seen(rule) },
-          { text: `${Math.round(game.alarms[rule])}s / ${ALERT_RULES[rule].seconds}s` },
+          { text: t.dashboard.heldOf(Math.round(game.alarms[rule]), ALERT_RULES[rule].seconds) },
           { text: state.label, fill: state.color },
         ],
       }
@@ -2749,9 +2807,16 @@ const servicesTable = (
   return tablePanel(
     'services',
     'col-span-24',
-    'Services',
-    'Rate, Errors, Duration · now',
-    [t.dashboard.service, 'Rate', 'Share', t.dashboard.errors, t.dashboard.mean, 'p99'],
+    t.dashboard.services,
+    t.dashboard.rateErrorsDurationNow,
+    [
+      t.dashboard.service,
+      t.dashboard.rate,
+      t.dashboard.share,
+      t.dashboard.errors,
+      t.dashboard.mean,
+      'p99',
+    ],
     kinds.map(({ kind, entry }) => {
       const failed = 1 - entry.success
       return {
@@ -2761,8 +2826,8 @@ const servicesTable = (
           { text: t.dashboard.s(rateText(entry.rate)) },
           { text: percent(total > 0 ? entry.rate / total : 0) },
           { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
-          { text: ms(entry.mean) },
-          { text: ms(entry.p99) },
+          { text: formats(t).ms(entry.mean) },
+          { text: formats(t).ms(entry.p99) },
         ],
       }
     }),
@@ -2789,20 +2854,27 @@ const serviceTable = (
   return tablePanel(
     'service-red',
     'col-span-24',
-    'Code',
-    'Rate, Errors, Duration per codebase · now',
-    [t.dashboard.service, 'Rate', 'Share', t.dashboard.errors, t.dashboard.mean, 'p99'],
+    t.dashboard.code,
+    t.dashboard.rateErrorsDurationPerCodebase,
+    [
+      t.dashboard.service,
+      t.dashboard.rate,
+      t.dashboard.share,
+      t.dashboard.errors,
+      t.dashboard.mean,
+      'p99',
+    ],
     rows.map(({ service, entry }) => {
       const failed = entry.rate > 0 ? entry.failed / entry.rate : 0
       return {
         key: service.id,
         cells: [
-          { text: service.name },
+          { text: serviceName(t, service) },
           { text: t.dashboard.s(rateText(entry.rate)) },
           { text: percent(total > 0 ? entry.rate / total : 0) },
           { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
-          { text: ms(entry.mean) },
-          { text: ms(entry.p99) },
+          { text: formats(t).ms(entry.mean) },
+          { text: formats(t).ms(entry.p99) },
         ],
       }
     }),
@@ -2823,7 +2895,7 @@ const waterfallTable = (
 ): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   const byId = new Map(game.nodes.map((node) => [node.id, node] as const))
   const bottleneck = ledger.bottleneckByKind[kind] ?? null
   // Walk the Links that carry this kind, from any Node nothing else sends it into.
@@ -2847,9 +2919,9 @@ const waterfallTable = (
   return tablePanel(
     'waterfall',
     'col-span-24',
-    'Waterfall',
-    `${t.catalog.kinds[kind].label} · hop time and wait, Node by Node`,
-    [t.dashboard.node, 'Hop time', 'Wait', t.dashboard.bottleneck],
+    t.dashboard.waterfall,
+    t.dashboard.waterfallOf(t.catalog.kinds[kind].label),
+    [t.dashboard.node, t.dashboard.hopTime, t.dashboard.wait, t.dashboard.bottleneck],
     order.flatMap((id) => {
       const own = ledger.nodes[id] as NodeLedger
       const node = byId.get(id)
@@ -2861,8 +2933,8 @@ const waterfallTable = (
           key: id,
           cells: [
             { text: names.get(id) ?? t.catalog.components[node.type].name },
-            { text: ms(hop) },
-            { text: wait > 0 ? queueWait(wait) : '—' },
+            { text: formats(t).ms(hop) },
+            { text: wait > 0 ? formats(t).queueWait(wait) : '—' },
             {
               text: id === bottleneck ? t.dashboard.bottleneck : '',
               color: id === bottleneck ? RED : undefined,
@@ -2882,9 +2954,9 @@ const limitNameOf = (t: Messages): Record<Limit, string> => ({
   workers: t.dashboard.workers,
   connections: t.dashboard.connections,
   network: t.dashboard.network,
-  disk: 'Disk',
+  disk: t.dashboard.disk,
   throughput: t.dashboard.throughput,
-  none: 'No limit',
+  none: t.dashboard.noLimit,
 })
 
 const LIMIT_COLOR: Record<Limit, string> = {
@@ -2929,7 +3001,7 @@ const resourceTimeline = (
     'resources',
     'col-span-24',
     t.dashboard.resources,
-    'the limiting resource · last 24 min',
+    t.dashboard.theLimitingResource,
     lanes,
     length,
     first,
@@ -2959,12 +3031,12 @@ const usersTable = (
     'users',
     'col-span-24',
     t.dashboard.users,
-    'by region · market and churn',
+    t.dashboard.byRegionMarketAndChurn,
     [
       t.dashboard.region,
       t.dashboard.users,
       t.dashboard.market,
-      'Share',
+      t.dashboard.share,
       'Apdex',
       t.dashboard.churn,
     ],
@@ -2986,7 +3058,7 @@ const usersTable = (
             color: region.now >= region.target ? GREEN : RED,
           },
           {
-            text: `${region.perHour >= 0 ? '+' : ''}${compact(region.perHour)}/h`,
+            text: t.units.perHour(`${region.perHour >= 0 ? '+' : ''}${compact(region.perHour)}`),
             color: region.perHour < 0 ? RED : GREEN,
           },
         ],
@@ -3006,13 +3078,13 @@ const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
     'devices',
     'col-span-24',
     t.dashboard.realUserMonitoring,
-    'mean latency from the user’s side, by device',
-    ['Device', t.dashboard.latency],
+    t.dashboard.meanLatencyByDevice,
+    [t.dashboard.device, t.dashboard.latency],
     DEVICES.map((device) => ({
       key: device,
       cells: [
         { text: t.catalog.deviceInfo[device].name },
-        { text: ms(ledger.deviceLatency[device] ?? 0) },
+        { text: formats(t).ms(ledger.deviceLatency[device] ?? 0) },
       ],
     })),
     h,
@@ -3027,7 +3099,7 @@ const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
 const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   const balancers = game.nodes.filter((node) => node.type === 'lb')
   const entries = balancers.flatMap((balancer) =>
     ledger.links
@@ -3047,8 +3119,8 @@ const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html
     'col-span-24',
     t.dashboard.loadBalancer,
     entries.length === 0
-      ? 'no backend'
-      : `req/s per backend · even split ${percent(1 / entries.length)}`,
+      ? t.dashboard.noBackend
+      : t.dashboard.perBackendEvenSplit(percent(1 / entries.length)),
     entries,
     h,
   )
@@ -3058,13 +3130,13 @@ const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html
 const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   return tablePanel(
     'app-server',
     'col-span-24',
     t.dashboard.appServer,
-    'copies · busy workers against the pool',
-    [t.dashboard.node, t.dashboard.copies, 'Busy workers'],
+    t.dashboard.copiesBusyWorkers,
+    [t.dashboard.node, t.dashboard.copies, t.dashboard.busyWorkers],
     game.nodes
       .filter((node) => node.type === 'server')
       .map((node) => {
@@ -3079,7 +3151,7 @@ const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
             {
               text:
                 node.pending > 0
-                  ? `${node.replicas} (+${node.pending} booting)`
+                  ? t.dashboard.copiesBooting(node.replicas, node.pending)
                   : String(node.replicas),
             },
             slots === null
@@ -3099,13 +3171,19 @@ const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
 const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   return tablePanel(
     'database',
     'col-span-24',
     t.dashboard.database,
-    'connections · refused · replica lag',
-    [t.dashboard.node, t.dashboard.connections, 'Queries', t.dashboard.refused, t.dashboard.lag],
+    t.dashboard.connectionsRefusedLag,
+    [
+      t.dashboard.node,
+      t.dashboard.connections,
+      t.dashboard.queries,
+      t.dashboard.refused,
+      t.dashboard.lag,
+    ],
     game.nodes
       .filter((node) => node.type === 'database' || node.type === 'replica')
       .map((node) => {
@@ -3129,7 +3207,7 @@ const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
               text: refused > 0.0005 ? t.dashboard.s(compact(refused)) : '—',
               color: refused > 0.0005 ? RED : undefined,
             },
-            { text: lag === null ? '—' : ms(lag) },
+            { text: lag === null ? '—' : formats(t).ms(lag) },
           ],
         }
       }),
@@ -3141,7 +3219,7 @@ const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
 const evictions = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   return barList(
     'evictions',
     'col-span-24',
@@ -3176,7 +3254,7 @@ const hits = (
 ): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   return barList(
     key,
     'col-span-24',
@@ -3202,13 +3280,19 @@ const hits = (
 const queues = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   return tablePanel(
     'queue',
     'col-span-24',
     t.dashboard.queue,
-    'depth · age of the oldest task',
-    [t.dashboard.queue, t.dashboard.depth, 'Oldest task', 'Drained', 'State'],
+    t.dashboard.depthAndOldestAge,
+    [
+      t.dashboard.queue,
+      t.dashboard.depth,
+      t.dashboard.oldestTask,
+      t.dashboard.drained,
+      t.dashboard.state,
+    ],
     game.nodes
       .filter((node) => node.type === 'queue')
       .map((node) => {
@@ -3218,19 +3302,19 @@ const queues = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
         const down = own?.status === 'down'
         const level: Level = down || stalled ? 'danger' : age !== null && age > 0 ? 'warn' : 'ok'
         const label = down
-          ? 'DOWN'
+          ? t.dashboard.down
           : stalled
-            ? 'STALLED'
+            ? t.dashboard.stalled
             : age !== null && age > 0
-              ? 'WAITING'
-              : 'CLEAR'
+              ? t.dashboard.waiting
+              : t.dashboard.clear
         const drained = Object.values(own?.out ?? {}).reduce((sum, rate) => sum + rate, 0)
         return {
           key: node.id,
           cells: [
             { text: names.get(node.id) ?? t.catalog.components[node.type].name },
             { text: compact(node.depth) },
-            { text: queueWait(age) },
+            { text: formats(t).queueWait(age) },
             { text: t.dashboard.s(compact(drained)) },
             { text: label, fill: LEVEL_COLOR[level] },
           ],
@@ -3247,13 +3331,19 @@ const MANAGED: ReadonlyArray<ComponentId> = ['psp', 'llm', 'msgp', 'auth']
 const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const names = namesOf(game)
+  const names = namesOf(t, game)
   return tablePanel(
     'managed',
     'col-span-24',
-    'Managed Components',
-    'calls · latency · outage',
-    ['Component', t.dashboard.calls, 'Sent', t.dashboard.latency, 'State'],
+    t.dashboard.managedComponents,
+    t.dashboard.callsLatencyOutage,
+    [
+      t.dashboard.component,
+      t.dashboard.calls,
+      t.dashboard.sent,
+      t.dashboard.latency,
+      t.dashboard.state,
+    ],
     game.nodes
       .filter((node) => MANAGED.includes(node.type))
       .map((node) => {
@@ -3267,9 +3357,9 @@ const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
             { text: names.get(node.id) ?? t.catalog.components[node.type].name },
             { text: t.dashboard.s(compact(own?.inbound ?? 0)) },
             { text: sent > 0 ? t.dashboard.s(compact(sent)) : '—' },
-            { text: ms(own?.latency ?? 0) },
+            { text: formats(t).ms(own?.latency ?? 0) },
             {
-              text: down ? 'DOWN' : throttled ? 'THROTTLED' : 'UP',
+              text: down ? t.dashboard.down : throttled ? t.dashboard.throttled : t.dashboard.up,
               fill: LEVEL_COLOR[down ? 'danger' : throttled ? 'warn' : 'ok'],
             },
           ],
@@ -3283,8 +3373,8 @@ const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
    The page
    ========================================================================== */
 
-const rangeLabel = (minutes: number): string =>
-  minutes >= 1440 ? `${minutes / 1440}d` : `${minutes / 60}h`
+const rangeLabel = (t: Messages, minutes: number): string =>
+  minutes >= 1440 ? t.units.dShort(minutes / 1440) : t.units.hShort(minutes / 60)
 
 /** Grafana's top bar: breadcrumb, time picker, and refresh. */
 const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
@@ -3358,7 +3448,7 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
                     ),
                   ),
                 ],
-                [rangeLabel(minutes)],
+                [rangeLabel(t, minutes)],
               ),
             ),
           ),
@@ -3521,11 +3611,11 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
       ...(game.services.length > 1
         ? [
             select(
-              'service',
+              t.dashboard.serviceVariable,
               dashboard.service ?? 'all',
               [
-                ['all', 'All services'],
-                ...game.services.map((entry) => [entry.id, entry.name] as const),
+                ['all', t.dashboard.allServices],
+                ...game.services.map((entry) => [entry.id, serviceName(t, entry)] as const),
               ],
               (value) =>
                 Message.DashboardChanged({
@@ -3552,8 +3642,8 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
               }),
           )
         : chip(t.dashboard.region2, model.board.region),
-      chip('era', eraWords(t, game).name),
-      chip('slo', sloText(slo)),
+      chip(t.dashboard.eraVariable, eraWords(t, game).name),
+      chip(t.dashboard.sloVariable, sloText(slo)),
       h.span([h.Class('flex-1')], []),
       toggle(
         t.dashboard.compare,
@@ -3664,7 +3754,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           stat(
             'cash-rate',
-            'Cash per second',
+            t.dashboard.cashPerSecond,
             t.dashboard.s2(cashRate >= 0 ? '+' : '', money(cashRate)),
             cashRate > 0 ? 'ok' : cashRate < 0 ? 'danger' : 'plain',
             rows,
@@ -3714,7 +3804,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           stat(
             'latency',
             percentiles ? t.dashboard.p99Latency : t.dashboard.meanLatency,
-            ms(percentiles ? latest.p99 : latest.latency),
+            formats(t).ms(percentiles ? latest.p99 : latest.latency),
             'plain',
             rows,
             percentiles ? 'p99' : 'latency',
@@ -3727,7 +3817,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             key: 'traffic',
             span: 'col-span-12',
             title: t.dashboard.traffic,
-            unit: 'req/s',
+            unit: t.dashboard.reqPerSecond,
             series: [
               { key: 'served', name: t.dashboard.served, color: TEAL, fill: true },
               { key: 'demand', name: t.dashboard.demand, color: MUTED, dashed: true },
@@ -3739,7 +3829,9 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   rules: [
                     {
                       y: ledger.forecastPeak,
-                      label: `tomorrow’s peak ${compact(ledger.forecastPeak)}/s`,
+                      label: t.dashboard.tomorrowsPeak(
+                        t.units.perSecond(compact(ledger.forecastPeak)),
+                      ),
                       color: PINK,
                     },
                   ],
@@ -3750,19 +3842,25 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             key: 'latency',
             span: 'col-span-12',
             title: t.dashboard.latency,
-            unit: percentiles ? t.dashboard.meanP99 : 'mean',
+            unit: percentiles ? t.dashboard.meanP99 : t.dashboard.meanUnit,
             series: percentiles
               ? [
                   { key: 'p99', name: 'p99', color: PURPLE, fill: true },
                   { key: 'latency', name: t.dashboard.mean, color: BLUE },
                 ]
               : [{ key: 'latency', name: t.dashboard.mean, color: BLUE, fill: true }],
-            format: ms,
+            format: formats(t).ms,
             compare: percentiles ? 'p99' : 'latency',
             ...(latencyRule === null
               ? {}
               : {
-                  rules: [{ y: latencyRule, label: `alert > ${ms(latencyRule)}`, color: AMBER }],
+                  rules: [
+                    {
+                      y: latencyRule,
+                      label: t.dashboard.alertAbove(formats(t).ms(latencyRule)),
+                      color: AMBER,
+                    },
+                  ],
                 }),
           }),
           ...(has(game, 'tracing') ? [exemplarStrip(exemplars, h)] : []),
@@ -3777,7 +3875,9 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 rules: [
                   {
                     y: (alerting ? game.alertRules.errors : 0.01) * 100,
-                    label: `alert > ${percent(alerting ? game.alertRules.errors : 0.01, 1)}`,
+                    label: t.dashboard.alertAbove(
+                      percent(alerting ? game.alertRules.errors : 0.01, 1),
+                    ),
                     color: AMBER,
                   },
                 ],
@@ -3796,7 +3896,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             : []),
           ...(has(game, 'tracing')
             ? [
-                rowHeader('Services (RED)', 1, h),
+                rowHeader(t.dashboard.servicesRed, 1, h),
                 servicesTable(ledger, shownKind, h),
                 ...(game.services.length > 1 ? [serviceTable(game, ledger, service, h)] : []),
                 ...(kind ? [waterfallTable(game, ledger, kind, h)] : []),
@@ -3838,7 +3938,9 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   'error-budget',
                   t.dashboard.errorBudgetLeft,
                   Math.max(0, Math.min(1, budget.left)),
-                  budget.left > 0 ? `${Math.round(Math.min(1, budget.left) * 100)}%` : 'spent',
+                  budget.left > 0
+                    ? `${Math.round(Math.min(1, budget.left) * 100)}%`
+                    : t.dashboard.spent,
                   { warn: 0.5, danger: 0.05, invert: true },
                   h,
                 ),
@@ -3846,7 +3948,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   'sla-credit',
                   'col-span-4 compact:col-span-12',
                   t.dashboard.sLACredits,
-                  credit > 0 ? 'paid' : '',
+                  credit > 0 ? t.dashboard.paid : '',
                   [
                     h.div(
                       [
@@ -3869,11 +3971,14 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                             h.Style({ color: credit > 0 ? RED : MUTED }),
                             h.Title(
                               credit > 0
-                                ? `The SLA pays ${money(credit)}/s back to customers while the week sits under ${sloText(budget.slo)}`
-                                : 'No SLA credit: no SLA signed, its Era not reached, or the week met the target',
+                                ? t.dashboard.slaPaysBack(
+                                    t.units.perSecond(money(credit)),
+                                    sloText(budget.slo),
+                                  )
+                                : t.dashboard.noSlaCredit,
                             ),
                           ],
-                          [credit > 0 ? `−${money(credit)}/s` : '—'],
+                          [credit > 0 ? `−${t.units.perSecond(money(credit))}` : '—'],
                         ),
                       ],
                     ),
@@ -3909,11 +4014,11 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ]),
 
           ...(has(game, 'profiling')
-            ? [rowHeader('Resources (USE)', 1, h), resourceTimeline(model, tracks, h)]
+            ? [rowHeader(t.dashboard.resourcesUse, 1, h), resourceTimeline(model, tracks, h)]
             : has(game, 'tracing')
               ? [
-                  rowHeader('Resources (USE)', 1, h),
-                  locked('resources', 'col-span-12', 'Resources (USE)', 'profiling', h),
+                  rowHeader(t.dashboard.resourcesUse, 1, h),
+                  locked('resources', 'col-span-12', t.dashboard.resourcesUse, 'profiling', h),
                 ]
               : []),
           ...(hasNode('lb')
@@ -3928,7 +4033,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ...(hasNode('cache')
             ? [
                 rowHeader(t.dashboard.cache, 1, h),
-                hits('cache', t.dashboard.cache, 'hit ratio · now', 'cache', game, ledger, h),
+                hits('cache', t.dashboard.cache, t.dashboard.hitRatioNow, 'cache', game, ledger, h),
                 evictions(game, ledger, h),
               ]
             : []),
@@ -3941,7 +4046,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 hits(
                   'cdn',
                   'CDN',
-                  `hit ratio · Design egress ${money(ledger.egress)}/s`,
+                  t.dashboard.hitRatioEgress(t.units.perSecond(money(ledger.egress))),
                   'cdn',
                   game,
                   ledger,
@@ -3950,7 +4055,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ]
             : []),
           ...(game.nodes.some((node) => MANAGED.includes(node.type))
-            ? [rowHeader('Managed Components', 1, h), managed(game, ledger, h)]
+            ? [rowHeader(t.dashboard.managedComponents, 1, h), managed(game, ledger, h)]
             : []),
 
           ...(has(game, 'multi-region')

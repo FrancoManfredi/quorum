@@ -1,5 +1,5 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
+import { isOne } from '../plural.ts'
 
 export const title: Messages['title'] = {
   back: 'Retour',
@@ -15,13 +15,13 @@ export const title: Messages['title'] = {
   nameYourCompany: 'Nommez votre entreprise',
   logo: 'Logo',
   venture: 'Activité',
-  legacy: (p0) => `${arg(p0)} Héritage`,
+  legacy: (p0) => `${p0} Héritage`,
   mutators: 'Modificateurs',
-  found: (p0) => `Fonder ${arg(p0)}`,
-  legacy2: (p0, p1) => `${arg(p0)} · Héritage ×${arg(p1)}`,
+  found: (p0) => `Fonder ${p0}`,
+  legacy2: (p0, p1) => `${p0} · Héritage ×${p1}`,
   current: 'Actuelle',
   noCompaniesSavedYet: 'Aucune entreprise enregistrée pour l’instant',
-  started: (p0) => `Fondée ${arg(p0)}`,
+  started: (p0) => `Fondée ${p0}`,
   openCompany: 'Ouvrir l’entreprise',
   deleteForever: 'Supprimer pour toujours',
   theCompanyAndItsDesignAre: 'L’entreprise et sa conception sont perdues.',
@@ -69,4 +69,16 @@ export const title: Messages['title'] = {
   escape: "S'échapper",
   space: 'Espace',
   backspace: 'Retour arrière',
+  eraUsersTime: (era, users, time) => `${era} · ${users} utilisateurs · ${time}`,
+  savedCount: (count) => `${count} ${isOne('fr', count) ? 'enregistrée' : 'enregistrées'}`,
+  mutatorCount: (count) => `${count} ${isOne('fr', count) ? 'modificateur' : 'modificateurs'}`,
+  users: 'utilisateurs',
+  pauseWhenTheWindowLosesFocus: 'Mettre en pause quand la fenêtre perd le focus',
+  recoverPreviousSave: 'Récupérer la sauvegarde précédente',
+  recoverPreviousSaveDetail:
+    'Importez une entreprise de playtest. Temporaire : supprimé après l’alpha.',
+  connected: 'Connecté.',
+  playtestBuild: 'Version de playtest ·',
+  support: 'Soutenir',
+  supportOnKofi: 'Soutenir Quorum sur Ko-fi',
 }

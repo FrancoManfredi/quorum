@@ -1,3 +1,4 @@
+import { formats } from '@/i18n/format.ts'
 import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { AsyncData } from 'foldkit'
@@ -30,7 +31,7 @@ import { serviceOf } from '@quorum/simulation/team'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { SIM_VERSION } from '@quorum/simulation/version'
 import { histogramQuery } from '@/game/challenge-query.ts'
-import { clock, money, ms } from '@quorum/ui/game/format'
+import { clock, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import {
   boardChallenge,
@@ -55,8 +56,12 @@ const axisNamesOf = (t: Messages): Record<ScoreAxis, string> => ({
   complexity: t.challenge.complexity,
 })
 
-const axisValue = (axis: ScoreAxis, value: number): string =>
-  axis === 'cost' ? `${money(value)}/s` : axis === 'tail' ? ms(value) : String(value)
+const axisValue = (t: Messages, axis: ScoreAxis, value: number): string =>
+  axis === 'cost'
+    ? t.units.perSecond(money(value))
+    : axis === 'tail'
+      ? formats(t).ms(value)
+      : String(value)
 
 const figureRow = (
   name: string,
@@ -119,7 +124,7 @@ const figures = (
       figureRow(
         t.challenge.tail,
         Timer,
-        ms(ledger.p99),
+        formats(t).ms(ledger.p99),
         targets.tail !== undefined && ledger.p99 > targets.tail ? 'danger' : 'plain',
         h,
       ),
@@ -162,23 +167,47 @@ const figures = (
 /** A share as a percent with two significant figures: 1%, 0.5%, 0.001%. */
 const percent = (share: number): string => `${Number((share * 100).toPrecision(2))}%`
 
-const kindName = (kind: string): string => KINDS[kind as RequestKind].label.toLowerCase()
+const kindName = (t: Messages, kind: string): string =>
+  t.catalog.kinds[kind as RequestKind].label.toLowerCase()
 
-const targetText = (challenge: Challenge): string => {
+/** A missed target, as the Simulation words it in English, in the player's language. */
+const missedText = (t: Messages, missed: string): string => {
+  const fixed: Readonly<Record<string, string>> = {
+    'Nothing was served.': t.challenge.missedNothing,
+    'Too many errors.': t.challenge.missedErrors,
+    'Connections were refused.': t.challenge.missedRefused,
+    'The tail is too long.': t.challenge.missedTail,
+    'Over budget.': t.challenge.missedCost,
+    'The margin is too thin.': t.challenge.missedMargin,
+  }
+  const kinds = Object.keys(KINDS) as ReadonlyArray<RequestKind>
+  const failed = /^Too many (.+) requests failed\.$/.exec(missed)?.[1]
+  const failedKind = kinds.find((kind) => KINDS[kind].label.toLowerCase() === failed)
+  if (failedKind) return t.challenge.missedKindFailed(kindName(t, failedKind))
+  const slow = /^(.+) requests are too slow\.$/.exec(missed)?.[1]
+  const slowKind = kinds.find((kind) => KINDS[kind].label === slow)
+  if (slowKind) return t.challenge.missedKindSlow(t.catalog.kinds[slowKind].label)
+  return fixed[missed] ?? missed
+}
+
+const targetText = (t: Messages, challenge: Challenge): string => {
   const { targets } = challenge
+  const latency = formats(t).ms
   return [
-    `errors ≤ ${percent(targets.errors)}`,
-    ...Object.entries(targets.kinds ?? {}).map(
-      ([kind, limit]) => `${kindName(kind)} errors ≤ ${percent(limit ?? 0)}`,
+    t.challenge.errorsAtMost(percent(targets.errors)),
+    ...Object.entries(targets.kinds ?? {}).map(([kind, limit]) =>
+      t.challenge.kindErrorsAtMost(kindName(t, kind), percent(limit ?? 0)),
     ),
-    ...Object.entries(targets.kindTail ?? {}).map(
-      ([kind, limit]) => `${kindName(kind)} p99 ≤ ${ms(limit ?? 0)}`,
+    ...Object.entries(targets.kindTail ?? {}).map(([kind, limit]) =>
+      t.challenge.kindP99AtMost(kindName(t, kind), latency(limit ?? 0)),
     ),
-    targets.refused !== undefined ? 'no refused' : '',
-    targets.tail !== undefined ? `tail ≤ ${ms(targets.tail)}` : '',
-    targets.cost !== undefined ? `cost ≤ ${money(targets.cost)}/s` : '',
-    targets.margin !== undefined ? `margin ≥ ${percent(targets.margin)}` : '',
-    challenge.devHours !== undefined ? `${challenge.devHours} Dev Hours` : '',
+    targets.refused !== undefined ? t.challenge.noRefused : '',
+    targets.tail !== undefined ? t.challenge.tailAtMost(latency(targets.tail)) : '',
+    targets.cost !== undefined
+      ? t.challenge.costAtMost(t.units.perSecond(money(targets.cost)))
+      : '',
+    targets.margin !== undefined ? t.challenge.marginAtLeast(percent(targets.margin)) : '',
+    challenge.devHours !== undefined ? t.challenge.devHoursTarget(challenge.devHours) : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -302,7 +331,7 @@ export const challengeHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Messag
           ),
           h.span(
             [h.Class('truncate text-[calc(13px*var(--type-scale))] font-semibold')],
-            [challenge.name],
+            [t.catalog.challenges[challenge.id]?.name ?? challenge.name],
           ),
           model.founder.completed.includes(challenge.id)
             ? h.span([h.Class('ml-auto')], [icon(h, Check, 'size-3.5 text-ok')])
@@ -318,6 +347,7 @@ export const challengeHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Messag
 
 /** The brief and targets in the goal slot; while running, how far the run is. */
 export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
   const run = boardChallenge(model.board)
   const challenge = run ? challengeById(run.id) : undefined
   if (!run || !challenge) return h.empty
@@ -334,7 +364,10 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('flex items-start gap-2.5')],
         [
-          h.span([h.Class('flex-1 leading-snug')], [challenge.brief]),
+          h.span(
+            [h.Class('flex-1 leading-snug')],
+            [t.catalog.challenges[challenge.id]?.brief ?? challenge.brief],
+          ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
             [
@@ -347,7 +380,7 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       h.span(
         [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
-        [targetText(challenge)],
+        [targetText(t, challenge)],
       ),
       running ? meter(run.totals.step / stepsOf(challenge), 'bg-primary-fill', h) : h.empty,
     ],
@@ -399,7 +432,7 @@ const axisRow = (
           ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(13px*var(--type-scale))]'))],
-            [axisValue(axis, value)],
+            [axisValue(t, axis, value)],
           ),
         ],
       ),
@@ -435,7 +468,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     { onEmpty: () => null, onFailure: () => null, onData: (data: ChallengeHistograms) => data },
   )
   return shell(
-    challenge.name,
+    t.catalog.challenges[challenge.id]?.name ?? challenge.name,
     [
       h.span(
         [
@@ -466,7 +499,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               passed
                 ? t.challenge.passed
-                : (run.verdict?.missed ?? result.missed ?? t.challenge.failed),
+                : missedText(t, run.verdict?.missed ?? result.missed ?? t.challenge.failed),
             ],
           ),
           ...(['cost', 'tail', 'complexity'] as const).map((axis) =>

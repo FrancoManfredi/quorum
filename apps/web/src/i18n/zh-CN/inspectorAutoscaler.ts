@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const inspectorAutoscaler: Messages['inspectorAutoscaler'] = {
@@ -6,9 +5,9 @@ export const inspectorAutoscaler: Messages['inspectorAutoscaler'] = {
   load: '负载',
   requests: '请求',
   queueDepth: '队列深度',
-  min: (p0) => `最少 ${arg(p0)}`,
+  min: (p0) => `最少 ${p0}`,
   noMax: '无上限',
-  max: (p0) => `最多 ${arg(p0)}`,
+  max: (p0) => `最多 ${p0}`,
   onLoad: '按负载',
   aheadOfThePeak: '提前应对高峰',
   twoCalendarHoursBeforeTheDaily:

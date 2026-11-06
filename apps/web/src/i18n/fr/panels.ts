@@ -1,4 +1,3 @@
-import { arg } from './arg.ts'
 import type { Messages } from '../messages.ts'
 
 export const panels: Messages['panels'] = {
@@ -25,19 +24,19 @@ export const panels: Messages['panels'] = {
   importASave: 'Importer une sauvegarde',
   copyStateAsJSON: 'Copier l’état au format JSON',
   iPO: 'Introduction en bourse',
-  round: (p0) => `Levée ${arg(p0)}`,
+  round: (p0) => `Levée ${p0}`,
   goPublic: 'Entrer en bourse',
   raise: 'Lever des fonds',
-  cash: (p0) => `+${arg(p0)} de trésorerie`,
-  equity: (p0, p1) => `Part du capital ${arg(p0)}% → ${arg(p1)}%`,
+  cash: (p0) => `+${p0} de trésorerie`,
+  equity: (p0, p1) => `Part du capital ${p0}% → ${p1}%`,
   quartersBegin: 'Les trimestres commencent',
   fullGrowth: 'Croissance maximale',
   decline: 'Refuser',
   noCash: 'Aucun apport',
-  equityStays: (p0) => `Part du capital maintenue à ${arg(p0)}%`,
+  equityStays: (p0) => `Part du capital maintenue à ${p0}%`,
   growth07: 'Croissance × 0,7',
   nextRound: 'Prochaine levée',
-  users: (p0) => `${arg(p0)} utilisateurs`,
+  users: (p0) => `${p0} utilisateurs`,
   apdexTarget: 'Cible Apdex',
   prices: 'Prix',
   continueText: 'Continuer',
@@ -50,8 +49,8 @@ export const panels: Messages['panels'] = {
   playtest: 'Outils de test',
   speed: 'Vitesse',
   skipAhead: 'Avancer',
-  skipTo: (p0) => `Passer à ${arg(p0)}`,
-  insight: (p0) => `+${arg(p0)} connaissances`,
+  skipTo: (p0) => `Passer à ${p0}`,
+  insight: (p0) => `+${p0} connaissances`,
   n20Legacy: '+20 Héritage',
   startAnIncident: 'Déclencher un incident',
   log: 'Journal',
@@ -111,4 +110,7 @@ export const panels: Messages['panels'] = {
   playtestPanel: 'Panneau de test',
   esc: 'Échap',
   backOutThenMenu: 'Reculer, puis ouvrir le menu',
+  shiftT: 'Maj+T',
+  shiftF: 'Maj+F',
+  pauseOnBlur: 'Mettre en pause quand la fenêtre perd le focus',
 }

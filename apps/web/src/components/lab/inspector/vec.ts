@@ -1,9 +1,10 @@
+import { formats } from '@/i18n/format.ts'
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { VEC_AI_LIFT, VEC_INDEXES, VEC_QUERIES } from '@quorum/simulation/catalog'
 import { burnOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode, VecIndexType } from '@quorum/simulation/state'
-import { money, ms, rate } from '@quorum/ui/game/format'
+import { money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, caption, outbound, percent, picker, section } from './shared.ts'
@@ -21,7 +22,7 @@ const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyAr
   )
   return [
     section(
-      'Index',
+      t.inspectorVec.index,
       [
         picker(
           'index-type',
@@ -29,7 +30,7 @@ const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyAr
             Object.entries(VEC_INDEXES) as ReadonlyArray<
               [VecIndexType, (typeof VEC_INDEXES)['exact']]
             >
-          ).map(([id, type]) => [id, type.name] as const),
+          ).map(([id]) => [id, t.catalog.vecIndexes[id].name] as const),
           node.indexType,
           (indexType) => Message.VecIndexChosen({ nodeId: node.id, indexType }),
           h,
@@ -59,7 +60,7 @@ const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyAr
         caption(
           reached.length === 0
             ? t.inspectorVec.nothingAnswersPromptsThroughItYet
-            : `${reached.length} Node${reached.length === 1 ? '' : 's'} retrieve from it.`,
+            : t.inspectorVec.nodesRetrieveFromIt(reached.length),
           h,
         ),
       ],
@@ -83,9 +84,9 @@ export const vecPanel: Panel = {
         own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
         h,
       ),
-      row('Index', index.name, 'plain', h),
+      row(t.inspectorVec.index, t.catalog.vecIndexes[node.indexType].name, 'plain', h),
       row(t.inspectorVec.recall, percent(index.recall), index.recall >= 1 ? 'ok' : 'warn', h),
-      row(t.inspectorVec.latency, ms(own.latency), 'plain', h),
+      row(t.inspectorVec.latency, formats(t).ms(own.latency), 'plain', h),
       row(t.inspectorVec.burn, t.inspectorVec.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
