@@ -53,7 +53,7 @@ not.
 2. Define the table with `define`, `to`, `when`, and `otherwise`.
 3. Export a `step` wrapper that returns `machine.step(state, event).state`, so a stale or repeated
    event is a no-op.
-4. Route the flow's Messages through it in `update.ts`; compute payloads and Commands first.
+4. Route the flow's Messages through it in the flow's handler module under `apps/web/src/game/update`; compute payloads and Commands first.
 5. Test the legal edges, the ignored events, and the two static analyses.
 
 ## Adding a simulation flow

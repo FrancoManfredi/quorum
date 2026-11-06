@@ -51,7 +51,7 @@ The browser sends anonymous PostHog events through the website Worker at `/q` (`
 
 ## Code ownership
 
-- `apps/web/src/app` owns the Foldkit application. Remote data belongs in Foldkit Query submodels. Update handlers decide when to load or revalidate them. A flow with exclusive phases is a `foldkit/experimental/machine` definition beside its tagged state union, not a set of nullable fields ([ADR 0011](adr/0011-state-machines-are-for-flows.md)); [State machines](state-machines.md) lists every machine and the properties it holds.
+- `apps/web/src/app` owns the Foldkit application. Remote data belongs in Foldkit Query submodels. Update handlers decide when to load or revalidate them. A flow with exclusive phases is a `foldkit/experimental/machine` definition beside its tagged state union, not a set of nullable fields ([ADR 0011](adr/0011-state-machines-are-for-flows.md)); [State machines](state-machines.md) lists every machine and the properties it holds. `src/game/update.ts` routes Messages; a subject's handlers live in `src/game/update/<subject>.ts` and its Message cases in `src/game/message/<subject>.ts` ([ADR 0015](adr/0015-update-handlers-live-by-subject.md)).
 - `apps/backend/src/contexts` is the home for server-side bounded contexts as product vocabulary is discovered. Do not pre-invent product domains in the scaffold.
 - `apps/wiki` owns the wiki: `src/entry.server.ts` lists every page to prerender, `src/content.ts` reads the Markdown in `content/`, and `src/reference` builds catalog pages from `@quorum/simulation`. Islands in Markdown render views from `@quorum/ui`.
 - `packages/rpc` owns the public wire contract only: Effect RPC groups, request/response schemas, declared errors, and the API path prefix.
