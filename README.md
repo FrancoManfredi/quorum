@@ -115,6 +115,13 @@ Mutators that make a Company harder for more Legacy.
 To report a bug, propose an idea, or build the game from source, read
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Support
+
+Quorum is free and has no ads. One developer builds most of it, with help from
+[contributors](https://github.com/elianiva/quorum/graphs/contributors). If it taught you
+something or cost you an evening, you can [buy me a coffee on Ko-fi](https://ko-fi.com/elianiva).
+Supporters are thanked on the [wiki](https://wiki.playquorum.dev/about/supporters).
+
 ## License
 
 Quorum is licensed under the [GNU General Public License v3.0 or later](LICENSE).

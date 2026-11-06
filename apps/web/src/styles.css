@@ -742,6 +742,10 @@
   border-radius: 6px;
   text-transform: uppercase;
 }
+/* Feedback and Support sit together on the right. */
+.booth-strip > :first-child {
+  margin-right: auto;
+}
 .booth-strip > :hover {
   background: var(--muted);
   color: var(--foreground);

@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   BookOpen,
   Check,
+  Coffee,
   Download,
   Trash2,
   Lock,
@@ -1152,13 +1153,21 @@ const strip = (h: HtmlBuilder<Message>): Html =>
         ],
         [
           h.span([h.Class('booth-strip-dot')], []),
-          h.span([], ['Playtest build']),
-          ' · ',
+          h.span([h.Class('booth-strip-label')], ['Playtest build ·']),
           h.span([], ['Saves can reset']),
           ' · ',
           h.span([], ['Feedback']),
           icon(h, ArrowUpRight, 'size-3.5'),
         ],
+      ),
+      h.a(
+        [
+          h.Href('https://ko-fi.com/elianiva'),
+          h.Target('_blank'),
+          h.Rel('noreferrer noopener'),
+          h.AriaLabel('Support Quorum on Ko-fi'),
+        ],
+        [icon(h, Coffee, 'size-3.5'), h.span([h.Class('booth-strip-label')], ['Support'])],
       ),
     ],
   )

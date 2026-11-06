@@ -1,6 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { cn } from 'cn'
-import { ArrowUpRight, ChevronRight, Pencil } from 'lucide'
+import { ArrowUpRight, ChevronRight, Coffee, Pencil } from 'lucide'
 import { ERAS } from '@quorum/simulation/catalog'
 import { FIGURE } from '@quorum/ui/game/bits'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -8,7 +8,7 @@ import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { pageAt } from '../pages.ts'
 import { eraPath } from '../reference/shared.ts'
-import { editUrl } from '../site.ts'
+import { KOFI, editUrl } from '../site.ts'
 import { hides } from '../submodels/spoilers.ts'
 import { pathBar, pathNext } from './path-nav.ts'
 import { QUADRANTS, quadrantBadge } from './quadrant.ts'
@@ -123,6 +123,10 @@ const footer = (page: Page, h: H): Html => {
                 ['Design notes', icon(h, ArrowUpRight, 'size-3.5')],
               )
             : h.empty,
+          h.a(
+            [h.Href(KOFI), h.Class('inline-flex items-center gap-1.5 hover:text-foreground')],
+            [icon(h, Coffee, 'size-3.5'), 'Support Quorum on Ko-fi'],
+          ),
           h.span(
             [h.Class('ml-auto')],
             [

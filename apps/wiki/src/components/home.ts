@@ -18,6 +18,7 @@ import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { navOf, pageAt } from '../pages.ts'
 import { PATHS, stepsOf } from '../paths.ts'
+import { KOFI } from '../site.ts'
 import { componentBadge } from '../reference/components.ts'
 import { pathCard } from './path-nav.ts'
 import { QUADRANTS, quadrantBadge } from './quadrant.ts'
@@ -308,7 +309,12 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                   ],
                   ['Read what that means'],
                 ),
-                ' before you act on what you learn here.',
+                ' before you act on what you learn here. If the game helps you, ',
+                h.a(
+                  [h.Href(KOFI), h.Class('text-foreground underline underline-offset-4')],
+                  ['support it on Ko-fi'],
+                ),
+                '.',
               ],
             ),
           ],
