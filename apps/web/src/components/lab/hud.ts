@@ -1,5 +1,5 @@
-import { formats } from '@/i18n/format.ts'
-import { type Messages, copy, eraWords, insightName, localized } from '@/i18n/messages.ts'
+import { formats, stallReasonIn } from '@/i18n/format.ts'
+import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -47,12 +47,7 @@ import { tabDrift } from './mirror.ts'
 import { canRaise } from '@quorum/simulation/actions'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has, nextEra, researchReady, securityStaffed } from '@quorum/simulation/lookups'
-import {
-  limitingPool,
-  recipeOf as simRecipe,
-  studyStall,
-  type StudyStall,
-} from '@quorum/simulation/studies'
+import { limitingPool, recipeOf as simRecipe, studyStall } from '@quorum/simulation/studies'
 import { DRILL_RPO } from '@quorum/simulation/catalog'
 import { PRE_IPO_STAGE, brokenRestore, checklistOf, residencyMet } from '@quorum/simulation/ipo'
 import {
@@ -179,16 +174,6 @@ const stat = (
         : h.empty,
     ],
   )
-
-/** Why a Study stalls, in one sentence (10 "Studies"). */
-export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
-  stall._tag === 'Breadth'
-    ? t.hud.stalledBreadth(stall.types)
-    : stall.feature
-      ? t.hud.stalledShip(insightName(t, stall.pool), t.catalog.features[stall.feature].name)
-      : stall.pool === 'failure'
-        ? t.hud.stalledFailure
-        : t.hud.stalledPool(insightName(t, stall.pool))
 
 /** What Insight is, how it is earned and spent, and how much a pool keeps. */
 const insightHelpOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [

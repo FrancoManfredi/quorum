@@ -7,6 +7,7 @@ import type {
 } from '@quorum/simulation/goals'
 import type { Game, Postmortem } from '@quorum/simulation/state'
 import type { Mail } from './model.ts'
+import type { MailMessage, MailVars, Snippet } from './mail-text.ts'
 import {
   COMPONENTS,
   CVE_DEFS,
@@ -26,6 +27,8 @@ import { alertActions, cloudActions } from '@quorum/simulation/goals'
 import { has, securityStaffed } from '@quorum/simulation/lookups'
 import { compact, money } from '@quorum/ui/game/format'
 import type { WorkItem } from '@quorum/simulation/state'
+import type { StudyStall } from '@quorum/simulation/studies'
+import { stallReason } from '@quorum/ui/game/pools'
 import { unhappy } from '@quorum/simulation/team'
 import { featureRefusal, itemName } from '@quorum/simulation/work'
 import {
@@ -42,6 +45,7 @@ import {
   REWRITES,
   SENDERS,
   SPAM,
+  STALL,
   TEAMMATES,
   TICKETS,
   type Cve,
@@ -49,6 +53,7 @@ import {
   type EventMail,
   type EventTopic,
   type EventVars,
+  type From,
   type Letters,
   type Pitch,
   type PostmortemVars,
@@ -79,6 +84,8 @@ export interface Sender {
   /** The kind whose badge it wears: a phishing copy wears the badge of what it fakes. */
   readonly looks: SenderKind
   readonly sign: string
+  /** Which teammate signs, when a teammate does: the place in `TEAMMATES`. */
+  readonly signIndex?: number
 }
 
 export const KIND_LABEL: Record<SenderKind, string> = {
@@ -110,7 +117,8 @@ const pick = <A>(items: ReadonlyArray<A>, ...parts: ReadonlyArray<number | strin
 export const senderOf = (id: string): Sender => {
   const known = SENDERS[id]
   if (known) return { ...known, looks: known.looks ?? known.kind }
-  const mate = pick(TEAMMATES, id.replace('mate:', ''))
+  const mateKey = id.replace('mate:', '')
+  const mate = pick(TEAMMATES, mateKey)
   return {
     kind: 'teammate',
     name: mate.name,
@@ -119,6 +127,7 @@ export const senderOf = (id: string): Sender => {
     color: `oklch(0.52 0.12 ${150 + (hashOf(id) % 5) * 9 - 18})`,
     looks: 'teammate',
     sign: mate.sign,
+    signIndex: TEAMMATES.indexOf(mate),
   }
 }
 
@@ -147,14 +156,45 @@ export const senderFor = (kind: SenderKind, game: Game, key: string): string => 
  * Thread, and the time, so every device writes the same Mail and a Thread rarely repeats itself.
  */
 const write = <V>(
+  id: string,
   letters: Letters<V>,
   vars: V,
   sender: string,
   game: Game,
   key: string,
   salt: number | string = '',
-): Written =>
-  pick(letters, game.seed, key, game.time, salt)({ ...vars, from: senderOf(sender).name })
+): Composed => {
+  const variant = hashOf(game.seed, key, game.time, salt) % letters.length
+  const quoted = { ...vars, from: senderOf(sender).name }
+  const written = (letters[variant] as (vars: V & From) => Written)(quoted)
+  return {
+    ...written,
+    message: {
+      letter: { id, variant, vars: quoted as unknown as MailVars },
+      before: [],
+      after: [],
+    },
+  }
+}
+
+/** A letter written, with what it says as data. */
+interface Composed extends Written {
+  readonly message: MailMessage
+}
+
+/** A paragraph put before a letter's own, in English and as data. */
+const lead = (composed: Composed, snippet: Snippet, english: string): Composed => ({
+  subject: composed.subject,
+  body: `${english}\n\n${composed.body}`,
+  message: { ...composed.message, before: [snippet, ...composed.message.before] },
+})
+
+/** A paragraph put after a letter's own, in English and as data. */
+const tail = (composed: Composed, snippet: Snippet, english: string): Composed => ({
+  subject: composed.subject,
+  body: `${composed.body}\n\n${english}`,
+  message: { ...composed.message, after: [...composed.message.after, snippet] },
+})
 
 /** What a Mail carries, before the Inbox stores it. */
 export interface Fact {
@@ -168,23 +208,36 @@ export interface Fact {
   readonly actions: ReadonlyArray<AdviceAction>
   /** The filter put it in Spam. */
   readonly spam: boolean
+  /** What it says as data, so it can be shown in another language. */
+  readonly message?: MailMessage
 }
 
 const fact = (
   key: string,
   sender: string,
-  written: Written,
+  written: Composed,
   actions: ReadonlyArray<AdviceAction> = [],
   spam = false,
-): Fact => ({ key, sender, subject: written.subject, text: written.body, actions, spam })
+): Fact => ({
+  key,
+  sender,
+  subject: written.subject,
+  text: written.body,
+  actions,
+  spam,
+  message: written.message,
+})
 
 export const factOf = (advice: Advice, game: Game, salt: number | string = ''): Fact => {
   const sender = senderFor(advice.from, game, advice.key)
   // The Simulation pairs each topic with its own vars; the record type cannot say so.
   const letters = ADVICE[advice.topic] as unknown as Letters<Advice['vars']>
-  return fact(advice.key, sender, write(letters, advice.vars, sender, game, advice.key, salt), [
-    ...advice.actions,
-  ])
+  return fact(
+    advice.key,
+    sender,
+    write(`advice.${advice.topic}`, letters, advice.vars, sender, game, advice.key, salt),
+    [...advice.actions],
+  )
 }
 
 /* ---------- the world writes: teammates, CVEs, spam ---------- */
@@ -234,12 +287,23 @@ export const disclosureFact = (item: WorkItem, game: Game, spam = false, at = 0)
     severity: severity(score),
     exposed: exposed.length > 0 ? exposed.join(', ') : null,
   }
-  const written = write(CVE_LETTERS, vars, sender, game, key, at)
+  const written = write('cve', CVE_LETTERS, vars, sender, game, key, at)
   const ticket = `${itemName(item)}, ${item.cost} DH, due in ${minutes((item.due ?? game.time) - game.time)}. Overdue, it turns red on the Team backlog; a minute later it is exploited.`
   return fact(
     key,
     sender,
-    { ...written, body: `Ticket filed: ${ticket}\n\n${written.body}` },
+    lead(
+      written,
+      {
+        id: 'patchTicket',
+        vars: {
+          item: itemName(item),
+          cost: item.cost,
+          due: minutes((item.due ?? game.time) - game.time),
+        },
+      },
+      `Ticket filed: ${ticket}`,
+    ),
     [
       { id: `first:${item.id}`, label: 'Patch now' },
       { id: `rush:${item.id}`, label: 'Rush patch' },
@@ -273,7 +337,7 @@ const mateOf = (game: Game, at: number): string =>
 const hireFact = (game: Game, mate: string, salt: number): Fact => {
   const key = `team:hire:${game.engineers.length}`
   const backlog = String(Math.max(3, game.backlog.length))
-  return fact(key, mate, write(HIRE, { backlog }, mate, game, key, salt), [
+  return fact(key, mate, write('hire', HIRE, { backlog }, mate, game, key, salt), [
     { id: 'hire', label: 'Approve hire' },
     { id: 'later', label: 'Later' },
   ])
@@ -283,30 +347,47 @@ const rewriteFact = (game: Game, mate: string, salt: number): Fact => {
   const key = `team:rewrite:${mate}`
   // An engineer falls for one language and stays with it.
   const rewrite = pick(REWRITES, mate, 'rewrite')
-  return fact(key, mate, write(rewrite.letters, {}, mate, game, key, salt), [
-    { id: `rewrite:${rewrite.language}`, label: `Review ${rewrite.language} migration` },
-    { id: 'decline', label: 'Decline' },
-  ])
+  return fact(
+    key,
+    mate,
+    write(`rewrite.${rewrite.language}`, rewrite.letters, {}, mate, game, key, salt),
+    [
+      { id: `rewrite:${rewrite.language}`, label: `Review ${rewrite.language} migration` },
+      { id: 'decline', label: 'Decline' },
+    ],
+  )
 }
 
 const customerFact = (game: Game, n: number): Fact => {
   const key = 'customers:slow'
   const sender = senderFor('customers', game, `slow:${n}`)
-  return fact(key, sender, write(TICKETS, {}, sender, game, key, n))
+  return fact(key, sender, write('ticket', TICKETS, {}, sender, game, key, n))
 }
 
 /**
  * The running Study stalled and holds the queue (10 "Studies"): a teammate says why, with a
  * button to Research. It waits in Needs action until the Study moves or leaves the queue.
  */
-export const stallFact = (game: Game, id: ResearchId, reason: string): Fact => ({
-  key: `research:stalled:${id}`,
-  sender: mateOf(game, hashOf(id)),
-  subject: `${RESEARCH[id].name} is stalled`,
-  text: `${reason}\n\nEvery Study behind it waits until it moves. Fix the cause, or open Research to move another Study up or cancel this one.`,
-  actions: [{ id: `research:${id}`, label: 'Open Research' }],
-  spam: false,
-})
+export const stallFact = (game: Game, id: ResearchId, stall: StudyStall): Fact => {
+  const vars = {
+    research: RESEARCH[id].name,
+    reason: stallReason(stall),
+    stall: stall._tag,
+    types: stall._tag === 'Breadth' ? stall.types : null,
+    pool: stall._tag === 'Breadth' ? null : stall.pool,
+    feature: stall._tag === 'Breadth' ? null : (stall.feature ?? null),
+  }
+  const written = STALL[0]!({ ...vars, from: '' })
+  return {
+    key: `research:stalled:${id}`,
+    sender: mateOf(game, hashOf(id)),
+    subject: written.subject,
+    text: written.body,
+    actions: [{ id: `research:${id}`, label: 'Open Research' }],
+    spam: false,
+    message: { letter: { id: 'stall', variant: 0, vars }, before: [], after: [] },
+  }
+}
 
 /**
  * A big customer asks for a Feature the Design has not built (GDD 18 "Senders"). The ask carries
@@ -324,7 +405,7 @@ const requestFact = (game: Game, salt: number): Fact | null => {
   return fact(
     key,
     sender,
-    write(REQUESTS, { feature: FEATURES[id].name }, sender, game, key, salt),
+    write('request', REQUESTS, { feature: FEATURES[id].name }, sender, game, key, salt),
     [{ id: `backlog:${id}`, label: 'Add to backlog' }],
   )
 }
@@ -342,6 +423,7 @@ export const churnFact = (game: Game, region: RegionChurn): Fact => {
     key,
     sender,
     write(
+      'churn',
       CHURN_LETTERS,
       {
         region: REGION_INFO[region.region].name,
@@ -392,22 +474,27 @@ const vendorOffer = (game: Game, salt: number): ResearchId | null => {
 
 const spamFact = (pitch: Pitch, game: Game, salt: number): Fact => {
   const key = `spam:${pitch.sender}`
-  const written = write(pitch.letters, {}, pitch.sender, game, key, salt)
+  const written = write(`spam.${pitch.sender}`, pitch.letters, {}, pitch.sender, game, key, salt)
   // The recruiter's pitch is flavour, but a hint rides along once mood exists (18 "Spam and
   // phishing": "Recruiter: a hint that a teammate is unhappy."). It names nobody: the pitch itself
   // still only offers a job, so the player reads the Team panel to find out who.
   const hint =
     pitch.sender === 'spam-recruiter' && game.engineers.some(unhappy)
-      ? { ...written, body: `${written.body}\n\nP.S. One of your engineers looks ready to listen.` }
+      ? tail(
+          written,
+          { id: 'recruiterHint', vars: {} },
+          'P.S. One of your engineers looks ready to listen.',
+        )
       : written
   // A vendor's demo is real now and then (18 "Spam and phishing"): the pitch names an
   // observability item the Company has not studied, and taking the demo takes a fifth off it.
   const offered = pitch.sender === 'spam-datadug' ? vendorOffer(game, salt) : null
   const body = offered
-    ? {
-        ...hint,
-        body: `${hint.body}\n\nP.S. This one is a real demo. It covers ${RESEARCH[offered].name}.`,
-      }
+    ? tail(
+        hint,
+        { id: 'realDemo', vars: { research: RESEARCH[offered].name } },
+        `P.S. This one is a real demo. It covers ${RESEARCH[offered].name}.`,
+      )
     : hint
   const actions = offered ? [{ id: `vendor:${offered}`, label: 'Book the demo' }] : pitch.actions
   return fact(key, pitch.sender, body, actions, has(game, 'spam-filter'))
@@ -676,10 +763,15 @@ export const SAMPLES: ReadonlyArray<Sample> = [
     make: (game, n) => {
       const mate = mateOf(game, n)
       const key = `team:rewrite:${mate}#${n}`
-      return fact(key, mate, write(rewrite.letters, {}, mate, game, key, n), [
-        { id: `rewrite:${rewrite.language}`, label: `Review ${rewrite.language} migration` },
-        { id: 'decline', label: 'Decline' },
-      ])
+      return fact(
+        key,
+        mate,
+        write(`rewrite.${rewrite.language}`, rewrite.letters, {}, mate, game, key, n),
+        [
+          { id: `rewrite:${rewrite.language}`, label: `Review ${rewrite.language} migration` },
+          { id: 'decline', label: 'Decline' },
+        ],
+      )
     },
   })),
   {
@@ -723,7 +815,7 @@ export const postmortemFact = (
     failed: compact(postmortem.failed),
     action: postmortem.action ? RESEARCH[postmortem.action].name : null,
   }
-  return fact(key, mate, write(POSTMORTEM, vars, mate, game, key, salt), [
+  return fact(key, mate, write('postmortem', POSTMORTEM, vars, mate, game, key, salt), [
     { id: `postmortem:${postmortem.id}`, label: 'File postmortem' },
     ...(postmortem.action
       ? [{ id: `postmortem-take:${postmortem.id}`, label: 'File and research the action item' }]
@@ -747,11 +839,12 @@ export const awayFacts = (report: AwayReport, game: Game): ReadonlyArray<Fact> =
   const watchKey = `monitoring:away:${Math.round(game.time)}`
   const watch = senderFor('monitoring', game, watchKey)
   return [
-    fact(financeKey, finance, write(AWAY_FINANCE, vars, finance, game, financeKey)),
+    fact(financeKey, finance, write('away.finance', AWAY_FINANCE, vars, finance, game, financeKey)),
     fact(
       watchKey,
       watch,
       write(
+        'away.monitoring',
         AWAY_MONITORING,
         {
           away,
@@ -864,8 +957,10 @@ export const eventFact = (
         : `mate:${typeof event.engineerId === 'string' ? event.engineerId : (game.engineers[0]?.id ?? 'e0')}`)
   // Each topic carries its own vars; the record type cannot say so.
   const letters = EVENTS[mail.topic] as unknown as Letters<EventMail['vars']>
-  return fact(key, sender, write(letters, mail.vars, sender, game, key, salt), [
-    ...workActions(event, mail),
-    ...eventActions(game, from, eventNode(event)),
-  ])
+  return fact(
+    key,
+    sender,
+    write(`event.${mail.topic}`, letters, mail.vars, sender, game, key, salt),
+    [...workActions(event, mail), ...eventActions(game, from, eventNode(event))],
+  )
 }

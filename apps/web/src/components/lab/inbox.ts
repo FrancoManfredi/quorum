@@ -1,4 +1,5 @@
-import { type Messages, copy, stored } from '@/i18n/messages.ts'
+import { actionLabelIn, answerIn, closingIn, signOf, writtenIn } from '@/i18n/mail-render.ts'
+import { type Messages, copy } from '@/i18n/messages.ts'
 import { has } from '@quorum/simulation/lookups'
 import { InboxMessage } from '@/game/inbox.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -51,7 +52,7 @@ const destinationIn = (t: Messages, h: object, action: Mail['actions'][number]):
   }
   return (
     (t.inbox.destinations as Readonly<Record<string, string | undefined>>)[kind] ??
-    t.inbox.answers(stored(h, action.label))
+    t.inbox.answers(actionLabelIn(t, action))
   )
 }
 
@@ -89,9 +90,23 @@ const unreadIn = (model: Model, folder: Folder): number =>
 const openCount = (model: Model): number =>
   model.board.inbox.mail.filter((mail) => folderHolds(mail, 'action')).length
 
+/** A letter's text in the builder's language: written again from what it says, or the English the Model kept. */
+const bodyOf = (h: HtmlBuilder<Message>, entry: Mail['entries'][number]): string =>
+  (entry.message ? writtenIn(copy(h), entry.message)?.body : undefined) ??
+  (entry.closing ? (closingIn(copy(h), entry.closing) ?? undefined) : undefined) ??
+  entry.text
+
+/** A Mail's subject in the builder's language. */
+const subjectOf = (h: HtmlBuilder<Message>, mail: Mail): string =>
+  (mail.message ? writtenIn(copy(h), mail.message)?.subject : undefined) ?? mail.subject
+
 /** The first line of a letter that says something, for the preview. */
-const gist = (mail: Mail): string =>
-  (mail.entries.at(-1)?.text ?? '').split('\n\n').find((paragraph) => paragraph.trim() !== '') ?? ''
+const gist = (h: HtmlBuilder<Message>, mail: Mail): string => {
+  const last = mail.entries.at(-1)
+  return (
+    (last ? bodyOf(h, last) : '').split('\n\n').find((paragraph) => paragraph.trim() !== '') ?? ''
+  )
+}
 
 /**
  * The newest letter that wants the player, as a card above the Inbox button. It stays until the
@@ -112,7 +127,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key(`peek-${mail.id}-${mail.entries.length}`),
       h.Role('status'),
-      h.AriaLabel(t.inbox.newMailFrom(sender.name, stored(h, mail.subject))),
+      h.AriaLabel(t.inbox.newMailFrom(sender.name, subjectOf(h, mail))),
       h.Class(
         `enter-pop absolute right-3 bottom-[68px] z-20 flex w-[min(380px,calc(100%-24px))] flex-col gap-2.5 p-3 ${FLOAT} compact:static compact:w-auto compact:pointer-events-auto`,
       ),
@@ -139,7 +154,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                     'line-clamp-2 text-[calc(14.5px*var(--type-scale))] leading-snug font-semibold tracking-[-0.01em]',
                   ),
                 ],
-                [stored(h, mail.subject)],
+                [subjectOf(h, mail)],
               ),
             ],
           ),
@@ -166,7 +181,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                 'line-clamp-2 text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground',
               ),
             ],
-            [stored(h, gist(mail))],
+            [gist(h, mail)],
           ),
         ],
       ),
@@ -184,7 +199,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                   size: 'sm',
                   attributes: [h.Key(act.id), h.Title(destinationIn(t, h, act))],
                 },
-                stored(h, act.label),
+                actionLabelIn(t, act),
                 h,
               )
             : h.empty,
@@ -353,7 +368,7 @@ const row = (
                     ),
                   ),
                 ],
-                [stored(h, mail.subject)],
+                [subjectOf(h, mail)],
               ),
             ],
           ),
@@ -395,11 +410,11 @@ const digestLine = (mail: Mail, h: HtmlBuilder<Message>): Html => {
           ),
           h.span(
             [h.Class('truncate text-[calc(12px*var(--type-scale))] text-foreground/85')],
-            [stored(h, mail.subject)],
+            [subjectOf(h, mail)],
           ),
           h.span(
             [h.Class('truncate text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            [stored(h, gist(mail))],
+            [gist(h, mail)],
           ),
         ],
       ),
@@ -479,7 +494,7 @@ const digestRow = (
                     ),
                   ),
                 ],
-                [stored(h, mail.subject)],
+                [subjectOf(h, mail)],
               ),
             ],
           ),
@@ -582,7 +597,7 @@ const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Me
                 'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
               ),
             ],
-            [stored(h, mail.subject)],
+            [subjectOf(h, mail)],
           ),
           h.p(
             [h.Class('text-[calc(12px*var(--type-scale))] leading-relaxed text-muted-foreground')],
@@ -626,7 +641,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
       ? [
           h.p(
             [h.Class('flex-1 text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-            [stored(h, mail.answer)],
+            [answerIn(t, { id: mail.answerId, text: mail.answer })],
           ),
         ]
       : mail.resolved === null
@@ -642,7 +657,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 attributes: [h.Key(action.id), h.Title(destinationIn(t, h, action))],
               },
               [
-                stored(h, action.label),
+                actionLabelIn(t, action),
                 Kbd({ className: 'ml-1 opacity-80' }, [String(index + 1)], h),
               ],
               h,
@@ -693,7 +708,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
               ),
             ],
-            [stored(h, mail.subject)],
+            [subjectOf(h, mail)],
           ),
           h.div(
             [h.Class('flex items-center gap-2.5')],
@@ -749,7 +764,9 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                     : h.empty,
                   h.div(
                     [h.Class('flex flex-col gap-3 whitespace-pre-line')],
-                    entry.text.split('\n\n').map((paragraph) => h.p([], [stored(h, paragraph)])),
+                    bodyOf(h, entry)
+                      .split('\n\n')
+                      .map((paragraph) => h.p([], [paragraph])),
                   ),
                 ],
               ),
@@ -757,7 +774,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           ),
           h.p(
             [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            [t.senders[mail.sender]?.sign ?? stored(h, sender.sign)],
+            [signOf(t, mail.sender, sender)],
           ),
         ],
       ),

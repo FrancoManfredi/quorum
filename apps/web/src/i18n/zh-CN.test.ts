@@ -7,10 +7,9 @@ import { ADVICE } from '../game/copy/index.ts'
 import { EMPTY_INBOX, mailed } from '../game/inbox.ts'
 import { initialModel, update } from '../game/update.ts'
 import { localizeBuilder } from './builder.ts'
-import { translate } from './index.ts'
 
 describe('Chinese mail and glossary views', () => {
-  test('an existing funding letter translates both the preview and the inbox without changing stored mail', () => {
+  test('a funding letter written from its data shows in both the preview and the inbox without changing stored mail', () => {
     const letter = ADVICE.round[4]!({ from: 'Sequel Capital', round: 'Pre-seed' })
     const inbox = mailed(
       EMPTY_INBOX,
@@ -21,6 +20,15 @@ describe('Chinese mail and glossary views', () => {
         text: letter.body,
         actions: [{ id: 'raise', label: 'Raise' }],
         spam: false,
+        message: {
+          letter: {
+            id: 'advice.round',
+            variant: 4,
+            vars: { from: 'Sequel Capital', round: 'Pre-seed' },
+          },
+          before: [],
+          after: [],
+        },
       },
       397,
       false,
@@ -67,15 +75,5 @@ describe('Chinese mail and glossary views', () => {
       Scene.expect(Scene.text(entry.inGame)).not.toExist(),
       Scene.expect(Scene.text('Learn more')).not.toExist(),
     )
-    expect(translate('zh-CN', entry.definition)).toMatch(/时间序列/)
-    expect(translate('zh-CN', entry.inGame)).toMatch(/蓝/)
-  })
-
-  test('new company and composed labels translate without losing dynamic values', () => {
-    expect(translate('zh-CN', 'Company name')).toBe('公司名称')
-    expect(translate('zh-CN', 'Share anonymous usage data')).toBe('分享匿名使用数据')
-    expect(translate('zh-CN', 'Page view Insight 7.5')).toBe('页面浏览 洞察 7.5')
-    expect(translate('zh-CN', 'Cloud: Out of memory')).toMatch(/^云服务：/)
-    expect(translate('zh-CN', 'My own company')).toBe('My own company')
   })
 })

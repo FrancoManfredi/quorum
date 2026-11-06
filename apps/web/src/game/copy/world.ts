@@ -327,3 +327,11 @@ export const AWAY_MONITORING: Letters<AwayWatchVars> = [
     body: `Hi,\n\nI drafted a few pages while you were away. This is the one I did not send.\n\n${away} away. Peak load ${peak} on ${peakNode}. Nothing caught fire, though one graph got warm enough to toast bread.\n\nRead this instead of a page and we'll call it even.\n\n${from}`,
   }),
 ]
+
+/** A teammate says why the running Study is stalled. */
+export const STALL: Letters<{ readonly research: string; readonly reason: string }> = [
+  ({ research, reason }) => ({
+    subject: `${research} is stalled`,
+    body: `${reason}\n\nEvery Study behind it waits until it moves. Fix the cause, or open Research to move another Study up or cancel this one.`,
+  }),
+]

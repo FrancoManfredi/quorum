@@ -1,3 +1,4 @@
+import { MailMessage, Snippet } from './mail-text.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Locale } from '../i18n/index.ts'
@@ -119,7 +120,14 @@ export const Toast = Schema.Struct({
 export type Toast = typeof Toast.Type
 
 /** One line in a Thread: what was said, and when. */
-export const MailEntry = Schema.Struct({ time: Schema.Finite, text: Schema.String })
+export const MailEntry = Schema.Struct({
+  time: Schema.Finite,
+  text: Schema.String,
+  /** What the text says as data, so it can be shown in another language. */
+  message: Schema.optionalKey(MailMessage),
+  /** The last word of a Thread, as data, when the entry is one. */
+  closing: Schema.optionalKey(Snippet),
+})
 
 /** A button on a Mail. The id says what it does; `update.ts` maps it to a Message. */
 export const MailAction = Schema.Struct({ id: Schema.String, label: Schema.String })
@@ -130,12 +138,16 @@ export const Mail = Schema.Struct({
   key: Schema.String,
   sender: Schema.String,
   subject: Schema.String,
+  /** The letter the subject came from. */
+  message: Schema.optionalKey(MailMessage),
   /** Game time of the newest entry. */
   time: Schema.Finite,
   entries: Schema.Array(MailEntry),
   actions: Schema.Array(MailAction),
   /** What the player chose, once they chose; it replaces the buttons. */
   answer: Schema.NullOr(Schema.String),
+  /** Which answer that was, so it can be shown in another language. */
+  answerId: Schema.optionalKey(Schema.String),
   read: Schema.Boolean,
   trashed: Schema.Boolean,
   spam: Schema.Boolean,

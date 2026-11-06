@@ -100,7 +100,8 @@ import {
   splitRefusal,
   taskRefusal,
 } from '@quorum/simulation/work'
-import { describeRefusal, type Refusal } from '@quorum/simulation/actions'
+import type { Refusal } from '@quorum/simulation/actions'
+import { refusalIn } from '@/i18n/refusal.ts'
 import { money } from '@quorum/ui/game/format'
 import { STACK_LOGOS } from '@quorum/ui/game/icons'
 import { Message } from '@/game/message.ts'
@@ -230,7 +231,7 @@ const featureWhy = (t: Messages, game: Game, id: FeatureId, refusal: Refusal): s
     return reason.needsEuRegion(name)
   if (id === 'email-digests' && !game.nodes.some((node) => node.type === 'queue'))
     return reason.needsQueue(name)
-  return describeRefusal(refusal)
+  return refusalIn(t, refusal)
 }
 
 /** Why an engineering task cannot be queued, in words: each task has the one reason it names. */
@@ -252,7 +253,7 @@ const taskWhy = (t: Messages, game: Game, id: TaskId, refusal: Refusal): string 
             ? reason.everyLinkPolicy
             : id === 'load-test'
               ? reason.loadTestRunning
-              : describeRefusal(refusal)
+              : refusalIn(t, refusal)
 }
 
 /** Why a runbook cannot be written for an incident kind, in words. */
@@ -268,7 +269,7 @@ const runbookWhy = (t: Messages, game: Game, kind: IncidentId, refusal: Refusal)
     )
   )
     return reason.runbookOnBacklog(t.catalog.incidents[kind].name)
-  return describeRefusal(refusal)
+  return refusalIn(t, refusal)
 }
 
 /** Why a Service cannot be split, in words. */
@@ -297,7 +298,7 @@ const splitWhy = (
     if (carrier.id !== serviceOf(game).id)
       return reason.alreadyOn(featureName, serviceName(t, carrier))
   }
-  return describeRefusal(refusal)
+  return refusalIn(t, refusal)
 }
 
 const clamp = (share: number): number => Math.max(0, Math.min(1, share))

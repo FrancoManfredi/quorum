@@ -10,7 +10,6 @@ import { initialModel, update } from '../game/update.ts'
 import { AppRoute } from '../game/route.ts'
 import { localizeBuilder } from './builder.ts'
 import { copyIn } from './messages.ts'
-import { translate } from './index.ts'
 
 describe('interface languages', () => {
   test('old preferences still decode without losing sound or motion', () => {
@@ -147,17 +146,5 @@ describe('interface languages', () => {
       Scene.given({ ...model, glossary: { ...model.glossary, category: 'security' } }),
       Scene.expect(Scene.text(copyIn('zh-CN').glossary.noMatches)).toExist(),
     )
-  })
-
-  test('complete messages interpolate values and preserve technical names and unknown prose', () => {
-    expect(translate('zh-CN', 'Server · cold')).toBe('服务器 · 冷启动')
-    expect(translate('zh-CN', 'Collect  $12.30')).toBe('收款  $12.30')
-    expect(translate('zh-CN', '1.2k users')).toBe('1.2k 位用户')
-    expect(translate('zh-CN', 'PostgreSQL')).toBe('PostgreSQL')
-    expect(translate('zh-CN', 'constructor')).toBe('constructor')
-    expect(translate('zh-CN', 'Unknown message with Server in it')).toBe(
-      'Unknown message with Server in it',
-    )
-    expect(translate('en', 'Server · cold')).toBe('Server · cold')
   })
 })

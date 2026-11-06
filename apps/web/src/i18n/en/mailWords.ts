@@ -1,0 +1,108 @@
+import type { ChurnCause } from '@quorum/simulation/churn'
+import { CVES } from '../../game/copy/world.ts'
+import { TEAMMATES } from '../../game/copy/senders.ts'
+import { copyOfList } from '../catalog-copy.ts'
+
+/** The words a Mail's values and buttons are made of, which the letters quote. */
+export const mailWords = {
+  /** What each advisory is, in plain words. */
+  cves: copyOfList(CVES, 'id', ['title', 'what'], []),
+  /** A cause as a customer would put it. */
+  causes: {
+    far: 'slow from far away',
+    slow: 'slow',
+    failed: 'errors',
+    stranded: 'not available at all',
+    dropped: 'requests dropped',
+    refused: 'connection refused',
+    down: 'down',
+    stale: 'old data',
+    oom: 'crashes (out of memory)',
+    timeout: 'timeouts',
+    crash: 'crashes',
+    blocked: 'blocked by the firewall',
+    upstream: 'a provider is down',
+    throttled: 'rate limited',
+    duplicate: 'charged twice',
+  } satisfies Record<ChurnCause, string>,
+  /** Why a teammate's item is blocked. */
+  blocked: {
+    decision: 'waiting on a decision',
+    index: 'waiting on an index',
+    copy: 'waiting on a database copy',
+    hire: 'waiting on a hire',
+  },
+  /** How serious an advisory is. */
+  severities: { critical: 'critical', high: 'high', medium: 'medium', low: 'low' },
+  phrases: {
+    wholeDesign: 'the whole Design',
+    theDesign: 'the Design',
+    nothingOneCause: '- nothing one cause explains',
+    patch: 'Patch',
+  },
+  /** What a Mail's buttons say. */
+  actions: {
+    show: 'Show on Board',
+    resize: 'Resize',
+    quota: 'Raise quota',
+    reserved: 'Switch to Reserved',
+    ack: 'Acknowledge',
+    mute: 'Mute for 1 h',
+    first: 'Patch now',
+    rush: 'Rush patch',
+    team: 'Open Team',
+    hire: 'Approve hire',
+    later: 'Later',
+    decline: 'Decline',
+    raise: 'Raise',
+    churn: 'Open Churn breakdown',
+    research: 'Open Research',
+    backlog: 'Add to backlog',
+    vendor: 'Book the demo',
+    postmortem: 'File postmortem',
+    postmortemTake: 'File and research the action item',
+    approve: 'Approve',
+    timeoff: 'Give time off',
+    payrise: 'Raise salary',
+    resign: 'Accept resignation',
+    queue: 'Queue the patch',
+    phish: 'Verify account',
+    invoice: 'Pay invoice',
+    domain: 'Renew now',
+  },
+  reviewMigration: (language: string) => `Review ${language} migration`,
+  /** What a Mail says once the player pressed a button. */
+  answers: {
+    raise: 'You raised the round.',
+    declineRound: 'You declined the round.',
+    declineMate: 'You declined. They will bring it up again.',
+    hire: 'You approved the hire.',
+    team: 'You opened Team.',
+    later: 'Later. They will ask again.',
+    first: 'You moved the patch to the top.',
+    approve: 'You approved it. The work moves again.',
+    defer: 'Later. They will ask again tomorrow.',
+    patch: 'You patched now: the ticket goes to the top.',
+    queue: 'You queued the patch behind the product work.',
+    timeoff: 'You gave them time off.',
+    payrise: 'You raised their salary to the Era’s rate.',
+    resign: 'You accepted the resignation.',
+    rush: 'You rushed the patch.',
+    ack: 'You acknowledged it.',
+    mute: 'You muted this sender for an hour.',
+    backlog: 'You added it to the backlog.',
+    postmortem: 'You filed the postmortem.',
+    postmortemTake: 'You filed the postmortem and put the action item in the study queue.',
+    vendor: 'You booked the demo.',
+    trap: 'You clicked it. It was a trap: the address was not the real sender.',
+  },
+  /** A thread's last word, when the thing it was about is settled. */
+  closings: {
+    exploited: 'Exploited. The ticket expired, and so did the Users who trusted you.',
+    patched: 'Patched before the deadline. Nothing happened, which is the point.',
+    growing: (region: string) => `${region} is growing again.`,
+    unstalled: (study: string) => `${study} no longer holds the queue.`,
+  },
+  /** How each teammate signs, in the order of the game's teammates. */
+  teammateSigns: TEAMMATES.map((mate) => mate.sign),
+}

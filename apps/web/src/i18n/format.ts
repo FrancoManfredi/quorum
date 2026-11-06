@@ -1,4 +1,5 @@
-import type { Messages } from './messages.ts'
+import type { StudyStall } from '@quorum/simulation/studies'
+import { insightName, type Messages } from './messages.ts'
 
 /**
  * The Simulation's number formatters, in words of one language. `@quorum/ui/game/format` writes
@@ -44,3 +45,13 @@ export const formats = (t: Messages) => ({
             ? t.units.budgetBurningAbove(threshold)
             : t.units.nodeAboveLoad(Math.round(threshold * 100)),
 })
+
+/** Why a Study stalls, in one sentence (10 "Studies"). */
+export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
+  stall._tag === 'Breadth'
+    ? t.hud.stalledBreadth(stall.types)
+    : stall.feature
+      ? t.hud.stalledShip(insightName(t, stall.pool), t.catalog.features[stall.feature].name)
+      : stall.pool === 'failure'
+        ? t.hud.stalledFailure
+        : t.hud.stalledPool(insightName(t, stall.pool))

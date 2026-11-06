@@ -5,6 +5,7 @@ import type { Game } from '@quorum/simulation/state'
 import { SAMPLES, needsAction, randomSample, senderOf, type Fact } from './mail.ts'
 import { Folder, MailLabel, Mail as MailSchema, MailMute, type Inbox, type Mail } from './model.ts'
 import { SENDER_KINDS } from './copy/senders.ts'
+import type { Snippet } from './mail-text.ts'
 
 /* ==========================================================================
    The Inbox submodel (GDD 18): how Mail joins its Thread, resolves, and is
@@ -148,23 +149,28 @@ export const mailed = (
   const others = inbox.mail.filter((mail) => mail !== existing)
   // A muted Sender lands for the record: no dot on the row and no card above the Inbox button.
   const quiet = muted(inbox, fact.sender, time)
+  const { answerId: _answered, ...unanswered } = existing ?? {}
   const thread: Mail = existing
     ? {
-        ...existing,
+        ...(unanswered as Omit<Mail, 'answerId'>),
         time,
         read: quiet,
         answer: null,
         resolved: null,
         actions: fact.actions,
-        entries: [...existing.entries, { time, text: fact.text }].slice(-THREAD_ENTRIES),
+        entries: [
+          ...existing.entries,
+          { time, text: fact.text, ...(fact.message ? { message: fact.message } : {}) },
+        ].slice(-THREAD_ENTRIES),
       }
     : {
         id: Math.max(0, ...inbox.mail.map((mail) => mail.id)) + 1,
         key: fact.key,
         sender: fact.sender,
         subject: fact.subject,
+        ...(fact.message ? { message: fact.message } : {}),
         time,
-        entries: [{ time, text: fact.text }],
+        entries: [{ time, text: fact.text, ...(fact.message ? { message: fact.message } : {}) }],
         actions: fact.actions,
         answer: null,
         read: quiet,
@@ -192,7 +198,13 @@ export const resolvedExcept = (inbox: Inbox, key: string, time: number): Inbox =
 })
 
 /** A Thread whose cause is over: it records the last line and resolves. */
-export const closed = (inbox: Inbox, key: string, time: number, text: string): Inbox => ({
+export const closed = (
+  inbox: Inbox,
+  key: string,
+  time: number,
+  text: string,
+  closing?: Snippet,
+): Inbox => ({
   ...inbox,
   mail: inbox.mail.map((mail) =>
     mail.key === key && !mail.trashed
@@ -200,7 +212,9 @@ export const closed = (inbox: Inbox, key: string, time: number, text: string): I
           ...mail,
           read: false,
           resolved: time,
-          entries: [...mail.entries, { time, text }].slice(-THREAD_ENTRIES),
+          entries: [...mail.entries, { time, text, ...(closing ? { closing } : {}) }].slice(
+            -THREAD_ENTRIES,
+          ),
         }
       : mail,
   ),
@@ -309,53 +323,63 @@ export type InboxOutMessage = typeof InboxOutMessage.Type
 /** What the Inbox reads from the board around it. */
 export type InboxContext = Readonly<{ game: Game; open: boolean }>
 
-/** The answer a button writes into its Mail; null for one that only acts. */
-const answerOf = (kind: string | undefined, mail: Mail): string | null => {
+/** The answer a button writes into its Mail, with which one it is; null for one that only acts. */
+const answerOf = (
+  kind: string | undefined,
+  mail: Mail,
+): Readonly<{ id: string; text: string }> | null => {
+  const mate = mail.sender.startsWith('mate:')
   switch (kind) {
     case 'raise':
-      return 'You raised the round.'
+      return { id: 'raise', text: 'You raised the round.' }
     case 'decline':
-      return mail.sender.startsWith('mate:')
-        ? 'You declined. They will bring it up again.'
-        : 'You declined the round.'
+      return mate
+        ? { id: 'declineMate', text: 'You declined. They will bring it up again.' }
+        : { id: 'declineRound', text: 'You declined the round.' }
     case 'hire':
-      return 'You approved the hire.'
+      return { id: 'hire', text: 'You approved the hire.' }
     case 'team':
-      return 'You opened Team.'
+      return { id: 'team', text: 'You opened Team.' }
     case 'later':
-      return 'Later. They will ask again.'
+      return { id: 'later', text: 'Later. They will ask again.' }
     case 'first':
-      return 'You moved the patch to the top.'
+      return { id: 'first', text: 'You moved the patch to the top.' }
     case 'approve':
-      return 'You approved it. The work moves again.'
+      return { id: 'approve', text: 'You approved it. The work moves again.' }
     case 'defer':
-      return 'Later. They will ask again tomorrow.'
+      return { id: 'defer', text: 'Later. They will ask again tomorrow.' }
     case 'patch':
-      return 'You patched now: the ticket goes to the top.'
+      return { id: 'patch', text: 'You patched now: the ticket goes to the top.' }
     case 'queue':
-      return 'You queued the patch behind the product work.'
+      return { id: 'queue', text: 'You queued the patch behind the product work.' }
     case 'timeoff':
-      return 'You gave them time off.'
+      return { id: 'timeoff', text: 'You gave them time off.' }
     case 'payrise':
-      return 'You raised their salary to the Era’s rate.'
+      return { id: 'payrise', text: 'You raised their salary to the Era’s rate.' }
     case 'resign':
-      return 'You accepted the resignation.'
+      return { id: 'resign', text: 'You accepted the resignation.' }
     case 'rush':
-      return 'You rushed the patch.'
+      return { id: 'rush', text: 'You rushed the patch.' }
     case 'ack':
-      return 'You acknowledged it.'
+      return { id: 'ack', text: 'You acknowledged it.' }
     case 'mute':
-      return 'You muted this sender for an hour.'
+      return { id: 'mute', text: 'You muted this sender for an hour.' }
     case 'backlog':
-      return 'You added it to the backlog.'
+      return { id: 'backlog', text: 'You added it to the backlog.' }
     case 'postmortem':
-      return 'You filed the postmortem.'
+      return { id: 'postmortem', text: 'You filed the postmortem.' }
     case 'postmortem-take':
-      return 'You filed the postmortem and put the action item in the study queue.'
+      return {
+        id: 'postmortemTake',
+        text: 'You filed the postmortem and put the action item in the study queue.',
+      }
     case 'vendor':
-      return 'You booked the demo.'
+      return { id: 'vendor', text: 'You booked the demo.' }
     case 'trap':
-      return 'You clicked it. It was a trap: the address was not the real sender.'
+      return {
+        id: 'trap',
+        text: 'You clicked it. It was a trap: the address was not the real sender.',
+      }
     default:
       return null
   }
@@ -436,12 +460,13 @@ export const updateInbox = (
         kind === 'mute'
           ? muting(inbox, mail.sender, context.game.time)
           : { ...inbox, peek: inbox.peek === id ? null : inbox.peek }
-      const answer = answerOf(kind, mail)
+      const written = answerOf(kind, mail)
+      const answer = written && { answer: written.text, answerId: written.id }
       // Acknowledge and Mute also clear the unread dot: the question is answered, not just opened.
       const next =
         answer === null
           ? unpeeked
-          : withMail(unpeeked, id, QUIET.has(kind ?? '') ? { answer, read: true } : { answer })
+          : withMail(unpeeked, id, QUIET.has(kind ?? '') ? { ...answer, read: true } : answer)
       return kind && ACTING.has(kind) && !answersOnly(kind, mail)
         ? { model: next, outMessage: InboxOutMessage.ActionTaken({ kind, target: target ?? null }) }
         : { model: next }

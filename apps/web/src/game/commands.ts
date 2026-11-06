@@ -1,4 +1,6 @@
-import { Locale, translate } from '../i18n/index.ts'
+import { Locale } from '../i18n/index.ts'
+import { copyIn } from '../i18n/messages.ts'
+import { nameIn } from '../i18n/refusal.ts'
 import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Command } from 'foldkit'
@@ -93,7 +95,10 @@ export const SyncBoard = Command.define('SyncBoard', {
     Effect.sync(() => {
       setBoard('board', {
         locale,
-        translate: (text) => translate(locale, text),
+        translate: (text) =>
+          text === 'BOTTLENECK'
+            ? copyIn(locale).dashboard.bottleneck.toUpperCase()
+            : nameIn(copyIn(locale), text),
         game: regionView(game, region),
         ordinals: nodeOrdinals(game),
         ledger: { ...solveFlow(game), bottleneck },
@@ -529,15 +534,15 @@ export const WriteFounder = Command.define('WriteFounder', {
 
 /** Copies text to the clipboard, and says whether it worked. */
 export const CopyText = Command.define('CopyText', {
-  args: { text: Schema.String, done: Schema.String },
+  args: { text: Schema.String, done: Schema.String, blocked: Schema.String },
   messages: [Message.ToastRaised],
-  execute: ({ text, done }) =>
+  execute: ({ text, done, blocked }) =>
     Effect.promise(async () => {
       try {
         await navigator.clipboard.writeText(text)
         return Message.ToastRaised({ message: done, tone: 'ok' })
       } catch {
-        return Message.ToastRaised({ message: 'The clipboard is blocked.', tone: 'warn' })
+        return Message.ToastRaised({ message: blocked, tone: 'warn' })
       }
     }),
 })

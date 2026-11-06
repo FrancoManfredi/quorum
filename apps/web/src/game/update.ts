@@ -2,6 +2,10 @@ import { refusal, stateJson } from './agent-tools.ts'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { moreMenu, type MoreItem } from './more.ts'
 import { languageListbox } from '../i18n/listbox.ts'
+import { formats, stallReasonIn } from '../i18n/format.ts'
+import { copyIn, insightName, nodeTitle, type Messages } from '../i18n/messages.ts'
+import { isOne } from '../i18n/plural.ts'
+import { nameIn, reasonIn, refusalIn } from '../i18n/refusal.ts'
 import { Cause, Exit, Option, Result, Schema } from 'effect'
 import { Update, type Runtime } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
@@ -9,11 +13,9 @@ import { toString as urlToString, type Url } from 'foldkit/url'
 import * as Actions from '@quorum/simulation/actions'
 import * as Mirrors from '@quorum/simulation/mirror'
 import {
-  ACHIEVEMENTS,
   ALERT_RULES,
   DILATION_SPEEDS,
   EXITS,
-  PERKS,
   CACHE_ENGINES,
   COMPONENTS,
   FAMILIES,
@@ -280,7 +282,7 @@ import {
   SaveIndex,
 } from './saves.ts'
 import { DEFAULT_LOGO } from './logos.ts'
-import { poolName, recipeOf, stallReason } from '@quorum/ui/game/pools'
+import { recipeOf } from '@quorum/ui/game/pools'
 import { studyStall } from '@quorum/simulation/studies'
 import { bootStep } from './boot-machine.ts'
 import { sessionStep } from './session-machine.ts'
@@ -566,6 +568,9 @@ const mailKey = (model: Model, key: string): Result | null => {
   }
 }
 
+/** The copy in the player's language: a Toast is written when it is raised. */
+const say = (model: Model): Messages => copyIn(model.prefs.locale)
+
 /** The Model with a toast raised, and the Command that clears it later. */
 const toasted = (model: Model, message: string, tone: Tone): [Model, AnyCommand] => {
   const id = model.toastSeq + 1
@@ -602,13 +607,13 @@ const act = (
   options: ActOptions = {},
 ): Result =>
   Result.match(action, {
-    onFailure: (refusal) => withToast(model, Actions.describeRefusal(refusal), 'warn'),
+    onFailure: (refusal) => withToast(model, refusalIn(say(model), refusal), 'warn'),
     onSuccess: (applied) => {
       if (applied === model.board.game) return { model }
       // A run replays the Design it started with: only logged run actions may change it.
       const challenge = boardChallenge(model.board)
       if (challenge && challenge._tag !== 'Building')
-        return withToast(model, 'Rebuild to change the Design.', 'warn')
+        return withToast(model, say(model).toasts.rebuildToChange, 'warn')
       // The player is at the board while an Incident runs: the first action acknowledges it.
       const game = Actions.acknowledge(applied)
       const measured = beginChange(model.board, label, figuresOf(solveFlow(model.board.game)))
@@ -640,11 +645,11 @@ const act = (
   })
 
 /** Applies an undo or a redo, or says why it cannot. */
-const reverse = (model: Model, reversal: Reversal | string, verb: string): Result => {
-  if (typeof reversal === 'string') return withToast(model, reversal, 'plain')
+const reverse = (model: Model, reversal: Reversal | string, verb: 'Undid' | 'Redid'): Result => {
+  if (typeof reversal === 'string') return withToast(model, reasonIn(say(model), reversal), 'plain')
   const challenge = boardChallenge(model.board)
   if (challenge && challenge._tag !== 'Building')
-    return withToast(model, 'Rebuild to change the Design.', 'warn')
+    return withToast(model, say(model).toasts.rebuildToChange, 'warn')
   const measured = beginChange(
     model.board,
     `${verb} ${reversal.label}`,
@@ -660,7 +665,12 @@ const reverse = (model: Model, reversal: Reversal | string, verb: string): Resul
       bottleneckAt: -1,
     },
   }
-  return withToast(next, `${verb}: ${reversal.label}.`, 'plain')
+  const t = say(model).toasts
+  return withToast(
+    next,
+    verb === 'Undid' ? t.undid(reversal.label) : t.redid(reversal.label),
+    'plain',
+  )
 }
 
 /** The Nodes an edit applies to: the multi-selection, or the one Node open. */
@@ -672,6 +682,14 @@ const chosenIds = (model: Model): ReadonlyArray<string> =>
       : []
 
 const NUDGE = 16
+
+/** The undo hint a one-click purchase adds to its Toast, or nothing when it cost nothing. */
+const refundNote = (t: Messages, spent: number): ReadonlyArray<string> =>
+  spent > 0 ? [t.toasts.undoRefunds(money(spent), t.units.s(UNDO_SECONDS))] : []
+
+/** An instance size in words, or its number when the size has no name. */
+const sizeText = (t: Messages, size: number): string =>
+  SIZES[size] ? t.nodeList.sizes[SIZES[size].name] : String(size)
 
 const countNodes = (count: number): string => (count === 1 ? '1 Node' : `${count} Nodes`)
 
@@ -699,13 +717,10 @@ const migrates = (game: Game, nodeId: string): boolean =>
   !game.sandbox && game.nodes.some((node) => node.id === nodeId && node.type === 'server')
 
 /** What the player hears when a Stack choice started a migration. */
-const migrationNote = (before: Game, after: Game): Note => {
+const migrationNote = (t: Messages, before: Game, after: Game): Note => {
   const migration = serviceOf(after).migration
   if (!migration || serviceOf(before).migration === migration) return null
-  return [
-    `Migration queued: ${Math.round(migration.total)} DH. Shift traffic as steps finish.`,
-    'primary',
-  ]
+  return [t.toasts.migrationQueued(Math.round(migration.total)), 'primary']
 }
 
 /* ---------- Tradeoff cards ---------- */
@@ -748,7 +763,7 @@ const tradeoffOf = (
         ] as const,
       onFailure: (refusal) =>
         [
-          { nodeId, option, pinned, preview: null, refusal: Actions.describeRefusal(refusal) },
+          { nodeId, option, pinned, preview: null, refusal: refusalIn(say(model), refusal) },
           [],
         ] as const,
     },
@@ -837,11 +852,7 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
     case 'rewrite': {
       const runtime = RUNTIME_IDS.find((id) => LANGUAGES[RUNTIMES[id].language].name === target)
       if (!runtime)
-        return withToast(
-          model,
-          `${target} has no playable runtime. You can decline this proposal.`,
-          'warn',
-        )
+        return withToast(model, say(model).toasts.noPlayableRuntime(target ?? ''), 'warn')
       const game = model.board.game
       const servers = game.nodes.filter((node) => node.type === 'server')
       const node =
@@ -851,8 +862,8 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
         return withToast(
           model,
           servers.length === 0
-            ? 'Add an App Server before reviewing a migration.'
-            : `Your App Servers already run ${target}. No rewrite is needed.`,
+            ? say(model).toasts.addServerFirst
+            : say(model).toasts.alreadyRuns(target ?? ''),
           'warn',
         )
       const research = RUNTIMES[runtime].research
@@ -863,7 +874,7 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
             ...opened.model,
             board: { ...opened.model.board, research: { focus: research } },
           },
-          `Research ${RESEARCH[research].name}, then review the proposal again in Inbox.`,
+          say(model).toasts.researchThenReview(say(model).catalog.research[research].name),
           'warn',
         )
       }
@@ -945,7 +956,7 @@ const mailAction = (model: Model, kind: string, target: string | null): Result =
         `Booked a demo of ${RESEARCH[id].name}`,
         Actions.takeDiscount(model.board.game, id),
         {
-          note: () => [`The vendor's demo takes a fifth off ${RESEARCH[id].name}.`, 'ok'],
+          note: () => [say(model).toasts.vendorDemo(say(model).catalog.research[id].name), 'ok'],
         },
       )
     }
@@ -976,10 +987,7 @@ const trapTaken = (model: Model, target: string | null): Result => {
   switch (target) {
     case 'phish': {
       const taken = act(model, 'Gave away the credentials', Actions.phished(game), {
-        note: () => [
-          'Credential leak: the page was not the provider, and your keys were real.',
-          'danger',
-        ],
+        note: () => [say(model).toasts.credentialLeak, 'danger'],
       })
       const incident = taken.model.board.game.incident
       // The Act starts the incident directly, so the pager's Mail is written here, not by a Step.
@@ -1001,24 +1009,21 @@ const trapTaken = (model: Model, target: string | null): Result => {
     }
     case 'invoice':
       return act(model, 'Paid a fake invoice', Actions.payFakeInvoice(game, FAKE_INVOICE), {
-        note: () => [`You paid ${money(FAKE_INVOICE)} to a provider you do not use.`, 'danger'],
+        note: () => [say(model).toasts.paidInvoice(money(FAKE_INVOICE)), 'danger'],
       })
     case 'domain':
       return act(model, 'Paid a fake domain notice', Actions.payFakeInvoice(game, FAKE_DOMAIN), {
-        note: () => [`You paid ${money(FAKE_DOMAIN)} to keep a domain you already own.`, 'danger'],
+        note: () => [say(model).toasts.paidDomain(money(FAKE_DOMAIN)), 'danger'],
       })
     // A fake advisory's patcher installs a backdoor: it is used after a while, and a breach starts.
     case 'patcher': {
       const taken = act(model, 'Ran an unknown patcher', Actions.installBackdoor(game), {
-        note: () => [
-          'That was phishing. The patcher left a backdoor in; patch your dependencies before it is used.',
-          'danger',
-        ],
+        note: () => [say(model).toasts.patcherBackdoor, 'danger'],
       })
       return taken
     }
     default:
-      return withToast(model, 'That was phishing. Check the sender address first.', 'danger')
+      return withToast(model, say(model).toasts.phishing, 'danger')
   }
 }
 
@@ -1028,11 +1033,11 @@ const teamAction = (model: Model, out: TeamOutMessage): Result => {
   return TeamOutMessage.match<Result>(out, {
     Hire: () =>
       act(model, 'Hired', Work.hire(game), {
-        note: () => ['Offer accepted. They start soon.', 'ok'],
+        note: () => [say(model).toasts.offerAccepted, 'ok'],
       }),
     Layoff: ({ engineerId }) =>
       act(model, 'Laid off', Work.layoff(game, engineerId), {
-        note: () => ['Laid off. The team is shaken for a week.', 'warn'],
+        note: () => [say(model).toasts.laidOff, 'warn'],
       }),
     CreateTeam: () => act(model, 'New team', Work.createTeam(game)),
     RemoveTeam: ({ teamId }) => act(model, 'Removed a team', Work.removeTeam(game, teamId)),
@@ -1058,7 +1063,7 @@ const teamAction = (model: Model, out: TeamOutMessage): Result => {
       act(model, `Queued ${FEATURES[id].name}`, Work.queueFeature(game, id)),
     RemoveFeature: ({ id }) =>
       act(model, `Removed ${FEATURES[id].name}`, Work.removeFeature(game, id), {
-        note: () => [`${FEATURES[id].name} is gone. Its upkeep ends with it.`, 'warn'],
+        note: () => [say(model).toasts.featureGone(say(model).catalog.features[id].name), 'warn'],
       }),
     MoveService: ({ serviceId, teamId }) =>
       act(
@@ -1073,7 +1078,10 @@ const teamAction = (model: Model, out: TeamOutMessage): Result => {
         Work.splitService(game, { name, owner, features }),
         {
           note: () => [
-            `${features.length} Feature${features.length === 1 ? '' : 's'} moved. Its Dev Hours are on the backlog.`,
+            say(model).toasts.featuresMoved(
+              features.length,
+              isOne(model.prefs.locale, features.length),
+            ),
             'primary',
           ],
           // The draft is spent: the next split starts from a clean form, owned by the team that
@@ -1110,18 +1118,16 @@ const foldResearch = (model: Model, message: ResearchMessage): Result =>
           act(parent, `Study ${RESEARCH[id].name}`, Actions.study(parent.board.game, id), {
             note: (game) => {
               // A Study that cannot finish holds the queue: say why. Short pools only slow it.
+              const t = say(parent)
+              const name = t.catalog.research[id].name
               const stall = studyStall(game, ledgerOf(parent), id)
-              if (stall)
-                return [`Study queued: ${RESEARCH[id].name}. ${stallReason(stall)}`, 'warn']
+              if (stall) return [t.toasts.studyQueuedStalled(name, stallReasonIn(t, stall)), 'warn']
               const short = recipeOf(id, game.discounts)
                 .filter(([pool, cost]) => game.pools[pool] < cost)
-                .map(([pool]) => poolName(pool))
+                .map(([pool]) => insightName(t, pool))
               return short.length > 0
-                ? [
-                    `Study queued: ${RESEARCH[id].name}. Not enough ${short.join(', ')} yet: it runs at their earn rate.`,
-                    'warn',
-                  ]
-                : [`Study queued: ${RESEARCH[id].name}.`, 'primary']
+                ? [t.toasts.studyQueuedShort(name, short.join(', ')), 'warn']
+                : [t.toasts.studyQueued(name), 'primary']
             },
           }),
         Move: ({ id, direction }) =>
@@ -1131,7 +1137,12 @@ const foldResearch = (model: Model, message: ResearchMessage): Result =>
             parent,
             `Study ${RESEARCH[id].name} now`,
             Actions.study(parent.board.game, id, true),
-            { note: () => [`Studying now: ${RESEARCH[id].name}.`, 'primary'] },
+            {
+              note: () => [
+                say(parent).toasts.studyingNow(say(parent).catalog.research[id].name),
+                'primary',
+              ],
+            },
           ),
         Cancel: ({ id }) =>
           act(
@@ -1139,7 +1150,10 @@ const foldResearch = (model: Model, message: ResearchMessage): Result =>
             `Cancelled ${RESEARCH[id].name}`,
             Actions.cancelStudy(parent.board.game, id),
             {
-              note: () => [`Study cancelled: ${RESEARCH[id].name}.`, 'plain'],
+              note: () => [
+                say(parent).toasts.studyCancelled(say(parent).catalog.research[id].name),
+                'plain',
+              ],
             },
           ),
       }),
@@ -1184,7 +1198,11 @@ const achieve = (
   let next: Model = { ...model, founder: earnAchievements(model.founder, fresh) }
   const commands: Array<AnyCommand> = [WriteFounder({ founder: next.founder })]
   for (const id of fresh) {
-    const [raised, clear] = toasted(next, `Achievement: ${ACHIEVEMENTS[id].name}.`, 'primary')
+    const [raised, clear] = toasted(
+      next,
+      say(next).toasts.achievement(say(next).catalog.achievements[id].name),
+      'primary',
+    )
     next = raised
     commands.push(clear)
   }
@@ -1453,6 +1471,100 @@ const eventText = (event: StepEvent, game: Game): EventNote =>
     ],
   })
 
+/** A Step event as a Toast in the player's language, for a Challenge: it has no Inbox to carry the Mail. */
+const eventToast = (t: Messages, event: StepEvent, game: Game): Note => {
+  const e = t.toasts.event
+  const node = (id: string): string => {
+    const found = game.nodes.find((entry) => entry.id === id)
+    return found ? nodeTitle(t, game, found) : t.toasts.event.theDesign
+  }
+  const item = (value: Parameters<typeof Work.itemName>[0]): string =>
+    nameIn(t, Work.itemName(value))
+  return StepEvent.$match(event, {
+    IncidentStarted: ({ incident }): Note => {
+      switch (incident.kind) {
+        case 'breach':
+          return [e.breach, 'danger']
+        case 'credential-leak':
+          return [e.phishing, 'danger']
+        case 'instance':
+          return incident.nodeId ? [e.instance(node(incident.nodeId)), 'danger'] : null
+        case 'slow-query':
+          return [e.slowQuery, 'danger']
+        case 'poison':
+          return [e.poison, 'danger']
+        case 'ddos':
+          return [e.ddos, 'danger']
+        case 'stampede':
+          return [e.stampede, 'danger']
+        case 'zone':
+          return incident.zone ? [e.zone(incident.zone.toUpperCase()), 'danger'] : null
+        case 'psp-outage':
+          return [e.psp, 'danger']
+        default:
+          return null
+      }
+    },
+    IncidentResolved: ({ postmortem }): Note => {
+      const incident = t.catalog.incidents[postmortem.kind].name
+      return postmortem.action
+        ? [e.resolvedAction(incident, t.catalog.research[postmortem.action].name), 'primary']
+        : [e.resolved(incident), 'primary']
+    },
+    DrawerFull: (): Note => [e.drawer, 'warn'],
+    OutOfMemory: ({ nodeId }): Note => [e.oom(node(nodeId)), 'danger'],
+    CreditsExhausted: ({ nodeId }): Note => [e.credits(node(nodeId)), 'warn'],
+    AlertFired: ({ rule }): Note => [
+      e.alert(
+        formats(t).alertText(rule, game.alertRules[rule]).toLowerCase(),
+        t.units.s(ALERT_RULES[rule].seconds),
+      ),
+      'danger',
+    ],
+    AlertIgnored: ({ rule }): Note => [
+      e.alertIgnored(formats(t).alertText(rule, game.alertRules[rule])),
+      'warn',
+    ],
+    Hired: (): Note => [e.hired, 'ok'],
+    CveDisclosed: (): Note => null,
+    PatchProposed: ({ item: patch }): Note => {
+      const target = COMPONENTS[patch.target as keyof typeof COMPONENTS]
+      return [
+        e.patchProposed(
+          target ? t.catalog.components[patch.target as keyof typeof COMPONENTS].name : e.theDesign,
+        ),
+        'warn',
+      ]
+    },
+    CveExploited: (): Note => null,
+    Blocked: ({ item: blocked, reason }): Note => [
+      e.blocked(
+        item(blocked),
+        reason === 'decision'
+          ? e.waitDecision
+          : reason === 'index'
+            ? e.waitIndex
+            : reason === 'copy'
+              ? e.waitCopy
+              : e.waitHire,
+      ),
+      'warn',
+    ],
+    EngineerUnhappy: (): Note => [e.unhappy, 'warn'],
+    WorkFinished: ({ item: done }): Note =>
+      done.kind === 'task' ? [e.finished(item(done)), 'ok'] : null,
+    Deployed: ({ features, bad }): Note => {
+      const names = features.map((id) => t.catalog.features[id].name).join(', ')
+      return bad ? [e.deployedBad(names), 'danger'] : [e.deployed(names), 'primary']
+    },
+    StudyCompleted: ({ research }): Note => [e.researched(t.catalog.research[research].name), 'ok'],
+    MigrationShifted: ({ step }): Note => [
+      e.migrationShifted(percent(MIGRATION_STEPS[step - 1] ?? 0)),
+      'primary',
+    ],
+  })
+}
+
 const eventLog = (event: StepEvent): Record<string, unknown> =>
   StepEvent.$match(event, {
     IncidentStarted: ({ incident }) => ({ kind: incident.kind, node: incident.nodeId }),
@@ -1560,7 +1672,7 @@ const tick = (model: Model): Result => {
     } else {
       const [raised, clear] = toasted(
         next,
-        `Objective ${run.progress.objective} of ${guided.objectives.length} done.`,
+        say(next).toasts.objectiveDone(run.progress.objective, guided.objectives.length),
         'ok',
       )
       next = raised
@@ -1571,7 +1683,10 @@ const tick = (model: Model): Result => {
   if (autoPaused && severe?._tag === 'IncidentStarted') {
     const [raised, clear] = toasted(
       next,
-      `Paused: SEV${severe.incident.severity} ${INCIDENTS[severe.incident.kind].name}. Space resumes.`,
+      say(next).toasts.pausedBySevere(
+        severe.incident.severity,
+        say(next).catalog.incidents[severe.incident.kind].name,
+      ),
       'danger',
     )
     next = raised
@@ -1595,6 +1710,7 @@ const tick = (model: Model): Result => {
             `security:${event.cve}`,
             game.time,
             'Exploited. The ticket expired, and so did the Users who trusted you.',
+            { id: 'exploited', vars: {} },
           ),
         },
       }
@@ -1608,6 +1724,7 @@ const tick = (model: Model): Result => {
             `security:${event.item.ref}`,
             game.time,
             'Patched before the deadline. Nothing happened, which is the point.',
+            { id: 'patched', vars: {} },
           ),
         },
       }
@@ -1619,9 +1736,12 @@ const tick = (model: Model): Result => {
     if (!text) continue
     // What happened in the Design is Mail (GDD 18); a Challenge has no Inbox, so it keeps the toast.
     if (boardChallenge(next.board)) {
-      const [raised, clear] = toasted(next, text[0], text[1])
-      next = raised
-      commands.push(clear)
+      const toast = eventToast(say(next), event, game)
+      if (toast) {
+        const [raised, clear] = toasted(next, toast[0], toast[1])
+        next = raised
+        commands.push(clear)
+      }
     } else {
       next = mailedTo(next, eventFact(event, text[2], game), game.time, true)
     }
@@ -1637,7 +1757,7 @@ const tick = (model: Model): Result => {
       )
       const [raised, clear] = toasted(
         next,
-        `Out of Cash. Investors offer a bridge: ${money(bridge.grant)} for ${Math.round(bridge.dilution * 100)}% of Equity.`,
+        say(next).toasts.bridgeOffer(money(bridge.grant), Math.round(bridge.dilution * 100)),
         'danger',
       )
       next = raised
@@ -1652,7 +1772,7 @@ const tick = (model: Model): Result => {
       logs.push(line(game.time, 'NodesShutDown', { nodes: shut.map((node) => node.id) }))
       const [raised, clear] = toasted(
         next,
-        `Out of Cash: ${shut.length === 1 ? 'a Node shut' : `${shut.length} Nodes shut`} down to stop the Burn.`,
+        shut.length === 1 ? say(next).toasts.nodeShut : say(next).toasts.nodesShut(shut.length),
         'danger',
       )
       next = raised
@@ -1752,6 +1872,7 @@ const tick = (model: Model): Result => {
               key,
               game.time,
               `${REGION_INFO[region.region].name} is growing again.`,
+              { id: 'growing', vars: { name: REGION_INFO[region.region].name } },
             ),
           },
         }
@@ -1763,8 +1884,7 @@ const tick = (model: Model): Result => {
     const running = game.studies[0]
     const stall = running ? studyStall(game, ledger, running.id) : null
     const key = running && stall ? `research:stalled:${running.id}` : null
-    if (running && stall)
-      next = mailedTo(next, stallFact(game, running.id, stallReason(stall)), game.time)
+    if (running && stall) next = mailedTo(next, stallFact(game, running.id, stall), game.time)
     for (const mail of next.board.inbox.mail) {
       if (!mail.key.startsWith('research:stalled:') || mail.key === key) continue
       if (mail.resolved !== null || mail.trashed) continue
@@ -1775,6 +1895,7 @@ const tick = (model: Model): Result => {
         mail.key,
         game.time,
         `${name} no longer holds the queue.`,
+        { id: 'unstalled', vars: { name: name ?? '' } },
       )
       next = {
         ...next,
@@ -2016,14 +2137,14 @@ const adoptLegacy = (model: Model, json: string, now: number): Result => {
     onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
   })
   if (Exit.isFailure(decoded))
-    return withToast(model, 'Your save could not be read. A copy was kept.', 'warn', [
+    return withToast(model, say(model).toasts.unreadableSave, 'warn', [
       KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
     ])
   const game = decoded.value
   const createdAt = game.wall > 0 ? game.wall : now
   const file = fileFor({
     id: newSaveId(model.saves.companies, game.seed),
-    name: 'Recovered company',
+    name: say(model).toasts.recoveredCompany,
     logo: DEFAULT_LOGO,
     founding: game.founding,
     game,
@@ -2048,20 +2169,20 @@ const adoptLegacy = (model: Model, json: string, now: number): Result => {
 
 /** Imports the single save of the build before Company files, leaving the old key in place. */
 const importOldSave = (model: Model, json: string | null, now: number): Result => {
-  if (json === null) return withToast(model, 'There is no previous save to recover.', 'plain')
+  if (json === null) return withToast(model, say(model).toasts.noPreviousSave, 'plain')
   if (hasRecovered(model.saves.companies))
-    return withToast(model, 'The previous save is already in your companies.', 'plain')
+    return withToast(model, say(model).toasts.previousSaveKnown, 'plain')
   const raw = parseJson(json)
   const decoded = Option.match(raw, {
     onNone: () => Exit.fail('The save is not JSON.'),
     onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
   })
   if (Exit.isFailure(decoded))
-    return withToast(model, 'The previous save could not be read. It was left untouched.', 'warn')
+    return withToast(model, say(model).toasts.previousSaveUnreadable, 'warn')
   const game = decoded.value
   const file = fileFor({
     id: newSaveId(model.saves.companies, game.seed),
-    name: 'Recovered company',
+    name: say(model).toasts.recoveredCompany,
     logo: DEFAULT_LOGO,
     founding: game.founding,
     game,
@@ -2078,7 +2199,7 @@ const importOldSave = (model: Model, json: string | null, now: number): Result =
     now,
     true,
   )
-  return withToast(applied.model, `Recovered ${file.name}.`, 'ok', [
+  return withToast(applied.model, say(model).toasts.recovered(file.name), 'ok', [
     ...(applied.commands ?? []),
     ...saveCommands(applied.model),
   ])
@@ -2091,7 +2212,7 @@ const changeFounder = (
   done?: string,
 ): Result =>
   Result.match(change, {
-    onFailure: (refusal) => withToast(model, Actions.describeRefusal(refusal), 'warn'),
+    onFailure: (refusal) => withToast(model, refusalIn(say(model), refusal), 'warn'),
     onSuccess: (founder) => {
       const next: Model = { ...model, founder }
       const commands = [WriteFounder({ founder })]
@@ -2250,7 +2371,7 @@ const startRun = (model: Model, run: ChallengeRun): Result => {
     actions: [],
   }
   return Result.match(beginRun(challenge, replay), {
-    onFailure: (reason) => withToast(model, reason, 'warn'),
+    onFailure: (reason) => withToast(model, reasonIn(say(model), reason), 'warn'),
     onSuccess: (game) => {
       const next: Model = {
         ...model,
@@ -2349,7 +2470,7 @@ const finishRun = (model: Model): Result => {
   ]
   if (founder !== model.founder) commands.push(WriteFounder({ founder }))
   return first && challenge.legacy > 0
-    ? withToast(next, `First completion: +${challenge.legacy} Legacy.`, 'ok', commands)
+    ? withToast(next, say(model).toasts.firstCompletion(challenge.legacy), 'ok', commands)
     : { model: next, commands }
 }
 
@@ -2383,7 +2504,7 @@ const logResponse = (model: Model, response: Response): Result | null => {
   const challenge = challengeById(run.id)
   const action: ReplayAction = { _tag: 'Respond', response }
   if (challenge && !responseAllowed(challenge, action))
-    return withToast(model, 'This Challenge does not allow that.', 'warn')
+    return withToast(model, say(model).toasts.challengeForbids, 'warn')
   return logRunAction(model, action)
 }
 
@@ -2514,7 +2635,7 @@ const handle = (model: Model, message: Message): Result =>
       if (index !== null) {
         const parsed = Option.getOrNull(parseIndex(index))
         if (!parsed)
-          return withToast(model, 'Your company list could not be read. A copy was kept.', 'warn', [
+          return withToast(model, say(model).toasts.unreadableList, 'warn', [
             KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
           ])
         return {
@@ -2527,7 +2648,7 @@ const handle = (model: Model, message: Message): Result =>
     },
     CompanyLoaded: ({ id, open, json, now }) => {
       if (json === null)
-        return open ? withToast(model, 'That company file is missing.', 'warn') : { model }
+        return open ? withToast(model, say(model).toasts.companyMissing, 'warn') : { model }
       const raw = parseJson(json)
       const decoded = Option.match(raw, {
         onNone: () => Exit.fail('The save is not JSON.'),
@@ -2535,7 +2656,7 @@ const handle = (model: Model, message: Message): Result =>
       })
       // A save this version cannot read is set aside, not overwritten by the next autosave.
       if (Exit.isFailure(decoded))
-        return withToast(model, 'That company could not be read. A copy was kept.', 'warn', [
+        return withToast(model, say(model).toasts.unreadableCompany, 'warn', [
           KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
         ])
       return applyCompany(model, id, decoded.value, Option.getOrNull(raw), now, open)
@@ -2591,7 +2712,7 @@ const handle = (model: Model, message: Message): Result =>
     OldSaveImportAsked: () =>
       model.oldSave
         ? { model, commands: [ReadOldSave({})] }
-        : withToast(model, 'There is no previous save to recover.', 'plain'),
+        : withToast(model, say(model).toasts.noPreviousSave, 'plain'),
     OldSaveLoaded: ({ json, now }) => importOldSave(model, json, now),
     FounderLoaded: ({ json, deviceId, today }) => {
       const loaded = Option.getOrElse(
@@ -2801,15 +2922,15 @@ const handle = (model: Model, message: Message): Result =>
     GuidedStarted: ({ id }) => enterSandbox(model, GUIDED[id].start(), { id, progress: START }),
     FreeSandboxStarted: () =>
       enterSandbox(model, model.freeBoard ?? freeSandbox(), { id: null, progress: START }),
-    FreeSandboxReset: () => replaceFree(model, freeSandbox(), 'The free Sandbox is reset.'),
+    FreeSandboxReset: () => replaceFree(model, freeSandbox(), say(model).toasts.sandboxReset),
     StressBoardLoaded: ({ big }) =>
       big
-        ? replaceFree(model, bigBoard(), 'The big board is loaded.')
-        : replaceFree(model, stressBoard(), 'The stress board is loaded.'),
+        ? replaceFree(model, bigBoard(), say(model).toasts.bigBoardLoaded)
+        : replaceFree(model, stressBoard(), say(model).toasts.stressBoardLoaded),
     CompanyCopied: () =>
       model.company && hasCompany(model)
-        ? replaceFree(model, sandboxOf(model.company.game), 'Copied the Company Design.')
-        : withToast(model, 'There is no Company to copy.', 'plain'),
+        ? replaceFree(model, sandboxOf(model.company.game), say(model).toasts.designCopied)
+        : withToast(model, say(model).toasts.noCompanyToCopy, 'plain'),
     DemandStepped: ({ direction }) => {
       const index = DEMAND_STEPS.findIndex((users) => users >= model.board.game.users)
       const at = index === -1 ? DEMAND_STEPS.length - 1 : index
@@ -3118,16 +3239,23 @@ const handle = (model: Model, message: Message): Result =>
                 onSuccess: (result): Note =>
                   result.ghosts.length > 0
                     ? [
-                        `Placed ${result.placed}. ${result.ghosts.length} need research: ${[
-                          ...new Set(
-                            result.ghosts.map((ghost) =>
-                              ghostReason(model.board.game, ghost, model.board.region),
+                        say(model).toasts.placedSome(
+                          result.placed,
+                          result.ghosts.length,
+                          [
+                            ...new Set(
+                              result.ghosts.map((ghost) => {
+                                const why = ghostReason(model.board.game, ghost, model.board.region)
+                                return why === null
+                                  ? ''
+                                  : nameIn(say(model), reasonIn(say(model), why))
+                              }),
                             ),
-                          ),
-                        ].join(', ')}.`,
+                          ].join(', '),
+                        ),
                         'warn',
                       ]
-                    : [`Placed ${playbook.name}.`, 'ok'],
+                    : [say(model).toasts.placedOne(playbook.name), 'ok'],
               }),
           },
         )
@@ -3245,13 +3373,22 @@ const handle = (model: Model, message: Message): Result =>
     },
     NodesCopied: () => {
       const playbook = capture(model.board.game, chosenIds(model), 'Nodes')
-      if (!playbook) return withToast(model, 'Select the Nodes to copy first.', 'plain')
+      if (!playbook) return withToast(model, say(model).toasts.selectToCopy, 'plain')
       const next: Model = { ...model, board: { ...model.board, clipboard: playbook } }
-      return withToast(next, `Copied ${countNodes(playbook.nodes.length)}.`, 'ok')
+      return withToast(
+        next,
+        say(model).toasts.copiedNodes(
+          say(model).toasts.nodes(
+            playbook.nodes.length,
+            isOne(model.prefs.locale, playbook.nodes.length),
+          ),
+        ),
+        'ok',
+      )
     },
     NodesCut: () => {
       const playbook = capture(model.board.game, chosenIds(model), 'Nodes')
-      if (!playbook) return withToast(model, 'Select the Nodes to cut first.', 'plain')
+      if (!playbook) return withToast(model, say(model).toasts.selectToCut, 'plain')
       return act(
         model,
         `Cut ${countNodes(playbook.nodes.length)}`,
@@ -3266,7 +3403,7 @@ const handle = (model: Model, message: Message): Result =>
       )
     },
     NodesPasted: () => {
-      if (!model.board.clipboard) return withToast(model, 'Copy some Nodes first.', 'plain')
+      if (!model.board.clipboard) return withToast(model, say(model).toasts.copyFirst, 'plain')
       const next: Model = {
         ...model,
         panel: 'none',
@@ -3281,7 +3418,7 @@ const handle = (model: Model, message: Message): Result =>
     },
     NodesDuplicated: () => {
       const playbook = capture(model.board.game, chosenIds(model), 'Nodes')
-      if (!playbook) return withToast(model, 'Select the Nodes to duplicate first.', 'plain')
+      if (!playbook) return withToast(model, say(model).toasts.selectToDuplicate, 'plain')
       const keys = playbook.nodes.map((node) => node.key)
       const chosen = model.board.game.nodes.filter((node) => keys.includes(node.id))
       const left = Math.min(...chosen.map((node) => node.x))
@@ -3335,7 +3472,7 @@ const handle = (model: Model, message: Message): Result =>
       const sold = sellAll(model.board.game, ids)
       // Nothing to sell (fixed Nodes): say why, without asking.
       if (Result.isFailure(sold))
-        return withToast(model, Actions.describeRefusal(sold.failure), 'warn')
+        return withToast(model, refusalIn(say(model), sold.failure), 'warn')
       return { model: { ...model, board: { ...model.board, confirmSell: ids } } }
     },
     SellConfirmed: () => {
@@ -3398,7 +3535,7 @@ const handle = (model: Model, message: Message): Result =>
           note: (game) =>
             model.board.game.nodes.find((node) => node.id === from)?.localDb &&
             !game.nodes.find((node) => node.id === from)?.localDb
-              ? ['Postgres moved off the App Server to its own Database.', 'ok']
+              ? [say(model).toasts.postgresMoved, 'ok']
               : null,
         },
       ),
@@ -3449,10 +3586,17 @@ const handle = (model: Model, message: Message): Result =>
         {
           undoable: true,
           note: (after) => {
-            const spent = model.board.game.cash - after.cash
+            const t = say(model)
             return [
-              `${COMPONENTS[node.type].name} grew ${steps} size${steps === 1 ? '' : 's'} to ${SIZES[node.size]?.name ?? node.size}.` +
-                (spent > 0 ? ` Undo (Z) refunds ${money(spent)} for ${UNDO_SECONDS} s.` : ''),
+              t.toasts.sentences([
+                t.toasts.grewSizes(
+                  t.catalog.components[node.type].name,
+                  steps,
+                  sizeText(t, node.size),
+                  isOne(model.prefs.locale, steps),
+                ),
+                ...refundNote(t, model.board.game.cash - after.cash),
+              ]),
               'ok',
             ]
           },
@@ -3466,19 +3610,24 @@ const handle = (model: Model, message: Message): Result =>
       const before = model.board.game
       const outcome = Actions.upgradeAll(before, node.type, node.region)
       if (Result.isFailure(outcome))
-        return withToast(model, Actions.describeRefusal(outcome.failure), 'warn')
+        return withToast(model, refusalIn(say(model), outcome.failure), 'warn')
       const { game, upgraded, skipped, short } = outcome.success
       const name = COMPONENTS[node.type].name
       const spent = before.cash - game.cash
       return act(model, `Upgraded ${name} ×${upgraded}`, Result.succeed(game), {
         undoable: true,
-        note: () => [
-          `${name} ×${upgraded} grew one size.` +
-            (skipped > 0 ? ` ${skipped} at the largest size.` : '') +
-            (short ? ' Cash ran out.' : '') +
-            (spent > 0 ? ` Undo (Z) refunds ${money(spent)} for ${UNDO_SECONDS} s.` : ''),
-          'ok',
-        ],
+        note: () => {
+          const t = say(model)
+          return [
+            t.toasts.sentences([
+              t.toasts.upgradedAll(t.catalog.components[node.type].name, upgraded),
+              ...(skipped > 0 ? [t.toasts.atLargest(skipped)] : []),
+              ...(short ? [t.toasts.cashRanOut] : []),
+              ...refundNote(t, spent),
+            ]),
+            'ok',
+          ]
+        },
       })
     },
 
@@ -3506,7 +3655,7 @@ const handle = (model: Model, message: Message): Result =>
       if (Result.isFailure(bought))
         return withToast(
           { ...next, board: { ...next.board, hold: null } },
-          Actions.describeRefusal(bought.failure),
+          refusalIn(say(model), bought.failure),
           'warn',
         )
       return act(next, `Resized ${nodeName(next.board.game, nodeId)}`, bought, { undoable: true })
@@ -3534,14 +3683,18 @@ const handle = (model: Model, message: Message): Result =>
         {
           undoable: true,
           note: (game) => {
+            const t = say(model)
             const spent = model.board.game.cash - game.cash
+            const name = t.catalog.components[node.type].name
             return [
-              (spent >= BIG_PURCHASE ? 'Upgrade complete! ' : '') +
-                (sized
-                  ? `${COMPONENTS[node.type].name} is ${SIZES[size]?.name ?? size}. It restarts cold.`
-                  : `${COMPONENTS[node.type].name} is size ${size}.`) +
+              t.toasts.sentences([
+                ...(spent >= BIG_PURCHASE ? [t.toasts.upgradeComplete] : []),
+                sized
+                  ? t.toasts.sizedNow(name, sizeText(t, size))
+                  : t.toasts.sizeStepNow(name, size),
                 // A one-click purchase says how to take it back (16 D17).
-                (spent > 0 ? ` Undo (Z) refunds ${money(spent)} for ${UNDO_SECONDS} s.` : ''),
+                ...refundNote(t, spent),
+              ]),
               'ok',
             ]
           },
@@ -3568,8 +3721,13 @@ const handle = (model: Model, message: Message): Result =>
           undoable: true,
           note: () =>
             pricing === 'reserved'
-              ? ['Reserved for one calendar week. Selling early owes the Burn left.', 'ok']
-              : [`Now billed ${PRICINGS[pricing].name.toLowerCase()}.`, 'ok'],
+              ? [say(model).toasts.reservedWeek, 'ok']
+              : [
+                  say(model).toasts.nowBilled(
+                    say(model).catalog.pricings[pricing].name.toLowerCase(),
+                  ),
+                  'ok',
+                ],
         },
       ),
 
@@ -3581,8 +3739,8 @@ const handle = (model: Model, message: Message): Result =>
         {
           undoable: !migrates(model.board.game, nodeId),
           note: (game) =>
-            migrationNote(model.board.game, game) ?? [
-              `Now running ${RUNTIMES[runtime].name}. It restarts cold.`,
+            migrationNote(say(model), model.board.game, game) ?? [
+              say(model).toasts.nowRunning(say(model).catalog.runtimes[runtime].name),
               'ok',
             ],
         },
@@ -3595,7 +3753,7 @@ const handle = (model: Model, message: Message): Result =>
         Work.changeStack(model.board.game, nodeId, { framework }),
         {
           undoable: !migrates(model.board.game, nodeId),
-          note: (game) => migrationNote(model.board.game, game),
+          note: (game) => migrationNote(say(model), model.board.game, game),
         },
       ),
 
@@ -3785,15 +3943,13 @@ const handle = (model: Model, message: Message): Result =>
         model,
         `Drained ${nodeName(model.board.game, nodeId)}`,
         Actions.drain(model.board.game, nodeId),
-        { note: () => ['Draining: no new traffic until it finishes what it holds.', 'plain'] },
+        { note: () => [say(model).toasts.draining, 'plain'] },
       ),
 
     IndexAdded: ({ nodeId }) =>
       act(model, 'Added an index', Work.addIndex(model.board.game, nodeId), {
         note: (game) =>
-          game.backlog[0]?.ref === 'add-index'
-            ? ['Add index is at the top of the backlog.', 'plain']
-            : null,
+          game.backlog[0]?.ref === 'add-index' ? [say(model).toasts.indexOnTop, 'plain'] : null,
       }),
 
     CacheGuardChosen: ({ nodeId, coalesce, warming, earlyExpiry, swr }) =>
@@ -4435,7 +4591,7 @@ const handle = (model: Model, message: Message): Result =>
     ProviderSwitched: () =>
       logResponse(model, 'switch-provider') ??
       act(model, 'Switched provider', Actions.switchProvider(model.board.game), {
-        note: () => ['Switched to a second Payment Provider mid-outage.', 'ok'],
+        note: () => [say(model).toasts.providerSwitched, 'ok'],
       }),
 
     ProviderChosen: ({ provider }) =>
@@ -4481,7 +4637,11 @@ const handle = (model: Model, message: Message): Result =>
         ...model,
         board: { ...model.board, game: Actions.collect(model.board.game) },
       }
-      return withToast(next, `Collected $${Math.round(amount).toLocaleString('en-US')}.`, 'ok')
+      return withToast(
+        next,
+        say(model).toasts.collected(`$${Math.round(amount).toLocaleString('en-US')}`),
+        'ok',
+      )
     },
 
     UndoChosen: () => reverse(model, undoGame(model.board), 'Undid'),
@@ -4534,19 +4694,21 @@ const handle = (model: Model, message: Message): Result =>
           const migration = serviceOf(game).migration
           return migration
             ? [
-                `${percent(MIGRATION_STEPS[stepOf(migration) - 1] ?? 0)} of App Servers moved.`,
+                say(model).toasts.migrationMoved(
+                  percent(MIGRATION_STEPS[stepOf(migration) - 1] ?? 0),
+                ),
                 'ok',
               ]
-            : ['Migration done.', 'ok']
+            : [say(model).toasts.migrationDone, 'ok']
         },
       }),
     MigrationCancelled: () =>
       act(model, 'Cancelled the migration', Work.cancelMigration(model.board.game), {
-        note: () => ['Migration cancelled. App Servers are back on the old Stack.', 'plain'],
+        note: () => [say(model).toasts.migrationCancelled, 'plain'],
       }),
     RolledBack: () =>
       act(model, 'Rolled back', Work.rollback(model.board.game), {
-        note: () => ['Rolled back. The Features ship again with the next deploy.', 'ok'],
+        note: () => [say(model).toasts.rolledBack, 'ok'],
       }),
 
     RoundRaised: () => {
@@ -4555,10 +4717,10 @@ const handle = (model: Model, message: Message): Result =>
       const ipo = listed(model, model.board.game)
       const result = act({ ...model, founder: ipo.founder }, 'Listed', Actions.raise(ipo.game), {
         panel: afterRound,
-        note: (game) => [`Listed. +${game.banked} Legacy.`, 'primary'],
+        note: (game) => [say(model).toasts.listed(game.banked), 'primary'],
       })
       return result.model.board.game === model.board.game
-        ? withToast(model, 'The IPO did not go through.', 'warn')
+        ? withToast(model, say(model).toasts.ipoFailed, 'warn')
         : {
             ...result,
             commands: [...(result.commands ?? []), WriteFounder({ founder: ipo.founder })],
@@ -4570,12 +4732,12 @@ const handle = (model: Model, message: Message): Result =>
 
     BridgeAccepted: () => {
       const bridge = model.board.game.bridge
-      if (!bridge) return withToast(model, 'No bridge is on the table.', 'warn')
+      if (!bridge) return withToast(model, say(model).toasts.noBridge, 'warn')
       const took = act(model, 'Accepted the bridge', Runway.acceptBridge(model.board.game))
       if (took.model.board.game === model.board.game) return took
       return withToast(
         took.model,
-        `Bridge: ${money(bridge.grant)} for ${Math.round(bridge.dilution * 100)}% of Equity.`,
+        say(model).toasts.bridgeTaken(money(bridge.grant), Math.round(bridge.dilution * 100)),
         'primary',
         took.commands,
       )
@@ -4598,7 +4760,7 @@ const handle = (model: Model, message: Message): Result =>
           currentFile(model)?.name ?? '',
         ),
         {
-          onFailure: (refusal) => withToast(model, Actions.describeRefusal(refusal), 'warn'),
+          onFailure: (refusal) => withToast(model, refusalIn(say(model), refusal), 'warn'),
           onSuccess: (result) => {
             const exited = recordExit(model.founder, result)
             const [earned, earnedCommands] = achieve(
@@ -4648,7 +4810,11 @@ const handle = (model: Model, message: Message): Result =>
       ),
     KeepToggled: ({ id }) => changeFounder(model, toggleKeep(model.founder, id)),
     PerkBought: ({ id }) =>
-      changeFounder(model, buyPerk(model.founder, id), `${PERKS[id].name} bought.`),
+      changeFounder(
+        model,
+        buyPerk(model.founder, id),
+        say(model).toasts.perkBought(say(model).catalog.perks[id].name),
+      ),
     VentureChosen: ({ id }) => changeFounder(model, unlockVenture(model.founder, id)),
     MutatorToggled: ({ id }) => changeFounder(model, toggleMutator(model.founder, id)),
 
@@ -4658,11 +4824,11 @@ const handle = (model: Model, message: Message): Result =>
         model.board.selection,
         `Playbook ${model.founder.playbooks.length + 1}`,
       )
-      if (!playbook) return withToast(model, 'Shift-click the Nodes to save first.', 'plain')
+      if (!playbook) return withToast(model, say(model).toasts.selectToSave, 'plain')
       const saved = changeFounder(
         { ...model, board: { ...model.board, selection: [] } },
         savePlaybook(model.founder, playbook),
-        `Saved ${playbook.name}: ${playbook.nodes.length} Nodes.`,
+        say(model).toasts.playbookSaved(playbook.name, playbook.nodes.length),
       )
       return saved
     },
@@ -4684,7 +4850,13 @@ const handle = (model: Model, message: Message): Result =>
       if (!playbook) return { model }
       return {
         model,
-        commands: [CopyText({ text: encodePlaybook(playbook), done: `Copied ${playbook.name}.` })],
+        commands: [
+          CopyText({
+            text: encodePlaybook(playbook),
+            done: say(model).toasts.copiedPlaybook(playbook.name),
+            blocked: say(model).toasts.clipboardBlocked,
+          }),
+        ],
       }
     },
     PlaybookImportAsked: () => ({ model, commands: [AskPlaybook({})] }),
@@ -4696,33 +4868,35 @@ const handle = (model: Model, message: Message): Result =>
             Result.flatMap(decodePlaybook(text), (playbook) =>
               savePlaybook(model.founder, playbook),
             ),
-            'Playbook imported.',
+            say(model).toasts.playbookImported,
           ),
 
     SaveExported: () => {
-      if (offCompany(model)) return withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
-      if (!model.loaded) return withToast(model, 'There is no Company to export.', 'warn')
+      if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
+      if (!model.loaded) return withToast(model, say(model).toasts.noCompanyToExport, 'warn')
       return {
         model,
         commands: [
           CopyText({
             text: encodeSave(savePayloadOf(model), Date.now()),
-            done: 'Copied the save as text.',
+            done: say(model).toasts.copiedSave,
+            blocked: say(model).toasts.clipboardBlocked,
           }),
         ],
       }
     },
     SaveImportAsked: () =>
       offCompany(model)
-        ? withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
+        ? withToast(model, say(model).toasts.noSaveHere, 'warn')
         : { model, commands: [AskSaveImport({})] },
     SaveImported: ({ text }) => {
       if (text === null) return { model }
-      if (offCompany(model)) return withToast(model, 'A Sandbox or Challenge has no save.', 'warn')
+      if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
       const id = model.saves.current
-      if (id === null) return withToast(model, 'There is no Company to import into.', 'warn')
+      if (id === null) return withToast(model, say(model).toasts.noCompanyToImport, 'warn')
       const decoded = decodeSave(text)
-      if (Result.isFailure(decoded)) return withToast(model, decoded.failure, 'warn')
+      if (Result.isFailure(decoded))
+        return withToast(model, reasonIn(say(model), decoded.failure), 'warn')
       // The save loads as it does when the Company opens, on a fresh board: the open Company's
       // undo stack and Inspector history belong to the Company the import replaces.
       const loaded = handle(
@@ -4742,7 +4916,7 @@ const handle = (model: Model, message: Message): Result =>
             clock: board.clock,
           },
         },
-        'Save imported.',
+        say(model).toasts.saveImported,
         'ok',
       )
       return { ...loaded, model: next, commands: [...(loaded.commands ?? []), clear] }
@@ -4899,12 +5073,14 @@ const handle = (model: Model, message: Message): Result =>
     }),
     CheatLegacy: () => {
       const founder = { ...model.founder, legacy: model.founder.legacy + 20 }
-      return withToast({ ...model, founder }, '+20 Legacy.', 'plain', [WriteFounder({ founder })])
+      return withToast({ ...model, founder }, say(model).toasts.legacyCheat, 'plain', [
+        WriteFounder({ founder }),
+      ])
     },
     CheatRound: () => {
       const next = nextEra(model.board.game)
       if (!next || isFinalEra(model.board.game))
-        return withToast(model, 'No round to skip to.', 'plain')
+        return withToast(model, say(model).toasts.noRoundToSkip, 'plain')
       const ready = {
         ...model.board.game,
         users: Math.max(model.board.game.users, eraOf(model.board.game).raiseAt),
@@ -4941,12 +5117,18 @@ const handle = (model: Model, message: Message): Result =>
       if (model.board.game.incident)
         return withToast(
           model,
-          `${INCIDENTS[model.board.game.incident.kind].name} is still running.`,
+          say(model).toasts.incidentRunning(
+            say(model).catalog.incidents[model.board.game.incident.kind].name,
+          ),
           'warn',
         )
       const game = forceIncident(model.board.game, solveFlow(model.board.game), kind)
       if (!game)
-        return withToast(model, `${INCIDENTS[kind].name} has no target in this Design.`, 'warn')
+        return withToast(
+          model,
+          say(model).toasts.incidentNoTarget(say(model).catalog.incidents[kind].name),
+          'warn',
+        )
       const next: Model = {
         ...model,
         panel: 'none',
@@ -4958,15 +5140,19 @@ const handle = (model: Model, message: Message): Result =>
     StateCopied: () => {
       const reason = refusal(model)
       return reason
-        ? withToast(model, reason, 'warn')
+        ? withToast(model, reasonIn(say(model), reason), 'warn')
         : {
             model,
             commands: [
-              CopyText({ text: stateJson(model), done: 'Copied the game state as JSON.' }),
+              CopyText({
+                text: stateJson(model),
+                done: say(model).toasts.copiedState,
+                blocked: say(model).toasts.clipboardBlocked,
+              }),
             ],
           }
     },
-    LogCleared: () => withToast(model, 'Playtest log cleared.', 'plain', [ClearLog({})]),
+    LogCleared: () => withToast(model, say(model).toasts.logCleared, 'plain', [ClearLog({})]),
 
     ToastRaised: ({ message: text, tone }) => withToast(model, text, tone),
     ToastCleared: ({ id }) => ({

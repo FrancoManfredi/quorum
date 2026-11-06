@@ -1,3 +1,6 @@
+import { toasts } from './toasts.ts'
+import { mailWords } from './mailWords.ts'
+import { mail } from './mail.ts'
 import { senders } from './senders.ts'
 import { units } from './units.ts'
 import { challenge } from './challenge.ts'
@@ -108,4 +111,7 @@ export const en = {
   catalog,
   units,
   senders,
+  mail,
+  mailWords,
+  toasts,
 }
