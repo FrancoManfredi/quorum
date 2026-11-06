@@ -5,7 +5,9 @@ import {
   COMPONENTS,
   COMPONENT_IDS,
   FEATURES,
+  INSIGHT_POOLS,
   INCIDENTS,
+  POOLS,
   RESEARCH_TRACKS,
   RUNTIMES,
   TASKS,
@@ -15,7 +17,7 @@ import {
 import { BY_RESEARCH } from '@quorum/simulation/discovery'
 import { EYEBROW, FIGURE, SCROLL, insightChip } from '@quorum/ui/game/bits'
 import { compact } from '@quorum/ui/game/format'
-import { recipeOf } from '@quorum/ui/game/pools'
+import { POOL_ICONS, poolColor, poolName, recipeOf } from '@quorum/ui/game/pools'
 import { NODE_SIZE, researchLayout } from '@quorum/ui/game/research-layouts'
 import { TRACK_ICONS, researchMark } from '@quorum/ui/game/research-marks'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -417,6 +419,67 @@ const treeButton = (href: string, label: string, mark: IconNode, h: H): Html =>
     [icon(h, mark, 'size-4'), label],
   )
 
+/** Every Insight pool some item costs, in catalog order. */
+const usedPools = INSIGHT_POOLS.filter((pool) =>
+  researchList.some((entry) => recipeOf(entry.id).some(([spent]) => spent === pool)),
+)
+
+/** How to read the cost on an item: what its icon names and what its number counts. */
+const costLegend = (h: H): Html =>
+  h.div(
+    [h.Class('not-prose my-5')],
+    [
+      h.ul(
+        [
+          h.Class(
+            'grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3',
+          ),
+        ],
+        [
+          ...usedPools.map((pool) =>
+            h.li(
+              [h.Key(pool), h.Class('flex items-center gap-3 bg-background px-3.5 py-2.5')],
+              [
+                h.span(
+                  [
+                    h.AriaHidden(true),
+                    h.Class('grid size-8 shrink-0 place-items-center rounded-md bg-muted'),
+                    h.Style({ color: poolColor(pool) }),
+                  ],
+                  [icon(h, POOL_ICONS[pool], 'size-4')],
+                ),
+                h.span(
+                  [h.Class('min-w-0')],
+                  [
+                    h.span([h.Class('block text-[13.5px] font-medium')], [poolName(pool)]),
+                    h.span(
+                      [h.Class('block text-[12px] leading-snug text-muted-foreground')],
+                      [
+                        pool === 'failure'
+                          ? 'Earned from failed requests'
+                          : `Earned from sampled ${POOLS[pool].label} requests`,
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          // Blank cells finish the last row at two and three columns, so the hairlines do not show through.
+          ...Array.from({ length: (3 - (usedPools.length % 3)) % 3 }, (_, index) =>
+            h.li([h.Key(`fill-3-${index}`), h.Class('hidden bg-background lg:block')], []),
+          ),
+          ...Array.from({ length: (2 - (usedPools.length % 2)) % 2 }, (_, index) =>
+            h.li(
+              [h.Key(`fill-2-${index}`), h.Class('hidden bg-background sm:block lg:hidden')],
+              [],
+            ),
+          ),
+        ],
+      ),
+    ],
+  )
+
 const hub = page({
   path: '/research',
   title: 'Research tree',
@@ -424,7 +487,7 @@ const hub = page({
     'Every Research item by track and Era: what it costs in Insight, what it needs first, and what it unlocks.',
   order: 3,
   aliases: ['tech tree', 'insight', 'unlocks'],
-  headings: headingsFor(['The tree', 'By track']),
+  headings: headingsFor(['Reading a cost', 'The tree', 'By track']),
   text: entities.map((entry) => entry.title).join(' '),
   body: (_model, h) =>
     h.div(
@@ -432,6 +495,37 @@ const hub = page({
       [
         paragraph(
           'Research turns Insight into new Components, runtimes, and practices. Each item costs Insight from the pools its subject earns, and some need other items first. The tree grows up from each track’s root and to the right through the Eras.',
+          h,
+        ),
+        section(
+          'Reading a cost',
+          [
+            h.p(
+              [],
+              [
+                'Every item costs Insight, and Insight comes in pools: one for each kind of request your ',
+                link('/components/analytics', 'Analytics', h),
+                ' Nodes sample, and one for failures. A cost is a list of icons, each with a number. The icon names the pool, and the number is how much of it the item takes. ',
+                insightChip('write', '5k', h),
+                ' is 5,000 ',
+                poolName('write'),
+                ', and ',
+                insightChip('failure', '2k', h),
+                ' is 2,000 ',
+                poolName('failure'),
+                '. An icon wears the colour of its request kind on the board.',
+              ],
+            ),
+            costLegend(h),
+            h.p(
+              [],
+              [
+                'To earn a pool, sample that kind of traffic. ',
+                link('/explanation/observability', 'Insight and observability', h),
+                ' explains how.',
+              ],
+            ),
+          ],
           h,
         ),
         section(
