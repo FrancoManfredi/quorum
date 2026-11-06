@@ -1,6 +1,7 @@
 import { Effect } from 'effect'
 import { Server } from 'foldkit/experimental'
 import { init, normalize } from './main.ts'
+import { markdownPath } from './markdown.ts'
 import { PAGES, pageAt } from './pages.ts'
 import { WIKI_ORIGIN } from './site.ts'
 import { view } from './view.ts'
@@ -32,6 +33,11 @@ export const renderDocument: Server.DocumentRenderer = (application, assets) => 
       `<meta property="og:description" content="${description}">`,
       '<meta property="og:image" content="https://playquorum.dev/og.png">',
       '<meta name="twitter:card" content="summary_large_image">',
+      ...(page
+        ? [
+            `<link rel="alternate" type="text/markdown" href="${WIKI_ORIGIN}${markdownPath(page.path)}">`,
+          ]
+        : []),
       '<link rel="icon" type="image/svg+xml" href="/favicon.svg">',
       '<link rel="preconnect" href="https://fonts.googleapis.com">',
       '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
@@ -39,6 +45,9 @@ export const renderDocument: Server.DocumentRenderer = (application, assets) => 
     ].join(''),
   })
 }
+
+/** The files the build adds beside the pages (vite.config.ts): llms.txt and every page's Markdown. */
+export { markdownFiles } from './markdown.ts'
 
 export const prerenderPaths: ReadonlyArray<string> = PAGES.map((page) => page.path)
 

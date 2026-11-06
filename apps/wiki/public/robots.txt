@@ -2,3 +2,6 @@ User-agent: *
 Allow: /
 
 Sitemap: https://wiki.playquorum.dev/sitemap.xml
+
+# For agents: the index of every page as Markdown.
+# https://wiki.playquorum.dev/llms.txt

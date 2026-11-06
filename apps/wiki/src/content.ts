@@ -47,6 +47,10 @@ export const proseAt = (path: string): Prose | null => {
     : null
 }
 
+/** The source document of an authored page, by its path. */
+export const documentOf = (path: string): Markdown.MarkdownDocument | null =>
+  entries.find((candidate) => candidate.path === path && candidate.frontmatter)?.document ?? null
+
 /** Every prose file that belongs to a catalog page, for the coverage tests. */
 export const prosePaths: ReadonlyArray<string> = entries
   .filter((entry) => !entry.frontmatter)
