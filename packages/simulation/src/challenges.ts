@@ -56,7 +56,7 @@ export type Challenge = Readonly<{
   stepSeconds: number
   /**
    * Users from each time on, in sim seconds. The first entry is at 0. An entry with a mix
-   * sends that mix from then on, as when a million clients reconnect at once.
+   * sends that mix from then on, as when 240,000 clients reconnect at once.
    */
   demand: ReadonlyArray<
     Readonly<{ at: number; users: number; mix?: Partial<Record<RequestKind, number>> }>
@@ -1024,7 +1024,7 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     id: 'thundering-herd',
     name: 'Thundering Herd',
     era: 3,
-    brief: 'The chat servers restart at minute 2. A million clients reconnect and log in at once.',
+    brief: 'The chat servers restart at minute 2. 240,000 clients reconnect and log in at once.',
     inspiredBy: 'Reconnect storms',
     legacy: 5,
     start: () => ({

@@ -1,9 +1,11 @@
 import { cosTurns } from './calendar.ts'
 import {
   ABROAD_SEED,
+  ANYCAST_MS,
   CALENDAR_START,
   DIURNAL_AMPLITUDE,
   HOME_REGION,
+  HTTP2_CUT,
   HTTP3_CUT,
   REGIONS,
   REGIONS_FROM_STAGE,
@@ -13,6 +15,7 @@ import {
   rttOf,
   type ComponentId,
   type RegionId,
+  type RequestKind,
 } from './catalog.ts'
 import { has, zoneMs } from './lookups.ts'
 import type { Game, GameNode, PerRegion } from './state.ts'
@@ -137,11 +140,17 @@ export const outRegion = (game: Game): RegionId | null =>
     ? game.incident.region
     : null
 
-/** Milliseconds a user hop pays to cross from one region to another: two round trips, less HTTP/3. */
+/** Milliseconds a user hop pays to cross from one region to another: two round trips, less HTTP/3, less Anycast. */
 export const userRttMs = (game: Game, from: RegionId, to: RegionId): number => {
   const rtt = rttOf(from, to) * USER_ROUND_TRIPS
-  return rtt > 0 && has(game, 'http3') ? rtt * (1 - HTTP3_CUT) : rtt
+  if (rtt <= 0) return rtt
+  const cut = has(game, 'http3') ? rtt * (1 - HTTP3_CUT) : rtt
+  return has(game, 'anycast') ? Math.max(0, cut - ANYCAST_MS) : cut
 }
+
+/** The user hop a request of `kind` pays: HTTP/2 cuts it on page views (10 "Performance"). */
+export const userHopMs = (game: Game, ms: number, kind: RequestKind): number =>
+  kind === 'page' && has(game, 'http2') ? ms * (1 - HTTP2_CUT) : ms
 
 export type UserRoute = Readonly<{
   /** Where these users live. */

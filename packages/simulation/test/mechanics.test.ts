@@ -6,6 +6,7 @@ import { CALENDAR_START, VENTURES } from '../src/catalog.ts'
 import { preseedGame } from '../src/company.ts'
 import { foundCompany } from '../src/founding.ts'
 import { solveFlow } from '../src/solve.ts'
+import { freeSandbox } from '../src/sandbox.ts'
 import { step } from '../src/step.ts'
 import { newGame } from '../src/company.ts'
 
@@ -74,5 +75,24 @@ describe('the fake advisory backdoor', () => {
     const open = Result.getOrThrow(installBackdoor(game))
     expect(open.backdoorAt).toBe(game.time)
     expect(Result.isFailure(installBackdoor(open))).toBe(true)
+  })
+})
+
+describe('The user hop', () => {
+  /** Stage 6 users on four continents all enter the home Users Node, so EU users pay 2 x 75 ms. */
+  const euHop = (research: Array<'http2' | 'http3' | 'anycast'>, kind: 'page' | 'read') => {
+    const game = { ...freeSandbox(), stage: 6, seed: 3 }
+    const bare = game.researched.filter((id) => !['http2', 'http3', 'anycast'].includes(id))
+    const withResearch = { ...game, researched: [...bare, ...research] }
+    return solveFlow(withResearch).regionKinds.eu?.[kind]?.hopMs
+  }
+
+  test('Anycast takes 20 ms off, HTTP/3 20%, and HTTP/2 15% on page views only', () => {
+    expect(euHop([], 'page')).toBe(150)
+    expect(euHop(['anycast'], 'page')).toBe(130)
+    expect(euHop(['http3'], 'page')).toBe(120)
+    expect(euHop(['http2'], 'page')).toBe(127.5)
+    expect(euHop(['http2'], 'read')).toBe(150)
+    expect(euHop(['http2', 'http3', 'anycast'], 'page')).toBeCloseTo(85, 9)
   })
 })

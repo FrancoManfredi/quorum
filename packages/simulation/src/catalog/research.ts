@@ -2060,6 +2060,7 @@ const RECIPES: Partial<Record<ResearchId, ReadonlyArray<InsightPool>>> = {
   'health-checks': ['failure', 'read'],
   'auth-provider': ['login'],
   caching: ['read'],
+  'cache-strategies': ['read', 'write'],
   pooling: ['write'],
   pitr: ['write'],
   // 10's recipe for `online-migrations`: data loss shows under writes.

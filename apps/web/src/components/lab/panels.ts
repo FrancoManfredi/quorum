@@ -122,7 +122,7 @@ const stats = (columns: string, children: ReadonlyArray<Html>, h: HtmlBuilder<Me
 const STEPS: ReadonlyArray<readonly [string, string]> = [
   [
     'Wire it',
-    'Drag from a Node’s blue output port to another Node. Click or tap a link to cut it. Drag empty space to pan; scroll or pinch to zoom.',
+    'Drag from a Node’s blue output port to another Node. Click a link, then press its × badge or Delete to cut it. Drag empty space to pan; scroll or pinch to zoom.',
   ],
   [
     'Collect',
@@ -144,7 +144,7 @@ const STEPS: ReadonlyArray<readonly [string, string]> = [
 ]
 
 const KEYS: ReadonlyArray<readonly [string, string]> = [
-  ['1–4', 'Build group'],
+  ['1–7', 'Build group'],
   ['Enter', 'Inspector · place · confirm'],
   ['L', 'Link the selected Node'],
   ['Shift+T', 'Tidy by zone'],
@@ -157,7 +157,7 @@ const KEYS: ReadonlyArray<readonly [string, string]> = [
   ['Ctrl+C / X / V', 'Copy, cut, paste Nodes'],
   ['Ctrl+D', 'Duplicate Nodes'],
   ['Shift+Ctrl / Alt drag', 'Add to / remove from selection'],
-  ['Shift+Arrows', 'Nudge Nodes'],
+  ['Shift+Arrows', 'Nudge Nodes 16 px'],
   ['U', 'Resize selected'],
   ['Z', 'Undo'],
   ['Shift+Z', 'Redo'],
@@ -167,10 +167,13 @@ const KEYS: ReadonlyArray<readonly [string, string]> = [
   ['D', 'Dashboard'],
   ['G', 'Glossary'],
   ['M', 'Mute'],
-  ['Arrows', 'Select Node'],
+  ['I', 'Inbox'],
+  ['$', 'Cost'],
+  ['F', 'Fullscreen'],
+  ['Arrows', 'Select nearest Node'],
   ['Space', 'Pause'],
   ['`', 'Playtest panel'],
-  ['Esc', 'Cancel'],
+  ['Esc', 'Back out, then Menu'],
 ]
 
 export const helpPanel = (h: HtmlBuilder<Message>): Html =>

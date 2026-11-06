@@ -140,6 +140,7 @@ import {
   placeMs,
   regional,
   regionalCycle,
+  userHopMs,
   userRoutes,
   userSharesOf,
   type UserRoute,
@@ -1412,7 +1413,7 @@ const ledgerOf = (
   const answersOf = (kind: RequestKind): ReadonlyArray<RouteAnswer> =>
     routes.map((entry) => {
       const raw = entry.source ? outcomes.outcome(entry.source, kind) : failed('stranded')
-      const extraMs = entry.extraMs + regressed
+      const extraMs = userHopMs(game, entry.extraMs, kind) + regressed
       return {
         entry,
         raw,
@@ -1420,9 +1421,9 @@ const ledgerOf = (
       }
     })
   /** What one request of `kind` gets back, over every region's users. */
-  const answerOf = (answers: ReadonlyArray<RouteAnswer>): Outcome => {
+  const answerOf = (answers: ReadonlyArray<RouteAnswer>, kind: RequestKind): Outcome => {
     const only = answers.length === 1 ? answers[0] : undefined
-    if (only && only.entry.extraMs + regressed === 0) return only.answer
+    if (only && userHopMs(game, only.entry.extraMs, kind) + regressed === 0) return only.answer
     return (
       blend(answers.map(({ entry, answer }) => [answer, entry.share] as const)) ??
       failed('stranded')
@@ -1451,7 +1452,7 @@ const ledgerOf = (
     const rate = demand[kind] ?? 0
     if (rate <= 0) continue
     const answers = answersOf(kind)
-    const result = answerOf(answers)
+    const result = answerOf(answers, kind)
     // The part that went through a Queue is also scored on when its result is ready.
     const enqueued = completion.enqueued[kind] ?? 0
     const done = enqueued > 0 ? (completion.scored[kind] ?? 0) / enqueued : null
@@ -1486,7 +1487,7 @@ const ledgerOf = (
           apdex: own,
           near: raw === answer ? own : apdexOf(raw, PROFILES[kind].apdex) * finish,
           fail: answer.fail,
-          hopMs: entry.extraMs,
+          hopMs: userHopMs(game, entry.extraMs, kind),
           p99: percentile(answer, 0.99),
         },
       }

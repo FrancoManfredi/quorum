@@ -461,16 +461,16 @@ projected from the known diurnal cycle rather than fit from history.
 
 ### Track: Performance
 
-| ID                | Name                        | Era      | ◇      | Requires | Effect                                                    |
-| ----------------- | --------------------------- | -------- | ------ | -------- | --------------------------------------------------------- |
-| `keepalive`       | Connection reuse            | Garage   | 25     | None     | −1 ms per internal hop (no new TCP handshake)             |
-| `gzip`            | Compression                 | Garage   | 30     |          | `page` and `read` payload −70%, +CPU                      |
-| `eager-loading`   | Eager loading               | Pre-seed | 100    | None     | Enables the "Eager loading" task                          |
-| `http2`           | HTTP/2                      | Seed     | 350    |          | −15% user hop latency on `page`                           |
-| `denormalization` | Denormalization             | Series A | 3,000  | None     | Read cost −30%, write cost +20%                           |
-| `precompute`      | Materialized views          | Series B | 12,000 | None     | `report` cost −50%, data is stale by the refresh interval |
-| `binary-rpc`      | Binary RPC between services | Series B | 15,000 | None     | Inter-service serialization CPU −50%                      |
-| `http3`           | HTTP/3                      | Series C | 60,000 | `http2`  | −20% user hop latency for distant and mobile users        |
+| ID                | Name                        | Era      | ◇      | Requires | Effect                                                                  |
+| ----------------- | --------------------------- | -------- | ------ | -------- | ----------------------------------------------------------------------- |
+| `keepalive`       | Connection reuse            | Garage   | 25     | None     | −1 ms per internal hop (no new TCP handshake)                           |
+| `gzip`            | Compression                 | Garage   | 30     |          | `page`, `read`, `search`, `bot`, `report` and `feed` payload −70%, +CPU |
+| `eager-loading`   | Eager loading               | Pre-seed | 100    | None     | Enables the "Eager loading" task                                        |
+| `http2`           | HTTP/2                      | Seed     | 350    |          | −15% user hop latency on `page`                                         |
+| `denormalization` | Denormalization             | Series A | 3,000  | None     | Read cost −30%, write cost +20%                                         |
+| `precompute`      | Materialized views          | Series B | 12,000 | None     | `report` cost −50%, data is stale by the refresh interval               |
+| `binary-rpc`      | Binary RPC between services | Series B | 15,000 | None     | Inter-service serialization CPU −50%                                    |
+| `http3`           | HTTP/3                      | Series C | 60,000 | `http2`  | −20% user hop latency for distant and mobile users                      |
 
 Denormalization takes 30% off a read's CPU and adds 20% to a write's, Materialized
 views halve a report's scan, and Binary RPC halves the CPU a Node spends serialising its calls

@@ -110,7 +110,9 @@ After a refusal the sender stays remembered, so try another Node. Press `Esc` to
 
 ## Try it
 
-Make two Links on the practice board below. The goal is a path from Users through the App Server to the Database. Drag from each out port to the next card. Then select one Link, cut it with the **×** badge, and make it again. Nothing you do here touches a Company.
+Make three Links on the practice board below: Users to the App Server, the App Server to the Database, and the App Server to Analytics. Drag from each out port to the next card. Then select one Link, cut it with the **×** badge, and make it again.
+
+Two Load Balancers wait at the bottom. Link the first to the second, then drag from the second back to the first. The game refuses with **That link would make a loop.**, and the last goal ticks off once you have read it. Nothing you do here touches a Company.
 
 ::Practice{id="wire"}
 

@@ -203,7 +203,7 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   'Shift+Ctrl / Alt drag': 'Shift+Ctrl / Alt 拖动',
   'Add to / remove from selection': '加入选择 / 从选择中移除',
   'Shift+Arrows': 'Shift+方向键',
-  'Nudge Nodes': '微调节点位置',
+  'Nudge Nodes 16 px': '微调节点位置 16 像素',
   'Shift+Z': 'Shift+Z',
   Del: 'Del',
   Mute: '静音',
@@ -609,8 +609,8 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   'Launch is at minute 2, and this Design has many faults. Find them.':
     '第 2 分钟上线，这套设计有不少问题。把它们找出来。',
   'Thundering Herd': '惊群效应',
-  'The chat servers restart at minute 2. A million clients reconnect and log in at once.':
-    '聊天服务器在第 2 分钟重启。一百万个客户端同时重连并登录。',
+  'The chat servers restart at minute 2. 240,000 clients reconnect and log in at once.':
+    '聊天服务器在第 2 分钟重启。24 万个客户端同时重连并登录。',
   'Read States': '已读状态',
   'The heap fills twice. Keep the p99 under 90 ms. Any runtime.':
     '堆内存两次填满。使用任意运行时，将 p99 保持在 90 ms 以下。',

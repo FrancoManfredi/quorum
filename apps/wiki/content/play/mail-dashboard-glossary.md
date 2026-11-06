@@ -75,9 +75,9 @@ The whole Glossary is also on the wiki, under [Glossary](/glossary).
 
 Alerts need the `alerting` Research. After that, a red bar on the top lane of the board pages you when a rule holds long enough, for example "Error rate above 1%". It names a symptom, not a cause. A cascade adds a second chip that says "After" and the earlier incident that was left alone.
 
-![An alert as a toast, with Acknowledge and Open](/play/pager.png)
+![The red pager bar “Error rate above 1%” above a Reconnect storm incident banner on the top lane](/play/pager.png)
 
-The screenshot shows an alert as it first arrives, as a toast with **Acknowledge** and **Open**. With the Research, the red pager bar described here shows on the top lane.
+The pager bar sits above the incident banner. When the alert first fires, a toast with **Acknowledge** and **Open** also arrives in the corner, and the same alert lands in Mail.
 
 The pager bar has no buttons. Fix the cause on the board and the bar clears. The buttons you can meet are:
 

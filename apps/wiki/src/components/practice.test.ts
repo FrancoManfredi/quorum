@@ -50,9 +50,34 @@ test('wire: Links finish the goal; a bad Link shows the game refusal', () => {
   )
   expect(complete(p)).toBe(false)
   p = run(p, { _tag: 'Link', from: server, to: analytics })
-  expect(complete(p)).toBe(true)
+  expect(goals(p).map((goal) => goal.done)).toEqual([true, true, true, false, false])
   p = run(p, { _tag: 'Link', from: users, to: server })
   expect(p.note?.text).toBe('Already linked.')
+})
+
+test('wire: linking the Load Balancers in a circle shows the loop refusal and finishes the board', () => {
+  let p = start('wire')
+  const [users, server, database, analytics] = ['users', 'server', 'database', 'analytics'].map(
+    (type) => idOf(p, type),
+  ) as [string, string, string, string]
+  const [first, second] = p.game.nodes
+    .filter((node) => node.type === 'lb')
+    .map((node) => node.id) as [string, string]
+  p = run(
+    p,
+    { _tag: 'Link', from: users, to: server },
+    { _tag: 'Link', from: server, to: database },
+    { _tag: 'Link', from: server, to: analytics },
+    { _tag: 'Link', from: first, to: second },
+  )
+  expect(p.note).toBeNull()
+  expect(p.loopRefused).toBe(false)
+  expect(complete(p)).toBe(false)
+  p = run(p, { _tag: 'Link', from: second, to: first })
+  expect(p.note?.text).toBe('That link would make a loop.')
+  expect(p.game.links).toHaveLength(4)
+  expect(goals(p).at(-1)).toEqual({ label: 'Read the loop refusal', done: true })
+  expect(complete(p)).toBe(true)
 })
 
 test('a Link that closes a circle is refused as a loop', () => {

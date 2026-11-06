@@ -32,6 +32,8 @@ export type Practice = Readonly<{
   grouped: boolean
   /** Moved a group of two or more Nodes. */
   groupMoved: boolean
+  /** The game refused a Link because it would make a loop. */
+  loopRefused: boolean
 }>
 
 export type PracticeEvent =
@@ -77,6 +79,8 @@ export const startGame = (id: PracticeId): Game => {
         node('server', 'server', 276, 0),
         node('database', 'database', 552, 0),
         node('analytics', 'analytics', 276, 260),
+        node('lb-1', 'lb', 0, 300),
+        node('lb-2', 'lb', 552, 300),
       ],
       links: [],
     })
@@ -111,6 +115,7 @@ export const start = (id: PracticeId): Practice => {
     startLinks: game.links.length,
     grouped: false,
     groupMoved: false,
+    loopRefused: false,
   }
 }
 
@@ -133,6 +138,8 @@ export const goals = (p: Practice): ReadonlyArray<Goal> => {
       { label: 'Link Users to App Server', done: hasLink(p.game, 'users', 'server') },
       { label: 'Link App Server to Database', done: hasLink(p.game, 'server', 'database') },
       { label: 'Link App Server to Analytics', done: hasLink(p.game, 'server', 'analytics') },
+      { label: 'Link the first Load Balancer to the second', done: hasLink(p.game, 'lb', 'lb') },
+      { label: 'Read the loop refusal', done: p.loopRefused },
     ]
   return [
     { label: 'Select two or more Nodes with a box', done: p.grouped },
@@ -178,7 +185,11 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
     }
     case 'Link':
       return Result.match(Actions.connect(p.game, event.from, event.to), {
-        onFailure: (refusal) => refuse(p, refusal),
+        onFailure: (refusal) => ({
+          ...refuse(p, refusal),
+          loopRefused:
+            p.loopRefused || Actions.describeRefusal(refusal) === 'That link would make a loop.',
+        }),
         onSuccess: (game) => ({
           ...p,
           game,

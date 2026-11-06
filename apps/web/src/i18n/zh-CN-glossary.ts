@@ -515,8 +515,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'Wikipedia: Cold start (computing)': '维基百科：冷启动（计算）',
   'Encoding a response in fewer bytes before it goes over the network, for example with gzip or Brotli. The client decodes it. It saves bandwidth and transfer time and costs CPU on both ends.':
     '在响应通过网络发送之前，用 gzip 或 Brotli 等方式将其编码为更少的字节，再由客户端解码。它能节省带宽和传输时间，但两端都要消耗 CPU。',
-  "Compression research lets you turn on gzip for each App Server. Its page, read, search, and bot responses shrink to 30% of their size, but those requests cost 10% more CPU. Smaller responses reach users sooner, use less of the box's network card, and cut origin Egress. Other kinds, such as upload and media, stay the same size.":
-    '“压缩”研究允许你为每台应用服务器开启 gzip。页面、读取、搜索和机器人响应会缩小至原来的 30%，这些请求的 CPU 开销则增加 10%。更小的响应能更快到达用户，减少机器网卡的占用，并降低源站出站流量。上传、媒体等其他请求类型的大小保持不变。',
+  "Compression research lets you turn on gzip for each App Server. Its page, read, search, report, feed, and bot responses shrink to 30% of their size, but those requests cost 10% more CPU. Smaller responses reach users sooner, use less of the box's network card, and cut origin Egress. Other kinds, such as upload and media, stay the same size.":
+    '“压缩”研究允许你为每台应用服务器开启 gzip。页面、读取、搜索、报表、信息流和机器人响应会缩小至原来的 30%，这些请求的 CPU 开销则增加 10%。更小的响应能更快到达用户，减少机器网卡的占用，并降低源站出站流量。上传、媒体等其他请求类型的大小保持不变。',
   'MDN: Compression in HTTP': 'MDN：HTTP 中的压缩',
   'RFC 1952: GZIP file format': 'RFC 1952：GZIP 文件格式',
   'Keeping a set of open database connections and sharing them among many clients, instead of opening one per client or per request. It saves connection setup time and keeps the database under its connection limit.':
@@ -737,8 +737,8 @@ export const glossaryZhCN: Readonly<Record<string, string>> = {
   'HTTP/2 and HTTP/3': 'HTTP/2 与 HTTP/3',
   'Newer versions of HTTP. HTTP/2 sends many requests at once over one TCP connection. HTTP/3 runs over QUIC on UDP, which combines the transport and TLS handshakes and stops one lost packet from stalling every stream.':
     '较新的 HTTP 版本。HTTP/2 在一条 TCP 连接上同时发送多个请求。HTTP/3 基于 UDP 上的 QUIC，将传输层握手和 TLS 握手合并，并防止单个数据包丢失拖住所有流。',
-  'HTTP/3 research cuts the round trips a user pays to reach a region on another continent by 20%. A European user served from North America waits 120 ms instead of 150 ms. It is a Series C Research item that needs HTTP/2 research first.':
-    'HTTP/3 是需要 HTTP/2 的 C 轮研究。它让用户到另一个大洲区域的往返次数减少 20%：由北美服务的欧洲用户等待 120 毫秒而不是 150 毫秒。HTTP/2 是解锁 HTTP/3 的研究。',
+  'HTTP/3 research cuts the round trips a user pays to reach a region on another continent by 20%. A European user served from North America waits 120 ms instead of 150 ms. It is a Series C Research item that needs HTTP/2 research first. HTTP/2 research cuts the user hop on page views by 15%.':
+    'HTTP/3 是需要 HTTP/2 的 C 轮研究。它让用户到另一个大洲区域的往返次数减少 20%：由北美服务的欧洲用户等待 120 毫秒而不是 150 毫秒。HTTP/2 是解锁 HTTP/3 的研究。HTTP/2 让页面浏览的用户跳数延迟减少 15%。',
   'MDN: Evolution of HTTP': 'MDN：HTTP 的演进',
   'Cloudflare Learning Center: What is HTTP/3?': 'Cloudflare 学习中心：什么是 HTTP/3？',
   'RFC 9114: HTTP/3': 'RFC 9114：HTTP/3',

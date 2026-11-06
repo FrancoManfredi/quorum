@@ -16,7 +16,7 @@ Drag a card to move it, click it to select it, and hold `Shift` to select many. 
 
 Links follow the card. Pressing on the blue output port at the right edge of a card starts a Link instead of a move, so grab the card by its title or its rows. [Wire Nodes with Links](/play/wire-nodes) covers the port.
 
-Drag empty space to pan the view. Scroll the wheel to zoom.
+A plain drag from empty space pans the view, and `Shift` + drag from empty space draws a selection box instead. Scroll the wheel to zoom.
 
 ## Select Nodes
 
@@ -88,7 +88,7 @@ Fixed Nodes cannot be sold. Select Users and press `Delete`, and a toast says **
 
 ## Try it
 
-Goal: line the cards up in one row, left to right, so that no two touch. Then select two of them with `Shift` and a click, and select the rest with a `Shift` box.
+Goal: line the cards up in one row, left to right, so that no two touch. Then select two of them with `Shift` and a click, and select the rest by holding `Shift` and dragging a box from empty space. A drag without `Shift` only pans the view.
 
 ::Practice{id="rearrange"}
 

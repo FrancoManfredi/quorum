@@ -554,7 +554,7 @@ export const TASKS: Record<TaskId, TaskDef> = {
   },
 }
 
-/** Calendar days in a quarter, for how long a Kubernetes version stays supported. */
+/** Calendar days in a calendar quarter, for how long a Kubernetes version stays supported. A Public quarter lasts one week (`QUARTER_SECONDS`). */
 export const QUARTER_DAYS = 90
 
 /** Fixes a task leaves on the service. Refactor and Fix bugs act once instead. */

@@ -848,8 +848,8 @@ export const fr: Readonly<Record<string, string>> = {
   'Copy as text': 'Copier sous forme de texte',
   Delete: 'Supprimer',
   'Wire it': 'Relier les nœuds',
-  'Drag from a Node’s blue output port to another Node. Click or tap a link to cut it. Drag empty space to pan; scroll or pinch to zoom.':
-    'Faites glisser le port de sortie bleu d’un nœud vers un autre nœud pour les relier. Cliquez ou appuyez sur une liaison pour la couper. Faites glisser une zone vide pour déplacer la vue ; utilisez la molette ou pincez pour zoomer.',
+  'Drag from a Node’s blue output port to another Node. Click a link, then press its × badge or Delete to cut it. Drag empty space to pan; scroll or pinch to zoom.':
+    'Faites glisser le port de sortie bleu d’un nœud vers un autre nœud pour les relier. Cliquez sur une liaison, puis sur son badge × ou Suppr pour la couper. Faites glisser une zone vide pour déplacer la vue ; utilisez la molette ou pincez pour zoomer.',
   'Revenue waits in Payments. Press Collect before the drawer fills. Stripe Billing collects for you.':
     'Les revenus s’accumulent dans Paiements. Appuyez sur Encaisser avant que la caisse soit pleine. Stripe Billing encaisse automatiquement pour vous.',
   Learn: 'Apprendre',
@@ -874,7 +874,7 @@ export const fr: Readonly<Record<string, string>> = {
   'Shift+Ctrl / Alt drag': 'Maj+Ctrl / Alt glisser',
   'Add to / remove from selection': 'Ajouter/supprimer de la sélection',
   'Shift+Arrows': 'Maj+Flèches',
-  'Nudge Nodes': 'Déplacer légèrement les nœuds',
+  'Nudge Nodes 16 px': 'Déplacer légèrement les nœuds de 16 px',
   'Resize selected': 'Redimensionner la sélection',
   'Shift+Z': 'Maj+Z',
   Del: 'Suppr',
@@ -882,11 +882,12 @@ export const fr: Readonly<Record<string, string>> = {
   Speed: 'Vitesse',
   Mute: 'Couper le son',
   Arrows: 'Flèches',
-  'Select Node': 'Sélectionner un nœud',
+  'Select nearest Node': 'Sélectionner le nœud le plus proche',
   Enter: 'Entrée',
   Inspector: 'Inspecteur',
   Space: 'Espace',
   Pause: 'Pause',
+  'Back out, then Menu': 'Reculer, puis ouvrir le menu',
   'Playtest panel': 'Panneau de test',
   Keys: 'Raccourcis',
   'Start building': 'Commencer à construire',
@@ -2269,8 +2270,8 @@ export const fr: Readonly<Record<string, string>> = {
   'Launch is at minute 2, and this Design has many faults. Find them.':
     'Le lancement est à la minute 2, et ce design a beaucoup de défauts. Trouvez-les.',
   'Thundering Herd': 'Troupeau tonitruant',
-  'The chat servers restart at minute 2. A million clients reconnect and log in at once.':
-    'Les serveurs de chat redémarrent à la minute 2. Un million de clients se reconnectent et se connectent en même temps.',
+  'The chat servers restart at minute 2. 240,000 clients reconnect and log in at once.':
+    'Les serveurs de chat redémarrent à la minute 2. 240 000 clients se reconnectent et se connectent en même temps.',
   'Read States': 'États de lecture',
   'The heap fills twice. Keep the p99 under 90 ms. Any runtime.':
     'Le tas se remplit deux fois. Gardez le p99 sous 90 ms. Tout runtime.',

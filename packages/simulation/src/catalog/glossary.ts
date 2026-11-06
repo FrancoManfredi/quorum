@@ -670,7 +670,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Encoding a response in fewer bytes before it goes over the network, for example with gzip or Brotli. The client decodes it. It saves bandwidth and transfer time and costs CPU on both ends.',
     inGame:
-      "Compression research lets you turn on gzip for each App Server. Its page, read, search, and bot responses shrink to 30% of their size, but those requests cost 10% more CPU. Smaller responses reach users sooner, use less of the box's network card, and cut origin Egress. Other kinds, such as upload and media, stay the same size.",
+      "Compression research lets you turn on gzip for each App Server. Its page, read, search, report, feed, and bot responses shrink to 30% of their size, but those requests cost 10% more CPU. Smaller responses reach users sooner, use less of the box's network card, and cut origin Egress. Other kinds, such as upload and media, stay the same size.",
     related: ['egress', 'utilization', 'cdn-content-delivery-network'],
     links: [
       {
@@ -1526,7 +1526,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Newer versions of HTTP. HTTP/2 sends many requests at once over one TCP connection. HTTP/3 runs over QUIC on UDP, which combines the transport and TLS handshakes and stops one lost packet from stalling every stream.',
     inGame:
-      'HTTP/3 research cuts the round trips a user pays to reach a region on another continent by 20%. A European user served from North America waits 120 ms instead of 150 ms. It is a Series C Research item that needs HTTP/2 research first.',
+      'HTTP/3 research cuts the round trips a user pays to reach a region on another continent by 20%. A European user served from North America waits 120 ms instead of 150 ms. It is a Series C Research item that needs HTTP/2 research first. HTTP/2 research cuts the user hop on page views by 15%.',
     related: ['http-keep-alive', 'geodns', 'tail-at-scale'],
     links: [
       {

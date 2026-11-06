@@ -2051,8 +2051,8 @@ export const moveKind = (game: Game): Action => {
 
 /**
  * Drains a Node (11 "Mitigation toolbox"): it takes no new traffic, finishes the work it holds,
- * and rejoins the rotation when it is empty. The Incident on it ends with the drain, because the
- * Node it was hurting users through stops answering.
+ * and rejoins the rotation when it is empty. The Incident on it is cut to the drain window,
+ * because the Node it was hurting users through stops answering.
  */
 export const drain = (game: Game, id: string): Action =>
   withNode(game, id, (node) => {

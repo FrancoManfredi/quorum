@@ -27,7 +27,7 @@ import {
 
 const GOAL_TEXT: Record<PracticeId, string> = {
   place: 'Place an App Server and a Database. Pick a part in the dock, then click the board.',
-  wire: 'Link Users to App Server, App Server to Database, and App Server to Analytics. Drag from the output port on the right edge of a card to another card.',
+  wire: 'Link Users to App Server, App Server to Database, and App Server to Analytics. Drag from the output port on the right edge of a card to another card. Then link one Load Balancer to the other, and link the second back to the first to read the loop refusal.',
   rearrange:
     'Hold Shift and drag on empty space to box-select Nodes, then drag one of them to move the group. Then click a Link and press Delete, or click its x badge, to cut it.',
 }
