@@ -12,8 +12,10 @@ import { Message } from '../main.ts'
    into it (node-board.ts), so it looks exactly as it does in the game.
    ========================================================================== */
 
-/** The smallest zoom the board fits to (MIN_FIT_SCALE in board.ts). */
-const SCALE = 0.85
+/** What node-board.ts asks the board for: the zoom it fits to at most, its fit margin, and its top and bottom insets. */
+const SCALE = 1.1
+const PAD = 8
+const INSET = 16
 
 // Defined on first use: this module is imported while main.ts is still loading.
 const defineCardMounted = () =>
@@ -42,7 +44,7 @@ export const nodeCard = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
       h.AriaLabel(`${COMPONENTS[type].name} Node card`),
       // The card is a picture here: the page scrolls, the board does not pan.
       h.Class('pointer-events-none relative w-full'),
-      h.Style({ height: `${Math.round(heightOf(type) * SCALE) + 64}px` }),
+      h.Style({ height: `${Math.round((heightOf(type) + 2 * PAD) * SCALE) + 2 * INSET}px` }),
       h.OnMount((cardMounted ??= defineCardMounted())({ type })),
     ],
     [],

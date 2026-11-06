@@ -118,6 +118,8 @@ export type BoardState = Readonly<{
   readOnly?: boolean
   /** Room the host's own controls take at each edge, in pixels, when the view fits the Design. */
   inset?: Readonly<{ top: number; bottom: number; left: number }>
+  /** Space kept around the Nodes when the board fits them; the game's 80 unless the host says. */
+  pad?: number
 }>
 
 /** The phone: narrow in portrait, short in landscape (the `compact` variant in theme.css). */
@@ -1962,10 +1964,11 @@ class BoardController {
     const nodes = this.state?.game.nodes ?? []
     const { clientWidth: w, clientHeight: h } = this.host
     if (nodes.length === 0 || w === 0 || h === 0) return
-    const minX = Math.min(...nodes.map((node) => node.x)) - 80
-    const minY = Math.min(...nodes.map((node) => node.y)) - 80
-    const maxX = Math.max(...nodes.map((node) => node.x + CARD_W)) + 80
-    const maxY = Math.max(...nodes.map((node) => node.y + heightOf(node.type))) + 80
+    const pad = this.state?.pad ?? 80
+    const minX = Math.min(...nodes.map((node) => node.x)) - pad
+    const minY = Math.min(...nodes.map((node) => node.y)) - pad
+    const maxX = Math.max(...nodes.map((node) => node.x + CARD_W)) + pad
+    const maxY = Math.max(...nodes.map((node) => node.y + heightOf(node.type))) + pad
     // Keep clear of the HUD above and the build dock below, unless the host says what to keep clear of.
     const phone = isPhone()
     const short = matchMedia('(max-height: 499px)').matches
@@ -1975,7 +1978,8 @@ class BoardController {
     const room = Math.max(1, h - top - bottom)
     // The stats panel sits on the left on desktop: keep cards out from under it.
     const left = inset ? inset.left : phone || short ? 0 : 380
-    const across = Math.max(1, w - left - 24)
+    // Without an inset the board keeps 24px clear on the right; a host that sets one owns the edges.
+    const across = Math.max(1, w - left - (inset ? 0 : 24))
     // Below this zoom the card text is too small to read; pan to see the rest.
     const scale = Math.max(
       phone ? MIN_FIT_SCALE_PHONE : MIN_FIT_SCALE,

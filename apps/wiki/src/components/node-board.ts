@@ -35,7 +35,8 @@ export const drawNodeCard = (key: string, type: ComponentId, host: HTMLElement):
     suspended: false,
     cue: null,
     readOnly: true,
-    inset: { top: 24, bottom: 16, left: 0 },
+    inset: { top: 16, bottom: 16, left: 0 },
+    pad: 8,
   }
   setBoard(key, state)
   const detach = attachBoard(key, host, {
