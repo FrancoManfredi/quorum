@@ -68,7 +68,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   buy: { label: 'Checkout', value: 25, color: 0x2e9d57 },
   job: { label: 'Export', value: 1.6, color: 0x9a7b4f },
   report: { label: 'Report', value: 2, color: 0x5b6abf },
-  ai: { label: 'AI prompt', value: 4, color: 0xb04fc7 },
+  ai: { label: 'AI prompt', value: 24, color: 0xb04fc7 },
   'q-read': { label: 'Read query', value: 0, color: 0x4f7fe0 },
   'q-write': { label: 'Write query', value: 0, color: 0x7152b5 },
   auth: { label: 'Auth call', value: 0, color: 0xd0438b },

@@ -2938,7 +2938,7 @@ export const fr: Readonly<Record<string, string>> = {
   'Market +10%. Reports arrive: a table scan each':
     'Marché +10%. Les rapports arrivent : un tableau scanné chacun',
   'AI assistant': 'Assistant IA',
-  'AI prompts arrive: $8 each, served by a GPU Node or the LLM API':
+  'AI prompts arrive: $24 each, served by a GPU Node or the LLM API':
     'Les invites IA arrivent : 8 $ chacune, servies par un nœud GPU ou le LLM API',
   Recommendations: 'Recommandations',
   'Video +30%': 'Vidéo +30%',

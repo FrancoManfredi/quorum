@@ -1151,8 +1151,8 @@ export const interfaceZhCN: Readonly<Record<string, string>> = {
   'Market +10%. Reports arrive: a table scan each':
     '市场规模 +10%。开始出现报表请求：每次执行一次全表扫描',
   'AI assistant': 'AI 助手',
-  'AI prompts arrive: $8 each, served by a GPU Node or the LLM API':
-    '开始出现 AI 请求：每次 $8，由 GPU 节点或大模型 API 处理',
+  'AI prompts arrive: $24 each, served by a GPU Node or the LLM API':
+    '开始出现 AI 请求：每次 $24，由 GPU 节点或大模型 API 处理',
   Recommendations: '推荐系统',
   'Video +30%': '视频请求量 +30%',
   'Exports +30%: the model trains in batch': '导出请求量 +30%：模型进行批量训练',

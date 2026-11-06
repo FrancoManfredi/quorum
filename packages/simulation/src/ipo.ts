@@ -152,7 +152,7 @@ export const checklistOf = (game: Game, ledger: Ledger): ReadonlyArray<Checklist
   const era = ERAS[PRE_IPO_STAGE]
   const target = era?.raiseAt ?? 50_000_000
   const budget = budgetOf(game)
-  const slo = era?.slo ?? 0.9995
+  const slo = era?.slo ?? 0.999
   const value = valuationOf(game, ledger)
   const drill = game.drill
   return [

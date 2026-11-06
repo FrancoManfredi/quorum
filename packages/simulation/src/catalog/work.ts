@@ -279,7 +279,7 @@ export const FEATURES: Record<FeatureId, FeatureDef> = {
     era: 4,
     dh: 480,
     unlocks: { kind: 'ai', share: 0.05, gated: true },
-    effect: 'AI prompts arrive: $8 each, served by a GPU Node or the LLM API',
+    effect: 'AI prompts arrive: $24 each, served by a GPU Node or the LLM API',
   }),
   recommendations: feature({
     id: 'recommendations',

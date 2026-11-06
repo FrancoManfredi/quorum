@@ -6,7 +6,7 @@ export const PLAYTEST_PACE = 2
  * Mean sim seconds between Pre-seed incidents. The design's 12 minutes is too slow for a playtest.
  * Later Eras scale it by their own interval over Pre-seed's 12 minutes.
  */
-export const INCIDENT_GAP = 200
+export const INCIDENT_GAP = 400
 /** Sim seconds from the Pre-seed raise to the first incident. */
 export const FIRST_INCIDENT_AFTER = 90
 /**

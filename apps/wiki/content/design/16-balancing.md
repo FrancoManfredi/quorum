@@ -305,7 +305,7 @@ Payout is Equity × Valuation × the Exit's multiplier, so the rounds set it
 The pacing knobs live in `catalog/tuning.ts`, and the cost and salary indexes in each Era
 (`EraDef.costIndex` and `EraDef.salaryIndex`). Two tunings read them:
 
-- **A Company** plays at `LIVE_TUNING`: growth × 2, an incident every 200 sim seconds, and the first
+- **A Company** plays at `LIVE_TUNING`: growth × 2, an incident every 400 sim seconds, and the first
   90 seconds after the Pre-seed raise.
 - **A Challenge and a Sandbox** replay at `CHALLENGE_TUNING`: growth × 1, an incident every 720
   seconds, and the first after 600. The pacing bots use it too, so a run shows a whole curve inside
@@ -317,7 +317,7 @@ Both share the calendar pace, so a calendar day lasts 60 sim seconds. The `tunin
 | Knob           | Challenge pace                     | Company pace                      | Why they differ                                                                                                 | Constant                                            |
 | -------------- | ---------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | Growth pace    | `g` × 1                            | `g` × 2                           | A session of 15 to 30 minutes needs the faster rate; a replay keeps the slower one so a whole curve fits a test | `CHALLENGE_TUNING`, `LIVE_TUNING` (`PLAYTEST_PACE`) |
-| Incident gap   | 720 sim s mean (12 minutes)        | 200 sim s mean                    | A replay spreads incidents across the curve; a session has to meet several                                      | `INCIDENT_GAP`                                      |
+| Incident gap   | 720 sim s mean (12 minutes)        | 400 sim s mean                    | A replay spreads incidents across the curve; a session has to meet several                                      | `INCIDENT_GAP`                                      |
 | First incident | 600 sim s after the Pre-seed raise | 90 sim s after the Pre-seed raise | A session meets an incident early; a replay does not need to                                                    | `FIRST_INCIDENT_AFTER`                              |
 | Calendar pace  | 60 sim s a day                     | 60 sim s a day                    | One value for both: a hire and a deploy have to fit inside a session                                            | `CALENDAR_PACE`                                     |
 

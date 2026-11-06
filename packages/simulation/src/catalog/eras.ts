@@ -207,7 +207,7 @@ export const ERAS: ReadonlyArray<EraDef> = [
   },
   {
     name: 'Pre-IPO',
-    slo: 0.9995,
+    slo: 0.999,
     incidentInterval: 600,
     maxSeverity: 1,
     market: 70_000_000,

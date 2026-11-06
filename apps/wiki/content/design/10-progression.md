@@ -25,7 +25,7 @@ Above the company, [Exit and Legacy](/design/13-prestige) carries progress betwe
 | 3   | Series A | 150,000 users                          | 200,000             | `media`, `rt`, `buy`, `bid` | Zone failures, egress cost, money correctness, long-lived connections | 99.9%  | 0.90         |
 | 4   | Series B | 1,000,000 users                        | 1,400,000           | `job`, `report`, `ai`       | OLTP against OLAP, GPU economics, team scaling                        | 99.9%  | 0.91         |
 | 5   | Series C | 10,000,000 users                       | 14,000,000          | `feed`, `hook`, `push`      | Fan-out, hot keys, geography, region failures                         | 99.95% | 0.92         |
-| 6   | Pre-IPO  | 50,000,000 users and the IPO checklist | 70,000,000          | None                        | Compliance, disaster recovery, margin                                 | 99.95% | 0.93         |
+| 6   | Pre-IPO  | 50,000,000 users and the IPO checklist | 70,000,000          | None                        | Compliance, disaster recovery, margin                                 | 99.9%  | 0.93         |
 | 7   | Public   | None (endless)                         | Up to 6,000,000,000 | None                        | Quarterly targets                                                     | 99.99% | 0.94         |
 
 Market size is multiplied by features, regions, and Venture rules. It caps user growth inside an Era
@@ -139,7 +139,7 @@ Pre-IPO brings no new kinds. Play shifts from growth to proof.
 | Item              | Requirement                                                                 |
 | ----------------- | --------------------------------------------------------------------------- |
 | Users             | 50,000,000                                                                  |
-| Reliability       | 99.95% availability over the last calendar week                             |
+| Reliability       | 99.9% availability over the last calendar week                              |
 | SOC 2             | Research "SOC 2 program" and a Security team                                |
 | Disaster recovery | A passed DR drill: RTO under 1 calendar hour, RPO under 5 calendar minutes  |
 | Data residency    | EU users served from an EU region                                           |
