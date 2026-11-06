@@ -31,6 +31,12 @@ The flag is a ceiling of its own, so it wins over the strategy: Recreate cannot 
 - **No lift, no holdout.** The users without the Feature do not measure it yet. That waits on `ab-testing`.
 - **Flags left behind.** A Feature turned off still pays its upkeep, and a flag at 100% is dead weight. Remove takes the code out for good and ends the upkeep.
 
+### [Bad deploy](/incidents/bad-deploy)
+
+- **Signs:** The **Bad deploy** bar appears at the top of the board, and the error rate jumps right after a deploy.
+- **Do now:** Set the Features in the last deploy to **Off** on the Feature Flags card, so a bad deploy of them breaks nobody. Click **Roll back** on the bar too, if you own [Continuous delivery](/research/ci).
+- **Prevent:** Keep new Features at 5% for a deploy before you move them on, and research [Automated tests](/research/testing-culture).
+
 ## Tips
 
 - Keep a Feature at 5% for a deploy, then move it on. A flag at 100% is a flag you can delete.

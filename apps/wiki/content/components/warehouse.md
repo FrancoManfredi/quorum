@@ -19,9 +19,20 @@ Until you link a Data Warehouse, the [Database](/components/database) runs repor
 
 The Warehouse itself does not overload in the game. What goes wrong:
 
-- [Report kills the database](/incidents/report-db): a quarter-end report scans every table on the primary. A Data Warehouse prevents it, because the scan never reaches the primary. Without one, cancel the report to end it.
 - Each scan is slow, so report latency stays high. Reports are judged against their own target, so that is usually fine.
 - Paid per scan, a heavy report mix shows up as a third-party cost in the Ledger.
+
+### [Report kills the database](/incidents/report-db)
+
+- **Signs:** A quarter-end report scans every table on the primary, every kind slows down, and the Database's Inspector reads "A report is scanning every table."
+- **Do now:** Select the Database and press **Cancel report**.
+- **Prevent:** Place a Data Warehouse. It takes the scan, so it never reaches the primary.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 :::Note{tone="real"}
 Separating analytics from transactions is a classic lesson. Real teams copy data to a warehouse so reports never compete with checkouts.

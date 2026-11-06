@@ -22,10 +22,21 @@ Secrets management research is the other half of the Component's name. It keeps 
 
 ## How it fails
 
-- **An expired certificate.** Past its expiry date every browser refuses that Node, and every request through it fails as `down`. The incident starts again after it ends until a manager is live or the player presses Renew, because the certificate is still expired.
 - **A manager that is down renews nothing.** A restart, an OOM kill or a sold Node is enough to stop renewal, and the countdown does not care.
 - **A shorter life every Era.** 45 days from Series C is half the room manual renewal had.
 - **One clock per Node.** A Node placed late is issued late, and each certificate runs out on its own day, so one expired Load Balancer takes only the traffic that goes through it.
+
+### [Certificate expired](/incidents/certificate)
+
+- **Signs:** Past its expiry date every browser refuses that Node, and every request through it fails as `down`. A "Certificate expired" banner appears with a **Renew** button.
+- **Do now:** Press **Renew** on the banner. The certificate is issued again at once, even with a manager on the way. The incident starts again after it ends until a manager is live or you press **Renew**, because the certificate is still expired.
+- **Prevent:** Research [Certificate automation](/research/cert-automation) and keep its manager live.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips
 

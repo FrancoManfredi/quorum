@@ -20,6 +20,12 @@ It is rate limited. Each size step is a usage tier that doubles how many prompts
 
 It also protects you. During a [GPU shortage](/incidents/gpu-shortage), an App Server linked to both a GPU Node and the LLM API keeps serving prompts.
 
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The LLM API card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second LLM API Node, so prompts have another place to go.
+
 ## Tips
 
 - Keep an LLM API linked as a backup even after you place GPU Nodes.

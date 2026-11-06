@@ -26,6 +26,24 @@ Because nothing is resident, a function is cheap at low and spiky volume. Above 
 - **Connections.** Every concurrent execution opens its own database connections. Without a [Connection Pooler](/components/pooler), a spike exhausts Postgres.
 - **Duration.** A function stops an execution after 15 minutes. An export (`job`) runs 4 seconds for each GB the Databases hold, so past 225 GB it fails as `timeout`. Long `job` work belongs on a Worker behind a Queue, which has no limit.
 
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Serverless Function card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second copy behind a [Load Balancer](/components/lb) that skips dead hosts. [Load balancing](/research/load-balancing) and [Health checks](/research/health-checks) unlock them.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once, the Serverless Function with them.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds.
+- **Prevent:** Research [Multiple zones](/research/multi-az) and keep a copy of the Component in a second zone.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the Serverless Function in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
+
 ## Tips
 
 - Put a [CDN](/components/cdn) or a [Cache](/components/cache) in front, because a function pays for every request that reaches it.

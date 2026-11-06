@@ -24,6 +24,24 @@ Unlike every other Component, which bills per second of uptime, the gateway bill
 - Past its own capacity it drops requests, whatever the rate limit says.
 - It is a single hop in front of everything, so an overloaded or misconfigured gateway fails every request kind at once.
 
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The API Gateway card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second copy behind a [Load Balancer](/components/lb) that skips dead hosts. [Load balancing](/research/load-balancing) and [Health checks](/research/health-checks) unlock them.
+
+### [Certificate expired](/incidents/certificate)
+
+- **Signs:** The **Certificate expired** banner appears, and every request through the API Gateway fails, as through every other TLS Node.
+- **Do now:** Click **Renew** in the banner.
+- **Prevent:** Research [Certificate automation](/research/cert-automation) and place a [Secrets and Certificates](/components/pki) Node, which renews the certificates before they run out.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the API Gateway in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
+
 ## Tips
 
 - Leave the limit Off until you know your peak, then set it a little above the peak you want to serve.

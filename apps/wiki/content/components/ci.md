@@ -40,6 +40,12 @@ Deploy times and Burn multipliers are this game's own numbers, chosen to make th
 - A Pipeline without a [Kubernetes Cluster](/components/cluster) or a Platform team still pays the slow part, because the Stack's build time is untouched.
 - Canary is worth its Burn only if you watch the Bad deploy bar and roll back. The bug sits in 5% of traffic until you act.
 
+### [Bad deploy](/incidents/bad-deploy)
+
+- **Signs:** The **Bad deploy** bar appears at the top of the board, and the error rate jumps right after a deploy.
+- **Do now:** Click **Roll back** on the bar. It is locked until you research [Continuous delivery](/research/ci).
+- **Prevent:** Pick a strategy with a smaller blast radius, such as Canary or Blue-green, ship smaller batches, and research [Automated tests](/research/testing-culture).
+
 ## Tips
 
 - Pick the strategy by what a bad deploy costs you.

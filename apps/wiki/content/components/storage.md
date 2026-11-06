@@ -36,11 +36,17 @@ Infrequent access suits files that are written once and rarely read. Archive sui
 
 ## How it fails
 
-Object Storage does not overload or fail in the game. Its problems are latency and cost.
+Object Storage does not overload or fail on its own in the game. Its problems are latency and cost.
 
 - First-byte latency adds to every video and upload. A CDN answers most video at the edge.
 - Storage Burn only grows. Check it in the Ledger as the Company ages.
 - A slow upload holds an App Server slot while the file comes up the wire. Send uploads through a [Queue](/components/queue) so the App Server keeps only the short sync part.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips
 

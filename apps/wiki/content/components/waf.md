@@ -24,9 +24,32 @@ Each size step doubles its capacity. It spans every zone.
 
 - Overloaded, it drops requests before they reach the App Servers. A high paranoia level makes this happen sooner.
 - A high level blocks real users and costs revenue.
-- [Regex backtracking](/incidents/regex): a new rule backtracks on long inputs, and every WAF runs out of CPU. Disable the rule to end it. See [ReDoS](/glossary/redos-regular-expression-denial-of-service).
 
 Without a WAF, [Bot surge](/incidents/bot-surge), [Credential stuffing](/incidents/stuffing), and [DDoS](/incidents/ddos) hit harder and more often.
+
+### [Regex backtracking](/incidents/regex)
+
+- **Signs:** Its Inspector reads "A rule backtracks. CPU at 100%." Every WAF runs out of CPU. See [ReDoS](/glossary/redos-regular-expression-denial-of-service).
+- **Do now:** Press **Disable rule**.
+- **Prevent:** No Research prevents it. A WAF always carries the risk of a bad rule.
+
+### [DDoS](/incidents/ddos)
+
+- **Signs:** Its Inspector reads "A flood of junk traffic." and demand runs at ×50 of junk.
+- **Do now:** Press **Under attack** on the WAF. It challenges every request and adds latency.
+- **Prevent:** Keep a WAF and a CDN at the edge: [Web application firewall](/research/waf) and [Content delivery](/research/cdn). Turn Under attack mode off when it ends.
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The WAF's card goes grey, its Inspector reads "The host under this VM died. It still bills.", and the requests sent to it are stranded.
+- **Do now:** Press **Replace** in its Inspector and pay the price. It comes back cold.
+- **Prevent:** Run a second copy: [Load balancing](/research/load-balancing) puts the copies behind a Load Balancer, and [Health checks](/research/health-checks) skip the dead host.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips
 

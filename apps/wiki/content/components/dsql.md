@@ -16,10 +16,35 @@ Every write waits for a majority of its replicas. In one region that costs a few
 - Spread across regions, every write pays the round trip. Write-heavy kinds feel it in p99.
 - Overloaded, it drops queries like any data Node.
 
-It also prevents failures:
+### [Instance failure](/incidents/instance)
 
-- [Region outage](/incidents/region): spread across three regions, it survives with no data loss, because a majority remains.
-- [Network partition](/incidents/partition): a consensus store keeps one leader, so writes do not diverge. Fence the old leader to end the incident. See [network partition](/glossary/network-partition).
+- **Signs:** The Distributed SQL card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second Node of the Component, so one is still serving while the other is replaced.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once. A Node spread across regions keeps replicas in every zone, so only a Node on **One** region is hit.
+- **Do now:** Nothing speeds it up. The Node comes back when the incident ends, at most 120 sim seconds.
+- **Prevent:** Research [Multiple zones](/research/multi-az), or turn on **Spread** under Regions.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey. A Node on **One** region goes with it.
+- **Do now:** Nothing speeds it up. Spread across three regions, it survives with no data loss, because a majority remains, and needs nothing from you.
+- **Prevent:** Open a third region, then turn on **Spread** under Regions. [Multiple regions](/research/multi-region) unlocks the regions, and [GeoDNS](/research/geo-dns) sends users to the one that lives.
+
+### [Network partition](/incidents/partition)
+
+- **Signs:** The **Network partition** banner appears, and calls between regions time out. On a leader-based store the writes diverge.
+- **Do now:** Click **Fence leader** in the banner. See [network partition](/glossary/network-partition).
+- **Prevent:** Research [Consensus databases](/research/consensus) and use this Component: a consensus store keeps one leader, so writes do not diverge.
+
+### [Operator typo](/incidents/operator-typo)
+
+- **Signs:** Every Distributed SQL Node in one region goes down at once.
+- **Do now:** Place a new Distributed SQL in that region and link it. The incident ends once one Node of that Component is up again.
+- **Prevent:** Research [Infrastructure as code](/research/infra-as-code), so a plan shows what a change removes before it runs.
 
 :::Note{tone="real"}
 Consensus trades latency for correctness. Real teams use it for money and keep cheaper stores for the rest.

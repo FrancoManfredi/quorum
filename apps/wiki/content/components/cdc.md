@@ -21,6 +21,24 @@ It carries no traffic of its own and has no options. Its settings are the Databa
 - **No consumer.** With nothing reading the stream, the changes it publishes are stranded.
 - **A loop.** A consumer that writes back to the Database, with the stream reading that Database, closes a loop the board refuses: a change that causes a write that causes a change.
 
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The CDC Connector card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second Node of the Component, so one is still serving while the other is replaced.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once, the CDC Connector with them.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds.
+- **Prevent:** Research [Multiple zones](/research/multi-az) and keep a copy of the Component in a second zone.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the CDC Connector in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
+
 ## Tips
 
 - Place it next to the Database it reads and the stream it writes.

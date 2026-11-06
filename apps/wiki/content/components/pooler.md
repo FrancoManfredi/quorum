@@ -27,7 +27,24 @@ Its mode sets how many Database connections it opens:
 - Without one, [Connection exhaustion](/incidents/connections) is much more likely. A deploy doubles every pool, and Postgres refuses the excess.
 - In transaction mode, crashes continue until the session-state task is done.
 - Overloaded, it drops queries before they reach the Database.
-- A [Zone outage](/incidents/zone) takes it down unless it has a standby in another zone.
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Connection Pooler's card goes grey, its Inspector reads "The host under this VM died. It still bills.", and the requests sent to it are stranded.
+- **Do now:** Press **Replace** in its Inspector and pay the price. It comes back cold.
+- **Prevent:** Run a second copy: [Load balancing](/research/load-balancing) puts the copies behind a Load Balancer, and [Health checks](/research/health-checks) skip the dead host. A **Standby** (Zone section, needs [Multiple zones](/research/multi-az)) takes over by itself, with no click.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once.
+- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s. A Node with a **Standby** is back in a share of that time.
+- **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting. Give it a **Standby**.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips
 

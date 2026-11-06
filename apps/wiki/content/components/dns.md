@@ -19,6 +19,12 @@ DNS ignores size, so a small App Server gets the same share as a large one. It a
 - [Instance failure](/incidents/instance): a host goes down, and its share of requests fails until DNS drops it, or never without Health checks.
 - Mixed sizes overload the smallest host first, because each gets an equal share. Keep hosts the same size.
 
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the DNS in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
+
 :::Note{tone="real"}
 Real clients cache DNS answers for the TTL and often longer, so DNS is a slow, coarse load balancer. Real teams put a Load Balancer behind it.
 :::

@@ -15,9 +15,31 @@ Do not confuse it with [Payments](/components/payments), the drawer where your r
 
 ## How it fails
 
-- [Payment provider outage](/incidents/psp-outage): their outage, not yours. Every checkout fails until it ends, and nothing on your side prevents it.
-- [Double charge](/incidents/double-charge): the provider slows, charges time out, and a retrying link charges some customers twice. Duplicates fail as `duplicate`. [Idempotency keys](/research/idempotency-keys) prevent it. Stop retries on the charge link to end it. See [idempotency](/glossary/idempotency).
 - Past its tier's rate, it drops charges. Resize it before a spike.
+
+### [Payment provider outage](/incidents/psp-outage)
+
+- **Signs:** Its Inspector reads "Their outage, not yours. Every checkout fails." and `buy` fails as `upstream`.
+- **Do now:** Press **Switch provider**. It costs Cash, and the second provider keeps serving at once. Nothing else ends it before its run of at most 60 s.
+- **Prevent:** Set the **Provider** to **Second** before an outage. The second provider charges more per checkout. No Research prevents the outage itself.
+
+### [Double charge](/incidents/double-charge)
+
+- **Signs:** Charges slow down, `duplicate` errors appear, and refunds follow.
+- **Do now:** Set the charge Link's retries to **No retries** in the App Server's Calls section. With no retrying Link into the provider, the incident ends.
+- **Prevent:** Research [Idempotency keys](/research/idempotency-keys) and do the Idempotency keys task. Do not turn on retries on the charge Link before then. See [idempotency](/glossary/idempotency).
+
+### [Flash sale](/incidents/flash-sale)
+
+- **Signs:** E-commerce only. `buy` demand runs at ×20 for minutes, and the Database and the Payment Provider saturate.
+- **Do now:** Resize the Payment Provider up, because its tier sets how many charges it takes. Nothing else adds capacity here.
+- **Prevent:** Put a [Queue](/components/queue) in front of the checkout work, and research [Autoscaling](/research/autoscaling) and [Priority load shedding](/research/load-shedding).
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Payment Provider's card goes grey, its Inspector reads "The host under this VM died. It still bills.", and the requests sent to it are stranded.
+- **Do now:** Press **Replace** in its Inspector and pay the price. It comes back cold.
+- **Prevent:** Place a second Payment Provider, so it no longer stands alone.
 
 ## Tips
 

@@ -29,6 +29,18 @@ It runs your Service's Stack, so the Stack has to compile to the edge: JavaScrip
 - **The Stack.** A Company that runs PHP cannot use the edge at all. The fix is a [migration](/design/08-team-and-velocity#migrations) to a Stack that compiles, not a second edge Node.
 - **The data tier.** A handler that calls a Database on every request pays the round trip anyway, so it saves the user hop and not the query.
 
+### [Certificate expired](/incidents/certificate)
+
+- **Signs:** The **Certificate expired** banner appears, and every request through the Edge Function fails, as through every other TLS Node.
+- **Do now:** Click **Renew** in the banner.
+- **Prevent:** Research [Certificate automation](/research/cert-automation) and place a [Secrets and Certificates](/components/pki) Node, which renews the certificates before they run out.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the Edge Function in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
+
 ## Tips
 
 - Pair it with a CDN, so the edge answers what the CDN cannot cache and the CDN answers the rest.

@@ -26,6 +26,18 @@ The CDN itself does not overload in the game. What goes wrong:
 - A short TTL lowers the hit ratio, and more traffic reaches your origin.
 - Without one, a [DDoS](/incidents/ddos) or [Traffic spike](/incidents/spike) hits your App Servers in full. A CDN takes the cacheable part.
 
+### [Cached page leak](/incidents/page-leak)
+
+- **Signs:** Users fall 5% at once, and one user's logged-in page reached another.
+- **Do now:** Nothing ends it early. It runs its course, 90 sim seconds in the catalog.
+- **Prevent:** Set **Cache key** on the CDN card to **Path, query and cookies**, so a personal page is never shared. The leak needs [Edge-side includes](/research/esi) and a key without the cookie.
+
+### [Certificate expired](/incidents/certificate)
+
+- **Signs:** The **Certificate expired** banner appears, and every request through the CDN fails, as through every other TLS Node.
+- **Do now:** Click **Renew** in the banner.
+- **Prevent:** Research [Certificate automation](/research/cert-automation) and place a [Secrets and Certificates](/components/pki) Node, which renews the certificates before they run out.
+
 ## Tips
 
 - Pair it with [Object Storage](/components/storage) when you serve video.

@@ -18,7 +18,17 @@ Notifications reach it from your code. A Notify request does most of its work as
 - Its cost grows with every message. Watch third-party costs in the Ledger.
 - Push notifications raise growth and also raise churn a little, because users tire of them. That cost comes from the Feature, not the Component. See [Users and growth](/explanation/users-and-growth).
 
-No incident targets the Push Provider.
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Push Provider's card goes grey, its Inspector reads "The host under this VM died. It still bills.", and the requests sent to it are stranded.
+- **Do now:** Press **Replace** in its Inspector and pay the price. It comes back cold.
+- **Prevent:** Place a second Push Provider, so it no longer stands alone.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once.
+- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
 
 ## Tips
 

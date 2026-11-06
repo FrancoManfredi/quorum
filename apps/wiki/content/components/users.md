@@ -18,9 +18,36 @@ From the Series C Era, users live in four regions. Each region you open gets its
 Users never fail by themselves, but everything they reach can.
 
 - If the one Node behind Users goes down, every request fails.
-- In a [Certificate expired](/incidents/certificate) incident, every browser refuses the site until you renew the certificate. The [Certificate automation](/research/cert-automation) Research prevents it.
-- In a [BGP misconfiguration](/incidents/bgp), a routing change withdraws your Company from the internet. Roll back the change to end it.
-- A [Traffic spike](/incidents/spike), a [Bot surge](/incidents/bot-surge), and a [DDoS](/incidents/ddos) all arrive through Users.
+
+### [Certificate expired](/incidents/certificate)
+
+- **Signs:** Every browser refuses the site, and a "Certificate expired" banner appears with a **Renew** button.
+- **Do now:** Press **Renew** on the banner. The certificate is issued again at once.
+- **Prevent:** Research [Certificate automation](/research/cert-automation).
+
+### [BGP misconfiguration](/incidents/bgp)
+
+- **Signs:** A routing change withdraws your Company from the internet, and users cannot reach any region. A banner appears with a **Roll back** button.
+- **Do now:** Press **Roll back** on the banner to undo the change.
+- **Prevent:** No Research prevents it, and it is rare.
+
+### [Traffic spike](/incidents/spike)
+
+- **Signs:** Demand runs at ×3 to ×10 for minutes, and every card goes amber, then red.
+- **Do now:** Add copies or sizes to the Nodes that saturate. With [Priority load shedding](/research/load-shedding), set **Shed low value** on the App Servers.
+- **Prevent:** Keep spare capacity, add an Autoscaler or a CDN, and research [Priority load shedding](/research/load-shedding).
+
+### [Bot surge](/incidents/bot-surge)
+
+- **Signs:** The `bot` kind climbs on every card as scrapers arrive.
+- **Do now:** Place a [WAF](/components/waf) after Users. It stops bots at its block rate, and a higher paranoia level stops more of them.
+- **Prevent:** Research [Web application firewall](/research/waf) and place one.
+
+### [DDoS](/incidents/ddos)
+
+- **Signs:** Demand runs at ×50 of junk.
+- **Do now:** Select the WAF and press **Under attack**. It challenges every request. Without a WAF, nothing speeds it up; it ends on its own after at most 60 s.
+- **Prevent:** Research [Web application firewall](/research/waf) and [Content delivery](/research/cdn), and place both at the edge.
 
 ## Tips
 

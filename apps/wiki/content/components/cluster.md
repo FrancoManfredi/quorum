@@ -21,9 +21,20 @@ The costs:
 
 ## How it fails
 
-- [Forced cluster upgrade](/incidents/cluster-upgrade): the provider upgrades a Cluster off an unsupported version, and pods that used removed APIs crash. Run the "Upgrade clusters" task each quarter, or staff a Platform team. See [Team tasks](/team#tasks).
 - If the Cluster goes down, its pods run as plain VMs again, with full Burn and slow scaling.
 - Noisy neighbours raise p99 when the shared nodes run busy.
+
+### [Forced cluster upgrade](/incidents/cluster-upgrade)
+
+- **Signs:** The Cluster card reads "The provider is forcing an upgrade. Pods that use removed APIs crash." and the pods crash-loop.
+- **Do now:** Click **Upgrade clusters** on the card. It queues a task of Dev Hours, and the incident ends when the Team finishes it.
+- **Prevent:** Run the **Upgrade clusters** task each quarter, or staff a Platform team. See [Team tasks](/team#tasks).
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the Kubernetes Cluster in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
 
 ## Tips
 

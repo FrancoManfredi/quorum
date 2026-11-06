@@ -56,12 +56,83 @@ A window caps the rows at what the Company writes inside it, so an old Company t
 
 ## How it fails
 
-- [Connection exhaustion](/incidents/connections): the Database refuses connections past its limit. Add a Connection Pooler or switch to MySQL.
-- [Slow query](/incidents/slow-query): a query with no index scans the whole table. Add the index from its card after [Query analysis](/research/query-analysis).
-- [Disk full](/incidents/disk-full): every write fails until you expand the volume.
-- [Report kills the database](/incidents/report-db): a large scan slows every kind.
-- [Retry storm](/incidents/retry-storm): a short slowdown, and retries keep it overloaded.
-- [Instance failure](/incidents/instance) and [Zone outage](/incidents/zone) take a Database with no standby offline.
+### [Connection exhaustion](/incidents/connections)
+
+- **Signs:** The card reads "Refusing ... queries/s: too many connections", and Refused climbs above zero on the Dashboard.
+- **Do now:** Click **Fewer workers** under Pool size on the App Servers, or place a [Connection Pooler](/components/pooler) between them and the Database. Otherwise it ends by itself after at most 40 sim seconds.
+- **Prevent:** Research [Connection pooling](/research/pooling) and place the Pooler, or switch the engine to MySQL.
+
+### [Slow query](/incidents/slow-query)
+
+- **Signs:** The card warns "A new query has no index. Every read scans the table." and its CPU climbs with the size of its data.
+- **Do now:** Click **Add index** on the card. It needs [Query analysis](/research/query-analysis), and it puts an Add index task at the top of the backlog. The incident ends when the Team finishes the task. Without Query analysis the card has no button and the incident runs its clock.
+- **Prevent:** Research [Query analysis](/research/query-analysis) and put a [Cache](/components/cache) in front, so most reads never reach the table.
+
+### [Disk full](/incidents/disk-full)
+
+- **Signs:** The card reads "The disk is full. Writes fail." and every write is refused.
+- **Do now:** Click **Expand volume** on the card. It costs what a replacement would.
+- **Prevent:** Research [Alerting](/research/alerting) so a disk alert fires before the disk fills, and set a [retention window](/research/retention) so the rows stop piling up.
+
+### [Report kills the database](/incidents/report-db)
+
+- **Signs:** The card reads "A report is scanning every table." and every kind on the Database slows down.
+- **Do now:** Click **Cancel report** on the card.
+- **Prevent:** Link a [Data Warehouse](/components/warehouse), which takes the scans off the primary. [Data warehousing](/research/data-warehouse) unlocks it.
+
+### [Retry storm](/incidents/retry-storm)
+
+- **Signs:** Load on the Database keeps rising after the 20-second slowdown that started it ends, and errors upstream spread to other services.
+- **Do now:** On each App Server that calls the Database, set the call to **Backoff** or open its **Breaker** under Calls, and turn on **Shed low value**. Each needs its Research. Without them nothing speeds it up: it ends when the backlog drains.
+- **Prevent:** Research [Backoff with jitter](/research/backoff-jitter), [Circuit breakers](/research/circuit-breakers) and [Priority load shedding](/research/load-shedding).
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Database card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold. A Node with a **Standby** fails over by itself.
+- **Prevent:** Turn on **Standby** in the Zone section, which needs [Multiple zones](/research/multi-az). The standby takes over by itself.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once, the Database with them.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds. A Node with a **Standby** fails over by itself.
+- **Prevent:** Research [Multiple zones](/research/multi-az), turn on **Standby** in the Zone section, and keep a copy in a second zone.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the Database in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there. The Database is tied to its region, so a second region needs its own Database or a store that spreads across regions, such as [Distributed SQL](/components/dsql).
+
+### [Big tenant hot shard](/incidents/hot-shard)
+
+- **Signs:** One shard turns red while the others idle, and every kind on the Database slows.
+- **Do now:** Put a [Cache](/components/cache) in front of the Database so the tenant's reads stay off the shard. Otherwise it ends by itself after at most 90 sim seconds.
+- **Prevent:** Research [Sharding](/research/sharding) and pick a shard key other than **By tenant**, and keep a Cache in front.
+
+### [Schema migration lock](/incidents/migration-lock)
+
+- **Signs:** The **Schema migration lock** banner appears, and writes queue and fail as `timeout`.
+- **Do now:** Click **Cancel migration** in the banner.
+- **Prevent:** Research [Online schema migrations](/research/online-migrations).
+
+### [Accidental delete](/incidents/accidental-delete)
+
+- **Signs:** The **Accidental delete** banner appears, and reads and writes fail as `refused` until the table is back.
+- **Do now:** Click **Restore** in the banner. A good backup restores the table after a delay that grows with the rows it reads. With no backup, or a broken one, the restore ends the incident at once but 10% of the Users leave.
+- **Prevent:** Research [Point-in-time recovery](/research/pitr) and turn on backups, then [Restore drills](/research/restore-drills) so a backup is tested before you need it.
+
+### [Table bloat](/incidents/table-bloat)
+
+- **Signs:** Reads and writes on one PostgreSQL Database cost 2× the CPU, and its card runs hot.
+- **Do now:** Nothing ends it early. It runs its course, at most 120 sim seconds.
+- **Prevent:** Research [Retention policies](/research/retention) and set Retention to **Archive after 30 d** or **Delete after 30 d**, or switch the engine to MySQL, which has no dead rows to clean.
+
+### [Operator typo](/incidents/operator-typo)
+
+- **Signs:** Every Database Node in one region goes down at once.
+- **Do now:** Place a new Database in that region and link it. The incident ends once one Node of that Component is up again.
+- **Prevent:** Research [Infrastructure as code](/research/infra-as-code), so a plan shows what a change removes before it runs.
 
 ## Tips
 

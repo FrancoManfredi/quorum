@@ -29,6 +29,12 @@ The retries and the breaker need no research of their own: the sidecar runs them
 - **The 1 ms is per hop.** A checkout that makes six calls pays 6 ms on top of its work.
 - **Platform Dev Hours.** Each mesh takes half an engineer from the product teams unless a Platform team runs it.
 
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
+
 ## Tips
 
 - Put the mesh on the services that call each other most, not on every Node.

@@ -26,8 +26,13 @@ Queue depth suits a Worker. It adds copies when the backlog grows, and a Node no
 
 - A spike faster than the boot time still hurts. A [Traffic spike](/incidents/spike) can be over before new VMs serve.
 - CPU is the wrong signal for runtimes that wait on I/O, since their CPU stays low while their workers are full. Use load.
-- Without a max, a bug or an attack scales the bill.
 - Scale-up under load can make p99 worse at first, while cold copies warm.
+
+### [Runaway bill](/incidents/runaway-bill)
+
+- **Signs:** Burn rises with no extra revenue, and the Autoscaler's copies climb to its max, or as far as they go with no max.
+- **Do now:** Pick a lower **max** on the Autoscaler card.
+- **Prevent:** Keep a low **max** on every Autoscaler, never **no max**, and read the cloud bill line by line. [Autoscaling](/research/autoscaling) is the Research the postmortem names.
 
 ## Tips
 

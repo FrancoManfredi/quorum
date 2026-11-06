@@ -26,8 +26,24 @@ Until you link a Search Engine, the [Database](/components/database) answers sea
 
 - Overloaded, it drops searches. Searches fail, but the rest of the Design is fine.
 - Without one, search load sits on the primary, and a busy search slows checkouts and writes.
-- [Instance failure](/incidents/instance) takes a single copy offline. Searches fail until you replace it, because the Database does not take them back while a Search Engine is linked.
-- A [Zone outage](/incidents/zone) takes it down unless it has a standby in another zone.
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Search Engine's card goes grey, its Inspector reads "The host under this VM died. It still bills.", and searches fail, because the Database does not take them back while a Search Engine is linked.
+- **Do now:** Press **Replace** in its Inspector and pay the price. It comes back cold.
+- **Prevent:** Run a second copy: [Load balancing](/research/load-balancing) puts the copies behind a Load Balancer, and [Health checks](/research/health-checks) skip the dead host. A **Standby** (Zone section, needs [Multiple zones](/research/multi-az)) takes over by itself, with no click.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once.
+- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s. A Node with a **Standby** is back in a share of that time.
+- **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting. Give it a **Standby**.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips
 

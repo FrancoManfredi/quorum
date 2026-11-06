@@ -52,7 +52,11 @@ One short entry per setting, strategy, or engine: what it changes and what it co
 
 ## How it fails
 
-- [Incident](/incidents/x): what causes it, and the fix.
+### [Incident name](/incidents/x)
+
+- **Signs:** what the reader sees (a gauge, a banner, a metric).
+- **Do now:** the in-game action that stops the damage.
+- **Prevent:** the Research or setting that stops it coming back.
 
 ## Tips
 
@@ -64,6 +68,7 @@ Rules for the layout:
 - The one-sentence lead is the only text above the first heading.
 - "When to place it" comes first because it is what most readers need. Keep each bullet to one condition and its signal, such as a gauge or symptom the reader can see.
 - Keep the headings exactly as written so readers learn where to look. Only "Options" and "Tips" may be absent, and only when the page has no such facts.
+- Every incident a Component can suffer gets its own `###` block under "How it fails" with the three bullets. Take the incident list from the catalog (`INCIDENTS` in `packages/simulation/src/catalog/incidents.ts`) and the actions from the code, and link the incident page. Failures that are not catalog incidents stay as plain bullets above the blocks.
 - A `::Sandbox` directive goes at the end of the section it demonstrates.
 - Link to the glossary and design pages from "How it works", not from the lead.
 

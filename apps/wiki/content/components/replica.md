@@ -21,9 +21,31 @@ With [Synchronous replication](/research/sync-replication) a replica can be made
 
 ## How it fails
 
-- [Replication lag](/incidents/repl-lag): a burst of writes leaves the replicas seconds behind, and reads after a write come back stale. [Read-your-writes routing](/research/ryw-routing) lets an App Server send those reads to the primary.
 - Like every Database, it refuses connections past its limit.
-- [Instance failure](/incidents/instance) takes one replica out. Its share of reads fails until you replace it.
+
+### [Replication lag](/incidents/repl-lag)
+
+- **Signs:** A burst of writes leaves the replicas seconds behind, and reads after a write come back as `stale` errors.
+- **Do now:** On the App Servers that serve the reads, set the picker to **Read your writes**, so they send those reads to the primary. It needs [Read-your-writes routing](/research/ryw-routing).
+- **Prevent:** Research [Read-your-writes routing](/research/ryw-routing) and turn on **Read your writes** on the App Servers that serve checkouts. A **Synchronous** replica also keeps up, with [Synchronous replication](/research/sync-replication).
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The replica's card goes grey, its Inspector reads "The host under this VM died. It still bills.", and its share of reads fails.
+- **Do now:** Press **Replace** in its Inspector and pay the price. It comes back cold.
+- **Prevent:** Run a second copy: [Load balancing](/research/load-balancing) puts the copies behind a Load Balancer, and [Health checks](/research/health-checks) skip the dead host.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once.
+- **Do now:** Nothing brings the zone back sooner; it ends on its own after at most 120 s.
+- **Prevent:** Research [Multiple zones](/research/multi-az), then put copies in different zones with the Zone setting.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** Every Node in one region goes grey at once, and that region's board goes grey with them.
+- **Do now:** Nothing speeds it up; it ends on its own after at most 180 s.
+- **Prevent:** Research [Multiple regions](/research/multi-region) and [GeoDNS](/research/geo-dns), then run a copy of it in a second region.
 
 ## Tips
 

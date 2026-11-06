@@ -43,6 +43,30 @@ A hot shard from incident [Hot key](/incidents/hot-key) divides its rate, the sa
 - **Hot keys.** One shard's key takes the traffic, and the Node's flat rate is the first thing that bends.
 - **A Document Store is not a Database.** Nothing joins, nothing is transactional by default, and there is no point-in-time recovery to research. A Design that keeps its money here loses a charge now and then.
 
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Document Store card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second Node of the Component, so one is still serving while the other is replaced.
+
+### [Zone outage](/incidents/zone)
+
+- **Signs:** Every Node in one zone goes grey at once, the Document Store with them.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends, at most 120 sim seconds.
+- **Prevent:** Research [Multiple zones](/research/multi-az) and keep a copy of the Component in a second zone.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the Document Store in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
+
+### [Operator typo](/incidents/operator-typo)
+
+- **Signs:** Every Document Store Node in one region goes down at once.
+- **Do now:** Place a new Document Store in that region and link it. The incident ends once one Node of that Component is up again.
+- **Prevent:** Research [Infrastructure as code](/research/infra-as-code), so a plan shows what a change removes before it runs.
+
 ## Tips
 
 - Link the App Server to both the Database and the Document Store, and each takes the kinds it accepts.

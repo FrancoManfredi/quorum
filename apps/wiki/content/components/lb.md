@@ -22,8 +22,25 @@ By default it splits traffic by each target's capacity, so a large App Server ge
 ## How it fails
 
 - Overloaded, it drops requests before they reach any App Server.
-- [Instance failure](/incidents/instance): a long health check interval keeps routing to a dead host.
 - A deep check takes out every App Server whose Database is down or overloaded. If that is all of them, the Load Balancer has nowhere to send traffic, so a slow Database becomes a full outage.
+
+### [Instance failure](/incidents/instance)
+
+- **Signs:** The Load Balancer card goes grey and its callout reads "The host under this VM died. It still bills." Requests sent to it are stranded.
+- **Do now:** Select the Node and click **Replace**. It costs Cash and comes back cold.
+- **Prevent:** Run a second Load Balancer. A short health check interval stops it routing to a dead App Server behind it, and a long one keeps sending that host its share. [Health checks](/research/health-checks) sets the interval.
+
+### [Certificate expired](/incidents/certificate)
+
+- **Signs:** The **Certificate expired** banner appears, and every request through the Load Balancer fails, as through every other TLS Node.
+- **Do now:** Click **Renew** in the banner.
+- **Prevent:** Research [Certificate automation](/research/cert-automation) and place a [Secrets and Certificates](/components/pki) Node, which renews the certificates before they run out.
+
+### [Region outage](/incidents/region)
+
+- **Signs:** One region's board goes grey and the Load Balancer in it goes down.
+- **Do now:** Nothing speeds it up. The Nodes come back when the incident ends: 180 sim seconds in the catalog, 60 once the error budget counts.
+- **Prevent:** Research [Multiple regions](/research/multi-region), keep a copy in a second region, and add [GeoDNS](/research/geo-dns) to send users there.
 
 :::Note{tone="real"}
 Health checks can cause outages as well as prevent them. Real teams keep deep checks narrow for this reason.
