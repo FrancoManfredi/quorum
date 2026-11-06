@@ -1,5 +1,4 @@
 import { Schema } from 'effect'
-import type { Html } from 'foldkit/html'
 import { zhCN } from './zh-CN.ts'
 import { fr } from './fr.ts'
 
@@ -41,9 +40,24 @@ const compile = (dictionary: Readonly<Record<string, string>>) =>
 
 const patterns = { fr: compile(fr), 'zh-CN': compile(zhCN) }
 
+/** Translations already worked out, so a repeated string skips the pattern scan. */
+const remembered = { fr: new Map<string, string>(), 'zh-CN': new Map<string, string>() }
+const REMEMBER_LIMIT = 5_000
+
 /** Translate complete presentation messages; never replace words inside unknown prose. */
 export const translate = (locale: Locale, text: string): string => {
   if (locale === 'en') return text
+  const memo = remembered[locale]
+  const known = memo.get(text)
+  if (known !== undefined) return known
+  const result = translateUncached(locale, text)
+  // Dynamic strings such as "1.2k users" are unbounded, so the memo starts over when it fills.
+  if (memo.size >= REMEMBER_LIMIT) memo.clear()
+  memo.set(text, result)
+  return result
+}
+
+const translateUncached = (locale: Exclude<Locale, 'en'>, text: string): string => {
   const dictionary = dictionaries[locale]
   const direct = Object.hasOwn(dictionary, text) ? dictionary[text] : undefined
   if (direct !== undefined) return direct
@@ -66,41 +80,4 @@ export const translate = (locale: Locale, text: string): string => {
     }
   }
   return text
-}
-
-/** Copy the fresh view, preserving all behavior and identity metadata. */
-export const localizeHtml = (locale: Locale, html: Html): Html => {
-  // Traverse all languages: Foldkit brands function results, so an English-only
-  // shortcut would change ancestor identities and remount the live Pixi board.
-  if (html === null) return html
-  const props = html.data?.props
-  const translatedProps = props ? { ...props } : undefined
-  if (translatedProps)
-    for (const key of ['title', 'alt', 'placeholder']) {
-      const value = translatedProps[key]
-      if (typeof value === 'string') translatedProps[key] = translate(locale, value)
-    }
-  const attrs = html.data?.attrs
-  const translatedAttrs = attrs ? { ...attrs } : undefined
-  if (translatedAttrs)
-    for (const key of ['title', 'alt', 'placeholder', 'aria-label']) {
-      const value = translatedAttrs[key]
-      if (typeof value === 'string') translatedAttrs[key] = translate(locale, value)
-    }
-  return {
-    ...html,
-    ...(html.data
-      ? {
-          data: {
-            ...html.data,
-            ...(translatedAttrs ? { attrs: translatedAttrs } : {}),
-            ...(translatedProps ? { props: translatedProps } : {}),
-          },
-        }
-      : {}),
-    text: html.text === undefined ? undefined : translate(locale, html.text),
-    children: html.children?.map((child) =>
-      typeof child === 'string' ? translate(locale, child) : localizeHtml(locale, child)!,
-    ),
-  }
 }

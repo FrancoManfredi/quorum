@@ -4,12 +4,13 @@ import { Option, Schema } from 'effect'
 import { Scene } from 'foldkit/test'
 import { Listbox } from '@foldkit/ui'
 import { glossaryPanel } from '../components/lab/glossary.ts'
-import { inertHtml, type Html } from 'foldkit/html'
+import { inertHtml } from 'foldkit/html'
 import { Prefs } from '../game/model.ts'
 import { Message } from '../game/message.ts'
 import { initialModel, update } from '../game/update.ts'
 import { AppRoute } from '../game/route.ts'
-import { localizeHtml, translate } from './index.ts'
+import { localizeBuilder } from './builder.ts'
+import { translate } from './index.ts'
 
 describe('interface languages', () => {
   test('old preferences still decode without losing sound or motion', () => {
@@ -160,38 +161,27 @@ describe('interface languages', () => {
     expect(translate('en', 'Server · cold')).toBe('Server · cold')
   })
 
-  test('localization preserves identity, attributes, handlers and input values without mutating the source', () => {
-    const h = inertHtml
-    const original = h.div(
-      [h.Key('Research'), h.Title('Research'), h.DataAttribute('name', 'Research')],
-      [
-        h.span([], ['Research']),
-        h.input([h.Value('Research'), h.Placeholder('Search…'), h.AriaLabel('Search')]),
-        h.a([h.Href('/Research')], ['Continue']),
-      ],
-    )!
-    const callback = () => {}
-    original.data = { ...original.data, on: { click: callback } }
-    const result = localizeHtml('zh-CN', original)!
-    expect(result.key).toBe(original.key)
-    expect(result.data?.on?.click).toBe(callback)
+  test('the localized builder translates copy as it builds and keeps attributes, handlers and values', () => {
+    const build = (h: typeof inertHtml) =>
+      h.div(
+        [h.Key('Research'), h.Title('Research'), h.DataAttribute('name', 'Research')],
+        [
+          h.span([], ['Research']),
+          h.input([h.Value('Research'), h.Placeholder('Search…'), h.AriaLabel('Search')]),
+          h.a([h.Href('/Research')], ['Continue']),
+        ],
+      )!
+    const result = build(localizeBuilder('zh-CN', inertHtml))
+    expect(result.key).toBe('Research')
     expect(result.data?.props?.title).toBe('研究')
-    expect(result.data?.dataset).toEqual(original.data.dataset)
-    expect(original.data.props?.title).toBe('Research')
+    expect(result.data?.dataset).toEqual(build(inertHtml).data?.dataset)
     expect(JSON.stringify(result)).toContain('研究')
     expect(JSON.stringify(result)).toContain('搜索…')
     expect(JSON.stringify(result)).toContain('/Research')
     expect(JSON.stringify(result)).toContain('"value":"Research"')
-    const english = localizeHtml('en', original)!
-    expect(english.data?.props?.title).toBe('Research')
-    expect(english.data?.on?.click).toBe(callback)
-    // Vitest runs Foldkit's real view-branding transform. Switching languages
-    // must preserve the identities of every ancestor of the mounted canvas.
-    const identities = (node: Html): unknown =>
-      node && [
-        node.identity,
-        node.children?.map((child) => (typeof child === 'string' ? null : identities(child))),
-      ]
-    expect(identities(english)).toEqual(identities(result))
+    // English is the builder itself, and a locale's builder is one object, so a memoized view holds.
+    expect(localizeBuilder('en', inertHtml)).toBe(inertHtml)
+    expect(localizeBuilder('zh-CN', inertHtml)).toBe(localizeBuilder('zh-CN', inertHtml))
+    expect(build(inertHtml).data?.props?.title).toBe('Research')
   })
 })

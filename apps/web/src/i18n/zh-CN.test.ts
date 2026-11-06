@@ -6,7 +6,8 @@ import { glossaryPanel } from '../components/lab/glossary.ts'
 import { ADVICE } from '../game/copy/index.ts'
 import { EMPTY_INBOX, mailed } from '../game/inbox.ts'
 import { initialModel, update } from '../game/update.ts'
-import { localizeHtml, translate } from './index.ts'
+import { localizeBuilder } from './builder.ts'
+import { translate } from './index.ts'
 
 describe('Chinese mail and glossary views', () => {
   test('an existing funding letter translates both the preview and the inbox without changing stored mail', () => {
@@ -33,7 +34,7 @@ describe('Chinese mail and glossary views', () => {
     const original = JSON.stringify(inbox)
     for (const panelView of [peek, inboxPanel]) {
       Scene.scene(
-        { update, view: (m, h) => localizeHtml(m.prefs.locale, panelView(m, h)) },
+        { update, view: (m, h) => panelView(m, localizeBuilder(m.prefs.locale, h)) },
         Scene.given(model),
         Scene.expect(Scene.text('回复：回复：你的 天使轮（顶一下）')).toExist(),
         Scene.expect(
@@ -43,7 +44,7 @@ describe('Chinese mail and glossary views', () => {
       )
     }
     Scene.scene(
-      { update, view: (m, h) => localizeHtml('en', inboxPanel(m, h)) },
+      { update, view: (m, h) => inboxPanel(m, localizeBuilder('en', h)) },
       Scene.given(model),
       Scene.expect(Scene.text(letter.subject)).toExist(),
     )
@@ -59,7 +60,7 @@ describe('Chinese mail and glossary views', () => {
       glossary: { ...base.glossary, query: '注解' },
     }
     Scene.scene(
-      { update, view: (m, h) => localizeHtml(m.prefs.locale, glossaryPanel(m, h)) },
+      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
       Scene.given(model),
       Scene.expect(Scene.text('注解')).toExist(),
       Scene.expect(Scene.text(entry.definition)).not.toExist(),

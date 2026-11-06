@@ -9,7 +9,8 @@ import { glossaryPanel } from '../components/lab/glossary.ts'
 import { initialModel, update } from '../game/update.ts'
 import { fr } from './fr.ts'
 import { zhCN } from './zh-CN.ts'
-import { localizeHtml, supportedLocales, translate } from './index.ts'
+import { localizeBuilder } from './builder.ts'
+import { supportedLocales, translate } from './index.ts'
 
 const paragraphs = (text: string): ReadonlyArray<string> => text.split(/\n\s*\n/)
 
@@ -244,7 +245,7 @@ describe('localized presentation', () => {
   })
 
   test('French localizes accessible copy while preserving input values, links, events and keys', () => {
-    const h = inertHtml
+    const h = localizeBuilder('fr', inertHtml)
     const node = h.input([
       h.Key('Research'),
       h.Value('Research'),
@@ -252,16 +253,13 @@ describe('localized presentation', () => {
       h.AriaLabel('Research'),
       h.Title('Research'),
     ])!
-    const original = JSON.stringify(node)
-    const localized = localizeHtml('fr', node)!
-    expect(localized.key).toBe(node.key)
-    expect(localized.identity).toBe(localizeHtml('en', node)!.identity)
+    const localized = node
+    expect(localized.key).toBe('Research')
     expect(localized.data?.props).toMatchObject({
       value: 'Research',
       placeholder: 'Rechercher…',
       title: 'Recherche',
     })
     expect(localized.data?.attrs?.['aria-label']).toBe('Recherche')
-    expect(JSON.stringify(node)).toBe(original)
   })
 })

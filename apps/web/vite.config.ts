@@ -2,8 +2,29 @@ import { foldkit } from '@foldkit/vite-plugin'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { simVersion } from '../../packages/simulation/sim-version.ts'
+
+/**
+ * Foldkit's view-identity transform wraps every function return in a module. The Simulation has
+ * thousands of functions and never builds a view, so branding them only taxes every tick. The
+ * localizing builder builds views for its caller, so branding it would give each element the
+ * builder's identity and a locale switch would remount the board.
+ */
+const skipBranding = /\/packages\/simulation\/|\/src\/i18n\/builder\.ts/
+
+const unbrandedModules = (plugin: Plugin): Plugin => {
+  if (plugin.name !== 'foldkit:view-identity' || typeof plugin.transform !== 'function')
+    return plugin
+  const transform = plugin.transform
+  return {
+    ...plugin,
+    transform(code, id, options) {
+      if (skipBranding.test(id)) return null
+      return transform.call(this, code, id, options)
+    },
+  }
+}
 
 /**
  * Source maps go to Sentry only from a build that has the upload token, and never into the
@@ -16,7 +37,7 @@ export default defineConfig({
   build: { sourcemap: authToken ? 'hidden' : false },
   plugins: [
     tailwindcss(),
-    foldkit(),
+    foldkit().map(unbrandedModules),
     simVersion(),
     // Last, so it sees the final bundle.
     authToken
