@@ -1,45 +1,23 @@
 import {
-  ANALYTICS_CAPACITY,
-  BACKEND_KB,
-  EGRESS_CDN,
-  EGRESS_CROSS_ZONE,
-  EGRESS_ORIGIN,
-  PSP_FIXED,
-  SECOND_PROVIDER_FEE,
-  PSP_RATE,
-  EGRESS_CROSS_REGION,
-  MSGP_PRICE,
-  GATEWAY_PRICE,
-  QUEUE_MESSAGE_PRICE,
-  LLM_PRICE,
-  SCAN_PRICE,
-  STORAGE_CLASSES,
-  TOKENS_PER_PROMPT,
   MONEY_KINDS,
   LATENCY_REGRESSION_MS,
   COMPONENTS,
   DIURNAL_AMPLITUDE,
   FRAMEWORKS,
-  FAILURE_YIELD,
-  INSIGHT_YIELD,
   KINDS,
   LANGUAGES,
   PROFILES,
   REQUEST_KINDS,
   RUNTIMES,
   TASK_RETRY_SECONDS,
-  MESH_INSIGHT,
-  JVM_INSIGHT,
-  isBackendKind,
   DEVICES,
   DEVICE_INFO,
   type DeviceId,
-  type InsightPool,
   type Kind,
   type RegionId,
   type RequestKind,
 } from './catalog.ts'
-import { earnsInTime, insightPerk, ventureOf } from './founding.ts'
+import { earnsInTime, ventureOf } from './founding.ts'
 import { NO_RESOURCES } from './capacity.ts'
 import {
   ERROR_CAUSES,
@@ -57,62 +35,20 @@ import {
   type Outcome,
 } from './distribution.ts'
 import { marketOf, subscriptionsOf, valueFactor } from './features.ts'
-import type {
-  KindLedger,
-  Ledger,
-  LinkLedger,
-  NodeLedger,
-  NodeStatus,
-  RegionKindLedger,
-} from './ledger.ts'
-import {
-  burnOf,
-  burnSharesOf,
-  edgeBurnOf,
-  eraOf,
-  grown,
-  has,
-  isDown,
-  languageOf,
-  meshOf,
-  serverlessBurnOf,
-  storageRequestBurnOf,
-  zoneMs,
-} from './lookups.ts'
-import {
-  slotOf,
-  accepts,
-  cdnHitOf,
-  evictionShareOf,
-  gatewayShare,
-  type Pass,
-  type Rates,
-} from './rules.ts'
-import { isGlobal, regional, userHopMs, type UserRoute } from './regions.ts'
-import { NO_INSIGHT, type Game, type GameLink, type GameNode } from './state.ts'
-import { payrollOf, serviceOfKind } from './team.ts'
+import type { KindLedger, Ledger, LinkLedger, NodeLedger, RegionKindLedger } from './ledger.ts'
+import { has, isDown, languageOf } from './lookups.ts'
+import { slotOf, accepts, evictionShareOf, type Pass, type Rates } from './rules.ts'
+import { regional, userHopMs, type UserRoute } from './regions.ts'
+import { type Game, type GameLink, type GameNode } from './state.ts'
+import { serviceOfKind } from './team.ts'
 import { ventureDiurnal, ventureWeekly } from './solve-demand.ts'
-import { type Edge, type Graph, NO_POLICY, edgeOf, carriedOn, originsOf } from './solve-graph.ts'
+import { type Graph, NO_POLICY, edgeOf, carriedOn } from './solve-graph.ts'
 import { attemptsAllowed } from './solve-pass.ts'
-import { outcomesOf, meanServiceOf } from './solve-outcomes.ts'
+import { outcomesOf } from './solve-outcomes.ts'
+import { billOf } from './solve-bill.ts'
+import { insightOf, sampledTraffic, statusOf } from './solve-insight.ts'
 
 /* ---------- the solve ---------- */
-
-export const statusOf = (
-  node: GameNode,
-  inbound: number,
-  utilization: number,
-  trouble: boolean,
-): NodeStatus =>
-  isDown(node)
-    ? 'down'
-    : inbound <= 0
-      ? 'idle'
-      : utilization >= 0.9
-        ? 'danger'
-        : utilization >= 0.7 || trouble
-          ? 'warn'
-          : 'ok'
 
 /** A deep health check fails when a database behind the server is down or overloaded. */
 export const databaseSick = (graph: Graph, pass: Pass, server: GameNode): boolean => {
@@ -177,16 +113,6 @@ export const completionsOf = (game: Game, pass: Pass, outcomes: ReturnType<typeo
 
 /** One region's answer to a request kind, with and without its users' hop. */
 export type RouteAnswer = Readonly<{ entry: UserRoute; answer: Outcome; raw: Outcome }>
-
-/** Attribute a tap's sampled volume to its source's incoming operations, not routed calls. */
-export const sampledTraffic = (source: NodeLedger | undefined, rate: number): Rates => {
-  const traffic: Rates = {}
-  if (!source || source.inbound <= 0) return traffic
-  const scale = ((source.inbound - source.dropped) / source.inbound) * rate
-  for (const kind of Object.keys(source.traffic) as Array<Kind>)
-    traffic[kind] = (source.traffic[kind] ?? 0) * scale
-  return traffic
-}
 
 export const ledgerOf = (
   game: Game,
@@ -401,91 +327,7 @@ export const ledgerOf = (
 
   // Analytics turns sampled traffic into Insight of each request kind (12 "Earning Insight").
   const apdex = rateTotal > 0 ? satisfied / rateTotal : 1
-  const origins = originsOf(graph, pass)
-  const sampledBy = new Map<string, number>()
-  // The share of each key's samples that came from a Node a Service Mesh watches: per-Link metrics
-  // without code changes earn Insight on top of it (05 "Service Mesh": +20%).
-  const meshedBy = new Map<string, number>()
-  // The share that came from a Java App Server: its profilers (Java Flight Recorder) expose more.
-  const profiledBy = new Map<string, number>()
-  const failedBy = new Map<string, number>()
-  // The regions each request kind is sampled in: Real user monitoring needs two of them.
-  const regionsBy = new Map<RequestKind, Set<RegionId>>()
-  for (const [tapId, sources] of graph.taps) {
-    const tap = graph.byId.get(tapId)
-    if (!tap) continue
-    const rate = tap.sampleRate
-    const volume = sources.reduce((total, source) => {
-      const entry = nodes[source]
-      return total + (entry ? entry.inbound - entry.dropped : 0)
-    }, 0)
-    const traffic: Rates = {}
-    for (const source of sources) {
-      const sampled = sampledTraffic(nodes[source], rate)
-      for (const kind of Object.keys(sampled) as Array<Kind>)
-        traffic[kind] = (traffic[kind] ?? 0) + (sampled[kind] ?? 0)
-    }
-    const capacity = grown(ANALYTICS_CAPACITY, 2, tap.size - 1)
-    // Samples beyond the tap's capacity are dropped, evenly.
-    const kept = isDown(tap) || volume * rate <= 0 ? 0 : Math.min(1, capacity / (volume * rate))
-    for (const source of sources) {
-      const entry = nodes[source]
-      const from = graph.byId.get(source)
-      if (!entry || !from || kept <= 0) continue
-      const done = (entry.inbound - entry.dropped) * rate * kept
-      for (const [kind, share] of origins.get(source) ?? []) {
-        const samples = done * share
-        if (samples <= 0) continue
-        const key = `${from.type}:${kind}`
-        const seen = regionsBy.get(kind as RequestKind) ?? new Set<RegionId>()
-        seen.add(from.region)
-        regionsBy.set(kind as RequestKind, seen)
-        sampledBy.set(key, (sampledBy.get(key) ?? 0) + samples)
-        if (meshOf(game, from)) meshedBy.set(key, (meshedBy.get(key) ?? 0) + samples)
-        if (from.type === 'server' && RUNTIMES[from.runtime].language === 'java')
-          profiledBy.set(key, (profiledBy.get(key) ?? 0) + samples)
-        // A request that fails or frustrates its user teaches Failure, a tolerated one half.
-        const answer = kinds[kind]
-        if (answer && PROFILES[kind].scored)
-          failedBy.set(
-            from.type,
-            (failedBy.get(from.type) ?? 0) + samples * (1 - answer.success * answer.apdex),
-          )
-      }
-    }
-    nodes[tapId] = {
-      ...(nodes[tapId] as NodeLedger),
-      inbound: volume * rate,
-      traffic,
-      capacity,
-      utilization: capacity > 0 ? (volume * rate) / capacity : 0,
-      limit: volume * rate > capacity ? 'throughput' : 'none',
-      status: statusOf(tap, volume, capacity > 0 ? (volume * rate) / capacity : 0, false),
-    }
-  }
-  // The square root per Component type and kind: a broad Design teaches more than a big one.
-  const perk = insightPerk(game)
-  const insight: Record<InsightPool, number> = { ...NO_INSIGHT }
-  const breadth: Partial<Record<RequestKind, number>> = {}
-  for (const [key, samples] of sampledBy) {
-    const kind = key.slice(key.indexOf(':') + 1) as RequestKind
-    // A mesh watches each Link, so the samples from its members earn their 20% again, under the
-    // same square root: a Design where every sampled Node is meshed earns a full 20% more.
-    const watched = meshedBy.get(key) ?? 0
-    // Mature JVM tooling earns the same 25% on the samples from its servers (06 "Java").
-    const profiled = profiledBy.get(key) ?? 0
-    insight[kind] +=
-      INSIGHT_YIELD *
-      (Math.sqrt(samples) + MESH_INSIGHT * Math.sqrt(watched) + JVM_INSIGHT * Math.sqrt(profiled)) *
-      perk
-    breadth[kind] = (breadth[kind] ?? 0) + 1
-  }
-  // Tail-based sampling keeps the failed traces instead of dropping most of them with the rest
-  // (12 "Earning Insight", `tail-sampling`): twice the Failure Insight for the same failures.
-  const tailSampled = has(game, 'tail-sampling') ? 2 : 1
-  for (const failed of failedBy.values())
-    insight.failure +=
-      INSIGHT_YIELD * FAILURE_YIELD * Math.sqrt(Math.max(0, failed)) * perk * tailSampled
+  const { insight, breadth, regionsBy } = insightOf(game, graph, pass, nodes, kinds)
 
   const links: Array<LinkLedger> = game.links.map((link) => {
     const to = graph.byId.get(link.to)
@@ -536,128 +378,15 @@ export const ledgerOf = (
           )
         }, 0)
 
-  // Egress (09 "Egress"): bytes App Servers send to the internet, and pages a CDN answers at the edge.
-  // Billed from Seed: before it, the smallest box costs more than every byte the Company sends.
-  // Egress optimization moves `upload` and `media` onto an R2-priced Object Storage variant,
-  // which reaches the internet at $0 instead of the origin price (09 "Egress", `egress-optimization`).
-  const r2 = has(game, 'egress-optimization')
-  let egress = 0
-  if (game.stage >= 2) {
-    for (const node of game.nodes) {
-      if (node.type === 'server') {
-        const own = nodes[node.id]
-        const bytes = own?.resources.network?.used ?? 0
-        // The share of this Node's own traffic that Object Storage serves: its payload rides
-        // R2's $0 egress once the Node links to a storage Node.
-        const r2Share =
-          r2 &&
-          own &&
-          own.inbound > 0 &&
-          (graph.routes.get(node.id) ?? []).some(
-            (child) => child.type === 'storage' && child.storeVariant === 'r2',
-          )
-            ? ((own.traffic.upload ?? 0) + (own.traffic.media ?? 0)) / own.inbound
-            : 0
-        egress += ((bytes * (1 - r2Share)) / 1_000_000) * EGRESS_ORIGIN
-      }
-      if (node.type === 'cdn' && !isDown(node)) {
-        const rates = pass.arriving[slotOf(pass, node)] ?? {}
-        for (const kind of REQUEST_KINDS)
-          egress +=
-            (((rates[kind] ?? 0) * cdnHitOf(node, kind, game) * PROFILES[kind].payloadKB) /
-              1_000_000) *
-            EGRESS_CDN
-      }
-    }
-    // Traffic between zones bills both ways: requests at their payload, backend calls at 4 KB.
-    for (const index of pass.linkOrder) {
-      const { from: source, to: target } = graph.edges[index] as Edge
-      const carried = pass.links[index] as Rates
-      // Between regions (09 "Egress": $0.02/GB); global Components are reached at no charge.
-      const crossRegion = source.region !== target.region && !isGlobal(source) && !isGlobal(target)
-      if (!crossRegion && zoneMs(source, target) === 0) continue
-      for (const [kind, rate] of Object.entries(carried) as Array<[Kind, number]>) {
-        const kb = isBackendKind(kind) ? BACKEND_KB : PROFILES[kind as RequestKind].payloadKB
-        egress += crossRegion
-          ? ((rate * kb) / 1_000_000) * EGRESS_CROSS_REGION
-          : ((rate * kb) / 1_000_000) * EGRESS_CROSS_ZONE * 2
-      }
-    }
-    egress *= eraOf(game).costIndex * ventureOf(game).constraint.egress
-  }
-
-  // Object Storage's class (07 "Object Storage"): an infrequent-access object bills a retrieval fee
-  // per GB read back. An archive-class read has already failed as a timeout, and bills nothing.
-  let retrieval = 0
-  for (const node of game.nodes) {
-    if (node.type !== 'storage' || isDown(node)) continue
-    const fee = STORAGE_CLASSES[node.storageClass].retrieval
-    if (fee <= 0) continue
-    const reads = pass.arriving[slotOf(pass, node)]?.['blob-get'] ?? 0
-    retrieval += ((reads * PROFILES.media.payloadKB) / 1_000_000) * fee * eraOf(game).costIndex
-  }
-
-  // Third parties (09 "Third-party fees"): the Payment Provider takes a share of each checkout
-  // and a fixed part. Both are real dollars on a real-dollar checkout, so the cost index skips them.
-  const checkouts = kinds.buy ? kinds.buy.rate * kinds.buy.success : 0
-  const fees =
-    checkouts > 0
-      ? checkouts *
-        (KINDS.buy.value * valueFactor(game, 'buy') * PSP_RATE + PSP_FIXED) *
-        (game.nodes.some((node) => node.type === 'psp' && node.provider === 'second')
-          ? SECOND_PROVIDER_FEE
-          : 1)
-      : 0
-
-  // A Data Warehouse bills each scan; the LLM API bills each token (09 "Pricing models").
-  let usage = 0
-  for (const node of game.nodes) {
-    const done = (nodes[node.id]?.inbound ?? 0) - (nodes[node.id]?.dropped ?? 0)
-    if (done <= 0 || isDown(node)) continue
-    if (node.type === 'warehouse') usage += done * SCAN_PRICE
-    if (node.type === 'llm') usage += ((done * TOKENS_PER_PROMPT) / 1_000) * LLM_PRICE
-    if (node.type === 'msgp') usage += done * MSGP_PRICE
-  }
-  const thirdParty = usage > 0 ? fees + usage * eraOf(game).costIndex : fees
-
-  // An API Gateway, a Serverless Function and an Edge Function bill each request on the Requests
-  // line (09 "The cloud bill"), × cost index. A function's uses also bill the GB-seconds its
-  // executions ran, so a slow call to a data tier shows up on it.
-  let requests = 0
-  const index = eraOf(game).costIndex
-  for (const node of game.nodes) {
-    if (isDown(node)) continue
-    const done = (nodes[node.id]?.inbound ?? 0) - (nodes[node.id]?.dropped ?? 0)
-    if (done <= 0) continue
-    if (node.type === 'gw') {
-      const arriving = pass.arriving[slotOf(pass, node)] ?? {}
-      requests += done * gatewayShare(node, arriving) * GATEWAY_PRICE * index
-    }
-    if (node.type === 'fn')
-      requests += serverlessBurnOf(game, node, done, meanServiceOf(pass, node))
-    if (node.type === 'edge') requests += edgeBurnOf(game, node, done)
-    // Object Storage bills each read and write at its product's price, and a Queue each task as a
-    // message (09 "Base prices").
-    if (node.type === 'storage') {
-      const arriving = pass.arriving[slotOf(pass, node)] ?? {}
-      requests +=
-        storageRequestBurnOf(node, arriving['blob-get'] ?? 0, arriving['blob-put'] ?? 0) * index
-    }
-    if (node.type === 'queue') requests += done * QUEUE_MESSAGE_PRICE * index
-  }
-
   const subscriptions = subscriptionsOf(game)
-  const salaries = payrollOf(game)
-  const shares = burnSharesOf(game)
+  const { egress, retrieval, thirdParty, requests, totalBurn, salaries, shares } = billOf(
+    game,
+    graph,
+    pass,
+    nodes,
+    kinds,
+  )
   const errorTotal = ERROR_CAUSES.reduce((total, cause) => total + errors[cause], 0)
-  const totalBurn =
-    (thirdParty > 0
-      ? game.nodes.reduce((total, node) => total + burnOf(game, node), 0) + thirdParty
-      : game.nodes.reduce((total, node) => total + burnOf(game, node), 0)) +
-    salaries +
-    egress +
-    retrieval +
-    requests
   // Unit economics splits Burn across kinds by their share of demand, then costs each kind's
   // own served rate (10 "Track: Cost", `unit-economics`); cost allocation rolls that up by the
   // Service each kind's code lives in (10 "Track: Cost", `cost-allocation`).
