@@ -30,12 +30,13 @@ export const CHIPS =
 
 export const FIGURE = 'font-mono tabular-nums tracking-[-0.01em]'
 
-/** A square icon control inside a panel: flat at rest, a raised ink fill when on. */
+/** A square icon control inside a panel: flat at rest, a raised ink fill when on.
+ *  On a dark board a white fill outshines the board, so on is a raised grey there. */
 export const tool = (active: boolean): string =>
   cn(
     'press relative grid size-10 shrink-0 place-items-center rounded-xl',
     active
-      ? 'bg-primary-fill text-on-primary-fill shadow-primary'
+      ? 'bg-primary-fill text-on-primary-fill shadow-primary dark:bg-raised dark:text-foreground dark:shadow-raised'
       : 'text-muted-foreground hover:bg-well hover:text-foreground',
   )
 

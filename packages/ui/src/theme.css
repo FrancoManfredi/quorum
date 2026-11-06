@@ -69,6 +69,14 @@
   --canvas: oklch(0.955 0.002 260);
   --canvas-grid: oklch(0.45 0.004 260 / 0.1);
   --edge-solid: oklch(0.7 0.006 260);
+  /* What the board darkens toward: card shadows, sunk edges, and the rails of busy wires. */
+  --board-shade: var(--foreground);
+  /* How far wires and packets mix toward the canvas: 0 keeps their catalog colours. */
+  --board-wire-mute: 0;
+  /* A card's footer button: the primary fill on a light board. */
+  --board-action-top: var(--primary-fill-top);
+  --board-action-bottom: var(--primary-fill-bottom);
+  --on-board-action: var(--on-primary-fill);
   --node: var(--card);
   --edge: oklch(0.5 0.006 260 / 0.45);
   /* Build groups: one hue each, kept clear of the status hues. */
@@ -222,6 +230,15 @@
   --warn-soft: oklch(0.8 0.14 75 / 0.14);
   --danger-soft: oklch(0.68 0.19 25 / 0.16);
   --canvas: oklch(0.16 0.0014 260);
+  /* Lines recede on a dark board: idle wires and ports sit a step above the canvas, and
+     shadows and rails darken toward black instead of washing out toward the ink. */
+  --edge-solid: oklch(0.4 0.004 260);
+  --board-shade: oklch(0 0 0);
+  --board-wire-mute: 0.3;
+  /* Every card has one, so on a dark board they are a raised grey, not a white slab. */
+  --board-action-top: oklch(0.4 0.003 260);
+  --board-action-bottom: oklch(0.34 0.003 260);
+  --on-board-action: oklch(0.94 0.0018 260);
   --group-edge: oklch(0.72 0.12 235);
   --group-compute: oklch(0.68 0.16 283);
   --group-data: oklch(0.74 0.11 182);

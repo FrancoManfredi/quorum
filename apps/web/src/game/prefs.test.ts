@@ -20,8 +20,28 @@ const named = (model: Model, message: Message): ReadonlyArray<Named> =>
   ((update(model, message) as { commands?: ReadonlyArray<unknown> }).commands ??
     []) as ReadonlyArray<Named>
 
-/** A stand-in for the document's root: applySettings only touches `dataset` and `lang`. */
-const rootOf = (): HTMLElement => ({ dataset: {}, lang: '' }) as unknown as HTMLElement
+/** A stand-in for the document's root: applySettings only touches `dataset`, `lang`, and `classList`. */
+const rootOf = (): HTMLElement => {
+  const classes = new Set<string>()
+  return {
+    dataset: {},
+    lang: '',
+    classList: {
+      contains: (name: string) => classes.has(name),
+      toggle: (name: string, on: boolean) => (on ? classes.add(name) : classes.delete(name), on),
+    },
+  } as unknown as HTMLElement
+}
+
+const baseSettings = {
+  muted: false,
+  motion: 'system' as const,
+  locale: 'en' as const,
+  agentAccess: false,
+  analytics: true,
+  text: 'normal' as const,
+  theme: 'light' as const,
+}
 
 describe('text at 150%', () => {
   test('the switch sets the pref, which is saved and applied like motion', () => {
@@ -46,13 +66,7 @@ describe('text at 150%', () => {
 
   test('applying it marks the root, and clears the mark when it is off', () => {
     const root = rootOf()
-    const settings = {
-      muted: false,
-      motion: 'system' as const,
-      locale: 'en' as const,
-      agentAccess: false,
-      analytics: true,
-    }
+    const settings = baseSettings
     applySettings(root, { ...settings, text: 'large' })
     expect(root.dataset['text']).toBe('150')
     applySettings(root, { ...settings, text: 'normal' })
@@ -82,5 +96,37 @@ describe('text at 150%', () => {
       Scene.expect(Scene.role('switch', { name: 'Text at 150%' })).toBeChecked(),
       Scene.expect(Scene.text('Text at 150%')).toExist(),
     )
+  })
+})
+
+describe('dark mode', () => {
+  test('the switch flips the theme, which is saved and applied', () => {
+    const start = initialModel()
+    expect(start.prefs.theme).toBe('light')
+    const result = update(start, Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }))
+    expect(result.model.prefs.theme).toBe('dark')
+    const commands = (result.commands ?? []) as ReadonlyArray<Named>
+    expect(commands.find((command) => command.name === 'WritePrefs')?.args['prefs']).toMatchObject({
+      theme: 'dark',
+    })
+    expect(commands.find((command) => command.name === 'ApplySettings')?.args).toMatchObject({
+      theme: 'dark',
+    })
+    expect(
+      update(result.model, Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() })).model
+        .prefs.theme,
+    ).toBe('light')
+  })
+
+  test('applying it puts `.dark` on the root, and takes it off for light', () => {
+    const root = rootOf()
+    applySettings(root, { ...baseSettings, theme: 'dark' })
+    expect(root.classList.contains('dark')).toBe(true)
+    applySettings(root, { ...baseSettings, theme: 'light' })
+    expect(root.classList.contains('dark')).toBe(false)
+  })
+
+  test('preferences saved before it existed read as light', () => {
+    expect(Schema.decodeSync(Prefs)({ muted: true }).theme).toBe('light')
   })
 })

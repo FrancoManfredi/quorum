@@ -403,6 +403,7 @@ export const initialModel = (): Model =>
       blurPause: true,
       motion: 'system',
       text: 'normal',
+      theme: 'light',
       agentAccess: false,
       analytics: true,
     },
@@ -791,6 +792,7 @@ const savePrefs = (model: Model): Result => ({
       agentAccess: model.prefs.agentAccess,
       analytics: model.prefs.analytics,
       text: model.prefs.text,
+      theme: model.prefs.theme,
     }),
   ],
 })
@@ -2664,6 +2666,7 @@ const handle = (model: Model, message: Message): Result =>
               agentAccess: prefs.agentAccess,
               analytics: prefs.analytics,
               text: prefs.text,
+              theme: prefs.theme,
             }),
           ],
         }),

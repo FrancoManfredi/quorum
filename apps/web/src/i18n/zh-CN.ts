@@ -307,6 +307,7 @@ export const zhCN: Readonly<Record<string, string>> = {
   'Mute sound (M)': '静音（M）',
   'Reduce motion': '减少动态效果',
   'Text at 150%': '文字放大到 150%',
+  'Dark mode': '深色模式',
   Sound: '声音',
   Motion: '动态效果',
   'Start building': '开始搭建',

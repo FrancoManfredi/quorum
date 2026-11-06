@@ -143,7 +143,8 @@ export const focusBoard = (key: string, nodeId: string): void => controllers.get
 
 let pixel: CanvasRenderingContext2D | null | undefined
 
-const toInt = (value: string): number => {
+/** A colour as 0xRRGGBB, laid over `under` first so a translucent token keeps its strength. */
+const toInt = (value: string, under: string): number => {
   if (pixel === undefined) {
     const canvas = document.createElement('canvas')
     canvas.width = 1
@@ -151,9 +152,12 @@ const toInt = (value: string): number => {
     pixel = canvas.getContext('2d', { willReadFrequently: true })
   }
   if (!pixel) return 0
+  pixel.clearRect(0, 0, 1, 1)
+  pixel.fillStyle = '#ffffff'
+  pixel.fillStyle = under
+  pixel.fillRect(0, 0, 1, 1)
   pixel.fillStyle = '#000000'
   pixel.fillStyle = value
-  pixel.clearRect(0, 0, 1, 1)
   pixel.fillRect(0, 0, 1, 1)
   const [r = 0, g = 0, b = 0] = pixel.getImageData(0, 0, 1, 1).data
   return (r << 16) | (g << 8) | b
@@ -168,10 +172,19 @@ const token = (name: string, fallback: string): number => {
   probe ??= document.createElement('span')
   probe.style.display = 'none'
   if (!probe.isConnected) document.body.append(probe)
+  // Every colour lands on a card, so translucent tokens (the dark theme's borders) blend with it.
+  probe.style.color = 'var(--card, #ffffff)'
+  const card = getComputedStyle(probe).color
   probe.style.color = `var(${name}, ${fallback})`
-  const value = toInt(getComputedStyle(probe).color)
+  const value = toInt(getComputedStyle(probe).color, card)
   colors.set(name, value)
   return value
+}
+
+/** A plain number the theme sets, such as how far wires sink into the canvas. */
+const amount = (name: string, fallback: number): number => {
+  const value = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name))
+  return Number.isFinite(value) ? value : fallback
 }
 
 const resolvePalette = () => ({
@@ -181,10 +194,12 @@ const resolvePalette = () => ({
   border: token('--input', '#d5ddea'),
   edge: token('--edge-solid', '#9aa8bf'),
   accent: token('--primary-strong', '#4f7fe0'),
-  fillTop: token('--primary-fill-top', '#4a4a50'),
-  fillBottom: token('--primary-fill-bottom', '#2a2a2e'),
-  onFill: token('--on-primary-fill', '#ffffff'),
+  fillTop: token('--board-action-top', '#4a4a50'),
+  fillBottom: token('--board-action-bottom', '#2a2a2e'),
+  onFill: token('--on-board-action', '#ffffff'),
   ink: token('--foreground', '#16233d'),
+  shade: token('--board-shade', '#16233d'),
+  wireMute: amount('--board-wire-mute', 0),
   muted: token('--muted-foreground', '#5c6b85'),
   track: token('--muted', '#eef2f8'),
   ok: token('--ok', '#1a8a51'),
@@ -204,6 +219,13 @@ let resolved: Palette | null = null
 
 /** Every token is resolved once and kept, so the palette is too. */
 const palette = (): Palette => (resolved ??= resolvePalette())
+
+/** The theme changed: resolve the tokens again and redraw every card in the new palette. */
+export const repaintBoards = (): void => {
+  colors.clear()
+  resolved = null
+  for (const controller of controllers.values()) controller.repaint()
+}
 
 /** Blends two 0xRRGGBB colours; `t` is the share of `b`. */
 const mix = (a: number, b: number, t: number): number => {
@@ -740,7 +762,10 @@ const plateShape = (g: Graphics, group: BuildGroup, x: number, y: number, r: num
 /** The header's medallion: a card-coloured plate in the group's shape, with the badge on it. */
 const medallion = (g: Graphics, group: BuildGroup, tone: number, colors: Palette): void => {
   const plate = BADGE_R + 5.5
-  plateShape(g, group, BADGE_X, BADGE_Y + 1.5, plate + 0.5).fill({ color: colors.ink, alpha: 0.08 })
+  plateShape(g, group, BADGE_X, BADGE_Y + 1.5, plate + 0.5).fill({
+    color: colors.shade,
+    alpha: 0.08,
+  })
   plateShape(g, group, BADGE_X, BADGE_Y, plate).fill(colors.card)
   plateShape(g, group, BADGE_X, BADGE_Y, plate).stroke({
     color: mix(colors.border, tone, 0.5),
@@ -998,7 +1023,7 @@ class NodeView {
       mix(colors.card, this.chipHue, 0.08),
     )
     silhouette(this.chip, this.group, 0, 0, CARD_W, this.height).stroke({
-      color: mix(this.chipHue, colors.ink, 0.25),
+      color: mix(this.chipHue, colors.shade, 0.25),
       width: 1.5,
       alignment: 1,
     })
@@ -1232,10 +1257,10 @@ class NodeView {
       this.frame.clear()
       // Depth: a wide soft shadow and a tight contact shadow under the card.
       silhouette(this.frame, group, 1, 3, CARD_W - 2, height).fill({
-        color: colors.ink,
+        color: colors.shade,
         alpha: 0.035,
       })
-      silhouette(this.frame, group, 0, 1, CARD_W, height).fill({ color: colors.ink, alpha: 0.05 })
+      silhouette(this.frame, group, 0, 1, CARD_W, height).fill({ color: colors.shade, alpha: 0.05 })
       silhouette(this.frame, group, 0, 0, CARD_W, height).fill(colors.card)
       headerBand(this.frame, group, hue, colors)
       for (let index = 1; index < layout.rows; index += 1) {
@@ -1264,11 +1289,11 @@ class NodeView {
           this.frame.roundRect(x, y + 1, w, h, 8).fill(fill)
           this.frame
             .roundRect(x, y + 1, w, h, 8)
-            .stroke({ color: colors.ink, width: 1, alignment: 1, alpha: 0.06 })
+            .stroke({ color: colors.shade, width: 1, alignment: 1, alpha: 0.06 })
           this.frame
             .moveTo(x + 8, y + 1.5)
             .lineTo(x + w - 8, y + 1.5)
-            .stroke({ color: colors.ink, width: 1, alpha: 0.06 })
+            .stroke({ color: colors.shade, width: 1, alpha: 0.06 })
         } else {
           const top = footer.tone === 'accent' ? colors.fillTop : mix(fill, 0xffffff, 0.16)
           const bottom = footer.tone === 'accent' ? colors.fillBottom : mix(fill, 0x000000, 0.08)
@@ -1276,7 +1301,7 @@ class NodeView {
           // Pressed, the body sinks onto its lip and the drop shadow goes.
           const lifted = y + sink
           if (!sink)
-            this.frame.roundRect(x, y + 3, w, h, 8).fill({ color: colors.ink, alpha: 0.12 })
+            this.frame.roundRect(x, y + 3, w, h, 8).fill({ color: colors.shade, alpha: 0.12 })
           this.frame.roundRect(x, y + 2, w, h, 8).fill(mix(bottom, 0x000000, 0.28))
           this.frame.roundRect(x, lifted, w, h, 8).fill(gradient(top, bottom))
           this.frame
@@ -1330,11 +1355,11 @@ class NodeView {
     if (!this.shadowDrawn) {
       this.shadowDrawn = true
       silhouette(this.shadow, group, 6, 18, CARD_W - 12, height - 6, 10).fill({
-        color: colors.ink,
+        color: colors.shade,
         alpha: 0.05,
       })
       silhouette(this.shadow, group, 2, 9, CARD_W - 4, height - 2, 3).fill({
-        color: colors.ink,
+        color: colors.shade,
         alpha: 0.08,
       })
     }
@@ -1939,6 +1964,14 @@ class BoardController {
       const to = shown.get(link.to)
       if (from && to) this.cuts.push({ path: this.wireOf(from, to).path, t: 0 })
     }
+  }
+
+  /** Rebuilds the cards and the ghost, which keep the colours they were drawn in. */
+  repaint(): void {
+    for (const view of this.views.values()) view.root.destroy({ children: true })
+    this.views.clear()
+    this.ghostType = null
+    if (this.state) this.draw(this.state)
   }
 
   destroy(): void {
@@ -2942,7 +2975,7 @@ class BoardController {
         picked || (this.hoverLink?.from === link.from && this.hoverLink.to === link.to)
       const busy = (flow?.rate ?? 0) > 0.01
       // The packets' colour; the pipe under them is a pale tint of it, with no outline.
-      const packet =
+      const hue =
         hovered || flow?.failing
           ? colors.danger
           : tap
@@ -2950,6 +2983,8 @@ class BoardController {
             : flow && busy
               ? KINDS[flow.kind].color
               : colors.edge
+      // A dark board sinks its wires toward the canvas, so saturated packets do not glare.
+      const packet = mix(hue, colors.canvas, colors.wireMute)
       // The belt: rails, then the body between them.
       const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
       // Rails between zones are orange: those calls pay cross-zone latency and Egress.
@@ -2958,7 +2993,7 @@ class BoardController {
         : zoneMs(from, to) > 0
           ? colors.warn
           : busy
-            ? mix(packet, colors.ink, 0.3)
+            ? mix(packet, colors.shade, 0.3)
             : colors.edge
       // Once zones are researched a link inside one zone takes that zone's tint.
       const zones = has(state.game, 'multi-az') && zoned(from) && zoned(to)
@@ -3039,7 +3074,7 @@ class BoardController {
           arrowAt(this.packets, at.x, at.y, at.ux, at.uy, 4.2)
         }
         const mid = midOf(path)
-        this.notes.add(mid.x, mid.y, marks.label, packet, colors.card, tap ? 12 : 11)
+        this.notes.add(mid.x, mid.y, marks.label, hue, colors.card, tap ? 12 : 11)
       }
       this.packets.fill({ color: packet, alpha })
     }

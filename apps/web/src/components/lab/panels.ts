@@ -371,6 +371,15 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           ),
           switch_(
             {
+              id: 'setting-theme',
+              label: 'Dark mode',
+              isChecked: model.prefs.theme === 'dark',
+              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
+            },
+            h,
+          ),
+          switch_(
+            {
               id: 'setting-agent-access',
               label: 'Agent access',
               isChecked: model.prefs.agentAccess,

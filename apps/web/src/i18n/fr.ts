@@ -903,6 +903,7 @@ export const fr: Readonly<Record<string, string>> = {
   'Pause on SEV1 and SEV2': 'Mettre en pause lors des incidents SEV1 et SEV2',
   'Reduce motion': 'Réduire les animations',
   'Text at 150%': 'Texte à 150 %',
+  'Dark mode': 'Mode sombre',
   'Agent access': 'Accès des agents',
   Language: 'Langue',
   'Copy state as JSON': 'Copier l’état au format JSON',

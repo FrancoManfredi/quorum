@@ -3,7 +3,7 @@ import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
-import { fitBoard, focusBoard, setBoard } from '@quorum/ui/board/board'
+import { fitBoard, focusBoard, repaintBoards, setBoard } from '@quorum/ui/board/board'
 import { solveFlow } from '@quorum/simulation/solve'
 import { compute } from '@quorum/ui/board/compute'
 import { nodeOrdinals } from '@quorum/simulation/labels'
@@ -11,7 +11,7 @@ import { regionView } from '@quorum/simulation/regions'
 import { ComponentId, Game, Region } from '@quorum/simulation/state'
 import { Message } from './message.ts'
 import { Founder } from '@quorum/simulation/founder'
-import { Motion, Prefs, Reveal, SandboxStore, TextSize, TradeoffOption } from './model.ts'
+import { Motion, Prefs, Reveal, SandboxStore, TextSize, Theme, TradeoffOption } from './model.ts'
 import { refreshed, SaveIndex } from './saves.ts'
 import { History } from './history.ts'
 import { SavedInbox } from './inbox.ts'
@@ -356,13 +356,14 @@ export const WritePrefs = Command.define('WritePrefs', {
     }),
 })
 
-/** What Settings apply to the page: mute, motion, language, agent access, and text size. */
+/** What Settings apply to the page: mute, motion, language, agent access, text size, and theme. */
 export type Settings = Readonly<{
   muted: boolean
   motion: Motion
   locale: Locale
   agentAccess: boolean
   text: TextSize
+  theme: Theme
   analytics: boolean
 }>
 
@@ -378,9 +379,11 @@ export const applySettings = (root: HTMLElement, settings: Settings): void => {
   // 150% text is a scale on the type, not on the boxes: styles.css reads `data-text`.
   if (settings.text === 'large') root.dataset['text'] = '150'
   else delete root.dataset['text']
+  // theme.css restyles everything under `.dark`.
+  root.classList.toggle('dark', settings.theme === 'dark')
 }
 
-/** Applies the settings: mute for every sound, reduced motion as `data-motion`, and text as `data-text`. */
+/** Applies the settings: mute for every sound, reduced motion as `data-motion`, text as `data-text`, and the theme as `.dark`. */
 export const ApplySettings = Command.define('ApplySettings', {
   args: {
     muted: Schema.Boolean,
@@ -389,11 +392,16 @@ export const ApplySettings = Command.define('ApplySettings', {
     agentAccess: Schema.Boolean,
     analytics: Schema.Boolean,
     text: TextSize,
+    theme: Theme,
   },
   messages: [Message.Synced],
   execute: (settings) =>
     Effect.sync(() => {
-      applySettings(document.documentElement, settings)
+      const root = document.documentElement
+      const wasDark = root.classList.contains('dark')
+      applySettings(root, settings)
+      // The board resolves its colours from the theme once, so a new theme repaints it.
+      if (wasDark !== (settings.theme === 'dark')) repaintBoards()
       return Message.Synced()
     }),
 })

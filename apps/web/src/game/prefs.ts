@@ -14,6 +14,7 @@ export const PrefsMessage = defineMessageUnion({
   MotionToggled: {},
   AnalyticsToggled: {},
   TextToggled: {},
+  ThemeToggled: {},
 })
 export type PrefsMessage = typeof PrefsMessage.Type
 
@@ -33,5 +34,8 @@ export const updatePrefs = (
     AnalyticsToggled: () => ({ model: { ...prefs, analytics: !prefs.analytics } }),
     TextToggled: () => ({
       model: { ...prefs, text: prefs.text === 'large' ? 'normal' : 'large' },
+    }),
+    ThemeToggled: () => ({
+      model: { ...prefs, theme: prefs.theme === 'dark' ? 'light' : 'dark' },
     }),
   })

@@ -228,6 +228,10 @@ export type Motion = typeof Motion.Type
 export const TextSize = Schema.Literals(['normal', 'large'])
 export type TextSize = typeof TextSize.Type
 
+/** The board's palette. The title screen is always dark. */
+export const Theme = Schema.Literals(['light', 'dark'])
+export type Theme = typeof Theme.Type
+
 /** What the player's browser remembers apart from saves: settings, and the option sets confirmed once. */
 export const Prefs = Schema.Struct({
   locale: Locale.pipe(Schema.withDecodingDefaultKey(Effect.succeed('en' as const))),
@@ -237,6 +241,7 @@ export const Prefs = Schema.Struct({
   blurPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   motion: Motion.pipe(Schema.withDecodingDefaultKey(Effect.succeed('system' as const))),
   text: TextSize.pipe(Schema.withDecodingDefaultKey(Effect.succeed('normal' as const))),
+  theme: Theme.pipe(Schema.withDecodingDefaultKey(Effect.succeed('light' as const))),
   agentAccess: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** Share anonymous usage data. Off stops capture and persists the choice. */
   analytics: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),

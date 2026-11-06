@@ -756,6 +756,12 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
       Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
     ),
     toggle(
+      'theme',
+      'Dark mode',
+      model.prefs.theme === 'dark',
+      Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
+    ),
+    toggle(
       'agent',
       'Agent access',
       model.prefs.agentAccess,
