@@ -1,0 +1,30 @@
+import { arg } from './arg.ts'
+import type { Messages } from '../messages.ts'
+
+export const tradeoff: Messages['tradeoff'] = {
+  sixAxesNowAndWithThis: 'Six axes : maintenant et avec cette option',
+  cancelEscape: 'Annuler (Échap)',
+  migrationDHAcrossAllAppServers: (p0) =>
+    `Migration : ${arg(p0)} DH pour tous les serveurs applicatifs. Le développement ralentit et le déploiement peut révéler des bugs. Après le démarrage, gérez le travail et le trafic dans Équipe.`,
+  confirmEnter: 'Confirmer (Entrée)',
+  startMigration: 'Démarrer la migration',
+  confirm: 'Confirmer',
+  cancel: 'Annuler',
+  runtime: 'Environnement d’exécution',
+  framework: 'Framework',
+  instance: 'Instance',
+  throughput: 'Débit',
+  tail: 'Latence p99',
+  memory: 'Mémoire',
+  velocity: 'Vélocité',
+  resilience: 'Résilience',
+  operability: 'Exploitabilité',
+  processPerRequest: 'processus par requête',
+  sharedNothing: 'sans état partagé',
+  coldStart: 'démarrage à froid',
+  eventLoop: 'boucle d’événements',
+  blastRadius: 'périmètre d’impact',
+  horizontalScaling: 'mise à l’échelle horizontale',
+  techDebt: 'dette technique',
+  n1Query: 'requête N+1',
+}

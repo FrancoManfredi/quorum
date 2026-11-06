@@ -10,6 +10,9 @@ import { initialModel, update } from '../game/update.ts'
 import { fr } from './fr.ts'
 import { zhCN } from './zh-CN.ts'
 import { localizeBuilder } from './builder.ts'
+import { copyIn } from './messages.ts'
+
+const fr_ = copyIn('fr')
 import { supportedLocales, translate } from './index.ts'
 
 const paragraphs = (text: string): ReadonlyArray<string> => text.split(/\n\s*\n/)
@@ -221,26 +224,26 @@ describe('localized presentation', () => {
       glossary: { ...initialModel().glossary, query: 'contre-pression' },
     }
     Scene.scene(
-      { update, view: glossaryPanel },
+      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
       Scene.given(model),
-      Scene.expect(Scene.text('Backpressure')).toExist(),
+      Scene.expect(Scene.text(fr_.catalog.glossary['backpressure']!.term)).toExist(),
     )
     Scene.scene(
-      { update, view: glossaryPanel },
+      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
       Scene.given({ ...model, glossary: { ...model.glossary, category: 'security' } }),
-      Scene.expect(Scene.text('No matches')).toExist(),
+      Scene.expect(Scene.text(fr_.glossary.noMatches)).toExist(),
     )
   })
 
   test('French glossary search accepts unaccented input', () => {
     Scene.scene(
-      { update, view: glossaryPanel },
+      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
       Scene.given({
         ...initialModel(),
         prefs: { ...initialModel().prefs, locale: 'fr' },
         glossary: { ...initialModel().glossary, query: 'repartiteur de charge' },
       }),
-      Scene.expect(Scene.text('Load balancer')).toExist(),
+      Scene.expect(Scene.text(fr_.catalog.glossary['load-balancer']!.term)).toExist(),
     )
   })
 

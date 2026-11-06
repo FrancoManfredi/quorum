@@ -63,4 +63,24 @@ export const zhCNCurrent: Readonly<Record<string, string>> = {
   'Mentor: {0}': '导师：{0}',
   'Spam: {0}': '垃圾邮件：{0}',
   'Trap: {0}': '陷阱：{0}',
+  'SLA credits': 'SLA 赔付',
+  Money: '资金',
+  'Not seen': '未查看',
+  'Awaiting ack': '等待确认',
+  Lag: '滞后',
+  'Availability · week': '可用性 · 每周',
+  'Error budget left': '剩余错误预算',
+  'caught up': '已追平',
+  '{0} s behind': '落后 {0} 秒',
+  'up to {0}': '最多 {0}',
+  '{0} days left.': '还剩 {0} 天。',
+  'Recall {0} · Burn {1}/s': '召回率 {0} · 消耗 {1}/秒',
+  'Dependency scanning catches a published backdoor before the build installs it; Deno permissions keep a package from reading what it does not need.':
+    '依赖扫描会在构建安装之前发现已发布的后门；Deno 权限会阻止软件包读取它不需要的内容。',
+  'Demand triples at minute 5 for 5 minutes. Spend as little as you can.':
+    '第 5 分钟起的 5 分钟内需求翻三倍。尽量少花钱。',
+  'While you were away: {0}': '你不在时：{0}',
+  'You were out for {0}': '你离开了 {0}',
+  'Quick note for the record: the Company ran for {0} without you.':
+    '备忘：公司在没有你的情况下运行了 {0}。',
 }

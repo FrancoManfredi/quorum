@@ -4344,4 +4344,32 @@ export const fr: Readonly<Record<string, string>> = {
   'No exemplar in this range.': 'Aucun exemplaire dans cette plage.',
   'Link {0} into a Kubernetes Cluster first: the sidecar rides in its pod.':
     "Reliez d'abord {0} à un cluster Kubernetes : le sidecar vit dans son pod.",
+  // Interface copy that had no French yet.
+  'Ship a Feature first: a flag has nothing to roll out yet.':
+    'Livrez d’abord une fonctionnalité : un drapeau n’a encore rien à déployer.',
+  'Share anonymous usage data': 'Partager des données d’utilisation anonymes',
+  'Privacy policy': 'Politique de confidentialité',
+  Companies: 'Entreprises',
+  'Company name': 'Nom de l’entreprise',
+  'Name your company': 'Nommez votre entreprise',
+  Logo: 'Logo',
+  'Found {0}': 'Fonder {0}',
+  Current: 'Actuelle',
+  'No companies saved yet': 'Aucune entreprise enregistrée pour l’instant',
+  'Started {0}': 'Fondée {0}',
+  'Open company': 'Ouvrir l’entreprise',
+  'The Company and its Design are gone.': 'L’entreprise et sa conception sont perdues.',
+  'Keep company': 'Garder l’entreprise',
+  'Delete company': 'Supprimer l’entreprise',
+  Select: 'Sélectionner',
+  Taskbar: 'Barre des tâches',
+  Wiki: 'Wiki',
+  'Saves can reset': 'Les sauvegardes peuvent être réinitialisées',
+  Feedback: 'Retour',
+  'Dependency scanning catches a published backdoor before the build installs it; Deno permissions keep a package from reading what it does not need.':
+    'L’analyse des dépendances détecte une porte dérobée publiée avant que la build ne l’installe ; les permissions Deno empêchent un paquet de lire ce dont il n’a pas besoin.',
+  'Demand triples at minute 5 for 5 minutes. Spend as little as you can.':
+    'La demande triple à la minute 5 pendant 5 minutes. Dépensez le moins possible.',
+  'Four regions, each with its own evening peak, over one day. Spend under $700/s.':
+    'Quatre régions, chacune avec son propre pic du soir, sur une journée. Dépensez moins de $700/s.',
 }

@@ -1,0 +1,27 @@
+export const inspectorShared = {
+  runtime: 'Runtime',
+  proposed: 'Proposed',
+  researchToUnlock: (p0: string | number | null) => `Research ${p0} to unlock`,
+  poolSize: 'Pool size',
+  fewerWorkers: 'Fewer workers',
+  moreWorkers: 'More workers',
+  rAMFits: (p0: string | number | null) => `RAM fits ${p0}`,
+  framework: 'Framework',
+  processManager: 'Process manager',
+  recycleWorkers: 'Recycle workers',
+  off: 'Off',
+  everyFewHours: 'Every few hours',
+  pmMaxRequestsAndWorkerKillers:
+    'pm.max_requests and worker killers restart each process now and then. A leak never builds, and each restart runs cold.',
+  compression: 'Compression',
+  service: 'Service',
+  engine: 'Engine',
+  connectionsPostgresForksAProcessFor: (p0: string | number | null) =>
+    `${p0} connections: Postgres forks a process for each, MySQL gives it a thread.`,
+  regions: 'Regions',
+  one: 'One',
+  spread: 'Spread',
+  hotKeys: 'Hot keys',
+  oneShard: 'One shard',
+  split: 'Split',
+}

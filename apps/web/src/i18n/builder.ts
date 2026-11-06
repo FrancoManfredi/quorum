@@ -1,4 +1,5 @@
 import { type Locale, translate } from './index.ts'
+import { speak } from './messages.ts'
 
 /* ==========================================================================
    Foldkit's view-identity transform stamps each vnode with the first function
@@ -11,10 +12,12 @@ const attributesToTranslate = new Set(['Title', 'Alt', 'Placeholder', 'AriaLabel
 const builders = new WeakMap<object, Map<Locale, unknown>>()
 
 /**
- * The builder views write with, translating as it builds: a string child or a Title, Alt,
- * Placeholder or AriaLabel attribute passes through `translate` when its element is made. English
- * is the builder itself, so the common case copies nothing, and the result for a locale is
- * cached so a memoized view still sees one builder.
+ * The builder views write with. It carries its language, so `copy(h)` finds the typed copy, and it
+ * translates the text a view composes at runtime: a string child or a Title, Alt, Placeholder or
+ * AriaLabel attribute that is not typed copy passes through the English-keyed `translate` when its
+ * element is made (units, numbers, Mail and other text the Simulation writes in English). English
+ * is the builder itself, so the common case copies nothing, and the result for a locale is cached
+ * so a memoized view still sees one builder.
  */
 export const localizeBuilder = <H extends object>(locale: Locale, h: H): H => {
   if (locale === 'en') return h
@@ -52,5 +55,6 @@ export const localizeBuilder = <H extends object>(locale: Locale, h: H): H => {
     get: (target, key) => localizeBuilt(key, Reflect.get(target, key)),
   }) as H
   known.set(locale, localized)
+  speak(locale, localized)
   return localized
 }

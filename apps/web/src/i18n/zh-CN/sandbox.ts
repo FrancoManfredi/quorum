@@ -1,0 +1,28 @@
+import { arg } from './arg.ts'
+import type { Messages } from '../messages.ts'
+
+export const sandbox: Messages['sandbox'] = {
+  demand: '需求',
+  s: (p0) => `${arg(p0)}/秒`,
+  burn: '支出',
+  errors: '错误',
+  latency: '延迟',
+  sandboxMenu: '沙盒菜单',
+  objectiveOf: (p0, p1) => `目标 ${arg(p0)}/${arg(p1)}`,
+  controls: '控制',
+  users: '用户',
+  lessDemand: '减少需求',
+  moreDemand: '增加需求',
+  mix: '流量构成',
+  incident: '故障',
+  none: '无',
+  loadACrowdedDesignToTest: '载入拥挤的设计，测试卡片布局与连线路径',
+  stressBoard: '压力测试画布',
+  loadA61NodeDesignTo: '载入 61 个节点的设计，测试性能',
+  bigBoard: '大型画布',
+  reset: '重置',
+  copyTheCompanyDesignOntoThis: '将公司的设计复制到此画布',
+  copyCompany: '复制公司设计',
+  freeSandbox: '自由沙盒',
+  passed: '通过',
+}

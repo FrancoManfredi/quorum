@@ -21,7 +21,9 @@ const compile = (dictionary: Readonly<Record<string, string>>) =>
       const slots = Array.from(key.matchAll(/\{(\d+)\}/g), (match) => match[1]!)
       // Compact durations such as "{0}h" contain numbers, not arbitrary words
       // ending in h (including the language name "English").
-      const capture = /^\{\d+\}[dhms]$/.test(key) ? '([\\d.,+−-]+)' : '(.*?)'
+      // A key with one or two letters of its own ("D{0}", "R{0}") would match any text that starts or ends with them.
+      const short = parts.join('').length <= 2
+      const capture = /^\{\d+\}[dhms]$/.test(key) || short ? '([\\d.,:+−\\s-]+)' : '(.*?)'
       const expression = parts
         .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
         .join(capture)
@@ -81,3 +83,9 @@ const translateUncached = (locale: Exclude<Locale, 'en'>, text: string): string 
   }
   return text
 }
+
+/** Fills a value into a message in this language: values from the Simulation are English text. */
+export const inLanguage =
+  (locale: Locale) =>
+  (value: unknown): string =>
+    translate(locale, String(value))

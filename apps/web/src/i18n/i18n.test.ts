@@ -10,6 +10,7 @@ import { Message } from '../game/message.ts'
 import { initialModel, update } from '../game/update.ts'
 import { AppRoute } from '../game/route.ts'
 import { localizeBuilder } from './builder.ts'
+import { copyIn } from './messages.ts'
 import { translate } from './index.ts'
 
 describe('interface languages', () => {
@@ -138,14 +139,14 @@ describe('interface languages', () => {
       glossary: { ...initialModel().glossary, query: '背压' },
     }
     Scene.scene(
-      { update, view: glossaryPanel },
+      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
       Scene.given(model),
-      Scene.expect(Scene.text('Backpressure')).toExist(),
+      Scene.expect(Scene.text(copyIn('zh-CN').catalog.glossary['backpressure']!.term)).toExist(),
     )
     Scene.scene(
-      { update, view: glossaryPanel },
+      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
       Scene.given({ ...model, glossary: { ...model.glossary, category: 'security' } }),
-      Scene.expect(Scene.text('No matches')).toExist(),
+      Scene.expect(Scene.text(copyIn('zh-CN').glossary.noMatches)).toExist(),
     )
   })
 
