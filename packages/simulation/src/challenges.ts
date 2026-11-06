@@ -1916,7 +1916,7 @@ export const advanceRun = (
   const scored = time >= WARMUP - 1e-9
   let next = totals
   for (let part = 0; part < parts; part += 1) {
-    const result = step(current, challenge.stepSeconds / parts, CHALLENGE_TUNING)
+    const result = step(current, challenge.stepSeconds / parts, CHALLENGE_TUNING, false, false)
     events.push(...result.events)
     current = result.game
     if (scored) next = addLedger(challenge, next, result.ledger, 1 / parts)

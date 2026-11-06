@@ -160,6 +160,66 @@ import { fixed, payrollOf, serviceOfKind } from './team.ts'
    ========================================================================== */
 
 const PASSES = 6
+/** The passes have settled when no figure moves by more than this share (or, for shares, points). */
+const SETTLED = 0.005
+/** Figures under this share of the largest one do not count toward the drift. */
+const FLOOR = 0.01
+/** How far a figure moved, as a share of the larger of the two (or of `floor`); an infinite one moves fully. */
+const shift = (was: number, now: number, floor = 1): number =>
+  was === now || (!Number.isFinite(was) && !Number.isFinite(now))
+    ? 0
+    : !Number.isFinite(was) || !Number.isFinite(now)
+      ? 1
+      : Math.abs(now - was) / Math.max(Math.abs(was), Math.abs(now), floor)
+const drift = (
+  before: ReadonlyArray<number | undefined>,
+  after: ReadonlyArray<number | undefined>,
+): number => {
+  let biggest = 0
+  for (const value of after)
+    if (value !== undefined && Number.isFinite(value)) biggest = Math.max(biggest, Math.abs(value))
+  const floor = biggest * FLOOR
+  let most = 0
+  for (let slot = 0; slot < after.length; slot += 1) {
+    const was = before[slot] ?? 0
+    const now = after[slot] ?? 0
+    if (was === now) continue
+    most = Math.max(most, Math.abs(now - was) / Math.max(Math.abs(was), Math.abs(now), floor, 1e-9))
+  }
+  return most
+}
+const absDrift = (
+  before: ReadonlyArray<number | undefined>,
+  after: ReadonlyArray<number | undefined>,
+): number => {
+  let most = 0
+  for (let slot = 0; slot < after.length; slot += 1)
+    most = Math.max(most, Math.abs((before[slot] ?? 0) - (after[slot] ?? 0)))
+  return most
+}
+/** A solve that starts from the previous Step's answer needs only a few passes to settle. */
+const WARM_PASSES = 2
+
+/**
+ * What a solve settled on, kept so the next Step starts there. The Steps of one run hand it
+ * along (`handOver`); a Game from anywhere else solves cold, from scratch.
+ */
+type Carry = Readonly<{
+  ids: ReadonlyArray<string>
+  callLatency: Array<Calls | undefined>
+  inflight: Array<number | undefined>
+  weights: Array<number | undefined>
+  failures: Array<Partial<Record<Kind, number>> | undefined>
+  taskFailure: Array<number | undefined>
+  taskCapacity: Array<number | undefined>
+}>
+const settled = new WeakMap<Game, Carry>()
+
+/** The next Step's Game starts its solve from where this Game's solve ended. */
+export const handOver = (from: Game, to: Game): void => {
+  const carry = settled.get(from)
+  if (carry) settled.set(to, carry)
+}
 /** Replication lag: a floor, plus milliseconds per write per second to replay (16 D12). */
 const REPLICA_LAG_MS = 20
 const REPLICA_LAG_PER_WRITE = 2
@@ -1207,12 +1267,19 @@ const sumRates = (rates: Rates): number =>
 const solveWith = (game: Game, boost: string | null): Ledger => {
   const graph = graphOf(game)
   const demand = demandOf(game)
-  let callLatency: Array<Calls | undefined> = []
-  let inflight: Array<number | undefined> = []
-  let weights: Array<number | undefined> = []
+  const held = boost === null ? settled.get(game) : undefined
+  const warm =
+    held &&
+    held.ids.length === game.nodes.length &&
+    game.nodes.every((n, i) => n.id === held.ids[i])
+      ? held
+      : undefined
+  let callLatency: Array<Calls | undefined> = warm ? warm.callLatency : []
+  let inflight: Array<number | undefined> = warm ? warm.inflight : []
+  let weights: Array<number | undefined> = warm ? warm.weights : []
   // Retrying Links start from the failure share they saw last Step: retries carry a storm forward.
-  let failures: Array<Partial<Record<Kind, number>> | undefined> = []
-  for (const link of game.links) {
+  let failures: Array<Partial<Record<Kind, number>> | undefined> = warm ? warm.failures : []
+  for (const link of warm ? [] : game.links) {
     const edge = edgeOf(graph, link.from, link.to)
     if (link.failure <= 0 || !edge || edge.policy.retry === 'none') continue
     const byKind: Partial<Record<Kind, number>> = {}
@@ -1229,8 +1296,8 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
       const slot = at.get(entry.source.id) as number
       intake[slot] = (intake[slot] ?? 0) + entry.share
     }
-  let taskFailure: Array<number | undefined> = []
-  let taskCapacity: Array<number | undefined> = []
+  let taskFailure: Array<number | undefined> = warm ? warm.taskFailure : []
+  let taskCapacity: Array<number | undefined> = warm ? warm.taskCapacity : []
   const seed: Inputs = {
     game,
     graph,
@@ -1249,11 +1316,12 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
   const seedSolver = solverOf(seed)
   for (const node of game.nodes)
     nominal[at.get(node.id) as number] = probeCapacity(seed, seedSolver, node)
-  weights = [...nominal]
+  if (!warm) weights = [...nominal]
 
   let pass: Pass | null = null
   let outcomes: ReturnType<typeof outcomesOf> | null = null
   for (let index = 0; index < PASSES; index += 1) {
+    const previousTaskFailure = taskFailure
     const inputs: Inputs = {
       game,
       graph,
@@ -1309,7 +1377,7 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
       for (const kind of COMPONENTS[node.type].sends) {
         if (!isBackendKind(kind)) continue
         const fresh = kind === 'callout' ? CALLOUT_MS : outcomes.held(node, kind, hopMs(game))
-        blended[kind] = index === 0 ? fresh : ((previous[kind] ?? 0) + fresh) / 2
+        blended[kind] = index === 0 && !warm ? fresh : ((previous[kind] ?? 0) + fresh) / 2
       }
       nextLatency[slot] = blended
     }
@@ -1331,12 +1399,45 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
     for (const node of game.nodes)
       if (node.type === 'server' && databaseSick(graph, pass, node))
         sick[at.get(node.id) as number] = true
+    const moved = Math.max(
+      drift(weights, nextWeights),
+      drift(inflight, nextInflight),
+      absDrift(taskFailure, previousTaskFailure),
+      ...nextLatency
+        .map((now, slot) => {
+          let most = 0
+          for (const kind of Object.keys(now ?? {}) as Array<BackendKind>)
+            most = Math.max(most, shift(callLatency[slot]?.[kind] ?? 0, now?.[kind] ?? 0))
+          return most
+        })
+        .filter(() => true),
+      ...nextFailures
+        .map((now, edge) => {
+          let most = 0
+          for (const kind of Object.keys(now ?? {}) as Array<Kind>)
+            most = Math.max(most, shift(failures[edge]?.[kind] ?? 0, now?.[kind] ?? 0))
+          return most
+        })
+        .filter(() => true),
+    )
     callLatency = nextLatency
     inflight = nextInflight
     weights = nextWeights
     failures = nextFailures
+    // A warm solve stops once the passes stop moving: a calm Step takes two, a shock takes more.
+    if (warm && index + 1 >= WARM_PASSES && moved < SETTLED) break
   }
   if (!pass || !outcomes) throw new Error('The solve ran no passes.')
+  if (boost === null)
+    settled.set(game, {
+      ids: game.nodes.map((n) => n.id),
+      callLatency,
+      inflight,
+      weights,
+      failures,
+      taskFailure,
+      taskCapacity,
+    })
   return ledgerOf(game, graph, demand, pass, outcomes, routes)
 }
 

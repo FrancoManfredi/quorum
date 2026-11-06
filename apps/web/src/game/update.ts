@@ -309,6 +309,11 @@ export const TICK_MS = 250
 export const REPEAT_MS = TICK_MS
 /** Steps per tick at 1×: 250 ms over 100 ms Steps. 2.5 is exact in binary, so the carry never drifts. */
 const STEPS_PER_TICK = 2.5
+/**
+ * A tick's sim time is cut into at most one solve per sim second, not one per 100 ms. The solve
+ * is the cost of a Step, so a 10× tick costs 3 solves instead of 25. Challenges keep 100 ms Steps.
+ */
+const MAX_STEP_SECONDS = 1
 const SAVE_EVERY = 5
 const SAMPLE_EVERY = 10
 export const SPEEDS = [0.5, 1, 3, 10] as const
@@ -1487,8 +1492,9 @@ const tick = (model: Model): Result => {
   const steps = Math.floor(owed)
   let game = model.board.game
   const events: Array<StepEvent> = []
-  for (let index = 0; index < steps; index += 1) {
-    const result = step(game, STEP_SECONDS)
+  const solves = Math.ceil((steps * STEP_SECONDS) / MAX_STEP_SECONDS)
+  for (let index = 0; index < solves; index += 1) {
+    const result = step(game, (steps * STEP_SECONDS) / solves)
     game = result.game
     events.push(...result.events)
   }

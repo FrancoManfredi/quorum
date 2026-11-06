@@ -540,6 +540,43 @@ const shedding = (context: ServerContext, full: NodeModel, degrade = false): Nod
   }
 }
 
+/**
+ * What a server's per-kind calls and core-milliseconds depend on: the Game, the Node and these flags,
+ * not the pass. The passes, probes and shedding searches of one solve share them.
+ */
+const tables = new WeakMap<
+  Game,
+  Map<
+    GameNode,
+    Map<string, Readonly<{ calls: Record<RequestKind, Calls>; raw: Record<RequestKind, number> }>>
+  >
+>()
+
+const tablesOf = (context: ServerContext) => {
+  const { game, node } = context
+  let byNode = tables.get(game)
+  if (!byNode) tables.set(game, (byNode = new Map()))
+  let byFlags = byNode.get(node)
+  if (!byFlags) byNode.set(node, (byFlags = new Map()))
+  const key = `${context.delegated}|${context.worker}|${context.offloaded}|${context.local}|${context.hashing}|${context.sampling}`
+  let found = byFlags.get(key)
+  if (!found) {
+    const calls = Object.fromEntries(
+      REQUEST_KINDS.map((kind) => [
+        kind,
+        context.worker
+          ? asyncCallsOf(game, kind)
+          : callsOf(game, node, kind, context.delegated, context.offloaded ?? false),
+      ]),
+    ) as Record<RequestKind, Calls>
+    const raw = Object.fromEntries(
+      REQUEST_KINDS.map((kind) => [kind, cpuOf(context, kind, calls[kind])]),
+    ) as Record<RequestKind, number>
+    byFlags.set(key, (found = { calls, raw }))
+  }
+  return found
+}
+
 export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const { game, node, arriving } = context
   const runtime = RUNTIMES[node.runtime]
@@ -616,20 +653,11 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
 
   const kinds = REQUEST_KINDS.filter((kind) => (arriving[kind] ?? 0) > 0)
   const rate = kinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0), 0)
-  const calls = Object.fromEntries(
-    REQUEST_KINDS.map((kind) => [
-      kind,
-      context.worker
-        ? asyncCallsOf(game, kind)
-        : callsOf(game, node, kind, context.delegated, context.offloaded ?? false),
-    ]),
-  ) as Record<RequestKind, Calls>
+  const { calls, raw } = tablesOf(context)
   const cpu = Object.fromEntries(
     REQUEST_KINDS.map((kind) => [
       kind,
-      collecting > 1
-        ? (cpuOf(context, kind, calls[kind]) / efficiency) * collecting
-        : cpuOf(context, kind, calls[kind]) / efficiency,
+      (raw[kind] / efficiency) * (collecting > 1 ? collecting : 1),
     ]),
   ) as Record<RequestKind, number>
 
