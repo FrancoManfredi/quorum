@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { Schema } from 'effect'
 import { expect, test } from 'vitest'
 import { COMPONENT_IDS, COMPONENTS, DOCK_OF } from '../src/catalog.ts'
@@ -21,6 +22,9 @@ const view = () => ({
   ),
 })
 
-test('the catalog, the rules, and the saved fields are what they were', async () => {
-  await expect(JSON.stringify(view(), null, 1)).toMatchFileSnapshot('fixtures/components.json')
+test('the catalog, the rules, and the saved fields are what they were', () => {
+  const before = JSON.parse(
+    readFileSync(new URL('fixtures/components.json', import.meta.url), 'utf8'),
+  )
+  expect(JSON.parse(JSON.stringify(view()))).toEqual(before)
 })
