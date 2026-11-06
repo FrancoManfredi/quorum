@@ -1,62 +1,43 @@
-import { RUNNING, warming, withWarm } from './life.ts'
-import { Data, Result } from 'effect'
+import { RUNNING, warming } from './life.ts'
+import {
+  type Action,
+  Refusal,
+  endIncident,
+  answering,
+  no,
+  notAllowed,
+  ok,
+  patch,
+  spend,
+  withNode,
+} from './action-kit.ts'
+import { Result } from 'effect'
 import {
   ALERT_THRESHOLDS,
   CACHE_TTLS,
   CDN_TTLS,
   COMPONENTS,
-  PARANOIA,
-  SCALE_MAXIMA,
-  SCALE_TARGETS,
   STANDBY_TYPES,
   ZONES,
   rttOf,
-  CHECK_INTERVALS,
   CREDIT_CAP,
-  DEPLOY_STRATEGY_IDS,
-  DEPLOY_STRATEGIES,
   DRAIN_SECONDS,
-  STRATEGY_RESEARCH,
   GOGC,
   DEFAULT_FPM_WORKERS,
   DNS_TTLS,
   ERAS,
   FIRST_INCIDENT_AFTER,
   FRAMEWORKS,
-  GATEWAY_LIMITS,
   KINDS,
-  SHARD_COUNTS,
-  SHARD_KEYS,
-  CACHE_KEYS,
-  SEARCH_HEAPS,
-  SEARCH_REPLICAS,
-  SEARCH_SHARDS,
-  SEARCH_VARIANTS,
   LANGUAGES,
-  LIFECYCLE_DAYS,
-  LOG_ACKS,
-  LOG_REPLICAS,
-  LOG_PARTITIONS,
-  LOG_RETENTION,
-  SEARCH_REFRESH,
-  RESTORE_FAILURE,
-  RESTORE_DRILL_DH,
   DELETE_CHURN,
-  LB_POLICIES,
-  MAX_ATTEMPTS,
   POOL_LIMITS,
-  PREFETCH,
   PRICING_FROM_STAGE,
-  QUEUE_LENGTHS,
   REQUEST_KINDS,
   RESEARCH,
-  ROLLOUT_ALL,
-  ROLLOUT_STEPS,
   RUNTIMES,
   MAX_STUDIES,
   RESERVED_SECONDS,
-  RETENTION_WINDOWS,
-  SAMPLE_RATES,
   SIZES,
   type ComponentId,
   type FamilyId,
@@ -68,20 +49,9 @@ import {
   type RuntimeId,
   HOME_REGION,
   OPEN_REGION_PRICE,
-  QUORUM_N,
   REGION_INFO,
   REGIONS_FROM_STAGE,
-  VEC_INDEXES,
   FAMILIES,
-  LB_VARIANTS,
-  GPU_PRECISIONS,
-  GPU_BATCHES,
-  GPU_MODELS,
-  type GpuModel,
-  GATEWAY_BURST,
-  SWITCH_PROVIDER_PRICE,
-  type LbVariant,
-  type GpuPrecision,
 } from './catalog.ts'
 import {
   frameworkReady,
@@ -123,42 +93,21 @@ import {
 import { restoreSeconds, startIncident, zoned } from './director.ts'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE, ipoReady, newDrill } from './ipo.ts'
 import { firstQuarter, guidanceOpen } from './quarters.ts'
-import { nextRandom } from './random.ts'
 import { solveFlow } from './solve.ts'
-import { serviceOf, withService } from './team.ts'
 import type { AlertRule } from './events.ts'
 import { POLICY_LEVEL } from './catalog/legacy.ts'
 import type {
   Policies,
-  CacheEngine,
   Collector,
   Game,
-  GpuType,
   GameLink,
   GameNode,
-  LbPolicy,
   PmMode,
-  PoolerMode,
   Pricing,
   Retries,
-  ScaleSignal,
   Zone,
   Region,
-  Backup,
-  Fanout,
-  DeployStrategy,
   DbEngine,
-  IopsClass,
-  StorageClass,
-  CacheKey,
-  SearchHeap,
-  SearchVariant,
-  ShardKey,
-  StoreVariant,
-  DbRetention,
-  CacheStrategy,
-  FeatureId,
-  Incident,
 } from './state.ts'
 
 /* ==========================================================================
@@ -166,39 +115,47 @@ import type {
    Refusal that says why not. The update function only routes Messages here.
    ========================================================================== */
 
-export type Refusal = Data.TaggedEnum<{
-  /** Needs research first. */
-  Locked: { readonly what: string; readonly research: string }
-  /** Needs a later Era. */
-  TooEarly: { readonly what: string; readonly era: string }
-  Unaffordable: {
-    readonly what: string
-    readonly price: number
-    readonly currency: 'cash'
-  }
-  /** Breaks a rule of the Design. */
-  NotAllowed: { readonly reason: string }
-  /** The Node or item is gone. */
-  Missing: {}
-}>
-
-export const Refusal = Data.taggedEnum<Refusal>()
-
-export const describeRefusal = (refusal: Refusal): string =>
-  Refusal.$match(refusal, {
-    Locked: ({ what, research }) => `${what} needs ${research}.`,
-    TooEarly: ({ what, era }) => `${what} opens in ${era}.`,
-    Unaffordable: ({ what, price }) =>
-      `${what} costs $${Math.round(price).toLocaleString('en-US')}.`,
-    NotAllowed: ({ reason }) => reason,
-    Missing: () => 'That is gone.',
-  })
-
-export type Action = Result.Result<Game, Refusal>
-
-const ok = (game: Game): Action => Result.succeed(game)
-const no = (refusal: Refusal): Action => Result.fail(refusal)
-const notAllowed = (reason: string): Action => no(Refusal.NotAllowed({ reason }))
+export { Refusal, describeRefusal, type Action } from './action-kit.ts'
+export { setProvider, switchProvider } from './components/psp.rule.ts'
+export { setSample, setRetention } from './components/analytics.rule.ts'
+export { setRollout } from './components/ff.rule.ts'
+export { setLogOptions } from './components/log.rule.ts'
+export { setVecIndex } from './components/vec.rule.ts'
+export { setDocOptions } from './components/doc.rule.ts'
+export { setStoreVariant, setStorageClass, setLifecycle } from './components/storage.rule.ts'
+export { setSearchOptions, setSearchRefresh } from './components/search.rule.ts'
+export { setSync } from './components/replica.rule.ts'
+export {
+  setBackup,
+  rollRestore,
+  runRestoreDrill,
+  setMaterialized,
+  setStorageIops,
+  setShards,
+  setShardKey,
+  setDbRetention,
+  expandVolume,
+} from './components/database.rule.ts'
+export { setQuorum } from './components/wide.rule.ts'
+export { setCompression, setShed, setDegrade, setRyw, setFanout } from './components/server.rule.ts'
+export { setGpuType, setPrecision, setBatch, setGpuModel } from './components/gpu.rule.ts'
+export { setAutoscaler } from './components/autoscaler.rule.ts'
+export { setDeployStrategy } from './components/ci.rule.ts'
+export { setHubOptions } from './components/ws.rule.ts'
+export { setRateLimit, setGatewayBucket, setGatewayOptions } from './components/gw.rule.ts'
+export { setParanoia, setUnderAttack, disableRule } from './components/waf.rule.ts'
+export { setPoolerMode } from './components/pooler.rule.ts'
+export { setCdnOptions } from './components/cdn.rule.ts'
+export {
+  setLbVariant,
+  setPolicy,
+  setSticky,
+  setSlowStart,
+  setHealthCheck,
+} from './components/lb.rule.ts'
+export { setCacheEngine, setCacheGuard, setCacheStrategy } from './components/cache.rule.ts'
+export { setPrefetch } from './components/worker.rule.ts'
+export { setDlq, setAttempts, setMaxLength, deleteMessage } from './components/queue.rule.ts'
 
 /**
  * Cash is short (09 "Runway and running out of Cash"): at zero or below, the
@@ -210,21 +167,6 @@ export const shortOfCash = (game: Game): boolean => !game.sandbox && game.cash <
 
 const shortfall = (): Action =>
   notAllowed('Out of Cash: no placement, upgrade, or hire until Cash is above zero.')
-
-const withNode = (game: Game, id: string, apply: (node: GameNode) => Action): Action => {
-  const node = game.nodes.find((entry) => entry.id === id)
-  return node ? apply(node) : no(Refusal.Missing())
-}
-
-const patch = (game: Game, id: string, change: Partial<GameNode>): Game => ({
-  ...game,
-  nodes: game.nodes.map((node) => (node.id === id ? { ...node, ...change } : node)),
-})
-
-const spend = (game: Game, price: number, what: string, apply: (game: Game) => Game): Action =>
-  game.cash < price
-    ? no(Refusal.Unaffordable({ what, price, currency: 'cash' }))
-    : ok(apply({ ...game, cash: game.cash - price }))
 
 /* ---------- placing and removing ---------- */
 
@@ -744,93 +686,6 @@ export const setRecycle = (game: Game, id: string, recycle: boolean): Action =>
     return ok(node.recycle === recycle ? game : patch(game, id, { recycle, leak: 0 }))
   })
 
-/** Turns gzip on or off for an App Server's page and read responses. Needs Compression. */
-export const setCompression = (game: Game, id: string, compress: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'server') return notAllowed('Only App Servers compress responses.')
-    if (!has(game, 'gzip'))
-      return no(Refusal.Locked({ what: 'Gzip', research: RESEARCH.gzip.name }))
-    return ok(node.compress === compress ? game : patch(game, id, { compress }))
-  })
-
-/** Sets a Load Balancer's variant. L4 needs its research (10 "Track: Infrastructure"). */
-export const setLbVariant = (game: Game, id: string, variant: LbVariant): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'lb') return notAllowed('Only a Load Balancer has a variant.')
-    const research = LB_VARIANTS[variant].research
-    if (research !== null && !has(game, research))
-      return no(
-        Refusal.Locked({ what: LB_VARIANTS[variant].name, research: RESEARCH[research].name }),
-      )
-    return ok(node.variant === variant ? game : patch(game, id, { variant }))
-  })
-
-/** Chooses how a Load Balancer splits traffic. Least connections and two choices need research. */
-export const setPolicy = (game: Game, id: string, policy: LbPolicy): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'lb') return notAllowed('Only a Load Balancer has a policy.')
-    const research = LB_POLICIES[policy].research
-    if (research && !has(game, research))
-      return no(
-        Refusal.Locked({ what: LB_POLICIES[policy].label, research: RESEARCH[research].name }),
-      )
-    return ok(patch(game, id, { policy }))
-  })
-
-/**
- * Turns sticky sessions on or off on a Load Balancer (05 "Load Balancer"): a share of its users stay
- * on the target they first reached.
- */
-export const setSticky = (game: Game, id: string, sticky: boolean): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'lb'
-      ? ok(node.sticky === sticky ? game : patch(game, id, { sticky }))
-      : notAllowed('Only a Load Balancer keeps users on a target.'),
-  )
-
-/**
- * Turns slow start on or off on a Load Balancer (11 "JVM warmup under load"): a new copy takes
- * traffic gradually, so a cold Java copy never answers at its cold speed.
- */
-export const setSlowStart = (game: Game, id: string, slowStart: boolean): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'lb'
-      ? ok(node.slowStart === slowStart ? game : patch(game, id, { slowStart }))
-      : notAllowed('Only a Load Balancer ramps a new copy up.'),
-  )
-
-/** Sets a CDN's purge on deploy and its cache key (05 "CDN"). */
-export const setCdnOptions = (
-  game: Game,
-  id: string,
-  change: Readonly<{ purge?: boolean; cacheKey?: CacheKey }>,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'cdn') return notAllowed('Only a CDN has a purge or a cache key.')
-    if (change.cacheKey !== undefined && CACHE_KEYS[change.cacheKey] === undefined)
-      return notAllowed(`Cache keys are ${Object.keys(CACHE_KEYS).join(', ')}.`)
-    return ok(patch(game, id, change))
-  })
-
-/** Sets a Load Balancer's health checks. Intervals other than 10 s and deep checks need Health checks. */
-export const setHealthCheck = (
-  game: Game,
-  id: string,
-  change: Readonly<{ checkEvery?: number; deepCheck?: boolean }>,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'lb') return notAllowed('Only a Load Balancer runs health checks.')
-    if (
-      change.checkEvery !== undefined &&
-      !(CHECK_INTERVALS as ReadonlyArray<number>).includes(change.checkEvery)
-    )
-      return notAllowed('A health check runs every 2, 10, or 30 seconds.')
-    const tuned = (change.checkEvery ?? 10) !== 10 || change.deepCheck === true
-    if (tuned && !has(game, 'health-checks'))
-      return no(Refusal.Locked({ what: 'Health checks', research: RESEARCH['health-checks'].name }))
-    return ok(patch(game, id, change))
-  })
-
 /** Sets a Cache's TTL, or the DNS TTL. DNS needs Health checks, which make it drop dead hosts. */
 export const setTtl = (game: Game, id: string, ttl: number): Action =>
   withNode(game, id, (node) => {
@@ -857,187 +712,6 @@ export const setPm = (game: Game, id: string, pm: PmMode): Action =>
       ? ok(node.pm === pm ? game : patch(game, id, { pm }))
       : notAllowed('Only PHP-FPM has a process manager.'),
   )
-
-/** Sets a Connection Pooler's mode: session holds a server connection per client, transaction shares a few. */
-export const setPoolerMode = (game: Game, id: string, mode: PoolerMode): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'pooler'
-      ? ok(node.mode === mode ? game : patch(game, id, { mode }))
-      : notAllowed('Only a Connection Pooler has a mode.'),
-  )
-
-/** Swaps a Cache's engine. The new one starts empty. */
-export const setCacheEngine = (game: Game, id: string, engine: CacheEngine): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'cache') return notAllowed('Only a Cache has an engine.')
-    return ok(
-      node.engine === engine ? game : patch(game, id, { engine, life: withWarm(node.life, 0) }),
-    )
-  })
-
-/** Turns a Cache's stampede protection or warming on or off. Each needs its research. */
-export const setCacheGuard = (
-  game: Game,
-  id: string,
-  change: Readonly<{
-    coalesce?: boolean
-    warming?: boolean
-    earlyExpiry?: boolean
-    swr?: boolean
-  }>,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'cache') return notAllowed('Only a Cache has stampede guards.')
-    if ((change.coalesce || change.earlyExpiry || change.swr) && !has(game, 'stampede-protection'))
-      return no(
-        Refusal.Locked({
-          what: change.coalesce
-            ? 'Coalescing'
-            : change.earlyExpiry
-              ? 'Early expiration'
-              : 'Stale-while-revalidate',
-          research: RESEARCH['stampede-protection'].name,
-        }),
-      )
-    if (change.warming && !has(game, 'cache-warming'))
-      return no(Refusal.Locked({ what: 'Warming', research: RESEARCH['cache-warming'].name }))
-    return ok(patch(game, id, change))
-  })
-
-/**
- * Picks what a Cache does on a write (07 "Strategies"): cache-aside, read-through,
- * write-through or write-behind. Every strategy but cache-aside needs Cache strategies.
- */
-export const setCacheStrategy = (game: Game, id: string, cacheStrategy: CacheStrategy): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'cache') return notAllowed('Only a Cache has a strategy.')
-    if (cacheStrategy !== 'aside' && !has(game, 'cache-strategies'))
-      return no(
-        Refusal.Locked({ what: 'Cache strategies', research: RESEARCH['cache-strategies'].name }),
-      )
-    return ok(node.cacheStrategy === cacheStrategy ? game : patch(game, id, { cacheStrategy }))
-  })
-
-/** Turns a Queue's dead-letter queue on or off. */
-export const setDlq = (game: Game, id: string, dlq: boolean): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'queue'
-      ? ok(node.dlq === dlq ? game : patch(game, id, { dlq }))
-      : notAllowed('Only a Queue has a dead-letter queue.'),
-  )
-
-/** Sets the attempts a Queue's dead-letter queue allows a task. */
-export const setAttempts = (game: Game, id: string, attempts: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'queue') return notAllowed('Only a Queue retries tasks.')
-    if (!(MAX_ATTEMPTS as ReadonlyArray<number>).includes(attempts))
-      return notAllowed(`Max attempts are ${MAX_ATTEMPTS.join(', ')}.`)
-    return ok(node.attempts === attempts ? game : patch(game, id, { attempts }))
-  })
-
-/** Sets the most tasks a Queue holds before it refuses new ones; 0 means no limit. */
-export const setMaxLength = (game: Game, id: string, maxLength: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'queue') return notAllowed('Only a Queue has a max length.')
-    if (!(QUEUE_LENGTHS as ReadonlyArray<number>).includes(maxLength))
-      return notAllowed('That max length is not on offer.')
-    return ok(
-      node.maxLength === maxLength
-        ? game
-        : patch(game, id, {
-            maxLength,
-            depth: maxLength > 0 ? Math.min(node.depth, maxLength) : node.depth,
-          }),
-    )
-  })
-
-/** Sets how many tasks each Worker process takes from its Queue ahead of time. */
-export const setPrefetch = (game: Game, id: string, prefetch: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'worker') return notAllowed('Only a Worker prefetches tasks.')
-    if (!(PREFETCH as ReadonlyArray<number>).includes(prefetch))
-      return notAllowed(`Prefetch is ${PREFETCH.join(', ')}.`)
-    return ok(node.prefetch === prefetch ? game : patch(game, id, { prefetch }))
-  })
-
-/** Sets a WAF's paranoia level, 1 to 4. */
-export const setParanoia = (game: Game, id: string, paranoia: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'waf') return notAllowed('Only a WAF has a paranoia level.')
-    if (!PARANOIA.some((entry) => entry.level === paranoia))
-      return notAllowed('Paranoia runs from 1 to 4.')
-    return ok(node.paranoia === paranoia ? game : patch(game, id, { paranoia }))
-  })
-
-/** Turns a WAF's Under attack mode on or off: it challenges every request. */
-export const setUnderAttack = (game: Game, id: string, underAttack: boolean): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'waf'
-      ? ok(node.underAttack === underAttack ? game : patch(game, id, { underAttack }))
-      : notAllowed('Only a WAF has Under attack mode.'),
-  )
-
-/** Sets an API Gateway's rate limit in requests per second; 0 turns it off. */
-export const setRateLimit = (game: Game, id: string, rateLimit: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'gw') return notAllowed('Only an API Gateway rate-limits.')
-    if (!(GATEWAY_LIMITS as ReadonlyArray<number>).includes(rateLimit))
-      return notAllowed(`Rate limits are ${GATEWAY_LIMITS.join(', ')} requests per second.`)
-    return ok(node.rateLimit === rateLimit ? game : patch(game, id, { rateLimit }))
-  })
-
-/**
- * Turns the Gateway's token bucket on or off (Rate limiting): a burst up to `GATEWAY_BURST`
- * requests passes whole, and the long-run average holds at the limit.
- */
-export const setGatewayBucket = (game: Game, id: string, bucket: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'gw') return notAllowed('Only an API Gateway holds a token bucket.')
-    if (bucket && !has(game, 'rate-limiting'))
-      return no(
-        Refusal.Locked({ what: 'A token bucket', research: RESEARCH['rate-limiting'].name }),
-      )
-    const burst = bucket ? GATEWAY_BURST : 0
-    return ok(node.burst === burst ? game : patch(game, id, { burst }))
-  })
-
-/** Sets an API Gateway's Auth at the edge, or its Request coalescing (05 "API Gateway"). */
-export const setGatewayOptions = (
-  game: Game,
-  id: string,
-  change: Readonly<{ authEdge?: boolean; merge?: boolean }>,
-): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'gw' ? ok(patch(game, id, change)) : notAllowed('Only an API Gateway has these.'),
-  )
-
-/** Sets a Realtime Hub's Presence, Reconnect backoff, or Clustering (05 "Realtime Hub"). */
-export const setHubOptions = (
-  game: Game,
-  id: string,
-  change: Readonly<{ presence?: boolean; backoff?: boolean; clustering?: boolean }>,
-): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'ws' ? ok(patch(game, id, change)) : notAllowed('Only a Realtime Hub has these.'),
-  )
-
-/** Sets how a CI/CD Pipeline ships: Recreate, Rolling, Blue-green or Canary (05 "CI/CD Pipeline"). */
-export const setDeployStrategy = (game: Game, id: string, strategy: DeployStrategy): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'ci') return notAllowed('Only a CI/CD Pipeline ships deploys.')
-    if (!(DEPLOY_STRATEGY_IDS as ReadonlyArray<string>).includes(strategy))
-      return notAllowed(`Deploy strategies are ${DEPLOY_STRATEGY_IDS.join(', ')}.`)
-    // Recreate and Rolling come with the Pipeline; Blue-green and Canary have their own research.
-    const research = STRATEGY_RESEARCH[strategy]
-    if (research && !has(game, research))
-      return no(
-        Refusal.Locked({
-          what: DEPLOY_STRATEGIES[strategy].name,
-          research: RESEARCH[research].name,
-        }),
-      )
-    return ok(node.strategy === strategy ? game : patch(game, id, { strategy }))
-  })
 
 /** Moves a Node to another zone. Needs Multiple zones; a sized Node restarts there. */
 export const setZone = (game: Game, id: string, zone: Zone): Action =>
@@ -1098,83 +772,6 @@ export const setPricing = (game: Game, id: string, pricing: Pricing): Action =>
     )
   })
 
-/** Sets an Autoscaler's signal, target, and copy limits. */
-export const setAutoscaler = (
-  game: Game,
-  id: string,
-  change: Readonly<{
-    signal?: ScaleSignal
-    target?: number
-    minCopies?: number
-    maxCopies?: number
-    schedule?: boolean
-  }>,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'autoscaler') return notAllowed('Only an Autoscaler scales.')
-    if (change.schedule === true && !has(game, 'scheduled-scaling'))
-      return no(
-        Refusal.Locked({ what: 'A schedule', research: RESEARCH['scheduled-scaling'].name }),
-      )
-    if (
-      change.target !== undefined &&
-      !(SCALE_TARGETS as ReadonlyArray<number>).includes(change.target)
-    )
-      return notAllowed('A target is 40%, 60%, or 80%.')
-    if (
-      change.maxCopies !== undefined &&
-      !(SCALE_MAXIMA as ReadonlyArray<number>).includes(change.maxCopies)
-    )
-      return notAllowed('A max is 4, 8, 16, or none.')
-    const minCopies = change.minCopies ?? node.minCopies
-    const maxCopies = change.maxCopies ?? node.maxCopies
-    if (minCopies < 1 || minCopies > 16 || !Number.isInteger(minCopies))
-      return notAllowed('A min is 1 to 16 copies.')
-    if (maxCopies > 0 && minCopies > maxCopies) return notAllowed('The min is above the max.')
-    return ok(patch(game, id, change))
-  })
-
-/** Picks a GPU Node's GPU type. H100s cannot be had during a GPU shortage. */
-export const setGpuType = (game: Game, id: string, gpu: GpuType): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'gpu') return notAllowed('Only a GPU Node has a GPU type.')
-    if (node.gpu === gpu) return ok(game)
-    if (gpu === 'h100' && game.incident?.kind === 'gpu-shortage')
-      return notAllowed('No H100 capacity this month.')
-    return ok(patch(game, id, { gpu, ...restarted(node) }))
-  })
-
-/** Picks a GPU Node's weight precision. INT8 and INT4 need Quantization (05 "GPU Node"). */
-export const setPrecision = (game: Game, id: string, precision: GpuPrecision): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'gpu') return notAllowed('Only a GPU Node has a precision.')
-    if (precision !== 'fp16' && !has(game, 'quantization'))
-      return no(
-        Refusal.Locked({
-          what: GPU_PRECISIONS[precision].name,
-          research: RESEARCH.quantization.name,
-        }),
-      )
-    return ok(node.precision === precision ? game : patch(game, id, { precision }))
-  })
-
-/** Sets a GPU Node's batch size. Continuous batching keeps the first token's wait at its floor (05). */
-export const setBatch = (game: Game, id: string, batch: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'gpu') return notAllowed('Only a GPU Node batches prompts.')
-    if (!GPU_BATCHES.some((entry) => entry.batch === batch))
-      return notAllowed(`A batch is ${GPU_BATCHES.map((entry) => entry.batch).join(', ')}.`)
-    return ok(node.batch === batch ? game : patch(game, id, { batch }))
-  })
-
-/** Picks the model a GPU Node serves. It loads the weights, so the Node comes back cold. */
-export const setGpuModel = (game: Game, id: string, gpuModel: GpuModel): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'gpu') return notAllowed('Only a GPU Node serves a model.')
-    if (!(gpuModel in GPU_MODELS)) return notAllowed('There is no such model.')
-    return ok(node.gpuModel === gpuModel ? game : patch(game, id, { gpuModel, ...restarted(node) }))
-  })
-
 /** Picks a Java App Server's collector. ZGC needs its research. */
 export const setCollector = (game: Game, id: string, collector: Collector): Action =>
   withNode(game, id, (node) => {
@@ -1194,37 +791,6 @@ export const setGogc = (game: Game, id: string, gogc: number): Action =>
       return no(Refusal.Locked({ what: 'GOGC', research: RESEARCH['gogc-tuning'].name }))
     if (!GOGC.some((entry) => entry.gogc === gogc)) return notAllowed('GOGC is 50, 100 or 200.')
     return ok(node.gogc === gogc ? game : patch(game, id, { gogc }))
-  })
-
-/** Turns an App Server's load shedding on or off. Needs Priority load shedding. */
-export const setShed = (game: Game, id: string, shed: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'server') return notAllowed('Only App Servers shed load.')
-    if (shed && !has(game, 'load-shedding'))
-      return no(Refusal.Locked({ what: 'Load shedding', research: RESEARCH['load-shedding'].name }))
-    return ok(node.shed === shed ? game : patch(game, id, { shed }))
-  })
-
-/** Turns Graceful degradation on or off: a saturated App Server drops its dearest kinds first. */
-export const setDegrade = (game: Game, id: string, degrade: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'server') return notAllowed('Only App Servers degrade a kind.')
-    if (degrade && !has(game, 'graceful-degradation'))
-      return no(
-        Refusal.Locked({ what: 'Degradation', research: RESEARCH['graceful-degradation'].name }),
-      )
-    return ok(node.degrade === degrade ? game : patch(game, id, { degrade }))
-  })
-
-/** Turns an App Server's read-your-writes routing on or off. */
-export const setRyw = (game: Game, id: string, ryw: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'server') return notAllowed('Only App Servers route reads.')
-    if (ryw && !has(game, 'ryw-routing'))
-      return no(
-        Refusal.Locked({ what: 'Read-your-writes', research: RESEARCH['ryw-routing'].name }),
-      )
-    return ok(node.ryw === ryw ? game : patch(game, id, { ryw }))
   })
 
 /**
@@ -1274,15 +840,6 @@ export const setRegion = (game: Game, id: string, region: Region): Action =>
     )
   })
 
-/** Sets a Wide-column Store's N, R and W (07 "Wide-column Store"). */
-export const setQuorum = (game: Game, id: string, n: number, r: number, w: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'wide') return notAllowed('Only a Wide-column Store has quorums.')
-    if (!QUORUM_N.some((entry) => entry === n) || r < 1 || w < 1 || r > n || w > n)
-      return notAllowed('R and W are between 1 and N; N is 1 to 5.')
-    return ok(patch(game, id, { n, r, w }))
-  })
-
 /** Spreads a Wide-column Store or Distributed SQL Node across the open regions. */
 export const setSpread = (game: Game, id: string, spread: boolean): Action =>
   withNode(game, id, (node) => {
@@ -1290,46 +847,6 @@ export const setSpread = (game: Game, id: string, spread: boolean): Action =>
       return notAllowed('Only a Wide-column Store or Distributed SQL spreads across regions.')
     if (spread && openRegions(game).length < 2) return notAllowed('Open a second region first.')
     return ok(node.spread === spread ? game : patch(game, id, { spread }))
-  })
-
-/**
- * Sets a Database's backups. Needs Point-in-time recovery. A backup nobody has restored is
- * untested, so writing one rolls the design's 20% chance that it would not restore; with
- * Restore drills the Company tests every backup as it takes it, so the roll never fails
- * (07 "Backups").
- */
-export const setBackup = (game: Game, id: string, backup: Backup): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'database') return notAllowed('Only a Database keeps backups.')
-    if (backup !== 'none' && !has(game, 'pitr'))
-      return no(Refusal.Locked({ what: 'Backups', research: RESEARCH.pitr.name }))
-    if (node.backup === backup) return ok(game)
-    if (backup === 'none') return ok(patch(game, id, { backup, restore: 'ok' }))
-    return ok(rollRestore(patch(game, id, { backup }), id))
-  })
-
-/**
- * Tests a backup nobody has restored: rolls the design's 20% chance that it would not restore and
- * advances the seed, so the same save always finds the same answer. Restore drills remove the roll.
- */
-export const rollRestore = (game: Game, id: string): Game => {
-  const [roll, seed] = nextRandom(game.seed)
-  const failed = !has(game, 'restore-drills') && roll < RESTORE_FAILURE
-  return { ...patch(game, id, { restore: failed ? 'failed' : 'ok' }), seed }
-}
-
-/**
- * Runs a restore drill on a Database's backup (07 "Backups"). It costs Dev Hours, and an untested
- * restore fails on the design's 20% until Restore drills; a backup that fails is broken, and the
- * drill writes a new one. With the research the drill always restores.
- */
-export const runRestoreDrill = (game: Game, id: string): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'database') return notAllowed('Only a Database keeps backups.')
-    if (node.backup === 'none') return notAllowed('Take a backup before drilling a restore.')
-    if (game.devHours < RESTORE_DRILL_DH)
-      return notAllowed(`A restore drill needs ${RESTORE_DRILL_DH} Dev Hours.`)
-    return ok({ ...rollRestore(game, id), devHours: game.devHours - RESTORE_DRILL_DH })
   })
 
 /** Picks the engine a Database or Read Replica runs (07 "Variants"): Postgres forks a process per
@@ -1341,239 +858,6 @@ export const setDbEngine = (game: Game, id: string, dbEngine: DbEngine): Action 
     return ok(node.dbEngine === dbEngine ? game : patch(game, id, { dbEngine }))
   })
 
-/**
- * Turns a Database's materialized view on or off (Materialized views): a report scans the stored
- * view for half the CPU, and the figures are as old as its refresh.
- */
-export const setMaterialized = (game: Game, id: string, materialized: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'database') return notAllowed('Only a Database holds a materialized view.')
-    if (materialized && !has(game, 'precompute'))
-      return no(Refusal.Locked({ what: 'A view', research: RESEARCH.precompute.name }))
-    return ok(node.materialized === materialized ? game : patch(game, id, { materialized }))
-  })
-
-/** Picks the volume a Database's reads and writes wait on (07 "Capacity"). Needs no research. */
-export const setStorageIops = (game: Game, id: string, iops: IopsClass): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'database'
-      ? ok(node.iops === iops ? game : patch(game, id, { iops }))
-      : notAllowed('Only a Database has a volume.'),
-  )
-
-/**
- * Splits a Database into shards (07 "Partitioning"). Needs Sharding. Each shard is another copy of
- * the Database, and the writes divide across them.
- */
-export const setShards = (game: Game, id: string, shards: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'database') return notAllowed('Only a Database shards.')
-    if (!(SHARD_COUNTS as ReadonlyArray<number>).includes(shards))
-      return notAllowed(`Shard counts are ${SHARD_COUNTS.join(', ')}.`)
-    if (shards > 1 && !has(game, 'sharding'))
-      return no(Refusal.Locked({ what: 'Sharding', research: RESEARCH.sharding.name }))
-    return ok(node.shards === shards ? game : patch(game, id, { shards }))
-  })
-
-/**
- * Picks the key a Database shards on (07 "Partitioning"). It moves the data, so a Company changes
- * it through `queueReshard`; this is the Sandbox's and a replay's instant change.
- */
-export const setShardKey = (game: Game, id: string, shardKey: ShardKey): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'database') return notAllowed('Only a Database shards.')
-    if (SHARD_KEYS[shardKey] === undefined)
-      return notAllowed(`Shard keys are ${Object.keys(SHARD_KEYS).join(', ')}.`)
-    return ok(node.shardKey === shardKey ? game : patch(game, id, { shardKey }))
-  })
-
-/**
- * Makes a Read Replica synchronous (07 "Read Replica"): every write waits for it, and it serves no
- * stale read. Needs Synchronous replication.
- */
-export const setSync = (game: Game, id: string, sync: boolean): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'replica') return notAllowed('Only a Read Replica replicates synchronously.')
-    if (sync && !has(game, 'sync-replication'))
-      return no(
-        Refusal.Locked({
-          what: 'Synchronous replication',
-          research: RESEARCH['sync-replication'].name,
-        }),
-      )
-    return ok(node.sync === sync ? game : patch(game, id, { sync }))
-  })
-
-/**
- * A Search Engine's product, shards, replicas, and heap (07 "Search Engine"). Meilisearch runs one
- * node: it takes no shards, replicas, or heap.
- */
-export const setSearchOptions = (
-  game: Game,
-  id: string,
-  change: Readonly<{
-    searchVariant?: SearchVariant
-    searchShards?: number
-    searchReplicas?: number
-    heap?: SearchHeap
-  }>,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'search') return notAllowed('Only a Search Engine has these.')
-    if (change.searchVariant !== undefined && SEARCH_VARIANTS[change.searchVariant] === undefined)
-      return notAllowed(`Search products are ${Object.keys(SEARCH_VARIANTS).join(', ')}.`)
-    if (
-      change.searchShards !== undefined &&
-      !(SEARCH_SHARDS as ReadonlyArray<number>).includes(change.searchShards)
-    )
-      return notAllowed(`Shard counts are ${SEARCH_SHARDS.join(', ')}.`)
-    if (
-      change.searchReplicas !== undefined &&
-      !(SEARCH_REPLICAS as ReadonlyArray<number>).includes(change.searchReplicas)
-    )
-      return notAllowed(`Replica counts are ${SEARCH_REPLICAS.join(', ')}.`)
-    if (change.heap !== undefined && SEARCH_HEAPS[change.heap] === undefined)
-      return notAllowed(`Heaps are ${Object.keys(SEARCH_HEAPS).join(', ')}.`)
-    const next = { ...node, ...change }
-    if (
-      !SEARCH_VARIANTS[next.searchVariant].jvm &&
-      (next.searchShards !== 1 || next.searchReplicas !== 0 || next.heap !== 'half')
-    )
-      return notAllowed('Meilisearch runs one node: no shards, replicas, or heap.')
-    return ok(patch(game, id, change))
-  })
-
-/** Picks the product an Object Storage Node is (07 "Object Storage"): S3 or R2. */
-export const setStoreVariant = (game: Game, id: string, storeVariant: StoreVariant): Action =>
-  withNode(game, id, (node) =>
-    node.type !== 'storage'
-      ? notAllowed('Only Object Storage has a product.')
-      : storeVariant === 'r2' && !has(game, 'egress-optimization')
-        ? no(Refusal.Locked({ what: 'R2', research: RESEARCH['egress-optimization'].name }))
-        : ok(node.storeVariant === storeVariant ? game : patch(game, id, { storeVariant })),
-  )
-
-/** Turns multi-document transactions on or off on a Document Store (07 "Document Store"). */
-export const setDocOptions = (
-  game: Game,
-  id: string,
-  change: Readonly<{ transactions?: boolean }>,
-): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'doc'
-      ? ok(patch(game, id, change))
-      : notAllowed('Only a Document Store has multi-document transactions.'),
-  )
-
-/** Picks a Vector Index's type (07 "Vector Index"): exact, or approximate HNSW. */
-export const setVecIndex = (game: Game, id: string, indexType: GameNode['indexType']): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'vec') return notAllowed('Only a Vector Index has an index type.')
-    if ((VEC_INDEXES as Record<string, unknown>)[indexType] === undefined)
-      return notAllowed(`Index types are ${Object.keys(VEC_INDEXES).join(', ')}.`)
-    return ok(node.indexType === indexType ? game : patch(game, id, { indexType }))
-  })
-
-/**
- * An Event Stream's partitions, acknowledgements, retention and partition key (07 "Event Stream").
- * Each one trades parallelism or durability against order, disk, and the window a consumer has.
- */
-export const setLogOptions = (
-  game: Game,
-  id: string,
-  change: Readonly<{
-    partitions?: number
-    acks?: GameNode['acks']
-    retain?: number
-    keyed?: boolean
-    replicas?: number
-  }>,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'log') return notAllowed('Only an Event Stream has these.')
-    if (
-      change.partitions !== undefined &&
-      !(LOG_PARTITIONS as ReadonlyArray<number>).includes(change.partitions)
-    )
-      return notAllowed(`Partition counts are ${LOG_PARTITIONS.join(', ')}.`)
-    if (
-      change.acks !== undefined &&
-      (LOG_ACKS as Record<string, unknown>)[change.acks] === undefined
-    )
-      return notAllowed(`Acknowledgements are ${Object.keys(LOG_ACKS).join(', ')}.`)
-    if (
-      change.retain !== undefined &&
-      !(LOG_RETENTION as ReadonlyArray<number>).includes(change.retain)
-    )
-      return notAllowed(`Retention windows are ${LOG_RETENTION.join(', ')} seconds.`)
-    if (
-      change.replicas !== undefined &&
-      !(LOG_REPLICAS as ReadonlyArray<number>).includes(change.replicas)
-    )
-      return notAllowed(`Replication factors are ${LOG_REPLICAS.join(', ')}.`)
-    const { replicas, ...rest } = change
-    return ok(patch(game, id, replicas === undefined ? rest : { ...rest, n: replicas }))
-  })
-
-/**
- * What a Database does with rows past its window (07 "Data volume"). Needs Retention policies.
- * Keeping everything is the default, so it needs nothing.
- */
-export const setDbRetention = (game: Game, id: string, keep: DbRetention): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'database') return notAllowed('Only a Database keeps rows.')
-    if (keep !== 'keep' && !has(game, 'retention'))
-      return no(Refusal.Locked({ what: 'Retention', research: RESEARCH.retention.name }))
-    return ok(node.keep === keep ? game : patch(game, id, { keep }))
-  })
-
-/** Picks the class Object Storage keeps its objects in (07 "Object Storage"). */
-export const setStorageClass = (game: Game, id: string, storageClass: StorageClass): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'storage'
-      ? ok(node.storageClass === storageClass ? game : patch(game, id, { storageClass }))
-      : notAllowed('Only Object Storage has a storage class.'),
-  )
-
-/**
- * Picks how many calendar days an object stays in its class before Lifecycle rules move it one
- * class cheaper (07 "Object Storage"). Needs Lifecycle rules; 0 turns them off.
- */
-export const setLifecycle = (game: Game, id: string, lifecycle: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'storage')
-      return notAllowed('Only Object Storage moves objects between classes.')
-    if (!(LIFECYCLE_DAYS as ReadonlyArray<number>).includes(lifecycle))
-      return notAllowed(`Lifecycle windows are ${LIFECYCLE_DAYS.join(', ')} days.`)
-    if (lifecycle > 0 && !has(game, 'lifecycle-rules'))
-      return no(
-        Refusal.Locked({ what: 'Lifecycle rules', research: RESEARCH['lifecycle-rules'].name }),
-      )
-    return ok(node.lifecycle === lifecycle ? game : patch(game, id, { lifecycle }))
-  })
-
-/**
- * Picks a Search Engine's refresh interval (07 "Search Engine"): a longer interval saves indexing
- * CPU, so the Node answers more queries and a bigger share of its answers are staler.
- */
-export const setSearchRefresh = (game: Game, id: string, refresh: number): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'search') return notAllowed('Only a Search Engine has a refresh interval.')
-    if (!SEARCH_REFRESH.some((entry) => entry.seconds === refresh))
-      return notAllowed(
-        `Refresh intervals are ${SEARCH_REFRESH.map((entry) => entry.seconds).join(', ')} s.`,
-      )
-    return ok(node.refresh === refresh ? game : patch(game, id, { refresh }))
-  })
-
-/** Pull or push feeds on an App Server (07 "Fan-out"). */
-export const setFanout = (game: Game, id: string, fanout: Fanout): Action =>
-  withNode(game, id, (node) =>
-    node.type !== 'server'
-      ? notAllowed('Only App Servers build feeds.')
-      : ok(node.fanout === fanout ? game : patch(game, id, { fanout })),
-  )
-
 /** Splits hot keys across a Cache's or Wide-column Store's shards. Needs Hybrid fan-out. */
 export const setSplit = (game: Game, id: string, split: boolean): Action =>
   withNode(game, id, (node) => {
@@ -1582,28 +866,6 @@ export const setSplit = (game: Game, id: string, split: boolean): Action =>
     if (split && !has(game, 'hybrid-fanout'))
       return no(Refusal.Locked({ what: 'Key splitting', research: RESEARCH['hybrid-fanout'].name }))
     return ok(node.split === split ? game : patch(game, id, { split }))
-  })
-
-/**
- * Sets a Feature's rollout from its flag (05 "Feature Flags", 08 "Rollout"). One of the design's
- * steps and nothing between them: 5%, 25%, 50%, every user, or off.
- */
-export const setRollout = (
-  game: Game,
-  id: string,
-  feature: typeof FeatureId.Type,
-  share: number,
-): Action =>
-  withNode(game, id, (node) => {
-    if (node.type !== 'ff') return notAllowed('Only Feature Flags roll a Feature out.')
-    if (!game.shipped.includes(feature))
-      return notAllowed('Ship the Feature before it has a rollout.')
-    if (!(ROLLOUT_STEPS as ReadonlyArray<number>).includes(share))
-      return notAllowed('A rollout is off, 5%, 25%, 50%, or every user.')
-    const rollouts = { ...serviceOf(game).rollouts }
-    if (share >= ROLLOUT_ALL) delete rollouts[feature]
-    else rollouts[feature] = share
-    return ok(withService(game, { rollouts }))
   })
 
 /** Rolls back the routing change that withdrew the Company from the internet. */
@@ -1664,39 +926,9 @@ export const setGuidance = (game: Game, growth: number, margin: number): Action 
   return ok({ ...game, quarter: { ...game.quarter, growth, margin } })
 }
 
-/**
- * The player's first action while an Incident runs acknowledges it (11 "The incident loop"), so an
- * Incident a response ended is never mistaken for one left alone to cascade.
- */
-const answering = (game: Game, incident: Incident): Incident => ({
-  ...incident,
-  ackAt: incident.ackAt ?? game.time,
-})
-
-/** Ends an incident that one action ends. */
-const endIncident = (game: Game, kind: IncidentId, refusal: string): Action =>
-  game.incident?.kind === kind
-    ? ok({ ...game, incident: { ...answering(game, game.incident), remaining: 0 } })
-    : notAllowed(refusal)
-
-/** Disables the WAF rule that backtracks. */
-export const disableRule = (game: Game): Action =>
-  endIncident(game, 'regex', 'No WAF rule is backtracking.')
-
 /** Cancels the report that is scanning the primary. */
 export const cancelReport = (game: Game): Action =>
   endIncident(game, 'report-db', 'No report is scanning the Database.')
-
-/** Expands a full Database volume: writes come back. Costs what a replacement would. */
-export const expandVolume = (game: Game): Action => {
-  const target = game.nodes.find((node) => node.id === game.incident?.nodeId)
-  if (game.incident?.kind !== 'disk-full' || !target) return notAllowed('No disk is full.')
-  return spend(game, replacePrice(game, target), 'A bigger volume', (paid) =>
-    paid.incident
-      ? { ...paid, incident: { ...answering(paid, paid.incident), remaining: 0 } }
-      : paid,
-  )
-}
 
 /** Renews an expired certificate: the site comes back. */
 export const renewCertificate = (game: Game): Action =>
@@ -1710,35 +942,6 @@ export const renewCertificate = (game: Game): Action =>
         ),
       })
     : notAllowed('No certificate has expired.')
-
-/**
- * Moves every Payment Provider Node to the second provider, or back to the first (18 "Senders":
- * "Switch provider"). The move is a rush integration that costs Cash; the second provider keeps
- * serving through an outage of the first, and charges more per checkout. Switching during an
- * outage of the first ends its effect at once.
- */
-export const setProvider = (game: Game, provider: 'first' | 'second'): Action => {
-  const psps = game.nodes.filter((node) => node.type === 'psp')
-  if (psps.length === 0) return notAllowed('There is no Payment Provider to switch.')
-  if (psps.every((node) => node.provider === provider)) return ok(game)
-  return spend(game, SWITCH_PROVIDER_PRICE, 'Switch provider', (paid) => ({
-    ...paid,
-    nodes: paid.nodes.map((node) => (node.type === 'psp' ? { ...node, provider } : node)),
-    incident:
-      provider === 'second' && paid.incident?.kind === 'psp-outage'
-        ? { ...answering(paid, paid.incident), remaining: 0 }
-        : paid.incident,
-  }))
-}
-
-/** Switches to the second Payment Provider, which an outage of the first leaves alone. */
-export const switchProvider = (game: Game): Action => setProvider(game, 'second')
-
-/** Deletes the poison message: the Workers get back to the queue. */
-export const deleteMessage = (game: Game): Action =>
-  game.incident?.kind === 'poison'
-    ? ok({ ...game, incident: { ...answering(game, game.incident), remaining: 0 } })
-    : notAllowed('No poison message is stuck.')
 
 /** Cancels the migration that holds the table's lock: writes go through again. */
 export const cancelMigration = (game: Game): Action =>
@@ -1817,21 +1020,6 @@ export const setAlertRule = (game: Game, rule: AlertRule, threshold: number): Ac
     falseAlarms: { ...game.falseAlarms, [rule]: 0 },
   })
 }
-
-export const setSample = (game: Game, id: string, sampleRate: number): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'analytics' && (SAMPLE_RATES as ReadonlyArray<number>).includes(sampleRate)
-      ? ok(patch(game, id, { sampleRate }))
-      : notAllowed('Only Analytics has a sample rate.'),
-  )
-
-/** How long Analytics keeps traces (12 "Retention"). */
-export const setRetention = (game: Game, id: string, retention: number): Action =>
-  withNode(game, id, (node) =>
-    node.type === 'analytics' && (RETENTION_WINDOWS as ReadonlyArray<number>).includes(retention)
-      ? ok(patch(game, id, { retention }))
-      : notAllowed('Only Analytics keeps traces.'),
-  )
 
 /* ---------- incidents ---------- */
 

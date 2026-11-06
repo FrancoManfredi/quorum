@@ -1,3 +1,4 @@
+import { type Action, notAllowed, ok, patch, withNode } from '../action-kit.ts'
 import type { Game, GameNode } from '../state.ts'
 import {
   HERD_REFUSED,
@@ -23,7 +24,7 @@ import { type ComponentRule, noConnections, nothing } from '../rule-kit.ts'
  * none, and without Clustering only one box takes connections, so the larger sizes add Burn and
  * no room.
  */
-const hubConnections = (node: GameNode, builtIn = false): number => {
+export const hubConnections = (node: GameNode, builtIn = false): number => {
   const perConnection = RUNTIMES[node.runtime].connectionKB
   if (perConnection === null) return 0
   return (HUB_RAM_KB * (node.clustering || builtIn ? flatScale(node) : 1)) / perConnection
@@ -37,7 +38,7 @@ const hubRate = (node: GameNode, builtIn = false): number =>
  * Distributed Erlang gives an Elixir Hub its own cluster backbone, so it takes connections on
  * every box without the Clustering option (06 "Elixir", "Realtime connections").
  */
-const distributedErlang = (game: Game, node: GameNode): boolean =>
+export const distributedErlang = (game: Game, node: GameNode): boolean =>
   has(game, 'distributed-erlang') && RUNTIMES[node.runtime].language === 'elixir'
 
 // A Realtime Hub holds a connection for each realtime message instead of serving it as a
@@ -82,3 +83,13 @@ export const wsRule: ComponentRule = {
   // An LB weighs it by the connections it holds, which depend on its runtime.
   probe: () => ({ rt: 1 }),
 }
+
+/** Sets a Realtime Hub's Presence, Reconnect backoff, or Clustering (05 "Realtime Hub"). */
+export const setHubOptions = (
+  game: Game,
+  id: string,
+  change: Readonly<{ presence?: boolean; backoff?: boolean; clustering?: boolean }>,
+): Action =>
+  withNode(game, id, (node) =>
+    node.type === 'ws' ? ok(patch(game, id, change)) : notAllowed('Only a Realtime Hub has these.'),
+  )

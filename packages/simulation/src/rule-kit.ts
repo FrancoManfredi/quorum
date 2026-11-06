@@ -36,10 +36,9 @@ import { FLAT_CAPACITY, callsOf, flatModel, type Calls, type NodeModel } from '.
 import { failSome, failed, through, type Hop, type Outcome } from './distribution.ts'
 import { mixOf, payloadFactor } from './features.ts'
 import { clusterOf, flatScale, has, hasEdge, hopMs, isDown, transferMs, vecOf } from './lookups.ts'
-import { buggy } from './migration.ts'
 import type { Game, GameNode } from './state.ts'
 import { warmOf } from './life.ts'
-import { badDeployShareOf, blastService, failsKind } from './team.ts'
+import { badDeployShareOf, blastService, buggy, failsKind } from './team.ts'
 
 /* ==========================================================================
    What each Component does in the flow solve, one rule per Component. The

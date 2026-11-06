@@ -1,5 +1,13 @@
-import type { GameNode } from '../state.ts'
-import { BACKEND_KINDS, POISON_SHARE, RUNTIMES, type Kind, type RequestKind } from '../catalog.ts'
+import { type Action, notAllowed, ok, patch, withNode } from '../action-kit.ts'
+import type { Game, GameNode } from '../state.ts'
+import {
+  BACKEND_KINDS,
+  POISON_SHARE,
+  PREFETCH,
+  RUNTIMES,
+  type Kind,
+  type RequestKind,
+} from '../catalog.ts'
 import { asyncCallsOf, serverModel } from '../capacity.ts'
 import { failSome, through } from '../distribution.ts'
 import { hopMs, inCluster, meshOf } from '../lookups.ts'
@@ -90,3 +98,12 @@ export const workerRule: ComponentRule = {
   connections: (_, node, model) => (model?.processes ?? 0) * RUNTIMES[node.runtime].connections,
   probe: noProbe,
 }
+
+/** Sets how many tasks each Worker process takes from its Queue ahead of time. */
+export const setPrefetch = (game: Game, id: string, prefetch: number): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'worker') return notAllowed('Only a Worker prefetches tasks.')
+    if (!(PREFETCH as ReadonlyArray<number>).includes(prefetch))
+      return notAllowed(`Prefetch is ${PREFETCH.join(', ')}.`)
+    return ok(node.prefetch === prefetch ? game : patch(game, id, { prefetch }))
+  })

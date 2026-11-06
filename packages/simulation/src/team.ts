@@ -583,3 +583,15 @@ export const enqueue = (
     backlog: top ? [item, ...game.backlog] : [...game.backlog, item],
   }
 }
+
+/** Whether an App Server runs the new Stack of a migration whose bugs are not fixed. */
+export const buggy = (game: Game, node: GameNode): boolean => {
+  const migration = serviceOf(game).migration
+  return (
+    !!migration &&
+    migration.bugs &&
+    node.type === 'server' &&
+    node.runtime === migration.runtime &&
+    node.framework === migration.framework
+  )
+}

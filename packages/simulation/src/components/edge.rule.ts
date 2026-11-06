@@ -17,7 +17,7 @@ import { type ComponentRule, answerCalls, each, noConnections, noProbe } from '.
 /* ---------- the Edge Function ---------- */
 
 /** Whether the Service's Stack runs at the edge: JavaScript, TypeScript, or Rust or Go to WASM. */
-const edgeRuns = (node: GameNode): boolean =>
+export const edgeRuns = (node: GameNode): boolean =>
   EDGE_LANGUAGES.includes(RUNTIMES[node.runtime].language)
 
 /**

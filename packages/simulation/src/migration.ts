@@ -221,14 +221,3 @@ export const cancelMigration = (game: Game): Action => {
     ),
   )
 }
-
-/** Whether an App Server runs the new Stack of a migration whose bugs are not fixed. */
-export const buggy = (game: Game, node: GameNode): boolean => {
-  const migration = serviceOf(game).migration
-  return (
-    !!migration &&
-    migration.bugs &&
-    node.type === 'server' &&
-    onStack(node, { runtime: migration.runtime, framework: migration.framework })
-  )
-}
