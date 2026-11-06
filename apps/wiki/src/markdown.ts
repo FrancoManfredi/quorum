@@ -10,7 +10,7 @@ import { islandAttributes } from './islands.ts'
 import { init, type Message, type Model } from './main.ts'
 import type { Page } from './page.ts'
 import { PAGES, SECTION_ORDER, childrenOf, navOf, pageAt } from './pages.ts'
-import { VERSION, WIKI_ORIGIN } from './site.ts'
+import { WIKI_ORIGIN } from './site.ts'
 
 /* ==========================================================================
    Every page as Markdown, for agents and anyone who prefers plain text. The
@@ -324,7 +324,7 @@ export const pageMarkdown = (page: Page): string => {
     body,
     facts ? `## Facts\n\n${facts}` : '',
     related.length ? `## See also\n\n${related.join('\n')}` : '',
-    `Source: ${WIKI_ORIGIN}${page.path === '/' ? '' : page.path} (Simulation ${VERSION})`,
+    `Source: ${WIKI_ORIGIN}${page.path === '/' ? '' : page.path}`,
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -359,7 +359,7 @@ export const llmsTxt = (): string => {
   })
   return [
     '# Quorum Wiki',
-    `> The player wiki for Quorum, a game about running the infrastructure of a growing Company. Every page is also served as Markdown at its URL plus \`.md\`; numbers come from the game's catalog (Simulation ${VERSION}).`,
+    `> The player wiki for Quorum, a game about running the infrastructure of a growing Company. Every page is also served as Markdown at its URL plus \`.md\`; numbers come from the game's catalog. The game changes every week, so a page can lag behind it; see the changelog at ${WIKI_ORIGIN}/about/changelog.`,
     `Every page in one file: [llms-full.txt](${WIKI_ORIGIN}/llms-full.txt)`,
     ...(home ? ['## Start', entry(home)] : []),
     ...[...sections, ...hubs].flatMap(({ title, pages }) =>

@@ -6,7 +6,7 @@ import { Subscription } from 'foldkit'
 import { Message, type Model } from './main.ts'
 import * as Search from './submodels/search.ts'
 
-/* "/" focuses the search, as on most documentation sites; Escape closes the results. */
+/* "/" or Ctrl/Cmd+K focuses the search, as on most documentation sites; Escape closes the results. */
 
 const keys = Stream.callback<Message>((queue) =>
   Effect.gen(function* () {
@@ -15,7 +15,8 @@ const keys = Stream.callback<Message>((queue) =>
         const listener = (event: KeyboardEvent) => {
           const target = event.target as HTMLElement | null
           const typing = target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
-          if (event.key === '/' && !typing && !event.metaKey && !event.ctrlKey) {
+          const shortcut = event.key === 'k' && (event.metaKey || event.ctrlKey)
+          if ((event.key === '/' && !typing && !event.metaKey && !event.ctrlKey) || shortcut) {
             event.preventDefault()
             Queue.offerUnsafe(queue, Message.SearchChanged({ message: Search.Message.Focused() }))
           }

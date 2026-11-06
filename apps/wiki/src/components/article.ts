@@ -8,7 +8,7 @@ import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { pageAt } from '../pages.ts'
 import { eraPath } from '../reference/shared.ts'
-import { VERSION, editUrl } from '../site.ts'
+import { editUrl } from '../site.ts'
 import { hides } from '../submodels/spoilers.ts'
 import { pathBar, pathNext } from './path-nav.ts'
 import { QUADRANTS, quadrantBadge } from './quadrant.ts'
@@ -123,7 +123,20 @@ const footer = (page: Page, h: H): Html => {
                 ['Design notes', icon(h, ArrowUpRight, 'size-3.5')],
               )
             : h.empty,
-          h.span([h.Class(cn(FIGURE, 'ml-auto'))], [`Game version ${VERSION}`]),
+          h.span(
+            [h.Class('ml-auto')],
+            [
+              'Quorum changes every week, so this page can lag behind the game. ',
+              h.a(
+                [
+                  h.Href('/about/changelog'),
+                  h.Class('underline underline-offset-2 hover:text-foreground'),
+                ],
+                ['See the changelog'],
+              ),
+              '.',
+            ],
+          ),
         ],
       ),
     ],

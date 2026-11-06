@@ -11,7 +11,8 @@ aliases: edit, contribute, github
 The wiki has two sources:
 
 - **Numbers, unlocks, and lists** come from the game's catalog when the wiki is built. Nobody types
-  a stat by hand, so a stat on the wiki always matches the game version in the toolbar.
+  a stat by hand, so a stat on the wiki matches the game as of the last build. The game changes every week, so
+  see the [changelog](/about/changelog) for what moved.
 - **Text** is written by hand in Markdown, in `apps/wiki/content` in the
   [Quorum repository](https://github.com/elianiva/quorum).
 

@@ -1,7 +1,9 @@
-import { Effect, Schema } from 'effect'
+import { Effect, Option, Schema } from 'effect'
 import { Command, type Update } from 'foldkit'
+import { pushUrl } from 'foldkit/navigation'
 import { defineView } from 'foldkit/submodel'
 import { defineMessageUnion } from 'foldkit/message'
+import { cn } from 'cn'
 import { Search as SearchIcon } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
 import { QUADRANTS } from '../components/quadrant.ts'
@@ -9,18 +11,31 @@ import { search, type Entry } from '../search.ts'
 
 /* The search box in the header: the query, and whether its results are open. */
 
-export const Model = Schema.Struct({ query: Schema.String, open: Schema.Boolean })
+export const Model = Schema.Struct({
+  query: Schema.String,
+  open: Schema.Boolean,
+  /** The result the arrow keys have reached; Enter opens it. */
+  active: Schema.Finite,
+})
 export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
   QueryChanged: { query: Schema.String },
   Closed: {},
   Focused: {},
+  Moved: { delta: Schema.Finite, count: Schema.Finite },
+  Chosen: { href: Schema.String },
   Settled: {},
 })
 export type Message = typeof Message.Type
 
-export const init: Model = { query: '', open: false }
+export const init: Model = { query: '', open: false, active: 0 }
+
+const GoTo = Command.define('GoTo', {
+  args: { href: Schema.String },
+  messages: [Message.Settled],
+  execute: ({ href }) => pushUrl(href).pipe(Effect.as(Message.Settled())),
+})
 
 const FocusSearch = Command.define('FocusSearch', {
   messages: [Message.Settled],
@@ -32,7 +47,11 @@ const FocusSearch = Command.define('FocusSearch', {
 
 export const update = (model: Model, message: Message): Update.Return<Model, Message> =>
   Message.match<Update.Return<Model, Message>>(message, {
-    QueryChanged: ({ query }) => ({ model: { query, open: query.trim() !== '' } }),
+    QueryChanged: ({ query }) => ({ model: { query, open: query.trim() !== '', active: 0 } }),
+    Moved: ({ delta, count }) => ({
+      model: { ...model, active: count === 0 ? 0 : (model.active + delta + count) % count },
+    }),
+    Chosen: ({ href }) => ({ model: { ...model, open: false }, commands: [GoTo({ href })] }),
     Closed: () => ({ model: { ...model, open: false } }),
     Focused: () => ({ model, commands: [FocusSearch()] }),
     Settled: () => ({ model }),
@@ -41,6 +60,9 @@ export const update = (model: Model, message: Message): Update.Return<Model, Mes
 /** The page index is a view input, so this module does not load every page. */
 export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, index, h) => {
   const hits = model.open ? search(index, model.query) : []
+  const hrefOf = (hit: (typeof hits)[number]): string =>
+    hit.heading ? `${hit.page.path}#${hit.heading}` : hit.page.path
+  const active = hits[model.active]
   return h.div(
     [h.Class('relative min-w-0 flex-1 sm:max-w-[360px]')],
     [
@@ -64,7 +86,21 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
               'h-full min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground',
             ),
             h.OnInput((query) => Message.QueryChanged({ query })),
-            h.OnKeyDown((key) => (key === 'Escape' ? Message.Closed() : Message.Settled())),
+            h.Role('combobox'),
+            h.AriaExpanded(model.open),
+            h.AriaControls('search-results'),
+            h.AriaActiveDescendant(active ? `hit-${model.active}` : ''),
+            h.OnKeyDownPreventDefault((key) => {
+              if (key === 'Escape') return Option.some(Message.Closed())
+              if (!model.open || hits.length === 0) return Option.none()
+              if (key === 'ArrowDown')
+                return Option.some(Message.Moved({ delta: 1, count: hits.length }))
+              if (key === 'ArrowUp')
+                return Option.some(Message.Moved({ delta: -1, count: hits.length }))
+              if (key === 'Enter' && active)
+                return Option.some(Message.Chosen({ href: hrefOf(active) }))
+              return Option.none()
+            }),
           ]),
           h.kbd(
             [
@@ -79,6 +115,7 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
       model.open
         ? h.div(
             [
+              h.Id('search-results'),
               h.Role('listbox'),
               h.AriaLabel('Search results'),
               h.Class(
@@ -92,13 +129,20 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
                     ['No page matches.'],
                   ),
                 ]
-              : hits.map(({ page, heading }) =>
-                  h.a(
+              : hits.map((hit, index) => {
+                  const { page } = hit
+                  return h.a(
                     [
                       h.Key(page.path),
-                      h.Href(heading ? `${page.path}#${heading}` : page.path),
+                      h.Id(`hit-${index}`),
+                      h.Role('option'),
+                      h.AriaSelected(index === model.active),
+                      h.Href(hrefOf(hit)),
                       h.Class(
-                        'block rounded-md px-3 py-2 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
+                        cn(
+                          'block rounded-md px-3 py-2 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
+                          index === model.active && 'bg-muted',
+                        ),
                       ),
                     ],
                     [
@@ -120,8 +164,8 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
                         [page.summary],
                       ),
                     ],
-                  ),
-                ),
+                  )
+                }),
           )
         : h.empty,
     ],

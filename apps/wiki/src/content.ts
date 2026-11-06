@@ -1,7 +1,7 @@
 import * as Markdown from '@foldkit/markdown'
 import { Schema } from 'effect'
 import { Frontmatter } from './frontmatter.ts'
-import { headingsOf, prose, textOf } from './prose.ts'
+import { headingsOf, linksIn, prose, textOf } from './prose.ts'
 import type { Page } from './page.ts'
 
 /* ==========================================================================
@@ -46,6 +46,10 @@ export const proseAt = (path: string): Prose | null => {
     ? { document: entry.document, text: textOf(entry.document), source: entry.source }
     : null
 }
+
+/** The wiki paths and Sandboxes that a page's prose links to or places. */
+export const linksFrom = (path: string): ReturnType<typeof linksIn> =>
+  linksIn(entries.find((candidate) => candidate.path === path)?.document ?? { blocks: [] })
 
 /** The source document of an authored page, by its path. */
 export const documentOf = (path: string): Markdown.MarkdownDocument | null =>

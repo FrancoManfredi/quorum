@@ -28,12 +28,17 @@ import {
 import { GUIDED, SANDBOX_IDS, type GuidedSandbox } from '@quorum/simulation/sandbox'
 import { compact, money } from '@quorum/ui/game/format'
 import type { Page } from '../page.ts'
+import { componentList } from './components.ts'
+import { componentsPlacing } from './graph.ts'
+import { incidentPath } from './incidents.ts'
+import { INCIDENTS } from '@quorum/simulation/catalog'
 import {
   authored,
   eraName,
   eraPath,
   headingsFor,
   link,
+  linkList,
   page,
   paragraph,
   percent,
@@ -376,6 +381,10 @@ export const sandboxPath = (id: GuidedSandbox['id']): string => `/sandboxes/${id
 const sandbox = (def: GuidedSandbox): Page => {
   const path = sandboxPath(def.id)
   const text = authored(path)
+  const taughtOn = componentsPlacing(def.id)
+  const incidents = [
+    ...new Set(def.objectives.flatMap((objective) => objective.incident?.kind ?? [])),
+  ]
   return page({
     path,
     title: def.name,
@@ -385,7 +394,14 @@ const sandbox = (def: GuidedSandbox): Page => {
     era: def.stage,
     aliases: ['sandbox', 'challenge', 'tutorial', def.id],
     source: text.source,
-    headings: [...text.headings, ...headingsFor(['Objectives'])],
+    headings: [
+      ...text.headings,
+      ...headingsFor([
+        'Objectives',
+        incidents.length ? 'Incidents it fires' : null,
+        taughtOn.length ? 'Where it is taught' : null,
+      ]),
+    ],
     text: `${def.objectives.map((objective) => objective.goal).join(' ')} ${text.text}`,
     body: (model, h) =>
       h.div(
@@ -423,6 +439,26 @@ const sandbox = (def: GuidedSandbox): Page => {
             ],
             h,
           ),
+          incidents.length
+            ? section(
+                'Incidents it fires',
+                [
+                  h.p(
+                    [],
+                    [
+                      linkList(
+                        incidents.map((id) => link(incidentPath(id), INCIDENTS[id].name, h)),
+                        h,
+                      ),
+                    ],
+                  ),
+                ],
+                h,
+              )
+            : h.empty,
+          taughtOn.length
+            ? section('Where it is taught', [componentList(taughtOn, h)], h)
+            : h.empty,
         ],
       ),
     related: ['/sandboxes'],

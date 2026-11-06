@@ -19,6 +19,7 @@ import { money, ms } from '@quorum/ui/game/format'
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
 import { nodeCard } from '../components/node-card.ts'
 import type { Page } from '../page.ts'
+import { researchNext, worksWith } from './graph.ts'
 import {
   authored,
   cardGrid,
@@ -28,6 +29,7 @@ import {
   headingsFor,
   hubCard,
   link,
+  linkList,
   page,
   paragraph,
   researchLink,
@@ -120,11 +122,25 @@ const rules = (def: ComponentDef, h: H): ReadonlyArray<Html> =>
         ),
       ]
 
+/** Components as a comma-separated list of links. */
+export const componentList = (ids: ReadonlyArray<ComponentId>, h: H): Html =>
+  h.p(
+    [],
+    [
+      linkList(
+        ids.map((id) => link(componentPath(id), COMPONENTS[id].name, h)),
+        h,
+      ),
+    ],
+  )
+
 const entity = (def: ComponentDef): Page => {
   const path = componentPath(def.id)
   const text = authored(path)
   const cves = CVE_DEFS.filter((cve) => cve.affects.includes(def.id))
   const terms = BY_COMPONENT[def.id]
+  const partners = worksWith(def.id)
+  const next = researchNext(def.id)
   return page({
     path,
     title: def.name,
@@ -138,6 +154,8 @@ const entity = (def: ComponentDef): Page => {
       ...text.headings,
       ...headingsFor([
         'Rules',
+        partners.length ? 'Works with' : null,
+        next.length ? 'Research next' : null,
         cves.length ? 'Security' : null,
         terms?.length ? 'Engineering terms' : null,
       ]),
@@ -161,6 +179,28 @@ const entity = (def: ComponentDef): Page => {
         [
           ...(text.view ? [text.view(model, h)] : []),
           section('Rules', rules(def, h), h),
+          partners.length ? section('Works with', [componentList(partners, h)], h) : h.empty,
+          next.length
+            ? section(
+                'Research next',
+                [
+                  paragraph(
+                    `Once you own ${def.unlock ? RESEARCH[def.unlock].name : def.name}, these Research items build on it.`,
+                    h,
+                  ),
+                  h.p(
+                    [],
+                    [
+                      linkList(
+                        next.map((id) => researchLink(id, h)),
+                        h,
+                      ),
+                    ],
+                  ),
+                ],
+                h,
+              )
+            : h.empty,
           cves.length
             ? section(
                 'Security',

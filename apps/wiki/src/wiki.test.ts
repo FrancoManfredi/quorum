@@ -13,7 +13,10 @@ import { prosePaths } from './content.ts'
 import { normalize } from './main.ts'
 import { renderPage, prerenderPaths } from './entry.server.ts'
 import { PAGES, SECTION_ORDER, navOf, pageAt } from './pages.ts'
+import { componentsHitBy, sandboxesFiring } from './reference/graph.ts'
 import { indexOf, search } from './search.ts'
+import * as Search from './submodels/search.ts'
+import { PER_DAY, dayOf, renderAll, renderRecent } from '../scripts/changelog.ts'
 
 /* The wiki's contract: every page has one clean path, renders at build time, and can be found. */
 
@@ -79,4 +82,43 @@ test('the play section comes first and its pages follow their order', () => {
   const orders = navOf('play').map((page) => page.order)
   expect(orders).toEqual([...orders].sort((a, b) => a - b))
   expect(PAGES.filter((page) => page.section === 'play' && page.era !== null)).toEqual([])
+})
+
+test('an incident page names the Components that teach it and the Sandboxes that fire it', () => {
+  expect(componentsHitBy('stampede')).toEqual(['cache'])
+  expect(sandboxesFiring('stampede')).toEqual(['stampede'])
+})
+
+test('the arrow keys wrap around the search results', () => {
+  const at = (active: number, delta: number) =>
+    Search.update({ query: 'cache', open: true, active }, Search.Message.Moved({ delta, count: 3 }))
+      .model.active
+  expect([at(2, 1), at(0, -1), at(0, 1)]).toEqual([0, 2, 1])
+})
+
+test('the changelog groups commits by UTC day, cuts the short page, and keeps every commit on the full one', () => {
+  expect(dayOf('2026-11-08T23:59:00+00:00')).toBe('2026-11-08')
+  expect(dayOf('2026-11-09T03:00:00+07:00')).toBe('2026-11-08')
+  const commit = (n: number, date: string, subject: string) => ({
+    hash: String(n).repeat(40),
+    date,
+    subject,
+  })
+  const busy = Array.from({ length: PER_DAY + 2 }, (_, n) =>
+    commit(n, '2026-11-08T10:00:00Z', `Busy day change ${n}`),
+  )
+  const commits = [
+    commit(9, '2026-11-09T10:00:00Z', 'Add the Monday thing'),
+    commit(8, '2026-11-08T11:00:00Z', 'Merge branch x'),
+    ...busy,
+  ]
+  const recent = renderRecent(commits)
+  expect(recent.indexOf('Monday, 9 November 2026')).toBeLessThan(
+    recent.indexOf('Sunday, 8 November 2026'),
+  )
+  expect(recent).not.toContain('Merge branch')
+  expect(recent).toContain('Busy day change 0')
+  expect(recent).not.toContain(`Busy day change ${PER_DAY}`)
+  expect(recent).toContain('(/about/changelog/all#sunday-8-november-2026)')
+  expect(renderAll(commits)).toContain(`Busy day change ${PER_DAY + 1}`)
 })

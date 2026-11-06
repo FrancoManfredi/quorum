@@ -4,7 +4,10 @@ import { INCIDENTS, INCIDENT_IDS, type IncidentDef } from '@quorum/simulation/ca
 import { BY_INCIDENT } from '@quorum/simulation/discovery'
 import { FIGURE } from '@quorum/ui/game/bits'
 import { duration } from '@quorum/ui/game/format'
+import { GUIDED } from '@quorum/simulation/sandbox'
 import type { Page } from '../page.ts'
+import { componentList } from './components.ts'
+import { componentsHitBy, sandboxesFiring } from './graph.ts'
 import {
   authored,
   eraName,
@@ -12,6 +15,7 @@ import {
   factsBox,
   headingsFor,
   link,
+  linkList,
   page,
   paragraph,
   researchLink,
@@ -49,6 +53,8 @@ export const severityChip = (severity: 1 | 2 | 3, h: H): Html =>
 const entity = (def: IncidentDef): Page => {
   const path = incidentPath(def.id)
   const text = authored(path)
+  const hits = componentsHitBy(def.id)
+  const practice = sandboxesFiring(def.id)
   return page({
     path,
     title: def.name,
@@ -63,6 +69,8 @@ const entity = (def: IncidentDef): Page => {
       ...headingsFor([
         'What happens',
         'How to prevent it',
+        hits.length ? 'Components it hits' : null,
+        practice.length ? 'Practice it' : null,
         BY_INCIDENT[def.id]?.length ? 'Engineering terms' : null,
       ]),
     ],
@@ -105,6 +113,24 @@ const entity = (def: IncidentDef): Page => {
             ],
             h,
           ),
+          hits.length ? section('Components it hits', [componentList(hits, h)], h) : h.empty,
+          practice.length
+            ? section(
+                'Practice it',
+                [
+                  h.p(
+                    [],
+                    [
+                      linkList(
+                        practice.map((id) => link(`/sandboxes/${id}`, GUIDED[id].name, h)),
+                        h,
+                      ),
+                    ],
+                  ),
+                ],
+                h,
+              )
+            : h.empty,
           termsSection(BY_INCIDENT[def.id], h),
         ],
       ),

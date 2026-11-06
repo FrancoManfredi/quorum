@@ -1,13 +1,12 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { cn } from 'cn'
 import { ArrowUpRight, Menu, X } from 'lucide'
-import { FIGURE } from '@quorum/ui/game/bits'
 import { icon } from '@quorum/ui/primitives/icon'
 import { Message, type Model } from '../main.ts'
 import { PAGES, SECTION_ORDER, navOf, pageAt } from '../pages.ts'
 import { QUADRANTS } from './quadrant.ts'
 import { indexOf } from '../search.ts'
-import { GAME_ORIGIN, VERSION } from '../site.ts'
+import { GAME_ORIGIN } from '../site.ts'
 import * as Search from '../submodels/search.ts'
 import * as Spoilers from '../submodels/spoilers.ts'
 
@@ -86,13 +85,6 @@ export const header = (model: Model, h: H): Html =>
             view: Spoilers.view,
             toParentMessage: (message) => Message.SpoilersChanged({ message }),
           }),
-          h.span(
-            [
-              h.Title(`Every number on the wiki matches game version ${VERSION}`),
-              h.Class(cn(FIGURE, 'hidden text-[12px] text-muted-foreground md:inline')),
-            ],
-            [VERSION],
-          ),
           h.a(
             [
               h.Href(GAME_ORIGIN),

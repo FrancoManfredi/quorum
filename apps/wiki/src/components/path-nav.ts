@@ -6,7 +6,7 @@ import { icon } from '@quorum/ui/primitives/icon'
 import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { PATHS, placeOf, resumeOf, stepsOf, type Path } from '../paths.ts'
-import { quadrantBadge, quadrantColor } from './quadrant.ts'
+import { quadrantColor } from './quadrant.ts'
 
 /* The guided paths in the page: where a reader is in one, and the step after it. */
 
@@ -108,7 +108,7 @@ export const pathNext = (page: Page, h: H): Html => {
   return following && first ? nextCard(`Next path: ${following.title}`, first, h) : h.empty
 }
 
-/** A path on the home page: its steps as dots, and where to go on. */
+/** A path on the home page: its progress, the step to take next, and where it goes. */
 export const pathCard = (path: Path, model: Model, h: H): Html => {
   const steps = stepsOf(path)
   const read = steps.filter((step) => model.progress.visited.includes(step.path)).length
@@ -119,22 +119,13 @@ export const pathCard = (path: Path, model: Model, h: H): Html => {
     [h.Key(path.id), h.Class('flex flex-col gap-4 bg-background p-5')],
     [
       h.div(
-        [h.Class('flex items-start justify-between gap-3')],
+        [h.Class('flex items-baseline justify-between gap-3')],
         [
-          h.div(
-            [],
-            [
-              h.h3([h.Class('text-[18px] font-semibold tracking-tight')], [path.title]),
-              h.p(
-                [h.Class('mt-1 text-[13.5px] leading-snug text-pretty text-muted-foreground')],
-                [path.summary],
-              ),
-            ],
-          ),
+          h.h3([h.Class('text-[16px] font-semibold tracking-tight')], [path.title]),
           read === steps.length && steps.length > 0
             ? h.span(
-                [h.Class('grid size-6 shrink-0 place-items-center rounded-full bg-ok text-white')],
-                [icon(h, Check, 'size-3.5')],
+                [h.Class('grid size-5 shrink-0 place-items-center rounded-full bg-ok text-white')],
+                [icon(h, Check, 'size-3')],
               )
             : h.span(
                 [h.Class(cn(FIGURE, 'shrink-0 text-[12px] text-muted-foreground'))],
@@ -142,57 +133,34 @@ export const pathCard = (path: Path, model: Model, h: H): Html => {
               ),
         ],
       ),
-      h.ol(
-        [h.Class('flex flex-col gap-1')],
-        steps.map((step, index) =>
-          h.li(
-            [h.Key(step.path)],
-            [
-              h.a(
-                [
-                  h.Href(step.path),
-                  h.Class(
-                    'group flex items-center gap-2.5 rounded-lg px-1.5 py-1 -mx-1.5 text-[13.5px] hover:bg-well',
-                  ),
-                ],
-                [
-                  h.span(
-                    [
-                      h.Class(
-                        cn(
-                          FIGURE,
-                          'grid size-5 shrink-0 place-items-center rounded-full text-[10px]',
-                          model.progress.visited.includes(step.path)
-                            ? 'bg-foreground text-background'
-                            : 'border border-border',
-                        ),
-                      ),
-                    ],
-                    [
-                      model.progress.visited.includes(step.path)
-                        ? icon(h, Check, 'size-3')
-                        : String(index + 1),
-                    ],
-                  ),
-                  h.span([h.Class('min-w-0 flex-1 truncate')], [step.title]),
-                  quadrantBadge(step.section, 'size-4 opacity-80', h),
-                ],
-              ),
-            ],
-          ),
-        ),
+      h.p(
+        [h.Class('text-[13.5px] leading-snug text-pretty text-muted-foreground')],
+        [path.summary],
       ),
+      segments(steps, null, model, h),
       target
         ? h.a(
             [
               h.Href(target.path),
               h.Class(
-                'mt-auto inline-flex w-fit items-center gap-1.5 text-[13.5px] font-medium hover:underline',
+                'group mt-auto flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-[13.5px] transition-colors hover:border-foreground/30 hover:bg-well',
               ),
             ],
             [
-              label === 'Continue' ? `Continue: ${target.title}` : label,
-              icon(h, ArrowRight, 'size-4'),
+              h.span(
+                [h.Class('min-w-0 truncate')],
+                [
+                  h.span([h.Class('font-medium')], [label]),
+                  ...(label === 'Read again'
+                    ? []
+                    : [h.span([h.Class('text-muted-foreground')], [` · ${target.title}`])]),
+                ],
+              ),
+              icon(
+                h,
+                ArrowRight,
+                'size-4 shrink-0 transition-transform group-hover:translate-x-0.5',
+              ),
             ],
           )
         : h.empty,

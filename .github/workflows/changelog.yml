@@ -1,0 +1,36 @@
+name: Changelog
+
+on:
+  schedule:
+    # Monday 00:30 UTC, after the week the page lists has closed.
+    - cron: '30 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - run: node apps/wiki/scripts/changelog.ts
+      - name: Open a pull request when the page changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- apps/wiki/content/about; then exit 0; fi
+          branch="changelog/$(date -u +%F)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add apps/wiki/content/about
+          git commit -m "Update the wiki changelog"
+          git push origin "$branch"
+          gh pr create --title "Update the wiki changelog" --body "Regenerated from the commit history by \`apps/wiki/scripts/changelog.ts\`." --base main --head "$branch"
