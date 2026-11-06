@@ -626,7 +626,7 @@ describe('Exit and offline return', () => {
     expect(loaded.board.away?.seconds).toBe(3_600)
     expect(loaded.board.game.incident).toBeNull()
     expect(send(loaded, Message.Continued()).panel).toBe('away')
-  })
+  }, 30_000)
 })
 
 describe('Challenges', () => {

@@ -13,4 +13,6 @@ export default defineConfig({
     markdown({ frontmatter: Frontmatter, islands: islandAttributes }),
   ],
   resolve: { dedupe: ['effect', 'foldkit'] },
+  // The corpus tests read every page of the wiki, which a CI runner needs more than 5 s for.
+  test: { testTimeout: 30_000 },
 })
