@@ -261,6 +261,7 @@ export const page = (
   source: null,
   gdd: null,
   headings: [],
+  wide: false,
   aside: null,
   related: [],
   text: '',

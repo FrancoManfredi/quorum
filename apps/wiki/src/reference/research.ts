@@ -1,4 +1,5 @@
 import type { Html } from 'foldkit/html'
+import { Maximize2, Minimize2, type IconNode } from 'lucide'
 import { cn } from 'cn'
 import {
   COMPONENTS,
@@ -195,7 +196,7 @@ const entity = (entry: ResearchDef): Page => {
 const entities = researchList.map(entity)
 
 /** The game's Research tree, read-only: each item links to its page. */
-const tree = (h: H): Html => {
+const tree = (h: H, full = false): Html => {
   const layout = researchLayout()
   return h.div(
     [
@@ -203,7 +204,8 @@ const tree = (h: H): Html => {
       h.Class(
         cn(
           SCROLL,
-          'not-prose flex max-h-[72vh] flex-col-reverse overflow-auto rounded-lg border border-border bg-canvas',
+          'not-prose flex flex-col-reverse overflow-auto rounded-lg border border-border bg-canvas',
+          full ? 'h-[calc(100dvh-210px)]' : 'max-h-[72vh]',
         ),
       ),
       h.AriaLabel('Research tree'),
@@ -336,7 +338,7 @@ const byTrack = (h: H): Html =>
         [h.Key(track.key), h.Class('bg-background p-4')],
         [
           h.h3(
-            [h.Class('flex items-center gap-2 text-[14.5px] font-semibold')],
+            [h.Class('mt-0! flex items-center gap-2 text-[14.5px] font-semibold')],
             [
               icon(h, TRACK_ICONS[track.key], 'size-4 text-muted-foreground'),
               track.label,
@@ -382,6 +384,39 @@ const byTrack = (h: H): Html =>
     }),
   )
 
+/** The tree on a page of its own, as wide as the screen, like the game's Research panel. */
+const fullTree = page({
+  path: '/research/tree',
+  title: 'Research tree, full screen',
+  summary: 'The whole Research tree at the width of the screen.',
+  parent: '/research',
+  order: -1,
+  wide: true,
+  aliases: ['tech tree', 'full screen'],
+  body: (_model, h) =>
+    h.div(
+      [],
+      [
+        h.div(
+          [h.Class('mb-4 flex justify-end')],
+          [treeButton('/research', 'Back to the page', Minimize2, h)],
+        ),
+        tree(h, true),
+      ],
+    ),
+})
+
+const treeButton = (href: string, label: string, mark: IconNode, h: H): Html =>
+  h.a(
+    [
+      h.Href(href),
+      h.Class(
+        'inline-flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-[13px] font-medium text-foreground no-underline hover:bg-muted',
+      ),
+    ],
+    [icon(h, mark, 'size-4'), label],
+  )
+
 const hub = page({
   path: '/research',
   title: 'Research tree',
@@ -399,10 +434,20 @@ const hub = page({
           'Research turns Insight into new Components, runtimes, and practices. Each item costs Insight from the pools its subject earns, and some need other items first. The tree grows up from each track’s root and to the right through the Eras.',
           h,
         ),
-        section('The tree', [tree(h)], h),
+        section(
+          'The tree',
+          [
+            h.div(
+              [h.Class('not-prose mb-3 flex justify-end')],
+              [treeButton('/research/tree', 'Open in full', Maximize2, h)],
+            ),
+            tree(h),
+          ],
+          h,
+        ),
         section('By track', [byTrack(h)], h),
       ],
     ),
 })
 
-export const researchPages: ReadonlyArray<Page> = [hub, ...entities]
+export const researchPages: ReadonlyArray<Page> = [hub, fullTree, ...entities]

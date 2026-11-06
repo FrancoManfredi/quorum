@@ -28,6 +28,8 @@ export type Page = Readonly<{
   /** The design page this page rewrites, for readers who want the source. */
   gdd: string | null
   headings: ReadonlyArray<Heading>
+  /** Spans the frame: no navigation rail and no contents list. */
+  wide: boolean
   /** Facts beside the text, such as a Component's infobox. */
   aside: View | null
   body: View

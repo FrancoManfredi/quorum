@@ -42,11 +42,7 @@ export const mark = (h: H): Html =>
 
 export const header = (model: Model, h: H): Html =>
   h.header(
-    [
-      h.Class(
-        'sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70',
-      ),
-    ],
+    [h.Class('sticky top-0 z-40 border-b border-border bg-background')],
     [
       h.div(
         [h.Class('mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:px-6')],

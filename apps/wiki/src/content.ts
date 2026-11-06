@@ -80,6 +80,7 @@ export const authoredPages: ReadonlyArray<Page> = entries.flatMap((entry) => {
       source: entry.source,
       gdd: meta.gdd ?? null,
       headings: headingsOf(document),
+      wide: false,
       aside: null,
       body: (model, h) => prose(document, model, h),
       related: [],

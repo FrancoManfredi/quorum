@@ -1,6 +1,7 @@
 import type { Html } from 'foldkit/html'
 import {
-  BUILD_GROUPS,
+  DOCK_GROUPS,
+  DOCK_OF,
   COMPONENTS,
   COMPONENT_IDS,
   COPY_PRICE_GROWTH,
@@ -62,7 +63,7 @@ const facts = (def: ComponentDef, h: H): ReadonlyArray<Fact> => [
   { name: 'Real product', value: def.product },
   {
     name: 'Group',
-    value: BUILD_GROUPS.find((group) => group.key === def.group)?.label ?? def.group,
+    value: DOCK_GROUPS.find((group) => group.key === DOCK_OF[def.id])?.label ?? def.group,
   },
   { name: 'Unlocked by', value: def.unlock ? researchLink(def.unlock, h) : 'Starter kit' },
   { name: 'Era', value: link(eraPath(componentEra(def)), eraName(componentEra(def)), h) },
@@ -235,22 +236,22 @@ const hub = page({
     'Every part you can place on the board: what it stands for, what it costs, and when it unlocks.',
   order: 1,
   aliases: ['nodes', 'catalog', 'parts'],
-  headings: headingsFor(BUILD_GROUPS.map((group) => group.label)),
+  headings: headingsFor(DOCK_GROUPS.map((group) => group.label)),
   text: entities.map((entry) => entry.title).join(' '),
   body: (_model, h) =>
     h.div(
       [h.Class('prose')],
       [
         paragraph(
-          'A Component is an entry in the catalog. A Node is one copy of it on your board. Components fall into four groups, and each group has its own badge shape.',
+          'A Component is an entry in the catalog. A Node is one copy of it on your board. Components fall into seven groups, as in the game’s dock. A badge’s shape and colour show its family: Edge, Compute, Data, or Ops.',
           h,
         ),
-        ...BUILD_GROUPS.map((group) =>
+        ...DOCK_GROUPS.map((group) =>
           section(
             group.label,
             [
               cardGrid(
-                COMPONENT_IDS.filter((id) => COMPONENTS[id].group === group.key).map((id) => {
+                COMPONENT_IDS.filter((id) => DOCK_OF[id] === group.key).map((id) => {
                   const def = COMPONENTS[id]
                   const entry = entities.find((candidate) => candidate.path === componentPath(id))!
                   return hubCard(
