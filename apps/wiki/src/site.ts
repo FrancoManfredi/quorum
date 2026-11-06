@@ -4,5 +4,9 @@ export const WIKI_ORIGIN = 'https://wiki.playquorum.dev'
 export const GAME_ORIGIN = 'https://playquorum.dev'
 export const REPOSITORY = 'https://github.com/elianiva/quorum'
 
+/** The wiki's social card, public/og.png. */
+export const OG_IMAGE_ALT =
+  'The Quorum Wiki card: how every Component works, and why your Design breaks.'
+
 /** A link to a file in the repository, for "Edit on GitHub" and GDD sources. */
 export const editUrl = (file: string): string => `${REPOSITORY}/edit/main/${file}`

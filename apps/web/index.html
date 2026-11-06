@@ -10,6 +10,15 @@
       html {
         background: #141517;
       }
+      noscript {
+        display: block;
+        padding: 24px;
+        color: #eaebec;
+        font-family: system-ui, sans-serif;
+      }
+      noscript a {
+        color: #58cef8;
+      }
     </style>
     <title>Quorum — a systems design game for software engineers</title>
     <meta
@@ -43,6 +52,10 @@
       content="Grow a startup from one server in a garage to a public company, one real bottleneck at a time."
     />
     <meta name="twitter:image" content="https://playquorum.dev/og.png" />
+    <meta
+      name="twitter:image:alt"
+      content="The Quorum wordmark wired into an isometric workbench of users, a load balancer, two app servers, a cache, and a database."
+    />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -56,23 +69,54 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "VideoGame",
-        "name": "Quorum",
-        "url": "https://playquorum.dev/",
-        "image": "https://playquorum.dev/og.png",
-        "description": "An incremental systems design game for software engineers. Grow a startup from one server in a garage to a public company.",
-        "genre": ["Incremental", "Simulation", "Educational"],
-        "gamePlatform": "Web browser",
-        "applicationCategory": "Game",
-        "operatingSystem": "Any",
-        "inLanguage": "en",
-        "isAccessibleForFree": true,
-        "author": { "@type": "Person", "name": "elianiva", "url": "https://elianiva.com" }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://playquorum.dev/#website",
+            "name": "Quorum",
+            "url": "https://playquorum.dev/",
+            "inLanguage": "en"
+          },
+          {
+            "@type": "VideoGame",
+            "name": "Quorum",
+            "url": "https://playquorum.dev/",
+            "image": "https://playquorum.dev/og.png",
+            "description": "An incremental systems design game for software engineers. Grow a startup from one server in a garage to a public company.",
+            "genre": ["Incremental", "Simulation", "Educational"],
+            "gamePlatform": "Web browser",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Any",
+            "inLanguage": "en",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "isPartOf": { "@id": "https://playquorum.dev/#website" },
+            "softwareHelp": {
+              "@type": "WebSite",
+              "name": "Quorum Wiki",
+              "url": "https://wiki.playquorum.dev/"
+            },
+            "codeRepository": "https://github.com/elianiva/quorum",
+            "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+            "author": { "@type": "Person", "name": "elianiva", "url": "https://elianiva.com" }
+          }
+        ]
       }
     </script>
   </head>
   <body>
-    <noscript>Quorum is a browser game and needs JavaScript to run.</noscript>
+    <!-- Crawlers that run no JavaScript read this. -->
+    <noscript>
+      <h1>Quorum</h1>
+      <p>
+        An incremental systems design game for software engineers. Grow a startup from one server in
+        a garage to a public company. Quorum runs in the browser and needs JavaScript.
+      </p>
+      <ul>
+        <li><a href="https://wiki.playquorum.dev/">Wiki</a></li>
+        <li><a href="https://github.com/elianiva/quorum">Source code</a></li>
+      </ul>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/entry.ts"></script>
   </body>

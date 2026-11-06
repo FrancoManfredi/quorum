@@ -1,0 +1,14 @@
+# Quorum
+
+> An incremental systems design game for software engineers. Grow a startup from one server in a garage to a public company: wire Components, pick stacks, and fix one real bottleneck after another. Quorum runs in the browser at https://playquorum.dev/ and is free.
+
+The game itself is a JavaScript app with no readable text in its HTML. Everything about how it works is in the wiki.
+
+## Docs
+
+- [Quorum Wiki](https://wiki.playquorum.dev/llms.txt): the index of every wiki page as Markdown.
+- [Quorum Wiki, full text](https://wiki.playquorum.dev/llms-full.txt): every wiki page in one file.
+
+## Optional
+
+- [Source code](https://github.com/elianiva/quorum): the game, the wiki, and the backend, under GPL-3.0-or-later.

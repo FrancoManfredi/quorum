@@ -17,7 +17,7 @@ Website Worker ── service binding ──► API Worker
                                       packages/rpc
 ```
 
-`apps/wiki` is a third deployable application with no API. Foldkit prerenders every page at build time, and `Cloudflare.Website.Foldkit` serves the files; its generated Worker answers only the sitemap and 404s ([ADR 0009](adr/0009-the-wiki-is-a-prerendered-app.md)).
+`apps/wiki` is a third deployable application with no API. Foldkit prerenders every page at build time, and `Cloudflare.Website.Foldkit` serves the files; its generated Worker answers only 404s ([ADR 0009](adr/0009-the-wiki-is-a-prerendered-app.md)).
 
 The service binding is a deployment concern. Business handlers must not depend on Cloudflare types or bindings. The root `alchemy.run.ts` owns all resource declarations and selects the default website or reference example by Alchemy stage (`reference` selects the example). Each app exposes a plain `src/worker.ts` runtime entry module; these modules do not import Alchemy or declare infrastructure.
 

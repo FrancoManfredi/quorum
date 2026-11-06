@@ -2,3 +2,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://playquorum.dev/sitemap.xml
+Sitemap: https://wiki.playquorum.dev/sitemap.xml
+
+# For agents: the game is a browser app; the wiki explains it as Markdown.
+# https://playquorum.dev/llms.txt

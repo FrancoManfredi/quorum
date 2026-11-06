@@ -132,7 +132,7 @@ export default Alchemy.Stack(
     })
 
     // The wiki: every page prerendered at build time. Foldkit's generated Worker answers the
-    // rest (the sitemap and 404s). Pages are folders, so serve them without a trailing slash.
+    // rest (404s). Pages are folders, so serve them without a trailing slash.
     const Wiki = Cloudflare.Website.Foldkit('Wiki', {
       rootDir: 'apps/wiki',
       assets: { htmlHandling: 'drop-trailing-slash' },
