@@ -76,6 +76,18 @@ const ScrollTo = Command.define('ScrollTo', {
     }),
 })
 
+/** The current tab and the current sidebar row come into view once the page has drawn. */
+const RevealCurrent = Command.define('RevealCurrent', {
+  messages: [Message.Navigated],
+  execute: Effect.sync(() => {
+    setTimeout(() => {
+      for (const current of document.querySelectorAll('nav [aria-current]'))
+        current.scrollIntoView({ block: 'nearest', inline: 'center' })
+    }, 60)
+    return Message.Navigated()
+  }),
+})
+
 const foldSearch = Update.foldChild({
   update: Search.update,
   read: (model: Model) => Option.some(model.search),
@@ -117,6 +129,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
       quiz: Quiz.init,
     },
     commands: [
+      RevealCurrent(),
       ...Command.mapMessages([Spoilers.Load()], (message) => Message.SpoilersChanged({ message })),
       ...Command.mapMessages([Progress.Load({ path })], (message) =>
         Message.ProgressChanged({ message }),
@@ -143,7 +156,10 @@ export const update = (model: Model, message: Message): Return =>
         { ...model, path, menu: false, navToggled: [], search: Search.init },
         Progress.Message.Visited({ path }),
       )
-      return { model: visited.model, commands: [...scroll, ...(visited.commands ?? [])] }
+      return {
+        model: visited.model,
+        commands: [...scroll, RevealCurrent(), ...(visited.commands ?? [])],
+      }
     },
     Navigated: () => ({ model }),
     MenuToggled: () => ({ model: { ...model, menu: !model.menu } }),

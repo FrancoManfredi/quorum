@@ -8,7 +8,6 @@ import { QUADRANTS } from './quadrant.ts'
 import { indexOf } from '../search.ts'
 import { GAME_ORIGIN } from '../site.ts'
 import * as Search from '../submodels/search.ts'
-import * as Spoilers from '../submodels/spoilers.ts'
 
 const INDEX = indexOf(PAGES)
 
@@ -100,44 +99,33 @@ const sections = (model: Model, h: H): Html => {
     [h.AriaLabel('Sections')],
     [
       h.div(
-        [h.Class('mx-auto flex max-w-[1400px] items-center gap-2 pr-4 sm:pr-6')],
         [
-          h.div(
-            [
-              h.Class(
-                'flex h-11 min-w-0 flex-1 items-stretch gap-6 overflow-x-auto pl-4 sm:pl-6 [scrollbar-width:none]',
-              ),
-            ],
-            SECTION_ORDER.flatMap((section) => {
-              const first = navOf(section)[0]
-              if (!first) return []
-              return [
-                h.a(
-                  [
-                    h.Key(section),
-                    h.Href(first.path),
-                    ...(section === current ? [h.AriaCurrent('true')] : []),
-                    h.Class(
-                      cn(
-                        'flex shrink-0 items-center gap-2 border-b-2 text-[13.5px] transition-colors',
-                        section === current
-                          ? 'border-foreground font-medium text-foreground'
-                          : 'border-transparent text-muted-foreground hover:text-foreground',
-                      ),
-                    ),
-                  ],
-                  [icon(h, QUADRANTS[section].icon, 'size-4'), QUADRANTS[section].label],
-                ),
-              ]
-            }),
+          h.Class(
+            'mx-auto flex h-11 max-w-[1400px] items-stretch gap-6 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none]',
           ),
-          h.submodel({
-            slotId: 'spoilers',
-            model: model.spoilers,
-            view: Spoilers.view,
-            toParentMessage: (message) => Message.SpoilersChanged({ message }),
-          }),
         ],
+        SECTION_ORDER.flatMap((section) => {
+          const first = navOf(section)[0]
+          if (!first) return []
+          return [
+            h.a(
+              [
+                h.Key(section),
+                h.Href(first.path),
+                ...(section === current ? [h.AriaCurrent('true')] : []),
+                h.Class(
+                  cn(
+                    'flex shrink-0 items-center gap-2 border-b-2 text-[13.5px] transition-colors',
+                    section === current
+                      ? 'border-foreground font-medium text-foreground'
+                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                  ),
+                ),
+              ],
+              [icon(h, QUADRANTS[section].icon, 'size-4'), QUADRANTS[section].label],
+            ),
+          ]
+        }),
       ),
     ],
   )

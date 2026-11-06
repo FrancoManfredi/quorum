@@ -1,22 +1,21 @@
-import { Listbox } from '@foldkit/ui'
-import { Effect, Option, Schema } from 'effect'
-import { Command, Update } from 'foldkit'
-import { Check, ChevronDown } from 'lucide'
-import { icon } from '@quorum/ui/primitives/icon'
+import { Effect, Schema } from 'effect'
+import { Command, type Update } from 'foldkit'
 import { defineView } from 'foldkit/submodel'
 import { defineMessageUnion } from 'foldkit/message'
+import { cn } from 'cn'
 import { ERAS } from '@quorum/simulation/catalog'
+import { FIGURE } from '@quorum/ui/game/bits'
 
 /* The spoiler filter: the last Era the reader reached. Pages about later Eras fold. Kept in the browser. */
 
 /** Every Era: content from any Era shows. */
 export const ALL_ERAS = -1
 
-export const Model = Schema.Struct({ era: Schema.Finite, listbox: Listbox.Model })
+export const Model = Schema.Struct({ era: Schema.Finite })
 export type Model = typeof Model.Type
 
 export const Message = defineMessageUnion({
-  ListboxChanged: { message: Listbox.Message },
+  Chosen: { era: Schema.Finite },
   Loaded: { era: Schema.Finite },
   Saved: {},
 })
@@ -24,17 +23,7 @@ export type Message = typeof Message.Type
 
 const KEY = 'quorum.wiki.era'
 
-export const init: Model = { era: ALL_ERAS, listbox: Listbox.init({ id: 'era' }) }
-
-type Choice = Readonly<{ value: string; label: string }>
-
-/** The choices of the picker: every Era, then each Era to stop at. Values are Era indexes as text. */
-const CHOICES: ReadonlyArray<Choice> = [
-  { value: String(ALL_ERAS), label: 'All Eras' },
-  ...ERAS.map((era, index) => ({ value: String(index), label: `Up to ${era.name}` })),
-]
-
-const eraListbox = Listbox.create<Choice, string>()
+export const init: Model = { era: ALL_ERAS }
 
 export const Load = Command.define('LoadEra', {
   messages: [Message.Loaded],
@@ -54,23 +43,10 @@ const Save = Command.define('SaveEra', {
     }),
 })
 
-const foldListbox = Update.foldChild({
-  update: eraListbox.update,
-  read: (model: Model) => Option.some(model.listbox),
-  write: (model, listbox) => ({ ...model, listbox }),
-  toParentMessage: (message) => Message.ListboxChanged({ message }),
-  foldOutMessage:
-    ({ value }) =>
-    (model) => {
-      const era = Number(value)
-      return { model: { ...model, era }, commands: [Save({ era })] }
-    },
-})
-
 export const update = (model: Model, message: Message): Update.Return<Model, Message> =>
   Message.match<Update.Return<Model, Message>>(message, {
-    ListboxChanged: ({ message }) => foldListbox(model, message),
-    Loaded: ({ era }) => ({ model: { ...model, era } }),
+    Chosen: ({ era }) => ({ model: { era }, commands: [Save({ era })] }),
+    Loaded: ({ era }) => ({ model: { era } }),
     Saved: () => ({ model }),
   })
 
@@ -78,56 +54,75 @@ export const update = (model: Model, message: Message): Update.Return<Model, Mes
 export const hides = (model: Model, era: number | null): boolean =>
   era !== null && model.era !== ALL_ERAS && era > model.era
 
-export const view = defineView<Model, Message>((model, h) =>
-  h.div(
-    [h.Class('shrink-0')],
+/** The control at the foot of the sidebar: "All", then one step per Era, filled up to the Era reached. */
+export const view = defineView<Model, Message>((model, h) => {
+  const all = model.era === ALL_ERAS
+  const reached = all ? 'All Eras show' : `Hiding after ${ERAS[model.era]?.name ?? ''}`
+  const step = 'h-7 min-w-0 flex-1 cursor-pointer rounded-md text-[11.5px] transition-colors'
+  return h.div(
+    [h.Class('border-t border-border pt-3')],
     [
-      h.submodel({
-        slotId: 'era-listbox',
-        model: model.listbox,
-        view: eraListbox.view,
-        toParentMessage: (message) => Message.ListboxChanged({ message }),
-        viewInputs: {
-          items: CHOICES,
-          itemToValue: (choice) => choice.value,
-          itemToSearchText: (choice) => choice.label,
-          maybeSelectedValue: Option.some(String(model.era)),
-          ariaLabel: 'Hide content after an Era',
-          anchor: { placement: 'bottom-end', gap: 6, portal: true },
-          buttonClassName:
-            'flex h-8 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md border border-border bg-background px-2.5 text-[13px] text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
-          buttonContent: h.span(
+      h.div(
+        [h.Class('flex items-baseline justify-between gap-2')],
+        [
+          h.span([h.Class('text-[12.5px] font-semibold text-foreground')], ['Spoilers']),
+          h.span([h.Class('truncate text-[12px] text-muted-foreground')], [reached]),
+        ],
+      ),
+      h.div(
+        [
+          h.Role('group'),
+          h.AriaLabel('Hide content after the Era you reached'),
+          h.Class('mt-2 flex gap-1'),
+        ],
+        [
+          h.button(
             [
-              h.Title('Spoilers: hide content after the Era you reached'),
-              h.Class('flex w-full items-center justify-between gap-2'),
-            ],
-            [
-              h.span(
-                [],
-                [CHOICES.find((choice) => choice.value === String(model.era))?.label ?? 'All Eras'],
+              h.Type('button'),
+              h.AriaPressed(all ? 'true' : 'false'),
+              h.Title('Show every Era'),
+              h.OnClick(Message.Chosen({ era: ALL_ERAS })),
+              h.Class(
+                cn(
+                  step,
+                  'max-w-9 flex-[1.4]',
+                  all
+                    ? 'bg-foreground font-medium text-background'
+                    : 'border border-border text-muted-foreground hover:bg-muted hover:text-foreground',
+                ),
               ),
-              icon(h, ChevronDown, 'size-4 text-muted-foreground'),
             ],
+            ['All'],
           ),
-          itemsClassName:
-            'z-50 min-w-44 rounded-xl border border-border bg-raised p-1 text-foreground shadow-lg outline-none',
-          itemsScrollClassName: 'max-h-72 overflow-y-auto',
-          backdropClassName: 'fixed inset-0 z-40',
-          itemToConfig: (choice, { isActive, isSelected }) => ({
-            className: `flex min-h-8 cursor-pointer items-center rounded-lg px-2.5 text-[13px] outline-none ${isActive ? 'bg-muted text-foreground' : ''}`,
-            content: h.span(
-              [h.Class('flex w-full items-center justify-between gap-4')],
+          ...ERAS.map((era, index) =>
+            h.button(
               [
-                h.span([], [choice.label]),
-                h.span(
-                  [h.AriaHidden(true), h.Class(isSelected ? '' : 'invisible')],
-                  [icon(h, Check, 'size-4 text-primary')],
+                h.Key(era.name),
+                h.Type('button'),
+                h.AriaPressed(model.era === index ? 'true' : 'false'),
+                h.AriaLabel(`Hide after ${era.name}`),
+                h.Title(`Up to ${era.name}`),
+                h.OnClick(Message.Chosen({ era: index })),
+                h.Class(
+                  cn(
+                    step,
+                    FIGURE,
+                    all || index <= model.era
+                      ? cn(
+                          'text-foreground',
+                          model.era === index
+                            ? 'bg-foreground text-background'
+                            : 'bg-muted hover:bg-muted/70',
+                        )
+                      : 'border border-dashed border-border text-muted-foreground hover:bg-muted',
+                  ),
                 ),
               ],
+              [String(index)],
             ),
-          }),
-        },
-      }),
+          ),
+        ],
+      ),
     ],
-  ),
-)
+  )
+})
