@@ -25,6 +25,9 @@ pnpm --version
 step 'Install workspace dependencies'
 pnpm install --frozen-lockfile
 
+step 'Patch oxlint to use effect-tsrs instead of tsgolint'
+pnpm exec effect-tsrs patch --oxlint
+
 step 'Install Playwright browsers for pnpm test:engines'
 (cd packages/simulation && pnpm exec playwright install chromium firefox webkit)
 if sudo -n true 2>/dev/null; then
