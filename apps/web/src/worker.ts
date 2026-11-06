@@ -51,7 +51,8 @@ export default Sentry.withSentry(
   (env: Environment) => ({
     dsn: env.SENTRY_DSN,
     release: env.SENTRY_RELEASE,
-    tracesSampleRate: 1,
+    // Only a browser trace is continued. PostHog ingest and other requests start none.
+    tracesSampler: ({ parentSampled }) => (parentSampled ? 1 : 0),
     initialScope: { tags: { service: 'website-worker' } },
   }),
   {
