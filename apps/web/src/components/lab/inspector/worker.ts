@@ -1,12 +1,14 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { PREFETCH } from '@quorum/simulation/catalog'
 import type { GameNode } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
 import { type Panel, picker, pinnedRuntime, section, serviceOwnership, stack } from './shared.ts'
 
-const prefetching = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Prefetch',
+const prefetching = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorWorker.prefetch,
     [
       picker(
         'prefetch',
@@ -18,6 +20,7 @@ const prefetching = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 export const workerPanel: Panel = {
   body: ({ model, game, node, h }) => [

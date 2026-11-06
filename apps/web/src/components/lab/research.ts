@@ -1,3 +1,4 @@
+import { copy, insightName, localized } from '@/i18n/messages.ts'
 import { ResearchMessage } from '@/game/research.ts'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
@@ -15,7 +16,6 @@ import {
 import {
   GLOSSARY,
   RESEARCH,
-  RESEARCH_TRACKS,
   researchList,
   type ResearchDef,
   type ResearchId,
@@ -88,11 +88,12 @@ const NODE_CLASS: Record<State, string> = {
 }
 
 /** The recipe as pool chips, or a check once researched. */
-const price = (entry: ResearchDef, state: State, grey: boolean, h: HtmlBuilder<Message>): Html =>
-  state === 'owned'
+const price = (entry: ResearchDef, state: State, grey: boolean, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return state === 'owned'
     ? h.span(
         [h.Class('flex items-center gap-1 text-[calc(11px*var(--type-scale))] text-ok')],
-        [icon(h, Check, 'size-3'), 'Researched'],
+        [icon(h, Check, 'size-3'), t.research.researched],
       )
     : h.span(
         [
@@ -105,9 +106,12 @@ const price = (entry: ResearchDef, state: State, grey: boolean, h: HtmlBuilder<M
         ],
         [
           state === 'locked' ? icon(h, Lock, 'size-2.5') : h.empty,
-          ...recipeOf(entry.id).map(([pool, cost]) => insightChip(pool, compact(cost), h, grey)),
+          ...recipeOf(entry.id).map(([pool, cost]) =>
+            insightChip(pool, compact(cost), h, grey, 'plain', insightName(t, pool)),
+          ),
         ],
       )
+}
 
 /** A Study's duration at the current speed, such as "4 min". */
 const duration = (game: Game, entry: ResearchDef): string => {
@@ -122,12 +126,14 @@ const costRows = (
   entry: ResearchDef,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const running = game.studies[0]?.id === entry.id
   const limit = running ? limitingPool(game) : null
   return h.div(
     [h.Class('flex flex-col gap-1')],
     [
-      h.span([h.Class(cn(EYEBROW, 'px-2'))], [`Cost · ${duration(game, entry)}`]),
+      h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.cost(duration(game, entry))]),
       ...recipeOf(entry.id, game.discounts).map(([pool, cost]) =>
         h.div(
           [
@@ -135,14 +141,14 @@ const costRows = (
             h.Class(cn(FIGURE, 'flex items-center gap-2 px-2 text-[calc(12px*var(--type-scale))]')),
           ],
           [
-            insightChip(pool, compact(cost), h),
+            insightChip(pool, compact(cost), h, false, 'plain', insightName(t, pool)),
             h.span(
               [
                 h.Class(
                   cn('ml-auto', game.pools[pool] < cost ? 'text-warn' : 'text-muted-foreground'),
                 ),
               ],
-              [`${compact(game.pools[pool])} held`],
+              [t.research.held(compact(game.pools[pool]))],
             ),
             h.span(
               [
@@ -154,7 +160,7 @@ const costRows = (
                   ),
                 ),
               ],
-              [`+${ledger.insight[pool].toFixed(1)}/s`],
+              [t.research.s(ledger.insight[pool].toFixed(1))],
             ),
           ],
         ),
@@ -172,6 +178,8 @@ const face = (
   large: boolean,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const open = state !== 'owned' && game.openActions.includes(entry.id)
   return [
     researchMark(entry, 'sm', grey, h),
@@ -191,7 +199,10 @@ const face = (
           [
             // At 150% the box is tall enough for a second line, so a long name wraps
             // rather than ellipsizes (15 "Accessibility").
-            h.span([h.Class(large ? 'line-clamp-2' : 'truncate')], [entry.name]),
+            h.span(
+              [h.Class(large ? 'line-clamp-2' : 'truncate')],
+              [t.catalog.research[entry.id].name],
+            ),
             open ? icon(h, TriangleAlert, 'size-3 shrink-0 text-warn') : h.empty,
           ],
         ),
@@ -367,11 +378,13 @@ const progressBar = (
 
 const eraLabel = (game: Game, era: number, h: HtmlBuilder<Message>) => [
   era > game.stage ? icon(h, Lock, 'size-3') : h.empty,
-  eraName(era),
+  copy(h).catalog.eras[era]?.name ?? eraName(era),
   era === game.stage ? h.span([h.Class('size-1.5 rounded-full bg-ok')], []) : h.empty,
 ]
 
 const backdrop = (model: Model, layout: Layout, h: HtmlBuilder<Message>) => {
+  const t = copy(h)
+
   const game = model.board.game
   // One band per Era, the current one tinted and the ones ahead washed out.
   const bands = layout.bands.map((band) =>
@@ -427,7 +440,10 @@ const backdrop = (model: Model, layout: Layout, h: HtmlBuilder<Message>) => {
           [h.Class('grid size-14 place-items-center rounded-2xl bg-surface shadow-card')],
           [icon(h, TRACK_ICONS[track.track], 'size-6')],
         ),
-        h.span([h.Class('text-[calc(14px*var(--type-scale))] font-semibold')], [track.label]),
+        h.span(
+          [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
+          [t.catalog.researchTracks[track.track].label],
+        ),
         progressBar(game, track.track, 'w-28', h),
       ],
     ),
@@ -542,8 +558,9 @@ export const ResearchScroll = Mount.define('ResearchScroll', {
 
 /* ---------- the detail card ---------- */
 
-const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html =>
-  h.button(
+const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.button(
     [
       h.Key(entry.id),
       h.Type('button'),
@@ -554,15 +571,18 @@ const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html 
     ],
     [
       researchMark(entry, 'sm', stateOf(game, entry) === 'locked', h),
-      h.span([h.Class('min-w-0 flex-1 truncate')], [entry.name]),
+      h.span([h.Class('min-w-0 flex-1 truncate')], [t.catalog.research[entry.id].name]),
       has(game, entry.id)
         ? icon(h, Check, 'size-3.5 text-ok')
         : icon(h, Lock, 'size-3 text-muted-foreground'),
     ],
   )
+}
 
 /** One (?) link per glossary term behind the item; each opens its Glossary entry. */
 const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const entries = (BY_RESEARCH[entry.id] ?? []).flatMap((id) =>
     GLOSSARY.filter((term) => term.id === id),
   )
@@ -574,7 +594,7 @@ const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
             [
               h.Key(term.id),
               h.Type('button'),
-              h.Title(`Glossary: ${term.term}`),
+              h.Title(t.research.glossary(term.term)),
               h.OnClick(Message.GlossaryOpened({ id: term.id })),
               h.Class(
                 'flex items-center gap-1 rounded-md bg-nested px-1.5 py-0.5 text-[calc(11.5px*var(--type-scale))] text-muted-foreground hover:text-foreground',
@@ -610,6 +630,8 @@ const queueButton = (
 
 /** The Study queue, in order: the first one runs. */
 const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const studies = game.studies
   const ledger = ledgerOf(model)
@@ -617,15 +639,15 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
   return h.section(
     [
       h.Key('queue'),
-      h.AriaLabel('Study queue'),
+      h.AriaLabel(t.research.studyQueue),
       h.Class(
         'flex max-h-[40%] shrink-0 flex-col gap-0.5 border-b border-hairline p-1.5 ' + SCROLL,
       ),
     ],
     [
-      h.span([h.Class(cn(EYEBROW, 'px-2 pt-1 pb-0.5'))], ['Queue']),
+      h.span([h.Class(cn(EYEBROW, 'px-2 pt-1 pb-0.5'))], [t.research.queue]),
       ...studies.map((item, index) => {
-        const entry = RESEARCH[item.id]
+        const entry = localized(RESEARCH[item.id], t.catalog.research[item.id])
         const stall = studyStall(game, ledger, item.id)
         return h.div(
           [
@@ -647,7 +669,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
               ],
               [
                 researchMark(entry, 'sm', false, h),
-                h.span([h.Class('truncate font-medium')], [entry.name]),
+                h.span([h.Class('truncate font-medium')], [t.catalog.research[entry.id].name]),
                 h.span(
                   [
                     ...(stall ? [h.Title(stallReason(stall))] : []),
@@ -667,7 +689,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
               ],
             ),
             queueButton(
-              'Move up',
+              t.research.moveUp,
               ArrowUp,
               Message.ResearchChanged({
                 message: ResearchMessage.StudyMoved({ id: item.id, direction: -1 }),
@@ -676,7 +698,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
               h,
             ),
             queueButton(
-              'Move down',
+              t.research.moveDown,
               ArrowDown,
               Message.ResearchChanged({
                 message: ResearchMessage.StudyMoved({ id: item.id, direction: 1 }),
@@ -685,7 +707,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
               h,
             ),
             queueButton(
-              'Cancel',
+              t.research.cancel,
               X,
               Message.ResearchChanged({ message: ResearchMessage.StudyCancelled({ id: item.id }) }),
               true,
@@ -699,26 +721,28 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
 }
 
 const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const queued = game.studies.findIndex((item) => item.id === entry.id)
   const state = stateOf(game, entry)
   const open = state !== 'owned' && game.openActions.includes(entry.id)
-  const track = RESEARCH_TRACKS.find((item) => item.key === entry.track)?.label ?? ''
+  const track = t.catalog.researchTracks[entry.track].label
   const missing = entry.requires.filter((id) => !has(game, id))
   const stall =
     state === 'buy' || state === 'saving' ? studyStall(game, ledgerOf(model), entry.id) : null
   const label =
     state === 'owned'
-      ? 'Researched'
+      ? t.research.researched
       : state === 'buy'
-        ? `Start Study · ${duration(game, entry)}`
+        ? t.research.startStudy(duration(game, entry))
         : entry.era > game.stage
-          ? `Opens in ${eraName(entry.era)}`
+          ? t.research.opensIn(eraName(entry.era))
           : missing.length > 0
-            ? `Needs ${missing.map((id) => RESEARCH[id].name).join(', ')}`
+            ? t.research.needs(missing.map((id) => t.catalog.research[id].name).join(', '))
             : queued > 0
-              ? 'Study now'
-              : `Studying · ${Math.floor((game.studies[0]?.progress ?? 0) * 100)}%`
+              ? t.research.studyNow
+              : t.research.studying(Math.floor((game.studies[0]?.progress ?? 0) * 100))
   const follow = followUps(entry.id)
   return h.aside(
     [
@@ -748,7 +772,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                         'text-[calc(16px*var(--type-scale))] leading-tight font-semibold tracking-[-0.02em]',
                       ),
                     ],
-                    [entry.name],
+                    [t.catalog.research[entry.id].name],
                   ),
                   h.span([h.Class(EYEBROW)], [`${track} · ${eraName(entry.era)}`]),
                 ],
@@ -757,7 +781,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
           ),
           h.p(
             [h.Class('text-[calc(13px*var(--type-scale))] leading-relaxed text-foreground/85')],
-            [entry.blurb],
+            [t.catalog.research[entry.id].blurb],
           ),
           terms(entry, h),
           open
@@ -769,7 +793,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 ],
                 [
                   icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
-                  'Open action item. The incident it prevents is twice as likely until you research it.',
+                  t.research.openActionItemTheIncidentIt,
                 ],
               )
             : h.empty,
@@ -783,8 +807,8 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 [
                   icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
                   queued === 0
-                    ? `${stallReason(stall)} Every Study behind it waits.`
-                    : `${stallReason(stall)} At the front of the queue, it holds every Study behind it.`,
+                    ? t.research.everyStudyBehindItWaits(stallReason(stall))
+                    : t.research.atTheFrontOfTheQueue(stallReason(stall)),
                 ],
               )
             : h.empty,
@@ -793,7 +817,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
             ? h.div(
                 [h.Class('flex flex-col gap-1')],
                 [
-                  h.span([h.Class(cn(EYEBROW, 'px-2'))], ['Requires']),
+                  h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.requires]),
                   ...entry.requires.map((id) => linkRow(game, RESEARCH[id], h)),
                 ],
               )
@@ -802,7 +826,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
             ? h.div(
                 [h.Class('flex flex-col gap-1')],
                 [
-                  h.span([h.Class(cn(EYEBROW, 'px-2'))], ['Leads to']),
+                  h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.leadsTo]),
                   ...follow.map((next) => linkRow(game, next, h)),
                 ],
               )
@@ -837,7 +861,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                   size: 'lg',
                   variant: 'outline',
                 },
-                ['Cancel'],
+                [t.research.cancel],
                 h,
               )
             : h.empty,
@@ -850,6 +874,8 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
 /* ---------- the screen ---------- */
 
 export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const focus = focusOf(model)
   const layout = researchLayout(scaleOf(model))
   return h.div(
@@ -899,7 +925,7 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.span(
                 [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
-                ['Research'],
+                [t.research.research],
               ),
               h.span(
                 [
@@ -908,7 +934,14 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ],
                 POOL_ORDER.filter((pool) => model.board.game.pools[pool] >= 1).map((pool) =>
-                  insightChip(pool, compact(model.board.game.pools[pool]), h),
+                  insightChip(
+                    pool,
+                    compact(model.board.game.pools[pool]),
+                    h,
+                    false,
+                    'plain',
+                    insightName(t, pool),
+                  ),
                 ),
               ),
             ],
@@ -922,7 +955,7 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   variant: 'ghost',
                   size: 'icon',
                   className: 'text-muted-foreground',
-                  attributes: [h.AriaLabel('Close (Esc)')],
+                  attributes: [h.AriaLabel(t.research.closeEsc)],
                 },
                 icon(h, X, 'size-4'),
                 h,

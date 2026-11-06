@@ -1,18 +1,20 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import type { GameNode } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section } from './shared.ts'
 
-const pooler = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Pooling mode',
+const pooler = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorPooler.poolingMode,
     [
       picker(
         'pooler-mode',
         [
-          ['session', 'Session'],
-          ['transaction', 'Transaction'],
-          ['statement', 'Statement'],
+          ['session', t.inspectorPooler.session],
+          ['transaction', t.inspectorPooler.transaction],
+          ['statement', t.inspectorPooler.statement],
         ],
         node.mode,
         (mode) => Message.PoolerModeChosen({ nodeId: node.id, mode }),
@@ -22,15 +24,16 @@ const pooler = (node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         node.mode === 'statement'
-          ? 'One server connection per statement: a transaction that spans statements fails.'
+          ? t.inspectorPooler.oneServerConnectionPerStatementA
           : node.mode === 'session'
-            ? 'One server connection per client: barely smaller than no pooler at all.'
-            : 'One server connection per active transaction. Session state breaks.',
+            ? t.inspectorPooler.oneServerConnectionPerClientBarely
+            : t.inspectorPooler.oneServerConnectionPerActiveTransaction,
         h,
       ),
     ],
     h,
   )
+}
 
 export const poolerPanel: Panel = {
   body: ({ node, h }) => [pooler(node, h)],

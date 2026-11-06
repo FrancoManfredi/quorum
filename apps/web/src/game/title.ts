@@ -1,3 +1,5 @@
+import { copyIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
+import { copy, localized, eraWords } from '@/i18n/messages.ts'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
@@ -20,7 +22,6 @@ import { icon } from '@quorum/ui/primitives/icon'
 import { companyMark } from '@/components/company-mark.ts'
 import { connecting, titleIsOpen } from './boot-machine.ts'
 import {
-  ACHIEVEMENTS,
   ACHIEVEMENT_IDS,
   COMPONENTS,
   ERAS,
@@ -30,16 +31,13 @@ import {
   PERK_IDS,
   VENTURES,
   VENTURE_IDS,
-  EXITS,
 } from '@quorum/simulation/catalog'
 import { foundingOf, levelOf, perkPrice } from '@quorum/simulation/founder'
 import { legacyMultiplier, startEra } from '@quorum/simulation/founding'
-import { nodeLabel } from '@quorum/simulation/labels'
-import { eraOf } from '@quorum/simulation/lookups'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { Game } from '@quorum/simulation/state'
 import { CHALLENGES, challengeById, challengeOpen, dailyDrill } from '@quorum/simulation/challenges'
-import { GUIDED, TRACKS, sandboxOpen } from '@quorum/simulation/sandbox'
+import { TRACKS, sandboxOpen } from '@quorum/simulation/sandbox'
 import { clock, compact } from '@quorum/ui/game/format'
 import { Message } from './message.ts'
 import { PrefsMessage } from './prefs.ts'
@@ -300,13 +298,20 @@ const row = (r: Row, h: HtmlBuilder<Message>): Html => {
 const done = (h: HtmlBuilder<Message>) => icon(h, Check, 'booth-icon text-ok')
 const locked = (h: HtmlBuilder<Message>) => icon(h, Lock, 'booth-icon')
 
-const backRow = (h: HtmlBuilder<Message>): Html =>
-  row({ key: 'back', label: 'Back', message: Message.MenuChosen({ menu: 'main' }), back: true }, h)
+const backRow = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return row(
+    { key: 'back', label: t.title.back, message: Message.MenuChosen({ menu: 'main' }), back: true },
+    h,
+  )
+}
 
 const group = (text: string, h: HtmlBuilder<Message>): Html =>
   h.span([h.Key(`group-${text}`), h.Class('booth-group')], [text])
 
 const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const game = model.board.game
   const file = currentFile(model)
   const current = hasCompany(model) ? file : null
@@ -318,8 +323,8 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             {
               key: 'continue',
               mark: companyMark(current.logo, 'booth-logo-mini', h),
-              label: 'Continue',
-              detail: `${current.name} · ${eraOf(game).name} · ${compact(game.users)} users · ${clock(game.time)}`,
+              label: t.title.continueText,
+              detail: `${current.name} · ${eraWords(t, game).name} · ${compact(game.users)} users · ${clock(game.time)}`,
               message: Message.Continued(),
               big: true,
             },
@@ -330,7 +335,7 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
     row(
       {
         key: 'new',
-        label: current ? 'New company' : 'Start a company',
+        label: current ? t.title.newCompany : t.title.startACompany,
         message: Message.MenuChosen({ menu: 'found' }),
         big: !current,
         to: 'found',
@@ -342,7 +347,7 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           row(
             {
               key: 'companies',
-              label: 'Companies',
+              label: t.title.companies,
               detail: `${count} saved`,
               message: Message.MenuChosen({ menu: 'companies' }),
               to: 'companies',
@@ -351,11 +356,11 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           ),
         ]
       : []),
-    row({ key: 'preseed', label: 'Start in Pre-seed', message: Message.PreseedStarted() }, h),
+    row({ key: 'preseed', label: t.title.startInPreSeed, message: Message.PreseedStarted() }, h),
     row(
       {
         key: 'sandbox',
-        label: 'Sandbox',
+        label: t.title.sandbox,
         message: Message.MenuChosen({ menu: 'sandbox' }),
         to: 'sandbox',
       },
@@ -364,7 +369,7 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
     row(
       {
         key: 'challenges',
-        label: 'Challenges',
+        label: t.title.challenges,
         message: Message.MenuChosen({ menu: 'challenges' }),
         to: 'challenges',
       },
@@ -373,46 +378,50 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   ]
 }
 
-const sandboxRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  backRow(h),
-  ...TRACKS.flatMap((track) => [
-    group(ERAS[track.stage]?.name ?? '', h),
-    ...track.sandboxes.map((id) => {
-      const open = sandboxOpen(id, model.passed)
-      return row(
-        {
-          key: id,
-          label: GUIDED[id].name,
-          side: model.passed.includes(id) ? done(h) : open ? undefined : locked(h),
-          message: open ? Message.GuidedStarted({ id }) : null,
-        },
-        h,
-      )
-    }),
-  ]),
-  group('', h),
-  row({ key: 'free', label: 'Free Sandbox', message: Message.FreeSandboxStarted() }, h),
-]
+const sandboxRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return [
+    backRow(h),
+    ...TRACKS.flatMap((track) => [
+      group(t.catalog.eras[track.stage]?.name ?? '', h),
+      ...track.sandboxes.map((id) => {
+        const open = sandboxOpen(id, model.passed)
+        return row(
+          {
+            key: id,
+            label: t.catalog.guided[id].name,
+            side: model.passed.includes(id) ? done(h) : open ? undefined : locked(h),
+            message: open ? Message.GuidedStarted({ id }) : null,
+          },
+          h,
+        )
+      }),
+    ]),
+    group('', h),
+    row({ key: 'free', label: t.title.freeSandbox, message: Message.FreeSandboxStarted() }, h),
+  ]
+}
 
 /** The founding screen's identity: the chosen logo, and the name above the fold. */
-const identity = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const identity = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('booth-identity')],
     [
       companyMark(model.draft.logo, 'booth-logo-big', h),
       h.label(
         [h.Class('booth-field')],
         [
-          h.span([h.Class('booth-field-label')], ['Company name']),
+          h.span([h.Class('booth-field-label')], [t.title.companyName]),
           h.input([
             h.Class('booth-input'),
             h.Type('text'),
             h.Value(model.draft.name),
-            h.Placeholder('Name your company'),
+            h.Placeholder(t.title.nameYourCompany),
             h.Maxlength(MAX_COMPANY_NAME),
             h.Autocomplete('off'),
             h.Spellcheck(false),
-            h.AriaLabel('Company name'),
+            h.AriaLabel(t.title.companyName),
             h.DataAttribute('row', ''),
             h.OnInput((name) => Message.CompanyNameChanged({ name })),
           ]),
@@ -420,10 +429,12 @@ const identity = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+}
 
 /** A logo is one click, and each tile carries its own accessible name. */
-const logoPicker = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const logoPicker = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('booth-logos')],
     LOGOS.map((logo) =>
       h.button(
@@ -431,8 +442,8 @@ const logoPicker = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.Key(`logo-${logo.id}`),
           h.Type('button'),
           h.Class(`booth-logo ${model.draft.logo === logo.id ? 'is-on' : ''}`),
-          h.Title(logo.name),
-          h.AriaLabel(logo.name),
+          h.Title(t.logos[logo.id]),
+          h.AriaLabel(t.logos[logo.id]),
           h.AriaPressed(model.draft.logo === logo.id ? 'true' : 'false'),
           h.DataAttribute('row', ''),
           h.OnClick(Message.LogoChosen({ logo: logo.id })),
@@ -441,18 +452,21 @@ const logoPicker = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
     ),
   )
+}
 
 const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const founder = model.founder
   const founding = foundingOf(founder)
   return [
     backRow(h),
     identity(model, h),
-    group('Logo', h),
+    group(t.title.logo, h),
     logoPicker(model, h),
-    group('Venture', h),
+    group(t.title.venture, h),
     ...VENTURE_IDS.map((id) => {
-      const def = VENTURES[id]
+      const def = localized(VENTURES[id], t.catalog.ventures[id])
       const owned = founder.ventures.includes(id)
       return row(
         {
@@ -465,7 +479,7 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
               : `×${def.legacy.toFixed(1)}`
             : def.bootstrapped
               ? locked(h)
-              : `${def.cost} Legacy`,
+              : t.title.legacy(def.cost),
           message:
             owned || (!def.bootstrapped && founder.legacy >= def.cost)
               ? Message.VentureChosen({ id })
@@ -475,13 +489,13 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
         h,
       )
     }),
-    group('Mutators', h),
+    group(t.title.mutators, h),
     ...MUTATOR_IDS.map((id) =>
       row(
         {
           key: id,
-          label: MUTATORS[id].name,
-          detail: MUTATORS[id].rule,
+          label: t.catalog.mutators[id].name,
+          detail: t.catalog.mutators[id].rule,
           side: founder.mutators.includes(id)
             ? founding.mutators.includes(id)
               ? done(h)
@@ -498,8 +512,8 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
       {
         key: 'found',
         mark: companyMark(model.draft.logo, 'booth-logo-mini', h),
-        label: `Found ${nameOr(model.draft.name)}`,
-        detail: `${startEra(founding)} · Legacy ×${legacyMultiplier(founding).toFixed(2)}`,
+        label: t.title.found(nameOr(model.draft.name)),
+        detail: t.title.legacy2(startEra(founding), legacyMultiplier(founding).toFixed(2)),
         message: Message.CompanyFounded(),
         big: true,
         sticky: true,
@@ -510,33 +524,38 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
 }
 
 /** The Companies page: every file, newest first, with the one Continue opens marked. */
-const companyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  backRow(h),
-  ...recent(model.saves.companies).map((file) =>
-    row(
-      {
-        key: file.id,
-        mark: companyMark(file.logo, 'booth-logo-mini', h),
-        label: file.name,
-        detail: `${VENTURES[file.venture].name} · ${ERAS[file.stage]?.name ?? ''} · ${compact(file.users)} users · ${clock(file.time)}`,
-        side: file.id === model.saves.current ? 'Current' : dateOf(file),
-        message: Message.CompanyChosen({ id: file.id }),
-      },
-      h,
+const companyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return [
+    backRow(h),
+    ...recent(model.saves.companies).map((file) =>
+      row(
+        {
+          key: file.id,
+          mark: companyMark(file.logo, 'booth-logo-mini', h),
+          label: file.name,
+          detail: `${t.catalog.ventures[file.venture].name} · ${t.catalog.eras[file.stage]?.name ?? ''} · ${compact(file.users)} users · ${clock(file.time)}`,
+          side: file.id === model.saves.current ? t.title.current : dateOf(file),
+          message: Message.CompanyChosen({ id: file.id }),
+        },
+        h,
+      ),
     ),
-  ),
-  ...(model.saves.companies.length === 0 ? [group('No companies saved yet', h)] : []),
-]
+    ...(model.saves.companies.length === 0 ? [group(t.title.noCompaniesSavedYet, h)] : []),
+  ]
+}
 
 const dateOf = (file: CompanyFile): string =>
   new Date(file.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 
 /** One Company's file: what it is, then Open, then Delete behind a second press. */
 const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const file = model.saves.companies.find((entry) => entry.id === model.saveFocus)
   if (!file) return [backRow(h)]
   return [
-    row({ key: 'back', label: 'Companies', message: Message.CompanyClosed(), back: true }, h),
+    row({ key: 'back', label: t.title.companies, message: Message.CompanyClosed(), back: true }, h),
     h.div(
       [h.Class('booth-file')],
       [
@@ -548,7 +567,7 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
             h.span(
               [h.Class('booth-detail')],
               [
-                `${VENTURES[file.venture].name} · ${ERAS[file.stage]?.name ?? ''} · ${compact(file.users)} users · ${clock(file.time)}`,
+                `${t.catalog.ventures[file.venture].name} · ${t.catalog.eras[file.stage]?.name ?? ''} · ${compact(file.users)} users · ${clock(file.time)}`,
               ],
             ),
             h.span(
@@ -557,7 +576,13 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
                 file.mutators.length > 0
                   ? `${file.mutators.length} Mutator${file.mutators.length === 1 ? '' : 's'} · `
                   : '',
-                `Started ${new Date(file.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                t.title.started(
+                  new Date(file.createdAt).toLocaleDateString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  }),
+                ),
               ],
             ),
           ],
@@ -567,8 +592,8 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
     row(
       {
         key: 'open',
-        label: file.id === model.saves.current ? 'Continue' : 'Open company',
-        side: file.id === model.saves.current ? 'Current' : undefined,
+        label: file.id === model.saves.current ? t.title.continueText : t.title.openCompany,
+        side: file.id === model.saves.current ? t.title.current : undefined,
         message: Message.CompanyOpened({ id: file.id }),
         big: true,
       },
@@ -579,8 +604,8 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           row(
             {
               key: 'delete',
-              label: 'Delete forever',
-              detail: 'The Company and its Design are gone.',
+              label: t.title.deleteForever,
+              detail: t.title.theCompanyAndItsDesignAre,
               message: Message.CompanyDeleteConfirmed(),
               danger: true,
             },
@@ -589,7 +614,7 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           row(
             {
               key: 'keep',
-              label: 'Keep company',
+              label: t.title.keepCompany,
               message: Message.CompanyDeleteCancelled(),
             },
             h,
@@ -599,7 +624,7 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           row(
             {
               key: 'delete',
-              label: 'Delete company',
+              label: t.title.deleteCompany,
               side: icon(h, Trash2, 'booth-icon'),
               message: Message.CompanyDeleteAsked(),
             },
@@ -610,6 +635,8 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
 }
 
 const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const founder = model.founder
   const drill = model.today ? dailyDrill(model.today) : null
   const challenge = (id: string, name: string, detail: string, legacy: number, open: boolean) =>
@@ -622,7 +649,7 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
           ? done(h)
           : open
             ? legacy > 0
-              ? `${legacy} Legacy`
+              ? t.title.legacy(legacy)
               : undefined
             : locked(h),
         message: open ? Message.ChallengeStarted({ id }) : null,
@@ -631,18 +658,20 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
     )
   return [
     backRow(h),
-    ...(drill ? [challenge(drill.id, 'Daily drill', drill.brief, 0, true)] : []),
+    ...(drill
+      ? [challenge(drill.id, t.title.dailyDrill, t.catalog.challenges[drill.id]!.brief, 0, true)]
+      : []),
     ...ERAS.flatMap((era, stage) => {
       const list = CHALLENGES.filter((entry) => entry.era === stage)
       return list.length === 0
         ? []
         : [
-            group(era.name, h),
+            group(t.catalog.eras[stage]?.name ?? era.name, h),
             ...list.map((entry) =>
               challenge(
                 entry.id,
-                entry.name,
-                entry.brief,
+                t.catalog.challenges[entry.id]!.name,
+                t.catalog.challenges[entry.id]!.brief,
                 entry.legacy,
                 challengeOpen(entry, founder.completed),
               ),
@@ -652,89 +681,100 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
   ]
 }
 
-const legacyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  backRow(h),
-  ...PERK_IDS.map((id) => {
-    const def = PERKS[id]
-    const price = perkPrice(model.founder, id)
-    return row(
-      {
-        key: id,
-        label: `${def.name} ${levelOf(model.founder, id)}/${def.costs.length}`,
-        detail: def.effect,
-        side: price === null ? done(h) : `${price} Legacy`,
-        message:
-          price !== null && model.founder.legacy >= price ? Message.PerkBought({ id }) : null,
-      },
-      h,
-    )
-  }),
-]
+const legacyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return [
+    backRow(h),
+    ...PERK_IDS.map((id) => {
+      const def = localized(PERKS[id], t.catalog.perks[id])
+      const price = perkPrice(model.founder, id)
+      return row(
+        {
+          key: id,
+          label: `${def.name} ${levelOf(model.founder, id)}/${def.costs.length}`,
+          detail: def.effect,
+          side: price === null ? done(h) : t.title.legacy(price),
+          message:
+            price !== null && model.founder.legacy >= price ? Message.PerkBought({ id }) : null,
+        },
+        h,
+      )
+    }),
+  ]
+}
 
-const historyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  backRow(h),
-  ...(model.founder.history.length === 0
-    ? [group('No Exits yet', h)]
-    : model.founder.history
-        .map((entry, index) =>
-          row(
-            {
-              key: `h${index}`,
-              label:
-                entry.name ||
-                `${EXITS[entry.exit].name} · ${VENTURES[entry.founding.venture].name}`,
-              detail: `${entry.name ? `${EXITS[entry.exit].name} · ` : ''}${VENTURES[entry.founding.venture].name} · ${ERAS[entry.stage]?.name ?? ''} · ${compact(entry.peak)} users · ${clock(entry.time)}`,
-              side: `+${entry.legacy}`,
-              message: null,
-              record: true,
-            },
-            h,
+const historyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return [
+    backRow(h),
+    ...(model.founder.history.length === 0
+      ? [group(t.title.noExitsYet, h)]
+      : model.founder.history
+          .map((entry, index) =>
+            row(
+              {
+                key: `h${index}`,
+                label:
+                  entry.name ||
+                  `${t.catalog.exits[entry.exit].name} · ${t.catalog.ventures[entry.founding.venture].name}`,
+                detail: `${entry.name ? `${t.catalog.exits[entry.exit].name} · ` : ''}${t.catalog.ventures[entry.founding.venture].name} · ${t.catalog.eras[entry.stage]?.name ?? ''} · ${compact(entry.peak)} users · ${clock(entry.time)}`,
+                side: `+${entry.legacy}`,
+                message: null,
+                record: true,
+              },
+              h,
+            ),
+          )
+          .toReversed()),
+  ]
+}
+
+const achievementRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return [
+    backRow(h),
+    ...ACHIEVEMENT_IDS.map((id) => {
+      const earned = model.founder.achievements.includes(id)
+      return row(
+        {
+          key: id,
+          label: t.catalog.achievements[id].name,
+          detail: t.catalog.achievements[id].condition,
+          side: h.span(
+            [h.Class('flex items-center')],
+            [
+              earned ? done(h) : locked(h),
+              h.span([h.Class('sr-only')], [earned ? t.title.earned : t.title.notYet]),
+            ],
           ),
-        )
-        .toReversed()),
-]
-
-const achievementRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  backRow(h),
-  ...ACHIEVEMENT_IDS.map((id) => {
-    const earned = model.founder.achievements.includes(id)
-    return row(
-      {
-        key: id,
-        label: ACHIEVEMENTS[id].name,
-        detail: ACHIEVEMENTS[id].condition,
-        side: h.span(
-          [h.Class('flex items-center')],
-          [
-            earned ? done(h) : locked(h),
-            h.span([h.Class('sr-only')], [earned ? 'Earned' : 'Not yet']),
-          ],
-        ),
-        message: null,
-        record: true,
-      },
-      h,
-    )
-  }),
-]
+          message: null,
+          record: true,
+        },
+        h,
+      )
+    }),
+  ]
+}
 
 /** Settings as rows: each switch shows On or Off, and Language steps to the next one. */
 const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const at = supportedLocales.findIndex(({ value }) => value === model.prefs.locale)
   const next = supportedLocales[(at + 1) % supportedLocales.length]!
   const toggle = (key: string, label: string, on: boolean, message: Message) =>
-    row({ key, label, side: on ? 'On' : 'Off', message, pressed: on }, h)
+    row({ key, label, side: on ? t.title.on : t.title.off, message, pressed: on }, h)
   return [
     backRow(h),
     toggle(
       'muted',
-      'Mute sound (M)',
+      t.title.muteSoundM,
       model.prefs.muted,
       Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
     ),
     toggle(
       'auto-pause',
-      'Pause on SEV1 and SEV2',
+      t.title.pauseOnSEV1AndSEV2,
       model.prefs.autoPause,
       Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
     ),
@@ -746,38 +786,38 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
     ),
     toggle(
       'motion',
-      'Reduce motion',
+      t.title.reduceMotion,
       model.prefs.motion === 'reduce',
       Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
     ),
     toggle(
       'text',
-      'Text at 150%',
+      t.title.textAt150,
       model.prefs.text === 'large',
       Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
     ),
     toggle(
       'theme',
-      'Dark mode',
+      t.title.darkMode,
       model.prefs.theme === 'dark',
       Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
     ),
     toggle(
       'agent',
-      'Agent access',
+      t.title.agentAccess,
       model.prefs.agentAccess,
       Message.PrefsChanged({ message: PrefsMessage.AgentAccessToggled() }),
     ),
     toggle(
       'analytics',
-      'Share anonymous usage data',
+      t.title.shareAnonymousUsageData,
       model.prefs.analytics,
       Message.PrefsChanged({ message: PrefsMessage.AnalyticsToggled() }),
     ),
     row(
       {
         key: 'privacy',
-        label: 'Privacy policy',
+        label: t.title.privacyPolicy,
         message: Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
       },
       h,
@@ -785,7 +825,7 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
     row(
       {
         key: 'language',
-        label: 'Language',
+        label: t.title.language,
         side: supportedLocales[at]?.label ?? '',
         message: Message.PrefsChanged({
           message: PrefsMessage.LocaleChosen({ locale: next.value }),
@@ -793,9 +833,9 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
       },
       h,
     ),
-    row({ key: 'save-export', label: 'Copy save as text', message: Message.SaveExported() }, h),
-    row({ key: 'save-import', label: 'Import a save', message: Message.SaveImportAsked() }, h),
-    row({ key: 'copy', label: 'Copy state as JSON', message: Message.StateCopied() }, h),
+    row({ key: 'save-export', label: t.title.copySaveAsText, message: Message.SaveExported() }, h),
+    row({ key: 'save-import', label: t.title.importASave, message: Message.SaveImportAsked() }, h),
+    row({ key: 'copy', label: t.title.copyStateAsJSON, message: Message.StateCopied() }, h),
     ...(model.oldSave && !hasRecovered(model.saves.companies)
       ? [
           row(
@@ -812,21 +852,23 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
   ]
 }
 
-const PAGES: Record<
+const pagesOf = (
+  t: Messages,
+): Record<
   Page,
   Readonly<{ title: string; rows: (model: Model, h: HtmlBuilder<Message>) => ReadonlyArray<Html> }>
-> = {
+> => ({
   main: { title: '', rows: mainRows },
-  found: { title: 'New company', rows: foundRows },
-  companies: { title: 'Companies', rows: companyRows },
-  save: { title: 'Company', rows: saveRows },
-  sandbox: { title: 'Sandbox', rows: sandboxRows },
-  challenges: { title: 'Challenges', rows: challengeRows },
-  legacy: { title: 'Legacy shop', rows: legacyRows },
-  history: { title: 'History', rows: historyRows },
-  achievements: { title: 'Achievements', rows: achievementRows },
-  settings: { title: 'Settings', rows: settingsRows },
-}
+  found: { title: t.title.newCompany, rows: foundRows },
+  companies: { title: t.title.companies, rows: companyRows },
+  save: { title: t.title.company, rows: saveRows },
+  sandbox: { title: t.title.sandbox, rows: sandboxRows },
+  challenges: { title: t.title.challenges, rows: challengeRows },
+  legacy: { title: t.title.legacyShop, rows: legacyRows },
+  history: { title: t.title.history, rows: historyRows },
+  achievements: { title: t.title.achievements, rows: achievementRows },
+  settings: { title: t.title.settings, rows: settingsRows },
+})
 
 /** The page the monitor shows. A Company file replaces the Companies list in place. */
 const pageOf = (model: Model): Page => {
@@ -836,9 +878,11 @@ const pageOf = (model: Model): Page => {
 
 /** A page's heading: where it is, and the figure it spends or counts. */
 const crumb = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const figure =
     page === 'found' || page === 'challenges' || page === 'legacy'
-      ? `${model.founder.legacy} Legacy`
+      ? t.title.legacy(model.founder.legacy)
       : page === 'companies'
         ? `${model.saves.companies.length}`
         : page === 'achievements'
@@ -849,36 +893,38 @@ const crumb = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
     page === 'main'
       ? []
       : [
-          h.span([], ['Main menu']),
+          h.span([], [t.title.mainMenu]),
           h.span([h.AriaHidden(true)], [' › ']),
-          h.b([], [PAGES[page].title]),
+          h.b([], [pagesOf(t)[page].title]),
           figure ? h.span([h.Class('booth-figure')], [figure]) : h.empty,
         ],
   )
 }
 
-const hint = (h: HtmlBuilder<Message>): Html =>
-  h.div(
+const hint = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('booth-hint'), h.AriaHidden(true)],
     [
-      ['↑↓', 'Select'],
-      ['Enter', 'Open'],
-      ['Esc', 'Back'],
+      ['↑↓', t.title.select],
+      [t.title.enter, t.title.open],
+      [t.title.esc, t.title.back],
     ].map(([key, label]) => h.span([], [h.kbd([], [key ?? '']), h.span([], [label ?? ''])])),
   )
+}
 
 /* --------------------------------------------------------------------------
    The status column: the saved Company at a glance, from the save itself.
    -------------------------------------------------------------------------- */
 
 /** The busiest Node of the saved Design, by utilization. */
-const busiest = (game: Game): { name: string; load: number } | null => {
+const busiest = (t: Messages, game: Game): { name: string; load: number } | null => {
   const flow = solveFlow(game)
   let best: { name: string; load: number } | null = null
   for (const node of game.nodes) {
     if (COMPONENTS[node.type].fixed) continue
     const load = flow.nodes[node.id]?.utilization ?? 0
-    if (!best || load > best.load) best = { name: nodeLabel(game, node), load }
+    if (!best || load > best.load) best = { name: nodeTitle(t, game, node), load }
   }
   return best
 }
@@ -898,9 +944,11 @@ const sparkOf = (game: Game): string => {
 }
 
 const status = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const file = currentFile(model)
-  const hot = busiest(game)
+  const hot = busiest(t, game)
   const spark = sparkOf(game)
   const tone = !hot ? '' : hot.load >= 0.9 ? 'is-bad' : hot.load >= 0.7 ? 'is-warn' : 'is-ok'
   return h.aside(
@@ -916,7 +964,7 @@ const status = (model: Model, h: HtmlBuilder<Message>): Html => {
         : []),
       h.span(
         [h.Class('booth-status-era')],
-        [h.span([], [eraOf(game).name]), ` · ${clock(game.time)}`],
+        [h.span([], [eraWords(t, game).name]), ` · ${clock(game.time)}`],
       ),
       h.span([h.Class('booth-status-users')], [compact(game.users)]),
       h.span([h.Class('booth-status-unit')], ['users']),
@@ -963,6 +1011,8 @@ const ReaderClock = Mount.define('ReaderClock', {
 })
 
 const taskbar = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const tool = (
     menu: typeof MenuPage.Type,
     label: string,
@@ -982,23 +1032,23 @@ const taskbar = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
     )
   const veteran = model.founder.history.length > 0
   return h.nav(
-    [h.Class('booth-taskbar'), h.AriaLabel('Taskbar')],
+    [h.Class('booth-taskbar'), h.AriaLabel(t.title.taskbar)],
     [
       ...(veteran
         ? [
-            tool('legacy', 'Legacy shop', Store, `${model.founder.legacy}`),
-            tool('history', 'History', ScrollText),
+            tool('legacy', t.title.legacyShop, Store, `${model.founder.legacy}`),
+            tool('history', t.title.history, ScrollText),
           ]
         : []),
-      tool('achievements', 'Achievements', Trophy),
-      tool('settings', 'Settings', Settings),
+      tool('achievements', t.title.achievements, Trophy),
+      tool('settings', t.title.settings, Settings),
       h.a(
         [
           h.Href(WIKI_URL),
           h.Target('_blank'),
           h.Rel('noreferrer noopener'),
-          h.Title('Wiki'),
-          h.AriaLabel('Wiki'),
+          h.Title(t.title.wiki),
+          h.AriaLabel(t.title.wiki),
         ],
         [icon(h, BookOpen, 'booth-icon')],
       ),
@@ -1009,22 +1059,29 @@ const taskbar = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
 
 /** The host the monitor connects to, and what it restores there: the Company, a Sandbox, or a Challenge. */
 const sessionOf = (model: Model): readonly [string, string] => {
+  const t = copyIn(model.prefs.locale)
+
   const game = model.board.game
   const challengeRun = boardChallenge(model.board)
   if (challengeRun) {
     const challenge = challengeById(challengeRun.id)
     return [
       `drill@${challengeRun.id.replace(':', '-')}`,
-      challenge ? `${challenge.name} · ${challenge.brief}` : '',
+      challenge
+        ? `${t.catalog.challenges[challenge.id]!.name} · ${t.catalog.challenges[challenge.id]!.brief}`
+        : '',
     ]
   }
   const sandbox = boardSandbox(model.board)
   if (sandbox)
     return [
       `you@sandbox-${sandbox.id ?? 'free'}`,
-      sandbox.id ? GUIDED[sandbox.id].name : 'Free Sandbox',
+      sandbox.id ? t.catalog.guided[sandbox.id].name : t.title.freeSandbox,
     ]
-  return ['oncall@prod', `${eraOf(game).name} · ${compact(game.users)} users · ${clock(game.time)}`]
+  return [
+    'oncall@prod',
+    `${eraWords(t, game).name} · ${compact(game.users)} users · ${clock(game.time)}`,
+  ]
 }
 
 /** Leaving the title: the screen connects to the board before it opens. */
@@ -1042,6 +1099,8 @@ const terminal = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 const screen = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const page = pageOf(model)
   const open = hasCompany(model)
   // The status column reads the open Company's Game. On a Company file, the file shows its own figures.
@@ -1058,11 +1117,11 @@ const screen = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.Key(page === 'save' ? `save-${model.saveFocus}` : page),
               h.Class('booth-list'),
-              h.AriaLabel('Main menu'),
+              h.AriaLabel(t.title.mainMenu),
               h.DataAttribute('page', page),
               h.OnMount(PageMounted()),
             ],
-            PAGES[page].rows(model, h),
+            pagesOf(t)[page].rows(model, h),
           ),
           hint(h),
         ],
@@ -1081,21 +1140,22 @@ const screen = (model: Model, h: HtmlBuilder<Message>): Html => {
    -------------------------------------------------------------------------- */
 
 /** The keycap tops seen over the slab's front edge, with the keys the driver lights by name. */
-const KEYS: ReadonlyArray<readonly [string, string?]> = [
-  ['', 'Escape'],
+const keysOf = (t: Messages): ReadonlyArray<readonly [string, string?]> => [
+  ['', t.title.escape],
   ...Array.from({ length: 5 }, () => [''] as const),
-  ['space', 'Space'],
+  ['space', t.title.space],
   ...Array.from({ length: 4 }, () => [''] as const),
-  ['', 'Backspace'],
-  ['wide', 'Enter'],
+  ['', t.title.backspace],
+  ['wide', t.title.enter],
   ['', 'ArrowLeft'],
   ['', 'ArrowUp'],
   ['', 'ArrowDown'],
   ['', 'ArrowRight'],
 ]
 
-const desk = (h: HtmlBuilder<Message>): Html =>
-  h.div(
+const desk = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('booth-desk'), h.AriaHidden(true)],
     [
       h.div(
@@ -1103,7 +1163,7 @@ const desk = (h: HtmlBuilder<Message>): Html =>
         [
           h.div(
             [h.Class('booth-keyrow')],
-            KEYS.map(([size, name]) =>
+            keysOf(t).map(([size, name]) =>
               h.span(
                 [
                   h.Class(`booth-key ${size ? `is-${size}` : ''}`),
@@ -1118,31 +1178,33 @@ const desk = (h: HtmlBuilder<Message>): Html =>
       h.div([h.Class('booth-mouse')], []),
     ],
   )
+}
 
 /** Under the keyboard: the reminder that the game simplifies on purpose. */
-const disclaimer = (h: HtmlBuilder<Message>): Html =>
-  h.a(
+const disclaimer = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.a(
     [
       h.Class('booth-disclaimer'),
       h.Href(DISCLAIMER_URL),
       h.Target('_blank'),
       h.Rel('noreferrer noopener'),
     ],
-    [
-      'Quorum is a game and simplifies real systems on purpose. Check the real thing before you decide.',
-    ],
+    [t.title.quorumIsAGameAndSimplifies],
   )
+}
 
 /** The edge of the screen: the playtest tools and the warning that saves can break. */
-const strip = (h: HtmlBuilder<Message>): Html =>
-  h.header(
+const strip = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.header(
     [h.Class('booth-strip')],
     [
       h.button(
         [h.Type('button'), h.OnClick(Message.LogExported())],
         [
           icon(h, Download, 'size-3.5'),
-          h.span([h.Class('booth-strip-label')], ['Export playtest log']),
+          h.span([h.Class('booth-strip-label')], [t.title.exportPlaytestLog]),
         ],
       ),
       h.a(
@@ -1154,9 +1216,9 @@ const strip = (h: HtmlBuilder<Message>): Html =>
         [
           h.span([h.Class('booth-strip-dot')], []),
           h.span([h.Class('booth-strip-label')], ['Playtest build ·']),
-          h.span([], ['Saves can reset']),
+          h.span([], [t.title.savesCanReset]),
           ' · ',
-          h.span([], ['Feedback']),
+          h.span([], [t.title.feedback]),
           icon(h, ArrowUpRight, 'size-3.5'),
         ],
       ),
@@ -1171,6 +1233,7 @@ const strip = (h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+}
 
 const booth = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.div(
@@ -1213,8 +1276,9 @@ const booth = (model: Model, h: HtmlBuilder<Message>): Html =>
    beeps, and the booth follows with its sounds.
    -------------------------------------------------------------------------- */
 
-const reader = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const reader = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Key('reader'), h.Class(`reader ${model.boot._tag === 'Clocking' ? 'is-in' : ''}`)],
     [
       h.div(
@@ -1230,8 +1294,8 @@ const reader = (model: Model, h: HtmlBuilder<Message>): Html =>
               h.span(
                 [h.Class('reader-status')],
                 [
-                  h.span([h.Class('reader-status-out')], ['Insert badge']),
-                  h.span([h.Class('reader-status-in')], ['Clocked in']),
+                  h.span([h.Class('reader-status-out')], [t.title.insertBadge]),
+                  h.span([h.Class('reader-status-in')], [t.title.clockedIn]),
                 ],
               ),
             ],
@@ -1246,7 +1310,7 @@ const reader = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.button(
             [
               h.Type('button'),
-              h.AriaLabel('Clock in'),
+              h.AriaLabel(t.title.clockIn),
               h.OnClick(Message.ClockedIn()),
               h.Class('reader-card'),
             ],
@@ -1261,13 +1325,14 @@ const reader = (model: Model, h: HtmlBuilder<Message>): Html =>
                 ],
               ),
               h.span([h.Class('reader-card-chip')], []),
-              h.span([h.Class('reader-card-name')], ['Founder']),
+              h.span([h.Class('reader-card-name')], [t.title.founder]),
             ],
           ),
         ],
       ),
     ],
   )
+}
 
 export const titleScreen = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.main(

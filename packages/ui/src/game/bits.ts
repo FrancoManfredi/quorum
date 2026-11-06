@@ -310,11 +310,12 @@ export const insightChip = <M>(
   h: HtmlBuilder<M>,
   grey = false,
   tone: Tone = 'plain',
+  name: string = poolName(pool),
 ): Html =>
   h.span(
     [
-      h.Title(`${poolName(pool)} ${figure}`),
-      h.AriaLabel(`${poolName(pool)} ${figure}`),
+      h.Title(`${name} ${figure}`),
+      h.AriaLabel(`${name} ${figure}`),
       h.Class(cn(FIGURE, 'inline-flex items-center gap-[3px] whitespace-nowrap')),
     ],
     [

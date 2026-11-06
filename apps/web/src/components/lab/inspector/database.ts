@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BACKUPS,
@@ -25,18 +26,20 @@ const shardKeyNote = (node: GameNode): string => {
 
 /** A Database's engine, its volume, and its shards (07 "Variants", "Capacity", "Partitioning"). */
 const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const volume = STORAGE_IOPS[node.iops]
   const iops = `${volume.iops / 1_000}k`
   const shards = Math.max(1, Math.floor(node.shards))
   return [
     engine(node, h),
     section(
-      'Volume',
+      t.inspectorDatabase.volume,
       [
         picker(
           'volume',
           (Object.keys(STORAGE_IOPS) as ReadonlyArray<IopsClass>).map(
-            (id) => [id, STORAGE_IOPS[id].name] as const,
+            (id) => [id, t.catalog.storageIops[id].name] as const,
           ),
           node.iops,
           (chosen) => Message.StorageIopsChosen({ nodeId: node.id, iops: chosen }),
@@ -44,15 +47,12 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
           () => true,
           'grid-cols-2',
         ),
-        caption(
-          `${iops} IOPS at ${volume.burn}× the box's Burn. Reads that miss the buffer cache and every write wait on it.`,
-          h,
-        ),
+        caption(t.inspectorDatabase.iOPSAtTheBoxSBurn(iops, volume.burn), h),
       ],
       h,
     ),
     section(
-      'Shards',
+      t.inspectorDatabase.shards,
       [
         picker(
           'shards',
@@ -66,7 +66,7 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         caption(
           shards > 1
             ? `Writes divide across ${shards} shards, and each one bills. Changing the count or the key takes ${RESHARD_DH} Dev Hours and a copy of the data that halves the volume's IOPS.`
-            : 'One primary: a Read Replica is what takes the reads off it.',
+            : t.inspectorDatabase.onePrimaryAReadReplicaIs,
           h,
         ),
       ],
@@ -75,12 +75,12 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
     ...(shards > 1
       ? [
           section(
-            'Shard key',
+            t.inspectorDatabase.shardKey,
             [
               picker(
                 'shard-key',
                 (Object.keys(SHARD_KEYS) as ReadonlyArray<ShardKey>).map(
-                  (id) => [id, SHARD_KEYS[id].name] as const,
+                  (id) => [id, t.catalog.shardKeys[id].name] as const,
                 ),
                 node.shardKey,
                 (shardKey) => Message.ShardKeyChosen({ nodeId: node.id, shardKey }),
@@ -95,13 +95,13 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         ]
       : []),
     section(
-      'Reports',
+      t.inspectorDatabase.reports,
       [
         picker(
           'materialized',
           [
-            [false, 'Scan the table'],
-            [true, 'Materialized view'],
+            [false, t.inspectorDatabase.scanTheTable],
+            [true, t.inspectorDatabase.materializedView],
           ],
           node.materialized,
           (materialized) => Message.MaterializedChosen({ nodeId: node.id, materialized }),
@@ -110,20 +110,20 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         ),
         caption(
           node.materialized
-            ? 'Half the scan CPU, and the figures are as old as the last refresh.'
-            : 'Every report scans the table itself. Research Materialized views to store one.',
+            ? t.inspectorDatabase.halfTheScanCPUAndThe
+            : t.inspectorDatabase.everyReportScansTheTableItself,
           h,
         ),
       ],
       h,
     ),
     section(
-      'Retention',
+      t.inspectorDatabase.retention,
       [
         picker(
           'retention-policy',
           (Object.keys(DB_RETENTIONS) as ReadonlyArray<DbRetention>).map(
-            (id) => [id, DB_RETENTIONS[id].name] as const,
+            (id) => [id, t.catalog.dbRetentions[id].name] as const,
           ),
           node.keep,
           (keep) => Message.DbRetentionChosen({ nodeId: node.id, keep }),
@@ -133,10 +133,10 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
         ),
         caption(
           node.keep === 'archive'
-            ? 'Old rows move to cheap storage: the bill falls, and a report waits on the restore.'
+            ? t.inspectorDatabase.oldRowsMoveToCheapStorage
             : node.keep === 'delete'
-              ? 'Old rows are gone: the bill falls, and a report rebuilds its figures at three times the scan.'
-              : 'Every row stays on the fast tier and bills for it.',
+              ? t.inspectorDatabase.oldRowsAreGoneTheBill
+              : t.inspectorDatabase.everyRowStaysOnTheFast,
           h,
         ),
       ],
@@ -145,14 +145,15 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
   ]
 }
 
-const backups = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Backups',
+const backups = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorDatabase.backups,
     [
       picker(
         'backup',
         (Object.keys(BACKUPS) as ReadonlyArray<keyof typeof BACKUPS>).map(
-          (id) => [id, BACKUPS[id].name] as const,
+          (id) => [id, t.catalog.backups[id].name] as const,
         ),
         node.backup,
         (backup) => Message.BackupChosen({ nodeId: node.id, backup }),
@@ -160,10 +161,10 @@ const backups = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         node.backup === 'none'
-          ? 'No backup: a lost table is lost for good.'
+          ? t.inspectorDatabase.noBackupALostTableIs
           : node.restore === 'failed'
-            ? 'A restore failed: this backup would lose everything. Drill it again.'
-            : 'This backup restores. Drill it again after a change, or research Restore drills.',
+            ? t.inspectorDatabase.aRestoreFailedThisBackupWould
+            : t.inspectorDatabase.thisBackupRestoresDrillItAgain,
         h,
       ),
       ...(node.backup === 'none'
@@ -177,13 +178,14 @@ const backups = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
                 className: 'self-start',
                 isDisabled: game.devHours < RESTORE_DRILL_DH,
               },
-              [`Restore drill · ${RESTORE_DRILL_DH} DH`],
+              [t.inspectorDatabase.restoreDrillDH(RESTORE_DRILL_DH)],
               h,
             ),
           ]),
     ],
     h,
   )
+}
 
 export const databasePanel: Panel = {
   body: ({ game, node, h }) => [...database(game, node, h)],

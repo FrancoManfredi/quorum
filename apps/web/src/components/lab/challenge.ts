@@ -1,3 +1,4 @@
+import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { AsyncData } from 'foldkit'
 import {
@@ -48,11 +49,11 @@ import { shell } from './panels.ts'
    goal slot, and the result card with each axis on its histogram.
    ========================================================================== */
 
-const AXIS_NAMES: Record<ScoreAxis, string> = {
-  cost: 'Cost',
-  tail: 'Tail',
-  complexity: 'Complexity',
-}
+const axisNamesOf = (t: Messages): Record<ScoreAxis, string> => ({
+  cost: t.challenge.cost,
+  tail: t.challenge.tail,
+  complexity: t.challenge.complexity,
+})
 
 const axisValue = (axis: ScoreAxis, value: number): string =>
   axis === 'cost' ? `${money(value)}/s` : axis === 'tail' ? ms(value) : String(value)
@@ -98,6 +99,8 @@ const figures = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const errors = ledger.errorShare * 100
   const { targets } = challenge
   const margin = ledger.revenue > 0 ? (ledger.revenue - ledger.burn) / ledger.revenue : -1
@@ -107,24 +110,30 @@ const figures = (
     [h.Class(`flex flex-col divide-y divide-hairline ${WELL} ${CHIPS}`)],
     [
       figureRow(
-        'Cost',
+        t.challenge.cost,
         Wallet,
-        `${money(ledger.burn)}/s`,
+        t.challenge.s(money(ledger.burn)),
         targets.cost !== undefined && ledger.burn > targets.cost ? 'danger' : 'plain',
         h,
       ),
       figureRow(
-        'Tail',
+        t.challenge.tail,
         Timer,
         ms(ledger.p99),
         targets.tail !== undefined && ledger.p99 > targets.tail ? 'danger' : 'plain',
         h,
       ),
-      figureRow('Complexity', Waypoints, String(complexityOf(model.board.game)), 'plain', h),
+      figureRow(
+        t.challenge.complexity,
+        Waypoints,
+        String(complexityOf(model.board.game)),
+        'plain',
+        h,
+      ),
       targets.margin === undefined
         ? h.empty
         : figureRow(
-            'Margin',
+            t.challenge.margin,
             Percent,
             `${Math.round(margin * 100)}%`,
             margin >= targets.margin ? 'ok' : 'danger',
@@ -133,14 +142,14 @@ const figures = (
       challenge.devHours === undefined
         ? h.empty
         : figureRow(
-            'Dev Hours',
+            t.challenge.devHours,
             Hammer,
             `${Math.round(spent)} / ${challenge.devHours}`,
             spent <= challenge.devHours ? 'plain' : 'danger',
             h,
           ),
       figureRow(
-        'Errors',
+        t.challenge.errors,
         TriangleAlert,
         percent(ledger.errorShare),
         errors <= targets.errors * 100 ? 'ok' : 'danger',
@@ -177,6 +186,8 @@ const targetText = (challenge: Challenge): string => {
 
 /** The code fixes a Design may pay Dev Hours for, while it is built. */
 const fixes = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const open = FIXES.filter((fix) => {
     const research = TASKS[fix].research
@@ -206,11 +217,11 @@ const fixes = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           h.span(
             [h.Class('flex-1 truncate text-[calc(11.5px*var(--type-scale))]')],
-            [TASKS[fix].name],
+            [t.catalog.tasks[fix].name],
           ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
-            [`${TASKS[fix].dh} DH`],
+            [t.challenge.dH(TASKS[fix].dh)],
           ),
         ],
       )
@@ -218,14 +229,15 @@ const fixes = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const actions = (run: ChallengeRun, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const actions = (run: ChallengeRun, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('flex gap-1.5 px-1 pt-1')],
     run._tag === 'Building'
       ? [
           button(
             { onClick: Message.ChallengeRan(), size: 'sm', className: 'flex-1' },
-            [icon(h, Play, 'size-3.5'), 'Run'],
+            [icon(h, Play, 'size-3.5'), t.challenge.run],
             h,
           ),
         ]
@@ -233,12 +245,12 @@ const actions = (run: ChallengeRun, h: HtmlBuilder<Message>): Html =>
         ? [
             button(
               { onClick: Message.ChallengeFinished(), size: 'sm', className: 'flex-1' },
-              [icon(h, FastForward, 'size-3.5'), 'Finish'],
+              [icon(h, FastForward, 'size-3.5'), t.challenge.finish],
               h,
             ),
             button(
               { onClick: Message.ChallengeRebuilt(), variant: 'outline', size: 'sm' },
-              [icon(h, RotateCcw, 'size-3.5'), 'Rebuild'],
+              [icon(h, RotateCcw, 'size-3.5'), t.challenge.rebuild],
               h,
             ),
           ]
@@ -249,18 +261,21 @@ const actions = (run: ChallengeRun, h: HtmlBuilder<Message>): Html =>
                 size: 'sm',
                 className: 'flex-1',
               },
-              'Result',
+              t.challenge.result,
               h,
             ),
             button(
               { onClick: Message.ChallengeRebuilt(), variant: 'outline', size: 'sm' },
-              [icon(h, RotateCcw, 'size-3.5'), 'Rebuild'],
+              [icon(h, RotateCcw, 'size-3.5'), t.challenge.rebuild],
               h,
             ),
           ],
   )
+}
 
 export const challengeHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const run = boardChallenge(model.board)
   const challenge = run ? challengeById(run.id) : undefined
   if (!run || !challenge) return h.empty
@@ -280,7 +295,7 @@ export const challengeHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Messag
               variant: 'ghost',
               size: 'icon-sm',
               className: '-ml-1.5 text-muted-foreground',
-              attributes: [h.AriaLabel('Challenges'), h.Title('Challenges')],
+              attributes: [h.AriaLabel(t.challenge.challenges), h.Title(t.challenge.challenges)],
             },
             icon(h, Menu, 'size-4'),
             h,
@@ -368,6 +383,8 @@ const axisRow = (
   data: ChallengeHistograms | null,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const value = run.verdict?.best?.[axis] ?? run.result?.[axis] ?? 0
   const share = run.verdict?.percentiles?.[axis]
   return h.div(
@@ -376,7 +393,10 @@ const axisRow = (
       h.div(
         [h.Class('flex items-baseline justify-between gap-3')],
         [
-          h.span([h.Class('text-[calc(13px*var(--type-scale))] font-medium')], [AXIS_NAMES[axis]]),
+          h.span(
+            [h.Class('text-[calc(13px*var(--type-scale))] font-medium')],
+            [axisNamesOf(t)[axis]],
+          ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(13px*var(--type-scale))]'))],
             [axisValue(axis, value)],
@@ -388,21 +408,23 @@ const axisRow = (
         ? h.empty
         : h.span(
             [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-            [`Better than ${Math.round(share * 100)}% of players`],
+            [t.challenge.betterThanOfPlayers(Math.round(share * 100))],
           ),
     ],
   )
 }
 
-const VERIFICATION: Record<ChallengeResultRun['verification'], string> = {
-  local: 'Provisional',
-  sending: 'Provisional · checking',
-  verified: 'Verified',
-  unverified: 'Not verified',
-  offline: 'Provisional · offline',
-}
+const verificationOf = (t: Messages): Record<ChallengeResultRun['verification'], string> => ({
+  local: t.challenge.provisional,
+  sending: t.challenge.provisionalChecking,
+  verified: t.challenge.verified,
+  unverified: t.challenge.notVerified,
+  offline: t.challenge.provisionalOffline,
+})
 
 export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const run = boardChallenge(model.board)
   const challenge = run ? challengeById(run.id) : undefined
   if (run?._tag !== 'Result' || !challenge) return h.empty
@@ -425,7 +447,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           ...(run.note ? [h.Title(run.note)] : []),
         ],
-        [VERIFICATION[run.verification]],
+        [verificationOf(t)[run.verification]],
       ),
     ],
     [
@@ -441,7 +463,11 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ),
               ),
             ],
-            [passed ? 'Passed' : (run.verdict?.missed ?? result.missed ?? 'Failed')],
+            [
+              passed
+                ? t.challenge.passed
+                : (run.verdict?.missed ?? result.missed ?? t.challenge.failed),
+            ],
           ),
           ...(['cost', 'tail', 'complexity'] as const).map((axis) =>
             axisRow(axis, run, histograms, h),
@@ -449,7 +475,7 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           histograms
             ? h.span(
                 [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
-                [`${histograms.players} players`],
+                [t.challenge.players(histograms.players)],
               )
             : h.empty,
         ],
@@ -459,12 +485,12 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           button(
             { onClick: Message.TitleOpened(), variant: 'outline', size: 'lg', className: 'px-3.5' },
-            'Challenges',
+            t.challenge.challenges,
             h,
           ),
           button(
             { onClick: Message.ChallengeRebuilt(), size: 'lg', className: 'px-4' },
-            'Rebuild',
+            t.challenge.rebuild,
             h,
           ),
         ],

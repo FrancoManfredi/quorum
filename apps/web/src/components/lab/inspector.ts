@@ -1,3 +1,4 @@
+import { copy, localized, nodeLabelIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { isDown } from '@quorum/simulation/life'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -17,14 +18,10 @@ import { clockOf } from '@quorum/simulation/calendar'
 import {
   COMPONENTS,
   CREDIT_CAP,
-  FAMILIES,
   FAMILY_IDS,
-  KINDS,
   LB_POLICIES,
   PRICING_FROM_STAGE,
   PRICING_IDS,
-  PRICINGS,
-  RUNTIMES,
   SIZES,
   SPOT_WARNING,
   STANDBY_TYPES,
@@ -33,10 +30,7 @@ import {
   LOAD_TEST_DEMAND,
   ZONES,
   DB_ENGINES,
-  REGION_INFO,
-  SHARD_KEYS,
 } from '@quorum/simulation/catalog'
-import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { isGlobal, openRegions } from '@quorum/simulation/regions'
 import { platformTax, quartersBehind } from '@quorum/simulation/team'
 import type { Limit } from '@quorum/simulation/capacity'
@@ -159,6 +153,8 @@ const warnings = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const own = ledger.nodes[node.id]
   if (!own) return []
   const list: Array<Html> = []
@@ -166,7 +162,7 @@ const warnings = (
     const price = replacePrice(game, node)
     list.push(
       callout(
-        'The host under this VM died. It still bills.',
+        t.inspector.theHostUnderThisVMDied,
         'danger',
         button(
           {
@@ -176,7 +172,7 @@ const warnings = (
             size: 'sm',
             className: 'self-start text-danger',
           },
-          ['Replace', h.span([h.Class(FIGURE)], [priceLabel(game.sandbox, price)])],
+          [t.inspector.replace, h.span([h.Class(FIGURE)], [priceLabel(game.sandbox, price)])],
           h,
         ),
         h,
@@ -187,7 +183,7 @@ const warnings = (
   if (incident?.nodeId === node.id && incident.kind === 'reconnect' && incident.throttled !== true)
     list.push(
       callout(
-        'Every client is reconnecting at once. The Hub refuses what it cannot take.',
+        t.inspector.everyClientIsReconnectingAtOnce,
         'danger',
         button(
           {
@@ -196,7 +192,7 @@ const warnings = (
             size: 'sm',
             className: 'self-start text-danger',
           },
-          ['Throttle connects'],
+          [t.inspector.throttleConnects],
           h,
         ),
         h,
@@ -205,11 +201,11 @@ const warnings = (
   if (
     incident?.kind === 'loop' &&
     node.type === 'server' &&
-    RUNTIMES[node.runtime].blocking === 'loop'
+    t.catalog.runtimes[node.runtime].blocking === 'loop'
   )
     list.push(
       callout(
-        'A heavy login hash blocks this event loop, and every kind behind it waits.',
+        t.inspector.aHeavyLoginHashBlocksThis,
         'danger',
         button(
           {
@@ -218,7 +214,7 @@ const warnings = (
             size: 'sm',
             className: 'self-start text-danger',
           },
-          ['Move login'],
+          [t.inspector.moveLogin],
           h,
         ),
         h,
@@ -227,7 +223,7 @@ const warnings = (
   if (isDown(node.life) && node.life._tag === 'Restarting' && node.standby && has(game, 'multi-az'))
     list.push(
       callout(
-        'Its standby takes over in a few seconds.',
+        t.inspector.itsStandbyTakesOverInA,
         'warn',
         button(
           {
@@ -236,30 +232,29 @@ const warnings = (
             size: 'sm',
             className: 'self-start',
           },
-          ['Fail over'],
+          [t.inspector.failOver],
           h,
         ),
         h,
       ),
     )
   if (own.stranded > 0.01) {
-    const names = own.strandedKinds.map((kind) => KINDS[kind].label.toLowerCase()).join(', ')
-    list.push(callout(`${rate(own.stranded)}/s of ${names} have nowhere to go.`, 'danger', null, h))
+    const names = own.strandedKinds
+      .map((kind) => t.catalog.kinds[kind].label.toLowerCase())
+      .join(', ')
+    list.push(callout(t.inspector.sOfHaveNowhereToGo(rate(own.stranded), names), 'danger', null, h))
   }
   if (own.refused > 0.01)
     list.push(
-      callout(`Refusing ${rate(own.refused)} queries/s: too many connections.`, 'danger', null, h),
+      callout(t.inspector.refusingQueriesSTooManyConnections(rate(own.refused)), 'danger', null, h),
     )
-  if (own.swapping)
-    list.push(callout('Out of RAM and swapping: every request is slower.', 'danger', null, h))
-  if (own.throttled)
-    list.push(callout('Out of CPU credits: throttled to 20% CPU.', 'warn', null, h))
-  if (own.disk)
-    list.push(callout('The working set does not fit in RAM: reads hit disk.', 'warn', null, h))
+  if (own.swapping) list.push(callout(t.inspector.outOfRAMAndSwappingEvery, 'danger', null, h))
+  if (own.throttled) list.push(callout(t.inspector.outOfCPUCreditsThrottledTo, 'warn', null, h))
+  if (own.disk) list.push(callout(t.inspector.theWorkingSetDoesNotFit, 'warn', null, h))
   if (node.leak > 0) {
     list.push(
       callout(
-        `Memory grows: ${node.leak.toFixed(1)} GB leaked.`,
+        t.inspector.memoryGrowsGBLeaked(node.leak.toFixed(1)),
         'danger',
         button(
           {
@@ -268,7 +263,7 @@ const warnings = (
             size: 'sm',
             className: 'self-start text-danger',
           },
-          [icon(h, RotateCcw, 'size-3.5'), 'Restart'],
+          [icon(h, RotateCcw, 'size-3.5'), t.inspector.restart],
           h,
         ),
         h,
@@ -292,41 +287,22 @@ const warnings = (
         size: 'sm',
         className: 'self-start',
       },
-      [`Upgrade clusters · ${TASKS['upgrade-cluster'].dh} DH`],
+      [t.inspector.upgradeClustersDH(TASKS['upgrade-cluster'].dh)],
       h,
     )
     if (game.incident?.kind === 'cluster-upgrade' && game.incident.nodeId === node.id)
-      list.push(
-        callout(
-          'The provider is forcing an upgrade. Pods that use removed APIs crash.',
-          'danger',
-          upgrade,
-          h,
-        ),
-      )
+      list.push(callout(t.inspector.theProviderIsForcingAnUpgrade, 'danger', upgrade, h))
     else if (quartersBehind(game, node) > 0)
-      list.push(
-        callout(
-          'Its Kubernetes version is out of support. The provider can force an upgrade.',
-          'warn',
-          upgrade,
-          h,
-        ),
-      )
+      list.push(callout(t.inspector.itsKubernetesVersionIsOutOf, 'warn', upgrade, h))
     if (platformTax(game) > 0)
       list.push(
-        callout(
-          `Clusters take ${platformTax(game)} engineers of Dev Hours. A Platform team takes that work.`,
-          'warn',
-          null,
-          h,
-        ),
+        callout(t.inspector.clustersTakeEngineersOfDevHours(platformTax(game)), 'warn', null, h),
       )
   }
   if (node.type === 'auth' && !game.sandbox)
     list.push(
       callout(
-        'Move login in-house: the App Servers hash passwords themselves, and the per-user fee ends.',
+        t.inspector.moveLoginInHouseTheApp,
         'warn',
         button(
           {
@@ -336,7 +312,7 @@ const warnings = (
             size: 'sm',
             className: 'self-start',
           },
-          [`Move auth in-house · ${AUTH_MOVE_DH} DH`],
+          [t.inspector.moveAuthInHouseDH(AUTH_MOVE_DH)],
           h,
         ),
         h,
@@ -345,7 +321,10 @@ const warnings = (
   if (game.time < game.loadTestUntil && own.utilization > 0)
     list.push(
       callout(
-        `Load test: at ${LOAD_TEST_DEMAND}× demand this Node runs at ${Math.round(own.utilization * LOAD_TEST_DEMAND * 100)}% utilization.`,
+        t.inspector.loadTestAtDemandThisNode(
+          LOAD_TEST_DEMAND,
+          Math.round(own.utilization * LOAD_TEST_DEMAND * 100),
+        ),
         own.utilization * LOAD_TEST_DEMAND > 1 ? 'danger' : 'warn',
         null,
         h,
@@ -355,8 +334,11 @@ const warnings = (
     list.push(
       callout(
         game.engineChange.until > 0
-          ? `Copying its data to ${DB_ENGINES[game.engineChange.to].name}. It keeps serving on ${DB_ENGINES[node.dbEngine].name} until the copy ends.`
-          : `Rewriting the code for ${DB_ENGINES[game.engineChange.to].name}. It is on the backlog.`,
+          ? t.inspector.copyingItsDataToItKeeps(
+              DB_ENGINES[game.engineChange.to].name,
+              DB_ENGINES[node.dbEngine].name,
+            )
+          : t.inspector.rewritingTheCodeForItIs(DB_ENGINES[game.engineChange.to].name),
         'warn',
         null,
         h,
@@ -366,7 +348,7 @@ const warnings = (
     list.push(
       callout(
         game.reshard.until > 0
-          ? `Copying its data to ${game.reshard.shards} shard${game.reshard.shards === 1 ? '' : 's'} by ${SHARD_KEYS[game.reshard.key].name}. The volume runs at half its IOPS until the copy ends.`
+          ? `Copying its data to ${game.reshard.shards} shard${game.reshard.shards === 1 ? '' : 's'} by ${t.catalog.shardKeys[game.reshard.key].name}. The volume runs at half its IOPS until the copy ends.`
           : 'Rewriting the code for the new shards. It is on the backlog.',
         'warn',
         null,
@@ -376,9 +358,7 @@ const warnings = (
   if (node.type === 'queue' && game.incident?.kind === 'poison' && game.incident.nodeId === node.id)
     list.push(
       callout(
-        node.dlq
-          ? 'A task keeps failing. The dead-letter queue holds it.'
-          : 'A task keeps failing. Workers retry it forever.',
+        node.dlq ? t.inspector.aTaskKeepsFailingTheDead : t.inspector.aTaskKeepsFailingWorkersRetry,
         node.dlq ? 'warn' : 'danger',
         node.dlq
           ? null
@@ -389,7 +369,7 @@ const warnings = (
                 size: 'sm',
                 className: 'self-start text-danger',
               },
-              ['Delete message'],
+              [t.inspector.deleteMessage],
               h,
             ),
         h,
@@ -434,9 +414,13 @@ const warnings = (
       ),
     )
   if (node.type === 'waf' && game.incident?.kind === 'regex')
-    fix('A rule backtracks. CPU at 100%.', 'Disable rule', Message.RuleDisabled())
+    fix(t.inspector.aRuleBacktracksCPUAt100, t.inspector.disableRule, Message.RuleDisabled())
   if (node.type === 'database' && game.incident?.kind === 'report-db')
-    fix('A report is scanning every table.', 'Cancel report', Message.ReportCancelled())
+    fix(
+      t.inspector.aReportIsScanningEveryTable,
+      t.inspector.cancelReport,
+      Message.ReportCancelled(),
+    )
   if (node.type === 'psp' && game.incident?.kind === 'psp-outage')
     fix(
       'Their outage, not yours. Every checkout fails.',
@@ -448,11 +432,11 @@ const warnings = (
     game.incident?.kind === 'disk-full' &&
     game.incident.nodeId === node.id
   )
-    fix('The disk is full. Writes fail.', 'Expand volume', Message.VolumeExpanded())
+    fix(t.inspector.theDiskIsFullWritesFail, t.inspector.expandVolume, Message.VolumeExpanded())
   if (node.type === 'waf' && game.incident?.kind === 'ddos' && !node.underAttack)
     list.push(
       callout(
-        'A flood of junk traffic.',
+        t.inspector.aFloodOfJunkTraffic,
         'danger',
         button(
           {
@@ -461,7 +445,7 @@ const warnings = (
             size: 'sm',
             className: 'self-start text-danger',
           },
-          ['Under attack'],
+          [t.inspector.underAttack],
           h,
         ),
         h,
@@ -471,9 +455,7 @@ const warnings = (
     const analysed = has(game, 'query-analysis')
     list.push(
       callout(
-        analysed
-          ? 'A new query has no index. Every read scans the table.'
-          : 'A new query has no index. Research Query analysis to find it.',
+        analysed ? t.inspector.aNewQueryHasNoIndex : t.inspector.aNewQueryHasNoIndex2,
         'danger',
         analysed
           ? button(
@@ -483,7 +465,7 @@ const warnings = (
                 size: 'sm',
                 className: 'self-start text-danger',
               },
-              ['Add index'],
+              [t.inspector.addIndex],
               h,
             )
           : null,
@@ -500,56 +482,77 @@ const stats = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const own = ledger.nodes[node.id]
   if (!own) return []
   const panelStats = PANELS[node.type]?.stats
   if (panelStats) return panelStats({ game, node, ledger, own, h })
   const util = own.utilization
   return [
-    row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
+    row(t.inspector.inbound, t.inspector.s(rate(own.inbound)), 'plain', h),
     row(
-      'Load',
-      own.inbound > 0 ? `${percent(util)} of ${rate(own.capacity)}/s` : 'idle',
+      t.inspector.load,
+      own.inbound > 0 ? t.inspector.ofS(percent(util), rate(own.capacity)) : t.inspector.idle,
       util >= 0.9 ? 'danger' : util >= 0.7 ? 'warn' : 'plain',
       h,
     ),
-    row('Latency', ms(own.latency), 'plain', h),
+    row(t.inspector.latency, ms(own.latency), 'plain', h),
     // What a Worker cannot take waits in its Queue: it is not lost.
     node.type === 'worker'
-      ? row('Requeued', `${rate(own.dropped)}/s`, own.dropped > 0.05 ? 'warn' : 'plain', h)
-      : row('Dropped', `${rate(own.dropped)}/s`, own.dropped > 0.05 ? 'danger' : 'plain', h),
-    ...(own.hitRatio !== null ? [row('Hit ratio', percent(own.hitRatio), 'plain', h)] : []),
-    ...(own.evictions !== null
-      ? [row('Evictions', `${rate(own.evictions)}/s`, own.evictions > 0 ? 'warn' : 'plain', h)]
+      ? row(
+          t.inspector.requeued,
+          t.inspector.s(rate(own.dropped)),
+          own.dropped > 0.05 ? 'warn' : 'plain',
+          h,
+        )
+      : row(
+          t.inspector.dropped,
+          t.inspector.s(rate(own.dropped)),
+          own.dropped > 0.05 ? 'danger' : 'plain',
+          h,
+        ),
+    ...(own.hitRatio !== null
+      ? [row(t.inspector.hitRatio, percent(own.hitRatio), 'plain', h)]
       : []),
-    ...(own.lag !== null ? [row('Lag', ms(own.lag), 'plain', h)] : []),
+    ...(own.evictions !== null
+      ? [
+          row(
+            t.inspector.evictions,
+            t.inspector.s(rate(own.evictions)),
+            own.evictions > 0 ? 'warn' : 'plain',
+            h,
+          ),
+        ]
+      : []),
+    ...(own.lag !== null ? [row(t.inspector.lag, ms(own.lag), 'plain', h)] : []),
     ...(node.certUntil !== null
       ? [
           row(
-            'Certificate',
+            t.inspector.certificate,
             (nodeCertDaysLeft(game, node) ?? 0) <= 0
-              ? 'expired'
-              : `${Math.round(nodeCertDaysLeft(game, node) ?? 0)} d left`,
+              ? t.inspector.expired
+              : t.inspector.dLeft(Math.round(nodeCertDaysLeft(game, node) ?? 0)),
             (nodeCertDaysLeft(game, node) ?? 0) <= 1 ? 'danger' : 'plain',
             h,
           ),
         ]
       : []),
-    row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+    row(t.inspector.burn, t.inspector.s(money(burnOf(game, node))), 'plain', h),
   ]
 }
 
-const LIMIT_NAME: Record<Limit, string> = {
+const limitNameOf = (t: Messages): Record<Limit, string> => ({
   cpu: 'CPU',
-  credits: 'CPU credits',
-  memory: 'RAM',
-  workers: 'Workers busy',
-  connections: 'Connections',
-  network: 'Network',
-  disk: 'Disk IOPS',
-  throughput: 'Throughput',
+  credits: t.inspector.cPUCredits,
+  memory: t.inspector.rAM,
+  workers: t.inspector.workersBusy,
+  connections: t.inspector.connections,
+  network: t.inspector.network,
+  disk: t.inspector.diskIOPS,
+  throughput: t.inspector.throughput,
   none: 'Nothing',
-}
+})
 
 /** One resource gauge's figures, as the Inspector draws them. */
 type GaugeSpec = Readonly<{
@@ -623,22 +626,24 @@ const resources = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const own = ledger.nodes[node.id]
   if (!own) return []
   const gauges = gaugesOf(node, own)
   const list: Array<Html> = []
   // The goal bar names the tightest limit, and the gauge behind it when the Ledger has one.
   const tight = gauges[own.limit]
-  if (own.limit === 'none') list.push(row('Limit', 'Nothing tight', 'ok', h))
+  if (own.limit === 'none') list.push(row(t.inspector.limit, t.inspector.nothingTight, 'ok', h))
   else if (tight)
     list.push(gauge(`Limit · ${tight.label}`, tight.used, tight.total, tight.text, h, tight.invert))
   // The Inspector says so rather than leaving a limit unexplained.
-  else list.push(row('Limit', `${LIMIT_NAME[own.limit]} · no gauge`, 'warn', h))
+  else list.push(row(t.inspector.limit, `${limitNameOf(t)[own.limit]} · no gauge`, 'warn', h))
   for (const limit of ['cpu', 'memory', 'workers', 'connections', 'credits', 'network'] as const) {
     const spec = gauges[limit]
     if (spec) list.push(gauge(spec.label, spec.used, spec.total, spec.text, h, spec.invert))
   }
-  return list.length > 0 ? [section('Resources', list, h)] : []
+  return list.length > 0 ? [section(t.inspector.resources, list, h)] : []
 }
 
 const sparkline = (
@@ -724,6 +729,8 @@ const sparkline = (
 
 /** A compute Node's pricing model, from Series A on (09 "Pricing models"). */
 const pricing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const current = pricingOf(game, node)
   const term =
     current === 'reserved' && node.pricingUntil !== null
@@ -744,8 +751,8 @@ const pricing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
             current === id,
             true,
             Message.PricingChosen({ nodeId: node.id, pricing: id }),
-            [h.span([h.Class('w-full text-center')], [PRICINGS[id].name])],
-            PRICINGS[id].blurb,
+            [h.span([h.Class('w-full text-center')], [t.catalog.pricings[id].name])],
+            t.catalog.pricings[id].blurb,
             h,
           ),
         ),
@@ -761,11 +768,13 @@ const pricing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
  * can grow or nothing can be paid for.
  */
 const upgradeAll = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const peers = game.nodes.filter(
     (entry) => entry.type === node.type && entry.region === node.region,
   )
   if (peers.length < 2) return h.empty
-  const name = COMPONENTS[node.type].name
+  const name = t.catalog.components[node.type].name
   const growable = peers.filter((entry) => entry.size < maxSize(entry))
   const payable = growable.some((entry) => {
     const price = resizePrice(game, entry)
@@ -782,8 +791,8 @@ const upgradeAll = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
           size: 'sm',
           className: 'w-full justify-between',
           attributes: [
-            h.AriaLabel(`Upgrade every ${name} here`),
-            h.Title(`One size on every ${name} on this board`),
+            h.AriaLabel(t.inspector.upgradeEveryHere(name)),
+            h.Title(t.inspector.oneSizeOnEveryOnThis(name)),
           ],
         },
         [
@@ -791,7 +800,9 @@ const upgradeAll = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
             [h.Class('flex items-center gap-1.5')],
             [
               icon(h, ArrowUp, 'size-3.5'),
-              growable.length > 0 ? `Upgrade all ${growable.length}` : 'Upgrade all',
+              growable.length > 0
+                ? t.inspector.upgradeAll(growable.length)
+                : t.inspector.upgradeAll2,
             ],
           ),
         ],
@@ -802,15 +813,17 @@ const upgradeAll = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
 }
 
 const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const price = resizePrice(game, node)
   return section(
-    'Instance',
+    t.inspector.instance,
     [
       h.div(
         [h.Class(cn('flex items-center justify-between gap-2 p-1', WELL))],
         [
           smallButton(
-            'Smaller (free)',
+            t.inspector.smallerFree,
             Minus,
             Message.ResizeChosen({ nodeId: node.id, direction: -1 }),
             node.size > 0,
@@ -818,10 +831,14 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
           ),
           h.span(
             [h.Class(cn(FIGURE, 'flex-1 text-center text-[calc(12.5px*var(--type-scale))]'))],
-            [`${SIZES[node.size]?.name ?? ''} · ${vcpuOf(node)} vCPU · ${ramOf(node)} GB`],
+            [t.inspector.vCPUGB(SIZES[node.size]?.name ?? '', vcpuOf(node), ramOf(node))],
           ),
           smallButton(
-            price === null ? 'Largest size' : game.sandbox ? 'Larger' : `Larger · ${money(price)}`,
+            price === null
+              ? t.inspector.largestSize
+              : game.sandbox
+                ? t.inspector.larger
+                : t.inspector.larger2(money(price)),
             Plus,
             Message.ResizeChosen({ nodeId: node.id, direction: 1 }),
             price !== null && game.cash >= price,
@@ -857,8 +874,8 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
             node.family === id,
             true,
             Message.OptionChosen({ nodeId: node.id, option: { kind: 'family', id } }),
-            [h.span([h.Class('w-full text-center')], [FAMILIES[id].name])],
-            FAMILIES[id].blurb,
+            [h.span([h.Class('w-full text-center')], [t.catalog.families[id].name])],
+            t.catalog.families[id].blurb,
             h,
             Message.OptionPreviewed({ nodeId: node.id, option: { kind: 'family', id } }),
           ),
@@ -873,7 +890,9 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
 
 /** A Node's name, numbered when the Design has more than one of its kind. */
 const nodeCaption = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
-  const label = nodeLabelOf(game, node)
+  const t = copy(h)
+
+  const label = nodeLabelIn(t, game, node)
   return h.span([], [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])])
 }
 
@@ -922,13 +941,15 @@ const inboundSummary = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const links = inboundLinks(game, node)
   if (links.length === 0) return []
   return [
     h.div(
       [h.Class('flex flex-col gap-1.5 px-4 pb-2')],
       [
-        h.p([h.Class(`${EYEBROW} text-muted-foreground`)], ['Inbound']),
+        h.p([h.Class(`${EYEBROW} text-muted-foreground`)], [t.inspector.inbound]),
         ...links.map(([link, source]) => {
           const live = liveRateOf(ledger, source.id, node.id)
           return h.button(
@@ -936,7 +957,7 @@ const inboundSummary = (
               h.Key(`in-${source.id}`),
               h.Type('button'),
               h.OnClick(Message.RevealNode({ nodeId: source.id })),
-              h.AriaLabel(`Open ${nodeLabel(game, source)}`),
+              h.AriaLabel(`Open ${nodeTitle(t, game, source)}`),
               h.Class(
                 'flex w-full items-center gap-2 rounded-lg bg-well px-2.5 py-2 text-left transition-colors hover:bg-foreground/5',
               ),
@@ -961,7 +982,7 @@ const inboundSummary = (
               live > 0.01
                 ? h.span(
                     [h.Class(`${FIGURE} text-[11px] text-muted-foreground`)],
-                    [`${rate(live)}/s`],
+                    [t.inspector.s(rate(live))],
                   )
                 : h.empty,
             ],
@@ -973,9 +994,10 @@ const inboundSummary = (
 }
 
 /** Which zone the Node runs in, and a standby in another for data Nodes. */
-const placement = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Zone',
+const placement = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspector.zone,
     [
       picker(
         'zone',
@@ -989,8 +1011,8 @@ const placement = (node: GameNode, h: HtmlBuilder<Message>): Html =>
             picker(
               'standby',
               [
-                [false, 'No standby'],
-                [true, 'Standby'],
+                [false, t.inspector.noStandby],
+                [true, t.inspector.standby],
               ],
               node.standby,
               (standby) => Message.StandbyChosen({ nodeId: node.id, standby }),
@@ -1001,6 +1023,7 @@ const placement = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 /** The region a Node runs in, once a second region is open. */
 const regionSection = (
@@ -1008,15 +1031,17 @@ const regionSection = (
   node: GameNode,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const open = openRegions(game)
   if (open.length < 2 || isGlobal(node) || COMPONENTS[node.type].fixed) return []
   return [
     section(
-      'Region',
+      t.inspector.region,
       [
         picker(
-          'region',
-          open.map((region) => [region, REGION_INFO[region].short] as const),
+          t.inspector.region2,
+          open.map((region) => [region, t.catalog.regionInfo[region].short] as const),
           node.region,
           (region) => Message.NodeRegionChosen({ nodeId: node.id, region }),
           h,
@@ -1029,11 +1054,13 @@ const regionSection = (
 
 /** Timeout and retries on each call a Node makes. */
 const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const links = outbound(game, node)
   if (links.length === 0) return []
   return [
     section(
-      'Calls',
+      t.inspector.calls,
       links.map(([link, target]) =>
         h.div(
           [h.Key(link.to), h.Class('flex flex-col gap-1.5')],
@@ -1041,7 +1068,7 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
             nodeLink(game, target, h),
             picker(
               `timeout-${link.to}`,
-              LINK_TIMEOUTS.map((seconds) => [seconds, `${seconds} s`] as const),
+              LINK_TIMEOUTS.map((seconds) => [seconds, t.inspector.s2(seconds)] as const),
               link.timeout,
               (timeout) => Message.LinkPolicyChosen({ from: node.id, to: link.to, timeout }),
               h,
@@ -1049,9 +1076,9 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
             picker(
               `retries-${link.to}`,
               [
-                ['none', 'No retries'],
-                ['naive', 'Retry 3×'],
-                ['backoff', 'Backoff'],
+                ['none', t.inspector.noRetries],
+                ['naive', t.inspector.retry3],
+                ['backoff', t.inspector.backoff],
               ],
               link.retries,
               (retries) => Message.LinkPolicyChosen({ from: node.id, to: link.to, retries }),
@@ -1063,8 +1090,8 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
                   picker(
                     `breaker-${link.to}`,
                     [
-                      [false, 'No breaker'],
-                      [true, link.open > 0 ? 'Breaker open' : 'Breaker'],
+                      [false, t.inspector.noBreaker],
+                      [true, link.open > 0 ? t.inspector.breakerOpen : t.inspector.breaker],
                     ],
                     link.breaker,
                     (breaker) => Message.LinkPolicyChosen({ from: node.id, to: link.to, breaker }),
@@ -1077,8 +1104,8 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
                   picker(
                     `bulkhead-${link.to}`,
                     [
-                      [false, 'No bulkhead'],
-                      [true, 'Bulkhead'],
+                      [false, t.inspector.noBulkhead],
+                      [true, t.inspector.bulkhead],
                     ],
                     link.bulkhead,
                     (bulkhead) =>
@@ -1092,8 +1119,8 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
                   picker(
                     `hedge-${link.to}`,
                     [
-                      [false, 'One copy'],
-                      [true, 'Hedge'],
+                      [false, t.inspector.oneCopy],
+                      [true, t.inspector.hedge],
                     ],
                     link.hedge,
                     (hedge) => Message.LinkPolicyChosen({ from: node.id, to: link.to, hedge }),
@@ -1170,6 +1197,8 @@ const trafficBreakdown = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const history = model.board.nodeHistory[node.id] ?? []
   const selection = model.board.nodeSample
@@ -1187,12 +1216,12 @@ const trafficBreakdown = (
   const load = sample.utilization >= 0.9 ? 'danger' : sample.utilization >= 0.7 ? 'warn' : 'plain'
   const earlier = index === -1 ? history.at(-1) : history[index - 1]
   return section(
-    'Traffic & load',
+    t.inspector.trafficLoad,
     [
       h.div(
         [h.Class('flex items-center justify-between gap-2')],
         [
-          caption(index >= 0 ? 'Recorded sample' : 'Live traffic', h),
+          caption(index >= 0 ? t.inspector.recordedSample : t.inspector.liveTraffic, h),
           ...(index >= 0
             ? [
                 button(
@@ -1201,7 +1230,7 @@ const trafficBreakdown = (
                     variant: 'outline',
                     size: 'xs',
                   },
-                  [icon(h, ChevronsRight, 'size-3'), 'Back to live'],
+                  [icon(h, ChevronsRight, 'size-3'), t.inspector.backToLive],
                   h,
                 ),
               ]
@@ -1217,14 +1246,14 @@ const trafficBreakdown = (
                 selected: index >= 0 ? index : history.length - 1,
                 onPick: (at) =>
                   Message.NodeSampleChosen({ nodeId: node.id, time: history[at]?.time ?? null }),
-                label: 'Load history. Select a point or use the sample buttons below.',
+                label: t.inspector.loadHistorySelectAPointOr,
               },
             ),
             h.div(
               [h.Class(cn('flex items-center justify-between gap-2 p-1', WELL))],
               [
                 smallButton(
-                  'Earlier sample',
+                  t.inspector.earlierSample,
                   ChevronLeft,
                   Message.NodeSampleChosen({ nodeId: node.id, time: earlier?.time ?? null }),
                   earlier !== undefined,
@@ -1235,7 +1264,7 @@ const trafficBreakdown = (
                   [when(sample.time)],
                 ),
                 smallButton(
-                  'Later sample',
+                  t.inspector.laterSample,
                   ChevronRight,
                   Message.NodeSampleChosen({
                     nodeId: node.id,
@@ -1252,28 +1281,28 @@ const trafficBreakdown = (
               [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
               [
                 has(game, 'metrics')
-                  ? 'History appears after two recorded samples.'
-                  : 'Research Metrics to inspect past samples.',
+                  ? t.inspector.historyAppearsAfterTwoRecordedSamples
+                  : t.inspector.researchMetricsToInspectPastSamples,
               ],
             ),
           ]),
       h.div(
         [h.Class(NESTED)],
         [
-          row('Inbound', `${rate(sample.inbound)}/s`, 'plain', h),
+          row(t.inspector.inbound, t.inspector.s(rate(sample.inbound)), 'plain', h),
           row(
-            'Load',
+            t.inspector.load,
             sample.inbound > 0
-              ? `${percent(sample.utilization)} of ${rate(sample.capacity)}/s`
-              : 'idle',
+              ? t.inspector.ofS(percent(sample.utilization), rate(sample.capacity))
+              : t.inspector.idle,
             sample.inbound > 0 ? load : 'plain',
             h,
           ),
           ...(sample.dropped > 0
             ? [
                 row(
-                  node.type === 'worker' ? 'Requeued' : 'Dropped',
-                  `${rate(sample.dropped)}/s`,
+                  node.type === 'worker' ? t.inspector.requeued : t.inspector.dropped,
+                  t.inspector.s(rate(sample.dropped)),
                   sample.dropped > 0.05 ? (node.type === 'worker' ? 'warn' : 'danger') : 'plain',
                   h,
                 ),
@@ -1282,22 +1311,22 @@ const trafficBreakdown = (
           ...(sample.refused > 0
             ? [
                 row(
-                  'Refused',
-                  `${rate(sample.refused)}/s`,
+                  t.inspector.refused,
+                  t.inspector.s(rate(sample.refused)),
                   sample.refused > 0.05 ? 'danger' : 'plain',
                   h,
                 ),
               ]
             : []),
           ...(sample.hitRatio !== null
-            ? [row('Hit ratio', percent(sample.hitRatio), 'plain', h)]
+            ? [row(t.inspector.hitRatio, percent(sample.hitRatio), 'plain', h)]
             : []),
           ...(sample.queue
             ? [
-                row('Backlog', compact(sample.queue.depth), 'plain', h),
-                row('Sent to Workers', `${rate(sample.queue.out)}/s`, 'plain', h),
+                row(t.inspector.backlog, compact(sample.queue.depth), 'plain', h),
+                row(t.inspector.sentToWorkers, t.inspector.s(rate(sample.queue.out)), 'plain', h),
                 row(
-                  'Queue wait',
+                  t.inspector.queueWait,
                   queueWait(sample.queue.stalled ? Number.POSITIVE_INFINITY : sample.queue.wait),
                   sample.queue.stalled ? 'warn' : 'plain',
                   h,
@@ -1309,14 +1338,14 @@ const trafficBreakdown = (
       h.div(
         [h.Class('flex flex-col gap-1')],
         [
-          caption('Incoming operations', h),
+          caption(t.inspector.incomingOperations, h),
           ...(kinds.length
             ? [
                 h.div(
                   [h.Class(NESTED)],
                   kinds.map((kind) =>
                     breakdown(
-                      KINDS[kind].label,
+                      t.catalog.kinds[kind].label,
                       sample.traffic[kind] ?? 0,
                       sample.inbound,
                       previous ? (previous.traffic[kind] ?? 0) : null,
@@ -1328,7 +1357,7 @@ const trafficBreakdown = (
             : [
                 h.p(
                   [h.Class('px-3 text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-                  ['No incoming traffic at this sample.'],
+                  [t.inspector.noIncomingTrafficAtThisSample],
                 ),
               ]),
           h.p(
@@ -1337,7 +1366,7 @@ const trafficBreakdown = (
                 'px-3 text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground',
               ),
             ],
-            ['Shares describe incoming traffic, not CPU usage.'],
+            [t.inspector.sharesDescribeIncomingTrafficNotCPU],
           ),
         ],
       ),
@@ -1346,7 +1375,7 @@ const trafficBreakdown = (
             h.div(
               [h.Class('flex flex-col gap-1')],
               [
-                caption('Sent by', h),
+                caption(t.inspector.sentBy, h),
                 h.div(
                   [h.Class(NESTED)],
                   sources.map((source) =>
@@ -1396,11 +1425,13 @@ const trafficBreakdown = (
 /* ---------- the panel ---------- */
 
 export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const node = game.nodes.find((entry) => entry.id === model.board.selected)
   if (!node) return h.empty
-  const def = COMPONENTS[node.type]
-  const label = nodeLabelOf(game, node)
+  const def = localized(COMPONENTS[node.type], t.catalog.components[node.type])
+  const label = nodeLabelIn(t, game, node)
   const history = model.board.nodeHistory[node.id] ?? []
   const price = resizePrice(game, node)
   const sizeLabel = def.sized || def.steps > 1 ? sizeLabelOf(node) : null
@@ -1414,7 +1445,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
       h.Key(`inspector-${node.id}`),
       h.DataAttribute('exit', 'gesture'),
       h.DataAttribute('inspector', ''),
-      h.AriaLabel(nodeLabel(game, node)),
+      h.AriaLabel(nodeTitle(t, game, node)),
       h.Class(
         `absolute top-[76px] right-3 bottom-3 z-20 flex w-[348px] flex-col overflow-hidden ${PANEL} enter-panel compact:inset-x-2 compact:top-auto compact:bottom-[max(8px,env(safe-area-inset-bottom))] compact:z-30 compact:max-h-[62%] compact:w-auto short:inset-x-auto short:top-[132px] short:right-[max(8px,env(safe-area-inset-right))] short:w-[320px] short:max-h-none`,
       ),
@@ -1450,7 +1481,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
               variant: 'ghost',
               size: 'icon-sm',
               className: 'text-muted-foreground',
-              attributes: [h.AriaLabel('Close')],
+              attributes: [h.AriaLabel(t.inspector.close)],
             },
             icon(h, X, 'size-4'),
             h,
@@ -1474,7 +1505,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
             [h.Class('px-4 pt-1 pb-2')],
             [
               ...(hasTraffic(node)
-                ? [h.p([h.Class(`${EYEBROW} mb-2 text-muted-foreground`)], ['Live now'])]
+                ? [h.p([h.Class(`${EYEBROW} mb-2 text-muted-foreground`)], [t.inspector.liveNow])]
                 : []),
               h.div([h.Class(NESTED)], stats(game, node, ledger, h)),
             ],
@@ -1483,7 +1514,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           ...(has(game, 'metrics') && history.length > 1 && !def.fixed && !hasTraffic(node)
             ? [
                 section(
-                  'Load, last day',
+                  t.inspector.loadLastDay,
                   [
                     sparkline(
                       history.map((sample) => sample.utilization),
@@ -1517,7 +1548,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                     'flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-ok text-[calc(13px*var(--type-scale))] font-medium text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--ok),black_25%),0_2px_6px_-2px_color-mix(in_oklch,var(--ok)_50%,transparent)] transition-[filter] hover:brightness-105 active:translate-y-px',
                   ),
                 ],
-                ['Collect', h.span([h.Class(FIGURE)], [money(game.pending)])],
+                [t.inspector.collect, h.span([h.Class(FIGURE)], [money(game.pending)])],
               )
             : h.empty,
           price !== null && node.life._tag !== 'Stopped'
@@ -1535,9 +1566,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                     [
                       icon(h, ArrowUp, 'size-4 shrink-0'),
                       node.type === 'payments'
-                        ? 'Bigger drawer'
+                        ? t.inspector.biggerDrawer
                         : node.type === 'analytics'
-                          ? 'More samples'
+                          ? t.inspector.moreSamples
                           : sizeLabelOf(node, node.size + 1),
                     ],
                   ),
@@ -1553,8 +1584,8 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   variant: 'outline',
                   size: 'icon-lg',
                   attributes: [
-                    h.Title('Restart: frees leaked memory, comes back cold'),
-                    h.AriaLabel('Restart'),
+                    h.Title(t.inspector.restartFreesLeakedMemoryComesBack),
+                    h.AriaLabel(t.inspector.restart),
                   ],
                 },
                 icon(h, RotateCcw, 'size-4'),
@@ -1568,8 +1599,8 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   variant: 'outline',
                   size: 'icon-lg',
                   attributes: [
-                    h.Title('Fail over: the standby takes over now'),
-                    h.AriaLabel('Fail over'),
+                    h.Title(t.inspector.failOverTheStandbyTakesOver),
+                    h.AriaLabel(t.inspector.failOver),
                   ],
                 },
                 icon(h, ArrowRightLeft, 'size-4'),
@@ -1600,8 +1631,8 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   size: 'icon-lg',
                   className: 'text-muted-foreground hover:text-danger',
                   attributes: [
-                    h.Title(`Sell for ${money(refundOf(game, node))} (Delete)`),
-                    h.AriaLabel('Sell'),
+                    h.Title(t.inspector.sellForDelete(money(refundOf(game, node)))),
+                    h.AriaLabel(t.inspector.sell),
                   ],
                 },
                 icon(h, Trash2, 'size-4'),

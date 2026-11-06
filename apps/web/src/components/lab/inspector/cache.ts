@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { CACHE_ENGINES, CACHE_TTLS, CACHE_STRATEGIES } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
@@ -6,14 +7,15 @@ import { duration } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section, splitting } from './shared.ts'
 
-const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Cache',
+const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorCache.cache,
     [
       picker(
         'strategy',
         (Object.keys(CACHE_STRATEGIES) as ReadonlyArray<CacheStrategy>).map(
-          (id) => [id, CACHE_STRATEGIES[id].name] as const,
+          (id) => [id, t.catalog.cacheStrategies[id].name] as const,
         ),
         node.cacheStrategy,
         (cacheStrategy) => Message.CacheStrategyChosen({ nodeId: node.id, cacheStrategy }),
@@ -23,10 +25,10 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         CACHE_STRATEGIES[node.cacheStrategy].write === 'ahead'
-          ? 'A write returns from the Cache and reaches the Database late. A crash loses what has not flushed.'
+          ? t.inspectorCache.aWriteReturnsFromTheCache
           : CACHE_STRATEGIES[node.cacheStrategy].write === 'through'
-            ? 'Every write goes to the Cache and the Database together: fresher, and a write longer.'
-            : 'Reads come from the Cache, writes go around it. A miss can store an old row until the TTL.',
+            ? t.inspectorCache.everyWriteGoesToTheCache
+            : t.inspectorCache.readsComeFromTheCacheWrites,
         h,
       ),
       ...(has(game, 'stampede-protection')
@@ -34,8 +36,8 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
             picker(
               'coalesce',
               [
-                [false, 'Every miss'],
-                [true, 'Coalesce'],
+                [false, t.inspectorCache.everyMiss],
+                [true, t.inspectorCache.coalesce],
               ],
               node.coalesce,
               (coalesce) => Message.CacheGuardChosen({ nodeId: node.id, coalesce }),
@@ -48,8 +50,8 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
             picker(
               'early-expiry',
               [
-                [false, 'Expire on the TTL'],
-                [true, 'Refresh early'],
+                [false, t.inspectorCache.expireOnTheTTL],
+                [true, t.inspectorCache.refreshEarly],
               ],
               node.earlyExpiry,
               (earlyExpiry) => Message.CacheGuardChosen({ nodeId: node.id, earlyExpiry }),
@@ -58,8 +60,8 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
             picker(
               'swr',
               [
-                [false, 'Miss on expiry'],
-                [true, 'Stale while revalidating'],
+                [false, t.inspectorCache.missOnExpiry],
+                [true, t.inspectorCache.staleWhileRevalidating],
               ],
               node.swr,
               (swr) => Message.CacheGuardChosen({ nodeId: node.id, swr }),
@@ -72,8 +74,8 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
             picker(
               'warming',
               [
-                [false, 'Cold start'],
-                [true, 'Warm start'],
+                [false, t.inspectorCache.coldStart],
+                [true, t.inspectorCache.warmStart],
               ],
               node.warming,
               (warming) => Message.CacheGuardChosen({ nodeId: node.id, warming }),
@@ -100,6 +102,7 @@ const cache = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 export const cachePanel: Panel = {
   body: ({ game, node, h }) => [cache(game, node, h)],

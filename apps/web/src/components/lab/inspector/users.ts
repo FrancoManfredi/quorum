@@ -1,5 +1,6 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { KINDS, PROFILES, REQUEST_KINDS } from '@quorum/simulation/catalog'
+import { PROFILES, REQUEST_KINDS } from '@quorum/simulation/catalog'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has } from '@quorum/simulation/lookups'
@@ -11,11 +12,13 @@ import { FIGURE, NESTED, row } from '@quorum/ui/game/bits'
 import { type Panel, percent, section } from './shared.ts'
 
 const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const percentiles = has(game, 'percentiles')
   const kinds = REQUEST_KINDS.filter((kind) => ledger.kinds[kind])
   const list = [
     section(
-      'Requests',
+      t.inspectorUsers.requests,
       kinds.map((kind) => {
         const entry = ledger.kinds[kind]
         const failing = (entry?.success ?? 1) < 0.95
@@ -25,7 +28,7 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
           [
             // The kind's packet shape, so the legend teaches what the belts carry (15).
             packetMark(kind, 8, h),
-            h.span([h.Class('flex-1')], [KINDS[kind].label]),
+            h.span([h.Class('flex-1')], [t.catalog.kinds[kind].label]),
             h.span(
               [
                 h.Class(
@@ -33,9 +36,11 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
                 ),
               ],
               [
-                `${rate(entry?.rate ?? 0)}/s · ${percent(entry?.success ?? 0)} ok${
-                  percentiles ? '' : ` · ${ms(entry?.mean ?? 0)}`
-                }`,
+                t.inspectorUsers.sOk(
+                  rate(entry?.rate ?? 0),
+                  percent(entry?.success ?? 0),
+                  percentiles ? '' : ` · ${ms(entry?.mean ?? 0)}`,
+                ),
               ],
             ),
           ],
@@ -64,12 +69,12 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
   if (has(game, 'logs')) {
     list.push(
       section(
-        'Errors by cause',
+        t.inspectorUsers.errorsByCause,
         [
           h.div(
             [h.Class(NESTED)],
             Object.entries(ledger.errors).map(([cause, value]) =>
-              row(cause, `${rate(value)}/s`, value > 0.01 ? 'danger' : 'plain', h),
+              row(cause, t.inspectorUsers.s(rate(value)), value > 0.01 ? 'danger' : 'plain', h),
             ),
           ),
         ],
@@ -82,19 +87,31 @@ const traffic = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): ReadonlyA
 
 export const usersPanel: Panel = {
   stats: ({ game, node, ledger, h }) => {
+    const t = copy(h)
+
     const target = eraOf(game).apdexTarget
     return [
       row(
-        'Users',
+        t.inspectorUsers.users,
         compact(regional(game) ? regionUsers(game)[node.region] : game.users),
         'plain',
         h,
       ),
-      row('Market', compact(ledger.market), 'plain', h),
-      row('Requests', `${rate(ledger.demand)}/s`, 'plain', h),
-      row('Apdex now', ledger.apdex.toFixed(3), ledger.apdex >= target ? 'ok' : 'danger', h),
-      row('Apdex, last hour', game.apdex.toFixed(3), game.apdex >= target ? 'ok' : 'danger', h),
-      row('Velocity', `${ledger.velocity.toFixed(2)}×`, 'plain', h),
+      row(t.inspectorUsers.market, compact(ledger.market), 'plain', h),
+      row(t.inspectorUsers.requests, t.inspectorUsers.s(rate(ledger.demand)), 'plain', h),
+      row(
+        t.inspectorUsers.apdexNow,
+        ledger.apdex.toFixed(3),
+        ledger.apdex >= target ? 'ok' : 'danger',
+        h,
+      ),
+      row(
+        t.inspectorUsers.apdexLastHour,
+        game.apdex.toFixed(3),
+        game.apdex >= target ? 'ok' : 'danger',
+        h,
+      ),
+      row(t.inspectorUsers.velocity, `${ledger.velocity.toFixed(2)}×`, 'plain', h),
     ]
   },
   top: ({ game, ledger, h }) => [...traffic(game, ledger, h)],

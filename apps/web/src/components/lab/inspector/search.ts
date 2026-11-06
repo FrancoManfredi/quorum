@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   SEARCH_REFRESH,
@@ -12,10 +13,12 @@ import { type Panel, caption, picker, section } from './shared.ts'
 
 /** A Search Engine's refresh interval (07 "Search Engine"): fresher answers cost indexing CPU. */
 const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const variant = SEARCH_VARIANTS[node.searchVariant]
   return [
     section(
-      'Product',
+      t.inspectorSearch.product,
       [
         picker(
           'search-variant',
@@ -30,8 +33,8 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
         ),
         caption(
           variant.jvm
-            ? 'Full features on a JVM: shards, replicas, and a heap to tune.'
-            : 'Answers half again as many queries in a shorter hop on one smaller node, and its relevance falls as the index grows. No shards, replicas, or heap.',
+            ? t.inspectorSearch.fullFeaturesOnAJVMShards
+            : t.inspectorSearch.answersHalfAgainAsManyQueries,
           h,
         ),
       ],
@@ -40,7 +43,7 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
     ...(variant.jvm
       ? [
           section(
-            'Shards and replicas',
+            t.inspectorSearch.shardsAndReplicas,
             [
               picker(
                 'search-shards',
@@ -65,15 +68,12 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
                 () => true,
                 'grid-cols-3',
               ),
-              caption(
-                'More shards parallelize the index and fan every query out. Each replica adds query capacity, a box, and a copy of the index.',
-                h,
-              ),
+              caption(t.inspectorSearch.moreShardsParallelizeTheIndexAnd, h),
             ],
             h,
           ),
           section(
-            'Heap',
+            t.inspectorSearch.heap,
             [
               picker(
                 'search-heap',
@@ -88,10 +88,10 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
               ),
               caption(
                 node.heap === 'small'
-                  ? 'Too small: garbage collection pauses.'
+                  ? t.inspectorSearch.tooSmallGarbageCollectionPauses
                   : node.heap === 'large'
-                    ? 'Too large: long pauses and less file system cache.'
-                    : 'The JVM heap holds caches without starving the file system cache.',
+                    ? t.inspectorSearch.tooLargeLongPausesAndLess
+                    : t.inspectorSearch.theJVMHeapHoldsCachesWithout,
                 h,
               ),
             ],
@@ -103,26 +103,28 @@ const search = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   ]
 }
 
-const searchRefresh = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Refresh',
+const searchRefresh = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorSearch.refresh,
     [
       picker(
         'refresh',
-        SEARCH_REFRESH.map((entry) => [entry.seconds, `${entry.seconds} s`] as const),
+        SEARCH_REFRESH.map((entry) => [entry.seconds, t.inspectorSearch.s(entry.seconds)] as const),
         node.refresh,
         (refresh) => Message.SearchRefreshChosen({ nodeId: node.id, refresh }),
         h,
       ),
       caption(
         node.refresh <= 1
-          ? 'A new document is searchable within a second, at the cost of indexing CPU.'
-          : `A new document waits up to ${node.refresh} s: indexing is cheaper, and answers are staler.`,
+          ? t.inspectorSearch.aNewDocumentIsSearchableWithin
+          : t.inspectorSearch.aNewDocumentWaitsUpTo(node.refresh),
         h,
       ),
     ],
     h,
   )
+}
 
 export const searchPanel: Panel = {
   body: ({ node, h }) => [...search(node, h)],

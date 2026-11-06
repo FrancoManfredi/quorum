@@ -1,9 +1,9 @@
+import { copy, localized } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChartLine, Lock, MessagesSquare, Plug, Wrench, X, type IconNode } from 'lucide'
 import {
   DOCK_GROUPS,
   COMPONENTS,
-  RESEARCH,
   type DockGroup,
   type ComponentId,
 } from '@quorum/simulation/catalog'
@@ -46,7 +46,9 @@ const DOCK_ICONS: Record<DockGroup, IconNode> = {
 }
 
 const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Message>): Html => {
-  const def = COMPONENTS[type]
+  const t = copy(h)
+
+  const def = localized(COMPONENTS[type], t.catalog.components[type])
   const unlocked = isUnlocked(model.board.game, type)
   const price = priceOf(model.board.game, type)
   return h.button(
@@ -99,7 +101,7 @@ const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Mess
                 'flex items-center gap-1 text-[calc(11px*var(--type-scale))] text-muted-foreground',
               ),
             ],
-            [icon(h, Lock, 'size-3'), RESEARCH[def.unlock ?? 'stripe'].name],
+            [icon(h, Lock, 'size-3'), t.catalog.research[def.unlock ?? 'stripe'].name],
           ),
       Kbd({}, [String(index + 1)], h),
     ],
@@ -107,8 +109,9 @@ const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Mess
 }
 
 /** The part in hand: its mark and name, and a way to put it down. */
-const armed = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const armed = (type: ComponentId, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Key('armed'),
       h.DataAttribute('exit', 'gesture'),
@@ -119,13 +122,13 @@ const armed = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
     ],
     [
       groupBadge(COMPONENTS[type].group, COMPONENT_ICONS[type], 'size-5', h),
-      h.span([h.Class('font-medium')], [COMPONENTS[type].name]),
-      h.span([h.Class('text-muted-foreground compact:hidden')], ['Click the board']),
+      h.span([h.Class('font-medium')], [t.catalog.components[type].name]),
+      h.span([h.Class('text-muted-foreground compact:hidden')], [t.dock.clickTheBoard]),
       h.button(
         [
           h.Type('button'),
-          h.Title('Stop placing (Esc)'),
-          h.AriaLabel('Stop placing'),
+          h.Title(t.dock.stopPlacingEsc),
+          h.AriaLabel(t.dock.stopPlacing),
           h.OnClick(Message.PlacingChosen({ type: null })),
           h.Class(tool(false)),
         ],
@@ -133,6 +136,7 @@ const armed = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+}
 
 /** The open group's parts, keyed by group, so switching groups swaps the list
  *  in place while the dock morphs to its new height. */
@@ -152,6 +156,8 @@ const list = (model: Model, group: DockGroup, h: HtmlBuilder<Message>): Html =>
  *  The dock is pinned at its bottom edge, so its content packs to the bottom:
  *  mid-morph, the tabs stay put and the top edge moves. */
 export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const open = model.board.buildGroup
   const placing = placingOf(model)
   const groups = DOCK_GROUPS.filter((group) => dockGroups(model.board.game).includes(group.key))
@@ -166,7 +172,11 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       open ? list(model, open, h) : placing ? armed(placing, h) : h.empty,
       h.div(
-        [h.Class('flex items-center justify-center gap-1'), h.Role('group'), h.AriaLabel('Build')],
+        [
+          h.Class('flex items-center justify-center gap-1'),
+          h.Role('group'),
+          h.AriaLabel(t.dock.build),
+        ],
         [
           h.div(
             [h.Class('relative flex gap-1')],
@@ -194,8 +204,8 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
                   [
                     h.Key(group.key),
                     h.Type('button'),
-                    h.Title(`${group.label} (${index + 1})`),
-                    h.AriaLabel(group.label),
+                    h.Title(`${t.catalog.dockGroups[group.key].label} (${index + 1})`),
+                    h.AriaLabel(t.catalog.dockGroups[group.key].label),
                     h.AriaPressed(group.key === open ? 'true' : 'false'),
                     h.OnClick(Message.BuildGroupChosen({ group: group.key })),
                     h.Class(

@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { COLLECTORS, GOGC, RUNTIMES } from '@quorum/simulation/catalog'
 import { regional } from '@quorum/simulation/regions'
@@ -6,15 +7,16 @@ import type { Game, GameNode } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
 import { type Panel, picker, pinnedRuntime, section, serviceOwnership, stack } from './shared.ts'
 
-const fanout = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Feeds',
+const fanout = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorServer.feeds,
     [
       picker(
         'fanout',
         [
-          ['pull', 'Pull'],
-          ['push', 'Push'],
+          ['pull', t.inspectorServer.pull],
+          ['push', t.inspectorServer.push],
         ],
         node.fanout,
         (choice) => Message.FanoutChosen({ nodeId: node.id, fanout: choice }),
@@ -23,19 +25,22 @@ const fanout = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 /** A Java App Server's collector, or a Go App Server's GOGC. */
 const collector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const language = RUNTIMES[node.runtime].language
   if (language === 'java')
     return [
       section(
-        'Collector',
+        t.inspectorServer.collector,
         [
           picker(
             'collector',
             (Object.keys(COLLECTORS) as ReadonlyArray<keyof typeof COLLECTORS>).map(
-              (id) => [id, COLLECTORS[id].label] as const,
+              (id) => [id, t.catalog.collectors[id].label] as const,
             ),
             node.collector,
             (choice) => Message.CollectorChosen({ nodeId: node.id, collector: choice }),
@@ -67,14 +72,16 @@ const collector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonl
 
 /** Load shedding and read-your-writes routing on an App Server. */
 const routing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const rows: Array<Html> = []
   if (has(game, 'load-shedding'))
     rows.push(
       picker(
         'shed',
         [
-          [false, 'Drop evenly'],
-          [true, 'Shed low value'],
+          [false, t.inspectorServer.dropEvenly],
+          [true, t.inspectorServer.shedLowValue],
         ],
         node.shed,
         (shed) => Message.ShedChosen({ nodeId: node.id, shed }),
@@ -86,8 +93,8 @@ const routing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
       picker(
         'degrade',
         [
-          [false, 'Keep kinds'],
-          [true, 'Drop dearest'],
+          [false, t.inspectorServer.keepKinds],
+          [true, t.inspectorServer.dropDearest],
         ],
         node.degrade,
         (degrade) => Message.DegradeChosen({ nodeId: node.id, degrade }),
@@ -99,15 +106,15 @@ const routing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
       picker(
         'ryw',
         [
-          [false, 'Reads anywhere'],
-          [true, 'Read your writes'],
+          [false, t.inspectorServer.readsAnywhere],
+          [true, t.inspectorServer.readYourWrites],
         ],
         node.ryw,
         (ryw) => Message.RywChosen({ nodeId: node.id, ryw }),
         h,
       ),
     )
-  return rows.length > 0 ? [section('Overload', rows, h)] : []
+  return rows.length > 0 ? [section(t.inspectorServer.overload, rows, h)] : []
 }
 
 export const serverPanel: Panel = {

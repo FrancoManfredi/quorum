@@ -1,5 +1,5 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { COMPONENTS } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { sizeLabel } from '@quorum/simulation/lookups'
 import { regionView } from '@quorum/simulation/regions'
@@ -24,6 +24,8 @@ const loadOf = (ledger: Ledger, id: string): string => {
 }
 
 export const nodeList = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const nodes = regionView(game, model.board.region).nodes
   return h.section(
@@ -31,10 +33,10 @@ export const nodeList = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>):
       h.Key('node-list'),
       h.DataAttribute('node-list', ''),
       h.Class('node-list sr-only'),
-      h.AriaLabel('Nodes'),
+      h.AriaLabel(t.nodeList.nodes),
     ],
     [
-      h.h2([h.Class('node-list-title')], ['Nodes']),
+      h.h2([h.Class('node-list-title')], [t.nodeList.nodes]),
       h.ul(
         [],
         nodes.map((node) =>
@@ -44,13 +46,13 @@ export const nodeList = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>):
               h.button(
                 [h.Type('button'), h.OnClick(Message.NodeTapped({ nodeId: node.id }))],
                 [
-                  h.span([], [COMPONENTS[node.type].name]),
+                  h.span([], [t.catalog.components[node.type].name]),
                   h.span([], [' · ']),
                   h.span([], [sizeLabel(node)]),
                   h.span([], [' · ']),
                   h.span([], [loadOf(ledger, node.id)]),
                   h.span([], [' · ']),
-                  h.span([], [`${rate(ledger.nodes[node.id]?.inbound ?? 0)}/s`]),
+                  h.span([], [t.nodeList.s(rate(ledger.nodes[node.id]?.inbound ?? 0))]),
                 ],
               ),
             ],

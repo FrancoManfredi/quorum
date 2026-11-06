@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   GPU_TYPES,
@@ -15,8 +16,9 @@ import type { Game, GameNode } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section } from './shared.ts'
 
-const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
+const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
     'GPU',
     [
       picker(
@@ -31,7 +33,7 @@ const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       picker(
         'gpu-model',
         (Object.keys(GPU_MODELS) as ReadonlyArray<GpuModel>).map(
-          (id) => [id, GPU_MODELS[id].name] as const,
+          (id) => [id, t.catalog.gpuModels[id].name] as const,
         ),
         node.gpuModel,
         (choice) => Message.GpuModelChosen({ nodeId: node.id, gpuModel: choice }),
@@ -58,13 +60,16 @@ const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         node.precision === 'fp16'
-          ? 'Full precision: the baseline, and every answer at full value.'
-          : `${GPU_PRECISIONS[node.precision].speed}× the tokens, and each answer is worth ${Math.round((1 - GPU_PRECISIONS[node.precision].value) * 100)}% less.`,
+          ? t.inspectorGpu.fullPrecisionTheBaselineAndEvery
+          : t.inspectorGpu.theTokensAndEachAnswerIs(
+              GPU_PRECISIONS[node.precision].speed,
+              Math.round((1 - GPU_PRECISIONS[node.precision].value) * 100),
+            ),
         h,
       ),
       picker(
         'batch',
-        GPU_BATCHES.map((entry) => [entry.batch, `batch ${entry.batch}`] as const),
+        GPU_BATCHES.map((entry) => [entry.batch, t.inspectorGpu.batch(entry.batch)] as const),
         node.batch,
         (choice) => Message.BatchChosen({ nodeId: node.id, batch: choice }),
         h,
@@ -73,15 +78,22 @@ const gpu = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         node.batch === 1
-          ? 'One prompt at a time: the lowest wait for a first token.'
+          ? t.inspectorGpu.onePromptAtATimeThe
           : has(game, 'continuous-batching')
-            ? `${GPU_BATCHES.find((entry) => entry.batch === node.batch)?.gain ?? 1}× the prompts a second, and continuous batching keeps the first token at ${GPU_FIRST_TOKEN_MS} ms.`
-            : `${GPU_BATCHES.find((entry) => entry.batch === node.batch)?.gain ?? 1}× the prompts a second, and the first token waits ${GPU_BATCHES.find((entry) => entry.batch === node.batch)?.ttft ?? 0} ms longer.`,
+            ? t.inspectorGpu.thePromptsASecondAndContinuous(
+                GPU_BATCHES.find((entry) => entry.batch === node.batch)?.gain ?? 1,
+                GPU_FIRST_TOKEN_MS,
+              )
+            : t.inspectorGpu.thePromptsASecondAndThe(
+                GPU_BATCHES.find((entry) => entry.batch === node.batch)?.gain ?? 1,
+                GPU_BATCHES.find((entry) => entry.batch === node.batch)?.ttft ?? 0,
+              ),
         h,
       ),
     ],
     h,
   )
+}
 
 export const gpuPanel: Panel = {
   body: ({ game, node, h }) => [gpu(game, node, h)],

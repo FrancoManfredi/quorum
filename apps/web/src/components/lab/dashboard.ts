@@ -1,3 +1,5 @@
+import { copyIn, localized, nodeTitle, type Messages } from '@/i18n/messages.ts'
+import { copy, eraWords } from '@/i18n/messages.ts'
 import { DashboardMessage } from '@/game/dashboard.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChevronDown, Clock3, LayoutGrid, RefreshCw, Star, X } from 'lucide'
@@ -7,7 +9,6 @@ import {
   ALERT_RULES,
   COMPONENTS,
   DEVICES,
-  DEVICE_INFO,
   ERAS,
   INCIDENTS,
   KINDS,
@@ -27,8 +28,7 @@ import { churnOf, type RegionChurn } from '@quorum/simulation/churn'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
 import { dilutionOf, grantOf } from '@quorum/simulation/founding'
 import type { KindLedger, Ledger, NodeLedger } from '@quorum/simulation/ledger'
-import { nodeLabel } from '@quorum/simulation/labels'
-import { eraOf, has } from '@quorum/simulation/lookups'
+import { has } from '@quorum/simulation/lookups'
 import { evictionShareOf } from '@quorum/simulation/rules'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
@@ -253,14 +253,16 @@ const namesOf = (game: Game): ReadonlyMap<string, string> => {
 type NodeTrack = Readonly<{ id: string; name: string; values: ReadonlyArray<number> }>
 
 /** Utilization per Node from the Model's 10-second history, with the same labels as the Board. */
-const tracksOf = (model: Model): ReadonlyArray<NodeTrack> =>
-  model.board.game.nodes
+const tracksOf = (model: Model): ReadonlyArray<NodeTrack> => {
+  const t = copyIn(model.prefs.locale)
+  return model.board.game.nodes
     .filter((node) => node.type !== 'users')
     .map((node) => ({
       id: node.id,
-      name: nodeLabel(model.board.game, node),
+      name: nodeTitle(t, model.board.game, node),
       values: (model.board.nodeHistory[node.id] ?? []).map((sample) => sample.utilization),
     }))
+}
 
 /* ==========================================================================
    The Company and Incidents panels (15 "Panels")
@@ -318,13 +320,15 @@ const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
   return rounds.reverse()
 }
 
-const TEAM_KIND: Readonly<Record<'product' | 'platform' | 'sre' | 'data' | 'security', string>> = {
-  product: 'Product',
-  platform: 'Platform',
+const teamKindOf = (
+  t: Messages,
+): Readonly<Record<'product' | 'platform' | 'sre' | 'data' | 'security', string>> => ({
+  product: t.dashboard.product,
+  platform: t.dashboard.platform,
   sre: 'SRE',
-  data: 'Data',
-  security: 'Security',
-}
+  data: t.dashboard.data,
+  security: t.dashboard.security,
+})
 
 /** Dev Hours per real minute, as the Team panel counts them. */
 const dhPerMinute = (rate: number): string => {
@@ -452,8 +456,9 @@ const locked = (
   title: string,
   research: ResearchId,
   h: HtmlBuilder<Message>,
-): Html =>
-  panel(
+): Html => {
+  const t = copy(h)
+  return panel(
     key,
     span,
     title,
@@ -478,13 +483,14 @@ const locked = (
                 ),
               ),
             ],
-            [`No data · research ${research}`],
+            [t.dashboard.noDataResearch(research)],
           ),
         ],
       ),
     ],
     h,
   )
+}
 
 /** A Grafana row header. */
 const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html =>
@@ -523,13 +529,13 @@ const ANNOTATION_COLOR: Record<AnnotationGroup, string> = {
   research: GREEN,
 }
 
-const ANNOTATION_NAME: Record<AnnotationGroup, string> = {
-  design: 'Design change',
-  deploys: 'Deploy',
-  incidents: 'Incident',
-  company: 'Company',
-  research: 'Research',
-}
+const annotationNameOf = (t: Messages): Record<AnnotationGroup, string> => ({
+  design: t.dashboard.designChange,
+  deploys: t.dashboard.deploy,
+  incidents: t.dashboard.incident,
+  company: t.dashboard.company,
+  research: t.dashboard.research,
+})
 
 /** One mark on the timeline: its group, the sim second it happened, and its label. */
 type Annotation = Readonly<{ group: AnnotationGroup; at: number; label: string }>
@@ -600,6 +606,8 @@ const markOfMail = (mail: Mail): Readonly<{ group: AnnotationGroup; label: strin
  * say which kind of item finished, so the mark is the entry that names a Research.
  */
 const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
+  const t = copyIn(model.prefs.locale)
+
   const shown = model.board.dashboard.groups
   const incident = model.board.game.incident
   const open: ReadonlyArray<Annotation> = incident
@@ -639,7 +647,13 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
   const game = model.board.game
   const era: ReadonlyArray<Annotation> =
     game.stage > 0 && game.stageAt > 0
-      ? [{ group: 'company', at: game.stageAt, label: `◇ ${ERAS[game.stage]?.name ?? 'Era'}` }]
+      ? [
+          {
+            group: 'company',
+            at: game.stageAt,
+            label: `◇ ${t.catalog.eras[game.stage]?.name ?? 'Era'}`,
+          },
+        ]
       : []
   return [...design, ...open, ...mail, ...finished, ...era].filter((mark) =>
     shown.includes(mark.group),
@@ -677,13 +691,14 @@ const exemplarMarks = (exemplars: ReadonlyArray<Exemplar>): ReadonlyArray<Cartes
   )
 
 /** The exemplars as buttons: each opens the Waterfall of the Request kind it caught. */
-const exemplarStrip = (exemplars: ReadonlyArray<Exemplar>, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const exemplarStrip = (exemplars: ReadonlyArray<Exemplar>, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Key('exemplars'), h.Class('col-span-24 flex flex-wrap items-center gap-2')],
     [
       h.span(
         [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-        [exemplars.length === 0 ? 'No exemplar in this range.' : 'Exemplars'],
+        [exemplars.length === 0 ? t.dashboard.noExemplarInThisRange : t.dashboard.exemplars],
       ),
       ...exemplars.map((exemplar) =>
         button(
@@ -693,14 +708,15 @@ const exemplarStrip = (exemplars: ReadonlyArray<Exemplar>, h: HtmlBuilder<Messag
             onClick: Message.DashboardChanged({
               message: DashboardMessage.KindChosen({ kind: exemplar.kind }),
             }),
-            attributes: [h.Title(`Open the ${KINDS[exemplar.kind].label} waterfall`)],
+            attributes: [h.Title(`Open the ${t.catalog.kinds[exemplar.kind].label} waterfall`)],
           },
-          [`● ${exemplar.t} · ${ms(exemplar.p99)} · ${KINDS[exemplar.kind].label}`],
+          [`● ${exemplar.t} · ${ms(exemplar.p99)} · ${t.catalog.kinds[exemplar.kind].label}`],
           h,
         ),
       ),
     ],
   )
+}
 
 /** The annotations, as labelled vertical markers on every time series. */
 const markersOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<CartesianChild> =>
@@ -783,8 +799,9 @@ const seriesLegend = (
   spec: SeriesSpec,
   hovered: Row | undefined,
   h: HtmlBuilder<Message>,
-): Html =>
-  h.div(
+): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('flex flex-wrap gap-x-4 gap-y-0.5 px-1.5 pb-0.5 text-[calc(11px*var(--type-scale))]')],
     [
       ...(hovered
@@ -807,13 +824,14 @@ const seriesLegend = (
               [h.Class(cn(FIGURE, 'text-muted-foreground'))],
               hovered
                 ? [spec.format(Number(hovered[entry.key]))]
-                : [`mean ${spec.format(mean)}  max ${spec.format(max)}  last ${spec.format(last)}`],
+                : [t.dashboard.meanMaxLast(spec.format(mean), spec.format(max), spec.format(last))],
             ),
           ],
         )
       }),
     ],
   )
+}
 
 /**
  * A Chart's values as a table, for a screen reader and for reading an exact figure: the same rows
@@ -825,6 +843,8 @@ const seriesTable = (
   spec: SeriesSpec,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const border = 'border-b border-hairline px-2 py-1'
   const figure = (row: Row, key: string): string => {
     const value = row[key]
@@ -846,7 +866,7 @@ const seriesTable = (
               h.tr(
                 [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
                 [
-                  h.th([h.Class(cn(border, 'text-left font-medium'))], ['Time']),
+                  h.th([h.Class(cn(border, 'text-left font-medium'))], [t.dashboard.time]),
                   ...series.map((entry) =>
                     h.th(
                       [h.Key(entry.key), h.Class(cn(border, 'text-right font-medium'))],
@@ -887,6 +907,8 @@ const timeSeries = (
   spec: SeriesSpec,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const hovered =
     model.board.dashboard.hover !== null ? rows[model.board.dashboard.hover] : undefined
   const id = (series: Series) => `fill-${spec.key}-${series.key}`
@@ -897,7 +919,10 @@ const timeSeries = (
   const compare =
     model.board.dashboard.compare && yesterday !== null && yesterday.some((value) => value !== null)
   const series: ReadonlyArray<Series> = compare
-    ? [...spec.series, { key: 'cmp', name: 'Yesterday', color: COMPARE_COLOR, faint: true }]
+    ? [
+        ...spec.series,
+        { key: 'cmp', name: t.dashboard.yesterday, color: COMPARE_COLOR, faint: true },
+      ]
     : spec.series
   const data: ReadonlyArray<Row> = compare
     ? rows.map((row, index) => ({ ...row, cmp: yesterday?.[index] ?? null }))
@@ -1253,12 +1278,13 @@ const barGauge = (
   ledger: Ledger,
   tracks: ReadonlyArray<NodeTrack>,
   h: HtmlBuilder<Message>,
-): Html =>
-  panel(
+): Html => {
+  const t = copy(h)
+  return panel(
     'bar-gauge',
     'col-span-8',
-    'Utilization now',
-    '% of capacity',
+    t.dashboard.utilizationNow,
+    t.dashboard.ofCapacity,
     [
       h.div(
         [h.Class(cn(SCREEN, 'flex flex-1 flex-col justify-center gap-2.5 p-3'))],
@@ -1292,8 +1318,13 @@ const barGauge = (
     ],
     h,
   )
+}
 
-const STATE_LABEL: Record<Level, string> = { ok: 'OK', warn: 'HIGH', danger: 'SATURATED' }
+const stateLabelOf = (t: Messages): Record<Level, string> => ({
+  ok: t.dashboard.oK,
+  warn: t.dashboard.hIGH,
+  danger: t.dashboard.sATURATED,
+})
 
 /** A run of one state in a lane: the columns it covers, and how it draws. */
 type Run = Readonly<{ from: number; to: number; color: string; label: string }>
@@ -1426,6 +1457,8 @@ const stateTimeline = (
   tracks: ReadonlyArray<NodeTrack>,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const length = Math.max(1, ...tracks.map((track) => track.values.length))
   const last = Math.floor(model.board.game.time / NODE_EVERY) * NODE_EVERY
   const first = last - (length - 1) * NODE_EVERY
@@ -1435,14 +1468,14 @@ const stateTimeline = (
     runs: runsOf(
       track.values.map((value) => levelOf(value, UTILIZATION)),
       length - track.values.length,
-      (level) => ({ color: LEVEL_COLOR[level], label: STATE_LABEL[level] }),
+      (level) => ({ color: LEVEL_COLOR[level], label: stateLabelOf(t)[level] }),
     ),
   }))
   return laneTimeline(
     'state-timeline',
     'col-span-16',
-    'Node state',
-    'utilization · last 24 h',
+    t.dashboard.nodeState,
+    t.dashboard.utilizationLast24H,
     lanes,
     length,
     first,
@@ -1459,6 +1492,8 @@ const mix = (
   shown: (kind: RequestKind) => boolean,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const kinds = (
     Object.entries(ledger.kinds) as ReadonlyArray<[Kind, { rate: number; p99: number }]>
   )
@@ -1468,7 +1503,7 @@ const mix = (
   return panel(
     'mix',
     'col-span-8',
-    'Request mix',
+    t.dashboard.requestMix,
     'req/s by kind',
     [
       h.div(
@@ -1531,7 +1566,7 @@ const mix = (
                       ),
                       h.td(
                         [h.Class(cn(FIGURE, 'py-0.5 text-right'))],
-                        [`${compact(entry.rate)}/s`],
+                        [t.dashboard.s(compact(entry.rate))],
                       ),
                       h.td(
                         [h.Class(cn(FIGURE, 'w-12 py-0.5 text-right text-muted-foreground'))],
@@ -1552,6 +1587,8 @@ const mix = (
 
 /** Errors now, by cause, as Grafana's basic bar gauge. */
 const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const entries = ERROR_CAUSES.map((cause) => [cause, ledger.errors[cause]] as const)
     .filter(([, rate]) => rate > 0.0005)
     .sort((a, b) => b[1] - a[1])
@@ -1560,7 +1597,7 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   return panel(
     'causes',
     'col-span-8',
-    'Errors by cause',
+    t.dashboard.errorsByCause,
     'req/s now',
     [
       h.div(
@@ -1569,7 +1606,7 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
           ? [
               h.span(
                 [h.Key('none'), h.Class(cn(FIGURE, 'text-[calc(28px*var(--type-scale))] text-ok'))],
-                ['0 errors'],
+                [t.dashboard.n0Errors],
               ),
             ]
           : entries.map(([cause, rate]) =>
@@ -1608,7 +1645,7 @@ const causes = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
                   ),
                   h.span(
                     [h.Class(cn(FIGURE, 'text-right text-[calc(11.5px*var(--type-scale))]'))],
-                    [`${compact(rate)}/s`],
+                    [t.dashboard.s(compact(rate))],
                   ),
                 ],
               ),
@@ -1625,15 +1662,26 @@ const nodeTable = (
   tracks: ReadonlyArray<NodeTrack>,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const sorted = [...tracks].sort(
     (a, b) => (ledger.nodes[b.id]?.utilization ?? 0) - (ledger.nodes[a.id]?.utilization ?? 0),
   )
-  const head = ['Node', 'Inbound', 'Capacity', 'Load', 'Latency', 'p99', 'Dropped', 'Status']
+  const head = [
+    t.dashboard.node,
+    t.dashboard.inbound,
+    t.dashboard.capacity,
+    t.dashboard.load,
+    t.dashboard.latency,
+    'p99',
+    t.dashboard.dropped,
+    t.dashboard.status,
+  ]
   return panel(
     'nodes',
     'col-span-24',
-    'Nodes',
-    `${tracks.length} rows`,
+    t.dashboard.nodes,
+    t.dashboard.rows(tracks.length),
     [
       h.div(
         [h.Class(cn(SCREEN, 'px-1 pb-1', SCROLL))],
@@ -1680,11 +1728,11 @@ const nodeTable = (
                       h.td([h.Class(cn(cell, 'font-medium'))], [track.name]),
                       h.td(
                         [h.Class(cn(cell, FIGURE, 'text-right'))],
-                        [`${compact(own?.inbound ?? 0)}/s`],
+                        [t.dashboard.s(compact(own?.inbound ?? 0))],
                       ),
                       h.td(
                         [h.Class(cn(cell, FIGURE, 'text-right text-muted-foreground'))],
-                        [`${compact(own?.capacity ?? 0)}/s`],
+                        [t.dashboard.s(compact(own?.capacity ?? 0))],
                       ),
                       h.td(
                         [h.Class(cell)],
@@ -1717,7 +1765,7 @@ const nodeTable = (
                             ),
                           ),
                         ],
-                        [`${compact(own?.dropped ?? 0)}/s`],
+                        [t.dashboard.s(compact(own?.dropped ?? 0))],
                       ),
                       h.td(
                         [
@@ -1732,7 +1780,7 @@ const nodeTable = (
                             background: `color-mix(in oklab, ${LEVEL_COLOR[level]} 85%, transparent)`,
                           }),
                         ],
-                        [own?.status === 'down' ? 'DOWN' : STATE_LABEL[level]],
+                        [own?.status === 'down' ? 'DOWN' : stateLabelOf(t)[level]],
                       ),
                     ],
                   )
@@ -1987,15 +2035,17 @@ const barList = (
  * panels"). The line turns red once Cash is short, like the HUD's figure.
  */
 const cashSpark = (rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const values = rows.map((row) => Number(row.cash))
   const short = (values[values.length - 1] ?? 0) < 0
   const color = short ? RED : GREEN
   const spec: SeriesSpec = {
     key: 'cash-series',
     span: '',
-    title: 'Cash',
+    title: t.dashboard.cash,
     unit: '$',
-    series: [{ key: 'cash', name: 'Cash', color }],
+    series: [{ key: 'cash', name: t.dashboard.cash, color }],
     format: (value) => money(value),
   }
   return h.div(
@@ -2023,7 +2073,7 @@ const cashSpark = (rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
                 Tooltip({ content: 'none' }),
                 Area({
                   dataKey: 'cash',
-                  name: 'Cash',
+                  name: t.dashboard.cash,
                   stroke: color,
                   strokeWidth: 1.5,
                   fill: 'url(#cash-series)',
@@ -2047,6 +2097,8 @@ const companyPanels = (
   rows: ReadonlyArray<Row>,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const game = model.board.game
   const net = ledger.revenue - ledger.burn
   const runway = runwayOf(game, ledger)
@@ -2059,15 +2111,15 @@ const companyPanels = (
   }`
   const credits = slaCreditsOf(game, ledger)
   const moneyRows: ReadonlyArray<readonly [string, string, Message?]> = [
-    ['Cash', money(game.cash)],
-    ['Revenue', `${money(ledger.revenue)}/s`],
-    ['Burn', `${money(ledger.burn)}/s`],
-    ['Net', `${net >= 0 ? '+' : ''}${money(net)}/s`],
-    ['Payroll', `${money(ledger.salaries)}/s`],
-    ['Equity', percent(game.equity)],
+    [t.dashboard.cash, money(game.cash)],
+    [t.dashboard.revenue, t.dashboard.s(money(ledger.revenue))],
+    [t.dashboard.burn, t.dashboard.s(money(ledger.burn))],
+    ['Net', t.dashboard.s2(net >= 0 ? '+' : '', money(net))],
+    ['Payroll', t.dashboard.s(money(ledger.salaries))],
+    [t.dashboard.equity, percent(game.equity)],
     ['Runway', runwayText(runway)],
     // The SLA pays its credits back on top of Burn, so Cash falls faster than the bill (09).
-    ...(credits > 0 ? [['SLA credits', `−${money(credits)}/s`] as const] : []),
+    ...(credits > 0 ? [[t.dashboard.sLACredits, `−${money(credits)}/s`] as const] : []),
     // Cash is short and the investors' bridge waits: its terms and the way to take it (09).
     ...(game.bridge
       ? [
@@ -2083,9 +2135,9 @@ const companyPanels = (
     tablePanel(
       'company-money',
       'col-span-8',
-      'Money',
+      t.dashboard.money,
       `now · cash ${rangeLabel(model.board.dashboard.range)}`,
-      ['Line', 'Value'],
+      ['Line', t.dashboard.value],
       moneyRows.map(([name, value, onClick]) => ({
         key: name,
         cells: [
@@ -2105,14 +2157,14 @@ const companyPanels = (
     tablePanel(
       'company-team',
       'col-span-16',
-      'Team',
+      t.dashboard.team,
       teamUnit,
-      ['Team', 'Kind', 'People', 'Effective', 'Velocity', 'DH/min'],
+      [t.dashboard.team, 'Kind', 'People', 'Effective', t.dashboard.velocity, 'DH/min'],
       teams.map((entry) => ({
         key: entry.team.id,
         cells: [
           { text: entry.team.name },
-          { text: TEAM_KIND[entry.team.kind] },
+          { text: teamKindOf(t)[entry.team.kind] },
           { text: String(entry.headcount) },
           { text: entry.effective.toFixed(1) },
           { text: `×${entry.velocity.toFixed(2)}` },
@@ -2124,7 +2176,7 @@ const companyPanels = (
     tablePanel(
       'company-funding',
       'col-span-24',
-      'Funding',
+      t.dashboard.funding,
       'rounds · from the Inbox',
       ['Round', 'At users', 'Grant', 'Dilution', 'Answer', 'When'],
       fundingOf(model).map((round) => ({
@@ -2172,6 +2224,8 @@ const incidentTimeline = (
   rows: ReadonlyArray<Row>,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const range = model.board.dashboard.range
   const first = Number(rows[0]?.at ?? Math.floor(game.time))
@@ -2238,7 +2292,7 @@ const incidentTimeline = (
     lanes.push(
       lane(
         `pm-${postmortem.id}`,
-        INCIDENTS[postmortem.kind].name,
+        t.catalog.incidents[postmortem.kind].name,
         startedAt,
         endedAt,
         postmortem.severity,
@@ -2254,7 +2308,7 @@ const incidentTimeline = (
     lanes.push(
       lane(
         'running',
-        `Running · ${INCIDENTS[incident.kind].name}`,
+        `Running · ${t.catalog.incidents[incident.kind].name}`,
         incident.startedAt,
         now,
         incident.severity,
@@ -2268,7 +2322,7 @@ const incidentTimeline = (
     return panel(
       'incident-timeline',
       'col-span-24',
-      'Incident timeline',
+      t.dashboard.incidentTimeline,
       rangeLabel(range),
       [
         h.div(
@@ -2286,7 +2340,7 @@ const incidentTimeline = (
   return laneTimeline(
     'incident-timeline',
     'col-span-24',
-    'Incident timeline',
+    t.dashboard.incidentTimeline,
     `run · ${rangeLabel(range)}`,
     lanes,
     span,
@@ -2295,10 +2349,10 @@ const incidentTimeline = (
     h,
     [
       ...(lanes.some((entry) => entry.runs.some((run) => run.color === UNSEEN))
-        ? [swatch('Not seen', UNSEEN, h)]
+        ? [swatch(t.dashboard.notSeen, UNSEEN, h)]
         : []),
       ...(lanes.some((entry) => entry.runs.some((run) => run.color === AWAITING))
-        ? [swatch('Awaiting ack', AWAITING, h)]
+        ? [swatch(t.dashboard.awaitingAck, AWAITING, h)]
         : []),
       ...[...severities]
         .sort()
@@ -2312,6 +2366,8 @@ const actionColor = (game: Game, postmortem: Postmortem): string =>
   postmortem.action === null ? MUTED : has(game, postmortem.action) ? GREEN : AMBER
 
 const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const incident = game.incident
   if (incident === null)
     return tablePanel(
@@ -2319,7 +2375,7 @@ const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
       'col-span-8',
       'Running Incident',
       'none',
-      ['Fact', 'Value'],
+      ['Fact', t.dashboard.value],
       [{ key: 'none', cells: [{ text: 'State' }, { text: 'No incident running' }] }],
       h,
     )
@@ -2327,16 +2383,18 @@ const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
   const total = elapsed + Math.max(0, incident.remaining)
   const facts: ReadonlyArray<readonly [string, Cell]> = [
     ['Severity', { text: `SEV${incident.severity}` }],
-    ['Target', { text: incidentTarget(game, incident) }],
+    [t.dashboard.target, { text: incidentTarget(game, incident) }],
     [
       'Cause',
       {
         text:
-          incident.causedBy === null ? '—' : `${INCIDENTS[incident.causedBy].name} · left alone`,
+          incident.causedBy === null
+            ? '—'
+            : `${t.catalog.incidents[incident.causedBy].name} · left alone`,
       },
     ],
     [
-      'Run',
+      t.dashboard.run,
       {
         text: `${minutesText(elapsed)} / ${minutesText(total)}`,
         bar: { share: total > 0 ? Math.min(1, elapsed / total) : 0, color: RED },
@@ -2347,51 +2405,52 @@ const runningIncident = (game: Game, h: HtmlBuilder<Message>): Html => {
     ['MTTR so far', { text: minutesText(incident.impaired) }],
     ['Users lost', { text: `−${compact(Math.max(0, incident.usersAtStart - game.users))}` }],
     ['Revenue lost', { text: `−${money(incident.lostRevenue)}` }],
-    ['Failed', { text: compact(incident.failed) }],
+    [t.dashboard.failed, { text: compact(incident.failed) }],
   ]
   return tablePanel(
     'incident-running',
     'col-span-8',
     'Running Incident',
-    INCIDENTS[incident.kind].name,
-    ['Fact', 'Value'],
+    t.catalog.incidents[incident.kind].name,
+    ['Fact', t.dashboard.value],
     facts.map(([name, cell]) => ({ key: name, cells: [{ text: name }, cell] })),
     h,
   )
 }
 
-const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
-  tablePanel(
+const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return tablePanel(
     'incident-history',
     'col-span-16',
     'Incident history',
     `${game.postmortems.length} postmortems`,
     [
-      'Incident',
+      t.dashboard.incident,
       'Cause',
       'SEV',
-      'Target',
-      'Run',
+      t.dashboard.target,
+      t.dashboard.run,
       'MTTD',
       'MTTA',
       'MTTR',
-      'Users',
-      'Revenue',
-      'Failed',
+      t.dashboard.users,
+      t.dashboard.revenue,
+      t.dashboard.failed,
       'Action',
     ],
     [...game.postmortems].reverse().map((postmortem) => ({
       key: `pm-${postmortem.id}`,
       cells: [
         {
-          text: INCIDENTS[postmortem.kind].name,
+          text: t.catalog.incidents[postmortem.kind].name,
           onClick: Message.DashboardChanged({
             message: DashboardMessage.PostmortemChosen({ id: postmortem.id }),
           }),
           hint: 'Show this postmortem',
         },
         {
-          text: postmortem.causedBy === null ? '—' : INCIDENTS[postmortem.causedBy].name,
+          text: postmortem.causedBy === null ? '—' : t.catalog.incidents[postmortem.causedBy].name,
         },
         { text: `SEV${postmortem.severity}` },
         { text: postmortem.target ?? '—' },
@@ -2407,18 +2466,21 @@ const incidentHistory = (game: Game, h: HtmlBuilder<Message>): Html =>
     })),
     h,
   )
+}
 
 const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
-  const def = INCIDENTS[postmortem.kind]
+  const t = copy(h)
+
+  const def = localized(INCIDENTS[postmortem.kind], t.catalog.incidents[postmortem.kind])
   const facts: ReadonlyArray<readonly [string, string]> = [
-    ['Run', minutesText(postmortem.duration)],
-    ['Cause', postmortem.causedBy === null ? '—' : INCIDENTS[postmortem.causedBy].name],
+    [t.dashboard.run, minutesText(postmortem.duration)],
+    ['Cause', postmortem.causedBy === null ? '—' : t.catalog.incidents[postmortem.causedBy].name],
     ['MTTD', minutesOrUnknown(postmortem.mttd)],
     ['MTTA', minutesOrUnknown(postmortem.mtta)],
     ['MTTR', minutesText(postmortem.mttr)],
     ['Users lost', `−${compact(postmortem.lostUsers)}`],
     ['Revenue lost', `−${money(postmortem.lostRevenue)}`],
-    ['Failed', compact(postmortem.failed)],
+    [t.dashboard.failed, compact(postmortem.failed)],
   ]
   const open = postmortem.action !== null && !has(game, postmortem.action)
   return panel(
@@ -2460,8 +2522,8 @@ const postmortemDetail = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Mes
               postmortem.action === null
                 ? 'No action item: the Design already owns every prevention.'
                 : has(game, postmortem.action)
-                  ? `Action item done: ${RESEARCH[postmortem.action].name}.`
-                  : `Action item open: ${RESEARCH[postmortem.action].name}.`,
+                  ? `Action item done: ${t.catalog.research[postmortem.action].name}.`
+                  : `Action item open: ${t.catalog.research[postmortem.action].name}.`,
             ],
           ),
         ],
@@ -2496,21 +2558,23 @@ const incidentPanels = (
 
 const RULES = ['errors', 'latency', 'saturation', 'queue', 'budget'] as const
 type Rule = (typeof RULES)[number]
-const RULE_NAME: Record<Rule, string> = {
-  errors: 'Error rate',
-  latency: 'Latency',
-  saturation: 'Saturation',
+const ruleNameOf = (t: Messages): Record<Rule, string> => ({
+  errors: t.dashboard.errorRate,
+  latency: t.dashboard.latency,
+  saturation: t.dashboard.saturation,
   queue: 'Queue growth',
   budget: 'Budget burn',
-}
+})
 
 type AlertState = 'ok' | 'pending' | 'firing' | 'ignored'
-const ALERT_STATE: Record<AlertState, Readonly<{ color: string; label: string }>> = {
-  ok: { color: GREEN, label: 'OK' },
+const alertStateCopy = (
+  t: Messages,
+): Record<AlertState, Readonly<{ color: string; label: string }>> => ({
+  ok: { color: GREEN, label: t.dashboard.oK },
   pending: { color: AMBER, label: 'PENDING' },
   firing: { color: RED, label: 'FIRING' },
   ignored: { color: MUTED, label: 'IGNORED' },
-}
+})
 
 /** A rule's state now, from what the Simulation counts: held seconds, and the false alarms. */
 const alertStateOf = (game: Game, rule: Rule): AlertState =>
@@ -2569,6 +2633,8 @@ const alertMarks = (
 
 /** Grafana's state timeline of the alert rules: firing where the Inbox recorded a page. */
 const alertTimeline = (model: Model, rows: ReadonlyArray<Row>, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const marks = alertMarks(model)
   const last = rows.length - 1
@@ -2593,8 +2659,8 @@ const alertTimeline = (model: Model, rows: ReadonlyArray<Row>, h: HtmlBuilder<Me
     if (now !== 'ok' && last >= 0) states[last] = now
     return {
       key: rule,
-      name: RULE_NAME[rule],
-      runs: runsOf(states, 0, (state) => ALERT_STATE[state]),
+      name: ruleNameOf(t)[rule],
+      runs: runsOf(states, 0, (state) => alertStateCopy(t)[state]),
     }
   })
   const first = Number(rows[0]?.at ?? 0)
@@ -2609,12 +2675,14 @@ const alertTimeline = (model: Model, rows: ReadonlyArray<Row>, h: HtmlBuilder<Me
     first,
     end,
     h,
-    Object.values(ALERT_STATE).map((state) => swatch(state.label, state.color, h)),
+    Object.values(alertStateCopy(t)).map((state) => swatch(state.label, state.color, h)),
   )
 }
 
 /** The alert rules and their thresholds, with what each watches now. */
 const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const watched = watchedOf(game, ledger)
   const limit = (rule: Rule): string =>
     rule === 'errors'
@@ -2622,7 +2690,7 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
       : rule === 'latency'
         ? `${game.alertRules.latency}× T`
         : rule === 'queue'
-          ? `${game.alertRules.queue} s`
+          ? t.dashboard.s3(game.alertRules.queue)
           : rule === 'budget'
             ? `${game.alertRules.budget}×`
             : percent(game.alertRules.saturation)
@@ -2632,23 +2700,23 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
       : rule === 'latency'
         ? `${watched.latency.toFixed(1)}× T`
         : rule === 'queue'
-          ? `${Math.round(watched.queue)} s`
+          ? t.dashboard.s3(Math.round(watched.queue))
           : rule === 'budget'
             ? `${watched.budget.toFixed(1)}×`
             : percent(watched.saturation)
   return tablePanel(
     'alert-rules',
     'col-span-12',
-    'Alert rules',
+    t.dashboard.alertRules,
     'the pager’s conditions',
-    ['Rule', 'Threshold', 'Now', 'Held', 'State'],
+    ['Rule', 'Threshold', 'Now', t.dashboard.held, 'State'],
     RULES.map((rule) => {
-      const state = ALERT_STATE[alertStateOf(game, rule)]
+      const state = alertStateCopy(t)[alertStateOf(game, rule)]
       return {
         key: rule,
         cells: [
           {
-            text: RULE_NAME[rule],
+            text: ruleNameOf(t)[rule],
             hint: alertText(rule, game.alertRules[rule]),
           },
           { text: limit(rule) },
@@ -2668,6 +2736,8 @@ const servicesTable = (
   shown: (kind: RequestKind) => boolean,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const kinds = (
     Object.entries(ledger.kinds) as ReadonlyArray<[RequestKind, KindLedger | undefined]>
   )
@@ -2681,14 +2751,14 @@ const servicesTable = (
     'col-span-24',
     'Services',
     'Rate, Errors, Duration · now',
-    ['Service', 'Rate', 'Share', 'Errors', 'Mean', 'p99'],
+    [t.dashboard.service, 'Rate', 'Share', t.dashboard.errors, t.dashboard.mean, 'p99'],
     kinds.map(({ kind, entry }) => {
       const failed = 1 - entry.success
       return {
         key: kind,
         cells: [
-          { text: KINDS[kind].label },
-          { text: `${rateText(entry.rate)}/s` },
+          { text: t.catalog.kinds[kind].label },
+          { text: t.dashboard.s(rateText(entry.rate)) },
           { text: percent(total > 0 ? entry.rate / total : 0) },
           { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
           { text: ms(entry.mean) },
@@ -2707,6 +2777,8 @@ const serviceTable = (
   only: string | null,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const rows = game.services.flatMap((service) => {
     const entry = ledger.services[service.id]
     return entry === undefined || entry.rate <= 0 || (only !== null && service.id !== only)
@@ -2719,14 +2791,14 @@ const serviceTable = (
     'col-span-24',
     'Code',
     'Rate, Errors, Duration per codebase · now',
-    ['Service', 'Rate', 'Share', 'Errors', 'Mean', 'p99'],
+    [t.dashboard.service, 'Rate', 'Share', t.dashboard.errors, t.dashboard.mean, 'p99'],
     rows.map(({ service, entry }) => {
       const failed = entry.rate > 0 ? entry.failed / entry.rate : 0
       return {
         key: service.id,
         cells: [
           { text: service.name },
-          { text: `${rateText(entry.rate)}/s` },
+          { text: t.dashboard.s(rateText(entry.rate)) },
           { text: percent(total > 0 ? entry.rate / total : 0) },
           { text: percent(failed, failed < 0.1 ? 2 : 1), color: failed > 0.01 ? RED : undefined },
           { text: ms(entry.mean) },
@@ -2749,6 +2821,8 @@ const waterfallTable = (
   kind: RequestKind,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   const byId = new Map(game.nodes.map((node) => [node.id, node] as const))
   const bottleneck = ledger.bottleneckByKind[kind] ?? null
@@ -2774,8 +2848,8 @@ const waterfallTable = (
     'waterfall',
     'col-span-24',
     'Waterfall',
-    `${KINDS[kind].label} · hop time and wait, Node by Node`,
-    ['Node', 'Hop time', 'Wait', 'Bottleneck'],
+    `${t.catalog.kinds[kind].label} · hop time and wait, Node by Node`,
+    [t.dashboard.node, 'Hop time', 'Wait', t.dashboard.bottleneck],
     order.flatMap((id) => {
       const own = ledger.nodes[id] as NodeLedger
       const node = byId.get(id)
@@ -2786,11 +2860,11 @@ const waterfallTable = (
         {
           key: id,
           cells: [
-            { text: names.get(id) ?? COMPONENTS[node.type].name },
+            { text: names.get(id) ?? t.catalog.components[node.type].name },
             { text: ms(hop) },
             { text: wait > 0 ? queueWait(wait) : '—' },
             {
-              text: id === bottleneck ? 'Bottleneck' : '',
+              text: id === bottleneck ? t.dashboard.bottleneck : '',
               color: id === bottleneck ? RED : undefined,
             },
           ],
@@ -2801,17 +2875,17 @@ const waterfallTable = (
   )
 }
 
-const LIMIT_NAME: Record<Limit, string> = {
+const limitNameOf = (t: Messages): Record<Limit, string> => ({
   cpu: 'CPU',
-  credits: 'CPU credits',
-  memory: 'Memory',
-  workers: 'Workers',
-  connections: 'Connections',
-  network: 'Network',
+  credits: t.dashboard.cPUCredits,
+  memory: t.dashboard.memory,
+  workers: t.dashboard.workers,
+  connections: t.dashboard.connections,
+  network: t.dashboard.network,
   disk: 'Disk',
-  throughput: 'Throughput',
+  throughput: t.dashboard.throughput,
   none: 'No limit',
-}
+})
 
 const LIMIT_COLOR: Record<Limit, string> = {
   cpu: RED,
@@ -2831,6 +2905,8 @@ const resourceTimeline = (
   tracks: ReadonlyArray<NodeTrack>,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const history = model.board.nodeHistory
   const length = Math.max(1, ...tracks.map((track) => (history[track.id] ?? []).length))
   const last = Math.floor(model.board.game.time / NODE_EVERY) * NODE_EVERY
@@ -2842,7 +2918,7 @@ const resourceTimeline = (
       name: track.name,
       runs: runsOf(limits, length - limits.length, (limit) => ({
         color: LIMIT_COLOR[limit],
-        label: LIMIT_NAME[limit],
+        label: limitNameOf(t)[limit],
       })),
     }
   })
@@ -2852,14 +2928,14 @@ const resourceTimeline = (
   return laneTimeline(
     'resources',
     'col-span-24',
-    'Resources',
+    t.dashboard.resources,
     'the limiting resource · last 24 min',
     lanes,
     length,
     first,
     last,
     h,
-    present.map((limit) => swatch(LIMIT_NAME[limit], LIMIT_COLOR[limit], h)),
+    present.map((limit) => swatch(limitNameOf(t)[limit], LIMIT_COLOR[limit], h)),
   )
 }
 
@@ -2873,6 +2949,8 @@ const usersTable = (
   only: RegionId | null,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const all = churnCache.get(game) ?? churnOf(game, ledger)
   churnCache.set(game, all)
   const regions = only === null ? all : all.filter((region) => region.region === only)
@@ -2880,16 +2958,23 @@ const usersTable = (
   return tablePanel(
     'users',
     'col-span-24',
-    'Users',
+    t.dashboard.users,
     'by region · market and churn',
-    ['Region', 'Users', 'Market', 'Share', 'Apdex', 'Churn'],
+    [
+      t.dashboard.region,
+      t.dashboard.users,
+      t.dashboard.market,
+      'Share',
+      'Apdex',
+      t.dashboard.churn,
+    ],
     regions.map((region) => {
       const market = ledger.market * (split ? REGION_INFO[region.region].share : 1)
       const share = market > 0 ? region.users / market : 0
       return {
         key: region.region,
         cells: [
-          { text: REGION_INFO[region.region].name },
+          { text: t.catalog.regionInfo[region.region].name },
           { text: compact(region.users) },
           { text: compact(market) },
           {
@@ -2915,19 +3000,24 @@ const usersTable = (
  * Real user monitoring's device split: mean latency from each device's side, including its own
  * round trip, for the users row (12 "The visibility ladder", `rum`).
  */
-const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html =>
-  tablePanel(
+const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return tablePanel(
     'devices',
     'col-span-24',
-    'Real user monitoring',
+    t.dashboard.realUserMonitoring,
     'mean latency from the user’s side, by device',
-    ['Device', 'Latency'],
+    ['Device', t.dashboard.latency],
     DEVICES.map((device) => ({
       key: device,
-      cells: [{ text: DEVICE_INFO[device].name }, { text: ms(ledger.deviceLatency[device] ?? 0) }],
+      cells: [
+        { text: t.catalog.deviceInfo[device].name },
+        { text: ms(ledger.deviceLatency[device] ?? 0) },
+      ],
     })),
     h,
   )
+}
 
 /* ==========================================================================
    Component rows (12 "Component rows")
@@ -2935,6 +3025,8 @@ const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html =>
 
 /** The Load Balancer's traffic per backend, which shows an uneven split. */
 const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   const balancers = game.nodes.filter((node) => node.type === 'lb')
   const entries = balancers.flatMap((balancer) =>
@@ -2947,13 +3039,13 @@ const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html
             ? `${names.get(link.from) ?? link.from} → ${names.get(link.to) ?? link.to}`
             : (names.get(link.to) ?? link.to),
         value: link.rate,
-        text: `${rateText(link.rate)}/s`,
+        text: t.dashboard.s(rateText(link.rate)),
       })),
   )
   return barList(
     'load-balancer',
     'col-span-24',
-    'Load Balancer',
+    t.dashboard.loadBalancer,
     entries.length === 0
       ? 'no backend'
       : `req/s per backend · even split ${percent(1 / entries.length)}`,
@@ -2964,13 +3056,15 @@ const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html
 
 /** Each App Server's copies, and the workers busy against the pool they share. */
 const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   return tablePanel(
     'app-server',
     'col-span-24',
-    'App Server',
+    t.dashboard.appServer,
     'copies · busy workers against the pool',
-    ['Node', 'Copies', 'Busy workers'],
+    [t.dashboard.node, t.dashboard.copies, 'Busy workers'],
     game.nodes
       .filter((node) => node.type === 'server')
       .map((node) => {
@@ -2981,7 +3075,7 @@ const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
         return {
           key: node.id,
           cells: [
-            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            { text: names.get(node.id) ?? t.catalog.components[node.type].name },
             {
               text:
                 node.pending > 0
@@ -3003,13 +3097,15 @@ const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
 
 /** Connections used against the limit, refused queries, and how far a replica lags. */
 const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   return tablePanel(
     'database',
     'col-span-24',
-    'Database',
+    t.dashboard.database,
     'connections · refused · replica lag',
-    ['Node', 'Connections', 'Queries', 'Refused', 'Lag'],
+    [t.dashboard.node, t.dashboard.connections, 'Queries', t.dashboard.refused, t.dashboard.lag],
     game.nodes
       .filter((node) => node.type === 'database' || node.type === 'replica')
       .map((node) => {
@@ -3021,16 +3117,16 @@ const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
         return {
           key: node.id,
           cells: [
-            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            { text: names.get(node.id) ?? t.catalog.components[node.type].name },
             connections === null
               ? { text: '—' }
               : {
                   text: `${Math.round(connections.used)}/${Math.round(connections.max)}`,
                   bar: { share, color: LEVEL_COLOR[levelOf(share, UTILIZATION)] },
                 },
-            { text: `${compact(own?.inbound ?? 0)}/s` },
+            { text: t.dashboard.s(compact(own?.inbound ?? 0)) },
             {
-              text: refused > 0.0005 ? `${compact(refused)}/s` : '—',
+              text: refused > 0.0005 ? t.dashboard.s(compact(refused)) : '—',
               color: refused > 0.0005 ? RED : undefined,
             },
             { text: lag === null ? '—' : ms(lag) },
@@ -3043,12 +3139,14 @@ const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
 
 /** A Cache's evictions: the keys a second it pushes out because the hot data does not fit its memory. */
 const evictions = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   return barList(
     'evictions',
     'col-span-24',
-    'Cache evictions',
-    'keys evicted · now',
+    t.dashboard.cacheEvictions,
+    t.dashboard.keysEvictedNow,
     game.nodes
       .filter((node) => node.type === 'cache')
       .map((node) => {
@@ -3056,9 +3154,9 @@ const evictions = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
         const share = Math.min(1, evictionShareOf(game, node))
         return {
           key: node.id,
-          name: names.get(node.id) ?? COMPONENTS[node.type].name,
+          name: names.get(node.id) ?? t.catalog.components[node.type].name,
           value: share,
-          text: `${compact(Math.round(own?.evictions ?? 0))}/s`,
+          text: t.dashboard.s(compact(Math.round(own?.evictions ?? 0))),
           color: PINK,
         }
       }),
@@ -3076,6 +3174,8 @@ const hits = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   return barList(
     key,
@@ -3088,7 +3188,7 @@ const hits = (
         const hit = ledger.nodes[node.id]?.hitRatio ?? null
         return {
           key: node.id,
-          name: names.get(node.id) ?? COMPONENTS[node.type].name,
+          name: names.get(node.id) ?? t.catalog.components[node.type].name,
           value: hit ?? 0,
           text: hit === null ? '—' : percent(hit, 1),
           color: TEAL,
@@ -3100,13 +3200,15 @@ const hits = (
 
 /** A Queue's depth and the age of the oldest task in it. */
 const queues = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   return tablePanel(
     'queue',
     'col-span-24',
-    'Queue',
+    t.dashboard.queue,
     'depth · age of the oldest task',
-    ['Queue', 'Depth', 'Oldest task', 'Drained', 'State'],
+    [t.dashboard.queue, t.dashboard.depth, 'Oldest task', 'Drained', 'State'],
     game.nodes
       .filter((node) => node.type === 'queue')
       .map((node) => {
@@ -3126,10 +3228,10 @@ const queues = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
         return {
           key: node.id,
           cells: [
-            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
+            { text: names.get(node.id) ?? t.catalog.components[node.type].name },
             { text: compact(node.depth) },
             { text: queueWait(age) },
-            { text: `${compact(drained)}/s` },
+            { text: t.dashboard.s(compact(drained)) },
             { text: label, fill: LEVEL_COLOR[level] },
           ],
         }
@@ -3143,13 +3245,15 @@ const MANAGED: ReadonlyArray<ComponentId> = ['psp', 'llm', 'msgp', 'auth']
 
 /** Calls into and out of each Managed Component, and whether it is up. */
 const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const names = namesOf(game)
   return tablePanel(
     'managed',
     'col-span-24',
     'Managed Components',
     'calls · latency · outage',
-    ['Component', 'Calls', 'Sent', 'Latency', 'State'],
+    ['Component', t.dashboard.calls, 'Sent', t.dashboard.latency, 'State'],
     game.nodes
       .filter((node) => MANAGED.includes(node.type))
       .map((node) => {
@@ -3160,9 +3264,9 @@ const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
         return {
           key: node.id,
           cells: [
-            { text: names.get(node.id) ?? COMPONENTS[node.type].name },
-            { text: `${compact(own?.inbound ?? 0)}/s` },
-            { text: sent > 0 ? `${compact(sent)}/s` : '—' },
+            { text: names.get(node.id) ?? t.catalog.components[node.type].name },
+            { text: t.dashboard.s(compact(own?.inbound ?? 0)) },
+            { text: sent > 0 ? t.dashboard.s(compact(sent)) : '—' },
             { text: ms(own?.latency ?? 0) },
             {
               text: down ? 'DOWN' : throttled ? 'THROTTLED' : 'UP',
@@ -3184,9 +3288,15 @@ const rangeLabel = (minutes: number): string =>
 
 /** Grafana's top bar: breadcrumb, time picker, and refresh. */
 const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const now = clockOf(model.board.game.time)
   const open = boardSandbox(model.board)
-  const place = open ? (open.id === null ? 'Free Sandbox' : 'Sandbox') : 'Company'
+  const place = open
+    ? open.id === null
+      ? t.dashboard.freeSandbox
+      : t.dashboard.sandbox
+    : t.dashboard.company
   return h.div(
     [h.Class('flex flex-wrap items-center gap-2 px-4 pt-4 compact:px-3')],
     [
@@ -3201,7 +3311,7 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
             ],
             [
-              'Dashboards',
+              t.dashboard.dashboards,
               h.span([], ['/']),
               place,
               h.span([], ['/']),
@@ -3211,7 +3321,7 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
                     'text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em] text-foreground',
                   ),
                 ],
-                ['Overview'],
+                [t.dashboard.overview],
               ),
             ],
           ),
@@ -3265,8 +3375,12 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               led(model.board.clock.paused ? MUTED : GREEN, h),
               model.board.clock.paused
-                ? 'Paused'
-                : `Live · D${now.day} ${String(now.hour).padStart(2, '0')}:${String(now.minute).padStart(2, '0')}`,
+                ? t.dashboard.paused
+                : t.dashboard.liveD(
+                    now.day,
+                    String(now.hour).padStart(2, '0'),
+                    String(now.minute).padStart(2, '0'),
+                  ),
               icon(h, RefreshCw, 'size-3.5 text-muted-foreground'),
             ],
           ),
@@ -3281,7 +3395,7 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
               variant: 'ghost',
               size: 'icon',
               className: 'text-muted-foreground',
-              attributes: [h.AriaLabel('Close (Esc)')],
+              attributes: [h.AriaLabel(t.dashboard.closeEsc)],
             },
             icon(h, X, 'size-4'),
             h,
@@ -3299,6 +3413,8 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
  * narrows the per-kind panels to the kinds that Service's Features touch.
  */
 const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const dashboard = model.board.dashboard
   const chip = (name: string, value: string) =>
@@ -3389,9 +3505,12 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
     [h.Class('flex flex-wrap items-center gap-2 px-4 pt-4 compact:px-3')],
     [
       select(
-        'kind',
+        t.dashboard.kind,
         dashboard.kind ?? 'all',
-        [['all', 'All kinds'], ...REQUEST_KINDS.map((kind) => [kind, KINDS[kind].label] as const)],
+        [
+          ['all', t.dashboard.allKinds],
+          ...REQUEST_KINDS.map((kind) => [kind, t.catalog.kinds[kind].label] as const),
+        ],
         (value) =>
           Message.DashboardChanged({
             message: DashboardMessage.KindChosen({
@@ -3419,11 +3538,11 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
         : []),
       regional(game)
         ? select(
-            'region',
+            t.dashboard.region2,
             dashboard.region ?? 'all',
             [
-              ['all', 'All regions'],
-              ...REGIONS.map((region) => [region, REGION_INFO[region].name] as const),
+              ['all', t.dashboard.allRegions],
+              ...REGIONS.map((region) => [region, t.catalog.regionInfo[region].name] as const),
             ],
             (value) =>
               Message.DashboardChanged({
@@ -3432,17 +3551,17 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
                 }),
               }),
           )
-        : chip('region', model.board.region),
-      chip('era', eraOf(game).name),
+        : chip(t.dashboard.region2, model.board.region),
+      chip('era', eraWords(t, game).name),
       chip('slo', sloText(slo)),
       h.span([h.Class('flex-1')], []),
       toggle(
-        'Compare',
+        t.dashboard.compare,
         dashboard.compare,
         Message.DashboardChanged({ message: DashboardMessage.CompareToggled() }),
       ),
       toggle(
-        'Table',
+        t.dashboard.table,
         dashboard.table,
         Message.DashboardChanged({ message: DashboardMessage.TableToggled() }),
       ),
@@ -3450,7 +3569,7 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
         [h.Class('flex flex-wrap items-center gap-1')],
         ANNOTATION_GROUPS.map((group) =>
           toggle(
-            ANNOTATION_NAME[group],
+            annotationNameOf(t)[group],
             dashboard.groups.includes(group),
             Message.DashboardChanged({ message: DashboardMessage.GroupToggled({ group }) }),
             ANNOTATION_COLOR[group],
@@ -3462,6 +3581,8 @@ const variables = (model: Model, slo: number, h: HtmlBuilder<Message>): Html => 
 }
 
 export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const ledger = ledgerOf(model)
   const budget = budgetOf(game)
@@ -3527,13 +3648,13 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ),
               ),
             ],
-            ['Charts fill in as the clock runs.'],
+            [t.dashboard.chartsFillInAsTheClock],
           ),
         ]
       : [
           stat(
             'users',
-            'Users',
+            t.dashboard.users,
             compact(region === null ? latest.users : regionUsers(game)[region]),
             'plain',
             rows,
@@ -3544,7 +3665,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           stat(
             'cash-rate',
             'Cash per second',
-            `${cashRate >= 0 ? '+' : ''}${money(cashRate)}/s`,
+            t.dashboard.s2(cashRate >= 0 ? '+' : '', money(cashRate)),
             cashRate > 0 ? 'ok' : cashRate < 0 ? 'danger' : 'plain',
             rows,
             'cashRate',
@@ -3563,7 +3684,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           gauge(
             'bottleneck',
-            bottleneck ? `Hottest Node · ${bottleneck.name}` : 'Hottest Node',
+            bottleneck ? t.dashboard.hottestNode(bottleneck.name) : t.dashboard.hottestNode2,
             Math.min(1, bottleneck ? (ledger.nodes[bottleneck.id]?.utilization ?? 0) : 0),
             percent(
               Math.min(9.99, bottleneck ? (ledger.nodes[bottleneck.id]?.utilization ?? 0) : 0),
@@ -3573,20 +3694,26 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           has(game, 'logs')
             ? stat(
-                'errors',
-                'Error rate',
+                t.dashboard.errors2,
+                t.dashboard.errorRate,
                 percent(latest.errors, latest.errors < 0.1 ? 2 : 1),
                 levelOf(latest.errors, { warn: 0.001, danger: 0.01 }),
                 rows,
-                'errors',
+                t.dashboard.errors2,
                 RED,
                 h,
                 true,
               )
-            : locked('errors', 'col-span-4 compact:col-span-12', 'Error rate', 'logs', h),
+            : locked(
+                t.dashboard.errors2,
+                'col-span-4 compact:col-span-12',
+                t.dashboard.errorRate,
+                'logs',
+                h,
+              ),
           stat(
             'latency',
-            percentiles ? 'p99 latency' : 'Mean latency',
+            percentiles ? t.dashboard.p99Latency : t.dashboard.meanLatency,
             ms(percentiles ? latest.p99 : latest.latency),
             'plain',
             rows,
@@ -3595,17 +3722,17 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             h,
           ),
 
-          rowHeader('Golden signals', 4, h),
+          rowHeader(t.dashboard.goldenSignals, 4, h),
           series({
             key: 'traffic',
             span: 'col-span-12',
-            title: 'Traffic',
+            title: t.dashboard.traffic,
             unit: 'req/s',
             series: [
-              { key: 'served', name: 'Served', color: TEAL, fill: true },
-              { key: 'demand', name: 'Demand', color: MUTED, dashed: true },
+              { key: 'served', name: t.dashboard.served, color: TEAL, fill: true },
+              { key: 'demand', name: t.dashboard.demand, color: MUTED, dashed: true },
             ],
-            format: (value) => `${compact(value)}/s`,
+            format: (value) => t.dashboard.s(compact(value)),
             compare: 'served',
             ...(has(game, 'anomaly-detection')
               ? {
@@ -3622,14 +3749,14 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           series({
             key: 'latency',
             span: 'col-span-12',
-            title: 'Latency',
-            unit: percentiles ? 'mean · p99' : 'mean',
+            title: t.dashboard.latency,
+            unit: percentiles ? t.dashboard.meanP99 : 'mean',
             series: percentiles
               ? [
                   { key: 'p99', name: 'p99', color: PURPLE, fill: true },
-                  { key: 'latency', name: 'Mean', color: BLUE },
+                  { key: 'latency', name: t.dashboard.mean, color: BLUE },
                 ]
-              : [{ key: 'latency', name: 'Mean', color: BLUE, fill: true }],
+              : [{ key: 'latency', name: t.dashboard.mean, color: BLUE, fill: true }],
             format: ms,
             compare: percentiles ? 'p99' : 'latency',
             ...(latencyRule === null
@@ -3643,9 +3770,9 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ? series({
                 key: 'errors-series',
                 span: 'col-span-8',
-                title: 'Errors',
-                unit: '% failed',
-                series: [{ key: 'errors', name: 'Failed', color: RED, fill: true }],
+                title: t.dashboard.errors,
+                unit: t.dashboard.failed2,
+                series: [{ key: 'errors', name: t.dashboard.failed, color: RED, fill: true }],
                 format: (value) => `${value.toFixed(value < 1 ? 2 : 1)}%`,
                 rules: [
                   {
@@ -3656,13 +3783,13 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ],
                 width: 500,
               })
-            : locked('errors-series', 'col-span-8', 'Errors', 'logs', h),
+            : locked('errors-series', 'col-span-8', t.dashboard.errors, 'logs', h),
           causes(ledger, h),
           mix(ledger, shownKind, h),
 
           ...(alerting
             ? [
-                rowHeader('Alerts', 2, h),
+                rowHeader(t.dashboard.alerts, 2, h),
                 alertTable(game, ledger, h),
                 alertTimeline(model, rows, h),
               ]
@@ -3676,20 +3803,20 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ]
             : []),
 
-          rowHeader('Saturation', 3, h),
+          rowHeader(t.dashboard.saturation, 3, h),
           barGauge(ledger, tracks, h),
           stateTimeline(model, tracks, h),
           nodeTable(ledger, tracks, h),
 
-          rowHeader('Money', 1, h),
+          rowHeader(t.dashboard.money, 1, h),
           series({
             key: 'money',
             span: 'col-span-24',
-            title: 'Revenue and Burn',
-            unit: '$/s',
+            title: t.dashboard.revenueAndBurn,
+            unit: t.dashboard.s4,
             series: [
-              { key: 'revenue', name: 'Revenue', color: TEAL, fill: true },
-              { key: 'burn', name: 'Burn', color: AMBER },
+              { key: 'revenue', name: t.dashboard.revenue, color: TEAL, fill: true },
+              { key: 'burn', name: t.dashboard.burn, color: AMBER },
             ],
             format: (value) => money(value),
           }),
@@ -3699,7 +3826,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 rowHeader('SLO', 4, h),
                 stat(
                   'availability',
-                  'Availability · week',
+                  t.dashboard.availabilityWeek,
                   percent(budget.availability, 2),
                   budget.availability >= budget.slo ? 'ok' : 'danger',
                   rows,
@@ -3709,7 +3836,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ),
                 gauge(
                   'error-budget',
-                  'Error budget left',
+                  t.dashboard.errorBudgetLeft,
                   Math.max(0, Math.min(1, budget.left)),
                   budget.left > 0 ? `${Math.round(Math.min(1, budget.left) * 100)}%` : 'spent',
                   { warn: 0.5, danger: 0.05, invert: true },
@@ -3718,7 +3845,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 panel(
                   'sla-credit',
                   'col-span-4 compact:col-span-12',
-                  'SLA credits',
+                  t.dashboard.sLACredits,
                   credit > 0 ? 'paid' : '',
                   [
                     h.div(
@@ -3758,19 +3885,27 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 series({
                   key: 'burn-rate',
                   span: 'col-span-12',
-                  title: 'Error budget burn rate',
-                  unit: `× budget · SLO ${sloText(slo)}`,
-                  series: [{ key: 'burnRate', name: 'Burn rate', color: PINK, fill: true }],
+                  title: t.dashboard.errorBudgetBurnRate,
+                  unit: t.dashboard.budgetSLO(sloText(slo)),
+                  series: [
+                    { key: 'burnRate', name: t.dashboard.burnRate, color: PINK, fill: true },
+                  ],
                   format: (value) => `${value < 10 ? value.toFixed(1) : Math.round(value)}×`,
                   rules: [
-                    { y: 10, label: 'page > 10×', color: RED },
+                    { y: 10, label: t.dashboard.page10, color: RED },
                     { y: 1, label: '1×', color: MUTED },
                   ],
                 }),
               ]
             : [
                 rowHeader('SLO', 1, h),
-                locked('burn-rate', 'col-span-12', 'Error budget burn rate', 'slo-dashboards', h),
+                locked(
+                  'burn-rate',
+                  'col-span-12',
+                  t.dashboard.errorBudgetBurnRate,
+                  'slo-dashboards',
+                  h,
+                ),
               ]),
 
           ...(has(game, 'profiling')
@@ -3782,22 +3917,24 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ]
               : []),
           ...(hasNode('lb')
-            ? [rowHeader('Load Balancer', 1, h), loadBalancer(game, ledger, h)]
+            ? [rowHeader(t.dashboard.loadBalancer, 1, h), loadBalancer(game, ledger, h)]
             : []),
           ...(hasNode('server')
-            ? [rowHeader('App Server', 1, h), appServers(game, ledger, h)]
+            ? [rowHeader(t.dashboard.appServer, 1, h), appServers(game, ledger, h)]
             : []),
           ...(hasNode('database') || hasNode('replica')
-            ? [rowHeader('Database', 1, h), databases(game, ledger, h)]
+            ? [rowHeader(t.dashboard.database, 1, h), databases(game, ledger, h)]
             : []),
           ...(hasNode('cache')
             ? [
-                rowHeader('Cache', 1, h),
-                hits('cache', 'Cache', 'hit ratio · now', 'cache', game, ledger, h),
+                rowHeader(t.dashboard.cache, 1, h),
+                hits('cache', t.dashboard.cache, 'hit ratio · now', 'cache', game, ledger, h),
                 evictions(game, ledger, h),
               ]
             : []),
-          ...(hasNode('queue') ? [rowHeader('Queue', 1, h), queues(game, ledger, h)] : []),
+          ...(hasNode('queue')
+            ? [rowHeader(t.dashboard.queue, 1, h), queues(game, ledger, h)]
+            : []),
           ...(hasNode('cdn')
             ? [
                 rowHeader('CDN', 1, h),
@@ -3818,7 +3955,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
           ...(has(game, 'multi-region')
             ? [
-                rowHeader('Users', 1, h),
+                rowHeader(t.dashboard.users, 1, h),
                 usersTable(game, ledger, region, h),
                 ...(has(game, 'rum') ? [deviceTable(ledger, h)] : []),
               ]
@@ -3826,12 +3963,12 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
           ...(game.sandbox
             ? []
-            : [rowHeader('Company', 3, h), ...companyPanels(model, ledger, rows, h)]),
+            : [rowHeader(t.dashboard.company, 3, h), ...companyPanels(model, ledger, rows, h)]),
           ...(game.incident === null && game.postmortems.length === 0
             ? []
             : [
                 rowHeader(
-                  'Incidents',
+                  t.dashboard.incidents,
                   game.postmortems.some(
                     (postmortem) => postmortem.id === model.board.dashboard.postmortem,
                   )
@@ -3859,7 +3996,7 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           // The panels run past the window: a keyboard player tabs here and scrolls the last rows (15).
           h.Tabindex(0),
           h.Role('region'),
-          h.AriaLabel('Dashboard, scroll for the Company and Incidents rows'),
+          h.AriaLabel(t.dashboard.dashboardScrollForTheCompanyAnd),
           h.Class(
             cn(
               'min-h-0 flex-1',

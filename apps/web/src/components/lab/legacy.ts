@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BookCopy,
@@ -11,7 +12,7 @@ import {
   Upload,
   X,
 } from 'lucide'
-import { COMPONENTS, ERAS, EXITS, RESEARCH } from '@quorum/simulation/catalog'
+import { COMPONENTS } from '@quorum/simulation/catalog'
 import { exitOffers } from '@quorum/simulation/exit'
 import { keepSlots, playbookSlots } from '@quorum/simulation/founder'
 import { refundOf } from '@quorum/simulation/lookups'
@@ -47,12 +48,14 @@ const footer = (children: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
   h.div([h.Class('flex justify-end gap-2 border-t border-hairline bg-nested px-5 py-3')], children)
 
 export const exitPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const ledger = ledgerOf(model)
   const value = valuationOf(game, ledger)
   const offers = exitOffers(game, ledger)
   return shell(
-    'Exit',
+    t.legacy.exit,
     [],
     [
       h.div(
@@ -61,10 +64,10 @@ export const exitPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           stats(
             'grid-cols-4 narrow:grid-cols-2',
             [
-              stat('Valuation', money(value.valuation), h),
-              stat('Rule of 40', value.ruleOf40.toFixed(0), h),
-              stat('Equity', `${Math.round(game.equity * 100)}%`, h),
-              stat('Legacy ×', legacyMultiplier(game.founding).toFixed(2), h),
+              stat(t.legacy.valuation, money(value.valuation), h),
+              stat(t.legacy.ruleOf40, value.ruleOf40.toFixed(0), h),
+              stat(t.legacy.equity, `${Math.round(game.equity * 100)}%`, h),
+              stat(t.legacy.legacy, legacyMultiplier(game.founding).toFixed(2), h),
             ],
             h,
           ),
@@ -79,7 +82,7 @@ export const exitPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     [
                       h.span(
                         [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
-                        [EXITS[offer.id].name],
+                        [t.catalog.exits[offer.id].name],
                       ),
                       h.span(
                         [
@@ -90,13 +93,13 @@ export const exitPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                             ),
                           ),
                         ],
-                        [`${money(offer.payout)} payout · ×${offer.multiplier.toFixed(1)}`],
+                        [t.legacy.payout(money(offer.payout), offer.multiplier.toFixed(1))],
                       ),
                     ],
                   ),
                   button(
                     { onClick: Message.ExitTaken({ exit: offer.id }), size: 'lg' },
-                    [`Take · ${offer.legacy} Legacy`],
+                    [t.legacy.takeLegacy(offer.legacy)],
                     h,
                   ),
                 ],
@@ -167,13 +170,15 @@ export const snapshotSvg = (
 }
 
 export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const exited = model.board.exited
   if (!exited) return h.empty
   const row = exited.row
   const slots = keepSlots(model.founder)
   const kept = model.founder.keep
   return shell(
-    EXITS[row.exit].name,
+    t.catalog.exits[row.exit].name,
     [],
     [
       h.div(
@@ -190,15 +195,15 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 cn(FIGURE, 'text-[calc(30px*var(--type-scale))] font-semibold tracking-[-0.035em]'),
               ),
             ],
-            [`+${row.legacy} Legacy`],
+            [t.legacy.legacy2(row.legacy)],
           ),
           stats(
             'grid-cols-4 narrow:grid-cols-2',
             [
-              stat('Payout', money(row.payout), h),
-              stat('Peak users', compact(row.peak), h),
-              stat('Era', ERAS[row.stage]?.name ?? '', h),
-              stat('Played', clock(row.time), h),
+              stat(t.legacy.payout2, money(row.payout), h),
+              stat(t.legacy.peakUsers, compact(row.peak), h),
+              stat(t.legacy.era, t.catalog.eras[row.stage]?.name ?? '', h),
+              stat(t.legacy.played, clock(row.time), h),
             ],
             h,
           ),
@@ -206,7 +211,7 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ? h.div(
                 [h.Class('flex w-full flex-col gap-2')],
                 [
-                  h.span([h.Class(EYEBROW)], [`Keep research · ${kept.length}/${slots}`]),
+                  h.span([h.Class(EYEBROW)], [t.legacy.keepResearch(kept.length, slots)]),
                   h.div(
                     [h.Class('flex flex-wrap gap-1.5')],
                     exited.researched.map((id) =>
@@ -217,7 +222,7 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                           variant: kept.includes(id) ? 'default' : 'outline',
                           attributes: [h.Key(id)],
                         },
-                        RESEARCH[id].name,
+                        t.catalog.research[id].name,
                         h,
                       ),
                     ),
@@ -231,10 +236,10 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           button(
             { onClick: Message.MenuChosen({ menu: 'legacy' }), variant: 'outline', size: 'lg' },
-            'Legacy shop',
+            t.legacy.legacyShop,
             h,
           ),
-          button({ onClick: Message.TitleOpened(), size: 'lg' }, 'Next company', h),
+          button({ onClick: Message.TitleOpened(), size: 'lg' }, t.legacy.nextCompany, h),
         ],
         h,
       ),
@@ -246,12 +251,16 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /** The return from time away (15 "Offline return"). */
 export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const away = model.board.away
   if (!away) return h.empty
   const hours = away.away / 3_600
   const capped = away.seconds < away.away
   return shell(
-    `Away ${hours >= 1 ? `${hours.toFixed(1)} h` : `${Math.round(away.away / 60)} min`}`,
+    t.legacy.away(
+      hours >= 1 ? t.legacy.h(hours.toFixed(1)) : t.legacy.min(Math.round(away.away / 60)),
+    ),
     [],
     [
       h.div(
@@ -260,28 +269,33 @@ export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           stats(
             'grid-cols-4 narrow:grid-cols-2',
             [
-              stat('Users', `${compact(away.usersBefore)} → ${compact(away.usersAfter)}`, h),
-              stat('Cash', `${away.cash >= 0 ? '+' : ''}${money(away.cash)}`, h),
-              stat('Studies', `${away.studied.length}`, h),
-              stat('Dev Hours', `+${compact(away.devHours)}`, h),
+              stat(t.legacy.users, `${compact(away.usersBefore)} → ${compact(away.usersAfter)}`, h),
+              stat(t.legacy.cash, `${away.cash >= 0 ? '+' : ''}${money(away.cash)}`, h),
+              stat(t.legacy.studies, `${away.studied.length}`, h),
+              stat(t.legacy.devHours, `+${compact(away.devHours)}`, h),
             ],
             h,
           ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(12.5px*var(--type-scale))] text-muted-foreground'))],
             [
-              `Peak ${Math.round(away.peak * 100)}% load${away.peakNode ? ` on ${away.peakNode}` : ''} at ${String(away.peakHour).padStart(2, '0')}:00${capped ? ` · capped at ${Math.round(away.seconds / 3_600)} h` : ''}`,
+              t.legacy.peakLoadAt00(
+                Math.round(away.peak * 100),
+                away.peakNode ? t.legacy.on(away.peakNode) : '',
+                String(away.peakHour).padStart(2, '0'),
+                capped ? t.legacy.cappedAtH(Math.round(away.seconds / 3_600)) : '',
+              ),
             ],
           ),
           away.lost
             ? h.span(
                 [h.Class('text-[calc(12.5px*var(--type-scale))] text-warn')],
-                ['Users left at peak. Add capacity before you go.'],
+                [t.legacy.usersLeftAtPeakAddCapacity],
               )
             : h.empty,
         ],
       ),
-      footer([button({ onClick: Message.AwayClosed(), size: 'lg' }, 'Continue', h)], h),
+      footer([button({ onClick: Message.AwayClosed(), size: 'lg' }, t.legacy.continueText, h)], h),
     ],
     'max-w-[620px]',
     h,
@@ -289,8 +303,9 @@ export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 /** Shown while Nodes are shift-selected: save them as a Playbook. */
-export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html =>
-  offCompany(model)
+export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return offCompany(model)
     ? h.empty
     : model.board.selection.length === 0
       ? h.empty
@@ -302,15 +317,15 @@ export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html =>
             ),
           ],
           [
-            h.span([h.Class(FIGURE)], [`${model.board.selection.length} selected`]),
+            h.span([h.Class(FIGURE)], [t.legacy.selected(model.board.selection.length)]),
             ...(
               [
-                [Message.NodesCopied(), Copy, 'Copy (Ctrl+C)'],
-                [Message.NodesDuplicated(), CopyPlus, 'Duplicate (Ctrl+D)'],
-                [Message.NodesBoxed(), SquareDashed, 'Box the Nodes'],
-                [Message.SellAsked(), Trash2, 'Sell (Del)'],
-                [Message.PlaybookSaved(), BookCopy, 'Save as Playbook'],
-                [Message.SelectionCleared(), X, 'Clear selection (Esc)'],
+                [Message.NodesCopied(), Copy, t.legacy.copyCtrlC],
+                [Message.NodesDuplicated(), CopyPlus, t.legacy.duplicateCtrlD],
+                [Message.NodesBoxed(), SquareDashed, t.legacy.boxTheNodes],
+                [Message.SellAsked(), Trash2, t.legacy.sellDel],
+                [Message.PlaybookSaved(), BookCopy, t.legacy.saveAsPlaybook],
+                [Message.SelectionCleared(), X, t.legacy.clearSelectionEsc],
               ] as const
             ).map(([onClick, glyph, label]) =>
               button(
@@ -326,9 +341,12 @@ export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html =>
             ),
           ],
         )
+}
 
 /** Asks before Nodes are sold: the sale waits for Enter or the button. */
 export const sellBar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const ids = model.board.confirmSell
   if (!ids) return h.empty
   const refund = model.board.game.nodes
@@ -345,21 +363,30 @@ export const sellBar = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.span(
         [],
         [
-          `Sell ${ids.length === 1 ? '1 Node' : `${ids.length} Nodes`}${refund > 0 ? ` for ${money(refund)}` : ''}?`,
+          t.legacy.sell(
+            ids.length === 1 ? t.legacy.n1Node : t.legacy.nodes(ids.length),
+            refund > 0 ? t.legacy.forText(money(refund)) : '',
+          ),
         ],
       ),
       button(
         { onClick: Message.SellConfirmed(), size: 'sm', variant: 'destructive' },
-        [icon(h, Trash2, 'size-3.5'), 'Sell'],
+        [icon(h, Trash2, 'size-3.5'), t.legacy.sell2],
         h,
       ),
-      button({ onClick: Message.SellDismissed(), size: 'sm', variant: 'ghost' }, 'Cancel', h),
+      button(
+        { onClick: Message.SellDismissed(), size: 'sm', variant: 'ghost' },
+        t.legacy.cancel,
+        h,
+      ),
     ],
   )
 }
 
 /** Shown while a Playbook follows the pointer. */
 export const stampBar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const playbook = stampedPlaybook(model)
   return playbook
     ? h.div(
@@ -369,15 +396,17 @@ export const stampBar = (model: Model, h: HtmlBuilder<Message>): Html => {
             'enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface px-3.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
           ),
         ],
-        [icon(h, Stamp, 'size-3.5 text-primary-strong'), `Click to place ${playbook.name} · Esc`],
+        [icon(h, Stamp, 'size-3.5 text-primary-strong'), t.legacy.clickToPlaceEsc(playbook.name)],
       )
     : h.empty
 }
 
 export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const founder = model.founder
   return shell(
-    'Playbooks',
+    t.legacy.playbooks,
     [
       h.span(
         [h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground'))],
@@ -385,7 +414,7 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       button(
         { onClick: Message.PlaybookImportAsked(), variant: 'outline', size: 'sm' },
-        [icon(h, Upload, 'size-3.5'), 'Import'],
+        [icon(h, Upload, 'size-3.5'), t.legacy.importText],
         h,
       ),
     ],
@@ -399,7 +428,7 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   h.Key('empty'),
                   h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground'),
                 ],
-                ['Shift-click or shift-drag Nodes, then Save Playbook.'],
+                [t.legacy.shiftClickOrShiftDragNodes],
               ),
             ]
           : founder.playbooks.map((playbook, index) =>
@@ -420,11 +449,11 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                         cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-muted-foreground'),
                       ),
                     ],
-                    [`${playbook.nodes.length} Nodes`],
+                    [t.legacy.nodes(playbook.nodes.length)],
                   ),
                   button(
                     { onClick: Message.PlaybookChosen({ index }), size: 'sm' },
-                    [icon(h, Plus, 'size-3.5'), 'Place'],
+                    [icon(h, Plus, 'size-3.5'), t.legacy.place],
                     h,
                   ),
                   button(
@@ -432,7 +461,7 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                       onClick: Message.PlaybookExported({ index }),
                       variant: 'ghost',
                       size: 'icon-sm',
-                      attributes: [h.AriaLabel('Copy'), h.Title('Copy as text')],
+                      attributes: [h.AriaLabel(t.legacy.copy), h.Title(t.legacy.copyAsText)],
                     },
                     icon(h, Clipboard, 'size-3.5'),
                     h,
@@ -442,7 +471,7 @@ export const playbooksPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                       onClick: Message.PlaybookDeleted({ index }),
                       variant: 'ghost',
                       size: 'icon-sm',
-                      attributes: [h.AriaLabel('Delete'), h.Title('Delete')],
+                      attributes: [h.AriaLabel(t.legacy.deleteText), h.Title(t.legacy.deleteText)],
                     },
                     icon(h, Trash2, 'size-3.5'),
                     h,

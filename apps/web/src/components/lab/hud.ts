@@ -1,3 +1,4 @@
+import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -34,10 +35,8 @@ import {
 import {
   OPEN_REGION_PRICE,
   FAILURE_YIELD,
-  POOLS,
   REGIONS,
   REGION_INFO,
-  RESEARCH,
   researchList,
   type InsightPool,
 } from '@quorum/simulation/catalog'
@@ -175,32 +174,21 @@ const stat = (
   )
 
 /** What Insight is, how it is earned and spent, and how much a pool keeps. */
-const INSIGHT_HELP: ReadonlyArray<readonly [string, string]> = [
-  [
-    'Pools',
-    'Insight pays for Research. Each request kind fills its own pool. Failed and slow requests also fill the Failure pool.',
-  ],
-  [
-    'Earn',
-    `Analytics samples the Nodes it links to. A pool earns with the square root of its samples, so a new request kind earns more than more of the same traffic. A failed sample earns ${FAILURE_YIELD}× Failure Insight.`,
-  ],
-  [
-    'Spend',
-    'Each Research item costs Insight from one or more pools. A Study takes it while it runs. The pool that is lowest sets the pace.',
-  ],
-  [
-    'Keep',
-    'A pool holds at most its rate × the Analytics retention window. A longer window costs more Storage.',
-  ],
+const insightHelpOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
+  [t.hud.pools, t.hud.insightPaysForResearchEachRequest],
+  [t.hud.earn, t.hud.analyticsSamplesTheNodesItLinks(FAILURE_YIELD)],
+  [t.hud.spend, t.hud.eachResearchItemCostsInsightFrom],
+  [t.hud.keep, t.hud.aPoolHoldsAtMostIts],
 ]
 
 /** What Insight is, in a dialog to the right of the card; below it on a phone. */
-const insightHelp = (h: HtmlBuilder<Message>): Html =>
-  h.div(
+const insightHelp = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Key('insight-help'),
       h.Role('dialog'),
-      h.AriaLabel('About Insight'),
+      h.AriaLabel(t.hud.aboutInsight),
       h.Class(
         cn(
           'enter-pop absolute top-0 left-[calc(100%+8px)] z-30 flex w-[288px] flex-col gap-2.5 p-3.5 compact:top-[calc(100%+6px)] compact:left-0 compact:w-full',
@@ -212,12 +200,15 @@ const insightHelp = (h: HtmlBuilder<Message>): Html =>
       h.div(
         [h.Class('flex items-center justify-between')],
         [
-          h.span([h.Class('text-[calc(13px*var(--type-scale))] font-semibold')], ['About Insight']),
+          h.span(
+            [h.Class('text-[calc(13px*var(--type-scale))] font-semibold')],
+            [t.hud.aboutInsight],
+          ),
           h.button(
             [
               h.Type('button'),
-              h.AriaLabel('Close'),
-              h.Title('Close (Esc)'),
+              h.AriaLabel(t.hud.close),
+              h.Title(t.hud.closeEsc),
               h.OnClick(Message.InsightHelpToggled()),
               h.Class(
                 'grid size-6 place-items-center rounded-md text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
@@ -229,7 +220,7 @@ const insightHelp = (h: HtmlBuilder<Message>): Html =>
       ),
       h.dl(
         [h.Class('flex flex-col gap-2.5')],
-        INSIGHT_HELP.map(([term, text]) =>
+        insightHelpOf(t).map(([term, text]) =>
           h.div(
             [h.Key(term), h.Class('flex flex-col gap-0.5')],
             [
@@ -244,6 +235,7 @@ const insightHelp = (h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+}
 
 /** One pool: its icon and name, then what it holds and what it earns. */
 const poolRow = (
@@ -253,8 +245,9 @@ const poolRow = (
   inStudy: boolean,
   limiting: boolean,
   h: HtmlBuilder<Message>,
-): Html =>
-  h.div(
+): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Key(pool),
       h.Class(
@@ -269,7 +262,7 @@ const poolRow = (
         [h.Class('inline-flex'), h.Style({ color: poolColor(pool) })],
         [icon(h, POOL_ICONS[pool], 'size-3.5 shrink-0')],
       ),
-      h.span([h.Class('min-w-0 flex-1 truncate')], [POOLS[pool].label]),
+      h.span([h.Class('min-w-0 flex-1 truncate')], [t.catalog.pools[pool].label]),
       h.span([h.Class(cn(FIGURE, limiting && 'text-danger'))], [compact(held)]),
       h.span(
         [
@@ -281,10 +274,11 @@ const poolRow = (
             ),
           ),
         ],
-        [`+${perSecond.toFixed(1)}/s`],
+        [t.hud.s(perSecond.toFixed(1))],
       ),
     ],
   )
+}
 
 /**
  * Insight, in its own card: the running Study and its progress, then a row for
@@ -292,6 +286,8 @@ const poolRow = (
  * how they fill, in the card.
  */
 const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const running = game.studies[0]
   const recipe = running ? simRecipe(game, running.id) : {}
@@ -303,7 +299,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
   return h.section(
     [
       h.Key('insight'),
-      h.AriaLabel('Insight'),
+      h.AriaLabel(t.hud.insight),
       h.Class(
         cn(
           'enter-pop relative flex flex-col gap-2 p-2.5 compact:pointer-events-auto compact:p-2',
@@ -318,7 +314,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
           h.button(
             [
               h.Type('button'),
-              h.Title(stall ? `Research (R). ${stallReason(stall)}` : 'Research (R)'),
+              h.Title(stall ? t.hud.researchR(stallReason(stall)) : t.hud.researchR2),
               h.OnClick(
                 Message.PanelOpened({ panel: model.panel === 'research' ? 'none' : 'research' }),
               ),
@@ -337,7 +333,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
                     ),
                   ),
                 ],
-                [running ? RESEARCH[running.id].name : 'Idle'],
+                [running ? t.catalog.research[running.id].name : t.hud.idle],
               ),
               running
                 ? h.span(
@@ -363,8 +359,8 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
           h.button(
             [
               h.Type('button'),
-              h.Title('About Insight'),
-              h.AriaLabel('About Insight'),
+              h.Title(t.hud.aboutInsight),
+              h.AriaLabel(t.hud.aboutInsight),
               h.AriaExpanded(model.board.insightHelp),
               h.OnClick(Message.InsightHelpToggled()),
               h.Class(
@@ -413,6 +409,8 @@ const percent = (share: number): string => `${(Math.floor(share * 10_000) / 100)
 
 /** Availability over the week against the Era's SLO; the error budget left with SLO dashboards. */
 const slo = (game: Board['game'], h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const budget = budgetOf(game)
   const left = Math.max(0, budget.left)
   return stat(
@@ -421,12 +419,15 @@ const slo = (game: Board['game'], h: HtmlBuilder<Message>): Html => {
     percent(budget.availability),
     has(game, 'slo-dashboards')
       ? budget.left > 0
-        ? `${Math.round(left * 100)}% left`
+        ? t.hud.left(Math.round(left * 100))
         : 'spent'
       : `/ ${Number((budget.slo * 100).toFixed(2))}%`,
     budget.left > 0.5 ? 'ok' : budget.left > 0 ? 'warn' : 'danger',
     h,
-    `Availability this week against ${percent(budget.slo)}. The error budget: ${budget.left > 0 ? `${Math.round(left * 100)}% left` : 'spent'}.`,
+    t.hud.availabilityThisWeekAgainstTheError(
+      percent(budget.slo),
+      budget.left > 0 ? t.hud.left(Math.round(left * 100)) : 'spent',
+    ),
   )
 }
 
@@ -434,16 +435,19 @@ const slo = (game: Board['game'], h: HtmlBuilder<Message>): Html => {
 const TOOLBAR_ROOM = 'compact:min-h-9 compact:pr-[var(--toolbar-w)]'
 
 const funding = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
-  const era = eraOf(game)
-  const next = nextEra(game)
+  const era = localized(eraOf(game), eraWords(t, game))
+  const nextWords = t.catalog.eras[game.stage + 1]
+  const next = nextEra(game) && nextWords ? localized(nextEra(game)!, nextWords) : undefined
   const share = next ? Math.min(1, game.users / era.raiseAt) : 1
   const ready = canRaise(game)
   const clock = clockOf(game.time)
   return h.div(
     [
       h.Class('flex flex-col gap-1.5 px-2.5 pt-1.5 pb-2 compact:pb-1'),
-      h.Title(next ? `${next.name} round at ${compact(era.raiseAt)} users` : era.name),
+      h.Title(next ? t.hud.roundAtUsers(next.name, compact(era.raiseAt)) : era.name),
     ],
     [
       h.div(
@@ -455,7 +459,7 @@ const funding = (model: Model, h: HtmlBuilder<Message>): Html => {
               variant: 'ghost',
               size: 'icon-sm',
               className: '-ml-1.5 text-muted-foreground',
-              attributes: [h.AriaLabel('Menu (Esc)'), h.Title('Menu (Esc)')],
+              attributes: [h.AriaLabel(t.hud.menuEsc), h.Title(t.hud.menuEsc)],
             },
             icon(h, Menu, 'size-4'),
             h,
@@ -472,10 +476,14 @@ const funding = (model: Model, h: HtmlBuilder<Message>): Html => {
                   'ml-auto text-[calc(10.5px*var(--type-scale))] text-muted-foreground compact:hidden',
                 ),
               ),
-              h.Title('Calendar: one second is one minute'),
+              h.Title(t.hud.calendarOneSecondIsOneMinute),
             ],
             [
-              `D${clock.day} ${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`,
+              t.hud.d(
+                clock.day,
+                String(clock.hour).padStart(2, '0'),
+                String(clock.minute).padStart(2, '0'),
+              ),
             ],
           ),
         ],
@@ -491,7 +499,7 @@ const funding = (model: Model, h: HtmlBuilder<Message>): Html => {
             },
             [
               icon(h, Rocket, 'size-3.5'),
-              game.stage === PRE_IPO_STAGE ? 'IPO' : `${next.name} offer`,
+              game.stage === PRE_IPO_STAGE ? t.hud.iPO : t.hud.offer(next.name),
             ],
             h,
           )
@@ -502,6 +510,8 @@ const funding = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /** What the Team builds now: the top of the backlog, and how fast. Opens the Team panel. */
 const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const item = game.backlog[0]
   const rate = devHoursRate(game, ledger) * 60
@@ -513,7 +523,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
     [
       h.Key('building'),
       h.Type('button'),
-      h.Title('Team (T)'),
+      h.Title(t.hud.teamT),
       h.OnClick(Message.PanelOpened({ panel: model.panel === 'team' ? 'none' : 'team' })),
       h.Class(
         cn(
@@ -536,7 +546,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
                 ),
               ),
             ],
-            [item ? itemName(item) : 'Idle'],
+            [item ? itemName(item) : t.hud.idle],
           ),
           due !== null
             ? h.span(
@@ -549,7 +559,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
                     ),
                   ),
                 ],
-                [late > 0 ? 'Overdue' : `Due ${mmss(due)}`],
+                [late > 0 ? t.hud.overdue : t.hud.due(mmss(due))],
               )
             : ready > 0
               ? h.span(
@@ -558,7 +568,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
                       cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-primary-strong'),
                     ),
                   ],
-                  [`${ready} to deploy`],
+                  [t.hud.toDeploy(ready)],
                 )
               : h.span(
                   [
@@ -566,7 +576,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
                       cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-muted-foreground'),
                     ),
                   ],
-                  [`${rate < 10 ? rate.toFixed(1) : Math.round(rate)} DH/min`],
+                  [t.hud.dHMin(rate < 10 ? rate.toFixed(1) : Math.round(rate))],
                 ),
         ],
       ),
@@ -576,6 +586,8 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
 }
 
 export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const income = has(game, 'stripe') ? ledger.revenue : 0
   const net = income - ledger.burn
@@ -596,9 +608,9 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   const errorTitle = has(game, 'logs')
     ? Object.entries(ledger.errors)
         .filter(([, value]) => value > 0.005)
-        .map(([cause, value]) => `${cause} ${rate(value)}/s`)
-        .join(' · ') || 'No errors'
-    : 'Research Structured logs to see causes'
+        .map(([cause, value]) => t.hud.s2(cause, rate(value)))
+        .join(' · ') || t.hud.noErrors
+    : t.hud.researchStructuredLogsToSeeCauses
 
   const header = h.header(
     [
@@ -611,7 +623,7 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
         [h.Class(`flex flex-col divide-y divide-hairline ${WELL} ${CHIPS}`)],
         [
           stat(
-            'Cash',
+            t.hud.cash,
             Wallet,
             money(game.cash),
             cashNote,
@@ -624,13 +636,13 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             short || game.bridge ? Message.PanelOpened({ panel: 'dashboard' }) : undefined,
           ),
           stat(
-            'Users',
+            t.hud.users,
             Users,
             compact(game.users),
             trend === 0 ? '' : `${trend > 0 ? '▲' : '▼'} ${compact(Math.abs(trend))}`,
             trend >= 0 ? 'ok' : 'danger',
             h,
-            'Why users leave',
+            t.hud.whyUsersLeave,
             'cursor-pointer rounded-lg hover:bg-muted',
             Message.PanelOpened({ panel: model.panel === 'churn' ? 'none' : 'churn' }),
           ),
@@ -641,17 +653,17 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             `/ ${target.toFixed(2)}`,
             game.apdex >= target ? 'ok' : 'danger',
             h,
-            `Apdex over the last hour: users grow above ${target.toFixed(2)} and leave below it`,
+            t.hud.apdexOverTheLastHourUsers(target.toFixed(2)),
           ),
           shown(model, 'errors')
             ? stat(
-                'Errors',
+                t.hud.errors,
                 TriangleAlert,
                 `${errors.toFixed(errors >= 10 ? 0 : 1)}%`,
                 '',
                 errors < 1 ? 'ok' : errors < 5 ? 'warn' : 'danger',
                 h,
-                `Errors: ${errorTitle}`,
+                t.hud.errors2(errorTitle),
                 cn('enter-pop rounded-lg', glowing(model, 'errors') && 'cue-glow'),
               )
             : h.empty,
@@ -670,7 +682,7 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
               )
             : h.empty,
           stat(
-            percentiles ? 'p99' : 'Latency',
+            percentiles ? 'p99' : t.hud.latency,
             Timer,
             ms(percentiles ? ledger.p99 : ledger.latency),
             percentiles ? `μ ${ms(ledger.latency)}` : '',
@@ -734,6 +746,8 @@ const line = (name: string, value: string, tone: Tone, h: HtmlBuilder<Message>, 
 
 /** The IPO checklist (10 "Era 6"): every item at once opens the IPO. */
 const checklist = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const items = checklistOf(game, ledger)
   const drillReady = has(game, 'dr-drills') && !game.incident && !(game.drill && !game.drill.done)
@@ -753,7 +767,7 @@ const checklist = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
                   className: 'w-full',
                   attributes: [h.Disabled(!drillReady)],
                 },
-                [icon(h, DatabaseZap, 'size-3.5'), 'Run DR drill'],
+                [icon(h, DatabaseZap, 'size-3.5'), t.hud.runDRDrill],
                 h,
               ),
             ],
@@ -763,7 +777,7 @@ const checklist = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
   )
 }
 
-const LEVELS = ['Low', 'Mid', 'High'] as const
+const levelsOf = (t: Messages) => [t.hud.low, t.hud.mid, t.hud.high] as const
 
 /** A guidance picker: three levels, open on a quarter's first day. */
 const guidance = (
@@ -773,8 +787,9 @@ const guidance = (
   pick: (level: number) => Message,
   open: boolean,
   h: HtmlBuilder<Message>,
-): Html =>
-  h.div(
+): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Key(label),
       h.Class('flex h-7 items-center gap-1 px-2.5 text-[calc(11.5px*var(--type-scale))]'),
@@ -785,7 +800,7 @@ const guidance = (
         h.button(
           [
             h.Type('button'),
-            h.Title(`${LEVELS[level]}: ${value}%`),
+            h.Title(`${levelsOf(t)[level]}: ${value}%`),
             h.Disabled(!open && level !== chosen),
             h.AriaPressed(level === chosen ? 'true' : 'false'),
             h.OnClick(pick(level)),
@@ -802,9 +817,12 @@ const guidance = (
       ),
     ],
   )
+}
 
 /** The Public quarter (10 "Era 7"): days left, guidance, and the market's verdict. */
 const quarterly = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const quarter = game.quarter
   if (!quarter) return h.empty
@@ -815,9 +833,9 @@ const quarterly = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
   return h.div(
     [h.Key('quarter'), h.Class(`flex flex-col py-1 ${WELL} compact:hidden`)],
     [
-      line(`Quarter ${quarter.index}`, `day ${day} of 7`, 'plain', h),
+      line(t.hud.quarter(quarter.index), t.hud.dayOf7(day), 'plain', h),
       guidance(
-        'Growth',
+        t.hud.growth,
         GUIDANCE_GROWTH,
         quarter.growth,
         (level) => Message.GuidanceChosen({ growth: level, margin: quarter.margin }),
@@ -825,7 +843,7 @@ const quarterly = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
         h,
       ),
       guidance(
-        'Margin',
+        t.hud.margin,
         GUIDANCE_MARGIN,
         quarter.margin,
         (level) => Message.GuidanceChosen({ growth: quarter.growth, margin: level }),
@@ -833,7 +851,7 @@ const quarterly = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
         h,
       ),
       line(
-        'So far',
+        t.hud.soFar,
         `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}% · ${marginOf(ledger).toFixed(0)}%`,
         growth >= (GUIDANCE_GROWTH[quarter.growth] ?? 0) &&
           marginOf(ledger) >= (GUIDANCE_MARGIN[quarter.margin] ?? 0)
@@ -841,11 +859,16 @@ const quarterly = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
           : 'warn',
         h,
       ),
-      line('Valuation', `${money(value.valuation)} · ×${value.multiple.toFixed(1)}`, 'plain', h),
+      line(
+        t.hud.valuation,
+        `${money(value.valuation)} · ×${value.multiple.toFixed(1)}`,
+        'plain',
+        h,
+      ),
       quarter.last
         ? line(
-            `Q${quarter.index - 1}`,
-            quarter.last.beat ? `Beat · streak ${quarter.streak}` : 'Missed',
+            t.hud.q(quarter.index - 1),
+            quarter.last.beat ? t.hud.beatStreak(quarter.streak) : t.hud.missed,
             quarter.last.beat ? 'ok' : 'danger',
             h,
           )
@@ -913,14 +936,16 @@ const divider = (h: HtmlBuilder<Message>): Html =>
 
 /** The Exit button, shown while an Exit is on the table; its badge is the best Legacy. */
 const exitButton = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const legacy = exitLegacy(model)
   if (legacy === null) return h.empty
   return h.button(
     [
       h.Key('exit'),
       h.Type('button'),
-      h.Title(`Exit · up to ${legacy} Legacy`),
-      h.AriaLabel('Exit'),
+      h.Title(t.hud.exitUpToLegacy(legacy)),
+      h.AriaLabel(t.hud.exit),
       h.AriaPressed(model.panel === 'exit' ? 'true' : 'false'),
       h.OnClick(Message.PanelOpened({ panel: model.panel === 'exit' ? 'none' : 'exit' })),
       h.Class(
@@ -932,7 +957,7 @@ const exitButton = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
     [
       icon(h, DoorOpen, 'size-[18px]'),
-      h.span([h.Class('compact:hidden max-2xl:hidden')], ['Exit']),
+      h.span([h.Class('compact:hidden max-2xl:hidden')], [t.hud.exit]),
       legacy > 0
         ? h.span(
             [
@@ -951,18 +976,18 @@ const exitButton = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const MORE: Record<MoreItem, Readonly<{ label: string; glyph: IconNode }>> = {
-  exit: { label: 'Exit', glyph: DoorOpen },
-  playbooks: { label: 'Playbooks', glyph: BookCopy },
-  dashboard: { label: 'Dashboard', glyph: ChartLine },
-  help: { label: 'How to play', glyph: CircleHelp },
-  glossary: { label: 'Glossary', glyph: BookOpen },
-  undo: { label: 'Undo', glyph: Undo2 },
-  redo: { label: 'Redo', glyph: Redo2 },
-  tidy: { label: 'Tidy by zone', glyph: LayoutGrid },
-  fit: { label: 'Fit the board', glyph: Scan },
-  fullscreen: { label: 'Fullscreen', glyph: Expand },
-}
+const moreOf = (t: Messages): Record<MoreItem, Readonly<{ label: string; glyph: IconNode }>> => ({
+  exit: { label: t.hud.exit, glyph: DoorOpen },
+  playbooks: { label: t.hud.playbooks, glyph: BookCopy },
+  dashboard: { label: t.hud.dashboard, glyph: ChartLine },
+  help: { label: t.hud.howToPlay, glyph: CircleHelp },
+  glossary: { label: t.hud.glossary, glyph: BookOpen },
+  undo: { label: t.hud.undo, glyph: Undo2 },
+  redo: { label: t.hud.redo, glyph: Redo2 },
+  tidy: { label: t.hud.tidyByZone, glyph: LayoutGrid },
+  fit: { label: t.hud.fitTheBoard, glyph: Scan },
+  fullscreen: { label: t.hud.fullscreen, glyph: Expand },
+})
 
 const moreItems = (model: Model): ReadonlyArray<MoreItem> => [
   ...(exitLegacy(model) === null ? [] : (['exit'] as const)),
@@ -977,6 +1002,8 @@ const moreItems = (model: Model): ReadonlyArray<MoreItem> => [
 ]
 
 const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const legacy = exitLegacy(model)
   // A dot when something inside asks for attention: Legacy on offer, or a cue on a hidden control.
   const calling = (legacy ?? 0) > 0 || glowing(model, 'undo') || glowing(model, 'glossary')
@@ -988,7 +1015,7 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
     viewInputs: {
       items: moreItems(model),
       className: 'hidden compact:block',
-      ariaLabel: 'More',
+      ariaLabel: t.hud.more,
       buttonClassName: cn(tool(model.moreMenu.isOpen), 'relative size-9'),
       buttonContent: h.span(
         [h.Class('contents')],
@@ -1022,12 +1049,12 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
         content: h.span(
           [h.Class('flex w-full items-center gap-2.5')],
           [
-            icon(h, MORE[item].glyph, 'size-[18px] text-muted-foreground'),
-            h.span([h.Class('flex-1')], [MORE[item].label]),
+            icon(h, moreOf(t)[item].glyph, 'size-[18px] text-muted-foreground'),
+            h.span([h.Class('flex-1')], [moreOf(t)[item].label]),
             item === 'exit' && (legacy ?? 0) > 0
               ? h.span(
                   [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] text-ok'))],
-                  [`+${legacy} Legacy`],
+                  [t.hud.legacy(legacy)],
                 )
               : h.empty,
           ],
@@ -1038,6 +1065,8 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const affordable =
     game.studies.length > 0
@@ -1057,8 +1086,8 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.Key('research'),
               h.Type('button'),
-              h.Title('Research (R)'),
-              h.AriaLabel('Research'),
+              h.Title(t.hud.researchR2),
+              h.AriaLabel(t.hud.research),
               h.AriaPressed(model.panel === 'research' ? 'true' : 'false'),
               h.OnClick(
                 Message.PanelOpened({ panel: model.panel === 'research' ? 'none' : 'research' }),
@@ -1074,7 +1103,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
             [
               icon(h, FlaskConical, 'size-[18px]'),
-              h.span([h.Class('compact:hidden max-2xl:hidden')], ['Research']),
+              h.span([h.Class('compact:hidden max-2xl:hidden')], [t.hud.research]),
               affordable > 0
                 ? h.span(
                     [
@@ -1098,8 +1127,8 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.Key('team'),
               h.Type('button'),
-              h.Title('Team (T)'),
-              h.AriaLabel('Team'),
+              h.Title(t.hud.teamT),
+              h.AriaLabel(t.hud.team),
               h.AriaPressed(model.panel === 'team' ? 'true' : 'false'),
               h.OnClick(Message.PanelOpened({ panel: model.panel === 'team' ? 'none' : 'team' })),
               h.Class(
@@ -1113,7 +1142,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
             [
               icon(h, UsersRound, 'size-[18px]'),
-              h.span([h.Class('compact:hidden max-2xl:hidden')], ['Team']),
+              h.span([h.Class('compact:hidden max-2xl:hidden')], [t.hud.team]),
               game.backlog.length === 0
                 ? h.span(
                     [
@@ -1131,7 +1160,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
           !playbooksShown(model)
             ? h.empty
             : toolButton(
-                'Playbooks (P)',
+                t.hud.playbooksP,
                 BookCopy,
                 Message.PanelOpened({ panel: model.panel === 'playbooks' ? 'none' : 'playbooks' }),
                 model.panel === 'playbooks',
@@ -1139,7 +1168,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
           has(model.board.game, 'metrics')
             ? toolButton(
-                'Dashboard (D)',
+                t.hud.dashboardD,
                 ChartLine,
                 Message.PanelOpened({ panel: model.panel === 'dashboard' ? 'none' : 'dashboard' }),
                 model.panel === 'dashboard',
@@ -1147,7 +1176,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
               )
             : h.empty,
           toolButton(
-            'How to play (H)',
+            t.hud.howToPlayH,
             CircleHelp,
             Message.PanelOpened({ panel: model.panel === 'help' ? 'none' : 'help' }),
             model.panel === 'help',
@@ -1155,7 +1184,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           shown(model, 'glossary')
             ? toolButton(
-                'Glossary (G)',
+                t.hud.glossaryG,
                 BookOpen,
                 model.panel === 'glossary'
                   ? Message.PanelClosed()
@@ -1170,7 +1199,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             ? [
                 divider(h),
                 historyButton(
-                  'Undo (Z)',
+                  t.hud.undoZ,
                   Undo2,
                   Message.UndoChosen(),
                   undoAvailable(model.board),
@@ -1178,7 +1207,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
                   glowing(model, 'undo'),
                 ),
                 historyButton(
-                  'Redo (Shift+Z)',
+                  t.hud.redoShiftZ,
                   Redo2,
                   Message.RedoChosen(),
                   redoAvailable(model.board),
@@ -1191,7 +1220,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       divider(h),
       toolButton(
-        model.board.clock.paused ? 'Resume (Space)' : 'Pause (Space)',
+        model.board.clock.paused ? t.hud.resumeSpace : t.hud.pauseSpace,
         model.board.clock.paused ? Play : Pause,
         Message.PauseToggled(),
         model.board.clock.paused,
@@ -1201,8 +1230,8 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.Key('speed'),
           h.Type('button'),
-          h.Title('Speed (S)'),
-          h.AriaLabel('Speed (S)'),
+          h.Title(t.hud.speedS),
+          h.AriaLabel(t.hud.speedS),
           h.OnClick(Message.SpeedCycled()),
           h.Class(
             cn(
@@ -1217,9 +1246,9 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
       desktopOnly(
         [
           divider(h),
-          toolButton('Tidy by zone (Shift+T)', LayoutGrid, Message.BoardTidied(), false, h),
-          toolButton('Fit the board (Shift+F)', Scan, Message.BoardFitted(), false, h),
-          toolButton('Fullscreen (F)', Expand, Message.FullscreenToggled(), false, h),
+          toolButton(t.hud.tidyByZoneShiftT, LayoutGrid, Message.BoardTidied(), false, h),
+          toolButton(t.hud.fitTheBoardShiftF, Scan, Message.BoardFitted(), false, h),
+          toolButton(t.hud.fullscreenF, Expand, Message.FullscreenToggled(), false, h),
         ],
         h,
       ),
@@ -1231,8 +1260,9 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
 const pill = `flex max-w-[480px] compact:max-w-none items-center gap-2.5 rounded-xl bg-surface px-3 py-2 text-[calc(12.5px*var(--type-scale))] shadow-card`
 
 /** Settling while the Design settles, then what the change did, with Undo. */
-const undoButton = (danger: boolean, h: HtmlBuilder<Message>): Html =>
-  button(
+const undoButton = (danger: boolean, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return button(
     {
       onClick: Message.UndoChosen(),
       variant: danger ? 'destructive' : 'outline',
@@ -1241,17 +1271,20 @@ const undoButton = (danger: boolean, h: HtmlBuilder<Message>): Html =>
       attributes: [
         h.Key('undo'),
         h.DataAttribute('exit', 'notice'),
-        h.Title('Undo (Z)'),
-        h.AriaLabel('Undo'),
+        h.Title(t.hud.undoZ),
+        h.AriaLabel(t.hud.undo),
       ],
     },
     icon(h, Undo2, 'size-3.5'),
     h,
   )
+}
 
 /** One pill from the first change to the delta: Settling morphs into the result,
  *  and the pill leaves when the delta expires. */
 export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: string): Html => {
+  const t = copy(h)
+
   const undo = undoAvailable(model.board)
   const delta = model.board.delta
   if (!model.board.change && !delta) return h.empty
@@ -1268,7 +1301,7 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
             [h.Class('text-muted-foreground')],
             [
               model.board.change.count > 1
-                ? `${model.board.change.count} changes`
+                ? t.hud.changes(model.board.change.count)
                 : model.board.change.label,
             ],
           ),
@@ -1295,7 +1328,7 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
                   h.Key('stable'),
                   h.Class('enter-badge text-[calc(11.5px*var(--type-scale))] font-medium text-ok'),
                 ],
-                ['Stable'],
+                [t.hud.stable],
               )
             : h.empty,
         ],
@@ -1316,20 +1349,22 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
  * tabs; with Multiple regions, each closed one offers to open, at its price.
  */
 export const regionTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const open = openRegions(game)
   if (open.length < 2 && !(has(game, 'multi-region') && regional(game))) return h.empty
   return h.nav(
     [
       h.Key('regions'),
-      h.AriaLabel('Regions'),
+      h.AriaLabel(t.hud.regions),
       h.Class(
         'pointer-events-auto flex items-center gap-0.5 rounded-xl bg-surface p-1 shadow-card',
       ),
     ],
     REGIONS.map((region) => {
       const isOpen = open.includes(region)
-      const info = REGION_INFO[region]
+      const info = localized(REGION_INFO[region], t.catalog.regionInfo[region])
       return h.button(
         [
           h.Key(region),
@@ -1337,7 +1372,10 @@ export const regionTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.Title(
             isOpen
               ? info.name
-              : `Open ${info.name}: ${money(game.sandbox ? 0 : OPEN_REGION_PRICE * eraOf(game).costIndex)}`,
+              : t.hud.open(
+                  info.name,
+                  money(game.sandbox ? 0 : OPEN_REGION_PRICE * eraOf(game).costIndex),
+                ),
           ),
           h.AriaPressed(model.board.region === region ? 'true' : 'false'),
           h.OnClick(isOpen ? Message.RegionPicked({ region }) : Message.RegionOpened({ region })),
@@ -1384,7 +1422,7 @@ export const regionTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ),
               ],
-              ['Mirror'],
+              [t.hud.mirror],
             ),
           ]
         : [],

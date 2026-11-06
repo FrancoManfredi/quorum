@@ -1,3 +1,4 @@
+import { copy, localized, nodeLabelIn, nodeTitle } from '@/i18n/messages.ts'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChevronRight, Minus, Plus } from 'lucide'
@@ -13,7 +14,6 @@ import {
   type RuntimeId,
   DB_ENGINES,
 } from '@quorum/simulation/catalog'
-import { nodeLabel, nodeLabelOf } from '@quorum/simulation/labels'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
 import { frameworkReady, has, ramOf, runtimeReady } from '@quorum/simulation/lookups'
@@ -198,7 +198,9 @@ export const stack = (
   h: HtmlBuilder<Message>,
   reviewingRuntime: RuntimeId | null,
 ): ReadonlyArray<Html> => {
-  const runtime = RUNTIMES[node.runtime]
+  const t = copy(h)
+
+  const runtime = localized(RUNTIMES[node.runtime], t.catalog.runtimes[node.runtime])
   const frameworks = FRAMEWORK_IDS.filter(
     (id) => id === 'none' || FRAMEWORKS[id].language === runtime.language,
   )
@@ -211,7 +213,7 @@ export const stack = (
   )
   return [
     section(
-      'Runtime',
+      t.inspectorShared.runtime,
       [
         segmented(
           'grid-cols-2',
@@ -223,19 +225,19 @@ export const stack = (
               Message.OptionChosen({ nodeId: node.id, option: { kind: 'runtime', id } }),
               [
                 stackLogo(RUNTIMES[id].language, 'size-4', h),
-                h.span([h.Class('truncate')], [RUNTIMES[id].name]),
+                h.span([h.Class('truncate')], [t.catalog.runtimes[id].name]),
                 ...(reviewingRuntime === id
                   ? [
                       h.span(
                         [h.Class('text-[calc(10px*var(--type-scale))] text-group-compute')],
-                        ['Proposed'],
+                        [t.inspectorShared.proposed],
                       ),
                     ]
                   : []),
               ],
               runtimeReady(game, id)
-                ? RUNTIMES[id].blurb
-                : `Research ${RUNTIMES[id].name} to unlock`,
+                ? t.catalog.runtimes[id].blurb
+                : t.inspectorShared.researchToUnlock(t.catalog.runtimes[id].name),
               h,
               Message.OptionPreviewed({ nodeId: node.id, option: { kind: 'runtime', id } }),
             ),
@@ -253,13 +255,13 @@ export const stack = (
     ...(runtime.pool
       ? [
           section(
-            'Pool size',
+            t.inspectorShared.poolSize,
             [
               h.div(
                 [h.Class('flex items-center gap-2')],
                 [
                   smallButton(
-                    'Fewer workers',
+                    t.inspectorShared.fewerWorkers,
                     Minus,
                     Message.WorkersChosen({
                       nodeId: node.id,
@@ -273,7 +275,7 @@ export const stack = (
                     [String(node.workers)],
                   ),
                   smallButton(
-                    'More workers',
+                    t.inspectorShared.moreWorkers,
                     Plus,
                     Message.WorkersChosen({
                       nodeId: node.id,
@@ -288,7 +290,7 @@ export const stack = (
                         `ml-auto ${FIGURE} text-[calc(11.5px*var(--type-scale))] ${node.workers > fit ? 'text-danger' : 'text-muted-foreground'}`,
                       ),
                     ],
-                    [`RAM fits ${fit}`],
+                    [t.inspectorShared.rAMFits(fit)],
                   ),
                 ],
               ),
@@ -298,7 +300,7 @@ export const stack = (
         ]
       : []),
     section(
-      'Framework',
+      t.inspectorShared.framework,
       [
         segmented(
           'grid-cols-2',
@@ -310,11 +312,11 @@ export const stack = (
               Message.OptionChosen({ nodeId: node.id, option: { kind: 'framework', id } }),
               [
                 id === 'none' ? h.empty : stackLogo(id, 'size-4', h),
-                h.span([h.Class('truncate')], [FRAMEWORKS[id].name]),
+                h.span([h.Class('truncate')], [t.catalog.frameworks[id].name]),
               ],
               frameworkReady(game, id)
-                ? FRAMEWORKS[id].blurb
-                : `Research ${FRAMEWORKS[id].name} to unlock`,
+                ? t.catalog.frameworks[id].blurb
+                : t.inspectorShared.researchToUnlock(t.catalog.frameworks[id].name),
               h,
               Message.OptionPreviewed({ nodeId: node.id, option: { kind: 'framework', id } }),
             ),
@@ -323,7 +325,7 @@ export const stack = (
         ),
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [FRAMEWORKS[node.framework].blurb],
+          [t.catalog.frameworks[node.framework].blurb],
         ),
       ],
       h,
@@ -331,12 +333,12 @@ export const stack = (
     ...(node.runtime === 'php_fpm'
       ? [
           section(
-            'Process manager',
+            t.inspectorShared.processManager,
             [
               picker(
                 'pm',
                 (Object.keys(PM_MODES) as ReadonlyArray<PmMode>).map(
-                  (pm) => [pm, PM_MODES[pm].label] as const,
+                  (pm) => [pm, t.catalog.pmModes[pm].label] as const,
                 ),
                 node.pm,
                 (pm) => Message.PmChosen({ nodeId: node.id, pm }),
@@ -350,13 +352,13 @@ export const stack = (
     ...(RUNTIMES[node.runtime].persistent
       ? [
           section(
-            'Recycle workers',
+            t.inspectorShared.recycleWorkers,
             [
               picker(
                 'recycle',
                 [
-                  [false, 'Off'],
-                  [true, 'Every few hours'],
+                  [false, t.inspectorShared.off],
+                  [true, t.inspectorShared.everyFewHours],
                 ],
                 node.recycle,
                 (recycle) => Message.RecycleChosen({ nodeId: node.id, recycle }),
@@ -364,9 +366,7 @@ export const stack = (
               ),
               h.p(
                 [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-                [
-                  'pm.max_requests and worker killers restart each process now and then. A leak never builds, and each restart runs cold.',
-                ],
+                [t.inspectorShared.pmMaxRequestsAndWorkerKillers],
               ),
             ],
             h,
@@ -376,12 +376,12 @@ export const stack = (
     ...(has(game, 'gzip')
       ? [
           section(
-            'Compression',
+            t.inspectorShared.compression,
             [
               picker(
                 'gzip',
                 [
-                  [false, 'Off'],
+                  [false, t.inspectorShared.off],
                   [true, 'Gzip'],
                 ],
                 node.compress,
@@ -401,12 +401,13 @@ export const serviceOwnership = (
   game: Game,
   node: GameNode,
   h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> =>
-  game.services.length < 2
+): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return game.services.length < 2
     ? []
     : [
         section(
-          'Service',
+          t.inspectorShared.service,
           [
             picker(
               'service',
@@ -420,6 +421,7 @@ export const serviceOwnership = (
           true,
         ),
       ]
+}
 
 /** A Node's name as a button that reveals it on the Board. */
 export const nodeLink = (
@@ -428,12 +430,14 @@ export const nodeLink = (
   h: HtmlBuilder<Message>,
   className = '',
 ): Html => {
-  const label = nodeLabelOf(game, node)
+  const t = copy(h)
+
+  const label = nodeLabelIn(t, game, node)
   return h.button(
     [
       h.Type('button'),
       h.OnClick(Message.RevealNode({ nodeId: node.id })),
-      h.AriaLabel(`Open ${nodeLabel(game, node)}`),
+      h.AriaLabel(`Open ${nodeTitle(t, game, node)}`),
       h.Class(
         cn(
           'flex min-w-0 items-center gap-1 text-left text-[12px] font-medium text-muted-foreground hover:text-foreground',
@@ -487,9 +491,10 @@ export const KIND_SHORT: Record<RequestKind, string> = {
 }
 
 /** A Database's or Read Replica's engine (07 "Variants"). */
-export const engine = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Engine',
+export const engine = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorShared.engine,
     [
       picker(
         'db-engine',
@@ -503,30 +508,34 @@ export const engine = (node: GameNode, h: HtmlBuilder<Message>): Html =>
         'grid-cols-2',
       ),
       caption(
-        `${DB_ENGINES[node.dbEngine].connections} connections: Postgres forks a process for each, MySQL gives it a thread.`,
+        t.inspectorShared.connectionsPostgresForksAProcessFor(
+          DB_ENGINES[node.dbEngine].connections,
+        ),
         h,
       ),
     ],
     h,
   )
+}
 
 /** A store that can replicate across the open regions. */
 export const spreading = (
   game: Game,
   node: GameNode,
   h: HtmlBuilder<Message>,
-): ReadonlyArray<Html> =>
-  openRegions(game).length < 2
+): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return openRegions(game).length < 2
     ? []
     : [
         section(
-          'Regions',
+          t.inspectorShared.regions,
           [
             picker(
               'spread',
               [
-                [false, 'One'],
-                [true, 'Spread'],
+                [false, t.inspectorShared.one],
+                [true, t.inspectorShared.spread],
               ],
               node.spread,
               (spread) => Message.SpreadChosen({ nodeId: node.id, spread }),
@@ -536,16 +545,18 @@ export const spreading = (
           h,
         ),
       ]
+}
 
-export const splitting = (node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Hot keys',
+export const splitting = (node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorShared.hotKeys,
     [
       picker(
         'split',
         [
-          [false, 'One shard'],
-          [true, 'Split'],
+          [false, t.inspectorShared.oneShard],
+          [true, t.inspectorShared.split],
         ],
         node.split,
         (split) => Message.SplitChosen({ nodeId: node.id, split }),
@@ -554,6 +565,7 @@ export const splitting = (node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 /** The runtime a pinned Tradeoff card asks this Node's Stack to show, if any. */
 export const pinnedRuntime = (model: Model, node: GameNode) =>

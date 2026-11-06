@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { AUTH_CHECK_MS, GATEWAY_AUTH_MS, GATEWAY_LIMITS } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
@@ -7,14 +8,16 @@ import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section } from './shared.ts'
 
 /** An API Gateway's rate limit, in requests per second; Off lets every request through. */
-const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Rate limit',
+const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorGw.rateLimit,
     [
       picker(
         'rate-limit',
         GATEWAY_LIMITS.map(
-          (limit) => [limit, limit === 0 ? 'Off' : `${compact(limit)}/s`] as const,
+          (limit) =>
+            [limit, limit === 0 ? t.inspectorGw.off : t.inspectorGw.s(compact(limit))] as const,
         ),
         node.rateLimit,
         (rateLimit) => Message.RateLimitChosen({ nodeId: node.id, rateLimit }),
@@ -22,15 +25,15 @@ const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         node.rateLimit > 0
-          ? `Past ${compact(node.rateLimit)} requests a second, they fail as throttled.`
-          : 'No limit: every request goes on to the services.',
+          ? t.inspectorGw.pastRequestsASecondTheyFail(compact(node.rateLimit))
+          : t.inspectorGw.noLimitEveryRequestGoesOn,
         h,
       ),
       picker(
         'gateway-bucket',
         [
-          [false, 'Flat cap'],
-          [true, 'Token bucket'],
+          [false, t.inspectorGw.flatCap],
+          [true, t.inspectorGw.tokenBucket],
         ],
         node.burst > 0,
         (bucket) => Message.GatewayBucketChosen({ nodeId: node.id, bucket }),
@@ -39,15 +42,15 @@ const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       ),
       caption(
         node.burst > 0
-          ? `A burst of up to ${compact(node.burst)} requests passes whole, and the average holds at the limit.`
-          : 'Every Step over the limit is throttled at once. Research Rate limiting for a token bucket.',
+          ? t.inspectorGw.aBurstOfUpToRequests(compact(node.burst))
+          : t.inspectorGw.everyStepOverTheLimitIs,
         h,
       ),
       picker(
         'gateway-auth',
         [
-          [false, 'Services check'],
-          [true, 'Auth at the edge'],
+          [false, t.inspectorGw.servicesCheck],
+          [true, t.inspectorGw.authAtTheEdge],
         ],
         node.authEdge,
         (authEdge) => Message.GatewayOptionsChosen({ nodeId: node.id, authEdge }),
@@ -62,20 +65,18 @@ const gateway = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
       picker(
         'gateway-merge',
         [
-          [false, 'Every read goes on'],
-          [true, 'Request coalescing'],
+          [false, t.inspectorGw.everyReadGoesOn],
+          [true, t.inspectorGw.requestCoalescing],
         ],
         node.merge,
         (merge) => Message.GatewayOptionsChosen({ nodeId: node.id, merge }),
         h,
       ),
-      caption(
-        'Identical reads in flight at once become one call. The busier the Gateway, the more it merges, so a spike sends less on.',
-        h,
-      ),
+      caption(t.inspectorGw.identicalReadsInFlightAtOnce, h),
     ],
     h,
   )
+}
 
 export const gwPanel: Panel = {
   body: ({ game, node, h }) => [gateway(game, node, h)],

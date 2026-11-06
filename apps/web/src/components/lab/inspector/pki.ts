@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { CERT_RENEW } from '@quorum/simulation/catalog'
 import { burnOf, certDaysLeft, certDaysOf } from '@quorum/simulation/lookups'
@@ -9,44 +10,40 @@ import { type Panel, caption, section } from './shared.ts'
 
 /** Secrets and Certificates: what is left of the certificate, and who renews it (05). */
 const secrets = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const left = certDaysLeft(game)
   const life = certDaysOf(game)
   return [
     section(
-      'Certificate',
+      t.inspectorPki.certificate,
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [
-            `A certificate lasts ${life} calendar days, and the sidecar renews it at ${Math.round(life * CERT_RENEW)}. Renewal is automatic while this Node runs.`,
-          ],
+          [t.inspectorPki.aCertificateLastsCalendarDaysAnd(life, Math.round(life * CERT_RENEW))],
         ),
         caption(
           left === null
-            ? 'The first Step with a manager issues it.'
+            ? t.inspectorPki.theFirstStepWithAManager
             : left <= 0
-              ? 'Expired: every browser refuses the site until one is live again, or you press Renew.'
-              : `${Math.max(0, Math.round(left))} days left.`,
+              ? t.inspectorPki.expiredEveryBrowserRefusesTheSite
+              : t.inspectorPki.daysLeft(Math.max(0, Math.round(left))),
           h,
         ),
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [
-            'Sell it or leave it down past the expiry date and the certificate lapses: every Node that terminates TLS fails until one runs again. From Series C certificates last 45 days, so manual renewal gets harder.',
-          ],
+          [t.inspectorPki.sellItOrLeaveItDown],
         ),
       ],
       h,
       true,
     ),
     section(
-      'Secrets',
+      t.inspectorPki.secrets,
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [
-            'The keys live here, not in the code. Secrets management research keeps them off a phishing page too.',
-          ],
+          [t.inspectorPki.theKeysLiveHereNotIn],
         ),
       ],
       h,
@@ -56,22 +53,24 @@ const secrets = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
 
 export const pkiPanel: Panel = {
   stats: ({ game, node, h }) => {
+    const t = copy(h)
+
     const left = certDaysLeft(game)
     const life = certDaysOf(game)
     return [
-      row('Lifetime', `${life} d`, 'plain', h),
+      row(t.inspectorPki.lifetime, t.inspectorPki.d(life), 'plain', h),
       row(
-        'Expires',
+        t.inspectorPki.expires,
         left === null
-          ? 'not issued yet'
+          ? t.inspectorPki.notIssuedYet
           : left <= 0
-            ? 'expired'
-            : `in ${Math.max(0, Math.round(left))} d`,
+            ? t.inspectorPki.expired
+            : t.inspectorPki.inD(Math.max(0, Math.round(left))),
         left === null ? 'warn' : left <= 1 ? 'danger' : left < 14 ? 'warn' : 'ok',
         h,
       ),
-      row('Renews at', `${Math.round(life * CERT_RENEW)} d`, 'plain', h),
-      row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      row(t.inspectorPki.renewsAt, t.inspectorPki.d(Math.round(life * CERT_RENEW)), 'plain', h),
+      row(t.inspectorPki.burn, t.inspectorPki.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
   body: ({ game, node, h }) => [...secrets(game, node, h)],

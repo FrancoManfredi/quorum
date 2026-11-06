@@ -1,3 +1,4 @@
+import { copy, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   COMPONENTS,
@@ -11,7 +12,6 @@ import {
   type DataPatternId,
   type RegionId,
 } from '@quorum/simulation/catalog'
-import { nodeLabel } from '@quorum/simulation/labels'
 import { eraOf, has } from '@quorum/simulation/lookups'
 import {
   applyCost,
@@ -42,37 +42,37 @@ import { shell } from './panels.ts'
    the region on the board. It opens from the region tabs.
    ========================================================================== */
 
-const FIELD_LABEL: Record<Managed, string> = {
+const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
   size: 'Size',
-  family: 'Family',
-  runtime: 'Runtime',
-  framework: 'Framework',
-  workers: 'Workers',
-  compress: 'Compression',
-  recycle: 'Recycle workers',
-  sampleRate: 'Sample rate',
-  retention: 'Retention',
-  policy: 'Policy',
-  checkEvery: 'Health check',
+  family: t.mirror.family,
+  runtime: t.mirror.runtime,
+  framework: t.mirror.framework,
+  workers: t.mirror.workers,
+  compress: t.mirror.compression,
+  recycle: t.mirror.recycleWorkers,
+  sampleRate: t.mirror.sampleRate,
+  retention: t.mirror.retention,
+  policy: t.mirror.policy,
+  checkEvery: t.mirror.healthCheck,
   deepCheck: 'Deep check',
   ttl: 'TTL',
-  pm: 'Process manager',
-  engine: 'Engine',
-  dbEngine: 'Database engine',
-  iops: 'Volume',
-  shards: 'Shards',
-  storageClass: 'Storage class',
-  keep: 'Retention',
-  lifecycle: 'Lifecycle',
+  pm: t.mirror.processManager,
+  engine: t.mirror.engine,
+  dbEngine: t.mirror.databaseEngine,
+  iops: t.mirror.volume,
+  shards: t.mirror.shards,
+  storageClass: t.mirror.storageClass,
+  keep: t.mirror.retention,
+  lifecycle: t.mirror.lifecycle,
   cacheStrategy: 'Cache strategy',
   refresh: 'Search refresh',
   sticky: 'Sticky sessions',
   slowStart: 'Slow start',
-  purge: 'Purge on deploy',
+  purge: t.mirror.purgeOnDeploy,
   cacheKey: 'Cache key',
   earlyExpiry: 'Early expiration',
   swr: 'Stale-while-revalidate',
-  shardKey: 'Shard key',
+  shardKey: t.mirror.shardKey,
   sync: 'Synchronous replica',
   searchVariant: 'Search product',
   searchShards: 'Search shards',
@@ -80,57 +80,59 @@ const FIELD_LABEL: Record<Managed, string> = {
   heap: 'Search heap',
   storeVariant: 'Storage product',
   mode: 'Pool mode',
-  dlq: 'Dead-letter queue',
+  dlq: t.mirror.deadLetterQueue,
   attempts: 'Attempts',
-  maxLength: 'Max length',
-  prefetch: 'Prefetch',
-  coalesce: 'Stampede protection',
-  warming: 'Cache warming',
-  paranoia: 'Paranoia',
-  zone: 'Zone',
-  standby: 'Standby',
-  signal: 'Signal',
+  maxLength: t.mirror.maxLength,
+  prefetch: t.mirror.prefetch,
+  coalesce: t.mirror.stampedeProtection,
+  warming: t.mirror.cacheWarming,
+  paranoia: t.mirror.paranoia,
+  zone: t.mirror.zone,
+  standby: t.mirror.standby,
+  signal: t.mirror.signal,
   target: 'Target',
   minCopies: 'Min copies',
   maxCopies: 'Max copies',
   gpu: 'GPU',
-  collector: 'Collector',
+  collector: t.mirror.collector,
   gogc: 'GOGC',
-  shed: 'Load shedding',
-  ryw: 'Read-your-writes',
+  shed: t.mirror.loadShedding,
+  ryw: t.mirror.readYourWrites,
   n: 'N',
   r: 'R',
   w: 'W',
-  backup: 'Backups',
-  fanout: 'Fan-out',
-  split: 'Key splitting',
-}
+  backup: t.mirror.backups,
+  fanout: t.mirror.fanOut,
+  split: t.mirror.keySplitting,
+})
 
-const PATTERN_LABEL: Record<DataPatternId, string> = {
-  replica: 'Read replica',
-  primary: 'Own primary',
-  replicate: 'Replicate',
-  call: 'Call source',
-}
+const patternLabelOf = (t: Messages): Record<DataPatternId, string> => ({
+  replica: t.mirror.readReplica,
+  primary: t.mirror.ownPrimary,
+  replicate: t.mirror.replicate,
+  call: t.mirror.callSource,
+})
 
 /** Each tool's documented default workflow: how a plan finds hand changes, and what Apply waits for. */
-const TOOL_FACTS: Record<(typeof IAC_TOOLS)[number], ReadonlyArray<readonly [string, string]>> = {
+const toolFactsOf = (
+  t: Messages,
+): Record<(typeof IAC_TOOLS)[number], ReadonlyArray<readonly [string, string]>> => ({
   terraform: [
-    ['Plan', 'Refreshes live state'],
-    ['Apply', `${MIRROR_TIME} min + refresh`],
-    ['Drift', 'Every plan'],
+    [t.mirror.plan, t.mirror.refreshesLiveState],
+    [t.mirror.apply2, t.mirror.minRefresh(MIRROR_TIME)],
+    [t.mirror.drift, t.mirror.everyPlan],
   ],
   pulumi: [
-    ['Plan', 'Recorded state'],
-    ['Apply', `${MIRROR_TIME} min`],
-    ['Drift', 'pulumi refresh'],
+    [t.mirror.plan, t.mirror.recordedState],
+    [t.mirror.apply2, t.mirror.min(MIRROR_TIME)],
+    [t.mirror.drift, 'pulumi refresh'],
   ],
   alchemy: [
-    ['Plan', 'Recorded state'],
-    ['Apply', `${MIRROR_TIME} min`],
-    ['Drift', 'alchemy drift, repair'],
+    [t.mirror.plan, t.mirror.recordedState],
+    [t.mirror.apply2, t.mirror.min(MIRROR_TIME)],
+    [t.mirror.drift, t.mirror.alchemyDriftRepair],
   ],
-}
+})
 
 const valueText = (field: Managed, value: unknown): string =>
   field === 'size' && typeof value === 'number'
@@ -145,17 +147,17 @@ const valueText = (field: Managed, value: unknown): string =>
  * A Node's name, with its region when it is not in the Mirror's: a Link to the
  * source shows where it goes. A Node the plan has not built yet is named after its source.
  */
-const nodeName = (game: Game, id: string, mirror: Mirror): string => {
+const nodeName = (t: Messages, game: Game, id: string, mirror: Mirror): string => {
   if (id.startsWith('+')) {
     const source = game.nodes.find((entry) => entry.id === id.slice(1))
     if (!source) return 'Node'
     return source.type === 'database' && mirror.data[source.id] === 'replica'
       ? COMPONENTS.replica.name
-      : nodeLabel(game, source)
+      : nodeTitle(t, game, source)
   }
   const node = game.nodes.find((entry) => entry.id === id)
   if (!node) return 'Node'
-  const name = nodeLabel(game, node)
+  const name = nodeTitle(t, game, node)
   return node.region === mirror.region ? name : `${name} ${REGION_INFO[node.region].short}`
 }
 
@@ -200,6 +202,8 @@ const heading = (text: string, h: HtmlBuilder<Message>): Html =>
 /* ---------- the IaC tool and GitOps ---------- */
 
 const toolCards = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const current = game.iac?.tool ?? null
   const left = switchLeft(game)
   return h.section(
@@ -207,8 +211,8 @@ const toolCards = (game: Game, h: HtmlBuilder<Message>): Html => {
     [
       heading(
         left > 0 && current
-          ? `IaC tool · moving to ${IAC_TOOL_INFO[current].name} · ${Math.ceil(left)} min`
-          : 'IaC tool',
+          ? t.mirror.iaCToolMovingToMin(IAC_TOOL_INFO[current].name, Math.ceil(left))
+          : t.mirror.iaCTool,
         h,
       ),
       h.div(
@@ -243,7 +247,7 @@ const toolCards = (game: Game, h: HtmlBuilder<Message>): Html => {
                   ),
                 ],
               ),
-              ...TOOL_FACTS[tool].map(([name, value]) =>
+              ...toolFactsOf(t)[tool].map(([name, value]) =>
                 h.span(
                   [
                     h.Key(name),
@@ -263,8 +267,9 @@ const toolCards = (game: Game, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const gitops = (game: Game, h: HtmlBuilder<Message>): Html =>
-  !has(game, 'gitops') || !game.iac
+const gitops = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return !has(game, 'gitops') || !game.iac
     ? h.empty
     : h.section(
         [h.Key('gitops'), h.Class('flex flex-col gap-2')],
@@ -273,9 +278,9 @@ const gitops = (game: Game, h: HtmlBuilder<Message>): Html =>
           segmented(
             'sync',
             [
-              [null, 'Off'],
-              ['all', 'All at once'],
-              ['staged', 'Staged'],
+              [null, t.mirror.off],
+              ['all', t.mirror.allAtOnce],
+              ['staged', t.mirror.staged],
             ] as const,
             game.iac.sync,
             (sync) => Message.SyncModePicked({ sync }),
@@ -283,6 +288,7 @@ const gitops = (game: Game, h: HtmlBuilder<Message>): Html =>
           ),
         ],
       )
+}
 
 /* ---------- the region on the board ---------- */
 
@@ -305,20 +311,22 @@ const changeRow = (
   index: number,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   const [mark, text, keep] = ((): readonly [string, string, Message | null] => {
     switch (change._tag) {
       case 'create':
-        return ['+', COMPONENTS[change.type].name, null]
+        return ['+', t.catalog.components[change.type].name, null]
       case 'remove':
         return [
           '−',
-          `${COMPONENTS[change.type].name}${change.data ? ' · needs confirm' : ''}`,
+          `${t.catalog.components[change.type].name}${change.data ? ' · needs confirm' : ''}`,
           null,
         ]
       case 'set':
         return [
           '~',
-          `${nodeName(game, change.node, mirror)} · ${FIELD_LABEL[change.field]} ${valueText(change.field, change.from)} → ${valueText(change.field, change.to)}`,
+          `${nodeName(t, game, change.node, mirror)} · ${fieldLabelOf(t)[change.field]} ${valueText(change.field, change.from)} → ${valueText(change.field, change.to)}`,
           change.hand && overridable(game)
             ? Message.MirrorOverrideSet({
                 region: mirror.region,
@@ -331,11 +339,14 @@ const changeRow = (
       case 'link':
         return [
           change.add ? '+' : '−',
-          `Link ${nodeName(game, change.from, mirror)} → ${nodeName(game, change.to, mirror)}`,
+          t.mirror.link(
+            nodeName(t, game, change.from, mirror),
+            nodeName(t, game, change.to, mirror),
+          ),
           null,
         ]
       case 'choose':
-        return ['?', `${COMPONENTS[change.type].name} · pick a pattern`, null]
+        return ['?', t.mirror.pickAPattern(t.catalog.components[change.type].name), null]
     }
   })()
   const hand = change._tag !== 'choose' && change.hand
@@ -348,15 +359,17 @@ const changeRow = (
     ],
     [
       h.span([h.Class(cn(FIGURE, hand ? 'text-danger' : 'text-muted-foreground'))], [mark]),
-      h.span([h.Class(cn('truncate', hand && 'text-danger'))], [hand ? `${text} · hand` : text]),
+      h.span([h.Class(cn('truncate', hand && 'text-danger'))], [hand ? t.mirror.hand(text) : text]),
       keep
-        ? button({ onClick: keep, variant: 'ghost', size: 'xs' }, 'Keep as override', h)
+        ? button({ onClick: keep, variant: 'ghost', size: 'xs' }, t.mirror.keepAsOverride, h)
         : h.span([], []),
     ],
   )
 }
 
 const dataChoices = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const sources = game.nodes.filter(
     (node) => node.region === mirror.source && patternsFor(node.type).length > 0,
   )
@@ -364,18 +377,20 @@ const dataChoices = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html 
   return h.div(
     [h.Key('data'), h.Class('flex flex-col gap-1.5')],
     [
-      heading('Writes', h),
+      heading(t.mirror.writes, h),
       ...sources.map((node) =>
         h.div(
           [h.Key(node.id), h.Class('grid grid-cols-[140px_1fr] items-center gap-3')],
           [
             h.span(
               [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
-              [COMPONENTS[node.type].name],
+              [t.catalog.components[node.type].name],
             ),
             segmented(
               node.id,
-              patternsFor(node.type).map((pattern) => [pattern, PATTERN_LABEL[pattern]] as const),
+              patternsFor(node.type).map(
+                (pattern) => [pattern, patternLabelOf(t)[pattern]] as const,
+              ),
               mirror.data[node.id] ?? null,
               (pattern) =>
                 Message.MirrorDataPicked({
@@ -393,6 +408,8 @@ const dataChoices = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html 
 }
 
 const overrides = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const kept = Object.entries(mirror.overrides).flatMap(([nodeId, fields]) =>
     fields.map((field) => [nodeId, field as Managed] as const),
   )
@@ -400,7 +417,7 @@ const overrides = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html =>
   return h.div(
     [h.Key('overrides'), h.Class('flex flex-col gap-1')],
     [
-      heading('Overrides', h),
+      heading(t.mirror.overrides, h),
       ...kept.map(([nodeId, field]) =>
         h.div(
           [
@@ -413,7 +430,7 @@ const overrides = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html =>
             h.span(
               [],
               [
-                `${nodeName(game, nodeId, mirror)} · ${FIELD_LABEL[field]} ${valueText(field, game.nodes.find((node) => node.id === nodeId)?.[field])}`,
+                `${nodeName(t, game, nodeId, mirror)} · ${fieldLabelOf(t)[field]} ${valueText(field, game.nodes.find((node) => node.id === nodeId)?.[field])}`,
               ],
             ),
             button(
@@ -427,7 +444,7 @@ const overrides = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html =>
                 variant: 'ghost',
                 size: 'xs',
               },
-              'Remove',
+              t.mirror.remove,
               h,
             ),
           ],
@@ -448,6 +465,8 @@ const burnAdded = (game: Game, mirror: Mirror): number => {
 }
 
 const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const drift = driftOf(game, mirror)
   const cost = applyCost(game, mirror)
   const burn = drift.changes.length > 0 ? burnAdded(game, mirror) : 0
@@ -462,7 +481,12 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
         [
           h.span(
             [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
-            [`${REGION_INFO[mirror.region].name} · Mirror of ${REGION_INFO[mirror.source].name}`],
+            [
+              t.mirror.mirrorOf(
+                t.catalog.regionInfo[mirror.region].name,
+                t.catalog.regionInfo[mirror.source].name,
+              ),
+            ],
           ),
           h.span(
             [
@@ -485,13 +509,13 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
             [
               h.span(
                 [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
-                ['Computed sizes'],
+                [t.mirror.computedSizes],
               ),
               segmented(
                 'computed',
                 [
-                  [false, 'Off'],
-                  [true, 'Follow users'],
+                  [false, t.mirror.off],
+                  [true, t.mirror.followUsers],
                 ] as const,
                 mirror.computed,
                 (computed) => Message.MirrorComputedSet({ region: mirror.region, computed }),
@@ -516,7 +540,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
               isDisabled: pending || changes.length === 0 || drift.choices > 0,
               size: 'sm',
             },
-            cost > 0 ? `Apply · ${money(cost)}` : 'Apply',
+            cost > 0 ? t.mirror.apply(money(cost)) : t.mirror.apply2,
             h,
           ),
           Math.abs(burn) >= 0.01
@@ -525,7 +549,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
                   h.Key('burn'),
                   h.Class(cn(FIGURE, 'text-[calc(12px*var(--type-scale))] text-muted-foreground')),
                 ],
-                [`Burn ${burn > 0 ? '+' : ''}${money(burn)}/s`],
+                [t.mirror.burnS(burn > 0 ? '+' : '', money(burn))],
               )
             : h.empty,
           drift.data > 0
@@ -536,7 +560,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
                   size: 'sm',
                   variant: 'destructive',
                 },
-                `Apply and remove ${drift.data} data ${drift.data === 1 ? 'Node' : 'Nodes'}`,
+                `Apply and remove ${drift.data} data ${drift.data === 1 ? t.mirror.node : t.mirror.nodes}`,
                 h,
               )
             : h.empty,
@@ -548,7 +572,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
                   size: 'sm',
                   variant: 'outline',
                 },
-                tool.repair ? 'Check drift' : 'Refresh',
+                tool.repair ? t.mirror.checkDrift : t.mirror.refresh,
                 h,
               )
             : h.empty,
@@ -560,7 +584,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
                   size: 'sm',
                   variant: 'outline',
                 },
-                'Repair',
+                t.mirror.repair,
                 h,
               )
             : h.empty,
@@ -571,7 +595,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
               variant: 'ghost',
               className: 'ml-auto',
             },
-            'Stop mirroring',
+            t.mirror.stopMirroring,
             h,
           ),
         ],
@@ -582,6 +606,8 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
 
 /** Regions the region on the board can mirror into, or mirror from when it is empty. */
 const startSection = (game: Game, region: RegionId, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const open = openRegions(game)
   const mirrors = mirrorsOf(game)
   const isSource = (target: RegionId) => mirrors.some((mirror) => mirror.source === target)
@@ -595,14 +621,14 @@ const startSection = (game: Game, region: RegionId, h: HtmlBuilder<Message>): Ht
     [
       heading(
         empty
-          ? `Mirror into ${REGION_INFO[region].name} from`
-          : `Mirror ${REGION_INFO[region].name} into`,
+          ? `Mirror into ${t.catalog.regionInfo[region].name} from`
+          : `Mirror ${t.catalog.regionInfo[region].name} into`,
         h,
       ),
       targets.length === 0
         ? h.span(
             [h.Class('px-1 text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-            ['No region to pick.'],
+            [t.mirror.noRegionToPick],
           )
         : h.div(
             [h.Class('flex flex-wrap gap-2')],
@@ -617,8 +643,8 @@ const startSection = (game: Game, region: RegionId, h: HtmlBuilder<Message>): Ht
                   variant: 'outline',
                 },
                 !empty && !open.includes(other)
-                  ? `${REGION_INFO[other].name} · ${money(price)}`
-                  : REGION_INFO[other].name,
+                  ? `${t.catalog.regionInfo[other].name} · ${money(price)}`
+                  : t.catalog.regionInfo[other].name,
                 h,
               ),
             ),
@@ -628,11 +654,13 @@ const startSection = (game: Game, region: RegionId, h: HtmlBuilder<Message>): Ht
 }
 
 export const mirrorPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const region = model.board.region
   const mirror = mirrorOf(game, region)
   return shell(
-    'Mirror',
+    t.mirror.mirror,
     [],
     [
       h.div(

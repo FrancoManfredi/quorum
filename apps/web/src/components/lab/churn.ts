@@ -1,7 +1,7 @@
+import { copy, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { churnOf, type ChurnFix, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
-import { DEVICE_INFO, KINDS, REGION_INFO, RESEARCH } from '@quorum/simulation/catalog'
-import { nodeLabel } from '@quorum/simulation/labels'
+import { DEVICE_INFO } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Game } from '@quorum/simulation/state'
@@ -20,6 +20,8 @@ import { shell } from './panels.ts'
 
 /** The button that applies a row's fix, or its advice as text. */
 const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   if (fix._tag === 'advice')
     return h.span(
       [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
@@ -35,17 +37,17 @@ const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
               ? 'Mirror into'
               : openRegions(game).includes(fix.region)
                 ? 'Build in'
-                : 'Open'
-          } ${REGION_INFO[fix.region].name}`,
+                : t.churn.open
+          } ${t.catalog.regionInfo[fix.region].name}`,
           Message.ChurnFixTaken({ fix: 'region', target: fix.region }),
         ]
       : fix._tag === 'research'
         ? [
-            `Research ${RESEARCH[fix.research].name}`,
+            `Research ${t.catalog.research[fix.research].name}`,
             Message.ChurnFixTaken({ fix: 'research', target: fix.research }),
           ]
         : [
-            `Show ${shown ? nodeLabel(game, shown) : 'Node'}`,
+            t.churn.show(shown ? nodeTitle(t, game, shown) : t.churn.node),
             Message.ChurnFixTaken({ fix: 'node', target: fix.nodeId }),
           ]
   return button(
@@ -56,11 +58,13 @@ const fixOf = (game: Game, fix: ChurnFix, h: HtmlBuilder<Message>): Html => {
 }
 
 /** The slowest hop and the internet hop per device that a row names, as one line. */
-const detailOf = (game: Game, entry: ChurnRow): string => {
+const detailOf = (t: Messages, game: Game, entry: ChurnRow): string => {
   const hop = entry.hop
   const shown = hop ? game.nodes.find((node) => node.id === hop.nodeId) : undefined
   return [
-    ...(hop ? [`Slowest hop: ${shown ? nodeLabel(game, shown) : 'Node'} adds ${ms(hop.ms)}`] : []),
+    ...(hop
+      ? [`Slowest hop: ${shown ? nodeTitle(t, game, shown) : 'Node'} adds ${ms(hop.ms)}`]
+      : []),
     ...(entry.device
       ? [`${DEVICE_INFO[entry.device.device].name} adds ${ms(entry.device.ms)} over the internet`]
       : []),
@@ -74,7 +78,9 @@ const row = (
   fixed: boolean,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const detail = detailOf(game, entry)
+  const t = copy(h)
+
+  const detail = detailOf(t, game, entry)
   return h.div(
     [h.Key(`${entry.kind}:${entry.cause}`)],
     [
@@ -104,8 +110,9 @@ const rowGrid = (
   widest: number,
   fixed: boolean,
   h: HtmlBuilder<Message>,
-): Html =>
-  h.div(
+): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Class(
         cn(
@@ -117,7 +124,7 @@ const rowGrid = (
     [
       h.span(
         [h.Class('truncate text-[calc(12.5px*var(--type-scale))] font-medium')],
-        [KINDS[entry.kind].label],
+        [t.catalog.kinds[entry.kind].label],
       ),
       h.span(
         [
@@ -154,8 +161,11 @@ const rowGrid = (
       h.div([h.Class('compact:col-span-4')], fixed ? [fixOf(game, entry.fix, h)] : []),
     ],
   )
+}
 
 const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const falling = region.perHour < 0
   const share = region.users > 0 ? (region.perHour / region.users) * 100 : 0
   const widest = region.rows.reduce((most, entry) => Math.max(most, entry.points), 0.001)
@@ -167,11 +177,11 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
         [
           h.span(
             [h.Class('text-[calc(14px*var(--type-scale))] font-semibold')],
-            [REGION_INFO[region.region].name],
+            [t.catalog.regionInfo[region.region].name],
           ),
           h.span(
             [h.Class(cn(FIGURE, 'text-[calc(12.5px*var(--type-scale))]'))],
-            [`${compact(region.users)} users`],
+            [t.churn.users(compact(region.users))],
           ),
           h.span(
             [
@@ -203,7 +213,7 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
                 cn(FIGURE, 'ml-auto text-[calc(12.5px*var(--type-scale))] text-muted-foreground'),
               ),
             ],
-            [`1 day: ${compact(region.inADay)}`],
+            [t.churn.n1Day(compact(region.inADay))],
           ),
         ],
       ),
@@ -228,11 +238,13 @@ const section = (game: Game, region: RegionChurn, h: HtmlBuilder<Message>): Html
 const cache = new WeakMap<Game, ReadonlyArray<RegionChurn>>()
 
 export const churnPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const regions = cache.get(game) ?? churnOf(game, ledgerOf(model))
   cache.set(game, regions)
   return shell(
-    'Why users leave',
+    t.churn.whyUsersLeave,
     [],
     [
       h.div(

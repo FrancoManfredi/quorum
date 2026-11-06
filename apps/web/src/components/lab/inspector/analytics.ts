@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { SAMPLE_RATES } from '@quorum/simulation/catalog'
 import { burnOf } from '@quorum/simulation/lookups'
@@ -7,9 +8,10 @@ import { Message } from '@/game/message.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, choice, section, segmented } from './shared.ts'
 
-const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Sample rate',
+const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorAnalytics.sampleRate,
     [
       segmented(
         'grid-cols-5',
@@ -20,7 +22,7 @@ const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
             true,
             Message.SampleChosen({ nodeId: node.id, sampleRate: value }),
             [h.span([h.Class('w-full text-center')], [`${Math.round(value * 100)}%`])],
-            'More samples: more Insight, more CPU on sampled Nodes, more storage Burn',
+            t.inspectorAnalytics.moreSamplesMoreInsightMoreCPU,
             h,
           ),
         ),
@@ -29,18 +31,21 @@ const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
     ],
     h,
   )
+}
 
 export const analyticsPanel: Panel = {
   stats: ({ game, node, own, h }) => {
+    const t = copy(h)
+
     return [
-      row('Sampling', `${rate(own.inbound)}/s`, 'plain', h),
+      row(t.inspectorAnalytics.sampling, t.inspectorAnalytics.s(rate(own.inbound)), 'plain', h),
       row(
-        'Kept',
-        `${rate(Math.min(own.inbound, own.capacity))} / ${rate(own.capacity)}/s`,
+        t.inspectorAnalytics.kept,
+        t.inspectorAnalytics.s2(rate(Math.min(own.inbound, own.capacity)), rate(own.capacity)),
         own.inbound > own.capacity ? 'warn' : 'plain',
         h,
       ),
-      row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      row(t.inspectorAnalytics.burn, t.inspectorAnalytics.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
   body: ({ game, node, h }) => [sampler(game, node, h)],

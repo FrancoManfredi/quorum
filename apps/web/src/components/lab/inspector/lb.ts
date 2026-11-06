@@ -1,7 +1,7 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   CHECK_INTERVALS,
-  KINDS,
   LB_POLICIES,
   LB_VARIANTS,
   REQUEST_KINDS,
@@ -24,13 +24,15 @@ import {
 } from './shared.ts'
 
 const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const checked = has(game, 'health-checks')
   const policies = Object.entries(LB_POLICIES) as ReadonlyArray<
     readonly [LbPolicy, (typeof LB_POLICIES)[LbPolicy]]
   >
   return [
     section(
-      'Variant',
+      t.inspectorLb.variant,
       [
         picker(
           'lb-variant',
@@ -45,19 +47,19 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
         ),
         caption(
           node.variant === 'l4'
-            ? 'Forwards TCP: ten times the throughput, 0.2 ms, and cheaper. It reads no HTTP, so it cannot route by kind or retry.'
-            : 'Reads HTTP: routes by kind, retries, and checks health. Lower throughput and a longer hop.',
+            ? t.inspectorLb.forwardsTCPTenTimesTheThroughput
+            : t.inspectorLb.readsHTTPRoutesByKindRetries,
           h,
         ),
       ],
       h,
     ),
     section(
-      'Policy',
+      t.inspectorLb.policy,
       [
         picker(
           'policy',
-          policies.map(([policy, entry]) => [policy, entry.label] as const),
+          policies.map(([policy]) => [policy, t.catalog.lbPolicies[policy].label] as const),
           node.policy,
           (policy) => Message.PolicyChosen({ nodeId: node.id, policy }),
           h,
@@ -71,13 +73,13 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
       h,
     ),
     section(
-      'Sessions',
+      t.inspectorLb.sessions,
       [
         picker(
           'sticky',
           [
-            [false, 'Balanced'],
-            [true, 'Sticky'],
+            [false, t.inspectorLb.balanced],
+            [true, t.inspectorLb.sticky],
           ],
           node.sticky,
           (sticky) => Message.StickyChosen({ nodeId: node.id, sticky }),
@@ -86,7 +88,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
         caption(
           node.sticky
             ? 'A user stays on the target it first reached. The oldest copy holds the most users, a target that dies takes its sessions with it, and in-process caches and realtime clients stay warm.'
-            : 'Every request goes where the algorithm sends it.',
+            : t.inspectorLb.everyRequestGoesWhereTheAlgorithm,
           h,
         ),
       ],
@@ -98,8 +100,8 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
         picker(
           'slow-start',
           [
-            [false, 'Off'],
-            [true, 'On'],
+            [false, t.inspectorLb.off],
+            [true, t.inspectorLb.on],
           ],
           node.slowStart,
           (slowStart) => Message.SlowStartChosen({ nodeId: node.id, slowStart }),
@@ -115,11 +117,11 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
       h,
     ),
     section(
-      'Health checks',
+      t.inspectorLb.healthChecks,
       [
         picker(
           'check-every',
-          CHECK_INTERVALS.map((seconds) => [seconds, `${seconds} s`] as const),
+          CHECK_INTERVALS.map((seconds) => [seconds, t.inspectorLb.s(seconds)] as const),
           node.checkEvery,
           (checkEvery) => Message.HealthCheckChosen({ nodeId: node.id, checkEvery }),
           h,
@@ -128,8 +130,8 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
         picker(
           'deep-check',
           [
-            [false, 'Shallow'],
-            [true, 'Deep'],
+            [false, t.inspectorLb.shallow],
+            [true, t.inspectorLb.deep],
           ],
           node.deepCheck,
           (deepCheck) => Message.HealthCheckChosen({ nodeId: node.id, deepCheck }),
@@ -140,7 +142,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
       h,
     ),
     section(
-      'Routes',
+      t.inspectorLb.routes,
       outbound(game, node).map(([link, target]) => {
         const carried = link.kinds ?? REQUEST_KINDS
         const toggled = (kind: RequestKind) => {
@@ -163,7 +165,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
                   next === null || next.length > 0,
                   Message.LinkKindsChosen({ from: node.id, to: link.to, kinds: next }),
                   [h.span([h.Class('w-full truncate text-center')], [KIND_SHORT[kind]])],
-                  KINDS[kind].label,
+                  t.catalog.kinds[kind].label,
                   h,
                 )
               }),

@@ -1,3 +1,4 @@
+import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Check, Sparkles, X } from 'lucide'
 import {
@@ -28,33 +29,33 @@ import { FIGURE, PANEL } from '@quorum/ui/game/bits'
    05's RAM and price. Once an option set is confirmed, its card is one line.
    ========================================================================== */
 
-const KIND_TITLE: Record<TradeoffOption['kind'], string> = {
-  runtime: 'Runtime',
-  framework: 'Framework',
-  family: 'Instance',
-}
+const kindTitleOf = (t: Messages): Record<TradeoffOption['kind'], string> => ({
+  runtime: t.tradeoff.runtime,
+  framework: t.tradeoff.framework,
+  family: t.tradeoff.instance,
+})
 
-const AXIS_LABEL: Record<Axis, string> = {
-  throughput: 'Throughput',
-  tail: 'Tail',
-  memory: 'Memory',
-  velocity: 'Velocity',
-  resilience: 'Resilience',
-  operability: 'Operability',
-}
+const axisLabelOf = (t: Messages): Record<Axis, string> => ({
+  throughput: t.tradeoff.throughput,
+  tail: t.tradeoff.tail,
+  memory: t.tradeoff.memory,
+  velocity: t.tradeoff.velocity,
+  resilience: t.tradeoff.resilience,
+  operability: t.tradeoff.operability,
+})
 
 /** Glossary headings for the anchors the catalog names (packages/simulation/src/catalog/glossary.ts). */
-const TERMS: Readonly<Record<string, string>> = {
-  'process-per-request': 'process per request',
-  'shared-nothing': 'shared nothing',
+const termsOf = (t: Messages): Readonly<Record<string, string>> => ({
+  'process-per-request': t.tradeoff.processPerRequest,
+  'shared-nothing': t.tradeoff.sharedNothing,
   'gil-global-interpreter-lock': 'GIL',
-  'cold-start': 'cold start',
-  'event-loop': 'event loop',
-  'blast-radius': 'blast radius',
-  'vertical-and-horizontal-scaling': 'horizontal scaling',
-  'tech-debt': 'tech debt',
-  'n1-query': 'N+1 query',
-}
+  'cold-start': t.tradeoff.coldStart,
+  'event-loop': t.tradeoff.eventLoop,
+  'blast-radius': t.tradeoff.blastRadius,
+  'vertical-and-horizontal-scaling': t.tradeoff.horizontalScaling,
+  'tech-debt': t.tradeoff.techDebt,
+  'n1-query': t.tradeoff.n1Query,
+})
 
 const nameOf = (option: TradeoffOption): string => {
   switch (option.kind) {
@@ -136,13 +137,14 @@ const polygonOf = (axes: Axes): string =>
       .join(','),
   ).join(' ')
 
-const radar = (now: Axes, next: Axes, h: HtmlBuilder<Message>): Html =>
-  h.svg(
+const radar = (now: Axes, next: Axes, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.svg(
     [
       h.Class('mx-auto block h-[176px] w-[220px] overflow-visible'),
       h.Xmlns('http://www.w3.org/2000/svg'),
       h.ViewBox(`0 22 ${SIZE} 176`),
-      h.AriaLabel('Six axes: now and with this option'),
+      h.AriaLabel(t.tradeoff.sixAxesNowAndWithThis),
     ],
     [
       ...[1, 2, 3, 4, 5].map((ring) =>
@@ -192,11 +194,12 @@ const radar = (now: Axes, next: Axes, h: HtmlBuilder<Message>): Html =>
               ),
             ),
           ],
-          [AXIS_LABEL[axis]],
+          [axisLabelOf(t)[axis]],
         )
       }),
     ],
   )
+}
 
 /* ---------- lines ---------- */
 
@@ -275,12 +278,14 @@ const PLACE =
   'absolute top-[76px] right-[372px] z-20 w-[320px] compact:inset-x-2 compact:top-auto compact:right-2 compact:bottom-[calc(62%+16px)] compact:w-auto short:right-[340px]'
 
 export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const card = model.board.tradeoff
   if (!card || card.nodeId !== model.board.selected) return h.empty
   const node = model.board.game.nodes.find((entry) => entry.id === card.nodeId)
   if (!node) return h.empty
   const current = currentOf(node, card.option)
-  const title = `${KIND_TITLE[card.option.kind]}: ${nameOf(current)} → ${nameOf(card.option)}`
+  const title = `${kindTitleOf(t)[card.option.kind]}: ${nameOf(current)} → ${nameOf(card.option)}`
 
   // Explicit reviews stay expanded even after this option set has been seen.
   if (!card.pinned && model.prefs.seenTradeoffs.includes(card.option.kind))
@@ -333,7 +338,10 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   variant: 'ghost',
                   size: 'icon-sm',
                   className: 'text-muted-foreground',
-                  attributes: [h.AriaLabel('Cancel (Escape)'), h.Title('Cancel (Escape)')],
+                  attributes: [
+                    h.AriaLabel(t.tradeoff.cancelEscape),
+                    h.Title(t.tradeoff.cancelEscape),
+                  ],
                 },
                 icon(h, X, 'size-4'),
                 h,
@@ -346,9 +354,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
       migration && !card.refusal
         ? h.p(
             [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-            [
-              `Migration: ${migrationCost(model.board.game, migration)} DH across all App Servers. Feature work slows and rollout can expose bugs. Manage work and shift traffic in Team after starting.`,
-            ],
+            [t.tradeoff.migrationDHAcrossAllAppServers(migrationCost(model.board.game, migration))],
           )
         : h.empty,
       stack && stack.glossary.length > 0
@@ -364,7 +370,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                     'rounded-md bg-nested px-1.5 py-0.5 text-[calc(11px*var(--type-scale))] text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground',
                   ),
                 ],
-                [TERMS[anchor] ?? anchor],
+                [termsOf(t)[anchor] ?? anchor],
               ),
             ),
           )
@@ -379,9 +385,12 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   isDisabled: card.preview === null || card.refusal !== null,
                   size: 'lg',
                   className: 'flex-1',
-                  attributes: [h.Title('Confirm (Enter)')],
+                  attributes: [h.Title(t.tradeoff.confirmEnter)],
                 },
-                [icon(h, Check, 'size-4'), migration ? 'Start migration' : 'Confirm'],
+                [
+                  icon(h, Check, 'size-4'),
+                  migration ? t.tradeoff.startMigration : t.tradeoff.confirm,
+                ],
                 h,
               ),
               button(
@@ -390,7 +399,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
                   variant: 'outline',
                   size: 'lg',
                 },
-                ['Cancel'],
+                [t.tradeoff.cancel],
                 h,
               ),
             ],

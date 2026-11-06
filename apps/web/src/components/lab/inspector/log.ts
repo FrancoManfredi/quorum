@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   LOG_ACKS,
@@ -23,115 +24,133 @@ const retentionLabel = (seconds: number): string =>
     : `${Math.round(seconds / 60)} h`
 
 /** An Event Stream's partitions, acknowledgements, retention and key (07 "Event Stream"). */
-const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => [
-  section(
-    'Partitions',
-    [
-      picker(
-        'partitions',
-        LOG_PARTITIONS.map((partitions) => [partitions, String(partitions)] as const),
-        node.partitions,
-        (partitions) => Message.LogOptionsChosen({ nodeId: node.id, partitions }),
-        h,
-      ),
-      picker(
-        'keyed',
-        [
-          [true, 'Keyed'],
-          [false, 'Round robin'],
-        ],
-        node.keyed,
-        (keyed) => Message.LogOptionsChosen({ nodeId: node.id, keyed }),
-        h,
-      ),
-      caption(
-        node.keyed
-          ? 'One key keeps an entity in one partition, so its events stay in order. A hot key fills a partition and slows it.'
-          : 'Events spread evenly, and order is lost: a superseded write can land after the one that replaced it.',
-        h,
-      ),
-      caption(
-        `A consumer group reads one consumer per partition, so this stream hands on at most ${compact(LOG_READ_RATE * node.partitions)}/s.`,
-        h,
-      ),
-    ],
-    h,
-    true,
-  ),
-  section(
-    'Durability',
-    [
-      picker(
-        'acks',
-        (Object.entries(LOG_ACKS) as ReadonlyArray<[Acks, (typeof LOG_ACKS)['all']]>).map(
-          ([id, ack]) => [id, ack.name] as const,
+const events = (node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  return [
+    section(
+      t.inspectorLog.partitions,
+      [
+        picker(
+          'partitions',
+          LOG_PARTITIONS.map((partitions) => [partitions, String(partitions)] as const),
+          node.partitions,
+          (partitions) => Message.LogOptionsChosen({ nodeId: node.id, partitions }),
+          h,
         ),
-        node.acks,
-        (acks) => Message.LogOptionsChosen({ nodeId: node.id, acks }),
-        h,
-      ),
-      caption(
-        `A producer waits ${LOG_ACKS[node.acks].latency}× the 5 ms append. A replica past the first bills half a broker's Burn again.`,
-        h,
-      ),
-      picker(
-        'replicas',
-        LOG_REPLICAS.map(
-          (replicas) =>
-            [replicas, `${replicas} ${replicas === 1 ? 'replica' : 'replicas'}`] as const,
+        picker(
+          'keyed',
+          [
+            [true, t.inspectorLog.keyed],
+            [false, t.inspectorLog.roundRobin],
+          ],
+          node.keyed,
+          (keyed) => Message.LogOptionsChosen({ nodeId: node.id, keyed }),
+          h,
         ),
-        logReplicas(node),
-        (replicas) => Message.LogOptionsChosen({ nodeId: node.id, replicas }),
-        h,
-      ),
-      caption(
-        logLoss(node) >= 1
-          ? 'One replica holds the only copy: a broker that fails takes every event it held.'
-          : logLoss(node) > 0
-            ? `A broker that fails loses ${percent(logLoss(node))} of the events it held: the ones its replicas had not copied.`
-            : 'Every replica had every acknowledged event, so a broker that fails loses none.',
-        h,
-      ),
-    ],
-    h,
-  ),
-  section(
-    'Retention',
-    [
-      picker(
-        'retain',
-        LOG_RETENTION.map((retain) => [retain, retentionLabel(retain)] as const),
-        node.retain,
-        (retain) => Message.LogOptionsChosen({ nodeId: node.id, retain }),
-        h,
-      ),
-      h.p(
-        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-        [
-          'Messages stay after they are read, so a consumer can replay them into a new index or a second Worker without touching the Database. A consumer further behind than the window loses the oldest events.',
-        ],
-      ),
-    ],
-    h,
-  ),
-]
+        caption(
+          node.keyed
+            ? t.inspectorLog.oneKeyKeepsAnEntityIn
+            : t.inspectorLog.eventsSpreadEvenlyAndOrderIs,
+          h,
+        ),
+        caption(
+          t.inspectorLog.aConsumerGroupReadsOneConsumer(compact(LOG_READ_RATE * node.partitions)),
+          h,
+        ),
+      ],
+      h,
+      true,
+    ),
+    section(
+      t.inspectorLog.durability,
+      [
+        picker(
+          'acks',
+          (Object.entries(LOG_ACKS) as ReadonlyArray<[Acks, (typeof LOG_ACKS)['all']]>).map(
+            ([id, ack]) => [id, ack.name] as const,
+          ),
+          node.acks,
+          (acks) => Message.LogOptionsChosen({ nodeId: node.id, acks }),
+          h,
+        ),
+        caption(
+          `A producer waits ${LOG_ACKS[node.acks].latency}× the 5 ms append. A replica past the first bills half a broker's Burn again.`,
+          h,
+        ),
+        picker(
+          'replicas',
+          LOG_REPLICAS.map(
+            (replicas) =>
+              [replicas, `${replicas} ${replicas === 1 ? 'replica' : 'replicas'}`] as const,
+          ),
+          logReplicas(node),
+          (replicas) => Message.LogOptionsChosen({ nodeId: node.id, replicas }),
+          h,
+        ),
+        caption(
+          logLoss(node) >= 1
+            ? 'One replica holds the only copy: a broker that fails takes every event it held.'
+            : logLoss(node) > 0
+              ? `A broker that fails loses ${percent(logLoss(node))} of the events it held: the ones its replicas had not copied.`
+              : 'Every replica had every acknowledged event, so a broker that fails loses none.',
+          h,
+        ),
+      ],
+      h,
+    ),
+    section(
+      t.inspectorLog.retention,
+      [
+        picker(
+          'retain',
+          LOG_RETENTION.map((retain) => [retain, retentionLabel(retain)] as const),
+          node.retain,
+          (retain) => Message.LogOptionsChosen({ nodeId: node.id, retain }),
+          h,
+        ),
+        h.p(
+          [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+          [t.inspectorLog.messagesStayAfterTheyAreRead],
+        ),
+      ],
+      h,
+    ),
+  ]
+}
 
 export const logPanel: Panel = {
   stats: ({ game, node, own, h }) => {
+    const t = copy(h)
+
     const lag = node.depth / Math.max(1, own.capacity)
     return [
-      row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
-      row('Lag', `${compact(Math.round(node.depth))} events`, node.depth > 0 ? 'warn' : 'plain', h),
+      row(t.inspectorLog.inbound, t.inspectorLog.s(rate(own.inbound)), 'plain', h),
       row(
-        'Behind',
-        node.depth < 1 ? 'caught up' : `${Math.round(lag)} s`,
+        t.inspectorLog.lag,
+        `${compact(Math.round(node.depth))} events`,
+        node.depth > 0 ? 'warn' : 'plain',
+        h,
+      ),
+      row(
+        t.inspectorLog.behind,
+        node.depth < 1 ? t.inspectorLog.caughtUp : t.inspectorLog.s2(Math.round(lag)),
         lag > node.retain ? 'danger' : lag > node.retain / 2 ? 'warn' : 'plain',
         h,
       ),
-      row('Retention', retentionLabel(node.retain), lag > node.retain ? 'danger' : 'plain', h),
-      row('Partitions', `${node.partitions}`, 'plain', h),
-      row('Replicas', `${logReplicas(node)} · acks ${LOG_ACKS[node.acks].name}`, 'plain', h),
-      row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      row(
+        t.inspectorLog.retention,
+        retentionLabel(node.retain),
+        lag > node.retain ? 'danger' : 'plain',
+        h,
+      ),
+      row(t.inspectorLog.partitions, `${node.partitions}`, 'plain', h),
+      row(
+        t.inspectorLog.replicas,
+        `${logReplicas(node)} · acks ${LOG_ACKS[node.acks].name}`,
+        'plain',
+        h,
+      ),
+      row(t.inspectorLog.burn, t.inspectorLog.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
   body: ({ node, h }) => [...events(node, h)],

@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import { Schema } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -17,7 +18,7 @@ import {
   Wallet,
   Zap,
 } from 'lucide'
-import { ERAS, INCIDENTS, INCIDENT_IDS } from '@quorum/simulation/catalog'
+import { ERAS, INCIDENT_IDS } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { has } from '@quorum/simulation/lookups'
 import { IncidentId } from '@quorum/simulation/state'
@@ -91,6 +92,8 @@ const figureRow = (
   )
 
 const figures = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const errors = ledger.errorShare * 100
   const percentiles = has(model.board.game, 'percentiles')
   // A guided objective sets the Apdex and Burn it asks for, and may be measured on another figure.
@@ -102,11 +105,11 @@ const figures = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
   return h.div(
     [h.Class(`flex flex-col divide-y divide-hairline ${WELL} ${CHIPS}`)],
     [
-      figureRow('Demand', Gauge, `${rate(ledger.demand)}/s`, 'plain', h),
+      figureRow(t.sandbox.demand, Gauge, t.sandbox.s(rate(ledger.demand)), 'plain', h),
       figureRow(
-        'Burn',
+        t.sandbox.burn,
         Wallet,
-        `${money(ledger.burn)}/s`,
+        t.sandbox.s(money(ledger.burn)),
         objective?.burn === undefined
           ? 'plain'
           : ledger.burn <= objective.burn + 1e-9
@@ -122,14 +125,14 @@ const figures = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
         h,
       ),
       figureRow(
-        'Errors',
+        t.sandbox.errors,
         TriangleAlert,
         `${errors.toFixed(errors >= 10 ? 0 : 1)}%`,
         errors < 1 ? 'ok' : errors < 5 ? 'warn' : 'danger',
         h,
       ),
       figureRow(
-        percentiles ? 'p99' : 'Latency',
+        percentiles ? 'p99' : t.sandbox.latency,
         Timer,
         ms(percentiles ? ledger.p99 : ledger.latency),
         'plain',
@@ -148,8 +151,9 @@ const figures = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
   )
 }
 
-const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Class(
         'flex min-h-9 items-center gap-2 px-2.5 pt-1.5 pb-2 compact:pb-1 compact:pr-[var(--toolbar-w)]',
@@ -162,7 +166,7 @@ const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html =>
           variant: 'ghost',
           size: 'icon-sm',
           className: '-ml-1.5 text-muted-foreground',
-          attributes: [h.AriaLabel('Sandbox menu'), h.Title('Sandbox menu')],
+          attributes: [h.AriaLabel(t.sandbox.sandboxMenu), h.Title(t.sandbox.sandboxMenu)],
         },
         icon(h, Menu, 'size-4'),
         h,
@@ -171,15 +175,18 @@ const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html =>
       h.span([h.Class('ml-auto')], [aside]),
     ],
   )
+}
 
 /* ---------- guided ---------- */
 
 const steps = (run: SandboxRun, id: SandboxId, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const total = GUIDED[id].objectives.length
   return h.span(
     [
       h.Class('flex items-center gap-1'),
-      h.AriaLabel(`Objective ${run.progress.objective + 1} of ${total}`),
+      h.AriaLabel(t.sandbox.objectiveOf(run.progress.objective + 1, total)),
     ],
     GUIDED[id].objectives.map((_, index) =>
       h.span(
@@ -255,8 +262,9 @@ const tiny = (label: string, message: Message, h: HtmlBuilder<Message>, active =
  * open, and there is no summary to fold them by. On a phone the fold belongs to
  * the player once they touch it, so the open state is not written on every Step.
  */
-const controls = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.details(
+const controls = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.details(
     [h.Key('controls'), ...(isPhone() ? [] : [h.Open(true)]), h.Class('fold group')],
     [
       h.summary(
@@ -271,27 +279,29 @@ const controls = (model: Model, h: HtmlBuilder<Message>): Html =>
             ChevronRight,
             'fold-chevron size-3.5 shrink-0 text-muted-foreground group-open:rotate-90',
           ),
-          'Controls',
+          t.sandbox.controls,
         ],
       ),
       controlsBody(model, h),
     ],
   )
+}
 
-const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('flex flex-col gap-2.5 px-2.5 pt-2.5 pb-1.5')],
     [
       h.div(
         [h.Class('flex items-center gap-1.5')],
         [
-          h.span([h.Class(cn(EYEBROW, 'mr-auto'))], ['Users']),
+          h.span([h.Class(cn(EYEBROW, 'mr-auto'))], [t.sandbox.users]),
           button(
             {
               onClick: Message.DemandStepped({ direction: -1 }),
               variant: 'outline',
               size: 'icon-sm',
-              attributes: [h.AriaLabel('Less demand')],
+              attributes: [h.AriaLabel(t.sandbox.lessDemand)],
             },
             icon(h, Minus, 'size-3.5'),
             h,
@@ -305,7 +315,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
               onClick: Message.DemandStepped({ direction: 1 }),
               variant: 'outline',
               size: 'icon-sm',
-              attributes: [h.AriaLabel('More demand')],
+              attributes: [h.AriaLabel(t.sandbox.moreDemand)],
             },
             icon(h, Plus, 'size-3.5'),
             h,
@@ -315,7 +325,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
       h.div(
         [h.Class('flex items-center gap-1.5')],
         [
-          h.span([h.Class(cn(EYEBROW, 'mr-auto'))], ['Mix']),
+          h.span([h.Class(cn(EYEBROW, 'mr-auto'))], [t.sandbox.mix]),
           ...ERAS.slice(0, 3).map((era, stage) =>
             tiny(era.name, Message.MixChosen({ stage }), h, model.board.game.stage === stage),
           ),
@@ -324,7 +334,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
       nativeSelect(
         {
           id: 'sandbox-incident',
-          label: 'Incident',
+          label: t.sandbox.incident,
           size: 'sm',
           value: model.board.game.incident?.kind ?? '',
           isDisabled: model.board.game.incident !== null,
@@ -334,9 +344,9 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
           labelClass: cn(EYEBROW, 'mr-auto p-0'),
           className: 'text-[calc(11.5px*var(--type-scale))]',
           options: [
-            nativeSelectOption({ value: '', label: 'None' }, h),
+            nativeSelectOption({ value: '', label: t.sandbox.none }, h),
             ...INCIDENT_IDS.map((kind) =>
-              nativeSelectOption({ value: kind, label: INCIDENTS[kind].name }, h),
+              nativeSelectOption({ value: kind, label: t.catalog.incidents[kind].name }, h),
             ),
           ],
         },
@@ -351,9 +361,9 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
               variant: 'ghost',
               size: 'sm',
               className: 'flex-1 text-muted-foreground',
-              attributes: [h.Title('Load a crowded Design to test card placement and link lanes')],
+              attributes: [h.Title(t.sandbox.loadACrowdedDesignToTest)],
             },
-            [icon(h, Cable, 'size-3.5'), 'Stress board'],
+            [icon(h, Cable, 'size-3.5'), t.sandbox.stressBoard],
             h,
           ),
           button(
@@ -362,9 +372,9 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
               variant: 'ghost',
               size: 'sm',
               className: 'flex-1 text-muted-foreground',
-              attributes: [h.Title('Load a 61-Node Design to test performance')],
+              attributes: [h.Title(t.sandbox.loadA61NodeDesignTo)],
             },
-            [icon(h, Cable, 'size-3.5'), 'Big board'],
+            [icon(h, Cable, 'size-3.5'), t.sandbox.bigBoard],
             h,
           ),
         ],
@@ -379,7 +389,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
               size: 'sm',
               className: 'flex-1 text-muted-foreground',
             },
-            [icon(h, RotateCcw, 'size-3.5'), 'Reset'],
+            [icon(h, RotateCcw, 'size-3.5'), t.sandbox.reset],
             h,
           ),
           model.company && hasCompany(model)
@@ -389,9 +399,9 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
                   variant: 'ghost',
                   size: 'sm',
                   className: 'flex-1 text-muted-foreground',
-                  attributes: [h.Title('Copy the Company Design onto this board')],
+                  attributes: [h.Title(t.sandbox.copyTheCompanyDesignOntoThis)],
                 },
-                [icon(h, Copy, 'size-3.5'), 'Copy Company'],
+                [icon(h, Copy, 'size-3.5'), t.sandbox.copyCompany],
                 h,
               )
             : h.empty,
@@ -399,10 +409,13 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html =>
       ),
     ],
   )
+}
 
 /* ---------- the HUD ---------- */
 
 export const sandboxHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const run = boardSandbox(model.board)
   if (!run) return h.empty
   return h.header(
@@ -413,8 +426,8 @@ export const sandboxHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>
     ],
     [
       run.id
-        ? header(GUIDED[run.id].name, steps(run, run.id, h), h)
-        : header('Free Sandbox', icon(h, Zap, 'size-3.5 text-muted-foreground'), h),
+        ? header(t.catalog.guided[run.id].name, steps(run, run.id, h), h)
+        : header(t.sandbox.freeSandbox, icon(h, Zap, 'size-3.5 text-muted-foreground'), h),
       figures(model, ledger, h),
       run.id ? h.empty : controls(model, h),
     ],
@@ -424,11 +437,13 @@ export const sandboxHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>
 /* ---------- passed ---------- */
 
 export const passedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const id = boardSandbox(model.board)?.id
   if (!id) return h.empty
   const next = nextGuided(id)
   return shell(
-    GUIDED[id].name,
+    t.catalog.guided[id].name,
     [],
     [
       h.div(
@@ -444,7 +459,7 @@ export const passedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           h.span(
             [h.Class('text-[calc(26px*var(--type-scale))] font-semibold tracking-[-0.035em]')],
-            ['Passed'],
+            [t.sandbox.passed],
           ),
         ],
       ),
@@ -453,18 +468,18 @@ export const passedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           button(
             { onClick: Message.TitleOpened(), variant: 'outline', size: 'lg', className: 'px-3.5' },
-            'Sandbox menu',
+            t.sandbox.sandboxMenu,
             h,
           ),
           next
             ? button(
                 { onClick: Message.GuidedStarted({ id: next }), size: 'lg', className: 'px-4' },
-                GUIDED[next].name,
+                t.catalog.guided[next].name,
                 h,
               )
             : button(
                 { onClick: Message.FreeSandboxStarted(), size: 'lg', className: 'px-4' },
-                'Free Sandbox',
+                t.sandbox.freeSandbox,
                 h,
               ),
         ],

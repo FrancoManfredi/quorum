@@ -1,3 +1,4 @@
+import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
 import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
@@ -16,7 +17,7 @@ import { UrlRequest } from 'foldkit/navigation'
 import { PRIVACY_URL } from '@/platform/analytics.ts'
 import { offer } from '@quorum/simulation/actions'
 import { PRE_IPO_STAGE } from '@quorum/simulation/ipo'
-import { INCIDENTS, INCIDENT_IDS, VENTURES } from '@quorum/simulation/catalog'
+import { INCIDENT_IDS } from '@quorum/simulation/catalog'
 import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { cheatCash, cheatInsight } from '@/game/cheats.ts'
 import { clock, compact, money } from '@quorum/ui/game/format'
@@ -43,8 +44,9 @@ export const shell = (
   body: ReadonlyArray<Html>,
   width: string,
   h: HtmlBuilder<Message>,
-) =>
-  h.div(
+) => {
+  const t = copy(h)
+  return h.div(
     [
       h.DataAttribute('exit', 'gesture'),
       h.Class(
@@ -72,7 +74,7 @@ export const shell = (
                       variant: 'ghost',
                       size: 'icon',
                       className: 'text-muted-foreground',
-                      attributes: [h.AriaLabel('Close (Esc)')],
+                      attributes: [h.AriaLabel(t.panels.closeEsc)],
                     },
                     icon(h, X, 'size-4'),
                     h,
@@ -86,6 +88,7 @@ export const shell = (
       ),
     ],
   )
+}
 
 const primaryButton = (label: string, message: Message, h: HtmlBuilder<Message>) =>
   button({ onClick: message, size: 'lg', className: 'px-4' }, label, h)
@@ -119,66 +122,52 @@ const stats = (columns: string, children: ReadonlyArray<Html>, h: HtmlBuilder<Me
 
 /* ---------- how to play ---------- */
 
-const STEPS: ReadonlyArray<readonly [string, string]> = [
-  [
-    'Wire it',
-    'Drag from a Node’s blue output port to another Node. Click a link, then press its × badge or Delete to cut it. Drag empty space to pan; scroll or pinch to zoom.',
-  ],
-  [
-    'Collect',
-    'Revenue waits in Payments. Press Collect before the drawer fills. Stripe Billing collects for you.',
-  ],
-  [
-    'Learn',
-    'Analytics samples linked Nodes. Each request kind it samples fills its own Insight pool.',
-  ],
-  [
-    'Find the limit',
-    'The pulsing outline marks the bottleneck. Its card says if it is out of CPU, credits, RAM, workers or connections.',
-  ],
-  ['Grow', 'Users grow while Apdex beats the Era target, and leave fast when it does not.'],
-  [
-    'Raise',
-    'At the user target, take or decline the round. Pre-seed brings writes, logins and incidents.',
-  ],
+const stepsOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
+  [t.panels.wireIt, t.panels.dragFromANodeSBlue],
+  [t.panels.collect, t.panels.revenueWaitsInPaymentsPressCollect],
+  [t.panels.learn, t.panels.analyticsSamplesLinkedNodesEachRequest],
+  [t.panels.findTheLimit, t.panels.thePulsingOutlineMarksTheBottleneck],
+  [t.panels.grow, t.panels.usersGrowWhileApdexBeatsThe],
+  [t.panels.raise, t.panels.atTheUserTargetTakeOr],
 ]
 
-const KEYS: ReadonlyArray<readonly [string, string]> = [
-  ['1–7', 'Build group'],
-  ['Enter', 'Inspector · place · confirm'],
-  ['L', 'Link the selected Node'],
-  ['Shift+T', 'Tidy by zone'],
-  ['Shift+F', 'Fit the board'],
-  ['R', 'Research'],
-  ['T', 'Team'],
-  ['P', 'Playbooks'],
-  ['Shift+click', 'Select for a Playbook'],
-  ['Ctrl+A', 'Select all'],
-  ['Ctrl+C / X / V', 'Copy, cut, paste Nodes'],
-  ['Ctrl+D', 'Duplicate Nodes'],
-  ['Shift+Ctrl / Alt drag', 'Add to / remove from selection'],
-  ['Shift+Arrows', 'Nudge Nodes 16 px'],
-  ['U', 'Resize selected'],
-  ['Z', 'Undo'],
-  ['Shift+Z', 'Redo'],
-  ['Del', 'Sell selected'],
-  ['C', 'Collect'],
-  ['S', 'Speed'],
-  ['D', 'Dashboard'],
-  ['G', 'Glossary'],
-  ['M', 'Mute'],
-  ['I', 'Inbox'],
-  ['$', 'Cost'],
-  ['F', 'Fullscreen'],
-  ['Arrows', 'Select nearest Node'],
-  ['Space', 'Pause'],
-  ['`', 'Playtest panel'],
-  ['Esc', 'Back out, then Menu'],
+const keysOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
+  ['1–7', t.panels.buildGroup],
+  [t.panels.enter, t.panels.inspectorPlaceConfirm],
+  ['L', t.panels.linkTheSelectedNode],
+  ['Shift+T', t.panels.tidyByZone],
+  ['Shift+F', t.panels.fitTheBoard],
+  ['R', t.panels.research],
+  ['T', t.panels.team],
+  ['P', t.panels.playbooks],
+  [t.panels.shiftClick, t.panels.selectForAPlaybook],
+  ['Ctrl+A', t.panels.selectAll],
+  [t.panels.ctrlCXV, t.panels.copyCutPasteNodes],
+  ['Ctrl+D', t.panels.duplicateNodes],
+  [t.panels.shiftCtrlAltDrag, t.panels.addToRemoveFromSelection],
+  [t.panels.shiftArrows, t.panels.nudgeNodes16Px],
+  ['U', t.panels.resizeSelected],
+  ['Z', t.panels.undo],
+  [t.panels.shiftZ, t.panels.redo],
+  [t.panels.del, t.panels.sellSelected],
+  ['C', t.panels.collect],
+  ['S', t.panels.speed],
+  ['D', t.panels.dashboard],
+  ['G', t.panels.glossary],
+  ['M', t.panels.mute],
+  ['I', t.panels.inbox],
+  ['$', t.panels.cost],
+  ['F', t.panels.fullscreen],
+  [t.panels.arrows, t.panels.selectNearestNode],
+  [t.panels.space, t.panels.pause],
+  ['`', t.panels.playtestPanel],
+  [t.panels.esc, t.panels.backOutThenMenu],
 ]
 
-export const helpPanel = (h: HtmlBuilder<Message>): Html =>
-  shell(
-    'How to play',
+export const helpPanel = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return shell(
+    t.panels.howToPlay,
     [],
     [
       h.div(
@@ -190,7 +179,7 @@ export const helpPanel = (h: HtmlBuilder<Message>): Html =>
         [
           h.ol(
             [h.Class('grid grid-cols-2 gap-2 narrow:grid-cols-1')],
-            STEPS.map(([title, body], index) =>
+            stepsOf(t).map(([title, body], index) =>
               h.li(
                 [
                   h.Key(title),
@@ -223,10 +212,10 @@ export const helpPanel = (h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex flex-col gap-2 compact:hidden')],
             [
-              h.span([h.Class(EYEBROW)], ['Keys']),
+              h.span([h.Class(EYEBROW)], [t.panels.keys]),
               h.div(
                 [h.Class(NESTED)],
-                KEYS.map(([key, action]) =>
+                keysOf(t).map(([key, action]) =>
                   h.div(
                     [
                       h.Key(key),
@@ -242,11 +231,12 @@ export const helpPanel = (h: HtmlBuilder<Message>): Html =>
           ),
         ],
       ),
-      footer([primaryButton('Start building', Message.PanelClosed(), h)], h),
+      footer([primaryButton(t.panels.startBuilding, Message.PanelClosed(), h)], h),
     ],
     'max-w-[980px]',
     h,
   )
+}
 
 /* ---------- game menu ---------- */
 
@@ -271,9 +261,11 @@ const menuItem = (
 
 /** The game menu over the board. The clock holds still while it is open. */
 export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const file = currentFile(model)
   return shell(
-    'Menu',
+    t.panels.menu,
     [],
     [
       ...(file
@@ -288,7 +280,9 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     h.span([h.Class('truncate text-sm font-medium')], [file.name]),
                     h.span(
                       [h.Class('truncate text-xs text-muted-foreground')],
-                      [`${VENTURES[file.venture].name} · ${eraOf(model.board.game).name}`],
+                      [
+                        `${t.catalog.ventures[file.venture].name} · ${eraWords(t, model.board.game).name}`,
+                      ],
                     ),
                   ],
                 ),
@@ -299,13 +293,13 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('flex flex-col gap-2 px-5 pt-1 pb-5')],
         [
-          menuItem('Resume', Play, Message.PanelClosed(), h, true),
-          menuItem('Settings', Settings, Message.PanelOpened({ panel: 'settings' }), h),
-          menuItem('Export playtest log', Download, Message.LogExported(), h),
+          menuItem(t.panels.resume, Play, Message.PanelClosed(), h, true),
+          menuItem(t.panels.settings, Settings, Message.PanelOpened({ panel: 'settings' }), h),
+          menuItem(t.panels.exportPlaytestLog, Download, Message.LogExported(), h),
           exitLegacy(model) === null
             ? h.empty
-            : menuItem('Exit company', DoorOpen, Message.PanelOpened({ panel: 'exit' }), h),
-          menuItem('Title screen', House, Message.TitleOpened(), h),
+            : menuItem(t.panels.exitCompany, DoorOpen, Message.PanelOpened({ panel: 'exit' }), h),
+          menuItem(t.panels.titleScreen, House, Message.TitleOpened(), h),
         ],
       ),
     ],
@@ -316,9 +310,10 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /* ---------- settings ---------- */
 
-export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
-  shell(
-    'Settings',
+export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return shell(
+    t.panels.settings,
     [],
     [
       h.div(
@@ -327,7 +322,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-muted',
-              label: 'Mute sound (M)',
+              label: t.panels.muteSoundM,
               isChecked: model.prefs.muted,
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
             },
@@ -336,7 +331,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-auto-pause',
-              label: 'Pause on SEV1 and SEV2',
+              label: t.panels.pauseOnSEV1AndSEV2,
               isChecked: model.prefs.autoPause,
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
             },
@@ -354,7 +349,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-motion',
-              label: 'Reduce motion',
+              label: t.panels.reduceMotion,
               isChecked: model.prefs.motion === 'reduce',
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
             },
@@ -363,7 +358,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-text',
-              label: 'Text at 150%',
+              label: t.panels.textAt150,
               isChecked: model.prefs.text === 'large',
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
             },
@@ -372,7 +367,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-theme',
-              label: 'Dark mode',
+              label: t.panels.darkMode,
               isChecked: model.prefs.theme === 'dark',
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
             },
@@ -381,7 +376,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-agent-access',
-              label: 'Agent access',
+              label: t.panels.agentAccess,
               isChecked: model.prefs.agentAccess,
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AgentAccessToggled() }),
             },
@@ -390,7 +385,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           switch_(
             {
               id: 'setting-analytics',
-              label: 'Share anonymous usage data',
+              label: t.panels.shareAnonymousUsageData,
               isChecked: model.prefs.analytics,
               onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AnalyticsToggled() }),
             },
@@ -399,12 +394,12 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex items-center justify-between gap-3')],
             [
-              h.span([h.Class('text-sm font-medium')], ['Language']),
+              h.span([h.Class('text-sm font-medium')], [t.panels.language]),
               languagePicker(model.prefs.locale, model.languagePicker, h),
             ],
           ),
           secondaryButton(
-            'Privacy policy',
+            t.panels.privacyPolicy,
             Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
             h,
             ArrowUpRight,
@@ -412,26 +407,31 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex flex-wrap gap-2')],
             [
-              secondaryButton('Copy save as text', Message.SaveExported(), h, Copy),
-              secondaryButton('Import a save', Message.SaveImportAsked(), h, Upload),
+              secondaryButton(t.panels.copySaveAsText, Message.SaveExported(), h, Copy),
+              secondaryButton(t.panels.importASave, Message.SaveImportAsked(), h, Upload),
             ],
           ),
-          secondaryButton('Copy state as JSON', Message.StateCopied(), h, Copy),
+          secondaryButton(t.panels.copyStateAsJSON, Message.StateCopied(), h, Copy),
         ],
       ),
     ],
     'max-w-[calc(360px*var(--type-scale))]',
     h,
   )
+}
 
 /* ---------- funding ---------- */
 
 export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const deal = offer(model.board.game)
   if (!deal) return h.empty
   const ipo = model.board.game.stage === PRE_IPO_STAGE
   return shell(
-    ipo ? 'IPO' : `${deal.era.name} round`,
+    ipo
+      ? t.panels.iPO
+      : t.panels.round(t.catalog.eras[model.board.game.stage + 1]?.name ?? deal.era.name),
     [],
     [
       h.div(
@@ -442,7 +442,7 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               h.span(
                 [h.Class('text-[calc(15px*var(--type-scale))] font-semibold')],
-                [ipo ? 'Go public' : 'Raise'],
+                [ipo ? t.panels.goPublic : t.panels.raise],
               ),
               h.div(
                 [
@@ -451,17 +451,20 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ],
                 [
-                  h.span([], [`+${money(deal.grant)} Cash`]),
+                  h.span([], [t.panels.cash(money(deal.grant))]),
                   h.span(
                     [],
                     [
-                      `Equity ${Math.round(model.board.game.equity * 100)}% → ${Math.round(model.board.game.equity * (1 - deal.dilution) * 100)}%`,
+                      t.panels.equity(
+                        Math.round(model.board.game.equity * 100),
+                        Math.round(model.board.game.equity * (1 - deal.dilution) * 100),
+                      ),
                     ],
                   ),
-                  h.span([], [ipo ? 'Quarters begin' : 'Full growth']),
+                  h.span([], [ipo ? t.panels.quartersBegin : t.panels.fullGrowth]),
                 ],
               ),
-              primaryButton(ipo ? 'Go public' : 'Raise', Message.RoundRaised(), h),
+              primaryButton(ipo ? t.panels.goPublic : t.panels.raise, Message.RoundRaised(), h),
             ],
           ),
           ipo
@@ -475,7 +478,7 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 [
                   h.span(
                     [h.Class('text-[calc(15px*var(--type-scale))] font-semibold')],
-                    ['Decline'],
+                    [t.panels.decline],
                   ),
                   h.div(
                     [
@@ -484,12 +487,12 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                       ),
                     ],
                     [
-                      h.span([], ['No Cash']),
-                      h.span([], [`Equity stays ${Math.round(model.board.game.equity * 100)}%`]),
-                      h.span([], ['Growth × 0.7']),
+                      h.span([], [t.panels.noCash]),
+                      h.span([], [t.panels.equityStays(Math.round(model.board.game.equity * 100))]),
+                      h.span([], [t.panels.growth07]),
                     ],
                   ),
-                  secondaryButton('Decline', Message.RoundDeclined(), h),
+                  secondaryButton(t.panels.decline, Message.RoundDeclined(), h),
                 ],
               ),
         ],
@@ -501,7 +504,9 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 }
 
 export const eraPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const era = eraOf(model.board.game)
+  const t = copy(h)
+
+  const era = localized(eraOf(model.board.game), eraWords(t, model.board.game))
   return shell(
     era.name,
     [],
@@ -530,27 +535,28 @@ export const eraPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             'grid-cols-3',
             [
               stat(
-                'Next round',
-                Number.isFinite(era.raiseAt) ? `${compact(era.raiseAt)} users` : '—',
+                t.panels.nextRound,
+                Number.isFinite(era.raiseAt) ? t.panels.users(compact(era.raiseAt)) : '—',
                 h,
               ),
-              stat('Apdex target', era.apdexTarget.toFixed(2), h),
-              stat('Prices', `×${era.costIndex}`, h),
+              stat(t.panels.apdexTarget, era.apdexTarget.toFixed(2), h),
+              stat(t.panels.prices, `×${era.costIndex}`, h),
             ],
             h,
           ),
         ],
       ),
-      footer([primaryButton('Continue', Message.PanelClosed(), h)], h),
+      footer([primaryButton(t.panels.continueText, Message.PanelClosed(), h)], h),
     ],
     'max-w-[620px]',
     h,
   )
 }
 
-export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
-  shell(
-    'IPO',
+export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return shell(
+    t.panels.iPO,
     [],
     [
       h.div(
@@ -567,23 +573,23 @@ export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           ]),
           h.span(
             [h.Class('text-[calc(30px*var(--type-scale))] font-semibold tracking-[-0.035em]')],
-            ['The company is public.'],
+            [t.panels.theCompanyIsPublic],
           ),
           stats(
             'max-w-[640px] grid-cols-4 narrow:grid-cols-2 narrow:[&>:nth-child(n+3)]:border-t',
             [
-              stat('Time', clock(model.board.game.time), h),
-              stat('Users', compact(model.board.game.users), h),
-              stat('Earned', money(model.board.game.earned), h),
-              stat('Equity', `${Math.round(model.board.game.equity * 100)}%`, h),
+              stat(t.panels.time, clock(model.board.game.time), h),
+              stat(t.panels.users2, compact(model.board.game.users), h),
+              stat(t.panels.earned, money(model.board.game.earned), h),
+              stat(t.panels.equity2, `${Math.round(model.board.game.equity * 100)}%`, h),
             ],
             h,
           ),
           h.div(
             [h.Class('flex gap-2')],
             [
-              primaryButton('Keep playing', Message.PanelClosed(), h),
-              secondaryButton('Export playtest log', Message.LogExported(), h, Download),
+              primaryButton(t.panels.keepPlaying, Message.PanelClosed(), h),
+              secondaryButton(t.panels.exportPlaytestLog, Message.LogExported(), h, Download),
             ],
           ),
         ],
@@ -592,12 +598,14 @@ export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
     'max-w-[760px]',
     h,
   )
+}
 
 /* ---------- playtest panel ---------- */
 
-export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
-  shell(
-    'Playtest',
+export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return shell(
+    t.panels.playtest,
     [],
     [
       h.div(
@@ -606,7 +614,7 @@ export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex flex-col gap-2')],
             [
-              h.span([h.Class(EYEBROW)], ['Speed']),
+              h.span([h.Class(EYEBROW)], [t.panels.speed]),
               h.div(
                 [h.Class('flex gap-2')],
                 speedsOf(model.board.game).map((speed) =>
@@ -628,24 +636,24 @@ export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex flex-col gap-2')],
             [
-              h.span([h.Class(EYEBROW)], ['Skip ahead']),
+              h.span([h.Class(EYEBROW)], [t.panels.skipAhead]),
               h.div(
                 [h.Class('flex flex-wrap gap-2')],
                 [
                   nextEra(model.board.game) && !isFinalEra(model.board.game)
                     ? secondaryButton(
-                        `Skip to ${nextEra(model.board.game)?.name ?? ''}`,
+                        t.panels.skipTo(nextEra(model.board.game)?.name ?? ''),
                         Message.CheatRound(),
                         h,
                       )
                     : h.empty,
                   secondaryButton(`+${money(cheatCash(model.board.game))}`, Message.CheatCash(), h),
                   secondaryButton(
-                    `+${cheatInsight(model.board.game).toLocaleString('en-US')} Insight`,
+                    t.panels.insight(cheatInsight(model.board.game).toLocaleString('en-US')),
                     Message.CheatInsight(),
                     h,
                   ),
-                  secondaryButton('+20 Legacy', Message.CheatLegacy(), h),
+                  secondaryButton(t.panels.n20Legacy, Message.CheatLegacy(), h),
                 ],
               ),
             ],
@@ -653,11 +661,15 @@ export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex flex-col gap-2')],
             [
-              h.span([h.Class(EYEBROW)], ['Start an incident']),
+              h.span([h.Class(EYEBROW)], [t.panels.startAnIncident]),
               h.div(
                 [h.Class('flex flex-wrap gap-2')],
                 INCIDENT_IDS.map((kind) =>
-                  secondaryButton(INCIDENTS[kind].name, Message.IncidentForced({ kind }), h),
+                  secondaryButton(
+                    t.catalog.incidents[kind].name,
+                    Message.IncidentForced({ kind }),
+                    h,
+                  ),
                 ),
               ),
             ],
@@ -665,12 +677,12 @@ export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
           h.div(
             [h.Class('flex flex-col gap-2')],
             [
-              h.span([h.Class(EYEBROW)], ['Log']),
+              h.span([h.Class(EYEBROW)], [t.panels.log]),
               h.div(
                 [h.Class('flex flex-wrap gap-2')],
                 [
-                  secondaryButton('Export playtest log', Message.LogExported(), h, Download),
-                  secondaryButton('Clear log', Message.LogCleared(), h, Trash2),
+                  secondaryButton(t.panels.exportPlaytestLog, Message.LogExported(), h, Download),
+                  secondaryButton(t.panels.clearLog, Message.LogCleared(), h, Trash2),
                 ],
               ),
             ],
@@ -681,3 +693,4 @@ export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html =>
     'max-w-[640px]',
     h,
   )
+}

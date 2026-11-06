@@ -1,5 +1,6 @@
+import { copy, localeOf, type Messages } from '@/i18n/messages.ts'
 import { GlossaryMessage } from '@/game/glossary.ts'
-import { translate, type Locale } from '@/i18n/index.ts'
+import { translate } from '@/i18n/index.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ArrowUpRight, Check, Search } from 'lucide'
 import {
@@ -22,18 +23,37 @@ import { shell } from './panels.ts'
    play carry a check; the rest stay readable.
    ========================================================================== */
 
-const CATEGORY_NAMES: Record<GlossaryCategory, string> = {
-  performance: 'Performance',
-  reliability: 'Reliability',
-  observability: 'Observability',
-  data: 'Data',
-  runtimes: 'Runtimes',
-  network: 'Network',
-  security: 'Security',
-  delivery: 'Delivery',
-  team: 'Team',
-  business: 'Business',
+const categoryName = (t: Messages, category: GlossaryCategory): string =>
+  ({
+    performance: t.glossary.performance,
+    reliability: t.glossary.reliability,
+    observability: t.glossary.observability,
+    data: t.glossary.data,
+    runtimes: t.glossary.runtimes,
+    network: t.glossary.network,
+    security: t.glossary.security,
+    delivery: t.glossary.delivery,
+    team: t.glossary.team,
+    business: t.glossary.business,
+  })[category]
+
+type Words = Readonly<{ term: string; definition: string; inGame: string }>
+
+/** The entry's words in the builder's language: the catalog has them by id; an advisory is composed at runtime. */
+const wordsOf = (entry: GlossaryEntry, h: HtmlBuilder<Message>): Words => {
+  const own = copy(h).catalog.glossary[entry.id]
+  if (own) return own
+  const locale = localeOf(h)
+  return {
+    term: translate(locale, entry.term),
+    definition: translate(locale, entry.definition),
+    inGame: translate(locale, entry.inGame),
+  }
 }
+
+/** A link's label in the builder's language. */
+const labelOf = (entry: GlossaryEntry, index: number, h: HtmlBuilder<Message>): string =>
+  copy(h).catalog.glossary[entry.id]?.links[index]?.label ?? entry.links[index]?.label ?? ''
 
 /**
  * Every term the panel lists: the engineering glossary, then the CVEs the Simulation can disclose
@@ -51,7 +71,7 @@ const matches = (
   entry: GlossaryEntry,
   query: string,
   category: string | null,
-  locale: Locale,
+  h: HtmlBuilder<Message>,
 ): boolean => {
   if (category !== null && entry.category !== category) return false
   const text = searchable(query.trim())
@@ -60,8 +80,8 @@ const matches = (
     searchable(entry.term).includes(text) ||
     searchable(entry.definition).includes(text) ||
     searchable(entry.inGame).includes(text) ||
-    [entry.term, entry.definition, entry.inGame].some((copy) =>
-      searchable(translate(locale, copy)).includes(text),
+    [wordsOf(entry, h).term, wordsOf(entry, h).definition, wordsOf(entry, h).inGame].some((words) =>
+      searchable(words).includes(text),
     )
   )
 }
@@ -91,14 +111,15 @@ const filter = (
     [label],
   )
 
-const filters = (chosen: string | null, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const filters = (chosen: string | null, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [h.Class('px-5 pb-3')],
     [
       h.div(
         [
           h.Role('group'),
-          h.AriaLabel('Category'),
+          h.AriaLabel(t.glossary.category),
           h.Class(
             cn(
               'flex gap-[3px] overflow-x-auto rounded-[11px] p-[3px] [scrollbar-width:none]',
@@ -107,17 +128,19 @@ const filters = (chosen: string | null, h: HtmlBuilder<Message>): Html =>
           ),
         ],
         [
-          filter('all', 'All', null, chosen === null, h),
+          filter('all', t.glossary.all, null, chosen === null, h),
           ...GLOSSARY_CATEGORIES.map((category) =>
-            filter(category, CATEGORY_NAMES[category], category, chosen === category, h),
+            filter(category, categoryName(t, category), category, chosen === category, h),
           ),
         ],
       ),
     ],
   )
+}
 
-const row = (entry: GlossaryEntry, open: boolean, met: boolean, h: HtmlBuilder<Message>): Html =>
-  h.li(
+const row = (entry: GlossaryEntry, open: boolean, met: boolean, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.li(
     [h.Key(entry.id)],
     [
       h.button(
@@ -137,14 +160,15 @@ const row = (entry: GlossaryEntry, open: boolean, met: boolean, h: HtmlBuilder<M
           ),
         ],
         [
-          h.span([h.Class('flex-1 truncate')], [entry.term]),
+          h.span([h.Class('flex-1 truncate')], [wordsOf(entry, h).term]),
           ...(met
-            ? [icon(h, Check, 'size-3.5 shrink-0'), h.span([h.Class('sr-only')], ['met'])]
+            ? [icon(h, Check, 'size-3.5 shrink-0'), h.span([h.Class('sr-only')], [t.glossary.met])]
             : []),
         ],
       ),
     ],
   )
+}
 
 const section = (label: string, children: ReadonlyArray<Html>, h: HtmlBuilder<Message>): Html =>
   h.section(
@@ -171,7 +195,7 @@ const related = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuil
                 ),
               ],
               [
-                other.term,
+                wordsOf(other, h).term,
                 ...(met(id) ? [icon(h, Check, 'size-3 shrink-0 text-muted-foreground')] : []),
               ],
             ),
@@ -184,7 +208,7 @@ const related = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuil
 const links = (entry: GlossaryEntry, h: HtmlBuilder<Message>) =>
   h.ul(
     [h.Class('flex flex-col')],
-    entry.links.map((link) =>
+    entry.links.map((link, index) =>
       h.li(
         [h.Key(link.url)],
         [
@@ -198,7 +222,7 @@ const links = (entry: GlossaryEntry, h: HtmlBuilder<Message>) =>
               ),
             ],
             [
-              link.label,
+              labelOf(entry, index, h),
               icon(
                 h,
                 ArrowUpRight,
@@ -211,42 +235,49 @@ const links = (entry: GlossaryEntry, h: HtmlBuilder<Message>) =>
     ),
   )
 
-const detail = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuilder<Message>) =>
-  h.article(
+const detail = (entry: GlossaryEntry, met: (id: string) => boolean, h: HtmlBuilder<Message>) => {
+  const t = copy(h)
+  const words = wordsOf(entry, h)
+  return h.article(
     [h.Key(entry.id), h.Class('flex flex-col gap-5')],
     [
       h.header(
         [h.Class('flex flex-col gap-1.5')],
         [
-          h.span([h.Class(EYEBROW)], [CATEGORY_NAMES[entry.category]]),
+          h.span([h.Class(EYEBROW)], [categoryName(t, entry.category)]),
           h.h2(
             [h.Class('text-[calc(20px*var(--type-scale))] font-semibold tracking-[-0.02em]')],
-            [entry.term],
+            [words.term],
           ),
           h.p(
             [h.Class('text-[calc(14px*var(--type-scale))] leading-relaxed text-pretty')],
-            [entry.definition],
+            [words.definition],
           ),
         ],
       ),
       h.div(
         [h.Class(cn(WELL, 'flex flex-col gap-2 p-3.5'))],
         [
-          h.span([h.Class(EYEBROW)], ['In the game']),
+          h.span([h.Class(EYEBROW)], [t.glossary.inTheGame]),
           h.p(
             [h.Class('text-[calc(13.5px*var(--type-scale))] leading-relaxed text-pretty')],
-            [entry.inGame],
+            [words.inGame],
           ),
         ],
       ),
-      ...(entry.related.length > 0 ? [section('Related', [related(entry, met, h)], h)] : []),
-      ...(entry.links.length > 0 ? [section('Learn more', [links(entry, h)], h)] : []),
+      ...(entry.related.length > 0
+        ? [section(t.glossary.related, [related(entry, met, h)], h)]
+        : []),
+      ...(entry.links.length > 0 ? [section(t.glossary.learnMore, [links(entry, h)], h)] : []),
     ],
   )
+}
 
 export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const shown = TERMS.filter((entry) =>
-    matches(entry, model.glossary.query, model.glossary.category, model.prefs.locale),
+    matches(entry, model.glossary.query, model.glossary.category, h),
   )
   const open =
     (model.glossary.focus !== null ? BY_ID.get(model.glossary.focus) : undefined) ??
@@ -255,7 +286,7 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const met = (id: string) => model.founder.glossary.includes(id)
   const metCount = TERMS.filter((entry) => met(entry.id)).length
   return shell(
-    'Glossary',
+    t.glossary.glossary,
     [
       h.span(
         [
@@ -265,7 +296,7 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               'flex items-center gap-1 text-[calc(12px*var(--type-scale))] text-muted-foreground compact:hidden',
             ),
           ),
-          h.AriaLabel(`${metCount} of ${TERMS.length} terms met`),
+          h.AriaLabel(t.glossary.ofTermsMet(metCount, TERMS.length)),
         ],
         [icon(h, Check, 'size-3.5'), `${metCount} / ${TERMS.length}`],
       ),
@@ -275,7 +306,7 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           icon(h, Search, 'size-3.5 shrink-0 text-muted-foreground'),
           h.input([
             h.Type('search'),
-            h.AriaLabel('Search the glossary'),
+            h.AriaLabel(t.glossary.searchTheGlossary),
             h.Value(model.glossary.query),
             h.OnInput((query) =>
               Message.GlossaryChanged({ message: GlossaryMessage.Searched({ query }) }),
@@ -299,7 +330,7 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           shown.length > 0
             ? h.ul(
                 [
-                  h.AriaLabel('Terms'),
+                  h.AriaLabel(t.glossary.terms),
                   h.Class(cn('flex min-h-0 flex-col gap-0.5 pr-1 compact:max-h-[28vh]', SCROLL)),
                 ],
                 shown.map((entry) => row(entry, entry.id === open?.id, met(entry.id), h)),
@@ -310,7 +341,7 @@ export const glossaryPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     'px-2.5 py-1.5 text-[calc(13px*var(--type-scale))] text-muted-foreground',
                   ),
                 ],
-                ['No matches'],
+                [t.glossary.noMatches],
               ),
           h.div(
             [h.Class(cn('min-h-0 pr-1 compact:max-h-[50vh]', SCROLL))],

@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { VEC_AI_LIFT, VEC_INDEXES, VEC_QUERIES } from '@quorum/simulation/catalog'
 import { burnOf } from '@quorum/simulation/lookups'
@@ -9,6 +10,8 @@ import { type Panel, caption, outbound, percent, picker, section } from './share
 
 /** A Vector Index's type: its recall, its lookups, and the memory it bills (07). */
 const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const index = VEC_INDEXES[node.indexType]
   const prompts = game.nodes.filter(
     (entry) => entry.type === 'server' || entry.type === 'worker' || entry.type === 'fn',
@@ -34,26 +37,28 @@ const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyAr
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [
-            `Exact compares the query to every vector: every lookup finds its nearest neighbour, at ${VEC_QUERIES} a second per size step. HNSW walks a graph instead: ${index.queries}× the lookups, twice the memory in Burn, and ${percent(index.recall)} recall, so one lookup in twenty quotes the wrong document.`,
+            t.inspectorVec.exactComparesTheQueryToEvery(
+              VEC_QUERIES,
+              index.queries,
+              percent(index.recall),
+            ),
           ],
         ),
-        caption(`Recall ${percent(index.recall)} · Burn ${money(burnOf(game, node))}/s`, h),
+        caption(t.inspectorVec.recallBurnS(percent(index.recall), money(burnOf(game, node))), h),
       ],
       h,
       true,
     ),
     section(
-      'Retrieval',
+      t.inspectorVec.retrieval,
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-          [
-            `Link a Node that answers prompts into it and each prompt pays one nearest-neighbour lookup for the documents it quotes. Those answers earn ${Math.round((VEC_AI_LIFT - 1) * 100)}% more, and a Python Stack keeps its ML ecosystem bonus only with an index in the path.`,
-          ],
+          [t.inspectorVec.linkANodeThatAnswersPrompts(Math.round((VEC_AI_LIFT - 1) * 100))],
         ),
         caption(
           reached.length === 0
-            ? 'Nothing answers prompts through it yet. Link an App Server into it.'
+            ? t.inspectorVec.nothingAnswersPromptsThroughItYet
             : `${reached.length} Node${reached.length === 1 ? '' : 's'} retrieve from it.`,
           h,
         ),
@@ -65,21 +70,23 @@ const vector = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyAr
 
 export const vecPanel: Panel = {
   stats: ({ game, node, own, h }) => {
+    const t = copy(h)
+
     const index = VEC_INDEXES[node.indexType]
     return [
-      row('Lookups', `${rate(own.inbound)}/s`, 'plain', h),
+      row(t.inspectorVec.lookups, t.inspectorVec.s(rate(own.inbound)), 'plain', h),
       row(
-        'Load',
+        t.inspectorVec.load,
         own.inbound > 0
-          ? `${percent(Math.min(own.utilization, 9.99))} of ${rate(own.capacity)}/s`
-          : 'idle',
+          ? t.inspectorVec.ofS(percent(Math.min(own.utilization, 9.99)), rate(own.capacity))
+          : t.inspectorVec.idle,
         own.utilization >= 0.9 ? 'danger' : own.utilization >= 0.7 ? 'warn' : 'plain',
         h,
       ),
       row('Index', index.name, 'plain', h),
-      row('Recall', percent(index.recall), index.recall >= 1 ? 'ok' : 'warn', h),
-      row('Latency', ms(own.latency), 'plain', h),
-      row('Burn', `${money(burnOf(game, node))}/s`, 'plain', h),
+      row(t.inspectorVec.recall, percent(index.recall), index.recall >= 1 ? 'ok' : 'warn', h),
+      row(t.inspectorVec.latency, ms(own.latency), 'plain', h),
+      row(t.inspectorVec.burn, t.inspectorVec.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
   body: ({ game, node, h }) => [...vector(game, node, h)],

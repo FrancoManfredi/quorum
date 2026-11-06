@@ -1,3 +1,4 @@
+import { copy, insightName, localized } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BellOff,
@@ -13,7 +14,7 @@ import {
   Wallet,
   X,
 } from 'lucide'
-import { ALERT_RULES, ALERT_THRESHOLDS, INCIDENTS, RESEARCH } from '@quorum/simulation/catalog'
+import { ALERT_RULES, ALERT_THRESHOLDS, INCIDENTS } from '@quorum/simulation/catalog'
 import type { AlertRule } from '@quorum/simulation/events'
 import { has } from '@quorum/simulation/lookups'
 import { ignored } from '@quorum/simulation/step'
@@ -40,6 +41,8 @@ import { EYEBROW, FIGURE, PANEL, WELL, insightChip } from '@quorum/ui/game/bits'
  * the player sees that this is the second page, not the first.
  */
 const cause = (game: Game, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const kind = game.incident?.causedBy
   if (!kind) return h.empty
   return h.div(
@@ -49,7 +52,7 @@ const cause = (game: Game, h: HtmlBuilder<Message>): Html => {
       h.span([h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')], ['After']),
       h.span(
         [h.Class('text-[calc(12.5px*var(--type-scale))] font-semibold')],
-        [INCIDENTS[kind].name],
+        [t.catalog.incidents[kind].name],
       ),
       h.span(
         [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
@@ -60,6 +63,8 @@ const cause = (game: Game, h: HtmlBuilder<Message>): Html => {
 }
 
 export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const chained = cause(game, h)
   if (!has(game, 'alerting')) return chained
@@ -111,7 +116,7 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
           [
             icon(h, BellOff, 'size-3.5 text-muted-foreground'),
             h.span([h.Class('font-medium')], [alertText(rule, game.alertRules[rule])]),
-            badge({ variant: 'warn' }, ['Ignored'], h),
+            badge({ variant: 'warn' }, [t.incidents.ignored], h),
             h.div(
               [h.Class(cn('flex gap-[3px] rounded-lg p-[3px]', WELL))],
               ALERT_THRESHOLDS[rule].map((threshold) =>
@@ -135,7 +140,7 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
                     rule === 'latency' || rule === 'budget'
                       ? `${threshold}×`
                       : rule === 'queue'
-                        ? `${threshold} s`
+                        ? t.incidents.s(threshold)
                         : `${Math.round(threshold * 1000) / 10}%`,
                   ],
                 ),
@@ -150,6 +155,8 @@ export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /** A bad deploy on screen: App Servers crash until it is rolled back or runs its course. */
 export const badDeploy = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   if (game.incident?.kind !== 'bad-deploy') return h.empty
   const ready = has(game, 'ci')
@@ -161,16 +168,22 @@ export const badDeploy = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
     ],
     [
-      h.span([], [INCIDENTS['bad-deploy'].name]),
+      h.span([], [t.catalog.incidents['bad-deploy'].name]),
       button(
         {
           onClick: Message.RolledBack(),
           isDisabled: !ready,
           size: 'sm',
           variant: 'outline',
-          attributes: [h.Title(ready ? 'Roll back' : `Research ${RESEARCH.ci.name} to roll back`)],
+          attributes: [
+            h.Title(
+              ready
+                ? t.incidents.rollBack
+                : t.incidents.researchToRollBack(t.catalog.research.ci.name),
+            ),
+          ],
         },
-        [icon(h, ready ? Undo2 : Lock, 'size-3.5'), 'Roll back'],
+        [icon(h, ready ? Undo2 : Lock, 'size-3.5'), t.incidents.rollBack],
         h,
       ),
     ],
@@ -221,6 +234,8 @@ const NODE_BANNERS = {
 type BannerKind = keyof typeof BANNERS
 
 export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const incident = model.board.game.incident
   const kind = incident?.kind as BannerKind | undefined
   const onNode =
@@ -237,7 +252,7 @@ export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
         ),
       ],
       [
-        h.span([], [INCIDENTS[incident.kind].name]),
+        h.span([], [t.catalog.incidents[incident.kind].name]),
         button(
           { onClick: onNode.message(nodeId), size: 'sm', variant: 'outline' },
           [icon(h, FileBadge, 'size-3.5'), onNode.label],
@@ -256,7 +271,7 @@ export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
     ],
     [
-      h.span([], [INCIDENTS[kind].name]),
+      h.span([], [t.catalog.incidents[kind].name]),
       button(
         { onClick: banner.message, size: 'sm', variant: 'outline' },
         [icon(h, FileBadge, 'size-3.5'), banner.label],
@@ -268,6 +283,8 @@ export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /** The action item: research the prevention now, or file the postmortem and leave it open. */
 const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const action = postmortem.action && !has(game, postmortem.action) ? postmortem.action : null
   if (!action)
     return button(
@@ -276,7 +293,7 @@ const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Messag
         size: 'sm',
         variant: 'outline',
       },
-      ['File'],
+      [t.incidents.file],
       h,
     )
   return h.div(
@@ -286,12 +303,14 @@ const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Messag
         {
           onClick: Message.PostmortemFiled({ id: postmortem.id, take: true }),
           size: 'sm',
-          attributes: [h.Title(`Action item: ${RESEARCH[action].blurb}`)],
+          attributes: [h.Title(t.incidents.actionItem(t.catalog.research[action].blurb))],
         },
         [
           icon(h, Check, 'size-3.5'),
-          RESEARCH[action].name,
-          ...recipeOf(action).map(([pool, cost]) => insightChip(pool, compact(cost), h)),
+          t.catalog.research[action].name,
+          ...recipeOf(action).map(([pool, cost]) =>
+            insightChip(pool, compact(cost), h, false, 'plain', insightName(t, pool)),
+          ),
         ],
         h,
       ),
@@ -301,8 +320,8 @@ const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Messag
           size: 'sm',
           variant: 'ghost',
           attributes: [
-            h.Title('File and leave the action item open: this incident stays twice as likely'),
-            h.AriaLabel('File'),
+            h.Title(t.incidents.fileAndLeaveTheActionItem),
+            h.AriaLabel(t.incidents.file),
           ],
         },
         [icon(h, X, 'size-3.5')],
@@ -318,7 +337,9 @@ const minutesOf = (seconds: number | null | undefined): string =>
 
 /** A postmortem: one compact row with its action item, the details folded away. */
 const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
-  const def = INCIDENTS[postmortem.kind]
+  const t = copy(h)
+
+  const def = localized(INCIDENTS[postmortem.kind], t.catalog.incidents[postmortem.kind])
   return h.details(
     [
       h.Key(`pm-${postmortem.id}`),
@@ -332,7 +353,7 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
           h.Class(
             'flex cursor-pointer list-none items-center gap-2 p-1.5 pl-2.5 [&::-webkit-details-marker]:hidden',
           ),
-          h.Title('Show details'),
+          h.Title(t.incidents.showDetails),
         ],
         [
           icon(
@@ -370,7 +391,9 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
           postmortem.causedBy
             ? h.p(
                 [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-warn')],
-                [`Followed ${INCIDENTS[postmortem.causedBy].name}, which was left alone.`],
+                [
+                  `Followed ${t.catalog.incidents[postmortem.causedBy].name}, which was left alone.`,
+                ],
               )
             : h.empty,
           h.div(
@@ -398,8 +421,8 @@ const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html
             [h.Class(`grid grid-cols-2 divide-x divide-hairline ${WELL}`)],
             (
               [
-                ['Users', Users, `−${compact(postmortem.lostUsers)}`],
-                ['Revenue', Wallet, `−${money(postmortem.lostRevenue)}`],
+                [t.incidents.users, Users, `−${compact(postmortem.lostUsers)}`],
+                [t.incidents.revenue, Wallet, `−${money(postmortem.lostRevenue)}`],
               ] as const
             ).map(([name, glyph, value]) =>
               h.div(

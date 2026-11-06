@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   SERVERLESS_CONCURRENCY,
@@ -20,13 +21,15 @@ const serverless = (
   ledger: Ledger,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
+  const t = copy(h)
+
   const own = ledger.nodes[node.id]
   const slots = own?.resources.slots
   const used = slots ? Math.min(slots.used, slots.total) : 0
   const done = own ? own.inbound - own.dropped : 0
   return [
     section(
-      'Executions',
+      t.inspectorFn.executions,
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
@@ -43,7 +46,7 @@ const serverless = (
       true,
     ),
     section(
-      'Cold start',
+      t.inspectorFn.coldStart,
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
@@ -56,7 +59,7 @@ const serverless = (
       h,
     ),
     section(
-      'Bill',
+      t.inspectorFn.bill,
       [
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
@@ -73,24 +76,28 @@ const serverless = (
 
 export const fnPanel: Panel = {
   stats: ({ game, node, own, h }) => {
+    const t = copy(h)
+
     const slots = own.resources.slots
     const used = slots ? Math.min(slots.used, slots.total) : 0
     return [
-      row('Inbound', `${rate(own.inbound)}/s`, 'plain', h),
+      row(t.inspectorFn.inbound, t.inspectorFn.s(rate(own.inbound)), 'plain', h),
       row(
-        'Executions',
+        t.inspectorFn.executions,
         slots ? `${used.toFixed(1)} / ${compact(Math.round(slots.total))}` : '—',
         slots && used >= slots.total * 0.9 ? 'danger' : 'plain',
         h,
       ),
-      row('Cold start', ms(coldStartMs(node)), 'plain', h),
+      row(t.inspectorFn.coldStart, ms(coldStartMs(node)), 'plain', h),
       row(
-        'Uses',
-        `${money(serverlessBurnOf(game, node, own.inbound - own.dropped, own.latency))}/s`,
+        t.inspectorFn.uses,
+        t.inspectorFn.s(
+          money(serverlessBurnOf(game, node, own.inbound - own.dropped, own.latency)),
+        ),
         'plain',
         h,
       ),
-      row('Standing Burn', `${money(burnOf(game, node))}/s`, 'ok', h),
+      row(t.inspectorFn.standingBurn, t.inspectorFn.s(money(burnOf(game, node))), 'ok', h),
     ]
   },
   body: ({ game, node, ledger, h }) => [...serverless(game, node, ledger, h)],

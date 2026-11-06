@@ -1,3 +1,4 @@
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { SCALE_MAXIMA, SCALE_TARGETS } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
@@ -7,17 +8,18 @@ import { type Panel, caption, picker, section } from './shared.ts'
 
 const MIN_COPIES = [1, 2, 4, 8] as const
 
-const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =>
-  section(
-    'Scaling',
+const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return section(
+    t.inspectorAutoscaler.scaling,
     [
       picker(
         'scale-signal',
         [
           ['cpu', 'CPU'],
-          ['load', 'Load'],
-          ['rps', 'Requests'],
-          ['queue', 'Queue depth'],
+          ['load', t.inspectorAutoscaler.load],
+          ['rps', t.inspectorAutoscaler.requests],
+          ['queue', t.inspectorAutoscaler.queueDepth],
         ],
         node.signal,
         (signal) => Message.AutoscalerChosen({ nodeId: node.id, signal }),
@@ -32,7 +34,7 @@ const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
       ),
       picker(
         'scale-min',
-        MIN_COPIES.map((copies) => [copies, `min ${copies}`] as const),
+        MIN_COPIES.map((copies) => [copies, t.inspectorAutoscaler.min(copies)] as const),
         node.minCopies,
         (minCopies) => Message.AutoscalerChosen({ nodeId: node.id, minCopies }),
         h,
@@ -40,7 +42,13 @@ const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
       ),
       picker(
         'scale-max',
-        SCALE_MAXIMA.map((copies) => [copies, copies === 0 ? 'no max' : `max ${copies}`] as const),
+        SCALE_MAXIMA.map(
+          (copies) =>
+            [
+              copies,
+              copies === 0 ? t.inspectorAutoscaler.noMax : t.inspectorAutoscaler.max(copies),
+            ] as const,
+        ),
         node.maxCopies,
         (maxCopies) => Message.AutoscalerChosen({ nodeId: node.id, maxCopies }),
         h,
@@ -49,8 +57,8 @@ const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
       picker(
         'scale-schedule',
         [
-          [false, 'On load'],
-          [true, 'Ahead of the peak'],
+          [false, t.inspectorAutoscaler.onLoad],
+          [true, t.inspectorAutoscaler.aheadOfThePeak],
         ],
         node.schedule,
         (schedule) => Message.AutoscalerChosen({ nodeId: node.id, schedule }),
@@ -59,13 +67,14 @@ const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
       ),
       caption(
         node.schedule
-          ? 'Two calendar hours before the daily peak it adds the copies the peak will need, so they are warm when it arrives.'
-          : 'It reacts to the load it sees. Research Scheduled scaling to provision for the peak first.',
+          ? t.inspectorAutoscaler.twoCalendarHoursBeforeTheDaily
+          : t.inspectorAutoscaler.itReactsToTheLoadIt,
         h,
       ),
     ],
     h,
   )
+}
 
 export const autoscalerPanel: Panel = {
   body: ({ game, node, h }) => [autoscaler(game, node, h)],

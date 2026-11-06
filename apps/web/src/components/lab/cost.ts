@@ -1,6 +1,7 @@
+import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import type { BurnLines } from '@quorum/simulation/ledger'
-import { KINDS, REQUEST_KINDS } from '@quorum/simulation/catalog'
+import { REQUEST_KINDS } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
 import { money } from '@quorum/ui/game/format'
 import type { Message } from '@/game/message.ts'
@@ -16,23 +17,24 @@ import { shell } from './panels.ts'
 
 type Line = Readonly<{ key: keyof BurnLines; label: string; note: string }>
 
-const LINES: ReadonlyArray<Line> = [
-  { key: 'compute', label: 'Compute', note: 'App Servers, Workers, edge, and platform Nodes' },
-  { key: 'data', label: 'Data', note: 'Database, cache, pooler, replicas, and the rest' },
-  { key: 'storage', label: 'Storage', note: 'GB stored, priced per GB per second' },
-  { key: 'egress', label: 'Egress', note: 'Bytes out from the origin and the CDN' },
+const linesOf = (t: Messages): ReadonlyArray<Line> => [
+  { key: 'compute', label: t.cost.compute, note: 'App Servers, Workers, edge, and platform Nodes' },
+  { key: 'data', label: t.cost.data, note: 'Database, cache, pooler, replicas, and the rest' },
+  { key: 'storage', label: t.cost.storage, note: 'GB stored, priced per GB per second' },
+  { key: 'egress', label: t.cost.egress, note: 'Bytes out from the origin and the CDN' },
   { key: 'thirdParty', label: 'Third parties', note: 'Payment fees, scans, tokens, and messages' },
   {
     key: 'requests',
-    label: 'Requests',
+    label: t.cost.requests,
     note: 'Gateway, Serverless and Edge Function requests, priced per use',
   },
-  { key: 'observability', label: 'Observability', note: 'Analytics sampling and retention' },
-  { key: 'salaries', label: 'Salaries', note: 'Engineers, by language and policy' },
+  { key: 'observability', label: t.cost.observability, note: 'Analytics sampling and retention' },
+  { key: 'salaries', label: t.cost.salaries, note: 'Engineers, by language and policy' },
 ]
 
-const row = (line: Line, value: number, total: number, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const row = (line: Line, value: number, total: number, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Class(
         'grid grid-cols-[1fr_auto_64px] items-baseline gap-4 border-b border-border py-2 last:border-b-0',
@@ -51,7 +53,7 @@ const row = (line: Line, value: number, total: number, h: HtmlBuilder<Message>):
       ),
       h.span(
         [h.Class(cn(FIGURE, 'text-[calc(13.5px*var(--type-scale))] text-foreground'))],
-        [`${money(value)}/s`],
+        [t.cost.s(money(value))],
       ),
       h.span(
         [
@@ -63,6 +65,7 @@ const row = (line: Line, value: number, total: number, h: HtmlBuilder<Message>):
       ),
     ],
   )
+}
 
 /** A simple two-column figure row, for unit economics and cost allocation. */
 const figureRow = (label: string, value: string, h: HtmlBuilder<Message>): Html =>
@@ -82,6 +85,8 @@ const figureRow = (label: string, value: string, h: HtmlBuilder<Message>): Html 
   )
 
 export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const game = model.board.game
   const ledger = ledgerOf(model)
   const lines = ledger.burnLines
@@ -112,11 +117,11 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     cn(FIGURE, 'text-[calc(20px*var(--type-scale))] leading-none font-medium'),
                   ),
                 ],
-                [`${money(total)}/s`],
+                [t.cost.s(money(total))],
               ),
               h.span(
                 [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-                ['Burn'],
+                [t.cost.burn],
               ),
             ],
           ),
@@ -129,11 +134,11 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     cn(FIGURE, 'text-[calc(20px*var(--type-scale))] leading-none font-medium'),
                   ),
                 ],
-                [`${money(revenue)}/s`],
+                [t.cost.s(money(revenue))],
               ),
               h.span(
                 [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-                ['Revenue'],
+                [t.cost.revenue],
               ),
             ],
           ),
@@ -150,7 +155,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
               h.span(
                 [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-                ['Margin'],
+                [t.cost.margin],
               ),
             ],
           ),
@@ -158,7 +163,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       h.div(
         [h.Class(cn(WELL, 'mx-5 mb-4 px-4 py-2'))],
-        LINES.map((line) => row(line, lines[line.key], total, h)),
+        linesOf(t).map((line) => row(line, lines[line.key], total, h)),
       ),
       ...(unitEconomics.length > 0
         ? [
@@ -169,7 +174,11 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             h.div(
               [h.Class(cn(WELL, 'mx-5 mb-4 px-4 py-2'))],
               unitEconomics.map((kind) =>
-                figureRow(KINDS[kind].label, `${money(ledger.costPerKind[kind] ?? 0)}/req`, h),
+                figureRow(
+                  t.catalog.kinds[kind].label,
+                  `${money(ledger.costPerKind[kind] ?? 0)}/req`,
+                  h,
+                ),
               ),
             ),
           ]
@@ -187,7 +196,7 @@ export const costPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 const team = game.teams.find((entry) => entry.id === service?.owner)
                 return figureRow(
                   `${service?.name ?? id} (${team?.name ?? 'core'})`,
-                  `${money(cost)}/s`,
+                  t.cost.s(money(cost)),
                   h,
                 )
               }),

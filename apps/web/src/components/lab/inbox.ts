@@ -1,3 +1,4 @@
+import { copy, type Messages } from '@/i18n/messages.ts'
 import { has } from '@quorum/simulation/lookups'
 import { InboxMessage } from '@/game/inbox.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -92,6 +93,8 @@ const gist = (mail: Mail): string =>
  * button here, so a patch is one click away.
  */
 export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const mail = model.board.inbox.mail.find(
     (entry) => entry.id === model.board.inbox.peek && !entry.trashed,
   )
@@ -103,7 +106,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key(`peek-${mail.id}-${mail.entries.length}`),
       h.Role('status'),
-      h.AriaLabel(`New mail from ${sender.name}: ${mail.subject}`),
+      h.AriaLabel(t.inbox.newMailFrom(sender.name, mail.subject)),
       h.Class(
         `enter-pop absolute right-3 bottom-[68px] z-20 flex w-[min(380px,calc(100%-24px))] flex-col gap-2.5 p-3 ${FLOAT} compact:static compact:w-auto compact:pointer-events-auto`,
       ),
@@ -140,7 +143,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
               variant: 'ghost',
               size: 'icon-sm',
               className: '-mt-1 -mr-1.5 text-muted-foreground',
-              attributes: [h.AriaLabel('Dismiss'), h.Title('Dismiss')],
+              attributes: [h.AriaLabel(t.inbox.dismiss), h.Title(t.inbox.dismiss)],
             },
             icon(h, X, 'size-3.5'),
             h,
@@ -164,7 +167,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('flex items-center gap-2')],
         [
-          decision ? chip({ variant: 'destructive' }, ['Needs action'], h) : h.empty,
+          decision ? chip({ variant: 'destructive' }, [t.inbox.needsAction], h) : h.empty,
           h.span([h.Class('flex-1')], []),
           act
             ? button(
@@ -186,7 +189,7 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
               size: 'sm',
               attributes: [h.Key('open')],
             },
-            ['Open', Kbd({ className: 'ml-1 opacity-80' }, ['I'], h)],
+            [t.inbox.open, Kbd({ className: 'ml-1 opacity-80' }, ['I'], h)],
             h,
           ),
         ],
@@ -208,12 +211,14 @@ const inboxToggle = (
   waiting: boolean,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   return h.button(
     [
       h.Key('inbox'),
       h.Type('button'),
-      h.Title('Inbox (I)'),
-      h.AriaLabel(unread > 0 ? `Inbox, ${unread} unread` : 'Inbox'),
+      h.Title(t.inbox.inboxI),
+      h.AriaLabel(unread > 0 ? t.inbox.inboxUnread(unread) : t.inbox.inbox),
       h.OnClick(Message.PanelOpened({ panel: 'inbox' })),
       h.Class(
         `${waiting ? 'mail-ping text-foreground ' : 'text-muted-foreground '}absolute right-3 bottom-3 z-20 grid size-11 place-items-center ${PANEL} hover:text-foreground compact:right-[max(8px,env(safe-area-inset-right))] compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+84px)]`,
@@ -246,6 +251,8 @@ const row = (
   folded: ReadonlyArray<Mail>,
   h: HtmlBuilder<Message>,
 ): Html => {
+  const t = copy(h)
+
   if (mail.id === DIGEST_ID) return digestRow(mail, folded, open, h)
   const sender = senderOf(mail.sender)
   // The priority bar (18 "Pacing and volume"): danger while a clock runs, warn while a
@@ -283,7 +290,7 @@ const row = (
                 [
                   h.Class('absolute top-[17px] left-1.5 size-1.5 rounded-full bg-primary-strong'),
                   h.Role('img'),
-                  h.AriaLabel('Unread'),
+                  h.AriaLabel(t.inbox.unread),
                 ],
                 [],
               ),
@@ -400,8 +407,9 @@ const digestRow = (
   folded: ReadonlyArray<Mail>,
   open: boolean,
   h: HtmlBuilder<Message>,
-): Html =>
-  h.li(
+): Html => {
+  const t = copy(h)
+  return h.li(
     [h.Key('digest')],
     [
       h.button(
@@ -436,7 +444,7 @@ const digestRow = (
                         ),
                       ),
                     ],
-                    ['Digest'],
+                    [t.inbox.digest],
                   ),
                   h.span(
                     [
@@ -473,6 +481,7 @@ const digestRow = (
       ),
     ],
   )
+}
 
 /** A label chip: one Sender kind, and how much Mail in this folder it has (18 "The Inbox"). */
 const labelChip = (
@@ -552,14 +561,15 @@ const tool = (label: string, glyph: IconNode, message: Message, h: HtmlBuilder<M
  * The Digest's reader (18 "Pacing and volume"): the threads it folded, each one a line that opens
  * the Mail it stands for. Nothing is answered here; the Digest is a shelf, not a letter.
  */
-const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>): Html =>
-  h.article(
+const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.article(
     [h.Key('digest'), h.Class('flex min-h-0 flex-1 flex-col')],
     [
       h.div(
         [h.Class(cn('flex min-h-0 flex-1 flex-col gap-3 px-5 py-4', SCROLL))],
         [
-          h.span([h.Class(EYEBROW)], ['Digest']),
+          h.span([h.Class(EYEBROW)], [t.inbox.digest]),
           h.h2(
             [
               h.Class(
@@ -570,9 +580,7 @@ const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Me
           ),
           h.p(
             [h.Class('text-[calc(12px*var(--type-scale))] leading-relaxed text-muted-foreground')],
-            [
-              'More than eight threads were unread, so the oldest ones that needed nothing from you folded into this one. They are all still here.',
-            ],
+            [t.inbox.moreThanEightThreadsWereUnread],
           ),
           h.ul(
             [
@@ -588,14 +596,17 @@ const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Me
         [
           h.span(
             [h.Class('flex-1 text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            [`${folded.length} older updates`],
+            [t.inbox.olderUpdates(folded.length)],
           ),
         ],
       ),
     ],
   )
+}
 
 const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   if (mail.id === DIGEST_ID) return digestLetter(mail, folded, h)
   const sender = senderOf(mail.sender)
   const threaded = mail.entries.length > 1
@@ -649,10 +660,10 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                       className: '-ml-1 h-6 px-1.5 text-muted-foreground',
                       attributes: [
                         h.Key(`glossary-${tell.id}`),
-                        h.Title('Opens the Glossary on this advisory'),
+                        h.Title(t.inbox.opensTheGlossaryOnThisAdvisory),
                       ],
                     },
-                    [icon(h, ShieldAlert, 'size-3.5'), tell.id, ' · ', 'In the Glossary'],
+                    [icon(h, ShieldAlert, 'size-3.5'), tell.id, ' · ', t.inbox.inTheGlossary],
                     h,
                   ),
               mail.resolved === null
@@ -663,7 +674,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                         'flex items-center gap-1 text-[calc(11.5px*var(--type-scale))] font-medium text-ok',
                       ),
                     ],
-                    [icon(h, CircleCheck, 'size-3.5'), `Resolved ${clock(mail.resolved)}`],
+                    [icon(h, CircleCheck, 'size-3.5'), t.inbox.resolved(clock(mail.resolved))],
                   ),
             ],
           ),
@@ -748,7 +759,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           h.span([h.Class('flex-1')], []),
           mail.trashed
             ? tool(
-                'Move to Inbox (E)',
+                t.inbox.moveToInboxE,
                 ArchiveRestore,
                 Message.InboxChanged({ message: InboxMessage.Restored({ id: mail.id }) }),
                 h,
@@ -757,13 +768,13 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 [h.Class('flex items-center')],
                 [
                   tool(
-                    mail.spam ? 'Not spam (S)' : 'Report spam (S)',
+                    mail.spam ? t.inbox.notSpamS : t.inbox.reportSpamS,
                     mail.spam ? MailIcon : Ban,
                     Message.InboxChanged({ message: InboxMessage.MarkedSpam({ id: mail.id }) }),
                     h,
                   ),
                   tool(
-                    'Delete (E)',
+                    t.inbox.deleteE,
                     Trash2,
                     Message.InboxChanged({ message: InboxMessage.Trashed({ id: mail.id }) }),
                     h,
@@ -776,16 +787,17 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
   )
 }
 
-const EMPTY: Record<Folder, string> = {
-  action: 'Nothing needs you.',
-  fyi: 'No updates.',
-  spam: 'Spam is empty.',
-  trash: 'Trash is empty.',
-}
+const emptyOf = (t: Messages): Record<Folder, string> => ({
+  action: t.inbox.nothingNeedsYou,
+  fyi: t.inbox.noUpdates,
+  spam: t.inbox.spamIsEmpty,
+  trash: t.inbox.trashIsEmpty,
+})
 
 /** The Sandbox's stress bench: send any kind of Mail, one or many, without waiting for it. */
-const generator = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
+const generator = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
     [
       h.Class(
         'flex flex-wrap items-end gap-2 border-t border-hairline bg-nested px-3 py-2 compact:gap-1.5',
@@ -795,7 +807,7 @@ const generator = (model: Model, h: HtmlBuilder<Message>): Html =>
       nativeSelect(
         {
           id: 'mail-sample',
-          label: 'Sample',
+          label: t.inbox.sample,
           labelClass: 'sr-only',
           size: 'sm',
           value: model.board.inbox.sample,
@@ -823,10 +835,10 @@ const generator = (model: Model, h: HtmlBuilder<Message>): Html =>
               h.Key(`send-${count}`),
               ...(count === 1
                 ? []
-                : [h.AriaLabel(`Send ${count} random`), h.Title(`Send ${count} random`)]),
+                : [h.AriaLabel(t.inbox.sendRandom(count)), h.Title(t.inbox.sendRandom(count))]),
             ],
           },
-          count === 1 ? 'Send' : [icon(h, Dices, 'size-3.5'), `×${count}`],
+          count === 1 ? t.inbox.send : [icon(h, Dices, 'size-3.5'), `×${count}`],
           h,
         ),
       ),
@@ -837,7 +849,7 @@ const generator = (model: Model, h: HtmlBuilder<Message>): Html =>
           variant: 'ghost',
           size: 'sm',
         },
-        'Resolve threads',
+        t.inbox.resolveThreads,
         h,
       ),
       button(
@@ -846,14 +858,17 @@ const generator = (model: Model, h: HtmlBuilder<Message>): Html =>
           variant: 'ghost',
           size: 'sm',
         },
-        'Clear',
+        t.inbox.clear,
         h,
       ),
     ],
   )
+}
 
 /** A mail window docked above the corner button: the Board stays in view and clickable. */
 export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
   const newest = folderList(model.board.inbox)
   const folded = digestOf(model.board.inbox)
   const open = newest.find((mail) => mail.id === model.board.inbox.focus) ?? newest[0]
@@ -862,7 +877,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       h.Key('inbox-panel'),
       h.DataAttribute('exit', 'gesture'),
-      h.AriaLabel('Inbox'),
+      h.AriaLabel(t.inbox.inbox),
       h.Class(
         `absolute right-3 bottom-[68px] z-30 flex h-[min(520px,calc(100%-96px))] w-[min(720px,calc(100%-24px))] flex-col overflow-hidden ${FLOAT} enter-panel compact:inset-x-2 compact:right-2 compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+136px)] compact:w-auto`,
       ),
@@ -876,26 +891,26 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               folderTab(
                 'action',
-                'Needs action',
+                t.inbox.needsAction,
                 openCount(model),
                 model.board.inbox.folder === 'action',
                 h,
               ),
               folderTab(
                 'fyi',
-                'FYI',
+                t.inbox.fYI,
                 unreadIn(model, 'fyi'),
                 model.board.inbox.folder === 'fyi',
                 h,
               ),
               folderTab(
                 'spam',
-                'Spam',
+                t.inbox.spam,
                 unreadIn(model, 'spam'),
                 model.board.inbox.folder === 'spam',
                 h,
               ),
-              folderTab('trash', 'Trash', 0, model.board.inbox.folder === 'trash', h),
+              folderTab('trash', t.inbox.trash, 0, model.board.inbox.folder === 'trash', h),
             ],
           ),
           h.span([h.Class('flex-1')], []),
@@ -919,14 +934,14 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               )
             : h.empty,
           Kbd.group({}, [Kbd({}, ['J'], h), Kbd({}, ['K'], h)], h),
-          Kbd({}, ['Esc'], h),
+          Kbd({}, [t.inbox.esc], h),
           button(
             {
               onClick: Message.PanelClosed(),
               variant: 'ghost',
               size: 'icon-sm',
               className: 'text-muted-foreground',
-              attributes: [h.AriaLabel('Close (Esc)')],
+              attributes: [h.AriaLabel(t.inbox.closeEsc)],
             },
             icon(h, X, 'size-3.5'),
             h,
@@ -953,13 +968,13 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               // The labels are the filter chips above the list (18 "The Inbox").
               h.div(
                 [
-                  h.AriaLabel('Labels'),
+                  h.AriaLabel(t.inbox.labels),
                   h.Class(
                     'flex flex-nowrap gap-1 overflow-x-auto px-2.5 py-1.5 border-b border-hairline',
                   ),
                 ],
                 [
-                  labelChip(null, 'All', null, model.board.inbox.label === null, h),
+                  labelChip(null, t.inbox.all, null, model.board.inbox.label === null, h),
                   ...labels.map((entry) =>
                     labelChip(
                       entry.label,
@@ -973,7 +988,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
               h.ul(
                 [
-                  h.AriaLabel('Mail'),
+                  h.AriaLabel(t.inbox.mail),
                   h.Class(cn('flex flex-col divide-y divide-hairline', SCROLL)),
                 ],
                 newest.length === 0
@@ -986,8 +1001,8 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                         ],
                         [
                           model.board.inbox.label === null
-                            ? EMPTY[model.board.inbox.folder]
-                            : 'No Mail with that label here.',
+                            ? emptyOf(t)[model.board.inbox.folder]
+                            : t.inbox.noMailWithThatLabelHere,
                         ],
                       ),
                     ]
