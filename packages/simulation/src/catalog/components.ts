@@ -1185,6 +1185,6 @@ export const REPLICA_SYNC_MINUTES_PER_GB = 0.5
 /** Sim seconds a schema migration's lock holds per GB of rows, on top of its base, and its most. */
 export const MIGRATION_LOCK_PER_GB = 0.1
 
-export { SERVERLESS_MS } from '../components/fn/def.ts'
-export { EDGE_MS } from '../components/edge/def.ts'
-export { CDC_MS } from '../components/cdc/def.ts'
+export { SERVERLESS_MS } from '../components/fn.ts'
+export { EDGE_MS } from '../components/edge.ts'
+export { CDC_MS } from '../components/cdc.ts'
