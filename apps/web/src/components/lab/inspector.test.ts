@@ -60,6 +60,23 @@ const view = (model: Model, h: HtmlBuilder<Message>) => inspector(model, ledgerO
 const diskHint =
   'The working set exceeds RAM and reads hit disk. Consider more RAM, caching, or a read replica.'
 
+test('the Inspector is keyed by the Node it inspects, so its controls keep that Node id', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.tap((simulation) => {
+      expect((simulation.html as { key?: string }).key).toBe('inspector-database')
+    }),
+    Scene.Subscription.emit(Message.NodeTapped({ nodeId: 'server' })),
+    Scene.Command.resolveAll([SyncBoard, Message.Synced()], [AppendLog, Message.Synced()]),
+    Scene.tap((simulation) => {
+      // A shared key would let snabbdom reuse the Database's buttons, and their click handlers
+      // would still move the Database when the player changes the Server's region.
+      expect((simulation.html as { key?: string }).key).toBe('inspector-server')
+    }),
+  )
+})
+
 test('a Node with Health checks offers Drain, which takes it out of rotation', () => {
   const measurable: Model = {
     ...fixture(),

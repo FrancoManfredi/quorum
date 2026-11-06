@@ -4159,7 +4159,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
 
   return h.aside(
     [
-      h.Key('inspector'),
+      // Key the panel by the Node it inspects: a control's click handler closes over that Node's
+      // id, so reusing the previous Node's DOM would send the previous Node's id.
+      h.Key(`inspector-${node.id}`),
       h.DataAttribute('exit', 'gesture'),
       h.DataAttribute('inspector', ''),
       h.AriaLabel(nodeLabel(game, node)),
