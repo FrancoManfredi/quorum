@@ -42,11 +42,13 @@ const catalogMessages = (value: unknown): ReadonlyArray<string> => {
   if (Array.isArray(value)) return value.flatMap(catalogMessages)
   if (value === null || typeof value !== 'object') return []
   return Object.entries(value).flatMap(([key, field]) =>
-    typeof field === 'string'
-      ? copyFields.has(key) && /[A-Za-z]/.test(field)
-        ? paragraphs(field)
-        : []
-      : catalogMessages(field),
+    key === 'design'
+      ? []
+      : typeof field === 'string'
+        ? copyFields.has(key) && /[A-Za-z]/.test(field)
+          ? paragraphs(field)
+          : []
+        : catalogMessages(field),
   )
 }
 

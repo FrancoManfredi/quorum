@@ -43,7 +43,7 @@ const AXIS_LABEL: Record<Axis, string> = {
   operability: 'Operability',
 }
 
-/** Glossary headings for the anchors the catalog names (apps/wiki/content/design/glossary.md). */
+/** Glossary headings for the anchors the catalog names (packages/simulation/src/catalog/glossary.ts). */
 const TERMS: Readonly<Record<string, string>> = {
   'process-per-request': 'process per request',
   'shared-nothing': 'shared nothing',

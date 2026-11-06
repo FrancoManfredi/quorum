@@ -26,11 +26,9 @@ const incident: Incident = {
   causedBy: null,
 }
 
-/* The in-game glossary ships apps/wiki/content/design/glossary.md: every heading, in order, with its slug as id. */
+/* The glossary catalog is the one source for the Glossary panel and the wiki's /glossary pages. */
 
-const source = fileURLToPath(
-  new URL('../../../apps/wiki/content/design/glossary.md', import.meta.url),
-)
+const designDir = fileURLToPath(new URL('../../../apps/wiki/content/design/', import.meta.url))
 
 const slug = (heading: string): string =>
   heading
@@ -39,25 +37,31 @@ const slug = (heading: string): string =>
     .replaceAll(/[^a-z0-9 -]/g, '')
     .replaceAll(' ', '-')
 
-test('the glossary catalog matches the design glossary page', async () => {
-  const text = await readFile(source, 'utf8')
-  const headings = [...text.matchAll(/^## (.+)$/gm)].map(([, heading]) => heading ?? '')
-  expect(GLOSSARY.map((entry) => entry.term)).toEqual(headings.map((heading) => heading.trim()))
-  expect(GLOSSARY.map((entry) => entry.id)).toEqual(headings.map(slug))
+const anchorsOf = async (page: string): Promise<ReadonlySet<string>> => {
+  const text = await readFile(`${designDir}${page}.md`, 'utf8')
+  return new Set([...text.matchAll(/^#{2,6} (.+)$/gm)].map(([, heading]) => slug(heading ?? '')))
+}
+
+test('every glossary entry is complete and every reference resolves', async () => {
   const ids = new Set(GLOSSARY.map((entry) => entry.id))
-  const sections = text.split(/^## /m).slice(1)
-  GLOSSARY.forEach((entry, index) => {
-    expect(entry.definition.length).toBeGreaterThan(0)
-    expect(entry.inGame.length).toBeGreaterThan(0)
+  expect(ids.size).toBe(GLOSSARY.length)
+  for (const entry of GLOSSARY) {
+    expect(entry.id, entry.term).toBe(slug(entry.term))
+    expect(entry.definition.length, entry.id).toBeGreaterThan(0)
+    expect(entry.inGame.length, entry.id).toBeGreaterThan(0)
     expect(entry.links.length, entry.id).toBeGreaterThan(0)
-    for (const link of entry.links) {
-      expect(link.url, entry.id).toMatch(/^https:\/\//)
-      expect(sections[index], entry.id).toContain(link.url)
-    }
+    for (const link of entry.links) expect(link.url, entry.id).toMatch(/^https:\/\//)
     for (const id of entry.related) {
       expect(ids.has(id) && id !== entry.id, `${entry.id} → ${id}`).toBe(true)
     }
-  })
+    for (const target of entry.design ?? []) {
+      const [, page, anchor] = /^\/design\/([^#]+)#(.+)$/.exec(target.url) ?? []
+      expect(page, `${entry.id}: ${target.url}`).toBeTruthy()
+      expect((await anchorsOf(page ?? '')).has(anchor ?? ''), `${entry.id}: ${target.url}`).toBe(
+        true,
+      )
+    }
+  }
 })
 
 test('discovery meets entries from what the Company runs and goes through, never in a Sandbox', () => {

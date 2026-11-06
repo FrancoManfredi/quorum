@@ -46,7 +46,7 @@ const entity = (entry: GlossaryEntry): Page => {
     aliases: [entry.id, CATEGORY_LABELS[entry.category]],
     source: text.source,
     headings: [
-      ...headingsFor(['In Quorum']),
+      ...headingsFor(['In Quorum', entry.design?.length ? 'Design' : null]),
       ...text.headings,
       ...headingsFor([
         entry.related.length ? 'Read next' : null,
@@ -60,6 +60,23 @@ const entity = (entry: GlossaryEntry): Page => {
         [
           h.p([], [h.span([h.Class(cn(EYEBROW, 'mr-2'))], [CATEGORY_LABELS[entry.category]])]),
           section('In Quorum', [paragraph(entry.inGame, h)], h),
+          entry.design?.length
+            ? section(
+                'Design',
+                [
+                  h.p(
+                    [],
+                    [
+                      linkList(
+                        entry.design.map((target) => link(target.url, target.label, h)),
+                        h,
+                      ),
+                    ],
+                  ),
+                ],
+                h,
+              )
+            : h.empty,
           ...(text.view ? [text.view(model, h)] : []),
           entry.related.length
             ? section(

@@ -17,7 +17,7 @@ import { EYEBROW, FIGURE, SCROLL, WELL } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
 /* ==========================================================================
-   The Glossary (15, glossary.md): every engineering term the game uses, what
+   The Glossary (design 15, packages/simulation/src/catalog/glossary.ts): every engineering term the game uses, what
    it does in the game, and where to read more. Terms the player has met in
    play carry a check; the rest stay readable.
    ========================================================================== */

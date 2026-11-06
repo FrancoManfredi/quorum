@@ -191,7 +191,7 @@ export type Axes = Readonly<Record<Axis, 1 | 2 | 3 | 4 | 5>>
 export type RuntimeDef = Readonly<{
   id: RuntimeId
   axes: Axes
-  /** Anchors in apps/wiki/content/design/glossary.md for the behavior behind the axes. */
+  /** Anchors in packages/simulation/src/catalog/glossary.ts for the behavior behind the axes. */
   glossary: ReadonlyArray<string>
   language: LanguageId
   name: string
@@ -1009,7 +1009,7 @@ export type FrameworkId = (typeof FRAMEWORK_IDS)[number]
 export type FrameworkDef = Readonly<{
   id: FrameworkId
   axes: Axes
-  /** Anchors in apps/wiki/content/design/glossary.md for the behavior behind the axes. */
+  /** Anchors in packages/simulation/src/catalog/glossary.ts for the behavior behind the axes. */
   glossary: ReadonlyArray<string>
   name: string
   language: LanguageId | null
