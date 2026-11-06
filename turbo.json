@@ -10,7 +10,7 @@
     },
     "test": {
       "dependsOn": ["transit"],
-      "env": ["SLOW_TESTS"]
+      "env": ["SLOW_TESTS", "FULL_TESTS"]
     },
     "transit": {
       "dependsOn": ["^transit"]

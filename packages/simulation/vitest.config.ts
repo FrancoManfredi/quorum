@@ -2,11 +2,20 @@ import { availableParallelism } from 'node:os'
 import { configDefaults, defineConfig } from 'vitest/config'
 import { simVersion } from './sim-version.ts'
 
+const FULL_ONLY = ['breadth', 'pacing', 'legacy-pacing', 'challenges'].map(
+  (name) => `test/${name}.test.ts`,
+)
+
 // `engines/` holds the cross-engine check, which `pnpm test:engines` runs in browsers.
 export default defineConfig({
   plugins: [simVersion()],
   test: {
-    exclude: [...configDefaults.exclude, 'engines/**'],
+    // The whole-game runs in FULL_ONLY take over a minute; `pnpm test:full` and CI run them.
+    exclude: [
+      ...configDefaults.exclude,
+      'engines/**',
+      ...(process.env.FULL_TESTS ? [] : FULL_ONLY),
+    ],
     // A loaded CI runner takes longer than the 5 s default on a full Company. Tests that need
     // much more set their own timeout; a real hang still stops at this cap.
     testTimeout: 20_000,
