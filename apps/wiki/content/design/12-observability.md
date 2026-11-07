@@ -230,6 +230,121 @@ labels it "Recorded sample", and every rate, share and delta is the one recorded
 sample changes no Game state and no time, so the Board keeps running. Back to live returns to now.
 The selection clears when its sample expires or its Node is sold.
 
+## Load diagnosis
+
+The Inspector shows how much load reaches a Node and where it comes from. It does not say why that
+load costs so much. A Database at 95% can have the same `q-read` rate it had yesterday, while table
+bloat makes each read cost 1.4 times more CPU. Load diagnosis answers "why is this Node busy" with
+measurements. The wiki keeps the fixes.
+
+### The game shows evidence, the wiki teaches the fix
+
+Quorum teaches engineering, so diagnosis must not turn into a list of buttons to press. Each
+diagnosis row names a cause in game vocabulary, such as Table bloat, Hot key, or Retries, and gives
+its number. It does not name the action that removes the cause. The player reads the evidence and
+decides what to do.
+
+The player who is stuck finds the answer in one click. Each diagnosis section has a **Why?** link to
+its part of the [Find the bottleneck](/guides/find-the-bottleneck) guide. That guide maps each cause
+to the fixes that remove it and explains the engineering behind it, the way a runbook does on a real
+team. The guide's aliases include "high load", "busy node", and "why is my node slow", so the wiki
+search finds it too. The guide section ships with the feature, because a player page describes only
+what the game does.
+
+### What each step shows
+
+Diagnosis follows the visibility ladder. The simulation always computes every figure (see
+[The Ledger and what is hidden](#the-ledger-and-what-is-hidden)). Research decides what the Inspector
+shows.
+
+| Step | Research    | Diagnosis                                                                                             |
+| ---- | ----------- | ----------------------------------------------------------------------------------------------------- |
+| 0    | None        | The Load change line, in words only.                                                                  |
+| 2    | `metrics`   | The Load change line with numbers, and a marker on Traffic & load where the cost per request changed. |
+| 5    | `tracing`   | Amplification, and the Load change line names the Node that the busy Node waits on.                   |
+| 7    | `profiling` | Work share and the Cost receipt. What-if rows.                                                        |
+
+### Load change
+
+Utilization rises for one of three reasons: more requests arrive, each request costs more, or the
+Node has less Capacity. The Load change line splits the change between the selected sample and the
+sample one calendar hour earlier into those three parts:
+
+```text
+Load 62% → 91%   demand +12 pts · cost per request +20 pts · capacity −3 pts
+```
+
+The parts add up to the change in utilization. The split uses the logarithm of each factor, because
+utilization is demand × cost ÷ capacity, so the three parts stay additive.
+
+At step 0, the line shows only the largest part in words: "More traffic", "Each request costs more",
+or "Less capacity". That is the one free answer to "why", and it keeps the game playable without
+research, like the bottleneck marker.
+
+### Amplification
+
+The Users send one request. The Node may see five. Amplification traces the Node's inbound back to
+the Users' Request kinds, through every hop, not one:
+
+```text
+q-read 1,200/s at Database
+  checkout   300/s × 4 calls   = 1,200/s
+    of which retries                 18%
+    of which Cache misses            62%
+```
+
+- Each row is one Request kind the Users send, its rate, and the calls one request of it makes to this
+  Node.
+- Retries and Cache misses show as shares of the rows. A rising retry share is the first sign of a
+  Retry storm. A rising miss share shows a cold or too-small Cache.
+- A row opens the Waterfall of its Request kind.
+
+### Work share and the Cost receipt
+
+Shares of incoming traffic are not shares of work. On a Database, a `q-scan` that is 3% of the
+requests can take 60% of the CPU. Work share adds a column next to each traffic share: the kind's
+rate times its cost per request, as a share of the limiting resource.
+
+The Cost receipt opens from a kind's row. It lists the base cost per request and each factor that
+multiplies it, in the order the simulation applies them:
+
+```text
+q-read on Database
+  base                         2.0 ms
+  × Table bloat                1.4
+  × Hot key                    1.8
+  × cold buffer cache          1.5
+  = 7.6 ms per request         58% of CPU
+```
+
+The receipt lists every factor from the capacity model that is not 1: runtime speed, framework
+overhead, serialization, auth checks, noisy neighbours, shard fan-out, Hot keys, Table bloat, buffer
+cache eviction, disk reads, and incident effects such as Event loop block. A factor below 1, such as
+Denormalization on reads, shows too, so the player sees what a past fix earns.
+
+The Ledger carries the receipt per Node and kind: each named factor and their product. The product
+is the same cost that sets Capacity, and a test holds the two equal.
+
+### What-if rows
+
+A what-if row shows the Node's utilization after one change the player can make now, from a ghost
+solve ([The Tradeoff preview](/design/15-ui-ux#tradeoff-cards)):
+
+```text
++1 copy               91% → 48%
+Larger Cache          91% → 51%
+Retries off           91% → 77%
+```
+
+A row offers only changes that are unlocked and legal on this Design. The rows are sorted by the
+change they make, and none is marked as the answer. The player still decides whether the cheapest row
+is worth its Burn.
+
+### The agent tool
+
+`explainNode` in `agent-tools.ts` returns the same diagnosis as data. It reads only what the player
+can see at their current step, so the agent cannot see further than the player.
+
 ## The Dashboard
 
 The Board shows the system **now**. The **Dashboard** shows it **over time**. It is a full-screen

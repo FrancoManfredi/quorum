@@ -211,6 +211,22 @@ _Avoid_: load (alone), usage
 The one Node whose extra Capacity would earn the most revenue right now. The Board marks it.
 _Avoid_: chokepoint, weak link
 
+**Load change**:
+The split of a Node's change in Utilization into demand, cost per request, and Capacity.
+_Avoid_: load delta, utilization diff
+
+**Amplification**:
+The calls one Users' request makes to a Node across every hop, with the share that are retries and Cache misses.
+_Avoid_: fan-out (that is a shard scan), multiplier
+
+**Work share**:
+A Request kind's share of the resource that limits a Node, as opposed to its share of incoming traffic.
+_Avoid_: CPU share, cost share
+
+**Cost receipt**:
+The base cost of one request of a kind at a Node and each factor that multiplies it.
+_Avoid_: breakdown, profile, flame graph
+
 **Apdex**:
 The share of requests that satisfy users, with tolerating requests counted as half. It sets revenue and user growth.
 _Avoid_: satisfaction, happiness, patience
