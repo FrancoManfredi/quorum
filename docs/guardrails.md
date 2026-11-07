@@ -22,13 +22,14 @@ rule and its check in the same commit.
 
 `effect-tsrs` fails typecheck when code calls an Effect API marked
 `@stability unstable`. A tsconfig override grants the exception per file. The
-backend allows `effect/rpc` and `effect/http` in its Worker entry and Worker test
-only:
+backend allows `effect/rpc` and `effect/http` in its Worker entry and Worker test, and
+`effect/ErrorReporter` there and in each context's `handlers.ts`, where a store failure reaches the
+error reporters:
 
 ```json
 {
   "include": ["src/worker.ts", "src/worker.test.ts"],
-  "options": { "allowedUnstableApis": ["effect/rpc", "effect/http"] }
+  "options": { "allowedUnstableApis": ["effect/rpc", "effect/http", "effect/ErrorReporter"] }
 }
 ```
 

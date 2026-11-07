@@ -8,28 +8,28 @@ allowBuilds:
   esbuild: true
   core-js: false
 overrides:
-  effect: 4.0.0
-  workerd: 1.20261008.1
+  effect: 4.1.2
+  workerd: 1.20261106.1
   oxlint-tsgolint: 7.0.2005
 minimumReleaseAgeExclude:
-  - '@cloudflare/workers-types@5.20261008.1'
-  - '@foldkit/vite-plugin@0.27.0'
-  - foldkit@0.167.0
-  - lefthook-darwin-arm64@2.2.0
-  - lefthook-darwin-x64@2.2.0
-  - lefthook-freebsd-arm64@2.2.0
-  - lefthook-freebsd-x64@2.2.0
-  - lefthook-linux-arm64@2.2.0
-  - lefthook-linux-x64@2.2.0
-  - lefthook-openbsd-arm64@2.2.0
-  - lefthook-openbsd-x64@2.2.0
-  - lefthook-windows-arm64@2.2.0
-  - lefthook-windows-x64@2.2.0
-  - lefthook@2.2.0
-  - '@cloudflare/workerd-darwin-64@1.20261008.1'
-  - '@cloudflare/workerd-darwin-arm64@1.20261008.1'
-  - '@cloudflare/workerd-linux-64@1.20261008.1'
-  - '@cloudflare/workerd-linux-arm64@1.20261008.1'
-  - '@cloudflare/workerd-windows-64@1.20261008.1'
-  - workerd@1.20261008.1
+  - '@cloudflare/workers-types@5.20261106.1'
+  - '@foldkit/vite-plugin@0.29.0'
+  - foldkit@0.170.0
+  - lefthook-darwin-arm64@2.2.2
+  - lefthook-darwin-x64@2.2.2
+  - lefthook-freebsd-arm64@2.2.2
+  - lefthook-freebsd-x64@2.2.2
+  - lefthook-linux-arm64@2.2.2
+  - lefthook-linux-x64@2.2.2
+  - lefthook-openbsd-arm64@2.2.2
+  - lefthook-openbsd-x64@2.2.2
+  - lefthook-windows-arm64@2.2.2
+  - lefthook-windows-x64@2.2.2
+  - lefthook@2.2.2
+  - '@cloudflare/workerd-darwin-64@1.20261106.1'
+  - '@cloudflare/workerd-darwin-arm64@1.20261106.1'
+  - '@cloudflare/workerd-linux-64@1.20261106.1'
+  - '@cloudflare/workerd-linux-arm64@1.20261106.1'
+  - '@cloudflare/workerd-windows-64@1.20261106.1'
+  - workerd@1.20261106.1
   - '@effect/language-service@0.87.5'
