@@ -10,7 +10,7 @@ To make a Link, press on the out port at the right edge of a Node's card, drag t
 
 ## The out port
 
-Every card has two ports: the in port on the left edge, where Links arrive, and the out port on the right edge, level with the **Out** row, where Links leave.
+Every card has an in port on the left edge, where Links arrive. A card that sends traffic on also has an out port on the right edge, level with the **Out** row, where Links leave. A [Database](/components/database) has an out port for one purpose: to link into a [CDC Connector](/components/cdc), which reads its write log. It passes no requests on.
 
 Only the out port starts a Link. You never aim at the in port: letting go anywhere over the target card is enough. Pressing on any other part of a card drags the card instead, so aim for the port.
 

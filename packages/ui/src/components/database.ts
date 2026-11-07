@@ -4,7 +4,7 @@ import { type ComponentView } from './shared.ts'
 
 export const database: ComponentView = {
   icon: Database,
-  layout: { rows: 6, inRow: 0, outRow: null, footer: true },
+  layout: { rows: 6, inRow: 0, outRow: 5, footer: true },
   rows: ({ node, own, inbound, capacity, latency }) => {
     const pool = own.connections
     const engine = DB_ENGINES[node.dbEngine]

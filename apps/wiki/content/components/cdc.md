@@ -7,7 +7,7 @@ The CDC Connector publishes every change a Database makes as an event on a strea
 
 ## How it works
 
-Debezium is a **change data capture** tool that reads a database's write-ahead log and publishes every insert, update and delete as an event. Link a Database into the connector, and the connector into an [Event Stream](/components/log). It takes a copy of the writes the Database processed, one change each, and publishes them to the stream as tasks, at **20,000 changes a second**. Nothing else in the Design sees the copy, so the App Servers' writes still go to the Database and are still answered by it.
+Debezium is a **change data capture** tool that reads a database's write-ahead log and publishes every insert, update and delete as an event. Drag from the Database's out port to the connector, and drag from the connector's out port to an [Event Stream](/components/log). It takes a copy of the writes the Database processed, one change each, and publishes them to the stream as tasks, at **20,000 changes a second**. Nothing else in the Design sees the copy, so the App Servers' writes still go to the Database and are still answered by it.
 
 That is what makes it useful. The [Search Engine](/components/search), the [Data Warehouse](/components/warehouse) and a cache can each read the stream and follow the Database, and the app never writes the same fact twice. The alternative is a **dual write**: the app writes to the Database and to the index in one request, and a crash between the two leaves them disagreeing forever.
 

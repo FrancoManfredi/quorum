@@ -9,7 +9,7 @@ The Database is the single source of truth for your data, as PostgreSQL or MySQL
 
 ## How it works
 
-It answers reads, writes, transactions, and timeline writes itself, and nothing it answers moves on to another Node. It also stands in for the Components you have not linked: with no [Search Engine](/components/search), [Object Storage](/components/storage), or [Data Warehouse](/components/warehouse) linked, it answers searches, stores files as rows, and runs report scans. It does all three badly at volume.
+It answers reads, writes, transactions, and timeline writes itself, and nothing it answers moves on to another Node. Its out port only links it to a [CDC Connector](/components/cdc). It also stands in for the Components you have not linked: with no [Search Engine](/components/search), [Object Storage](/components/storage), or [Data Warehouse](/components/warehouse) linked, it answers searches, stores files as rows, and runs report scans. It does all three badly at volume.
 
 Its CPU limits how many queries it answers. When the working set outgrows RAM, reads go to disk and slow down. Report scans evict the buffer cache, so every other query slows too.
 
