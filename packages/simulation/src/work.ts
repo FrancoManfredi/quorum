@@ -1427,6 +1427,34 @@ const deploy = (
 export const takeable = (game: Game, item: WorkItem): boolean =>
   (item.kind !== 'spike' || game.studies[0]?.id === item.ref) && item.block._tag !== 'Blocked'
 
+/** A Product team with someone on it builds the backlog; the first team has the founder. */
+const builds = (game: Game, team: Team, index: number): boolean =>
+  team.kind === 'product' && (index === 0 || membersOf(game, team).length > 0)
+
+const nextItem = <Item extends WorkItem>(
+  game: Game,
+  backlog: ReadonlyArray<Item>,
+  team: Team,
+  taken: ReadonlySet<number>,
+): Item | undefined =>
+  backlog.find(
+    (entry) => !taken.has(entry.id) && takeable(game, entry) && worksOn(game, team, entry),
+  )
+
+/** The item each team builds now, by team id: the same pick `advanceTeam` makes. */
+export const assignments = (game: Game): ReadonlyMap<string, WorkItem> => {
+  const taken = new Set<number>()
+  const assigned = new Map<string, WorkItem>()
+  game.teams.forEach((team, index) => {
+    if (!builds(game, team, index)) return
+    const item = nextItem(game, game.backlog, team, taken)
+    if (!item) return
+    taken.add(item.id)
+    assigned.set(team.id, item)
+  })
+  return assigned
+}
+
 /**
  * Advances the Team by some seconds: hires join, idle teams pick work, Dev
  * Hours build the backlog, finished items take effect, and deploys ship.
@@ -1491,15 +1519,14 @@ export const advanceTeam = (
       }),
     )
   }
-  for (const output of teamOutputs(next, ledger, tuning)) {
-    // A Platform, SRE or Data team runs the system: its Dev Hours build no backlog.
-    if (output.team.kind !== 'product') continue
+  for (const [index, output] of teamOutputs(next, ledger, tuning).entries()) {
+    // A Platform, SRE or Data team runs the system: its Dev Hours build no backlog. An empty
+    // team builds nothing, so it holds no item another team could take.
+    if (!builds(next, output.team, index)) continue
     const made = output.rate * seconds
     const kept = made * policyNow(next, output.team, tuning).paydown
     paydown += kept
-    const item = backlog.find(
-      (entry) => !taken.has(entry.id) && takeable(next, entry) && worksOn(next, output.team, entry),
-    )
+    const item = nextItem(next, backlog, output.team, taken)
     if (!item) {
       pool += made - kept
       continue

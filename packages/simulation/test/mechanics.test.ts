@@ -2,13 +2,15 @@ import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import { installBackdoor, setPolicyOn, setProvider, setSlowStart } from '../src/actions.ts'
 import { saleOf } from '../src/calendar.ts'
-import { CALENDAR_START, VENTURES } from '../src/catalog.ts'
+import { CALENDAR_START, FEATURE_IDS, VENTURES } from '../src/catalog.ts'
 import { preseedGame } from '../src/company.ts'
 import { foundCompany } from '../src/founding.ts'
 import { solveFlow } from '../src/solve.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { step } from '../src/step.ts'
 import { newGame } from '../src/company.ts'
+import { NEW_ENGINEER } from '../src/state.ts'
+import { assignments, createTeam, featureRefusal, queueFeature } from '../src/work.ts'
 
 /* The Exit, Mail and Observability mechanics that change the Game: each runs in a Step or an Action. */
 
@@ -94,5 +96,39 @@ describe('The user hop', () => {
     expect(euHop(['http2'], 'page')).toBe(127.5)
     expect(euHop(['http2'], 'read')).toBe(150)
     expect(euHop(['http2', 'http3', 'anycast'], 'page')).toBeCloseTo(85, 9)
+  })
+})
+
+describe('Team assignments', () => {
+  test('an empty team takes no backlog item, so the next staffed team builds it', () => {
+    let game = founded({ 'head-start': 1 })
+    game = Result.getOrThrow(createTeam(game))
+    game = Result.getOrThrow(createTeam(game))
+    const [, empty, staffed] = game.teams
+    if (!empty || !staffed) throw new Error('expected three teams')
+    game = {
+      ...game,
+      engineers: [
+        ...game.engineers,
+        {
+          ...NEW_ENGINEER,
+          id: 'e-test',
+          team: staffed.id,
+          language: 'php',
+          hiredAt: game.time - 3600,
+        },
+      ],
+    }
+    const open = FEATURE_IDS.filter((id) => featureRefusal(game, id) === null).slice(0, 3)
+    for (const id of open) game = Result.getOrThrow(queueFeature(game, id))
+    const [first, second] = game.backlog
+
+    const assigned = assignments(game)
+    expect(assigned.get(game.teams[0]?.id ?? '')?.id).toBe(first?.id)
+    expect(assigned.has(empty.id)).toBe(false)
+    expect(assigned.get(staffed.id)?.id).toBe(second?.id)
+
+    const after = step(game, 5).game
+    expect(after.backlog.find((item) => item.id === second?.id)?.spent ?? 1).toBeGreaterThan(0)
   })
 })

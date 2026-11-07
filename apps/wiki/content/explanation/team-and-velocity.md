@@ -69,7 +69,7 @@ Features to a new Service with its own team, deploys, and bad deploys. See
 ## The backlog and deploys
 
 Work waits in a backlog in priority order, and each team builds the first item that no team ahead of
-it has taken. Spare Dev Hours go to a pool, which can rush any item. With the autopilot on, an idle
+it has taken. A team with no engineers takes nothing. Spare Dev Hours go to a pool, which can rush any item. With the autopilot on, an idle
 team picks the next Feature it can build, and it queues a Refactor when debt gets high.
 
 A finished Feature does not reach users at once. It waits for the next deploy:

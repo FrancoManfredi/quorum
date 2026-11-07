@@ -1,7 +1,7 @@
 import { copy, localized, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { TeamMessage } from '@/game/team.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { Option } from 'effect'
+import { Option, Result } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import {
   ArrowDown,
@@ -11,7 +11,6 @@ import {
   Bot,
   Bug,
   Check,
-  Code,
   Container,
   Database,
   Crown,
@@ -95,7 +94,13 @@ import {
   liveFeatures,
 } from '@quorum/simulation/features'
 import { isReady, stepOf } from '@quorum/simulation/migration'
-import { PLATFORM_STAGE, loadBalancersOf, nodesOfService } from '@quorum/simulation/work'
+import {
+  PLATFORM_STAGE,
+  assignments,
+  setTeamKind,
+  loadBalancersOf,
+  nodesOfService,
+} from '@quorum/simulation/work'
 import {
   featureHoursOf,
   featureRefusal,
@@ -644,7 +649,7 @@ const pendingSeat = (game: Game, id: string, readyAt: number, h: HtmlBuilder<Mes
 const policySwitch = (team: Team, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return h.div(
-    [h.Class(cn('grid grid-cols-4 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
+    [h.Class(cn('grid grid-cols-3 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
     POLICY_IDS.map((policy) => {
       const selected = team.policy === policy
       return h.button(
@@ -673,42 +678,48 @@ const policySwitch = (team: Team, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const kindsOf = (t: Messages): ReadonlyArray<readonly [TeamKind, string, typeof Code]> => [
-  ['product', t.team.product, Code],
-  ['platform', t.team.platform, Container],
-  ['sre', 'SRE', Siren],
-  ['data', t.team.data, Database],
-  ['security', t.team.security, Shield],
+const kindsOf = (t: Messages): ReadonlyArray<readonly [TeamKind, string]> => [
+  ['product', t.team.product],
+  ['platform', t.team.platform],
+  ['sre', 'SRE'],
+  ['data', t.team.data],
+  ['security', t.team.security],
 ]
 
 /**
  * Product teams build the backlog; Platform, SRE, Data and Security teams run the system
- * (08 "Teams"). A locked kind still shows: the backend refuses it, as the other three always have.
+ * (08 "Teams"). A kind its Research has not unlocked shows dimmed, with the reason on hover.
  */
-const kindSwitch = (team: Team, h: HtmlBuilder<Message>): Html => {
+const kindSwitch = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return h.div(
-    [h.Class(cn('grid grid-cols-5 gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
-    kindsOf(t).map(([kind, label, mark]) => {
+    [h.Class(cn('flex gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
+    kindsOf(t).map(([kind, label]) => {
       const selected = team.kind === kind
+      const result = setTeamKind(game, team.id, kind)
+      const refusal = Result.isFailure(result) ? refusalIn(t, result.failure) : null
       return h.button(
         [
           h.Key(`${team.id}-${kind}`),
           h.Type('button'),
           h.AriaPressed(selected ? 'true' : 'false'),
+          h.Disabled(refusal !== null),
+          h.Title(refusal ?? label),
           h.OnClick(
             Message.TeamChanged({ message: TeamMessage.KindChosen({ teamId: team.id, kind }) }),
           ),
           h.Class(
             cn(
-              'press flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-[calc(12px*var(--type-scale))] font-medium',
+              'press flex h-8 min-w-0 flex-auto items-center justify-center rounded-lg px-1.5 text-[calc(12px*var(--type-scale))] font-medium',
               selected
                 ? 'bg-raised text-foreground shadow-raised'
-                : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
+                : refusal !== null
+                  ? 'cursor-not-allowed text-muted-foreground/45'
+                  : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
             ),
           ),
         ],
-        [icon(h, mark, 'size-3.5'), h.span([h.Class('truncate')], [label])],
+        [h.span([h.Class('truncate')], [label])],
       )
     }),
   )
@@ -721,6 +732,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
   const output = teamOutputs(game, ledgerOf(model)).find((entry) => entry.team.id === team.id)
   const now = policyNow(game, team)
   const pending = game.hires.filter((entry) => entry.team === team.id)
+  const members = membersOf(game, team)
   const sandbox = game.sandbox
   const target = DragAndDrop.maybeDropTarget(model.board.team.drag)
   const dropTarget =
@@ -787,7 +799,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
             : h.empty,
         ],
       ),
-      index > 0 && !sandbox && game.stage >= PLATFORM_STAGE ? kindSwitch(team, h) : h.empty,
+      index > 0 && !sandbox && game.stage >= PLATFORM_STAGE ? kindSwitch(game, team, h) : h.empty,
       team.kind === 'product' ? policySwitch(team, h) : h.empty,
       team.kind === 'product' && now.id !== team.policy
         ? h.span(
@@ -799,7 +811,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
         [h.Class('grid grid-cols-3 gap-2')],
         [
           index === 0 ? founderSeat(h) : h.empty,
-          ...membersOf(game, team).map((engineer, memberIndex) =>
+          ...members.map((engineer, memberIndex) =>
             h.div(
               [h.Key(engineer.id), h.Class('group relative')],
               [
@@ -856,12 +868,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
               ? dataWork(h)
               : team.kind === 'security'
                 ? securityWork(h)
-                : working(
-                    game.backlog[
-                      game.teams.slice(0, index).filter((entry) => entry.kind === 'product').length
-                    ],
-                    h,
-                  ),
+                : working(assignments(game).get(team.id), index === 0 || members.length > 0, h),
     ],
   )
 }
@@ -930,7 +937,7 @@ const securityWork = (h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html => {
+const working = (item: WorkItem | undefined, staffed: boolean, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return h.div(
     [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
@@ -954,7 +961,7 @@ const working = (item: WorkItem | undefined, h: HtmlBuilder<Message>): Html => {
           statusMark('queued', 0, h),
           h.span(
             [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-            [t.team.nothingAssigned],
+            [staffed ? t.team.nothingAssigned : t.team.noEngineers],
           ),
         ],
   )
@@ -1303,12 +1310,6 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       game.sandbox ? h.empty : servicesCard(model, h),
       doraCard(game, h),
-      game.teams.length > 1 && game.engineers.length > 0
-        ? h.p(
-            [h.Class('px-1 text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-            [t.team.dragAnEngineerToAnotherTeam],
-          )
-        : h.empty,
       ...game.teams.map((team, index) => pod(model, team, index, h)),
       Option.match(DragAndDrop.ghostStyle(model.board.team.drag), {
         onNone: () => h.empty,
@@ -1895,7 +1896,11 @@ const idleCard = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
       assignees(game, team, h),
       h.span(
         [h.Class('flex-1 truncate text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-        [t.team.idle(teamName(t, team))],
+        [
+          game.teams[0]?.id === team.id || membersOf(game, team).length > 0
+            ? t.team.idle(teamName(t, team))
+            : t.team.noEngineersOn(teamName(t, team)),
+        ],
       ),
     ],
   )
@@ -2014,9 +2019,10 @@ const LIVE_SHOWN = 4
 const board = (game: Game, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const teams = game.teams
-  const queue = game.backlog.slice(teams.length)
-  const building = game.backlog.slice(0, teams.length)
+  const assigned = assignments(game)
+  const building = new Set([...assigned.values()].map((item) => item.id))
+  const queue = game.backlog.filter((item) => !building.has(item.id))
+  const builders = game.teams.filter((team) => team.kind === 'product')
   const live = [...liveFeatures(game)].reverse()
   return h.div(
     [h.Class('grid grid-cols-4 gap-2 narrow:grid-cols-1')],
@@ -2027,18 +2033,20 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
         t.team.upNext,
         queue.length,
         h.empty,
-        queue.map((item, at) => backlogCard(game, item, teams.length + at, undefined, h)),
+        queue.map((item) => backlogCard(game, item, game.backlog.indexOf(item), undefined, h)),
         h,
       ),
       column(
         'building',
         'building',
         t.team.inProgress,
-        building.length,
+        building.size,
         h.empty,
-        teams.map((team, index) => {
-          const item = game.backlog[index]
-          return item ? backlogCard(game, item, index, team, h) : idleCard(game, team, h)
+        builders.map((team) => {
+          const item = assigned.get(team.id)
+          return item
+            ? backlogCard(game, item, game.backlog.indexOf(item), team, h)
+            : idleCard(game, team, h)
         }),
         h,
       ),
@@ -2340,7 +2348,21 @@ const queueButton = (
   )
 }
 
-const featureTile = (game: Game, id: FeatureId, review: boolean, h: HtmlBuilder<Message>) => {
+/** A tile's place on the board, in the board's own column names. */
+const queuedBadge = (building: ReadonlySet<string>, ref: string, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return building.has(ref)
+    ? badge({ variant: 'outline' }, [statusMark('building', 0.5, h), t.team.inProgress], h)
+    : badge({ variant: 'outline' }, [statusMark('queued', 0, h), t.team.upNext], h)
+}
+
+const featureTile = (
+  game: Game,
+  id: FeatureId,
+  review: boolean,
+  building: ReadonlySet<string>,
+  h: HtmlBuilder<Message>,
+) => {
   const t = copy(h)
 
   const def = localized(FEATURES[id], t.catalog.features[id])
@@ -2370,9 +2392,9 @@ const featureTile = (game: Game, id: FeatureId, review: boolean, h: HtmlBuilder<
           h,
         )
       : built
-        ? badge({ variant: 'outline' }, [icon(h, Rocket, 'size-3'), t.team.built], h)
+        ? badge({ variant: 'outline' }, [icon(h, Rocket, 'size-3'), t.team.shipping], h)
         : queued
-          ? badge({ variant: 'outline' }, [t.team.queued], h)
+          ? queuedBadge(building, id, h)
           : queueButton(
               t.team.build,
               Message.TeamChanged({ message: TeamMessage.FeatureQueued({ id }) }),
@@ -2424,7 +2446,12 @@ const runbookPicker = (game: Game, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const taskTile = (game: Game, id: TaskId, h: HtmlBuilder<Message>) => {
+const taskTile = (
+  game: Game,
+  id: TaskId,
+  building: ReadonlySet<string>,
+  h: HtmlBuilder<Message>,
+) => {
   const t = copy(h)
 
   const done = serviceOf(game).fixes.includes(id as never)
@@ -2451,7 +2478,7 @@ const taskTile = (game: Game, id: TaskId, h: HtmlBuilder<Message>) => {
             h,
           )
         : queued
-          ? badge({ variant: 'outline' }, [t.team.queued], h)
+          ? queuedBadge(building, id, h)
           : queueButton(
               t.team.queue,
               Message.TaskQueued({ id }),
@@ -2473,6 +2500,7 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
     return !def.internal && (def.research === null || has(game, def.research))
   })
   const features = FEATURE_IDS.filter((id) => FEATURES[id].era <= game.stage + 1)
+  const building = new Set([...assignments(game).values()].map((item) => item.ref))
   const live = features.filter((id) => isFeatureLive(game, id)).length
   const review = has(game, 'code-review')
   const engineering = tasks.length > 0 && shown(model, 'engineering')
@@ -2503,7 +2531,7 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       h.div(
         [h.Class(TILES)],
-        features.map((id) => featureTile(game, id, review, h)),
+        features.map((id) => featureTile(game, id, review, building, h)),
       ),
       engineering ? heading(t.team.engineering, h.empty, h) : h.empty,
       engineering
@@ -2513,7 +2541,7 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
                 cn(TILES, 'enter-pop rounded-xl', glowing(model, 'engineering') && 'cue-glow'),
               ),
             ],
-            tasks.map((id) => taskTile(game, id, h)),
+            tasks.map((id) => taskTile(game, id, building, h)),
           )
         : h.empty,
     ],
