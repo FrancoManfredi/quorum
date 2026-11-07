@@ -2,6 +2,7 @@ import { AppRoute, menuFor, onBoard, urlOf, urlToAppRoute } from './route.ts'
 import { DEFAULT_LOGO } from './logos.ts'
 import { EMPTY_SAVE_INDEX } from './saves.ts'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
+import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { initFrameworkPicker, initRuntimePicker } from './stack-picker.ts'
 import {
   LoadFounder,
@@ -73,6 +74,7 @@ export const initialModel = (): Model =>
       locale: 'en',
       seenTradeoffs: [],
       muted: false,
+      volume: 100,
       autoPause: false,
       blurPause: true,
       easyMode: false,
@@ -84,6 +86,7 @@ export const initialModel = (): Model =>
     },
     glossary: { focus: null, returnTo: 'none', query: '', category: null },
     languagePicker: Listbox.init({ id: 'interface-language' }),
+    volumeSlider: VolumeSlider.init({ id: 'volume', min: 0, max: 100, step: 5 }),
     runtimePicker: initRuntimePicker(),
     frameworkPicker: initFrameworkPicker(),
     moreMenu: UiMenu.init({ id: 'more-menu' }),

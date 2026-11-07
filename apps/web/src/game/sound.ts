@@ -18,7 +18,10 @@
      beeper, and differ by register and rhythm. Their urgency follows
      Edworthy, Loxley and Dennis (1991): urgency rises with pitch, pulse
      speed, pulse count, and inharmonic partials. Warnings start with a
-     20 ms onset, so they do not startle.
+     20 ms onset, so they do not startle. The warning is for what the
+     factory raises and the player must act on: an alarm Mail, a change
+     that made things worse. A gesture that could not go sounds a single
+     low pulse, because a refused click is an answer, not an alarm.
 
    Mixing follows Material Design's sound choreography: a loudness tier per
    level of the hierarchy, related sounds share timbre and envelope, and a
@@ -528,6 +531,8 @@ const SOUNDS = {
   /* ---- notices: earcons, in order of urgency ---- */
   /** A change settled: one faint, short, high pulse. */
   settle: notice(-2.5, [beep(0, 1760, 12, 0.08)]),
+  /** A gesture could not go: one low, short pulse, an answer rather than an alarm. */
+  refuse: notice(-1, [beep(0, 523, 45, 0.18, 8)]),
   /** Something to know: one pulse. */
   notify: notice(0.5, [beep(0, 880, 70, 0.2)]),
   /** Something went well: two slow pulses, rising a fifth. */
@@ -831,7 +836,13 @@ export const render = (
 const GAP = 40
 const lastPlayed = new Map<Sound, number>()
 
-let live: Readonly<{ context: AudioContext; bus: Bus }> | undefined
+/** The level the mix was mastered at, before the player's volume. */
+const MASTER = 0.5
+
+/** The player's volume, from 0 to 1 of the mastered level. */
+let volume = 1
+
+let live: Readonly<{ context: AudioContext; master: GainNode; bus: Bus }> | undefined
 
 /** Where the pointer last went down, from -1 (left) to 1 (right). */
 let pointerPan = 0
@@ -851,6 +862,13 @@ export const setMuted = (value: boolean): void => {
   muted = value
 }
 
+/** The player's volume, as a percentage of the mastered level. A running mix
+ *  follows it over 20 ms, so a change does not click. */
+export const setVolume = (percent: number): void => {
+  volume = Math.min(1, Math.max(0, percent / 100))
+  if (live) live.master.gain.setTargetAtTime(MASTER * volume, live.context.currentTime, 0.02)
+}
+
 /** Plays a sound, `pitch` times its usual frequency. With `spatial`, it pans
  *  a little toward where the pointer last went down. */
 export const play = (sound: Sound, pitch = 1, spatial = false): void => {
@@ -860,9 +878,9 @@ export const play = (sound: Sound, pitch = 1, spatial = false): void => {
   lastPlayed.set(sound, now)
   if (!live) {
     const context = new AudioContext({ latencyHint: 'interactive' })
-    const master = new GainNode(context, { gain: 0.5 })
+    const master = new GainNode(context, { gain: MASTER * volume })
     master.connect(context.destination)
-    live = { context, bus: busOf(context, master) }
+    live = { context, master, bus: busOf(context, master) }
   }
   if (live.context.state === 'suspended') void live.context.resume()
   render(live.context, live.bus, sound, { pitch, pan: spatial ? pointerPan * 0.35 : 0 })

@@ -1,6 +1,7 @@
 import { MailMessage, Snippet } from './mail-text.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
 import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
+import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { Locale } from '../i18n/index.ts'
 import { Effect, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
@@ -191,6 +192,8 @@ export const Prefs = Schema.Struct({
   locale: Locale.pipe(Schema.withDecodingDefaultKey(Effect.succeed('en' as const))),
   seenTradeoffs: Schema.Array(TradeoffKind).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   muted: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** How loud sound effects play, as a percentage of the mastered mix: 0 is silent, 100 the full level. */
+  volume: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(100))),
   autoPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   blurPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   /** Pause, speed, and the auto-pause on a SEV1 or SEV2. Off, the clock runs at 1× and never stops for the player. */
@@ -432,6 +435,8 @@ export const Model = Schema.Struct({
   prefs: Prefs,
   glossary: Glossary,
   languagePicker: Listbox.Model,
+  /** The Settings panel's sound level, whose value lives in `prefs.volume`. */
+  volumeSlider: VolumeSlider.Model,
   /** The searchable Stack pickers on the Inspector's App Server or Worker. */
   runtimePicker: Combobox.Model,
   frameworkPicker: Combobox.Model,

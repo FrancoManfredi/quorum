@@ -12,6 +12,7 @@ export const panels: Messages['panels'] = {
   exitCompany: '会社を終了',
   titleScreen: 'タイトル画面',
   muteSoundM: '消音 (M)',
+  volume: '音量',
   easyMode: 'イージーモード',
   pauseOnSEV1AndSEV2: 'SEV1・SEV2で一時停止',
   reduceMotion: '動きを減らす',

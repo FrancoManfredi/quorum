@@ -29,6 +29,7 @@ import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { Kbd } from '@quorum/ui/primitives/kbd'
 import { switch_ } from '@quorum/ui/primitives/switch'
+import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { cn } from '@/lib/utils'
 import { languagePicker } from '@/i18n/picker.ts'
 import { EYEBROW, FIGURE, FLOAT, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
@@ -310,6 +311,24 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /* ---------- settings ---------- */
 
+/** The sound level, as a slider: its value lives in `prefs.volume`. */
+const volumeRow = (model: Model, h: HtmlBuilder<Message>): Html =>
+  h.submodel({
+    slotId: 'volume',
+    model: model.volumeSlider,
+    view: VolumeSlider.view,
+    toParentMessage: (message) => Message.VolumeSliderChanged({ message }),
+    viewInputs: VolumeSlider.styledViewInputs(
+      {
+        value: model.prefs.volume,
+        label: copy(h).panels.volume,
+        formatValue: (value) => `${value}%`,
+        rowClass: 'gap-1.5',
+      },
+      h,
+    ),
+  })
+
 export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return shell(
@@ -328,6 +347,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             },
             h,
           ),
+          volumeRow(model, h),
           switch_(
             {
               id: 'setting-easy-mode',

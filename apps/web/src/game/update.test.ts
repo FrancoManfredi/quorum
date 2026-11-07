@@ -5,6 +5,7 @@ import { DashboardMessage } from './dashboard.ts'
 import { GlossaryMessage } from './glossary.ts'
 import { EMPTY_INBOX, InboxMessage, mailed, reading } from './inbox.ts'
 import { PrefsMessage } from './prefs.ts'
+import { cueOf } from './cues.ts'
 import { SurveyMessage } from './survey.ts'
 import { describe, expect, test } from 'vitest'
 import { Option, Result } from 'effect'
@@ -951,6 +952,32 @@ describe('M9: sound, achievements, glossary, keys', () => {
       Message.FreeSandboxReset(),
     ).model
     expect(sounds(tick(reset))).not.toContain('warn')
+  })
+
+  test('a warning the world raises keeps the alarm; a refused gesture answers quietly', () => {
+    const before = inLab()
+    const raised = { id: 1, message: 'The Payments drawer is full.', tone: 'warn' as const }
+    const toast = { ...before, toast: raised }
+    // A world event moves the Game, so its warning still sounds.
+    const worse: Model = {
+      ...toast,
+      board: { ...before.board, game: { ...before.board.game, cash: before.board.game.cash - 1 } },
+    }
+    expect(cueOf(before, Message.Ticked({ elapsedMs: TICK_MS }), worse)?.sound).toBe('warn')
+    // A refused gesture leaves the Game as it was, so it answers with a pulse.
+    expect(cueOf(before, Message.NodeSold({ nodeId: 'no-such-node' }), toast)?.sound).toBe('refuse')
+  })
+
+  test('a refused gesture answers with a quiet pulse, not the warning alarm', () => {
+    const start = inLab()
+    const sold = update(start, Message.NodeSold({ nodeId: 'no-such-node' }))
+    expect(sold.model.toast?.tone).toBe('warn')
+    expect(sold.model.board.game).toBe(start.board.game)
+    const played = names(sold.commands)
+      .filter((command) => command.name === 'PlaySound')
+      .map((command) => command.args['sound'])
+    expect(played).toContain('refuse')
+    expect(played).not.toContain('warn')
   })
 
   test('the first served request earns Hello, World once, in the Founder record', () => {

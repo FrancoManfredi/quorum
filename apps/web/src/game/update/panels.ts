@@ -6,7 +6,7 @@ import { isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
 import { step as holdStep } from '../hold-machine.ts'
 import { Option, Schema } from 'effect'
-import { PrefsMessage, updatePrefs } from '../prefs.ts'
+import { PrefsMessage, updatePrefs, volumeIn } from '../prefs.ts'
 import { updateSurvey } from '../survey.ts'
 import { Update } from 'foldkit'
 import {
@@ -29,6 +29,7 @@ import { openRegions } from '@quorum/simulation/regions'
 import { openingFolder, reading } from '../inbox.ts'
 import { type RegionId as Region, type ResearchId } from '@quorum/simulation/catalog'
 import { updateDashboard } from '../dashboard.ts'
+import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { updateGlossary } from '../glossary.ts'
 
 /** Saves and applies the Model's settings. */
@@ -38,6 +39,7 @@ export const savePrefs = (model: Model): UpdateResult => ({
     WritePrefs({ prefs: model.prefs }),
     ApplySettings({
       muted: model.prefs.muted,
+      volume: model.prefs.volume,
       motion: model.prefs.motion,
       locale: model.prefs.locale,
       agentAccess: model.prefs.agentAccess,
@@ -104,7 +106,27 @@ export const foldDashboard = Update.foldChild({
 })
 
 // Stored JSON that does not parse or no longer fits its Schema reads as nothing.
-export const parsePrefs = Schema.decodeUnknownOption(Schema.fromJsonString(Prefs))
+export const parsePrefs = (json: string) =>
+  Option.map(Schema.decodeOption(Schema.fromJsonString(Prefs))(json), (prefs) => ({
+    ...prefs,
+    volume: volumeIn(prefs.volume),
+  }))
+
+/** The Settings panel's sound level: its value lives in `prefs.volume`. */
+export const foldVolumeSlider = (route: Dispatch) =>
+  Update.foldChild({
+    update: VolumeSlider.update,
+    read: (model: Model) => Option.some(model.volumeSlider),
+    write: (model, volumeSlider) => ({ ...model, volumeSlider }),
+    toParentMessage: (message) => Message.VolumeSliderChanged({ message }),
+    foldOutMessage:
+      ({ value }) =>
+      (model) =>
+        route(
+          model,
+          Message.PrefsChanged({ message: PrefsMessage.VolumeChanged({ volume: value }) }),
+        ),
+  })
 
 export const foldLanguagePicker = (route: Dispatch) =>
   Update.foldChild({
@@ -209,6 +231,7 @@ type PanelsTag =
   | 'InboxChanged'
   | 'DashboardChanged'
   | 'LanguagePickerChanged'
+  | 'VolumeSliderChanged'
   | 'RuntimePickerChanged'
   | 'FrameworkPickerChanged'
   | 'MoreMenuChanged'
@@ -303,6 +326,7 @@ export const panelsHandlers = (
         commands: [
           ApplySettings({
             muted: prefs.muted,
+            volume: prefs.volume,
             motion: prefs.motion,
             locale: prefs.locale,
             agentAccess: prefs.agentAccess,
@@ -393,6 +417,8 @@ export const panelsHandlers = (
   DashboardChanged: ({ message }) => foldDashboard(model, message),
 
   LanguagePickerChanged: ({ message }) => foldLanguagePicker(route)(model, message),
+
+  VolumeSliderChanged: ({ message }) => foldVolumeSlider(route)(model, message),
 
   RuntimePickerChanged: ({ message }) => {
     const result = foldRuntimePicker(route)(model, message)

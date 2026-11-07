@@ -395,8 +395,11 @@ Advice and offers are Mail ([Mail](/design/18-mail)). The rules below cover what
 
 - Banners share one lane at the top of the board and several can stack at once. Incidents take
   priority.
-- No sounds or popups for routine events. A short sound for an incident and for an Era milestone,
-  both mutable.
+- No sounds or popups for routine events. A refused action answers with one low pulse, and the
+  warning triple is for what the factory raises: a new alarm, or a change that made things worse.
+  An incident has its own klaxon, and an Era milestone its whistle.
+- Sound has a level: Settings › Volume slides the effect mix from silent to full, and Mute sound,
+  or `M`, silences it. Both are saved with the other preferences.
 - Era transitions use a full-screen card with an illustration of that Era's machines (one more machine in each Era, joined by cables), the new kinds and the new problem in one sentence. One
   click to continue.
 

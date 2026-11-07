@@ -2,6 +2,7 @@ import { DashboardMessage } from '../dashboard.ts'
 import { GlossaryMessage } from '../glossary.ts'
 import { InboxMessage } from '../inbox.ts'
 import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
+import { Message as VolumeSliderMessage } from '@quorum/ui/primitives/slider'
 import { Panel, Tone } from '../model.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { SurveyMessage } from '../survey.ts'
@@ -37,6 +38,8 @@ export const panelsCases = {
   /** The save as text (15 "Save"): copied out, or asked for and pasted back. */
   DashboardChanged: { message: DashboardMessage },
   LanguagePickerChanged: { message: Listbox.Message },
+  /** The Settings panel's sound level. */
+  VolumeSliderChanged: { message: VolumeSliderMessage },
   /** The searchable Stack pickers on the Inspector. */
   RuntimePickerChanged: { message: Combobox.Message },
   FrameworkPickerChanged: { message: Combobox.Message },

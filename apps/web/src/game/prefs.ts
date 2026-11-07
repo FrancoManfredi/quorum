@@ -1,5 +1,6 @@
 import type { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
+import { Schema } from 'effect'
 import { Locale } from '../i18n/index.ts'
 import type { Prefs } from './model.ts'
 
@@ -8,6 +9,7 @@ import type { Prefs } from './model.ts'
 export const PrefsMessage = defineMessageUnion({
   LocaleChosen: { locale: Locale },
   MuteToggled: {},
+  VolumeChanged: { volume: Schema.Finite },
   AutoPauseToggled: {},
   BlurPauseToggled: {},
   EasyModeToggled: {},
@@ -19,6 +21,9 @@ export const PrefsMessage = defineMessageUnion({
 })
 export type PrefsMessage = typeof PrefsMessage.Type
 
+/** The sound level, kept between silent and the mastered mix. */
+export const volumeIn = (volume: number): number => Math.min(100, Math.max(0, volume))
+
 export const updatePrefs = (
   prefs: Prefs,
   message: PrefsMessage,
@@ -26,6 +31,7 @@ export const updatePrefs = (
   PrefsMessage.match<Update.Return<Prefs, PrefsMessage>>(message, {
     LocaleChosen: ({ locale }) => ({ model: { ...prefs, locale } }),
     MuteToggled: () => ({ model: { ...prefs, muted: !prefs.muted } }),
+    VolumeChanged: ({ volume }) => ({ model: { ...prefs, volume: volumeIn(volume) } }),
     AutoPauseToggled: () => ({ model: { ...prefs, autoPause: !prefs.autoPause } }),
     BlurPauseToggled: () => ({ model: { ...prefs, blurPause: !prefs.blurPause } }),
     EasyModeToggled: () => ({ model: { ...prefs, easyMode: !prefs.easyMode } }),

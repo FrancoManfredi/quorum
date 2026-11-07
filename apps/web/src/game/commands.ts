@@ -18,7 +18,7 @@ import { refreshed, SaveIndex } from './saves.ts'
 import { History } from './history.ts'
 import { SavedInbox } from './inbox.ts'
 import { saveJson } from './save-file.ts'
-import { play, setMuted, SOUND_NAMES } from './sound.ts'
+import { play, setMuted, setVolume, SOUND_NAMES } from './sound.ts'
 import { setAgentAccess } from './agent-relay.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
 import { forward, setAnalyticsEnabled } from '../platform/analytics.ts'
@@ -380,9 +380,10 @@ export const WritePrefs = Command.define('WritePrefs', {
     }),
 })
 
-/** What Settings apply to the page: mute, motion, language, agent access, text size, and theme. */
+/** What Settings apply to the page: mute, volume, motion, language, agent access, text size, and theme. */
 export type Settings = Readonly<{
   muted: boolean
+  volume: number
   motion: Motion
   locale: Locale
   agentAccess: boolean
@@ -394,6 +395,7 @@ export type Settings = Readonly<{
 /** Applies the settings to a root element. Pure DOM, so the Settings test reads it back. */
 export const applySettings = (root: HTMLElement, settings: Settings): void => {
   setMuted(settings.muted)
+  setVolume(settings.volume)
   setAgentAccess(settings.agentAccess)
   setAnalyticsEnabled(settings.analytics)
   setSentryConsent(settings.analytics)
@@ -407,10 +409,11 @@ export const applySettings = (root: HTMLElement, settings: Settings): void => {
   root.classList.toggle('dark', settings.theme === 'dark')
 }
 
-/** Applies the settings: mute for every sound, reduced motion as `data-motion`, text as `data-text`, and the theme as `.dark`. */
+/** Applies the settings: mute and volume for every sound, reduced motion as `data-motion`, text as `data-text`, and the theme as `.dark`. */
 export const ApplySettings = Command.define('ApplySettings', {
   args: {
     muted: Schema.Boolean,
+    volume: Schema.Finite,
     motion: Motion,
     locale: Locale,
     agentAccess: Schema.Boolean,

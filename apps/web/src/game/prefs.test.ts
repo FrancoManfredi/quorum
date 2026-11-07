@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'vitest'
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { Scene } from 'foldkit/test'
 import { Prefs, type Model } from './model.ts'
 import { PrefsMessage } from './prefs.ts'
 import { applySettings } from './commands.ts'
 import { initialModel, update } from './update.ts'
 import { Message } from './message.ts'
+import { AppRoute } from './route.ts'
+import { Message as SliderMessage } from '@quorum/ui/primitives/slider'
+import { parsePrefs } from './update/panels.ts'
 import { settingsPanel } from '../components/lab/panels.ts'
 
 /* ==========================================================================
@@ -35,6 +38,7 @@ const rootOf = (): HTMLElement => {
 
 const baseSettings = {
   muted: false,
+  volume: 100,
   motion: 'system' as const,
   locale: 'en' as const,
   agentAccess: false,
@@ -128,5 +132,69 @@ describe('dark mode', () => {
 
   test('preferences saved before it existed read as light', () => {
     expect(Schema.decodeSync(Prefs)({ muted: true }).theme).toBe('light')
+  })
+})
+
+describe('volume', () => {
+  const played = (result: ReturnType<typeof update>): ReadonlyArray<unknown> =>
+    ((result.commands ?? []) as ReadonlyArray<Named>)
+      .filter((command) => command.name === 'PlaySound')
+      .map((command) => command.args['sound'])
+  const atBoard: Model = { ...initialModel(), route: AppRoute.Company() }
+  const slideTo = (model: Model, volume: number) =>
+    update(model, Message.PrefsChanged({ message: PrefsMessage.VolumeChanged({ volume }) })).model
+
+  test('the level stays between silent and the mastered mix', () => {
+    expect(slideTo(initialModel(), 40).prefs.volume).toBe(40)
+    expect(slideTo(initialModel(), 140).prefs.volume).toBe(100)
+    expect(slideTo(initialModel(), -20).prefs.volume).toBe(0)
+  })
+
+  test('it is saved and applied to the page beside Mute sound', () => {
+    const result = update(
+      atBoard,
+      Message.PrefsChanged({ message: PrefsMessage.VolumeChanged({ volume: 40 }) }),
+    )
+    const commands = (result.commands ?? []) as ReadonlyArray<Named>
+    expect(commands.find((command) => command.name === 'WritePrefs')?.args['prefs']).toMatchObject({
+      volume: 40,
+    })
+    expect(commands.find((command) => command.name === 'ApplySettings')?.args).toMatchObject({
+      volume: 40,
+    })
+  })
+
+  test('the slider moves the level and previews it; a drag move stays quiet', () => {
+    const pressed = update(
+      atBoard,
+      Message.VolumeSliderChanged({
+        message: SliderMessage.PressedPointer({ value: 40, originValue: 100 }),
+      }),
+    )
+    expect(pressed.model.prefs.volume).toBe(40)
+    expect(played(pressed)).toContain('tick')
+    const moved = update(
+      pressed.model,
+      Message.VolumeSliderChanged({ message: SliderMessage.MovedDragPointer({ value: 30 }) }),
+    )
+    expect(moved.model.prefs.volume).toBe(30)
+    expect(played(moved)).not.toContain('tick')
+  })
+
+  test('preferences saved before it existed play at full level', () => {
+    expect(Schema.decodeSync(Prefs)({ muted: true }).volume).toBe(100)
+  })
+
+  test('a saved level outside the range reads inside it', () => {
+    expect(Option.getOrThrow(parsePrefs(JSON.stringify({ volume: 900 }))).volume).toBe(100)
+  })
+
+  test('the Settings panel shows the level as a slider', () => {
+    Scene.scene(
+      { update, view: settingsPanel },
+      Scene.given(initialModel()),
+      Scene.expect(Scene.role('slider', { name: 'Volume' })).toExist(),
+      Scene.expect(Scene.text('100%')).toExist(),
+    )
   })
 })

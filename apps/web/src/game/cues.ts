@@ -77,6 +77,9 @@ const gestureCue = (before: Model, message: Message, after: Model): Cue | null =
     case 'MixChosen':
     case 'FullscreenToggled':
       return gesture('toggle')
+    case 'VolumeSliderChanged':
+      // A drag changes the level live and previews once when it ends; a key press previews itself.
+      return message.message._tag === 'MovedDragPointer' ? null : gesture('tick')
     case 'DemandStepped':
       return gesture('tick', message.direction > 0 ? 1.25 : 0.8)
     case 'ReplaceBought':
@@ -161,8 +164,16 @@ export const cueOf = (before: Model, message: Message, after: Model): Cue | null
   // The title screen plays its own menu sounds.
   if (!onBoard(before.route)) return null
   const raised = after.toast && after.toast.id !== before.toast?.id ? after.toast : null
-  if (raised && (raised.tone === 'warn' || raised.tone === 'danger'))
-    return { sound: TONE_SOUND[raised.tone], pitch: 1, spatial: message._tag !== 'Ticked' }
+  if (raised && (raised.tone === 'warn' || raised.tone === 'danger')) {
+    // The warning is for what the factory raises. A refused gesture leaves the Game as it was,
+    // so it answers with one quiet pulse instead of the alarm.
+    const refused = raised.tone === 'warn' && after.board.game === before.board.game
+    return {
+      sound: refused ? 'refuse' : TONE_SOUND[raised.tone],
+      pitch: 1,
+      spatial: message._tag !== 'Ticked',
+    }
+  }
   const cue =
     message._tag === 'Ticked' ? tickCue(before, after) : gestureCue(before, message, after)
   if (cue) return cue

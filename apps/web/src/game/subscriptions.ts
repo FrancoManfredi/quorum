@@ -3,6 +3,7 @@ import * as Queue from 'effect/Queue'
 import * as Stream from 'effect/Stream'
 import { Option, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
+import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { Subscription } from 'foldkit'
 import { Message } from './message.ts'
 import { TeamMessage } from './team.ts'
@@ -149,6 +150,12 @@ const researchDrag = Subscription.lift(DragAndDrop.subscriptions)<Model, Message
     Message.ResearchChanged({ message: ResearchMessage.DragChanged({ message }) }),
 })
 
+/** The Settings panel's sound slider drags while it is open. */
+const volumeDrag = Subscription.lift(VolumeSlider.subscriptions)<Model, Message>({
+  read: (model) => (model.panel === 'settings' ? Option.some(model.volumeSlider) : Option.none()),
+  toParentMessage: (message) => Message.VolumeSliderChanged({ message }),
+})
+
 const teamDragScroll = Stream.callback<Message>((queue) =>
   Effect.gen(function* () {
     yield* Effect.acquireRelease(
@@ -249,6 +256,7 @@ const ticks = (): Stream.Stream<Message> =>
 
 export const subscriptions = {
   ...teamDrag,
+  ...volumeDrag,
   researchDragPointer: researchDrag.documentPointer,
   researchDragEscape: researchDrag.documentEscape,
   researchDragKeyboard: researchDrag.documentKeyboard,
