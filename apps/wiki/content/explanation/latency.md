@@ -28,15 +28,15 @@ A request's latency is the sum of every hop on its synchronous path. Each hop ad
 On top of these, rare **tail events** hit a small share of requests: a garbage collection pause, an
 event loop stall, a cold start. They add a lot of time to a few requests.
 
-An asynchronous hop does not add to what the user waits. A request that goes through a
-[Queue](/components/queue) waits only for the enqueue. The game scores those kinds on when the
-result is ready instead.
+An asynchronous hop does not add to what the user waits: a request that goes through a
+[Queue](/components/queue) waits only for the enqueue, so the score for that kind counts the time
+until the result is ready.
 
 ## Why the mean lies
 
-Most requests are fast and a few are very slow. The game models this like the textbook
-single-server queue, where response times follow an exponential curve. On that curve the 99th
-percentile is about 4.6 times the mean of the variable part.
+Most requests are fast and a few are very slow, which is the textbook single-server queue, where
+response times follow an exponential curve. On that curve the 99th percentile is about 4.6 times the
+mean of the variable part.
 
 So a mean of 100 ms can hide users who wait half a second. A tail event that hits 2% of requests
 barely moves the mean, because the other 98% are unchanged. The p99 jumps.
@@ -54,15 +54,15 @@ to the HUD and p50, p95, and p99 to each request kind. The Ledger computes perce
 and slow requests cost you revenue before you can see them. Research changes only what the screen
 shows.
 
-The game computes a percentile from the model's distribution, not from a sample. The fixed parts add
-directly. The exponential part sets the curve. Tail events land on the slowest share of requests,
-equal to their probability. For how to act on the number, see [Read p99](/guides/read-p99).
+A percentile comes from the model's distribution rather than from a sample. The fixed parts add
+directly, the exponential part sets the curve, and tail events land on the slowest share of
+requests, equal to their probability. For how to act on the number, see [Read p99](/guides/read-p99).
 
 ## Tails add up along a path
 
 A request collects the tail events of every Node on its path. If one Node stalls 1% of requests and
-the next stalls 1%, a request that crosses both has about a 2% chance to stall. The game combines two
-chances `a` and `b` as `1 − (1 − a)(1 − b)`. A long chain of Nodes that each stall now and then has a
+the next stalls 1%, a request that crosses both has about a 2% chance to stall, because two chances
+`a` and `b` combine as `1 − (1 − a)(1 − b)`. A long chain of Nodes that each stall now and then has a
 worse p99 than any one of them.
 
 Fan-out makes this worse. When one request makes many backend calls and waits for all of them, the

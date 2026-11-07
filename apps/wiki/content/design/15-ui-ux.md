@@ -117,8 +117,8 @@ time the game state makes it useful.
 - A link with errors turns red. A belt that crosses zones has an orange tick at the port it
   arrives on, and orange rails in focus: its calls pay the cross-zone latency and Egress. A belt
   between two regions carries a plate under its midpoint with the round trip its calls pay, such as
-  `75 ms`, in the amber of the cross-zone rails; a link into a global Component pays no place, so it
-  shows no plate.
+  `75 ms`, in the amber of the cross-zone rails. A link into a global Component pays no place, so
+  it shows no plate.
 - From Series C, each region is a tab with its own board.
 - Services: a Service is tied to the Features it carries, not to a box of Nodes. The Team panel shows
   the Services and splits one (see [Panels](#panels)).
@@ -139,7 +139,7 @@ Each card is a small window, like Upload Labs. The card is the main information 
 ```
 
 With research `profiling`, the card carries the `Limit` row. The gauges that explain the limit live in
-the Inspector: a goal bar names the tightest limit, and a bar follows for every limit the Ledger can
+the Inspector. A goal bar names the tightest limit, and a bar follows for every limit the Ledger can
 measure: CPU, RAM, worker slots, connections, CPU credits, and the network card. A limit it cannot
 measure, such as disk IOPS or a flat Component's throughput, is named with no bar.
 
@@ -208,7 +208,7 @@ replication mode, a deploy strategy, a pricing model.
   has been confirmed, a click applies the option at once.
 - The radar is drawn for every option set. Runtimes and frameworks use the six axes
   [Runtimes](/design/06-runtimes#the-six-axes) defines. An instance family reads the same six axes
-  from its RAM per vCPU and its price per vCPU, which 05's family table carries: throughput is vCPU
+  from its RAM per vCPU and its price per vCPU, which 05's family table carries. Throughput is vCPU
   per dollar, memory is RAM per vCPU, and a Burstable box loses tail, resilience, and operability to
   its credit throttle. Velocity sits neutral, because the Stack sets it, not the family.
 - Glossary terms on a card are buttons that open the glossary at that entry.
@@ -248,12 +248,13 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 ### The Services card
 
 The Team panel opens with the Company's Services ([Services](/design/08-team-and-velocity#services)),
-one row per codebase: its name, a badge naming the team that owns it, its KLOC, tech debt and Burn
-(its share of the Company's total Burn, in proportion to its share of the codebase, because no
-Node belongs to a Service), and the Features it carries. The row rings when an incident names it,
-and a `Paged` badge marks the Service whose code broke. The starting Service's row says it carries
-every Feature no other Service names, so a Company with one Service shows one row and no split form. With more than one team, each row also holds a **Move to** select: choosing another team
-moves the Service there at once ([Ownership](/design/08-team-and-velocity#ownership)).
+one row per codebase. A row carries its name, a badge naming the team that owns it, its KLOC, tech
+debt and Burn, and the Features it carries. Burn is its share of the Company's total Burn, in
+proportion to its share of the codebase, because no Node belongs to a Service. The row rings when an
+incident names it, and a `Paged` badge marks the Service whose code broke. The starting Service's
+row says it carries every Feature no other Service names, so a Company with one Service shows one
+row and no split form. With more than one team, each row also holds a **Move to** select: choosing
+another team moves the Service there at once ([Ownership](/design/08-team-and-velocity#ownership)).
 
 With Service boundaries, the card holds the split's form: a name, a select of the teams, and a chip
 per live Feature no other Service carries. The button says what the split costs (`Split · 48 DH`),
@@ -263,8 +264,8 @@ as a split item the owner's team builds. The Dashboard's Service drop-down narro
 ([Observability](/design/12-observability#the-dashboard)).
 
 Below the Services card, a **DORA metrics** card shows deploy frequency, lead time for changes,
-change failure rate and failed deployment recovery time (MTTR) once a CI/CD Pipeline is placed
-([Deploy frequency](/design/08-team-and-velocity#deploy-frequency)); it reads nothing in a Sandbox
+change failure rate, and failed deployment recovery time (MTTR) once a CI/CD Pipeline is placed
+([Deploy frequency](/design/08-team-and-velocity#deploy-frequency)). It reads nothing in a Sandbox
 and nothing before a Pipeline, because the one shared pipeline has nothing to measure yet.
 
 ### The Live column
@@ -284,10 +285,14 @@ The column's header shows the share of the Team's Dev Hours that keeps those Fea
 Company has no live Feature. Each live Feature's card also carries a **Remove** button. Removing a
 Feature deletes its code and ends its upkeep, which a flag turned Off does not do.
 
-A teammate's Mail carries the buttons its thread needs (18 "Teammates"): **Approve** and **Later** on a
-blocked item, **Give time off**, **Raise salary** and **Accept resignation** on an unhappy engineer,
-and **Patch now**, **Queue the patch** and **Open Team** on a proposal to patch. Every one names where
-it goes when hovered, as every button does ([Interface rule 3](#interface-rules)).
+A teammate's Mail carries the buttons its thread needs (18 "Teammates"):
+
+- **Approve** and **Later** on a blocked item.
+- **Give time off**, **Raise salary**, and **Accept resignation** on an unhappy engineer.
+- **Patch now**, **Queue the patch**, and **Open Team** on a proposal to patch.
+
+Every one names where it goes when hovered, as every button does
+([Interface rule 3](#interface-rules)).
 
 ## Company and Incidents panels
 
@@ -339,13 +344,13 @@ that signal to the acknowledgement is blue and reads "awaiting ack". The rest of
 SEV colour, so the player reads at a glance how much of a run was missed, how much went unanswered,
 and how much was worked. Each block's tooltip names its phase and its length, and the legend carries a
 swatch for each phase and each SEV on the axis. Its axis is the rows the Charts above draw, so a run
-lines up with the traffic beside it and slides left as time passes; a save that kept no Chart history
-has no axis, so the lane reads "No run in this range." until the Charts fill. A run that ended before
-the axis began is left out, and so is a Postmortem from a save made before the field, which has no end
-time to place; the Game keeps its last four Postmortems, so the history reaches back no further than
-them. The running Incident is the last lane, drawn from where it started to now, and its phase
-follows the loop live: grey until its first signal lands, blue until a player or the rotation
-answers, its SEV colour after that.
+lines up with the traffic beside it and slides left as time passes. A save that kept no Chart
+history has no axis, so the lane reads "No run in this range." until the Charts fill. A run that
+ended before the axis began is left out, and so is a Postmortem from a save made before the field,
+which has no end time to place. The Game keeps its last four Postmortems, so the history reaches
+back no further than them. The running Incident is the last lane, drawn from where it started to
+now, and its phase follows the loop live. It is grey until its first signal lands, blue until a
+player or the rotation answers, and its SEV colour after that.
 
 Neither row needs a key of its own, and neither is a panel: `D` opens the Dashboard that holds them,
 beside the charts of the system. The Dashboard's scroll area takes focus when the panel opens, and
@@ -429,8 +434,8 @@ its worst utilization, and one suggestion if users were lost at peak.
 - Text at 150%. Settings › Text at 150% multiplies the interface's type by 1.5 through the
   `--type-scale` token, so rows, panels, and the HUD keep their boxes while their text grows. The
   board's cards scale with the board's zoom instead, because they are drawn on the canvas. The
-  Research tree is the exception: its Node boxes and the spacing between them grow by the same 1.5,
-  and a name too long for one line wraps onto a second inside the taller box.
+  Research tree is the exception: its Node boxes and the spacing between them grow by the same 1.5.
+  A name too long for one line wraps onto a second inside the taller box.
 
 ## Save
 
@@ -440,7 +445,7 @@ its worst utilization, and one suggestion if users were lost at peak.
 - The single save from before Company files is never deleted. Settings offers a hidden
   "Recover previous save" action that imports it into the Companies list. This action is temporary.
 - Export and import as text: Settings › Copy save as text puts the save on the clipboard as one line
-  (`QSV1:` and base64url JSON), and Settings › Import a save asks for one and opens it; the title
+  (`QSV1:` and base64url JSON). Settings › Import a save asks for one and opens it. The title
   screen's settings carry the same two rows. The line carries the Simulation's version in front, so
   a string from another build is refused with the two versions named instead of being read as this
   build's. An import replaces the open Company's game, and is refused in a Sandbox or a Challenge, which

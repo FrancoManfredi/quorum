@@ -28,13 +28,13 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 | **Import a save**                     | Asks you to paste that text and loads it.                                             |
 | **Copy state as JSON**                | Copies the whole game state, for bug reports.                                         |
 
-Settings belong to the browser, not to a Company. Read [Import your playtest save](/guides/import-your-playtest-save) before you use **Import a save**. Read the [privacy page](/about/privacy) for what the usage data holds.
+Settings belong to the browser, not to a Company. Read [Import your playtest save](/guides/import-your-playtest-save) before you use **Import a save**, and the [privacy page](/about/privacy) for what the usage data holds.
 
 The Menu also holds **Resume**, **Export playtest log**, **Exit company** when you can exit, and **Title screen**.
 
 ## Keys
 
-Keys work when you are on the board and not typing in a field. They do not work while you hold `Alt`.
+Keys work when you are on the board and not typing in a field. They do not work while you hold `Alt`. `Esc` closes the top layer one at a time rather than closing everything, so a second press with nothing open brings up the Menu.
 
 ![The speed buttons in the toolbar](/play/speed-controls.png)
 
@@ -91,7 +91,3 @@ Keys work when you are on the board and not typing in a field. They do not work 
 | `Delete`, `Backspace`      | Sell the selection, or cut the selected Link. Sell asks first, and `Enter` confirms. |
 
 Arrow keys and `Enter` work only when the board has focus, not while a panel does.
-
-Mistake to avoid: reading `Esc` as "close". It closes the top layer, one at a time. Press it again and it opens the Menu.
-
-Next: [First five minutes](/play/first-five-minutes).

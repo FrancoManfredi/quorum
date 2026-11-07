@@ -23,7 +23,9 @@ _Look at the open list above the group icons. Each row shows a name, one line ab
 
 Press `Enter` instead of clicking in step 5 to drop the part in the next free spot. That is the keyboard way to place.
 
-A placed Node is not connected to anything yet. It carries no traffic until you add a Link, which is the next page, [Wire Nodes with Links](/play/wire-nodes).
+A wrong placement is cheapest to fix at once: press `Z` within 30 seconds and the refund is exact, as [Clock, undo, and saves](/play/clock-undo-saves) explains.
+
+A placed Node is not connected to anything yet, so it costs Cash and carries no traffic until you add a Link. [Wire Nodes with Links](/play/wire-nodes) covers the drag.
 
 ::Component{id="database"}
 
@@ -31,7 +33,7 @@ _A Database as it looks on the Board right after you place it. Nothing is wired 
 
 ## One part per pick
 
-The part in your hand is used up by one placement. To place a second Database, pick it from the dock again. This is on purpose, so a stray click on the Board never buys something.
+The part in your hand is used up by one placement, so to place a second Database you pick it from the dock again. That is on purpose: a stray click on the Board never buys something, and a second click does not place a second Node.
 
 To put a part back without placing it, press `Esc` or click the X button on the dock.
 
@@ -51,19 +53,10 @@ A refusal appears as a toast, and the part stays in your hand. Click a clear spo
 | `Open that region first.`                                               | You tried to place in a region you have not opened.                     |
 | `<Mutator>: no <Component>.`                                            | A Mutator on your Company bans that Component.                          |
 
-Locked rows in the dock are not dead ends. Click one and the toast names the research.
-
-## Mistakes to avoid
-
-- Do not leave a Node unlinked. A placed Node costs Cash and carries no traffic until you add a Link.
-- Do not click the Board twice to place twice. One pick places one Node.
-- Do not place before you read the price. The row turns red when Cash is short, and the toast repeats the price.
-- Undo is quick. Press `Z` right after a wrong placement. Within 30 seconds the refund is exact. See [Clock, undo, and saves](/play/clock-undo-saves).
+Locked rows in the dock are not dead ends. Click one and the toast names the research. A row in red is the same warning one step early: the toast will repeat the price, so read it before you click the Board.
 
 ## Try it
 
 Place an App Server and a Database on the practice board below. Pick each from the dock on the board, then click the board to drop it. Nothing you do here touches a Company.
 
 ::Practice{id="place"}
-
-Next: [Wire Nodes with Links](/play/wire-nodes).

@@ -6,11 +6,11 @@ order: 4
 aliases: link, links, wire, wiring, connect, connect nodes, out port, port, cut a link, remove a link, delete a link, keyboard link, link rules
 ---
 
-To make a Link, press on the out port at the right edge of a Node's card, drag to another Node, and let go over its card. Requests then flow from the first Node to the second. The Link has a direction, and a Node with no Link out of it passes nothing on.
+To make a Link, press on the out port at the right edge of a Node's card, drag to another Node, and let go over its card. Requests then flow from the first Node to the second. The Link has a direction, and a Node with no Link out of it passes nothing on, so a Node that still receives traffic shows a red **Stranded** row and counts those requests as errors. Data Nodes and Analytics are the exceptions.
 
 ## The out port
 
-Every card has two ports. The in port is on the left edge, where Links arrive. The out port is on the right edge, level with the **Out** row, where Links leave.
+Every card has two ports: the in port on the left edge, where Links arrive, and the out port on the right edge, level with the **Out** row, where Links leave.
 
 Only the out port starts a Link. You never aim at the in port: letting go anywhere over the target card is enough. Pressing on any other part of a card drags the card instead, so aim for the port.
 
@@ -41,7 +41,9 @@ A Link is allowed when all of these hold:
 - The two Nodes differ, the Link does not exist, and it would not make a loop.
 - The sender has a free Link. Users have one, and a few Components have a fixed number.
 
-Analytics is the exception to the first and last rules. Link any Node except Payments into it and it samples that Node's traffic, whatever the Node sends. This Link does not use up a free Link. Payments needs no Link at all: revenue reaches its drawer by itself.
+The direction follows from the first rule, so the Link runs App Server to Database and never Database to App Server, because the data Node does not send on.
+
+Analytics is the exception to the first and last rules. Link any Node except Payments into it and it samples that Node's traffic, whatever the Node sends. This Link does not use up a free Link. It samples only the traffic that arrives, so a sender with no traffic gives it nothing to sample. Payments needs no Link at all: revenue reaches its drawer by itself.
 
 ## What the game refuses
 
@@ -100,14 +102,6 @@ The keyboard can make a Link too. It needs the focus on the Board, not in a text
 
 After a refusal the sender stays remembered, so try another Node. Press `Esc` to forget it.
 
-## Mistakes to avoid
-
-- Do not drag from the card body to make a Link. That moves the card. Start on the out port.
-- Do not click a Link to cut it. A click selects it, and the cut takes the **×** badge or `Delete`.
-- Do not link Database to App Server. Data Nodes do not send on, so the Link points the other way: App Server to Database.
-- Do not link a Node into Analytics and expect Insight at once. Analytics only samples traffic that arrives, so the sender needs traffic.
-- Do not leave a Node with no Link out of it, unless it is a data Node or Analytics. The card shows a red **Stranded** row, and the requests that reach it count as errors.
-
 ## Try it
 
 Make three Links on the practice board below: Users to the App Server, the App Server to the Database, and the App Server to Analytics. Drag from each out port to the next card. Then select one Link, cut it with the **×** badge, and make it again.
@@ -115,5 +109,3 @@ Make three Links on the practice board below: Users to the App Server, the App S
 Two Load Balancers wait at the bottom. Link the first to the second, then drag from the second back to the first. The game refuses with **That link would make a loop.**, and the last goal ticks off once you have read it. Nothing you do here touches a Company.
 
 ::Practice{id="wire"}
-
-Next: [Move, select, copy, sell](/play/move-and-select).

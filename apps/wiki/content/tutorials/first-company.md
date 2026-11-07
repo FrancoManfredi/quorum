@@ -8,8 +8,9 @@ aliases: first run, start, new game, garage, collect, payments, drawer, hud
 gdd: /design/03-game-loops
 ---
 
-In this lesson you start a Company, learn what each part of the board shows, and earn your first
-Cash. You need about ten minutes. You do not build anything yet.
+Ten minutes, and nothing to build. You found a Company, read the four cards on the board, and collect
+the revenue your users already pay you. The Garage keeps the rest of the interface back until you
+need it.
 
 ## Start the Company
 
@@ -27,8 +28,8 @@ controls at first. The rest appear one at a time, as they become useful.
 
 ## Read the board
 
-The board holds four Nodes. Users, the App Server and Analytics are joined by Links, and requests
-move along them from left to right. Payments stands alone.
+Four Nodes sit on the board. Requests start at Users, cross the App Server and reach Analytics, left
+to right. Payments stands alone, and nothing links to it.
 
 - **Users** is where traffic starts. Its card shows your user count, your Apdex, and the requests
   per second that users send.
@@ -39,9 +40,9 @@ move along them from left to right. Payments stands alone.
 
 ::Component{id="server"}
 
-Select the App Server. The Inspector opens on the right. Read the **Load** row: it shows how much of
-the box's capacity is in use. Find the **Resources** section. It shows the CPU, RAM, and CPU credits
-gauges. Press **Esc** to close the Inspector.
+Select the App Server, and the Inspector opens on the right with a **Load** row that says how much
+of the box's capacity is in use. Under **Resources** sit the CPU, RAM and CPU credits gauges. Press
+**Esc** to close it.
 
 In the Garage, users send two request kinds: page views and API reads.
 
@@ -72,8 +73,8 @@ Revenue does not go to Cash by itself. It waits in the Payments drawer.
 
 You can also press **C** anywhere on the board to collect.
 
-The drawer holds about a minute of revenue. When it is full, new revenue spills and is lost, and the
-game warns you. Collect at least once a minute while you play.
+The drawer holds about a minute of revenue, and anything past that spills and is lost, so collect at
+least once a minute while you play. The game warns you when it spills.
 
 :::Note{tone="tip"}
 When the drawer is half full for the first time, the Collect button glows. The glow is the game's
@@ -94,8 +95,8 @@ Pause when you want to read the board. Nothing changes while the clock stops.
 3. Watch the **Users** row. The number climbs.
 4. Watch the App Server's **Load** row. It climbs with your users.
 
-As load grows, the box gets closer to a limit. Its row turns amber at 70% and red at 90%. Soon one
-of its resources runs out. The next lesson shows you how to find and fix that limit.
+As load grows the box moves toward its limit, and its row turns amber at 70% and red at 90%. Soon one
+resource runs out, and the next lesson is about finding and fixing that limit.
 
 ## Know the goal
 
@@ -105,18 +106,7 @@ under the Era name on the HUD. You raise that round in [Your first incident](/tu
 Press **H** at any time to open **How to play**. It lists the keys and the six core actions. Press
 **Esc** with nothing open to reach the **Menu**.
 
-## What you learned
-
-- The board shows your Design: Users, the App Server, Analytics, and Payments.
-- The HUD shows Cash, Users, Apdex, and Latency.
-- Revenue waits in Payments until you collect it.
-- Users grow while Apdex meets the Era's target.
-- Each Company is saved separately, with its own name and logo.
-
-:::Note{tone="tip"}
-Quorum saves this Company every 5 sim seconds. To start another, go to the title screen and select
-**Start a company**; this one stays in **Companies**. If you played the playtest build, read
-[Import your playtest save](/guides/import-your-playtest-save).
-:::
-
-Next: [Your first bottleneck](/tutorials/first-bottleneck).
+Quorum saves this Company every 5 sim seconds, and it stays in **Companies** when you start another
+from the title screen. If you played the playtest build, [Import your playtest save](/guides/import-your-playtest-save)
+moves it into the same list. [Your first bottleneck](/tutorials/first-bottleneck) picks up where this
+one stops, when the box runs out of something.

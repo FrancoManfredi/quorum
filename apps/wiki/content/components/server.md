@@ -8,7 +8,7 @@ The App Server stands for a virtual machine that runs your code.
 
 ## How it works
 
-It takes every request kind. It answers page views and bots itself, and turns other kinds into backend calls: read and write queries, auth calls, tasks, charges, and more. Its capacity depends on its instance type, its [runtime, and its framework](/runtimes). The tightest of four limits sets it: CPU, worker slots, memory, and network.
+It answers page views and bots itself, and turns every other request kind into backend calls: read and write queries, auth calls, tasks, charges, and more. Its capacity depends on its instance type, its [runtime, and its framework](/runtimes). The tightest of four limits sets it: CPU, worker slots, memory, and network.
 
 A request holds its worker slot while it waits on each backend call. So a slow Database also lowers the capacity of runtimes that hold a worker while they wait. This is [Little's law](/glossary/littles-law).
 

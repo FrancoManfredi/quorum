@@ -144,9 +144,18 @@ requests it serves, and Burn never matters.
 Garage and Pre-seed sit at the floor because there the smallest box, not the traffic, sets the cost.
 From Seed the index climbs by 4 points an Era, so infrastructure and payroll grow with the company
 while request values stay put. Salary follows the index, and the language factor multiplies on top of
-it: PHP 0.85, Node.js and C# 1.0, Python and Java 1.05, Ruby 1.1, Go 1.15, Elixir 1.2, Rust and Zig
-1.25, Haskell 1.4 ([Runtimes](/design/06-runtimes#hiring-and-salaries)). [Live tuning](#live-tuning)
-records how far these values sit from the design's.
+it ([Runtimes](/design/06-runtimes#hiring-and-salaries)). The factors are:
+
+- PHP 0.85.
+- Node.js and C# 1.0.
+- Python and Java 1.05.
+- Ruby 1.1.
+- Go 1.15.
+- Elixir 1.2.
+- Rust and Zig 1.25.
+- Haskell 1.4.
+
+[Live tuning](#live-tuning) records how far these values sit from the design's.
 
 A Balanced design should land at a margin of 25% to 45%, which puts the Rule of 40 checklist item
 within reach but not free. `pacing.test.ts` records the margin at Seed and Series A entry.
@@ -172,10 +181,25 @@ vCPU does not decide between one big box and many small ones. These tradeoffs do
 | Resize means a restart                                                                         | Rolling changes                                            |
 | Hard cap at `metal` (96 vCPU)                                                                  | Each copy costs 25% more to place                          |
 
-Flat Components have size steps of their own, and each step doubles both capacity and Burn: Payments
-6, Analytics 8, Load Balancer 6, Connection Pooler 4, Cache 8, Search Engine 8, Queue 6, WAF 6,
-Payment Provider 8, GPU Node 8, LLM API 8, Wide-column Store 6, Distributed SQL 6, Document Store 8,
-Event Stream 6, Realtime Hub 8, and Vector Index 6.
+Flat Components have size steps of their own, and each step doubles both capacity and Burn:
+
+- Payments 6.
+- Analytics 8.
+- Load Balancer 6.
+- Connection Pooler 4.
+- Cache 8.
+- Search Engine 8.
+- Queue 6.
+- WAF 6.
+- Payment Provider 8.
+- GPU Node 8.
+- LLM API 8.
+- Wide-column Store 6.
+- Distributed SQL 6.
+- Document Store 8.
+- Event Stream 6.
+- Realtime Hub 8.
+- Vector Index 6.
 
 ## User growth
 
@@ -252,13 +276,25 @@ seeds, the others on seeds 1–3 (`pacing.test.ts` and `bots.test.ts`, both unde
 
 Pillar 2 says no option strictly dominates another. `dominance.test.ts` runs in every `pnpm test` and in
 CI. Within each language, every runtime must beat each of its siblings by at least 10% on one
-reference score: throughput on the real Ledger of a Pre-seed Design, RAM per process, realtime
-connections per GB, startup, cold speed, stall-free CPU work, GC pause, leak-proof processes, a
-self-sized pool, or one of the six axes of its profile. Across languages, BEAM holds the most
-realtime connections per GB, beating Go and Kestrel. The option sets are the 28 runtimes, each
-language's frameworks, the instance families (Burstable, General, Compute, Memory), and the PHP-FPM pool
-modes. Axum and Actix are within about 5% of each other on CPU and velocity, and ARM runs at 0.8× the
-price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's. The fix for a dominated option is to change the option, not to tweak a number.
+reference score:
+
+- Throughput on the real Ledger of a Pre-seed Design.
+- RAM per process.
+- Realtime connections per GB.
+- Startup.
+- Cold speed.
+- Stall-free CPU work.
+- GC pause.
+- Leak-proof processes.
+- A self-sized pool.
+- One of the six axes of its profile.
+
+Across languages, BEAM holds the most realtime connections per GB, beating Go and Kestrel. The
+option sets are the 28 runtimes, each language's frameworks, the instance families (Burstable,
+General, Compute, Memory), and the PHP-FPM pool modes. Axum and Actix are within about 5% of each
+other on CPU and velocity, and ARM runs at 0.8× the price and 0.95× the CPU, so a CPU-millisecond on
+ARM costs 0.84× General's. The fix for a dominated option is to change the option, not to tweak a
+number.
 
 ## Runtime balance targets
 
@@ -273,8 +309,8 @@ price and 0.95× the CPU, so a CPU-millisecond on ARM costs 0.84× General's. Th
 | Rails against Go, Dev Hours for the same feature set | 35% to 50% lower              |
 
 Under a PHP-FPM Design with OPcache, Node.js cluster mode answers `read` at 1.5× to 2.5× the throughput per
-dollar, and 3× to 6× with a database at 100 ms; a single Node.js process with 5% `login` adds 40 to 120 ms
-to p99.
+dollar, and 3× to 6× with a database at 100 ms. A single Node.js process with 5% `login` adds 40 to
+120 ms to p99.
 
 ## Prestige curve
 
@@ -297,8 +333,13 @@ cumulative column follows payouts of $500 million, $1.5, $5, $10, $20, $30, $40,
 $160, and $200 billion for companies 1 to 12, so the shop is complete around the tenth company.
 
 Payout is Equity × Valuation × the Exit's multiplier, so the rounds set it
-([Economy](/design/09-economy#funding)): 10% at 1,000 users, 19% at 5,000 and 25,000, 13% at 150,000,
-12% at 1,000,000 and 10,000,000, and 15% sold in the IPO offering.
+([Economy](/design/09-economy#funding)):
+
+- 10% at 1,000 users.
+- 19% at 5,000 and 25,000.
+- 13% at 150,000.
+- 12% at 1,000,000 and 10,000,000.
+- 15% sold in the IPO offering.
 
 ## Live tuning
 

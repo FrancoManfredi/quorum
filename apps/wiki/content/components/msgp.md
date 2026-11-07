@@ -8,7 +8,7 @@ It unlocks with the [Notifications](/research/notifications) Research.
 
 ## How it works
 
-It takes push messages and sends nothing on. It is a Managed Component, so it costs nothing to place, serves every region, and bills for each message. Its throughput limit is high, and each size step doubles it. Delivery takes a moment, but users do not wait for it.
+Delivery takes a moment, but users do not wait for it. Push messages come in and it links to nothing downstream. It is a Managed Component, so it costs nothing to place, serves every region, and bills for each message. Its throughput limit is high, and each size step doubles it.
 
 Notifications reach it from your code. A Notify request does most of its work asynchronously. With a [Queue](/components/queue) linked, a [Worker](/components/worker) sends the push message. Without one, the App Server sends it itself. Link whichever Node sends them to the Push Provider.
 

@@ -33,11 +33,11 @@ Fast-shipping frameworks cost CPU, and Laravel, Rails, and Django send
 
 ## Compare the options
 
-3. Open the **Runtime** section of the App Server.
-4. Hold the pointer over a runtime. A Tradeoff card draws its six axes against your current Stack,
+1. Open the **Runtime** section of the App Server.
+2. Hold the pointer over a runtime. A Tradeoff card draws its six axes against your current Stack,
    with a preview of what it does to this Design.
-5. Do the same in the **Framework** section. It lists only frameworks for the runtime's language.
-6. A greyed option needs Research. Its tooltip names the Research that unlocks it.
+3. Do the same in the **Framework** section. It lists only frameworks for the runtime's language.
+4. A greyed option needs Research. Its tooltip names the Research that unlocks it.
 
 Also compare the language's salary and time to hire. You hire engineers for the language of your
 service, so a rare language makes the Team more expensive and slower to grow. See
@@ -47,26 +47,26 @@ service, so a rare language makes the Team more expensive and slower to grow. Se
 
 In a Company, switching Stack starts a migration of the whole service.
 
-7. Select the new runtime or framework on any App Server. The first time you pick from a section,
+1. Select the new runtime or framework on any App Server. The first time you pick from a section,
    the Tradeoff card stays open. Click **Confirm** on it. The game starts a migration and puts its
    first step on the Team backlog.
-8. Press **T** to open the Team panel. A migration card at the top shows the old and new Stack.
+2. Press **T** to open the Team panel. A migration card at the top shows the old and new Stack.
 
-The cost in Dev Hours depends on how large the change is and on your codebase. A runtime of the
-same language costs least. A framework costs more. A new language costs most, and more again for a
-language that ships slowly.
+The cost in Dev Hours depends on how large the change is and on your codebase: a runtime of the same
+language costs least, a framework costs more, and a new language costs most of all, especially one
+that ships slowly.
 
 ## Shift traffic in steps
 
 The migration moves App Servers to the new Stack in four steps: 5%, 25%, 50%, and 100%. This is the
 [strangler pattern](/glossary/strangler-pattern).
 
-9. Wait until the card shows **Ready**. The Team has built the step.
-10. Click **Shift to …%**. The game moves that share of App Servers to the new Stack. They restart
-    cold. With **Autopilot** on, the game shifts each ready step for you.
-11. Watch the **Bugs** badge on the card. Requests on the new Stack fail a small share of the time
-    until the **Fix migration bugs** task ships. The game queues that task for you.
-12. Check Apdex and the error share on the HUD after each step.
+1. Wait until the card shows **Ready**. The Team has built the step.
+2. Click **Shift to …%**. The game moves that share of App Servers to the new Stack. They restart
+   cold. With **Autopilot** on, the game shifts each ready step for you.
+3. Watch the **Bugs** badge on the card. Requests on the new Stack fail a small share of the time
+   until the **Fix migration bugs** task ships. The game queues that task for you.
+4. Check Apdex and the error share on the HUD after each step.
 
 If the new Stack makes things worse, click **Cancel** on the card. The moved App Servers go back,
 and the Dev Hours you spent are lost. You cannot cancel after the last step. Fix its bugs instead.
@@ -86,21 +86,12 @@ You do not always need a new language:
 - **GOGC.** On Go, research [Go GC tuning](/research/gogc-tuning) and change **GOGC**.
 - **Node.js cluster.** Research [Node.js cluster mode](/research/node-cluster) to use every core.
 
-Workers run their own Stack. A change on a Worker takes effect on that Worker at once.
-
-## Check the result
-
-13. After the last shift, the card shows **Migrated** until Fix migration bugs ships. Then the card
-    closes.
-14. Read the gauge that was full in step 1. It must have room now.
-15. Read **Velocity** on the Users Node. It shows how fast the current Stack ships.
-
-## Practice
+Workers run their own Stack. A change on a Worker takes effect on that Worker at once, and after the
+last shift the migration card reads **Migrated** until Fix migration bugs ships, then closes. The
+gauge that was full when you started has room now, and **Velocity** on the Users Node shows how fast
+the new Stack ships.
 
 The [Event Loop Stall](/sandboxes/event-loop-stall) and [GC Pauses](/sandboxes/gc-pauses) Sandboxes
-each show one runtime's weakness. In a Sandbox, a Stack change applies at once, with no migration.
-
-## Related
-
-- [Runtimes](/runtimes) lists every runtime and framework.
-- [Read p99 and tail latency](/guides/read-p99) for GC pauses and event-loop stalls.
+each show one runtime's weakness, and in a Sandbox a Stack change applies at once with no migration.
+[Runtimes](/runtimes) lists every option and its numbers, and [Read p99](/guides/read-p99) covers the
+GC pauses and event-loop stalls you may have just left behind.

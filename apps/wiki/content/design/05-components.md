@@ -601,7 +601,7 @@ ceiling on that share, so Recreate's 100% arrives with a batch of thirteen Featu
 100% for Recreate and 5% for Canary, and Rolling keeps its 40%.
 
 Blue-green's ceiling is 10%: the old fleet keeps serving until the new one is up, so the new fleet is
-checked on a slice before the switch, and a bad deploy breaks 10% of traffic. A deploy never
+checked on a slice before the switch. A bad deploy breaks 10% of traffic. A deploy never
 interrupts traffic, and rollback ends a Bad deploy at once for every Company with the
 research, so neither is worth a number here.
 
@@ -650,7 +650,7 @@ harder with each Era.
 
 The `pki` Component is unlocked by Certificate automation and owns the countdown. Each Node that
 terminates TLS (Load Balancer, CDN, WAF, API Gateway, Realtime Hub, Edge Function) holds a certificate
-of its own. The first Step with a manager live issues one to each of them, and each renews itself two
+of its own. The first Step with a manager live issues one to each of them. Each renews itself two
 thirds of the way through its life, which is where an ACME client renews with a third left.
 
 With no manager live, nothing renews them. When one reaches its expiry date, every request through
@@ -804,8 +804,8 @@ The three database choices are the patterns in [Multi-region data](/design/07-da
 and each one has the RPO and outage behavior that table gives.
 
 A Mirror costs no Dev Hours, because the research is the work of writing the code. It is not a
-Playbook: a Playbook is a part of a Design that survives Exits and uses a slot, and a Mirror copies
-a whole region inside one Company, stays linked to it, and asks the data question.
+Playbook: a Playbook is a part of a Design that survives Exits and uses a slot. A Mirror copies a
+whole region inside one Company, stays linked to it, and asks the data question.
 
 ### Keeping a Mirror in sync
 

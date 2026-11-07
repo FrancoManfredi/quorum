@@ -8,11 +8,11 @@ aliases: database, postgres, db, connections, read replica, cache, pooler, worki
 gdd: /design/07-data-tier
 ---
 
-Use this guide when the Database is the bottleneck, or when it shows a red or amber callout in
-the Inspector.
+Use this guide when the Database is the [bottleneck](/guides/find-the-bottleneck), or when it shows
+a red or amber callout in the Inspector.
 
-App Servers are easy to copy. The Database is not, because it holds the state. So you scale it
-in two ways: give it a larger box, or send it less work. See
+App Servers are easy to copy. The Database is not, because it holds the state. So you scale it in
+two ways: give it a larger box, or send it less work. See
 [The data tier](/explanation/the-data-tier) for the reason.
 
 ## Find the limit
@@ -26,39 +26,41 @@ in two ways: give it a larger box, or send it less work. See
    - "A new query has no index." A Slow query incident runs. Go to
      [Fix slow queries](/guides/fix-slow-queries).
 3. Open **Resources** and find the fullest gauge: **CPU**, **RAM**, or **Connections**.
-4. Select the **Users** Node and open **Requests**. Note which request kinds you serve. Each kind
-   sends different queries to the Database.
+4. Select the **Users** Node and open **Requests**, then note which request kinds you serve,
+   because each kind sends different queries to the Database.
 
 Use the section below that matches the limit.
 
 ## Connections are full
 
-Postgres opens one process per connection, up to 100. Every App Server copy holds its own
+Postgres opens one process per connection, up to 100, and every App Server copy holds its own
 connections, so more App Servers can take the Database down.
 
-5. Research [Connection pooling](/research/pooling).
-6. Place a [Connection Pooler](/components/pooler) between the App Servers and the Database.
+1. Research [Connection pooling](/research/pooling).
+2. Place a [Connection Pooler](/components/pooler) between the App Servers and the Database.
    Link each App Server to the Pooler, and the Pooler to the Database.
-7. Keep **Pooling mode** on **Transaction**. In this mode, many app connections share 20
+3. Keep **Pooling mode** on **Transaction**. In this mode, many app connections share 20
    connections to the Database. **Session** mode needs one per client and barely helps.
-8. If requests fail as `crash` after the change, queue the **Drop session state** task in the
-   Team panel (T). Transaction pooling breaks code that keeps session state until it ships.
+4. If requests fail as `crash` after the change, queue the **Drop session state** task in the Team
+   panel (T), because transaction pooling breaks code that keeps session state until it ships.
 
 Check that the Connections gauge falls and the "Refusing" callout disappears.
 
+In the [Connection Limit](/sandboxes/connection-limit) Sandbox, a deploy doubles every pool.
+
 ## CPU is full
 
-9. Select **Larger** in the **Instance** section. Each size doubles vCPU and RAM.
-10. If the Database is still the bottleneck, take reads off it:
-    - Research [Caching](/research/caching) and place a [Cache](/components/cache) between the App
-      Servers and the Database. It answers reads from memory while the hot data fits. Writes pass
-      through.
-    - Research [Read replicas](/research/replication) and place a
-      [Read Replica](/components/replica). Link the App Servers to it. It answers read queries
-      only.
-11. If you run Laravel, Rails, or Django, research [Eager loading](/research/eager-loading) and
-    queue its task. These ORM frameworks send several read queries where one would do. See
-    [N+1 query](/glossary/n1-query).
+1. Select **Larger** in the **Instance** section. Each size doubles vCPU and RAM.
+2. If the Database is still the bottleneck, take reads off it:
+   - Research [Caching](/research/caching) and place a [Cache](/components/cache) between the App
+     Servers and the Database. It answers reads from memory while the hot data fits. Writes pass
+     through.
+   - Research [Read replicas](/research/replication) and place a
+     [Read Replica](/components/replica). Link the App Servers to it. It answers read queries
+     only.
+3. If you run Laravel, Rails, or Django, research [Eager loading](/research/eager-loading) and
+   queue its task, because these ORM frameworks send several read queries where one would do. See
+   [N+1 query](/glossary/n1-query).
 
 Check that the Database Load row falls under 70% and that the **BOTTLENECK** tag moves away.
 
@@ -69,14 +71,22 @@ writes, so some API reads come back `stale`. Research
 section of each App Server to send reads that follow a write to the primary.
 :::
 
+In the [Read Mostly](/sandboxes/read-mostly) Sandbox, reads dominate and you work under a Burn
+limit. In the [Stampede](/sandboxes/stampede) Sandbox, the Cache restarts empty.
+
 ## Reads hit disk
 
-12. Open the **Instance** section and pick the **Memory** family. It has twice the RAM of General
-    per vCPU.
-13. Or select **Larger** for more RAM.
-14. Check that the "reads hit disk" callout disappears.
+1. Open the **Instance** section and pick the **Memory** family. It has twice the RAM of General
+   per vCPU.
+2. Or select **Larger** for more RAM.
+3. Check that the "reads hit disk" callout disappears.
 
 The working set grows with users, so this callout comes back as you grow.
+
+After each change, wait a few seconds of game time, then check that the Database Load row is plain,
+under 70%, and that Apdex on the HUD rises toward its target. With
+[Structured logs](/research/logs), select the Users Node and read **Errors by cause**, where
+`refused`, `stale`, and `crash` must stay near zero.
 
 ## Move work to the right store
 
@@ -93,6 +103,8 @@ in an Era, give its queries their own Component:
 Reports on the primary also evict its buffer cache, so every other kind slows down. A Data
 Warehouse stops the [Report kills the database](/incidents/report-db) incident.
 
+In the [Analytics on Primary](/sandboxes/analytics-primary) Sandbox, a report scans every table.
+
 ## When one Database is not enough
 
 From the Series C Era, the leaderless and consensus stores take writes on more than one node:
@@ -105,24 +117,3 @@ From the Series C Era, the leaderless and consensus stores take writes on more t
 Both cost far more Burn than a Database. Move to them only when the largest Database with a Cache
 and replicas still cannot keep up, or when you need to survive a region outage. See
 [Go global](/guides/go-global).
-
-## Check the result
-
-15. Wait a few seconds of game time after each change.
-16. Check that the Database Load row is plain, under 70%.
-17. Check that Apdex on the HUD rises toward its target.
-18. With [Structured logs](/research/logs), select the Users Node and read **Errors by cause**.
-    `refused`, `stale`, and `crash` must stay near zero.
-
-## Practice
-
-- [Connection Limit](/sandboxes/connection-limit): a deploy doubles every pool.
-- [Read Mostly](/sandboxes/read-mostly): reads dominate, under a Burn limit.
-- [Stampede](/sandboxes/stampede): the Cache restarts empty.
-- [Analytics on Primary](/sandboxes/analytics-primary): a report scans every table.
-
-## Related
-
-- [Find the bottleneck](/guides/find-the-bottleneck)
-- [Connection pooling](/glossary/connection-pooling) and [Read replica](/glossary/read-replica) in
-  the glossary.

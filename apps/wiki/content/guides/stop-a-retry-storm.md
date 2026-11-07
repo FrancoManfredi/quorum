@@ -58,41 +58,26 @@ sends the call again, which adds load. Use a short timeout only with Backoff or 
 
 ## Prevent the next one
 
-9. On every Link into a data Node, set the retries to **Backoff**, not **Retry 3×**.
-10. Add a **Breaker** on Links to Nodes that can slow down: the Database, a Search Engine, and the
-    Payment Provider.
-11. Set **Shed low value** on every App Server as a default.
-12. Keep spare capacity on the Database. A storm grows only when the slowed Database cannot keep
-    up with its retries.
-13. When a postmortem card opens, take its action item. The Retry storm card offers Backoff with
-    jitter first, then Circuit breakers, then Priority load shedding.
+- Set every Link into a data Node to **Backoff**, not **Retry 3×**.
+- Add a **Breaker** on Links to Nodes that can slow down: the Database, a Search Engine, and the
+  Payment Provider.
+- Set **Shed low value** on every App Server as a default.
+- Keep spare capacity on the Database. A storm grows only when the slowed Database cannot keep up
+  with its retries.
+- Take the action item when a postmortem card opens. The Retry storm card offers Backoff with
+  jitter first, then Circuit breakers, then Priority load shedding.
 
 :::Note{tone="tip"}
 Retries on the Payment Provider have their own risk. A charge that timed out and is sent again
 can charge twice. Research [Idempotency keys](/research/idempotency-keys) before you retry checkouts.
 :::
 
-## Check the result
+When the backlog empties, three things confirm it: `timeout` under **Errors by cause** on the Users
+Node stays near zero, the **Errors** chart on the Dashboard falls back under its 1% rule after the red
+incident line, and Apdex on the HUD returns to its target.
 
-14. Select the Users Node and read **Errors by cause**. `timeout` must stay near zero.
-15. Open the Dashboard (D). The **Errors** chart must fall back under its 1% rule after the red
-    incident line.
-16. Check that Apdex on the HUD returns to its target.
-
-:::Note{tone="real"}
-Retry storms cause many real cascading outages. Researchers call them metastable failures (HotOS
-2021, OSDI 2022). Real clients use exponential backoff with jitter, retry budgets, and circuit
-breakers for the same reason the game does.
-:::
-
-## Practice
-
-The [Retry Storm](/sandboxes/retry-storm) Sandbox starts with every App Server call to the
-Database set to a 1 s timeout and **Retry 3×**. The Database slows twice. The second time, you
-must also stay under a Burn limit.
-
-## Related
-
-- [Errors and retries](/explanation/errors-and-retries) explains how retries multiply load.
-- [Retry with backoff and jitter](/glossary/retry-with-backoff-and-jitter),
-  [Circuit breaker](/glossary/circuit-breaker), and [Timeout](/glossary/timeout) in the glossary.
+The [Retry Storm](/sandboxes/retry-storm) Sandbox starts with every App Server call to the Database
+set to a 1 s timeout and **Retry 3×**, and it slows the Database twice. The second time, you must also
+stay under a Burn limit. [Errors and retries](/explanation/errors-and-retries) explains why the load
+multiplies, and the glossary defines [retry with backoff and jitter](/glossary/retry-with-backoff-and-jitter),
+[circuit breaker](/glossary/circuit-breaker) and [timeout](/glossary/timeout).

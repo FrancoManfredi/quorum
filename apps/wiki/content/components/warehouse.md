@@ -11,7 +11,7 @@ The [Analytics on Primary](/sandboxes/analytics-primary) Sandbox shows it.
 
 ## How it works
 
-It takes report scans and sends nothing on. Each scan is slow but has no capacity limit, and you pay for each scan on top of a small Burn. See [OLTP and OLAP](/glossary/oltp-and-olap).
+Each scan is slow but has no capacity limit, and you pay for each scan on top of a small Burn. Report scans are all it takes, and no Component sits behind it. See [OLTP and OLAP](/glossary/oltp-and-olap).
 
 Until you link a Data Warehouse, the [Database](/components/database) runs report scans on the primary. A scan there evicts the buffer cache and holds locks, so reads and writes of every kind slow. When an App Server links to both, scans go to the Warehouse, and the primary stops running them.
 

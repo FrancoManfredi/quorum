@@ -6,7 +6,7 @@ The Kubernetes Cluster packs your services onto shared machines, as Kubernetes d
 
 ## How it works
 
-It takes no traffic. Link App Servers or Workers into it and they run as pods. Pods pack onto shared nodes, so they cost less Burn for the same capacity. An [Autoscaler](/components/autoscaler) adds pods in seconds instead of booting VMs for minutes. See [container orchestration](/glossary/container-orchestration).
+App Servers and Workers linked into it run as pods, packed onto shared nodes, so they cost less Burn for the same capacity. The Cluster itself takes no traffic. An [Autoscaler](/components/autoscaler) adds pods in seconds instead of booting VMs for minutes. See [container orchestration](/glossary/container-orchestration).
 
 It also brings:
 

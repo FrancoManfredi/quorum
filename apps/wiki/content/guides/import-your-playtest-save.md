@@ -13,7 +13,7 @@ before then if you want to keep it.
 :::
 
 The playtest build saved one Company in your browser. This build saves any number of Companies, each
-with a name and a logo. You can move the old Company into the new Companies list.
+with a name and a logo, so you can move the old Company into the new Companies list.
 
 ## What the import keeps
 
@@ -31,7 +31,7 @@ If the main menu shows **Continue** after you update, the import already happene
 1. Open Quorum and clock in.
 2. The main menu shows **Continue** with your playtest Company. Select it.
 
-The Company now has its own file in the **Companies** list. The old save stays where it is.
+The Company now has its own file in the **Companies** list, and the old save stays where it is.
 
 ## Import from Settings
 
@@ -43,8 +43,8 @@ started a Company in this build.
 3. Select **Recover previous save**. Its line marks the action as temporary.
 4. Quorum adds **Recovered company** to your Companies and opens it on the board.
 
-If **Recover previous save** is not in the list, Quorum did not find an old save. If Quorum says the
-save is already in your Companies, you have already imported it.
+If **Recover previous save** is not in the list, Quorum found no old save, and a message that the
+save is already in your Companies means you have already imported it.
 
 ## If the import cannot run
 
@@ -57,7 +57,7 @@ save is already in your Companies, you have already imported it.
 ## What happens to the rest of your playtest data
 
 The Founder record, settings, Sandbox progress, and the playtest log are separate from the Company
-save. They stay as they were:
+save, so they stay as they were:
 
 - **Founder**: Legacy, Perks, Playbooks, achievements, and the company history.
 - **Settings**: language, sound, motion, pause behavior, and Agent access.
@@ -68,8 +68,9 @@ Only the Company moves into the Companies list.
 
 ## After the import
 
-- Each Company saves every 5 sim seconds. Starting another Company does not overwrite the first one.
-- An Exit closes that Company's file. Its history row and Legacy stay with the Founder.
+- Each Company saves every 5 sim seconds, and starting another Company does not overwrite the first
+  one.
+- An Exit closes that Company's file, and its history row and Legacy stay with the Founder.
 - To move a Company by hand, use **Copy save as text** and **Import a save** in Settings. That is a
   different path from **Recover previous save**.
 

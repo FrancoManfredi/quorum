@@ -8,7 +8,7 @@ The Edge Function runs small handlers in the CDN, next to the user, as Cloudflar
 
 ## How it works
 
-It takes every request kind and serves it like an [App Server](/components/server), turning it into the backend calls it makes. A user in the Node's own region reaches it in 5 ms instead of the round trip to your origin, but a user in another region still pays that round trip. Cold starts barely register: a V8 isolate starts in under 5 ms, against the seconds a container or a JVM takes.
+It serves only its own region: a user there reaches it in 5 ms instead of the round trip to your origin, and a user in another region still pays that trip. It answers every request kind the way an [App Server](/components/server) does, turning it into the backend calls it makes. Cold starts barely register: a V8 isolate starts in under 5 ms, against the seconds a container or a JVM takes.
 
 A live Edge Function also holds the edge key-value cache that a [CDN](/components/cdn) answers `read` from. That cache answers 30% of API reads, which the CDN alone answers at 0%.
 

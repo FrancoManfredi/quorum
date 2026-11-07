@@ -8,7 +8,7 @@ The LLM API is a hosted model, someone else's GPUs behind an API.
 
 ## How it works
 
-It takes inference calls from your App Servers and sends nothing on. It is a Managed Component, so it costs nothing to place and serves every region. It bills for each token it serves. Each prompt waits a fixed time for the first token, longer than a [GPU Node](/components/gpu). See [model inference](/glossary/model-inference).
+It bills for each token it serves, and it is a Managed Component, so it costs nothing to place and serves every region. Inference calls come in from your App Servers and no Component sits downstream of it. Each prompt waits a fixed time for the first token, longer than a [GPU Node](/components/gpu). See [model inference](/glossary/model-inference).
 
 It is rate limited. Each size step is a usage tier that doubles how many prompts per second it takes, and past the limit prompts fail at once as `throttled`. See [rate limiting](/glossary/rate-limiting).
 

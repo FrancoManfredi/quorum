@@ -88,10 +88,13 @@ Three things wear an engineer's **mood** down, and the game tracks each:
   point a calendar day. At a 50% gap it falls by a sixth.
 
 An engineer at 0.35 mood writes to the player, once per slump. The three answers are theirs to
-choose ([Mail](/design/18-mail#teammates)): **Give time off** (three calendar days with no Dev
-Hours, and they come back content), **Raise salary** (to the Era's rate), or **Accept resignation**
-(they leave, the payroll ends, and there is no layoff's morale hit). An engineer on time off
-produces nothing; the rest of the team carries the backlog.
+choose ([Mail](/design/18-mail#teammates)):
+
+- **Give time off**: three calendar days with no Dev Hours, and they come back content.
+- **Raise salary**: to the Era's rate.
+- **Accept resignation**: they leave, the payroll ends, and there is no layoff's morale hit.
+
+An engineer on time off produces nothing; the rest of the team carries the backlog.
 
 Mood, the page count, and the salary index each engineer is paid at are saved with the Company. A
 save from before them has every engineer content, on the Era's rate, with no pages.
@@ -158,7 +161,7 @@ codebase with a name and an owning team.
 \end{aligned}
 ```
 
-The 0.3 is the migration factor for a split and the 0.5 is the codebase's KLOC per Dev Hour, so a
+The 0.3 is the migration factor for a split, and the 0.5 is the codebase's KLOC per Dev Hour. A
 split costs the same 0.3 of the moved part as the [Migrations](#migrations) table says: moving
 Checkout, 320 DH, is 48 Dev Hours. The Dev Hours go on the backlog as one **split** item, owned by
 the team the split gives the Service, and the moved code leaves the codebase it came from.
@@ -194,7 +197,7 @@ A Service has one owning team. The build ties the two together:
   Design's.
 
 The SRE team takes the pager for every Service. A restructure action moves a Service from one team
-to another at once, with no Dev Hours of its own: the new owner's engineers take its backlog first
+to another at once, with no Dev Hours of its own. The new owner's engineers take its backlog first
 from the next tick on, and the next bad deploy on it pages them.
 
 ### Blast radius
@@ -267,11 +270,11 @@ engineers for six weeks. A week is 40 DH.
 | Status page          | Pre-IPO  | None                             | 2 days                | 16    | Churn −10%                                    | None                                               |
 | Usage-based pricing  | Public   | Paid plans                       | 2 engineers, 6 weeks  | 480   | `job`, `write`, `ai` and `hook` requests +15% | Metering `job` and `q-write`                       |
 
-The largest Feature after Data residency is Mobile app at 960 DH; Data residency, at 1,440 DH, is larger
-still but needs an open EU region, checked when it is queued, rather than another Feature. From the
-Pre-IPO Era on, a Company with the EU region open cannot grow it without Data residency: the
-Region's share of the market reads zero until it ships. Earlier Eras, and every Era before regions
-split, are unaffected.
+The largest Feature after Data residency is Mobile app at 960 DH. Data residency, at 1,440 DH, is
+larger still, but it needs an open EU region, checked when it is queued, rather than another
+Feature. From the Pre-IPO Era on, a Company with the EU region open cannot grow it without Data
+residency: the Region's share of the market reads zero until it ships. Earlier Eras, and every Era
+before regions split, are unaffected.
 
 Market gains multiply, up to a ceiling: together the Features add at most +100% to the Era's market,
 so the Company's market never exceeds twice the Era's, however many Features ship. Features reach
@@ -324,7 +327,7 @@ unchanged. One click sets a step to Off, which is the mitigation an incident nee
 the moment it is set, and the Deploy bar and the flags card read it.
 
 The rollout scales what users get. Effects and load follow the Feature's exposure, its
-rollout times its adoption ([Adoption](#adoption)), so a dark Feature earns nothing and costs no
+rollout times its adoption ([Adoption](#adoption)). A dark Feature earns nothing and costs no
 capacity, and a Feature at 50% reaches half its effect once its users have adopted it.
 
 **Shift** moves a live Feature's rollout, including to Off, through the Inspector's flag
@@ -365,8 +368,8 @@ from the holdout, since the Feature reached its current rollout step; a new step
 again. Analytics' sample rate sets the rate, and a Design with no Analytics tap counts 1% of
 requests.
 
-The lift it measures is the Feature's realized outcome ([Outcomes](#outcomes)), not its win effect:
-the interval narrows toward the rolled market, growth, and churn effects, so the verdict becomes
+The lift it measures is the Feature's realized outcome ([Outcomes](#outcomes)), not its win effect.
+The interval narrows toward the rolled market, growth, and churn effects, so the verdict becomes
 Wins for a Win or a strong Flat, and Loses for a Loss. Reading a Feature before A/B testing still
 means comparing the metrics before and after its launch.
 
@@ -502,7 +505,7 @@ A migration changes a service's language, moves a capability between Components,
 
 A Stack change moves a Service's runtime and framework, and a split makes a new Service
 ([Services](#services)). Moving auth in-house is queued from the Auth Provider's card, and a
-Database engine change from the Database's engine picker; each is one backlog item, and only the
+Database engine change from the Database's engine picker. Each is one backlog item, and only the
 engine change adds a copy after the Dev Hours.
 
 During a migration:
@@ -562,10 +565,16 @@ Features ship in deploys. A feature finished between deploys waits for the next 
 Every deploy then rolls for a bug: 10% from Pre-seed on (none in the Garage), times the policy's
 bad-deploy chance, times (1 + 2 × debt), times 0.7 with automated tests and 0.8 with code review. A
 bad deploy fails 8% of the requests for each item it shipped, up to the ceiling its deploy strategy
-sets: 40% without a Pipeline and on Rolling, 100% on Recreate, 10% on Blue-green and 5% on Canary.
+sets. The ceiling is 40% without a Pipeline and on Rolling, 100% on Recreate, 10% on Blue-green, and
+5% on Canary.
 
-Four of the five DORA metrics appear on the Team panel once the player has a CI/CD
-Pipeline: deploy frequency, lead time for changes (the sim seconds between deploy slots), change
-failure rate (bad deploys over every deploy the Company has made), and failed deployment recovery
-time (the mean MTTR of every Bad deploy postmortem, a dash with none yet). The panel shows no rework rate, because a deploy keeps no record of a change that a later deploy
+Four of the five DORA metrics appear on the Team panel once the player has a CI/CD Pipeline:
+
+- Deploy frequency.
+- Lead time for changes: the sim seconds between deploy slots.
+- Change failure rate: bad deploys over every deploy the Company has made.
+- Failed deployment recovery time: the mean MTTR of every Bad deploy postmortem, a dash with none
+  yet.
+
+The panel shows no rework rate, because a deploy keeps no record of a change that a later deploy
 redid.

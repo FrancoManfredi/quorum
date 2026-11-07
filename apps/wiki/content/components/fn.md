@@ -9,7 +9,7 @@ The Serverless Function runs your code per request, with no box of your own, as 
 
 ## How it works
 
-It takes every request kind and answers it the way an [App Server](/components/server) does, turning it into the backend calls it makes. It runs your Service's Stack, so its runtime decides how fast a request runs and how long a cold start takes. There is no instance type and no size to pick.
+It runs your Service's Stack with no instance type and no size to pick, so the runtime alone decides how fast a request runs and how long a cold start takes. Every request kind comes in and is answered the way an [App Server](/components/server) answers it, turned into the backend calls it makes.
 
 It differs from an App Server in three ways:
 

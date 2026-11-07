@@ -51,11 +51,21 @@ weakness.
 | Public   | 10 min                   | SEV1                      |
 
 A Venture can add a **signature incident** of its own ([Exit and Legacy](/design/13-prestige#ventures)).
-Each Venture meets one: Big tenant hot shard for B2B SaaS, Hot key for Consumer social,
-Double charge for Fintech, Premiere spike for Streaming media, Launch day for Game backend, GPU
-shortage for AI startup, Flash sale for E-commerce, Retry storm for Developer platform, Audit finding
-for Healthcare, Latency regression for Ad tech, and Deadline day for Government contract. Bootstrapped
-indie has none: its row names Runway, a figure rather than an incident.
+Each Venture meets one:
+
+- Big tenant hot shard for B2B SaaS.
+- Hot key for Consumer social.
+- Double charge for Fintech.
+- Premiere spike for Streaming media.
+- Launch day for Game backend.
+- GPU shortage for AI startup.
+- Flash sale for E-commerce.
+- Retry storm for Developer platform.
+- Audit finding for Healthcare.
+- Latency regression for Ad tech.
+- Deadline day for Government contract.
+
+Bootstrapped indie has none: its row names Runway, a figure rather than an incident.
 
 A signature incident weighs four times as much for its Venture and keeps a weakness of 2, so it fires
 even on a solid design. Six are signatures only: Latency regression, Deadline day, Big tenant hot
@@ -64,7 +74,7 @@ they weigh 0 for every other Company. The other five are general incidents that 
 four times as often.
 
 `weakness(type, design)` is 0.2 to 3.0. For example, "Instance failure" has weakness 3.0 when a
-critical path has a single Node and 0.5 when every Node on it has a redundant copy in another zone;
+critical path has a single Node and 0.5 when every Node on it has a redundant copy in another zone.
 0.2 is only the floor that every possible incident keeps. The director works as a teacher, because
 it keeps showing the player their weakest point.
 
@@ -297,11 +307,11 @@ the wire fail while every other Service keeps serving. A Company with one Servic
 which is also how an old save loads. The incident and its postmortem name the Service and the team
 that owns it.
 
-Feature Flags set a ceiling of their own ([Components](/design/05-components#feature-flags)): a Feature
-only breaks the share of users its flag has reached, so a batch of thirteen Features at 5% breaks
-5.2% of requests under Recreate, Rolling and Blue-green, and Canary's 5% holds it to 5. A Feature
-with no flag is live for every user, as an old save opens. The rollout does
-not scale the Feature's load, and a Feature's code is never removed.
+Feature Flags set a ceiling of their own ([Components](/design/05-components#feature-flags)). A
+Feature only breaks the share of users its flag has reached, which means a batch of thirteen
+Features at 5% breaks 5.2% of requests under Recreate, Rolling, and Blue-green. Canary's 5% holds it
+to 5. A Feature with no flag is live for every user, as an old save opens. The rollout does not
+scale the Feature's load, and a Feature's code is never removed.
 
 ## Mitigation toolbox
 
@@ -327,16 +337,20 @@ Actions the player can take during an incident. Most need research.
 | Restart the Nodes    | Resyncs the clocks a leap second jumped, across a region                      | None               |
 
 **Restarting a Node** is for a Node that is running with a bad state. It goes down for its restart
-time (an App Server boots its runtime, at least one second; any other Node, two seconds) and comes
-back by the one restart rule every other restart uses: cold, with leaked memory freed, a Cache
-emptied (Redis reloads part of its data), and a Realtime Hub's clients dropped so that they
-reconnect ([Reconnect storm](#catalog)). Any box or process of the player's restarts: an App Server,
-a Worker, a Database, a Hub, and so on. A Managed or edge Component does not, because the provider
-runs it. A Node that is already restarting is refused, and a Stopped Node (the host under it died)
-is **replaced** instead, for Cash. Restarting the Node an incident hit ends that incident when the
-incident is Stale OPcache, Library incompatibility, Runtime compatibility, Split brain (the restart
-rejoins a Distributed Erlang cluster) or a GC pause storm. A leap second is the region's, so its
-Restart acts on every Node there at once.
+time (an App Server boots its runtime, at least one second; any other Node, two seconds). It comes
+back cold, by the one restart rule every other restart uses:
+
+- Leaked memory is freed.
+- A Cache is emptied (Redis reloads part of its data).
+- A Realtime Hub's clients are dropped so that they reconnect ([Reconnect storm](#catalog)).
+
+Any box or process of the player's restarts: an App Server, a Worker, a Database, a Hub, and so on.
+A Managed or edge Component does not, because the provider runs it. A Node that is already
+restarting is refused, and a Stopped Node (the host under it died) is **replaced** instead, for
+Cash. Restarting the Node an incident hit ends that incident when the incident is Stale OPcache,
+Library incompatibility, Runtime compatibility, Split brain (the restart rejoins a Distributed
+Erlang cluster) or a GC pause storm. A leap second is the region's, so its Restart acts on every
+Node there at once.
 
 **Failing over** needs `multi-az`, and has two forms. On a Node with a **standby** that is down (a
 zone outage or a failed Node), it promotes the standby at once instead of after the usual failover
@@ -359,7 +373,7 @@ and sends it to another App Server behind it on a runtime with no event loop. Th
 no login reaches an event loop. An L4 Load Balancer carries every kind, and a Design with no second
 service on a runtime without an event loop has nowhere to move it to, so both are refused.
 
-**Draining a Node** takes it out of rotation at once, without waiting for a health check, and sends
+**Draining a Node** takes it out of rotation at once, without waiting for a health check. It sends
 its traffic to the other Nodes on the path, which may be none of them: a drained Database with no
 replica strands every query sent to it. It finishes what it holds, and a Queue hands its backlog to
 its Workers while it is out. Ten sim seconds later, empty, it rejoins the rotation. A Node that is
@@ -376,14 +390,14 @@ earns it as a Design's own healing does.
 
 Writing one takes three things. The team must have handled that kind by hand at least once,
 so automation is a reward for a lesson already learned
-([pillar 5](/design/01-vision#pillar-5-respect-the-player)): the Game keeps the list of kinds the
+([pillar 5](/design/01-vision#pillar-5-respect-the-player)). The Game keeps the list of kinds the
 player ended themselves, because the postmortem record only holds the last four. `runbooks` must be
 researched, and an SRE team must have an engineer on it, because someone has to keep the runbook
 current. The task costs 10 Dev Hours and names its kind in the Add work menu.
 
-The Design's own responses come for free, before any of that: a Cluster that reschedules a pod, a
-standby that fails over, a Spot Node that comes back, and a retry storm that drains behind backoff all
-end their incident with no player action. Those, too, are recorded as `auto`.
+The Design's own responses come for free, before any of that. A Cluster that reschedules a pod, a
+standby that fails over, a Spot Node that comes back, and a retry storm that drains behind backoff
+all end their incident with no player action. Those, too, are recorded as `auto`.
 
 ## Postmortems
 
@@ -442,5 +456,5 @@ is what signs the contract. A Venture with no SLA, one that has not reached the 
 week that met the target, or a Company without that research pays nothing.
 
 The credit is 10% of a week's subscription revenue, paid as a rate while the week is short. In a
-steady week that is the same money, and it reads more simply on the Cash series: the player sees the
+steady week that is the same money, and it reads more simply on the Cash series. The player sees the
 line fall, and the fix is the same as for any other SLO miss.

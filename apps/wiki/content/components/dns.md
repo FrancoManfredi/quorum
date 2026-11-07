@@ -6,7 +6,7 @@ DNS answers one domain with several addresses, as a managed name service such as
 
 ## How it works
 
-It turns the one link from [Users](/components/users) into many. It takes every request kind and sends it on unchanged. It splits traffic evenly across its links, one equal share each, which is round robin. It adds no latency and has no capacity limit. See [DNS round robin](/glossary/dns-round-robin).
+It turns the one link from [Users](/components/users) into many, giving each link an equal share of the traffic, which is round robin. Every request kind passes through unchanged, at no added latency and with no capacity limit. See [DNS round robin](/glossary/dns-round-robin).
 
 DNS ignores size, so a small App Server gets the same share as a large one. It also has no health checks, so a dead host keeps its share and those requests fail.
 

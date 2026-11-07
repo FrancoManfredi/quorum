@@ -9,7 +9,7 @@ The Database is the single source of truth for your data, as PostgreSQL or MySQL
 
 ## How it works
 
-It takes read and write queries, transactions, and timeline writes, and it sends nothing on. Until you link a [Search Engine](/components/search), [Object Storage](/components/storage), or [Data Warehouse](/components/warehouse), it also answers searches, stores files as rows, and runs report scans. It does all three badly at volume.
+It answers reads, writes, transactions, and timeline writes itself, and nothing it answers moves on to another Node. It also stands in for the Components you have not linked: with no [Search Engine](/components/search), [Object Storage](/components/storage), or [Data Warehouse](/components/warehouse) linked, it answers searches, stores files as rows, and runs report scans. It does all three badly at volume.
 
 Its CPU limits how many queries it answers. When the working set outgrows RAM, reads go to disk and slow down. Report scans evict the buffer cache, so every other query slows too.
 
@@ -42,7 +42,7 @@ A transaction that touches two shards is a distributed transaction. It pays seve
 
 ### Rows and retention
 
-Every write the Database answers adds rows, and so does every realtime message its Hub holds, so a Company's data grows with its users. The GB bill on the Storage line of the cloud bill, at a higher price than Object Storage's. Backups, replicas and migrations are not slowed by it. Only the bill and the rows a report reads are.
+Every write the Database answers adds rows, and so does every realtime message its Hub holds, so the data grows with the users and the Storage line of the bill grows with the data. A row costs more here than it does on Object Storage. A backup, a replica, or a migration does not slow down as the table grows; only the bill does, and the rows a report has to read.
 
 [Retention policies](/research/retention) adds a window to the card:
 

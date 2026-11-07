@@ -7,7 +7,7 @@ Feature Flags turn a piece of behaviour on for a share of users without a new de
 
 ## How it works
 
-It carries no traffic. It limits how far a [Bad deploy](/incidents/bad-deploy) reaches. A bad deploy fails **8% of App Server requests for each Feature** its batch shipped, up to the ceiling its deploy strategy sets. A Feature behind a flag only breaks the share of users the flag has reached.
+It limits how far a [Bad deploy](/incidents/bad-deploy) reaches, one Feature at a time. No traffic passes through it. A bad deploy fails **8% of App Server requests for each Feature** its batch shipped, up to the ceiling its deploy strategy sets. A Feature behind a flag only breaks the share of users the flag has reached.
 
 Each shipped Feature has a rollout: **dark, 5%, 25%, 50%, or every user**. A Feature with no step set is live for everyone, which is what a Design with no Feature Flags Node does with all of them.
 

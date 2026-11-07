@@ -39,13 +39,13 @@ Each kind has its own target. An API read must be fast. A report can take second
 
 ## Find the Node that makes the tail
 
-6. Read the **Latency** row on each Node card. With Percentiles it shows the mean and then the p99.
-7. Follow the path of the slow kind from the Users Node to the data tier.
-8. Find the first Node whose p99 jumps far above its mean.
+1. Read the **Latency** row on each Node card. With Percentiles it shows the mean and then the p99.
+2. Follow the path of the slow kind from the Users Node to the data tier.
+3. Find the first Node whose p99 jumps far above its mean.
 
 ## Match the pattern to the cause
 
-9. Use the table to name the cause, and apply its fix.
+Find the pattern in the table, name the cause, and apply its fix.
 
 | What you see                                                             | Cause                                                                                   | Fix                                                                                                                                                          |
 | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -55,11 +55,9 @@ Each kind has its own target. An API read must be fast. A report can take second
 | The p99 rises just after new Java copies start.                          | [JIT warmup](/glossary/jit-warmup): new copies run slowly at first.                     | Keep copies warm with a higher minimum on the [Autoscaler](/components/autoscaler).                                                                          |
 | The p99 is high only on one Node that many requests call.                | [The tail at scale](/glossary/tail-at-scale): one slow backend slows the whole request. | Fix that backend first.                                                                                                                                      |
 
-10. Wait a short time of game time after the change.
-11. Check that the amber figures under the Users Node return to plain.
-12. Check that Apdex on the HUD moves up.
-
-If the p99 does not change, the cause is on another Node of the path. Go back to step 7.
+Then wait a short time of game time, and check two things: the amber figures under the Users Node
+return to plain, and Apdex on the HUD moves up. If the p99 does not change, the cause is on another
+Node of the path, so start the walk again from the Users Node.
 
 :::Note{tone="tip"}
 The p99 of a kind matters most when it passes the kind's target. A request slower than the target
@@ -74,17 +72,12 @@ earns half. A request four times slower than the target earns nothing.
   against its target, and it names the share of Apdex that the kind costs you.
 - Research [Alerting](/research/alerting) to get a pager banner when the p99 stays high.
 
-## Practice
-
-The Event Loop Stall Sandbox runs Node.js with logins on the same App Server. Keep the p99 under
-its limit when password hashing gets slower.
+The [Event Loop Stall](/sandboxes/event-loop-stall) Sandbox runs Node.js with logins on the same App
+Server, and you keep the p99 under its limit when password hashing gets slower. For garbage
+collection, try the [GC Pauses](/sandboxes/gc-pauses) Sandbox.
 
 ::Sandbox{id="event-loop-stall"}
 
-For garbage collection, try the [GC Pauses](/sandboxes/gc-pauses) Sandbox.
-
-## Related
-
-- [Percentile (p50, p95, p99)](/glossary/percentile-p50-p95-p99) in the glossary.
-- [Apdex and revenue](/explanation/apdex-and-revenue) explains how slow requests lose money.
-- [Insight and observability](/explanation/observability) explains what each Research lets you see.
+The glossary defines [percentile](/glossary/percentile-p50-p95-p99), [Apdex and revenue](/explanation/apdex-and-revenue)
+explains how a slow request loses money, and [Insight and observability](/explanation/observability)
+explains what each Research lets you see.

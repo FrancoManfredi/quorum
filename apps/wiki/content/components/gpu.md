@@ -8,7 +8,7 @@ The GPU Node serves inference on rented GPUs, as a model server such as vLLM doe
 
 ## How it works
 
-It takes inference calls from your App Servers and sends nothing on. Its capacity is measured in tokens per second, and each AI prompt uses a fixed number of tokens. Each size step doubles the GPUs, and with them its capacity and Burn. See [model inference](/glossary/model-inference).
+Its capacity is measured in tokens per second, and each AI prompt uses a fixed number of tokens. Each size step doubles the GPUs, and with them its capacity and Burn. Inference calls arrive from your App Servers and it passes nothing on. See [model inference](/glossary/model-inference).
 
 A new or restarted GPU Node starts cold: it loads its model and serves at a fraction of its capacity until it warms up.
 

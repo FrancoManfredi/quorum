@@ -11,7 +11,7 @@ Press `I` for Mail, `D` for the Dashboard and `G` for the Glossary. The pager an
 
 ## The Inbox
 
-The Inbox is a button at the bottom right of the board. Its badge counts unread Mail, and the badge turns red when a message waits for your decision. Press `I` to open the panel and `Esc` to close it.
+The Inbox is a button at the bottom right of the board, and its badge counts unread Mail. The badge turns red when a message waits for your decision. Press `I` to open the panel and `Esc` to close it.
 
 ![The Inbox with its folders on the left and a message open on the right](/play/mail.png)
 
@@ -19,13 +19,15 @@ Look at the folders at the top: **Needs action**, **FYI**, **Spam** and **Trash*
 
 Each row shows the sender's coloured badge, the sender, the time and the subject. The badge shape and glyph tell you the kind of sender: a cloud provider, a monitoring tool, a vendor, a teammate, an investor and so on. The colour comes from the company the sender parodies, so read the kind label too. Colour is never the only signal.
 
-Mail about one thing from one sender is a **Thread**. A repeat joins the thread and shows a count instead of a new row. A thread resolves when its cause is gone, and it stays as a record.
+Mail about one thing from one sender is a **Thread**, and a repeat joins it and shows a count instead of a new row. A thread resolves when its cause is gone, though it stays as a record.
 
 To answer a message:
 
 1. Select a row. The reader opens on the right.
 2. Read the body, then the buttons under it. **Show on Board** selects the Node the message is about.
 3. Click an action button, or press its number key. `1` presses the first button, `2` the second, and so on.
+
+A number key fires its button even on a message you have not read, and that button runs a real action such as a resize or a raise, so read first.
 
 | Key   | Effect in the Inbox           |
 | ----- | ----------------------------- |
@@ -36,8 +38,6 @@ To answer a message:
 | `Esc` | Close the Inbox               |
 
 Spam is mail no real sender would write. Opening it costs nothing, but acting on a trap does. When more than eight threads are unread, the oldest FYI threads fold into one **Digest** row. Nothing is lost, and the Digest lists each one.
-
-Mistake to avoid: pressing a number key on a message you have not read. The key runs a real action, such as a resize or a raise.
 
 ## The Dashboard
 
@@ -79,7 +79,7 @@ Alerts need the `alerting` Research. After that, a red bar on the top lane of th
 
 The pager bar sits above the incident banner. When the alert first fires, a toast with **Acknowledge** and **Open** also arrives in the corner, and the same alert lands in Mail.
 
-The pager bar has no buttons. Fix the cause on the board and the bar clears. The buttons you can meet are:
+The pager bar has no buttons of its own: fix the cause on the board and the bar clears. The buttons you can meet are:
 
 - **Threshold buttons** next to an **Ignored** badge. A rule that cried wolf too often goes quiet. Pick another threshold to switch it on again.
 - **Roll back**, on the Bad deploy banner. It is greyed until you research CI.
@@ -92,6 +92,4 @@ Read [Your first incident](/tutorials/first-incident) for a full walk-through.
 
 From Series C, with `multi-region` researched, a **Regions** bar shows on the top lane. Each open region is a tab with a short name such as NA or EU. Click one to see that region's Board. A closed region reads "+ EU". Click it to open the region, and hover first to read its price.
 
-With infra-as-code researched, a **Mirror** button joins the bar. An amber dot on a tab means that region has drifted from its source. Read [Go global](/guides/go-global).
-
-Next: [Settings and key reference](/play/settings-and-keys).
+With infra-as-code researched, a **Mirror** button joins the bar, and [Go global](/guides/go-global) covers what it copies. An amber dot on a tab means that region has drifted from its source.

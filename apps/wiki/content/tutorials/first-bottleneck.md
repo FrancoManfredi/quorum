@@ -8,8 +8,8 @@ aliases: first bottleneck, out of ram, swapping, split the database, cpu credits
 gdd: /design/10-progression
 ---
 
-In this lesson you find the Node that limits your Design, read why, and fix it. You fix two limits
-in the Garage: memory first, then CPU credits. Start from the Company you made in
+In this lesson you find the Node that limits your Design, work out why, and fix it. The Garage gives
+you two limits to clear, memory first and then CPU credits, so start from the Company you made in
 [Your first Company](/tutorials/first-company).
 
 ## Wait for the first limit
@@ -31,12 +31,10 @@ glows. Do not click it yet. First, find out why the box is full.
 2. Read the red box under the title. It says **Out of RAM and swapping: every request is slower.**
 3. Find the **Resources** section. The **RAM** gauge is full.
 
-The App Server and PostgreSQL share one machine. The database keeps more data in memory as your
-users grow, so the box runs out of RAM. When a machine runs out of RAM, it moves memory to disk.
-This is called swapping, and it makes every request slow.
-
-Watch the HUD. **Apdex** falls under its target, and the **Users** row shows a ▼. Users leave
-while you wait, so act now.
+The App Server and PostgreSQL share one machine, and the database keeps more data in memory as your
+users grow, so the box runs out of RAM. It moves memory to disk, which is called swapping, and every
+request slows down. On the HUD, **Apdex** falls under its target and **Users** shows a ▼, because
+users leave while you wait.
 
 ## Move the database to its own Node
 
@@ -97,19 +95,7 @@ the Node selected. A larger box has more CPU and RAM, and a higher price. This i
 The size button in the card footer buys only if you hold it for about 0.6 seconds, so a quick click
 does nothing. Keep holding to buy more sizes.
 
-## Practice
-
-Two guided Sandboxes repeat this lesson on a fixed board:
-
-- [Out of Credits](/sandboxes/out-of-credits)
-- [Shared Box](/sandboxes/shared-box)
-
-## What you learned
-
-- The **BOTTLENECK** tag marks the Node that limits your revenue.
-- The Inspector's **Resources** section shows which resource is full.
-- A shared box runs out of RAM. A Database Node of its own fixes it.
-- A Burstable box runs out of CPU credits. The General family fixes it.
-
-Next: read [How requests flow](/explanation/requests), then go on to
-[Your first incident](/tutorials/first-incident).
+Two guided Sandboxes repeat this lesson on a fixed board: [Out of Credits](/sandboxes/out-of-credits)
+and [Shared Box](/sandboxes/shared-box). [How requests flow](/explanation/requests) explains the walk
+from Users to data that you have now done twice, and [Your first incident](/tutorials/first-incident)
+starts the moment this Company raises its Pre-seed round.

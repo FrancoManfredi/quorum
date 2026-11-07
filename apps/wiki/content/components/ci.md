@@ -6,7 +6,7 @@ The CI/CD Pipeline takes finished work and puts it into production, as GitHub Ac
 
 ## How it works
 
-It takes no traffic and sends none on, so you link nothing into it or out of it. It changes how a deploy happens: how often the Team can ship, what the Pipeline costs while it exists, and how far a [Bad deploy](/incidents/bad-deploy) reaches.
+It changes how a deploy happens: how often the Team can ship, what the Pipeline costs while it exists, and how far a [Bad deploy](/incidents/bad-deploy) reaches. It carries no traffic, so you link nothing into it or out of it.
 
 Every deploy ships the Features that finished since the last one. Without a Pipeline a deploy is manual and takes 30 minutes. With one it takes as long as its strategy says, and the strategy sets the rest.
 

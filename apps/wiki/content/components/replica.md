@@ -11,7 +11,7 @@ The [Stale Checkout](/sandboxes/stale-checkout) and [Missed Write](/sandboxes/mi
 
 ## How it works
 
-It takes only read queries and sends nothing on. It uses the same capacity model as the [Database](/components/database), with an instance type and size, and it has its own connection limit. Its engine is its own choice too: a MySQL replica gives each connection a thread, and holds more of them than a Postgres one. Writes still go to the primary.
+It uses the same capacity model as the [Database](/components/database), with an instance type and size, and it has its own connection limit. Only read queries reach it, and no Component sits downstream of it. Its engine is its own choice too: a MySQL replica gives each connection a thread, and holds more of them than a Postgres one. Writes still go to the primary.
 
 Replicas lag behind the primary, and the lag grows with the write rate. A read that hits a lagging replica can come back stale. A stale answer fails an API read and a checkout that reads its own write, though page views accept it. See [replication lag](/glossary/replication-lag).
 

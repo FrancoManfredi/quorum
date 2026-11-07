@@ -6,7 +6,7 @@ The Autoscaler adds and removes copies of a server as load changes, as an AWS Au
 
 ## How it works
 
-It takes no traffic. Link App Servers or Workers into it to put them under its control, and each linked Node then scales on its own. When the Node runs above the target, the Autoscaler asks for more copies. When it idles well below the target, it gives one back. See [autoscaling](/glossary/autoscaling).
+It changes how many copies of each linked App Server or Worker run, one Node at a time. No traffic passes through it: you link a Node into it, and from then on it scales on its own. When the Node runs above the target, the Autoscaler asks for more copies. When it idles well below the target, it gives one back. See [autoscaling](/glossary/autoscaling).
 
 New copies are not instant. A VM takes minutes to boot, while a pod in a [Kubernetes Cluster](/components/cluster) takes seconds. Between two scaling actions on one Node the Autoscaler waits a cooldown. New copies also start cold, so a JIT runtime runs them slowly at first. See [cold start](/glossary/cold-start).
 

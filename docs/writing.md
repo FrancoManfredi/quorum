@@ -20,7 +20,7 @@ Each type has its own job and voice ([Diátaxis](https://diataxis.fr/start-here/
 
 1. **Answer first.** The first sentence of a page or section says what it is or what to do. Context comes after. A reader who stops after one sentence should have the point.
 2. **Show a case.** After a claim, give one concrete example: a number from the game, a named incident, a specific card. "A GC pause adds 150 ms to 2% of requests, so the p99 moves and the mean barely does" beats "tail events affect percentiles".
-3. **Vary sentence length.** Aim for 8 to 20 words. Allow a short sentence for emphasis and a long one when the logic needs it, but split anything over 30 words. Five sentences of the same shape in a row read as machine-written.
+3. **Vary sentence length.** Most sentences land between 10 and 25 words. When a fact carries a condition, let one sentence run to 30 or 40 words and keep the condition inside it, because splitting it into three short sentences drops the cause. A four-word sentence is fine when it lands. Five sentences of the same shape in a row read as machine-written, and so do twenty short ones of nearly equal length.
 4. **Connect sentences.** Use "so", "but", "though", "because" and "which means" when one sentence follows from the last. Do not stack facts side by side and leave the reader to guess how they relate.
 5. **Name the actor.** Say what the player, the Node or the Simulation does. Do not write "The game computes…" five times a page.
 6. **Use plain words.** Write "use", "help", "show", "so". Skip "leverage", "utilize", "robust", "seamless", "crucial", "ecosystem" and "simply".
@@ -28,6 +28,9 @@ Each type has its own job and voice ([Diátaxis](https://diataxis.fr/start-here/
 8. **One idea per list item.** A list of ten nouns inside a sentence is a table or a bulleted list. A table cell holds one fact, not a paragraph.
 9. **Link once, where it helps.** Link a term the first time it matters on a page. Do not link every capitalized word.
 10. **Present tense, no history.** Describe what the game does. Do not write "now", "no longer", "since M5" or "batch B3". The commit log keeps history.
+11. **End on the last fact.** A page does not summarise itself. No "What you learned", no closing "Next:" line, no restating the body in a list. Put a forward link where its term first matters.
+12. **A section opens on what only it can say.** "How it works" on a Component starts with the behavior that no other Component has, not with a sentence that any Component could own.
+13. **One procedure, one count.** A numbered list counts from 1 inside its own section and does not keep counting across a heading. If the steps run past a section break, they are one section.
 
 ## Component page layout
 
@@ -88,6 +91,9 @@ These habits make prose read as machine-written. One use is fine. A repeat is a 
 - **Bold in the middle of a sentence** for emphasis. Bold marks the first mention of a defined term and the UI labels a reader clicks.
 - **Em dashes as a rhythm device.** Use a period, comma or colon. In a table cell, write "None" or leave it empty.
 - **"Real companies do X" as a stock opener.** If a real case matters, name it: who, when, what happened.
+- **A numbered list that keeps counting across a heading.** Restart at 1, or make it one section.
+- **A link as the last three words of every step or bullet.** Link the term where it appears in the sentence.
+- **A note that signs off a page.** A `:::Note` is for the aside that does not fit its section, not for the closing slot.
 
 ## Where voice belongs
 
@@ -106,6 +112,7 @@ Player pages (`tutorials/`, `guides/`, `explanation/`, `components/`) take every
 - Does the first sentence of each section carry the point?
 - Is there a concrete example next to each claim?
 - Do three sentences in a row share a length or an opener?
-- Does any sentence run past 30 words?
+- Does any sentence run past 30 words without a condition to carry?
+- Does the page end on its last fact, with no summary or closing "Next:" line?
 - Is every heading there because it has content?
 - Did you search the page for the patterns above?

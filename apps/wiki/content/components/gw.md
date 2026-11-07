@@ -8,7 +8,7 @@ The API Gateway is one front door that every API call comes through before it re
 
 ## How it works
 
-Place it after [Users](/components/users) and link your App Servers to it. It takes every request kind and sends on what it lets through, adding its own hop. A limit of Off lets everything through. Any other limit caps the Node at that many requests a second, and the requests past it fail as `throttled` rather than reach your services. See [rate limiting](/glossary/rate-limiting) and the [token bucket](/glossary/token-bucket) it still wants.
+Its rate limit caps the Node at a number of requests a second, and the requests past that limit fail as `throttled` rather than reach your services. A limit of Off lets everything through. It sits after [Users](/components/users) and passes every request kind through to the App Servers you link, adding a hop of its own. See [rate limiting](/glossary/rate-limiting) and the [token bucket](/glossary/token-bucket) it still wants.
 
 Unlike every other Component, which bills per second of uptime, the gateway bills per request. It is cheap at low volume and expensive at high volume, and it is the Requests line of the bill. It has one size and a flat capacity of its own, so a Design past that capacity drops requests at the gateway like any other flat-capacity Node.
 

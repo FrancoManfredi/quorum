@@ -8,9 +8,8 @@ aliases: first exit, acqui-hire, legacy, prestige, next company, venture, found
 gdd: /design/13-prestige
 ---
 
-In this lesson you end your first Company with an Exit, earn Legacy, and start a new Company. Your
-first Exit becomes available in **Series A**, so this lesson starts in Pre-seed and spans a long
-session.
+In this lesson you end a Company with an Exit, spend the Legacy it pays, and found the next one.
+Exits open in **Series A**, so the lesson starts in Pre-seed and runs long.
 
 ## Reach Series A
 
@@ -25,8 +24,8 @@ Each funding round opens when your users reach its target. You raised the first 
 The [Eras](/eras) reference lists each target. Each round gives Cash and takes a share of your
 Equity. Keep your Equity in mind: your Exit pays only your share.
 
-On the way, use what you learned. Fix each bottleneck, respond to each incident, and file each
-postmortem. [Find the bottleneck](/guides/find-the-bottleneck) is a good companion.
+On the way, fix each bottleneck, answer each incident and file each postmortem.
+[Find the bottleneck](/guides/find-the-bottleneck) is a good companion.
 
 ## Find the Exit button
 
@@ -95,20 +94,14 @@ If you prefer to save your Legacy, skip the purchase. Legacy also unlocks new
    the rest, so those still show a lock.
 5. Select **Found**. Its row shows the starting Era and the Legacy multiplier.
 
-The new Company starts over: new Cash, new users, no Research, and a new board. Your Legacy, your
-Perks, and your history stay. The Company you exited closes: its file leaves the **Companies** list,
-and you cannot continue it. Its history row and Legacy stay with you.
+The new Company starts with new Cash, new users, no Research and an empty board, while your Legacy,
+your Perks and your history stay. The Company you exited closes: its file leaves the **Companies**
+list and you cannot continue it, though its history row and the Legacy it paid stay with you.
 
 Your next Company also shows every control from the start, and it adds **Playbooks**. Press **P** to
 open them. A Playbook saves part of a Design, so you can place a known-good Garage setup in one
 action.
 
-## What you learned
-
-- Exits open in Series A, and the Exit button shows the Legacy you can earn.
-- The payout is Equity times valuation times the Exit's multiplier.
-- Legacy buys Perks that last for every future Company.
-- A new Company starts over, but faster, with Perks and Playbooks.
-
-Next: read [Why a Company ends](/explanation/legacy), then
-[Prepare for an Exit](/guides/prepare-for-an-exit) for your next run.
+Your next Company is the same board and the same first bottleneck, and it takes less time to clear.
+[Why a Company ends](/explanation/legacy) has the arithmetic behind the payout, and
+[Prepare for an Exit](/guides/prepare-for-an-exit) is how you raise it before you take one.

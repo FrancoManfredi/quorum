@@ -10,9 +10,10 @@ Use this guide when you want a coding agent, such as Claude Code or Codex, to re
 and tell you what to fix.
 
 The relay is a small read-only [MCP](https://modelcontextprotocol.io) server that runs on your
-machine. Your agent talks to it, and the Quorum page in your browser answers it. The agent can read
-the board, the incidents, and the Inbox. It cannot place a Node, click a button, or change a
-setting. Nothing leaves your machine.
+machine: your agent talks to it, and the Quorum page in your browser answers it. The agent can read
+the board, the incidents, and the Inbox, but it cannot place a Node, click a button, or change a
+setting. Nothing leaves your machine. The relay's source is in the
+[Quorum repository](https://github.com/elianiva/quorum/tree/main/packages/mcp-relay).
 
 ## Before you start
 
@@ -43,20 +44,25 @@ setting. Nothing leaves your machine.
 
 ## Turn on Agent access
 
-3. Open the game menu with **Esc** and select **Settings**.
-4. Turn on **Agent access**. It is off by default, and the game remembers your choice.
-5. If the browser asks to allow access to the local network, allow it.
+1. Open the game menu with **Esc** and select **Settings**.
+2. Turn on **Agent access**. It is off by default, and the game remembers your choice.
+3. If the browser asks to allow access to the local network, allow it.
 
 The page now connects to the relay. If no relay runs, the page tries again and waits longer each
 time, so you can start the agent later.
 
 ## Ask the agent
 
-6. Ask a question, for example: "Read my Quorum game and tell me what to fix first."
-7. Check that the agent calls `get_company`. If the answer names your Cash, users, and Era, the
+1. Ask a question, for example: "Read my Quorum game and tell me what to fix first."
+2. Check that the agent calls `get_company`. If the answer names your Cash, users, and Era, the
    connection works.
 
-The agent has six tools. All of them only read:
+:::Note{tone="tip"}
+Ask the agent to explain, not only to prescribe. "Why is the Database the bottleneck?" teaches you
+more than "What do I click?"
+:::
+
+The agent has six tools, and all of them only read:
 
 | Tool            | What it returns                                                                                                 |
 | --------------- | --------------------------------------------------------------------------------------------------------------- |
@@ -72,10 +78,10 @@ match what you see.
 
 ## Apply the advice yourself
 
-8. Read what the agent suggests.
-9. Check the claim on the board before you act. For example, select the Node it names and read
-   its **Load** row.
-10. Make the change yourself, then ask the agent to read the game again.
+1. Read what the agent suggests.
+2. Check the claim on the board before you act. For example, select the Node it names and read
+   its **Load** row, which [Find the bottleneck](/guides/find-the-bottleneck) covers in full.
+3. Make the change yourself, then ask the agent to read the game again.
 
 ## When it does not answer
 
@@ -91,20 +97,8 @@ match what you see.
 
 Some browsers block a secure page from reaching your own machine. Safari may block it.
 
-11. Open **Settings** and select **Copy state as JSON**.
-12. Paste the result into your agent.
+1. Open **Settings** and select **Copy state as JSON**.
+2. Paste the result into your agent.
 
-The JSON holds the same views that the tools return. It answers nothing while a Challenge is open,
-too. Copy it again each time the game changes.
-
-:::Note{tone="tip"}
-Ask the agent to explain, not only to prescribe. "Why is the Database the bottleneck?" teaches you
-more than "What do I click?"
-:::
-
-## Related
-
-- [Find the bottleneck](/guides/find-the-bottleneck) shows how to check the agent's answer on the
-  board.
-- The relay's source is in the
-  [Quorum repository](https://github.com/elianiva/quorum/tree/main/packages/mcp-relay).
+The JSON holds the same views that the tools return, and it answers nothing while a Challenge is
+open either. Copy it again each time the game changes.

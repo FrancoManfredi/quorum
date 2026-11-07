@@ -45,10 +45,10 @@ Read them as a chain. **Apdex** at or above its target makes **Users** grow. Mor
 
 Some details of each row:
 
-- **Cash** turns red below zero. The note after the runway figure is `mo` for a 30-day month. At zero Cash you can still sell and research, but you cannot place or upgrade anything.
+- **Cash** turns red below zero. The note after the runway figure is `mo` for a 30-day month. At zero Cash you can still sell and research, but you cannot place or upgrade anything, so a red **Cash** value means placement will be refused.
 - **Users** shows the change over the recent trend, not the total gained.
 - **Apdex** turns red below its target. Hover the row to read how the target works.
-- **Errors** appears the first time a request fails. Hover it for the causes, but only after you research Structured logs. Before that, the hover says **Research Structured logs to see causes**.
+- **Errors** appears the first time a request fails, so open the Node that caused it when the row shows. Hover it for the causes, but only after you research Structured logs. Before that, the hover says **Research Structured logs to see causes**.
 - **Latency** becomes **p99** once you research percentiles. The mean then shows beside it with a `μ`. See [Read p99](/guides/read-p99).
 
 Later rows appear when they apply: an **SLO** row, an **SLA** row, an Insight card with your running Study, and a Team card. They are covered in [Research and Team panels](/play/research-and-team).
@@ -73,7 +73,7 @@ The toolbar is the strip at the top right. Hover a button to read its name and k
 | **Fit the board**       | `Shift+F`      | Zooms and pans so every Node is in view.                                 |
 | **Fullscreen**          | `F`            | Toggles fullscreen.                                                      |
 
-At the start you see **How to play**, **Pause**, **Speed**, and the three board buttons. The rest appear as they become useful. On a phone, a **More** button holds the same actions. [Clock, undo, and saves](/play/clock-undo-saves) covers the speeds. [Settings and key reference](/play/settings-and-keys) lists every key.
+At the start you see **How to play**, **Pause**, **Speed**, and the three board buttons. The rest appear as they become useful, so a missing **Research**, **Team**, or **Undo** button has not been earned yet. On a phone, a **More** button holds the same actions. [Clock, undo, and saves](/play/clock-undo-saves) covers the speeds. [Settings and key reference](/play/settings-and-keys) lists every key.
 
 ## The build dock
 
@@ -110,11 +110,3 @@ The round button at the bottom right is the **Inbox** (`I`). A number badge coun
 Along the top of the Board, the game puts what needs a quick look: the region tabs once you run in more than one region, the pager and the incident banner when something breaks, and the change pill. The change pill names your last change, such as **Resized App Server**, and shows its effect on cost, latency, and errors, with an Undo button.
 
 A short message, called a toast, appears when the game refuses an action or confirms one. Refusals use plain text, and each page of this section quotes the ones it can cause.
-
-## Mistakes to avoid
-
-- Do not look for a button that is not there yet. **Research**, **Team**, and **Undo** appear when the game decides you need them.
-- Do not ignore the **Errors** row when it appears. A request failed, and the Node that caused it is the one to open.
-- Do not keep trying to place with a red **Cash** value. At zero or below, every placement is refused.
-
-Next: [Place Components](/play/place-components).

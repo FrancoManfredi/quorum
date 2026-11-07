@@ -7,9 +7,9 @@ aliases: insight, research, study, studies, pools, recipe, analytics, stripe bil
 gdd: /design/12-observability
 ---
 
-In this lesson you learn where Insight comes from and spend it on Research. You run two Studies:
-Stripe Billing, which collects your revenue for you, and Structured logs, which shows why requests
-fail. You can do this lesson in the Garage or in Pre-seed.
+In this lesson you find where Insight comes from and spend it on two Studies: Stripe Billing, which
+collects revenue for you, and Structured logs, which shows why a request failed. Both run in the
+Garage or in Pre-seed.
 
 ## Find your Insight
 
@@ -36,8 +36,8 @@ so page-view Insight looks like page-view traffic.
 3. Press **Esc** to close it.
 
 Two rules matter most. A pool earns with the square root of its samples, so a new request kind earns
-more than more of the same traffic. And a pool has a cap: it stops filling at its rate times the
-Analytics retention window. Spend Insight. Do not hoard it.
+more than more of the same traffic, and it stops filling at its rate times the Analytics retention
+window. Spend Insight rather than hoard it.
 
 ## Open Research
 
@@ -105,12 +105,6 @@ that prevents the next one.
 - Select **More samples** in the Analytics Inspector to sample a larger share of the traffic.
   Sampling costs a little CPU on each Node that it samples.
 
-## What you learned
-
-- Analytics samples traffic, and each request kind fills its own Insight pool.
-- Each Research item has a recipe: the pools that pay for it.
-- A Study takes its Insight while it runs. The lowest pool sets the pace.
-- Stripe Billing collects revenue for you. Structured logs shows why requests fail.
-
-Next: [Find the bottleneck](/guides/find-the-bottleneck), a recipe for every limit you meet. For the
-ideas behind this lesson, read [Insight and observability](/explanation/observability).
+With logs, an error carries a cause, and the cause usually names the Node to fix next.
+[Find the bottleneck](/guides/find-the-bottleneck) covers that walk, and
+[Insight and observability](/explanation/observability) is where the pools come from.

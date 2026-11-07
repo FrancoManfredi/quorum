@@ -8,7 +8,7 @@ The Search Engine stands for Elasticsearch: a separate index built for full-text
 
 ## How it works
 
-It takes search queries and sends nothing on. It answers each one in a fixed time, and it answers a fixed number per second per size step. Features that make searches heavier lower that number. See [inverted index](/glossary/inverted-index).
+It answers each search query in a fixed time, at a fixed number per second for each size step, and Features that make searches heavier lower that number. Only search queries reach it, and no Component sits downstream of it. See [inverted index](/glossary/inverted-index).
 
 Until you link a Search Engine, the [Database](/components/database) answers searches with built-in full-text search. When an App Server links to both, searches go to the Search Engine, and Postgres stops answering them.
 

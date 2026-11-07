@@ -36,7 +36,7 @@ The card's main button says what you can do now:
 | **Needs** item    | A prerequisite is missing. The button names it.            |
 | **Researched**    | You own it.                                                |
 
-A locked item is not an error. It tells you what to do next: reach the Era, or study the named prerequisite first. A warning in the card, such as a pool that earns nothing, tells you why a Study will stall. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
+A locked item is not an error. It tells you what to do next: reach the Era, or study the named prerequisite first. A warning in the card, such as a pool that earns nothing, tells you why a Study will stall. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
 
 ### Start and queue a Study
 
@@ -45,12 +45,7 @@ A locked item is not an error. It tells you what to do next: reach the Era, or s
 3. Select **Start Study**. The Insight card on the HUD shows the Study's name and its percentage.
 4. Press `Esc` to go back to the board. The Study keeps running.
 
-To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies. Under the card, **Move up**, **Move down** and **Cancel** reorder or remove a queued Study. **Cancel** loses its progress.
-
-Mistakes to avoid:
-
-- Do not leave an unaffordable Study at the front of the queue. It holds every Study behind it, and the card says so.
-- Do not hoard Insight. A pool stops filling at its cap.
+To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies, and an unaffordable Study at the front holds every Study behind it, which the card tells you. Under the card, **Move up**, **Move down** and **Cancel** reorder or remove a queued Study. **Cancel** loses its progress.
 
 ## The Team panel
 
@@ -69,7 +64,7 @@ The floor shows one card per Team. Each card lists its engineers, starting with 
 3. To lay someone off, hover their card and use its **Lay off** button.
 4. Select **New team** to add a Team. A Team has a kind: Product, Platform, SRE, Data or Security.
 
-A Product team has three policies: **Move fast**, **Balanced** and **Quality**. They trade speed against debt and bad deploys. The other kinds run the system and do not build Features: SRE holds the pager, Data runs the warehouse, Platform runs Clusters and deploys, and Security handles patches and compliance.
+A Product team has three policies: **Move fast**, **Balanced** and **Quality**. They trade speed against debt and bad deploys. The other kinds run the system and do not build Features: SRE holds the pager, Data runs the warehouse, Platform runs Clusters and deploys, and Security handles patches and compliance. Hiring early to go faster backfires, because more engineers cost payroll every second and coordination slows a large Team, so read [Team and velocity](/explanation/team-and-velocity) before you hire a Team you do not need.
 
 ### The Board (right)
 
@@ -92,8 +87,4 @@ The **Autopilot** switch in the Board header turns on the backlog's automatic mo
 - **Hire while payroll is under a quarter of revenue**
 - **Buy the next size for App Servers above 70% load**
 
-The perk is a Legacy purchase, so a new Company shows none of them. Read [Legacy](/explanation/legacy).
-
-Mistake to avoid: hiring early to speed up. More engineers cost payroll every second, and coordination slows a large Team. Read the explanation page before you hire the fifth.
-
-Next: [Mail, Dashboard, Glossary, pager, region tabs](/play/mail-dashboard-glossary).
+Because the perk is a [Legacy](/explanation/legacy) purchase, a new Company shows none of them.

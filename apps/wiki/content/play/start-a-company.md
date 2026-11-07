@@ -22,6 +22,8 @@ _Look at the Founder badge. Clicking it is the only way past this screen._
 6. Leave **Mutators** alone. Each one shows a lock until you earn it.
 7. Select **Found** followed by your name, at the bottom of the screen. The row stays in view while the list scrolls.
 
+**Continue** appears only once a Company exists, so a first start goes through **Start a company**.
+
 You will see the Board with four Nodes: **Users**, **App Server**, **Analytics**, and **Payments**. The game shows only a few controls at first. [The screen at a glance](/play/the-screen) names every part of it.
 
 On the title screens, `↑` and `↓` move the selection, `Enter` opens the selected row, and `Esc` goes back one page. A **Back** row at the top of each page does the same.
@@ -34,7 +36,7 @@ The **Main menu** has more rows than **Start a company**:
 - **Sandbox** opens a Board that changes nothing in a Company. The guided Sandboxes each teach one mechanic. The free Sandbox has every Component unlocked and no Cash.
 - **Challenges** are fixed puzzles scored on cost and tail latency.
 
-New players should use **Start a company**. The Garage is the shortest lesson in the game.
+New players should use **Start a company**, because the Garage is the shortest lesson in the game. To try a mechanic without risking a Company, open a **Sandbox** instead.
 
 ## Open, continue, and delete Companies
 
@@ -50,12 +52,4 @@ _Look at the right edge of each row. The Company you played last says **Current*
 
 To delete one, open its file page and select **Delete company**. A second step asks you to confirm: **Delete forever** removes the Company and its Design, and **Keep company** cancels. There is no undo for this.
 
-A Company saves itself while you play. Sandboxes and Challenges do not save. For the save rules, read [Clock, undo, and saves](/play/clock-undo-saves).
-
-## Mistakes to avoid
-
-- Do not expect **Continue** on the first start. It appears only when a Company exists.
-- Do not found a Company to test a mechanic. Use a Sandbox, which cannot hurt a Company.
-- Do not select **Delete forever** unless you mean it. **Delete company** only asks, but **Delete forever** cannot be undone.
-
-Next: [The screen at a glance](/play/the-screen).
+A Company saves itself while you play. Sandboxes and Challenges do not save, which is one of the rules in [Clock, undo, and saves](/play/clock-undo-saves).

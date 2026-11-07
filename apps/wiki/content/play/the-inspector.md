@@ -35,12 +35,12 @@ The first bar is the goal bar, named **Limit · CPU** or the resource that caps 
 - **RAM**: GB used out of GB owned.
 - **Workers busy**: slots in use out of slots total.
 - **Connections**: open connections out of the maximum.
-- **CPU credits**: the balance of a Burstable box. This bar reads the room left, so a nearly empty bar is the trouble.
+- **CPU credits**: the balance of a Burstable box. This bar reads the room left, so a nearly empty bar is the trouble. At zero the box stays throttled until you change the family under **Instance**.
 - **Network**: traffic out of the network card.
 
 When a limit has no gauge, the goal bar says so, for example **Disk IOPS · no gauge**. **Nothing tight** in green means no limit is close.
 
-Read it like this: the warning box names the symptom, the goal bar names the limit, and the gauge shows how far along it is.
+Read it like this: the warning box names the symptom, the goal bar names the limit, and the gauge shows how far along it is. Buying **Larger** when the goal bar names **Connections** or **Workers busy** spends Cash on CPU that does not fix either cap.
 
 ## Instance
 
@@ -71,7 +71,7 @@ A row that its Research has not unlocked is missing, or its option is off. If yo
 
 A Load Balancer adds a policy section of its own, with the request kinds each Link carries.
 
-Pick **Backoff** plus **Breaker** on the Link into a Database to stop a retry storm. [Stop a retry storm](/guides/stop-a-retry-storm) walks through the case.
+Pick **Backoff** plus **Breaker** on the Link into a Database to stop a retry storm, and avoid **Retry 3×** there, because it multiplies load on the callee that is already failing. [Stop a retry storm](/guides/stop-a-retry-storm) walks through the case.
 
 ## Upgrade all
 
@@ -84,12 +84,3 @@ Pick **Backoff** plus **Breaker** on the Link into a Database to stop a retry st
 - **Restart** on App Servers and Workers. It frees leaked memory, and the Node comes back cold.
 - **Drain** after the Health checks Research. It stops new traffic and lets the Node finish what it holds.
 - **Sell**, whose tooltip reads **Sell for $x (Delete)**. It opens the confirm bar. Fixed Nodes have no **Sell**.
-
-## Mistakes to avoid
-
-- Hunting for settings by clicking a Link. Select the Node at the sending end and open **Calls**.
-- Buying **Larger** when the goal bar names **Connections** or **Workers busy**. More CPU does not fix a connection cap.
-- Choosing **Retry 3×** on a Link to a struggling Database.
-- Leaving a Burstable box when **CPU credits** reaches zero. Change the family, or the box stays throttled.
-
-Next: [Clock, undo, saves](/play/clock-undo-saves).

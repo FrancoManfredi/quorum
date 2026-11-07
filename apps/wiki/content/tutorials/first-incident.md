@@ -33,9 +33,9 @@ Your first incident comes soon after the raise. Get ready while you wait.
 2. Select each Node and check its **Load** row. A row under 70% leaves room for more traffic.
 3. If a row is amber or red, fix it as in [Your first bottleneck](/tutorials/first-bottleneck).
 
-An incident tests your Design. The game picks the one that hits your weakest point, and a Design
-with one copy of each Node and little spare capacity is weak against the first incidents.
-For the rules, see [How incidents work](/explanation/incidents).
+An incident tests your Design: the game picks the one that hits your weakest point, and a Design with
+one copy of each Node and little spare capacity is weak against the first ones. [How incidents
+work](/explanation/incidents) has the rules.
 
 ## Notice the incident
 
@@ -55,8 +55,8 @@ The host under one of your machines died. That Node goes grey and serves nothing
 2. Select the grey Node. The Inspector shows **The host under this VM died. It still bills.**
 3. Select **Replace**. The price is on the button.
 
-The Node comes back cold and warms up. Errors stop, and Apdex starts to climb. A failed Node keeps
-its Burn until you replace it, so do not wait.
+The Node comes back cold and warms up, errors stop and Apdex starts to climb. A failed Node keeps its
+Burn until you replace it, so do not wait.
 
 The [Instance failure](/incidents/instance) page lists what prevents it. The usual fix is a second
 copy behind a [Load Balancer](/components/lb), which skips dead hosts.
@@ -99,15 +99,5 @@ Most postmortems carry an action item: a Research item that prevents the same in
 
 You can also click the **X** to file the postmortem and leave the action item open. Then that
 incident stays twice as likely until you own the Research. If you do not have the Insight yet, take
-the action item anyway. The Study runs as your Insight pools fill.
-
-[Earn Insight and research](/tutorials/research-and-insight) explains Insight and the queue.
-
-## What you learned
-
-- A funding round starts the next Era, and incidents start in Pre-seed.
-- An incident hits the weakest part of your Design.
-- A failed Node needs **Replace**. A spike needs spare capacity.
-- A postmortem's action item is the Research that prevents the incident.
-
-Next: [Earn Insight and research](/tutorials/research-and-insight).
+the action item anyway. The Study runs as your Insight pools fill, and [Earn Insight and
+research](/tutorials/research-and-insight) explains the pools and how the queue spends them.

@@ -7,7 +7,7 @@ Distributed SQL keeps transactions correct across regions, as CockroachDB does o
 
 ## How it works
 
-It takes read queries, write queries, and transactions, and it sends nothing on. Its capacity is counted in transactions, and a read costs a fraction of a transaction. Each size step doubles its capacity.
+Its capacity is counted in transactions, and a read costs a fraction of one. Each size step doubles that capacity. Read queries, write queries, and transactions come in, and it passes none of them on to another Node.
 
 Every write waits for a majority of its replicas. In one region that costs a few milliseconds. Spread across regions, a write waits for a cross-region round trip, so write latency rises. Reads stay local. When spread, its Burn grows with each region.
 

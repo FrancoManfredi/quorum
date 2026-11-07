@@ -7,7 +7,7 @@ Secrets and Certificates stands for Let's Encrypt with ACME, HashiCorp Vault, an
 
 ## How it works
 
-It takes no traffic. What it owns is the calendar:
+It owns the calendar for every certificate in the Design, and traffic does not pass through it:
 
 - Each Node that terminates TLS holds a certificate of its own: a Load Balancer, a CDN, a WAF, an API Gateway, a Realtime Hub or an Edge Function.
 - The first Step with one live **issues** each certificate, and the card counts what is left of the soonest one.

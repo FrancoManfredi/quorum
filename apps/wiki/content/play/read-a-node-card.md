@@ -43,7 +43,9 @@ Rows differ by Component. These appear on most Nodes, in this order.
 | **Latency** | The time the Node adds. With the `percentiles` Research it reads **12 ms · p99 40 ms**.                                                                                                                                                       |
 | **Out**     | Requests per second sent on along its Links. When some requests have no Link that accepts them, the row becomes a red **Stranded** with the rate that is lost.                                                                                |
 
-**Stranded** is the row to chase. Requests that reach a Node with no outbound Link that takes them count as errors. Link the Node to something that accepts them.
+**Stranded** is the row to chase. Requests that reach a Node with no outbound Link that takes them count as errors, so link the Node to something that accepts them.
+
+A low **Load** bar is not the whole story: read **Limit** beside it, because a Node at 40% **Load** can still be capped by **Connections**.
 
 Some Components swap rows for their own:
 
@@ -61,7 +63,7 @@ The Simulation picks the one Node whose extra Capacity would earn the most Reven
 
 Look at the tag and the outline. The **Load** bar on that card is usually amber or red, and the **Limit** row names what to fix.
 
-The tag moves when you fix the Node. If it jumps to a new Node, the first one is no longer the limit. If no Node has it, nothing limits Revenue.
+The tag moves when you fix the Node: if it jumps to a new Node, the first one is no longer the limit, and if no Node has it, nothing limits Revenue. The tag marks where Cash helps most, so check it before you buy size elsewhere.
 
 ## The footer
 
@@ -79,21 +81,12 @@ The strip at the bottom of the card is a button. What it does depends on the Nod
 
 ### Hold to buy
 
-A size costs Cash, so the card asks for intent. Press the footer and keep the button down. A fill crosses the button. At about 0.6 seconds the buy lands, and the card plays a short burst.
+A size costs Cash, so the card asks for intent: press the footer and keep the button down while a fill crosses it. At about 0.6 seconds the buy lands, and the card plays a short burst.
 
-A quick click buys nothing. Keep the pointer down while the fill moves, and drag off the button to cancel. If you keep holding after the first buy, the card buys another size every quarter of a second until you let go, run out of Cash, or reach the largest size. A refusal such as **Out of Cash: no placement, upgrade, or hire until Cash is above zero.** ends the hold with one toast.
+A quick click buys nothing, so keep the pointer down while the fill moves, and drag off the button to cancel. If you keep holding after the first buy, the card buys another size every quarter of a second until you let go, run out of Cash, or reach the largest size. A refusal such as **Out of Cash: no placement, upgrade, or hire until Cash is above zero.** ends the hold with one toast.
 
 The Inspector's **Larger** button is different. A single click buys one size there, and a hold repeats. See [The Inspector](/play/the-inspector).
 
 ::Component{id="payments"}
 
 The Payments card above shows a footer that collects with one click. Compare it with the App Server footer, which asks for a hold.
-
-## Mistakes to avoid
-
-- Clicking the size button once and waiting. Hold it.
-- Reading **Load** without **Limit**. A Node at 40% **Load** can still be capped by **Connections**.
-- Buying size for a Node that does not carry the **BOTTLENECK** tag. The tag marks where Cash helps most.
-- Ignoring a red **Stranded** row. Those requests are errors.
-
-Next: [The Inspector](/play/the-inspector).
