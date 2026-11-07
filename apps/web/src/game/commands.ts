@@ -22,7 +22,7 @@ import { play, setMuted, SOUND_NAMES } from './sound.ts'
 import { setAgentAccess } from './agent-relay.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
 import { forward, setAnalyticsEnabled } from '../platform/analytics.ts'
-import { ChallengeSubmission, SurveySubmission } from '@quorum/rpc'
+import { SurveySubmission } from '@quorum/rpc'
 import { ApiRpc } from '@/platform/rpc.ts'
 import { annotateSpan, reportSurveyFailure, setSentryConsent, traced } from '../platform/sentry.ts'
 
@@ -569,26 +569,6 @@ export const AskPlaybook = Command.define('AskPlaybook', {
   execute: () =>
     Effect.sync(() =>
       Message.PlaybookImported({ text: window.prompt('Paste a Playbook (QPB1:…)') }),
-    ),
-})
-
-/** Sends a Challenge result for the server to re-run. A mutation, not a Query. */
-export const SubmitChallenge = Command.define('SubmitChallenge', {
-  args: { submission: ChallengeSubmission },
-  messages: [Message.ChallengeVerified, Message.ChallengeUnverified],
-  execute: ({ submission }) =>
-    Effect.gen(function* () {
-      const rpc = yield* ApiRpc
-      return yield* rpc.challengeSubmit(submission)
-    }).pipe(
-      Effect.match({
-        onSuccess: (verdict) => Message.ChallengeVerified({ verdict }),
-        onFailure: (error) =>
-          Message.ChallengeUnverified({
-            message: error.message,
-            offline: error._tag === 'RpcClientError',
-          }),
-      }),
     ),
 })
 

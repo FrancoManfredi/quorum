@@ -430,11 +430,11 @@ The ordered guided Sandboxes for one Era.
 _Avoid_: course, campaign, chapter
 
 **Challenge**:
-A fixed puzzle outside the Company, scored on cost, tail latency, and complexity histograms.
+A fixed puzzle outside the Company, scored in the browser on cost, tail latency, and complexity.
 _Avoid_: level, mission, scenario, puzzle (in UI copy)
 
 **Replay**:
-A Challenge result as the server receives it: the Design, the run actions by Step, and the Simulation version. The server re-runs it and keeps its own score.
+A Challenge run as the browser records it: the Design, the run actions by Step, and the Simulation version. Nothing sends it to a server until accounts exist.
 _Avoid_: recording, save, solution file
 
 **Daily drill**:
@@ -442,7 +442,7 @@ The short Challenge every player gets on one UTC day, derived from the date. It 
 _Avoid_: daily challenge, daily quest, streak
 
 **Histogram**:
-The distribution of every player's best result on one axis of one Challenge, per Simulation version. Players see their percentile, never a rank.
+The distribution of every player's best result on one axis of one Challenge, per Simulation version. Players would see their percentile, never a rank. Not built: it waits for accounts ([ADR 0016](https://github.com/elianiva/quorum/blob/main/docs/adr/0016-challenges-stay-in-the-browser-until-accounts.md)).
 _Avoid_: leaderboard, ranking, high score
 
 ## Relationships
@@ -457,4 +457,4 @@ _Avoid_: leaderboard, ranking, high score
 - An **Exit** turns **Equity** × **Valuation** into **Legacy**.
 - The **Founder** keeps **Legacy**, **Perks**, and **Playbooks** from one **Company** to the next.
 - A **Sandbox track** holds guided **Sandboxes** for one **Era**. **Challenges** form a separate sequence across Eras; completing one opens the next.
-- A **Challenge** result uploads as a **Replay**; the server re-runs it and places each axis on that Challenge's **Histograms**.
+- A **Challenge** run is a **Replay** that stays in the browser. A server that re-runs it and keeps **Histograms** waits for accounts.

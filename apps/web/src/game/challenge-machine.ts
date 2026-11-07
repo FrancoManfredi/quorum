@@ -1,6 +1,5 @@
 import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
-import { ChallengeVerdict } from '@quorum/rpc'
 import {
   ChallengeResult,
   NO_TOTALS,
@@ -13,19 +12,8 @@ import { planState } from './machine.ts'
 
 /* ==========================================================================
    A Challenge run is a flow, not a bag of nullable fields. Building has no
-   replay, Running has no result, and a verification can only land on a
-   Result.
+   replay, and Running has no result.
    ========================================================================== */
-
-/** Where a Challenge result stands with the server: provisional until it confirms. */
-export const Verification = Schema.Literals([
-  'local',
-  'sending',
-  'verified',
-  'unverified',
-  'offline',
-])
-export type Verification = typeof Verification.Type
 
 export const Building = Schema.TaggedStruct('Building', {
   id: Schema.String,
@@ -45,15 +33,10 @@ export const Result = Schema.TaggedStruct('Result', {
   board: Game,
   replay: Replay,
   result: ChallengeResult,
-  /** The server's verdict, once it answers. */
-  verdict: Schema.NullOr(ChallengeVerdict),
-  verification: Verification,
-  /** Why the server did not confirm, when it did not. */
-  note: Schema.NullOr(Schema.String),
 })
 export const ChallengeRun = Schema.Union([Building, Running, Result])
 export type ChallengeRun = typeof ChallengeRun.Type
-/** A scored run: the only phase with a result and a verification. */
+/** A scored run: the only phase with a result. */
 export type ChallengeResultRun = Extract<ChallengeRun, Readonly<{ _tag: 'Result' }>>
 /** A run in progress: the only phase with a replay and a build board. */
 export type ChallengeRunningRun = Extract<ChallengeRun, Readonly<{ _tag: 'Running' }>>
@@ -66,20 +49,7 @@ export const Ticked = Schema.TaggedStruct('Ticked', { totals: RunTotals })
 export const ActionLogged = Schema.TaggedStruct('ActionLogged', { action: ReplayAction })
 export const Finished = Schema.TaggedStruct('Finished', { result: ChallengeResult })
 export const Rebuilt = Schema.TaggedStruct('Rebuilt', {})
-export const Verified = Schema.TaggedStruct('Verified', { verdict: ChallengeVerdict })
-export const Unverified = Schema.TaggedStruct('Unverified', {
-  message: Schema.String,
-  offline: Schema.Boolean,
-})
-export const ChallengeEvent = Schema.Union([
-  Run,
-  Ticked,
-  ActionLogged,
-  Finished,
-  Rebuilt,
-  Verified,
-  Unverified,
-])
+export const ChallengeEvent = Schema.Union([Run, Ticked, ActionLogged, Finished, Rebuilt])
 export type ChallengeEvent = typeof ChallengeEvent.Type
 
 type ChallengeBuildingRun = Extract<ChallengeRun, Readonly<{ _tag: 'Building' }>>
@@ -97,9 +67,6 @@ const scored = (state: ChallengeRunningRun, result: ChallengeResultType): Challe
   board: state.board,
   replay: state.replay,
   result,
-  verdict: null,
-  verification: 'sending',
-  note: null,
 })
 
 const States = Machine.state({ states: { Building, Running, Result } })
@@ -110,8 +77,6 @@ const Events = Machine.events({
   ActionLogged: { action: ReplayAction },
   Finished: { result: ChallengeResult },
   Rebuilt: {},
-  Verified: { verdict: ChallengeVerdict },
-  Unverified: { message: Schema.String, offline: Schema.Boolean },
 })
 
 export const challengeMachine = Machine.make({ root: States, events: Events }).handle({
@@ -162,23 +127,6 @@ export const challengeMachine = Machine.make({ root: States, events: Events }).h
         Rebuilt: {
           target: 'Building',
           data: ({ state }) => building(state.id),
-        },
-        Verified: {
-          target: 'Result',
-          data: ({ state, event }) => ({
-            ...state,
-            verdict: event.verdict,
-            verification: 'verified',
-            note: null,
-          }),
-        },
-        Unverified: {
-          target: 'Result',
-          data: ({ state, event }) => ({
-            ...state,
-            verification: event.offline ? 'offline' : 'unverified',
-            note: event.message,
-          }),
         },
       },
     },

@@ -5,7 +5,6 @@ import { COMPONENTS, STEP_SECONDS, TASKS } from '@quorum/simulation/catalog'
 import { EMPTY_HISTORY } from '../history.ts'
 import { completeChallenge } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
-import { Message } from '../message.ts'
 import {
   Model,
   SandboxStore,
@@ -31,19 +30,11 @@ import {
 import { Option, Result, Schema } from 'effect'
 import { SIM_VERSION } from '@quorum/simulation/version'
 import { mostSteps } from './constant.ts'
-import {
-  WriteFounder,
-  AppendLog,
-  FitBoard,
-  ReplaceUrl,
-  WriteSandboxStore,
-  SubmitChallenge,
-} from '../commands.ts'
+import { WriteFounder, AppendLog, FitBoard, ReplaceUrl, WriteSandboxStore } from '../commands.ts'
 import { bigBoard, stressBoard } from '@quorum/ui/board/stress'
 import { boxOf, freeSpot, type Box } from '@quorum/ui/board/geometry'
-import { challengeAchievements } from '@quorum/simulation/achievements'
 import { challengeStep } from '../challenge-machine.ts'
-import { designOf, encodeReplay, type ReplayAction, type Response } from '@quorum/simulation/replay'
+import { designOf, type ReplayAction, type Response } from '@quorum/simulation/replay'
 import { leaveExited } from './companies.ts'
 import { freeSandbox, GUIDED, sandboxOf, START } from '@quorum/simulation/sandbox'
 import {
@@ -52,13 +43,11 @@ import {
   saveCommands,
   withToast,
   act,
-  achieve,
   storeOf,
   type AnyCommand,
   type MessageCases,
   type UpdateResult,
 } from './shared.ts'
-import { histogramQuery } from '../challenge-query.ts'
 import { isFinalEra } from '@quorum/simulation/lookups'
 import { line } from '../telemetry.ts'
 import { newGame } from '@quorum/simulation/company'
@@ -68,7 +57,6 @@ import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
 import { isAway, isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
-import { traced } from '../../platform/sentry.ts'
 import { type Url } from 'foldkit/url'
 
 /** Opens a route's screen. A board that cannot open (no Company to continue)
@@ -183,11 +171,6 @@ export const afterRound = (game: Game): Model['panel'] => (isFinalEra(game) ? 'e
 
 /* ---------- the Founder ---------- */
 
-export const histograms = histogramQuery.lift<Model, Message>({
-  parentField: 'histograms',
-  toParentMessage: (message) => Message.GotHistograms({ message }),
-})
-
 /**
  * A Challenge's start with its cards apart: each card in board order moves to the nearest
  * spot that keeps its clearance in its region. Fixed cards stay put, so the run's board,
@@ -229,12 +212,10 @@ export const enterChallenge = (model: Model, id: string): UpdateResult => {
       }),
     },
   }
-  const loaded = histograms.loadIfMissing(next, { challengeId: id, simVersion: SIM_VERSION })
   return {
-    model: loaded.model,
+    model: next,
     commands: [
       FitBoard({}),
-      ...(loaded.commands ?? []),
       AppendLog({ entries: [line(game.time, 'ChallengeStarted', { challenge: id })] }),
     ],
   }
@@ -347,14 +328,6 @@ export const finishRun = (model: Model): UpdateResult => {
     },
   }
   const commands: Array<AnyCommand> = [
-    SubmitChallenge({
-      submission: {
-        challengeId: run.id,
-        simVersion: SIM_VERSION,
-        deviceId: founder.deviceId,
-        replay: traced('challenge.encode_replay', {}, () => encodeReplay(run.replay)),
-      },
-    }),
     AppendLog({
       entries: [line(model.board.game.time, 'ChallengeRun', { challenge: run.id, ...result })],
     }),
@@ -476,9 +449,6 @@ type SessionTag =
   | 'ChallengeFinished'
   | 'ChallengeRebuilt'
   | 'FixChosen'
-  | 'ChallengeVerified'
-  | 'ChallengeUnverified'
-  | 'GotHistograms'
   | 'GuidedStarted'
   | 'FreeSandboxStarted'
   | 'FreeSandboxReset'
@@ -530,48 +500,6 @@ export const sessionHandlers = (model: Model): MessageCases<UpdateResult, Sessio
     act(model, `${TASKS[fix].name} ${on ? 'on' : 'off'}`, Work.setFix(model.board.game, fix, on), {
       undoable: true,
     }),
-
-  ChallengeVerified: ({ verdict }) => {
-    const run = boardChallenge(model.board)
-    if (run?._tag !== 'Result') return { model }
-    const percentiles = verdict.percentiles
-    const [next, earned] = achieve(
-      {
-        ...model,
-        board: {
-          ...model.board,
-          session: sessionStep(model.board.session, {
-            _tag: 'ChallengeUpdated',
-            run: challengeStep(run, { _tag: 'Verified', verdict }),
-          }),
-        },
-      },
-      percentiles
-        ? challengeAchievements([percentiles.cost, percentiles.tail, percentiles.complexity])
-        : [],
-    )
-    const fetched = histograms.revalidate(next, { challengeId: run.id, simVersion: SIM_VERSION })
-    return { ...fetched, commands: [...(fetched.commands ?? []), ...earned] }
-  },
-
-  ChallengeUnverified: ({ message, offline }) => {
-    const run = boardChallenge(model.board)
-    if (run?._tag !== 'Result') return { model }
-    return {
-      model: {
-        ...model,
-        board: {
-          ...model.board,
-          session: sessionStep(model.board.session, {
-            _tag: 'ChallengeUpdated',
-            run: challengeStep(run, { _tag: 'Unverified', message, offline }),
-          }),
-        },
-      },
-    }
-  },
-
-  GotHistograms: ({ message }) => histograms.fold(model, message),
 
   GuidedStarted: ({ id }) => enterSandbox(model, GUIDED[id].start(), { id, progress: START }),
 

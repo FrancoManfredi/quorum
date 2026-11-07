@@ -1,7 +1,6 @@
 import { formats } from '@/i18n/format.ts'
 import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { AsyncData } from 'foldkit'
 import {
   Check,
   FastForward,
@@ -15,10 +14,8 @@ import {
   Wallet,
   Waypoints,
 } from 'lucide'
-import type { ChallengeHistograms, Histogram } from '@quorum/rpc'
 import { FIXES, KINDS, TASKS, type RequestKind } from '@quorum/simulation/catalog'
 import {
-  bucketOf,
   challengeById,
   complexityOf,
   devHoursOf,
@@ -29,8 +26,6 @@ import {
 import { has } from '@quorum/simulation/lookups'
 import { serviceOf } from '@quorum/simulation/team'
 import type { Ledger } from '@quorum/simulation/ledger'
-import { SIM_VERSION } from '@quorum/simulation/version'
-import { histogramQuery } from '@/game/challenge-query.ts'
 import { clock, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import {
@@ -389,37 +384,10 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
 
 /* ---------- the result ---------- */
 
-/** A bar per bucket, the player's bucket marked. */
-const strip = (histogram: Histogram, value: number, h: HtmlBuilder<Message>): Html => {
-  const mine = bucketOf(histogram.edges, value)
-  const top = Math.max(1, ...histogram.counts)
-  return h.div(
-    [h.Class('flex h-10 items-end gap-[3px]'), h.AriaHidden(true)],
-    histogram.counts.map((count, index) =>
-      h.span(
-        [
-          h.Key(String(index)),
-          h.Class(
-            cn('flex-1 rounded-sm', index === mine ? 'bg-primary-fill' : 'bg-well shadow-well'),
-          ),
-          h.Style({ height: `${Math.max(8, (count / top) * 100)}%` }),
-        ],
-        [],
-      ),
-    ),
-  )
-}
-
-const axisRow = (
-  axis: ScoreAxis,
-  run: ChallengeResultRun,
-  data: ChallengeHistograms | null,
-  h: HtmlBuilder<Message>,
-): Html => {
+const axisRow = (axis: ScoreAxis, run: ChallengeResultRun, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const value = run.verdict?.best?.[axis] ?? run.result?.[axis] ?? 0
-  const share = run.verdict?.percentiles?.[axis]
+  const value = run.result[axis]
   return h.div(
     [h.Key(axis), h.Class('flex flex-col gap-1.5')],
     [
@@ -436,24 +404,9 @@ const axisRow = (
           ),
         ],
       ),
-      data ? strip(data[axis], value, h) : h.empty,
-      share === undefined
-        ? h.empty
-        : h.span(
-            [h.Class('text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-            [t.challenge.betterThanOfPlayers(Math.round(share * 100))],
-          ),
     ],
   )
 }
-
-const verificationOf = (t: Messages): Record<ChallengeResultRun['verification'], string> => ({
-  local: t.challenge.provisional,
-  sending: t.challenge.provisionalChecking,
-  verified: t.challenge.verified,
-  unverified: t.challenge.notVerified,
-  offline: t.challenge.provisionalOffline,
-})
 
 export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -462,27 +415,10 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const challenge = run ? challengeById(run.id) : undefined
   if (run?._tag !== 'Result' || !challenge) return h.empty
   const result = run.result
-  const passed = run.verdict?.passed ?? result.passed
-  const histograms = AsyncData.matchData(
-    histogramQuery.read(model.histograms, { challengeId: run.id, simVersion: SIM_VERSION }),
-    { onEmpty: () => null, onFailure: () => null, onData: (data: ChallengeHistograms) => data },
-  )
+  const passed = result.passed
   return shell(
     t.catalog.challenges[challenge.id]?.name ?? challenge.name,
-    [
-      h.span(
-        [
-          h.Class(
-            cn(
-              'font-mono text-[calc(11px*var(--type-scale))] uppercase tracking-[0.08em]',
-              run.verification === 'verified' ? 'text-ok' : 'text-muted-foreground',
-            ),
-          ),
-          ...(run.note ? [h.Title(run.note)] : []),
-        ],
-        [verificationOf(t)[run.verification]],
-      ),
-    ],
+    [],
     [
       h.div(
         [h.Class('flex flex-col gap-4 px-5 pb-5')],
@@ -496,21 +432,9 @@ export const challengePanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ),
               ),
             ],
-            [
-              passed
-                ? t.challenge.passed
-                : missedText(t, run.verdict?.missed ?? result.missed ?? t.challenge.failed),
-            ],
+            [passed ? t.challenge.passed : missedText(t, result.missed ?? t.challenge.failed)],
           ),
-          ...(['cost', 'tail', 'complexity'] as const).map((axis) =>
-            axisRow(axis, run, histograms, h),
-          ),
-          histograms
-            ? h.span(
-                [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
-                [t.challenge.players(histograms.players)],
-              )
-            : h.empty,
+          ...(['cost', 'tail', 'complexity'] as const).map((axis) => axisRow(axis, run, h)),
         ],
       ),
       h.div(

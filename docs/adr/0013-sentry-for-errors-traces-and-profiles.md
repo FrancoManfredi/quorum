@@ -39,11 +39,9 @@ Considered options:
 - Traces are sampled at 10% in the browser. Both Workers follow the browser's choice, and the
   website Worker starts no trace of its own, so PostHog ingest is never traced. Raise
   `TRACES_SAMPLE_RATE` when a breakdown is missing.
-- The browser sends the `SubmitChallenge` span through `SentryEffectTracer`, which drops any attribute
+- The browser sends the `SubmitSurvey` span through `SentryEffectTracer`, which drops any attribute
   that is not a string, number, or boolean: a Command's arguments hold the whole Game.
 - Trace headers go only to `/api/`. The PostHog proxy at `/q` never receives them.
-- A Worker's clock stands still until I/O, so a CPU-bound span reads zero. The replay cost is read
-  from Cloudflare's CPU time. The `challenge.replay` span carries the outcome.
 - Source maps upload from the build, with a debug ID in each bundle: the website build uploads the
   assets and its Worker (`apps/web/vite.config.ts`), and the API Worker's rolldown build uploads its
   own (`alchemy.run.ts`). Only the public assets lose their maps; the Worker maps stay in `.alchemy`

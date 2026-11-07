@@ -787,14 +787,6 @@ describe('Exit and offline return', () => {
 describe('Challenges', () => {
   const send = (model: Model, ...messages: ReadonlyArray<Message>): Model =>
     messages.reduce((current, message) => update(current, message).model, model)
-  const verdict = {
-    passed: true,
-    missed: null,
-    score: { cost: 0.05, tail: 880, complexity: 2 },
-    best: { cost: 0.05, tail: 880, complexity: 2 },
-    percentiles: { cost: 0.5, tail: 0.5, complexity: 0 },
-  }
-
   const solved = (model: Model): Model =>
     send(
       model,
@@ -818,7 +810,7 @@ describe('Challenges', () => {
     return run
   }
 
-  test('Run scores a provisional result, and the server confirms it', () => {
+  test('Run scores the result locally, and leaving restores the Company', () => {
     const company = {
       ...initialModel(),
       saved: true,
@@ -827,20 +819,11 @@ describe('Challenges', () => {
     const done = solved(company)
     expect(boardChallenge(done.board)?._tag).toBe('Result')
     expect(scoredRun(done).result.passed).toBe(true)
-    expect(scoredRun(done).verification).toBe('sending')
     expect(done.panel).toBe('challenge')
-    const verified = send(done, Message.ChallengeVerified({ verdict }))
-    expect(scoredRun(verified).verification).toBe('verified')
     // Leaving brings the Company back untouched.
-    const left = send(verified, Message.TitleOpened())
+    const left = send(done, Message.TitleOpened())
     expect(boardChallenge(left.board)).toBeNull()
     expect(left.board.game).toBe(company.board.game)
-  })
-
-  test('a server reply that arrives after Rebuild leaves the build board alone', () => {
-    const building = send(initialModel(), Message.ChallengeStarted({ id: 'hello-world' }))
-    const late = send(building, Message.ChallengeVerified({ verdict }))
-    expect(boardChallenge(late.board)).toEqual(boardChallenge(building.board))
   })
 
   test('a first completion pays Legacy once, and perks do not reach the board', () => {
@@ -872,16 +855,6 @@ describe('Challenges', () => {
     expect(runningRun(restarted).replay.actions).toEqual([
       { step: 0, action: { _tag: 'Restart', node: 'server' } },
     ])
-  })
-
-  test('without the API Worker the result stays provisional', () => {
-    const done = solved(initialModel())
-    const offline = send(
-      done,
-      Message.ChallengeUnverified({ message: 'Failed to fetch', offline: true }),
-    )
-    expect(scoredRun(offline).verification).toBe('offline')
-    expect(scoredRun(offline).result.passed).toBe(true)
   })
 
   test('a locked Challenge URL lands on the Challenge list; a completed one opens', () => {

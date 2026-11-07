@@ -23,7 +23,6 @@ import { freshBoard, milestones, sync, type UpdateResult } from './update/shared
 import { isExited } from './company-machine.ts'
 import { isSending, isSent } from './survey-machine.ts'
 import { has } from '@quorum/simulation/lookups'
-import { histogramQuery } from './challenge-query.ts'
 import { ledgerOf, Model, halted, EMPTY_SURVEY } from './model.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
@@ -68,7 +67,6 @@ export const initialModel = (): Model =>
     survey: EMPTY_SURVEY,
     passed: [],
     freeBoard: null,
-    histograms: histogramQuery.init(),
     today: '',
     prefs: {
       locale: 'en',

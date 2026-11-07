@@ -27,7 +27,6 @@ import { BoardFlow } from './board-machine.ts'
 import { MailPhase } from './mail-machine.ts'
 import { SENDER_KINDS } from './copy/senders.ts'
 import { SandboxId, SandboxRun, Session } from './session-machine.ts'
-import { histogramQuery } from './challenge-query.ts'
 import { History } from './history.ts'
 import { NodeSample } from './node-metrics.ts'
 import { AppRoute, MENU_PAGES } from './route.ts'
@@ -408,8 +407,6 @@ export const Model = Schema.Struct({
   passed: Schema.Array(SandboxId),
   /** The free Sandbox as the player left it. */
   freeBoard: Schema.NullOr(Game),
-  /** Challenge histograms from the API Worker. */
-  histograms: histogramQuery.Model,
   /** Today's UTC date, for the daily drill. */
   today: Schema.String,
   /** The player's settings, kept in the browser apart from saves. */

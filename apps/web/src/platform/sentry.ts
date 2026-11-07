@@ -125,7 +125,7 @@ export const reportSurveyFailure = (
  * This tracer drops the attributes that are not plain values: a Command's arguments hold the whole
  * Game.
  */
-const TRACED_COMMANDS = new Set(['SubmitChallenge', 'SubmitSurvey'])
+const TRACED_COMMANDS = new Set(['SubmitSurvey'])
 const isCommand = (name: string): boolean => /^[A-Z][A-Za-z]*$/.test(name)
 
 const plain = (value: unknown): boolean =>

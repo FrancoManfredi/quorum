@@ -106,12 +106,11 @@ export default Alchemy.Stack(
           'VITE_SENTRY_DSN is required for the prod stage. Set it in the deploy environment.',
         ),
       )
-    // Verified Challenge results: per-axis bests and histograms (docs/architecture.md).
+    // The Exit survey's rows. The resource keeps its first name: renaming it would create a new, empty database.
     const Results = Cloudflare.D1.Database('Results', { migrations: './apps/backend/migrations' })
     const ApiWorker = Cloudflare.Worker('Api', {
       main: './apps/backend/src/worker.ts',
-      // One database backs both bindings: Challenge results and the Exit survey.
-      env: { RESULTS: Results, FEEDBACK: Results, ...sentryEnv },
+      env: { FEEDBACK: Results, ...sentryEnv },
       ...apiBuild,
       compatibility: sentryCompatibility,
       observability,

@@ -7,22 +7,18 @@ import * as Logger from 'effect/Logger'
 import * as Tracer from 'effect/Tracer'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import { Api, RPC_PATH } from '@quorum/rpc'
-import { ChallengeHandlers } from './contexts/challenges/handlers.ts'
-import { ResultStore } from './contexts/challenges/store.ts'
 import { SurveyHandlers } from './contexts/survey/handlers.ts'
 import { SurveyStore } from './contexts/survey/store.ts'
 import { SystemHandlers } from './contexts/system/handlers.ts'
-import { d1ResultStore } from './platform/d1-result-store.ts'
 import { d1SurveyStore } from './platform/d1-survey-store.ts'
 import type { SqlRunner } from './platform/sql.ts'
 
 /**
  * The bindings `alchemy.run.ts` gives the API Worker. A `D1Database` is a `SqlRunner`.
- * `RESULTS` holds Challenge results and `FEEDBACK` the Exit survey, in one database.
+ * `FEEDBACK` holds the Exit survey.
  * Without `SENTRY_DSN` the Sentry SDK stays off.
  */
 export type Env = Readonly<{
-  RESULTS: SqlRunner
   FEEDBACK: SqlRunner
   SENTRY_DSN?: string
   SENTRY_RELEASE?: string
@@ -56,8 +52,7 @@ const handlerFor = (env: Env) =>
       path: RPC_PATH,
       protocol: 'http',
     }).pipe(
-      Layer.provide(Layer.mergeAll(SystemHandlers, ChallengeHandlers, SurveyHandlers)),
-      Layer.provide(Layer.succeed(ResultStore, d1ResultStore(env.RESULTS))),
+      Layer.provide(Layer.mergeAll(SystemHandlers, SurveyHandlers)),
       Layer.provide(Layer.succeed(SurveyStore, d1SurveyStore(env.FEEDBACK))),
       Layer.provideMerge(RpcSerialization.layerJson),
       Layer.provide(SentryLive),
@@ -65,9 +60,7 @@ const handlerFor = (env: Env) =>
   )
 
 // Built on the first request and kept for the isolate, once per database binding.
-let built:
-  | Readonly<{ db: SqlRunner; feedback: SqlRunner; handler: ReturnType<typeof handlerFor> }>
-  | undefined
+let built: Readonly<{ feedback: SqlRunner; handler: ReturnType<typeof handlerFor> }> | undefined
 
 export default Sentry.withSentry(
   (env: Env) => ({
@@ -80,8 +73,8 @@ export default Sentry.withSentry(
   }),
   {
     fetch: (request: Request, env: Env): Promise<Response> => {
-      if (built?.db !== env.RESULTS || built.feedback !== env.FEEDBACK)
-        built = { db: env.RESULTS, feedback: env.FEEDBACK, handler: handlerFor(env) }
+      if (built?.feedback !== env.FEEDBACK)
+        built = { feedback: env.FEEDBACK, handler: handlerFor(env) }
       return built.handler.handler(request)
     },
   },
