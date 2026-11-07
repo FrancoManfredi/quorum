@@ -868,7 +868,7 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
         ],
       ),
       segmented(
-        'grid-cols-4',
+        'grid-cols-3',
         FAMILY_IDS.map((id) =>
           choice(
             id,

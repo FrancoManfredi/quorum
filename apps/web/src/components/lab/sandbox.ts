@@ -256,7 +256,7 @@ const tiny = (label: string, message: Message, h: HtmlBuilder<Message>, active =
       variant: active ? 'default' : 'outline',
       size: 'sm',
       className:
-        'h-auto min-h-7 px-2 py-1 text-[calc(11.5px*var(--type-scale))] leading-tight whitespace-normal',
+        'h-auto min-h-7 px-2 py-1 text-[calc(11.5px*var(--type-scale))] leading-tight whitespace-normal text-balance',
       attributes: [h.Key(label)],
     },
     label,
@@ -329,15 +329,18 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
       ),
       h.div(
-        [h.Class('flex items-center gap-1.5')],
+        [h.Class('flex flex-col gap-1.5')],
         [
-          h.span([h.Class(cn(EYEBROW, 'mr-auto'))], [t.sandbox.mix]),
-          ...ERAS.slice(0, 3).map((era, stage) =>
-            tiny(
-              t.catalog.eras[stage]?.name ?? era.name,
-              Message.MixChosen({ stage }),
-              h,
-              model.board.game.stage === stage,
+          h.span([h.Class(EYEBROW)], [t.sandbox.mix]),
+          h.div(
+            [h.Class('grid grid-cols-3 gap-1.5')],
+            ERAS.slice(0, 3).map((era, stage) =>
+              tiny(
+                t.catalog.eras[stage]?.name ?? era.name,
+                Message.MixChosen({ stage }),
+                h,
+                model.board.game.stage === stage,
+              ),
             ),
           ),
         ],

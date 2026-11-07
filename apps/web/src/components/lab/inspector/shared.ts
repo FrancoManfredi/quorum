@@ -88,8 +88,14 @@ export const segmented = (
   columns: string,
   children: ReadonlyArray<Html>,
   h: HtmlBuilder<Message>,
-) => h.div([h.Class(cn('grid gap-[3px] p-[3px]', WELL, 'rounded-[11px]', columns))], children)
+) =>
+  h.div(
+    [h.Class(cn('grid auto-rows-fr gap-[3px] p-[3px]', WELL, 'rounded-[11px]', columns))],
+    children,
+  )
 
+/** One option in a segmented control. It grows when its label wraps, so a translation keeps the
+ *  whole label instead of clipping it. */
 export const choice = (
   key: string,
   selected: boolean,
@@ -113,7 +119,7 @@ export const choice = (
         ? [h.OnMouseEnter(hover), h.OnMouseLeave(Message.OptionLeft())]
         : []),
       h.Class(
-        `flex h-8 min-w-0 items-center gap-2 rounded-lg px-2 text-left text-[calc(12px*var(--type-scale))] font-medium transition-colors ${
+        `flex min-h-8 min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-left text-[calc(12px*var(--type-scale))] font-medium leading-tight transition-colors ${
           selected
             ? 'bg-raised text-foreground shadow-raised'
             : ready
