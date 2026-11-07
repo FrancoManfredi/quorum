@@ -9,6 +9,7 @@ export const SECTIONS = [
   'tutorials',
   'guides',
   'explanation',
+  'patterns',
   'reference',
   'design',
   'about',
@@ -19,6 +20,8 @@ export const Frontmatter = Schema.Struct({
   title: Schema.String.check(Schema.isNonEmpty()),
   summary: Schema.String.check(Schema.isNonEmpty()),
   section: Schema.Literals(SECTIONS),
+  /** The heading its page sits under in the section's list, such as the Patterns section's "Stack ladder". */
+  group: Schema.optionalKey(Schema.String),
   /** Position in its section's list, lowest first. */
   order: Schema.optionalKey(Schema.String),
   /** The Era index (0 = Garage) where a reader first needs the page. */

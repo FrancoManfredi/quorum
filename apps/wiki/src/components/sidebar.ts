@@ -22,6 +22,7 @@ const navLink = (
   h: H,
   nested = false,
   room = false,
+  number: number | null = null,
 ): Html => {
   const active = page.path === current
   return h.a(
@@ -50,7 +51,81 @@ const navLink = (
             [],
           )
         : h.empty,
-      page.title,
+      number === null
+        ? h.span([], [page.title])
+        : h.span(
+            [h.Class('flex items-baseline gap-1.5')],
+            [
+              h.span(
+                [
+                  h.Class(
+                    cn(
+                      FIGURE,
+                      'w-4 shrink-0 text-right text-[11px]',
+                      active ? 'text-foreground' : 'text-muted-foreground/70',
+                    ),
+                  ),
+                ],
+                [String(number)],
+              ),
+              h.span([h.Class('min-w-0 flex-1')], [page.title]),
+            ],
+          ),
+    ],
+  )
+}
+
+/** A group of pages under one heading: a button with the page count and a chevron, and the pages beneath it when open. */
+const groupBlock = (
+  name: string,
+  pages: ReadonlyArray<Page>,
+  current: string,
+  isOpen: boolean,
+  color: string,
+  h: H,
+): Html => {
+  const numbered = name === 'Stack ladder'
+  return h.div(
+    [h.Key(`group-${name}`), h.Class('mt-2')],
+    [
+      h.button(
+        [
+          h.Type('button'),
+          h.AriaExpanded(isOpen),
+          h.AriaLabel(`${isOpen ? 'Collapse' : 'Expand'} ${name}`),
+          h.OnClick(Message.NavToggled({ path: `group:${name}` })),
+          h.Class(
+            cn(
+              'flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-muted/60',
+              isOpen ? 'text-foreground' : 'text-muted-foreground',
+            ),
+          ),
+        ],
+        [
+          h.span(
+            [
+              h.AriaHidden(true),
+              h.Class('size-1.5 shrink-0 rounded-full'),
+              h.Style({ background: color }),
+            ],
+            [],
+          ),
+          h.span([h.Class('min-w-0 flex-1 truncate text-[13px] font-semibold')], [name]),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
+            [String(pages.length)],
+          ),
+          icon(h, isOpen ? ChevronDown : ChevronRight, 'size-3.5'),
+        ],
+      ),
+      isOpen
+        ? h.div(
+            [h.Class('mt-0.5 mb-1 ml-1.5 flex flex-col gap-0.5 border-l border-border')],
+            pages.map((entry) =>
+              navLink(entry, current, color, h, false, false, numbered ? entry.order - 100 : null),
+            ),
+          )
+        : h.empty,
     ],
   )
 }
@@ -85,6 +160,17 @@ const hubLink = (hub: Page, current: string, isOpen: boolean, color: string, h: 
     ],
   )
 }
+
+/** Consecutive pages that share a group, in order; ungrouped pages are their own run. */
+const segmentsOf = (
+  pages: ReadonlyArray<Page>,
+): ReadonlyArray<Readonly<{ group: string | null; pages: ReadonlyArray<Page> }>> =>
+  pages.reduce<Array<{ group: string | null; pages: Array<Page> }>>((runs, entry) => {
+    const last = runs[runs.length - 1]
+    if (last && last.group === entry.group) last.pages.push(entry)
+    else runs.push({ group: entry.group, pages: [entry] })
+    return runs
+  }, [])
 
 export const sidebar = (model: Model, h: H): Html => {
   const page = pageAt(model.path)
@@ -123,24 +209,39 @@ export const sidebar = (model: Model, h: H): Html => {
           ),
           h.div(
             [h.Class('flex flex-col gap-0.5')],
-            navOf(section).flatMap((hub) => [
-              hubLink(hub, model.path, isOpen(hub.path), color, h),
-              ...(isOpen(hub.path) && childrenOf(hub.path).length > 0
+            segmentsOf(navOf(section)).flatMap((segment) =>
+              segment.group !== null
                 ? [
-                    h.div(
-                      [
-                        h.Key(`${hub.path}-children`),
-                        h.Class(
-                          'mt-0.5 mb-1.5 ml-3 flex flex-col gap-0.5 border-l border-border pl-1',
-                        ),
-                      ],
-                      childrenOf(hub.path).map((child) =>
-                        navLink(child, model.path, color, h, true),
-                      ),
+                    groupBlock(
+                      segment.group,
+                      segment.pages,
+                      model.path,
+                      (segment.pages.some((entry) => entry.path === model.path) ||
+                        (page?.group ?? null) === segment.group) !==
+                        model.navToggled.includes(`group:${segment.group}`),
+                      color,
+                      h,
                     ),
                   ]
-                : []),
-            ]),
+                : segment.pages.flatMap((hub) => [
+                    hubLink(hub, model.path, isOpen(hub.path), color, h),
+                    ...(isOpen(hub.path) && childrenOf(hub.path).length > 0
+                      ? [
+                          h.div(
+                            [
+                              h.Key(`${hub.path}-children`),
+                              h.Class(
+                                'mt-0.5 mb-1.5 ml-3 flex flex-col gap-0.5 border-l border-border pl-1',
+                              ),
+                            ],
+                            childrenOf(hub.path).map((child) =>
+                              navLink(child, model.path, color, h, true),
+                            ),
+                          ),
+                        ]
+                      : []),
+                  ]),
+            ),
           ),
         ],
       ),

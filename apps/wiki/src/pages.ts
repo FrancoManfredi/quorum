@@ -20,6 +20,7 @@ export const SECTION_ORDER: ReadonlyArray<Section> = [
   'tutorials',
   'guides',
   'explanation',
+  'patterns',
   'reference',
   'design',
   'about',

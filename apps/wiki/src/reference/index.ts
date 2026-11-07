@@ -3,6 +3,7 @@ import { componentPages } from './components.ts'
 import { eraPages } from './eras.ts'
 import { glossaryPages } from './glossary.ts'
 import { incidentPages } from './incidents.ts'
+import { patternsPages } from './patterns.ts'
 import { researchPages } from './research.ts'
 import { stackPages } from './stacks.ts'
 import { systemPages } from './systems.ts'
@@ -16,5 +17,6 @@ export const referencePages: ReadonlyArray<Page> = [
   ...stackPages,
   ...incidentPages,
   ...glossaryPages,
+  ...patternsPages,
   ...systemPages,
 ]

@@ -12,6 +12,7 @@ Each type has its own job and voice ([Diátaxis](https://diataxis.fr/start-here/
 | ------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Tutorial      | `tutorials/`          | A guide at the reader's side. Short steps, one result per step, and what the reader will see.                           |
 | How-to        | `guides/`             | Terse and direct. The reader is competent and in a hurry. Goal first, then steps.                                       |
+| Patterns      | `patterns/`           | Explanation in small pieces. One pattern per page, with an opinion on when to use it and what it costs.                 |
 | Reference     | `components/`, tables | Neutral and complete. What a thing does, nothing else. Components share one fixed layout (see below).                   |
 | Explanation   | `explanation/`        | The only type with a point of view. Say why, name the alternatives, and say which one the game chose and what it costs. |
 | Design record | `design/`             | Explanation for developers. Present tense, one decision per paragraph, tradeoffs named.                                 |
@@ -74,6 +75,76 @@ Rules for the layout:
 - Every incident a Component can suffer gets its own `###` block under "How it fails" with the three bullets. Take the incident list from the catalog (`INCIDENTS` in `packages/simulation/src/catalog/incidents.ts`) and the actions from the code, and link the incident page. Failures that are not catalog incidents stay as plain bullets above the blocks.
 - A `::Sandbox` directive goes at the end of the section it demonstrates.
 - Link to the glossary and design pages from "How it works", not from the lead.
+
+## Patterns page layouts
+
+The Patterns section teaches system design in small pieces. A page stays under about 350 words, and a pattern that needs more is two patterns. A page stands on its own, so it does not assume the reader has played. Keep the headings exactly as written, so readers learn where to look.
+
+Real-world numbers are fine as examples ("a 30-second timeout", "10% retry budget"). A game number never appears in prose. It appears only in the Design's settings table and caption, which the build reads from the Design itself.
+
+Pages sit in groups, set by `group` and `order` in the frontmatter. A group's orders are adjacent. Foundations take 10 to 19, the Stack ladder 101 to 134, patterns 201 to 999, and Outside the game 1001 and up.
+
+### Pattern page
+
+```md
+One sentence: the problem and the pattern that answers it.
+
+## Use it when
+
+- One condition and the signal that shows it.
+
+## How it works
+
+The mechanism in a short paragraph or a small diagram. One example with a number.
+
+## What it costs
+
+What the pattern gives up, and the mistake people make with it.
+
+## In Quorum
+
+Where the game teaches it. A `::Design{id="..."}` shows a Board that uses the pattern, then the Component, Research, incident and guide are each linked once.
+```
+
+A pattern the game cannot build has no Design and no "In Quorum" section. Its page is "Outside the game" (below).
+
+### Stack ladder page
+
+A rung is one Design a player builds, and each rung fixes what the last one broke. The ladder pages are the only Patterns pages whose Design is the point of the page.
+
+```md
+One sentence: the change, in the game's words.
+
+## Move up when
+
+- The symptom on the Board or in a gauge that tells the reader the last rung has run out.
+
+## The Design
+
+::Design{id="..."}
+
+One short paragraph: what each Node and Link does in this Design.
+
+## Why it works
+
+What the change fixes, and which gauge moves.
+
+## What it costs
+
+What the change adds: a hop, a Node, a failure mode, Burn.
+
+## In Quorum
+
+The Components and Research the rung needs, and a link to the next rung.
+```
+
+### Foundations page
+
+A foundation is an idea the other pages lean on, such as CAP or tail latency. It is Explanation: say what it is, show one worked example, and say what it changes about a decision. It has no fixed headings and no Design.
+
+### Outside the game page
+
+A pattern the game cannot show is still worth knowing. The page says in its first sentence what the pattern is, then in two short paragraphs when to reach for it and what it costs, then names the nearest thing the game does teach. It ends with a "References" list of at least three sources the author opened, with one line on what each is good for. It has no Design.
 
 ## Patterns to cut
 

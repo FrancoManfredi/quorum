@@ -6,6 +6,7 @@ import {
   GraduationCap,
   Info,
   Lightbulb,
+  NotebookPen,
   Wrench,
   type IconNode,
 } from 'lucide'
@@ -37,6 +38,12 @@ export const QUADRANTS: Readonly<Record<Section, Quadrant>> = {
   },
   guides: { label: 'How-to guides', purpose: 'Fix a problem', icon: Wrench, group: 'compute' },
   explanation: { label: 'Explanation', purpose: 'Understand why', icon: Lightbulb, group: 'data' },
+  patterns: {
+    label: 'Patterns',
+    purpose: 'Learn a design pattern',
+    icon: NotebookPen,
+    group: 'compute',
+  },
   reference: { label: 'Reference', purpose: 'Look up a fact', icon: BookOpen, group: 'ops' },
   design: { label: 'Design', purpose: 'Read the design document', icon: FileText, group: 'ops' },
   about: { label: 'About', purpose: 'The wiki itself', icon: Info, group: 'ops' },

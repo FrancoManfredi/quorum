@@ -13,6 +13,7 @@ import { mixBar } from './mix.ts'
 import * as Quiz from '../submodels/quiz.ts'
 import { practiceView } from './practice-card.ts'
 import { sandboxView } from './sandbox-card.ts'
+import { designView } from './design-card.ts'
 
 /* The live views behind each Markdown directive. src/islands.ts declares their attributes. */
 
@@ -46,6 +47,7 @@ export const islandViews = (model: Model, h: HtmlBuilder<Message>): Markdown.Isl
         viewInputs: { ...quiz, key: `${model.path}#${index}` },
       }),
     Sandbox: ({ id }, _content, index) => sandboxView(model, id, index, h),
+    Design: ({ id }) => designView(id, h),
     Component: ({ id }) => {
       const def = COMPONENTS[id]
       return h.a(

@@ -274,15 +274,15 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
       ),
       block(
         'Browse by kind',
-        'Five kinds of page, each for a different need.',
+        'Six kinds of page, each for a different need.',
         h.div(
           [],
           [
             grid(
-              'sm:grid-cols-2 xl:grid-cols-5',
-              (['play', 'tutorials', 'guides', 'explanation', 'reference'] as const).map(
-                (section) => kind(section, h),
-              ),
+              'sm:grid-cols-2 xl:grid-cols-3',
+              (
+                ['play', 'tutorials', 'guides', 'explanation', 'patterns', 'reference'] as const
+              ).map((section) => kind(section, h)),
               h,
             ),
             h.p(

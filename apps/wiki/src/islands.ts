@@ -1,6 +1,7 @@
 import { Schema } from 'effect'
 import { COMPONENT_IDS, ERAS, RESEARCH_TRACKS } from '@quorum/simulation/catalog'
 import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
+import { DESIGN_IDS } from './patterns/designs/index.ts'
 
 /* The live views a Markdown page may place with a directive, and the attributes each takes.
    vite.config.ts passes these to the Markdown plugin, so an unknown island or attribute fails
@@ -11,6 +12,8 @@ export const islandAttributes = {
   Note: Schema.Struct({ tone: Schema.optionalKey(Schema.Literals(['tip', 'warn', 'real'])) }),
   /** A card that links a guided Sandbox: `::Sandbox{id="out-of-credits"}`. */
   Sandbox: Schema.Struct({ id: Schema.Literals(SANDBOX_IDS) }),
+  /** A Pattern Design on the game's own board, with its settings: `::Design{id="split-storage"}`. */
+  Design: Schema.Struct({ id: Schema.Literals(DESIGN_IDS) }),
   /** A Component's card, as it stands on the board: `::Component{id="lb"}`. */
   Component: Schema.Struct({ id: Schema.Literals(COMPONENT_IDS) }),
   /** An Era's request mix as one bar: `::Mix{era="3"}`. */

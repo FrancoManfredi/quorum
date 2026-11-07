@@ -17,6 +17,8 @@ export type Page = Readonly<{
   section: Section
   /** The hub page it belongs under, such as `/components`; the sidebar opens it there. */
   parent: string | null
+  /** A heading the sidebar lists it under; pages of one group have adjacent orders. */
+  group: string | null
   /** Position in its section or group, lowest first. */
   order: number
   /** The Era index where a reader first needs it; null for any time. */

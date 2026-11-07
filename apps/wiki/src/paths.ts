@@ -24,6 +24,15 @@ export const PATHS: ReadonlyArray<Path> = [
     steps: navOf('play').map((page) => page.path),
   },
   {
+    id: 'stack-ladder',
+    title: 'Climb the stack ladder',
+    summary:
+      'Build a system one rung at a time, from a single box to several regions, with every setting explained.',
+    steps: navOf('patterns')
+      .filter((page) => page.group === 'Stack ladder')
+      .map((page) => page.path),
+  },
+  {
     id: 'first-steps',
     title: 'First steps',
     summary:

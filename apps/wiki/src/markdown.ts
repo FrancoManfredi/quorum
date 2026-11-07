@@ -348,6 +348,7 @@ const SECTION_LABELS: Record<Section, string> = {
   tutorials: 'Tutorials',
   guides: 'Guides',
   explanation: 'Explanation',
+  patterns: 'Patterns',
   reference: 'Reference',
   design: 'Design',
   about: 'About',

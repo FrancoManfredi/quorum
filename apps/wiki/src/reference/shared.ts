@@ -255,6 +255,7 @@ export const page = (
 ): Page => ({
   section: 'reference',
   parent: null,
+  group: null,
   order: 100,
   era: null,
   aliases: [],

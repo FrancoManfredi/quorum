@@ -123,6 +123,8 @@ export type BoardState = Readonly<{
   inset?: Readonly<{ top: number; bottom: number; left: number }>
   /** Space kept around the Nodes when the board fits them; the game's 80 unless the host says. */
   pad?: number
+  /** The smallest zoom the fit may use, for a host that shows a whole Design in a small frame. */
+  minScale?: number
 }>
 
 /** The phone: narrow in portrait, short in landscape (the `compact` variant in theme.css). */
@@ -2279,7 +2281,7 @@ class BoardController {
     const across = Math.max(1, w - left - (inset ? 0 : 24))
     // Below this zoom the card text is too small to read; pan to see the rest.
     const scale = Math.max(
-      phone ? MIN_FIT_SCALE_PHONE : MIN_FIT_SCALE,
+      phone ? MIN_FIT_SCALE_PHONE : (this.state?.minScale ?? MIN_FIT_SCALE),
       Math.min(1.1, Math.min(across / (maxX - minX), room / (maxY - minY))),
     )
     this.world.scale.set(scale)

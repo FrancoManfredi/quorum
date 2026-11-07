@@ -71,6 +71,7 @@ export const authoredPages: ReadonlyArray<Page> = entries.flatMap((entry) => {
       summary: meta.summary,
       section: meta.section,
       parent: null,
+      group: meta.group ?? null,
       order: Number(meta.order ?? 100),
       era: meta.era === undefined ? null : Number(meta.era),
       aliases: (meta.aliases ?? '')
