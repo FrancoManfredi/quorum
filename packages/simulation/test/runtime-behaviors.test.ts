@@ -30,12 +30,13 @@ const withStack = (framework: GameNode['framework'], runtime: GameNode['runtime'
 }
 
 describe('frameworks', () => {
-  test('structure lowers coordination and debt growth, and Express raises debt growth', () => {
+  test('structure lowers coordination and debt growth, Elysia lowers debt growth, and Express raises it', () => {
     expect(coordinationOf(withStack('symfony', 'php_fpm'))).toBe(0.7)
     expect(coordinationOf(withStack('nestjs', 'node'))).toBe(0.7)
     expect(coordinationOf(withStack('spring-boot', 'tomcat'))).toBe(0.7)
     expect(coordinationOf(withStack('none', 'node'))).toBe(1)
     expect(debtGrowthOf(withStack('express', 'node'))).toBe(1.1)
+    expect(debtGrowthOf(withStack('elysia', 'bun'))).toBe(0.85)
     expect(effectiveEngineers(20, 0.7)).toBeGreaterThan(effectiveEngineers(20, 1))
   })
 

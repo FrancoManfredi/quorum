@@ -493,6 +493,36 @@ export const catalog: Messages['catalog'] = {
       name: 'Quarkus',
       blurb: '为原生镜像而生：GraalVM 构建时间减半。CPU 1.1×，每个进程 100 MB。',
     },
+    hono: {
+      name: 'Hono',
+      blurb: '基于 Web 标准的小型路由：没有 CPU 开销。每个进程 2 MB。',
+    },
+    elysia: {
+      name: 'Elysia',
+      blurb:
+        '为 Bun 而生，类型从服务端检查到客户端：技术债增长慢 15%。没有 CPU 开销。每个进程 5 MB。',
+    },
+    koa: {
+      name: 'Koa',
+      blurb: 'Express 的继任者，基于 async 函数：CPU 1.05×。每个进程 5 MB。',
+    },
+    adonis: {
+      name: 'AdonisJS',
+      blurb:
+        'Laravel 的理念搬到 Node.js：功能交付快。CPU 1.4×，每个进程 25 MB，Lucid ORM 会产生 N+1 查询。',
+    },
+    codeigniter: {
+      name: 'CodeIgniter',
+      blurb: '不碍事的小型 PHP 框架：CPU 1.1×。每个进程 4 MB。',
+    },
+    sanic: {
+      name: 'Sanic',
+      blurb: '从底层起就是异步：CPU 1.05×。每个进程 10 MB。',
+    },
+    rocket: {
+      name: 'Rocket',
+      blurb: '类型安全的路由，样板代码少：Rust 中写起来最快。CPU 1.05×。每个进程 3 MB。',
+    },
   },
   glossary: {
     annotation: {
@@ -2853,6 +2883,36 @@ export const catalog: Messages['catalog'] = {
     'fw-quarkus': {
       blurb: '为原生镜像而生：GraalVM 构建时间减半。CPU 1.1×，每个进程 100 MB。',
       name: 'Quarkus',
+    },
+    'fw-hono': {
+      blurb: '基于 Web 标准的小型路由：没有 CPU 开销。每个进程 2 MB。',
+      name: 'Hono',
+    },
+    'fw-elysia': {
+      blurb:
+        '为 Bun 而生，类型从服务端检查到客户端：技术债增长慢 15%。没有 CPU 开销。每个进程 5 MB。',
+      name: 'Elysia',
+    },
+    'fw-koa': {
+      blurb: 'Express 的继任者，基于 async 函数：CPU 1.05×。每个进程 5 MB。',
+      name: 'Koa',
+    },
+    'fw-adonis': {
+      blurb:
+        'Laravel 的理念搬到 Node.js：功能交付快。CPU 1.4×，每个进程 25 MB，Lucid ORM 会产生 N+1 查询。',
+      name: 'AdonisJS',
+    },
+    'fw-codeigniter': {
+      blurb: '不碍事的小型 PHP 框架：CPU 1.1×。每个进程 4 MB。',
+      name: 'CodeIgniter',
+    },
+    'fw-sanic': {
+      blurb: '从底层起就是异步：CPU 1.05×。每个进程 10 MB。',
+      name: 'Sanic',
+    },
+    'fw-rocket': {
+      blurb: '类型安全的路由，样板代码少：Rust 中写起来最快。CPU 1.05×。每个进程 3 MB。',
+      name: 'Rocket',
     },
     cdc: { blurb: '解锁 CDC 连接器：副本跟随写入日志，无需第二次写入。', name: '变更数据捕获' },
     'service-boundaries': {

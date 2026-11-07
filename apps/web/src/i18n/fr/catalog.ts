@@ -674,6 +674,38 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Conçu pour les images natives : un build GraalVM prend moitié moins de temps. 1,1× le CPU et 100 Mo par processus.',
     },
+    hono: {
+      name: 'Hono',
+      blurb: 'Un petit routeur sur les standards du Web : aucun surcoût CPU. 2 Mo par processus.',
+    },
+    elysia: {
+      name: 'Elysia',
+      blurb:
+        'Conçu pour Bun, avec des types vérifiés du serveur au client : la dette technique croît 15 % moins vite. Aucun surcoût CPU. 5 Mo par processus.',
+    },
+    koa: {
+      name: 'Koa',
+      blurb:
+        'Le successeur d’Express, bâti sur les fonctions async : 1,05× le CPU. 5 Mo par processus.',
+    },
+    adonis: {
+      name: 'AdonisJS',
+      blurb:
+        'Les idées de Laravel sur Node.js : livre vite des fonctionnalités. 1,4× le CPU, 25 Mo par processus, et l’ORM Lucid fait des requêtes N+1.',
+    },
+    codeigniter: {
+      name: 'CodeIgniter',
+      blurb: 'Un petit framework PHP qui ne gêne pas : 1,1× le CPU. 4 Mo par processus.',
+    },
+    sanic: {
+      name: 'Sanic',
+      blurb: 'Asynchrone de bout en bout : 1,05× le CPU. 10 Mo par processus.',
+    },
+    rocket: {
+      name: 'Rocket',
+      blurb:
+        'Un routage typé avec peu de code répétitif : le plus rapide à écrire en Rust. 1,05× le CPU. 3 Mo par processus.',
+    },
   },
   glossary: {
     annotation: {
@@ -3507,6 +3539,38 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Conçu pour les images natives : un build GraalVM prend moitié moins de temps. 1,1× le CPU et 100 Mo par processus.',
       name: 'Quarkus',
+    },
+    'fw-hono': {
+      blurb: 'Un petit routeur sur les standards du Web : aucun surcoût CPU. 2 Mo par processus.',
+      name: 'Hono',
+    },
+    'fw-elysia': {
+      blurb:
+        'Conçu pour Bun, avec des types vérifiés du serveur au client : la dette technique croît 15 % moins vite. Aucun surcoût CPU. 5 Mo par processus.',
+      name: 'Elysia',
+    },
+    'fw-koa': {
+      blurb:
+        'Le successeur d’Express, bâti sur les fonctions async : 1,05× le CPU. 5 Mo par processus.',
+      name: 'Koa',
+    },
+    'fw-adonis': {
+      blurb:
+        'Les idées de Laravel sur Node.js : livre vite des fonctionnalités. 1,4× le CPU, 25 Mo par processus, et l’ORM Lucid fait des requêtes N+1.',
+      name: 'AdonisJS',
+    },
+    'fw-codeigniter': {
+      blurb: 'Un petit framework PHP qui ne gêne pas : 1,1× le CPU. 4 Mo par processus.',
+      name: 'CodeIgniter',
+    },
+    'fw-sanic': {
+      blurb: 'Asynchrone de bout en bout : 1,05× le CPU. 10 Mo par processus.',
+      name: 'Sanic',
+    },
+    'fw-rocket': {
+      blurb:
+        'Un routage typé avec peu de code répétitif : le plus rapide à écrire en Rust. 1,05× le CPU. 3 Mo par processus.',
+      name: 'Rocket',
     },
     cdc: {
       blurb:

@@ -169,7 +169,7 @@ item belongs to a track, needs an Era, and may need other items. The research sc
 track, with the locked items of the next Era visible so that the player can plan
 ([Interface](/design/15-ui-ux#research-screen)).
 
-The track tables below list every item the game offers: 188 items across 10 tracks.
+The track tables below list every item the game offers: 195 items across 10 tracks.
 
 ### Recipes
 
@@ -533,19 +533,26 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 | Express      | Garage   | 30     | `lang-node`   |
 | Symfony      | Pre-seed | 80     | None          |
 | Sinatra      | Pre-seed | 60     | `lang-ruby`   |
+| CodeIgniter  | Pre-seed | 60     | None          |
 | Django       | Pre-seed | 150    | `lang-python` |
 | Flask        | Pre-seed | 100    | `lang-python` |
+| Sanic        | Seed     | 500    | `lang-python` |
 | FastAPI      | Seed     | 500    | `asgi`        |
 | Fastify      | Seed     | 400    | `lang-node`   |
+| Koa          | Seed     | 300    | `lang-node`   |
+| Hono         | Seed     | 400    | `lang-node`   |
 | Next.js      | Seed     | 600    | `lang-node`   |
 | Spring Boot  | Seed     | 900    | `lang-java`   |
 | ASP.NET Core | Seed     | 900    | `lang-csharp` |
 | Gin          | Seed     | 700    | `lang-go`     |
 | NestJS       | Series A | 2,000  | `lang-node`   |
+| AdonisJS     | Series A | 1,500  | `lang-node`   |
 | Fiber        | Series A | 2,000  | `fasthttp`    |
+| Elysia       | Series A | 2,000  | `bun`         |
 | Phoenix      | Series A | 2,500  | `lang-elixir` |
 | Axum         | Series A | 3,000  | `lang-rust`   |
 | Actix Web    | Series A | 3,000  | `lang-rust`   |
+| Rocket       | Series A | 3,000  | `lang-rust`   |
 | Quarkus      | Series B | 10,000 | `lang-java`   |
 
 ### Track: Security

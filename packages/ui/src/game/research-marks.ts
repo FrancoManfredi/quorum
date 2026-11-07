@@ -245,6 +245,13 @@ export const LOOKS: Record<ResearchId, Look> = {
   'fw-nestjs': { group: 'compute', logo: 'nestjs' },
   'fw-fiber': { group: 'compute', logo: 'fiber' },
   'fw-quarkus': { group: 'compute', logo: 'quarkus' },
+  'fw-hono': { group: 'compute', logo: 'hono' },
+  'fw-elysia': { group: 'compute', logo: 'elysia' },
+  'fw-koa': { group: 'compute', logo: 'koa' },
+  'fw-adonis': { group: 'compute', logo: 'adonis' },
+  'fw-codeigniter': { group: 'compute', logo: 'codeigniter' },
+  'fw-sanic': { group: 'compute', logo: 'sanic' },
+  'fw-rocket': { group: 'compute', logo: 'rocket' },
   // The last four Components: each wears its own badge, but secrets management is no Component.
   cdc: { component: 'cdc' },
   'service-mesh': { component: 'mesh' },

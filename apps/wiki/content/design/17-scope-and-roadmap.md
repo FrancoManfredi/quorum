@@ -139,9 +139,9 @@ Code: `simulation/catalog/*.ts` (`catalog.ts` re-exports them)
 
 - All 38 Components in [05's overview](/design/05-components#catalog-overview)
 - 17 user kinds and 14 backend kinds
-- 11 languages, 28 runtime variants, and 20 frameworks
+- 11 languages, 28 runtime variants, and 27 frameworks
 - 9 instance sizes in 5 families
-- 188 research items in 10 tracks
+- 195 research items in 10 tracks
 - 8 Eras, 56 incidents, and 4 regions
 - Six axes and glossary terms for every runtime and framework
 

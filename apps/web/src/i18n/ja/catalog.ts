@@ -1170,6 +1170,37 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'ネイティブイメージ向けで、GraalVMビルドの所要時間が半分になります。CPU1.1×、プロセスあたり100 MB。',
     },
+    hono: {
+      name: 'Hono',
+      blurb: 'Web標準の上の小さなルーター。CPUの追加負荷はありません。プロセスあたり2 MB。',
+    },
+    elysia: {
+      name: 'Elysia',
+      blurb:
+        'Bun向けで、型がサーバーからクライアントまで検査されます。技術的負債の増加が15%遅くなります。CPUの追加負荷はありません。プロセスあたり5 MB。',
+    },
+    koa: {
+      name: 'Koa',
+      blurb: 'Expressの後継で、async関数の上に作られています。CPU1.05×、プロセスあたり5 MB。',
+    },
+    adonis: {
+      name: 'AdonisJS',
+      blurb:
+        'Laravelの考え方をNode.jsに。機能を素早く出荷できます。CPU1.4×、プロセスあたり25 MB、Lucid ORMはN+1クエリを発生させます。',
+    },
+    codeigniter: {
+      name: 'CodeIgniter',
+      blurb: '邪魔をしない小さなPHPフレームワーク。CPU1.1×、プロセスあたり4 MB。',
+    },
+    sanic: {
+      name: 'Sanic',
+      blurb: '根本から非同期。CPU1.05×、プロセスあたり10 MB。',
+    },
+    rocket: {
+      name: 'Rocket',
+      blurb:
+        '型安全なルーティングで定型コードが少なく、Rustで最も速く書けます。CPU1.05×、プロセスあたり3 MB。',
+    },
   },
   incidents: {
     spike: {
@@ -4060,6 +4091,37 @@ export const catalog: Messages['catalog'] = {
       name: 'Quarkus',
       blurb:
         'ネイティブイメージ向けに作られている。GraalVMのビルドが半分の時間で済む。CPU 1.1×、プロセスあたり100 MB。',
+    },
+    'fw-hono': {
+      name: 'Hono',
+      blurb: 'Web標準の上の小さなルーター。CPUの追加負荷はありません。プロセスあたり2 MB。',
+    },
+    'fw-elysia': {
+      name: 'Elysia',
+      blurb:
+        'Bun向けで、型がサーバーからクライアントまで検査されます。技術的負債の増加が15%遅くなります。CPUの追加負荷はありません。プロセスあたり5 MB。',
+    },
+    'fw-koa': {
+      name: 'Koa',
+      blurb: 'Expressの後継で、async関数の上に作られています。CPU1.05×、プロセスあたり5 MB。',
+    },
+    'fw-adonis': {
+      name: 'AdonisJS',
+      blurb:
+        'Laravelの考え方をNode.jsに。機能を素早く出荷できます。CPU1.4×、プロセスあたり25 MB、Lucid ORMはN+1クエリを発生させます。',
+    },
+    'fw-codeigniter': {
+      name: 'CodeIgniter',
+      blurb: '邪魔をしない小さなPHPフレームワーク。CPU1.1×、プロセスあたり4 MB。',
+    },
+    'fw-sanic': {
+      name: 'Sanic',
+      blurb: '根本から非同期。CPU1.05×、プロセスあたり10 MB。',
+    },
+    'fw-rocket': {
+      name: 'Rocket',
+      blurb:
+        '型安全なルーティングで定型コードが少なく、Rustで最も速く書けます。CPU1.05×、プロセスあたり3 MB。',
     },
     cdc: {
       name: '変更データキャプチャ',
