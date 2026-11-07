@@ -1,0 +1,31 @@
+import type { Messages } from '../messages.ts'
+
+export const tradeoff: Messages['tradeoff'] = {
+  sixAxesNowAndWithThis: '6つの軸: 現在とこの選択肢',
+  cancelEscape: 'キャンセル (Esc)',
+  migrationDHAcrossAllAppServers: (value) =>
+    `マイグレーション: 全アプリサーバーで${value} DH。機能開発は遅くなり、ロールアウトで不具合が出る可能性があります。開始後はチームで作業を管理し、トラフィックを移してください。`,
+  confirmEnter: '確定 (Enter)',
+  startMigration: 'マイグレーションを開始',
+  confirm: '確定',
+  cancel: 'キャンセル',
+  runtime: 'ランタイム',
+  framework: 'フレームワーク',
+  instance: 'インスタンス',
+  throughput: 'スループット',
+  tail: 'テール',
+  memory: 'メモリ',
+  velocity: '開発速度',
+  resilience: '回復力',
+  operability: '運用性',
+  processPerRequest: 'リクエストごとのプロセス',
+  sharedNothing: 'シェアードナッシング',
+  coldStart: 'コールドスタート',
+  eventLoop: 'イベントループ',
+  blastRadius: 'ブラストラディウス',
+  horizontalScaling: '水平スケーリング',
+  techDebt: '技術的負債',
+  n1Query: 'N+1クエリ',
+  burnChange: (change) => `支出 ${change}`,
+  restartsCold: (time) => `${time}のあいだコールドで再起動`,
+}

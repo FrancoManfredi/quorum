@@ -1,4 +1,5 @@
 import { copy } from '@/i18n/messages.ts'
+import { nameIn } from '@/i18n/refusal.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BookCopy,
@@ -370,7 +371,7 @@ export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             [
               t.legacy.peakLoadAt00(
                 Math.round(away.peak * 100),
-                away.peakNode ? t.legacy.on(away.peakNode) : '',
+                away.peakNode ? t.legacy.on(nameIn(t, away.peakNode)) : '',
                 String(away.peakHour).padStart(2, '0'),
                 capped ? t.legacy.cappedAtH(Math.round(away.seconds / 3_600)) : '',
               ),

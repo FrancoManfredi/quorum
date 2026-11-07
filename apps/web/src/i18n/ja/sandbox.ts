@@ -1,0 +1,27 @@
+import type { Messages } from '../messages.ts'
+
+export const sandbox: Messages['sandbox'] = {
+  demand: '需要',
+  s: (value) => `${value}/s`,
+  burn: '支出',
+  errors: 'エラー',
+  latency: 'レイテンシ',
+  sandboxMenu: 'サンドボックスメニュー',
+  objectiveOf: (current, total) => `目標 ${current}/${total}`,
+  controls: '操作',
+  users: 'ユーザー',
+  lessDemand: '需要を減らす',
+  moreDemand: '需要を増やす',
+  mix: '構成',
+  incident: 'インシデント',
+  none: 'なし',
+  loadACrowdedDesignToTest: '混み合った設計を読み込み、カードの配置とリンクの経路を試す',
+  stressBoard: '負荷ボード',
+  loadA61NodeDesignTo: '61ノードの設計を読み込み、パフォーマンスを試す',
+  bigBoard: '大型ボード',
+  reset: 'リセット',
+  copyTheCompanyDesignOntoThis: '会社の設計をこのボードにコピーする',
+  copyCompany: '会社をコピー',
+  freeSandbox: 'フリーサンドボックス',
+  passed: '合格',
+}

@@ -1,5 +1,6 @@
 import { en } from './en/index.ts'
 import { fr } from './fr/index.ts'
+import { ja } from './ja/index.ts'
 import { zhCN } from './zh-CN/index.ts'
 import { nodeLabelOf } from '@quorum/simulation/labels'
 import type { Game, GameNode } from '@quorum/simulation/state'
@@ -17,7 +18,7 @@ type Widen<T> = T extends string
 /** The shape every language must have: English is the source, so a missing or extra key fails typecheck. */
 export type Messages = Widen<typeof en>
 
-const messages: Readonly<Record<Locale, Messages>> = { en, fr, 'zh-CN': zhCN }
+const messages: Readonly<Record<Locale, Messages>> = { en, fr, 'zh-CN': zhCN, ja }
 
 const languageOf = new WeakMap<object, Locale>()
 

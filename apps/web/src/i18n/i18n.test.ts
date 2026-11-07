@@ -10,6 +10,10 @@ import { initialModel, update } from '../game/update.ts'
 import { AppRoute } from '../game/route.ts'
 import { localizeBuilder } from './builder.ts'
 import { copyIn } from './messages.ts'
+import { supportedLocales } from './index.ts'
+
+/** Every language but English: the ones a switch can move to. */
+const others = supportedLocales.map(({ value }) => value).filter((value) => value !== 'en')
 
 describe('interface languages', () => {
   test('old preferences still decode without losing sound or motion', () => {
@@ -17,7 +21,7 @@ describe('interface languages', () => {
     expect(prefs).toMatchObject({ locale: 'en', muted: true, motion: 'reduce' })
   })
 
-  test.each(['fr', 'zh-CN'] as const)(
+  test.each(others)(
     'switching to %s persists and synchronizes a paused board without changing the game',
     (locale) => {
       const model = {
@@ -67,7 +71,7 @@ describe('interface languages', () => {
     },
   )
 
-  test.each(['fr', 'zh-CN'] as const)(
+  test.each(others)(
     '%s and existing preferences survive company, sandbox and challenge entry',
     (locale) => {
       const model = {
@@ -89,7 +93,7 @@ describe('interface languages', () => {
     },
   )
 
-  test.each(['fr', 'zh-CN'] as const)(
+  test.each(others)(
     'selecting %s closes the listbox, restores focus and persists the locale',
     (locale) => {
       const model = {
