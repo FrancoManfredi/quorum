@@ -27,7 +27,7 @@ import { boardChallenge, boardSandbox, hasCompany, type Mail, type Model } from 
 import { TICK_MS, init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
-import { boxOf, crowds } from '@quorum/ui/board/geometry'
+import { boxOf, crowds, inPort, outPort } from '@quorum/ui/board/geometry'
 
 /* The clock: 100 ms Steps under a 250 ms UI tick, and the Bottleneck search once per sim second. */
 
@@ -1134,19 +1134,26 @@ test('tidying the board groups nodes into a band per zone, in flow order', () =>
       ...inLab().board,
       game: {
         ...game,
-        links: [{ ...game.links[0]!, from: 'p', to: 'q' }],
+        links: [
+          { ...game.links[0]!, from: 'p', to: 'q' },
+          { ...game.links[0]!, from: 'u', to: 'r' },
+        ],
         nodes: [
           { ...first!, id: 'q', type: 'server', zone: 'a', x: 40, y: 500 },
           { ...second!, id: 'p', type: 'server', zone: 'a', x: 400, y: 300 },
           { ...third!, id: 'r', type: 'server', zone: 'b', x: 10, y: 50 },
+          { ...first!, id: 'u', type: 'lb', x: 600, y: 0 },
         ],
       },
     },
   }
-  const [q, p, r] = update(model, Message.BoardTidied()).model.board.game.nodes
+  const [q, p, r, u] = update(model, Message.BoardTidied()).model.board.game.nodes
   expect(p!.x).toBeLessThan(q!.x)
-  expect(p!.y).toBe(q!.y)
+  // The link from p to q runs straight: its two ports share a row.
+  expect(outPort(p!).y).toBe(inPort(q!).y)
   expect(r!.y).toBeGreaterThan(q!.y)
+  // The zone-b card sits right of the Load Balancer that feeds it from another band.
+  expect(r!.x).toBeGreaterThan(u!.x)
 })
 
 test('Enter places the part in hand in the next free spot', () => {
