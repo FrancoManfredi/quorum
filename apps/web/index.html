@@ -58,8 +58,18 @@
       content="The Quorum wordmark wired into an isometric workbench of users, a load balancer, two app servers, a cache, and a database."
     />
 
-    <!-- Amp feedback widget: open any page with ?amp to show it. -->
-    <script src="https://ampcode.com/w/client_01M6S4QDB4JJ19J6NV7FCJ66C2.js" async></script>
+    <!--
+      Amp's feedback widget remembers that it was shown and then appears on every visit.
+      Load it only for a page opened with ?amp, so it never follows a reader around.
+    -->
+    <script>
+      if (new URLSearchParams(window.location.search).has('amp')) {
+        const widget = document.createElement('script')
+        widget.src = 'https://ampcode.com/w/client_01M6S4QDB4JJ19J6NV7FCJ66C2.js'
+        widget.async = true
+        document.head.append(widget)
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
