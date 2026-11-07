@@ -319,6 +319,15 @@ export const Clock = Schema.Struct({
 })
 export type Clock = typeof Clock.Type
 
+/** One what-if row (12 "Load diagnosis"): a Node's utilization before and after one change. */
+export const WhatIfRow = Schema.Struct({
+  change: Schema.Literals(['larger', 'retries-off']),
+  target: Schema.String,
+  before: Schema.Finite,
+  after: Schema.Finite,
+})
+export type WhatIfRow = typeof WhatIfRow.Type
+
 /**
  * One board: the Company, a Sandbox or a Challenge being played, and
  * everything the player does on it. Entering another board starts a fresh
@@ -358,6 +367,14 @@ export const Board = Schema.Struct({
   bottleneck: Schema.NullOr(Schema.String),
   /** The sim second of the last search; minus one searches again on the next tick. */
   bottleneckAt: Schema.Finite,
+  /** The Inspector's what-if rows for the Node `nodeId`, from the sim second `at`. */
+  whatIfs: Schema.NullOr(
+    Schema.Struct({
+      nodeId: Schema.String,
+      at: Schema.Finite,
+      rows: Schema.Array(WhatIfRow),
+    }),
+  ),
   /** Recorded traffic and load per Node, at most one calendar day in this session. */
   nodeHistory: Schema.Record(Schema.String, Schema.Array(NodeSample)),
   nodeSample: Schema.NullOr(Schema.Struct({ nodeId: Schema.String, time: Schema.Finite })),

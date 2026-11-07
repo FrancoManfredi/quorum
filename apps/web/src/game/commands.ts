@@ -154,6 +154,22 @@ export const ComputeBottleneck = Command.define('ComputeBottleneck', {
     ),
 })
 
+/** Runs a Node's what-if rows on the compute worker. A superseded run sends nothing back. */
+export const ComputeWhatIfs = Command.define('ComputeWhatIfs', {
+  args: { game: Game, nodeId: Schema.String, at: Schema.Finite },
+  messages: [Message.WhatIfsFound, Message.Synced],
+  execute: ({ game, nodeId, at }) =>
+    Effect.promise(() =>
+      traced('compute.whatIf', {}, () => compute('whatIf', { game, nodeId })),
+    ).pipe(
+      Effect.map((rows) =>
+        rows === undefined
+          ? Message.Synced()
+          : Message.WhatIfsFound({ nodeId, at, rows: rows.map((row) => ({ ...row })) }),
+      ),
+    ),
+})
+
 /** Adds a history entry for the route a Message opened. */
 export const PushUrl = Command.define('PushUrl', {
   args: { url: Schema.String },

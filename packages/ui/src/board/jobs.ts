@@ -1,6 +1,6 @@
 import { Result } from 'effect'
 import * as Actions from '@quorum/simulation/actions'
-import { previewOf, type Preview } from '@quorum/simulation/preview'
+import { previewOf, whatIfsOf, type Preview, type WhatIf } from '@quorum/simulation/preview'
 import { bottleneckOf, solveFlow } from '@quorum/simulation/solve'
 import type { Game } from '@quorum/simulation/state'
 import type { TradeoffOption } from '../game/tradeoff.ts'
@@ -41,6 +41,11 @@ export type Jobs = {
   }
   /** The Bottleneck search. */
   bottleneck: { input: Readonly<{ game: Game }>; output: string | null }
+  /** The Inspector's what-if rows for a busy Node (12 "Load diagnosis"). */
+  whatIf: {
+    input: Readonly<{ game: Game; nodeId: string }>
+    output: ReadonlyArray<WhatIf>
+  }
 }
 
 export type Channel = keyof Jobs
@@ -55,7 +60,8 @@ export const JOBS: { [C in Channel]: (input: Jobs[C]['input']) => Jobs[C]['outpu
     ),
   route: ({ nodes, links }) => routeLinks(nodes, links),
   bottleneck: ({ game }) => bottleneckOf(game, solveFlow(game)),
+  whatIf: ({ game, nodeId }) => whatIfsOf(game, nodeId),
 }
 
 /** The order the worker serves waiting jobs in: what the player is touching first. */
-export const PRIORITY: ReadonlyArray<Channel> = ['route', 'preview', 'bottleneck']
+export const PRIORITY: ReadonlyArray<Channel> = ['route', 'preview', 'bottleneck', 'whatIf']

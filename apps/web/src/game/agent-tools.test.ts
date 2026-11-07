@@ -43,6 +43,30 @@ describe('what an agent may read', () => {
   })
 })
 
+describe('explain_node', () => {
+  const at = (researched: Model['board']['game']['researched']): Model => ({
+    ...company,
+    board: { ...company.board, game: { ...preseedGame(), users: 4_000, researched } },
+  })
+
+  test('shows only what the research shows, and get_design keeps the diagnosis out', () => {
+    publish(at(preseedGame().researched.filter((id) => id !== 'profiling')))
+    const blind = JSON.parse(readTool('explain_node', { nodeId: 'database' }))
+    expect(blind).toMatchObject({ limit: null, workShare: null, costReceipts: null })
+    expect(blind.hidden).toContain('profiling')
+    const design = JSON.parse(readTool('get_design'))
+    const database = design.nodes.find((node: { id: string }) => node.id === 'database')
+    expect(database.ledger).not.toHaveProperty('receipts')
+    expect(database.ledger).not.toHaveProperty('workShare')
+
+    publish(at([...preseedGame().researched, 'tracing', 'profiling']))
+    const seen = JSON.parse(readTool('explain_node', { nodeId: 'database' }))
+    expect(seen.costReceipts['q-read'].base).toBeGreaterThan(0)
+    expect(seen.amplification.byUsersKind.length).toBeGreaterThan(0)
+    expect(seen.hidden).not.toContain('profiling')
+  })
+})
+
 describe('Agent access', () => {
   test('is off until the player turns it on, and is saved and applied when they do', () => {
     expect(company.prefs.agentAccess).toBe(false)

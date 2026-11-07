@@ -87,6 +87,7 @@ type TradeoffTag =
   | 'OptionPreviewed'
   | 'PreviewComputed'
   | 'BottleneckFound'
+  | 'WhatIfsFound'
   | 'OptionLeft'
   | 'OptionChosen'
   | 'OptionConfirmed'
@@ -123,6 +124,10 @@ export const tradeoffHandlers = (
     const next: Model = { ...model, board: { ...model.board, bottleneck } }
     return { model: next }
   },
+
+  WhatIfsFound: ({ nodeId, at, rows }) => ({
+    model: { ...model, board: { ...model.board, whatIfs: { nodeId, at, rows } } },
+  }),
 
   OptionLeft: () => {
     const next = tradeoffStep(model.board.tradeoff, { _tag: 'Left' })

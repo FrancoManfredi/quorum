@@ -56,7 +56,15 @@ import type { Game, GameLink, GameNode } from '@quorum/simulation/state'
 import { compact, money, priceLabel, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
-import { hasTraffic, hintOf, oversized, sampleNode, TRAFFIC_KINDS } from '@/game/node-metrics.ts'
+import {
+  costShifts,
+  hasTraffic,
+  hintOf,
+  oversized,
+  sampleNode,
+  TRAFFIC_KINDS,
+  type NodeSample,
+} from '@/game/node-metrics.ts'
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
 import { icon } from '@quorum/ui/primitives/icon'
 import { badge } from '@quorum/ui/primitives/badge'
@@ -88,6 +96,7 @@ import {
   smallButton,
 } from './inspector/shared.ts'
 import { PANELS } from './inspector/index.ts'
+import { amplification, costReceipts, loadChange, whatIfs } from './inspector/diagnosis.ts'
 
 const gauge = (
   name: string,
@@ -649,6 +658,8 @@ const sparkline = (
     selected?: number
     onPick?: (index: number) => Message
     label?: string
+    /** Points to mark with a tick at the top, such as a change in cost per request. */
+    marks?: ReadonlyArray<number>
   }> = {},
 ): Html => {
   const width = 300
@@ -686,6 +697,17 @@ const sparkline = (
         h.Attribute('stroke', 'var(--primary-strong)'),
         h.Attribute('stroke-width', '1.5'),
       ]),
+      ...(options.marks ?? []).map((index) =>
+        h.line([
+          h.Attribute('x1', String(x(index))),
+          h.Attribute('x2', String(x(index))),
+          h.Attribute('y1', '0'),
+          h.Attribute('y2', String(height)),
+          h.Attribute('stroke', 'var(--warn)'),
+          h.Attribute('stroke-dasharray', '2 2'),
+          h.Attribute('stroke-width', '1'),
+        ]),
+      ),
       ...(selected !== null
         ? [
             h.line([
@@ -1256,8 +1278,10 @@ const breakdown = (
   total: number,
   previous: number | null,
   h: HtmlBuilder<Message>,
+  work: number | null = null,
 ): Html => {
   const t = copy(h)
+  const share = total > 0 ? percent(value / total) : '0%'
   return h.div(
     [
       h.Key(typeof label === 'string' ? label : label.join('')),
@@ -1282,7 +1306,9 @@ const breakdown = (
           ),
         ],
         [
-          t.inspector.rateAndShare(rate(value), total > 0 ? percent(value / total) : '0%'),
+          work === null
+            ? t.inspector.rateAndShare(rate(value), share)
+            : t.inspector.workShareOf(rate(value), share, percent(work)),
           ...(previous === null
             ? []
             : [
@@ -1296,6 +1322,10 @@ const breakdown = (
     ],
   )
 }
+
+/** The resource Work share counts, or null on a Node where every request costs the same. */
+const workResourceOf = (t: Messages, unit: NodeSample['workUnit']): string | null =>
+  unit === null ? null : t.inspector.workResources[unit]
 
 /** The live sample or a recorded one, broken down by operation and source. */
 const trafficBreakdown = (
@@ -1326,6 +1356,12 @@ const trafficBreakdown = (
   )
   const load = sample.utilization >= 0.9 ? 'danger' : sample.utilization >= 0.7 ? 'warn' : 'plain'
   const earlier = index === -1 ? history.at(-1) : history[index - 1]
+  // Work share (12 "Load diagnosis") shows on Nodes whose requests cost different amounts.
+  const workResource = has(game, 'profiling') ? workResourceOf(t, sample.workUnit) : null
+  const change = loadChange(model, history, sample, index, h)
+  const amplified = amplification(model, node, sample, h)
+  const receipts = index === -1 ? costReceipts(model, node, ledger, h) : null
+  const whatIf = index === -1 ? whatIfs(model, node, h) : null
   return section(
     t.inspector.trafficLoad,
     [
@@ -1358,6 +1394,7 @@ const trafficBreakdown = (
                 onPick: (at) =>
                   Message.NodeSampleChosen({ nodeId: node.id, time: history[at]?.time ?? null }),
                 label: t.inspector.loadHistorySelectAPointOr,
+                marks: costShifts(history),
               },
             ),
             h.div(
@@ -1448,6 +1485,7 @@ const trafficBreakdown = (
             : []),
         ],
       ),
+      ...(change ? [change] : []),
       h.div(
         [h.Class('flex flex-col gap-1')],
         [
@@ -1463,6 +1501,7 @@ const trafficBreakdown = (
                       sample.inbound,
                       previous ? (previous.traffic[kind] ?? 0) : null,
                       h,
+                      workResource ? (sample.workShare[kind] ?? 0) : null,
                     ),
                   ),
                 ),
@@ -1479,10 +1518,15 @@ const trafficBreakdown = (
                 'px-3 text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground',
               ),
             ],
-            [t.inspector.sharesDescribeIncomingTrafficNotCPU],
+            [
+              workResource
+                ? t.inspector.workIs(workResource)
+                : t.inspector.sharesDescribeIncomingTrafficNotCPU,
+            ],
           ),
         ],
       ),
+      ...(receipts ? [receipts] : []),
       ...(sources.length
         ? [
             h.div(
@@ -1510,6 +1554,8 @@ const trafficBreakdown = (
             ),
           ]
         : []),
+      ...(amplified ? [amplified] : []),
+      ...(whatIf ? [whatIf] : []),
       ...(hint
         ? [
             callout(

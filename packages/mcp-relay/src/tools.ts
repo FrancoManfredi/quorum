@@ -52,6 +52,17 @@ export const TOOLS = [
     }),
   },
   {
+    name: 'explain_node',
+    description:
+      "Why one Node is busy, as far as the player's research shows: its Load change since an hour earlier, the Users' Request kinds and retries behind its traffic, each kind's Work share and Cost receipt, and what-if rows. Names causes, not fixes. Defaults to the selected Node, then the Bottleneck.",
+    inputSchema: object({
+      nodeId: {
+        type: 'string',
+        description: 'The Node to explain. Default: selected, then Bottleneck.',
+      },
+    }),
+  },
+  {
     name: 'get_game',
     description:
       'The whole saved Game as JSON, for anything the other tools leave out. Large: prefer the others.',

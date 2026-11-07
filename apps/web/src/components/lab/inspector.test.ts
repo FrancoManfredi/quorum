@@ -9,7 +9,7 @@ import { solveFlow } from '@quorum/simulation/solve'
 import { initialModel, update } from '@/game/update.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
-import { sampleNode, type NodeSample } from '@/game/node-metrics.ts'
+import { loadChangeOf, sampleNode, type NodeSample } from '@/game/node-metrics.ts'
 import { inspector } from './inspector.ts'
 import { AppendLog, ClearToast, PlaySound, SyncBoard } from '@/game/commands.ts'
 
@@ -630,5 +630,51 @@ test('an Autoscaler card offers Scheduled scaling once researched', () => {
     { update, view },
     Scene.given(cardOfType('autoscaler', ['autoscaling', 'scheduled-scaling'])),
     Scene.expect(Scene.text('Ahead of the peak')).toExist(),
+  )
+})
+
+test('Load change splits a rise in load into demand, cost per request, and capacity', () => {
+  const base = fixture().board.nodeHistory.database![0]!
+  const earlier: NodeSample = { ...base, inbound: 10, utilization: 0.3, cost: 4, limit: 'cpu' }
+  // Twice the requests, each 1.5 times as heavy, on the same box: 0.3 × 2 × 1.5 = 0.9.
+  const now: NodeSample = { ...earlier, inbound: 20, utilization: 0.9, cost: 6 }
+  const change = loadChangeOf(now, earlier)!
+  const total = Math.log(3)
+  expect(change.demand).toBeCloseTo((0.6 * Math.log(2)) / total, 9)
+  expect(change.cost).toBeCloseTo((0.6 * Math.log(1.5)) / total, 9)
+  expect(change.capacity).toBeCloseTo(0, 9)
+  // The same load from a box half the size: capacity explains what demand does not.
+  const smaller = loadChangeOf({ ...earlier, inbound: 15, utilization: 0.9 }, earlier)!
+  expect(smaller.cost).toBeCloseTo(0, 9)
+  expect(smaller.capacity).toBeCloseTo((0.6 * Math.log(2)) / total, 9)
+})
+
+test('without research, Load change names the largest cause in words only', () => {
+  // Before Metrics, the recorded sample can only be the selected one, not one the player picked.
+  const blind = (model: Model): Model => ({
+    ...model,
+    board: {
+      ...model.board,
+      nodeSample: { nodeId: 'database', time: 20 },
+      game: {
+        ...model.board.game,
+        researched: model.board.game.researched.filter((id) => id !== 'metrics'),
+      },
+    },
+  })
+  const base = fixture().board.nodeHistory.database![0]!
+  const model = fixture({ inbound: base.inbound, utilization: 0.16, cost: base.cost * 2 })
+  Scene.scene(
+    { update, view },
+    Scene.given(blind(model)),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('Each request costs more'),
+    Scene.expect(Scene.selector('[data-inspector]')).not.toContainText('pts'),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.click(Scene.role('button', { name: 'Earlier sample' })),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('Each request costs more'),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('+8 pts'),
   )
 })

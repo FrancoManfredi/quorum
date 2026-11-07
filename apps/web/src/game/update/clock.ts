@@ -44,6 +44,7 @@ import {
   WriteFounder,
   AppendLog,
   ComputeBottleneck,
+  ComputeWhatIfs,
   FitBoard,
   ToggleFullscreen,
   WriteSandboxStore,
@@ -54,7 +55,7 @@ import { alertText, money } from '@quorum/ui/game/format'
 import { churnOf } from '@quorum/simulation/churn'
 import { closed, withMail, resolvedExcept } from '../inbox.ts'
 import { formats } from '../../i18n/format.ts'
-import { zoned } from '@quorum/simulation/lookups'
+import { has, zoned } from '@quorum/simulation/lookups'
 import { line, sampleOf } from '../telemetry.ts'
 import {
   milestones,
@@ -461,6 +462,18 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   next = advanceReveals(next, ledger)
   const commands: Array<AnyCommand> = []
   if (search) commands.push(ComputeBottleneck({ game, at: second }))
+  // What-if rows (12 "Load diagnosis") run ghost Simulations, so they refresh every few sim
+  // seconds, and only for a busy selected Node once `profiling` shows them.
+  const watched = model.board.selected
+  const rows = model.board.whatIfs
+  if (
+    search &&
+    watched &&
+    has(game, 'profiling') &&
+    (flow.nodes[watched]?.utilization ?? 0) >= WHAT_IF_LOAD &&
+    (rows?.nodeId !== watched || second - rows.at >= WHAT_IF_EVERY || second < rows.at)
+  )
+    commands.push(ComputeWhatIfs({ game, nodeId: watched, at: second }))
   const logs: Array<LogEntry> = []
 
   if (run && guided && advanced) {
@@ -746,6 +759,10 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
 
 /** Sim seconds of history the error share is averaged over before Easy mode is offered. */
 const STRUGGLE_WINDOW = 300
+
+/** Sim seconds between what-if runs, and the utilization a Node needs before they run. */
+const WHAT_IF_EVERY = 5
+const WHAT_IF_LOAD = 0.7
 
 /**
  * Too many failures or incidents: a tenth of requests failed over the last five sim minutes, or
