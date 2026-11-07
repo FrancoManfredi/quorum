@@ -141,6 +141,46 @@ describe('the analytics bridge', () => {
     expect(events[3]?.properties).toMatchObject({ away_seconds: 3_600, users_after: 12 })
   })
 
+  test('maps a sent Exit survey without its answers', () => {
+    const events = eventsOf(
+      [
+        line(0, 'SurveySent', {
+          survey: {
+            exit: 'acquisition',
+            stage: 4,
+            payout: 4_000_000,
+            legacy: 2,
+            issues_chars: 12,
+            likes_chars: 0,
+            locale: 'fr',
+          },
+        }),
+      ],
+      context(),
+    )
+    expect(events).toEqual([
+      {
+        event: 'survey:submitted',
+        properties: {
+          exit_type: 'acquisition',
+          era: 4,
+          payout: 4_000_000,
+          legacy: 2,
+          locale: 'fr',
+          answered_issues: true,
+          answered_likes: false,
+          issues_chars: 12,
+          likes_chars: 0,
+          answer_chars: 12,
+        },
+      },
+    ])
+  })
+
+  test('drops a survey line without its figures', () => {
+    expect(eventsOf([line(0, 'SurveySent', {})], context())).toEqual([])
+  })
+
   test('drops the sample, the toast, and the goal change', () => {
     expect(
       eventsOf(

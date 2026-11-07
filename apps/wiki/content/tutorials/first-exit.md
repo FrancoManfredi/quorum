@@ -65,6 +65,8 @@ it, but this lesson takes the first Exit, to show you the whole loop.
 2. Read the summary. It shows a small drawing of your final Design and your Legacy, such as
    **+3 Legacy**.
 3. Read the four numbers under it: **Payout**, **Peak users**, **Era**, and **Played**.
+4. If you want, answer the two questions under the numbers. They ask what went wrong and what you
+   liked. **Send** posts them with this Exit; **Skip** leaves the summary as it is.
 
 The Company is over. It goes into your history, with its board, its Stack, and its payout.
 

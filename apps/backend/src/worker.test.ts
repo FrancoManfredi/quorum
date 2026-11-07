@@ -5,7 +5,7 @@ import { Result } from 'effect'
 import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { Api, RPC_PATH } from '@quorum/rpc'
+import { Api, RPC_PATH, type SurveyExit, type SurveySubmission } from '@quorum/rpc'
 import {
   SIM_VERSION,
   challengeById,
@@ -21,9 +21,15 @@ import worker, { type Env } from './worker.ts'
 
 const url = `http://api.test${RPC_PATH}`
 
-let env: Env = { RESULTS: sqliteRunner() }
+/** One database backs both bindings, as it does in `alchemy.run.ts`. */
+const database = (): Pick<Env, 'RESULTS' | 'FEEDBACK'> => {
+  const db = sqliteRunner()
+  return { RESULTS: db, FEEDBACK: db }
+}
+
+let env: Env = database()
 beforeEach(() => {
-  env = { RESULTS: sqliteRunner() }
+  env = database()
 })
 
 /**
@@ -161,15 +167,130 @@ test("today's daily drill takes a result", async () => {
   expect(typeof verdict.passed).toBe('boolean')
 })
 
-test('a failing store reaches the client as unavailable and logs its cause', async () => {
-  const cause = new Error('D1_ERROR: no such table: results')
+const exitOf = (overrides: Partial<SurveyExit> = {}): SurveyExit => ({
+  exit: 'acquisition',
+  stage: 4,
+  time: 7_200,
+  peak: 200_000,
+  payout: 4_000_000,
+  legacy: 2,
+  venture: 'b2b-saas',
+  mutators: [],
+  perks: {},
+  ...overrides,
+})
+
+const survey = (overrides: Partial<SurveySubmission> = {}) =>
+  Effect.gen(function* () {
+    const api = yield* client
+    return yield* api.surveySubmit({
+      deviceId: DEVICE,
+      locale: 'en',
+      exit: exitOf(),
+      issues: 'The tutorial ran long.',
+      likes: 'Watching the board settle.',
+      ...overrides,
+    })
+  })
+
+const surveyFailure = (overrides: Partial<SurveySubmission> = {}) =>
+  run(Effect.flip(survey(overrides))).then((error) => ({
+    tag: error._tag,
+    message: error.message,
+  }))
+
+test('an Exit survey is stored, and a retry keeps the first answer', async () => {
+  expect(await run(survey())).toEqual({ received: true })
+  expect(await run(survey({ issues: 'A second answer.', likes: '' }))).toEqual({
+    received: true,
+  })
+  const rows = await env.FEEDBACK.prepare(
+    'SELECT exit_id, issues, likes FROM survey_responses',
+  ).all<{ exit_id: string; issues: string; likes: string }>()
+  expect(rows.results).toEqual([
+    {
+      exit_id: 'acquisition',
+      issues: 'The tutorial ran long.',
+      likes: 'Watching the board settle.',
+    },
+  ])
+})
+
+test('a survey that is not a real Exit fails with ApiError and stores nothing', async () => {
+  expect(await surveyFailure({ exit: exitOf({ exit: 'ipo' }) })).toEqual({
+    tag: 'ApiError',
+    message: 'That Exit does not end a Company.',
+  })
+  expect(await surveyFailure({ exit: exitOf({ exit: 'nope' }) })).toEqual({
+    tag: 'ApiError',
+    message: 'There is no such Exit.',
+  })
+  expect(await surveyFailure({ exit: exitOf({ stage: 2 }) })).toEqual({
+    tag: 'ApiError',
+    message: 'That Exit does not match its Era.',
+  })
+  expect(await surveyFailure({ exit: exitOf({ legacy: 99 }) })).toEqual({
+    tag: 'ApiError',
+    message: 'The Exit Legacy does not match its payout.',
+  })
+  expect(await surveyFailure({ exit: exitOf({ venture: 'nope' }) })).toEqual({
+    tag: 'ApiError',
+    message: 'There is no such Venture.',
+  })
+  expect(await surveyFailure({ exit: exitOf({ mutators: ['nope'] }) })).toEqual({
+    tag: 'ApiError',
+    message: 'There is no such Mutator.',
+  })
+  expect(await surveyFailure({ issues: '  ', likes: '' })).toEqual({
+    tag: 'ApiError',
+    message: 'Write an answer to at least one question.',
+  })
+  expect(await surveyFailure({ deviceId: 'short' })).toEqual({
+    tag: 'ApiError',
+    message: 'The device id is not valid.',
+  })
+  const rows = await env.FEEDBACK.prepare('SELECT COUNT(*) AS n FROM survey_responses').all<{
+    n: number
+  }>()
+  expect(rows.results[0]?.n).toBe(0)
+})
+
+test('a failing survey store reaches the client as unavailable and logs its cause', async () => {
+  const cause = new Error('D1_ERROR: no such table: survey_responses')
   env = {
-    RESULTS: {
+    ...env,
+    FEEDBACK: {
       prepare: () => {
         throw cause
       },
     },
   }
+  const logged: Array<unknown> = []
+  const spies = (['log', 'error', 'warn'] as const).map((level) =>
+    vi.spyOn(console, level).mockImplementation((...args) => void logged.push(...args)),
+  )
+  try {
+    const error = await run(Effect.flip(survey()))
+    expect(error).toMatchObject({
+      _tag: 'ApiError',
+      message: 'Feedback is unavailable. Try again later.',
+    })
+  } finally {
+    for (const spy of spies) spy.mockRestore()
+  }
+  expect(
+    JSON.stringify(logged, (_, value) => (value instanceof Error ? value.message : value)),
+  ).toContain('no such table')
+})
+
+test('a failing store reaches the client as unavailable and logs its cause', async () => {
+  const cause = new Error('D1_ERROR: no such table: results')
+  const broken = {
+    prepare: () => {
+      throw cause
+    },
+  }
+  env = { RESULTS: broken, FEEDBACK: broken }
   const logged: Array<unknown> = []
   const spies = (['log', 'error', 'warn'] as const).map((level) =>
     vi.spyOn(console, level).mockImplementation((...args) => void logged.push(...args)),

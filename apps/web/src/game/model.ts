@@ -101,6 +101,23 @@ export const Exited = Schema.Struct({
 })
 export type Exited = typeof Exited.Type
 
+/** The Exit survey: two answers, and where they stand with the API Worker. */
+export const Survey = Schema.Struct({
+  issues: Schema.String,
+  likes: Schema.String,
+  status: Schema.Literals(['open', 'sending', 'sent', 'failed', 'skipped']),
+  /** Why the last send failed, when it did. */
+  note: Schema.NullOr(Schema.String),
+})
+export type Survey = typeof Survey.Type
+
+export const EMPTY_SURVEY: Survey = {
+  issues: '',
+  likes: '',
+  status: 'open',
+  note: null,
+}
+
 /** The open Challenge: a Build, a Run, or a scored Result. */
 import { ChallengeRun } from './challenge-machine.ts'
 export {
@@ -509,6 +526,8 @@ export const Model = Schema.Struct({
   saveConfirm: Schema.Boolean,
   /** The player across Companies, kept apart from the Company save. */
   founder: Founder,
+  /** The Exit survey, until the player leaves the exited Company. */
+  survey: Survey,
   /** Guided Sandboxes the player has passed. */
   passed: Schema.Array(SandboxId),
   /** The free Sandbox as the player left it. */

@@ -36,6 +36,7 @@ Sentry records errors, traces, and profiles ([ADR 0013](./adr/0013-sentry-for-er
 - The browser starts Sentry in `apps/web/src/platform/sentry.ts`. Foldkit's `crash` and `slow` options report to it; `traced` wraps work that matters to load time or smoothness.
 - Both Workers wrap their entry with `Sentry.withSentry`. They need the `nodejs_compat` flag, which `sentryCompatibility` sets. The API Worker also provides the Effect tracer, logger, and error reporter, so `Effect.withSpan` in a context becomes a Sentry span.
 - The browser sends trace headers to `/api/` only. The website Worker passes them through the service binding, so one trace covers the browser, both Workers, and D1.
+- `SubmitSurvey` is a traced Command: its browser span reaches the API Worker's `survey.submit` span. A failed submission is captured with the Exit's type, Era, and one sentence, never the answers.
 - Sampling: traces 10%, profiles 5% of sessions. Review both after a week of real traffic.
 
 ## Product analytics
@@ -48,6 +49,7 @@ The browser sends anonymous PostHog events through the website Worker at `/q` (`
 - `apps/wiki/src/platform/analytics.ts` sends `$pageview` for the wiki in the same project.
 - `VITE_POSTHOG_KEY` is required at build time for both apps. Without it, the SDK never loads and nothing is sent.
 - Settings has **Share anonymous usage data**. The policy is `apps/wiki/content/about/privacy.md`.
+- The Exit survey's answers are a D1 row the API Worker validates ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). A sent survey also emits `survey:submitted` with the Exit's figures and the length of each answer, never the text.
 
 ## Code ownership
 
@@ -78,6 +80,6 @@ The web app must not import backend implementation modules. The wiki must not im
 
 ## Cloudflare scope
 
-The stack provisions the website Worker, the API Worker, and one D1 database, `Results`, bound to the API Worker as `RESULTS`. Challenges need it: the API Worker re-runs each submitted replay and keeps every device's best per axis, and histograms and percentiles are SQL counts over those rows. KV cannot count, and a Durable Object per Challenge would need hand-written aggregation. The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
+The stack provisions the website Worker, the API Worker, and one D1 database, `Results`, bound to the API Worker twice: as `RESULTS` for Challenge results and as `FEEDBACK` for the Exit survey. Challenges need it: the API Worker re-runs each submitted replay and keeps every device's best per axis, and histograms and percentiles are SQL counts over those rows. KV cannot count, and a Durable Object per Challenge would need hand-written aggregation. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
 
-The Challenges context sees only the `ResultStore` service (`apps/backend/src/contexts/challenges/store.ts`). `apps/backend/src/platform/d1-result-store.ts` implements it with SQL against a small structural `SqlRunner`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. Add R2, Access, Durable Objects, or other Cloudflare services only when a product feature requires them.
+Each context sees only its store service: `ResultStore` (`apps/backend/src/contexts/challenges/store.ts`) and `SurveyStore` (`apps/backend/src/contexts/survey/store.ts`). Their D1 implementations share the structural `SqlRunner` in `apps/backend/src/platform/sql.ts`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. Add R2, Access, Durable Objects, or other Cloudflare services only when a product feature requires them.

@@ -395,6 +395,10 @@ _Avoid_: score, net worth, market cap (before IPO)
 The end of a Company: acqui-hire, acquisition, IPO, or stepping down. It pays Legacy.
 _Avoid_: prestige, reset, ascend, portal
 
+**Exit survey**:
+The two questions the game asks after an Exit: what went wrong while the player played, and what they liked. The answers and the Exit's figures go to the API Worker only when the player presses Send.
+_Avoid_: feedback (the board already gives feedback after a change), review, rating, NPS
+
 **Legacy**:
 The permanent currency earned at Exit and spent in the Legacy shop.
 _Avoid_: prestige points, souls, tokens

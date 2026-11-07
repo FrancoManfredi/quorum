@@ -5,6 +5,7 @@ import { DashboardMessage } from './dashboard.ts'
 import { GlossaryMessage } from './glossary.ts'
 import { EMPTY_INBOX, InboxMessage, mailed, reading } from './inbox.ts'
 import { PrefsMessage } from './prefs.ts'
+import { SurveyMessage } from './survey.ts'
 import { describe, expect, test } from 'vitest'
 import { Option } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
@@ -647,6 +648,80 @@ describe('Exit and offline return', () => {
     expect(loaded.board.game.incident).toBeNull()
     expect(send(loaded, Message.Continued()).panel).toBe('away')
   }, 30_000)
+
+  test('the Exit survey opens after an Exit and sends the row it describes', () => {
+    const game = { ...preseedGame(), stage: 4, users: 200_000, cash: 1e8 }
+    const exited = send(
+      { ...inLab(), board: { ...inLab().board, game } },
+      Message.ExitTaken({ exit: 'acquisition' }),
+    )
+    expect(exited.survey).toEqual({ issues: '', likes: '', status: 'open', note: null })
+    const row = exited.board.exited?.row
+
+    const typed = send(
+      exited,
+      Message.SurveyChanged({
+        message: SurveyMessage.IssuesChanged({ value: 'The tutorial ran long.' }),
+      }),
+      Message.SurveyChanged({
+        message: SurveyMessage.LikesChanged({ value: 'Watching the board settle.' }),
+      }),
+    )
+    const submitted = update(typed, Message.SurveySubmitted())
+    expect(submitted.model.survey.status).toBe('sending')
+    const command = (submitted.commands ?? []).find((entry) => entry.name === 'SubmitSurvey')
+    expect(command?.args?.['submission']).toMatchObject({
+      deviceId: typed.founder.deviceId,
+      locale: 'en',
+      issues: 'The tutorial ran long.',
+      likes: 'Watching the board settle.',
+      exit: {
+        exit: 'acquisition',
+        stage: 4,
+        time: row?.time,
+        peak: row?.peak,
+        payout: row?.payout,
+        legacy: row?.legacy,
+        venture: row?.founding.venture,
+      },
+    })
+    const sent = update(submitted.model, Message.SurveySent())
+    expect(sent.model.survey.status).toBe('sent')
+    // The analytics bridge reads this line: the Exit's figures and the answer lengths, never the text.
+    const appended = (sent.commands ?? []).find((entry) => entry.name === 'AppendLog')
+    const entries = appended?.args?.['entries'] as
+      | ReadonlyArray<{ type: string; data: string }>
+      | undefined
+    const surveyLine = entries?.find((entry) => entry.type === 'SurveySent')
+    const logged = JSON.parse(surveyLine?.data ?? '{}') as Record<string, unknown>
+    expect(logged['survey']).toMatchObject({
+      exit: 'acquisition',
+      stage: 4,
+      payout: row?.payout,
+      legacy: row?.legacy,
+      issues_chars: 'The tutorial ran long.'.length,
+      likes_chars: 'Watching the board settle.'.length,
+      locale: 'en',
+    })
+    expect(surveyLine?.data).not.toContain('tutorial ran long')
+    expect(send(exited, Message.SurveySkipped()).survey.status).toBe('skipped')
+  })
+
+  test('the Exit survey needs an exited Company and an answer', () => {
+    const noExit = update(inLab(), Message.SurveySubmitted())
+    expect(noExit.model.survey.status).toBe('open')
+    expect((noExit.commands ?? []).some((entry) => entry.name === 'SubmitSurvey')).toBe(false)
+
+    const game = { ...preseedGame(), stage: 4, users: 200_000, cash: 1e8 }
+    const exited = send(
+      { ...inLab(), board: { ...inLab().board, game } },
+      Message.ExitTaken({ exit: 'acquisition' }),
+    )
+    const blank = update(exited, Message.SurveySubmitted())
+    expect(blank.model.survey.status).toBe('open')
+    expect((blank.commands ?? []).some((entry) => entry.name === 'SubmitSurvey')).toBe(false)
+    expect(blank.model.toast?.tone).toBe('warn')
+  })
 })
 
 describe('Challenges', () => {

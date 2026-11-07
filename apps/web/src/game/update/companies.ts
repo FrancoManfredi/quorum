@@ -40,7 +40,7 @@ import {
 import { historyOfSave } from '../history.ts'
 import { inboxOfSave, mailed } from '../inbox.ts'
 import { ipoExit } from '@quorum/simulation/exit'
-import { ledgerOf, Model, currentFile, type Menu } from '../model.ts'
+import { ledgerOf, Model, currentFile, EMPTY_SURVEY, type Menu } from '../model.ts'
 import { line } from '../telemetry.ts'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
@@ -276,6 +276,7 @@ export const leaveExited = (model: Model, menu: Menu): UpdateResult => ({
     saves: { ...model.saves, current: null },
     saveFocus: null,
     saveConfirm: false,
+    survey: EMPTY_SURVEY,
     board: freshBoard(newGame(model.board.game.seed)),
   },
 })

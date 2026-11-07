@@ -2,6 +2,7 @@ import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BookCopy,
+  Check,
   Clipboard,
   Copy,
   CopyPlus,
@@ -23,8 +24,10 @@ import { Message } from '@/game/message.ts'
 import { ledgerOf, type Model, offCompany, stampedPlaybook } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
+import { textarea } from '@quorum/ui/primitives/textarea'
 import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
+import { SurveyMessage } from '@/game/survey.ts'
 import { shell } from './panels.ts'
 
 /* ==========================================================================
@@ -169,6 +172,91 @@ export const snapshotSvg = (
   )
 }
 
+/** The two questions after an Exit. Only the answers the player sends leave the browser. */
+const surveySection = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const survey = model.survey
+  if (survey.status === 'skipped') return h.empty
+  if (survey.status === 'sent')
+    return h.div(
+      [
+        h.Class(
+          cn(
+            NESTED,
+            'flex w-full items-center gap-2 px-4 py-3 text-[calc(12.5px*var(--type-scale))]',
+          ),
+        ),
+      ],
+      [icon(h, Check, 'size-4 text-ok'), h.span([], [t.survey.sent])],
+    )
+  const sending = survey.status === 'sending'
+  const empty = survey.issues.trim() === '' && survey.likes.trim() === ''
+  return h.div(
+    [h.Class('flex w-full flex-col gap-3 border-t border-hairline pt-4')],
+    [
+      h.div(
+        [h.Class('flex flex-col gap-0.5')],
+        [
+          h.span([h.Class(EYEBROW)], [t.survey.title]),
+          h.span(
+            [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+            [t.survey.note],
+          ),
+        ],
+      ),
+      textarea(
+        {
+          id: 'survey-issues',
+          label: t.survey.issues,
+          value: survey.issues,
+          onInput: (value) =>
+            Message.SurveyChanged({ message: SurveyMessage.IssuesChanged({ value }) }),
+          rows: 2,
+          isDisabled: sending,
+        },
+        h,
+      ),
+      textarea(
+        {
+          id: 'survey-likes',
+          label: t.survey.likes,
+          value: survey.likes,
+          onInput: (value) =>
+            Message.SurveyChanged({ message: SurveyMessage.LikesChanged({ value }) }),
+          rows: 2,
+          isDisabled: sending,
+        },
+        h,
+      ),
+      survey.status === 'failed'
+        ? h.span(
+            [h.Class('text-[calc(11.5px*var(--type-scale))] text-warn')],
+            [t.survey.failed(survey.note ?? '')],
+          )
+        : h.empty,
+      h.div(
+        [h.Class('flex justify-end gap-2')],
+        [
+          button(
+            { onClick: Message.SurveySkipped(), variant: 'ghost', size: 'sm' },
+            t.survey.skip,
+            h,
+          ),
+          button(
+            {
+              onClick: Message.SurveySubmitted(),
+              size: 'sm',
+              isDisabled: sending || empty,
+            },
+            sending ? t.survey.sending : t.survey.send,
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
 export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -230,6 +318,7 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ],
               )
             : h.empty,
+          surveySection(model, h),
         ],
       ),
       footer(

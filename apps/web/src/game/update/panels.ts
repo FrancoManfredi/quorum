@@ -4,6 +4,7 @@ import { Message } from '../message.ts'
 import { Model, Prefs, halted } from '../model.ts'
 import { Option, Schema } from 'effect'
 import { PrefsMessage, updatePrefs } from '../prefs.ts'
+import { updateSurvey } from '../survey.ts'
 import { Update } from 'foldkit'
 import {
   closePanel,
@@ -60,6 +61,14 @@ export const foldGlossary = Update.foldChild({
   read: (model: Model) => Option.some(model.glossary),
   write: (model, glossary) => ({ ...model, glossary }),
   toParentMessage: (message) => Message.GlossaryChanged({ message }),
+})
+
+/** The Exit survey's two fields; the parent sends the answers. */
+export const foldSurvey = Update.foldChild({
+  update: updateSurvey,
+  read: (model: Model) => Option.some(model.survey),
+  write: (model, survey) => ({ ...model, survey }),
+  toParentMessage: (message) => Message.SurveyChanged({ message }),
 })
 
 export const foldDashboard = Update.foldChild({
@@ -119,6 +128,7 @@ type PanelsTag =
   | 'PanelClosed'
   | 'PrefsLoaded'
   | 'PrefsChanged'
+  | 'SurveyChanged'
   | 'WindowBlurred'
   | 'WindowFocused'
   | 'InsightHelpToggled'
@@ -231,6 +241,8 @@ export const panelsHandlers = (
     }),
 
   PrefsChanged: ({ message }) => foldPrefs(model, message),
+
+  SurveyChanged: ({ message }) => foldSurvey(model, message),
 
   WindowBlurred: () => {
     // The pointer is not followed outside the window, so a hold ends with the focus.

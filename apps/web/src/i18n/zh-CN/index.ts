@@ -51,6 +51,7 @@ import { panels } from './panels.ts'
 import { pools } from './pools.ts'
 import { research } from './research.ts'
 import { sandbox } from './sandbox.ts'
+import { survey } from './survey.ts'
 import { team } from './team.ts'
 import { title } from './title.ts'
 import { tradeoff } from './tradeoff.ts'
@@ -107,6 +108,7 @@ export const zhCN: Messages = {
   pools,
   research,
   sandbox,
+  survey,
   team,
   title,
   tradeoff,

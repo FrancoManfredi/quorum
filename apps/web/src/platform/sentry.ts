@@ -96,13 +96,36 @@ export const reportSlow = (context: Runtime.SlowContext<Model, Message>): void =
 }
 
 /**
+ * A failed survey submission. The report carries the Exit's labels and one sentence, never the
+ * answers or the RPC error: a transport error can hold the request body.
+ */
+export const reportSurveyFailure = (
+  error: { readonly _tag: string; readonly message: string },
+  exit: { readonly exit: string; readonly stage: number },
+): void => {
+  if (!DSN) return
+  const rejected = error._tag === 'ApiError'
+  const report = new Error(rejected ? error.message : 'The API Worker could not be reached.')
+  report.name = rejected ? 'SurveyRejected' : 'SurveyUnreachable'
+  Sentry.captureException(report, {
+    level: 'error',
+    tags: {
+      survey: rejected ? 'rejected' : 'unreachable',
+      exit: exit.exit,
+      era: String(exit.stage),
+    },
+    fingerprint: ['survey-submit', rejected ? 'rejected' : 'unreachable', exit.exit],
+  })
+}
+
+/**
  * Foldkit wraps every Command in an Effect span named for it, with its arguments as attributes. Only
  * a Command that calls the API needs one: RPC calls inherit the trace headers from it. Every other
  * Command is local and sub-millisecond, or has its own `traced` span, so it gets an unsent span.
  * This tracer drops the attributes that are not plain values: a Command's arguments hold the whole
  * Game.
  */
-const TRACED_COMMANDS = new Set(['SubmitChallenge'])
+const TRACED_COMMANDS = new Set(['SubmitChallenge', 'SubmitSurvey'])
 const isCommand = (name: string): boolean => /^[A-Z][A-Za-z]*$/.test(name)
 
 const plain = (value: unknown): boolean =>

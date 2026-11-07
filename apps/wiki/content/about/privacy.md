@@ -19,6 +19,11 @@ When you play, the game sends events to PostHog, our analytics processor:
   regions.
 - A Company is founded, reaches an Era, or exits, with its Venture, Mutators, and the figures at that
   moment.
+- An Exit survey, if you answer one after a Company ends: your two answers, the Exit's type, Era,
+  payout, Legacy, Venture, and Mutators, and your interface language. Nothing leaves the browser until
+  you press **Send**.
+- A sent survey also sends an event to PostHog with the Exit's figures, your language, and the length
+  of each answer. The answers themselves go to the database, not to PostHog.
 - A Node is placed, a Link is created, a Research item completes, or an action is refused, with the
   Component, the Era, and the reason.
 - The page you opened, the site that referred you, and any UTM parameters in the link.
@@ -39,14 +44,15 @@ itself.
 
 - Your name, email address, or any account information. Quorum has no accounts.
 - The name you give a Company.
-- Session recordings, keystrokes, clipboard contents, or the contents of any text field.
+- Session recordings, keystrokes, or clipboard contents. The only text you type that leaves the
+  browser is an Exit survey you choose to send.
 - Advertising identifiers. Nothing is sold to anyone.
 
 ## Why
 
 The data answers four questions: how many people play, where new players stop, how players build and
-progress, and whether the client is healthy. We use it to tune pacing, difficulty, and onboarding, and
-never for advertising.
+progress, and whether the client is healthy. An Exit survey says why a player stopped and what they
+wanted more of. We use it to tune pacing, difficulty, and onboarding, and never for advertising.
 
 ## Who processes it
 
@@ -54,13 +60,14 @@ never for advertising.
   [PostHog's privacy policy](https://posthog.com/privacy).
 - **Sentry** stores crash reports and performance data. See
   [Sentry's privacy policy](https://sentry.io/privacy/).
-- **Cloudflare** serves the game and forwards analytics requests. See
-  [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/).
+- **Cloudflare** serves the game, forwards analytics requests, and stores Exit survey answers in its
+  D1 database. See [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/).
 
 ## How long
 
 PostHog keeps events for one year on the free plan. Sentry keeps errors and performance data for 90
-days.
+days. Exit survey answers stay in the D1 database while they are useful to the design. They carry a
+random device ID, not your identity.
 
 ## Turn it off
 
@@ -69,6 +76,9 @@ days.
 
 The game stops sending events, crash reports, and performance data immediately, and remembers the choice in your browser. It also respects your browser's Do Not Track setting. Clearing your browser storage removes the device ID and the
 stored choice.
+
+The Exit survey is separate. It sends nothing until you press **Send**, so turning analytics off does
+not hide it.
 
 Turning analytics off does not affect the game. Every feature works the same.
 
@@ -80,4 +90,4 @@ Open an issue at [github.com/elianiva/quorum](https://github.com/elianiva/quorum
 
 This page changes when the data changes. The date below is the last change.
 
-Last updated: 5 November 2026.
+Last updated: 6 November 2026.

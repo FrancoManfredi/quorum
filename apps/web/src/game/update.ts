@@ -22,7 +22,7 @@ import { emptyFounder } from '@quorum/simulation/founder'
 import { freshBoard, milestones, sync, type UpdateResult } from './update/shared.ts'
 import { has } from '@quorum/simulation/lookups'
 import { histogramQuery } from './challenge-query.ts'
-import { ledgerOf, Model, halted } from './model.ts'
+import { ledgerOf, Model, halted, EMPTY_SURVEY } from './model.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
 import { type Ledger } from '@quorum/simulation/ledger'
@@ -63,6 +63,7 @@ export const initialModel = (): Model =>
     saveFocus: null,
     saveConfirm: false,
     founder: emptyFounder(),
+    survey: EMPTY_SURVEY,
     passed: [],
     freeBoard: null,
     histograms: histogramQuery.init(),
@@ -116,6 +117,8 @@ export const QUIET = new Set([
   'BottleneckFound',
   'PreviewComputed',
   'HoldLifted',
+  // The answers are the player's words; only sending them is a gesture.
+  'SurveyChanged',
 ])
 
 /** A team drag sends a Message per pointer move; only the drop that moves someone is a gesture. */
@@ -132,6 +135,33 @@ export const quiet = (model: Model, message: Message, after: Model): boolean =>
 export const fieldsOf = (message: Message): Record<string, unknown> =>
   Object.fromEntries(Object.entries(message).filter(([key]) => key !== '_tag'))
 
+/**
+ * The Exit survey's figures for the playtest log and its PostHog event. The
+ * answers stay out; their lengths say only whether each question was answered.
+ * A late answer that the UI ignored does not count.
+ */
+const surveyOf = (model: Model, after: Model, message: Message): Record<string, unknown> => {
+  const exited = model.board.exited
+  if (
+    message._tag !== 'SurveySent' ||
+    !exited ||
+    model.survey.status !== 'sending' ||
+    after.survey.status !== 'sent'
+  )
+    return {}
+  return {
+    survey: {
+      exit: exited.row.exit,
+      stage: exited.row.stage,
+      payout: exited.row.payout,
+      legacy: exited.row.legacy,
+      issues_chars: model.survey.issues.trim().length,
+      likes_chars: model.survey.likes.trim().length,
+      locale: model.prefs.locale,
+    },
+  }
+}
+
 /** Logs the gesture, what it changed, why it was refused, and any toast it raised. */
 export const logged = (model: Model, message: Message, result: UpdateResult): UpdateResult => {
   const logs: Array<LogEntry> = []
@@ -145,6 +175,7 @@ export const logged = (model: Model, message: Message, result: UpdateResult): Up
     logs.push(
       line(time, message._tag, {
         ...fieldsOf(message),
+        ...surveyOf(model, after, message),
         ...(refused ? { refused } : {}),
         diff: diffOf(model.board.game, after.board.game),
         ...(after.panel !== model.panel ? { panel: after.panel } : {}),

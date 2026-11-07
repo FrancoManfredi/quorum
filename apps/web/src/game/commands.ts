@@ -22,9 +22,9 @@ import { play, setMuted, SOUND_NAMES } from './sound.ts'
 import { setAgentAccess } from './agent-relay.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
 import { forward, setAnalyticsEnabled } from '../platform/analytics.ts'
-import { ChallengeSubmission } from '@quorum/rpc'
+import { ChallengeSubmission, SurveySubmission } from '@quorum/rpc'
 import { ApiRpc } from '@/platform/rpc.ts'
-import { annotateSpan, setSentryConsent, traced } from '../platform/sentry.ts'
+import { annotateSpan, reportSurveyFailure, setSentryConsent, traced } from '../platform/sentry.ts'
 
 /* ==========================================================================
    Commands: every side effect Quorum has. The board, localStorage, the
@@ -587,6 +587,29 @@ export const SubmitChallenge = Command.define('SubmitChallenge', {
           Message.ChallengeUnverified({
             message: error.message,
             offline: error._tag === 'RpcClientError',
+          }),
+      }),
+    ),
+})
+
+/** Sends the Exit survey. A mutation, not a Query: the answers never come back. */
+export const SubmitSurvey = Command.define('SubmitSurvey', {
+  args: { submission: SurveySubmission },
+  messages: [Message.SurveySent, Message.SurveyFailed],
+  execute: ({ submission }) =>
+    Effect.gen(function* () {
+      const rpc = yield* ApiRpc
+      return yield* rpc.surveySubmit(submission)
+    }).pipe(
+      // A failure is swallowed into a Message, so it reaches Sentry here or nowhere.
+      Effect.tapError((error) => Effect.sync(() => reportSurveyFailure(error, submission.exit))),
+      Effect.match({
+        onSuccess: () => Message.SurveySent(),
+        onFailure: (error) =>
+          Message.SurveyFailed({
+            message: error.message,
+            // Anything but a declared ApiError is a transport failure, which has no useful message.
+            offline: error._tag !== 'ApiError',
           }),
       }),
     ),

@@ -22,5 +22,11 @@ export const exitCases = {
   PostmortemFiled: { id: Schema.Finite, take: Schema.Boolean },
   AwayClosed: {},
 
+  /** The Exit survey: Send, Skip, and the server's answer. */
+  SurveySubmitted: {},
+  SurveySkipped: {},
+  SurveySent: {},
+  SurveyFailed: { message: Schema.String, offline: Schema.Boolean },
+
   /** Playbooks. */
 }

@@ -4,6 +4,7 @@ import { InboxMessage } from '../inbox.ts'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Panel, Tone } from '../model.ts'
 import { PrefsMessage } from '../prefs.ts'
+import { SurveyMessage } from '../survey.ts'
 import { Schema } from 'effect'
 
 /** The panels Messages, as cases for the root union. */
@@ -19,6 +20,8 @@ export const panelsCases = {
   /** Settings and the Glossary (15). Each panel is a Submodel with its own Messages. */
   PrefsLoaded: { json: Schema.NullOr(Schema.String) },
   PrefsChanged: { message: PrefsMessage },
+  /** The Exit survey's two fields; the parent sends the answers. */
+  SurveyChanged: { message: SurveyMessage },
   /** The window lost focus. */
   WindowBlurred: {},
   /** The window got focus back. */

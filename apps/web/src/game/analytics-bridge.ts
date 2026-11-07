@@ -118,6 +118,29 @@ export const eventsOf = (
         })
         break
 
+      case 'SurveySent': {
+        const survey = record(data.survey)
+        if (survey === null) break
+        const issues = count(survey.issues_chars) ?? 0
+        const likes = count(survey.likes_chars) ?? 0
+        events.push({
+          event: 'survey:submitted',
+          properties: {
+            exit_type: text(survey.exit),
+            era: count(survey.stage),
+            payout: count(survey.payout),
+            legacy: count(survey.legacy),
+            locale: text(survey.locale),
+            answered_issues: issues > 0,
+            answered_likes: likes > 0,
+            issues_chars: issues,
+            likes_chars: likes,
+            answer_chars: issues + likes,
+          },
+        })
+        break
+      }
+
       case 'OfflineReturned':
         events.push({
           event: 'company:offline_return',

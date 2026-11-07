@@ -1,8 +1,15 @@
 import * as Actions from '@quorum/simulation/actions'
 import * as Runway from '@quorum/simulation/runway'
-import { AskPlaybook, DeleteCompany, CopyText, WriteFounder, AppendLog } from '../commands.ts'
+import {
+  AskPlaybook,
+  DeleteCompany,
+  CopyText,
+  WriteFounder,
+  AppendLog,
+  SubmitSurvey,
+} from '../commands.ts'
 import { EXITS, RESEARCH } from '@quorum/simulation/catalog'
-import { Model, currentFile } from '../model.ts'
+import { Model, currentFile, EMPTY_SURVEY } from '../model.ts'
 import { PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { Result } from 'effect'
 import { afterRound } from './session.ts'
@@ -43,6 +50,46 @@ type ExitTag =
   | 'BridgeAccepted'
   | 'PostmortemFiled'
   | 'AwayClosed'
+  | 'SurveySubmitted'
+  | 'SurveySkipped'
+  | 'SurveySent'
+  | 'SurveyFailed'
+
+/** Sends the Exit survey. Only a Company that just ended has an Exit to report on. */
+const submitSurvey = (model: Model): UpdateResult => {
+  if (model.survey.status !== 'open' && model.survey.status !== 'failed') return { model }
+  const exited = model.board.exited
+  if (!exited) return withToast(model, say(model).survey.noExit, 'warn')
+  const issues = model.survey.issues.trim()
+  const likes = model.survey.likes.trim()
+  if (issues.length === 0 && likes.length === 0)
+    return withToast(model, say(model).survey.empty, 'warn')
+  const row = exited.row
+  return {
+    model: { ...model, survey: { ...model.survey, status: 'sending', note: null } },
+    commands: [
+      SubmitSurvey({
+        submission: {
+          deviceId: model.founder.deviceId,
+          locale: model.prefs.locale,
+          exit: {
+            exit: row.exit,
+            stage: row.stage,
+            time: row.time,
+            peak: row.peak,
+            payout: row.payout,
+            legacy: row.legacy,
+            venture: row.founding.venture,
+            mutators: [...row.founding.mutators],
+            perks: row.founding.perks,
+          },
+          issues,
+          likes,
+        },
+      }),
+    ],
+  }
+}
 
 export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> => ({
   ExitTaken: ({ exit }) =>
@@ -64,6 +111,7 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
           const next: Model = {
             ...earned,
             founder,
+            survey: EMPTY_SURVEY,
             panel: 'exited',
             loaded: false,
             saves,
@@ -209,4 +257,27 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
   AwayClosed: () => ({
     model: { ...model, panel: 'none', board: { ...model.board, away: null } },
   }),
+
+  SurveySubmitted: () => submitSurvey(model),
+  SurveySkipped: () => ({
+    model: { ...model, survey: { ...model.survey, status: 'skipped', note: null } },
+  }),
+  // An answer that lands after the player left the exited Company, or skipped, changes nothing.
+  SurveySent: () =>
+    model.board.exited && model.survey.status === 'sending'
+      ? { model: { ...model, survey: { ...model.survey, status: 'sent', note: null } } }
+      : { model },
+  SurveyFailed: ({ message, offline }) =>
+    model.board.exited && model.survey.status === 'sending'
+      ? {
+          model: {
+            ...model,
+            survey: {
+              ...model.survey,
+              status: 'failed',
+              note: offline ? say(model).survey.offline : message,
+            },
+          },
+        }
+      : { model },
 })

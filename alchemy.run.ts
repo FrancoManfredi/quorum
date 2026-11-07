@@ -110,7 +110,8 @@ export default Alchemy.Stack(
     const Results = Cloudflare.D1.Database('Results', { migrations: './apps/backend/migrations' })
     const ApiWorker = Cloudflare.Worker('Api', {
       main: './apps/backend/src/worker.ts',
-      env: { RESULTS: Results, ...sentryEnv },
+      // One database backs both bindings: Challenge results and the Exit survey.
+      env: { RESULTS: Results, FEEDBACK: Results, ...sentryEnv },
       ...apiBuild,
       compatibility: sentryCompatibility,
       observability,
