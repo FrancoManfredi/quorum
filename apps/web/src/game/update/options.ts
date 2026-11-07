@@ -32,31 +32,19 @@ import {
 import { FitBoard } from '../commands.ts'
 import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
-import { Model, boardChallenge, type Tradeoff, type TradeoffOption } from '../model.ts'
+import { Model, boardChallenge, type TradeoffOption } from '../model.ts'
 import { REPEAT_MS } from './constant.ts'
 import { Result } from 'effect'
 import { UNDO_SECONDS } from '../feedback.ts'
 import { alertText, duration, money } from '@quorum/ui/game/format'
-import { has } from '@quorum/simulation/lookups'
 import { isOne } from '../../i18n/plural.ts'
 import { logRunAction, logResponse } from './session.ts'
 import { onBoard } from '../route.ts'
-import { refusal } from '../agent-tools.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
-import {
-  say,
-  sync,
-  withToast,
-  act,
-  nodeName,
-  type MessageCases,
-  type UpdateResult,
-} from './shared.ts'
+import { say, withToast, act, nodeName, type MessageCases, type UpdateResult } from './shared.ts'
 import { serviceOf } from '@quorum/simulation/team'
-import { type Challenge } from '@quorum/simulation/challenges'
 import { type Messages } from '../../i18n/messages.ts'
 import { type Note } from './clock.ts'
-import { type Runtime } from 'foldkit'
 
 /** A Stack choice on this Node starts a migration rather than swapping at once. */
 export const migrates = (game: Game, nodeId: string): boolean =>

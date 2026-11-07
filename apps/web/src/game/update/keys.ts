@@ -1,21 +1,18 @@
 import { CARD_W, CLEARANCE, boxOf, freeSpot, heightOf } from '@quorum/ui/board/geometry'
 import { FocusInspector, ToggleFullscreen } from '../commands.ts'
 import { Message } from '../message.ts'
-import { Model, offCompany, placingOf, stampedPlaybook, type Tradeoff } from '../model.ts'
+import { Model, offCompany, placingOf, stampedPlaybook } from '../model.ts'
 import { NUDGE } from './canvas.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { clockIn } from './shell.ts'
 import { closePanel, type Dispatch, type MessageCases, type UpdateResult } from './shared.ts'
 import { dockGroups, dockItems, playbooksShown, shown } from '../reveal.ts'
-import { found, leaveExited } from './companies.ts'
+import { leaveExited } from './companies.ts'
 import { has } from '@quorum/simulation/lookups'
 import { mailKey } from './mail.ts'
 import { nearestNode, type Direction } from '../viewport.ts'
 import { onBoard } from '../route.ts'
-import { open } from './session.ts'
-import { refusal } from '../agent-tools.ts'
 import { regionView } from '@quorum/simulation/regions'
-import { step } from '@quorum/simulation/step'
 
 export const NUDGES: Record<string, readonly [number, number]> = {
   'Shift+ArrowUp': [0, -NUDGE],

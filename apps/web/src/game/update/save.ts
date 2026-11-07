@@ -22,7 +22,7 @@ import {
   type UpdateResult,
 } from './shared.ts'
 import { listed } from './companies.ts'
-import { open, afterRound } from './session.ts'
+import { afterRound } from './session.ts'
 import { reasonIn } from '../../i18n/refusal.ts'
 import { refusal, stateJson } from '../agent-tools.ts'
 import { solveFlow } from '@quorum/simulation/solve'

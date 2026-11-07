@@ -8,7 +8,6 @@ import {
   RESEARCH,
   TASKS,
 } from '@quorum/simulation/catalog'
-import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
 import { Option } from 'effect'
 import { ResearchMessage, ResearchOutMessage, updateResearch } from '../research.ts'

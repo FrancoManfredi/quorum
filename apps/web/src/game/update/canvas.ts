@@ -10,9 +10,7 @@ import { Result } from 'effect'
 import { capture, SHARED, duplicate, ghostReason, placePlaybook } from '@quorum/simulation/playbook'
 import { isOne } from '../../i18n/plural.ts'
 import { nameIn, reasonIn, refusalIn } from '../../i18n/refusal.ts'
-import { open } from './session.ts'
 import { redoGame, undoGame } from '../feedback.ts'
-import { refusal } from '../agent-tools.ts'
 import { regionView } from '@quorum/simulation/regions'
 import {
   say,
@@ -25,7 +23,6 @@ import {
   type MessageCases,
   type UpdateResult,
 } from './shared.ts'
-import { step } from '@quorum/simulation/step'
 import { type Note } from './clock.ts'
 
 /** The Nodes an edit applies to: the multi-selection, or the one Node open. */

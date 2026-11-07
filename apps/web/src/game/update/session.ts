@@ -3,7 +3,7 @@ import * as Work from '@quorum/simulation/work'
 import { AppRoute, onBoard, urlOf, urlToAppRoute } from '../route.ts'
 import { COMPONENTS, STEP_SECONDS, TASKS } from '@quorum/simulation/catalog'
 import { EMPTY_HISTORY } from '../history.ts'
-import { Founder, completeChallenge } from '@quorum/simulation/founder'
+import { completeChallenge } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
 import {
@@ -15,7 +15,6 @@ import {
   boardSandbox,
   type Board,
   type ChallengeRun,
-  type Menu,
   type SandboxRun,
 } from '../model.ts'
 import {
@@ -45,7 +44,7 @@ import { boxOf, freeSpot, type Box } from '@quorum/ui/board/geometry'
 import { challengeAchievements } from '@quorum/simulation/achievements'
 import { challengeStep } from '../challenge-machine.ts'
 import { designOf, encodeReplay, type ReplayAction, type Response } from '@quorum/simulation/replay'
-import { found, leaveExited } from './companies.ts'
+import { leaveExited } from './companies.ts'
 import { freeSandbox, GUIDED, sandboxOf, START } from '@quorum/simulation/sandbox'
 import {
   freshBoard,
@@ -67,7 +66,6 @@ import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { reasonIn } from '../../i18n/refusal.ts'
 import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
-import { step } from '@quorum/simulation/step'
 import { traced } from '../../platform/sentry.ts'
 import { type Url } from 'foldkit/url'
 

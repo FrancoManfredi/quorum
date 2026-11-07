@@ -2,11 +2,9 @@ import * as Work from '@quorum/simulation/work'
 import { AppendLog, ComputePreview, WritePrefs } from '../commands.ts'
 import { Model, type Tradeoff, type TradeoffOption } from '../model.ts'
 import { Result } from 'effect'
-import { closed } from '../inbox.ts'
 import { line } from '../telemetry.ts'
 import { migrates, optionMessage } from './options.ts'
 import { optionAction } from '@quorum/ui/board/jobs'
-import { refusal } from '../agent-tools.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import {
   say,

@@ -1,8 +1,8 @@
 import * as Actions from '@quorum/simulation/actions'
-import { EMPTY_HISTORY, record } from '../history.ts'
+import { EMPTY_HISTORY } from '../history.ts'
 import { EMPTY_INBOX, savedInbox } from '../inbox.ts'
 import { EMPTY_RESEARCH } from '../research.ts'
-import { Founder, discoverTerm, earnAchievements } from '@quorum/simulation/founder'
+import { discoverTerm, earnAchievements } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
 import {
@@ -15,7 +15,6 @@ import {
   boardChallenge,
   ANNOTATION_GROUPS,
   type Board,
-  type Inbox,
   type Tone,
 } from '../model.ts'
 import { Result } from 'effect'
@@ -32,23 +31,18 @@ import {
 import { beginChange, figuresOf, pushUndo, snapshotOf, type Reversal } from '../feedback.ts'
 import { copyIn, type Messages } from '../../i18n/messages.ts'
 import { countStats, detectAchievements } from '@quorum/simulation/achievements'
-import { cueNode, shown } from '../reveal.ts'
+import { cueNode } from '../reveal.ts'
 import { discoverTerms } from '@quorum/simulation/discovery'
 import { eraReachedOf, line } from '../telemetry.ts'
 import { fileOf, refreshedIndex } from '../saves.ts'
 import { ghostReason } from '@quorum/simulation/playbook'
-import { has } from '@quorum/simulation/lookups'
 import { initTeam } from '../team.ts'
 import { nodeLabel, normalizeOrdinals } from '@quorum/simulation/labels'
 import { onBoard } from '../route.ts'
-import { open } from './session.ts'
 import { reasonIn, refusalIn } from '../../i18n/refusal.ts'
-import { refusal } from '../agent-tools.ts'
 import { solveFlow } from '@quorum/simulation/solve'
-import { tick } from './clock.ts'
 import { type AchievementId } from '@quorum/simulation/catalog'
 import { type ApiRpc } from '@/platform/rpc.ts'
-import { type Challenge } from '@quorum/simulation/challenges'
 import { type Ledger } from '@quorum/simulation/ledger'
 
 export type UpdateResult = Update.Return<Model, Message, ApiRpc>

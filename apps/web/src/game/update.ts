@@ -1,24 +1,19 @@
 import { AppRoute, menuFor, onBoard, urlOf, urlToAppRoute } from './route.ts'
 import { DEFAULT_LOGO } from './logos.ts'
 import { EMPTY_SAVE_INDEX } from './saves.ts'
-import { Game } from '@quorum/simulation/state'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import {
   LoadFounder,
   LoadSaves,
   AppendLog,
   ConnectBoard,
-  FitBoard,
   LoadPrefs,
   LoadSandboxStore,
   PlaySound,
   PushUrl,
   ReplaceUrl,
-  SyncBoard,
 } from './commands.ts'
 import { Message } from './message.ts'
-import { Result } from 'effect'
-import { TICK_MS, REPEAT_MS, SPEEDS, speedsOf } from './update/constant.ts'
 import { bootStep } from './boot-machine.ts'
 import { contextOf, diffOf, line } from './telemetry.ts'
 import { cueNode, noticed } from './reveal.ts'
@@ -27,14 +22,11 @@ import { emptyFounder } from '@quorum/simulation/founder'
 import { freshBoard, milestones, sync, type UpdateResult } from './update/shared.ts'
 import { has } from '@quorum/simulation/lookups'
 import { histogramQuery } from './challenge-query.ts'
-import { histograms } from './update/session.ts'
 import { ledgerOf, Model, halted } from './model.ts'
-import { moreMenu } from './more.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
 import { type Ledger } from '@quorum/simulation/ledger'
 import { type LogEntry } from './playlog.ts'
-import { type Messages } from '../i18n/messages.ts'
 import { type Runtime } from 'foldkit'
 import { companiesHandlers } from './update/companies.ts'
 import { sessionHandlers } from './update/session.ts'

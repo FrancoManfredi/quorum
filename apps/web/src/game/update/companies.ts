@@ -37,15 +37,14 @@ import {
   type MessageCases,
   type UpdateResult,
 } from './shared.ts'
-import { historyOfSave, record } from '../history.ts'
+import { historyOfSave } from '../history.ts'
 import { inboxOfSave, mailed } from '../inbox.ts'
 import { ipoExit } from '@quorum/simulation/exit'
-import { ledgerOf, Model, currentFile, type Inbox, type Menu } from '../model.ts'
+import { ledgerOf, Model, currentFile, type Menu } from '../model.ts'
 import { line } from '../telemetry.ts'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
-import { open, continued } from './session.ts'
-import { refusal } from '../agent-tools.ts'
+import { continued } from './session.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { revealAtStart, revealsOfSave } from '../reveal.ts'
 import { solveFlow } from '@quorum/simulation/solve'

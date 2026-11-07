@@ -1,8 +1,6 @@
 import { DILATION_SPEEDS } from '@quorum/simulation/catalog'
 import { Game } from '@quorum/simulation/state'
 import { perkLevel } from '@quorum/simulation/founding'
-import { tick } from './clock.ts'
-import { type Ledger } from '@quorum/simulation/ledger'
 
 /** The UI reads the Ledger four times a second; the Simulation steps every 100 ms of sim time. */
 export const TICK_MS = 250
