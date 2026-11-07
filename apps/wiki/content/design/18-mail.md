@@ -220,8 +220,9 @@ their language, their seniority, and the state of the Design.
 | Burnout and quitting | Long freeze, many pages, or a pay gap                                                              | Give time off, Raise salary, Accept resignation    |
 | Proposal to patch    | A CVE affects a service the engineer owns                                                          | Patch now, Queue the patch, Open Team              |
 
-The world event draws only a hire request or a rewrite proposal. A block, a slump, and a CVE
-proposal come from the Step, not the event tick. The incident follow-up Mail carries File postmortem
+The world event draws only a hire request or a rewrite proposal, and only when its trigger holds:
+15 of every 100 draws go to a teammate, and a draw whose trigger does not hold sends nothing. A
+block, a slump, and a CVE proposal come from the Step, not the event tick. The incident follow-up Mail carries File postmortem
 and File and research the action item.
 
 ### Blocked
@@ -284,6 +285,11 @@ A rewrite proposal turns the "big rewrite" trap
   **Decline** keeps the service. There is no Later: a proposal carries two buttons.
 - The engineer's mood moves with the answer. A declined senior engineer who has asked three times
   may write a resignation.
+- A proposal needs a reason. It comes only when a Service's tech debt is at 0.25 or more, or
+  Apdex is below 0.9, and no migration is under way. An engineer never proposes the language the
+  App Servers already run, so a Company on Go gets no Go proposal.
+- An engineer asks once and waits. While their proposal sits in Needs action, unanswered and not
+  in Trash, they send no other, so the thread does not fill with the same pitch.
 - A right proposal is common, and a wrong one sounds just as sure. The player judges it from the
   numbers in the Mail and on the Board: p99, errors, tech debt, velocity.
 
@@ -346,8 +352,9 @@ Real inboxes are mostly noise, and the Spam folder makes the player read. It als
 and one gift.
 
 - **Spam arrives from Pre-seed on, at a fixed rate.** Every 45 sim seconds the Company's seed draws
-  one world event, and 45 of every 100 draws are spam. The rate does not grow with Users or press.
-  The spam is flavour with a purpose: it fills the Inbox with sound.
+  one world event, and 20 of every 100 draws are spam, which is about one piece every four minutes
+  of sim time. The rate does not grow with Users or press. The spam is flavour with a purpose: it
+  fills the Inbox with sound, but not so much that real Mail drowns in it.
 - **The spam filter is a research.** `spam-filter` adds a Postbox setting, on by default once
   researched. With the filter on, every piece of spam is written straight into the Spam folder, and
   now and then a real security advisory goes with it. Without the research, spam lands in the folder
@@ -604,7 +611,8 @@ Teammates draw a name from a pool and keep it for life.
   Queue the patch, and Open Team). The Team panel shows each live Feature's adopted share and its
   measured lift, and the share of Dev Hours that upkeep takes.
 - **World events:** every 45 sim seconds from Pre-seed, the Company's seed draws spam, a
-  teammate (hire request or rewrite proposal), or a customer. A customer sends a slow-page ticket
+  teammate (hire request or rewrite proposal, each only when its trigger holds), or a customer.
+  Over half of the draws send nothing. A customer sends a slow-page ticket
   when a page is slow, and otherwise asks for a Feature.
 - **CVEs:** every 420 sim seconds the Simulation discloses one CVE that affects a Component the
   Design runs, as a patch ticket. Security writes the advisory. "Rush patch" sends the rush Action,

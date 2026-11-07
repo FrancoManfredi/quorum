@@ -2,7 +2,7 @@ import { Result } from 'effect'
 import { expect, test } from 'vitest'
 import * as Actions from '@quorum/simulation/actions'
 import { preseedGame } from '@quorum/simulation/company'
-import type { Postmortem } from '@quorum/simulation/state'
+import { NEW_ENGINEER, type Game, type Postmortem } from '@quorum/simulation/state'
 import {
   DIGEST_ID,
   EMPTY_INBOX,
@@ -15,7 +15,7 @@ import {
   savedInbox,
   updateInbox,
 } from './inbox.ts'
-import { postmortemFact, senderOf } from './mail.ts'
+import { eventMail, postmortemFact, senderOf } from './mail.ts'
 import type { Fact } from './mail.ts'
 import type { Inbox, Model } from './model.ts'
 import { AppRoute } from './route.ts'
@@ -285,4 +285,55 @@ test('paying a fake invoice costs the Cash printed on it', () => {
   expect(paid.board.game.cash).toBe(rich.cash - 4_812)
   // The Mail keeps the record of what the click cost.
   expect(answerOf(paid.board.inbox.mail[0])).toContain('It was a trap')
+})
+
+test('a rewrite proposal needs a reason and never names the language the App Servers run', () => {
+  const base = preseedGame()
+  const onGo = (debt: number): Game => ({
+    ...base,
+    apdex: 1,
+    backlog: [],
+    engineers: ['e1', 'e2', 'e3'].map((id) => ({
+      ...NEW_ENGINEER,
+      id,
+      team: 'product',
+      language: 'go' as const,
+      hiredAt: 0,
+    })),
+    nodes: base.nodes.map((node) => (node.type === 'server' ? { ...node, runtime: 'go' } : node)),
+    services: base.services.map((service) => ({ ...service, debt, migration: null })),
+  })
+  const proposals = (game: Game) =>
+    Array.from({ length: 2_000 }, (_, bucket) => eventMail(game, bucket)).filter((fact) =>
+      fact?.key.startsWith('team:rewrite:'),
+    )
+
+  const indebted = proposals(onGo(0.5))
+  expect(indebted.length).toBeGreaterThan(0)
+  expect(indebted.flatMap((fact) => fact?.actions.map((action) => action.id))).not.toContain(
+    'rewrite:Go',
+  )
+  expect(proposals(onGo(0))).toEqual([])
+
+  // While a proposal waits for an answer, its engineer stays quiet; once answered, they may ask again.
+  const send = (inbox: Inbox, from: number, to: number): Inbox => {
+    let next = inbox
+    for (let bucket = from; bucket < to; bucket += 1) {
+      const fact = eventMail(onGo(0.5), bucket, next.mail)
+      if (fact?.key.startsWith('team:rewrite:')) next = mailed(next, fact, bucket, false)
+    }
+    return next
+  }
+  const waiting = send(EMPTY_INBOX, 0, 2_000)
+  expect(waiting.mail.length).toBeGreaterThan(0)
+  expect(waiting.mail.map((mail) => mail.entries.length)).toEqual(waiting.mail.map(() => 1))
+  const answered: Inbox = {
+    ...waiting,
+    mail: waiting.mail.map((mail) => ({
+      ...mail,
+      phase: { _tag: 'Answered', answer: 'Declined.', answerId: '' },
+    })),
+  }
+  const asked = send(answered, 2_000, 4_000)
+  expect(asked.mail.some((mail) => mail.entries.length === 2)).toBe(true)
 })

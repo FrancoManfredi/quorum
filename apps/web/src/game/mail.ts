@@ -14,6 +14,7 @@ import {
   FEATURES,
   INCIDENTS,
   KINDS,
+  LANGUAGES,
   REGION_INFO,
   RESEARCH,
   patchCost,
@@ -29,7 +30,7 @@ import { compact, money } from '@quorum/ui/game/format'
 import type { WorkItem } from '@quorum/simulation/state'
 import type { StudyStall } from '@quorum/simulation/studies'
 import { stallReason } from '@quorum/ui/game/pools'
-import { unhappy } from '@quorum/simulation/team'
+import { languageOfService, unhappy } from '@quorum/simulation/team'
 import { featureRefusal, itemName } from '@quorum/simulation/work'
 import {
   ADVICE,
@@ -342,10 +343,27 @@ const hireFact = (game: Game, mate: string, salt: number): Fact => {
   ])
 }
 
-const rewriteFact = (game: Game, mate: string, salt: number): Fact => {
+/**
+ * A rewrite proposal (18 "Teammates"): only when a Service has high tech debt or slow pages, no
+ * migration is under way, and the engineer's language is not what the App Servers run already.
+ * An engineer whose last proposal still waits for an answer does not ask again.
+ */
+const rewriteFact = (
+  game: Game,
+  mate: string,
+  salt: number,
+  inbox: ReadonlyArray<Mail>,
+): Fact | null => {
   const key = `team:rewrite:${mate}`
+  if (inbox.some((mail) => mail.key === key && !mail.trashed && needsAction(mail))) return null
+  if (!game.nodes.some((node) => node.type === 'server')) return null
+  if (game.services.some((service) => service.migration !== null)) return null
+  if (game.apdex >= 0.9 && !game.services.some((service) => service.debt >= 0.25)) return null
+  const current = LANGUAGES[languageOfService(game)].name
+  const open = REWRITES.filter((entry) => entry.language !== current)
+  if (open.length === 0) return null
   // An engineer falls for one language and stays with it.
-  const rewrite = pick(REWRITES, mate, 'rewrite')
+  const rewrite = pick(open, mate, 'rewrite')
   return fact(
     key,
     mate,
@@ -512,21 +530,29 @@ const spamFact = (pitch: Pitch, game: Game, salt: number): Fact => {
 /**
  * What the world writes at one event tick: a teammate, a customer, or spam. A CVE
  * is not drawn here: the Simulation discloses it as a patch ticket. Drawn from the Company's seed, so it is the same on every device.
- * Mail changes nothing in the Simulation until the player presses a button.
+ * Mail changes nothing in the Simulation until the player presses a button. `inbox` is the Mail
+ * already sent, so a question that still waits for an answer is not asked again.
  */
-export const eventMail = (game: Game, bucket: number): Fact | null => {
+export const eventMail = (
+  game: Game,
+  bucket: number,
+  inbox: ReadonlyArray<Mail> = [],
+): Fact | null => {
   const draw = hashOf(game.seed, bucket)
   const roll = draw % 100
   const at = draw >>> 8
   const mate = game.engineers.length > 0 ? mateOf(game, at) : null
 
-  if (roll < 30 && mate)
-    return game.backlog.length >= 3 && game.hires.length === 0
-      ? hireFact(game, mate, at)
-      : rewriteFact(game, mate, at)
+  // A teammate writes only when what they write about is true; otherwise the draw sends nothing.
+  if (roll < 15)
+    return mate === null
+      ? null
+      : game.backlog.length >= 3 && game.hires.length === 0
+        ? hireFact(game, mate, at)
+        : rewriteFact(game, mate, at, inbox)
   // A customer writes when a page is slow; with nothing slow, a big one asks for a Feature.
-  if (roll < 40) return game.apdex < 0.9 ? customerFact(game, at) : requestFact(game, at)
-  if (roll < 85) return spamFact(pick(SPAM, at), game, at)
+  if (roll < 25) return game.apdex < 0.9 ? customerFact(game, at) : requestFact(game, at)
+  if (roll < 45) return spamFact(pick(SPAM, at), game, at)
   return null
 }
 

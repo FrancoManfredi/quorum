@@ -711,7 +711,7 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   // The world writes too: teammates, CVEs, customers, and spam.
   const bucket = Math.floor(game.time / EVENT_EVERY)
   if (!offCompany(next) && game.stage >= 1 && bucket > next.board.inbox.bucket) {
-    const event = eventMail(game, bucket)
+    const event = eventMail(game, bucket, next.board.inbox.mail)
     next = { ...next, board: { ...next.board, inbox: { ...next.board.inbox, bucket } } }
     if (event) next = mailedTo(next, event, game.time)
   }
