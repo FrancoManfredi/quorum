@@ -3,7 +3,7 @@ title: The Inspector
 summary: The panel that opens when you select a Node. Its warnings, Resources gauges, Instance sizes, Calls (Link settings and policies), and Upgrade all.
 section: play
 order: 7
-aliases: inspector, resources, instance, calls, link policy, link settings, timeout, retries, breaker, bulkhead, hedge, upgrade all, restart, drain
+aliases: inspector, why it is busy, load change, cost receipt, resources, instance, calls, link policy, link settings, timeout, retries, breaker, bulkhead, hedge, upgrade all, restart, drain
 gdd: /design/15-ui-ux
 ---
 
@@ -41,6 +41,16 @@ The first bar is the goal bar, named **Limit · CPU** or the resource that caps 
 When a limit has no gauge, the goal bar says so, for example **Disk IOPS · no gauge**. **Nothing tight** in green means no limit is close.
 
 Read it like this: the warning box names the symptom, the goal bar names the limit, and the gauge shows how far along it is. Buying **Larger** when the goal bar names **Connections** or **Workers busy** spends Cash on CPU that does not fix either cap.
+
+## Why it is busy
+
+**Traffic & load** explains the load as well as showing it. **Load change** says whether the load rose
+because more requests arrive, each request costs more, or the Node has less capacity. Research adds
+detail: [Metrics](/research/metrics) gives the change in points, [Distributed tracing](/research/tracing)
+adds **Amplification** and **Slowest call**, and [Profiling](/research/profiling) adds each operation's
+work share, the **Cost per request** receipts, and **What if** rows. Each block has a **Why?** link to
+[Find the bottleneck](/guides/find-the-bottleneck#find-out-why-it-is-busy), which explains what each
+cause means and what fixes it.
 
 ## Instance
 

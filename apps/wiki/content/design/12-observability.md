@@ -261,7 +261,7 @@ shows.
 | ---- | ----------- | ----------------------------------------------------------------------------------------------------- |
 | 0    | None        | The Load change line, in words only.                                                                  |
 | 2    | `metrics`   | The Load change line with numbers, and a marker on Traffic & load where the cost per request changed. |
-| 5    | `tracing`   | Amplification, and the Load change line names the Node that the busy Node waits on.                   |
+| 5    | `tracing`   | Amplification, and a Slowest call row: the Node this one calls that adds the most time.               |
 | 7    | `profiling` | Work share and the Cost receipt. What-if rows.                                                        |
 
 ### Load change
@@ -275,7 +275,15 @@ Load 62% → 91%   demand +12 pts · cost per request +20 pts · capacity −3 p
 ```
 
 The parts add up to the change in utilization. The split uses the logarithm of each factor, because
-utilization is demand × cost ÷ capacity, so the three parts stay additive.
+utilization is demand × cost ÷ capacity, so the three parts stay additive. Cost counts in the unit of
+the resource whose utilization is the Node's: core-ms, worker time, network bytes, or disk
+operations. That resource can differ from the limit the card names: a Database whose working set
+misses RAM names Disk while its CPU is full. When the resource changes between the two samples, the
+part that demand does not explain counts as cost.
+
+A cost per request that moves by a sixth or more between two samples puts a dashed marker on the
+Traffic & load chart, so the player can find the moment a Feature, an incident, or a cold restart
+made each request heavier.
 
 At step 0, the line shows only the largest part in words: "More traffic", "Each request costs more",
 or "Less capacity". That is the one free answer to "why", and it keeps the game playable without
@@ -295,9 +303,9 @@ q-read 1,200/s at Database
 
 - Each row is one Request kind the Users send, its rate, and the calls one request of it makes to this
   Node.
-- Retries and Cache misses show as shares of the rows. A rising retry share is the first sign of a
+- Retries and hedged copies show as one share of the inbound, and so do Cache misses: the calls that
+  reach the Node from a Cache or CDN in front of it. A rising retry share is the first sign of a
   Retry storm. A rising miss share shows a cold or too-small Cache.
-- A row opens the Waterfall of its Request kind.
 
 ### Work share and the Cost receipt
 
@@ -305,25 +313,28 @@ Shares of incoming traffic are not shares of work. On a Database, a `q-scan` tha
 requests can take 60% of the CPU. Work share adds a column next to each traffic share: the kind's
 rate times its cost per request, as a share of the limiting resource.
 
-The Cost receipt opens from a kind's row. It lists the base cost per request and each factor that
+The Cost receipt opens from a kind's row under Cost per request. It lists the base cost per request and each factor that
 multiplies it, in the order the simulation applies them:
 
 ```text
 q-read on Database
-  base                         2.0 ms
-  × Table bloat                1.4
-  × Hot key                    1.8
-  × cold buffer cache          1.5
-  = 7.6 ms per request         58% of CPU
+  Base                                 8.00 ms
+  × Report scans in the buffer cache   1.3
+  × Table bloat                        2
+  = 20.8 ms · 58% of CPU
 ```
 
-The receipt lists every factor from the capacity model that is not 1: runtime speed, framework
-overhead, serialization, auth checks, noisy neighbours, shard fan-out, Hot keys, Table bloat, buffer
-cache eviction, disk reads, and incident effects such as Event loop block. A factor below 1, such as
+The receipt lists every factor from the capacity model that is not 1: the runtime and its speed-ups,
+cold starts, framework overhead, serialization, token checks, Analytics sampling, noisy neighbours,
+swapping and garbage collection, and on a Database the unindexed scan, Features, Indexes, shard
+fan-out, Hot shard, Table bloat, buffer cache eviction, and disk reads. A factor below 1, such as
 Denormalization on reads, shows too, so the player sees what a past fix earns.
 
-The Ledger carries the receipt per Node and kind: each named factor and their product. The product
-is the same cost that sets Capacity, and a test holds the two equal.
+App Servers, Workers, Databases, and Read Replicas carry receipts. The receipt is CPU time even when
+another resource limits the Node, because CPU is where the factors act. The Ledger carries it per
+Node and kind, and the server model's receipt is built in the same arithmetic as the cost it
+explains, so its lines reach exactly the cost that sets Capacity. A test replays every receipt to
+hold the two equal.
 
 ### What-if rows
 
@@ -331,19 +342,24 @@ A what-if row shows the Node's utilization after one change the player can make 
 solve ([The Tradeoff preview](/design/15-ui-ux#tradeoff-cards)):
 
 ```text
-+1 copy               91% → 48%
-Larger Cache          91% → 51%
-Retries off           91% → 77%
+Larger Database       149% → 74%
+Larger App Server     149% → 183%
 ```
 
-A row offers only changes that are unlocked and legal on this Design. The rows are sorted by the
-change they make, and none is marked as the answer. The player still decides whether the cheapest row
-is worth its Burn.
+The rows try one size up on the Node, on each Cache or CDN in front of it, and on the busiest Node it
+calls, and Retries off on the Links into it. A row offers only changes the game would accept now, so
+a locked or unaffordable change has no row. The rows are sorted by the load they leave, and none is
+marked as the answer. The player still decides whether the cheapest row is worth its Burn.
+
+The example is a Pre-seed App Server out of worker slots: a larger App Server lets more requests
+through to a Database that is already slow, so its own load rises. Each row is a ghost run, so the
+rows refresh every 5 sim seconds, only for a selected Node at 70% load or more.
 
 ### The agent tool
 
-`explainNode` in `agent-tools.ts` returns the same diagnosis as data. It reads only what the player
-can see at their current step, so the agent cannot see further than the player.
+`explain_node` returns the same diagnosis as data. It reads only what the player can see at their
+current step, so the agent cannot see further than the player, and `get_design` leaves the diagnosis
+fields out of each Node's Ledger.
 
 ## The Dashboard
 
