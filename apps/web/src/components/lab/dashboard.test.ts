@@ -105,11 +105,10 @@ const threadOf = (
   time: times[times.length - 1] ?? 0,
   entries: times.map((time) => ({ time, text: '…' })),
   actions: [],
-  answer,
+  phase: answer === null ? { _tag: 'Active' } : { _tag: 'Answered', answer, answerId: '' },
   read: true,
   trashed: false,
   spam: false,
-  resolved: null,
 })
 
 /** One design change, as the undo stack records it. */
@@ -628,8 +627,7 @@ test('the Company row draws the bridge offer’s terms, and taking it pays the g
     game: {
       cash: -2_000,
       equity: 0.81,
-      bridge: { grant: 6_000, dilution: 0.08 },
-      bridgeUsed: true,
+      bridge: { _tag: 'Offered', grant: 6_000, dilution: 0.08 },
     },
   })
   Scene.scene(
@@ -642,7 +640,7 @@ test('the Company row draws the bridge offer’s terms, and taking it pays the g
   const took = update(model, Message.BridgeAccepted())
   expect(took.model.board.game.cash).toBe(4_000)
   expect(took.model.board.game.equity).toBeCloseTo(0.81 * 0.92, 6)
-  expect(took.model.board.game.bridge).toBeNull()
+  expect(took.model.board.game.bridge).toEqual({ _tag: 'Taken' })
 })
 
 test('the Company row lists each funding round with the Inbox’s answer', () => {
@@ -996,11 +994,10 @@ const finishedOf = (entries: ReadonlyArray<readonly [number, string]>): Mail => 
     text: `Hey,\n\n${item} is done. Finished it just now.\n\nTests were green.`,
   })),
   actions: [],
-  answer: null,
+  phase: { _tag: 'Active' },
   read: true,
   trashed: false,
   spam: false,
-  resolved: null,
 })
 
 /** One 15-minute block of the Dashboard's own history, holding the means the Charts read. */

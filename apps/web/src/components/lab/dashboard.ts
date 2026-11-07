@@ -45,6 +45,7 @@ import {
   type AnnotationGroup,
   type Mail,
   type Model,
+  clockPaused,
   ledgerOf,
   boardSandbox,
 } from '@/game/model.ts'
@@ -312,9 +313,9 @@ const fundingOf = (model: Model): ReadonlyArray<FundingRound> => {
       dilution: dilutionOf(game, era.dilution),
       answer: ipo
         ? 'listed'
-        : mail?.answer === 'You raised the round.'
+        : mail?.phase._tag === 'Answered' && mail.phase.answer === 'You raised the round.'
           ? 'raised'
-          : mail?.answer === 'You declined the round.'
+          : mail?.phase._tag === 'Answered' && mail.phase.answer === 'You declined the round.'
             ? 'declined'
             : null,
       when: at === undefined ? '—' : t.dashboard.dayAt(clockOf(at.time).day, hhmm(at.time)),
@@ -2145,7 +2146,7 @@ const companyPanels = (
       ? [[t.dashboard.sLACredits, `−${t.units.perSecond(money(credits))}`] as const]
       : []),
     // Cash is short and the investors' bridge waits: its terms and the way to take it (09).
-    ...(game.bridge
+    ...(game.bridge._tag === 'Offered'
       ? [
           [
             t.dashboard.bridge,
@@ -3458,13 +3459,13 @@ const topBar = (model: Model, h: HtmlBuilder<Message>): Html => {
                 cn(
                   FIGURE,
                   'flex h-7 items-center gap-2 rounded-lg bg-raised px-2.5 text-[calc(12px*var(--type-scale))] shadow-raised',
-                  model.board.clock.paused ? 'text-muted-foreground' : 'text-foreground',
+                  clockPaused(model) ? 'text-muted-foreground' : 'text-foreground',
                 ),
               ),
             ],
             [
-              led(model.board.clock.paused ? MUTED : GREEN, h),
-              model.board.clock.paused
+              led(clockPaused(model) ? MUTED : GREEN, h),
+              clockPaused(model)
                 ? t.dashboard.paused
                 : t.dashboard.liveD(
                     now.day,

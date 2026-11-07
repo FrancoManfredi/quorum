@@ -1,7 +1,7 @@
 import { canRaise } from '@quorum/simulation/actions'
 import { senderOf } from './mail.ts'
 import type { Message } from './message.ts'
-import { placingOf, boardSandbox, type Model, type Tone } from './model.ts'
+import { clockPaused, placingOf, boardSandbox, type Model, type Tone } from './model.ts'
 import { onBoard } from './route.ts'
 import type { Sound } from './sound.ts'
 
@@ -104,7 +104,7 @@ const gestureCue = (before: Model, message: Message, after: Model): Cue | null =
     case 'PostmortemFiled':
       return message.take ? gesture('unlock') : gesture('close')
     case 'PauseToggled':
-      return gesture('toggle', after.board.clock.paused ? 0.8 : 1.15)
+      return gesture('toggle', clockPaused(after) ? 0.8 : 1.15)
     case 'SpeedCycled':
     case 'SpeedChosen':
       return gesture('tick', SPEED_PITCH[after.board.clock.speed] ?? 1)
@@ -142,8 +142,15 @@ const tickCue = (before: Model, after: Model): Cue | null => {
       ['cloud', 'monitoring', 'security'].includes(senderOf(mail.sender).kind),
   )
   if (urgent) return event('warn')
-  if (after.board.delta && after.board.delta.id !== before.board.delta?.id)
-    return after.board.delta.worse ? event('warn') : event('settle')
+  const delta =
+    after.board.change._tag === 'Settled' || after.board.change._tag === 'Lasting'
+      ? after.board.change.delta
+      : null
+  const beforeDelta =
+    before.board.change._tag === 'Settled' || before.board.change._tag === 'Lasting'
+      ? before.board.change.delta
+      : null
+  if (delta && delta.id !== beforeDelta?.id) return delta.worse ? event('warn') : event('settle')
   return null
 }
 

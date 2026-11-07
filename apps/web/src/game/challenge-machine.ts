@@ -1,5 +1,5 @@
+import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
-import { define, to } from 'foldkit/experimental/machine'
 import { ChallengeVerdict } from '@quorum/rpc'
 import {
   ChallengeResult,
@@ -9,12 +9,12 @@ import {
 } from '@quorum/simulation/challenges'
 import { Replay, ReplayAction } from '@quorum/simulation/replay'
 import { Game } from '@quorum/simulation/state'
+import { planState } from './machine.ts'
 
 /* ==========================================================================
    A Challenge run is a flow, not a bag of nullable fields. Building has no
    replay, Running has no result, and a verification can only land on a
-   Result. The union makes the other combinations unrepresentable, and the
-   Machine below is the only place a phase changes.
+   Result.
    ========================================================================== */
 
 /** Where a Challenge result stands with the server: provisional until it confirms. */
@@ -27,61 +27,58 @@ export const Verification = Schema.Literals([
 ])
 export type Verification = typeof Verification.Type
 
-/** The player builds on a live preview, then Run replays the Design from t = 0. */
-export const ChallengeRun = Schema.Union([
-  /** The Design is open for edits; nothing has been scored. */
-  Schema.TaggedStruct('Building', {
-    id: Schema.String,
-    totals: RunTotals,
-  }),
-  /** The replay runs. The Design is fixed until Rebuild. */
-  Schema.TaggedStruct('Running', {
-    id: Schema.String,
-    totals: RunTotals,
-    /** The build board at Run, restored by Rebuild. */
-    board: Game,
-    /** The Design at Run, and the actions logged since. */
-    replay: Replay,
-  }),
-  /** The run is scored, and the server is confirming it. */
-  Schema.TaggedStruct('Result', {
-    id: Schema.String,
-    totals: RunTotals,
-    board: Game,
-    replay: Replay,
-    result: ChallengeResult,
-    /** The server's verdict, once it answers. */
-    verdict: Schema.NullOr(ChallengeVerdict),
-    verification: Verification,
-    /** Why the server did not confirm, when it did not. */
-    note: Schema.NullOr(Schema.String),
-  }),
-])
+export const Building = Schema.TaggedStruct('Building', {
+  id: Schema.String,
+  totals: RunTotals,
+})
+export const Running = Schema.TaggedStruct('Running', {
+  id: Schema.String,
+  totals: RunTotals,
+  /** The build board at Run, restored by Rebuild. */
+  board: Game,
+  /** The Design at Run, and the actions logged since. */
+  replay: Replay,
+})
+export const Result = Schema.TaggedStruct('Result', {
+  id: Schema.String,
+  totals: RunTotals,
+  board: Game,
+  replay: Replay,
+  result: ChallengeResult,
+  /** The server's verdict, once it answers. */
+  verdict: Schema.NullOr(ChallengeVerdict),
+  verification: Verification,
+  /** Why the server did not confirm, when it did not. */
+  note: Schema.NullOr(Schema.String),
+})
+export const ChallengeRun = Schema.Union([Building, Running, Result])
 export type ChallengeRun = typeof ChallengeRun.Type
 /** A scored run: the only phase with a result and a verification. */
 export type ChallengeResultRun = Extract<ChallengeRun, Readonly<{ _tag: 'Result' }>>
 /** A run in progress: the only phase with a replay and a build board. */
 export type ChallengeRunningRun = Extract<ChallengeRun, Readonly<{ _tag: 'Running' }>>
 
-/** Everything that can happen to an open Challenge. The phase itself is not one. */
+export const Run = Schema.TaggedStruct('Run', {
+  board: Game,
+  replay: Replay,
+})
+export const Ticked = Schema.TaggedStruct('Ticked', { totals: RunTotals })
+export const ActionLogged = Schema.TaggedStruct('ActionLogged', { action: ReplayAction })
+export const Finished = Schema.TaggedStruct('Finished', { result: ChallengeResult })
+export const Rebuilt = Schema.TaggedStruct('Rebuilt', {})
+export const Verified = Schema.TaggedStruct('Verified', { verdict: ChallengeVerdict })
+export const Unverified = Schema.TaggedStruct('Unverified', {
+  message: Schema.String,
+  offline: Schema.Boolean,
+})
 export const ChallengeEvent = Schema.Union([
-  /** The player presses Run: the prepared replay starts from t = 0. */
-  Schema.TaggedStruct('Run', {
-    board: Game,
-    replay: Replay,
-  }),
-  /** The clock advances the run by some Steps. */
-  Schema.TaggedStruct('Ticked', { totals: RunTotals }),
-  /** An incident response or restart is logged at the next Step. */
-  Schema.TaggedStruct('ActionLogged', { action: ReplayAction }),
-  /** The last Step is done: the run is scored. */
-  Schema.TaggedStruct('Finished', { result: ChallengeResult }),
-  /** The player goes back to the build board. */
-  Schema.TaggedStruct('Rebuilt', {}),
-  /** The server confirmed the result. */
-  Schema.TaggedStruct('Verified', { verdict: ChallengeVerdict }),
-  /** The server did not confirm, or could not be reached. */
-  Schema.TaggedStruct('Unverified', { message: Schema.String, offline: Schema.Boolean }),
+  Run,
+  Ticked,
+  ActionLogged,
+  Finished,
+  Rebuilt,
+  Verified,
+  Unverified,
 ])
 export type ChallengeEvent = typeof ChallengeEvent.Type
 
@@ -105,72 +102,89 @@ const scored = (state: ChallengeRunningRun, result: ChallengeResultType): Challe
   note: null,
 })
 
-export const challengeMachine = define({
-  state: ChallengeRun,
-  message: ChallengeEvent,
-})({
-  initial: building(''),
+const States = Machine.state({ states: { Building, Running, Result } })
+
+const Events = Machine.events({
+  Run: { board: Game, replay: Replay },
+  Ticked: { totals: RunTotals },
+  ActionLogged: { action: ReplayAction },
+  Finished: { result: ChallengeResult },
+  Rebuilt: {},
+  Verified: { verdict: ChallengeVerdict },
+  Unverified: { message: Schema.String, offline: Schema.Boolean },
+})
+
+export const challengeMachine = Machine.make({ root: States, events: Events }).handle({
+  initial: { target: 'Building', data: { id: '', totals: NO_TOTALS } },
   states: {
     Building: {
       on: {
-        Run: to('Running', ({ state, message }) => ({
-          model: {
+        Run: {
+          target: 'Running',
+          data: ({ state, event }) => ({
             _tag: 'Running',
             id: state.id,
             totals: NO_TOTALS,
-            board: message.board,
-            replay: message.replay,
-          },
-        })),
+            board: event.board,
+            replay: event.replay,
+          }),
+        },
       },
     },
     Running: {
       on: {
-        Ticked: to('Running', ({ state, message }) => ({
-          model: { ...state, totals: message.totals },
-        })),
-        ActionLogged: to('Running', ({ state, message }) => ({
-          model: {
+        Ticked: {
+          target: 'Running',
+          data: ({ state, event }) => ({ ...state, totals: event.totals }),
+        },
+        ActionLogged: {
+          target: 'Running',
+          data: ({ state, event }) => ({
             ...state,
             replay: {
               ...state.replay,
-              actions: [
-                ...state.replay.actions,
-                { step: state.totals.step, action: message.action },
-              ],
+              actions: [...state.replay.actions, { step: state.totals.step, action: event.action }],
             },
-          },
-        })),
-        Finished: to('Result', ({ state, message }) => ({ model: scored(state, message.result) })),
-        Rebuilt: to('Building', ({ state }) => ({ model: building(state.id) })),
+          }),
+        },
+        Finished: {
+          target: 'Result',
+          data: ({ state, event }) => scored(state, event.result),
+        },
+        Rebuilt: {
+          target: 'Building',
+          data: ({ state }) => building(state.id),
+        },
       },
     },
     Result: {
       on: {
-        Rebuilt: to('Building', ({ state }) => ({ model: building(state.id) })),
-        Verified: to('Result', ({ state, message }) => ({
-          model: {
+        Rebuilt: {
+          target: 'Building',
+          data: ({ state }) => building(state.id),
+        },
+        Verified: {
+          target: 'Result',
+          data: ({ state, event }) => ({
             ...state,
-            verdict: message.verdict,
+            verdict: event.verdict,
             verification: 'verified',
             note: null,
-          },
-        })),
-        Unverified: to('Result', ({ state, message }) => ({
-          model: {
+          }),
+        },
+        Unverified: {
+          target: 'Result',
+          data: ({ state, event }) => ({
             ...state,
-            verification: message.offline ? 'offline' : 'unverified',
-            note: message.message,
-          },
-        })),
+            verification: event.offline ? 'offline' : 'unverified',
+            note: event.message,
+          }),
+        },
       },
     },
   },
 })
 
-/**
- * The next phase, or the same one when the event does not apply. A stale
- * server reply or a click that no longer fits cannot corrupt a run.
- */
+/** The next phase, or the same one when the event does not apply. */
 export const challengeStep = (run: ChallengeRun, event: ChallengeEvent): ChallengeRun =>
-  challengeMachine.step(run, event).state
+  planState(challengeMachine, run, event)

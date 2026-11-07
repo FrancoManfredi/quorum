@@ -16,7 +16,8 @@ import type { GameNode } from '@quorum/simulation/state'
 import { deltaText } from './hud.ts'
 import { money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import type { Model, PreviewFigures, Tradeoff, TradeoffOption } from '@/game/model.ts'
+import type { Model, PreviewFigures, TradeoffOption } from '@/game/model.ts'
+import type { TradeoffState } from '@/game/tradeoff-machine.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
@@ -237,8 +238,8 @@ const worse = (preview: PreviewFigures): boolean =>
   preview.after.revenue < preview.before.revenue * 0.98 ||
   preview.after.errors > preview.before.errors + 0.005
 
-const effect = (model: Model, card: Tradeoff, h: HtmlBuilder<Message>): Html =>
-  card.preview
+const effect = (model: Model, card: TradeoffState, h: HtmlBuilder<Message>): Html =>
+  (card._tag === 'Hovering' || card._tag === 'Pinned') && card.preview
     ? h.div(
         [h.Class('flex flex-col gap-0.5')],
         [
@@ -271,8 +272,8 @@ const effect = (model: Model, card: Tradeoff, h: HtmlBuilder<Message>): Html =>
             : h.empty,
         ],
       )
-    : card.refusal
-      ? h.span([h.Class('text-[calc(12px*var(--type-scale))] text-warn')], [card.refusal])
+    : card._tag === 'Refused'
+      ? h.span([h.Class('text-[calc(12px*var(--type-scale))] text-warn')], [card.reason])
       : h.empty
 
 /* ---------- the card ---------- */
@@ -284,14 +285,14 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
   const card = model.board.tradeoff
-  if (!card || card.nodeId !== model.board.selected) return h.empty
+  if (card._tag === 'Closed' || card.nodeId !== model.board.selected) return h.empty
   const node = model.board.game.nodes.find((entry) => entry.id === card.nodeId)
   if (!node) return h.empty
   const current = currentOf(node, card.option)
   const title = `${kindTitleOf(t)[card.option.kind]}: ${nameOf(t, current)} → ${nameOf(t, card.option)}`
 
   // Explicit reviews stay expanded even after this option set has been seen.
-  if (!card.pinned && model.prefs.seenTradeoffs.includes(card.option.kind))
+  if (card._tag !== 'Pinned' && model.prefs.seenTradeoffs.includes(card.option.kind))
     return h.div(
       [
         h.Key('tradeoff-line'),
@@ -334,7 +335,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
             [h.Class('min-w-0 flex-1 text-[calc(13.5px*var(--type-scale))] font-semibold')],
             [title],
           ),
-          card.pinned
+          card._tag === 'Pinned'
             ? button(
                 {
                   onClick: Message.TradeoffClosed(),
@@ -354,7 +355,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       radar(now.axes, stack.axes, h),
       effect(model, card, h),
-      migration && !card.refusal
+      migration && card._tag !== 'Refused'
         ? h.p(
             [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
             [t.tradeoff.migrationDHAcrossAllAppServers(migrationCost(model.board.game, migration))],
@@ -378,14 +379,14 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
             ),
           )
         : h.empty,
-      card.pinned
+      card._tag === 'Pinned'
         ? h.div(
             [h.Class('flex gap-2')],
             [
               button(
                 {
                   onClick: Message.OptionConfirmed(),
-                  isDisabled: card.preview === null || card.refusal !== null,
+                  isDisabled: card.preview === null,
                   size: 'lg',
                   className: 'flex-1',
                   attributes: [h.Title(t.tradeoff.confirmEnter)],

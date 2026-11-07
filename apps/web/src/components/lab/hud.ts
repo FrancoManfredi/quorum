@@ -65,7 +65,15 @@ import { workItemName } from './team.ts'
 import { redoAvailable, settleProgress, undoAvailable } from '@/game/feedback.ts'
 import { clock as mmss, compact, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { exitLegacy, offCompany, type Board, type Delta, type Model } from '@/game/model.ts'
+import {
+  clockPaused,
+  exitLegacy,
+  offCompany,
+  type Board,
+  type Delta,
+  type Model,
+} from '@/game/model.ts'
+import { drillPassed, drillRto } from '@quorum/simulation/drill-machine'
 import { POOL_ICONS, POOL_ORDER, poolColor } from '@quorum/ui/game/pools'
 import { moreMenu, type MoreItem } from '@/game/more.ts'
 import { glowing, playbooksShown, shown } from '@/game/reveal.ts'
@@ -775,11 +783,13 @@ const checklistValue = (t: Messages, game: Board['game'], item: ChecklistItem): 
   if (item.id === 'residency') return residencyMet(game) ? t.hud.checkEu : t.hud.checkNotYet
   if (item.id !== 'drill') return item.value
   if (!drill) return t.hud.checkNotRun
-  if (!drill.done) return t.hud.checkRunning
-  if (drill.passed) return t.hud.checkRto(Math.round(drill.rto ?? 0))
+  if (drill._tag === 'Running') return t.hud.checkRunning
+  if (drillPassed(drill)) return t.hud.checkRto(Math.round(drillRto(drill) ?? 0))
   if (brokenRestore(game)) return t.hud.checkRestoreFailed
-  if (drill.rto === null) return t.hud.checkNotRecovered
-  return drill.rpo >= DRILL_RPO ? t.hud.checkDataLost : t.hud.checkRto(Math.round(drill.rto))
+  if (drill._tag === 'Failed') return t.hud.checkNotRecovered
+  return drill.rpo >= DRILL_RPO
+    ? t.hud.checkDataLost
+    : t.hud.checkRto(Math.round(drillRto(drill) ?? 0))
 }
 
 /** The IPO checklist (10 "Era 6"): every item at once opens the IPO. */
@@ -788,7 +798,7 @@ const checklist = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html 
 
   const game = model.board.game
   const items = checklistOf(game, ledger)
-  const drillReady = has(game, 'dr-drills') && !game.incident && !(game.drill && !game.drill.done)
+  const drillReady = has(game, 'dr-drills') && !game.incident && !(game.drill?._tag === 'Running')
   return h.div(
     [h.Key('ipo'), h.Class(`flex flex-col py-1 ${WELL} compact:hidden`)],
     [
@@ -1266,10 +1276,10 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       divider(h),
       toolButton(
-        model.board.clock.paused ? t.hud.resumeSpace : t.hud.pauseSpace,
-        model.board.clock.paused ? Play : Pause,
+        clockPaused(model) ? t.hud.resumeSpace : t.hud.pauseSpace,
+        clockPaused(model) ? Play : Pause,
         Message.PauseToggled(),
-        model.board.clock.paused,
+        clockPaused(model),
         h,
       ),
       h.button(
@@ -1352,53 +1362,53 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
   const t = copy(h)
 
   const undo = undoAvailable(model.board)
-  const delta = model.board.delta
-  if (!model.board.change && !delta) return h.empty
-  const body = model.board.change
-    ? h.span(
-        [
-          h.Key('settling'),
-          h.DataAttribute('exit', 'notice'),
-          h.Class('swap flex items-center gap-2.5 whitespace-nowrap'),
-        ],
-        [
-          ring(settleProgress(model.board), 'size-3.5 shrink-0 text-muted-foreground', h),
-          h.span(
-            [h.Class('text-muted-foreground')],
-            [
-              model.board.change.count > 1
-                ? t.hud.changes(model.board.change.count)
-                : model.board.change.label,
-            ],
-          ),
-        ],
-      )
-    : h.span(
-        [
-          h.Key(`delta-${delta?.id}`),
-          h.DataAttribute('exit', 'notice'),
-          h.Class('swap flex items-center gap-2.5 whitespace-nowrap'),
-        ],
-        [
-          h.span(
-            [h.Class(`size-2 shrink-0 rounded-full ${delta?.worse ? 'bg-danger' : 'bg-ok'}`)],
-            [],
-          ),
-          h.span(
-            [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))]'))],
-            [delta ? deltaText(t, delta, has(model.board.game, 'percentiles')) : ''],
-          ),
-          model.board.stableTicks > 0
-            ? h.span(
-                [
-                  h.Key('stable'),
-                  h.Class('enter-badge text-[calc(11.5px*var(--type-scale))] font-medium text-ok'),
-                ],
-                [t.hud.stable],
-              )
-            : h.empty,
-        ],
-      )
+  const change = model.board.change
+  if (change._tag === 'Idle') return h.empty
+  const delta = change._tag === 'Settled' || change._tag === 'Lasting' ? change.delta : null
+  const body =
+    change._tag === 'Settling'
+      ? h.span(
+          [
+            h.Key('settling'),
+            h.DataAttribute('exit', 'notice'),
+            h.Class('swap flex items-center gap-2.5 whitespace-nowrap'),
+          ],
+          [
+            ring(settleProgress(model.board), 'size-3.5 shrink-0 text-muted-foreground', h),
+            h.span(
+              [h.Class('text-muted-foreground')],
+              [change.change.count > 1 ? t.hud.changes(change.change.count) : change.change.label],
+            ),
+          ],
+        )
+      : h.span(
+          [
+            h.Key(`delta-${delta?.id}`),
+            h.DataAttribute('exit', 'notice'),
+            h.Class('swap flex items-center gap-2.5 whitespace-nowrap'),
+          ],
+          [
+            h.span(
+              [h.Class(`size-2 shrink-0 rounded-full ${delta?.worse ? 'bg-danger' : 'bg-ok'}`)],
+              [],
+            ),
+            h.span(
+              [h.Class(cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))]'))],
+              [delta ? deltaText(t, delta, has(model.board.game, 'percentiles')) : ''],
+            ),
+            change._tag === 'Settled' && change.ticks > 0
+              ? h.span(
+                  [
+                    h.Key('stable'),
+                    h.Class(
+                      'enter-badge text-[calc(11.5px*var(--type-scale))] font-medium text-ok',
+                    ),
+                  ],
+                  [t.hud.stable],
+                )
+              : h.empty,
+          ],
+        )
   return h.div(
     [
       h.Key('change'),
@@ -1406,7 +1416,7 @@ export const changeBar = (model: Model, h: HtmlBuilder<Message>, className: stri
       h.DataAttribute('exit', 'notice'),
       h.Class(cn(pill, className)),
     ],
-    [body, undo ? undoButton(!model.board.change && !!delta?.worse, h) : h.empty],
+    [body, undo ? undoButton(false, h) : h.empty],
   )
 }
 

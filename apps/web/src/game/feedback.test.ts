@@ -204,8 +204,9 @@ describe('Settling', () => {
     let model = settling()
     for (const ledger of ledgers) {
       const result = advanceChange(model.board, ledger, 1)
-      if (result.delta) return { model, delta: result.delta }
-      model = { ...model, board: { ...model.board, change: result.change } }
+      if (result._tag === 'Settled' || result._tag === 'Lasting')
+        return { model, delta: result.delta }
+      model = { ...model, board: { ...model.board, change: result } }
     }
     return { model, delta: null }
   }

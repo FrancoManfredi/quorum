@@ -1,61 +1,63 @@
+import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
-import { define, to } from 'foldkit/experimental/machine'
+import { planState } from './machine.ts'
 
 /* ==========================================================================
    The boot sequence: the clock-in reader, the title, and the monitor's
-   connect animation before a board. It was a `gate` literal plus a
-   `connecting` boolean, so "shut and connecting" and "clocking and ready"
-   were representable. Now one state says where the app is.
+   connect animation before a board. One state says where the app is.
    ========================================================================== */
 
-export const Boot = Schema.Union([
-  /** The title screen behind the clock-in splash, before any input. */
-  Schema.TaggedStruct('Shut', {}),
-  /** The badge went in; the title is revealing. */
-  Schema.TaggedStruct('Clocking', {}),
-  /** The title and every board wait for input. */
-  Schema.TaggedStruct('Ready', {}),
-  /** A board is opening; the monitor plays its connect sequence. */
-  Schema.TaggedStruct('Connecting', {}),
-])
+export const Shut = Schema.TaggedStruct('Shut', {})
+export const Clocking = Schema.TaggedStruct('Clocking', {})
+export const Ready = Schema.TaggedStruct('Ready', {})
+export const Connecting = Schema.TaggedStruct('Connecting', {})
+export const Boot = Schema.Union([Shut, Clocking, Ready, Connecting])
 export type Boot = typeof Boot.Type
 
-export const BootEvent = Schema.Union([
-  Schema.TaggedStruct('ClockedIn', {}),
-  Schema.TaggedStruct('TitleRevealed', {}),
-  Schema.TaggedStruct('BoardOpened', {}),
-  Schema.TaggedStruct('Connected', {}),
-])
+export const ClockedIn = Schema.TaggedStruct('ClockedIn', {})
+export const TitleRevealed = Schema.TaggedStruct('TitleRevealed', {})
+export const BoardOpened = Schema.TaggedStruct('BoardOpened', {})
+export const Connected = Schema.TaggedStruct('Connected', {})
+export const BootEvent = Schema.Union([ClockedIn, TitleRevealed, BoardOpened, Connected])
 export type BootEvent = typeof BootEvent.Type
 
-export const bootMachine = define({ state: Boot, message: BootEvent })({
-  initial: { _tag: 'Ready' },
+const States = Machine.state({ states: { Shut, Clocking, Ready, Connecting } })
+
+const Events = Machine.events({
+  ClockedIn: {},
+  TitleRevealed: {},
+  BoardOpened: {},
+  Connected: {},
+})
+
+export const bootMachine = Machine.make({ root: States, events: Events }).handle({
+  initial: { target: 'Shut' },
   states: {
     Shut: {
       on: {
-        ClockedIn: to('Clocking', () => ({ model: { _tag: 'Clocking' } })),
+        ClockedIn: { target: 'Clocking' },
       },
     },
     Clocking: {
       on: {
-        TitleRevealed: to('Ready', () => ({ model: { _tag: 'Ready' } })),
+        TitleRevealed: { target: 'Ready' },
       },
     },
     Ready: {
       on: {
-        BoardOpened: to('Connecting', () => ({ model: { _tag: 'Connecting' } })),
+        BoardOpened: { target: 'Connecting' },
       },
     },
     Connecting: {
       on: {
-        Connected: to('Ready', () => ({ model: { _tag: 'Ready' } })),
+        Connected: { target: 'Ready' },
       },
     },
   },
 })
 
 /** The next state, or the same one when the event does not apply. */
-export const bootStep = (boot: Boot, event: BootEvent): Boot => bootMachine.step(boot, event).state
+export const bootStep = (boot: Boot, event: BootEvent): Boot => planState(bootMachine, boot, event)
 
 /** The title has finished revealing, so the booth replaces the reader. */
 export const titleIsOpen = (boot: Boot): boolean =>

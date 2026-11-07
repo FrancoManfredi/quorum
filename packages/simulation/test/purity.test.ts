@@ -6,8 +6,9 @@ import { expect, test } from 'vitest'
 /*
  * The browser plays the Simulation and the API Worker replays it, so it must
  * run the same everywhere (docs/adr/0004-simulation-package.md, 04
- * "Determinism and randomness"). Its sources import only `effect` and their
- * own files, touch no host globals, and use only exact math.
+ * "Determinism and randomness"). Its sources import only `effect`,
+ * `@typeonce/effect-machine`, and their own files, touch no host globals, and
+ * use only exact math.
  */
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../src')
@@ -41,7 +42,11 @@ const specifiers = (text: string): Array<string> =>
   )
 
 const allowedImport = (specifier: string): boolean =>
-  specifier === 'effect' || specifier.startsWith('effect/') || specifier.startsWith('.')
+  specifier === 'effect' ||
+  specifier.startsWith('effect/') ||
+  specifier === '@typeonce/effect-machine' ||
+  specifier.startsWith('@typeonce/effect-machine/') ||
+  specifier.startsWith('.')
 
 /** ECMAScript leaves these to the engine, and engines differ by a few ulp. */
 const inexactMath =
@@ -54,7 +59,7 @@ const exponent = /\*\*/
 const hostGlobal =
   /\b(?:Date|performance|window|document|navigator|localStorage|sessionStorage|process|crypto|fetch|setTimeout|setInterval|requestAnimationFrame)\b/
 
-test('the Simulation imports only effect and its own files', async () => {
+test('the Simulation imports only effect, effect-machine, and its own files', async () => {
   const sources = await listSources(root)
   const violations = []
   for (const source of sources) {

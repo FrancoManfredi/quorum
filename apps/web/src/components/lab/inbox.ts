@@ -637,14 +637,14 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
     `${mail.subject}\n${mail.entries.map((entry) => entry.text).join('\n')}`,
   )
   const buttons =
-    mail.answer !== null
+    mail.phase._tag === 'Answered'
       ? [
           h.p(
             [h.Class('flex-1 text-[calc(12px*var(--type-scale))] text-muted-foreground')],
-            [answerIn(t, { id: mail.answerId, text: mail.answer })],
+            [answerIn(t, { id: mail.phase.answerId, text: mail.phase.answer })],
           ),
         ]
-      : mail.resolved === null
+      : mail.phase._tag !== 'Resolved'
         ? mail.actions.map((action, index) =>
             button(
               {
@@ -690,16 +690,16 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                     [icon(h, ShieldAlert, 'size-3.5'), tell.id, ' · ', t.inbox.inTheGlossary],
                     h,
                   ),
-              mail.resolved === null
-                ? h.empty
-                : h.span(
+              mail.phase._tag === 'Resolved'
+                ? h.span(
                     [
                       h.Class(
                         'flex items-center gap-1 text-[calc(11.5px*var(--type-scale))] font-medium text-ok',
                       ),
                     ],
-                    [icon(h, CircleCheck, 'size-3.5'), t.inbox.resolved(clock(mail.resolved))],
-                  ),
+                    [icon(h, CircleCheck, 'size-3.5'), t.inbox.resolved(clock(mail.phase.at))],
+                  )
+                : h.empty,
             ],
           ),
           h.h2(

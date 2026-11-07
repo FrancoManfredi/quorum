@@ -3,7 +3,7 @@ import { eraOf, insightTotal } from '@quorum/simulation/lookups'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { clockOf } from '@quorum/simulation/solve'
 import type { Game, GameNode } from '@quorum/simulation/state'
-import { currentFile, type Model } from './model.ts'
+import { clockPaused, currentFile, type Model } from './model.ts'
 import type { LogEntry } from './playlog.ts'
 
 /* ==========================================================================
@@ -162,8 +162,8 @@ export const sampleOf = (model: Model, ledger: Ledger): Record<string, unknown> 
       .filter((node) => !COMPONENTS[node.type].fixed)
       .map((node) => nodeBrief(node, ledger)),
     speed: model.board.clock.speed,
-    paused: model.board.clock.paused,
+    paused: clockPaused(model),
     panel: model.panel,
-    settling: model.board.change !== null,
+    settling: model.board.change._tag === 'Settling',
   }
 }

@@ -2,98 +2,53 @@ import { causeOf, isDown, warmOf } from '@quorum/simulation/life'
 import type { Ledger } from '@quorum/simulation/ledger'
 import type { Game } from '@quorum/simulation/state'
 import { priceOf, refundOf } from '@quorum/simulation/lookups'
-import type { Board, Change, Delta, Figures, Undo } from './model.ts'
+import type { Board, Figures, Undo } from './model.ts'
+import type { Delta } from './machine-state.ts'
 
 /* ==========================================================================
    Feedback after a change: Settling while the Design settles, then a delta
    that compares before and after. Undo and redo keep the last 50 actions.
    ========================================================================== */
 
-/** Ticks a change must hold steady for: about 3 real seconds at four ticks a second (16 D18). */
-export const STEADY_TICKS = 12
-/** A change counts as settled after this many sim seconds even if it still moves. */
-export const SETTLE_LIMIT = 30
-/** Ticks "Stable" shows once a change settles: 2 real seconds. */
-export const STABLE_TICKS = 8
-const DELTA_SECONDS = 10
+export { SETTLE_LIMIT, STABLE_TICKS, STEADY_TICKS } from './machine-state.ts'
+import { SETTLE_LIMIT, STEADY_TICKS } from './machine-state.ts'
 
 export { figuresOf } from '@quorum/simulation/preview'
 import { figuresOf } from '@quorum/simulation/preview'
+import { step as changeStep, type ChangeState } from './change-machine.ts'
 
 /** Starts or extends a change. Several quick changes settle as one. */
 export const beginChange = (board: Board, label: string, before: Figures): Board => ({
   ...board,
-  delta: null,
-  stableTicks: 0,
-  change: board.change
-    ? { ...board.change, label, count: board.change.count + 1, recent: [], steady: 0 }
-    : { label, count: 1, startedAt: board.game.time, before, recent: [], steady: 0 },
+  change: changeStep(board.change, {
+    _tag: 'Changed',
+    label,
+    before,
+    startedAt: board.game.time,
+  }),
 })
 
 const warming = (game: Game): boolean =>
   game.nodes.some((node) => isDown(node.life) || warmOf(node.life) < 1)
 
-type Sample = Change['recent'][number]
-
-/** Two samples agree: revenue and served within 1%, error share within 0.1 points. */
-const close = (a: Sample, b: Sample): boolean =>
-  Math.abs(a.revenue - b.revenue) <= Math.max(1e-6, 0.01 * Math.abs(b.revenue)) &&
-  Math.abs(a.served - b.served) <= Math.max(1e-6, 0.01 * Math.abs(b.served)) &&
-  Math.abs(a.errors - b.errors) <= 0.001
-
-/** Trailing samples that agree with the newest one. */
-const steadyCount = (recent: ReadonlyArray<Sample>): number => {
-  const newest = recent.at(-1)
-  if (!newest) return 0
-  let count = 0
-  for (let index = recent.length - 1; index >= 0; index -= 1) {
-    const sample = recent[index]
-    if (!sample || !close(sample, newest)) break
-    count += 1
-  }
-  return count
-}
-
 /** How far the running change is from settling, from 0 to 1, for the Settling ring. */
 export const settleProgress = (board: Board): number => {
   const change = board.change
-  if (!change) return 1
-  const elapsed = board.game.time - change.startedAt
-  return Math.min(1, Math.max(change.steady / STEADY_TICKS, elapsed / SETTLE_LIMIT))
+  if (change._tag !== 'Settling') return 1
+  const elapsed = board.game.time - change.change.startedAt
+  return Math.min(1, Math.max(change.change.steady / STEADY_TICKS, elapsed / SETTLE_LIMIT))
 }
 
-/** Advances the running change; returns the delta once it settles. */
-export const advanceChange = (
-  board: Board,
-  ledger: Ledger,
-  seq: number,
-): Readonly<{ change: Change | null; delta: Delta | null }> => {
-  const change = board.change
-  if (!change) return { change: null, delta: null }
-  const sample = { revenue: ledger.revenue, served: ledger.served, errors: ledger.errorShare }
-  const recent = [...change.recent, sample].slice(-STEADY_TICKS)
-  const steady = steadyCount(recent)
-  const elapsed = board.game.time - change.startedAt
-  if (elapsed < SETTLE_LIMIT && (steady < STEADY_TICKS || warming(board.game)))
-    return { change: { ...change, recent, steady }, delta: null }
-  const after = figuresOf(ledger)
-  const worse =
-    after.revenue < change.before.revenue * 0.98 || after.errors > change.before.errors + 0.005
-  return {
-    change: null,
-    delta: {
-      id: seq,
-      label: change.count > 1 ? `${change.count} changes` : change.label,
-      before: change.before,
-      after,
-      worse,
-      shownAt: board.game.time,
-    },
-  }
-}
-
-export const deltaExpired = (board: Board): boolean =>
-  !!board.delta && board.game.time - board.delta.shownAt > DELTA_SECONDS && !board.delta.worse
+/** Advances the running change; the machine settles it into a delta. */
+export const advanceChange = (board: Board, ledger: Ledger, seq: number): ChangeState =>
+  changeStep(board.change, {
+    _tag: 'Ticked',
+    sample: { revenue: ledger.revenue, served: ledger.served, errors: ledger.errorShare },
+    after: figuresOf(ledger),
+    warming: warming(board.game),
+    at: board.game.time,
+    seq,
+  })
 
 /** Undo is exact for this long after an action; later, money settles at normal prices (16 D17). */
 export const UNDO_SECONDS = 30

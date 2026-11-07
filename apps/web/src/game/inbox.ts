@@ -92,11 +92,10 @@ const digestMail = (folded: ReadonlyArray<Mail>): Mail => {
     time,
     entries: [{ time, text: '' }],
     actions: [],
-    answer: null,
+    phase: { _tag: 'Active' },
     read: folded.every((mail) => mail.read),
     trashed: false,
     spam: false,
-    resolved: null,
   }
 }
 
@@ -142,21 +141,19 @@ export const mailed = (
   if (
     !repeats &&
     existing &&
-    existing.resolved === null &&
+    existing.phase._tag !== 'Resolved' &&
     existing.entries.at(-1)?.text === fact.text
   )
     return inbox
   const others = inbox.mail.filter((mail) => mail !== existing)
   // A muted Sender lands for the record: no dot on the row and no card above the Inbox button.
   const quiet = muted(inbox, fact.sender, time)
-  const { answerId: _answered, ...unanswered } = existing ?? {}
   const thread: Mail = existing
     ? {
-        ...(unanswered as Omit<Mail, 'answerId'>),
+        ...existing,
         time,
         read: quiet,
-        answer: null,
-        resolved: null,
+        phase: { _tag: 'Active' },
         actions: fact.actions,
         entries: [
           ...existing.entries,
@@ -172,11 +169,10 @@ export const mailed = (
         time,
         entries: [{ time, text: fact.text, ...(fact.message ? { message: fact.message } : {}) }],
         actions: fact.actions,
-        answer: null,
+        phase: { _tag: 'Active' },
         read: quiet,
         trashed: false,
         spam: fact.spam && inbox.filter,
-        resolved: null,
       }
   // Mail that wants the player (a decision, or a provider, alarm or advisory) previews above the
   // Inbox button until it is read, so a new letter cannot go unnoticed.
@@ -191,8 +187,8 @@ export const mailed = (
 export const resolvedExcept = (inbox: Inbox, key: string, time: number): Inbox => ({
   ...inbox,
   mail: inbox.mail.map((mail) =>
-    ADVISING.has(mail.sender) && mail.key !== key && mail.resolved === null
-      ? { ...mail, resolved: time }
+    ADVISING.has(mail.sender) && mail.key !== key && mail.phase._tag !== 'Resolved'
+      ? { ...mail, phase: { _tag: 'Resolved', at: time } }
       : mail,
   ),
 })
@@ -211,7 +207,7 @@ export const closed = (
       ? {
           ...mail,
           read: false,
-          resolved: time,
+          phase: { _tag: 'Resolved', at: time },
           entries: [...mail.entries, { time, text, ...(closing ? { closing } : {}) }].slice(
             -THREAD_ENTRIES,
           ),
@@ -461,12 +457,15 @@ export const updateInbox = (
           ? muting(inbox, mail.sender, context.game.time)
           : { ...inbox, peek: inbox.peek === id ? null : inbox.peek }
       const written = answerOf(kind, mail)
-      const answer = written && { answer: written.text, answerId: written.id }
+      const phase =
+        written === null
+          ? null
+          : { phase: { _tag: 'Answered', answer: written.text, answerId: written.id } as const }
       // Acknowledge and Mute also clear the unread dot: the question is answered, not just opened.
       const next =
-        answer === null
+        phase === null
           ? unpeeked
-          : withMail(unpeeked, id, QUIET.has(kind ?? '') ? { ...answer, read: true } : answer)
+          : withMail(unpeeked, id, QUIET.has(kind ?? '') ? { ...phase, read: true } : phase)
       return kind && ACTING.has(kind) && !answersOnly(kind, mail)
         ? { model: next, outMessage: InboxOutMessage.ActionTaken({ kind, target: target ?? null }) }
         : { model: next }

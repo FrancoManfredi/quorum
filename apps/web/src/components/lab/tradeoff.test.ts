@@ -21,11 +21,10 @@ const cardOf = (id: FamilyId): Model => {
       game: preseedGame(),
       selected: 'server',
       tradeoff: {
+        _tag: 'Pinned',
         nodeId: 'server',
         option: { kind: 'family', id },
-        pinned: true,
         preview: null,
-        refusal: null,
       },
     },
   }

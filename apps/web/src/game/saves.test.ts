@@ -207,7 +207,7 @@ describe('the Companies page', () => {
       Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
     )
     const asked = send(opened, Message.CompanyChosen({ id: 'c-one' }), Message.CompanyDeleteAsked())
-    expect(asked.saveConfirm).toBe(true)
+    expect(asked.saveConfirm).toEqual({ _tag: 'Confirming', id: 'c-one' })
     const result = update(asked, Message.CompanyDeleteConfirmed())
     expect(result.model.saves).toEqual(EMPTY_SAVE_INDEX)
     expect(result.model.loaded).toBe(false)
@@ -497,7 +497,10 @@ describe('a playtest browser', () => {
           index: refreshedIndex(migrated.model.saves, board.game),
           game: board.game,
           revealed: board.disclosure.revealed,
-          pending: board.disclosure.pending,
+          pending:
+            board.disclosure._tag === 'Queued' || board.disclosure._tag === 'Cueing'
+              ? board.disclosure.pending
+              : [],
           dashboard: board.dashboard.history,
           inbox: savedInbox(board.inbox),
         }),
@@ -557,7 +560,10 @@ describe('a playtest browser', () => {
           index: refreshedIndex(model.saves, board.game),
           game: board.game,
           revealed: board.disclosure.revealed,
-          pending: board.disclosure.pending,
+          pending:
+            board.disclosure._tag === 'Queued' || board.disclosure._tag === 'Cueing'
+              ? board.disclosure.pending
+              : [],
           dashboard: board.dashboard.history,
           inbox: savedInbox(board.inbox),
         }),

@@ -31,6 +31,7 @@ import { refusalIn } from '../../i18n/refusal.ts'
 import { say, withToast, act, achieve, type MessageCases, type UpdateResult } from './shared.ts'
 import { solveFlow } from '@quorum/simulation/solve'
 import { takeExit } from '@quorum/simulation/exit'
+import { clockStep } from '../clock-machine.ts'
 import { withoutFile } from '../saves.ts'
 
 type ExitTag =
@@ -119,9 +120,12 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
               ...earned.board,
               selected: null,
               selection: [],
-              tool: null,
+              flow: { _tag: 'Idle' },
               exited: { row: result.row, researched: model.board.game.researched },
-              clock: { ...earned.board.clock, paused: true },
+              clock: {
+                ...earned.board.clock,
+                mode: clockStep(earned.board.clock.mode, { _tag: 'Paused' }),
+              },
             },
           }
           return {
@@ -179,7 +183,7 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
     const next: Model = {
       ...model,
       panel: 'none',
-      board: { ...model.board, tool: { _tag: 'Stamping', source: index }, selected: null },
+      board: { ...model.board, flow: { _tag: 'Stamping', source: index }, selected: null },
     }
     return { model: next }
   },
@@ -236,7 +240,7 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
 
   BridgeAccepted: () => {
     const bridge = model.board.game.bridge
-    if (!bridge) return withToast(model, say(model).toasts.noBridge, 'warn')
+    if (bridge._tag !== 'Offered') return withToast(model, say(model).toasts.noBridge, 'warn')
     const took = act(model, 'Accepted the bridge', Runway.acceptBridge(model.board.game))
     if (took.model.board.game === model.board.game) return took
     return withToast(

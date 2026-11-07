@@ -117,7 +117,10 @@ test('the priority bar is danger for a clock, warn for a decision, absent otherw
   // An answered Mail keeps no bar: the question is over.
   const answered = {
     ...inbox,
-    mail: inbox.mail.map((mail) => ({ ...mail, answer: 'You raised.' })),
+    mail: inbox.mail.map((mail) => ({
+      ...mail,
+      phase: { _tag: 'Answered', answer: 'You raised.', answerId: '' } as const,
+    })),
   }
   expect(answered.mail.every((mail) => barOf(mail) === null)).toBe(true)
 })

@@ -93,6 +93,7 @@ import {
 import { restoreSeconds, startIncident, zoned } from './director.ts'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE, ipoReady, newDrill } from './ipo.ts'
 import { firstQuarter, guidanceOpen } from './quarters.ts'
+import { step as quarterStep } from './quarter-machine.ts'
 import { solveFlow } from './solve.ts'
 import type { AlertRule } from './events.ts'
 import { POLICY_LEVEL } from './catalog/legacy.ts'
@@ -910,7 +911,7 @@ export const runDrill = (game: Game): Action => {
   if (!has(game, 'dr-drills'))
     return no(Refusal.Locked({ what: 'The DR drill', research: RESEARCH['dr-drills'].name }))
   if (game.incident) return notAllowed('Wait for the incident to end.')
-  if (game.drill && !game.drill.done) return notAllowed('A drill is running.')
+  if (game.drill?._tag === 'Running') return notAllowed('A drill is running.')
   const ledger = solveFlow(game)
   const started = startIncident(game, ledger, 'dr-drill', 0)
   if (!started) return notAllowed('Nothing runs in the home region.')
@@ -923,7 +924,15 @@ export const setGuidance = (game: Game, growth: number, margin: number): Action 
   if (!guidanceOpen(game)) return notAllowed('Guidance is set on the first day of a quarter.')
   if (![0, 1, 2].includes(growth) || ![0, 1, 2].includes(margin))
     return notAllowed('Pick a level for each.')
-  return ok({ ...game, quarter: { ...game.quarter, growth, margin } })
+  return ok({
+    ...game,
+    quarter: {
+      ...game.quarter,
+      growth,
+      margin,
+      phase: quarterStep(game.quarter.phase, { _tag: 'GuidanceSet' }),
+    },
+  })
 }
 
 /** Cancels the report that is scanning the primary. */

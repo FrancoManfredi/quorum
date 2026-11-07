@@ -90,7 +90,7 @@ export const incidentsHandlers = (model: Model): MessageCases<UpdateResult, Inci
       Actions.sell(model.board.game, nodeId),
       {
         undoable: true,
-        patch: () => ({ selected: null, linkFrom: null }),
+        patch: () => ({ selected: null, flow: { _tag: 'Idle' } }),
       },
     ),
 

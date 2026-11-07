@@ -51,7 +51,7 @@ export const shellHandlers = (model: Model): MessageCases<UpdateResult, ShellTag
           model: {
             ...model,
             route: routeOfMenu(menu),
-            ...(menu === 'companies' ? {} : { saveFocus: null, saveConfirm: false }),
+            ...(menu === 'companies' ? {} : { saveFocus: null, saveConfirm: { _tag: 'List' } }),
           },
         },
 

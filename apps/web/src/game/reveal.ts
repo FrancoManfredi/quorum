@@ -12,7 +12,8 @@ import {
 } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
 import type { Message } from './message.ts'
-import { Reveal, offCompany, type Disclosure, type Model } from './model.ts'
+import { Reveal, offCompany, type Model } from './model.ts'
+import { step as disclosureStep, type DisclosureFlow } from './disclosure-machine.ts'
 
 /* ==========================================================================
    Progressive disclosure (GDD 15): a first Company shows each element the
@@ -22,9 +23,6 @@ import { Reveal, offCompany, type Disclosure, type Model } from './model.ts'
 
 const ALL: ReadonlyArray<Reveal> = Reveal.literals
 
-/** UI ticks a new element glows, and the longest the next one waits for it: 30 s at any speed. */
-const CUE_TICKS = 120
-
 /** The Sandbox, Challenges, and every Company after the first Exit show everything. */
 export const veteran = (model: Model): boolean =>
   offCompany(model) || model.founder.history.length > 0
@@ -32,8 +30,10 @@ export const veteran = (model: Model): boolean =>
 export const shown = (model: Model, key: Reveal): boolean =>
   veteran(model) || model.board.disclosure.revealed.includes(key)
 
-export const glowing = (model: Model, key: Reveal): boolean =>
-  model.board.disclosure.cue?.key === key && model.board.disclosure.cue.left > 0
+export const glowing = (model: Model, key: Reveal): boolean => {
+  const flow = model.board.disclosure
+  return flow._tag === 'Cueing' && flow.key === key && flow.left > 0
+}
 
 /** Playbooks are a Legacy feature: they appear after the first Exit. */
 export const playbooksShown = (model: Model): boolean =>
@@ -73,7 +73,7 @@ const triggered = (key: Reveal, model: Model, ledger: Ledger): boolean => {
     case 'autopilot':
       return game.backlog.length >= 2
     case 'glossary':
-      return model.board.tradeoff !== null
+      return model.board.tradeoff._tag !== 'Closed'
   }
 }
 
@@ -85,45 +85,27 @@ export const revealAtStart = (model: Model, ledger: Ledger): Model => ({
   ...model,
   board: {
     ...model.board,
-    disclosure: {
-      ...model.board.disclosure,
-      revealed: ALL.filter((key) => !CUES.includes(key) && triggered(key, model, ledger)),
-      pending: [],
-      cue: null,
-    },
+    disclosure: disclosureStep(model.board.disclosure, {
+      _tag: 'RevealedAtStart',
+      triggered: ALL.filter((key) => !CUES.includes(key) && triggered(key, model, ledger)),
+    }),
   },
 })
 
 /** One UI tick: queues the triggers that fired, and shows the next one once the cue is free. */
 export const advanceReveals = (model: Model, ledger: Ledger): Model => {
   if (veteran(model)) return model
-  const cue =
-    model.board.disclosure.cue && model.board.disclosure.cue.left > 0
-      ? { ...model.board.disclosure.cue, left: model.board.disclosure.cue.left - 1 }
-      : null
+  const flow = model.board.disclosure
+  const pending = flow._tag === 'Queued' ? flow.pending : flow._tag === 'Cueing' ? flow.pending : []
   const fired = ALL.filter(
     (key) =>
-      !model.board.disclosure.revealed.includes(key) &&
-      !model.board.disclosure.pending.includes(key) &&
-      triggered(key, model, ledger),
+      !flow.revealed.includes(key) && !pending.includes(key) && triggered(key, model, ledger),
   )
-  const pending = [...model.board.disclosure.pending, ...fired]
-  const [next, ...rest] = pending
-  if (next === undefined || cue !== null)
-    return {
-      ...model,
-      board: { ...model.board, disclosure: { ...model.board.disclosure, pending, cue } },
-    }
   return {
     ...model,
     board: {
       ...model.board,
-      disclosure: {
-        ...model.board.disclosure,
-        revealed: [...model.board.disclosure.revealed, next],
-        pending: rest,
-        cue: { key: next, left: CUE_TICKS },
-      },
+      disclosure: disclosureStep(flow, { _tag: 'Ticked', triggered: fired }),
     },
   }
 }
@@ -151,30 +133,25 @@ export const noticed = (model: Model, message: Message): Model => {
     ...model,
     board: {
       ...model.board,
-      disclosure: {
-        ...model.board.disclosure,
-        revealed: model.board.disclosure.revealed.includes(key)
-          ? model.board.disclosure.revealed
-          : [...model.board.disclosure.revealed, key],
-        pending: model.board.disclosure.pending.filter((entry) => entry !== key),
-        cue: model.board.disclosure.cue?.key === key ? null : model.board.disclosure.cue,
-      },
+      disclosure: disclosureStep(model.board.disclosure, { _tag: 'Used', key }),
     },
   }
 }
 
 /** The Node whose footer button glows on the board. */
 export const cueNode = (model: Model): string | null => {
-  if (!model.board.disclosure.cue || !glowing(model, model.board.disclosure.cue.key)) return null
-  if (model.board.disclosure.cue.key === 'collect')
+  const flow = model.board.disclosure
+  if (flow._tag !== 'Cueing' || !glowing(model, flow.key)) return null
+  if (flow.key === 'collect')
     return model.board.game.nodes.find((node) => node.type === 'payments')?.id ?? null
-  if (model.board.disclosure.cue.key === 'resize')
-    return resizable(model.board.game, model.board.bottleneck)
+  if (flow.key === 'resize') return resizable(model.board.game, model.board.bottleneck)
   return null
 }
 
 /** What a save says about disclosure. A save from before it shows everything. */
-export const revealsOfSave = (saved: unknown): Pick<Disclosure, 'revealed' | 'pending'> => {
+export const revealsOfSave = (
+  saved: unknown,
+): Readonly<{ revealed: ReadonlyArray<Reveal>; pending: ReadonlyArray<Reveal> }> => {
   const disclosure =
     typeof saved === 'object' && saved !== null && 'disclosure' in saved ? saved.disclosure : null
   if (typeof disclosure !== 'object' || disclosure === null) return { revealed: ALL, pending: [] }
@@ -184,6 +161,14 @@ export const revealsOfSave = (saved: unknown): Pick<Disclosure, 'revealed' | 'pe
     revealed: pick('revealed' in disclosure ? disclosure.revealed : null),
     pending: pick('pending' in disclosure ? disclosure.pending : null),
   }
+}
+
+/** The disclosure flow a save opens on. */
+export const disclosureOfSave = (saved: unknown): DisclosureFlow => {
+  const { revealed, pending } = revealsOfSave(saved)
+  return pending.length > 0
+    ? { _tag: 'Queued', revealed, pending: [pending[0]!, ...pending.slice(1)] }
+    : { _tag: 'Idle', revealed }
 }
 
 /* ---------- the build dock ---------- */

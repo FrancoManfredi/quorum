@@ -66,6 +66,7 @@ import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { reasonIn } from '../../i18n/refusal.ts'
 import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
+import { clockStep } from '../clock-machine.ts'
 import { traced } from '../../platform/sentry.ts'
 import { type Url } from 'foldkit/url'
 
@@ -78,7 +79,7 @@ export const open = (model: Model, route: AppRoute): UpdateResult =>
       model: {
         ...model,
         route,
-        ...(menu === 'companies' ? {} : { saveFocus: null, saveConfirm: false }),
+        ...(menu === 'companies' ? {} : { saveFocus: null, saveConfirm: { _tag: 'List' } }),
       },
     }),
     Company: () => (hasCompany(model) ? continued(model) : { model }),
@@ -151,11 +152,10 @@ export const replaceFree = (model: Model, game: Game, text: string): UpdateResul
       ...model.board,
       game: normalized,
       selected: null,
-      tool: null,
+      flow: { _tag: 'Idle' },
       undo: [],
       redo: [],
-      change: null,
-      delta: null,
+      change: { _tag: 'Idle' },
       bottleneck: null,
       bottleneckAt: -1,
       nodeHistory: {},
@@ -263,10 +263,14 @@ export const startRun = (model: Model, run: ChallengeRun): UpdateResult => {
             _tag: 'ChallengeUpdated',
             run: challengeStep(run, { _tag: 'Run', board: model.board.game, replay }),
           }),
-          tool: null,
+          flow: { _tag: 'Idle' },
           selected: null,
           bottleneckAt: -1,
-          clock: { ...model.board.clock, carry: 0, paused: false },
+          clock: {
+            ...model.board.clock,
+            carry: 0,
+            mode: clockStep(model.board.clock.mode, { _tag: 'Resumed' }),
+          },
         },
       }
       return { model: next }
@@ -419,7 +423,13 @@ export const continued = (model: Model): UpdateResult => {
     ...model,
     route: AppRoute.Company(),
     panel: model.board.away ? 'away' : 'none',
-    board: { ...model.board, clock: { ...model.board.clock, paused: false } },
+    board: {
+      ...model.board,
+      clock: {
+        ...model.board.clock,
+        mode: clockStep(model.board.clock.mode, { _tag: 'Resumed' }),
+      },
+    },
   }
   return {
     model: next,
@@ -438,7 +448,7 @@ export const leaveBoard = (model: Model): UpdateResult => {
         route: AppRoute.Title(),
         panel: 'none',
         saves: savedIndex(model.saves, model.board.game, Date.now()),
-        board: { ...model.board, tool: null },
+        board: { ...model.board, flow: { _tag: 'Idle' } },
       },
       commands: saveCommands(model),
     }

@@ -5,7 +5,8 @@ import { COMPONENTS } from '@quorum/simulation/catalog'
 import { FocusInspector } from '../commands.ts'
 import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
-import { Model, placingOf, stampedPlaybook } from '../model.ts'
+import { Model, confirmSellOf, placingOf, stampedPlaybook } from '../model.ts'
+import { step as boardStep } from '../board-machine.ts'
 import { Result } from 'effect'
 import { capture, SHARED, duplicate, ghostReason, placePlaybook } from '@quorum/simulation/playbook'
 import { isOne } from '../../i18n/plural.ts'
@@ -96,7 +97,12 @@ export const canvasHandlers = (
       panel: 'none',
       board: {
         ...model.board,
-        tool: type === null || placingOf(model) === type ? null : { _tag: 'Placing', type },
+        flow: boardStep(
+          model.board.flow,
+          type === null || placingOf(model) === type
+            ? { _tag: 'Cancelled' }
+            : { _tag: 'PartChosen', type },
+        ),
         buildGroup: null,
       },
     }
@@ -121,7 +127,7 @@ export const canvasHandlers = (
         Result.map(placed, (result) => result.game),
         {
           undoable: true,
-          patch: () => ({ tool: null }),
+          patch: () => ({ flow: boardStep(model.board.flow, { _tag: 'Placed' }) }),
           note: () =>
             Result.match(placed, {
               onFailure: () => null,
@@ -158,7 +164,10 @@ export const canvasHandlers = (
       Actions.place(model.board.game, type, spot.x, spot.y, model.board.region),
       {
         undoable: true,
-        patch: (_, game) => ({ tool: null, selected: game.nodes.at(-1)?.id ?? null }),
+        patch: (_, game) => ({
+          flow: boardStep(model.board.flow, { _tag: 'Placed' }),
+          selected: game.nodes.at(-1)?.id ?? null,
+        }),
       },
     )
   },
@@ -183,7 +192,7 @@ export const canvasHandlers = (
         selected: nodeId,
         selection: [],
         nodeSample: model.board.selected === nodeId ? model.board.nodeSample : null,
-        tradeoff: model.board.selected === nodeId ? model.board.tradeoff : null,
+        tradeoff: model.board.selected === nodeId ? model.board.tradeoff : { _tag: 'Closed' },
       },
     }
     return { model: next }
@@ -207,10 +216,9 @@ export const canvasHandlers = (
         region: node.region,
         selected: nodeId,
         selection: [],
-        tool: null,
-        confirmSell: null,
+        flow: { _tag: 'Idle' },
         nodeSample: null,
-        tradeoff: null,
+        tradeoff: { _tag: 'Closed' },
       },
     }
     return { model: next, commands: [sync(next, false, nodeId), FocusInspector({})] }
@@ -230,7 +238,7 @@ export const canvasHandlers = (
         ]
     const next: Model = {
       ...model,
-      board: { ...model.board, selection, selected: null, tradeoff: null },
+      board: { ...model.board, selection, selected: null, tradeoff: { _tag: 'Closed' } },
     }
     return { model: next }
   },
@@ -250,7 +258,7 @@ export const canvasHandlers = (
           : [...ids]
     const next: Model = {
       ...model,
-      board: { ...model.board, selection, selected: null, tradeoff: null },
+      board: { ...model.board, selection, selected: null, tradeoff: { _tag: 'Closed' } },
     }
     return { model: next }
   },
@@ -262,7 +270,7 @@ export const canvasHandlers = (
     if (ids.length === 0) return { model }
     const next: Model = {
       ...model,
-      board: { ...model.board, selection: ids, selected: null, tradeoff: null },
+      board: { ...model.board, selection: ids, selected: null, tradeoff: { _tag: 'Closed' } },
     }
     return { model: next }
   },
@@ -307,7 +315,7 @@ export const canvasHandlers = (
       panel: 'none',
       board: {
         ...model.board,
-        tool: { _tag: 'Stamping', source: 'clipboard' },
+        flow: { _tag: 'Stamping', source: 'clipboard' },
         selected: null,
         selection: [],
       },
@@ -368,25 +376,51 @@ export const canvasHandlers = (
   },
 
   SellAsked: () => {
-    if (model.board.confirmSell) return route(model, Message.SellConfirmed())
+    if (confirmSellOf(model.board)) return route(model, Message.SellConfirmed())
     const ids = chosenIds(model)
     if (ids.length === 0) return { model }
     const sold = sellAll(model.board.game, ids)
     // Nothing to sell (fixed Nodes): say why, without asking.
     if (Result.isFailure(sold)) return withToast(model, refusalIn(say(model), sold.failure), 'warn')
-    return { model: { ...model, board: { ...model.board, confirmSell: ids } } }
+    return {
+      model: {
+        ...model,
+        board: {
+          ...model.board,
+          flow: boardStep(model.board.flow, { _tag: 'SellAsked', ids }),
+        },
+      },
+    }
   },
 
   SellConfirmed: () => {
-    const ids = model.board.confirmSell ?? []
-    const cleared: Model = { ...model, board: { ...model.board, confirmSell: null } }
+    const ids = confirmSellOf(model.board) ?? []
+    const cleared: Model = {
+      ...model,
+      board: {
+        ...model.board,
+        flow: boardStep(model.board.flow, { _tag: 'SellConfirmed' }),
+      },
+    }
     return act(cleared, `Sold ${countNodes(ids.length)}`, sellAll(model.board.game, ids), {
       undoable: true,
-      patch: () => ({ selected: null, selection: [], linkFrom: null }),
+      patch: () => ({
+        selected: null,
+        selection: [],
+        flow: boardStep(model.board.flow, { _tag: 'SellConfirmed' }),
+      }),
     })
   },
 
-  SellDismissed: () => ({ model: { ...model, board: { ...model.board, confirmSell: null } } }),
+  SellDismissed: () => ({
+    model: {
+      ...model,
+      board: {
+        ...model.board,
+        flow: boardStep(model.board.flow, { _tag: 'SellDismissed' }),
+      },
+    },
+  }),
 
   SelectionCleared: () => {
     const next: Model = { ...model, board: { ...model.board, selection: [] } }
@@ -435,7 +469,7 @@ export const canvasHandlers = (
       Actions.connect(model.board.game, from, to),
       {
         undoable: true,
-        patch: () => ({ linkFrom: null }),
+        patch: () => ({ flow: boardStep(model.board.flow, { _tag: 'LinkRequested', to }) }),
         note: (game) =>
           model.board.game.nodes.find((node) => node.id === from)?.localDb &&
           !game.nodes.find((node) => node.id === from)?.localDb
@@ -458,7 +492,13 @@ export const canvasHandlers = (
     if (model.board.selected === null && model.board.selection.length === 0) return { model }
     const next: Model = {
       ...model,
-      board: { ...model.board, selected: null, selection: [], tradeoff: null, linkFrom: null },
+      board: {
+        ...model.board,
+        selected: null,
+        selection: [],
+        tradeoff: { _tag: 'Closed' },
+        flow: boardStep(model.board.flow, { _tag: 'Cancelled' }),
+      },
     }
     return { model: next }
   },

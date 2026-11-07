@@ -22,7 +22,7 @@ import { legacyMultiplier } from '@quorum/simulation/founding'
 import { valuationOf } from '@quorum/simulation/valuation'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { ledgerOf, type Model, offCompany, stampedPlaybook } from '@/game/model.ts'
+import { confirmSellOf, ledgerOf, type Model, offCompany, stampedPlaybook } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { textarea } from '@quorum/ui/primitives/textarea'
@@ -437,7 +437,7 @@ export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html => {
 export const sellBar = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const ids = model.board.confirmSell
+  const ids = confirmSellOf(model.board)
   if (!ids) return h.empty
   const refund = model.board.game.nodes
     .filter((node) => ids.includes(node.id))

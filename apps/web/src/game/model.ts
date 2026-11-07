@@ -2,7 +2,7 @@ import { MailMessage, Snippet } from './mail-text.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Locale } from '../i18n/index.ts'
-import { Effect, Schema } from 'effect'
+import { Effect, Schema, SchemaGetter } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import { DOCK_GROUPS, REQUEST_KINDS, type DockGroup } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
@@ -11,6 +11,17 @@ import { HistoryRow, exitOffers } from '@quorum/simulation/exit'
 import { Founder } from '@quorum/simulation/founder'
 import { Playbook } from '@quorum/simulation/playbook'
 import { Boot } from './boot-machine.ts'
+import { Away, Reveal } from './machine-state.ts'
+export { Away, Change, Delta, Figures, PreviewFigures, Reveal } from './machine-state.ts'
+import { TradeoffState } from './tradeoff-machine.ts'
+export { TradeoffState } from './tradeoff-machine.ts'
+import { ClockMode, away as clockAwayOf, paused as clockPausedOf } from './clock-machine.ts'
+import { HoldFlow } from './hold-machine.ts'
+import { ChangeState } from './change-machine.ts'
+import { ConfirmDelete } from './confirm-delete-machine.ts'
+import { DisclosureFlow } from './disclosure-machine.ts'
+import { BoardFlow } from './board-machine.ts'
+import { MailPhase } from './mail-machine.ts'
 import { SENDER_KINDS } from './copy/senders.ts'
 import { SandboxId, SandboxRun, Session } from './session-machine.ts'
 import { histogramQuery } from './challenge-query.ts'
@@ -78,22 +89,6 @@ export const SandboxStore = Schema.Struct({
 })
 export type SandboxStore = typeof SandboxStore.Type
 
-/** What happened while the player was away (15 "Offline return"). */
-export const Away = Schema.Struct({
-  seconds: Schema.Finite,
-  away: Schema.Finite,
-  usersBefore: Schema.Finite,
-  usersAfter: Schema.Finite,
-  cash: Schema.Finite,
-  studied: Schema.Array(ResearchId),
-  devHours: Schema.Finite,
-  peak: Schema.Finite,
-  peakHour: Schema.Finite,
-  peakNode: Schema.NullOr(Schema.String),
-  lost: Schema.Boolean,
-})
-export type Away = typeof Away.Type
-
 /** The Company that just exited: its history row, and the research it could pass on. */
 export const Exited = Schema.Struct({
   row: HistoryRow,
@@ -150,7 +145,7 @@ export const MailEntry = Schema.Struct({
 export const MailAction = Schema.Struct({ id: Schema.String, label: Schema.String })
 
 /** One Thread: Mail about one thing from one Sender. It stays until the player deletes it. */
-export const Mail = Schema.Struct({
+const MAIL_FIELDS = {
   id: Schema.Finite,
   key: Schema.String,
   sender: Schema.String,
@@ -161,16 +156,41 @@ export const Mail = Schema.Struct({
   time: Schema.Finite,
   entries: Schema.Array(MailEntry),
   actions: Schema.Array(MailAction),
-  /** What the player chose, once they chose; it replaces the buttons. */
-  answer: Schema.NullOr(Schema.String),
-  /** Which answer that was, so it can be shown in another language. */
-  answerId: Schema.optionalKey(Schema.String),
   read: Schema.Boolean,
   trashed: Schema.Boolean,
   spam: Schema.Boolean,
-  /** Game time its cause went away, or null while it holds. */
-  resolved: Schema.NullOr(Schema.Finite),
+} as const
+
+/** A save from before the Mail machine stored the answer and the resolve time as fields. */
+const MailStored = Schema.Struct({
+  ...MAIL_FIELDS,
+  answer: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  answerId: Schema.optionalKey(Schema.String),
+  resolved: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
+  phase: Schema.optionalKey(MailPhase),
 })
+
+const MailLive = Schema.Struct({ ...MAIL_FIELDS, phase: MailPhase })
+
+const mailOf = (stored: typeof MailStored.Type): typeof MailLive.Type => {
+  const { answer, answerId, resolved, phase, ...rest } = stored
+  if (phase) return { ...rest, phase }
+  if (resolved !== undefined && resolved !== null)
+    return { ...rest, phase: { _tag: 'Resolved', at: resolved } }
+  if (answer !== undefined && answer !== null)
+    return {
+      ...rest,
+      phase: { _tag: 'Answered', answer, answerId: answerId ?? '' },
+    }
+  return { ...rest, phase: { _tag: 'Active' } }
+}
+
+export const Mail = MailStored.pipe(
+  Schema.decodeTo(MailLive, {
+    decode: SchemaGetter.transform(mailOf),
+    encode: SchemaGetter.transform((live) => live),
+  }),
+)
 export type Mail = typeof Mail.Type
 
 export const Folder = Schema.Literals(['action', 'fyi', 'spam', 'trash'])
@@ -180,70 +200,11 @@ export type Folder = typeof Folder.Type
 export const MailLabel = Schema.Literals(SENDER_KINDS)
 export type MailLabel = typeof MailLabel.Type
 
-/** The figures a change is measured by. */
-export const Figures = Schema.Struct({
-  revenue: Schema.Finite,
-  latency: Schema.Finite,
-  p99: Schema.Finite,
-  errors: Schema.Finite,
-})
-export type Figures = typeof Figures.Type
-
-/** A change the player made, settling: queues drain, caches and runtimes warm up. */
-export const Change = Schema.Struct({
-  label: Schema.String,
-  count: Schema.Finite,
-  startedAt: Schema.Finite,
-  before: Figures,
-  /** Revenue, served, and error share over the last few ticks, to tell when they stop moving. */
-  recent: Schema.Array(
-    Schema.Struct({ revenue: Schema.Finite, served: Schema.Finite, errors: Schema.Finite }),
-  ),
-  /** Trailing ticks the figures have held within 1%. */
-  steady: Schema.Finite,
-})
-export type Change = typeof Change.Type
-
 /** An option a Tradeoff card previews; the board's compute jobs share it. */
 export { TradeoffOption }
 
 export const TradeoffKind = Schema.Literals(['runtime', 'framework', 'family'])
 export type TradeoffKind = typeof TradeoffKind.Type
-
-/** What a ghost run says an option does to the player's Design. */
-export const PreviewFigures = Schema.Struct({
-  before: Figures,
-  after: Figures,
-  burn: Schema.Array(Schema.Finite),
-  restart: Schema.Finite,
-  cash: Schema.Finite,
-})
-export type PreviewFigures = typeof PreviewFigures.Type
-
-/** The open Tradeoff card: hovered, or pinned by a click until Confirm or Cancel. */
-export const Tradeoff = Schema.Struct({
-  nodeId: Schema.String,
-  option: TradeoffOption,
-  pinned: Schema.Boolean,
-  preview: Schema.NullOr(PreviewFigures),
-  /** Why the option cannot be chosen, when it cannot. */
-  refusal: Schema.NullOr(Schema.String),
-})
-export type Tradeoff = typeof Tradeoff.Type
-
-/** An element a first Company shows only once it is useful (15 "Progressive disclosure"). */
-export const Reveal = Schema.Literals([
-  'undo',
-  'collect',
-  'resize',
-  'research',
-  'errors',
-  'team',
-  'engineering',
-  'autopilot',
-  'glossary',
-])
-export type Reveal = typeof Reveal.Type
 
 /** The element that just appeared: it glows until the player uses it or its UI ticks run out. */
 export const RevealCue = Schema.Struct({ key: Reveal, left: Schema.Finite })
@@ -276,17 +237,6 @@ export const Prefs = Schema.Struct({
   analytics: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
 })
 export type Prefs = typeof Prefs.Type
-
-/** The result of a change, once it settled. */
-export const Delta = Schema.Struct({
-  id: Schema.Finite,
-  label: Schema.String,
-  before: Figures,
-  after: Figures,
-  worse: Schema.Boolean,
-  shownAt: Schema.Finite,
-})
-export type Delta = typeof Delta.Type
 
 /** The Design before a board action, and the Cash it moved. Design pieces only, to keep the Model small. */
 export const Undo = Schema.Struct({
@@ -389,30 +339,12 @@ export const Glossary = Schema.Struct({
 })
 export type Glossary = typeof Glossary.Type
 
-/** A board mode: placing one Component, or stamping the Founder's Playbook (by index) or the copied Nodes. */
-export const Tool = Schema.Union([
-  Schema.TaggedStruct('Placing', { type: ComponentId }),
-  Schema.TaggedStruct('Stamping', {
-    source: Schema.Union([Schema.Finite, Schema.Literal('clipboard')]),
-  }),
-])
-export type Tool = typeof Tool.Type
-
-/** Progressive disclosure (15): the elements this board shows, triggers that wait their turn, and the one that glows. */
-export const Disclosure = Schema.Struct({
-  revealed: Schema.Array(Reveal),
-  pending: Schema.Array(Reveal),
-  cue: Schema.NullOr(RevealCue),
-})
-export type Disclosure = typeof Disclosure.Type
-
 /** The board's clock: its speed, whether it runs, and when it last saved and sampled. */
 export const Clock = Schema.Struct({
   speed: Schema.Finite,
-  paused: Schema.Boolean,
-  /** The pause came from the window losing focus, so focus resumes it. */
-  away: Schema.Boolean,
-  /** Steps owed but not run yet: the part of a Step the last tick did not cover. */
+  /** Running, or the reason it holds. */
+  mode: ClockMode,
+  /** Steps owed but not run yet: a tick at 1× is 2.5 Steps. */
   carry: Schema.Finite,
   /** Game time of the last save, so the clock saves every few seconds. */
   savedAt: Schema.Finite,
@@ -420,13 +352,6 @@ export const Clock = Schema.Struct({
   sampledAt: Schema.Finite,
 })
 export type Clock = typeof Clock.Type
-
-/**
- * A buy or upgrade control under the pointer that repeats while held (15 "Bulk
- * actions"): the Node it buys for and the wall clock of the last buy.
- */
-export const Hold = Schema.Struct({ nodeId: Schema.String, at: Schema.Finite })
-export type Hold = typeof Hold.Type
 
 /**
  * One board: the Company, a Sandbox or a Challenge being played, and
@@ -448,31 +373,21 @@ export const Board = Schema.Struct({
   /** Nodes picked with shift for a Playbook. */
   selection: Schema.Array(Schema.String),
   /** What a click on the board does, and what follows the pointer. */
-  tool: Schema.NullOr(Tool),
-  /**
-   * The Node a keyboard link starts from (15 "Accessibility"): `L` sets it,
-   * arrows move the selection to the other end, and Enter or `L` links them.
-   */
-  linkFrom: Schema.NullOr(Schema.String),
-  /** The Nodes a sale is waiting on, until the player confirms it. */
-  confirmSell: Schema.NullOr(Schema.Array(Schema.String)),
+  flow: BoardFlow,
   /** The Nodes last copied or cut. */
   clipboard: Schema.NullOr(Playbook),
   /** The open build tray, or null when the dock shows only its group icons. */
   buildGroup: Schema.NullOr(BuildGroupKey),
   /** The buy or upgrade control held down, which repeats while it stays down. */
-  hold: Schema.NullOr(Hold),
+  hold: HoldFlow,
   team: Team,
   research: Research,
   /** The Insight card's help section is open. */
   insightHelp: Schema.Boolean,
   clock: Clock,
-  change: Schema.NullOr(Change),
-  delta: Schema.NullOr(Delta),
-  /** Ticks left to show "Stable" after a change settles. */
-  stableTicks: Schema.Finite,
-  tradeoff: Schema.NullOr(Tradeoff),
-  disclosure: Disclosure,
+  change: ChangeState,
+  tradeoff: TradeoffState,
+  disclosure: DisclosureFlow,
   /** Board actions to undo, newest last, at most 50. */
   undo: Schema.Array(Undo),
   /** Undone actions to redo, newest last. A new action clears it. */
@@ -523,7 +438,7 @@ export const Model = Schema.Struct({
   /** The Company file the Companies page shows, or null for the list. */
   saveFocus: Schema.NullOr(Schema.String),
   /** The player asked to delete the focused Company; the next press confirms. */
-  saveConfirm: Schema.Boolean,
+  saveConfirm: ConfirmDelete,
   /** The player across Companies, kept apart from the Company save. */
   founder: Founder,
   /** The Exit survey, until the player leaves the exited Company. */
@@ -572,17 +487,33 @@ export const inMenu = (model: Model): boolean =>
   model.panel === 'menu' || model.panel === 'settings'
 
 /** The clock holds still: the player paused it, or the game menu is open. */
+/** The clock holds still: paused for any reason, or the game menu is open. */
 export const halted = (model: Model): boolean =>
-  model.board.clock.paused || inMenu(model) || model.boot._tag === 'Connecting'
+  clockPausedOf(model.board.clock.mode) || inMenu(model) || model.boot._tag === 'Connecting'
+
+/** The clock is paused, whatever the reason. */
+export const clockPaused = (model: Model): boolean => clockPausedOf(model.board.clock.mode)
+
+/** The pause came from the window losing focus. */
+export const clockAway = (model: Model): boolean => clockAwayOf(model.board.clock.mode)
 
 /** The Playbook that follows the pointer, if any. */
-export const stampedPlaybook = (model: Model): Playbook | null =>
-  model.board.tool?._tag !== 'Stamping'
-    ? null
-    : model.board.tool.source === 'clipboard'
-      ? model.board.clipboard
-      : (model.founder.playbooks[model.board.tool.source] ?? null)
+export const stampedPlaybook = (model: Model): Playbook | null => {
+  const flow = model.board.flow
+  if (flow._tag !== 'Stamping') return null
+  return flow.source === 'clipboard'
+    ? model.board.clipboard
+    : (model.founder.playbooks[flow.source] ?? null)
+}
 
 /** The Component a click on the board places, if any. */
 export const placingOf = (model: Model): typeof ComponentId.Type | null =>
-  model.board.tool?._tag === 'Placing' ? model.board.tool.type : null
+  model.board.flow._tag === 'Placing' ? model.board.flow.type : null
+
+/** The Node a keyboard link starts from, if any. */
+export const linkFromOf = (board: Board): string | null =>
+  board.flow._tag === 'Linking' ? board.flow.from : null
+
+/** The Nodes a sale waits on, if any. */
+export const confirmSellOf = (board: Board): ReadonlyArray<string> | null =>
+  board.flow._tag === 'ConfirmingSell' ? board.flow.ids : null

@@ -13,6 +13,7 @@
     "test:engines": "vitest run --config vitest.engines.config.ts && node engines/workerd.mjs"
   },
   "dependencies": {
+    "@typeonce/effect-machine": "0.46.0",
     "effect": "4.0.0"
   },
   "devDependencies": {

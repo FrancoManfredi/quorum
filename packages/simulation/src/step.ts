@@ -806,7 +806,7 @@ export const step = (
         pools.failure +
         (chaotic ? CHAOS_INSIGHT * seconds : 0) +
         (game.time < game.loadTestUntil ? LOAD_TEST_INSIGHT * seconds : 0) +
-        (game.drill && !game.drill.done ? DRILL_INSIGHT * seconds : 0),
+        (game.drill?._tag === 'Running' ? DRILL_INSIGHT * seconds : 0),
     },
     // The Node the next experiment hits: the Design's weakest right now (10 "Chaos engineering").
     weakest: game.chaos ? (ledger.bottleneck ?? game.weakest) : null,

@@ -17,7 +17,7 @@ export const kindLabelOf = (mail: Mail): string => KIND_LABEL[kindOf(mail)]
 export type Priority = 'clock' | 'decision' | 'none'
 
 export const priorityOf = (mail: Mail): Priority =>
-  mail.answer !== null || mail.resolved !== null || mail.spam || mail.trashed
+  mail.phase._tag !== 'Active' || mail.spam || mail.trashed
     ? 'none'
     : // A CVE advisory carries a clock: the ticket expires and the CVE is exploited.
       senderOf(mail.sender).kind === 'security'

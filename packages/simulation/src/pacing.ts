@@ -76,6 +76,7 @@ import {
 import { bottleneckOf, diurnal, solveFlow } from './solve.ts'
 import type { Founding, Game, GameNode } from './state.ts'
 import { step } from './step.ts'
+import { drillDone, drillPassed } from './drill-machine.ts'
 import { languageOfService, salaryOf, serviceOf, signingOf, stackOf } from './team.ts'
 import {
   addIndex,
@@ -604,7 +605,7 @@ const ipoBuild = (game: Game): Game => {
   if (
     has(next, 'dr-drills') &&
     !next.incident &&
-    (!next.drill || (next.drill.done && !next.drill.passed))
+    (!next.drill || (drillDone(next.drill) && !drillPassed(next.drill)))
   )
     next = tried(next, runDrill(next))
   return next

@@ -1,7 +1,9 @@
 import { ApplySettings, FocusDashboard, WriteFounder, WritePrefs } from '../commands.ts'
 import { EMPTY_RESEARCH, ResearchMessage } from '../research.ts'
 import { Message } from '../message.ts'
-import { Model, Prefs, halted } from '../model.ts'
+import { Model, Prefs, clockAway, halted } from '../model.ts'
+import { clockStep } from '../clock-machine.ts'
+import { step as holdStep } from '../hold-machine.ts'
 import { Option, Schema } from 'effect'
 import { PrefsMessage, updatePrefs } from '../prefs.ts'
 import { updateSurvey } from '../survey.ts'
@@ -153,7 +155,7 @@ export const panelsHandlers = (
       board: {
         ...model.board,
         team: initTeam(),
-        tool: null,
+        flow: { _tag: 'Idle' },
         research: EMPTY_RESEARCH,
         dashboard: { ...model.board.dashboard, hover: null },
       },
@@ -246,22 +248,41 @@ export const panelsHandlers = (
 
   WindowBlurred: () => {
     // The pointer is not followed outside the window, so a hold ends with the focus.
-    const held: Model = model.board.hold
-      ? { ...model, board: { ...model.board, hold: null } }
-      : model
+    const held: Model =
+      model.board.hold._tag === 'Held'
+        ? {
+            ...model,
+            board: {
+              ...model.board,
+              hold: holdStep(model.board.hold, { _tag: 'HoldLifted' }),
+            },
+          }
+        : model
     if (!held.prefs.blurPause || halted(held) || !onBoard(held.route)) return { model: held }
     const next: Model = {
       ...held,
-      board: { ...held.board, clock: { ...held.board.clock, paused: true, away: true } },
+      board: {
+        ...held.board,
+        clock: {
+          ...held.board.clock,
+          mode: clockStep(held.board.clock.mode, { _tag: 'Blurred' }),
+        },
+      },
     }
     return { model: next }
   },
 
   WindowFocused: () => {
-    if (!model.board.clock.away) return { model }
+    if (!clockAway(model)) return { model }
     const next: Model = {
       ...model,
-      board: { ...model.board, clock: { ...model.board.clock, paused: false, away: false } },
+      board: {
+        ...model.board,
+        clock: {
+          ...model.board.clock,
+          mode: clockStep(model.board.clock.mode, { _tag: 'Focused' }),
+        },
+      },
     }
     return { model: next }
   },
@@ -285,7 +306,7 @@ export const panelsHandlers = (
         category: browsing ? model.glossary.category : null,
       },
       founder,
-      board: { ...model.board, tool: null },
+      board: { ...model.board, flow: { _tag: 'Idle' } },
     }
     return {
       model: next,

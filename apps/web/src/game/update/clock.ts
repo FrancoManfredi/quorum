@@ -25,7 +25,15 @@ import {
 import { recordEra } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
 import { HISTORY_EVERY, HISTORY_POINTS, sampleNode, type NodeSample } from '../node-metrics.ts'
-import { Model, offCompany, boardChallenge, boardSandbox, type Tone } from '../model.ts'
+import {
+  Model,
+  clockPaused,
+  offCompany,
+  boardChallenge,
+  boardSandbox,
+  type Tone,
+} from '../model.ts'
+import { clockStep } from '../clock-machine.ts'
 import { Result } from 'effect'
 import { STABLE_TICKS, advanceChange, deltaExpired } from '../feedback.ts'
 import { SAVE_EVERY, SAMPLE_EVERY, mostSteps, speedsOf } from './constant.ts'
@@ -426,7 +434,7 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   const severe = events.find(
     (event) => event._tag === 'IncidentStarted' && event.incident.severity <= 2,
   )
-  const autoPaused = model.prefs.autoPause && severe !== undefined && !model.board.clock.paused
+  const autoPaused = model.prefs.autoPause && severe !== undefined && !clockPaused(model)
   let next: Model = {
     ...model,
     board: {
@@ -439,7 +447,9 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
       bottleneckAt: search ? second : model.board.bottleneckAt,
       clock: {
         ...model.board.clock,
-        paused: model.board.clock.paused || autoPaused,
+        mode: autoPaused
+          ? clockStep(model.board.clock.mode, { _tag: 'SevereIncident' })
+          : model.board.clock.mode,
         speed: incident ? Math.min(model.board.clock.speed, 1) : model.board.clock.speed,
         carry,
       },
@@ -457,7 +467,7 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
     )
     if (done) {
       const passed = next.passed.includes(guided.id) ? next.passed : [...next.passed, guided.id]
-      next = { ...next, passed, panel: 'passed', board: { ...next.board, tool: null } }
+      next = { ...next, passed, panel: 'passed', board: { ...next.board, flow: { _tag: 'Idle' } } }
       commands.push(WriteSandboxStore({ store: storeOf(next) }))
     } else {
       const [raised, clear] = toasted(
@@ -539,9 +549,9 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
 
   // Money out (09 "Runway and running out of Cash"): the bridge arrives, or the Nodes shut down.
   if (!offCompany(next)) {
-    const was = model.board.game.bridge
+    const was = model.board.game.bridge._tag
     const bridge = next.board.game.bridge
-    if (!was && bridge) {
+    if (was === 'None' && bridge._tag === 'Offered') {
       logs.push(
         line(game.time, 'BridgeOffered', { grant: bridge.grant, dilution: bridge.dilution }),
       )
@@ -571,18 +581,10 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   }
 
   // Feedback after a change.
-  const settled = advanceChange(next.board, ledger, next.toastSeq + 1)
-  next = {
-    ...next,
-    board: {
-      ...next.board,
-      change: settled.change,
-      delta: settled.delta ?? next.board.delta,
-      stableTicks: settled.delta ? STABLE_TICKS : Math.max(0, next.board.stableTicks - 1),
-    },
-  }
-  if (settled.delta) logs.push(line(game.time, 'ChangeSettled', settled.delta))
-  if (deltaExpired(next.board)) next = { ...next, board: { ...next.board, delta: null } }
+  const change = advanceChange(next.board, ledger, next.toastSeq + 1)
+  next = { ...next, board: { ...next.board, change } }
+  if (change._tag === 'Settled' || change._tag === 'Lasting')
+    logs.push(line(game.time, 'ChangeSettled', change.delta))
 
   // The Dashboard's long history: every Sample the Steps added.
   next = {
@@ -649,7 +651,7 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
       const key = `customers:churn:${region.region}`
       const falling = region.perHour < 0 && regionApdexOf(game, region.region) < region.target
       const open = next.board.inbox.mail.some(
-        (mail) => mail.key === key && mail.resolved === null && !mail.trashed,
+        (mail) => mail.key === key && mail.phase._tag !== 'Resolved' && !mail.trashed,
       )
       if (falling) next = mailedTo(next, churnFact(game, region), game.time)
       else if (open)
@@ -677,7 +679,7 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
     if (running && stall) next = mailedTo(next, stallFact(game, running.id, stall), game.time)
     for (const mail of next.board.inbox.mail) {
       if (!mail.key.startsWith('research:stalled:') || mail.key === key) continue
-      if (mail.resolved !== null || mail.trashed) continue
+      if (mail.phase._tag === 'Resolved' || mail.trashed) continue
       const name = RESEARCH[mail.key.slice('research:stalled:'.length) as ResearchId]?.name
       // The player usually caused this, by cancelling or by shipping the fix: no new unread Mail.
       const inbox = closed(
@@ -764,7 +766,10 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
       ...model,
       board: {
         ...model.board,
-        clock: { ...model.board.clock, paused: !model.board.clock.paused, away: false },
+        clock: {
+          ...model.board.clock,
+          mode: clockStep(model.board.clock.mode, { _tag: 'PauseToggled' }),
+        },
       },
     }
     return { model: next }

@@ -22,6 +22,9 @@ import { AppRoute } from './route.ts'
 import { Message } from './message.ts'
 import { initialModel, update } from './update.ts'
 
+const answerOf = (mail?: { phase: { _tag: string; answer?: string } }) =>
+  mail?.phase._tag === 'Answered' ? mail.phase.answer : null
+
 /* The Inbox's own rules (GDD 18): what the save keeps, the label chips, the Digest, and the
    Mail a postmortem and a spam trap write. */
 
@@ -177,7 +180,7 @@ test('a resolved incident asks a teammate to file the postmortem', () => {
   const taken = act(inbox, id, `postmortem-take:${postmortem.id}`)
   expect(taken.outMessage).toEqual({ _tag: 'ActionTaken', kind: 'postmortem-take', target: '3' })
   // The answer stays in the Inbox as the record.
-  expect(taken.model.mail[0]?.answer).toBe(
+  expect(answerOf(taken.model.mail[0])).toBe(
     'You filed the postmortem and put the action item in the study queue.',
   )
   // An incident with no action item carries one button.
@@ -190,7 +193,7 @@ test('a phishing trap leaks the credentials, and the Inbox keeps the record', ()
   expect(phishing?.actions).toEqual([{ id: 'trap:phish', label: 'Verify account' }])
   const clicked = act({ ...inbox, folder: 'spam' }, phishing?.id ?? 0, 'trap:phish')
   expect(clicked.outMessage).toEqual({ _tag: 'ActionTaken', kind: 'trap', target: 'phish' })
-  expect(clicked.model.mail[0]?.answer).toContain('It was a trap')
+  expect(answerOf(clicked.model.mail[0])).toContain('It was a trap')
 
   // The act itself is a Simulation Action: the Credential leak incident starts and Users leave.
   const phished = Actions.phished(game)
@@ -279,5 +282,5 @@ test('paying a fake invoice costs the Cash printed on it', () => {
   ).model
   expect(paid.board.game.cash).toBe(rich.cash - 4_812)
   // The Mail keeps the record of what the click cost.
-  expect(paid.board.inbox.mail[0]?.answer).toContain('It was a trap')
+  expect(answerOf(paid.board.inbox.mail[0])).toContain('It was a trap')
 })

@@ -7,7 +7,7 @@ import { Subscription } from 'foldkit'
 import { Message } from './message.ts'
 import { TeamMessage } from './team.ts'
 import { ResearchMessage } from './research.ts'
-import { halted, type Model } from './model.ts'
+import { clockAway, halted, type Model } from './model.ts'
 import { onBoard } from './route.ts'
 import { TICK_MS, REPEAT_MS } from './update.ts'
 
@@ -270,9 +270,7 @@ export const subscriptions = {
       {
         modelToDependencies: (model: Model) => ({
           watching:
-            model.prefs.blurPause &&
-            onBoard(model.route) &&
-            (!halted(model) || model.board.clock.away),
+            model.prefs.blurPause && onBoard(model.route) && (!halted(model) || clockAway(model)),
         }),
         dependenciesToStream: ({ watching }: { watching: boolean }) =>
           watching ? blurs : Stream.empty,
@@ -302,7 +300,9 @@ export const subscriptions = {
     holds: entry(
       { nodeId: Schema.NullOr(Schema.String) },
       {
-        modelToDependencies: (model: Model) => ({ nodeId: model.board.hold?.nodeId ?? null }),
+        modelToDependencies: (model: Model) => ({
+          nodeId: model.board.hold._tag === 'Held' ? model.board.hold.nodeId : null,
+        }),
         dependenciesToStream: ({ nodeId }: { nodeId: string | null }) =>
           nodeId
             ? Stream.tick(REPEAT_MS).pipe(
@@ -316,7 +316,7 @@ export const subscriptions = {
     releases: entry(
       { held: Schema.Boolean },
       {
-        modelToDependencies: (model: Model) => ({ held: model.board.hold !== null }),
+        modelToDependencies: (model: Model) => ({ held: model.board.hold._tag === 'Held' }),
         dependenciesToStream: ({ held }: { held: boolean }) => (held ? releases : Stream.empty),
       },
     ),

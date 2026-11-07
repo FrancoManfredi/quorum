@@ -81,10 +81,7 @@ export const mailKey = (model: Model, key: string, route: Dispatch): UpdateResul
     default: {
       // The reader shows every button, so every one of them takes a number, in order.
       if (!/^[1-9]$/.test(key)) return null
-      const action =
-        current?.answer === null && current.resolved === null
-          ? current.actions[Number(key) - 1]
-          : undefined
+      const action = current?.phase._tag === 'Active' ? current.actions[Number(key) - 1] : undefined
       // The Inbox owns the number keys while it is open, so they never reach the board's shortcuts.
       return current && action
         ? foldInbox(model, InboxMessage.Acted({ id: current.id, action: action.id }), route)
@@ -151,7 +148,7 @@ export const mailAction = (
             region: node.region,
             selected: node.id,
             selection: [],
-            tool: null,
+            flow: { _tag: 'Idle' },
             tradeoff: card,
           },
         },
@@ -302,7 +299,7 @@ export const foldInbox = (model: Model, message: InboxMessage, route: Dispatch):
     foldOutMessage: (out: InboxOutMessage) => (parent: Model) =>
       InboxOutMessage.match<UpdateResult>(out, {
         PanelWanted: () => ({
-          model: { ...parent, panel: 'inbox', board: { ...parent.board, tool: null } },
+          model: { ...parent, panel: 'inbox', board: { ...parent.board, flow: { _tag: 'Idle' } } },
         }),
         ActionTaken: ({ kind, target }) => mailAction(parent, route, kind, target),
       }),

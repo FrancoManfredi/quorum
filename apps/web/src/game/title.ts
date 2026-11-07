@@ -597,7 +597,7 @@ const saveRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
       },
       h,
     ),
-    ...(model.saveConfirm
+    ...(model.saveConfirm._tag === 'Confirming'
       ? [
           row(
             {

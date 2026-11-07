@@ -3,6 +3,7 @@ import { Refusal, type Action } from './actions.ts'
 import { CALENDAR_DAY, COMPONENTS } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { stopped, warmOf } from './life.ts'
+import { step as bridgeStep } from './bridge-machine.ts'
 import { burnOf } from './lookups.ts'
 import { solveFlow } from './solve.ts'
 import type { Game, GameNode } from './state.ts'
@@ -46,28 +47,32 @@ export const advanceRunway = (game: Game, ledger: Ledger): Game => {
   if (burn <= 0) return game
   let next = game
   // At −1 calendar day of Burn the investors offer a bridge, once per Company.
-  if (!next.bridge && !next.bridgeUsed && next.cash <= -burn * CALENDAR_DAY * BRIDGE_AT_DAYS) {
+  if (next.bridge._tag === 'None' && next.cash <= -burn * CALENDAR_DAY * BRIDGE_AT_DAYS) {
     next = {
       ...next,
-      bridge: { grant: bridgeGrantOf(burn), dilution: BRIDGE_DILUTION },
-      bridgeUsed: true,
+      bridge: bridgeStep(next.bridge, {
+        _tag: 'Offered',
+        grant: bridgeGrantOf(burn),
+        dilution: BRIDGE_DILUTION,
+      }),
     }
   }
   // Left unanswered, at −3 calendar days of Burn the Nodes shut down to stop the bleeding.
-  if (next.bridge && next.cash <= -burn * CALENDAR_DAY * SHUTDOWN_AT_DAYS)
-    return { ...shutdown(next), bridge: null }
+  if (next.bridge._tag === 'Offered' && next.cash <= -burn * CALENDAR_DAY * SHUTDOWN_AT_DAYS)
+    return { ...shutdown(next), bridge: bridgeStep(next.bridge, { _tag: 'Expired' }) }
   return next
 }
 
 /** Takes the bridge: the grant goes into Cash, and the dilution comes out of Equity. */
 export const acceptBridge = (game: Game): Action => {
   const bridge = game.bridge
-  if (!bridge) return Result.fail(Refusal.NotAllowed({ reason: 'No bridge is on the table.' }))
+  if (bridge._tag !== 'Offered')
+    return Result.fail(Refusal.NotAllowed({ reason: 'No bridge is on the table.' }))
   return Result.succeed({
     ...game,
     cash: game.cash + bridge.grant,
     equity: game.equity * (1 - bridge.dilution),
-    bridge: null,
+    bridge: bridgeStep(bridge, { _tag: 'Accepted' }),
   })
 }
 

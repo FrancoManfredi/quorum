@@ -1,6 +1,13 @@
 import type { ToolName } from 'quorum-mcp-relay/tools'
 import { nodeLabel } from '@quorum/simulation/labels'
-import { boardChallenge, ledgerOf, offCompany, boardSandbox, type Model } from './model.ts'
+import {
+  boardChallenge,
+  clockPaused,
+  ledgerOf,
+  offCompany,
+  boardSandbox,
+  type Model,
+} from './model.ts'
 
 /* ==========================================================================
    The read-only tools an agent can call: the agent relay for a terminal agent,
@@ -32,7 +39,7 @@ const runs: Record<ToolName, (model: Model, input: Input) => unknown> = {
         region: m.board.region,
         selectedNode: m.board.selected,
       },
-      paused: m.board.clock.paused,
+      paused: clockPaused(m),
       speed: m.board.clock.speed,
       simSeconds: round(m.board.game.time),
       stage: m.board.game.stage,
@@ -96,8 +103,8 @@ const runs: Record<ToolName, (model: Model, input: Input) => unknown> = {
         subject: mail.subject,
         time: round(mail.time),
         read: mail.read,
-        resolved: mail.resolved !== null,
-        answer: mail.answer,
+        resolved: mail.phase._tag === 'Resolved',
+        answer: mail.phase._tag === 'Answered' ? mail.phase.answer : null,
         choices: mail.actions.map((action) => action.label),
         entries: mail.entries,
       })),

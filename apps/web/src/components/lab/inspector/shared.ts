@@ -569,9 +569,9 @@ export const splitting = (node: GameNode, h: HtmlBuilder<Message>): Html => {
 }
 
 /** The runtime a pinned Tradeoff card asks this Node's Stack to show, if any. */
-export const pinnedRuntime = (model: Model, node: GameNode) =>
-  model.board.tradeoff?.nodeId === node.id &&
-  model.board.tradeoff.option.kind === 'runtime' &&
-  model.board.tradeoff.pinned
-    ? model.board.tradeoff.option.id
+export const pinnedRuntime = (model: Model, node: GameNode) => {
+  const card = model.board.tradeoff
+  return card._tag === 'Pinned' && card.nodeId === node.id && card.option.kind === 'runtime'
+    ? card.option.id
     : null
+}

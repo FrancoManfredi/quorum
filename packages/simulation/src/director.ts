@@ -56,6 +56,7 @@ import { nodeLabel } from './labels.ts'
 
 export { zoned }
 import { causeOf, down as takeDown, withWarm } from './life.ts'
+import { drillPassed } from './drill-machine.ts'
 import { nextRandom, pickWeighted } from './random.ts'
 import type { Game, GameLink, GameNode, Incident, Postmortem, Region, Zone } from './state.ts'
 import { isGlobal, survivesRegion } from './regions.ts'
@@ -556,7 +557,7 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     // Infrastructure as code pushes config to every server at once (11 "Bad config push").
     config: () => (has(game, 'infra-as-code') && configRegion(game) !== null ? 1 : 0),
     // An auditor resets the DR drill; a Security team fixes the gap first.
-    audit: () => (game.drill?.passed && !has(game, 'security-team') ? 1.5 : 0),
+    audit: () => (drillPassed(game.drill) && !has(game, 'security-team') ? 1.5 : 0),
     // Only the player starts a drill.
     'dr-drill': () => 0,
     // Only an expired patch ticket starts one.

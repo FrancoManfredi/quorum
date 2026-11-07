@@ -61,7 +61,7 @@ export const initialModel = (): Model =>
     loaded: false,
     draft: { name: '', logo: DEFAULT_LOGO },
     saveFocus: null,
-    saveConfirm: false,
+    saveConfirm: { _tag: 'List' },
     founder: emptyFounder(),
     survey: EMPTY_SURVEY,
     passed: [],
@@ -207,7 +207,7 @@ export const boardChanged = (before: Model, after: Model): boolean =>
   before.board.bottleneck !== after.board.bottleneck ||
   before.board.selected !== after.board.selected ||
   before.board.selection !== after.board.selection ||
-  before.board.tool !== after.board.tool ||
+  before.board.flow !== after.board.flow ||
   before.board.clipboard !== after.board.clipboard ||
   before.founder.playbooks !== after.founder.playbooks ||
   before.board.nodeHistory !== after.board.nodeHistory ||

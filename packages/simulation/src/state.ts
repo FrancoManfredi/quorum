@@ -28,6 +28,9 @@ import {
   NO_DEVICE_LATENCY,
 } from './catalog.ts'
 import { COMPONENT_FIELDS } from './components/fields.ts'
+import { DrillPhase } from './drill-machine.ts'
+import { BridgeState } from './bridge-machine.ts'
+import { QuarterPhase } from './quarter-machine.ts'
 
 /* ==========================================================================
    The saved game. Everything the Simulation needs to continue lives here, and
@@ -810,18 +813,6 @@ const OLD_MONOLITH = monolith([
   'health-check',
 ])
 
-/** The DR drill (10 "Era 6"): when it began, how long recovery took, and the data it would lose. */
-export const Drill = Schema.Struct({
-  startedAt: Schema.Finite,
-  /** Calendar minutes until the error share fell under 1%, or null until then. */
-  rto: Schema.NullOr(Schema.Finite),
-  /** Calendar minutes of writes the failed region would lose. */
-  rpo: Schema.Finite,
-  done: Schema.Boolean,
-  passed: Schema.Boolean,
-})
-export type Drill = typeof Drill.Type
-
 export const QuarterResult = Schema.Struct({
   beat: Schema.Boolean,
   growth: Schema.Finite,
@@ -841,6 +832,8 @@ export const Quarter = Schema.Struct({
   /** What beats and misses added to the valuation multiple. */
   bonus: Schema.Finite,
   last: Schema.NullOr(QuarterResult),
+  /** Guidance is open on the first day, then the quarter runs. */
+  phase: QuarterPhase,
 })
 export type Quarter = typeof Quarter.Type
 
@@ -962,19 +955,6 @@ export const Mirror = Schema.Struct({
 })
 export type Mirror = typeof Mirror.Type
 
-/**
- * A bridge investors offer while Cash is short (09 "Runway and running out of
- * Cash"): a grant that covers a few calendar days of Burn, for a slice of
- * Equity. The terms are fixed when the offer arrives, like a term sheet.
- */
-export const Bridge = Schema.Struct({
-  /** Cash the grant adds. */
-  grant: Schema.Finite,
-  /** Share of Equity the grant costs, 0 to 1. */
-  dilution: Schema.Finite,
-})
-export type Bridge = typeof Bridge.Type
-
 /** The Autopilot perk's policies (13 "The Legacy shop"): which rules the Company follows. */
 export const Policies = Schema.Struct({
   research: Schema.Boolean,
@@ -1014,10 +994,10 @@ export const Game = Schema.Struct({
   links: Schema.Array(GameLink),
   nextId: Schema.Finite,
   cash: Schema.Finite,
-  /** The bridge offer waiting for an answer, or null when none waits. */
-  bridge: Schema.NullOr(Bridge).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
-  /** The investors already offered this Company one bridge; they offer no second. */
-  bridgeUsed: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** The bridge offer: none, waiting for an answer, or gone. */
+  bridge: BridgeState.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({ _tag: 'None' } as const)),
+  ),
   /** Old saves' single Insight balance. Unused: the first Step moves it into `pools`. */
   insight: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   pools: InsightPools.pipe(Schema.withDecodingDefaultKey(Effect.succeed(NO_INSIGHT))),
@@ -1148,7 +1128,7 @@ export const Game = Schema.Struct({
   uploads: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** The last calendar week of requests and failures, by hour: the SLO window. */
   budget: Schema.Array(BudgetHour).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
-  drill: Schema.NullOr(Drill).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  drill: Schema.NullOr(DrillPhase).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The Company runs scheduled chaos experiments (Chaos engineering). */
   chaos: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The Node the last experiment hit: the Design's weakest, named for the player (10). */

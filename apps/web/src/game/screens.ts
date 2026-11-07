@@ -41,6 +41,7 @@ import {
   type Model,
   offCompany,
   boardSandbox,
+  confirmSellOf,
   stampedPlaybook,
 } from './model.ts'
 
@@ -122,7 +123,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.DataAttribute('flip', 'gesture'), h.Class(BOTTOM)],
         [
           changeBar(model, h, 'enter-pop compact:hidden'),
-          model.board.confirmSell
+          confirmSellOf(model.board)
             ? sellBar(model, h)
             : !offCompany(model) && model.board.selection.length > 0
               ? selectionBar(model, h)

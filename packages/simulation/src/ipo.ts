@@ -1,18 +1,10 @@
-import {
-  BACKUPS,
-  DRILL_RECOVERED,
-  DRILL_RPO,
-  DRILL_RTO,
-  DRILL_SECONDS,
-  ERAS,
-  HOME_REGION,
-  type ComponentId,
-} from './catalog.ts'
+import { BACKUPS, DRILL_RPO, ERAS, HOME_REGION, type ComponentId } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { has, isDown, securityStaffed } from './lookups.ts'
 import { survivesRegion } from './regions.ts'
 import { budgetOf } from './slo.ts'
-import type { Drill, Game, GameNode } from './state.ts'
+import { drillPassed, drillRto, step as drillStep, type DrillPhase } from './drill-machine.ts'
+import type { Game, GameNode } from './state.ts'
 import { valuationOf } from './valuation.ts'
 
 /* ==========================================================================
@@ -74,26 +66,19 @@ export const rpoOf = (game: Game, ledger: Ledger | null): number => {
 }
 
 /** Starts a drill record; the director runs the outage. */
-export const newDrill = (game: Game, ledger: Ledger | null): Drill => ({
+export const newDrill = (game: Game, ledger: Ledger | null): DrillPhase => ({
+  _tag: 'Running',
   startedAt: game.time,
-  rto: null,
-  rpo: rpoOf(game, ledger),
-  done: false,
-  passed: false,
+  // Infinity means "no bound"; the saved field is finite, so use the largest one.
+  rpo: Math.min(rpoOf(game, ledger), Number.MAX_SAFE_INTEGER),
 })
 
 /** Advances a running drill: it recovers once errors fall under 1%, and ends after its outage. */
-export const advanceDrill = (game: Game, ledger: Ledger): Drill | null => {
+export const advanceDrill = (game: Game, ledger: Ledger): DrillPhase | null => {
   const drill = game.drill
-  if (!drill || drill.done) return drill
+  if (!drill || drill._tag !== 'Running') return drill
   const elapsed = game.time - drill.startedAt
-  if (ledger.errorShare < DRILL_RECOVERED && elapsed > 0) {
-    // One sim second is one calendar minute.
-    const rto = elapsed
-    return { ...drill, rto, done: true, passed: rto < DRILL_RTO && drill.rpo < DRILL_RPO }
-  }
-  if (elapsed >= DRILL_SECONDS + DRILL_RTO) return { ...drill, done: true, passed: false }
-  return drill
+  return drillStep(drill, { _tag: 'Ticked', elapsed, errorShare: ledger.errorShare })
 }
 
 export type ChecklistItem = Readonly<{
@@ -177,20 +162,20 @@ export const checklistOf = (game: Game, ledger: Ledger): ReadonlyArray<Checklist
     {
       id: 'drill',
       label: 'DR drill',
-      met: drill?.passed ?? false,
+      met: drillPassed(drill),
       value: !drill
         ? 'Not run'
-        : !drill.done
+        : drill._tag === 'Running'
           ? 'Running'
-          : drill.passed
-            ? `RTO ${Math.round(drill.rto ?? 0)} min`
+          : drillPassed(drill)
+            ? `RTO ${Math.round(drillRto(drill) ?? 0)} min`
             : brokenRestore(game)
               ? 'Restore failed'
-              : drill.rto === null
+              : drill._tag === 'Failed'
                 ? 'Not recovered'
                 : drill.rpo >= DRILL_RPO
                   ? 'Data lost'
-                  : `RTO ${Math.round(drill.rto)} min`,
+                  : `RTO ${Math.round(drillRto(drill) ?? 0)} min`,
     },
     {
       id: 'residency',

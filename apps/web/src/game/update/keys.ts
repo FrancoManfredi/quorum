@@ -1,11 +1,20 @@
 import { CARD_W, CLEARANCE, boxOf, freeSpot, heightOf } from '@quorum/ui/board/geometry'
 import { FocusInspector, ToggleFullscreen } from '../commands.ts'
 import { Message } from '../message.ts'
-import { Model, offCompany, placingOf, stampedPlaybook } from '../model.ts'
+import {
+  Model,
+  confirmSellOf,
+  linkFromOf,
+  offCompany,
+  placingOf,
+  stampedPlaybook,
+} from '../model.ts'
+import { step as boardStep } from '../board-machine.ts'
 import { NUDGE } from './canvas.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { clockIn } from './shell.ts'
 import { closePanel, type Dispatch, type MessageCases, type UpdateResult } from './shared.ts'
+import { step as tradeoffStep } from '../tradeoff-machine.ts'
 import { dockGroups, dockItems, playbooksShown, shown } from '../reveal.ts'
 import { leaveExited } from './companies.ts'
 import { has } from '@quorum/simulation/lookups'
@@ -60,28 +69,61 @@ export const keysHandlers = (
     switch (key) {
       case 'Escape': {
         if (model.board.exited) return leaveExited(model, 'found')
-        if (model.board.confirmSell)
-          return { model: { ...model, board: { ...model.board, confirmSell: null } } }
-        if (model.board.tradeoff)
-          return { model: { ...model, board: { ...model.board, tradeoff: null } } }
+        if (confirmSellOf(model.board))
+          return {
+            model: {
+              ...model,
+              board: {
+                ...model.board,
+                flow: boardStep(model.board.flow, { _tag: 'SellDismissed' }),
+              },
+            },
+          }
+        if (model.board.tradeoff._tag !== 'Closed')
+          return {
+            model: {
+              ...model,
+              board: {
+                ...model.board,
+                tradeoff: tradeoffStep(model.board.tradeoff, { _tag: 'Cancelled' }),
+              },
+            },
+          }
         if (model.board.insightHelp)
           return { model: { ...model, board: { ...model.board, insightHelp: false } } }
-        if (model.board.linkFrom !== null)
-          return { model: { ...model, board: { ...model.board, linkFrom: null } } }
-        if (model.board.tool?._tag === 'Stamping' || model.board.selection.length > 0) {
+        if (linkFromOf(model.board) !== null)
+          return {
+            model: {
+              ...model,
+              board: {
+                ...model.board,
+                flow: boardStep(model.board.flow, { _tag: 'Cancelled' }),
+              },
+            },
+          }
+        if (model.board.flow._tag === 'Stamping' || model.board.selection.length > 0) {
           const cleared: Model = {
             ...model,
             board: {
               ...model.board,
-              tool: model.board.tool?._tag === 'Stamping' ? null : model.board.tool,
+              flow:
+                model.board.flow._tag === 'Stamping'
+                  ? boardStep(model.board.flow, { _tag: 'Cancelled' })
+                  : model.board.flow,
               selection: [],
             },
           }
           return { model: cleared }
         }
         const next: Model =
-          model.board.tool !== null
-            ? { ...model, board: { ...model.board, tool: null } }
+          model.board.flow._tag !== 'Idle'
+            ? {
+                ...model,
+                board: {
+                  ...model.board,
+                  flow: boardStep(model.board.flow, { _tag: 'Cancelled' }),
+                },
+              }
             : model.board.buildGroup !== null
               ? { ...model, board: { ...model.board, buildGroup: null } }
               : model.panel !== 'none'
@@ -142,13 +184,21 @@ export const keysHandlers = (
         return route(model, Message.BoardFitted())
       case 'l': {
         if (model.panel !== 'none') return { model }
-        const from = model.board.linkFrom
+        const from = linkFromOf(model.board)
         if (from !== null)
           return selected && selected !== from
             ? route(model, Message.LinkRequested({ from, to: selected }))
             : { model }
         return selected
-          ? { model: { ...model, board: { ...model.board, linkFrom: selected } } }
+          ? {
+              model: {
+                ...model,
+                board: {
+                  ...model.board,
+                  flow: boardStep(model.board.flow, { _tag: 'LinkStarted', from: selected }),
+                },
+              },
+            }
           : { model }
       }
       case 'g':
@@ -170,7 +220,7 @@ export const keysHandlers = (
         return id && id !== selected ? route(model, Message.NodeTapped({ nodeId: id })) : { model }
       }
       case 'Enter': {
-        if (model.board.confirmSell) return route(model, Message.SellConfirmed())
+        if (confirmSellOf(model.board)) return route(model, Message.SellConfirmed())
         if (model.panel !== 'none') return { model }
         // A part in hand (or a Playbook) lands in the next free spot: the
         // keyboard's equivalent of clicking the board (15 "Accessibility").
@@ -189,13 +239,14 @@ export const keysHandlers = (
           return route(model, Message.NodePlaced({ x: spot.x, y: spot.y }))
         }
         // A keyboard link from the selected Node to the one the arrows reached.
-        if (model.board.linkFrom !== null)
-          return selected && selected !== model.board.linkFrom
-            ? route(model, Message.LinkRequested({ from: model.board.linkFrom, to: selected }))
+        const from = linkFromOf(model.board)
+        if (from !== null)
+          return selected && selected !== from
+            ? route(model, Message.LinkRequested({ from, to: selected }))
             : { model }
         // A pinned Tradeoff card's Confirm, when it has a preview to confirm.
         const card = model.board.tradeoff
-        if (card?.pinned && card.preview !== null && card.refusal === null)
+        if (card._tag === 'Pinned' && card.preview !== null)
           return route(model, Message.OptionConfirmed())
         return selected ? { model, commands: [FocusInspector({})] } : { model }
       }

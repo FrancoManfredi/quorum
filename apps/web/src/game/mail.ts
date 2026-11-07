@@ -71,9 +71,7 @@ export type { SenderKind } from './copy/index.ts'
 
 /** Mail that waits for a decision: not answered, not resolved, and a button that does something. */
 export const needsAction = (mail: Mail): boolean =>
-  mail.answer === null &&
-  mail.resolved === null &&
-  mail.actions.some((action) => !action.id.startsWith('show'))
+  mail.phase._tag === 'Active' && mail.actions.some((action) => !action.id.startsWith('show'))
 
 export interface Sender {
   readonly name: string

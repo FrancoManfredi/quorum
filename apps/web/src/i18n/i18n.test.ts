@@ -29,7 +29,7 @@ describe('interface languages', () => {
         route: AppRoute.Company(),
         board: {
           ...initialModel().board,
-          clock: { ...initialModel().board.clock, paused: true },
+          clock: { ...initialModel().board.clock, mode: { _tag: 'PausedByPlayer' } as const },
         },
       }
       const result = update(
@@ -38,7 +38,7 @@ describe('interface languages', () => {
       )
       expect(result.model.prefs.locale).toBe(locale)
       expect(result.model.board.game).toBe(model.board.game)
-      expect(result.model.board.clock.paused).toBe(true)
+      expect(result.model.board.clock.mode._tag !== 'Running').toBe(true)
       expect(result.commands).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -101,7 +101,7 @@ describe('interface languages', () => {
         route: AppRoute.Company(),
         board: {
           ...initialModel().board,
-          clock: { ...initialModel().board.clock, paused: true },
+          clock: { ...initialModel().board.clock, mode: { _tag: 'PausedByPlayer' } as const },
         },
       }
       const opened = update(
@@ -120,7 +120,7 @@ describe('interface languages', () => {
       expect(selected.model.languagePicker.isOpen).toBe(false)
       expect(selected.model.prefs.locale).toBe(locale)
       expect(selected.model.board.game).toBe(model.board.game)
-      expect(selected.model.board.clock.paused).toBe(true)
+      expect(selected.model.board.clock.mode._tag !== 'Running').toBe(true)
       expect(selected.commands?.map((command) => command.name)).toEqual(
         expect.arrayContaining(['FocusButton', 'WritePrefs', 'ApplySettings', 'SyncBoard']),
       )

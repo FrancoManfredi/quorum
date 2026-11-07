@@ -45,8 +45,9 @@ import { line } from '../telemetry.ts'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { continued } from './session.ts'
+import { step as confirmDeleteStep } from '../confirm-delete-machine.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
-import { revealAtStart, revealsOfSave } from '../reveal.ts'
+import { disclosureOfSave, revealAtStart } from '../reveal.ts'
 import { solveFlow } from '@quorum/simulation/solve'
 import { traced } from '../../platform/sentry.ts'
 
@@ -70,7 +71,7 @@ export const startCompany = (
     saves: { current: file.id, companies: withFile(model.saves, file).companies },
     draft: { name: '', logo: model.draft.logo },
     saveFocus: null,
-    saveConfirm: false,
+    saveConfirm: { _tag: 'List' },
     board: freshBoard(game),
   }
   const next = revealAtStart(fresh, ledgerOf(fresh))
@@ -134,10 +135,10 @@ export const applyCompany = (
     route: open ? AppRoute.Company() : model.route,
     panel: open ? (back ? 'away' : 'none') : model.panel,
     saveFocus: null,
-    saveConfirm: false,
+    saveConfirm: { _tag: 'List' },
     board: {
       ...model.board,
-      disclosure: { ...model.board.disclosure, ...revealsOfSave(file) },
+      disclosure: disclosureOfSave(file),
       dashboard: { ...model.board.dashboard, history: historyOfSave(file) },
       game: played,
       inbox,
@@ -275,7 +276,7 @@ export const leaveExited = (model: Model, menu: Menu): UpdateResult => ({
     loaded: false,
     saves: { ...model.saves, current: null },
     saveFocus: null,
-    saveConfirm: false,
+    saveConfirm: { _tag: 'List' },
     survey: EMPTY_SURVEY,
     board: freshBoard(newGame(model.board.game.seed)),
   },
@@ -348,7 +349,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
 
   CompanyChosen: ({ id }) =>
     fileOf(model.saves, id)
-      ? { model: { ...model, saveFocus: id, saveConfirm: false } }
+      ? { model: { ...model, saveFocus: id, saveConfirm: { _tag: 'List' } } }
       : { model },
 
   CompanyClosed: () => ({
@@ -356,7 +357,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       ...model,
       route: AppRoute.Menu({ menu: 'companies' }),
       saveFocus: null,
-      saveConfirm: false,
+      saveConfirm: { _tag: 'List' },
     },
   }),
 
@@ -364,15 +365,31 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
     fileOf(model.saves, id) === null
       ? { model }
       : model.loaded && model.saves.current === id
-        ? continued({ ...model, saveFocus: null, saveConfirm: false })
+        ? continued({ ...model, saveFocus: null, saveConfirm: { _tag: 'List' } })
         : {
-            model: { ...model, saveFocus: null, saveConfirm: false },
+            model: { ...model, saveFocus: null, saveConfirm: { _tag: 'List' } },
             commands: [LoadCompany({ id, open: true })],
           },
 
-  CompanyDeleteAsked: () => ({ model: { ...model, saveConfirm: true } }),
+  CompanyDeleteAsked: () =>
+    model.saveFocus === null
+      ? { model }
+      : {
+          model: {
+            ...model,
+            saveConfirm: confirmDeleteStep(model.saveConfirm, {
+              _tag: 'Asked',
+              id: model.saveFocus,
+            }),
+          },
+        },
 
-  CompanyDeleteCancelled: () => ({ model: { ...model, saveConfirm: false } }),
+  CompanyDeleteCancelled: () => ({
+    model: {
+      ...model,
+      saveConfirm: confirmDeleteStep(model.saveConfirm, { _tag: 'Cancelled' }),
+    },
+  }),
 
   CompanyDeleteConfirmed: () => {
     const id = model.saveFocus
@@ -383,7 +400,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       ...model,
       saves,
       saveFocus: null,
-      saveConfirm: false,
+      saveConfirm: confirmDeleteStep(model.saveConfirm, { _tag: 'Confirmed' }),
       ...(current
         ? {
             loaded: false,
