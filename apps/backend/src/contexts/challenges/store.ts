@@ -15,15 +15,12 @@ export class StoreError extends Data.TaggedError('StoreError')<{ readonly cause:
 
 /**
  * Where verified results live: each device's independent best per axis, with
- * the replay behind each best, so results can be re-verified later.
+ * the replay behind each best, so results can be re-verified later. The Boards projection
+ * writes it; the handlers read percentiles and histograms.
  */
 export class ResultStore extends Context.Service<
   ResultStore,
   {
-    readonly best: (
-      board: Board,
-      deviceId: string,
-    ) => Effect.Effect<ChallengeScores | null, StoreError>
     /** Keeps the better of the stored and the new score on each axis, and returns the bests. */
     readonly record: (
       board: Board,

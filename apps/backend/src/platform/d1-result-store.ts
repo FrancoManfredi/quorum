@@ -26,9 +26,6 @@ const query = <T>(db: SqlRunner, sql: string, values: Array<unknown>) =>
     catch: (cause) => new StoreError({ cause }),
   }).pipe(Effect.map((result) => result.results))
 
-const BEST = `SELECT cost, tail, complexity FROM results
-  WHERE challenge_id = ? AND sim_version = ? AND device_id = ?`
-
 // SQLite evaluates every SET expression against the row before the update.
 const RECORD = `INSERT INTO results (challenge_id, sim_version, device_id, cost, tail, complexity,
     cost_replay, tail_replay, complexity_replay, updated_at)
@@ -59,11 +56,6 @@ const bucketSql = (axis: Axis, edges: ReadonlyArray<number>): string =>
 type Scores = Readonly<ChallengeScores>
 
 export const d1ResultStore = (db: SqlRunner): ResultStore['Service'] => ({
-  best: (board: Board, deviceId: string) =>
-    query<Scores>(db, BEST, [board.challengeId, board.simVersion, deviceId]).pipe(
-      Effect.map((rows) => rows[0] ?? null),
-      traced('best'),
-    ),
   record: (board, deviceId, score, replay, at) =>
     query<Scores>(db, RECORD, [
       board.challengeId,

@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "exactOptionalPropertyTypes": false,
     "types": ["@cloudflare/workers-types", "node"],
     "plugins": [
       {
