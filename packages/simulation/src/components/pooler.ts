@@ -1,5 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { def } from './define.ts'
+import { DATA_KINDS } from '../catalog/kinds.ts'
 
 /** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
 export const poolerGlossary: ReadonlyArray<string> = ['connection-pooling']
@@ -19,14 +20,16 @@ export const poolerDef = def({
   name: 'Connection Pooler',
   product: 'PgBouncer',
   group: 'data',
-  blurb: 'Many app connections share 20 database connections.',
+  blurb: 'Many app connections share 20 database connections. It pools to one host.',
   cost: 80,
   burn: 0.03,
   latency: 0.3,
-  accepts: ['q-read', 'q-write', 'q-search', 'blob-put', 'q-tx', 'blob-get', 'q-scan', 'k-write'],
+  accepts: DATA_KINDS,
   fallback: ['q-search', 'blob-put', 'blob-get', 'q-scan', 'k-write'],
   unlock: 'pooling',
   steps: 4,
-  sends: ['q-read', 'q-write', 'q-search', 'blob-put', 'q-tx', 'blob-get', 'q-scan', 'k-write'],
+  sends: DATA_KINDS,
+  // It pools to one host and reads no SQL: a Load Balancer after it spreads the reads.
+  maxOut: 1,
   limiting: true,
 })

@@ -12,6 +12,8 @@ The [Connection Limit](/sandboxes/connection-limit) Sandbox shows it.
 
 Place it between your App Servers or Workers and the [Database](/components/database). It takes the same queries the Database takes and passes them on, with almost no added latency. It has a throughput limit, and each size step doubles it.
 
+It takes **one** link out. A real PgBouncer reads no SQL and sends every connection to one host, so it cannot send reads to a replica and writes to the primary. To reach a [Read Replica](/components/replica) as well, link the pooler into a [Load Balancer](/components/lb), and the Load Balancer into the Database and each replica. The Load Balancer then splits reads by its algorithm, while writes go to the Database only.
+
 Both pooled modes break session state the same way: prepared statements and `SET` at session level belong to a connection the client no longer holds. See [connection pooling](/glossary/connection-pooling).
 
 ## Options

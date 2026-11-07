@@ -1,4 +1,4 @@
-The Load Balancer spreads requests across your App Servers, as a reverse proxy such as NGINX does.
+The Load Balancer spreads requests across your App Servers, or queries across a Database and its Read Replicas, as a reverse proxy such as NGINX or HAProxy does.
 
 ## When to place it
 
@@ -9,7 +9,7 @@ The Load Balancer spreads requests across your App Servers, as a reverse proxy s
 
 ## How it works
 
-It spans every zone, so a zone outage does not take it down. Every request kind comes in and goes on. It adds a little latency, and each size step doubles its throughput limit.
+It spans every zone, so a zone outage does not take it down. Every request kind comes in and goes on, and so does every query kind, so it can sit in front of a [Database](/components/database) and its [Read Replicas](/components/replica). It adds a little latency, and each size step doubles its throughput limit.
 
 By default it splits traffic by each target's capacity, so a large App Server gets a larger share. It drops a dead host at its next [health check](/glossary/health-check). It can also route by request kind: set which kinds each of its links carries, and send slow kinds such as exports to their own App Servers.
 

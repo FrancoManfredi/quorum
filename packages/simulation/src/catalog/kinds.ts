@@ -42,6 +42,18 @@ export const BACKEND_KINDS = [
 ] as const
 export type BackendKind = (typeof BACKEND_KINDS)[number]
 
+/** What a Database takes: the queries, files and key writes a pooler or a balancer passes on to it. */
+export const DATA_KINDS = [
+  'q-read',
+  'q-write',
+  'q-search',
+  'blob-put',
+  'q-tx',
+  'blob-get',
+  'q-scan',
+  'k-write',
+] as const
+
 export type Kind = RequestKind | BackendKind
 
 export const isBackendKind = (kind: Kind): kind is BackendKind =>

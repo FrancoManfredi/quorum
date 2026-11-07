@@ -118,3 +118,24 @@ describe('Search Engine and Object Storage products', () => {
     expect(node.cacheKey).toBe('path')
   })
 })
+
+describe('a Connection Pooler', () => {
+  test('pools to one host, and a Load Balancer after it spreads the reads', () => {
+    let game = withResearch(freeSandbox(), 'replication', 'pooling', 'load-balancing')
+    let pooler: string, lb: string, database: string, first: string, second: string
+    ;[game, pooler] = build(game, 'pooler')
+    ;[game, lb] = build(game, 'lb')
+    ;[game, database] = build(game, 'database')
+    ;[game, first] = build(game, 'replica')
+    ;[game, second] = build(game, 'replica')
+    game = ok(connect(game, 'server', pooler))
+    game = ok(connect(game, pooler, lb))
+    expect(Result.isFailure(connect(game, pooler, database))).toBe(true)
+    for (const to of [database, first, second]) game = ok(connect(game, lb, to))
+    const ledger = solveFlow(game)
+    const reads = (id: string) => ledger.nodes[id]?.traffic['q-read'] ?? 0
+    expect(reads(first)).toBeGreaterThan(0)
+    expect(reads(first)).toBeCloseTo(reads(second))
+    expect(reads(database)).toBeCloseTo(reads(first))
+  })
+})

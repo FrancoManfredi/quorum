@@ -1,6 +1,6 @@
 import { Effect, Schema } from 'effect'
 import { def } from './define.ts'
-import { REQUEST_KINDS } from '../catalog/kinds.ts'
+import { DATA_KINDS, REQUEST_KINDS } from '../catalog/kinds.ts'
 
 /** How a Load Balancer splits traffic, and the research each policy needs. */
 export const LB_POLICIES = {
@@ -74,13 +74,14 @@ export const lbDef = def({
   name: 'Load Balancer',
   product: 'NGINX',
   group: 'edge',
-  blurb: 'Splits traffic across App Servers and drops a dead host at its next health check.',
+  blurb:
+    'Splits traffic across App Servers or Database hosts and drops a dead host at its next health check.',
   cost: 120,
   burn: 0.08,
   latency: 1,
-  accepts: REQUEST_KINDS,
+  accepts: [...REQUEST_KINDS, ...DATA_KINDS],
   unlock: 'load-balancing',
   steps: 6,
-  sends: REQUEST_KINDS,
+  sends: [...REQUEST_KINDS, ...DATA_KINDS],
   limiting: true,
 })

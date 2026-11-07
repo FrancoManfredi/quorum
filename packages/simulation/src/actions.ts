@@ -434,7 +434,9 @@ export const connect = (game: Game, from: string, to: string): Action => {
     return notAllowed(
       source.type === 'users'
         ? 'A domain resolves to one host. Put DNS or a Load Balancer in front to reach more.'
-        : `${sourceDef.name} takes ${sourceDef.maxOut} links.`,
+        : source.type === 'pooler'
+          ? 'A Connection Pooler pools to one host. Put a Load Balancer after it to reach more.'
+          : `${sourceDef.name} takes ${sourceDef.maxOut} links.`,
     )
   if (reaches(game.links, to, from)) return notAllowed('That link would make a loop.')
   const linked: Game = { ...game, links: [...game.links, link(from, to)] }
