@@ -47,7 +47,12 @@ import { tabDrift } from './mirror.ts'
 import { canRaise } from '@quorum/simulation/actions'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { eraOf, has, nextEra, researchReady, securityStaffed } from '@quorum/simulation/lookups'
-import { limitingPool, recipeOf as simRecipe, studyStall } from '@quorum/simulation/studies'
+import {
+  limitingPool,
+  progressOf as studyProgressOf,
+  recipeOf as simRecipe,
+  studyStall,
+} from '@quorum/simulation/studies'
 import { DRILL_RPO } from '@quorum/simulation/catalog'
 import { PRE_IPO_STAGE, brokenRestore, checklistOf, residencyMet } from '@quorum/simulation/ipo'
 import {
@@ -60,6 +65,7 @@ import { budgetOf, budgeted, slaCreditsOf } from '@quorum/simulation/slo'
 import { marginOf, valuationOf } from '@quorum/simulation/valuation'
 import { clockOf } from '@quorum/simulation/solve'
 import { devHoursRate } from '@quorum/simulation/team'
+import { awaitingFeatures } from '@quorum/simulation/features'
 import { overdueBy } from '@quorum/simulation/cve'
 import { workItemName } from './team.ts'
 import { redoAvailable, settleProgress, undoAvailable } from '@/game/feedback.ts'
@@ -360,8 +366,8 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
                     [
                       stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
                       game.studies.length > 1
-                        ? `${Math.floor(running.progress * 100)}% · +${game.studies.length - 1}`
-                        : `${Math.floor(running.progress * 100)}%`,
+                        ? `${Math.floor(studyProgressOf(running) * 100)}% · +${game.studies.length - 1}`
+                        : `${Math.floor(studyProgressOf(running) * 100)}%`,
                     ],
                   )
                 : h.empty,
@@ -387,7 +393,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
           ),
         ],
       ),
-      running ? meter(running.progress, stall ? 'bg-warn' : 'bg-ok', h) : h.empty,
+      running ? meter(studyProgressOf(running), stall ? 'bg-warn' : 'bg-ok', h) : h.empty,
       pools.length > 0
         ? h.div(
             [
@@ -526,7 +532,7 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
   const game = model.board.game
   const item = game.backlog[0]
   const rate = devHoursRate(game, ledger) * 60
-  const ready = game.awaiting.length
+  const ready = awaitingFeatures(game).length
   // A patch ticket has a deadline: its clock replaces the pace, and turns red when it is overdue.
   const late = item ? overdueBy(game, item) : 0
   const due = item?.due === undefined ? null : item.due - game.time

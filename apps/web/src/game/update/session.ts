@@ -66,6 +66,7 @@ import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { reasonIn } from '../../i18n/refusal.ts'
 import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
+import { isAway, isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
 import { traced } from '../../platform/sentry.ts'
 import { type Url } from 'foldkit/url'
@@ -422,7 +423,7 @@ export const continued = (model: Model): UpdateResult => {
   const next: Model = {
     ...model,
     route: AppRoute.Company(),
-    panel: model.board.away ? 'away' : 'none',
+    panel: isAway(model.companyPhase) ? 'away' : 'none',
     board: {
       ...model.board,
       clock: {
@@ -439,7 +440,7 @@ export const continued = (model: Model): UpdateResult => {
 
 /** Closes the board for the title screen. A Sandbox or Challenge gives the Company back. */
 export const leaveBoard = (model: Model): UpdateResult => {
-  if (model.board.exited) return leaveExited(model, 'found')
+  if (isExited(model.companyPhase)) return leaveExited(model, 'found')
   if (boardChallenge(model.board)) return leaveChallenge(model)
   if (!boardSandbox(model.board))
     return {

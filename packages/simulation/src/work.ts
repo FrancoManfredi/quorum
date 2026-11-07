@@ -64,6 +64,11 @@ import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
 import { has, eraOf, isDown, restarted, sreStaffed } from './lookups.ts'
+import { step as hireStep } from './hire-machine.ts'
+import { step as moveStep } from './data-move-machine.ts'
+import { step as blockStep } from './work-item-machine.ts'
+import { step as featureStep } from './feature-machine.ts'
+import { awaitingFeatures, isBuilt, isFeatureLive } from './features.ts'
 import {
   bugsFixed,
   cancelMigration,
@@ -167,8 +172,7 @@ export const itemName = (item: WorkItem): string => {
 const queued = (game: Game, ref: string): boolean => game.backlog.some((item) => item.ref === ref)
 
 /** Features the Company has, has built, or has queued. */
-const planned = (game: Game, id: FeatureId): boolean =>
-  game.shipped.includes(id) || game.awaiting.includes(id) || queued(game, id)
+const planned = (game: Game, id: FeatureId): boolean => isBuilt(game, id) || queued(game, id)
 
 /* ---------- moves (08 "Migrations") ---------- */
 
@@ -195,7 +199,7 @@ export const queueEngineChange = (game: Game, nodeId: string, to: DbEngine): Act
     return notAllowed('A Database engine change is already running.')
   return ok({
     ...enqueue(game, 'move', 'engine', engineCost(game), false, { target: nodeId }),
-    engineChange: { node: nodeId, to, until: 0 },
+    engineChange: { node: nodeId, to, phase: { _tag: 'Building' } },
   })
 }
 
@@ -218,7 +222,7 @@ export const queueReshard = (
   if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
   return ok({
     ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
-    reshard: { node: nodeId, shards, key, until: 0 },
+    reshard: { node: nodeId, shards, key, phase: { _tag: 'Building' } },
   })
 }
 
@@ -237,18 +241,30 @@ const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
     if (!reshard) return game
     // The copy takes a calendar day at least, and a minute a GB of rows after that.
     const copy = Math.max(1, (game.data * RESHARD_MINUTES_PER_GB * 60) / CALENDAR_DAY)
-    return { ...game, reshard: { ...reshard, until: game.time + days(copy, tuning) } }
+    return {
+      ...game,
+      reshard: {
+        ...reshard,
+        phase: moveStep(reshard.phase, { _tag: 'Built', until: game.time + days(copy, tuning) }),
+      },
+    }
   }
   const change = game.engineChange
   if (!change) return game
   const copy = (game.data * ENGINE_COPY_MINUTES_PER_GB * 60) / CALENDAR_DAY
-  return { ...game, engineChange: { ...change, until: game.time + days(copy, tuning) } }
+  return {
+    ...game,
+    engineChange: {
+      ...change,
+      phase: moveStep(change.phase, { _tag: 'Built', until: game.time + days(copy, tuning) }),
+    },
+  }
 }
 
 /** Ends a finished resharding copy: the Database runs the new shards and key from now on. */
 const finishReshard = (game: Game): Game => {
   const reshard = game.reshard
-  if (!reshard || reshard.until <= 0 || game.time < reshard.until) return game
+  if (!reshard || reshard.phase._tag !== 'Copying' || game.time < reshard.phase.until) return game
   return {
     ...game,
     reshard: null,
@@ -263,7 +279,7 @@ const finishReshard = (game: Game): Game => {
 /** Ends a finished data copy: the Database runs the new engine from now on. */
 const finishEngineChange = (game: Game): Game => {
   const change = game.engineChange
-  if (!change || change.until <= 0 || game.time < change.until) return game
+  if (!change || change.phase._tag !== 'Copying' || game.time < change.phase.until) return game
   return {
     ...game,
     engineChange: null,
@@ -278,8 +294,8 @@ const finishEngineChange = (game: Game): Game => {
 export const featureRefusal = (game: Game, id: FeatureId): Refusal | null => {
   const def = FEATURES[id]
   if (game.sandbox) return Refusal.NotAllowed({ reason: SANDBOX })
-  if (game.shipped.includes(id)) return Refusal.NotAllowed({ reason: `${def.name} is live.` })
-  if (game.awaiting.includes(id))
+  if (isFeatureLive(game, id)) return Refusal.NotAllowed({ reason: `${def.name} is live.` })
+  if (isBuilt(game, id))
     return Refusal.NotAllowed({ reason: `${def.name} waits for the next deploy.` })
   if (queued(game, id)) return Refusal.NotAllowed({ reason: `${def.name} is on the backlog.` })
   if (def.era > game.stage)
@@ -408,7 +424,9 @@ export const featureHoursOf = (game: Game, id: FeatureId): number => {
   const tooling =
     (INTERNAL_TOOL_FEATURES.includes(id) ? (framework.internalTools ?? 1) : 1) *
     (BACKGROUND_FEATURES.includes(id) ? (framework.workerHours ?? 1) : 1)
-  const documents = game.nodes.some((node) => node.type === 'doc' && !isDown(node) && !node.shut)
+  const documents = game.nodes.some(
+    (node) => node.type === 'doc' && !isDown(node) && node.service._tag !== 'Shut',
+  )
   // A schema-change tool costs Dev Hours on every Feature that changes a relational schema.
   if (!documents)
     return (
@@ -449,7 +467,7 @@ export const queueTask = (game: Game, id: TaskId): Action =>
 export const removeRefusal = (game: Game, id: FeatureId): Refusal | null => {
   const def = FEATURES[id]
   if (game.sandbox) return Refusal.NotAllowed({ reason: SANDBOX })
-  if (!game.shipped.includes(id)) return Refusal.NotAllowed({ reason: `${def.name} is not live.` })
+  if (!isFeatureLive(game, id)) return Refusal.NotAllowed({ reason: `${def.name} is not live.` })
   const dependents = FEATURE_IDS.filter(
     (other) => other !== id && FEATURES[other].requires.includes(id) && planned(game, other),
   )
@@ -471,18 +489,13 @@ export const removeFeature = (game: Game, id: FeatureId): Action => {
   const service = serviceOfFeature(game, id)
   const removed: Game = {
     ...game,
-    shipped: game.shipped.filter((entry) => entry !== id),
-    adoption: Object.fromEntries(Object.entries(game.adoption).filter(([entry]) => entry !== id)),
-    lifts: Object.fromEntries(Object.entries(game.lifts).filter(([entry]) => entry !== id)),
+    features: Object.fromEntries(Object.entries(game.features).filter(([entry]) => entry !== id)),
     outcomes: Object.fromEntries(Object.entries(game.outcomes).filter(([entry]) => entry !== id)),
   }
   return ok(
     withServiceId(removed, service.id, {
       features: service.features.filter((entry) => entry !== id),
       lastDeploy: service.lastDeploy.filter((entry) => entry !== id),
-      rollouts: Object.fromEntries(
-        Object.entries(service.rollouts).filter(([entry]) => entry !== id),
-      ),
     }),
   )
 }
@@ -537,7 +550,7 @@ export const splitRefusal = (game: Game, request: SplitRequest): Refusal | null 
   )
     return Refusal.NotAllowed({ reason: `A Service is already called ${name}.` })
   for (const id of request.features) {
-    if (!game.shipped.includes(id))
+    if (!isFeatureLive(game, id))
       return Refusal.NotAllowed({ reason: `${FEATURES[id].name} is not live yet.` })
     const carrier = serviceOfFeature(game, id)
     if (carrier.id !== serviceOf(game).id)
@@ -578,7 +591,6 @@ export const splitService = (game: Game, request: SplitRequest): Action => {
     migration: null,
     nextDeployAt: serviceOf(game).nextDeployAt,
     lastDeploy: [],
-    rollouts: {},
     owner: request.owner,
     features,
     datastore: request.datastore ?? null,
@@ -771,13 +783,13 @@ export const blockReason = (game: Game, item: WorkItem): BlockKind | null => {
 export const approveBlock = (game: Game, id: number): Action =>
   withItem(game, id, (index) => {
     const item = game.backlog[index]
-    if (!item?.blockedBy || item.blockedBy.cleared)
+    if (!item || item.block._tag !== 'Blocked')
       return notAllowed('Nothing on that item waits on you.')
     return ok({
       ...game,
       backlog: game.backlog.map((entry, at) =>
-        at === index && entry.blockedBy
-          ? { ...entry, blockedBy: { ...entry.blockedBy, cleared: true } }
+        at === index && entry.block._tag === 'Blocked'
+          ? { ...entry, block: blockStep(entry.block, { _tag: 'Approved' }) }
           : entry,
       ),
     })
@@ -787,15 +799,18 @@ export const approveBlock = (game: Game, id: number): Action =>
 export const laterBlock = (game: Game, id: number, tuning: Tuning = LIVE_TUNING): Action =>
   withItem(game, id, (index) => {
     const item = game.backlog[index]
-    if (!item?.blockedBy || item.blockedBy.cleared)
+    if (!item || item.block._tag !== 'Blocked')
       return notAllowed('Nothing on that item waits on you.')
     return ok({
       ...game,
       backlog: game.backlog.map((entry, at) =>
-        at === index && entry.blockedBy
+        at === index && entry.block._tag === 'Blocked'
           ? {
               ...entry,
-              blockedBy: { ...entry.blockedBy, remindAt: game.time + blockRemind(tuning) },
+              block: blockStep(entry.block, {
+                _tag: 'Later',
+                remindAt: game.time + blockRemind(tuning),
+              }),
             }
           : entry,
       ),
@@ -877,7 +892,10 @@ export const hire = (game: Game, tuning: Tuning = LIVE_TUNING): Action => {
         id: `e${game.workSeq + 1}`,
         team,
         language,
-        readyAt: game.time + hireSeconds(game, language, tuning),
+        phase: {
+          _tag: 'Pending',
+          readyAt: game.time + hireSeconds(game, language, tuning),
+        },
       },
     ],
   })
@@ -1082,6 +1100,35 @@ export { cancelMigration, shiftMigration }
 
 /* ---------- incidents ---------- */
 
+/**
+ * Ships a batch: each Feature becomes live for every user with no adoption yet, at the end of the
+ * live order, so the last deploy reads last.
+ */
+const deployed = (
+  features: Game['features'],
+  batch: ReadonlyArray<FeatureId>,
+): Game['features'] => {
+  const rest = Object.entries(features).filter(([id]) => !batch.includes(id as FeatureId))
+  const live = batch.map((id) => {
+    const phase = features[id]
+    return [id, featureStep(phase ?? { _tag: 'Awaiting' }, { _tag: 'Deployed' })] as const
+  })
+  return Object.fromEntries([...rest, ...live])
+}
+
+/** Rolls a batch back: each waits for the next deploy again, at the front of the queue. */
+const rolledBack = (
+  features: Game['features'],
+  batch: ReadonlyArray<FeatureId>,
+): Game['features'] => {
+  const rest = Object.entries(features).filter(([id]) => !batch.includes(id as FeatureId))
+  const waiting = batch.map((id) => {
+    const phase = features[id]
+    return [id, featureStep(phase ?? { _tag: 'Awaiting' }, { _tag: 'RolledBack' })] as const
+  })
+  return Object.fromEntries([...waiting, ...rest])
+}
+
 /** Rolls back a bad deploy: its Features wait for the next deploy again. Needs Continuous delivery. */
 export const rollback = (game: Game): Action => {
   if (game.incident?.kind !== 'bad-deploy') return notAllowed('No deploy needs rolling back.')
@@ -1090,12 +1137,7 @@ export const rollback = (game: Game): Action => {
   const batch = service.lastDeploy
   const rolled: Game = {
     ...game,
-    shipped: game.shipped.filter((id) => !batch.includes(id)),
-    awaiting: [...batch, ...game.awaiting.filter((id) => !batch.includes(id))],
-    // The rollout leaves again with the Feature: its adoption starts over at the next deploy.
-    adoption: Object.fromEntries(
-      Object.entries(game.adoption).filter(([id]) => !batch.includes(id as FeatureId)),
-    ),
+    features: rolledBack(game.features, batch),
     incident: { ...game.incident, remaining: 0 },
   }
   return ok(withServiceId(rolled, service.id, { lastDeploy: [] }))
@@ -1194,10 +1236,15 @@ const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
     const grows =
       (policy.debt + (stackOf(game).framework === 'none' ? UNSTRUCTURED_DEBT : 0)) *
       debtGrowthOf(game)
-    return withServiceId({ ...game, awaiting: [...game.awaiting, id] }, service.id, {
-      debt: Math.min(1, service.debt + grows),
-      codebase: service.codebase + FEATURES[id].dh * KLOC_PER_DH,
-    })
+    const phase = game.features[id] ?? { _tag: 'Awaiting' as const }
+    return withServiceId(
+      { ...game, features: { ...game.features, [id]: featureStep(phase, { _tag: 'Built' }) } },
+      service.id,
+      {
+        debt: Math.min(1, service.debt + grows),
+        codebase: service.codebase + FEATURES[id].dh * KLOC_PER_DH,
+      },
+    )
   }
   const id = item.ref as TaskId
   // A task shipped during an incident is a hotfix: it adds debt.
@@ -1291,18 +1338,12 @@ const deployService = (
       (hotUpgrade ? ELIXIR_HOT_UPGRADE_DEV_HOURS * SIM_SECONDS_PER_DEV_HOUR : 0),
   })
   if (game.incident?.kind === 'bad-deploy') return after
-  const batch = game.awaiting.filter((id) => serviceOfFeature(game, id).id === service.id)
+  const batch = awaitingFeatures(game).filter((id) => serviceOfFeature(game, id).id === service.id)
   if (batch.length === 0) return after
   let next: Game = {
     ...after,
-    shipped: [...after.shipped, ...batch],
-    awaiting: after.awaiting.filter((id) => !batch.includes(id)),
+    features: deployed(after.features, batch),
     deploys: after.deploys + 1,
-    // A shipped Feature is new to its users: adoption starts at 0 and climbs (08 "Adoption").
-    adoption: {
-      ...after.adoption,
-      ...Object.fromEntries(batch.map((id) => [id, 0])),
-    },
   }
   next = withServiceId(next, service.id, {
     lastDeploy: batch,
@@ -1316,14 +1357,14 @@ const deployService = (
     ...next,
     nodes: next.nodes.map((node) =>
       node.type === 'server' &&
-      !node.shut &&
+      node.service._tag !== 'Shut' &&
       RUNTIMES[node.runtime].hotReload !== true &&
       node.life._tag !== 'Restarting'
         ? // Graceful shutdown finishes in-flight requests: the new copies start cold, never down.
           fixed(next, 'graceful-shutdown')
           ? { ...node, life: warming(0) }
           : { ...node, ...restarted(node) }
-        : node.type === 'cdn' && !node.shut
+        : node.type === 'cdn' && node.service._tag !== 'Shut'
           ? // A CDN with Purge on deploy clears its cache and refills it from the origin; without it
             // the edge keeps serving the last deploy's pages until their TTL passes (05 "CDN").
             node.purge
@@ -1363,7 +1404,7 @@ const deploy = (
   const hotUpgrade = game.nodes.some(
     (node) =>
       node.type === 'server' &&
-      !node.shut &&
+      node.service._tag !== 'Shut' &&
       RUNTIMES[node.runtime].language === 'elixir' &&
       RUNTIMES[node.runtime].hotReload === true,
   )
@@ -1384,8 +1425,7 @@ const deploy = (
 
 /** Whether a Team can work on an item: a Spike waits for its Study, and a blocked item for the player. */
 export const takeable = (game: Game, item: WorkItem): boolean =>
-  (item.kind !== 'spike' || game.studies[0]?.id === item.ref) &&
-  (item.blockedBy === null || item.blockedBy.cleared)
+  (item.kind !== 'spike' || game.studies[0]?.id === item.ref) && item.block._tag !== 'Blocked'
 
 /**
  * Advances the Team by some seconds: hires join, idle teams pick work, Dev
@@ -1402,26 +1442,32 @@ export const advanceTeam = (
   const events: Array<StepEvent> = []
   let next = game
 
-  const joined = next.hires.filter((entry) => entry.readyAt <= next.time)
+  const phases = next.hires.map((hire) => ({
+    hire,
+    phase: hireStep(hire.phase, { _tag: 'Joined', at: next.time }),
+  }))
+  const joined = phases.filter((entry) => entry.phase._tag === 'Joined')
   if (joined.length > 0) {
     const teams = new Set(next.teams.map((team) => team.id))
     next = {
       ...next,
-      hires: next.hires.filter((entry) => entry.readyAt > next.time),
+      hires: phases
+        .filter((entry) => entry.phase._tag !== 'Joined')
+        .map((entry) => ({ ...entry.hire, phase: entry.phase })),
       engineers: [
         ...next.engineers,
         ...joined.map((entry) => ({
-          id: entry.id,
-          team: teams.has(entry.team) ? entry.team : (next.teams[0]?.id ?? 'core'),
-          language: entry.language,
-          hiredAt: entry.readyAt,
+          id: entry.hire.id,
+          team: teams.has(entry.hire.team) ? entry.hire.team : (next.teams[0]?.id ?? 'core'),
+          language: entry.hire.language,
+          hiredAt: entry.hire.phase._tag === 'Pending' ? entry.hire.phase.readyAt : next.time,
           ...NEW_ENGINEER,
           // They sign at the Era's going rate; later Eras leave them behind until a raise (18).
           salary: eraOf(next).salaryIndex,
         })),
       ],
     }
-    for (const entry of joined) events.push(StepEvent.Hired({ engineerId: entry.id }))
+    for (const entry of joined) events.push(StepEvent.Hired({ engineerId: entry.hire.id }))
   }
 
   if (next.autopilot) next = autopilot(next, events)
@@ -1434,13 +1480,13 @@ export const advanceTeam = (
   let paydown = 0
   // A block the player put off writes again (18 "Blocked"): Later is not a no.
   for (const item of backlog) {
-    const block = item.blockedBy
-    if (!block || block.cleared || block.remindAt > next.time) continue
-    item.blockedBy = { ...block, remindAt: next.time + blockRemind(tuning) }
+    const block = item.block
+    if (block._tag !== 'Blocked' || block.remindAt > next.time) continue
+    item.block = blockStep(block, { _tag: 'Later', remindAt: next.time + blockRemind(tuning) })
     events.push(
       StepEvent.Blocked({
         item: { ...item },
-        reason: block.kind,
+        reason: block.reason,
         engineerId: block.owner,
       }),
     )
@@ -1460,16 +1506,16 @@ export const advanceTeam = (
     }
     // An item that has not started can stop on a decision, an index, a copy or a hire (18). The
     // roll happens once: a block marks the item, and work that starts leaves `spent` above zero.
-    if (item.blockedBy === null && item.spent <= 0 && item.kind !== 'spike') {
+    if (item.block._tag === 'Free' && item.spent <= 0 && item.kind !== 'spike') {
       const reason = blockReason(next, item)
       const owner = memberOf(next, ownerOf(next, serviceOfItem(next, item)).id, item.id)
       if (reason !== null && owner) {
-        item.blockedBy = {
-          kind: reason,
+        item.block = {
+          _tag: 'Blocked',
+          reason,
           owner: owner.id,
           at: next.time,
           remindAt: next.time + blockRemind(tuning),
-          cleared: false,
         }
         events.push(StepEvent.Blocked({ item: { ...item }, reason, engineerId: owner.id }))
         pool += made - kept

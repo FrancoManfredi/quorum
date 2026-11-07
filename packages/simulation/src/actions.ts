@@ -1,4 +1,5 @@
 import { RUNNING, warming } from './life.ts'
+import { step as incidentStep } from './incident-machine.ts'
 import {
   type Action,
   Refusal,
@@ -198,9 +199,7 @@ export const blankNode = (
     life: COMPONENTS[type].coldStart ? warming(0) : RUNNING,
     credits: 0,
     leak: 0,
-    shut: false,
-    draining: false,
-    drainAt: 0,
+    service: { _tag: 'InService' },
     compress: stack?.compress ?? false,
     certUntil: null,
     recycle: stack?.recycle ?? false,
@@ -261,8 +260,7 @@ export const blankNode = (
     pricing: 'on-demand',
     pricingUntil: null,
     replicas: 1,
-    pending: 0,
-    readyIn: 0,
+    scaler: { _tag: 'Steady' },
     scaledAt: 0,
     signal: 'cpu',
     target: 0.6,
@@ -492,7 +490,7 @@ export const setLinkPolicy = (
     ...current,
     ...change,
     failure: 0,
-    open: change.breaker === false ? 0 : current.open,
+    fuse: change.breaker === false ? ({ _tag: 'Closed' } as const) : current.fuse,
   }
   return ok({ ...game, links: game.links.map((entry, at) => (at === index ? next : entry)) })
 }
@@ -1257,9 +1255,9 @@ export const drain = (game: Game, id: string): Action =>
       return no(
         Refusal.Locked({ what: 'Draining a Node', research: RESEARCH['health-checks'].name }),
       )
-    if (node.shut) return notAllowed('It is shut down.')
+    if (node.service._tag === 'Shut') return notAllowed('It is shut down.')
     if (isDown(node)) return notAllowed('It is already down.')
-    if (node.draining) return notAllowed('It is already draining.')
+    if (node.service._tag === 'Draining') return notAllowed('It is already draining.')
     const incident =
       game.incident?.nodeId === id
         ? {
@@ -1267,7 +1265,10 @@ export const drain = (game: Game, id: string): Action =>
             remaining: Math.min(game.incident.remaining, DRAIN_SECONDS),
           }
         : game.incident
-    return ok({ ...patch(game, id, { draining: true, drainAt: game.time }), incident })
+    return ok({
+      ...patch(game, id, { service: { _tag: 'Draining', since: game.time } }),
+      incident,
+    })
   })
 
 /**
@@ -1277,8 +1278,14 @@ export const drain = (game: Game, id: string): Action =>
  */
 export const acknowledge = (game: Game): Game => {
   const incident = game.incident
-  if (!incident || incident.ackAt !== null) return game
-  return { ...game, incident: { ...incident, ackAt: game.time } }
+  if (!incident) return game
+  return {
+    ...game,
+    incident: {
+      ...incident,
+      phase: incidentStep(incident.phase, { _tag: 'Acked', at: game.time }),
+    },
+  }
 }
 
 /**
@@ -1325,7 +1332,7 @@ export const study = (game: Game, id: ResearchId, first = false): Action => {
   }
   if (game.studies.length >= MAX_STUDIES)
     return notAllowed(`The queue holds ${MAX_STUDIES} Studies.`)
-  const added = { id, progress: 0 }
+  const added = { id, phase: { _tag: 'Queued' as const, progress: 0 } }
   return ok({ ...game, studies: first ? [added, ...game.studies] : [...game.studies, added] })
 }
 
@@ -1395,7 +1402,7 @@ const advanceEra = (game: Game, raised: boolean, firstIncidentAfter: number): Ac
       stageAt: game.time,
       cash: game.cash + ledger.burn * IPO_BURN_SECONDS,
       equity: game.equity * (1 - dilution),
-      declined: false,
+      round: { _tag: 'Raised' },
       quarter: firstQuarter(game, ledger.revenue),
     })
   }
@@ -1409,7 +1416,7 @@ const advanceEra = (game: Game, raised: boolean, firstIncidentAfter: number): Ac
     cash: game.cash + (raised ? grantOf(game, era.grant) : 0),
     equity: raised ? game.equity * (1 - dilution) : game.equity,
     // A bootstrapped Company declines every round, and grows at the full rate.
-    declined: !raised && !bootstrapped,
+    round: raised ? { _tag: 'Raised' } : { _tag: 'Declined' },
     nextIncidentAt: stage === 1 ? game.time + firstIncidentAfter : game.nextIncidentAt,
     engineers: alumni.length > 0 ? [...game.engineers, ...alumni] : game.engineers,
     workSeq: game.workSeq + alumni.length,
@@ -1425,6 +1432,7 @@ export const decline = (game: Game, firstIncidentAfter = FIRST_INCIDENT_AFTER): 
   advanceEra(game, false, firstIncidentAfter)
 
 export const offer = (game: Game) => {
+  if (game.round._tag !== 'Offered') return null
   const next = nextEra(game)
   if (!next) return null
   // The IPO pays a thousand seconds of Burn (plan 5.19).

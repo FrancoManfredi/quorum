@@ -502,7 +502,7 @@ test('Feature Flags offer each Feature’s rollout and the blast radius the flag
       },
     ],
     researched: [...start.board.game.researched, 'ci' as const, 'feature-flags' as const],
-    shipped: ['password-login' as const],
+    features: { 'password-login': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
     services: [{ ...start.board.game.services[0]!, lastDeploy: ['password-login' as const] }],
   }
   const model: Model = {

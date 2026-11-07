@@ -10,6 +10,7 @@ import {
 } from '../commands.ts'
 import { EXITS, RESEARCH } from '@quorum/simulation/catalog'
 import { Model, currentFile, EMPTY_SURVEY } from '../model.ts'
+import { companyIdOf, isExited, step } from '../company-machine.ts'
 import { PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { Result } from 'effect'
 import { afterRound } from './session.ts'
@@ -109,19 +110,24 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
           const founder = earned.founder
           const removed = earned.saves.current
           const saves = removed === null ? earned.saves : withoutFile(earned.saves, removed)
+          const phase = step(earned.companyPhase, {
+            _tag: 'ExitTaken',
+            id: companyIdOf(earned.companyPhase) ?? '',
+            row: result.row,
+            researched: model.board.game.researched,
+          })
           const next: Model = {
             ...earned,
             founder,
             survey: EMPTY_SURVEY,
-            panel: 'exited',
-            loaded: false,
+            companyPhase: phase,
+            panel: isExited(phase) ? 'exited' : earned.panel,
             saves,
             board: {
               ...earned.board,
               selected: null,
               selection: [],
               flow: { _tag: 'Idle' },
-              exited: { row: result.row, researched: model.board.game.researched },
               clock: {
                 ...earned.board.clock,
                 mode: clockStep(earned.board.clock.mode, { _tag: 'Paused' }),
@@ -259,7 +265,11 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
   },
 
   AwayClosed: () => ({
-    model: { ...model, panel: 'none', board: { ...model.board, away: null } },
+    model: {
+      ...model,
+      panel: 'none',
+      companyPhase: step(model.companyPhase, { _tag: 'AwayClosed' }),
+    },
   }),
 
   SurveySubmitted: () => submitSurvey(model),

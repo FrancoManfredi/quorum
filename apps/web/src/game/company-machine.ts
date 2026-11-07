@@ -56,6 +56,10 @@ export const ExitTaken = Schema.TaggedStruct('ExitTaken', {
   row: HistoryRow,
   researched: Schema.Array(ResearchId),
 })
+export const AwayTaken = Schema.TaggedStruct('AwayTaken', {
+  id: Schema.String,
+  report: AwayReport,
+})
 export const AwayClosed = Schema.TaggedStruct('AwayClosed', {})
 export const Closed = Schema.TaggedStruct('Closed', {})
 export const Deleted = Schema.TaggedStruct('Deleted', {
@@ -67,6 +71,7 @@ export const CompanyPhaseEvent = Schema.Union([
   Loaded,
   Failed,
   ExitTaken,
+  AwayTaken,
   AwayClosed,
   Closed,
   Deleted,
@@ -81,6 +86,7 @@ const Events = Machine.events({
   Loaded: { id: Schema.String },
   Failed: { id: Schema.String },
   ExitTaken: { id: Schema.String, row: HistoryRow, researched: Schema.Array(ResearchId) },
+  AwayTaken: { id: Schema.String, report: AwayReport },
   AwayClosed: {},
   Closed: {},
   Deleted: { id: Schema.String },
@@ -111,7 +117,26 @@ export const companyMachine = Machine.make({ root: States, events: Events }).han
           guard: ({ state, event }) => state.id === event.id,
           data: ({ event }) => ({ _tag: 'Open', id: event.id }),
         },
-        Failed: { target: 'None' },
+        /** The file answered with a report of the time away. */
+        AwayTaken: {
+          target: 'Away',
+          guard: ({ state, event }) => state.id === event.id,
+          data: ({ event }) => ({ _tag: 'Away', id: event.id, report: event.report }),
+        },
+        Failed: {
+          target: 'None',
+          guard: ({ state, event }) => state.id === event.id,
+        },
+        /** Opening another Company replaces the one still loading. */
+        Open: {
+          target: 'Opening',
+          data: ({ event }) => ({ _tag: 'Opening', id: event.id }),
+        },
+        /** Deleting the Company that is loading leaves nothing to play. */
+        Deleted: {
+          target: 'None',
+          guard: ({ state, event }) => state.id === event.id,
+        },
       },
     },
     Open: {
@@ -124,6 +149,17 @@ export const companyMachine = Machine.make({ root: States, events: Events }).han
             row: event.row,
             researched: event.researched,
           }),
+        },
+        /** The Company came back to a report of the time away. */
+        AwayTaken: {
+          target: 'Away',
+          guard: ({ state, event }) => state.id === event.id,
+          data: ({ event }) => ({ _tag: 'Away', id: event.id, report: event.report }),
+        },
+        /** Another Company replaces this one on the board once its file answers. */
+        Open: {
+          target: 'Opening',
+          data: ({ event }) => ({ _tag: 'Opening', id: event.id }),
         },
         Closed: { target: 'None' },
         /** Deleting the Company that is open leaves nothing to play. */
@@ -138,6 +174,16 @@ export const companyMachine = Machine.make({ root: States, events: Events }).han
         AwayClosed: {
           target: 'Open',
           data: ({ state }) => ({ _tag: 'Open', id: state.id }),
+        },
+        /** Another Company replaces this one once its file answers. */
+        Open: {
+          target: 'Opening',
+          data: ({ event }) => ({ _tag: 'Opening', id: event.id }),
+        },
+        /** Deleting the Company that is away leaves nothing to play. */
+        Deleted: {
+          target: 'None',
+          guard: ({ state, event }) => state.id === event.id,
         },
       },
     },
@@ -154,15 +200,28 @@ export const companyMachine = Machine.make({ root: States, events: Events }).han
 export const step = (phase: CompanyPhase, event: CompanyPhaseEvent): CompanyPhase =>
   planState(companyMachine, phase, event)
 
+/** A Company's Game is already in hand: it opens without waiting for a file. */
+export const opened = (phase: CompanyPhase, id: string): CompanyPhase =>
+  step(step(phase, { _tag: 'Open', id }), { _tag: 'Loaded', id })
+
 /** The Company the phase belongs to, or null on the list. */
 export const companyIdOf = (phase: CompanyPhase): string | null =>
   phase._tag === 'None' ? null : phase.id
 
 /** A Company is on the board. */
-export const isOpen = (phase: CompanyPhase): boolean => phase._tag === 'Open'
+export const isOpen = (phase: CompanyPhase): phase is Extract<CompanyPhase, { _tag: 'Open' }> =>
+  phase._tag === 'Open'
 
 /** The last Company exited and waits for the player to leave it. */
-export const isExited = (phase: CompanyPhase): boolean => phase._tag === 'Exited'
+export const isExited = (phase: CompanyPhase): phase is Extract<CompanyPhase, { _tag: 'Exited' }> =>
+  phase._tag === 'Exited'
 
 /** The offline report is open over the Company. */
-export const isAway = (phase: CompanyPhase): boolean => phase._tag === 'Away'
+export const isAway = (phase: CompanyPhase): phase is Extract<CompanyPhase, { _tag: 'Away' }> =>
+  phase._tag === 'Away'
+
+/** The Company plays on the board: open, or away with its report over it. */
+export const isPlaying = (
+  phase: CompanyPhase,
+): phase is Extract<CompanyPhase, { _tag: 'Open' }> | Extract<CompanyPhase, { _tag: 'Away' }> =>
+  phase._tag === 'Open' || phase._tag === 'Away'

@@ -1,7 +1,6 @@
 import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
-import { BlockKind as BlockKindSchema } from './state.ts'
 
 /* ==========================================================================
    A backlog item's block (18 "Blocked"). It moves, it waits on the player, or
@@ -10,18 +9,22 @@ import { BlockKind as BlockKindSchema } from './state.ts'
    machine only tracks what stops it.
    ========================================================================== */
 
+/** What a backlog item waits on (18 "Teammates"): the four the design names. */
+export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'hire'])
+export type BlockKind = typeof BlockKind.Type
+
 /** Nothing stops it. */
 export const Free = Schema.TaggedStruct('Free', {})
 /** It waits on the player, who is reminded again at `remindAt`. */
 export const Blocked = Schema.TaggedStruct('Blocked', {
-  reason: BlockKindSchema,
+  reason: BlockKind,
   owner: Schema.String,
   at: Schema.Finite,
   remindAt: Schema.Finite,
 })
 /** The player approved it: it moves again, and the block never stops it twice. */
 export const Approved = Schema.TaggedStruct('Approved', {
-  reason: BlockKindSchema,
+  reason: BlockKind,
   owner: Schema.String,
   at: Schema.Finite,
 })
@@ -30,7 +33,7 @@ export type WorkBlock = typeof WorkBlock.Type
 
 /** It stopped at `at` on `reason`, owned by `owner`, and reminds again at `remindAt`. */
 export const BlockedEvent = Schema.TaggedStruct('Blocked', {
-  reason: BlockKindSchema,
+  reason: BlockKind,
   owner: Schema.String,
   at: Schema.Finite,
   remindAt: Schema.Finite,
@@ -50,7 +53,7 @@ const States = Machine.state({
 
 const Events = Machine.events({
   Blocked: {
-    reason: BlockKindSchema,
+    reason: BlockKind,
     owner: Schema.String,
     at: Schema.Finite,
     remindAt: Schema.Finite,

@@ -1,14 +1,22 @@
 import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
-import { LiftSample as LiftSampleSchema, type LiftSample } from './state.ts'
 
 /* ==========================================================================
    Where a Feature stands (08 "Features"). It is built and waiting for a
    deploy, or it is live with a rollout, an adoption share, and a measured
-   lift. Outcomes, the queue of waiting Features, and the A/B counts stay on
-   the Game; this machine only tracks the phase and what the phase shows.
+   lift. Outcomes and the queue of waiting Features stay on the Game; this
+   machine tracks the phase and what the phase shows.
    ========================================================================== */
+
+/** One Feature's A/B samples (08 "Measured lift"): the exposed and holdout requests since its step. */
+export const LiftSample = Schema.Struct({
+  exposed: Schema.Finite,
+  holdout: Schema.Finite,
+  /** The rollout step the counts belong to: a new step starts the count again. */
+  step: Schema.Finite,
+})
+export type LiftSample = typeof LiftSample.Type
 
 /** Built and waiting for the next deploy. */
 export const Awaiting = Schema.TaggedStruct('Awaiting', {})
@@ -16,7 +24,7 @@ export const Awaiting = Schema.TaggedStruct('Awaiting', {})
 export const Live = Schema.TaggedStruct('Live', {
   rollout: Schema.Finite,
   adoption: Schema.Finite,
-  lift: Schema.NullOr(LiftSampleSchema),
+  lift: Schema.NullOr(LiftSample),
 })
 export const FeaturePhase = Schema.Union([Awaiting, Live])
 export type FeaturePhase = typeof FeaturePhase.Type
@@ -30,7 +38,7 @@ export const RolloutChanged = Schema.TaggedStruct('RolloutChanged', { share: Sch
 /** Its users reached `share` adoption. */
 export const Adopted = Schema.TaggedStruct('Adopted', { share: Schema.Finite })
 /** Its experiment read `lift`. */
-export const Sampled = Schema.TaggedStruct('Sampled', { lift: LiftSampleSchema })
+export const Sampled = Schema.TaggedStruct('Sampled', { lift: LiftSample })
 /** A bad deploy rolled it back, so it waits for the next one again. */
 export const RolledBack = Schema.TaggedStruct('RolledBack', {})
 /** The Feature left the Company: the caller removes its entry. */
@@ -55,7 +63,7 @@ const Events = Machine.events({
   Deployed: {},
   RolloutChanged: { share: Schema.Finite },
   Adopted: { share: Schema.Finite },
-  Sampled: { lift: LiftSampleSchema },
+  Sampled: { lift: LiftSample },
   RolledBack: {},
   Removed: {},
 })
@@ -101,7 +109,7 @@ export const step = (phase: FeaturePhase, event: FeatureEvent): FeaturePhase =>
   planState(featureMachine, phase, event)
 
 /** A deploy shipped it, so its effects reach users. */
-export const isLive = (phase: FeaturePhase): boolean => phase._tag === 'Live'
+export const isLive = (phase: FeaturePhase): phase is typeof Live.Type => phase._tag === 'Live'
 
 /** The share of users it reaches: 0 until a deploy ships it. */
 export const rolloutOf = (phase: FeaturePhase): number =>

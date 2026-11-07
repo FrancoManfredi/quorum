@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { SLOW } from './slow.ts'
 import { CHALLENGE_TUNING } from '../src/catalog.ts'
 import { runBot } from '../src/pacing.ts'
+import { liveFeatures } from '../src/features.ts'
 import { budgetOf } from '../src/slo.ts'
 
 /*
@@ -40,7 +41,7 @@ describe('the Balanced bot at the Challenge pace', { timeout: 60_000 }, () => {
           `second server ${milestones['second-server'] === undefined ? 'never' : minutes(milestones['second-server'])}, ` +
           `first incident ${minutes(milestones['first-incident'])}, first Feature live ` +
           `${minutes(milestones['first-feature'])}, first hire ${minutes(milestones['first-hire'])}, ` +
-          `${run.game.engineers.length} engineers and ${run.game.shipped.length} Features at Seed; margin at Seed entry ` +
+          `${run.game.engineers.length} engineers and ${liveFeatures(run.game).length} Features at Seed; margin at Seed entry ` +
           `${((preseed?.live ?? 0) * 100).toFixed(0)}% live`,
       )
     })

@@ -261,8 +261,8 @@ const surveySection = (model: Model, h: HtmlBuilder<Message>): Html => {
 export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const exited = model.board.exited
-  if (!exited) return h.empty
+  const exited = model.companyPhase
+  if (exited._tag !== 'Exited') return h.empty
   const row = exited.row
   const slots = keepSlots(model.founder)
   const kept = model.founder.keep
@@ -343,7 +343,7 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const away = model.board.away
+  const away = model.companyPhase._tag === 'Away' ? model.companyPhase.report : null
   if (!away) return h.empty
   const hours = away.away / 3_600
   const capped = away.seconds < away.away

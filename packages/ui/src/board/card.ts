@@ -1,6 +1,13 @@
 import { COMPONENTS, SIZES, ZONES, REGION_INFO, rttOf } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
-import { has, replacePrice, resizePrice, sizeLabel, zoned } from '@quorum/simulation/lookups'
+import {
+  bootingOf,
+  has,
+  replacePrice,
+  resizePrice,
+  sizeLabel,
+  zoned,
+} from '@quorum/simulation/lookups'
 import { isGlobal } from '@quorum/simulation/regions'
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import { COMPONENT_VIEWS } from '../components/index.ts'
@@ -138,7 +145,7 @@ export const sizePips = (node: GameNode): Readonly<{ filled: number; total: numb
 /** The header's right label, before the size pips: the copies, and the zone once zones are researched. */
 export const levelOf = (game: Game, node: GameNode, region: Region | null = null): string => {
   const copies =
-    `${node.replicas > 1 ? `×${node.replicas}` : ''}${node.pending > 0 ? ` +${node.pending}` : ''}`.trim()
+    `${node.replicas > 1 ? `×${node.replicas}` : ''}${bootingOf(node) > 0 ? ` +${bootingOf(node)}` : ''}`.trim()
   // A standby sits in the next zone over.
   const standby = ZONES[(ZONES.indexOf(node.zone) + 1) % ZONES.length] ?? ''
   const zone =

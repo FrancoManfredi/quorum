@@ -9,6 +9,7 @@ import {
 } from './catalog.ts'
 import { RETRY_BUDGET, attemptsFor } from './distribution.ts'
 import { has, meshOf, sampleIndex } from './lookups.ts'
+import { isOpen } from './breaker-machine.ts'
 import { slotOf, accepts, type Pass, type Rates } from './rules.ts'
 import { type Game, type GameLink, type GameNode } from './state.ts'
 import { fixed } from './team.ts'
@@ -214,7 +215,7 @@ export const policyOf = (game: Game, link: GameLink | undefined, from?: GameNode
   return {
     timeout: link.timeout * 1000,
     retry,
-    open: link.open > 0 && (has(game, 'circuit-breakers') || meshed),
+    open: isOpen(link.fuse) && (has(game, 'circuit-breakers') || meshed),
     bulkhead: link.bulkhead && has(game, 'bulkheads'),
     hedge: link.hedge && has(game, 'hedged-requests'),
   }

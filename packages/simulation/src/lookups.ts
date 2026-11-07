@@ -272,7 +272,10 @@ export const podsOf = (game: Game, cluster: GameNode): ReadonlyArray<GameNode> =
   game.nodes.filter((node) => clusterOf(game, node) === cluster.id)
 
 /** Copies of a Node that bill: the ones serving and the ones still booting. */
-export const copiesOf = (node: GameNode): number => node.replicas + node.pending
+export const bootingOf = (node: GameNode): number =>
+  node.scaler._tag === 'Scaling' ? node.scaler.pending : 0
+
+export const copiesOf = (node: GameNode): number => node.replicas + bootingOf(node)
 
 /** Seconds a Node stays down when it restarts: an App Server boots its runtime, at least 1 s for the VM. */
 export const restartSeconds = (node: GameNode): number =>
@@ -293,7 +296,7 @@ export const warmAfterRestart = (node: GameNode, warming = false): number =>
 /** A Node restarting: it comes back warm or cold, and a shut Node comes back in service. */
 export const restarted = (node: GameNode, cause: DownCause = 'restart', warming = false) => ({
   life: restarting(restartSeconds(node), cause, warmAfterRestart(node, warming)),
-  ...(node.shut ? { shut: false } : {}),
+  ...(node.service._tag === 'Shut' ? { service: { _tag: 'InService' as const } } : {}),
 })
 
 export const languageOf = (node: GameNode) => RUNTIMES[node.runtime].language
@@ -336,7 +339,9 @@ export const logLoss = (node: GameNode): number =>
 
 /** Whether a live API Gateway validates every token at the edge, so the services skip it (05). */
 export const edgeAuthOf = (game: Game): boolean =>
-  game.nodes.some((node) => node.type === 'gw' && node.authEdge && !isDown(node) && !node.shut)
+  game.nodes.some(
+    (node) => node.type === 'gw' && node.authEdge && !isDown(node) && node.service._tag !== 'Shut',
+  )
 
 /* ---------- the Service Mesh ---------- */
 
@@ -553,7 +558,7 @@ export const storageRequestBurnOf = (node: GameNode, gets: number, puts: number)
 
 /** Dollars per second a Node costs while it exists, down or not; nothing once it is shut. */
 export const burnOf = (game: Game, node: GameNode): number => {
-  if (node.shut) return 0
+  if (node.service._tag === 'Shut') return 0
   const def = COMPONENTS[node.type]
   const index = eraOf(game).costIndex
   if (def.sized) {
@@ -775,7 +780,9 @@ export const shardingOf = (node: GameNode) => {
 /** The Read Replicas every write waits for: those on synchronous replication, once researched. */
 export const syncReplicasOf = (game: Game): ReadonlyArray<GameNode> =>
   has(game, 'sync-replication')
-    ? game.nodes.filter((node) => node.type === 'replica' && node.sync && !node.shut)
+    ? game.nodes.filter(
+        (node) => node.type === 'replica' && node.sync && node.service._tag !== 'Shut',
+      )
     : []
 
 /**

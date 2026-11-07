@@ -86,7 +86,14 @@ import {
   upkeepShare,
 } from '@quorum/simulation/team'
 import { overdueBy } from '@quorum/simulation/cve'
-import { liftReading } from '@quorum/simulation/features'
+import {
+  adoptionShareOf,
+  awaitingFeatures,
+  isBuilt,
+  isFeatureLive,
+  liftReading,
+  liveFeatures,
+} from '@quorum/simulation/features'
 import { isReady, stepOf } from '@quorum/simulation/migration'
 import { PLATFORM_STAGE, loadBalancersOf, nodesOfService } from '@quorum/simulation/work'
 import {
@@ -205,9 +212,7 @@ export const workItemName = (t: Messages, item: WorkItem): string => {
 
 /** Features the Company has, has built, or has queued. */
 const planned = (game: Game, id: FeatureId): boolean =>
-  game.shipped.includes(id) ||
-  game.awaiting.includes(id) ||
-  game.backlog.some((item) => item.ref === id)
+  isBuilt(game, id) || game.backlog.some((item) => item.ref === id)
 
 /**
  * Why a Feature cannot be queued, in words. The Simulation's reasons are English, so each is
@@ -293,7 +298,7 @@ const splitWhy = (
     return reason.serviceExists(name)
   for (const id of draft.features) {
     const featureName = t.catalog.features[id].name
-    if (!game.shipped.includes(id)) return reason.notLive(featureName)
+    if (!isFeatureLive(game, id)) return reason.notLive(featureName)
     const carrier = serviceOfFeature(game, id)
     if (carrier.id !== serviceOf(game).id)
       return reason.alreadyOn(featureName, serviceName(t, carrier))
@@ -829,7 +834,14 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
               ],
             ),
           ),
-          ...pending.map((entry) => pendingSeat(game, entry.id, entry.readyAt, h)),
+          ...pending.map((entry) =>
+            pendingSeat(
+              game,
+              entry.id,
+              entry.phase._tag === 'Pending' ? entry.phase.readyAt : game.time,
+              h,
+            ),
+          ),
           // Hiring is not shown before its Era (15 "Progressive disclosure").
           index === 0 && !sandbox && game.stage >= 1 ? hireSeat(game, h) : h.empty,
         ],
@@ -989,7 +1001,7 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   const draft = model.board.team.service
   // A split moves a live Feature that no other Service carries.
-  const candidates = game.shipped.filter(
+  const candidates = liveFeatures(game).filter(
     (id) => serviceOfFeature(game, id).id === serviceOf(game).id,
   )
   const refusal = splitRefusal(game, {
@@ -1587,7 +1599,7 @@ const label = (kind: WorkKind, h: HtmlBuilder<Message>): Html => {
 const featureReadout = (game: Game, id: FeatureId, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const adopted = Math.round((game.adoption[id] ?? 1) * 100)
+  const adopted = Math.round(adoptionShareOf(game, id) * 100)
   const reading = liftReading(game, id)
   const lift = reading
     ? t.team.lift(
@@ -1923,7 +1935,7 @@ const column = (
 const deployPill = (game: Game, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const built = game.awaiting.length
+  const built = awaitingFeatures(game).length
   const left = serviceOf(game).nextDeployAt - game.time
   const chance = badDeployChance(game)
   const stalled = game.incident?.kind === 'bad-deploy'
@@ -2005,7 +2017,7 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
   const teams = game.teams
   const queue = game.backlog.slice(teams.length)
   const building = game.backlog.slice(0, teams.length)
-  const live = [...game.shipped].reverse()
+  const live = [...liveFeatures(game)].reverse()
   return h.div(
     [h.Class('grid grid-cols-4 gap-2 narrow:grid-cols-1')],
     [
@@ -2034,9 +2046,9 @@ const board = (game: Game, h: HtmlBuilder<Message>): Html => {
         'shipping',
         'shipping',
         t.team.shipping,
-        game.awaiting.length,
+        awaitingFeatures(game).length,
         deployPill(game, h),
-        game.awaiting.map((id) =>
+        awaitingFeatures(game).map((id) =>
           card(
             `built-${id}`,
             codeOf('feature', id),
@@ -2332,8 +2344,8 @@ const featureTile = (game: Game, id: FeatureId, review: boolean, h: HtmlBuilder<
   const t = copy(h)
 
   const def = localized(FEATURES[id], t.catalog.features[id])
-  const live = game.shipped.includes(id)
-  const built = game.awaiting.includes(id)
+  const live = isFeatureLive(game, id)
+  const built = isBuilt(game, id)
   const queued = game.backlog.some((item) => item.ref === id)
   const refusal = featureRefusal(game, id)
   const state: TileState = live
@@ -2461,7 +2473,7 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
     return !def.internal && (def.research === null || has(game, def.research))
   })
   const features = FEATURE_IDS.filter((id) => FEATURES[id].era <= game.stage + 1)
-  const live = features.filter((id) => game.shipped.includes(id)).length
+  const live = features.filter((id) => isFeatureLive(game, id)).length
   const review = has(game, 'code-review')
   const engineering = tasks.length > 0 && shown(model, 'engineering')
   return h.div(

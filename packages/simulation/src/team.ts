@@ -53,6 +53,8 @@ import {
 } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { eraOf, has, isDown, languageOf } from './lookups.ts'
+import { liveFeatures } from './features.ts'
+import { rolloutOf as rolloutShareOf } from './feature-machine.ts'
 import { budgetVelocity } from './slo.ts'
 import {
   CORE_TEAM,
@@ -199,7 +201,7 @@ export const debtGrowthOf = (game: Game): number => FRAMEWORKS[stackOf(game).fra
 
 /** The Dev Hours of the Features a Service carries and has not removed. */
 export const featureHoursOn = (game: Game, service: Service): number =>
-  game.shipped.reduce(
+  liveFeatures(game).reduce(
     (sum, id) => (serviceOfFeature(game, id).id === service.id ? sum + FEATURES[id].dh : sum),
     0,
   )
@@ -321,7 +323,8 @@ const liveClusters = (game: Game): number =>
 
 /** Live Service Mesh Nodes: each one takes Platform Dev Hours while it runs (05). */
 const liveMeshes = (game: Game): number =>
-  game.nodes.filter((node) => node.type === 'mesh' && !isDown(node) && !node.shut).length
+  game.nodes.filter((node) => node.type === 'mesh' && !isDown(node) && node.service._tag !== 'Shut')
+    .length
 
 /** Sim seconds in a calendar quarter, on the Team's calendar. */
 export const quarterSeconds = (tuning: Tuning = LIVE_TUNING): number => days(QUARTER_DAYS, tuning)
@@ -533,8 +536,9 @@ export const doraMetrics = (game: Game, tuning: Tuning = LIVE_TUNING): DoraMetri
  */
 export const rolloutOf = (game: Game, feature: string): number => {
   const flags = game.nodes.some((node) => node.type === 'ff' && !isDown(node))
-  if (!flags) return ROLLOUT_ALL
-  return Math.max(0, Math.min(ROLLOUT_ALL, serviceOf(game).rollouts[feature] ?? ROLLOUT_ALL))
+  const phase = game.features[feature]
+  if (!flags || phase === undefined) return ROLLOUT_ALL
+  return Math.max(0, Math.min(ROLLOUT_ALL, rolloutShareOf(phase)))
 }
 
 /**
@@ -573,7 +577,7 @@ export const enqueue = (
     ref,
     cost,
     spent: 0,
-    blockedBy: null,
+    block: { _tag: 'Free' },
     answered: null,
     ...extra,
   }

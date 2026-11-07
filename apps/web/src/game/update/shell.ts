@@ -2,6 +2,7 @@ import { LoadUrl, PlaySound, PushUrl, RevealTitle } from '../commands.ts'
 import { Model } from '../model.ts'
 import { UrlRequest } from 'foldkit/navigation'
 import { bootStep } from '../boot-machine.ts'
+import { isExited } from '../company-machine.ts'
 import { leaveExited } from './companies.ts'
 import { routeOfMenu } from '../route.ts'
 import { toString as urlToString } from 'foldkit/url'
@@ -45,7 +46,7 @@ export const shellHandlers = (model: Model): MessageCases<UpdateResult, ShellTag
   }),
 
   MenuChosen: ({ menu }) =>
-    model.board.exited
+    isExited(model.companyPhase)
       ? leaveExited(model, menu)
       : {
           model: {

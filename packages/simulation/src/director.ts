@@ -52,6 +52,7 @@ import {
   zoned,
   rampedOf,
 } from './lookups.ts'
+import { hasAck, signalAtOf, ackAtOf, step as incidentStep } from './incident-machine.ts'
 import { nodeLabel } from './labels.ts'
 
 export { zoned }
@@ -806,8 +807,7 @@ export const startIncident = (
     impaired: 0,
     lostRevenue: 0,
     failed: 0,
-    signalAt: null,
-    ackAt: null,
+    phase: { _tag: 'Quiet' },
     severity: INCIDENTS[kind].severity,
     magnitude:
       kind === 'spike'
@@ -966,12 +966,16 @@ const postmortemOf = (game: Game, incident: Incident, auto = false): Postmortem 
     target: target ? nodeLabel(game, target) : null,
     duration: game.time - incident.startedAt,
     mttr: incident.impaired,
-    mttd: incident.signalAt === null ? null : Math.max(0, incident.signalAt - incident.startedAt),
+    mttd: (() => {
+      const signalAt = signalAtOf(incident.phase)
+      return signalAt === null ? null : Math.max(0, signalAt - incident.startedAt)
+    })(),
     // An acknowledgement before the signal still costs no time to acknowledge.
-    mtta:
-      incident.ackAt === null || incident.signalAt === null
-        ? null
-        : Math.max(0, incident.ackAt - incident.signalAt),
+    mtta: (() => {
+      const ackAt = ackAtOf(incident.phase)
+      const signalAt = signalAtOf(incident.phase)
+      return ackAt === null || signalAt === null ? null : Math.max(0, ackAt - signalAt)
+    })(),
     lostUsers: Math.max(0, incident.usersAtStart - game.users),
     lostRevenue: incident.lostRevenue,
     failed: incident.failed,
@@ -1017,7 +1021,7 @@ const resolvesItself = (game: Game, incident: Incident, target: GameNode | undef
  * A run the Design or a runbook ended never counts, because it was handled.
  */
 export const leftAlone = (incident: Incident): boolean =>
-  incident.ackAt === null && incident.remaining <= 0 && incident.causedBy === null
+  !hasAck(incident.phase) && incident.remaining <= 0 && incident.causedBy === null
 
 /**
  * The incident a left-alone one starts, or null (11 "One at a time, early"). Cascades arrive from
@@ -1125,12 +1129,20 @@ const resolve = (
  */
 export const markSignal = (game: Game, ledger: Ledger): Game => {
   const incident = game.incident
-  if (!incident || incident.signalAt !== null) return game
+  if (!incident || signalAtOf(incident.phase) !== null) return game
   const rules = Object.keys(ALERT_RULES) as ReadonlyArray<AlertRule>
   const signalled = has(game, 'alerting')
     ? rules.some((rule) => game.alarms[rule] > 0)
     : ledger.errorShare > ALERT_RULES.errors.threshold
-  return signalled ? { ...game, incident: { ...incident, signalAt: game.time } } : game
+  return signalled
+    ? {
+        ...game,
+        incident: {
+          ...incident,
+          phase: incidentStep(incident.phase, { _tag: 'Signalled', at: game.time }),
+        },
+      }
+    : game
 }
 
 /** Advances the running incident by some seconds: its effect, its cost, and its end. */
@@ -1175,12 +1187,19 @@ export const advanceIncident = (
         }
       : counted
   // On-call answers the page: the rotation acknowledges it a few seconds after the signal.
+  const signalledAt = signalAtOf(tracked.phase)
   const acked: Incident =
-    tracked.ackAt === null &&
+    !hasAck(tracked.phase) &&
     has(game, 'on-call') &&
-    tracked.signalAt !== null &&
-    game.time >= tracked.signalAt + ON_CALL_ACK
-      ? { ...tracked, ackAt: tracked.signalAt + ON_CALL_ACK }
+    signalledAt !== null &&
+    game.time >= signalledAt + ON_CALL_ACK
+      ? {
+          ...tracked,
+          phase: incidentStep(tracked.phase, {
+            _tag: 'Acked',
+            at: signalledAt + ON_CALL_ACK,
+          }),
+        }
       : tracked
   const target = game.nodes.find((node) => node.id === incident.nodeId)
   // A spot reclaim warns first: 10 s in, the provider takes the Node for the rest of it.
@@ -1237,7 +1256,7 @@ export const advanceIncident = (
       (!target || target.life._tag === 'Restarting')) ||
     // The login traffic has been moved off the blocked event loop.
     (incident.kind === 'loop' &&
-      incident.ackAt !== null &&
+      hasAck(incident.phase) &&
       !game.nodes.some(
         (node) =>
           node.type === 'server' &&

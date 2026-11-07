@@ -64,6 +64,7 @@ import { newGame } from './company.ts'
 import { foundCompany } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import { has, isDown, maxSize, ramOf, researchReady, securityStaffed } from './lookups.ts'
+import { isBuilt } from './features.ts'
 import { recipeOf } from './studies.ts'
 import {
   driftOf,
@@ -93,6 +94,7 @@ import {
   queueTask,
   rushItem,
 } from './work.ts'
+import { isApplying } from './mirror-machine.ts'
 
 /* ==========================================================================
    Pacing bots (16 "Pacing model"): scripted players that run against the real
@@ -645,7 +647,7 @@ const seriesCBuild = (game: Game, ledger: Ledger): Game => {
       next = affordable(next, ledger, (current) => startMirror(current, region, HOME_REGION))
       mirror = mirrorOf(next, region)
     }
-    if (!mirror || mirror.readyAt !== null) continue
+    if (!mirror || isApplying(mirror.sync)) continue
     // A new data Node in the home region: the Mirror reads it from a replica, and copies its objects.
     for (const change of driftOf(next, mirror).changes)
       if (change._tag === 'choose')
@@ -865,10 +867,7 @@ const planFeatureFor = (game: Game, ledger: Ledger, id: ResearchId): Game => {
   if (!bringing) return game
   const first = (feature: FeatureDef): FeatureDef => {
     const needed = feature.requires.find(
-      (other) =>
-        !game.shipped.includes(other) &&
-        !game.awaiting.includes(other) &&
-        !game.backlog.some((item) => item.ref === other),
+      (other) => !isBuilt(game, other) && !game.backlog.some((item) => item.ref === other),
     )
     return needed ? first(FEATURES[needed]) : feature
   }
@@ -933,10 +932,7 @@ const look = (game: Game, tuning: Tuning, strategy: Strategy): Game => {
 
   const ready = (id: ResearchId) => !has(next, id) && researchReady(next, id)
   // Chat's realtime connections need a runtime that holds them, and PHP refuses them all.
-  const chat =
-    next.shipped.includes('chat') ||
-    next.awaiting.includes('chat') ||
-    next.backlog.some((item) => item.ref === 'chat')
+  const chat = isBuilt(next, 'chat') || next.backlog.some((item) => item.ref === 'chat')
   const realtime =
     strategy !== 'stubborn' && chat && RUNTIMES[stackOf(next).runtime].connectionKB === null
   next = studies(next, solveFlow(next), strategy, realtime, ready)
@@ -980,7 +976,7 @@ const look = (game: Game, tuning: Tuning, strategy: Strategy): Game => {
   // Features otherwise). A decision block stays: it holds Features while Apdex misses its target,
   // and an index block clears when the bot adds the index.
   for (const item of next.backlog)
-    if (item.blockedBy?.kind === 'hire' && !item.blockedBy.cleared)
+    if (item.block._tag === 'Blocked' && item.block.reason === 'hire')
       next = tried(next, approveBlock(next, item.id))
 
   // A resharding is the Database's way out, and a migration's bugs fail requests until fixed: each

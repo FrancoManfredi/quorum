@@ -10,6 +10,7 @@ import {
   researchReady,
   resizePrice,
 } from '@quorum/simulation/lookups'
+import { awaitingFeatures, liveFeatures } from '@quorum/simulation/features'
 import type { Game } from '@quorum/simulation/state'
 import type { Message } from './message.ts'
 import { Reveal, offCompany, type Model } from './model.ts'
@@ -64,7 +65,7 @@ const triggered = (key: Reveal, model: Model, ledger: Ledger): boolean => {
     case 'errors':
       return ledger.errorShare > 0.001
     case 'team':
-      return game.shipped.length > 0 || game.awaiting.length > 0
+      return liveFeatures(game).length > 0 || awaitingFeatures(game).length > 0
     case 'engineering':
       return (
         game.nodes.some((node) => node.leak > 0) ||

@@ -4,7 +4,7 @@ import { Effect } from 'effect'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { DeleteCompany, LoadSaves, ReadOldSave, WriteCompany } from './commands.ts'
 import { Message } from './message.ts'
-import { currentFile, type Model } from './model.ts'
+import { currentFile, hasCompany, type Model } from './model.ts'
 import { AppRoute } from './route.ts'
 import { TICK_MS, initialModel, update } from './update.ts'
 import {
@@ -120,7 +120,7 @@ describe('naming a Company', () => {
     )
     const file = currentFile(typed)
     expect(file).toMatchObject({ name: 'Night Shift', logo: 'bolt', venture: 'b2b-saas' })
-    expect(typed.loaded).toBe(true)
+    expect(hasCompany(typed)).toBe(true)
     expect(typed.route).toEqual(AppRoute.Company())
     expect(commandsOf(initialModel(), Message.CompanyFounded())).toContain('WriteCompany')
   })
@@ -169,7 +169,7 @@ describe('the Companies page', () => {
       Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 2_000 }),
     )
     expect(loaded.model.saves).toEqual(index)
-    expect(loaded.model.loaded).toBe(false)
+    expect(loaded.model.companyPhase).toEqual({ _tag: 'Opening', id: 'c-one' })
     expect(loaded.commands).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -178,6 +178,43 @@ describe('the Companies page', () => {
         }),
       ]),
     )
+  })
+
+  test('a file that answers for another Company does not land', () => {
+    const { index, game } = stored()
+    const other = { ...preseedGame(4242), wall: 0 }
+    const two = indexOf(
+      [
+        ...index.companies,
+        fileFor({
+          id: 'c-two',
+          name: 'Two',
+          logo: 'wave',
+          founding: other.founding,
+          game: other,
+          now: 2,
+        }),
+      ],
+      'c-one',
+    )
+    const waiting = send(
+      initialModel(),
+      Message.SavesLoaded({ index: JSON.stringify(two), legacy: null, now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
+      Message.CompanyChosen({ id: 'c-two' }),
+      Message.CompanyOpened({ id: 'c-two' }),
+      // The first file answers late: it belongs to the Company the player left.
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
+    )
+    expect(waiting.companyPhase).toEqual({ _tag: 'Opening', id: 'c-two' })
+    expect(waiting.saves.current).toBe('c-one')
+    const landed = send(
+      waiting,
+      Message.CompanyLoaded({ id: 'c-two', open: true, json: JSON.stringify(other), now: 0 }),
+    )
+    expect(landed.companyPhase).toEqual({ _tag: 'Open', id: 'c-two' })
+    expect(landed.saves.current).toBe('c-two')
+    expect(landed.board.game.seed).toBe(other.seed)
   })
 
   test('opening a file reads its Game, its disclosure, and its dashboard', () => {
@@ -192,7 +229,7 @@ describe('the Companies page', () => {
       Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
       Message.CompanyLoaded({ id: 'c-one', open: true, json, now: 0 }),
     )
-    expect(opened.loaded).toBe(true)
+    expect(hasCompany(opened)).toBe(true)
     expect(opened.route).toEqual(AppRoute.Company())
     expect(opened.saves.current).toBe('c-one')
     expect(opened.board.game.seed).toBe(game.seed)
@@ -210,7 +247,7 @@ describe('the Companies page', () => {
     expect(asked.saveConfirm).toEqual({ _tag: 'Confirming', id: 'c-one' })
     const result = update(asked, Message.CompanyDeleteConfirmed())
     expect(result.model.saves).toEqual(EMPTY_SAVE_INDEX)
-    expect(result.model.loaded).toBe(false)
+    expect(result.model.companyPhase).toEqual({ _tag: 'None' })
     expect(result.model.saves.current).toBeNull()
     expect(result.commands).toEqual(
       expect.arrayContaining([
@@ -250,7 +287,7 @@ describe('the Companies page', () => {
     )
     expect(opened.saves.current).toBe('c-one')
     expect(opened.saves.companies.map((file) => file.id)).toEqual(['c-one'])
-    expect(opened.loaded).toBe(true)
+    expect(hasCompany(opened)).toBe(true)
   })
 
   test('a broken save is kept aside, and no Company opens', () => {
@@ -258,7 +295,7 @@ describe('the Companies page', () => {
       initialModel(),
       Message.SavesLoaded({ index: null, legacy: '{not json', now: 0 }),
     )
-    expect(result.model.loaded).toBe(false)
+    expect(result.model.companyPhase).toEqual({ _tag: 'None' })
     expect(result.commands).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'KeepBrokenSave' })]),
     )
@@ -312,7 +349,7 @@ describe('autosave and migration', () => {
       createdAt: 5_000,
       recovered: true,
     })
-    expect(migrated.loaded).toBe(true)
+    expect(hasCompany(migrated)).toBe(true)
     expect(migrated.oldSave).toBe(true)
     const commands = commandsOf(
       initialModel(),
@@ -360,7 +397,7 @@ describe('autosave and migration', () => {
       recovered: true,
       createdAt: 3_000,
     })
-    expect(imported.loaded).toBe(true)
+    expect(hasCompany(imported)).toBe(true)
     expect(imported.route).toEqual(AppRoute.Company())
     expect(
       commandsOf(asked, Message.OldSaveLoaded({ json: JSON.stringify(legacy), now: 4_000 })),

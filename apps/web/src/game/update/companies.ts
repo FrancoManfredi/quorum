@@ -39,8 +39,10 @@ import {
 } from './shared.ts'
 import { historyOfSave } from '../history.ts'
 import { inboxOfSave, mailed } from '../inbox.ts'
+import { migrateSaveFile } from '../save-migration.ts'
 import { ipoExit } from '@quorum/simulation/exit'
 import { ledgerOf, Model, currentFile, EMPTY_SURVEY, type Menu } from '../model.ts'
+import { companyIdOf, isOpen, isPlaying, opened, step } from '../company-machine.ts'
 import { line } from '../telemetry.ts'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
@@ -64,7 +66,7 @@ export const startCompany = (
   const fresh: Model = {
     ...model,
     route: AppRoute.Company(),
-    loaded: true,
+    companyPhase: opened(model.companyPhase, file.id),
     toast: null,
     panel,
     company: null,
@@ -112,6 +114,9 @@ export const applyCompany = (
   now: number,
   open: boolean,
 ): UpdateResult => {
+  // A file that answers for another Company is stale: it does not land.
+  const loaded = step(model.companyPhase, { _tag: 'Loaded', id })
+  if (!isOpen(loaded) || loaded.id !== id) return { model }
   const away = game.wall > 0 ? (now - game.wall) / 1_000 : 0
   const back =
     away >= OFFLINE_MIN && !game.sandbox
@@ -119,6 +124,7 @@ export const applyCompany = (
           simulateAway(game, away),
         )
       : null
+  const phase = back ? step(loaded, { _tag: 'AwayTaken', id, report: back.report }) : loaded
   const played = normalizeOrdinals(back?.game ?? game)
   // The Inbox survives the reload (18 "Open questions"), and the return from away writes to it.
   const kept = inboxOfSave(file)
@@ -130,7 +136,7 @@ export const applyCompany = (
     : kept
   const next: Model = {
     ...model,
-    loaded: true,
+    companyPhase: phase,
     saves: { ...model.saves, current: id },
     route: open ? AppRoute.Company() : model.route,
     panel: open ? (back ? 'away' : 'none') : model.panel,
@@ -144,7 +150,6 @@ export const applyCompany = (
       inbox,
       clock: { ...model.board.clock, savedAt: played.time, sampledAt: played.time },
       bottleneckAt: -1,
-      away: back?.report ?? null,
     },
   }
   return {
@@ -158,7 +163,12 @@ export const applyCompany = (
 /** The single save of the build before Company files becomes the first Company. */
 export const adoptLegacy = (model: Model, json: string, now: number): UpdateResult => {
   const raw = parseJson(json)
-  const decoded = Option.match(raw, {
+  const migrated = Option.map(raw, (value) =>
+    typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? migrateSaveFile(value as Record<string, unknown>)
+      : value,
+  )
+  const decoded = Option.match(migrated, {
     onNone: () => Exit.fail('The save is not JSON.'),
     onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
   })
@@ -180,7 +190,12 @@ export const adoptLegacy = (model: Model, json: string, now: number): UpdateResu
   })
   const saves: SaveIndex = { current: file.id, companies: withFile(model.saves, file).companies }
   const applied = applyCompany(
-    { ...model, saves, oldSave: true },
+    {
+      ...model,
+      saves,
+      oldSave: true,
+      companyPhase: step(model.companyPhase, { _tag: 'Open', id: file.id }),
+    },
     file.id,
     game,
     Option.getOrNull(raw),
@@ -199,7 +214,12 @@ export const importOldSave = (model: Model, json: string | null, now: number): U
   if (hasRecovered(model.saves.companies))
     return withToast(model, say(model).toasts.previousSaveKnown, 'plain')
   const raw = parseJson(json)
-  const decoded = Option.match(raw, {
+  const migrated = Option.map(raw, (value) =>
+    typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? migrateSaveFile(value as Record<string, unknown>)
+      : value,
+  )
+  const decoded = Option.match(migrated, {
     onNone: () => Exit.fail('The save is not JSON.'),
     onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
   })
@@ -218,7 +238,12 @@ export const importOldSave = (model: Model, json: string | null, now: number): U
   })
   const saves: SaveIndex = { current: file.id, companies: withFile(model.saves, file).companies }
   const applied = applyCompany(
-    { ...model, saves, oldSave: true },
+    {
+      ...model,
+      saves,
+      oldSave: true,
+      companyPhase: step(model.companyPhase, { _tag: 'Open', id: file.id }),
+    },
     file.id,
     game,
     Option.getOrNull(raw),
@@ -273,7 +298,7 @@ export const leaveExited = (model: Model, menu: Menu): UpdateResult => ({
     ...model,
     route: routeOfMenu(menu),
     panel: 'none',
-    loaded: false,
+    companyPhase: step(model.companyPhase, { _tag: 'Closed' }),
     saves: { ...model.saves, current: null },
     saveFocus: null,
     saveConfirm: { _tag: 'List' },
@@ -318,7 +343,15 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
           KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
         ])
       return {
-        model: { ...model, saves: parsed, oldSave: legacy !== null },
+        model: {
+          ...model,
+          saves: parsed,
+          oldSave: legacy !== null,
+          companyPhase: step(model.companyPhase, {
+            _tag: 'SavesLoaded',
+            current: parsed.current,
+          }),
+        },
         commands: parsed.current === null ? [] : [LoadCompany({ id: parsed.current, open: false })],
       }
     }
@@ -326,19 +359,31 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
   },
 
   CompanyLoaded: ({ id, open, json, now }) => {
+    // A file that does not answer leaves nothing opening.
+    const failed = (): Model => ({
+      ...model,
+      companyPhase: step(model.companyPhase, { _tag: 'Failed', id }),
+    })
     if (json === null)
-      return open ? withToast(model, say(model).toasts.companyMissing, 'warn') : { model }
+      return open
+        ? withToast(failed(), say(model).toasts.companyMissing, 'warn')
+        : { model: failed() }
     const raw = parseJson(json)
-    const decoded = Option.match(raw, {
+    const file = Option.map(raw, (value) =>
+      typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? migrateSaveFile(value as Record<string, unknown>)
+        : value,
+    )
+    const decoded = Option.match(file, {
       onNone: () => Exit.fail('The save is not JSON.'),
       onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
     })
     // A save this version cannot read is set aside, not overwritten by the next autosave.
     if (Exit.isFailure(decoded))
-      return withToast(model, say(model).toasts.unreadableCompany, 'warn', [
+      return withToast(failed(), say(model).toasts.unreadableCompany, 'warn', [
         KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
       ])
-    return applyCompany(model, id, decoded.value, Option.getOrNull(raw), now, open)
+    return applyCompany(model, id, decoded.value, Option.getOrNull(file), now, open)
   },
 
   CompanyNameChanged: ({ name }) => ({
@@ -361,15 +406,21 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
     },
   }),
 
-  CompanyOpened: ({ id }) =>
-    fileOf(model.saves, id) === null
-      ? { model }
-      : model.loaded && model.saves.current === id
-        ? continued({ ...model, saveFocus: null, saveConfirm: { _tag: 'List' } })
-        : {
-            model: { ...model, saveFocus: null, saveConfirm: { _tag: 'List' } },
-            commands: [LoadCompany({ id, open: true })],
-          },
+  CompanyOpened: ({ id }) => {
+    if (fileOf(model.saves, id) === null) return { model }
+    const phase = model.companyPhase
+    if (isPlaying(phase) && phase.id === id)
+      return continued({ ...model, saveFocus: null, saveConfirm: { _tag: 'List' } })
+    return {
+      model: {
+        ...model,
+        companyPhase: step(phase, { _tag: 'Open', id }),
+        saveFocus: null,
+        saveConfirm: { _tag: 'List' },
+      },
+      commands: [LoadCompany({ id, open: true })],
+    }
+  },
 
   CompanyDeleteAsked: () =>
     model.saveFocus === null
@@ -395,7 +446,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
     const id = model.saveFocus
     if (id === null || fileOf(model.saves, id) === null) return { model }
     const saves = withoutFile(model.saves, id)
-    const current = model.saves.current === id
+    const current = model.saves.current === id || companyIdOf(model.companyPhase) === id
     const next: Model = {
       ...model,
       saves,
@@ -403,7 +454,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       saveConfirm: confirmDeleteStep(model.saveConfirm, { _tag: 'Confirmed' }),
       ...(current
         ? {
-            loaded: false,
+            companyPhase: step(model.companyPhase, { _tag: 'Deleted', id }),
             board: freshBoard(newGame(model.board.game.seed)),
             panel: 'none' as const,
           }

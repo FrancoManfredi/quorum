@@ -21,8 +21,10 @@ import {
 } from './catalog.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
+import { step as studyStep } from './study-machine.ts'
 import { has, researchReady } from './lookups.ts'
-import type { Game, InsightPools } from './state.ts'
+import { isFeatureLive } from './features.ts'
+import type { Game, InsightPools, Study } from './state.ts'
 
 /* ==========================================================================
    Studies (10 "Studies"): research runs one item at a time, and takes its
@@ -177,16 +179,25 @@ export type StudyStall =
  */
 export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
   if (!broadEnough(id, ledger)) return { _tag: 'Breadth', types: BREADTH[id] ?? 0 }
-  const left = 1 - (game.studies.find((item) => item.id === id)?.progress ?? 0)
+  const left =
+    1 -
+    (() => {
+      const phase = game.studies.find((item) => item.id === id)?.phase
+      return phase?._tag === 'Queued' || phase?._tag === 'Running' ? phase.progress : 0
+    })()
   for (const [pool, cost] of Object.entries(recipeOf(game, id)) as Array<[InsightPool, number]>) {
     if (ledger.insight[pool] > 0 || game.pools[pool] >= cost * left) continue
     const feature = Object.values(FEATURES).find(
-      (entry) => entry.unlocks?.kind === pool && !game.shipped.includes(entry.id),
+      (entry) => entry.unlocks?.kind === pool && !isFeatureLive(game, entry.id),
     )
     return { _tag: 'Pool', pool, feature: feature?.id ?? null }
   }
   return null
 }
+
+/** The share of a Study's base duration done, or 0 when it is not queued or running. */
+export const progressOf = (study: Study | undefined): number =>
+  study?.phase._tag === 'Queued' || study?.phase._tag === 'Running' ? study.phase.progress : 0
 
 /** Advances the running Study by some seconds, and completes it when done. */
 export const advanceStudies = (
@@ -196,9 +207,13 @@ export const advanceStudies = (
   events: Array<StepEvent>,
 ): Game => {
   const studies = game.studies.filter((entry) => !has(game, entry.id))
-  const running = studies[0]
-  if (!running || !researchReady(game, running.id) || !broadEnough(running.id, ledger))
+  const head = studies[0]
+  if (!head || !researchReady(game, head.id) || !broadEnough(head.id, ledger))
     return studies.length === game.studies.length ? game : { ...game, studies }
+  // The first Study starts when it reaches the front of the queue.
+  const started = studyStep(head.phase, { _tag: 'Started' })
+  const running = { ...head, phase: started }
+  const progress = started._tag === 'Queued' || started._tag === 'Running' ? started.progress : 0
   const speed = studySpeed(game)
   const share = (speed * seconds) / studySeconds(running.id)
   const recipe = Object.entries(recipeOf(game, running.id)) as Array<[InsightPool, number]>
@@ -211,9 +226,16 @@ export const advanceStudies = (
   paid = Math.max(0, Math.min(1, paid))
   const pools = { ...game.pools }
   for (const [pool, cost] of recipe) pools[pool] = Math.max(0, pools[pool] - cost * share * paid)
-  const progress = running.progress + share * paid
-  if (progress < 1 - 1e-9)
-    return { ...game, pools, studies: [{ ...running, progress }, ...studies.slice(1)] }
+  const reached = progress + share * paid
+  if (reached < 1 - 1e-9)
+    return {
+      ...game,
+      pools,
+      studies: [
+        { ...running, phase: studyStep(started, { _tag: 'Ticked', progress: reached }) },
+        ...studies.slice(1),
+      ],
+    }
   events.push(StepEvent.StudyCompleted({ research: running.id }))
   return {
     ...game,

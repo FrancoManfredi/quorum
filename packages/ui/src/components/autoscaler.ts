@@ -1,4 +1,5 @@
 import { Scaling } from 'lucide'
+import { bootingOf } from '@quorum/simulation/lookups'
 import { membersOf, pct, type ComponentView } from './shared.ts'
 
 export const autoscaler: ComponentView = {
@@ -7,7 +8,7 @@ export const autoscaler: ComponentView = {
   rows: ({ game, node }) => {
     const members = membersOf(game, node)
     const copies = members.reduce((total, member) => total + member.replicas, 0)
-    const pending = members.reduce((total, member) => total + member.pending, 0)
+    const pending = members.reduce((total, member) => total + bootingOf(member), 0)
     return [
       {
         glyph: 'copies',

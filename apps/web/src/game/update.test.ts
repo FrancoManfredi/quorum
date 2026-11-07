@@ -23,7 +23,7 @@ import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
 import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
 import { titleIsOpen } from './boot-machine.ts'
-import { boardChallenge, boardSandbox, type Mail, type Model } from './model.ts'
+import { boardChallenge, boardSandbox, hasCompany, type Mail, type Model } from './model.ts'
 import { TICK_MS, init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
@@ -660,7 +660,11 @@ describe('Exit and offline return', () => {
   test('an Exit pays Legacy, writes history, and the next company starts fresh with the record', () => {
     const game = { ...preseedGame(), stage: 4, users: 200_000, cash: 1e8 }
     const exited = send(
-      { ...inLab(), board: { ...inLab().board, game } },
+      {
+        ...inLab(),
+        companyPhase: { _tag: 'Open', id: 'c-one' },
+        board: { ...inLab().board, game },
+      },
       Message.ExitTaken({ exit: 'acquisition' }),
     )
     expect(exited.panel).toBe('exited')
@@ -684,12 +688,17 @@ describe('Exit and offline return', () => {
         now: 1_000_000 + 3_600_000,
       }),
     )
-    expect(loaded.loaded).toBe(true)
+    expect(hasCompany(loaded)).toBe(true)
     expect(loaded.saves.current).not.toBeNull()
     expect(loaded.board.game.time).toBeCloseTo(game.time + 3_600)
-    expect(loaded.board.away?.seconds).toBe(3_600)
+    expect(loaded.companyPhase).toMatchObject({ _tag: 'Away', report: { seconds: 3_600 } })
     expect(loaded.board.game.incident).toBeNull()
-    expect(send(loaded, Message.Continued()).panel).toBe('away')
+    const away = send(loaded, Message.Continued())
+    expect(away.panel).toBe('away')
+    // Closing the report puts the Company back on its board.
+    const closed = send(away, Message.AwayClosed())
+    expect(closed.panel).toBe('none')
+    expect(closed.companyPhase).toEqual({ _tag: 'Open', id: away.saves.current })
   }, 30_000)
 
   test('the Exit survey opens after an Exit and sends the row it describes', () => {
@@ -1267,8 +1276,8 @@ test('a queued Study can run now, keeping the running one’s progress, and be c
       game: {
         ...lab.board.game,
         studies: [
-          { id: first.id, progress: 0.25 },
-          { id: second.id, progress: 0 },
+          { id: first.id, phase: { _tag: 'Running', progress: 0.25 } },
+          { id: second.id, phase: { _tag: 'Queued', progress: 0 } },
         ],
       },
     },
@@ -1278,8 +1287,8 @@ test('a queued Study can run now, keeping the running one’s progress, and be c
     Message.ResearchChanged({ message: ResearchMessage.StudyPrioritized({ id: second.id }) }),
   ).model
   expect(now.board.game.studies).toEqual([
-    { id: second.id, progress: 0 },
-    { id: first.id, progress: 0.25 },
+    { id: second.id, phase: { _tag: 'Queued', progress: 0 } },
+    { id: first.id, phase: { _tag: 'Running', progress: 0.25 } },
   ])
   const back = update(
     now,
@@ -1292,7 +1301,9 @@ test('a queued Study can run now, keeping the running one’s progress, and be c
     back,
     Message.ResearchChanged({ message: ResearchMessage.StudyCancelled({ id: first.id }) }),
   ).model
-  expect(cancelled.board.game.studies).toEqual([{ id: second.id, progress: 0 }])
+  expect(cancelled.board.game.studies).toEqual([
+    { id: second.id, phase: { _tag: 'Queued', progress: 0 } },
+  ])
 })
 
 test('dragging a Study row reorders the queue and keeps its progress', () => {
@@ -1308,8 +1319,8 @@ test('dragging a Study row reorders the queue and keeps its progress', () => {
       game: {
         ...lab.board.game,
         studies: [
-          { id: first.id, progress: 0.25 },
-          { id: second.id, progress: 0 },
+          { id: first.id, phase: { _tag: 'Running', progress: 0.25 } },
+          { id: second.id, phase: { _tag: 'Queued', progress: 0 } },
         ],
       },
     },
@@ -1340,8 +1351,8 @@ test('dragging a Study row reorders the queue and keeps its progress', () => {
   )
   const dropped = send(over, DragAndDrop.Message.ReleasedPointer())
   expect(dropped.board.game.studies).toEqual([
-    { id: second.id, progress: 0 },
-    { id: first.id, progress: 0.25 },
+    { id: second.id, phase: { _tag: 'Queued', progress: 0 } },
+    { id: first.id, phase: { _tag: 'Running', progress: 0.25 } },
   ])
 })
 
@@ -1363,7 +1374,7 @@ test('a save this version cannot read is kept aside instead of dropped', () => {
   const game = newGame()
   const saved = JSON.stringify({ ...game, wall: 0 })
   const loaded = update(initialModel(), Message.SavesLoaded({ index: null, legacy: saved, now: 0 }))
-  expect(loaded.model.loaded).toBe(true)
+  expect(hasCompany(loaded.model)).toBe(true)
   expect(loaded.model.saves.current).not.toBeNull()
   expect(loaded.model.board.game.nodes).toEqual(game.nodes)
 
@@ -1377,7 +1388,7 @@ test('a save this version cannot read is kept aside instead of dropped', () => {
       initialModel(),
       Message.SavesLoaded({ index: null, legacy: json, now: 0 }),
     )
-    expect(broken.model.loaded).toBe(false)
+    expect(broken.model.companyPhase).toEqual({ _tag: 'None' })
     expect(broken.model.toast?.tone).toBe('warn')
     expect(broken.commands).toEqual(
       expect.arrayContaining([
@@ -1402,7 +1413,7 @@ test('a save travels as one line of text, and only a save of this build opens it
   })
   const playable: Model = {
     ...start,
-    loaded: true,
+    companyPhase: { _tag: 'Open', id: 'c' },
     saves: { ...withFile(EMPTY_SAVE_INDEX, file), current: 'c' },
   }
   const exported = update(playable, Message.SaveExported())
@@ -1417,7 +1428,7 @@ test('a save travels as one line of text, and only a save of this build opens it
 
   // Pasting it back opens the same Company, on a fresh board to work on.
   const opened = update(playable, Message.SaveImported({ text }))
-  expect(opened.model.loaded).toBe(true)
+  expect(hasCompany(opened.model)).toBe(true)
   expect(opened.model.toast?.tone).toBe('ok')
   expect(opened.model.board.game.cash).toBe(playable.board.game.cash)
   expect(opened.model.board.game.nodes).toEqual(playable.board.game.nodes)
@@ -1529,7 +1540,7 @@ test('a stalled running Study raises a teammate alert that opens Research and cl
       game: {
         ...preseedGame(),
         nextIncidentAt: Number.MAX_SAFE_INTEGER,
-        studies: [{ id: 'auth-provider', progress: 0 }],
+        studies: [{ id: 'auth-provider', phase: { _tag: 'Queued', progress: 0 } }],
       },
     },
   }
@@ -1854,7 +1865,7 @@ describe('Mail actions (GDD 18)', () => {
       ref: 'CVE-2026-0451',
       cost: 4,
       spent: 0,
-      blockedBy: null,
+      block: { _tag: 'Free' },
       answered: null,
       due: game.time + 180,
       target: 'server',
@@ -1907,7 +1918,7 @@ describe('Mail actions (GDD 18)', () => {
         ref: 'CVE-2026-0451',
         cost: 4,
         spent: 0,
-        blockedBy: null,
+        block: { _tag: 'Free' },
         answered: null,
         due: game.time + 180,
         target: 'server',
@@ -1949,7 +1960,7 @@ describe('Feature Flags (GDD 05, 08)', () => {
             },
           ],
           researched: [...game.researched, 'ci' as const, 'feature-flags' as const],
-          shipped: ['password-login' as const],
+          features: { 'password-login': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
         },
       },
     }
@@ -1961,7 +1972,12 @@ describe('Feature Flags (GDD 05, 08)', () => {
       model,
       Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 0.05 }),
     ).model
-    expect(rolled.board.game.services[0]?.rollouts['password-login']).toBe(0.05)
+    expect(rolled.board.game.features['password-login']).toEqual({
+      _tag: 'Live',
+      rollout: 0.05,
+      adoption: 1,
+      lift: null,
+    })
     expect(rolled.board.change).toMatchObject({
       _tag: 'Settling',
       change: { label: expect.stringContaining('5%') },
@@ -1970,7 +1986,12 @@ describe('Feature Flags (GDD 05, 08)', () => {
       rolled,
       Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 1 }),
     ).model
-    expect(all.board.game.services[0]?.rollouts['password-login']).toBe(undefined)
+    expect(all.board.game.features['password-login']).toEqual({
+      _tag: 'Live',
+      rollout: 1,
+      adoption: 1,
+      lift: null,
+    })
   })
 
   test('a share the design does not offer is refused, and the game is untouched', () => {

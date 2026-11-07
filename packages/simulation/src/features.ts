@@ -20,9 +20,17 @@ import {
   type Tuning,
 } from './catalog.ts'
 import { ventureOf } from './founding.ts'
+import {
+  LiftSample,
+  adoptionOf,
+  isLive,
+  liftOf as liftSampleOf,
+  rolloutOf as rolloutShareOf,
+  step,
+} from './feature-machine.ts'
 import { eraOf, has, isDown } from './lookups.ts'
 import { nextRandom } from './random.ts'
-import type { Game, LiftSample } from './state.ts'
+import type { Game } from './state.ts'
 
 /* ==========================================================================
    What shipped Features do to users, money, and load (08 "Features"). A
@@ -32,25 +40,56 @@ import type { Game, LiftSample } from './state.ts'
 /** The rate the experiment samples at when the Design runs no Analytics.  */
 const LIFT_SAMPLE_FLOOR = 0.01
 
+/* ---------- where each Feature stands (08 "Features") ---------- */
+
+/** Every Feature the Company built, in the order the save keeps them. */
+const idsOf = (game: Game): ReadonlyArray<FeatureId> =>
+  Object.keys(game.features).filter((id) =>
+    (FEATURE_IDS as ReadonlyArray<string>).includes(id),
+  ) as ReadonlyArray<FeatureId>
+
+/** Whether the Company built it, whether it is live or still waiting for a deploy. */
+export const isBuilt = (game: Game, id: FeatureId): boolean => game.features[id] !== undefined
+
+/** Whether a deploy shipped it, so its effects reach users. */
+export const isFeatureLive = (game: Game, id: FeatureId): boolean => {
+  const phase = game.features[id]
+  return phase !== undefined && isLive(phase)
+}
+
+/** The live Features, in the order their deploys shipped them. */
+export const liveFeatures = (game: Game): ReadonlyArray<FeatureId> =>
+  idsOf(game).filter((id) => isFeatureLive(game, id))
+
+/** The Features built and waiting for the next deploy, in the order they were built. */
+export const awaitingFeatures = (game: Game): ReadonlyArray<FeatureId> =>
+  idsOf(game).filter((id) => !isFeatureLive(game, id))
+
+/** The share of a Feature's effect its users have adopted: 0 until a deploy ships it. */
+export const adoptionShareOf = (game: Game, id: FeatureId): number => {
+  const phase = game.features[id]
+  return phase === undefined ? 0 : adoptionOf(phase)
+}
+
 /**
  * The share of users a Feature reaches: its flag's rollout, or every user without a live Feature
  * Flags Node (05 "Feature Flags"). The same rule `team.ts` reads for a bad deploy's blast radius.
  */
-const rolloutOf = (game: Game, feature: string): number => {
+const rolloutOf = (game: Game, feature: FeatureId): number => {
   const flags = game.nodes.some((node) => node.type === 'ff' && !isDown(node))
-  if (!flags) return ROLLOUT_ALL
-  return Math.max(0, Math.min(ROLLOUT_ALL, game.services[0]?.rollouts[feature] ?? ROLLOUT_ALL))
+  const phase = game.features[feature]
+  if (!flags || phase === undefined) return ROLLOUT_ALL
+  return Math.max(0, Math.min(ROLLOUT_ALL, rolloutShareOf(phase)))
 }
 
 const shipped = (game: Game): ReadonlyArray<FeatureDef> =>
-  game.sandbox ? [] : game.shipped.map((id) => FEATURES[id])
+  game.sandbox ? [] : liveFeatures(game).map((id) => FEATURES[id])
 
 /**
  * The share of a Feature's effect users have now (08 "Adoption"): its rollout times its adoption.
- * An old save names no adoption, so its Features are fully adopted and play as they did.
  */
 export const exposureOf = (game: Game, id: FeatureId): number =>
-  rolloutOf(game, id) * (game.adoption[id] ?? 1) * historyOf(game, id)
+  rolloutOf(game, id) * adoptionShareOf(game, id) * historyOf(game, id)
 
 /**
  * The share of a Feature's effect that its history gives (07 \"Data volume\"): a Feature that reads
@@ -123,7 +162,7 @@ export const mixOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const shares: Partial<Record<RequestKind, number>> = { ...era }
   for (const id of FEATURE_IDS) {
     const unlocks = FEATURES[id].unlocks
-    if (unlocks?.gated && !game.shipped.includes(id)) delete shares[unlocks.kind]
+    if (unlocks?.gated && !isFeatureLive(game, id)) delete shares[unlocks.kind]
   }
   const total = Object.values(shares).reduce((sum, share) => sum + (share ?? 0), 0)
   for (const kind of Object.keys(shares) as Array<RequestKind>)
@@ -228,21 +267,26 @@ export const adoptionSeconds = (tuning: Tuning = LIVE_TUNING): number =>
 
 /**
  * Each live Feature's adoption approaches 1 as calendar time passes:
- * `adoption += (1 − adoption) × Δt / τ`, with τ 7 calendar days (08 "Adoption"). A Feature not
- * named in the save is fully adopted, so an old save plays as it did.
+ * `adoption += (1 − adoption) × Δt / τ`, with τ 7 calendar days (08 "Adoption").
  */
 export const advanceAdoption = (
   game: Game,
   seconds: number,
   tuning: Tuning = LIVE_TUNING,
 ): Game => {
-  if (game.sandbox || game.shipped.length === 0) return game
-  if (Object.keys(game.adoption).length === 0) return game
+  const live = liveFeatures(game)
+  if (game.sandbox || live.length === 0) return game
   const share = Math.min(1, seconds / adoptionSeconds(tuning))
-  const adoption = { ...game.adoption }
-  for (const [id, value] of Object.entries(game.adoption))
-    adoption[id] = value + (1 - value) * share
-  return { ...game, adoption }
+  const features = { ...game.features }
+  for (const id of live) {
+    const phase = features[id]
+    if (phase === undefined || !isLive(phase)) continue
+    features[id] = step(phase, {
+      _tag: 'Adopted',
+      share: phase.adoption + (1 - phase.adoption) * share,
+    })
+  }
+  return { ...game, features }
 }
 
 /* ---------- measured lift (08 "Measured lift") ---------- */
@@ -260,7 +304,7 @@ export const liftSampleRate = (game: Game): number => {
 
 /** Whether A/B testing can measure a Feature now: the research, a live Feature, and a holdout. */
 export const measurable = (game: Game, id: FeatureId): boolean => {
-  if (!has(game, 'ab-testing') || !game.shipped.includes(id)) return false
+  if (!has(game, 'ab-testing') || !isFeatureLive(game, id)) return false
   const rollout = rolloutOf(game, id)
   return rollout >= LIFT_MIN_ROLLOUT && rollout <= LIFT_MAX_ROLLOUT
 }
@@ -300,7 +344,8 @@ export const liftReading = (game: Game, id: FeatureId): LiftReading | null => {
   if (!measurable(game, id)) return null
   const lift = liftOf(game, id)
   if (lift === 0) return null
-  const sample: LiftSample | undefined = game.lifts[id]
+  const phase = game.features[id]
+  const sample: LiftSample | null = phase === undefined ? null : liftSampleOf(phase)
   const exposed = Math.max(0, sample?.exposed ?? 0)
   const holdout = Math.max(0, sample?.holdout ?? 0)
   if (exposed <= 0 || holdout <= 0)
@@ -314,22 +359,29 @@ export const liftReading = (game: Game, id: FeatureId): LiftReading | null => {
 /** Counts sampled requests from the exposed users and the holdout of each measurable Feature. */
 export const advanceLifts = (game: Game, demand: number, seconds: number): Game => {
   if (game.sandbox || demand <= 0) return game
-  const observable = game.shipped.filter((id) => measurable(game, id) && liftOf(game, id) !== 0)
+  const observable = liveFeatures(game).filter(
+    (id) => measurable(game, id) && liftOf(game, id) !== 0,
+  )
   if (observable.length === 0) return game
   const sampled = demand * liftSampleRate(game) * seconds
-  const lifts = { ...game.lifts }
+  const features = { ...game.features }
   for (const id of observable) {
+    const phase = features[id]
+    if (phase === undefined || !isLive(phase)) continue
     const rollout = rolloutOf(game, id)
-    const prior = game.lifts[id]
+    const prior = phase.lift
     // A new rollout step starts its count again: the two groups changed.
     const base = prior && prior.step === rollout ? prior : { exposed: 0, holdout: 0, step: rollout }
-    lifts[id] = {
-      step: rollout,
-      exposed: base.exposed + sampled * rollout,
-      holdout: base.holdout + sampled * (1 - rollout),
-    }
+    features[id] = step(phase, {
+      _tag: 'Sampled',
+      lift: {
+        step: rollout,
+        exposed: base.exposed + sampled * rollout,
+        holdout: base.holdout + sampled * (1 - rollout),
+      },
+    })
   }
-  return { ...game, lifts }
+  return { ...game, features }
 }
 
 /** Adoption and the A/B counts, both driven by the calendar and the traffic a Step moves. */

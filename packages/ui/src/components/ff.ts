@@ -1,7 +1,7 @@
 import { Flag } from 'lucide'
 import { money } from '../game/format.ts'
 import { burnOf } from '@quorum/simulation/lookups'
-import { badDeployShare } from '@quorum/simulation/team'
+import { badDeployShare, rolloutOf } from '@quorum/simulation/team'
 import { pct, type ComponentView } from './shared.ts'
 
 export const ff: ComponentView = {
@@ -10,7 +10,7 @@ export const ff: ComponentView = {
   rows: ({ game, node }) => {
     const service = game.services[0]
     const batch = service?.lastDeploy ?? []
-    const rolled = batch.filter((feature) => (service?.rollouts[feature] ?? 1) < 1)
+    const rolled = batch.filter((feature) => rolloutOf(game, feature) < 1)
     return [
       {
         glyph: 'policy',

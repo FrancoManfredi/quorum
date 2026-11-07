@@ -27,7 +27,13 @@ import { BY_RESEARCH } from '@quorum/simulation/discovery'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { has, researchReady } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
-import { limitingPool, studySeconds, studySpeed, studyStall } from '@quorum/simulation/studies'
+import {
+  limitingPool,
+  studySeconds,
+  studySpeed,
+  studyStall,
+  progressOf as studyProgressOf,
+} from '@quorum/simulation/studies'
 import { compact } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { stallReasonIn } from '@/i18n/format.ts'
@@ -215,8 +221,14 @@ const face = (
 }
 
 /** A card node. Saving up: the card is the progress bar, a coloured copy wiping in from the left. */
-const card = (game: Game, entry: ResearchDef, state: State, h: HtmlBuilder<Message>) => {
-  const share = Math.min(1, game.studies.find((item) => item.id === entry.id)?.progress ?? 0)
+const card = (
+  game: Game,
+  entry: ResearchDef,
+  state: State,
+  large: boolean,
+  h: HtmlBuilder<Message>,
+) => {
+  const share = Math.min(1, studyProgressOf(game.studies.find((item) => item.id === entry.id)))
   const color = colorOf(LOOKS[entry.id])
   return state === 'saving'
     ? [
@@ -285,7 +297,7 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
         ),
       ),
     ],
-    card(game, entry, state, h),
+    card(game, entry, state, large, h),
   )
 }
 
@@ -734,7 +746,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                       ],
                       [
                         stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
-                        `${Math.floor(Math.min(1, item.progress) * 100)}%`,
+                        `${Math.floor(Math.min(1, studyProgressOf(item)) * 100)}%`,
                       ],
                     ),
                   ],
@@ -823,7 +835,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
             ? t.research.needs(missing.map((id) => t.catalog.research[id].name).join(', '))
             : queued > 0
               ? t.research.studyNow
-              : t.research.studying(Math.floor((game.studies[0]?.progress ?? 0) * 100))
+              : t.research.studying(Math.floor(studyProgressOf(game.studies[0]) * 100))
   const follow = followUps(entry.id)
   return h.aside(
     [

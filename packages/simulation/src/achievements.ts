@@ -283,7 +283,12 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
     const scaled = after.nodes.some((node) => {
       if (node.type !== 'server' || RUNTIMES[node.runtime].language !== 'java') return false
       const was = before.nodes.find((entry) => entry.id === node.id)
-      return was !== undefined && (node.replicas > was.replicas || node.pending > was.pending)
+      return (
+        was !== undefined &&
+        (node.replicas > was.replicas ||
+          (node.scaler._tag === 'Scaling' ? node.scaler.pending : 0) >
+            (was.scaler._tag === 'Scaling' ? was.scaler.pending : 0))
+      )
     })
     return scaled && ledger.p99 <= prior
   },

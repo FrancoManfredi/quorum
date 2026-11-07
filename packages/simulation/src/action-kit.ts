@@ -1,6 +1,7 @@
 import { Data, Result } from 'effect'
 import type { IncidentId } from './catalog.ts'
 import type { Game, GameNode, Incident } from './state.ts'
+import { step as incidentStep } from './incident-machine.ts'
 
 /* ==========================================================================
    What every action shares: the Refusal an action can end in, and the small
@@ -68,7 +69,7 @@ export const spend = (
  */
 export const answering = (game: Game, incident: Incident): Incident => ({
   ...incident,
-  ackAt: incident.ackAt ?? game.time,
+  phase: incidentStep(incident.phase, { _tag: 'Acked', at: game.time }),
 })
 
 /** Ends an incident that one action ends. */

@@ -2,6 +2,7 @@ import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { BAD_DEPLOY_ERRORS, ROLLOUT_STEPS } from '@quorum/simulation/catalog'
 import { badDeployShareOf, blastService, rolloutOf } from '@quorum/simulation/team'
+import { liveFeatures } from '@quorum/simulation/features'
 import { burnOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import { money } from '@quorum/ui/game/format'
@@ -23,7 +24,7 @@ const flags = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
 
   const service = blastService(game)
   const batch = service.lastDeploy
-  const listed = batch.length > 0 ? batch : game.shipped
+  const listed = batch.length > 0 ? batch : liveFeatures(game)
   return [
     section(
       t.inspectorFf.rollout,

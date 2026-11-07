@@ -26,10 +26,11 @@ import {
   type ResearchId,
 } from '@quorum/simulation/catalog'
 import { churnOf, type RegionChurn } from '@quorum/simulation/churn'
+import { ackAtOf, signalAtOf } from '@quorum/simulation/incident-machine'
 import { ERROR_CAUSES } from '@quorum/simulation/distribution'
 import { dilutionOf, grantOf } from '@quorum/simulation/founding'
 import type { KindLedger, Ledger, NodeLedger } from '@quorum/simulation/ledger'
-import { has } from '@quorum/simulation/lookups'
+import { bootingOf, has } from '@quorum/simulation/lookups'
 import { evictionShareOf } from '@quorum/simulation/rules'
 import { regional, regionUsers } from '@quorum/simulation/regions'
 import { RUNWAY_MONTH, runwayOf } from '@quorum/simulation/runway'
@@ -349,13 +350,15 @@ const minutesOrUnknown = (t: Messages, seconds: number | null | undefined): stri
 
 /** Seconds from an Incident's start to its first signal, or null before it signals. */
 const mttdOf = (incident: NonNullable<Game['incident']>): number | null =>
-  incident.signalAt === null ? null : Math.max(0, incident.signalAt - incident.startedAt)
+  signalAtOf(incident.phase) === null
+    ? null
+    : Math.max(0, (signalAtOf(incident.phase) ?? 0) - incident.startedAt)
 
 /** Seconds from that signal to the acknowledgement, or null before anyone answers. */
 const mttaOf = (incident: NonNullable<Game['incident']>): number | null =>
-  incident.ackAt === null || incident.signalAt === null
+  ackAtOf(incident.phase) === null || signalAtOf(incident.phase) === null
     ? null
-    : Math.max(0, incident.ackAt - incident.signalAt)
+    : Math.max(0, (ackAtOf(incident.phase) ?? 0) - (signalAtOf(incident.phase) ?? 0))
 
 /** What an Incident is hitting: a Node, a zone, a region, or every region. */
 const incidentTarget = (
@@ -2360,8 +2363,8 @@ const incidentTimeline = (
         incident.startedAt,
         now,
         incident.severity,
-        incident.signalAt,
-        incident.ackAt,
+        signalAtOf(incident.phase),
+        ackAtOf(incident.phase),
         true,
       ),
     )
@@ -3151,8 +3154,8 @@ const appServers = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
             { text: names.get(node.id) ?? t.catalog.components[node.type].name },
             {
               text:
-                node.pending > 0
-                  ? t.dashboard.copiesBooting(node.replicas, node.pending)
+                bootingOf(node) > 0
+                  ? t.dashboard.copiesBooting(node.replicas, bootingOf(node))
                   : String(node.replicas),
             },
             slots === null

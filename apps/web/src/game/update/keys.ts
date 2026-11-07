@@ -10,6 +10,7 @@ import {
   stampedPlaybook,
 } from '../model.ts'
 import { step as boardStep } from '../board-machine.ts'
+import { isExited } from '../company-machine.ts'
 import { NUDGE } from './canvas.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { clockIn } from './shell.ts'
@@ -68,7 +69,7 @@ export const keysHandlers = (
     const selected = model.board.selected
     switch (key) {
       case 'Escape': {
-        if (model.board.exited) return leaveExited(model, 'found')
+        if (isExited(model.companyPhase)) return leaveExited(model, 'found')
         if (confirmSellOf(model.board))
           return {
             model: {

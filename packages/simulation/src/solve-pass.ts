@@ -391,7 +391,7 @@ export const splitFor = (inputs: Inputs, node: GameNode, kind: Kind): Split => {
   const { game, graph } = inputs
   // A drained Node is out of rotation at once: the router plans the drain, so it waits for no
   // health check. With nowhere left to send the request, it is stranded (11 "Drain a Node").
-  const takers = takersOf(graph, node, kind).filter((edge) => !edge.to.draining)
+  const takers = takersOf(graph, node, kind).filter((edge) => edge.to.service._tag !== 'Draining')
   if (takers.length === 0) return []
   const even = (live: ReadonlyArray<Edge>) => live.map((edge) => [edge, 1 / live.length] as const)
   if (node.type === 'dns') {

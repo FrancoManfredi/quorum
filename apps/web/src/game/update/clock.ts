@@ -565,8 +565,9 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
     }
     const shut = next.board.game.nodes.filter(
       (node) =>
-        node.shut &&
-        !(model.board.game.nodes.find((before) => before.id === node.id)?.shut ?? false),
+        node.service._tag === 'Shut' &&
+        (model.board.game.nodes.find((before) => before.id === node.id)?.service._tag ??
+          'InService') !== 'Shut',
     )
     if (shut.length > 0) {
       logs.push(line(game.time, 'NodesShutDown', { nodes: shut.map((node) => node.id) }))

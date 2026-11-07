@@ -2,7 +2,7 @@
 
 A state machine makes a flow predictable: its states are a closed set, its events are a closed set,
 and every event that does not apply leaves the state unchanged. This page lists every flow that has
-one, the properties its test checks, and how to add the next one.
+one, how the state is stored, and how to add the next one.
 
 ## When a flow gets a machine
 
@@ -16,60 +16,98 @@ A number the solver integrates is not a phase. `credits`, `leak`, `depth`, `repl
 inside `Warming` stay payload. A selection, such as the open panel or the chosen tool, is a value,
 not a flow. A progress counter with one transition is a work item, not a state machine.
 
+## The machine library
+
+The flows below use `@typeonce/effect-machine`, except the two lifecycle flows that keep their tagged unions. A machine is a root with one active child. Its states and
+events are Effect `Schema` tagged unions, so a phase that needs a field cannot be built without it.
+
+The app uses the library's pure planners, not its runtime. `Machine.plan` and `Machine.planInitial`
+run through `Effect.runSync` in `planState` (`apps/web/src/game/machine.ts` and
+`packages/simulation/src/machine.ts`). That keeps a Foldkit update and a Simulation Step
+synchronous, with no service layer and no fiber.
+
+The stored value is the tagged state, not `Machine.Snapshot`. A snapshot is an experimental
+debugging shape with completion and history metadata, and a `Game` is saved, hashed, and replayed.
+`planState` rebuilds the small root snapshot from the stored tag on each plan.
+
 ## The machines
 
-| Flow            | Source                                   | States                                        | Persistence         |
-| --------------- | ---------------------------------------- | --------------------------------------------- | ------------------- |
-| Boot            | `apps/web/src/game/boot-machine.ts`      | `Shut`, `Clocking`, `Ready`, `Connecting`     | Session only        |
-| Board session   | `apps/web/src/game/session-machine.ts`   | `Company`, `Sandbox`, `Challenge`             | Session only        |
-| Challenge run   | `apps/web/src/game/challenge-machine.ts` | `Building`, `Running`, `Result`               | Session only        |
-| Node lifecycle  | `packages/simulation/src/life.ts`        | `Running`, `Warming`, `Restarting`, `Stopped` | `GameNode.life`     |
-| Stack migration | `packages/simulation/src/migration.ts`   | `Building`, `Ready`, `Finishing`              | `Service.migration` |
+| Flow              | Source                                            | States                                                          | Stored in                                             |
+| ----------------- | ------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
+| Boot              | `apps/web/src/game/boot-machine.ts`               | `Shut`, `Clocking`, `Ready`, `Connecting`                       | `Model.boot`                                          |
+| Board session     | `apps/web/src/game/session-machine.ts`            | `Company`, `Sandbox`, `Challenge`                               | `Board.session`                                       |
+| Challenge run     | `apps/web/src/game/challenge-machine.ts`          | `Building`, `Running`, `Result`                                 | `Board.session.run`                                   |
+| Company           | `apps/web/src/game/company-machine.ts`            | `None`, `Opening`, `Open`, `Away`, `Exited`                     | `Model.companyPhase`                                  |
+| Clock             | `apps/web/src/game/clock-machine.ts`              | `Running`, `PausedByPlayer`, `PausedByBlur`, `PausedByIncident` | `Board.clock.mode`                                    |
+| Board interaction | `apps/web/src/game/board-machine.ts`              | `Idle`, `Placing`, `Stamping`, `Linking`, `ConfirmingSell`      | `Board.flow`                                          |
+| Tradeoff          | `apps/web/src/game/tradeoff-machine.ts`           | `Closed`, `Hovering`, `Pinned`                                  | `Board.tradeoff`                                      |
+| Change            | `apps/web/src/game/change-machine.ts`             | `Idle`, `Settling`, `Settled`, `Lasting`                        | `Board.change`                                        |
+| Hold              | `apps/web/src/game/hold-machine.ts`               | `Idle`, `Held`                                                  | `Board.hold`                                          |
+| Delete confirm    | `apps/web/src/game/confirm-delete-machine.ts`     | `List`, `Confirming`                                            | `Model.saveConfirm`                                   |
+| Disclosure        | `apps/web/src/game/disclosure-machine.ts`         | `Idle`, `Queued`, `Cueing`                                      | `Board.disclosure`                                    |
+| Mail              | `apps/web/src/game/mail-machine.ts`               | `Active`, `Answered`, `Resolved`                                | `Mail.phase`                                          |
+| Node lifecycle    | `packages/simulation/src/life.ts`                 | `Running`, `Warming`, `Restarting`, `Stopped`                   | `GameNode.life`                                       |
+| Stack migration   | `packages/simulation/src/migration.ts`            | `Building`, `Ready`, `Finishing`                                | `Service.migration`                                   |
+| Bridge            | `packages/simulation/src/bridge-machine.ts`       | `None`, `Offered`, `Taken`                                      | `Game.bridge`                                         |
+| Drill             | `packages/simulation/src/drill-machine.ts`        | `Running`, `Recovered`, `Failed`                                | `Game.drill`                                          |
+| Quarter           | `packages/simulation/src/quarter-machine.ts`      | `AwaitingGuidance`, `Running`                                   | `Game.quarter`                                        |
+| Feature           | `packages/simulation/src/feature-machine.ts`      | `Awaiting`, `Live`                                              | `Game.features[id]`                                   |
+| Hire              | `packages/simulation/src/hire-machine.ts`         | `Pending`, `Joined`                                             | `Hire.phase`                                          |
+| Breaker           | `packages/simulation/src/breaker-machine.ts`      | `Closed`, `Open`                                                | `GameLink.fuse`                                       |
+| Autoscaler        | `packages/simulation/src/autoscaler-machine.ts`   | `Steady`, `Scaling`                                             | `GameNode.scaler`                                     |
+| Era round         | `packages/simulation/src/era-round-machine.ts`    | `Waiting`, `Offered`, `Raised`, `Declined`                      | `Game.round`                                          |
+| Data move         | `packages/simulation/src/data-move-machine.ts`    | `Building`, `Copying`, `Landed`                                 | `Service.reshard.phase`, `Service.engineChange.phase` |
+| Study             | `packages/simulation/src/study-machine.ts`        | `Queued`, `Running`, `Completed`                                | `Study.phase`                                         |
+| Node service      | `packages/simulation/src/node-service-machine.ts` | `InService`, `Draining`, `Shut`                                 | `GameNode.service`                                    |
+| Work item         | `packages/simulation/src/work-item-machine.ts`    | `Free`, `Blocked`, `Approved`                                   | `WorkItem.block`                                      |
+| Incident          | `packages/simulation/src/incident-machine.ts`     | `Quiet`, `Responded`, `Announced`, `Acknowledged`               | `Game.incident.phase`                                 |
+| Mirror            | `packages/simulation/src/mirror-machine.ts`       | `Applying`, `InSync`, `Drifted`                                 | `Mirror.sync`                                         |
 
-The web flows use `foldkit/experimental/machine`: a state union, an event union, and a transition
-table. A transition handler returns the next state and, when it needs one, a Command. The simulation
-flows cannot import Foldkit, so they keep a tagged union plus total constructors in the same module:
-`warming`, `restarting`, `stopped`, `trancheBuilt`, `shifted`, `fixed`.
+`Node lifecycle` and `Stack migration` are tagged unions with total constructors in their own
+modules. They predate the machine library and already have a closed state set, so they keep their
+shape.
+
+## Saving and migration
+
+The tagged state is what the save stores. The live schemas describe that state only; there is no
+stored schema with a `decodeTo` transform.
+
+`packages/simulation/src/save-migration.ts` upgrades the raw JSON before the live `Game` schema
+decodes it. It turns the old flags and dates into the tagged phases: `down` and `warm` into `life`,
+`pending` and `readyIn` into `scaler`, `shut` and `draining` into `service`, `blockedBy` into
+`block`, `signalAt` and `ackAt` into `phase`, `readyAt` and `driftAt` into `sync`, and the old
+`shipped`, `awaiting`, `adoption`, and `lifts` maps into `features`. `apps/web/src/game/save-file.ts`
+does the same for the Mail in a saved Inbox. A save from an older build opens through the migration,
+and the next write stores the tagged shape.
+
+A field that only the solver integrates stays a number inside its phase. The phase is the only
+place a caller can read it, so a phase that does not have the field cannot answer for it.
+
+## Adding a flow
+
+1. Put the state and event unions in `apps/web/src/game/<flow>-machine.ts` or
+   `packages/simulation/src/<flow>-machine.ts`.
+2. Define the machine with `Machine.make({ root, events }).handle({ initial, states })`.
+3. Export a `step` wrapper that returns the stored state when the event does not apply.
+4. Store the tagged state in the Model or the Game. Route every write through `step`; do not write
+   the phase from anywhere else.
+5. Read through selectors, never through a payload that another phase may not have.
+6. If the encoded save changes, add the old shape to `save-migration.ts`. Do not add a stored schema
+   and a `decodeTo` transform.
+7. Cover the behaviour through the integration tests that use the flow. A test that only steps the
+   machine duplicates the table and does not protect a caller.
 
 ## Properties each machine holds
 
-| Property                                   | Web                                          | Simulation                               |
-| ------------------------------------------ | -------------------------------------------- | ---------------------------------------- |
-| Closed state set                           | `Schema.Union` of tagged structs             | `Schema.Union` of tagged structs         |
-| Closed event set                           | `Message` union per flow                     | exported event constructors              |
-| An event outside the table changes nothing | `step` returns `Ignored` with the same state | each constructor returns its input       |
-| Every declared state is reachable          | `unreachableStates()` is empty               | transition test visits each state        |
-| No edge can never fire                     | `deadTransitions()` is empty                 | no branch is unreachable by construction |
-| One writer per state                       | the table                                    | the module's constructors                |
-| Deterministic                              | no clock, no randomness                      | no clock, no randomness                  |
+| Property                                   | How it holds                             |
+| ------------------------------------------ | ---------------------------------------- |
+| Closed state set                           | `Schema.Union` of tagged structs         |
+| Closed event set                           | the machine's `events` schema            |
+| An event outside the table changes nothing | `planState` returns the input state      |
+| Every transition keeps its payload         | each target declares the fields it needs |
+| One writer per state                       | the flow's `step` wrapper                |
+| Deterministic                              | no clock, no randomness, no runtime      |
 
-Each test asserts the first five. `machine.toMermaid()` renders a web flow, and
-`docs/adr/0011-state-machines-are-for-flows.md` records why a flow uses a machine and a number does
-not.
-
-## Adding a web flow
-
-1. Put the state and event unions in `apps/web/src/game/<flow>-machine.ts`.
-2. Define the table with `define`, `to`, `when`, and `otherwise`.
-3. Export a `step` wrapper that returns `machine.step(state, event).state`, so a stale or repeated
-   event is a no-op.
-4. Route the flow's Messages through it in the flow's handler module under `apps/web/src/game/update`; compute payloads and Commands first.
-5. Test the legal edges, the ignored events, and the two static analyses.
-
-## Adding a simulation flow
-
-1. Add the tagged union to `state.ts`, or to the module that owns the flow.
-2. Keep a stored schema for old saves and a `decodeTo` transform that derives the state, as
-   `GameNode` and `MigrationState` do.
-3. Put every transition in the flow's module as a total function. Do not write the fields from
-   anywhere else.
-4. Read through selectors (`isDown`, `stepOf`, `isReady`), never through the payload of a phase that
-   may not have it.
-5. If the encoded save changes, the version follows from the commit, with nothing to bump; if only the runtime shape
-   changes and the encoded Game is identical, keep the version.
-
-## Adding a state chart
-
-A web flow renders itself: `challengeMachine.toMermaid()`. A simulation flow's transitions live in
-its constructors, so the chart is the constructor list plus the transition test. Keep both in sync
-with the table above.
+The integration tests exercise these through the app: `update.test.ts`, `inbox.test.ts`,
+`dashboard.test.ts`, `saves.test.ts`, and `feedback.test.ts` for the web flows, and the Simulation's
+Step and replay tests for the Game flows.

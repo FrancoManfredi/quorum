@@ -24,6 +24,7 @@ import {
   type Drift,
   type Managed,
 } from '@quorum/simulation/mirror'
+import { isApplying } from '@quorum/simulation/mirror-machine'
 import { openRegions } from '@quorum/simulation/regions'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { Game, Mirror } from '@quorum/simulation/state'
@@ -291,8 +292,8 @@ const gitops = (game: Game, h: HtmlBuilder<Message>): Html => {
 /* ---------- the region on the board ---------- */
 
 const driftText = (t: Messages, game: Game, mirror: Mirror, drift: Drift): string => {
-  if (mirror.readyAt !== null)
-    return t.mirror.applying(Math.max(1, Math.ceil(mirror.readyAt - game.time)))
+  if (isApplying(mirror.sync))
+    return t.mirror.applying(Math.max(1, Math.ceil(mirror.sync.readyAt - game.time)))
   const parts = [
     ...(drift.behind > 0 ? [t.mirror.behind(drift.behind)] : []),
     ...(drift.hand > 0 ? [t.mirror.handChanges(drift.hand)] : []),
@@ -467,7 +468,7 @@ const mirrorSection = (game: Game, mirror: Mirror, h: HtmlBuilder<Message>): Htm
   const cost = applyCost(game, mirror)
   const burn = drift.changes.length > 0 ? burnAdded(game, mirror) : 0
   const changes = drift.changes
-  const pending = mirror.readyAt !== null
+  const pending = isApplying(mirror.sync)
   const tool = game.iac ? IAC_TOOL_INFO[game.iac.tool] : null
   return h.section(
     [h.Key(`mirror-${mirror.region}`), h.Class('flex flex-col gap-3')],

@@ -19,7 +19,7 @@ import { step } from '../src/step.ts'
 
 const loaded = (): Game => ({
   ...preseedGame(),
-  shipped: ['password-login'],
+  features: { 'password-login': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
   users: 4_000,
   cash: 1e6,
   researched: [...preseedGame().researched, 'lang-node', 'node-cluster'],

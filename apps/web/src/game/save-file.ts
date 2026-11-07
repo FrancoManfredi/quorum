@@ -1,6 +1,7 @@
 import { Option, Result, Schema } from 'effect'
 import { decodeText, encodeText } from '@quorum/simulation/codec'
 import { Game } from '@quorum/simulation/state'
+import { migrateSaveFile } from './save-migration.ts'
 import { SIM_VERSION } from '@quorum/simulation/version'
 import type { History } from './history.ts'
 import type { SavedInbox } from './inbox.ts'
@@ -55,6 +56,7 @@ export const decodeSave = (text: string): Result.Result<string, string> => {
     return Result.fail(
       `That save is from another build (${version}; this build is ${SIM_VERSION}).`,
     )
-  if (Option.isNone(decodeGame(save))) return Result.fail('That save could not be read.')
-  return Result.succeed(JSON.stringify(save))
+  const migrated = migrateSaveFile(save)
+  if (Option.isNone(decodeGame(migrated))) return Result.fail('That save could not be read.')
+  return Result.succeed(JSON.stringify(migrated))
 }

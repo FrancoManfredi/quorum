@@ -867,7 +867,9 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const { shards } = sharding
   // A resharding copies the data in the background, and the copy leaves the volume half its IOPS.
   const resharding =
-    game.reshard?.node === node.id && game.reshard.until > 0 && game.time < game.reshard.until
+    game.reshard?.node === node.id &&
+    game.reshard.phase._tag === 'Copying' &&
+    game.time < game.reshard.phase.until
   const iops = STORAGE_IOPS[node.iops].iops * shards * (resharding ? RESHARD_IOPS : 1)
   const throttled = node.family === 'burstable' && node.credits < 1
   // A retry storm's trigger: the Database runs slow for its first seconds.

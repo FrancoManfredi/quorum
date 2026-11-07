@@ -11,6 +11,7 @@ import {
   halted,
   offCompany,
   placingOf,
+  playingId,
   stampedPlaybook,
   boardChallenge,
   ANNOTATION_GROUPS,
@@ -63,8 +64,6 @@ export type MessageCases<Output, Tags extends Message['_tag']> = {
 export const freshBoard = (game: Game): Board => ({
   game: normalizeOrdinals(game),
   session: { _tag: 'Company' },
-  exited: null,
-  away: null,
   region: 'na',
   selected: null,
   selection: [],
@@ -223,8 +222,8 @@ export const savePayloadOf = (model: Model) => ({
 
 /** The open Company's file, with what the board has shown so far. Null when no Company is open. */
 export const saveOf = (model: Model): AnyCommand | null => {
-  const id = model.saves.current
-  if (id === null || !model.loaded || !fileOf(model.saves, id)) return null
+  const id = playingId(model)
+  if (id === null || !fileOf(model.saves, id)) return null
   return WriteCompany({
     id,
     index: refreshedIndex(model.saves, model.board.game),

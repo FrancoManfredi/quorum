@@ -3,7 +3,7 @@ import { AskSaveImport, CopyText, WriteFounder, ClearLog, ExportLog } from '../c
 import { Game } from '@quorum/simulation/state'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { Message } from '../message.ts'
-import { Model, offCompany } from '../model.ts'
+import { Model, hasCompany, offCompany, playingId } from '../model.ts'
 import { Result } from 'effect'
 import { cheatCash, cheatInsight } from '../cheats.ts'
 import { decodeSave, encodeSave } from '../save-file.ts'
@@ -46,7 +46,7 @@ export const saveHandlers = (
 ): MessageCases<UpdateResult, SaveTag> => ({
   SaveExported: () => {
     if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
-    if (!model.loaded) return withToast(model, say(model).toasts.noCompanyToExport, 'warn')
+    if (!hasCompany(model)) return withToast(model, say(model).toasts.noCompanyToExport, 'warn')
     return {
       model,
       commands: [
@@ -67,7 +67,7 @@ export const saveHandlers = (
   SaveImported: ({ text }) => {
     if (text === null) return { model }
     if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
-    const id = model.saves.current
+    const id = playingId(model)
     if (id === null) return withToast(model, say(model).toasts.noCompanyToImport, 'warn')
     const decoded = decodeSave(text)
     if (Result.isFailure(decoded))
@@ -87,7 +87,6 @@ export const saveHandlers = (
           disclosure: board.disclosure,
           dashboard: board.dashboard,
           inbox: board.inbox,
-          away: board.away,
           clock: board.clock,
         },
       },

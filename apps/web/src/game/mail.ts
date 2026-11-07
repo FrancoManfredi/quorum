@@ -322,7 +322,7 @@ const sampleTicket = (cve: Cve, game: Game, id: number): WorkItem => {
     ref: cve.id,
     cost: patchCost(def?.score ?? 5),
     spent: 0,
-    blockedBy: null,
+    block: { _tag: 'Free' },
     answered: null,
     due: game.time + patchWindow(def?.score ?? 5),
     ...(def?.affects[0] ? { target: def.affects[0] } : {}),
@@ -723,7 +723,7 @@ export const SAMPLES: ReadonlyArray<Sample> = [
                     ref: 'checkout',
                     cost: 320,
                     spent: 0,
-                    blockedBy: null,
+                    block: { _tag: 'Free' },
                     answered: null,
                   } satisfies WorkItem,
                 }

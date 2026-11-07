@@ -1,7 +1,20 @@
 import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
-import { Observed as ObservedSchema, type Observed } from './state.ts'
 import { planState } from './machine.ts'
+
+/** One Node's managed settings, as the code says them. */
+export const NodeSpec = Schema.Record(
+  Schema.String,
+  Schema.Union([Schema.String, Schema.Finite, Schema.Boolean]),
+)
+export type NodeSpec = typeof NodeSpec.Type
+
+/** A Mirror's live state as a refresh read it. */
+export const Observed = Schema.Struct({
+  nodes: Schema.Record(Schema.String, NodeSpec),
+  links: Schema.Array(Schema.String),
+})
+export type Observed = typeof Observed.Type
 
 /* ==========================================================================
    A Mirror's sync (05 "Mirror a region"). It is in sync while its live state
@@ -14,11 +27,11 @@ import { planState } from './machine.ts'
 /** An Apply waits to land at `readyAt`; the live state is not read until it does. */
 export const Applying = Schema.TaggedStruct('Applying', { readyAt: Schema.Finite })
 /** The Mirror matches its code. `seen` is the last refresh, or null until one. */
-export const InSync = Schema.TaggedStruct('InSync', { seen: Schema.NullOr(ObservedSchema) })
+export const InSync = Schema.TaggedStruct('InSync', { seen: Schema.NullOr(Observed) })
 /** The Mirror moved away from its code at `since`, the first drift of this run. */
 export const Drifted = Schema.TaggedStruct('Drifted', {
   since: Schema.Finite,
-  seen: Schema.NullOr(ObservedSchema),
+  seen: Schema.NullOr(Observed),
 })
 export const MirrorSync = Schema.Union([Applying, InSync, Drifted])
 export type MirrorSync = typeof MirrorSync.Type
@@ -28,7 +41,7 @@ export const Applied = Schema.TaggedStruct('Applied', { readyAt: Schema.Finite }
 /** The waiting Apply landed. */
 export const Landed = Schema.TaggedStruct('Landed', {})
 /** A refresh read the Mirror's live state. */
-export const ObservedEvent = Schema.TaggedStruct('Observed', { observed: ObservedSchema })
+export const ObservedEvent = Schema.TaggedStruct('Observed', { observed: Observed })
 /** The Mirror changed away from its code at `at`, by hand or by the source. */
 export const HandChanged = Schema.TaggedStruct('HandChanged', { at: Schema.Finite })
 /** The drift was repaired without an Apply landing. */
@@ -43,7 +56,7 @@ const States = Machine.state({
 const Events = Machine.events({
   Applied: { readyAt: Schema.Finite },
   Landed: {},
-  Observed: { observed: ObservedSchema },
+  Observed: { observed: Observed },
   HandChanged: { at: Schema.Finite },
   Repaired: {},
 })
@@ -109,7 +122,8 @@ export const step = (sync: MirrorSync, event: MirrorEvent): MirrorSync =>
   planState(mirrorMachine, sync, event)
 
 /** An Apply is waiting to land, so the live state is not read yet. */
-export const isApplying = (sync: MirrorSync): boolean => sync._tag === 'Applying'
+export const isApplying = (sync: MirrorSync): sync is typeof Applying.Type =>
+  sync._tag === 'Applying'
 
 /** The Mirror is away from its code: behind, by hand, or both. */
 export const isDrifted = (sync: MirrorSync): boolean => sync._tag === 'Drifted'

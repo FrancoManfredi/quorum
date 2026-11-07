@@ -56,13 +56,16 @@ export const eraRoundMachine = Machine.make({ root: States, events: Events }).ha
         Declined: { target: 'Declined' },
       },
     },
+    // The next Era's Milestone can put a new offer on the table after an answer.
     Raised: {
       on: {
+        Offered: { target: 'Offered' },
         Advanced: { target: 'Waiting' },
       },
     },
     Declined: {
       on: {
+        Offered: { target: 'Offered' },
         Advanced: { target: 'Waiting' },
       },
     },

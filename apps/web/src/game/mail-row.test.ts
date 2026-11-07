@@ -36,7 +36,7 @@ const ticket: WorkItem = {
   ref: 'CVE-2026-0451',
   cost: 4,
   spent: 0,
-  blockedBy: null,
+  block: { _tag: 'Free' },
   answered: null,
   due: game.time + 200,
   target: 'server',

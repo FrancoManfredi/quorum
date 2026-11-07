@@ -270,7 +270,7 @@ const warnings = (
       ),
     )
   }
-  if (node.draining) list.push(callout(t.inspector.draining, 'warn', null, h))
+  if (node.service._tag === 'Draining') list.push(callout(t.inspector.draining, 'warn', null, h))
   if (node.type === 'cluster' && !game.sandbox) {
     const upgrade = button(
       {
@@ -325,7 +325,7 @@ const warnings = (
   if (node.type === 'database' && game.engineChange?.node === node.id)
     list.push(
       callout(
-        game.engineChange.until > 0
+        game.engineChange.phase._tag === 'Copying'
           ? t.inspector.copyingItsDataToItKeeps(
               DB_ENGINES[game.engineChange.to].name,
               DB_ENGINES[node.dbEngine].name,
@@ -339,7 +339,7 @@ const warnings = (
   if (node.type === 'database' && game.reshard?.node === node.id)
     list.push(
       callout(
-        game.reshard.until > 0
+        game.reshard.phase._tag === 'Copying'
           ? t.inspector.copyingToShards(
               game.reshard.shards,
               t.catalog.shardKeys[game.reshard.key].name,
@@ -1097,7 +1097,10 @@ const calls = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArr
                     `breaker-${link.to}`,
                     [
                       [false, t.inspector.noBreaker],
-                      [true, link.open > 0 ? t.inspector.breakerOpen : t.inspector.breaker],
+                      [
+                        true,
+                        link.fuse._tag === 'Open' ? t.inspector.breakerOpen : t.inspector.breaker,
+                      ],
                     ],
                     link.breaker,
                     (breaker) => Message.LinkPolicyChosen({ from: node.id, to: link.to, breaker }),
@@ -1619,7 +1622,10 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                 h,
               )
             : h.empty,
-          has(game, 'health-checks') && !def.fixed && !isDown(node.life) && !node.draining
+          has(game, 'health-checks') &&
+          !def.fixed &&
+          !isDown(node.life) &&
+          node.service._tag !== 'Draining'
             ? button(
                 {
                   onClick: Message.DrainChosen({ nodeId: node.id }),

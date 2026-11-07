@@ -57,7 +57,7 @@ import {
 } from './director.ts'
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
-import { advanceFeatures, churnFactor, growthFactor } from './features.ts'
+import { advanceFeatures, churnFactor, growthFactor, isFeatureLive } from './features.ts'
 import { growthPerk, ventureOf } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
@@ -78,6 +78,10 @@ import {
   warmAfterRestart,
 } from './lookups.ts'
 import { causeOf, warming, warmOf, withWarm } from './life.ts'
+import { isOpen, step as breakerStep } from './breaker-machine.ts'
+import { step as scalerStep } from './autoscaler-machine.ts'
+import { canRaise } from './actions.ts'
+import { isDraining, step as serviceStep } from './node-service-machine.ts'
 import { burnRateOf, recordBudget, slaCreditsOf, spendBudget } from './slo.ts'
 import { cosTurns } from './calendar.ts'
 import { calendarMinute, carryLedger, chaosRunning, solveFlow } from './solve.ts'
@@ -143,7 +147,7 @@ const flowsOf = (game: Game, ledger: Ledger, pace: number): Readonly<Record<Regi
     pace *
     growthFactor(game) *
     growthPerk(game) *
-    (game.declined ? DECLINED_GROWTH : 1) *
+    (game.round._tag === 'Declined' ? DECLINED_GROWTH : 1) *
     (has(game, 'funnels') ? FUNNEL_GROWTH : 1)
   const flows = {} as Record<RegionId, Flow>
   for (const region of REGIONS) {
@@ -164,7 +168,7 @@ const flowsOf = (game: Game, ledger: Ledger, pace: number): Readonly<Record<Regi
       region === 'eu' &&
       split &&
       game.stage >= FEATURES['data-residency'].era &&
-      !game.shipped.includes('data-residency')
+      !isFeatureLive(game, 'data-residency')
         ? 0
         : REGION_INFO[region].share
     const market = split ? ledger.market * reachable : ledger.market
@@ -403,16 +407,15 @@ const scaleLoadOf = (
  * above its target, and gives one back when it idles, at most once per cooldown.
  */
 const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): GameNode => {
-  if (node.pending > 0) {
-    const readyIn = node.readyIn - seconds
-    if (readyIn > 0) return { ...node, readyIn }
-    const replicas = node.replicas + node.pending
+  if (node.scaler._tag === 'Scaling') {
+    const readyIn = node.scaler.readyIn - seconds
+    if (readyIn > 0) return { ...node, scaler: { ...node.scaler, readyIn } }
+    const replicas = node.replicas + node.scaler.pending
     // The new copies start cold: a JIT runtime runs them slowly for its warmup.
     return {
       ...node,
       replicas,
-      pending: 0,
-      readyIn: 0,
+      scaler: scalerStep(node.scaler, { _tag: 'Ready' }),
       life: withWarm(node.life, (warmOf(node.life) * node.replicas) / replicas),
     }
   }
@@ -439,8 +442,11 @@ const scale = (game: Game, node: GameNode, ledger: Ledger, seconds: number): Gam
   if (wanted > node.replicas)
     return {
       ...node,
-      pending: wanted - node.replicas,
-      readyIn: inCluster(game, node) ? POD_REACTION : VM_REACTION,
+      scaler: {
+        _tag: 'Scaling',
+        pending: wanted - node.replicas,
+        readyIn: inCluster(game, node) ? POD_REACTION : VM_REACTION,
+      },
       scaledAt: game.time,
     }
   // Give one back only when the rest would still run under the target, so it does not flap.
@@ -521,7 +527,7 @@ const advanceNode = (
   // A drained Node takes no new traffic (the solver routes around it) and finishes what it holds:
   // a Queue hands its backlog to its Workers at its own rate, and a lost replica comes back. Empty
   // for DRAIN_SECONDS, it rejoins the rotation.
-  if (next.draining) {
+  if (isDraining(next.service)) {
     // It finishes what it holds at whatever it can hand on: its own rate, or what the Nodes it
     // feeds could take if that is more.
     const handoff = ledger.links
@@ -535,11 +541,12 @@ const advanceNode = (
           )
         : next.depth
     if (
-      Math.round((time + seconds) * 1e6) / 1e6 - node.drainAt >= DRAIN_SECONDS &&
+      next.service._tag === 'Draining' &&
+      Math.round((time + seconds) * 1e6) / 1e6 - next.service.since >= DRAIN_SECONDS &&
       held <= 0 &&
       next.lost <= 0
     )
-      next = { ...next, depth: held, draining: false }
+      next = { ...next, depth: held, service: serviceStep(next.service, { _tag: 'DrainFinished' }) }
     else if (held !== next.depth) next = { ...next, depth: held }
   }
   // A Database in a retry storm queues what it cannot take, and drains once it can.
@@ -619,16 +626,24 @@ const advanceCertificate = (
  */
 const advanceLinks = (game: Game, ledger: Ledger, seconds: number): ReadonlyArray<GameLink> => {
   const links = game.links.map((link, index) => {
-    if (link.open > 0) {
-      const open = Math.max(0, link.open - seconds)
-      return { ...link, open, failure: open > 0 ? link.failure : 0 }
+    if (isOpen(link.fuse)) {
+      const fuse = breakerStep(link.fuse, { _tag: 'ClosedAt', at: game.time + seconds })
+      return { ...link, fuse, failure: isOpen(fuse) ? link.failure : 0 }
     }
     const measured = ledger.links[index]?.failure ?? 0
     const source = game.nodes.find((node) => node.id === link.from)
     const watched =
       (link.breaker && has(game, 'circuit-breakers')) ||
       (source !== undefined && meshOf(game, source))
-    if (watched && measured > BREAKER_THRESHOLD) return { ...link, open: BREAKER_OPEN, failure: 0 }
+    if (watched && measured > BREAKER_THRESHOLD)
+      return {
+        ...link,
+        fuse: breakerStep(link.fuse, {
+          _tag: 'Tripped',
+          until: game.time + seconds + BREAKER_OPEN,
+        }),
+        failure: 0,
+      }
     return measured === link.failure ? link : { ...link, failure: measured }
   })
   return links.every((link, index) => link === game.links[index]) ? game.links : links
@@ -829,6 +844,9 @@ export const step = (
   events.push(...running.events)
   next = advanceStudies(next, ledger, seconds, events)
   next = advanceMirrors(next)
+  // The Era's Milestone puts its round on the table once.
+  if (canRaise(next) && next.round._tag !== 'Offered')
+    next = { ...next, round: { _tag: 'Offered' } }
   const team = advanceTeam(next, ledger, seconds, tuning, offline)
   next = team.game
   events.push(...team.events)
@@ -894,7 +912,7 @@ const solveHolds = (before: Game, after: Game, events: ReadonlyArray<StepEvent>)
       was !== undefined &&
       node.life._tag === 'Running' &&
       was.life._tag === 'Running' &&
-      node.readyIn === 0 &&
+      node.scaler._tag === 'Steady' &&
       node.replicas === was.replicas
     )
   })

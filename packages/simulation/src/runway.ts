@@ -81,7 +81,7 @@ const dearest = (game: Game): GameNode | null => {
   let worst: GameNode | null = null
   let cost = 0
   for (const node of game.nodes) {
-    if (node.shut || COMPONENTS[node.type].fixed) continue
+    if (node.service._tag === 'Shut' || COMPONENTS[node.type].fixed) continue
     const burn = burnOf(game, node)
     if (burn > cost) {
       cost = burn
@@ -95,7 +95,12 @@ const shutdownNode = (game: Game, node: GameNode): Game => ({
   ...game,
   nodes: game.nodes.map((entry) =>
     entry.id === node.id
-      ? { ...entry, shut: true, life: stopped('failure', warmOf(entry.life)), downAt: game.time }
+      ? {
+          ...entry,
+          service: { _tag: 'Shut' },
+          life: stopped('failure', warmOf(entry.life)),
+          downAt: game.time,
+        }
       : entry,
   ),
 })

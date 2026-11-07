@@ -1,5 +1,5 @@
-import { Effect, Schema, SchemaGetter } from 'effect'
-import { DownCause, Life, lifeOf } from './life.ts'
+import { Effect, Schema } from 'effect'
+import { Life } from './life.ts'
 import {
   MUTATOR_IDS,
   VENTURE_IDS,
@@ -19,7 +19,6 @@ import {
   RESEARCH_IDS,
   RUNTIME_IDS,
   START_KLOC,
-  MIGRATION_STEPS,
   IAC_TOOLS,
   SYNC_MODES,
   ZONES,
@@ -31,6 +30,17 @@ import { COMPONENT_FIELDS } from './components/fields.ts'
 import { DrillPhase } from './drill-machine.ts'
 import { BridgeState } from './bridge-machine.ts'
 import { QuarterPhase } from './quarter-machine.ts'
+import { HirePhase } from './hire-machine.ts'
+import { Breaker } from './breaker-machine.ts'
+import { Autoscaler } from './autoscaler-machine.ts'
+import { EraRound } from './era-round-machine.ts'
+import { DataMovePhase } from './data-move-machine.ts'
+import { StudyPhase } from './study-machine.ts'
+import { NodeService } from './node-service-machine.ts'
+import { BlockKind, WorkBlock } from './work-item-machine.ts'
+import { IncidentPhase } from './incident-machine.ts'
+import { MirrorSync, NodeSpec, Observed } from './mirror-machine.ts'
+import { FeaturePhase } from './feature-machine.ts'
 
 /* ==========================================================================
    The saved game. Everything the Simulation needs to continue lives here, and
@@ -117,9 +127,7 @@ const NODE_FIELD_ORDER = [
   'retention',
   'credits',
   'leak',
-  'shut',
-  'draining',
-  'drainAt',
+  'service',
   'crashes',
   'recycle',
   'compress',
@@ -180,8 +188,7 @@ const NODE_FIELD_ORDER = [
   'pricing',
   'pricingUntil',
   'replicas',
-  'pending',
-  'readyIn',
+  'scaler',
   'scaledAt',
   'signal',
   'target',
@@ -235,17 +242,12 @@ const NODE_FIELDS_UNORDERED = {
   /** GB leaked by a memory leak. */
   leak: Schema.Finite,
   /**
-   * The Company shut this Node down to stop its Burn (09 "Runway and running
-   * out of Cash"). A shut Node serves nothing and bills nothing, and stays on
-   * the board until the player replaces or sells it.
+   * Where the Node stands in the rotation: in service, draining so its held work can finish, or
+   * shut down to stop its Burn (11 "Drain a Node", 09 "Runway").
    */
-  shut: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /**
-   * The player drained this Node (11 "Drain a Node"): it takes no new traffic and finishes the
-   * work it holds, then rejoins. `drainAt` is the sim second it started.
-   */
-  draining: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  drainAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  service: NodeService.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({ _tag: 'InService' } as const)),
+  ),
   /** Sim time the Node last went down, so health checks and DNS notice it late. */
   downAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** DNS or Cache TTL, in seconds. */
@@ -276,9 +278,10 @@ const NODE_FIELDS_UNORDERED = {
   ),
   /** Copies of an App Server or Worker that serve now. */
   replicas: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(1))),
-  /** Copies an Autoscaler has asked for that are still booting, and the seconds until they serve. */
-  pending: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  readyIn: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** Copies an Autoscaler has asked for, and whether they are still booting. */
+  scaler: Autoscaler.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed<Autoscaler>({ _tag: 'Steady' })),
+  ) as unknown as typeof Autoscaler,
   /** Sim time an Autoscaler last changed this Node's copies. */
   scaledAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   region: Region.pipe(Schema.withDecodingDefaultKey(Effect.succeed('na' as const))),
@@ -299,35 +302,8 @@ const NODE_FIELDS = Object.fromEntries(
   NODE_FIELD_ORDER.map((key) => [key, NODE_FIELDS_UNORDERED[key]]),
 ) as typeof NODE_FIELDS_UNORDERED
 
-/** A save from before the machine carries these three fields instead of `life`. */
-const GameNodeStored = Schema.Struct({
-  ...NODE_FIELDS,
-  down: Schema.optionalKey(Schema.Finite),
-  downCause: Schema.optionalKey(DownCause),
-  warm: Schema.optionalKey(Schema.Finite),
-  life: Schema.optionalKey(Life),
-})
-
 /** The live Node: one lifecycle state, never the three old fields. */
-const GameNodeLive = Schema.Struct({ ...NODE_FIELDS, life: Life }).pipe(Schema.toType)
-
-/**
- * A Node keeps its lifecycle as one tagged state. Decoding derives it from the
- * old fields, so a save from before the machine still opens; encoding writes
- * the state, so the phase is explicit in the save too.
- */
-export const GameNode = GameNodeStored.pipe(
-  Schema.decodeTo(GameNodeLive, {
-    decode: SchemaGetter.transform((stored) => {
-      const { down, downCause, warm, life, ...rest } = stored
-      return {
-        ...rest,
-        life: life ?? lifeOf(down ?? 0, warm ?? 1, downCause ?? 'restart'),
-      }
-    }),
-    encode: SchemaGetter.transform((live) => live),
-  }),
-)
+export const GameNode = Schema.Struct({ ...NODE_FIELDS, life: Life })
 export type GameNode = typeof GameNode.Type
 
 export const Retries = Schema.Literals(['none', 'naive', 'backoff'])
@@ -350,8 +326,10 @@ export const GameLink = Schema.Struct({
   bulkhead: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The Link sends a second copy of a slow call and keeps the faster answer (Hedged requests). */
   hedge: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** Seconds the breaker stays open: the Link fails fast and sends nothing. */
-  open: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
+  /** The Link's circuit breaker: closed, or open until a sim second. */
+  fuse: Breaker.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed<Breaker>({ _tag: 'Closed' })),
+  ) as unknown as typeof Breaker,
   /**
    * Share of calls that failed on the Link last Step, for Links that retry or break. Retries
    * carry it into the next Step, which is what keeps a retry storm going.
@@ -373,13 +351,10 @@ export const Incident = Schema.Struct({
   impaired: Schema.Finite,
   lostRevenue: Schema.Finite,
   failed: Schema.Finite,
-  /**
-   * The sim second its first signal landed: the pager when the Company has Alerting, else the
-   * board (11 "The incident loop"). Null until it does, and in a save from before the field.
-   */
-  signalAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
-  /** The sim second a player first acted on it, or the on-call rotation answered the page. */
-  ackAt: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** How far the response got: quiet, announced, responded, or acknowledged (11 "The incident loop"). */
+  phase: IncidentPhase.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({ _tag: 'Quiet' } as const)),
+  ),
   /** SEV level now: it starts at the incident's own and can step up once. */
   severity: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
   /** How many times normal demand a spike sends. */
@@ -558,12 +533,12 @@ export const NEW_ENGINEER = {
   unhappyAt: 0,
 } as const
 
-/** An offer accepted: the engineer joins at `readyAt`. */
+/** An offer accepted: the engineer joins when its phase says so. */
 export const Hire = Schema.Struct({
   id: Schema.String,
   team: Schema.String,
   language: LanguageId,
-  readyAt: Schema.Finite,
+  phase: HirePhase,
 })
 export type Hire = typeof Hire.Type
 
@@ -616,41 +591,14 @@ export const Migration = Schema.Union([
 ]).pipe(Schema.toType)
 export type Migration = typeof Migration.Type
 
-/** A save from before the machine stored these three fields instead of a tag. */
-const MigrationStored = Schema.Struct({
-  ...MIGRATION_FIELDS,
-  step: Schema.optionalKey(Schema.Finite),
-  ready: Schema.optionalKey(Schema.Boolean),
-  bugs: Schema.optionalKey(Schema.Boolean),
-  _tag: Schema.optionalKey(Schema.Literals(['Building', 'Ready', 'Finishing'])),
-})
-
-/** Rebuilds the state from the old fields, so a save from before the machine opens. */
-const migrationOf = (stored: typeof MigrationStored.Type): Migration => {
-  const { runtime, framework, fromRuntime, fromFramework, total, step, ready, bugs } = stored
-  const base = { runtime, framework, fromRuntime, fromFramework, total, bugs: bugs ?? false }
-  if (stored._tag === 'Finishing') return { _tag: 'Finishing', ...base }
-  if (stored._tag === 'Ready') return { _tag: 'Ready', ...base, step: step ?? 0 }
-  if (stored._tag === 'Building') return { _tag: 'Building', ...base, step: step ?? 0 }
-  if ((step ?? 0) >= MIGRATION_STEPS.length) return { _tag: 'Finishing', ...base }
-  return ready
-    ? { _tag: 'Ready', ...base, step: step ?? 0 }
-    : { _tag: 'Building', ...base, step: step ?? 0 }
-}
-
-export const MigrationState = MigrationStored.pipe(
-  Schema.decodeTo(Migration, {
-    decode: SchemaGetter.transform((stored) => migrationOf(stored)),
-    encode: SchemaGetter.transform((live) => live),
-  }),
-)
+export const MigrationState = Migration
 export type MigrationState = typeof MigrationState.Type
 
 /** The data copy of a Database engine change: the Node, the engine it moves to, and when the copy ends. */
 export const EngineChange = Schema.Struct({
   node: Schema.String,
   to: DbEngine,
-  until: Schema.Finite,
+  phase: DataMovePhase,
 })
 export type EngineChange = typeof EngineChange.Type
 
@@ -662,7 +610,7 @@ export const Resharding = Schema.Struct({
   node: Schema.String,
   shards: Schema.Finite,
   key: ShardKey,
-  until: Schema.Finite,
+  phase: DataMovePhase,
 })
 export type Resharding = typeof Resharding.Type
 
@@ -684,13 +632,6 @@ export const Service = Schema.Struct({
   nextDeployAt: Schema.Finite,
   /** What the last deploy shipped, so a rollback can take it back. */
   lastDeploy: Schema.Array(FeatureId),
-  /**
-   * Each Feature's rollout share, from its flag (05 "Feature Flags", 08 "Rollout"). A Feature not
-   * named here is live for every user; the rollouts only count while a Feature Flags Node is live.
-   */
-  rollouts: Schema.Record(Schema.String, Schema.Finite).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed({})),
-  ),
   /** The team that owns it: the team that builds its work and is paged when it breaks. */
   owner: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed('core'))),
   /**
@@ -717,23 +658,7 @@ export const WorkKind = Schema.Literals([
 ])
 export type WorkKind = typeof WorkKind.Type
 
-/** What a backlog item waits on when it cannot move (18 "Teammates"): the four the design names. */
-export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'hire'])
-export type BlockKind = typeof BlockKind.Type
-
-/** Why an item stopped, who owns it, and when to say so again. */
-export const Block = Schema.Struct({
-  kind: BlockKind,
-  /** The engineer whose item it is: they write the Mail. */
-  owner: Schema.String,
-  /** Sim second it stopped. */
-  at: Schema.Finite,
-  /** Sim second the Mail lands again after Later. */
-  remindAt: Schema.Finite,
-  /** The player approved it: the work moves again. A cleared block never stops it twice. */
-  cleared: Schema.Boolean,
-})
-export type Block = typeof Block.Type
+export { BlockKind }
 
 /**
  * One backlog item. `ref` is a Feature or task id; a migration item names its
@@ -756,23 +681,14 @@ export const WorkItem = Schema.Struct({
    * one who writes when the item is blocked.
    */
   owner: Schema.optionalKey(Schema.String),
-  /** What stopped it, or null while it moves (18 "Blocked"). */
-  blockedBy: Schema.NullOr(Block).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
+  /** What stops it, if anything (18 "Blocked"). */
+  block: WorkBlock.pipe(Schema.withDecodingDefaultKey(Effect.succeed({ _tag: 'Free' } as const))),
   /** How the player answered a patch proposal: to the top now, or queued where it is. */
   answered: Schema.NullOr(Schema.Literals(['now', 'queued'])).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(null)),
   ),
 })
 export type WorkItem = typeof WorkItem.Type
-
-/** One Feature's A/B samples (08 "Measured lift"): the exposed and holdout requests since its step. */
-export const LiftSample = Schema.Struct({
-  exposed: Schema.Finite,
-  holdout: Schema.Finite,
-  /** The rollout step the counts belong to: a new step starts the count again. */
-  step: Schema.Finite,
-})
-export type LiftSample = typeof LiftSample.Type
 
 export const CORE_TEAM: Team = {
   id: 'core',
@@ -794,7 +710,6 @@ export const monolith = (fixes: ReadonlyArray<typeof FixId.Type>): Service => ({
   migration: null,
   nextDeployAt: 0,
   lastDeploy: [],
-  rollouts: {},
   owner: 'core',
   features: [],
   datastore: null,
@@ -866,8 +781,8 @@ export const NO_INSIGHT: InsightPools = Object.fromEntries(
   INSIGHT_POOLS.map((pool) => [pool, 0]),
 ) as InsightPools
 
-/** A queued Study: the research, and the share of its base duration done. */
-export const Study = Schema.Struct({ id: ResearchId, progress: Schema.Finite })
+/** A queued Study: the research, and where it stands. */
+export const Study = Schema.Struct({ id: ResearchId, phase: StudyPhase })
 export type Study = typeof Study.Type
 
 /**
@@ -907,19 +822,7 @@ export const Infra = Schema.Struct({
 })
 export type Infra = typeof Infra.Type
 
-/** One Node's managed settings, as the code says them. */
-export const NodeSpec = Schema.Record(
-  Schema.String,
-  Schema.Union([Schema.String, Schema.Finite, Schema.Boolean]),
-)
-export type NodeSpec = typeof NodeSpec.Type
-
-/** A Mirror's live state as a refresh read it. */
-export const Observed = Schema.Struct({
-  nodes: Schema.Record(Schema.String, NodeSpec),
-  links: Schema.Array(Schema.String),
-})
-export type Observed = typeof Observed.Type
+export { NodeSpec, Observed }
 
 /**
  * A region built from another region's Nodes and Links. `code` is what the last
@@ -937,21 +840,16 @@ export const Mirror = Schema.Struct({
   code: Schema.Record(Schema.String, NodeSpec),
   /** The Mirror's managed Links at the last Apply, as `from>to` with Mirror ids. */
   links: Schema.Array(Schema.String),
-  /**
-   * The Mirror's live state when the player last read it (`pulumi refresh`, `alchemy drift`):
-   * each Node's settings and the managed Links. Null until read, and after each Apply.
-   */
-  seen: Schema.NullOr(Observed),
+  /** Where the sync stands: applying, in sync with a last read, or drifted. */
+  sync: MirrorSync.pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({ _tag: 'InSync', seen: null } as const)),
+  ),
   /** Hand changes the last Apply did not see, so its landing leaves them alone. */
   hold: Schema.Array(Schema.String),
   /** Each Mirror Node id, and the settings it keeps as overrides. */
   overrides: Schema.Record(Schema.String, Schema.Array(Schema.String)),
   /** Pulumi: sizes and Autoscaler bounds follow the region's share of users. */
   computed: Schema.Boolean,
-  /** Sim time the last Apply lands, or null when none waits. */
-  readyAt: Schema.NullOr(Schema.Finite),
-  /** Sim time the Mirror first drifted since its last Apply, for GitOps; null when in sync. */
-  driftAt: Schema.NullOr(Schema.Finite),
 })
 export type Mirror = typeof Mirror.Type
 
@@ -1013,8 +911,8 @@ export const Game = Schema.Struct({
   /** The sim second the current Era began (12 "Annotations"). */
   stageAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   equity: Schema.Finite,
-  /** The current Era began with a declined round. */
-  declined: Schema.Boolean,
+  /** The funding round: waiting for its Milestone, on the table, or answered. */
+  round: EraRound.pipe(Schema.withDecodingDefaultKey(Effect.succeed({ _tag: 'Waiting' } as const))),
   /** Seconds of simulated time since the company started. */
   time: Schema.Finite,
   seed: Schema.Finite,
@@ -1082,7 +980,14 @@ export const Game = Schema.Struct({
   workSeq: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** The CVEs already disclosed, so each one comes once. */
   cves: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
-  shipped: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  /**
+   * Every Feature the Company built (08 "Features"): it waits for the next deploy, or it is live
+   * with the share of users its flag reaches, the share of them that adopted it, and the A/B
+   * samples its experiment read. A rollback puts it back in the queue; removing it deletes it.
+   */
+  features: Schema.Record(Schema.String, FeaturePhase).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
   /**
    * A Feature's realized outcome (08 "Outcomes"): the share of its win effect on market, growth,
    * churn, and value that actually lands, rolled when the Feature is queued. A Feature not named
@@ -1092,19 +997,6 @@ export const Game = Schema.Struct({
   outcomes: Schema.Record(Schema.String, Schema.Finite).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed({})),
   ),
-  /**
-   * Each live Feature's adoption share (08 "Adoption"), from 0 at the deploy that ships it to 1. A
-   * Feature not named here is fully adopted, which is what a save from before adoption kept.
-   */
-  adoption: Schema.Record(Schema.String, Schema.Finite).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed({})),
-  ),
-  /** The samples a Feature's A/B test has taken since its current rollout step (08 "Measured lift"). */
-  lifts: Schema.Record(Schema.String, LiftSample).pipe(
-    Schema.withDecodingDefaultKey(Effect.succeed({})),
-  ),
-  /** Features built and waiting for the next deploy. */
-  awaiting: Schema.Array(FeatureId).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   /** Idle teams pick the next Feature, shift migrations, and pay down debt on their own. */
   /** Sim time a fake advisory's backdoor went in, or null (18 "Spam and phishing"). */
   backdoorAt: Schema.NullOr(Schema.Finite).pipe(

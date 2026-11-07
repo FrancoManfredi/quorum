@@ -2,17 +2,19 @@ import { MailMessage, Snippet } from './mail-text.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Locale } from '../i18n/index.ts'
-import { Effect, Schema, SchemaGetter } from 'effect'
+import { Effect, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import { DOCK_GROUPS, REQUEST_KINDS, type DockGroup } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { solveFlow } from '@quorum/simulation/solve'
-import { HistoryRow, exitOffers } from '@quorum/simulation/exit'
+import { exitOffers } from '@quorum/simulation/exit'
 import { Founder } from '@quorum/simulation/founder'
 import { Playbook } from '@quorum/simulation/playbook'
 import { Boot } from './boot-machine.ts'
-import { Away, Reveal } from './machine-state.ts'
+import { Reveal } from './machine-state.ts'
 export { Away, Change, Delta, Figures, PreviewFigures, Reveal } from './machine-state.ts'
+import { CompanyPhase, companyIdOf, isExited, isPlaying } from './company-machine.ts'
+export { CompanyPhase } from './company-machine.ts'
 import { TradeoffState } from './tradeoff-machine.ts'
 export { TradeoffState } from './tradeoff-machine.ts'
 import { ClockMode, away as clockAwayOf, paused as clockPausedOf } from './clock-machine.ts'
@@ -89,13 +91,6 @@ export const SandboxStore = Schema.Struct({
 })
 export type SandboxStore = typeof SandboxStore.Type
 
-/** The Company that just exited: its history row, and the research it could pass on. */
-export const Exited = Schema.Struct({
-  row: HistoryRow,
-  researched: Schema.Array(ResearchId),
-})
-export type Exited = typeof Exited.Type
-
 /** The Exit survey: two answers, and where they stand with the API Worker. */
 export const Survey = Schema.Struct({
   issues: Schema.String,
@@ -161,36 +156,7 @@ const MAIL_FIELDS = {
   spam: Schema.Boolean,
 } as const
 
-/** A save from before the Mail machine stored the answer and the resolve time as fields. */
-const MailStored = Schema.Struct({
-  ...MAIL_FIELDS,
-  answer: Schema.optionalKey(Schema.NullOr(Schema.String)),
-  answerId: Schema.optionalKey(Schema.String),
-  resolved: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
-  phase: Schema.optionalKey(MailPhase),
-})
-
-const MailLive = Schema.Struct({ ...MAIL_FIELDS, phase: MailPhase })
-
-const mailOf = (stored: typeof MailStored.Type): typeof MailLive.Type => {
-  const { answer, answerId, resolved, phase, ...rest } = stored
-  if (phase) return { ...rest, phase }
-  if (resolved !== undefined && resolved !== null)
-    return { ...rest, phase: { _tag: 'Resolved', at: resolved } }
-  if (answer !== undefined && answer !== null)
-    return {
-      ...rest,
-      phase: { _tag: 'Answered', answer, answerId: answerId ?? '' },
-    }
-  return { ...rest, phase: { _tag: 'Active' } }
-}
-
-export const Mail = MailStored.pipe(
-  Schema.decodeTo(MailLive, {
-    decode: SchemaGetter.transform(mailOf),
-    encode: SchemaGetter.transform((live) => live),
-  }),
-)
+export const Mail = Schema.Struct({ ...MAIL_FIELDS, phase: MailPhase })
 export type Mail = typeof Mail.Type
 
 export const Folder = Schema.Literals(['action', 'fyi', 'spam', 'trash'])
@@ -363,10 +329,6 @@ export const Board = Schema.Struct({
   game: Game,
   /** What the board plays. Exactly one of the three, never two at once. */
   session: Session,
-  /** What the Company earned when it exited, until the player leaves it. */
-  exited: Schema.NullOr(Exited),
-  /** What happened while the player was away. */
-  away: Schema.NullOr(Away),
   /** The region tab the board shows. */
   region: Region,
   selected: Schema.NullOr(Schema.String),
@@ -427,12 +389,12 @@ export const Model = Schema.Struct({
   board: Board,
   /** The Company's board, kept aside while a Sandbox or Challenge is open. */
   company: Schema.NullOr(Board),
+  /** Which Company the page is playing, and what is happening to it. */
+  companyPhase: CompanyPhase,
   /** The Companies saved in the browser, and the one Continue opens. */
   saves: SaveIndex,
   /** The single save of the build before Company files exists and can still be recovered. */
   oldSave: Schema.Boolean,
-  /** The current Company's Game has been read into the board. */
-  loaded: Schema.Boolean,
   /** The founding screen: the name and logo the next Company starts with. */
   draft: Schema.Struct({ name: Schema.String, logo: LogoId }),
   /** The Company file the Companies page shows, or null for the list. */
@@ -466,18 +428,23 @@ export const ledgerOf = (model: Model): Ledger => ({
   bottleneck: model.board.bottleneck,
 })
 
-/** The Company file Continue opens, or null when the title has no Company. */
-export const currentFile = (model: Model) => fileOf(model.saves, model.saves.current)
+/** The Company file the phase names, or null when no Company is named. */
+export const currentFile = (model: Model) => fileOf(model.saves, companyIdOf(model.companyPhase))
+
+/** The Company the phase plays on the board: open, or away with its report over it. */
+export const playingId = (model: Model): string | null =>
+  isPlaying(model.companyPhase) ? model.companyPhase.id : null
 
 /** A Company is open: its file exists and its Game is on the board. */
-export const hasCompany = (model: Model): boolean => model.loaded && currentFile(model) !== null
+export const hasCompany = (model: Model): boolean =>
+  playingId(model) !== null && currentFile(model) !== null
 
 /** The board is not the Company: a Sandbox or a Challenge is open. */
 export const offCompany = (model: Model): boolean => model.board.session._tag !== 'Company'
 
 /** The most Legacy an Exit pays now, or null while no Exit is on the table. */
 export const exitLegacy = (model: Model): number | null => {
-  if (offCompany(model) || model.board.exited) return null
+  if (offCompany(model) || isExited(model.companyPhase)) return null
   const offers = exitOffers(model.board.game, ledgerOf(model))
   return offers.length === 0 ? null : Math.max(...offers.map((offer) => offer.legacy))
 }

@@ -1,7 +1,7 @@
 import { type Action, notAllowed, ok, withNode } from '../action-kit.ts'
 import type { FeatureId, Game } from '../state.ts'
-import { ROLLOUT_ALL, ROLLOUT_STEPS } from '../catalog.ts'
-import { serviceOf, withService } from '../team.ts'
+import { ROLLOUT_STEPS } from '../catalog.ts'
+import { isLive, step } from '../feature-machine.ts'
 import { failed } from '../distribution.ts'
 
 import { flatModel } from '../capacity.ts'
@@ -27,12 +27,13 @@ export const setRollout = (
 ): Action =>
   withNode(game, id, (node) => {
     if (node.type !== 'ff') return notAllowed('Only Feature Flags roll a Feature out.')
-    if (!game.shipped.includes(feature))
+    const phase = game.features[feature]
+    if (phase === undefined || !isLive(phase))
       return notAllowed('Ship the Feature before it has a rollout.')
     if (!(ROLLOUT_STEPS as ReadonlyArray<number>).includes(share))
       return notAllowed('A rollout is off, 5%, 25%, 50%, or every user.')
-    const rollouts = { ...serviceOf(game).rollouts }
-    if (share >= ROLLOUT_ALL) delete rollouts[feature]
-    else rollouts[feature] = share
-    return ok(withService(game, { rollouts }))
+    return ok({
+      ...game,
+      features: { ...game.features, [feature]: step(phase, { _tag: 'RolloutChanged', share }) },
+    })
   })

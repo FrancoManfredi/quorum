@@ -2,6 +2,7 @@ import { ApplySettings, FocusDashboard, WriteFounder, WritePrefs } from '../comm
 import { EMPTY_RESEARCH, ResearchMessage } from '../research.ts'
 import { Message } from '../message.ts'
 import { Model, Prefs, clockAway, halted } from '../model.ts'
+import { isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
 import { step as holdStep } from '../hold-machine.ts'
 import { Option, Schema } from 'effect'
@@ -215,7 +216,7 @@ export const panelsHandlers = (
   // An exited Company has nothing left to play: closing its panel goes to the next one.
 
   PanelClosed: () => {
-    if (model.board.exited) return leaveExited(model, 'found')
+    if (isExited(model.companyPhase)) return leaveExited(model, 'found')
     const next = closePanel(model)
     return { model: next }
   },

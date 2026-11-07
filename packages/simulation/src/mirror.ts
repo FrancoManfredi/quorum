@@ -28,6 +28,7 @@ import type {
   Observed,
   SyncMode,
 } from './state.ts'
+import { isApplying, seenOf, step as mirrorSyncStep } from './mirror-machine.ts'
 
 /* ==========================================================================
    Mirrors (05 "Mirror a region", "Keeping a Mirror in sync", "IaC tools",
@@ -312,7 +313,7 @@ const valueOf = (node: GameNode, field: Managed): NodeSpec[string] => node[field
  */
 export const driftOf = (game: Game, mirror: Mirror): Drift => {
   const changes: Array<Change> = []
-  if (mirror.readyAt !== null)
+  if (isApplying(mirror.sync))
     return { changes, hidden: [], behind: 0, hand: 0, data: 0, choices: 0 }
   for (const node of sourceNodes(game, mirror))
     if (isData(node.type) && !mirror.data[node.id])
@@ -414,7 +415,7 @@ const holdKey = (change: Change): string =>
  */
 const seenBy = (game: Game, mirror: Mirror, change: Change): boolean => {
   if (change._tag === 'choose' || !change.hand || refreshesOnPlan(game)) return true
-  const seen = mirror.seen
+  const seen = seenOf(mirror.sync)
   if (!seen) return false
   if (change._tag === 'set') return seen.nodes[change.node]?.[change.field] === change.from
   if (change._tag === 'create') {
@@ -525,10 +526,9 @@ const write = (game: Game, mirror: Mirror, destroy: boolean): Game => {
     nodes,
     code,
     links: [...new Set([...links, ...keptLinks])].toSorted(),
-    seen: null,
+    sync:
+      wait > 0 ? { _tag: 'Applying', readyAt: game.time + wait } : { _tag: 'InSync', seen: null },
     hold,
-    readyAt: wait > 0 ? game.time + wait : null,
-    driftAt: null,
   }
   const paid: Game = {
     ...game,
@@ -639,7 +639,7 @@ const land = (game: Game, mirror: Mirror): Game => {
       breaker: settings?.breaker ?? false,
       bulkhead: settings?.bulkhead ?? false,
       hedge: settings?.hedge ?? false,
-      open: 0,
+      fuse: { _tag: 'Closed' },
       failure: 0,
     })
   }
@@ -648,7 +648,7 @@ const land = (game: Game, mirror: Mirror): Game => {
     nodes: mapped,
     hold: [],
     overrides: Object.fromEntries(Object.entries(mirror.overrides).filter(([id]) => live.has(id))),
-    readyAt: null,
+    sync: { _tag: 'InSync', seen: null },
   }
   return withMirror({ ...game, nodes, links, cash }, landed)
 }
@@ -662,10 +662,10 @@ const managedTarget = (nodes: ReadonlyArray<GameNode>, mirror: Mirror, id: strin
 /** The Game once the Mirror's Apply has landed, to show what the plan adds to Burn. */
 export const previewApply = (game: Game, region: RegionId): Game => {
   const mirror = mirrorOf(game, region)
-  if (!mirror || mirror.readyAt !== null) return game
+  if (!mirror || isApplying(mirror.sync)) return game
   const written = write({ ...game, cash: Number.MAX_SAFE_INTEGER }, mirror, false)
   const pending = mirrorOf(written, region)
-  return pending && pending.readyAt !== null ? land(written, pending) : written
+  return pending && isApplying(pending.sync) ? land(written, pending) : written
 }
 
 /* ---------- actions ---------- */
@@ -688,7 +688,10 @@ export const pickIacTool = (game: Game, tool: IacToolId): Action => {
     },
     // The new tool has read nothing yet.
     ...(game.mirrors && {
-      mirrors: game.mirrors.map((mirror) => ({ ...mirror, seen: null })),
+      mirrors: game.mirrors.map((mirror) => ({
+        ...mirror,
+        sync: { _tag: 'InSync' as const, seen: null },
+      })),
     }),
   })
 }
@@ -734,12 +737,10 @@ export const startMirror = (game: Game, target: RegionId, source: RegionId): Act
     data,
     code: {},
     links: [],
-    seen: null,
+    sync: { _tag: 'InSync', seen: null },
     hold: [],
     overrides: {},
     computed: false,
-    readyAt: null,
-    driftAt: null,
   }
   return ok({ ...next, mirrors: [...mirrorsOf(next), mirror] })
 }
@@ -757,7 +758,7 @@ const applyRefusal = (game: Game, mirror: Mirror): Action | null => {
     return notAllowed(
       `The code is moving to ${IAC_TOOL_INFO[game.iac.tool].name}. Mirrors sync again in ${Math.ceil(left)} min.`,
     )
-  if (mirror.readyAt !== null) return notAllowed('An Apply is landing.')
+  if (isApplying(mirror.sync)) return notAllowed('An Apply is landing.')
   const drift = driftOf(game, mirror)
   if (drift.choices > 0) return notAllowed('Pick where each new data Node’s writes go first.')
   const cost = applyCost(game, mirror)
@@ -824,8 +825,13 @@ export const refreshMirror = (game: Game, region: RegionId): Action => {
   if (!mirror || !tool) return notAllowed('That region is not a Mirror.')
   if (IAC_TOOL_INFO[tool].refreshOnPlan)
     return notAllowed(`${IAC_TOOL_INFO[tool].name} refreshes on every plan.`)
-  if (mirror.readyAt !== null) return notAllowed('An Apply is landing.')
-  return ok(withMirror(game, { ...mirror, seen: observe(game, mirror) }))
+  if (isApplying(mirror.sync)) return notAllowed('An Apply is landing.')
+  return ok(
+    withMirror(game, {
+      ...mirror,
+      sync: mirrorSyncStep(mirror.sync, { _tag: 'Observed', observed: observe(game, mirror) }),
+    }),
+  )
 }
 
 /**
@@ -837,8 +843,8 @@ export const repairMirror = (game: Game, region: RegionId): Action => {
   const tool = toolOf(game)
   if (!mirror || !tool) return notAllowed('That region is not a Mirror.')
   if (!IAC_TOOL_INFO[tool].repair) return notAllowed(`${IAC_TOOL_INFO[tool].name} has no repair.`)
-  if (mirror.readyAt !== null) return notAllowed('An Apply is landing.')
-  const seen = { ...mirror, seen: observe(game, mirror) }
+  if (isApplying(mirror.sync)) return notAllowed('An Apply is landing.')
+  const seen = { ...mirror, sync: { _tag: 'InSync' as const, seen: observe(game, mirror) } }
   const lost = driftOf(game, seen).changes.filter(
     (change) => change._tag === 'create' && change.hand,
   )
@@ -855,11 +861,14 @@ export const repairMirror = (game: Game, region: RegionId): Action => {
   if (!game.sandbox && game.cash < cost)
     return no(Refusal.Unaffordable({ what: 'The repair', price: cost, currency: 'cash' }))
   const paid: Game = { ...game, cash: game.sandbox ? game.cash : game.cash - cost }
-  const repaired: Mirror = { ...mirror, seen: null, hold: [] }
+  const repaired: Mirror = { ...mirror, sync: { _tag: 'InSync', seen: null }, hold: [] }
   // A Node sold by hand comes back after the build time; settings and Links now.
   return ok(
     lost.length > 0
-      ? withMirror(paid, { ...repaired, readyAt: game.time + MIRROR_TIME })
+      ? withMirror(paid, {
+          ...repaired,
+          sync: { _tag: 'Applying', readyAt: game.time + MIRROR_TIME },
+        })
       : land(withMirror(paid, repaired), repaired),
   )
 }
@@ -878,21 +887,32 @@ export const advanceMirrors = (game: Game): Game => {
   for (const mirror of game.mirrors) {
     const current = mirrorOf(next, mirror.region)
     if (!current) continue
-    if (current.readyAt !== null) {
-      if (next.time >= current.readyAt) next = land(next, current)
+    if (isApplying(current.sync)) {
+      if (next.time >= current.sync.readyAt) next = land(next, current)
       continue
     }
     const sync = next.iac?.sync ?? null
     if (sync === null || switchLeft(next) > 0) continue
     // A GitOps controller reconciles against live state: it sees every hand change.
-    const watched = { ...current, seen: observe(next, current) }
+    const watched = {
+      ...current,
+      sync: { _tag: 'InSync' as const, seen: observe(next, current) },
+    }
     const drift = driftOf(next, watched)
     if (drift.behind + drift.hand === 0) {
-      if (current.driftAt !== null) next = withMirror(next, { ...current, driftAt: null })
+      if (current.sync._tag === 'Drifted')
+        next = withMirror(next, {
+          ...current,
+          sync: { _tag: 'InSync', seen: current.sync.seen },
+        })
       continue
     }
-    const since = current.driftAt ?? next.time
-    if (current.driftAt === null) next = withMirror(next, { ...current, driftAt: since })
+    const since = current.sync._tag === 'Drifted' ? current.sync.since : next.time
+    if (current.sync._tag !== 'Drifted')
+      next = withMirror(next, {
+        ...current,
+        sync: { _tag: 'Drifted', since, seen: seenOf(current.sync) },
+      })
     if (next.time < since + syncDelay(sync)) continue
     const latest = mirrorOf(next, mirror.region)
     const live = latest && { ...latest, seen: observe(next, latest) }

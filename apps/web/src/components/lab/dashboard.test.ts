@@ -309,7 +309,14 @@ test('the App Server row draws its copies and the workers busy against the pool'
   const model = fixture({
     build: (base) => ({
       nodes: base.nodes.map((node) =>
-        node.type === 'server' ? { ...node, replicas: 2, pending: 1, workers: 16 } : node,
+        node.type === 'server'
+          ? {
+              ...node,
+              replicas: 2,
+              scaler: { _tag: 'Scaling', pending: 1, readyIn: 10 },
+              workers: 16,
+            }
+          : node,
       ),
       links: base.links,
     }),
@@ -432,8 +439,7 @@ test('the running Incident is marked once, with its severity', () => {
         impaired: 0,
         lostRevenue: 0,
         failed: 0,
-        signalAt: null,
-        ackAt: null,
+        phase: { _tag: 'Quiet' },
         severity: 2,
         magnitude: 3,
         zone: 'b',
@@ -557,7 +563,7 @@ test('the SLO row draws the week’s availability, its error budget and the SLA 
       stage: 4,
       founding: { ...DEFAULT_FOUNDING, venture: 'b2b-saas' },
       researched: [...new Set<ResearchId>([...base.researched, ...RESEARCHED, 'enterprise-sales'])],
-      shipped: ['paid-plans'],
+      features: { 'paid-plans': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
       budget: [{ hour: 0, requests: 10_000, failed: 500, users: base.users }],
     },
   })
@@ -590,7 +596,7 @@ test('a week that met its SLO owes no SLA credit', () => {
       stage: 4,
       founding: { ...DEFAULT_FOUNDING, venture: 'b2b-saas' },
       researched: [...new Set<ResearchId>([...base.researched, ...RESEARCHED, 'enterprise-sales'])],
-      shipped: ['paid-plans'],
+      features: { 'paid-plans': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
       budget: [{ hour: 0, requests: 10_000, failed: 0, users: base.users }],
     },
   })
@@ -687,8 +693,7 @@ test('the Incidents row draws the running Incident’s severity, run, MTTR and c
         impaired: 25,
         lostRevenue: 340,
         failed: 900,
-        signalAt: 965,
-        ackAt: 975,
+        phase: { _tag: 'Acknowledged', signalAt: 965, ackAt: 975 },
         severity: 2,
         magnitude: 3,
         zone: 'b',
@@ -810,8 +815,7 @@ test('the Incident timeline places each Postmortem by the time it ran, and the r
         impaired: 25,
         lostRevenue: 340,
         failed: 900,
-        signalAt: 961,
-        ackAt: 971,
+        phase: { _tag: 'Acknowledged', signalAt: 961, ackAt: 971 },
         severity: 2,
         magnitude: 3,
         zone: 'b',
@@ -872,8 +876,7 @@ test('a running Incident nobody has seen yet is one unseen span', () => {
         impaired: 25,
         lostRevenue: 340,
         failed: 900,
-        signalAt: null,
-        ackAt: null,
+        phase: { _tag: 'Quiet' },
         severity: 2,
         magnitude: 3,
         zone: 'b',

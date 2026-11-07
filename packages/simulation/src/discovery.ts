@@ -231,6 +231,6 @@ export const discoverTerms = (
   if (game.engineers.length >= 8) found.add('brookss-law')
   if (game.teams.length > 1) found.add('conways-law')
   if (game.quarter) found.add('rule-of-40')
-  if (game.nodes.some((node) => node.draining)) found.add('node-drain')
+  if (game.nodes.some((node) => node.service._tag === 'Draining')) found.add('node-drain')
   return [...found]
 }

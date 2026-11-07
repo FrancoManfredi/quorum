@@ -92,7 +92,7 @@ test('the HUD names the SLA credit beside the runway while a week misses its SLO
     stage: 4,
     founding: { ...DEFAULT_FOUNDING, venture: 'b2b-saas' },
     researched: [...new Set<ResearchId>([...base.researched, 'enterprise-sales'])],
-    shipped: ['paid-plans'],
+    features: { 'paid-plans': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
     budget: [{ hour: 0, requests: 10_000, failed: 500, users: base.users }],
   })
   const credit = slaCreditsOf(model.board.game, ledgerOf(model))
@@ -111,7 +111,7 @@ test('a Company without the research pays no credit, so the HUD names none', () 
     stage: 4,
     founding: { ...DEFAULT_FOUNDING, venture: 'b2b-saas' },
     researched: base.researched,
-    shipped: ['paid-plans'],
+    features: { 'paid-plans': { _tag: 'Live', rollout: 1, adoption: 1, lift: null } },
     budget: [{ hour: 0, requests: 10_000, failed: 500, users: base.users }],
   })
   expect(slaCreditsOf(model.board.game, ledgerOf(model))).toBe(0)
