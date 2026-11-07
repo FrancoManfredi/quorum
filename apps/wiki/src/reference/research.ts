@@ -298,16 +298,16 @@ const tree = (h: H, full = false): Html => {
                   height: `${NODE_SIZE.h}px`,
                 }),
                 h.Class(
-                  'press absolute flex items-center gap-2.5 overflow-hidden rounded-xl bg-raised px-2.5 shadow-raised transition-[filter] hover:brightness-[0.985]',
+                  'press absolute flex items-center gap-2.5 overflow-hidden rounded-xl bg-raised px-2.5 py-1 shadow-raised transition-[filter] hover:brightness-[0.985]',
                 ),
               ],
               [
                 researchMark(entry, 'sm', false, h),
                 h.span(
-                  [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
+                  [h.Class('flex min-w-0 flex-1 flex-col gap-1')],
                   [
                     h.span(
-                      [h.Class('truncate text-[12.5px] leading-tight font-semibold')],
+                      [h.Class('line-clamp-2 text-[12.5px] leading-tight font-semibold')],
                       [entry.name],
                     ),
                     h.span(

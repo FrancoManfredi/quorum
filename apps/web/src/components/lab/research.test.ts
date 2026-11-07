@@ -7,10 +7,9 @@ import { ResearchScroll, researchPanel } from './research.ts'
 
 /* ==========================================================================
    15 "Accessibility", Text at 150%: the Research tree grows its Node boxes and
-   the spacing between them with the type. A long item name takes a second line
-   at any size rather than ellipsizing, because a Japanese name runs out of room
-   sooner than an English one; at the interface's own size the box is what it
-   always was, and the name fits inside it.
+   the spacing between them with the type. Every box holds two lines of its name
+   above its cost, so a long item name fills the box rather than ellipsizing,
+   because a Japanese or French name runs out of room sooner than an English one.
    ========================================================================== */
 
 const sized = (text: 'normal' | 'large'): Model => ({
@@ -27,20 +26,20 @@ test('at 150% the tree grows its Node boxes and wraps a long name', () => {
     { update, view: researchPanel },
     Scene.given(sized('large')),
     scrolled(),
-    Scene.expect(box('load-balancing')).toHaveStyle('height', '72px'),
-    Scene.expect(box('load-balancing')).toHaveStyle('width', '276px'),
+    Scene.expect(box('load-balancing')).toHaveStyle('height', '96px'),
+    Scene.expect(box('load-balancing')).toHaveStyle('width', '336px'),
     Scene.expect(Scene.selector('[data-research="load-balancing"] .line-clamp-2')).toExist(),
     Scene.expect(Scene.text('Load balancing algorithms')).toExist(),
   )
 })
 
-test('at its own size the box stays put and a long name still has a second line', () => {
+test('at its own size the box holds two lines of a long name above its cost', () => {
   Scene.scene(
     { update, view: researchPanel },
     Scene.given(sized('normal')),
     scrolled(),
-    Scene.expect(box('load-balancing')).toHaveStyle('height', '48px'),
-    Scene.expect(box('load-balancing')).toHaveStyle('width', '184px'),
+    Scene.expect(box('load-balancing')).toHaveStyle('height', '64px'),
+    Scene.expect(box('load-balancing')).toHaveStyle('width', '224px'),
     Scene.expect(Scene.selector('[data-research="load-balancing"] .line-clamp-2')).toExist(),
     Scene.expect(Scene.text('Load balancing algorithms')).toExist(),
   )

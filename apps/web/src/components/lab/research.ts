@@ -193,21 +193,22 @@ const face = (
   return [
     researchMark(entry, 'sm', grey, h),
     h.span(
-      [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
+      [h.Class('flex min-w-0 flex-1 flex-col gap-1')],
       [
         h.span(
           [
             h.Class(
               cn(
-                'flex items-center gap-1 text-[calc(12.5px*var(--type-scale))] leading-tight font-semibold',
+                'flex items-start gap-1 text-[calc(12.5px*var(--type-scale))] leading-tight font-semibold',
                 grey ? 'text-muted-foreground' : '',
               ),
             ),
           ],
           [
-            // A long name takes a second line before it ellipsizes: a Japanese name runs
-            // out of room sooner than an English one (15 "Accessibility"). `auto-phrase`
-            // breaks Japanese at a phrase boundary rather than mid-term, where it is supported.
+            // Two lines fit inside the box by design: the box is wide enough for the
+            // longest name in every language at 150% (15 "Accessibility"). The clamp
+            // stays as the last guard against a name added later. `auto-phrase` breaks
+            // Japanese at a phrase boundary rather than mid-term, where it is supported.
             h.span(
               [h.Class('[word-break:auto-phrase] line-clamp-2')],
               [t.catalog.research[entry.id].name],
@@ -239,7 +240,7 @@ const card = (
             h.Key('fill'),
             h.AriaHidden(true),
             h.Class(
-              'absolute inset-0 flex items-center gap-2.5 px-2.5 transition-[clip-path] duration-500 ease-linear',
+              'absolute inset-0 flex items-center gap-2.5 px-2.5 py-1 transition-[clip-path] duration-500 ease-linear',
             ),
             h.Style({
               background: `linear-gradient(to right, color-mix(in oklab, ${color} 8%, var(--raised-top)), color-mix(in oklab, ${color} 22%, var(--raised-top)))`,
@@ -290,7 +291,7 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
       }),
       h.Class(
         cn(
-          'press absolute flex items-center gap-2.5 overflow-hidden rounded-xl px-2.5 text-left transition-[filter,box-shadow,outline-color,opacity]',
+          'press absolute flex items-center gap-2.5 overflow-hidden rounded-xl px-2.5 py-1 text-left transition-[filter,box-shadow,outline-color,opacity]',
           NODE_CLASS[state],
           focused
             ? 'outline-2 outline-offset-2 outline-primary-strong'

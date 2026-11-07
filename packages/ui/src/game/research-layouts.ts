@@ -15,7 +15,12 @@ import {
    comes from the catalog alone, so it is computed once.
    ========================================================================== */
 
-export const NODE_SIZE = { w: 184, h: 48 }
+/**
+ * A Node box holds two lines of its name and a line of cost, so a long name fills
+ * the box instead of ellipsizing. Every box is the same size, which keeps the
+ * rows, the Era bands, and the wires straight.
+ */
+export const NODE_SIZE = { w: 224, h: 64 }
 
 /** A Node box at `scale`, the interface's type scale: at 150% it is half again as wide and tall. */
 export const nodeSize = (scale: number): Readonly<{ w: number; h: number }> => ({
