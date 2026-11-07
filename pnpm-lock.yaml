@@ -165,9 +165,6 @@ importers:
 
   apps/backend:
     dependencies:
-      '@alchemy.run/domain':
-        specifier: 2.0.0-beta.85
-        version: 2.0.0-beta.85
       '@quorum/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc

@@ -7,7 +7,7 @@ const contextsRoot = dirname(fileURLToPath(import.meta.url))
 
 /** Adapters the deployment owns, and Sentry (ADR 0013); contexts must stay platform-agnostic. */
 const importsAdapter =
-  /(?:\bfrom\s+|\bimport\s*\(?\s*)['"](?:alchemy(?:\/|['"])|@alchemy\.run\/cloudflare|cloudflare:|@cloudflare\/|@sentry\/|wrangler)/
+  /(?:\bfrom\s+|\bimport\s*\(?\s*)['"](?:alchemy(?:\/|['"])|cloudflare:|@cloudflare\/|@sentry\/|wrangler)/
 
 /**
  * `@cloudflare/workers-types` is ambient in this package, so a context can name

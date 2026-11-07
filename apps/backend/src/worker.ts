@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/cloudflare'
 import { SentryEffectLogger, SentryEffectTracer } from '@sentry/effect'
-import * as Domain from '@alchemy.run/domain'
 import { ErrorReporter } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as Layer from 'effect/Layer'
@@ -8,7 +7,6 @@ import * as Logger from 'effect/Logger'
 import * as Tracer from 'effect/Tracer'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import { Api, RPC_PATH } from '@quorum/rpc'
-import { Backend, BackendHandlers } from './contexts/Backend.model.ts'
 import { ChallengeHandlers } from './contexts/challenges/handlers.ts'
 import { ResultStore } from './contexts/challenges/store.ts'
 import { SurveyHandlers } from './contexts/survey/handlers.ts'
@@ -59,11 +57,8 @@ const handlerFor = (env: Env) =>
       protocol: 'http',
     }).pipe(
       Layer.provide(Layer.mergeAll(SystemHandlers, ChallengeHandlers, SurveyHandlers)),
-      Layer.provideMerge(Backend.layer(BackendHandlers)),
       Layer.provide(Layer.succeed(ResultStore, d1ResultStore(env.RESULTS))),
       Layer.provide(Layer.succeed(SurveyStore, d1SurveyStore(env.FEEDBACK))),
-      // In memory until the model moves to Durable Objects (phase 3).
-      Layer.provide(Domain.InMemory),
       Layer.provideMerge(RpcSerialization.layerJson),
       Layer.provide(SentryLive),
     ),

@@ -8,18 +8,11 @@ import {
   decodeReplay,
   runChallenge,
 } from '@quorum/simulation'
-import { Boards } from './Boards.projection.ts'
-import { ChallengeEntry } from './ChallengeEntry.aggregate.ts'
-import { entryIdOf } from './ChallengeEntry.id.ts'
-import { RecordResult } from './RecordResult.command.ts'
 import { ResultStore, StoreError, type Board } from './store.ts'
 
 /* Challenge verification (14 "Rules"): the server re-runs every submitted replay and keeps its own score. */
 
 const DAY_MS = 86_400_000
-
-/** How long a submission waits for the results table to take its write before it answers "unavailable". */
-const PROJECTION_WAIT = '2 seconds'
 
 const unavailable = () => new ApiError({ message: 'Results are unavailable. Try again later.' })
 
@@ -58,7 +51,6 @@ const scoresOf = (result: ChallengeScores): ChallengeScores => ({
 export const ChallengeHandlers = ChallengeRpc.toLayer(
   Effect.gen(function* () {
     const store = yield* ResultStore
-    const entries = yield* ChallengeEntry
     return ChallengeRpc.of({
       challengeSubmit: (submission) =>
         Effect.gen(function* () {
@@ -94,27 +86,9 @@ export const ChallengeHandlers = ChallengeRpc.toLayer(
           })
           const board: Board = { challengeId: challenge.id, simVersion: SIM_VERSION }
           const score = scoresOf(result.success)
-          const entry = entryIdOf(SIM_VERSION, challenge.id, submission.deviceId)
-          // The aggregate keeps each device's best. Its projection writes the results table, and the
-          // percentiles below count that table, so wait until the new best is in it.
           const best = result.success.passed
-            ? yield* entries
-                .send(
-                  entry,
-                  new RecordResult({
-                    challengeId: challenge.id,
-                    simVersion: SIM_VERSION,
-                    deviceId: submission.deviceId,
-                    score,
-                    replay: submission.replay,
-                  }),
-                )
-                .pipe(
-                  Effect.tap((receipt) => Boards.caughtUp(receipt, { timeout: PROJECTION_WAIT })),
-                  Effect.map((receipt) => receipt.reply.best),
-                  Effect.mapError(unavailable),
-                )
-            : (yield* entries.state(entry)).best
+            ? yield* store.record(board, submission.deviceId, score, submission.replay, now)
+            : yield* store.best(board, submission.deviceId)
           const percentiles = best === null ? null : yield* store.percentiles(board, best)
           return {
             passed: result.success.passed,
