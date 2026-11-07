@@ -1,5 +1,5 @@
 import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
-import { ResearchMessage, STUDY_QUEUE } from '@/game/research.ts'
+import { ResearchMessage, STUDY_QUEUE, queueIndex } from '@/game/research.ts'
 import { Option } from 'effect'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
@@ -620,6 +620,20 @@ const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
     : h.empty
 }
 
+/**
+ * How many rows a queue row slides for a drag from `from` to `to`. Rows keep their
+ * order in the DOM, so the queue can show where the drop lands without the rows
+ * moving under the pointer.
+ */
+const queueSlide = (index: number, from: number, to: number): number => {
+  // The dragged row goes down to the slot the drop leaves it in. The rows between it
+  // and that slot step one place back toward where it started, so the slot follows
+  // the pointer and the rows never cross it.
+  if (index === from) return to - from
+  const without = index > from ? index - 1 : index
+  return (without < to ? without : without + 1) - index
+}
+
 /** A small icon button in the queue. */
 const queueButton = (
   label: string,
@@ -651,9 +665,23 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
   const drag = model.board.research.drag
   const dragging = DragAndDrop.isDragging(drag)
   const draggedId = DragAndDrop.maybeDraggedItemId(drag)
-  const overQueue =
-    dragging &&
-    Option.exists(DragAndDrop.maybeDropTarget(drag), (target) => target.containerId === STUDY_QUEUE)
+  // Where the drop leaves the dragged row. The rows stay put in the DOM and slide by
+  // whole rows, so the queue shows the gap without moving the target under the pointer.
+  const from = Option.match(draggedId, {
+    onNone: () => -1,
+    onSome: (id) => studies.findIndex((item) => item.id === id),
+  })
+  const landing =
+    from < 0
+      ? null
+      : Option.match(DragAndDrop.maybeDropTarget(drag), {
+          onNone: () => null,
+          onSome: ({ containerId, index }) =>
+            containerId !== STUDY_QUEUE
+              ? null
+              : Math.min(studies.length - 1, queueIndex(from, index)),
+        })
+  const overQueue = landing !== null
   if (studies.length === 0) return h.empty
   return h.section(
     [
@@ -685,14 +713,31 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
             const entry = localized(RESEARCH[item.id], t.catalog.research[item.id])
             const stall = studyStall(game, ledger, item.id)
             const isDragged = Option.exists(draggedId, (id) => id === item.id)
+            const slide = landing === null ? 0 : queueSlide(index, from, landing)
+            // The dragged row holds the slot the drop leaves it in: a hint of the icon
+            // under the cursor's ghost, or the whole row when the keyboard moves it.
+            const slot = isDragged && landing !== null
+            const keyboard = drag.dragState._tag === 'KeyboardDragging'
+            // Rows share one height, so a row slides by its own height plus the gap
+            // between rows; a transition retargets it when the pointer moves on.
+            const offset =
+              slide === 0 ? [] : [h.Style({ translate: `0 calc(${slide} * (100% + 0.125rem))` })]
             return h.div(
               [
                 h.Key(item.id),
+                ...offset,
                 h.Class(
                   cn(
                     'flex items-center gap-1 rounded-lg pl-1',
-                    item.id === focus ? 'bg-nested' : '',
-                    isDragged && 'opacity-45',
+                    // A pointer drag slides its rows; the keyboard moves one at once.
+                    dragging && !keyboard && 'transition-[translate] duration-150 ease-out',
+                    slot &&
+                      'pointer-events-none bg-primary/[0.05] ring-1 ring-inset ring-primary/30',
+                    !slot && item.id === focus && 'bg-nested',
+                    isDragged && landing === null && 'opacity-45',
+                    slot &&
+                      !keyboard &&
+                      '[&>*:not(:first-child)]:invisible [&>*:first-child]:opacity-40',
                   ),
                 ),
               ],

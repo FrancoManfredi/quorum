@@ -44,6 +44,14 @@ const out = (research: Research, outMessage: ResearchOutMessage): ResearchReturn
   outMessage,
 })
 
+/**
+ * Where a drop leaves the dragged row. The component counts the dragged row where
+ * it started, so taking it out of the count first turns its index into a place in
+ * the queue. The view reads this too, to preview the drop before it lands.
+ */
+export const queueIndex = (fromIndex: number, dropIndex: number): number =>
+  dropIndex > fromIndex ? dropIndex - 1 : dropIndex
+
 /** A drop moves a Study only when it lands at a new place in the queue. */
 const dragged = (research: Research, message: DragAndDrop.Message): ResearchReturn => {
   const next = DragAndDrop.update(research.drag, message)
@@ -61,7 +69,7 @@ const dragged = (research: Research, message: DragAndDrop.Message): ResearchRetu
   )
     return moved
   // The component's index counts the dragged item where it started; take it out first.
-  const index = drop.toIndex > drop.fromIndex ? drop.toIndex - 1 : drop.toIndex
+  const index = queueIndex(drop.fromIndex, drop.toIndex)
   return index === drop.fromIndex
     ? moved
     : {
