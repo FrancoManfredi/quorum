@@ -83,10 +83,13 @@ only hint, and it stops once you use the button.
 
 ## Control the clock
 
+The clock runs at 1×, and only the menu or a window that loses focus stops it. To pause it yourself
+or change its speed, turn on **Easy mode** in Settings:
+
 - Press **Space** to pause and resume.
 - Press **S** to change the speed. Each press moves to the next speed.
 
-Pause when you want to read the board. Nothing changes while the clock stops.
+Nothing changes while the clock stops.
 
 ## Watch your users grow
 

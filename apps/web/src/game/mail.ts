@@ -38,6 +38,7 @@ import {
   CHURN_LETTERS,
   CVE_LETTERS,
   CVES,
+  EASY_MODE,
   EVENTS,
   HIRE,
   POSTMORTEM,
@@ -360,6 +361,16 @@ const customerFact = (game: Game, n: number): Fact => {
   const key = 'customers:slow'
   const sender = senderFor('customers', game, `slow:${n}`)
   return fact(key, sender, write('ticket', TICKETS, {}, sender, game, key, n))
+}
+
+/** The Mentor offers Easy mode, once a Company: Pause and a speed control. */
+export const EASY_MODE_KEY = 'mentor:easy-mode'
+
+export const easyModeFact = (game: Game): Fact => {
+  const sender = senderFor('mentor', game, EASY_MODE_KEY)
+  return fact(EASY_MODE_KEY, sender, write('easy', EASY_MODE, {}, sender, game, EASY_MODE_KEY), [
+    { id: 'easy', label: 'Turn on Easy mode' },
+  ])
 }
 
 /**

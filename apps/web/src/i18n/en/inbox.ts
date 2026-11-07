@@ -83,6 +83,7 @@ export const inbox = {
     ack: 'Marks it read and dismisses the card',
     vendor: 'Takes a fifth off that item’s Insight cost',
     mute: 'Mutes the sender for one calendar hour',
+    easy: 'Adds Pause and a speed control',
   },
   leadsOffSite: (site: string) => `Leads off-site to ${site}`,
   leadsOffSiteUnknown: 'Leads off-site',

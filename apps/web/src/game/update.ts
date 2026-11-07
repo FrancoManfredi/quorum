@@ -74,6 +74,7 @@ export const initialModel = (): Model =>
       muted: false,
       autoPause: false,
       blurPause: true,
+      easyMode: false,
       motion: 'system',
       text: 'normal',
       theme: 'light',

@@ -20,6 +20,7 @@ import { FocusInspector } from '../commands.ts'
 import { Message } from '../message.ts'
 import { Model, type Inbox } from '../model.ts'
 import { Option } from 'effect'
+import { PrefsMessage } from '../prefs.ts'
 import { ResearchMessage } from '../research.ts'
 import { TeamOutMessage } from '../team.ts'
 import { Update } from 'foldkit'
@@ -155,6 +156,10 @@ export const mailAction = (
         commands,
       }
     }
+    case 'easy':
+      return model.prefs.easyMode
+        ? { model }
+        : route(model, Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }))
     case 'churn':
       return route(model, Message.PanelOpened({ panel: 'churn' }))
     case 'research': {

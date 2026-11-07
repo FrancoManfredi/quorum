@@ -47,6 +47,26 @@ export const savePrefs = (model: Model): UpdateResult => ({
   ],
 })
 
+/** Without Easy mode the clock runs at 1×, and a pause only the player could end ends now. */
+const plainClock = (model: Model): UpdateResult =>
+  model.prefs.easyMode
+    ? { model }
+    : {
+        model: {
+          ...model,
+          board: {
+            ...model.board,
+            clock: {
+              ...model.board.clock,
+              speed: 1,
+              mode: clockAway(model)
+                ? model.board.clock.mode
+                : clockStep(model.board.clock.mode, { _tag: 'Resumed' }),
+            },
+          },
+        },
+      }
+
 /** A Settings gesture: the Prefs Submodel changes, then the new settings are saved and applied. */
 export const foldPrefs = (model: Model, message: PrefsMessage): UpdateResult =>
   Update.combine(model, [
@@ -56,6 +76,7 @@ export const foldPrefs = (model: Model, message: PrefsMessage): UpdateResult =>
       write: (parent, prefs) => ({ ...parent, prefs }),
       toParentMessage: (child) => Message.PrefsChanged({ message: child }),
     })(message),
+    message._tag === 'EasyModeToggled' ? plainClock : (model: Model) => ({ model }),
     savePrefs,
   ])
 

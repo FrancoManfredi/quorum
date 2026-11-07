@@ -80,6 +80,7 @@ export const mailWords: Messages['mailWords'] = {
     research: 'リサーチを開く',
     backlog: 'バックログに追加',
     vendor: 'デモを予約',
+    easy: 'イージーモードをオンにする',
     postmortem: 'ポストモーテムを起票',
     postmortemTake: '起票してアクションを研究',
     approve: '承認',
@@ -114,6 +115,7 @@ export const mailWords: Messages['mailWords'] = {
     postmortem: 'ポストモーテムを起票しました。',
     postmortemTake: 'ポストモーテムを起票し、アクションアイテムを研究キューに入れました。',
     vendor: 'デモを予約しました。',
+    easy: 'イージーモードをオンにしました。',
     trap: 'クリックしました。罠でした。アドレスは本当の送信者ではありませんでした。',
   },
   closings: {

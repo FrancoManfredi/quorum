@@ -16,6 +16,8 @@ import {
   EVENT_EVERY,
   churnFact,
   stallFact,
+  EASY_MODE_KEY,
+  easyModeFact,
   disclosureFact,
   eventFact,
   eventMail,
@@ -434,7 +436,8 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   const severe = events.find(
     (event) => event._tag === 'IncidentStarted' && event.incident.severity <= 2,
   )
-  const autoPaused = model.prefs.autoPause && severe !== undefined && !clockPaused(model)
+  const autoPaused =
+    model.prefs.easyMode && model.prefs.autoPause && severe !== undefined && !clockPaused(model)
   let next: Model = {
     ...model,
     board: {
@@ -671,6 +674,15 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
         }
     }
   }
+  // A player who struggles hears about Easy mode once a Company, at an hour's turn.
+  if (
+    !offCompany(next) &&
+    !next.prefs.easyMode &&
+    Math.floor(game.time / CALENDAR_HOUR) > Math.floor(model.board.game.time / CALENDAR_HOUR) &&
+    struggling(game) &&
+    !next.board.inbox.mail.some((mail) => mail.key === EASY_MODE_KEY)
+  )
+    next = mailedTo(next, easyModeFact(game), game.time)
   // A stalled running Study holds the queue: a teammate writes once, and the Thread waits in Needs
   // action until the Study moves or leaves the queue (10 "Studies").
   if (!offCompany(next)) {
@@ -732,6 +744,22 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   return milestones(model, { model: next, commands }, events, ledger)
 }
 
+/** Sim seconds of history the error share is averaged over before Easy mode is offered. */
+const STRUGGLE_WINDOW = 300
+
+/**
+ * Too many failures or incidents: a tenth of requests failed over the last five sim minutes, or
+ * three of the recorded postmortems are SEV1 or SEV2.
+ */
+const struggling = (game: Game): boolean => {
+  const recent = game.history.slice(-STRUGGLE_WINDOW)
+  const errors =
+    recent.length === STRUGGLE_WINDOW &&
+    recent.reduce((sum, sample) => sum + sample.errors, 0) / recent.length >= 0.1
+  const severe = game.postmortems.filter((postmortem) => postmortem.severity <= 2).length >= 3
+  return errors || severe
+}
+
 type ClockTag =
   | 'Ticked'
   | 'SpeedCycled'
@@ -745,6 +773,7 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
   Ticked: ({ elapsedMs }) => tick(model, elapsedMs),
 
   SpeedCycled: () => {
+    if (!model.prefs.easyMode) return { model }
     const speeds = speedsOf(model.board.game)
     const index = speeds.indexOf(model.board.clock.speed)
     return {
@@ -763,6 +792,7 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
   }),
 
   PauseToggled: () => {
+    if (!model.prefs.easyMode) return { model }
     const next = {
       ...model,
       board: {

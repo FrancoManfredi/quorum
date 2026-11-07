@@ -82,6 +82,7 @@ export const inbox: Messages['inbox'] = {
     ack: 'Le marque lu et ferme la carte',
     vendor: 'Retire un cinquième du coût en connaissances de cet élément',
     mute: 'Met l’expéditeur en sourdine une heure calendaire',
+    easy: 'Ajoute la pause et le réglage de la vitesse',
   },
   leadsOffSite: (site) => `Mène hors du jeu vers ${site}`,
   leadsOffSiteUnknown: 'Mène hors du jeu',

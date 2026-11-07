@@ -771,11 +771,21 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
       Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
     ),
     toggle(
-      'auto-pause',
-      t.title.pauseOnSEV1AndSEV2,
-      model.prefs.autoPause,
-      Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
+      'easy-mode',
+      t.title.easyMode,
+      model.prefs.easyMode,
+      Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }),
     ),
+    ...(model.prefs.easyMode
+      ? [
+          toggle(
+            'auto-pause',
+            t.title.pauseOnSEV1AndSEV2,
+            model.prefs.autoPause,
+            Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
+          ),
+        ]
+      : []),
     toggle(
       'blur-pause',
       t.title.pauseWhenTheWindowLosesFocus,

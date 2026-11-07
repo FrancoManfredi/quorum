@@ -80,6 +80,7 @@ export const mailWords: Messages['mailWords'] = {
     research: 'Ouvrir la Recherche',
     backlog: 'Ajouter au backlog',
     vendor: 'Réserver la démo',
+    easy: 'Activer le mode facile',
     postmortem: 'Consigner le post-mortem',
     postmortemTake: 'Consigner et étudier l’élément de suivi',
     approve: 'Approuver',
@@ -115,6 +116,7 @@ export const mailWords: Messages['mailWords'] = {
     postmortemTake:
       'Vous avez consigné le post-mortem et mis l’élément de suivi dans la file d’étude.',
     vendor: 'Vous avez réservé la démo.',
+    easy: 'Vous avez activé le mode facile.',
     trap: "Vous avez cliqué dessus. C'était un piège : l'adresse n'était pas celle du véritable expéditeur.",
   },
   closings: {

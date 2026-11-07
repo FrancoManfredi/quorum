@@ -193,6 +193,8 @@ export const Prefs = Schema.Struct({
   muted: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   autoPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   blurPause: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
+  /** Pause, speed, and the auto-pause on a SEV1 or SEV2. Off, the clock runs at 1× and never stops for the player. */
+  easyMode: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   motion: Motion.pipe(Schema.withDecodingDefaultKey(Effect.succeed('system' as const))),
   text: TextSize.pipe(Schema.withDecodingDefaultKey(Effect.succeed('normal' as const))),
   theme: Theme.pipe(Schema.withDecodingDefaultKey(Effect.succeed('light' as const))),

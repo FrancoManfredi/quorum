@@ -1280,31 +1280,35 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
         h,
       ),
-      divider(h),
-      toolButton(
-        clockPaused(model) ? t.hud.resumeSpace : t.hud.pauseSpace,
-        clockPaused(model) ? Play : Pause,
-        Message.PauseToggled(),
-        clockPaused(model),
-        h,
-      ),
-      h.button(
-        [
-          h.Key('speed'),
-          h.Type('button'),
-          h.Title(t.hud.speedS),
-          h.AriaLabel(t.hud.speedS),
-          h.OnClick(Message.SpeedCycled()),
-          h.Class(
-            cn(
-              tool(model.board.clock.speed > 1),
-              FIGURE,
-              'text-[calc(12.5px*var(--type-scale))] font-medium compact:size-9',
+      ...(model.prefs.easyMode
+        ? [
+            divider(h),
+            toolButton(
+              clockPaused(model) ? t.hud.resumeSpace : t.hud.pauseSpace,
+              clockPaused(model) ? Play : Pause,
+              Message.PauseToggled(),
+              clockPaused(model),
+              h,
             ),
-          ),
-        ],
-        [`${model.board.clock.speed}×`],
-      ),
+            h.button(
+              [
+                h.Key('speed'),
+                h.Type('button'),
+                h.Title(t.hud.speedS),
+                h.AriaLabel(t.hud.speedS),
+                h.OnClick(Message.SpeedCycled()),
+                h.Class(
+                  cn(
+                    tool(model.board.clock.speed > 1),
+                    FIGURE,
+                    'text-[calc(12.5px*var(--type-scale))] font-medium compact:size-9',
+                  ),
+                ),
+              ],
+              [`${model.board.clock.speed}×`],
+            ),
+          ]
+        : []),
       desktopOnly(
         [
           divider(h),

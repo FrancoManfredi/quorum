@@ -328,6 +328,14 @@ export const AWAY_MONITORING: Letters<AwayWatchVars> = [
   }),
 ]
 
+/** The Mentor offers Easy mode to a player whose pager will not stop. */
+export const EASY_MODE: Letters = [
+  ({ from }) => ({
+    subject: `A slower clock`,
+    body: `Hi,\n\nYour pager has been busy, and the board does not wait for you to read it.\n\nEasy mode adds Pause and a speed control, so you can stop the clock and think before the next page. You can turn it off in Settings any time.\n\n${from}`,
+  }),
+]
+
 /** A teammate says why the running Study is stalled. */
 export const STALL: Letters<{ readonly research: string; readonly reason: string }> = [
   ({ research, reason }) => ({

@@ -33,6 +33,7 @@ export const title: Messages['title'] = {
   on: 'オン',
   off: 'オフ',
   muteSoundM: '消音 (M)',
+  easyMode: 'イージーモード',
   pauseOnSEV1AndSEV2: 'SEV1・SEV2で一時停止',
   reduceMotion: '動きを減らす',
   textAt150: '文字サイズ150%',

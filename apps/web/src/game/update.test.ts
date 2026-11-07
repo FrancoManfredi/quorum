@@ -16,7 +16,7 @@ import { COMPONENTS, researchList } from '@quorum/simulation/catalog'
 import { researchReady, resizePrice } from '@quorum/simulation/lookups'
 import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
-import { NEW_ENGINEER, type WorkItem } from '@quorum/simulation/state'
+import { NEW_ENGINEER, type Postmortem, type WorkItem } from '@quorum/simulation/state'
 import { SHARED } from '@quorum/simulation/playbook'
 import { encodeText } from '@quorum/simulation/codec'
 import { JOBS } from '@quorum/ui/board/jobs'
@@ -1234,7 +1234,8 @@ test('losing focus pauses the clock and focus resumes it, unless the setting is 
   expect(update(blurred, Message.WindowFocused()).model.board.clock.mode._tag !== 'Running').toBe(
     false,
   )
-  const manual = update(inLab(), Message.PauseToggled()).model
+  const easy = { ...inLab(), prefs: { ...inLab().prefs, easyMode: true } }
+  const manual = update(easy, Message.PauseToggled()).model
   expect(update(manual, Message.WindowFocused()).model.board.clock.mode._tag !== 'Running').toBe(
     true,
   )
@@ -1243,6 +1244,75 @@ test('losing focus pauses the clock and focus resumes it, unless the setting is 
     Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
   ).model
   expect(update(off, Message.WindowBlurred()).model.board.clock.mode._tag !== 'Running').toBe(false)
+})
+
+test('only Easy mode pauses and speeds up the clock, and turning it off restores 1×', () => {
+  const running = (model: Model) => model.board.clock.mode._tag === 'Running'
+  const hard = inLab()
+  const spaced = update(hard, Message.KeyPressed({ key: ' ' })).model
+  expect(running(spaced)).toBe(true)
+  expect(update(hard, Message.KeyPressed({ key: 's' })).model.board.clock.speed).toBe(1)
+
+  const easy = update(hard, Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() })).model
+  const paused = update(easy, Message.KeyPressed({ key: ' ' })).model
+  const fast = update(paused, Message.KeyPressed({ key: 's' })).model
+  expect(running(fast)).toBe(false)
+  expect(fast.board.clock.speed).toBeGreaterThan(1)
+
+  const off = update(fast, Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() })).model
+  expect(running(off)).toBe(true)
+  expect(off.board.clock.speed).toBe(1)
+})
+
+test('the Mentor offers Easy mode once to a Company with too many severe incidents', () => {
+  const lab = inLab()
+  const postmortem = (id: number, severity: number): Postmortem => ({
+    id,
+    kind: 'spike',
+    target: null,
+    duration: 30,
+    mttr: 30,
+    mttd: null,
+    mtta: null,
+    lostUsers: 0,
+    lostRevenue: 0,
+    failed: 0,
+    action: null,
+    severity,
+    endedAt: null,
+    causedBy: null,
+  })
+  const atHourTurn = (postmortems: ReadonlyArray<Postmortem>): Model => ({
+    ...lab,
+    board: { ...lab.board, game: { ...lab.board.game, time: 59.9, postmortems } },
+  })
+  const offers = (model: Model) =>
+    update(model, Message.Ticked({ elapsedMs: TICK_MS })).model.board.inbox.mail.filter(
+      (mail) => mail.key === 'mentor:easy-mode',
+    )
+  // Two severe incidents and a SEV3 are not enough.
+  expect(offers(atHourTurn([postmortem(1, 1), postmortem(2, 2), postmortem(3, 3)]))).toEqual([])
+
+  const struggling = atHourTurn([postmortem(1, 1), postmortem(2, 2), postmortem(3, 1)])
+  const ticked = update(struggling, Message.Ticked({ elapsedMs: TICK_MS })).model
+  const [offer] = ticked.board.inbox.mail.filter((mail) => mail.key === 'mentor:easy-mode')
+  expect(offer?.actions).toEqual([{ id: 'easy', label: 'Turn on Easy mode' }])
+  const accepted = update(
+    ticked,
+    Message.InboxChanged({ message: InboxMessage.Acted({ id: offer!.id, action: 'easy' }) }),
+  ).model
+  expect(accepted.prefs.easyMode).toBe(true)
+
+  // Declined by deleting it: the next hour does not ask again.
+  const trashed = update(
+    ticked,
+    Message.InboxChanged({ message: InboxMessage.Trashed({ id: offer!.id }) }),
+  ).model
+  const nextHour = {
+    ...trashed,
+    board: { ...trashed.board, game: { ...trashed.board.game, time: 119.9 } },
+  }
+  expect(offers(nextHour)).toHaveLength(1)
 })
 
 test('a queued Study can run now, keeping the running one’s progress, and be cancelled', () => {

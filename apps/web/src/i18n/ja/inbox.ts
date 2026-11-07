@@ -82,6 +82,7 @@ export const inbox: Messages['inbox'] = {
     ack: '既読にしてカードを閉じます',
     vendor: 'その項目のインサイトコストを5分の1にします',
     mute: '送信者を1時間ミュートします',
+    easy: '一時停止と速度の操作を追加します',
   },
   leadsOffSite: (site) => `ゲーム外の${site}へ移動します`,
   leadsOffSiteUnknown: 'ゲーム外へ移動します',

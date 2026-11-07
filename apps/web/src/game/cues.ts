@@ -104,8 +104,10 @@ const gestureCue = (before: Model, message: Message, after: Model): Cue | null =
     case 'PostmortemFiled':
       return message.take ? gesture('unlock') : gesture('close')
     case 'PauseToggled':
-      return gesture('toggle', clockPaused(after) ? 0.8 : 1.15)
+      return after.prefs.easyMode ? gesture('toggle', clockPaused(after) ? 0.8 : 1.15) : null
     case 'SpeedCycled':
+      if (!after.prefs.easyMode) return null
+      return gesture('tick', SPEED_PITCH[after.board.clock.speed] ?? 1)
     case 'SpeedChosen':
       return gesture('tick', SPEED_PITCH[after.board.clock.speed] ?? 1)
     case 'KeyPressed':

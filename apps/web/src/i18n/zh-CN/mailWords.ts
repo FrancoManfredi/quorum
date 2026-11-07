@@ -80,6 +80,7 @@ export const mailWords: Messages['mailWords'] = {
     research: '打开研究',
     backlog: '加入待办',
     vendor: '预约演示',
+    easy: '开启简单模式',
     postmortem: '提交复盘',
     postmortemTake: '提交复盘并研究改进项',
     approve: '批准',
@@ -114,6 +115,7 @@ export const mailWords: Messages['mailWords'] = {
     postmortem: '你提交了复盘。',
     postmortemTake: '你提交了复盘，并把改进项放进了研究队列。',
     vendor: '你已预约演示。',
+    easy: '你已开启简单模式。',
     trap: '你点了。这是个陷阱：那个地址并不是真正的发件人。',
   },
   closings: {

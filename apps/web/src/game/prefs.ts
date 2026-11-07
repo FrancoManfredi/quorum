@@ -10,6 +10,7 @@ export const PrefsMessage = defineMessageUnion({
   MuteToggled: {},
   AutoPauseToggled: {},
   BlurPauseToggled: {},
+  EasyModeToggled: {},
   AgentAccessToggled: {},
   MotionToggled: {},
   AnalyticsToggled: {},
@@ -27,6 +28,7 @@ export const updatePrefs = (
     MuteToggled: () => ({ model: { ...prefs, muted: !prefs.muted } }),
     AutoPauseToggled: () => ({ model: { ...prefs, autoPause: !prefs.autoPause } }),
     BlurPauseToggled: () => ({ model: { ...prefs, blurPause: !prefs.blurPause } }),
+    EasyModeToggled: () => ({ model: { ...prefs, easyMode: !prefs.easyMode } }),
     AgentAccessToggled: () => ({ model: { ...prefs, agentAccess: !prefs.agentAccess } }),
     MotionToggled: () => ({
       model: { ...prefs, motion: prefs.motion === 'reduce' ? 'system' : 'reduce' },

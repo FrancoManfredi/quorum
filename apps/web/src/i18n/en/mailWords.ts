@@ -59,6 +59,7 @@ export const mailWords = {
     research: 'Open Research',
     backlog: 'Add to backlog',
     vendor: 'Book the demo',
+    easy: 'Turn on Easy mode',
     postmortem: 'File postmortem',
     postmortemTake: 'File and research the action item',
     approve: 'Approve',
@@ -94,6 +95,7 @@ export const mailWords = {
     postmortem: 'You filed the postmortem.',
     postmortemTake: 'You filed the postmortem and put the action item in the study queue.',
     vendor: 'You booked the demo.',
+    easy: 'You turned on Easy mode.',
     trap: 'You clicked it. It was a trap: the address was not the real sender.',
   },
   /** A thread's last word, when the thing it was about is settled. */

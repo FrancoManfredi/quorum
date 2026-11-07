@@ -12,6 +12,7 @@ export const panels: Messages['panels'] = {
   exitCompany: '退出公司',
   titleScreen: '返回标题页',
   muteSoundM: '静音（M）',
+  easyMode: '简单模式',
   pauseOnSEV1AndSEV2: '发生 SEV1 和 SEV2 故障时暂停',
   reduceMotion: '减少动态效果',
   textAt150: '文字放大到 150%',

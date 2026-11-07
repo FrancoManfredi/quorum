@@ -34,6 +34,7 @@ export const title: Messages['title'] = {
   on: 'Sur',
   off: 'Désactivé',
   muteSoundM: 'Couper le son (M)',
+  easyMode: 'Mode facile',
   pauseOnSEV1AndSEV2: 'Mettre en pause lors des incidents SEV1 et SEV2',
   reduceMotion: 'Réduire les animations',
   textAt150: 'Texte à 150 %',

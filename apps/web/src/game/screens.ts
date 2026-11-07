@@ -146,7 +146,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
       model.panel === 'exited' ? exitedPanel(model, h) : h.empty,
       model.panel === 'away' ? awayPanel(model, h) : h.empty,
       model.panel === 'playbooks' ? playbooksPanel(model, h) : h.empty,
-      model.panel === 'help' ? helpPanel(h) : h.empty,
+      model.panel === 'help' ? helpPanel(model, h) : h.empty,
       model.panel === 'menu' ? menuPanel(model, h) : h.empty,
       model.panel === 'settings' ? settingsPanel(model, h) : h.empty,
       model.panel === 'inbox' ? inboxPanel(model, h) : h.empty,

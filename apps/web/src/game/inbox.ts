@@ -371,6 +371,8 @@ const answerOf = (
       }
     case 'vendor':
       return { id: 'vendor', text: 'You booked the demo.' }
+    case 'easy':
+      return { id: 'easy', text: 'You turned on Easy mode.' }
     case 'trap':
       return {
         id: 'trap',
@@ -413,6 +415,7 @@ const ACTING = new Set([
   'research',
   'postmortem',
   'postmortem-take',
+  'easy',
 ])
 
 export const updateInbox = (

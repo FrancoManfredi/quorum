@@ -4473,6 +4473,18 @@ ${v.from}`,
 Toutes les études derrière elle attendent qu’elle avance. Corrigez la cause, ou ouvrez la Recherche pour faire monter une autre étude ou annuler celle-ci.`,
       }),
     ],
+    easy: [
+      (v) => ({
+        subject: `Une horloge plus lente`,
+        body: `Bonjour,
+
+Votre pager a beaucoup sonné, et le tableau n’attend pas que vous l’ayez lu.
+
+Le mode facile ajoute la pause et un réglage de la vitesse, pour arrêter l’horloge et réfléchir avant la prochaine alerte. Vous pouvez le désactiver à tout moment dans les Paramètres.
+
+${v.from}`,
+      }),
+    ],
   },
   snippets: {
     patchTicket: (v) =>

@@ -4,6 +4,7 @@ import {
   AWAY_MONITORING,
   CHURN_LETTERS,
   CVE_LETTERS,
+  EASY_MODE,
   EVENTS,
   HIRE,
   POSTMORTEM,
@@ -59,6 +60,7 @@ const letters: Readonly<Record<string, ReadonlyArray<Letter>>> = {
   'away.finance': AWAY_FINANCE as unknown as ReadonlyArray<Letter>,
   'away.monitoring': AWAY_MONITORING as unknown as ReadonlyArray<Letter>,
   stall: STALL as unknown as ReadonlyArray<Letter>,
+  easy: EASY_MODE as unknown as ReadonlyArray<Letter>,
 }
 
 export const mail = {

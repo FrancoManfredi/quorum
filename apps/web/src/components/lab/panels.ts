@@ -131,7 +131,7 @@ const stepsOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
   [t.panels.raise, t.panels.atTheUserTargetTakeOr],
 ]
 
-const keysOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
+const keysOf = (t: Messages, easyMode: boolean): ReadonlyArray<readonly [string, string]> => [
   ['1–7', t.panels.buildGroup],
   [t.panels.enter, t.panels.inspectorPlaceConfirm],
   ['L', t.panels.linkTheSelectedNode],
@@ -151,7 +151,7 @@ const keysOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
   [t.panels.shiftZ, t.panels.redo],
   [t.panels.del, t.panels.sellSelected],
   ['C', t.panels.collect],
-  ['S', t.panels.speed],
+  ...(easyMode ? [['S', t.panels.speed] as const] : []),
   ['D', t.panels.dashboard],
   ['G', t.panels.glossary],
   ['M', t.panels.mute],
@@ -159,12 +159,12 @@ const keysOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
   ['$', t.panels.cost],
   ['F', t.panels.fullscreen],
   [t.panels.arrows, t.panels.selectNearestNode],
-  [t.panels.space, t.panels.pause],
+  ...(easyMode ? [[t.panels.space, t.panels.pause] as const] : []),
   ['`', t.panels.playtestPanel],
   [t.panels.esc, t.panels.backOutThenMenu],
 ]
 
-export const helpPanel = (h: HtmlBuilder<Message>): Html => {
+export const helpPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return shell(
     t.panels.howToPlay,
@@ -215,7 +215,7 @@ export const helpPanel = (h: HtmlBuilder<Message>): Html => {
               h.span([h.Class(EYEBROW)], [t.panels.keys]),
               h.div(
                 [h.Class(NESTED)],
-                keysOf(t).map(([key, action]) =>
+                keysOf(t, model.prefs.easyMode).map(([key, action]) =>
                   h.div(
                     [
                       h.Key(key),
@@ -330,13 +330,25 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           switch_(
             {
-              id: 'setting-auto-pause',
-              label: t.panels.pauseOnSEV1AndSEV2,
-              isChecked: model.prefs.autoPause,
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
+              id: 'setting-easy-mode',
+              label: t.panels.easyMode,
+              isChecked: model.prefs.easyMode,
+              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }),
             },
             h,
           ),
+          model.prefs.easyMode
+            ? switch_(
+                {
+                  id: 'setting-auto-pause',
+                  label: t.panels.pauseOnSEV1AndSEV2,
+                  isChecked: model.prefs.autoPause,
+                  onToggle: () =>
+                    Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
+                },
+                h,
+              )
+            : h.empty,
           switch_(
             {
               id: 'setting-blur-pause',

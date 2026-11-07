@@ -82,6 +82,7 @@ export const inbox: Messages['inbox'] = {
     ack: '标记为已读并关闭卡片',
     vendor: '该项目的洞察成本减少五分之一',
     mute: '将发件人静音一个日历小时',
+    easy: '添加暂停和速度控制',
   },
   leadsOffSite: (site) => `离开游戏，前往 ${site}`,
   leadsOffSiteUnknown: '离开游戏',

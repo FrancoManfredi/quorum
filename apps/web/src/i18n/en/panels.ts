@@ -10,6 +10,7 @@ export const panels = {
   exitCompany: 'Exit company',
   titleScreen: 'Title screen',
   muteSoundM: 'Mute sound (M)',
+  easyMode: 'Easy mode',
   pauseOnSEV1AndSEV2: 'Pause on SEV1 and SEV2',
   reduceMotion: 'Reduce motion',
   textAt150: 'Text at 150%',
