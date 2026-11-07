@@ -678,35 +678,39 @@ const policySwitch = (team: Team, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const kindsOf = (t: Messages): ReadonlyArray<readonly [TeamKind, string]> => [
-  ['product', t.team.product],
-  ['platform', t.team.platform],
-  ['sre', 'SRE'],
-  ['data', t.team.data],
-  ['security', t.team.security],
+const kindsOf = (t: Messages): ReadonlyArray<readonly [TeamKind, string, ResearchId | null]> => [
+  ['product', t.team.product, null],
+  ['platform', t.team.platform, 'platform-team'],
+  ['sre', 'SRE', 'sre-team'],
+  ['data', t.team.data, 'data-team'],
+  ['security', t.team.security, 'security-team'],
 ]
 
 /**
  * Product teams build the backlog; Platform, SRE, Data and Security teams run the system
- * (08 "Teams"). A kind its Research has not unlocked shows dimmed, with the reason on hover.
+ * (08 "Teams"). A kind its Research has not unlocked shows dimmed and opens that Research.
  */
 const kindSwitch = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return h.div(
     [h.Class(cn('flex gap-[3px] p-[3px]', WELL, 'rounded-[11px]'))],
-    kindsOf(t).map(([kind, label]) => {
+    kindsOf(t).map(([kind, label, research]) => {
       const selected = team.kind === kind
       const result = setTeamKind(game, team.id, kind)
       const refusal = Result.isFailure(result) ? refusalIn(t, result.failure) : null
+      // A kind its Research locks opens that Research instead.
+      const needs = research !== null && !has(game, research) ? research : null
       return h.button(
         [
           h.Key(`${team.id}-${kind}`),
           h.Type('button'),
           h.AriaPressed(selected ? 'true' : 'false'),
-          h.Disabled(refusal !== null),
+          h.Disabled(refusal !== null && needs === null),
           h.Title(refusal ?? label),
           h.OnClick(
-            Message.TeamChanged({ message: TeamMessage.KindChosen({ teamId: team.id, kind }) }),
+            needs !== null
+              ? Message.ResearchShown({ id: needs })
+              : Message.TeamChanged({ message: TeamMessage.KindChosen({ teamId: team.id, kind }) }),
           ),
           h.Class(
             cn(
@@ -714,7 +718,7 @@ const kindSwitch = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
               selected
                 ? 'bg-raised text-foreground shadow-raised'
                 : refusal !== null
-                  ? 'cursor-not-allowed text-muted-foreground/45'
+                  ? 'text-muted-foreground/45 hover:bg-foreground/5 hover:text-muted-foreground enabled:cursor-pointer disabled:cursor-not-allowed'
                   : 'text-muted-foreground hover:bg-foreground/5 hover:text-foreground',
             ),
           ),
@@ -2328,13 +2332,27 @@ const tile = (
     ],
   )
 
+/** A tile's action: queue it, or, while Research locks it, open that Research. */
 const queueButton = (
   label: string,
   message: Message,
   refusal: string | null,
+  needs: ResearchId | null,
   h: HtmlBuilder<Message>,
 ): Html => {
   const t = copy(h)
+  if (refusal !== null && needs !== null)
+    return button(
+      {
+        onClick: Message.ResearchShown({ id: needs }),
+        variant: 'outline',
+        size: 'sm',
+        className: 'max-w-full',
+        attributes: [h.Title(refusal)],
+      },
+      [icon(h, Lock, 'size-3'), h.span([h.Class('truncate')], [t.catalog.research[needs].name])],
+      h,
+    )
   return button(
     {
       onClick: message,
@@ -2399,6 +2417,7 @@ const featureTile = (
               t.team.build,
               Message.TeamChanged({ message: TeamMessage.FeatureQueued({ id }) }),
               refusal ? featureWhy(t, game, id, refusal) : null,
+              def.research && !has(game, def.research) ? def.research : null,
               h,
             ),
     h,
@@ -2483,6 +2502,7 @@ const taskTile = (
               t.team.queue,
               Message.TaskQueued({ id }),
               refusal ? taskWhy(t, game, id, refusal) : null,
+              null,
               h,
             ),
     h,

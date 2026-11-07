@@ -6,10 +6,13 @@ import { Panel, Tone } from '../model.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { SurveyMessage } from '../survey.ts'
 import { Schema } from 'effect'
+import { ResearchId } from '@quorum/simulation/state'
 
 /** The panels Messages, as cases for the root union. */
 export const panelsCases = {
   PanelOpened: { panel: Panel },
+  /** Opens the Research panel on one item, as a locked control's link to what it needs. */
+  ResearchShown: { id: ResearchId },
   /** A fix in the Churn breakdown: open or show a region, a research item, or a Node. */
   ChurnFixTaken: {
     fix: Schema.Literals(['region', 'research', 'node']),

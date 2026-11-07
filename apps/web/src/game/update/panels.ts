@@ -195,6 +195,7 @@ export const foldMoreMenu = (route: Dispatch) =>
 
 type PanelsTag =
   | 'PanelOpened'
+  | 'ResearchShown'
   | 'ChurnFixTaken'
   | 'PanelClosed'
   | 'PrefsLoaded'
@@ -252,19 +253,19 @@ export const panelsHandlers = (
     }
   },
 
+  ResearchShown: ({ id }) => {
+    const opened = route(model, Message.PanelOpened({ panel: 'research' }))
+    const focused = route(
+      opened.model,
+      Message.ResearchChanged({ message: ResearchMessage.Focused({ id }) }),
+    )
+    return { ...focused, commands: [...(opened.commands ?? []), ...(focused.commands ?? [])] }
+  },
+
   ChurnFixTaken: ({ fix, target }) => {
     const game = model.board.game
     const board = { ...model, panel: 'none' as const }
-    if (fix === 'research') {
-      const opened = route(model, Message.PanelOpened({ panel: 'research' }))
-      const focused = route(
-        opened.model,
-        Message.ResearchChanged({
-          message: ResearchMessage.Focused({ id: target as ResearchId }),
-        }),
-      )
-      return { ...focused, commands: [...(opened.commands ?? []), ...(focused.commands ?? [])] }
-    }
+    if (fix === 'research') return route(model, Message.ResearchShown({ id: target as ResearchId }))
     if (fix === 'node') {
       const node = game.nodes.find((entry) => entry.id === target)
       if (!node) return { model: board }
