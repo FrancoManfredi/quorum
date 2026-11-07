@@ -520,10 +520,10 @@ const labelChip = (
       h.OnClick(Message.InboxChanged({ message: InboxMessage.LabelChosen({ label }) })),
       h.Class(
         cn(
-          'press flex h-5.5 shrink-0 items-center gap-1 rounded-full border px-2 text-[calc(11px*var(--type-scale))]',
+          'press flex h-6 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[calc(11px*var(--type-scale))] whitespace-nowrap',
           active
             ? 'border-hairline bg-raised font-medium text-foreground shadow-raised'
-            : 'border-transparent text-muted-foreground hover:text-foreground',
+            : 'border-foreground/15 text-muted-foreground hover:border-foreground/25 hover:text-foreground',
         ),
       ),
     ],
@@ -996,7 +996,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 [
                   h.AriaLabel(t.inbox.labels),
                   h.Class(
-                    'flex flex-nowrap gap-1 overflow-x-auto px-2.5 py-1.5 border-b border-hairline',
+                    'flex flex-nowrap gap-1.5 overflow-x-auto border-b border-hairline px-3 py-2',
                   ),
                 ],
                 [
