@@ -948,11 +948,21 @@ class NodeView {
   private readonly valueMarks: Array<Sprite> = []
   /** The rows' icons, names and values. */
   private readonly rows = new Container()
+  /**
+   * The parts a tick changes: the rows and their bars, then the chip. Pixi rebuilds a
+   * whole render group when a Graphics in it is redrawn or a Text gets new words, so
+   * these sit in groups of their own: a new figure rebuilds one card's rows, not every card.
+   */
+  private readonly live = new Container({ isRenderGroup: true })
+  private readonly chipLayer = new Container({ isRenderGroup: true })
   private readonly foot = label(12, SANS, '600')
   private readonly footMark = glyph(14)
+  /** Whether the card has a footer button, so the level of detail shows its icon only then. */
+  private footed = false
   /** A ring round the footer icon of a held button; it fills clockwise as the hold does. */
   private readonly markRing = new Graphics()
   private ringAt: Readonly<{ x: number; y: number; ink: number }> | null = null
+  private ringKey = ''
   private holdShare = 0
   /** The hold's fill across the footer button. */
   private readonly holdFill = new Graphics()
@@ -1020,14 +1030,14 @@ class NodeView {
       this.markRing,
     ])
       part.context.batchMode = 'batch'
+    this.chipLayer.addChild(this.chip)
     this.root.addChild(
       this.shadow,
       this.ring,
       this.frame,
-      this.chip,
+      this.chipLayer,
       this.holdFill,
       this.burst,
-      this.bars,
       this.ports,
       this.medal,
       this.mark,
@@ -1040,7 +1050,7 @@ class NodeView {
       this.chipTitle,
     )
     this.chipTitle.anchor.set(0.5, 0.5)
-    this.chip.visible = false
+    this.chipLayer.visible = false
     this.chipTitle.visible = false
     const glyphSize = badgeGlyph(this.group, BADGE_R)
     this.mark.setSize(glyphSize)
@@ -1067,28 +1077,27 @@ class NodeView {
       this.valueMarks.push(valueMark)
       this.rows.addChild(mark, name, value, valueMark)
     }
-    this.root.addChild(this.rows)
+    this.live.addChild(this.bars, this.rows)
+    this.root.addChild(this.live)
     this.foot.anchor.set(0, 0.5)
   }
 
   /** Level of detail: zoomed far out the rows fade, then the whole card becomes a chip. */
   detail(rows: number, chip: number, colors: Palette): void {
     const full = 1 - chip
-    this.rows.visible = rows > 0 && full > 0
+    // A hidden render group is skipped, where an empty one still splits the cards' batch.
+    this.live.visible = full > 0
+    this.rows.visible = rows > 0
     this.rows.alpha = rows * full
-    for (const part of [
-      this.frame,
-      this.bars,
-      this.title,
-      this.level,
-      this.foot,
-      this.footMark,
-      this.markRing,
-    ]) {
+    this.bars.alpha = full
+    for (const part of [this.frame, this.title, this.level, this.foot, this.markRing]) {
       part.visible = full > 0
       part.alpha = full
     }
-    this.chip.visible = chip > 0
+    // Setting `visible` back and forth makes Pixi rebuild every card, so it is set once.
+    this.footMark.visible = full > 0 && this.footed
+    this.footMark.alpha = full
+    this.chipLayer.visible = chip > 0
     this.chip.alpha = chip
     this.chipTitle.visible = chip > 0
     this.chipTitle.alpha = chip
@@ -1140,6 +1149,10 @@ class NodeView {
 
   private drawMarkRing(): void {
     const at = this.ringAt
+    // A redrawn Graphics makes Pixi rebuild every card, so it is redrawn only when it changes.
+    const key = at ? `${at.x}:${at.y}:${at.ink}:${this.holdShare}` : ''
+    if (key === this.ringKey) return
+    this.ringKey = key
     this.markRing.clear()
     if (!at) return
     this.markRing.circle(at.x, at.y, 12).stroke({ color: at.ink, width: 1.5, alpha: 0.35 })
@@ -1410,6 +1423,7 @@ class NodeView {
           alpha: 0.55,
         })
     }
+    this.footed = Boolean(footer)
     if (footer) {
       const { x, y, w, h } = rect
       const ink =
@@ -1423,14 +1437,12 @@ class NodeView {
       const mid = y + h / 2 + (footer.tone === 'muted' ? 1 : sink)
       paint(this.footMark, FOOT_ICONS[footer.glyph], ink)
       this.footMark.position.set(start, mid - 7)
-      this.footMark.visible = true
       this.ringAt = ringed ? { x: start + 7, y: mid, ink } : null
       this.drawMarkRing()
       this.foot.position.set(start + 20 + pad, mid)
       this.foot.style.fill = ink
     } else {
       this.foot.text = ''
-      this.footMark.visible = false
       this.ringAt = null
       this.drawMarkRing()
     }
@@ -1784,10 +1796,8 @@ class ChevronLayer {
     const texture = this.texture
     if (!texture) return
     const pool = this.root.particleChildren
-    // The packed colour the particle shader reads: alpha over a BGR tint. Setting
-    // `tint` instead parses the colour for every chevron.
-    const color =
-      ((tint & 0xff) << 16) + (tint & 0xff00) + ((tint >> 16) & 0xff) + (((alpha * 255) | 0) << 24)
+    // Setting `tint` instead parses the colour for every chevron.
+    const color = particleColor(tint, alpha)
     const x1 = view.x + view.w
     const y1 = view.y + view.h
     let ux = Number.NaN
@@ -1824,6 +1834,83 @@ class ChevronLayer {
     }
   }
 }
+
+/** A packet's half-size in world pixels, and the cell each shape takes in the packet texture. */
+const PACKET_R = 2.4
+const PACKET_CELL = 10
+const PACKET_SHAPES: ReadonlyArray<PacketShape> = ['circle', 'square', 'triangle', 'diamond']
+
+/**
+ * The items riding the belts, as particles cut from one texture of the four shapes:
+ * a frame only moves them, where a Graphics would tessellate and upload every item.
+ * Like the chevrons, the pool only grows and unused particles are left transparent.
+ */
+class PacketLayer {
+  readonly root = new ParticleContainer<Particle>({
+    dynamicProperties: { position: true, color: true, uvs: true },
+  })
+  private textures = new Map<PacketShape, Texture>()
+  private used = 0
+  private grown = false
+
+  init(renderer: Renderer): void {
+    const shapes = new Graphics()
+    PACKET_SHAPES.forEach((shape, index) =>
+      packetAt(shapes, shape, PACKET_CELL * (index + 0.5), PACKET_CELL / 2, PACKET_R),
+    )
+    shapes.fill(0xffffff)
+    const sheet = renderer.generateTexture({
+      target: shapes,
+      resolution: 4,
+      frame: new Rectangle(0, 0, PACKET_CELL * PACKET_SHAPES.length, PACKET_CELL),
+    })
+    shapes.destroy()
+    PACKET_SHAPES.forEach((shape, index) =>
+      this.textures.set(
+        shape,
+        new Texture({
+          source: sheet.source,
+          frame: new Rectangle(PACKET_CELL * index, 0, PACKET_CELL, PACKET_CELL),
+        }),
+      ),
+    )
+  }
+
+  begin(): void {
+    this.used = 0
+  }
+
+  /** An item centred on (x, y), in a colour packed by particleColor. */
+  add(shape: PacketShape, x: number, y: number, color: number): void {
+    const texture = this.textures.get(shape)
+    if (!texture) return
+    const pool = this.root.particleChildren
+    let particle = pool[this.used]
+    if (!particle) {
+      particle = new Particle({ texture, anchorX: 0.5, anchorY: 0.5 })
+      pool.push(particle)
+      this.grown = true
+    }
+    particle.texture = texture
+    particle.x = x
+    particle.y = y
+    particle.color = color
+    this.used += 1
+  }
+
+  end(): void {
+    const pool = this.root.particleChildren
+    for (let index = this.used; index < pool.length; index += 1) (pool[index] as Particle).color = 0
+    if (this.grown) {
+      this.grown = false
+      this.root.update()
+    }
+  }
+}
+
+/** A 0xRRGGBB colour and an alpha, packed as the particle shader reads them: alpha over BGR. */
+const particleColor = (tint: number, alpha: number): number =>
+  ((tint & 0xff) << 16) + (tint & 0xff00) + ((tint >> 16) & 0xff) + (((alpha * 255) | 0) << 24)
 
 /**
  * The rate a still belt carries (15 "Accessibility"): one pooled Text per label, on a small plate,
@@ -1932,7 +2019,9 @@ class BoardController {
   /** The tunnel portals, redrawn only when a mouth moves or the focus changes. */
   private readonly portals = new Graphics()
   private portalsKey = ''
-  private readonly packets = new Graphics()
+  private readonly packets = new PacketLayer()
+  /** The still arrows reduced motion shows in place of the packets. */
+  private readonly arrows = new Graphics()
   /** The rate labels on still belts: reduced motion's stand-in for moving packets. */
   private readonly notes = new NoteLayer()
   /** The round trip a link between regions pays, under its belt. */
@@ -2013,6 +2102,9 @@ class BoardController {
   private cuts: Array<{ path: Route; t: number }> = []
   private readonly abort = new AbortController()
   private readonly resize: ResizeObserver
+  /** Watches whether the board is on screen: a board scrolled out of view draws nothing. */
+  private readonly sight: IntersectionObserver
+  private onScreen = true
   private phase = 0
   private started = false
   private fitted = false
@@ -2023,6 +2115,18 @@ class BoardController {
     private readonly events: BoardEvents,
   ) {
     this.resize = new ResizeObserver(() => this.onResize())
+    this.sight = new IntersectionObserver((entries) => {
+      const entry = entries.at(-1)
+      if (!entry) return
+      this.onScreen = entry.isIntersecting
+      if (this.started) this.run()
+    })
+  }
+
+  /** Draws while the board is on screen and not suspended. */
+  private run(): void {
+    if (this.onScreen && !this.state?.suspended) this.app.start()
+    else this.app.stop()
   }
 
   async start(initial: BoardState | undefined): Promise<void> {
@@ -2050,13 +2154,15 @@ class BoardController {
     this.bottleneckTag.style.fill = 0xffffff
     this.bottleneckTag.visible = false
     this.chevrons.init(this.app.renderer)
+    this.packets.init(this.app.renderer)
     this.wires.addChild(this.bodies, this.chevrons.root, this.mouths, this.portals, this.splitters)
     this.boxLayer.addChild(this.boxes, this.boxNames)
     this.boxLayer.isRenderGroup = true
     this.world.addChild(
       this.boxLayer,
       this.wires,
-      this.packets,
+      this.packets.root,
+      this.arrows,
       this.notes.root,
       this.places.root,
       this.cards,
@@ -2075,8 +2181,9 @@ class BoardController {
     this.app.ticker.add((ticker) => this.animate(ticker.deltaMS / 1000))
     this.started = true
     this.resize.observe(this.host)
+    this.sight.observe(this.host)
     this.onResize()
-    if (!this.state?.suspended) this.app.start()
+    this.run()
   }
 
   draw(state: BoardState): void {
@@ -2097,7 +2204,7 @@ class BoardController {
     if (!this.fitted) this.fit()
     this.syncCards()
     this.syncGhost()
-    this.app.start()
+    this.run()
   }
 
   /** New links draw in from their port; removed ones fade where they were. */
@@ -2137,6 +2244,7 @@ class BoardController {
     this.destroyed = true
     this.abort.abort()
     this.resize.disconnect()
+    this.sight.disconnect()
     if (this.started) this.app.destroy(true, { children: true })
   }
 
@@ -3080,7 +3188,9 @@ class BoardController {
     }
     this.chevrons.begin()
     const focus = this.pathOf(state)
-    this.packets.clear()
+    this.packets.begin()
+    // Clearing marks the Graphics changed, so an empty one is left alone.
+    if (this.arrows.context.instructions.length > 0) this.arrows.clear()
     this.notes.begin()
     this.places.begin()
     this.overlay.clear()
@@ -3202,25 +3312,29 @@ class BoardController {
       if (marks.label === null) {
         // Items ride on the distance this belt has travelled, each in its kind's shape.
         const along = 1 / Math.max(1, length)
+        const color = particleColor(packet, alpha)
         for (let index = 0; index < marks.packets; index += 1) {
           const t = (belt.travel * along + (index + 0.5) / marks.packets) % 1
           if (underground(t)) continue
           const at = pointOn(path, t, length)
-          packetAt(this.packets, shape, at.x, at.y, 2.4)
+          if (at.x < view.x || at.x > view.x + view.w || at.y < view.y || at.y > view.y + view.h)
+            continue
+          this.packets.add(shape, at.x, at.y, color)
         }
       } else {
         // Reduced motion: still arrows along the belt, under the rate they stand for.
         for (const t of marks.arrows) {
           if (underground(t)) continue
           const at = pointAndDirection(path, t)
-          arrowAt(this.packets, at.x, at.y, at.ux, at.uy, 4.2)
+          arrowAt(this.arrows, at.x, at.y, at.ux, at.uy, 4.2)
         }
+        this.arrows.fill({ color: packet, alpha })
         const mid = midOf(path)
         this.notes.add(mid.x, mid.y, marks.label, hue, colors.card, tap ? 12 : 11)
       }
-      this.packets.fill({ color: packet, alpha })
     }
 
+    this.packets.end()
     this.notes.end()
     this.places.end()
     this.chevrons.end()
