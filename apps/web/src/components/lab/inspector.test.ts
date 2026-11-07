@@ -184,21 +184,25 @@ const routed = (users = 1_000): Model => {
   }
 }
 
-test('an App Server shows the Load Balancer that routes to it, without a raw Node id', () => {
+test('an App Server shows the Load Balancer that routes to it, against its capacity', () => {
   Scene.scene(
     { update, view },
     Scene.given(routed()),
     Scene.expect(Scene.text('Inbound')).toExist(),
+    Scene.expect(Scene.text('Outbound')).toExist(),
     Scene.expect(Scene.role('button', { name: 'Open Load Balancer' })).toExist(),
+    Scene.expect(Scene.selector('[data-slot="progress"]')).toExist(),
     Scene.expect(Scene.selector('[data-inspector]')).not.toContainText('· server'),
   )
 })
 
-test('the inbound route is configuration, not live traffic, so it survives zero demand', () => {
+test('the inbound route and its meter survive zero demand', () => {
   Scene.scene(
     { update, view },
     Scene.given(routed(0)),
     Scene.expect(Scene.role('button', { name: 'Open Load Balancer' })).toExist(),
+    Scene.expect(Scene.selector('[data-slot="progress"]')).toExist(),
+    Scene.expect(Scene.selector('[data-inspector]')).toContainText('0.0/s'),
   )
 })
 

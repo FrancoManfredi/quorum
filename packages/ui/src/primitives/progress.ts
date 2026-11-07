@@ -27,7 +27,12 @@ export const progressValueClass = 'text-muted-foreground ml-auto text-sm tabular
 
 type StyleConfig = Readonly<{ className?: string }>
 
-type ProgressConfig = Readonly<{ value?: number; className?: string }>
+type ProgressConfig = Readonly<{
+  value?: number
+  className?: string
+  label?: string
+  trackClassName?: string
+}>
 
 const clampValue = (value: number): number => Math.min(100, Math.max(0, value))
 
@@ -52,12 +57,16 @@ export const progress = <M>(config: ProgressConfig, h: HtmlBuilder<M>): Html =>
       h.Role('progressbar'),
       h.AriaValuemin(0),
       h.AriaValuemax(100),
+      ...(config.label === undefined ? [] : [h.AriaLabel(config.label)]),
       ...(config.value === undefined ? [] : [h.AriaValuenow(clampValue(config.value))]),
       h.DataAttribute('slot', 'progress'),
     ],
     [
       h.div(
-        [h.Class(progressTrackClass), h.DataAttribute('slot', 'progress-track')],
+        [
+          h.Class(cn(progressTrackClass, config.trackClassName)),
+          h.DataAttribute('slot', 'progress-track'),
+        ],
         [progressIndicator(config.value, h)],
       ),
     ],

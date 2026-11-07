@@ -42,6 +42,7 @@ export const inspector: Messages['inspector'] = {
   aNewQueryHasNoIndex2: '新查询缺少索引。研究查询分析以定位它。',
   addIndex: '添加索引',
   inbound: '入站',
+  outbound: '出站',
   s: (p0) => `${p0}/秒`,
   load: '负载',
   ofS: (p0, p1) => `${p0} / ${p1}/秒`,

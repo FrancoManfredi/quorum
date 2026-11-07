@@ -52,6 +52,7 @@ export const inspector: Messages['inspector'] = {
     "Une nouvelle requête n'a pas d'index. Analyse des requêtes de recherche pour le trouver.",
   addIndex: 'Ajouter un index',
   inbound: 'Trafic entrant',
+  outbound: 'Trafic sortant',
   s: (p0) => `${p0}/s`,
   load: 'Charge',
   ofS: (p0, p1) => `${p0} sur ${p1}/s`,

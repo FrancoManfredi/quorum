@@ -50,6 +50,7 @@ export const inspector: Messages['inspector'] = {
     '新しいクエリにインデックスがありません。クエリ分析を研究して見つけてください。',
   addIndex: 'インデックスを追加',
   inbound: '流入',
+  outbound: '流出',
   s: (p0) => `${p0}/s`,
   load: '負荷',
   ofS: (p0, p1) => `${p0} / ${p1}/s`,

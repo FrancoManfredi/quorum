@@ -5,6 +5,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowDownToLine,
   ArrowUp,
+  ArrowUpFromLine,
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
@@ -35,7 +36,7 @@ import {
 import { isGlobal, openRegions } from '@quorum/simulation/regions'
 import { platformTax, quartersBehind } from '@quorum/simulation/team'
 import type { Limit } from '@quorum/simulation/capacity'
-import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
+import type { Ledger, LinkLedger, NodeLedger } from '@quorum/simulation/ledger'
 import {
   burnOf,
   has,
@@ -60,6 +61,7 @@ import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
 import { icon } from '@quorum/ui/primitives/icon'
 import { badge } from '@quorum/ui/primitives/badge'
 import { button } from '@quorum/ui/primitives/button'
+import { progress } from '@quorum/ui/primitives/progress'
 import { cn } from '@/lib/utils'
 import {
   EYEBROW,
@@ -889,14 +891,6 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
   )
 }
 
-/** A Node's name, numbered when the Design has more than one of its kind. */
-const nodeCaption = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
-  const t = copy(h)
-
-  const label = nodeLabelIn(t, game, node)
-  return h.span([], [label.name, ...(label.ordinal > 0 ? [` ${label.ordinal}`] : [])])
-}
-
 /** The Links that route traffic into a Node. Taps and control Links are separate. */
 const inboundLinks = (game: Game, node: GameNode): ReadonlyArray<readonly [GameLink, GameNode]> =>
   game.links.flatMap((link) => {
@@ -909,39 +903,140 @@ const inboundLinks = (game: Game, node: GameNode): ReadonlyArray<readonly [GameL
       : []
   })
 
-/** The routing settings that live on the source Node. */
-const routeSummaryOf = (t: Messages, node: GameNode): string => {
-  switch (node.type) {
-    case 'lb':
-      return (node.deepCheck ? t.inspector.checksEveryDeep : t.inspector.checksEvery)(
-        t.catalog.lbPolicies[node.policy].label,
-        formats(t).duration(node.checkEvery),
+const liveLinkOf = (ledger: Ledger, from: string, to: string): LinkLedger | undefined =>
+  ledger.links.find((link) => link.from === from && link.to === to)
+
+/** The Links out of a Node that carry traffic. Taps and control Links are separate. */
+const outboundRoutes = (game: Game, node: GameNode): ReadonlyArray<readonly [GameLink, GameNode]> =>
+  game.links.flatMap((link) => {
+    const target = game.nodes.find((entry) => entry.id === link.to)
+    return link.from === node.id &&
+      target &&
+      !COMPONENTS[target.type].control &&
+      !COMPONENTS[target.type].tap
+      ? [[link, target] as const]
+      : []
+  })
+
+/** One Link as a compact entry: its Node's badge and name, and its live rate. */
+const connectionGrid = (
+  game: Game,
+  node: GameNode,
+  links: ReadonlyArray<readonly [GameLink, GameNode]>,
+  side: 'in' | 'out',
+  ledger: Ledger,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const t = copy(h)
+  if (links.length === 0) return h.empty
+  return h.div(
+    [
+      h.Class(
+        `-mx-1.5 grid ${links.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-x-1 gap-y-0.5`,
+      ),
+    ],
+    links.map(([, other]) => {
+      const live =
+        side === 'in'
+          ? liveLinkOf(ledger, other.id, node.id)
+          : liveLinkOf(ledger, node.id, other.id)
+      const rateNow = live?.rate ?? 0
+      const name = nodeTitle(t, game, other)
+      return h.button(
+        [
+          h.Key(`${side}-${other.id}`),
+          h.Type('button'),
+          h.OnClick(Message.RevealNode({ nodeId: other.id })),
+          h.AriaLabel(t.inspectorShared.openNode(name)),
+          h.Title(`${name} · ${t.inspector.s(rate(rateNow))}`),
+          h.DataAttribute('connection', side),
+          h.Class(
+            'group flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1 text-left transition-colors hover:bg-well',
+          ),
+        ],
+        [
+          groupBadge(
+            COMPONENTS[other.type].group,
+            COMPONENT_ICONS[other.type],
+            'size-4 shrink-0',
+            h,
+          ),
+          h.span(
+            [h.Class('min-w-0 flex-1 truncate text-[calc(11px*var(--type-scale))] font-medium')],
+            [name],
+          ),
+          h.span(
+            [
+              h.Class(
+                cn(
+                  FIGURE,
+                  'shrink-0 text-[calc(10.5px*var(--type-scale))]',
+                  rateNow > 0.01 ? 'text-muted-foreground' : 'text-muted-foreground/55',
+                ),
+              ),
+            ],
+            [t.inspector.s(rate(rateNow))],
+          ),
+        ],
       )
-    case 'dns':
-      return t.inspector.ttl(formats(t).duration(node.ttl))
-    case 'cdn':
-      return t.inspector.ttl(formats(t).duration(node.ttl))
-    case 'waf':
-      return (node.underAttack ? t.inspector.paranoiaUnderAttack : t.inspector.paranoia)(
-        node.paranoia,
-      )
-    case 'users':
-      return t.inspector.whereTrafficStarts
-    default:
-      return t.catalog.components[node.type].name
-  }
+    }),
+  )
 }
 
-const kindsOf = (t: Messages, link: GameLink): string =>
-  link.kinds === null
-    ? t.inspector.everyKind
-    : link.kinds.map((kind) => t.inspectorShared.kindShort[kind]).join(', ')
+/** One direction's traffic against a shared scale, as a progress bar. */
+const capacityMeter = (
+  label: string,
+  value: number,
+  scale: number,
+  bounded: boolean,
+  glyph: Parameters<typeof icon>[1],
+  links: ReadonlyArray<readonly [GameLink, GameNode]>,
+  side: 'in' | 'out',
+  game: Game,
+  node: GameNode,
+  ledger: Ledger,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const t = copy(h)
+  const share = scale > 0 ? Math.min(1, value / scale) : 0
+  const valueText = bounded
+    ? `${t.inspector.s(rate(value))} · ${t.inspector.ofS(percent(share), rate(scale))}`
+    : t.inspector.s(rate(value))
+  return h.div(
+    [h.Class('flex flex-col gap-1.5')],
+    [
+      h.div(
+        [h.Class('flex items-center justify-between gap-3')],
+        [
+          h.span(
+            [h.Class('flex items-center gap-1.5')],
+            [
+              icon(h, glyph, 'size-3.5 shrink-0 text-muted-foreground'),
+              h.span([h.Class(EYEBROW)], [label]),
+            ],
+          ),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
+            [valueText],
+          ),
+        ],
+      ),
+      progress(
+        {
+          value: share * 100,
+          className: 'gap-0',
+          trackClassName: 'h-2',
+          label: `${label} ${valueText}`,
+        },
+        h,
+      ),
+      ...(links.length > 0 ? [connectionGrid(game, node, links, side, ledger, h)] : []),
+    ],
+  )
+}
 
-const liveRateOf = (ledger: Ledger, from: string, to: string): number =>
-  ledger.links.find((link) => link.from === from && link.to === to)?.rate ?? 0
-
-/** The always-visible answer to "what routes to this Node?" */
-const inboundSummary = (
+/** The always-visible answer to "how much traffic moves each way, and through what?" */
+const trafficMeters = (
   game: Game,
   node: GameNode,
   ledger: Ledger,
@@ -949,51 +1044,49 @@ const inboundSummary = (
 ): ReadonlyArray<Html> => {
   const t = copy(h)
 
-  const links = inboundLinks(game, node)
-  if (links.length === 0) return []
+  const inbound = inboundLinks(game, node)
+  const outgoing = outboundRoutes(game, node)
+  if (inbound.length === 0 && outgoing.length === 0) return []
+  const own = ledger.nodes[node.id]
+  const inboundRate = own?.inbound ?? 0
+  const outboundRate = outgoing.reduce(
+    (sum, [link]) => sum + (liveLinkOf(ledger, node.id, link.to)?.rate ?? 0),
+    0,
+  )
+  const capacity = own?.capacity ?? 0
+  // A fixed Component has no finite capacity. Its bars compare the two directions instead.
+  const bounded = Number.isFinite(capacity) && capacity > 0
+  const scale = bounded ? capacity : Math.max(inboundRate, outboundRate)
   return [
     h.div(
-      [h.Class('flex flex-col gap-1.5 px-4 pb-2')],
+      [h.Class('flex flex-col gap-3 px-4 pb-3')],
       [
-        h.p([h.Class(`${EYEBROW} text-muted-foreground`)], [t.inspector.inbound]),
-        ...links.map(([link, source]) => {
-          const live = liveRateOf(ledger, source.id, node.id)
-          return h.button(
-            [
-              h.Key(`in-${source.id}`),
-              h.Type('button'),
-              h.OnClick(Message.RevealNode({ nodeId: source.id })),
-              h.AriaLabel(t.inspectorShared.openNode(nodeTitle(t, game, source))),
-              h.Class(
-                'flex w-full items-center gap-2 rounded-lg bg-well px-2.5 py-2 text-left transition-colors hover:bg-foreground/5',
-              ),
-            ],
-            [
-              h.span(
-                [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
-                [
-                  h.span(
-                    [h.Class('flex items-center gap-1 text-[12px] font-medium')],
-                    [
-                      nodeCaption(game, source, h),
-                      icon(h, ChevronRight, 'size-3.5 shrink-0 text-muted-foreground'),
-                    ],
-                  ),
-                  h.span(
-                    [h.Class('text-[11px] text-muted-foreground')],
-                    [`${routeSummaryOf(t, source)} · ${kindsOf(t, link)}`],
-                  ),
-                ],
-              ),
-              live > 0.01
-                ? h.span(
-                    [h.Class(`${FIGURE} text-[11px] text-muted-foreground`)],
-                    [t.inspector.s(rate(live))],
-                  )
-                : h.empty,
-            ],
-          )
-        }),
+        capacityMeter(
+          t.inspector.inbound,
+          inboundRate,
+          scale,
+          bounded,
+          ArrowDownToLine,
+          inbound,
+          'in',
+          game,
+          node,
+          ledger,
+          h,
+        ),
+        capacityMeter(
+          t.inspector.outbound,
+          outboundRate,
+          scale,
+          bounded,
+          ArrowUpFromLine,
+          outgoing,
+          'out',
+          game,
+          node,
+          ledger,
+          h,
+        ),
       ],
     ),
   ]
@@ -1511,7 +1604,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
         ],
         [def.blurb],
       ),
-      ...inboundSummary(game, node, ledger, h),
+      ...trafficMeters(game, node, ledger, h),
       ...warnings(game, node, ledger, h),
       h.div(
         [h.Class(`flex min-h-0 flex-1 flex-col divide-y divide-hairline ${SCROLL}`)],

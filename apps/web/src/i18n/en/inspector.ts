@@ -49,6 +49,7 @@ export const inspector = {
   aNewQueryHasNoIndex2: 'A new query has no index. Research Query analysis to find it.',
   addIndex: 'Add index',
   inbound: 'Inbound',
+  outbound: 'Outbound',
   s: (p0: string | number | null) => `${p0}/s`,
   load: 'Load',
   ofS: (p0: string | number | null, p1: string | number | null) => `${p0} of ${p1}/s`,
