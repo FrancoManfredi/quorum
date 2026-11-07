@@ -81,14 +81,6 @@ export const catalog: Messages['catalog'] = {
       condition: 'ガイダンスを8四半期連続で上回る',
     },
     'serial-founder': { name: '連続起業家', condition: 'すべての事業でエグジットする' },
-    histogram: {
-      name: 'ヒストグラム',
-      condition: 'いずれかのチャレンジのいずれかの軸で90パーセンタイルに到達する',
-    },
-    pareto: {
-      name: 'パレート',
-      condition: '1つのチャレンジの3軸すべてで70パーセンタイルに到達する',
-    },
     'two-hard-things': {
       name: '二つの難題',
       condition: 'キャッシュで古い読み取りのインシデントを起こす',

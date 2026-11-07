@@ -48,8 +48,6 @@ export const catalog: Messages['catalog'] = {
     'rule-of-40': { name: '40 法则', condition: '作为上市公司，让“40 法则”得分达到 80' },
     'beat-and-raise': { name: '超预期并上调指引', condition: '连续八个季度超出业绩指引' },
     'serial-founder': { name: '连续创业者', condition: '在每个创业方向完成退出' },
-    histogram: { name: '直方图', condition: '在任意挑战的任意评分维度达到第 90 百分位' },
-    pareto: { name: '帕累托', condition: '在同一个挑战的三个评分维度均达到第 70 百分位' },
     'two-hard-things': { name: '两件难事', condition: '在缓存上经历一次陈旧读取事件' },
     'conways-law': { name: '康威定律', condition: '服务数多于团队数，然后修正' },
     fallacies: { name: '谬误', condition: '在事件中经历分布式计算的八个谬误' },

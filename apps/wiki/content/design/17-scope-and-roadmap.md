@@ -158,11 +158,10 @@ Code: `simulation/exit.ts`, `founder.ts`, `founding.ts`, `playbook.ts`, `offline
 
 ### Challenges
 
-Code: `simulation/challenges.ts`, `replay.ts`, `components/lab/challenge.ts`, and in `apps/backend/src/`: `contexts/challenges`, `platform/d1-result-store.ts`
+Code: `simulation/challenges.ts`, `replay.ts`, and `components/lab/challenge.ts`
 
 - All 32 Challenges and the daily drill
-- `QRP1:` replays re-run by the API Worker (`challengeSubmit`, `challengeHistogramGet`)
-- Bests and histograms in D1 `Results`
+- `QRP1:` replays recorded in the browser; server verification and histograms wait for accounts
 - The cross-engine golden check `pnpm test:engines`
 
 ### Save
@@ -252,12 +251,12 @@ The [balancing document](/design/16-balancing) records the live tuning and what 
 ## Scope rules
 
 - The Simulation is a pure module with no UI imports, so it runs in tests, in the offline
-  simulation, in Challenge verification on the server, and in the Tradeoff card preview.
+  simulation, in the Tradeoff card preview, and, once accounts exist, in Challenge verification on the server.
 - Sandboxes run only in the browser. They need no server, no account, and no histogram, so they ship
   with the milestone that adds their mechanics, not with Challenges in M8.
 - The browser owns the company simulation ([ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)).
-  The API Worker owns only what needs a server: Challenge verification, histograms, and the daily
-  drill. Those contracts go in `packages/rpc` and their handlers in `apps/backend`, as the repository
+  The API Worker owns only what needs a server: today the Exit survey, and with accounts Challenge
+  verification and histograms. Those contracts go in `packages/rpc` and their handlers in `apps/backend`, as the repository
   guide requires.
 - Content is data. A new Component, runtime, kind, incident, or research item is a catalog entry plus,
   at most, one new rule in the solver.
@@ -277,7 +276,7 @@ and the [dominance rule](/design/16-balancing#dominance) holding for the content
 | M5  | Seed to Series B             | Kinds to `ai`; Go, Java, C#, Elixir, Rust; Queue, Worker, Serverless Function, CDN, WAF, Search, Object Storage, zones, Autoscaler, Kubernetes, Warehouse, GPU; SLOs; incident director; the Seed, Series A, and Series B Sandbox tracks | Balanced bot raises Series B at 91–106 sim minutes on seeds 1–5 (`pacing.test.ts`); it does not reach Series C in that run, and 03's 6–10 h is a human player's pace, not the bot's |
 | M6  | Series C to Public           | Regions as boards, quorum stores, distributed SQL, the IPO checklist, quarters; the Series C Sandbox track                                                                                                                               | Balanced bot reaches IPO in 9–12 hours                                                                                                                                              |
 | M7  | Exit and Legacy              | Exits, the Legacy shop, Playbooks, Ventures, Mutators, company history                                                                                                                                                                   | Second company 3–6 hours                                                                                                                                                            |
-| M8  | Challenges                   | Challenge mode, server verification, histograms, the daily drill                                                                                                                                                                         | Golden-hash replays match in Chromium, Firefox, WebKit, and the API Worker runtime ([Determinism](/design/04-simulation#determinism-and-randomness))                                |
+| M8  | Challenges                   | Challenge mode and the daily drill, scored in the browser                                                                                                                                                                                | Golden-hash replays match in Chromium, Firefox, WebKit, and the API Worker runtime ([Determinism](/design/04-simulation#determinism-and-randomness))                                |
 | M9  | Polish                       | Accessibility, sound, achievements, the in-game glossary                                                                                                                                                                                 | Accessibility checklist passes                                                                                                                                                      |
 
 **Vertical slice gate.** The catalog is large, so no content for M5 or later is written until M2 is
@@ -288,7 +287,7 @@ fix the loop before adding Components.
 ## Out of scope
 
 - Multiplayer and shared companies.
-- Accounts beyond what Challenge histograms need.
+- Accounts. Challenge histograms and server verification wait for them.
 - Paid currency of any kind.
 - A simulated Kubernetes cluster ([ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)).
 - A mobile design target. Below 640 px wide or 500 px tall the screen switches to a compact layout (the Inbox panes stack, and the toolbar folds rarely used controls into More), but the board needs space, so the game is tuned for larger screens.
@@ -303,7 +302,7 @@ fix the loop before adding Components.
 | Is the Region outage weight fair to a player who has not built a second region? | The director raises it from 0.5 to 3.0 when `multi-region` is researched ([Incidents](/design/11-incidents)). With Users per region, the outage hits only home users, and a Mirror makes the fix cheap. Measure again once both exist.                                                                                     |
 | Should regions be separate boards or one large board?                           | [ADR 0005](https://github.com/elianiva/quorum/blob/main/docs/adr/0005-regions-are-tabs-over-one-design.md) decides it: one Design, one tab per region. A tab shows its region's Nodes and the remote Nodes they call.                                                                                                      |
 | How visible should runtime stereotypes be in copy?                              | Copy names behaviors ("holds a worker while waiting"), never judgments ("slow language").                                                                                                                                                                                                                                  |
-| Do Challenge histograms need an account?                                        | Prefer an anonymous device ID with optional sign-in.                                                                                                                                                                                                                                                                       |
+| Do Challenge histograms need an account?                                        | Yes. A device ID resets with the browser's storage, so histograms wait for accounts.                                                                                                                                                                                                                                       |
 | How do we keep real outage references respectful?                               | Name the event and the year, link the public postmortem, and never mock the company.                                                                                                                                                                                                                                       |
 | Does the free Sandbox spoil discovery?                                          | It unlocks everything from the start. Fallback: unlock each Component in the free Sandbox when the player meets it in a Company or a guided Sandbox.                                                                                                                                                                       |
 | Does the Dashboard pull players off the Board?                                  | The Dashboard shows only history ([Observability](/design/12-observability#the-dashboard)). Playtest: count how often players find the bottleneck from the Dashboard instead of the Board. If it is more than one time in five, remove the per-Node Charts from the Overview row.                                          |

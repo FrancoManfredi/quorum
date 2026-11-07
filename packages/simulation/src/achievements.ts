@@ -374,13 +374,3 @@ export const detectAchievements = (
 /** Serial founder: an Exit with every Venture. */
 export const everyVenture = (ventures: ReadonlyArray<string>): boolean =>
   VENTURE_IDS.every((id) => ventures.includes(id))
-
-/** Challenge achievements from one verified result's percentiles (0 to 1) per axis. */
-export const challengeAchievements = (
-  percentiles: ReadonlyArray<number>,
-): ReadonlyArray<AchievementId> => [
-  ...(percentiles.some((value) => value >= 0.9) ? (['histogram'] as const) : []),
-  ...(percentiles.length >= 3 && percentiles.every((value) => value >= 0.7)
-    ? (['pareto'] as const)
-    : []),
-]

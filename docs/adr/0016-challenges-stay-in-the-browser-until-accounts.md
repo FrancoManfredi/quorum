@@ -19,6 +19,6 @@ them to verify a user's best.
 
 ## Consequences
 
-- The `histogram` Achievement (90th percentile on any axis) cannot be earned until histograms return.
+- The `histogram` and `pareto` Achievements need percentiles, so they are removed. They return with histograms. Saves that hold them do not decode, which is accepted.
 - Accounts bring the server side back as a verified best per user, not per device.
 - The D1 database keeps the name `Results`; it now holds only the Exit survey.

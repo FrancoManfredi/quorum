@@ -37,8 +37,6 @@ export const ACHIEVEMENT_IDS = [
   'rule-of-40',
   'beat-and-raise',
   'serial-founder',
-  'histogram',
-  'pareto',
   'two-hard-things',
   'conways-law',
   'fallacies',
@@ -236,16 +234,6 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'serial-founder',
     name: 'Serial Founder',
     condition: 'Exit with every Venture',
-  }),
-  histogram: achievement({
-    id: 'histogram',
-    name: 'Histogram',
-    condition: 'Reach the 90th percentile on any axis of any Challenge',
-  }),
-  pareto: achievement({
-    id: 'pareto',
-    name: 'Pareto',
-    condition: 'Reach the 70th percentile on all three axes of one Challenge',
   }),
   'two-hard-things': achievement({
     id: 'two-hard-things',

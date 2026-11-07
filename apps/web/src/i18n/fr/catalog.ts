@@ -112,11 +112,6 @@ export const catalog: Messages['catalog'] = {
       name: 'Fondateur de la série',
       condition: 'Réaliser une cession avec chaque activité',
     },
-    histogram: {
-      name: 'Histogramme',
-      condition: "Atteignez le 90e centile sur n'importe quel axe de n'importe quel défi",
-    },
-    pareto: { name: 'Pareto', condition: "Atteindre le 70e centile sur les trois axes d'un défi" },
     'two-hard-things': {
       name: 'Deux choses difficiles',
       condition: 'Vivre un incident de lecture périmée sur un cache',

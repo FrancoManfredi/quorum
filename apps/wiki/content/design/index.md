@@ -23,27 +23,27 @@ stalls on bcrypt, a JVM is slow until it warms up, and an average latency hides 
 
 ## Table of Contents
 
-| #   | Document                                                       | Answers                                                                                    |
-| --- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 1   | [Vision and pillars](/design/01-vision)                        | What the game is, who it is for, and the rules every design decision follows.              |
-| 2   | [Influences and research](/design/02-influences)               | Why players love Upload Labs, Factorio, and Opus Magnum, and why some players quit.        |
-| 3   | [Game loops](/design/03-game-loops)                            | The six nested loops, from a two-second glance to a hundred-hour mastery goal.             |
-| 4   | [Simulation](/design/04-simulation)                            | How requests, capacity, queues, latency, errors, and users are calculated.                 |
-| 5   | [Components](/design/05-components)                            | Every placeable Component, its real product, its stats, and its options.                   |
-| 6   | [Runtimes and frameworks](/design/06-runtimes)                 | Languages, runtime variants, and frameworks as tradeoffs, not tiers.                       |
-| 7   | [Data tier](/design/07-data-tier)                              | Databases, caches, replicas, quorums, consistency, and storage.                            |
-| 8   | [Team and velocity](/design/08-team-and-velocity)              | Engineers, Dev Hours, features, tech debt, services, and Conway's law.                     |
-| 9   | [Economy](/design/09-economy)                                  | Currencies, sources and sinks, the cloud bill, pricing models, and funding.                |
-| 10  | [Progression](/design/10-progression)                          | Eras, the research tree, product features, and pacing targets.                             |
-| 11  | [Incidents and reliability](/design/11-incidents)              | The incident catalog, the incident loop, SLOs, and error budgets.                          |
-| 12  | [Observability and Insight](/design/12-observability)          | Fog of war for systems: what the player can see and how they earn the right to see more.   |
-| 13  | [Exit and Legacy](/design/13-prestige)                         | The prestige layer: Exits, Legacy, Ventures, and Mutators.                                 |
-| 14  | [Sandbox, Challenges, and achievements](/design/14-challenges) | Guided and free Sandboxes, fixed puzzles with histograms, daily drills, and achievements.  |
-| 15  | [Interface and game feel](/design/15-ui-ux)                    | The board, Node cards, feedback, bulk actions, and accessibility.                          |
-| 16  | [Balancing](/design/16-balancing)                              | Every formula, every tunable constant, and the pacing model.                               |
-| 17  | [Scope and roadmap](/design/17-scope-and-roadmap)              | What the game contains, the milestones, and open questions.                                |
-| 18  | [Mail](/design/18-mail)                                        | Mail: colour-coded senders, threads, teammates, CVEs, and spam as the game's main channel. |
-| —   | [Measurements](/design/measurements)                           | Balance snapshots taken at a named simulation version.                                     |
+| #   | Document                                                       | Answers                                                                                         |
+| --- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1   | [Vision and pillars](/design/01-vision)                        | What the game is, who it is for, and the rules every design decision follows.                   |
+| 2   | [Influences and research](/design/02-influences)               | Why players love Upload Labs, Factorio, and Opus Magnum, and why some players quit.             |
+| 3   | [Game loops](/design/03-game-loops)                            | The six nested loops, from a two-second glance to a hundred-hour mastery goal.                  |
+| 4   | [Simulation](/design/04-simulation)                            | How requests, capacity, queues, latency, errors, and users are calculated.                      |
+| 5   | [Components](/design/05-components)                            | Every placeable Component, its real product, its stats, and its options.                        |
+| 6   | [Runtimes and frameworks](/design/06-runtimes)                 | Languages, runtime variants, and frameworks as tradeoffs, not tiers.                            |
+| 7   | [Data tier](/design/07-data-tier)                              | Databases, caches, replicas, quorums, consistency, and storage.                                 |
+| 8   | [Team and velocity](/design/08-team-and-velocity)              | Engineers, Dev Hours, features, tech debt, services, and Conway's law.                          |
+| 9   | [Economy](/design/09-economy)                                  | Currencies, sources and sinks, the cloud bill, pricing models, and funding.                     |
+| 10  | [Progression](/design/10-progression)                          | Eras, the research tree, product features, and pacing targets.                                  |
+| 11  | [Incidents and reliability](/design/11-incidents)              | The incident catalog, the incident loop, SLOs, and error budgets.                               |
+| 12  | [Observability and Insight](/design/12-observability)          | Fog of war for systems: what the player can see and how they earn the right to see more.        |
+| 13  | [Exit and Legacy](/design/13-prestige)                         | The prestige layer: Exits, Legacy, Ventures, and Mutators.                                      |
+| 14  | [Sandbox, Challenges, and achievements](/design/14-challenges) | Guided and free Sandboxes, fixed puzzles scored in the browser, daily drills, and achievements. |
+| 15  | [Interface and game feel](/design/15-ui-ux)                    | The board, Node cards, feedback, bulk actions, and accessibility.                               |
+| 16  | [Balancing](/design/16-balancing)                              | Every formula, every tunable constant, and the pacing model.                                    |
+| 17  | [Scope and roadmap](/design/17-scope-and-roadmap)              | What the game contains, the milestones, and open questions.                                     |
+| 18  | [Mail](/design/18-mail)                                        | Mail: colour-coded senders, threads, teammates, CVEs, and spam as the game's main channel.      |
+| —   | [Measurements](/design/measurements)                           | Balance snapshots taken at a named simulation version.                                          |
 
 ## Reference documents
 

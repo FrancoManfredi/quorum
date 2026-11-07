@@ -1,6 +1,6 @@
 ---
 title: 14. Sandbox, Challenges, and achievements
-summary: Guided and free Sandboxes, fixed puzzles with histograms, daily drills, and achievements.
+summary: Guided and free Sandboxes, fixed puzzles scored in the browser, daily drills, and achievements.
 section: design
 order: 14
 ---
@@ -109,9 +109,10 @@ Every completed Challenge scores three axes. Lower is better on all three.
 | Tail       | p99 latency over the run             |
 | Complexity | Number of Nodes plus number of links |
 
-Each axis has a **histogram** of every player's best result. The player sees where they fall, for
-example "Cost: better than 72% of players". The game never shows a rank or a top-10 list. The
-question is whether the player can reach the 70th percentile, not whether they can be first.
+The browser scores each axis and shows the run's own figures. Once accounts exist, each axis gets a
+**histogram** of every player's best result, so the player sees where they fall, for example "Cost:
+better than 72% of players". The game never shows a rank or a top-10 list. The question is whether
+the player can reach the 70th percentile, not whether they can be first.
 
 The three axes conflict. A cheap design has a long tail. A short tail needs more Nodes. So the player
 picks a direction, and each player's best results usually come from different designs.
@@ -123,10 +124,12 @@ picks a direction, and each player's best results usually come from different de
   is always open.
 - A Challenge's palette is fixed. Legacy perks do not apply. Every player has the same tools.
 - The seed is fixed. Incidents in a Challenge are scripted and the same for everyone.
-- Results upload as a design plus a seed, and the server re-runs them to verify. The server score is
-  the authoritative one, and a score on the player's device is provisional until the server confirms
-  it. The simulation is
+- The browser scores the run and sends nothing. A device ID is a random string the player can reset, so
+  a server score per device would prove little. With accounts, the result goes up as a design plus a
+  seed, and the server re-runs it and keeps its own score. That works because the simulation is
   deterministic ([Simulation](/design/04-simulation#determinism-and-randomness)).
+  [ADR 0016](https://github.com/elianiva/quorum/blob/main/docs/adr/0016-challenges-stay-in-the-browser-until-accounts.md)
+  has the reasoning.
 - Rewards: a badge, and Legacy on first completion (1 to 10 ★ by difficulty). No Cash, no power.
 
 ### Challenge list
@@ -172,7 +175,7 @@ an inspiration; the numbers are the game's.
 ## The daily drill
 
 Every calendar day (real day, UTC), all players get the same short Challenge: a seeded design with
-a seeded incident. Results go on a daily histogram. The drill takes 5 to 15 minutes. It is optional
+a seeded incident. With accounts, results go on a daily histogram. The drill takes 5 to 15 minutes. It is optional
 and never rewards streaks, so missing a day costs nothing.
 
 ## Achievements
@@ -180,49 +183,47 @@ and never rewards streaks, so missing a day costs nothing.
 Achievements reward knowledge, unusual builds, and real engineering moments. They do not reward hours
 played. Some unlock Mutators or Ventures ([Exit and Legacy](/design/13-prestige)).
 
-| Achievement             | Condition                                                                    | Unlocks                          |
-| ----------------------- | ---------------------------------------------------------------------------- | -------------------------------- |
-| Hello, World            | Serve the first request                                                      | None                             |
-| It Works on My Machine  | Ship a bad deploy                                                            | None                             |
-| Split Brain             | Split the database onto its own Node                                         | None                             |
-| Averages Lie            | Research `percentiles` while p99 is more than 5× the mean                    | None                             |
-| Shared Nothing          | Reach Seed with only PHP-FPM servers and no memory incident                  | None                             |
-| Blocked                 | Have a Node.js service whose p99 rises by 100 ms from one kind               | None                             |
-| Two Hard Things         | Have a stale-read incident on a cache                                        | None                             |
-| Off by One Region       | Serve a user from a region more than 150 ms away                             | None                             |
-| Little's Law            | Fix an app server bottleneck by fixing the database                          | None                             |
-| Default Alive           | Reach IPO without raising any round                                          | Bootstrapped indie               |
-| Polyglot                | Run five languages in production at once                                     | None                             |
-| Monoglot                | Reach IPO with one language                                                  | Mutator: Single language         |
-| Big Rewrite             | Migrate every service to a new language in one company                       | None                             |
-| Strangler               | Finish a migration in four traffic steps with errors under 1%                | None                             |
-| Conway's Law            | Have more Services than teams, then fix it                                   | None                             |
-| Fallacies               | Experience all eight fallacies of distributed computing in incidents         | None                             |
-| Quorum                  | Run a wide-column store with R + W > N across three regions                  | None                             |
-| Eventually              | Run R = 1, W = 1 at a billion users                                          | None                             |
-| Nines                   | Hold 99.99% for a calendar week                                              | Mutator: Strict SLO              |
-| Five Nines              | Complete the Five Nines Challenge                                            | None                             |
-| Thundering Herd         | Survive a reconnect storm with no errors                                     | None                             |
-| Metastable              | Recover from a retry storm                                                   | None                             |
-| Blameless               | Write 50 postmortems                                                         | None                             |
-| Runbook                 | Have an incident resolve with no player action                               | None                             |
-| Chaos Monkey            | Survive 100 random terminations                                              | Mutator: Chaos Monkey            |
-| Hug of Death            | Survive a ×10 spike with no lost users                                       | Mutator: Hacker News front page  |
-| Egress Shock            | Have egress be the largest line on the bill                                  | None                             |
-| FinOps                  | Run a fleet with reserved, on-demand, and spot Nodes at once                 | None                             |
-| Spot the Difference     | Survive a spot reclaim with no errors                                        | None                             |
-| Warm Start              | Scale a JVM service during a spike with no p99 regression                    | None                             |
-| Zero GC                 | Run a Rust service at 100,000 rps                                            | None                             |
-| Let It Crash            | Have an Elixir service survive 1,000 crashes with no failed requests         | None                             |
-| Postgres for Everything | Reach Series B with only Postgres data Components                            | Mutator: Postgres for everything |
-| No Cache                | Reach Series A with no Cache and no CDN                                      | Mutator: No caches               |
-| Celebrity               | Serve a 10-million-follower post with no hot key errors                      | None                             |
-| Follow the Sun          | Serve four regions with no Node above 70% at its local peak                  | None                             |
-| Rule of 40              | Reach a Rule of 40 score of 80 as a public company                           | None                             |
-| Beat and Raise          | Beat guidance eight quarters in a row                                        | None                             |
-| Unicorn                 | Reach a $1 billion valuation                                                 | None                             |
-| Decacorn                | Reach a $10 billion valuation                                                | None                             |
-| Everyone Online         | Reach 6 billion users                                                        | None                             |
-| Serial Founder          | Exit with every Venture                                                      | None                             |
-| Histogram               | Reach the 90th percentile on any axis of any Challenge                       | None                             |
-| Pareto                  | Reach the 70th percentile on all three axes of one Challenge with one design | None                             |
+| Achievement             | Condition                                                            | Unlocks                          |
+| ----------------------- | -------------------------------------------------------------------- | -------------------------------- |
+| Hello, World            | Serve the first request                                              | None                             |
+| It Works on My Machine  | Ship a bad deploy                                                    | None                             |
+| Split Brain             | Split the database onto its own Node                                 | None                             |
+| Averages Lie            | Research `percentiles` while p99 is more than 5× the mean            | None                             |
+| Shared Nothing          | Reach Seed with only PHP-FPM servers and no memory incident          | None                             |
+| Blocked                 | Have a Node.js service whose p99 rises by 100 ms from one kind       | None                             |
+| Two Hard Things         | Have a stale-read incident on a cache                                | None                             |
+| Off by One Region       | Serve a user from a region more than 150 ms away                     | None                             |
+| Little's Law            | Fix an app server bottleneck by fixing the database                  | None                             |
+| Default Alive           | Reach IPO without raising any round                                  | Bootstrapped indie               |
+| Polyglot                | Run five languages in production at once                             | None                             |
+| Monoglot                | Reach IPO with one language                                          | Mutator: Single language         |
+| Big Rewrite             | Migrate every service to a new language in one company               | None                             |
+| Strangler               | Finish a migration in four traffic steps with errors under 1%        | None                             |
+| Conway's Law            | Have more Services than teams, then fix it                           | None                             |
+| Fallacies               | Experience all eight fallacies of distributed computing in incidents | None                             |
+| Quorum                  | Run a wide-column store with R + W > N across three regions          | None                             |
+| Eventually              | Run R = 1, W = 1 at a billion users                                  | None                             |
+| Nines                   | Hold 99.99% for a calendar week                                      | Mutator: Strict SLO              |
+| Five Nines              | Complete the Five Nines Challenge                                    | None                             |
+| Thundering Herd         | Survive a reconnect storm with no errors                             | None                             |
+| Metastable              | Recover from a retry storm                                           | None                             |
+| Blameless               | Write 50 postmortems                                                 | None                             |
+| Runbook                 | Have an incident resolve with no player action                       | None                             |
+| Chaos Monkey            | Survive 100 random terminations                                      | Mutator: Chaos Monkey            |
+| Hug of Death            | Survive a ×10 spike with no lost users                               | Mutator: Hacker News front page  |
+| Egress Shock            | Have egress be the largest line on the bill                          | None                             |
+| FinOps                  | Run a fleet with reserved, on-demand, and spot Nodes at once         | None                             |
+| Spot the Difference     | Survive a spot reclaim with no errors                                | None                             |
+| Warm Start              | Scale a JVM service during a spike with no p99 regression            | None                             |
+| Zero GC                 | Run a Rust service at 100,000 rps                                    | None                             |
+| Let It Crash            | Have an Elixir service survive 1,000 crashes with no failed requests | None                             |
+| Postgres for Everything | Reach Series B with only Postgres data Components                    | Mutator: Postgres for everything |
+| No Cache                | Reach Series A with no Cache and no CDN                              | Mutator: No caches               |
+| Celebrity               | Serve a 10-million-follower post with no hot key errors              | None                             |
+| Follow the Sun          | Serve four regions with no Node above 70% at its local peak          | None                             |
+| Rule of 40              | Reach a Rule of 40 score of 80 as a public company                   | None                             |
+| Beat and Raise          | Beat guidance eight quarters in a row                                | None                             |
+| Unicorn                 | Reach a $1 billion valuation                                         | None                             |
+| Decacorn                | Reach a $10 billion valuation                                        | None                             |
+| Everyone Online         | Reach 6 billion users                                                | None                             |
+| Serial Founder          | Exit with every Venture                                              | None                             |
