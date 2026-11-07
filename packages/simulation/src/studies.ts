@@ -24,6 +24,7 @@ import type { Ledger } from './ledger.ts'
 import { step as studyStep } from './study-machine.ts'
 import { has, researchReady } from './lookups.ts'
 import { isFeatureLive } from './features.ts'
+import { assignments } from './work.ts'
 import type { Game, InsightPools, Study } from './state.ts'
 
 /* ==========================================================================
@@ -128,15 +129,13 @@ export const broadEnough = (id: ResearchId, ledger: Ledger): boolean => {
   )
 }
 
-/** Whether a Team spikes the running Study: its Spike is among the items the Teams take. */
+/** Whether a Team spikes the running Study: a Team builds its Spike now. */
 export const spiked = (game: Game): boolean => {
   const running = game.studies[0]
   if (!running) return false
-  // Teams take items in order and skip a Spike whose Study is not running (`takeable` in work.ts).
-  const index = game.backlog
-    .filter((item) => item.kind !== 'spike' || item.ref === running.id)
-    .findIndex((item) => item.kind === 'spike')
-  return index !== -1 && index < game.teams.length
+  return [...assignments(game).values()].some(
+    (item) => item.kind === 'spike' && item.ref === running.id,
+  )
 }
 
 /** How fast the running Study goes: a Spike doubles it, study-speed research adds to it. */

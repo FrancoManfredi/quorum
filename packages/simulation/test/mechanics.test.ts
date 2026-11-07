@@ -1,8 +1,8 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { installBackdoor, setPolicyOn, setProvider, setSlowStart } from '../src/actions.ts'
+import { installBackdoor, setPolicyOn, setProvider, setSlowStart, study } from '../src/actions.ts'
 import { saleOf } from '../src/calendar.ts'
-import { CALENDAR_START, FEATURE_IDS, VENTURES } from '../src/catalog.ts'
+import { CALENDAR_START, FEATURE_IDS, RESEARCH_IDS, VENTURES } from '../src/catalog.ts'
 import { preseedGame } from '../src/company.ts'
 import { foundCompany } from '../src/founding.ts'
 import { solveFlow } from '../src/solve.ts'
@@ -10,7 +10,8 @@ import { freeSandbox } from '../src/sandbox.ts'
 import { step } from '../src/step.ts'
 import { newGame } from '../src/company.ts'
 import { NEW_ENGINEER } from '../src/state.ts'
-import { assignments, createTeam, featureRefusal, queueFeature } from '../src/work.ts'
+import { assignments, createTeam, featureRefusal, queueFeature, queueSpike } from '../src/work.ts'
+import { spiked } from '../src/studies.ts'
 
 /* The Exit, Mail and Observability mechanics that change the Game: each runs in a Step or an Action. */
 
@@ -130,5 +131,19 @@ describe('Team assignments', () => {
 
     const after = step(game, 5).game
     expect(after.backlog.find((item) => item.id === second?.id)?.spent ?? 1).toBeGreaterThan(0)
+  })
+
+  test('a Spike speeds its Study only while a Team builds it', () => {
+    let game = Result.getOrThrow(createTeam(founded({ 'head-start': 1 })))
+    const research = RESEARCH_IDS.find((id) => Result.isSuccess(study(game, id)))
+    if (!research) throw new Error('expected a Study to start')
+    game = Result.getOrThrow(study(game, research))
+    const feature = FEATURE_IDS.find((id) => featureRefusal(game, id) === null)
+    if (!feature) throw new Error('expected an open Feature')
+    game = Result.getOrThrow(queueSpike(Result.getOrThrow(queueFeature(game, feature))))
+    expect(spiked(game)).toBe(true)
+
+    // Behind the Feature, the Spike would go to the second team, which has no engineers.
+    expect(spiked({ ...game, backlog: [...game.backlog].reverse() })).toBe(false)
   })
 })
