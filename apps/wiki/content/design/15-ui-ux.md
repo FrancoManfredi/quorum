@@ -107,14 +107,18 @@ time the game state makes it useful.
 - Cards never overlap. Each card keeps 24 px clear around it. A card dropped on others moves to the
   nearest free spot, preferring its column, and an outline shows that spot while the card is held.
 - Links are belts. They run around cards in orthogonal lanes. Links into one Node merge into one
-  trunk; links out of one port keep separate lanes and leave through a splitter. Where two belts
-  cross, the vertical one goes underground: a gap with a mouth at each end.
-- Chevrons on a belt point the way it runs and move at its speed. Requests ride on it as items. A
-  busier belt runs faster; an idle belt is grey and still.
-- A link with errors turns red. A belt that crosses zones has orange rails: its calls pay the
-  cross-zone latency and Egress. A belt between two regions carries a plate under its midpoint with
-  the round trip its calls pay, such as `75 ms`, in the amber of the cross-zone badge; a link into a
-  global Component pays no place, so it shows no plate.
+  trunk; links out of one port keep separate lanes and leave through a splitter. Where belts
+  cross, the vertical one goes underground. A belt under several crossings in a row stays in one
+  tunnel. Belts that dive under the same crossing share one thin portal.
+- A belt is a soft body tinted by what it carries. Requests ride on it as items, each in its kind's
+  shape, and faint chevrons point the way it runs. A busier belt runs faster; an idle belt is a thin
+  grey line. Its rails are a faint edge in its own tint, and stand out on the focused path and on
+  errors.
+- A link with errors turns red. A belt that crosses zones has an orange tick at the port it
+  arrives on, and orange rails in focus: its calls pay the cross-zone latency and Egress. A belt
+  between two regions carries a plate under its midpoint with the round trip its calls pay, such as
+  `75 ms`, in the amber of the cross-zone rails; a link into a global Component pays no place, so it
+  shows no plate.
 - From Series C, each region is a tab with its own board.
 - Services: a Service is tied to the Features it carries, not to a box of Nodes. The Team panel shows
   the Services and splits one (see [Panels](#panels)).

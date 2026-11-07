@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { CARD_W, CLEARANCE, heightOf, type Pt, type Route } from './geometry.ts'
-import { routeLinks, type RoutedNode } from './routing.ts'
-import { STRESS_LINKS as LINKS, stressNodes as placed } from './stress.ts'
+import { SURFACE_MIN, routeLinks, type RoutedNode } from './routing.ts'
+import { BIG_LINKS, STRESS_LINKS as LINKS, bigNodes, stressNodes as placed } from './stress.ts'
 
 type Segment = readonly [Pt, Pt]
 const segments = (path: Route): ReadonlyArray<Segment> =>
@@ -102,5 +102,21 @@ describe('the stress board', () => {
   test('each crossing leaves a gap in one of the two lanes', () => {
     const gaps = [...wires.values()].reduce((sum, wire) => sum + wire.pieces.length - 1, 0)
     expect(gaps).toBeGreaterThan(0)
+  })
+
+  test('a lane under crossings in a row runs through one tunnel, not a gap at each', () => {
+    const big = routeLinks(bigNodes(), BIG_LINKS)
+    let joined = 0
+    for (const [key, wire] of big) {
+      expect(wire.pieces.length - 1, key).toBe(wire.tunnels.length)
+      for (let index = 1; index < wire.tunnels.length; index += 1) {
+        const [, end] = wire.tunnels[index - 1] as readonly [number, number]
+        const [start] = wire.tunnels[index] as readonly [number, number]
+        expect(start - end, key).toBeGreaterThanOrEqual(SURFACE_MIN)
+      }
+      // One crossing leaves a gap of 14 px; a longer tunnel passes under several.
+      joined += wire.tunnels.filter(([start, end]) => end - start > 15).length
+    }
+    expect(joined).toBeGreaterThan(0)
   })
 })

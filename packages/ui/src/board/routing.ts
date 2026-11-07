@@ -1,6 +1,7 @@
 import {
   CARD_W,
   CLEARANCE,
+  gap,
   heightOf,
   inPort,
   layoutOf,
@@ -24,16 +25,21 @@ import {
  *    links take a longer way through an emptier gap.
  * 4. Nudging spreads the lanes that share a channel line, in an order that
  *    avoids crossings where it can.
- * 5. Where two lanes still cross, the vertical one has a gap.
+ * 5. Where two lanes still cross, the vertical one goes underground. A lane
+ *    under several crossings in a row stays underground through them all.
  */
 
 export type RoutedNode = Placed & Readonly<{ id: string }>
 export type RoutedLink = Readonly<{ from: string; to: string }>
 /**
  * A routed link: the whole path for packets and hit tests, the pieces to stroke,
- * and the hops where it passes under another link.
+ * and its tunnels under other links, as distances along the path.
  */
-export type Wire = Readonly<{ path: Route; pieces: ReadonlyArray<Route>; hops: ReadonlyArray<Pt> }>
+export type Wire = Readonly<{
+  path: Route
+  pieces: ReadonlyArray<Route>
+  tunnels: ReadonlyArray<readonly [number, number]>
+}>
 
 /** Obstacles grow by half the clearance, so grid lines run down the middle of a tight gap. */
 const MARGIN = CLEARANCE / 2
@@ -50,7 +56,9 @@ const PRESENT_COST = 4
 const HISTORY_COST = 2
 const PASSES = 4
 /** Half the length of the gap a vertical lane leaves where a horizontal one crosses it. */
-export const HOP = 7
+const HOP = 7
+/** A lane that would surface for less than this between two crossings stays underground. */
+export const SURFACE_MIN = 22
 
 const keyOf = (link: RoutedLink): string => `${link.from}>${link.to}`
 
@@ -596,37 +604,64 @@ export const routeLinks = (
 
   for (const [key, points] of corners) {
     const path = smooth(points)
-    wires.set(key, { path, pieces: cut(path, hops.get(key) ?? []), hops: hops.get(key) ?? [] })
+    wires.set(key, { path, ...cut(path, hops.get(key) ?? []) })
   }
   return wires
 }
 
-/** Splits a path where it passes a hop on a vertical stretch. */
-const cut = (path: Route, hops: ReadonlyArray<Pt>): ReadonlyArray<Route> => {
-  if (hops.length === 0) return [path]
-  const pieces: Array<Array<Pt>> = []
-  let piece: Array<Pt> = []
-  for (let index = 0; index < path.length; index += 1) {
+/** Splits a path into the pieces between its tunnels, one tunnel per run of close hops. */
+const cut = (path: Route, hops: ReadonlyArray<Pt>): Pick<Wire, 'pieces' | 'tunnels'> => {
+  if (hops.length === 0) return { pieces: [path], tunnels: [] }
+  // Where along the path each hop falls: hops sit only on vertical stretches.
+  const spans: Array<[number, number]> = []
+  let travelled = 0
+  for (let index = 1; index < path.length; index += 1) {
     const point = path[index] as Pt
-    const previous = path[index - 1]
-    if (previous && Math.abs(previous.x - point.x) < 0.01) {
-      const down = point.y > previous.y
-      const passed = hops
-        .filter(
-          (hop) =>
-            Math.abs(hop.x - point.x) < 0.5 &&
-            hop.y > Math.min(previous.y, point.y) &&
-            hop.y < Math.max(previous.y, point.y),
-        )
-        .sort((a, b) => (down ? a.y - b.y : b.y - a.y))
-      for (const hop of passed) {
-        piece.push({ x: point.x, y: hop.y + (down ? -HOP : HOP) })
-        pieces.push(piece)
-        piece = [{ x: point.x, y: hop.y + (down ? HOP : -HOP) }]
-      }
-    }
-    piece.push(point)
+    const previous = path[index - 1] as Pt
+    if (Math.abs(previous.x - point.x) < 0.01)
+      for (const hop of hops)
+        if (
+          Math.abs(hop.x - point.x) < 0.5 &&
+          hop.y > Math.min(previous.y, point.y) &&
+          hop.y < Math.max(previous.y, point.y)
+        ) {
+          const at = travelled + Math.abs(hop.y - previous.y)
+          spans.push([at - HOP, at + HOP])
+        }
+    travelled += gap(previous, point)
   }
-  pieces.push(piece)
-  return pieces
+  spans.sort((a, b) => a[0] - b[0])
+  const tunnels: Array<[number, number]> = []
+  for (const span of spans) {
+    const last = tunnels.at(-1)
+    if (last && span[0] - last[1] < SURFACE_MIN) last[1] = Math.max(last[1], span[1])
+    else tunnels.push([span[0], span[1]])
+  }
+  const ends = [0, ...tunnels.flat(), travelled]
+  const pieces: Array<Route> = []
+  for (let index = 0; index < ends.length; index += 2)
+    pieces.push(slice(path, ends[index] as number, ends[index + 1] as number))
+  return { pieces, tunnels }
+}
+
+/** The stretch of a path from `start` to `end`, in distance along it. */
+const slice = (path: Route, start: number, end: number): Route => {
+  const out: Array<Pt> = []
+  let travelled = 0
+  for (let index = 1; index < path.length; index += 1) {
+    const a = path[index - 1] as Pt
+    const b = path[index] as Pt
+    const span = gap(a, b)
+    const at = (d: number): Pt => {
+      const k = span > 0 ? (d - travelled) / span : 0
+      return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }
+    }
+    if (travelled + span >= start && travelled <= end) {
+      if (out.length === 0) out.push(at(Math.max(start, travelled)))
+      out.push(travelled + span <= end ? b : at(end))
+    }
+    travelled += span
+    if (travelled >= end) break
+  }
+  return out
 }

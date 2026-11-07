@@ -51,7 +51,7 @@ import {
 import { compute } from './compute.ts'
 import { flowMarks, placeLabel } from './flows.ts'
 import { CHIP_NONE, chipAt, rowsAt } from './lod.ts'
-import { HOP, type RoutedLink, type RoutedNode, type Wire } from './routing.ts'
+import { type RoutedLink, type RoutedNode, type Wire } from './routing.ts'
 import { FOOT_ICONS, ROW_ICONS, footerOf, levelOf, rowsOf, sizePips, type RowTone } from './card.ts'
 import { COMPONENT_ICONS, GROUP_SHAPES, STACK_LOGOS, type StackLogoId } from '../game/icons.ts'
 import { packetShapeOf, type PacketShape } from '../game/packets.ts'
@@ -637,18 +637,20 @@ const traceOf = (graphics: Graphics, path: Route): Graphics => {
 }
 
 /*
- * Links are belts. Every belt has the same body between two rails; chevrons on it
- * point the way it runs and move at its speed, and requests ride on it as items.
- * A busier belt runs faster. Where a belt passes under another, it dips
- * underground: a gap with a cap at each mouth.
+ * Links are belts: a soft body tinted by what it carries, faint chevrons that point
+ * the way it runs and move at its speed, and requests riding on it as items. A
+ * busier belt runs faster. Its rails are a faint edge in its own tint, and stand
+ * out on the focused path, under the pointer, on errors, and between zones. Where a
+ * belt passes under others it runs through a tunnel; belts that dive under the same
+ * crossing share one portal.
  */
 const BELT = 7
 /** Width of the splitter where one port feeds several belts. */
 const SPLITTER_W = 12
 /** World pixels between chevrons, and their half-width and depth. */
-const CHEVRON_GAP = 10
-const CHEVRON_HALF = 2.2
-const CHEVRON_DEPTH = 2
+const CHEVRON_GAP = 14
+const CHEVRON_HALF = 1.6
+const CHEVRON_DEPTH = 1.4
 /** Belt speed in world pixels per second. */
 const beltSpeed = (rate: number): number => 22 + 16 * Math.log2(1 + rate)
 
@@ -1587,7 +1589,7 @@ class NodeView {
 const DIM = 0.3
 /** Below this zoom the belts' chevrons are left out: they are a few pixels apart. */
 const CHEVRON_SCALE = 0.5
-/** How far under a belt its region's round-trip plate sits, clear of the zone badge. */
+/** How far under a belt its region's round-trip plate sits. */
 const PLACE_LIFT = 24
 
 class BeltView {
@@ -1639,29 +1641,99 @@ class BeltView {
     )
   }
 
-  draw(pieces: ReadonlyArray<Route>, rail: number, body: number, busy: boolean): void {
-    const key = `${rail}:${body}:${busy}`
+  /** The body between its rails. The board draws the tunnel portals. */
+  draw(
+    pieces: ReadonlyArray<Route>,
+    rail: number,
+    body: number,
+    width: number,
+    zone: number | null,
+  ): void {
+    const key = `${rail}:${body}:${width}:${zone}`
     if (pieces === this.bodyFor && key === this.bodyKey) return
     this.bodyFor = pieces
     this.bodyKey = key
     this.body.clear()
     for (const piece of pieces) traceOf(this.body, piece)
-    this.body.stroke({ color: rail, width: BELT + 3, join: 'round', alpha: busy ? 0.9 : 0.6 })
+    this.body.stroke({ color: rail, width: width + 2, join: 'round', alpha: 0.9 })
     for (const piece of pieces) traceOf(this.body, piece)
-    this.body.stroke({ color: body, width: BELT, join: 'round' })
-    // The mouths where the belt dips under another one.
+    this.body.stroke({ color: body, width, join: 'round' })
     this.mouths.clear()
-    pieces.forEach((piece, index) => {
-      const ends = [
-        index > 0 ? piece[0] : undefined,
-        index < pieces.length - 1 ? piece.at(-1) : undefined,
-      ]
-      for (const end of ends)
-        if (end)
-          this.mouths.moveTo(end.x - BELT / 2 - 2.5, end.y).lineTo(end.x + BELT / 2 + 2.5, end.y)
-    })
-    this.mouths.stroke({ color: rail, width: 3, cap: 'round' })
+    // The cross-zone tick, a little before the port the call arrives on.
+    const end = pieces.at(-1)?.at(-1)
+    if (zone !== null && end) this.mouths.roundRect(end.x - 14, end.y - 6, 3, 12, 1.5).fill(zone)
   }
+}
+
+/** A tunnel mouth: where a belt dives or surfaces, and the belt's width there. */
+type Mouth = Readonly<{ x: number; y: number; across: boolean; width: number; off: boolean }>
+
+/** Where a belt's pieces dive and surface. A mouth on a bend snaps to the nearest axis. */
+const mouthsOf = (
+  pieces: ReadonlyArray<Route>,
+  width: number,
+  off: boolean,
+  out: Array<Mouth>,
+): void => {
+  const add = (at: Pt | undefined, along: Pt | undefined): void => {
+    if (!at || !along) return
+    // A belt running up or down has a portal across it, and the other way round.
+    const across = Math.abs(at.y - along.y) > Math.abs(at.x - along.x)
+    out.push({ x: at.x, y: at.y, across, width, off })
+  }
+  pieces.forEach((piece, index) => {
+    if (index > 0) add(piece[0], piece[1])
+    if (index < pieces.length - 1) add(piece.at(-1), piece.at(-2))
+  })
+}
+
+/** Mouths closer than this along one row share one portal. */
+const PORTAL_JOIN = 7
+const PORTAL_DEPTH = 2.5
+
+/**
+ * The tunnel portals: one thin bar per row of mouths side by side, so belts that
+ * dive under the same crossing go in through one entrance, as on a Factorio bus.
+ */
+const portalsOf = (
+  mouths: ReadonlyArray<Mouth>,
+): ReadonlyArray<Readonly<{ x0: number; y0: number; x1: number; y1: number; off: boolean }>> => {
+  const rows = new Map<string, Array<Mouth>>()
+  for (const mouth of mouths) {
+    const key = mouth.across ? `h${Math.round(mouth.y)}` : `v${Math.round(mouth.x)}`
+    const row = rows.get(key) ?? []
+    row.push(mouth)
+    rows.set(key, row)
+  }
+  const out: Array<{ x0: number; y0: number; x1: number; y1: number; off: boolean }> = []
+  for (const row of rows.values()) {
+    const across = (row[0] as Mouth).across
+    const along = (mouth: Mouth): number => (across ? mouth.x : mouth.y)
+    row.sort((a, b) => along(a) - along(b))
+    let run: { start: number; end: number; at: number; off: boolean } | null = null
+    const flush = (): void => {
+      if (!run) return
+      const half = PORTAL_DEPTH / 2
+      out.push(
+        across
+          ? { x0: run.start, y0: run.at - half, x1: run.end, y1: run.at + half, off: run.off }
+          : { x0: run.at - half, y0: run.start, x1: run.at + half, y1: run.end, off: run.off },
+      )
+    }
+    for (const mouth of row) {
+      const start = along(mouth) - mouth.width / 2 - 1
+      const end = along(mouth) + mouth.width / 2 + 1
+      if (run && start - run.end < PORTAL_JOIN) {
+        run.end = Math.max(run.end, end)
+        run.off &&= mouth.off
+        continue
+      }
+      flush()
+      run = { start, end, at: across ? mouth.y : mouth.x, off: mouth.off }
+    }
+    flush()
+  }
+  return out
 }
 
 /**
@@ -1686,7 +1758,7 @@ class ChevronLayer {
       .moveTo(pad, pad)
       .lineTo(pad + CHEVRON_DEPTH, pad + CHEVRON_HALF)
       .lineTo(pad, pad + 2 * CHEVRON_HALF)
-      .stroke({ color: 0xffffff, width: 1.2 })
+      .stroke({ color: 0xffffff, width: 1 })
     const w = CHEVRON_DEPTH + 2 * pad
     const h = 2 * CHEVRON_HALF + 2 * pad
     this.texture = renderer.generateTexture({
@@ -1852,6 +1924,9 @@ class BoardController {
   private beltOrder = ''
   private readonly splitters = new Graphics()
   private splittersKey = ''
+  /** The tunnel portals, redrawn only when a mouth moves or the focus changes. */
+  private readonly portals = new Graphics()
+  private portalsKey = ''
   private readonly packets = new Graphics()
   /** The rate labels on still belts: reduced motion's stand-in for moving packets. */
   private readonly notes = new NoteLayer()
@@ -1864,10 +1939,6 @@ class BoardController {
   private readonly boxNames = new Container()
   private boxesKey = ''
   private readonly overlay = new Graphics()
-  /** The "!" badges on links that cross zones: they move only with the links, so they
-   *  redraw only then, not every frame like the overlay. */
-  private readonly badges = new Graphics()
-  private badgesAt: ReadonlyArray<number> = []
   private readonly bottleneckTag = label(9, MONO, '600')
   private readonly ghost = new Container()
   private readonly views = new Map<string, NodeView>()
@@ -1974,7 +2045,7 @@ class BoardController {
     this.bottleneckTag.style.fill = 0xffffff
     this.bottleneckTag.visible = false
     this.chevrons.init(this.app.renderer)
-    this.wires.addChild(this.bodies, this.chevrons.root, this.mouths, this.splitters)
+    this.wires.addChild(this.bodies, this.chevrons.root, this.mouths, this.portals, this.splitters)
     this.boxLayer.addChild(this.boxes, this.boxNames)
     this.boxLayer.isRenderGroup = true
     this.world.addChild(
@@ -1984,7 +2055,6 @@ class BoardController {
       this.notes.root,
       this.places.root,
       this.cards,
-      this.badges,
       this.overlay,
       this.bottleneckTag,
       this.ghost,
@@ -2319,11 +2389,11 @@ class BoardController {
       if (off === 0) return wire
       if (off <= SLACK) {
         const path = bent(wire.path, da, db)
-        return { path, pieces: [path], hops: [] }
+        return { path, pieces: [path], tunnels: [] }
       }
     }
     const path = routeOf(from, to)
-    return { path, pieces: [path], hops: [] }
+    return { path, pieces: [path], tunnels: [] }
   }
 
   private landingOf(dragged = this.gesture?.kind === 'node' ? this.dragged : null): Pt | null {
@@ -2956,25 +3026,6 @@ class BoardController {
     }
   }
 
-  /** Redraws the zone badges when one moved, came or went. `at` holds x, y pairs. */
-  private drawBadges(at: ReadonlyArray<number>, colors: Palette): void {
-    const last = this.badgesAt
-    if (at.length === last.length && at.every((value, index) => value === last[index])) return
-    this.badgesAt = at
-    this.badges.clear()
-    for (let index = 0; index < at.length; index += 2) {
-      const x = at[index] as number
-      const y = at[index + 1] as number
-      this.badges.circle(x, y, 8).fill(colors.warn)
-      this.badges
-        .moveTo(x, y - 4)
-        .lineTo(x, y + 0.5)
-        .moveTo(x, y + 3)
-        .lineTo(x, y + 3.2)
-      this.badges.stroke({ color: colors.card, width: 2, cap: 'round' })
-    }
-  }
-
   private animate(seconds: number): void {
     const state = this.state
     if (!state) return
@@ -3023,12 +3074,12 @@ class BoardController {
       h: this.host.clientHeight / scale + 2 * margin,
     }
     this.chevrons.begin()
-    const badges: Array<number> = []
     const focus = this.pathOf(state)
     this.packets.clear()
     this.notes.begin()
     this.places.begin()
     this.overlay.clear()
+    const mouths: Array<Mouth> = []
     this.syncBelts(state.game.links)
     const picked = this.selectedLink
     if (picked && !state.game.links.some((l) => l.from === picked.from && l.to === picked.to))
@@ -3047,7 +3098,7 @@ class BoardController {
       // A new link draws out of its port before anything flows along it.
       const drawn = age === undefined ? 1 : easeOut(Math.min(1, age / DRAW_IN_S))
       const path = drawn < 1 ? partOf(wire.path, drawn) : wire.path
-      // Where another lane crosses, a vertical lane has a gap: it is the one passing under.
+      // Where other lanes cross, a vertical lane runs through a tunnel under them.
       const pieces = drawn < 1 ? [path] : wire.pieces
       const seen = belt.onScreen(pieces, view)
       const flow = rates.get(`${link.from}>${link.to}`)
@@ -3067,16 +3118,20 @@ class BoardController {
               : colors.edge
       // A dark board sinks its wires toward the canvas, so saturated packets do not glare.
       const packet = mix(hue, colors.canvas, colors.wireMute)
-      // The belt: rails, then the body between them.
       const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
-      // Rails between zones are orange: those calls pay cross-zone latency and Egress.
+      // Rails stand out only where they say something: on the focused path and on errors. A call
+      // between zones pays cross-zone latency and Egress: its rails are orange in focus,
+      // and at rest an orange tick marks the port it arrives on.
+      const zonal = zoneMs(from, to) > 0
+      const focused = focus !== null && !off
       const rail = hovered
         ? colors.danger
-        : zoneMs(from, to) > 0
+        : zonal && focused
           ? colors.warn
-          : busy
+          : focused || flow?.failing
             ? mix(packet, colors.shade, 0.3)
-            : colors.edge
+            : // At rest a faint edge in the belt's own tint keeps the path's boundary.
+              mix(packet, colors.canvas, busy ? 0.55 : 0.4)
       // Once zones are researched a link inside one zone takes that zone's tint.
       const zones = has(state.game, 'multi-az') && zoned(from) && zoned(to)
       const crossing = zones && from.zone !== to.zone
@@ -3085,21 +3140,18 @@ class BoardController {
         zones && !crossing && !hovered
           ? mix(zoneHue[from.zone], colors.canvas, busy ? 0.75 : 0.85)
           : mix(packet, colors.canvas, hovered ? 0.6 : busy ? 0.8 : 0.92)
-      belt.draw(pieces, rail, body, busy)
+      belt.draw(pieces, rail, body, busy ? BELT : 3, zonal ? colors.warn : null)
+      if (drawn >= 1) mouthsOf(pieces, busy ? BELT : 3, off, mouths)
       // A still, busy belt shows its arrows and rate instead of chevrons: one read, not two.
-      if (detailed && seen && !(still && busy))
+      // The items carry the flow; the chevrons are faint unless the belt is in focus.
+      if (detailed && seen && busy && !still)
         this.chevrons.add(
           pieces,
           this.phase * speed,
-          busy ? mix(packet, colors.canvas, 0.35) : colors.edge,
-          (busy ? 0.9 : 0.5) * (off ? DIM : 1),
+          mix(packet, colors.canvas, 0.4),
+          focus !== null && !off ? 0.75 : off ? DIM * 0.4 : 0.3,
           view,
         )
-      // A link that crosses zones carries an orange "!" badge: a zone outage cuts it.
-      if (crossing && !picked && drawn >= 1) {
-        const mid = midOf(path)
-        badges.push(mid.x, mid.y)
-      }
       // A link between regions says what its round trip costs, under the belt.
       const place = placeLabel(state.game, from, to)
       if (place && detailed && seen && drawn >= 1) {
@@ -3136,23 +3188,23 @@ class BoardController {
       const marks = flowMarks(still, flow.rate, length)
       const shape = packetShapeOf(flow.kind)
       const alpha = tap ? 0.6 : 0.95
-      // Under a passing belt, a hop marks where it runs underground: nothing shows there.
-      const underground = (at: Readonly<{ x: number; y: number }>): boolean =>
-        wire.hops.some((hop) => Math.abs(hop.x - at.x) < 1 && Math.abs(hop.y - at.y) < HOP)
+      // Nothing shows on the belt while it runs through a tunnel.
+      const underground = (t: number): boolean =>
+        wire.tunnels.some(([start, end]) => t * length > start && t * length < end)
       if (marks.label === null) {
         // Items ride the belt at its speed, each in its kind's shape.
         const along = speed / Math.max(1, length)
         for (let index = 0; index < marks.packets; index += 1) {
           const t = (this.phase * along + (index + 0.5) / marks.packets) % 1
+          if (underground(t)) continue
           const at = pointOn(path, t, length)
-          if (underground(at)) continue
-          packetAt(this.packets, shape, at.x, at.y, 3.1)
+          packetAt(this.packets, shape, at.x, at.y, 2.4)
         }
       } else {
         // Reduced motion: still arrows along the belt, under the rate they stand for.
         for (const t of marks.arrows) {
+          if (underground(t)) continue
           const at = pointAndDirection(path, t)
-          if (underground(at)) continue
           arrowAt(this.packets, at.x, at.y, at.ux, at.uy, 4.2)
         }
         const mid = midOf(path)
@@ -3164,8 +3216,19 @@ class BoardController {
     this.notes.end()
     this.places.end()
     this.chevrons.end()
-    this.drawBadges(badges, colors)
     this.drawBoxes(state.game, colors)
+
+    const portals = portalsOf(mouths)
+    const portalColor = colors.edge
+    const portalsKey = `${portalColor}|${portals.map((p) => `${p.x0}:${p.y0}:${p.x1}:${p.y1}:${p.off}`).join('|')}`
+    if (portalsKey !== this.portalsKey) {
+      this.portalsKey = portalsKey
+      this.portals.clear()
+      for (const portal of portals)
+        this.portals
+          .roundRect(portal.x0, portal.y0, portal.x1 - portal.x0, portal.y1 - portal.y0, 1.25)
+          .fill({ color: portalColor, alpha: portal.off ? DIM : 0.7 })
+    }
 
     // A port that feeds several belts has a splitter over the point where they part.
     const fans = new Map<string, { x: number; top: number; bottom: number; belts: number }>()
