@@ -3,6 +3,8 @@ import type { Messages } from '../messages.ts'
 export const inspectorShared: Messages['inspectorShared'] = {
   runtime: '运行时',
   proposed: '提议',
+  searchPlaceholder: '搜索…',
+  noMatches: '没有匹配项',
   researchToUnlock: (p0) => `研究${p0}以解锁`,
   poolSize: '池大小',
   fewerWorkers: '减少工作进程',

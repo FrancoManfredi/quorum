@@ -24,7 +24,7 @@ const prefetching = (node: GameNode, h: HtmlBuilder<Message>): Html => {
 
 export const workerPanel: Panel = {
   body: ({ model, game, node, h }) => [
-    ...stack(game, node, h, pinnedRuntime(model, node)),
+    ...stack(model, node, h, pinnedRuntime(model, node)),
     ...serviceOwnership(game, node, h),
     prefetching(node, h),
   ],

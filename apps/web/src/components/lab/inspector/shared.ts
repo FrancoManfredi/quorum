@@ -5,18 +5,16 @@ import { ChevronRight, Minus, Plus } from 'lucide'
 import {
   COMPONENTS,
   FRAMEWORKS,
-  FRAMEWORK_IDS,
   PM_MODES,
   OS_RAM,
   RUNTIMES,
-  RUNTIME_IDS,
   SIZES,
   type RuntimeId,
   DB_ENGINES,
 } from '@quorum/simulation/catalog'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
-import { frameworkReady, has, ramOf, runtimeReady } from '@quorum/simulation/lookups'
+import { has, ramOf } from '@quorum/simulation/lookups'
 import type { DbEngine, Game, GameLink, GameNode, PmMode, Service } from '@quorum/simulation/state'
 import { serviceOfNode } from '@quorum/simulation/work'
 import { Message } from '@/game/message.ts'
@@ -24,7 +22,8 @@ import type { Model } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
-import { EYEBROW, FIGURE, WELL, stackLogo } from '@quorum/ui/game/bits'
+import { EYEBROW, FIGURE, WELL } from '@quorum/ui/game/bits'
+import { frameworkPickerView, runtimePickerView } from './stack-picker.ts'
 
 /** What a Component adds to its Node's Inspector, in the slots the panel has room for. */
 export type PanelContext = Readonly<{
@@ -214,17 +213,15 @@ export const percent = (value: number) => `${Math.round(value * 100)}%`
 export const percentNumber = (value: number) => Math.round(value * 100)
 
 export const stack = (
-  game: Game,
+  model: Model,
   node: GameNode,
   h: HtmlBuilder<Message>,
   reviewingRuntime: RuntimeId | null,
 ): ReadonlyArray<Html> => {
   const t = copy(h)
+  const game = model.board.game
 
   const runtime = localized(RUNTIMES[node.runtime], t.catalog.runtimes[node.runtime])
-  const frameworks = FRAMEWORK_IDS.filter(
-    (id) => id === 'none' || FRAMEWORKS[id].language === runtime.language,
-  )
   const fit = Math.max(
     0,
     Math.floor(
@@ -236,35 +233,7 @@ export const stack = (
     section(
       t.inspectorShared.runtime,
       [
-        segmented(
-          'grid-cols-2',
-          RUNTIME_IDS.map((id) =>
-            choice(
-              id,
-              node.runtime === id,
-              runtimeReady(game, id),
-              Message.OptionChosen({ nodeId: node.id, option: { kind: 'runtime', id } }),
-              [
-                stackLogo(RUNTIMES[id].language, 'size-4', h),
-                h.span([h.Class('truncate')], [t.catalog.runtimes[id].name]),
-                ...(reviewingRuntime === id
-                  ? [
-                      h.span(
-                        [h.Class('text-[calc(10px*var(--type-scale))] text-group-compute')],
-                        [t.inspectorShared.proposed],
-                      ),
-                    ]
-                  : []),
-              ],
-              runtimeReady(game, id)
-                ? t.catalog.runtimes[id].blurb
-                : t.inspectorShared.researchToUnlock(t.catalog.runtimes[id].name),
-              h,
-              Message.OptionPreviewed({ nodeId: node.id, option: { kind: 'runtime', id } }),
-            ),
-          ),
-          h,
-        ),
+        runtimePickerView(model, node, h, reviewingRuntime),
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [runtime.blurb],
@@ -323,27 +292,7 @@ export const stack = (
     section(
       t.inspectorShared.framework,
       [
-        segmented(
-          'grid-cols-2',
-          frameworks.map((id) =>
-            choice(
-              id,
-              node.framework === id,
-              frameworkReady(game, id),
-              Message.OptionChosen({ nodeId: node.id, option: { kind: 'framework', id } }),
-              [
-                id === 'none' ? h.empty : stackLogo(id, 'size-4', h),
-                h.span([h.Class('truncate')], [t.catalog.frameworks[id].name]),
-              ],
-              frameworkReady(game, id)
-                ? t.catalog.frameworks[id].blurb
-                : t.inspectorShared.researchToUnlock(t.catalog.frameworks[id].name),
-              h,
-              Message.OptionPreviewed({ nodeId: node.id, option: { kind: 'framework', id } }),
-            ),
-          ),
-          h,
-        ),
+        frameworkPickerView(model, node, h),
         h.p(
           [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
           [t.catalog.frameworks[node.framework].blurb],

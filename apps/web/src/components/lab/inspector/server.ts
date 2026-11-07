@@ -119,7 +119,7 @@ const routing = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyA
 
 export const serverPanel: Panel = {
   body: ({ model, game, node, h }) => [
-    ...stack(game, node, h, pinnedRuntime(model, node)),
+    ...stack(model, node, h, pinnedRuntime(model, node)),
     ...serviceOwnership(game, node, h),
     ...collector(game, node, h),
     ...routing(game, node, h),

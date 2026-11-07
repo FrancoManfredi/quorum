@@ -3,6 +3,8 @@ import type { Messages } from '../messages.ts'
 export const inspectorShared: Messages['inspectorShared'] = {
   runtime: 'Environnement d’exécution',
   proposed: 'Proposé',
+  searchPlaceholder: 'Rechercher…',
+  noMatches: 'Aucun résultat',
   researchToUnlock: (p0) => `Recherchez ${p0} pour débloquer`,
   poolSize: 'Taille du pool',
   fewerWorkers: 'Moins de processus',

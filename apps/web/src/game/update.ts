@@ -2,6 +2,7 @@ import { AppRoute, menuFor, onBoard, urlOf, urlToAppRoute } from './route.ts'
 import { DEFAULT_LOGO } from './logos.ts'
 import { EMPTY_SAVE_INDEX } from './saves.ts'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
+import { initFrameworkPicker, initRuntimePicker } from './stack-picker.ts'
 import {
   LoadFounder,
   LoadSaves,
@@ -83,6 +84,8 @@ export const initialModel = (): Model =>
     },
     glossary: { focus: null, returnTo: 'none', query: '', category: null },
     languagePicker: Listbox.init({ id: 'interface-language' }),
+    runtimePicker: initRuntimePicker(),
+    frameworkPicker: initFrameworkPicker(),
     moreMenu: UiMenu.init({ id: 'more-menu' }),
   })
 
@@ -114,6 +117,9 @@ export const QUIET = new Set([
   'SavesLoaded',
   'CompanyLoaded',
   'CompanyDeleted',
+  // The Inspector's Stack pickers are UI state; the option they choose is logged.
+  'RuntimePickerChanged',
+  'FrameworkPickerChanged',
   // Sent by the compute worker several times a second.
   'BottleneckFound',
   'PreviewComputed',

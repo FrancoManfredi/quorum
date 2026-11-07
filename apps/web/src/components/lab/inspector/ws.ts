@@ -1,31 +1,27 @@
 import { formats } from '@/i18n/format.ts'
 import { copy, localized } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { RT_HOLD_SECONDS, RUNTIMES, RUNTIME_IDS } from '@quorum/simulation/catalog'
+import { RT_HOLD_SECONDS, RUNTIMES } from '@quorum/simulation/catalog'
 import { distributedErlang, hubConnections } from '@quorum/simulation/rules'
-import { burnOf, runtimeReady } from '@quorum/simulation/lookups'
-import type { Game, GameNode } from '@quorum/simulation/state'
+import { burnOf } from '@quorum/simulation/lookups'
+import type { GameNode } from '@quorum/simulation/state'
 import { compact, money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
+import type { Model } from '@/game/model.ts'
 import { row } from '@quorum/ui/game/bits'
 import { type Panel, caption, picker, section } from './shared.ts'
+import { runtimePickerView } from './stack-picker.ts'
 
 /** The runtime a Realtime Hub holds its connections on: the per-connection cost is the whole model. */
-const hubStack = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+const hubStack = (model: Model, node: GameNode, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+  const game = model.board.game
 
   const runtime = localized(RUNTIMES[node.runtime], t.catalog.runtimes[node.runtime])
   return section(
     t.inspectorWs.runtime,
     [
-      picker(
-        'runtime',
-        RUNTIME_IDS.map((id) => [id, t.catalog.runtimes[id].name] as const),
-        node.runtime,
-        (id) => Message.OptionChosen({ nodeId: node.id, option: { kind: 'runtime', id } }),
-        h,
-        (id) => runtimeReady(game, id),
-      ),
+      runtimePickerView(model, node, h, null, false),
       h.p(
         [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
         [runtime.blurb],
@@ -115,5 +111,5 @@ export const wsPanel: Panel = {
       row(t.inspectorWs.burn, t.inspectorWs.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
-  body: ({ game, node, h }) => [hubStack(game, node, h), hub(node, h)],
+  body: ({ model, node, h }) => [hubStack(model, node, h), hub(node, h)],
 }

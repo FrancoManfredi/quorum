@@ -1,6 +1,6 @@
 import { MailMessage, Snippet } from './mail-text.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
-import { Listbox, Menu as UiMenu } from '@foldkit/ui'
+import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Locale } from '../i18n/index.ts'
 import { Effect, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
@@ -415,6 +415,9 @@ export const Model = Schema.Struct({
   prefs: Prefs,
   glossary: Glossary,
   languagePicker: Listbox.Model,
+  /** The searchable Stack pickers on the Inspector's App Server or Worker. */
+  runtimePicker: Combobox.Model,
+  frameworkPicker: Combobox.Model,
   /** The phone toolbar's More menu. */
   moreMenu: UiMenu.Model,
 })

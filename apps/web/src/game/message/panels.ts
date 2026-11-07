@@ -1,7 +1,7 @@
 import { DashboardMessage } from '../dashboard.ts'
 import { GlossaryMessage } from '../glossary.ts'
 import { InboxMessage } from '../inbox.ts'
-import { Listbox, Menu as UiMenu } from '@foldkit/ui'
+import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Panel, Tone } from '../model.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { SurveyMessage } from '../survey.ts'
@@ -34,6 +34,9 @@ export const panelsCases = {
   /** The save as text (15 "Save"): copied out, or asked for and pasted back. */
   DashboardChanged: { message: DashboardMessage },
   LanguagePickerChanged: { message: Listbox.Message },
+  /** The searchable Stack pickers on the Inspector. */
+  RuntimePickerChanged: { message: Combobox.Message },
+  FrameworkPickerChanged: { message: Combobox.Message },
   MoreMenuChanged: { message: UiMenu.Message },
   ToastRaised: { message: Schema.String, tone: Tone },
   ToastCleared: { id: Schema.Finite },

@@ -3,6 +3,8 @@ import type { Messages } from '../messages.ts'
 export const inspectorShared: Messages['inspectorShared'] = {
   runtime: 'ランタイム',
   proposed: '提案中',
+  searchPlaceholder: '検索…',
+  noMatches: '一致する項目はありません',
   researchToUnlock: (p0) => `${p0}を研究して解放`,
   poolSize: 'プールサイズ',
   fewerWorkers: 'ワーカーを減らす',

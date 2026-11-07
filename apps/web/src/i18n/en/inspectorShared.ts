@@ -3,6 +3,8 @@ import type { RequestKind } from '@quorum/simulation/catalog'
 export const inspectorShared = {
   runtime: 'Runtime',
   proposed: 'Proposed',
+  searchPlaceholder: 'Search…',
+  noMatches: 'No matches',
   researchToUnlock: (p0: string | number | null) => `Research ${p0} to unlock`,
   poolSize: 'Pool size',
   fewerWorkers: 'Fewer workers',
