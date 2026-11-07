@@ -1595,6 +1595,11 @@ const PLACE_LIFT = 24
 class BeltView {
   readonly body = new Graphics()
   readonly mouths = new Graphics()
+  /**
+   * How far the belt's items have travelled, in world pixels. Each belt keeps its
+   * own total, so a change in its flow rate never moves items already on it.
+   */
+  travel = 0
   private bodyFor: unknown = null
   private bodyKey = ''
   /** The box round the belt's pieces, for culling its chevrons and packets off screen. */
@@ -3119,6 +3124,9 @@ class BoardController {
       // A dark board sinks its wires toward the canvas, so saturated packets do not glare.
       const packet = mix(hue, colors.canvas, colors.wireMute)
       const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
+      // Advance this belt by the distance it covered: sim seconds at its own speed.
+      // A flow rate that changes under it then alters only the next frame's speed.
+      if (!state.paused) belt.travel += seconds * state.speed * speed
       // Rails stand out only where they say something: on the focused path and on errors. A call
       // between zones pays cross-zone latency and Egress: its rails are orange in focus,
       // and at rest an orange tick marks the port it arrives on.
@@ -3147,7 +3155,7 @@ class BoardController {
       if (detailed && seen && busy && !still)
         this.chevrons.add(
           pieces,
-          this.phase * speed,
+          belt.travel,
           mix(packet, colors.canvas, 0.4),
           focus !== null && !off ? 0.75 : off ? DIM * 0.4 : 0.3,
           view,
@@ -3192,10 +3200,10 @@ class BoardController {
       const underground = (t: number): boolean =>
         wire.tunnels.some(([start, end]) => t * length > start && t * length < end)
       if (marks.label === null) {
-        // Items ride the belt at its speed, each in its kind's shape.
-        const along = speed / Math.max(1, length)
+        // Items ride on the distance this belt has travelled, each in its kind's shape.
+        const along = 1 / Math.max(1, length)
         for (let index = 0; index < marks.packets; index += 1) {
-          const t = (this.phase * along + (index + 0.5) / marks.packets) % 1
+          const t = (belt.travel * along + (index + 0.5) / marks.packets) % 1
           if (underground(t)) continue
           const at = pointOn(path, t, length)
           packetAt(this.packets, shape, at.x, at.y, 2.4)
