@@ -20,6 +20,8 @@ import { cueNode, noticed } from './reveal.ts'
 import { cueOf } from './cues.ts'
 import { emptyFounder } from '@quorum/simulation/founder'
 import { freshBoard, milestones, sync, type UpdateResult } from './update/shared.ts'
+import { isExited } from './company-machine.ts'
+import { isSending, isSent } from './survey-machine.ts'
 import { has } from '@quorum/simulation/lookups'
 import { histogramQuery } from './challenge-query.ts'
 import { ledgerOf, Model, halted, EMPTY_SURVEY } from './model.ts'
@@ -141,12 +143,12 @@ export const fieldsOf = (message: Message): Record<string, unknown> =>
  * A late answer that the UI ignored does not count.
  */
 const surveyOf = (model: Model, after: Model, message: Message): Record<string, unknown> => {
-  const exited = model.board.exited
+  const exited = isExited(model.companyPhase) ? model.companyPhase : null
   if (
     message._tag !== 'SurveySent' ||
     !exited ||
-    model.survey.status !== 'sending' ||
-    after.survey.status !== 'sent'
+    !isSending(model.survey.phase) ||
+    !isSent(after.survey.phase)
   )
     return {}
   return {

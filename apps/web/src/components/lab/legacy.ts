@@ -29,6 +29,7 @@ import { textarea } from '@quorum/ui/primitives/textarea'
 import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
 import { SurveyMessage } from '@/game/survey.ts'
+import { isSending, isSent, isSkipped } from '@/game/survey-machine.ts'
 import { shell } from './panels.ts'
 
 /* ==========================================================================
@@ -177,8 +178,8 @@ export const snapshotSvg = (
 const surveySection = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   const survey = model.survey
-  if (survey.status === 'skipped') return h.empty
-  if (survey.status === 'sent')
+  if (isSkipped(survey.phase)) return h.empty
+  if (isSent(survey.phase))
     return h.div(
       [
         h.Class(
@@ -190,7 +191,7 @@ const surveySection = (model: Model, h: HtmlBuilder<Message>): Html => {
       ],
       [icon(h, Check, 'size-4 text-ok'), h.span([], [t.survey.sent])],
     )
-  const sending = survey.status === 'sending'
+  const sending = isSending(survey.phase)
   const empty = survey.issues.trim() === '' && survey.likes.trim() === ''
   return h.div(
     [h.Class('flex w-full flex-col gap-3 border-t border-hairline pt-4')],
@@ -229,10 +230,10 @@ const surveySection = (model: Model, h: HtmlBuilder<Message>): Html => {
         },
         h,
       ),
-      survey.status === 'failed'
+      survey.phase._tag === 'Failed'
         ? h.span(
             [h.Class('text-[calc(11.5px*var(--type-scale))] text-warn')],
-            [t.survey.failed(survey.note ?? '')],
+            [t.survey.failed(survey.phase.note)],
           )
         : h.empty,
       h.div(

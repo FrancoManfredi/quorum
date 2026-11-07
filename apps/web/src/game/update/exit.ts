@@ -11,6 +11,7 @@ import {
 import { EXITS, RESEARCH } from '@quorum/simulation/catalog'
 import { Model, currentFile, EMPTY_SURVEY } from '../model.ts'
 import { companyIdOf, isExited, step } from '../company-machine.ts'
+import { canSubmit, isSending, step as surveyStep } from '../survey-machine.ts'
 import { PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { Result } from 'effect'
 import { afterRound } from './session.ts'
@@ -59,8 +60,8 @@ type ExitTag =
 
 /** Sends the Exit survey. Only a Company that just ended has an Exit to report on. */
 const submitSurvey = (model: Model): UpdateResult => {
-  if (model.survey.status !== 'open' && model.survey.status !== 'failed') return { model }
-  const exited = model.board.exited
+  if (!canSubmit(model.survey.phase)) return { model }
+  const exited = isExited(model.companyPhase) ? model.companyPhase : null
   if (!exited) return withToast(model, say(model).survey.noExit, 'warn')
   const issues = model.survey.issues.trim()
   const likes = model.survey.likes.trim()
@@ -68,7 +69,10 @@ const submitSurvey = (model: Model): UpdateResult => {
     return withToast(model, say(model).survey.empty, 'warn')
   const row = exited.row
   return {
-    model: { ...model, survey: { ...model.survey, status: 'sending', note: null } },
+    model: {
+      ...model,
+      survey: { ...model.survey, phase: surveyStep(model.survey.phase, { _tag: 'Submitted' }) },
+    },
     commands: [
       SubmitSurvey({
         submission: {
@@ -274,22 +278,32 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
 
   SurveySubmitted: () => submitSurvey(model),
   SurveySkipped: () => ({
-    model: { ...model, survey: { ...model.survey, status: 'skipped', note: null } },
+    model: {
+      ...model,
+      survey: { ...model.survey, phase: surveyStep(model.survey.phase, { _tag: 'Skipped' }) },
+    },
   }),
   // An answer that lands after the player left the exited Company, or skipped, changes nothing.
   SurveySent: () =>
-    model.board.exited && model.survey.status === 'sending'
-      ? { model: { ...model, survey: { ...model.survey, status: 'sent', note: null } } }
+    isExited(model.companyPhase) && isSending(model.survey.phase)
+      ? {
+          model: {
+            ...model,
+            survey: { ...model.survey, phase: surveyStep(model.survey.phase, { _tag: 'Sent' }) },
+          },
+        }
       : { model },
   SurveyFailed: ({ message, offline }) =>
-    model.board.exited && model.survey.status === 'sending'
+    isExited(model.companyPhase) && isSending(model.survey.phase)
       ? {
           model: {
             ...model,
             survey: {
               ...model.survey,
-              status: 'failed',
-              note: offline ? say(model).survey.offline : message,
+              phase: surveyStep(model.survey.phase, {
+                _tag: 'Failed',
+                note: offline ? say(model).survey.offline : message,
+              }),
             },
           },
         }

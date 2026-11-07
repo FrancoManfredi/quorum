@@ -704,11 +704,15 @@ describe('Exit and offline return', () => {
   test('the Exit survey opens after an Exit and sends the row it describes', () => {
     const game = { ...preseedGame(), stage: 4, users: 200_000, cash: 1e8 }
     const exited = send(
-      { ...inLab(), board: { ...inLab().board, game } },
+      {
+        ...inLab(),
+        companyPhase: { _tag: 'Open', id: 'company' },
+        board: { ...inLab().board, game },
+      },
       Message.ExitTaken({ exit: 'acquisition' }),
     )
-    expect(exited.survey).toEqual({ issues: '', likes: '', status: 'open', note: null })
-    const row = exited.board.exited?.row
+    expect(exited.survey).toEqual({ issues: '', likes: '', phase: { _tag: 'Open' } })
+    const row = exited.companyPhase._tag === 'Exited' ? exited.companyPhase.row : undefined
 
     const typed = send(
       exited,
@@ -720,7 +724,7 @@ describe('Exit and offline return', () => {
       }),
     )
     const submitted = update(typed, Message.SurveySubmitted())
-    expect(submitted.model.survey.status).toBe('sending')
+    expect(submitted.model.survey.phase._tag).toBe('Sending')
     const command = (submitted.commands ?? []).find((entry) => entry.name === 'SubmitSurvey')
     expect(command?.args?.['submission']).toMatchObject({
       deviceId: typed.founder.deviceId,
@@ -738,7 +742,7 @@ describe('Exit and offline return', () => {
       },
     })
     const sent = update(submitted.model, Message.SurveySent())
-    expect(sent.model.survey.status).toBe('sent')
+    expect(sent.model.survey.phase._tag).toBe('Sent')
     // The analytics bridge reads this line: the Exit's figures and the answer lengths, never the text.
     const appended = (sent.commands ?? []).find((entry) => entry.name === 'AppendLog')
     const entries = appended?.args?.['entries'] as
@@ -756,21 +760,25 @@ describe('Exit and offline return', () => {
       locale: 'en',
     })
     expect(surveyLine?.data).not.toContain('tutorial ran long')
-    expect(send(exited, Message.SurveySkipped()).survey.status).toBe('skipped')
+    expect(send(exited, Message.SurveySkipped()).survey.phase._tag).toBe('Skipped')
   })
 
   test('the Exit survey needs an exited Company and an answer', () => {
     const noExit = update(inLab(), Message.SurveySubmitted())
-    expect(noExit.model.survey.status).toBe('open')
+    expect(noExit.model.survey.phase._tag).toBe('Open')
     expect((noExit.commands ?? []).some((entry) => entry.name === 'SubmitSurvey')).toBe(false)
 
     const game = { ...preseedGame(), stage: 4, users: 200_000, cash: 1e8 }
     const exited = send(
-      { ...inLab(), board: { ...inLab().board, game } },
+      {
+        ...inLab(),
+        companyPhase: { _tag: 'Open', id: 'company' },
+        board: { ...inLab().board, game },
+      },
       Message.ExitTaken({ exit: 'acquisition' }),
     )
     const blank = update(exited, Message.SurveySubmitted())
-    expect(blank.model.survey.status).toBe('open')
+    expect(blank.model.survey.phase._tag).toBe('Open')
     expect((blank.commands ?? []).some((entry) => entry.name === 'SubmitSurvey')).toBe(false)
     expect(blank.model.toast?.tone).toBe('warn')
   })

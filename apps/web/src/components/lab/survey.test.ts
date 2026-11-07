@@ -17,6 +17,7 @@ const exited = (survey: Partial<Model['survey']> = {}): Model => {
   const start: Model = {
     ...initialModel(),
     route: AppRoute.Company(),
+    companyPhase: { _tag: 'Open', id: 'company' },
     board: { ...initialModel().board, game },
   }
   const taken = update(start, Message.ExitTaken({ exit: 'acquisition' })).model
@@ -44,7 +45,7 @@ test('an answer enables Send, and a skipped survey leaves the summary', () => {
   )
   Scene.scene(
     { update, view: exitedPanel },
-    Scene.given(exited({ status: 'skipped' })),
+    Scene.given(exited({ phase: { _tag: 'Skipped' } })),
     Scene.expect(Scene.text(en.survey.title)).toBeAbsent(),
   )
 })
@@ -52,7 +53,7 @@ test('an answer enables Send, and a skipped survey leaves the summary', () => {
 test('a sent survey thanks the player instead of asking again', () => {
   Scene.scene(
     { update, view: exitedPanel },
-    Scene.given(exited({ status: 'sent' })),
+    Scene.given(exited({ phase: { _tag: 'Sent' } })),
     Scene.expect(Scene.text(en.survey.sent)).toExist(),
     Scene.expect(Scene.selector('#survey-issues')).toBeAbsent(),
     Scene.expect(send()).toBeAbsent(),
@@ -63,7 +64,7 @@ test('a failed send keeps the answers and says why', () => {
   const note = en.survey.offline
   Scene.scene(
     { update, view: exitedPanel },
-    Scene.given(exited({ status: 'failed', note, likes: 'The settling delta.' })),
+    Scene.given(exited({ phase: { _tag: 'Failed', note }, likes: 'The settling delta.' })),
     Scene.expect(Scene.text(en.survey.failed(note))).toExist(),
     Scene.expect(Scene.selector('#survey-likes')).toHaveValue('The settling delta.'),
     Scene.expect(send()).toBeEnabled(),

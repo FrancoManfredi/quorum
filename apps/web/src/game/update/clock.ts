@@ -35,7 +35,7 @@ import {
 } from '../model.ts'
 import { clockStep } from '../clock-machine.ts'
 import { Result } from 'effect'
-import { STABLE_TICKS, advanceChange, deltaExpired } from '../feedback.ts'
+import { advanceChange } from '../feedback.ts'
 import { SAVE_EVERY, SAMPLE_EVERY, mostSteps, speedsOf } from './constant.ts'
 import { StepEvent } from '@quorum/simulation/events'
 import {

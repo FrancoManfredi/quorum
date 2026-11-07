@@ -184,6 +184,7 @@ const face = (
   entry: ResearchDef,
   state: State,
   grey: boolean,
+  large: boolean,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
   const t = copy(h)
@@ -232,7 +233,7 @@ const card = (
   const color = colorOf(LOOKS[entry.id])
   return state === 'saving'
     ? [
-        ...face(game, entry, state, true, h),
+        ...face(game, entry, state, true, large, h),
         h.span(
           [
             h.Key('fill'),
@@ -245,7 +246,7 @@ const card = (
               'clip-path': `inset(0 ${(1 - share) * 100}% 0 0)`,
             }),
           ],
-          face(game, entry, state, false, h),
+          face(game, entry, state, false, large, h),
         ),
         h.span(
           [
@@ -257,7 +258,7 @@ const card = (
           [],
         ),
       ]
-    : face(game, entry, state, state === 'locked', h)
+    : face(game, entry, state, state === 'locked', large, h)
 }
 
 /** The interface's type scale: the tree's boxes and spacing grow with it (15 "Accessibility"). */
@@ -267,6 +268,7 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
   const game = model.board.game
   const { entry } = place
   const state = stateOf(game, entry)
+  const large = model.prefs.text === 'large'
   const size = nodeSize(scaleOf(model))
   // Beyond the next Era: in the fog.
   const far = entry.era > game.stage + 1 && state === 'locked'

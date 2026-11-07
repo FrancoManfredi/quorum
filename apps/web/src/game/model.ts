@@ -14,6 +14,7 @@ import { Boot } from './boot-machine.ts'
 import { Reveal } from './machine-state.ts'
 export { Away, Change, Delta, Figures, PreviewFigures, Reveal } from './machine-state.ts'
 import { CompanyPhase, companyIdOf, isExited, isPlaying } from './company-machine.ts'
+import { SurveyPhase } from './survey-machine.ts'
 export { CompanyPhase } from './company-machine.ts'
 import { TradeoffState } from './tradeoff-machine.ts'
 export { TradeoffState } from './tradeoff-machine.ts'
@@ -95,17 +96,15 @@ export type SandboxStore = typeof SandboxStore.Type
 export const Survey = Schema.Struct({
   issues: Schema.String,
   likes: Schema.String,
-  status: Schema.Literals(['open', 'sending', 'sent', 'failed', 'skipped']),
-  /** Why the last send failed, when it did. */
-  note: Schema.NullOr(Schema.String),
+  /** Where the send stands. */
+  phase: SurveyPhase,
 })
 export type Survey = typeof Survey.Type
 
 export const EMPTY_SURVEY: Survey = {
   issues: '',
   likes: '',
-  status: 'open',
-  note: null,
+  phase: { _tag: 'Open' },
 }
 
 /** The open Challenge: a Build, a Run, or a scored Result. */

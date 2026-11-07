@@ -36,7 +36,7 @@ both answered and resolved, and a Company could be loading while another was ope
 The inventory is in [State machines](../state-machines.md). The flows fall into three groups.
 
 - **Page and board**: Boot, Board session, Challenge run, Company, Clock, Board interaction,
-  Tradeoff, Change, Hold, Delete confirm, Disclosure, and Mail.
+  Tradeoff, Change, Hold, Delete confirm, Disclosure, Mail, and the Exit survey.
 - **Company systems**: Bridge, Drill, Quarter, Feature, Hire, Breaker, Autoscaler, Era round,
   Data move, Study, Node service, Work item, Incident, and Mirror.
 - **Lifecycle**: Node lifecycle and Stack migration stay tagged unions with total constructors in
