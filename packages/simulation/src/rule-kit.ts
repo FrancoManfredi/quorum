@@ -96,6 +96,8 @@ export type Pass = Readonly<{
   /** Share of each Cache's hits that are stale. */
   staleHits: ReadonlyArray<number | undefined>
   stranded: ReadonlyArray<Readonly<{ rate: number; kinds: ReadonlySet<Kind> }> | undefined>
+  /** Calls per second each Node gets on top of the first try: retries and hedged copies. */
+  repeated: ReadonlyArray<number | undefined>
   /** What each routing Link carried, by kind, indexed by the solve's Edge numbers. */
   links: ReadonlyArray<Rates | undefined>
   /** The Edges that carried anything, in the order they first did: sums over Links run in it. */

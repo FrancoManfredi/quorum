@@ -1,4 +1,4 @@
-import type { Limit, Resources } from './capacity.ts'
+import type { Limit, Receipt, Resources, WorkUnit } from './capacity.ts'
 import type { DeviceId, InsightPool, Kind, RegionId, RequestKind } from './catalog.ts'
 import type { ErrorCause, Failures } from './distribution.ts'
 
@@ -54,6 +54,24 @@ export type NodeLedger = Readonly<{
    * `tracing`).
    */
   waitByKind: Readonly<Partial<Record<Kind, number>>>
+  /**
+   * Each kind's share of the work at the resource that limits this Node, which can differ from
+   * its share of `traffic`: a rare report can take most of a Database's CPU (12 "Load diagnosis").
+   */
+  workShare: Readonly<Partial<Record<Kind, number>>>
+  /** The resource `workShare` and `cost` count, or null where every request costs the same. */
+  workUnit: WorkUnit | null
+  /**
+   * Mean work one request takes from the limiting resource, in its unit: utilization is
+   * `inbound × cost` over the resource's size, which is how Load change splits a change.
+   */
+  cost: number
+  /** Each kind's Cost receipt, on App Servers, Workers, Databases, and Read Replicas. */
+  receipts: Readonly<Partial<Record<Kind, Receipt>>>
+  /** Requests per second of `inbound` that are retries or hedged copies of a call. */
+  repeated: number
+  /** Requests per second of `inbound` that each Users' Request kind causes, across every hop. */
+  origins: Readonly<Partial<Record<RequestKind, number>>>
   /** Requests per second dropped for lack of capacity. */
   dropped: number
   /** Queries per second refused for lack of connections. */

@@ -135,6 +135,91 @@ export const NO_RESOURCES: Resources = {
 
 export type Service = Readonly<{ fixed: number; variable: number }>
 
+/** What makes one request of a kind cost more or less at a Node (12 "Load diagnosis"). */
+export type CostCause =
+  | 'runtime'
+  | 'collector'
+  | 'opcache'
+  | 'variant'
+  | 'arm'
+  | 'recycle'
+  | 'warmup'
+  | 'framework'
+  | 'jit'
+  | 'hashing'
+  | 'async'
+  | 'compression'
+  | 'local-db'
+  | 'serialization'
+  | 'auth'
+  | 'sampling'
+  | 'neighbours'
+  | 'swapping'
+  | 'gc'
+  | 'slow-query'
+  | 'disk'
+  | 'eviction'
+  | 'hot-shard'
+  | 'bloat'
+  | 'denormalization'
+  | 'indexes'
+  | 'features'
+  | 'engine'
+  | 'scatter'
+  | 'report'
+  | 'retention'
+  | 'view'
+  | 'busiest-shard'
+
+export type WorkUnit = 'cpu' | 'workers' | 'network' | 'disk'
+
+/** One step of a Cost receipt: the cost so far is multiplied by, or gets added, `value`. */
+export type CostLine = Readonly<{ cause: CostCause; op: 'times' | 'plus'; value: number }>
+
+/**
+ * The Cost receipt of one request of a kind (12 "Load diagnosis"): the base cost, then each
+ * factor in the order the model applies it. `total` is the cost the model uses; the lines explain it.
+ */
+export type Receipt = Readonly<{ base: number; lines: ReadonlyArray<CostLine>; total: number }>
+
+type Recorder = Readonly<{
+  times: (cause: CostCause, value: number) => void
+  plus: (cause: CostCause, value: number) => void
+}>
+
+/** Collects a receipt's lines, leaving out the factors that change nothing. */
+const linesOf = (): Recorder & { list: Array<CostLine> } => {
+  const list: Array<CostLine> = []
+  return {
+    list,
+    times: (cause, value) => {
+      if (value !== 1) list.push({ cause, op: 'times', value })
+    },
+    plus: (cause, value) => {
+      if (value !== 0) list.push({ cause, op: 'plus', value })
+    },
+  }
+}
+
+/** The recorder for a cost alone: the solve runs the cost many times and reads its receipt once. */
+const UNRECORDED: Recorder = { times: () => {}, plus: () => {} }
+
+/** A receipt with more lines on the end, and the total they reach. */
+const extended = (
+  receipt: Receipt,
+  more: ReadonlyArray<readonly [CostCause, number]>,
+  total: number,
+): Receipt => ({
+  base: receipt.base,
+  lines: [
+    ...receipt.lines,
+    ...more
+      .filter(([, value]) => value !== 1)
+      .map(([cause, value]) => ({ cause, op: 'times' as const, value })),
+  ],
+  total,
+})
+
 export type NodeModel = Readonly<{
   /** Offered work over capacity. */
   utilization: number
@@ -147,6 +232,18 @@ export type NodeModel = Readonly<{
   service: Readonly<Record<string, Service>>
   /** Share of each kind processed, when it differs by kind (load shedding). */
   shares?: Readonly<Partial<Record<Kind, number>>>
+  /**
+   * What one request of a kind takes from the resource in `workUnit`: core-ms, slot-ms, KB, or disk
+   * operations. Missing when every request costs the same. A function, like `receiptOf`.
+   */
+  workOf?: (kind: Kind) => number
+  /** The resource `work` counts: the one whose utilization is the Node's, which `limit` can differ from. */
+  workUnit?: WorkUnit
+  /**
+   * Each kind's Cost receipt in core-ms, on Nodes whose CPU cost depends on the kind. A function, so
+   * a model the solve runs many times builds a receipt only when the Ledger asks for it.
+   */
+  receiptOf?: (kind: Kind) => Receipt | undefined
   /** Event-loop stalls: the share of requests hit and the stall length. */
   tailP: number
   tailMs: number
@@ -273,7 +370,24 @@ export type ServerContext = Readonly<{
  * starts at its `warmFrom` share; a cold PHP box runs without OPcache until the
  * cache fills.
  */
-export const speedOf = (game: Game, node: GameNode): number => {
+export const speedOf = (game: Game, node: GameNode): number =>
+  speedPartsOf(game, node).reduce((speed, [, part]) => speed * part, 1)
+
+/** `speedParts` once per Node and Game: every kind of a server asks for the same ones. */
+const speeds = new WeakMap<
+  GameNode,
+  Readonly<{ game: Game; parts: ReturnType<typeof speedParts> }>
+>()
+const speedPartsOf = (game: Game, node: GameNode): ReturnType<typeof speedParts> => {
+  const found = speeds.get(node)
+  if (found?.game === game) return found.parts
+  const parts = speedParts(game, node)
+  speeds.set(node, { game, parts })
+  return parts
+}
+
+/** `speedOf`'s factors, named for the Cost receipt, in the order they multiply. */
+const speedParts = (game: Game, node: GameNode): ReadonlyArray<readonly [CostCause, number]> => {
   const runtime = RUNTIMES[node.runtime]
   const opcache =
     runtime.language === 'php' && has(game, 'opcache')
@@ -297,15 +411,15 @@ export const speedOf = (game: Game, node: GameNode): number => {
     game.incident?.kind === 'jvm-warmup' &&
     game.incident.nodeId === node.id &&
     !rampedOf(game, node)
-  return (
-    runtime.speed *
-    collector *
-    opcache *
-    variant *
-    arm *
-    recycled *
-    (runtime.warmFrom + (1 - runtime.warmFrom) * (cold ? 0 : warmOf(node.life)))
-  )
+  return [
+    ['runtime', runtime.speed],
+    ['collector', collector],
+    ['opcache', opcache],
+    ['variant', variant],
+    ['arm', arm],
+    ['recycle', recycled],
+    ['warmup', runtime.warmFrom + (1 - runtime.warmFrom) * (cold ? 0 : warmOf(node.life))],
+  ]
 }
 
 /**
@@ -436,23 +550,50 @@ export const requestCpuMs = (
  * neighbour takes a share of the cores, so the same work takes longer.
  */
 export const cpuOf = (context: ServerContext, kind: RequestKind, calls: Calls): number =>
-  cpuBase(context, kind, calls) / (1 - stealOf(context.game, context.node))
+  cpuBase(context, kind, calls, UNRECORDED)[1] / (1 - stealOf(context.game, context.node))
 
-const cpuBase = (context: ServerContext, kind: RequestKind, calls: Calls): number => {
+/** `cpuOf` with its Cost receipt: the same arithmetic, with each step recorded in order. */
+const receiptOf = (context: ServerContext, kind: RequestKind, calls: Calls): Receipt => {
+  const steal = stealOf(context.game, context.node)
+  const lines = linesOf()
+  const [base, cpu] = cpuBase(context, kind, calls, lines)
+  lines.times('neighbours', 1 / (1 - steal))
+  return { base, lines: lines.list, total: cpu / (1 - steal) }
+}
+
+const cpuBase = (
+  context: ServerContext,
+  kind: RequestKind,
+  calls: Calls,
+  lines: Recorder,
+): readonly [base: number, cpu: number] => {
   const { game, node } = context
   const profile = profileOf(game, kind)
-  const speed = speedOf(game, node)
+  const parts = speedPartsOf(game, node)
+  const speed = parts.reduce((product, [, part]) => product * part, 1)
   const overhead = overheadOf(node, kind)
   const login = asLogin(game, kind)
   const variant = kindSpeedOf(game, node, kind)
-  let cpu =
-    login && context.delegated && !context.worker
-      ? (LOGIN_DELEGATED_CPU * overhead) / speed
-      : profile.native
-        ? profile.cpu * (login ? context.hashing : 1)
-        : (profile.cpu * overhead) / speed
+  const slowed = () => {
+    lines.times('framework', overhead)
+    for (const [cause, part] of parts) lines.times(cause, 1 / part)
+  }
+  const delegatedLogin = login && context.delegated && !context.worker
+  const base = delegatedLogin ? LOGIN_DELEGATED_CPU : profile.cpu
+  let cpu: number
+  if (delegatedLogin) {
+    cpu = (LOGIN_DELEGATED_CPU * overhead) / speed
+    slowed()
+  } else if (profile.native) {
+    cpu = profile.cpu * (login ? context.hashing : 1)
+    lines.times('hashing', login ? context.hashing : 1)
+  } else {
+    cpu = (profile.cpu * overhead) / speed
+    slowed()
+  }
   // The JIT and NIFs change what one request of a kind costs the CPU, native work included.
   cpu /= variant
+  lines.times('jit', 1 / variant)
   // Every call the code makes is serialised on the way out: a text format costs CPU at the
   // caller, and Binary RPC halves it (10 "Track: Performance").
   let made = 0
@@ -464,9 +605,20 @@ const cpuBase = (context: ServerContext, kind: RequestKind, calls: Calls): numbe
       ? AUTH_CHECK_MS
       : 0
   // A Worker runs the part that went async; the App Server keeps the rest.
-  if (context.worker) return (cpu + serial) * profile.offload * (1 + context.sampling)
-  if (context.offloaded) cpu *= 1 - profile.offload
-  if (node.compress && profile.compressible) cpu *= GZIP_CPU
+  if (context.worker) {
+    lines.plus('serialization', serial)
+    lines.times('async', profile.offload)
+    lines.times('sampling', 1 + context.sampling)
+    return [base, (cpu + serial) * profile.offload * (1 + context.sampling)]
+  }
+  if (context.offloaded) {
+    cpu *= 1 - profile.offload
+    lines.times('async', 1 - profile.offload)
+  }
+  if (node.compress && profile.compressible) {
+    cpu *= GZIP_CPU
+    lines.times('compression', GZIP_CPU)
+  }
   if (context.local) {
     let queries = 0
     for (const backend of BACKEND_KINDS) {
@@ -475,8 +627,12 @@ const cpuBase = (context: ServerContext, kind: RequestKind, calls: Calls): numbe
       if (count !== 0 && each !== undefined) queries += count * each
     }
     cpu += queries * LOCAL_DB_CONTENTION
+    lines.plus('local-db', queries * LOCAL_DB_CONTENTION)
   }
-  return (cpu + serial + auth) * (1 + context.sampling)
+  lines.plus('serialization', serial)
+  lines.plus('auth', auth)
+  lines.times('sampling', 1 + context.sampling)
+  return [base, (cpu + serial + auth) * (1 + context.sampling)]
 }
 
 /**
@@ -544,7 +700,13 @@ const tables = new WeakMap<
   Game,
   Map<
     GameNode,
-    Map<string, Readonly<{ calls: Record<RequestKind, Calls>; raw: Record<RequestKind, number> }>>
+    Map<
+      string,
+      Readonly<{
+        calls: Record<RequestKind, Calls>
+        raw: Record<RequestKind, number>
+      }>
+    >
   >
 >()
 
@@ -794,12 +956,45 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   )
 
   const used = Math.min(cpuWork * share, cores * 1000) / 1000
+  // Work share (12 "Load diagnosis") counts in the unit of the resource the limit names.
+  const workUnit: WorkUnit =
+    networkUtilization >= utilization
+      ? 'network'
+      : slotUtilization > cpuUtilization
+        ? 'workers'
+        : 'cpu'
+  // A Worker's Ledger counts `task`, not the Request kinds behind it: each task counts as one.
+  const workOf = (kind: Kind): number => {
+    if (!(REQUEST_KINDS as ReadonlyArray<Kind>).includes(kind)) return 1
+    const requestKind = kind as RequestKind
+    return workUnit === 'network'
+      ? payloadOf(node, requestKind, context.offloaded ?? false) *
+          payloadFactor(context.game, requestKind)
+      : workUnit === 'workers'
+        ? residence(requestKind)
+        : cpu[requestKind]
+  }
+  const kindReceipt = (kind: Kind): Receipt | undefined => {
+    if (!(REQUEST_KINDS as ReadonlyArray<Kind>).includes(kind)) return undefined
+    const requestKind = kind as RequestKind
+    return extended(
+      receiptOf(context, requestKind, calls[requestKind]),
+      [
+        ['swapping', 1 / efficiency],
+        ['gc', collecting > 1 ? collecting : 1],
+      ],
+      cpu[requestKind],
+    )
+  }
   const model: NodeModel = {
     utilization,
     limit,
     share,
     capacity: rate > 0 ? rate / Math.max(utilization, 1e-9) : 0,
     service,
+    workOf,
+    workUnit,
+    receiptOf: kindReceipt,
     tailP,
     tailMs,
     processes: resident,
@@ -967,6 +1162,104 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const wait = rate > 0 ? waitFor(work / rate / perRequest, utilization, cores) + backlog : backlog
   const share = utilization > 1 ? 1 / utilization : 1
   const used = Math.min(work * share, cores * 1000) / 1000
+  // Each kind's Cost receipt, from the same factors the costs above multiply (12 "Load diagnosis").
+  const cold: readonly [CostCause, number] = ['warmup', 1 / warmth]
+  const shardFactors = (hot: boolean): ReadonlyArray<readonly [CostCause, number]> => [
+    ['hot-shard', shard],
+    ['bloat', bloat],
+    ...(hot ? [['busiest-shard', sharding.hot] as const] : []),
+  ]
+  const receiptFor = (
+    base: number,
+    factors: ReadonlyArray<readonly [CostCause, number]>,
+    total: number,
+    added: number = 0,
+  ): Receipt =>
+    extended(
+      {
+        base,
+        lines: added === 0 ? [] : [{ cause: 'slow-query', op: 'plus', value: added }],
+        total,
+      },
+      factors,
+      total,
+    )
+  const totals: Record<keyof DatabaseContext['arriving'], number> = {
+    'q-read': readCpu,
+    'q-write': writeCpu * sharding.hot,
+    'q-search': searchCpu,
+    'blob-put': putCpu * sharding.hot,
+    'q-tx': txCpu,
+    'blob-get': getCpu,
+    'q-scan': scanCpu,
+  }
+  const receipts: Record<keyof DatabaseContext['arriving'], () => Receipt> = {
+    'q-read': () =>
+      receiptFor(
+        QUERY_CPU['q-read'],
+        [
+          disk ? ['disk', 1.5] : ['eviction', 1 + 0.5 * evicted],
+          cold,
+          ...shardFactors(false),
+          ['denormalization', denormalized ? DENORMALIZED_READ : 1],
+        ],
+        readCpu,
+        scan,
+      ),
+    'q-write': () =>
+      receiptFor(
+        QUERY_CPU['q-write'],
+        [
+          ['features', queryFactor(game, 'q-write')],
+          cold,
+          ['eviction', 1 + 0.5 * evicted],
+          ['indexes', indexWriteFactor(game)],
+          ['denormalization', denormalized ? DENORMALIZED_WRITE : 1],
+          ...shardFactors(true),
+        ],
+        writeCpu * sharding.hot,
+      ),
+    'q-search': () =>
+      receiptFor(
+        QUERY_CPU['q-search'],
+        [
+          ['features', queryFactor(game, 'q-search')],
+          ['engine', engine.searchCost],
+          ['scatter', sharding.scatter],
+          cold,
+        ],
+        searchCpu,
+      ),
+    'blob-put': () =>
+      receiptFor(
+        QUERY_CPU['blob-put'],
+        [cold, ['busiest-shard', sharding.hot]],
+        putCpu * sharding.hot,
+      ),
+    'q-tx': () => receiptFor(QUERY_CPU['q-tx'], [cold], txCpu),
+    'blob-get': () => receiptFor(QUERY_CPU['blob-get'], [cold], getCpu),
+    'q-scan': () =>
+      receiptFor(
+        QUERY_CPU['q-scan'],
+        [
+          ['scatter', sharding.scatter],
+          ['report', game.incident?.kind === 'report-db' ? REPORT_SURGE : 1],
+          ['retention', retention.rebuild],
+          ['view', view],
+          cold,
+        ],
+        scanCpu,
+      ),
+  }
+  // When the volume's IOPS set the load, work counts disk operations: every write, and a read
+  // only when the working set misses RAM. Searches stay in memory.
+  const onDisk = ioUtilization > 0 && ioUtilization >= cpuUtilization
+  const workOf = (kind: Kind): number =>
+    onDisk
+      ? kind === 'q-search' || (kind === 'q-read' && !disk)
+        ? 0
+        : 1
+      : (totals[kind as keyof typeof totals] ?? 0)
   // A transaction that touches two shards needs a distributed transaction: 3× its latency. The
   // key sets how many do. A synchronous replica makes every write wait for it, and a region key
   // makes the users of other regions wait a round trip.
@@ -988,6 +1281,9 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
             : 'cpu',
     share,
     capacity,
+    workOf,
+    workUnit: onDisk ? 'disk' : 'cpu',
+    receiptOf: (kind) => (kind in receipts ? receipts[kind as keyof typeof receipts]() : undefined),
     service: {
       'q-read': {
         fixed:

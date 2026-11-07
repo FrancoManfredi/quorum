@@ -1,5 +1,6 @@
 import { Result } from 'effect'
-import type { Action, Refusal } from './actions.ts'
+import { resize, setLinkPolicy, type Action, type Refusal } from './actions.ts'
+import { COMPONENTS } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { solveFlow } from './solve.ts'
 import { causeOf, leftOf, RUNNING } from './life.ts'
@@ -106,4 +107,73 @@ export const previewOf = (
   entries.set(key, result)
   previews.set(game, entries)
   return result
+}
+
+/* ==========================================================================
+   What-if rows (12 "Load diagnosis"): the utilization a busy Node would have
+   after one change the player can make now. Each row is a ghost run of the
+   same length as a Tradeoff preview; a refused change gives no row.
+   ========================================================================== */
+
+export type WhatIf = Readonly<{
+  /** Larger is one size up on `target`; Retries off stops every retry on Links into the Node. */
+  change: 'larger' | 'retries-off'
+  target: string
+  before: number
+  after: number
+}>
+
+export const whatIfsOf = (game: Game, nodeId: string): ReadonlyArray<WhatIf> => {
+  const node = game.nodes.find((entry) => entry.id === nodeId)
+  if (!node) return []
+  const ledger = solveFlow(game)
+  const ghost: Game = { ...game, nextIncidentAt: Number.MAX_SAFE_INTEGER }
+  const typeOf = (id: string) => game.nodes.find((entry) => entry.id === id)?.type
+  const live = (id: string) => (ledger.nodes[id]?.inbound ?? 0) > 0
+  // The Node itself, the Caches in front of it, and the busiest Node it calls.
+  const caches = game.links
+    .filter((link) => link.to === nodeId && live(link.from))
+    .map((link) => link.from)
+    .filter((id) => typeOf(id) === 'cache' || typeOf(id) === 'cdn')
+  const busiest = ledger.links
+    .filter((link) => link.from === nodeId && link.rate > 0 && live(link.to))
+    .map((link) => link.to)
+    .filter((id) => !COMPONENTS[typeOf(id) ?? 'users'].tap)
+    .toSorted(
+      (a, b) => (ledger.nodes[b]?.utilization ?? 0) - (ledger.nodes[a]?.utilization ?? 0),
+    )[0]
+  const retrying = game.links.filter((link) => link.to === nodeId && link.retries !== 'none')
+  const candidates: ReadonlyArray<readonly [WhatIf['change'], string, (game: Game) => Action]> = [
+    ['larger', nodeId, (current) => resize(current, nodeId, 1)],
+    ...caches.map((id) => ['larger', id, (current: Game) => resize(current, id, 1)] as const),
+    ...(busiest
+      ? [['larger', busiest, (current: Game) => resize(current, busiest, 1)] as const]
+      : []),
+    ...(retrying.length
+      ? [
+          [
+            'retries-off',
+            nodeId,
+            (current: Game) =>
+              retrying.reduce<Action>(
+                (result, link) =>
+                  Result.flatMap(result, (next) =>
+                    setLinkPolicy(next, link.from, link.to, { retries: 'none' }),
+                  ),
+                Result.succeed(current),
+              ),
+          ] as const,
+        ]
+      : []),
+  ]
+  const before = baselineOf(game, ghost, PREVIEW_SECONDS).nodes[nodeId]?.utilization ?? 0
+  return candidates
+    .flatMap(([change, target, apply]) => {
+      const changed = apply(ghost)
+      if (Result.isFailure(changed)) return []
+      const [warm] = settled(ghost, changed.success)
+      const after = ghostRun(warm, PREVIEW_SECONDS).nodes[nodeId]?.utilization ?? 0
+      return [{ change, target, before, after }]
+    })
+    .toSorted((a, b) => a.after - b.after)
 }

@@ -2,7 +2,7 @@ import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import { resize, setRuntime, type Action } from '../src/actions.ts'
 import { preseedGame } from '../src/company.ts'
-import { previewOf, type Preview } from '../src/preview.ts'
+import { previewOf, whatIfsOf, type Preview } from '../src/preview.ts'
 import { solveFlow } from '../src/solve.ts'
 import type { Game } from '../src/state.ts'
 import { step } from '../src/step.ts'
@@ -100,5 +100,24 @@ describe('the Tradeoff preview', () => {
       setRuntime(game, 'server', 'node_cluster'),
     )
     expect(Result.isFailure(result)).toBe(true)
+  })
+})
+
+describe('what-if rows', () => {
+  test('an App Server out of workers gains more from a larger Database than from its own size', () => {
+    // At 4,000 users the Pre-seed App Server waits on its Database: requests hold workers longer.
+    const game = { ...preseedGame(), users: 4_000, cash: 1e6 }
+    expect(solveFlow(game).nodes.server?.limit).toBe('workers')
+    const rows = whatIfsOf(game, 'server')
+    const database = rows.find((row) => row.change === 'larger' && row.target === 'database')!
+    const server = rows.find((row) => row.change === 'larger' && row.target === 'server')!
+    expect(rows[0]).toBe(database)
+    expect(database.after).toBeLessThan(database.before * 0.7)
+    expect(server.after).toBeGreaterThan(database.after)
+  })
+
+  test('a change the game refuses gives no row', () => {
+    const game = { ...preseedGame(), users: 4_000, cash: 0 }
+    expect(whatIfsOf(game, 'server')).toEqual([])
   })
 })

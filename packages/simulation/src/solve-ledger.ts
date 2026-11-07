@@ -18,7 +18,7 @@ import {
   type RequestKind,
 } from './catalog.ts'
 import { earnsInTime, ventureOf } from './founding.ts'
-import { NO_RESOURCES } from './capacity.ts'
+import { NO_RESOURCES, type Receipt } from './capacity.ts'
 import {
   ERROR_CAUSES,
   NO_FAILURES,
@@ -42,7 +42,7 @@ import { regional, userHopMs, type UserRoute } from './regions.ts'
 import { type Game, type GameLink, type GameNode } from './state.ts'
 import { serviceOfKind } from './team.ts'
 import { ventureDiurnal, ventureWeekly } from './solve-demand.ts'
-import { type Graph, NO_POLICY, edgeOf, carriedOn } from './solve-graph.ts'
+import { type Graph, NO_POLICY, edgeOf, carriedOn, originsOf } from './solve-graph.ts'
 import { attemptsAllowed } from './solve-pass.ts'
 import { outcomesOf } from './solve-outcomes.ts'
 import { billOf } from './solve-bill.ts'
@@ -232,6 +232,7 @@ export const ledgerOf = (
 
   // Node ledgers.
   const nodes: Record<string, NodeLedger> = {}
+  const origins = originsOf(graph, pass)
   for (const node of game.nodes) {
     const slot = slotOf(pass, node)
     const rates = pass.arriving[slot] ?? {}
@@ -289,6 +290,23 @@ export const ledgerOf = (
             0.99,
           )
         : 0
+    // Load diagnosis (12): each kind's share of the work at the limit, the mean work per
+    // request, and the Users' Request kinds this Node's traffic comes from.
+    const workShare: Partial<Record<Kind, number>> = {}
+    let workTotal = 0
+    const workOf = model?.workOf
+    const works = kindsHere.map((kind) => (rates[kind] ?? 0) * (workOf ? workOf(kind) : 1))
+    for (const work of works) workTotal += work
+    if (workTotal > 0)
+      for (const [index, kind] of kindsHere.entries()) workShare[kind] = works[index]! / workTotal
+    const receipts: Partial<Record<Kind, Receipt>> = {}
+    if (model?.receiptOf)
+      for (const kind of kindsHere) {
+        const receipt = (rates[kind] ?? 0) > 0 ? model.receiptOf(kind) : undefined
+        if (receipt) receipts[kind] = receipt
+      }
+    const fromUsers: Partial<Record<RequestKind, number>> = {}
+    for (const [kind, part] of origins.get(node.id) ?? []) fromUsers[kind] = inbound * part
     const utilization =
       refusedShare > 0
         ? Math.max(model?.utilization ?? 0, 1 / (1 - refusedShare))
@@ -303,6 +321,12 @@ export const ledgerOf = (
       p99,
       hopByKind,
       waitByKind,
+      workShare,
+      workUnit: model?.workUnit ?? null,
+      cost: inbound > 0 ? workTotal / inbound : 0,
+      receipts,
+      repeated: Math.min(inbound, pass.repeated[slot] ?? 0),
+      origins: fromUsers,
       dropped: inbound * (1 - share),
       refused: inbound * share * refusedShare,
       stranded: strand?.rate ?? 0,
@@ -327,7 +351,7 @@ export const ledgerOf = (
 
   // Analytics turns sampled traffic into Insight of each request kind (12 "Earning Insight").
   const apdex = rateTotal > 0 ? satisfied / rateTotal : 1
-  const { insight, breadth, regionsBy } = insightOf(game, graph, pass, nodes, kinds)
+  const { insight, breadth, regionsBy } = insightOf(game, graph, pass, nodes, kinds, origins)
 
   const links: Array<LinkLedger> = game.links.map((link) => {
     const to = graph.byId.get(link.to)

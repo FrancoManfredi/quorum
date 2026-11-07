@@ -175,6 +175,7 @@ export const forward = (inputs: Inputs): Pass => {
   const stranded: Array<{ rate: number; kinds: Set<Kind> } | undefined> = []
   const links: Array<Rates | undefined> = []
   const linkOrder: Array<number> = []
+  const repeated: Array<number | undefined> = []
 
   const route = (node: GameNode, slot: number, kind: Kind, rate: number) => {
     // A webhook's call goes to a customer's server, outside the Design.
@@ -194,6 +195,7 @@ export const forward = (inputs: Inputs): Pass => {
         amplification(edge.policy, inputs.failures[edge.index]?.[kind] ?? 0) *
         (edge.policy.hedge ? 1 + HEDGE_LOAD : 1)
       const sent = rate * weight * amplified
+      if (amplified > 1) repeated[edge.toAt] = (repeated[edge.toAt] ?? 0) + sent - rate * weight
       const into = arriving[edge.toAt] as Rates
       into[kind] = (into[kind] ?? 0) + sent
       let carried = links[edge.index]
@@ -314,6 +316,7 @@ export const forward = (inputs: Inputs): Pass => {
     hits,
     staleHits,
     stranded,
+    repeated,
     links,
     linkOrder,
     connections,

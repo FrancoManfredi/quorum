@@ -19,7 +19,7 @@ import { type Pass, type Rates } from './rules.ts'
 
 import { NO_INSIGHT, type Game, type GameNode } from './state.ts'
 
-import { type Graph, originsOf } from './solve-graph.ts'
+import { type Graph, type originsOf } from './solve-graph.ts'
 
 export const statusOf = (
   node: GameNode,
@@ -57,8 +57,8 @@ export const insightOf = (
   pass: Pass,
   nodes: Record<string, NodeLedger>,
   kinds: Partial<Record<RequestKind, KindLedger>>,
+  origins: ReturnType<typeof originsOf>,
 ) => {
-  const origins = originsOf(graph, pass)
   const sampledBy = new Map<string, number>()
   // The share of each key's samples that came from a Node a Service Mesh watches: per-Link metrics
   // without code changes earn Insight on top of it (05 "Service Mesh": +20%).
