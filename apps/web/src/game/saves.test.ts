@@ -6,7 +6,7 @@ import { DeleteCompany, LoadSaves, ReadOldSave, WriteCompany } from './commands.
 import { Message } from './message.ts'
 import { currentFile, type Model } from './model.ts'
 import { AppRoute } from './route.ts'
-import { initialModel, update } from './update.ts'
+import { TICK_MS, initialModel, update } from './update.ts'
 import {
   EMPTY_SAVE_INDEX,
   MAX_COMPANY_NAME,
@@ -34,7 +34,8 @@ const commandsOf = (model: Model, ...messages: ReadonlyArray<Message>) => {
 
 const tick = (model: Model, times = 1): Model => {
   let current = model
-  for (let index = 0; index < times; index += 1) current = update(current, Message.Ticked()).model
+  for (let index = 0; index < times; index += 1)
+    current = update(current, Message.Ticked({ elapsedMs: TICK_MS })).model
   return current
 }
 
@@ -270,7 +271,7 @@ describe('autosave and migration', () => {
     const id = founded.saves.current
     const saved = tick(founded, 20)
     expect(saved.board.clock.savedAt).toBeGreaterThan(founded.board.clock.savedAt)
-    const result = update(tick(founded, 19), Message.Ticked())
+    const result = update(tick(founded, 19), Message.Ticked({ elapsedMs: TICK_MS }))
     expect(result.commands).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

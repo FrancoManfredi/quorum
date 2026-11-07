@@ -279,6 +279,7 @@ export const boardState = (p: Practice): BoardState => ({
   ordinals: nodeOrdinals(p.game),
   region: HOME_REGION,
   paused: true,
+  speed: 1,
   suspended: false,
   cue: null,
   inset: { top: 16, bottom: 16, left: 0 },

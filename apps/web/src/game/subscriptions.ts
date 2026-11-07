@@ -231,6 +231,22 @@ const teamDragScroll = Stream.callback<Message>((queue) =>
   }),
 )
 
+/**
+ * The clock's ticks, each carrying the wall time that really passed since the previous one, so the
+ * Simulation keeps the speed the player chose even when a tick takes longer than its interval. The
+ * first tick of a run owes one interval: a pause or a hidden tab rests the clock, never catches up.
+ */
+const ticks = (): Stream.Stream<Message> =>
+  Stream.tick(TICK_MS).pipe(
+    Stream.mapAccum(
+      () => 0,
+      (at) => {
+        const now = Date.now()
+        return [now, [Message.Ticked({ elapsedMs: at === 0 ? TICK_MS : Math.max(0, now - at) })]]
+      },
+    ),
+  )
+
 export const subscriptions = {
   ...teamDrag,
   researchDragPointer: researchDrag.documentPointer,
@@ -245,7 +261,7 @@ export const subscriptions = {
           running: onBoard(model.route) && !halted(model),
         }),
         dependenciesToStream: ({ running }: { running: boolean }) =>
-          running ? Stream.tick(TICK_MS).pipe(Stream.map(() => Message.Ticked())) : Stream.empty,
+          running ? ticks() : Stream.empty,
       },
     ),
 

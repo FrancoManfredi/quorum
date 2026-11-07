@@ -1,8 +1,8 @@
-import { DILATION_SPEEDS } from '@quorum/simulation/catalog'
+import { DILATION_SPEEDS, STEP_SECONDS } from '@quorum/simulation/catalog'
 import { Game } from '@quorum/simulation/state'
 import { perkLevel } from '@quorum/simulation/founding'
 
-/** The UI reads the Ledger four times a second; the Simulation steps every 100 ms of sim time. */
+/** The nominal tick: the UI reads the Ledger four times a second. A tick owes the time it took. */
 export const TICK_MS = 250
 
 /**
@@ -12,8 +12,14 @@ export const TICK_MS = 250
  */
 export const REPEAT_MS = TICK_MS
 
-/** Steps per tick at 1×: 250 ms over 100 ms Steps. 2.5 is exact in binary, so the carry never drifts. */
-export const STEPS_PER_TICK = 2.5
+/**
+ * The most Steps one tick may run: ten sim seconds, and never fewer than two ticks at the chosen
+ * speed, so a fast clock still catches up. The cap stops a Design too heavy to run from spiralling.
+ */
+const MAX_TICK_STEPS = 100
+
+export const mostSteps = (speed: number): number =>
+  Math.max(MAX_TICK_STEPS, Math.ceil((2 * TICK_MS * speed) / (1_000 * STEP_SECONDS)))
 
 export const SAVE_EVERY = 5
 

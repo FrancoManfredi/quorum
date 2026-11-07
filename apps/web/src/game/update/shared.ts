@@ -209,6 +209,7 @@ export const sync = (model: Model, fit: boolean, focus: string | null = null): A
     ),
     region: model.board.region,
     paused: halted(model),
+    speed: model.board.clock.speed,
     suspended: model.panel === 'research',
     cue: cueNode(model),
   })

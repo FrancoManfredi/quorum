@@ -28,7 +28,7 @@ import { HISTORY_EVERY, HISTORY_POINTS, sampleNode, type NodeSample } from '../n
 import { Model, offCompany, boardChallenge, boardSandbox, type Tone } from '../model.ts'
 import { Result } from 'effect'
 import { STABLE_TICKS, advanceChange, deltaExpired } from '../feedback.ts'
-import { STEPS_PER_TICK, SAVE_EVERY, SAMPLE_EVERY, speedsOf } from './constant.ts'
+import { SAVE_EVERY, SAMPLE_EVERY, mostSteps, speedsOf } from './constant.ts'
 import { StepEvent } from '@quorum/simulation/events'
 import {
   WriteFounder,
@@ -377,11 +377,16 @@ export const eventToast = (t: Messages, event: StepEvent, game: Game): Note => {
   })
 }
 
-export const tick = (model: Model): UpdateResult => {
+export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   const challenge = boardChallenge(model.board)
-  if (challenge?._tag === 'Running') return runTick(model, challenge)
-  const owed = model.board.clock.carry + STEPS_PER_TICK * model.board.clock.speed
-  const steps = Math.floor(owed)
+  if (challenge?._tag === 'Running') return runTick(model, challenge, elapsedMs)
+  // A tick owes the real time that passed, at the speed the player chose, in 100 ms Steps.
+  const owed =
+    model.board.clock.carry + (elapsedMs * model.board.clock.speed) / (1_000 * STEP_SECONDS)
+  const most = mostSteps(model.board.clock.speed)
+  const steps = Math.min(Math.floor(owed), most)
+  // Over the cap, the clock drops the excess instead of saving it for the next tick.
+  const carry = steps === most ? 0 : owed - steps
   let game = model.board.game
   const events: Array<StepEvent> = []
   for (let index = 0; index < steps; index += 1) {
@@ -436,7 +441,7 @@ export const tick = (model: Model): UpdateResult => {
         ...model.board.clock,
         paused: model.board.clock.paused || autoPaused,
         speed: incident ? Math.min(model.board.clock.speed, 1) : model.board.clock.speed,
-        carry: owed - steps,
+        carry,
       },
     },
   }
@@ -734,7 +739,7 @@ type ClockTag =
   | 'BoardTidied'
 
 export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag> => ({
-  Ticked: () => tick(model),
+  Ticked: ({ elapsedMs }) => tick(model, elapsedMs),
 
   SpeedCycled: () => {
     const speeds = speedsOf(model.board.game)

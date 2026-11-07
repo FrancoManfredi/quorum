@@ -32,6 +32,7 @@ export const drawNodeCard = (key: string, type: ComponentId, host: HTMLElement):
     ordinals: nodeOrdinals(full),
     region: HOME_REGION,
     paused: true,
+    speed: 1,
     suspended: false,
     cue: null,
     readOnly: true,

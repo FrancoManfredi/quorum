@@ -110,6 +110,8 @@ export type BoardState = Readonly<{
   region: Region
   /** The company is paused: belts hold still. */
   paused: boolean
+  /** The clock's speed, so the belts run as fast as the Simulation does. */
+  speed: number
   /** Research covers the board: stop rendering, not the Simulation. */
   suspended: boolean
   /** The Node whose footer button glows: a disclosure cue (15 "Progressive disclosure"). */
@@ -2898,7 +2900,8 @@ class BoardController {
     const state = this.state
     if (!state) return
     const colors = palette()
-    if (!state.paused) this.phase += seconds
+    // The phase is sim time: at 10× the belts carry ten times as many items per real second.
+    if (!state.paused) this.phase += seconds * state.speed
     // Reduced motion: packets hold still along the pipe, and the bottleneck does not pulse.
     const still = reducedMotion()
     const zoom = this.world.scale.x

@@ -30,7 +30,7 @@ import {
 } from '@quorum/simulation/challenges'
 import { Option, Result, Schema } from 'effect'
 import { SIM_VERSION } from '@quorum/simulation/version'
-import { STEPS_PER_TICK } from './constant.ts'
+import { mostSteps } from './constant.ts'
 import {
   WriteFounder,
   AppendLog,
@@ -279,13 +279,19 @@ export const runSteps = (
   model: Model,
   run: ChallengeRun,
   all: boolean,
+  elapsedMs = 0,
 ): Readonly<{ model: Model; done: boolean }> => {
   const challenge = challengeById(run.id)
   if (!challenge || run._tag !== 'Running') return { model, done: false }
+  // A run owes the real time that passed, at the chosen speed, in the Challenge's own Steps.
+  const most = (mostSteps(model.board.clock.speed) * STEP_SECONDS) / challenge.stepSeconds
   const owed = all
     ? Number.POSITIVE_INFINITY
-    : model.board.clock.carry +
-      (STEPS_PER_TICK * model.board.clock.speed * STEP_SECONDS) / challenge.stepSeconds
+    : Math.min(
+        model.board.clock.carry +
+          (elapsedMs * model.board.clock.speed) / (1_000 * challenge.stepSeconds),
+        most,
+      )
   const total = stepsOf(challenge)
   let game = model.board.game
   let totals = run.totals
@@ -354,8 +360,8 @@ export const finishRun = (model: Model): UpdateResult => {
     : { model: next, commands }
 }
 
-export const runTick = (model: Model, run: ChallengeRun): UpdateResult => {
-  const ran = runSteps(model, run, false)
+export const runTick = (model: Model, run: ChallengeRun, elapsedMs: number): UpdateResult => {
+  const ran = runSteps(model, run, false, elapsedMs)
   return ran.done ? finishRun(ran.model) : { model: ran.model }
 }
 

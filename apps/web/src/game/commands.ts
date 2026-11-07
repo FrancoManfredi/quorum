@@ -67,6 +67,7 @@ export const SyncBoard = Command.define('SyncBoard', {
     history: Schema.Record(Schema.String, Schema.Array(Schema.Finite)),
     region: Region,
     paused: Schema.Boolean,
+    speed: Schema.Finite,
     suspended: Schema.Boolean,
     /** The Node whose footer button glows: a disclosure cue. */
     cue: Schema.NullOr(Schema.String),
@@ -87,6 +88,7 @@ export const SyncBoard = Command.define('SyncBoard', {
     history,
     region,
     paused,
+    speed,
     suspended,
     cue,
     fit,
@@ -109,6 +111,7 @@ export const SyncBoard = Command.define('SyncBoard', {
         history,
         region,
         paused,
+        speed,
         suspended,
         cue,
       })

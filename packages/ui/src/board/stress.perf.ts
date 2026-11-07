@@ -6,7 +6,8 @@ import { BIG_LINKS, STRESS_LINKS, bigBoard, bigNodes, stressNodes } from './stre
 /*
  * The stress harness: what the stress boards cost outside of drawing. The big board
  * (61 Nodes, 279 Links) is a player's screenshot. Routing runs on every change to the
- * Design; a tick runs 2.5 Steps at 1× and the Bottleneck search once per sim second.
+ * Design; a tick owes the time it took, so at 10× it steps ten sim seconds, and the
+ * Bottleneck search runs once per sim second.
  *
  *   pnpm --filter @quorum/web stress
  *

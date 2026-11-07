@@ -395,7 +395,7 @@ export const Clock = Schema.Struct({
   paused: Schema.Boolean,
   /** The pause came from the window losing focus, so focus resumes it. */
   away: Schema.Boolean,
-  /** Steps owed but not run yet: a tick at 1× is 2.5 Steps. */
+  /** Steps owed but not run yet: the part of a Step the last tick did not cover. */
   carry: Schema.Finite,
   /** Game time of the last save, so the clock saves every few seconds. */
   savedAt: Schema.Finite,

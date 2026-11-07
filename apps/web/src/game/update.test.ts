@@ -23,7 +23,7 @@ import { Message } from './message.ts'
 import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
 import { titleIsOpen } from './boot-machine.ts'
 import { boardChallenge, boardSandbox, type Mail, type Model } from './model.ts'
-import { init, initialModel, update } from './update.ts'
+import { TICK_MS, init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
 import { boxOf, crowds } from '@quorum/ui/board/geometry'
@@ -32,7 +32,8 @@ import { boxOf, crowds } from '@quorum/ui/board/geometry'
 
 const tick = (model: Model, times = 1): Model => {
   let current = model
-  for (let index = 0; index < times; index += 1) current = update(current, Message.Ticked()).model
+  for (let index = 0; index < times; index += 1)
+    current = update(current, Message.Ticked({ elapsedMs: TICK_MS })).model
   return current
 }
 
@@ -263,6 +264,25 @@ describe('the clock', () => {
     const lab = inLab()
     const start = { ...lab, board: { ...lab.board, clock: { ...lab.board.clock, speed: 3 } } }
     expect(tick(start, 4).board.game.time).toBe(start.board.game.time + 3)
+  })
+
+  test('a tick owes the wall time that passed, so 10× runs ten times as fast as 1×', () => {
+    const advanced = (speed: number, elapsedMs: number) => {
+      const lab = inLab()
+      const start = { ...lab, board: { ...lab.board, clock: { ...lab.board.clock, speed } } }
+      const after = update(start, Message.Ticked({ elapsedMs })).model.board.game.time
+      return after - start.board.game.time
+    }
+    expect(advanced(0.5, 1_000)).toBeCloseTo(0.5, 6)
+    expect(advanced(1, 1_000)).toBeCloseTo(1, 6)
+    expect(advanced(3, 1_000)).toBeCloseTo(3, 6)
+    expect(advanced(10, 1_000)).toBeCloseTo(10, 6)
+    // A tick that overran its interval owes the whole time it took, so the clock never falls behind.
+    expect(advanced(10, 2 * TICK_MS)).toBeCloseTo(5, 6)
+    // A stall stops at ten sim seconds a tick instead of spiralling.
+    expect(advanced(10, 60_000)).toBeLessThanOrEqual(10)
+    // A fast clock may catch up two ticks' worth, so Time dilation's 40× keeps its pace.
+    expect(advanced(40, 60_000)).toBeLessThanOrEqual(20)
   })
 
   test('the Bottleneck search runs once per sim second, and again after an action', () => {
@@ -778,7 +798,7 @@ describe('M9: sound, achievements, glossary, keys', () => {
     }
   }
   const sounds = (model: Model) =>
-    names(update(model, Message.Ticked()).commands)
+    names(update(model, Message.Ticked({ elapsedMs: TICK_MS })).commands)
       .filter((command) => command.name === 'PlaySound')
       .map((command) => command.args['sound'])
 
@@ -826,10 +846,10 @@ describe('M9: sound, achievements, glossary, keys', () => {
   })
 
   test('the first served request earns Hello, World once, in the Founder record', () => {
-    const once = update(incidentDue(), Message.Ticked()).model
+    const once = update(incidentDue(), Message.Ticked({ elapsedMs: TICK_MS })).model
     expect(once.founder.achievements).toContain('hello-world')
     expect(once.toast?.message).toBeDefined()
-    const twice = update(once, Message.Ticked()).model
+    const twice = update(once, Message.Ticked({ elapsedMs: TICK_MS })).model
     expect(twice.founder.achievements.filter((id) => id === 'hello-world')).toHaveLength(1)
   })
 
@@ -845,7 +865,7 @@ describe('M9: sound, achievements, glossary, keys', () => {
         },
       },
     }
-    const after = update(sandbox, Message.Ticked()).model
+    const after = update(sandbox, Message.Ticked({ elapsedMs: TICK_MS })).model
     expect(after.founder.achievements).toEqual([])
     expect(after.founder.glossary).toEqual([])
   })
@@ -1338,7 +1358,8 @@ test('a Company comes back from a Sandbox as it was: its Inbox, history and undo
     inLab(),
     Message.InboxChanged({ message: InboxMessage.Generated({ count: 3 }) }),
   ).model
-  for (let index = 0; index < 40; index += 1) company = update(company, Message.Ticked()).model
+  for (let index = 0; index < 40; index += 1)
+    company = update(company, Message.Ticked({ elapsedMs: TICK_MS })).model
   const sandbox = update(company, Message.FreeSandboxStarted()).model
   expect(sandbox.board.inbox.mail).toEqual([])
   const back = update(update(sandbox, Message.TitleOpened()).model, Message.Continued()).model
