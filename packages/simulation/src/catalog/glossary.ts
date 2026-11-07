@@ -2698,7 +2698,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'Shortcuts and outdated design in code that make each later change slower or riskier, like interest on a loan, until the team repays the debt by refactoring. Ward Cunningham coined the metaphor in 1992. Some debt is a deliberate tradeoff to ship sooner; its cost is the extra effort it adds to every later change.',
     inGame:
-      'Each Service has a tech debt percentage. Every shipped Feature adds 6 points under Move fast, 3 under Balanced, or 1 under Quality. It adds 1 more with no framework, and a task shipped during an Incident adds 2. Debt cuts velocity by up to half, raises the bad-deploy chance up to 3 times, and makes every Incident likelier. The Refactor task (10 Dev Hours) removes 20 points, and the Quality policy pays some down by itself.',
+      'Each Service has a tech debt percentage. Every shipped Feature adds 6 points under Move fast, 3 under Balanced, or 1 under Quality. It adds 1 more with no framework, and a task shipped during an Incident adds 2. A rushed item adds 2 points for each full item’s cost the pool paid. Debt cuts velocity by up to half, raises the bad-deploy chance up to 3 times, and makes every Incident likelier. The Refactor task (10 Dev Hours) removes 20 points, and the Quality policy pays some down by itself.',
     design: [{ label: 'Tech debt', url: '/design/08-team-and-velocity#tech-debt' }],
     related: ['brookss-law', 'strangler-pattern', 'code-review', 'dora-metrics'],
     links: [

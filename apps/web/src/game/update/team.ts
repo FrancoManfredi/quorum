@@ -17,6 +17,7 @@ import { insightName } from '../../i18n/messages.ts'
 import { isOne } from '../../i18n/plural.ts'
 import { ledgerOf, Model } from '../model.ts'
 import { recipeOf } from '@quorum/ui/game/pools'
+import { sharePercent } from '@quorum/ui/game/format'
 import { say, act, percent, type MessageCases, type UpdateResult } from './shared.ts'
 import { serviceOf } from '@quorum/simulation/team'
 import { stallReasonIn } from '../../i18n/format.ts'
@@ -232,7 +233,20 @@ export const teamHandlers = (model: Model): MessageCases<UpdateResult, TeamTag> 
   WorkPrioritized: ({ id }) =>
     act(model, 'Moved work to the top', Work.prioritizeItem(model.board.game, id)),
 
-  WorkRushed: ({ id }) => act(model, 'Rushed work', Work.rushItem(model.board.game, id)),
+  WorkRushed: ({ id }) => {
+    const game = model.board.game
+    const item = game.backlog.find((entry) => entry.id === id)
+    const debt = item ? Work.rushDebtOf(item, game.devHours) : 0
+    const risk = item ? Work.rushBugOf(game, item, game.devHours) : 0
+    return act(model, 'Rushed work', Work.rushItem(game, id), {
+      note: () => [
+        risk > 0
+          ? say(model).toasts.rushedDebtBug(sharePercent(debt), sharePercent(risk))
+          : say(model).toasts.rushedDebt(sharePercent(debt)),
+        'warn',
+      ],
+    })
+  },
 
   AutopilotToggled: () => {
     const game = Work.setAutopilot(model.board.game, !model.board.game.autopilot)

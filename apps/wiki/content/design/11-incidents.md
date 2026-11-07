@@ -294,6 +294,9 @@ Bad-deploy chance per deploy:
 \end{aligned}
 ```
 
+From Pre-seed, the chance also adds 10 points for every full rushed Feature in the batch, scaled by
+the share of its cost the pool paid, and the result is capped at 100%.
+
 The blast radius depends on the deploy batch ([Components](/design/05-components#cicd-pipeline)): a bad
 deploy fails 8% of App Server requests for each Feature in the batch it shipped. The ceiling on that
 share is the CI/CD Pipeline's deploy strategy: 40% without a Pipeline and on Rolling, 100% on

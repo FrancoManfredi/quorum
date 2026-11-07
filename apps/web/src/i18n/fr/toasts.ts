@@ -105,6 +105,9 @@ export const toasts: Messages['toasts'] = {
   offerAccepted: 'Offre acceptée. Ils commencent bientôt.',
   laidOff: 'Licencié. L’équipe est secouée pendant une semaine.',
   featureGone: (name) => `${name} a disparu. Son entretien prend fin avec elle.`,
+  rushedDebt: (debt) => `Travail accéléré : +${debt} de dette technique à la fin.`,
+  rushedDebtBug: (debt, risk) =>
+    `Travail accéléré : +${debt} de dette technique, +${risk} de risque de mauvais déploiement au déploiement.`,
   featuresMoved: (count, one) =>
     `${count} ${one ? 'fonctionnalité déplacée' : 'fonctionnalités déplacées'}. Leurs heures de dev sont dans le backlog.`,
   studyQueued: (name) => `Étude en file d’attente : ${name}.`,

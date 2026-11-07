@@ -35,6 +35,8 @@ import {
   MOOD_START,
   POLICIES,
   REFACTOR_PER_DH,
+  RUSH_BUG_CHANCE,
+  RUSH_DEBT,
   RESEARCH,
   type ResearchId,
   TASKS,
@@ -95,7 +97,6 @@ import type {
   WorkItem,
 } from './state.ts'
 import {
-  badDeployChance,
   blastService,
   dataStaffed,
   days,
@@ -107,6 +108,7 @@ import {
   memberOf,
   membersOf,
   moraleSeconds,
+  nextBadDeployChance,
   ownerOf,
   paidIndex,
   payGapOf,
@@ -490,6 +492,9 @@ export const removeFeature = (game: Game, id: FeatureId): Action => {
   const removed: Game = {
     ...game,
     features: Object.fromEntries(Object.entries(game.features).filter(([entry]) => entry !== id)),
+    rushedFeatures: Object.fromEntries(
+      Object.entries(game.rushedFeatures).filter(([entry]) => entry !== id),
+    ),
     outcomes: Object.fromEntries(Object.entries(game.outcomes).filter(([entry]) => entry !== id)),
   }
   return ok(
@@ -751,10 +756,30 @@ export const rushItem = (game: Game, id: number): Action =>
     if (game.devHours < 0.01) return notAllowed('The Dev Hours pool is empty.')
     const paid = Math.min(game.devHours, item.cost - item.spent)
     const backlog = game.backlog.map((entry, at) =>
-      at === index ? { ...entry, spent: entry.spent + paid } : entry,
+      at === index
+        ? { ...entry, spent: entry.spent + paid, rushed: (entry.rushed ?? 0) + paid }
+        : entry,
     )
     return ok({ ...game, devHours: game.devHours - paid, backlog })
   })
+
+/**
+ * The share of an item's cost a Rush pays, counting what earlier Rushes paid: 1 is a full rush.
+ * It reads the item's own rushed Dev Hours, so a second click shows the total, not just its own.
+ */
+const rushedShareOf = (item: WorkItem, pool: number): number => {
+  if (item.cost <= 0) return 0
+  const paid = Math.max(0, Math.min(pool, item.cost - item.spent))
+  return Math.min(1, ((item.rushed ?? 0) + paid) / item.cost)
+}
+
+/** The tech debt a rush adds once the item finishes: a full item's cost pays 2 points. */
+export const rushDebtOf = (item: WorkItem, pool: number): number =>
+  RUSH_DEBT * rushedShareOf(item, pool)
+
+/** The bad-deploy chance a rushed Feature carries into its deploy: 10% for a full item's cost. */
+export const rushBugOf = (game: Game, item: WorkItem, pool: number): number =>
+  game.stage >= 1 && item.kind === 'feature' ? RUSH_BUG_CHANCE * rushedShareOf(item, pool) : 0
 
 export const setAutopilot = (game: Game, autopilot: boolean): Game => ({ ...game, autopilot })
 
@@ -1219,8 +1244,25 @@ export const advanceMorale = (
   return { ...game, engineers }
 }
 
-/** What a finished item does. */
+/** What a finished item does, including the tech debt its Rushes added (08 "Tech debt"). */
 const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
+  const done = completed(game, item, tuning)
+  if (item.cost <= 0) return done
+  const rushed = Math.min(1, (item.rushed ?? 0) / item.cost)
+  if (rushed <= 0) return done
+  // A rushed Feature carries its share into the deploy that ships it, and keeps it through a rollback.
+  const withRush: Game =
+    item.kind === 'feature'
+      ? { ...done, rushedFeatures: { ...done.rushedFeatures, [item.ref]: rushed } }
+      : done
+  const service = serviceOfItem(withRush, item)
+  return withServiceId(withRush, service.id, {
+    debt: Math.min(1, service.debt + RUSH_DEBT * rushed),
+  })
+}
+
+/** What a finished item does. */
+const completed = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   // A patch, a split, and a spike have no effect to apply: finishing them is the effect.
   if (item.kind === 'spike' || item.kind === 'patch' || item.kind === 'split') return game
   if (item.kind === 'move') return moved(game, item, tuning)
@@ -1340,6 +1382,8 @@ const deployService = (
   if (game.incident?.kind === 'bad-deploy') return after
   const batch = awaitingFeatures(game).filter((id) => serviceOfFeature(game, id).id === service.id)
   if (batch.length === 0) return after
+  // The chance counts the bad-deploy risk of every rushed Feature in this batch (08 "Rush").
+  const chance = offline ? 0 : nextBadDeployChance(after, tuning, service)
   let next: Game = {
     ...after,
     features: deployed(after.features, batch),
@@ -1374,7 +1418,6 @@ const deployService = (
     ),
   }
   // No incident starts while the player is away (04 "Offline progress").
-  const chance = offline ? 0 : badDeployChance(next, tuning, service)
   let bad = false
   if (chance > 0) {
     const [roll, seed] = nextRandom(next.seed)

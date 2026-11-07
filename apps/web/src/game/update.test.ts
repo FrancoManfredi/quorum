@@ -7,17 +7,18 @@ import { EMPTY_INBOX, InboxMessage, mailed, reading } from './inbox.ts'
 import { PrefsMessage } from './prefs.ts'
 import { SurveyMessage } from './survey.ts'
 import { describe, expect, test } from 'vitest'
-import { Option } from 'effect'
+import { Option, Result } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import { fromString } from 'foldkit/url'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { SIZES } from '@quorum/simulation/catalog'
-import { COMPONENTS, researchList } from '@quorum/simulation/catalog'
+import { COMPONENTS, FEATURE_IDS, researchList } from '@quorum/simulation/catalog'
 import { researchReady, resizePrice } from '@quorum/simulation/lookups'
 import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
 import { NEW_ENGINEER, type Postmortem, type WorkItem } from '@quorum/simulation/state'
 import { SHARED } from '@quorum/simulation/playbook'
+import { queueFeature } from '@quorum/simulation/work'
 import { encodeText } from '@quorum/simulation/codec'
 import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
@@ -2060,4 +2061,16 @@ describe('Feature Flags (GDD 05, 08)', () => {
     )
     expect(refused.model.board.game).toBe(model.board.game)
   })
+})
+
+test('a Rush says the tech debt and bad-deploy risk it adds', () => {
+  const game = Result.getOrThrow(
+    queueFeature({ ...preseedGame(1), devHours: 100 }, FEATURE_IDS[0]!),
+  )
+  const model: Model = { ...inLab(), panel: 'team', board: { ...inLab().board, game } }
+  const pressed = update(model, Message.WorkRushed({ id: game.backlog[0]!.id })).model
+  expect(pressed.toast?.message).toBe(
+    'Rushed work: +2.0% tech debt, +10.0% bad-deploy risk when it deploys.',
+  )
+  expect(pressed.toast?.tone).toBe('warn')
 })

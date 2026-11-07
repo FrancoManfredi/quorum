@@ -89,6 +89,10 @@ export const REFACTOR_PER_DH = 0.02
 export const UNSTRUCTURED_DEBT = 0.01
 /** Debt a task adds when it ships during an incident: a hotfix. */
 export const HOTFIX_DEBT = 0.02
+/** Debt a fully rushed backlog item adds: the corners a team cuts to finish it now. */
+export const RUSH_DEBT = 0.02
+/** Extra bad-deploy chance a fully rushed Feature carries into its deploy. */
+export const RUSH_BUG_CHANCE = 0.1
 
 /* ---------- upkeep (08 "Upkeep") ---------- */
 

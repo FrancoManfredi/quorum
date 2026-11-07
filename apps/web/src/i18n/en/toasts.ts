@@ -109,6 +109,9 @@ export const toasts = {
   offerAccepted: 'Offer accepted. They start soon.',
   laidOff: 'Laid off. The team is shaken for a week.',
   featureGone: (name: Value) => `${name} is gone. Its upkeep ends with it.`,
+  rushedDebt: (debt: Value) => `Rushed work: +${debt} tech debt when it finishes.`,
+  rushedDebtBug: (debt: Value, risk: Value) =>
+    `Rushed work: +${debt} tech debt, +${risk} bad-deploy risk when it deploys.`,
   featuresMoved: (count: Value, one: boolean) =>
     `${count} Feature${one ? '' : 's'} moved. Its Dev Hours are on the backlog.`,
   studyQueued: (name: Value) => `Study queued: ${name}.`,

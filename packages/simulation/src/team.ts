@@ -29,6 +29,7 @@ import {
   ROLLOUT_ALL,
   RETROGRADE,
   RUNTIMES,
+  RUSH_BUG_CHANCE,
   SALARY_BASE,
   SHARED_DB_COORDINATION,
   SIGNING_BASE,
@@ -53,7 +54,7 @@ import {
 } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { eraOf, has, isDown, languageOf } from './lookups.ts'
-import { liveFeatures } from './features.ts'
+import { awaitingFeatures, liveFeatures } from './features.ts'
 import { rolloutOf as rolloutShareOf } from './feature-machine.ts'
 import { budgetVelocity } from './slo.ts'
 import {
@@ -479,7 +480,8 @@ export const deployEvery = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
 /**
  * The chance one deploy ships a bug (11 "Bad deploy"), for a Service: its own owner's policy and
  * its own tech debt, not the whole Design's (08 "Ownership"). Each Service still ships through the
- * one deploy pipeline, so every other factor is the Company's.
+ * one deploy pipeline, so every other factor is the Company's. `nextBadDeployChance` adds the risk
+ * of the rushed Features in the batch.
  */
 export const badDeployChance = (
   game: Game,
@@ -495,6 +497,23 @@ export const badDeployChance = (
     (has(game, 'testing-culture') ? 1 - TESTS_FACTOR : 1) *
     (has(game, 'code-review') ? 1 - CODE_REVIEW_FACTOR : 1)
   )
+}
+
+/**
+ * The chance the next deploy of a Service ships a bug (08 "Rush"): its usual chance, plus the risk
+ * each rushed Feature in the batch carries. A rollback keeps a Feature's share for the next deploy.
+ */
+export const nextBadDeployChance = (
+  game: Game,
+  tuning: Tuning = LIVE_TUNING,
+  service: Service = serviceOf(game),
+): number => {
+  const base = badDeployChance(game, tuning, service)
+  // The Garage has no bad deploy, so a rush there carries no risk.
+  if (base <= 0) return 0
+  const batch = awaitingFeatures(game).filter((id) => serviceOfFeature(game, id).id === service.id)
+  const rush = batch.reduce((sum, id) => sum + RUSH_BUG_CHANCE * (game.rushedFeatures[id] ?? 0), 0)
+  return Math.min(1, base + rush)
 }
 
 /* ---------- DORA metrics (08 "Deploy frequency") ---------- */

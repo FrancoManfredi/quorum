@@ -96,6 +96,8 @@ export const toasts: Messages['toasts'] = {
   offerAccepted: '已接受录用邀约，对方即将入职。',
   laidOff: '已解雇。团队士气将在一周内受到影响。',
   featureGone: (name) => `${name} 已移除，其维护成本也随之消失。`,
+  rushedDebt: (debt) => `加急工作：完成时技术债 +${debt}。`,
+  rushedDebtBug: (debt, risk) => `加急工作：技术债 +${debt}，部署时错误部署风险 +${risk}。`,
   featuresMoved: (count) => `已迁移 ${count} 项功能，其开发工时已进入待办队列。`,
   studyQueued: (name) => `已加入研究队列：${name}。`,
   studyQueuedStalled: (name, reason) => `已加入研究队列：${name}。${reason}`,

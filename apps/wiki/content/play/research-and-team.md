@@ -73,7 +73,7 @@ The Board has four columns: **Up next**, **In progress**, **Shipping** and **Liv
 1. Find a tile under **Features**. Select **Build** to add it to the backlog.
 2. Watch it move to **In progress**. Teams spend Dev Hours on it.
 3. A finished item waits in **Shipping**. The deploy card says **Deploy in** and a time, then the Feature goes **Live**.
-4. Use the lightning button on a backlog item to **Rush** it with Dev Hours. Use **Cancel** to drop it.
+4. Use the lightning button on a backlog item to **Rush** it with Dev Hours. Rushed work finishes now and adds tech debt to its Service. From Pre-seed, a rushed Feature makes its deploy likelier to ship a bug. Use **Cancel** to drop it.
 
 Under **Engineering**, select **Queue** on a tile to pay down tech debt or fix a leak. The row appears when something needs fixing.
 

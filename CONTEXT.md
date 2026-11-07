@@ -339,6 +339,12 @@ _Avoid_: research task, crunch, boost
 A per-Service percentage that slows Dev Hours and raises Incident chances until paid down.
 _Avoid_: mess, cruft
 
+**Rush**:
+The Team action that spends the Dev Hours pool to finish a backlog item now. It adds tech debt to the
+item's Service when the item finishes, and from Pre-seed a rushed Feature raises its deploy's
+bad-deploy chance.
+_Avoid_: boost, speed up
+
 ### Money and knowledge
 
 **Cash**:

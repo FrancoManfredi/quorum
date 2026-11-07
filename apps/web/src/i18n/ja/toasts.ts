@@ -101,6 +101,9 @@ export const toasts: Messages['toasts'] = {
   offerAccepted: 'オファーを承諾しました。まもなく入社します。',
   laidOff: '解雇しました。チームは1週間動揺します。',
   featureGone: (name) => `${name}はなくなりました。維持費も一緒に終わります。`,
+  rushedDebt: (debt) => `急いだ作業：完了時に技術的負債 +${debt}。`,
+  rushedDebtBug: (debt, risk) =>
+    `急いだ作業：技術的負債 +${debt}、デプロイ時に不正デプロイのリスク +${risk}。`,
   featuresMoved: (count) => `${count}件の機能を移動しました。開発工数はバックログに入っています。`,
   studyQueued: (name) => `研究をキューに追加: ${name}。`,
   studyQueuedStalled: (name, reason) => `研究をキューに追加: ${name}。${reason}`,

@@ -670,6 +670,8 @@ export const WorkItem = Schema.Struct({
   ref: Schema.String,
   cost: Schema.Finite,
   spent: Schema.Finite,
+  /** Dev Hours a Rush paid for it: tech debt, and for a Feature a bad-deploy risk when it finishes (08 "Rush"). */
+  rushed: Schema.optionalKey(Schema.Finite),
   /** A patch's deadline, in Company seconds. It turns overdue after it and is exploited a grace later. */
   due: Schema.optionalKey(Schema.Finite),
   /** The Component id a patch is for. */
@@ -986,6 +988,13 @@ export const Game = Schema.Struct({
    * samples its experiment read. A rollback puts it back in the queue; removing it deletes it.
    */
   features: Schema.Record(Schema.String, FeaturePhase).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
+  /**
+   * The share of a Feature's cost a Rush paid, by Feature id (08 "Rush"). Its deploy adds a
+   * bad-deploy chance for it, and a rollback keeps the share for the next deploy.
+   */
+  rushedFeatures: Schema.Record(Schema.String, Schema.Finite).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed({})),
   ),
   /**

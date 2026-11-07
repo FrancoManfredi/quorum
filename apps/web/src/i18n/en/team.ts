@@ -36,7 +36,9 @@ export const team = {
   exploitIn: (p0: string | number | null) => `Exploit in ${p0}`,
   dueIn: (p0: string | number | null) => `Due in ${p0}`,
   unassigned: 'Unassigned',
-  rushWith: (p0: string | number | null) => `Rush with ${p0}`,
+  rushWith: (p0: string | number | null, p1: string | number | null) =>
+    `Rush with ${p0} · +${p1} tech debt`,
+  rushBug: (p0: string | number | null) => `+${p0} bad-deploy risk`,
   up: 'Up',
   down: 'Down',
   idle: (p0: string | number | null) => `${p0} idle`,

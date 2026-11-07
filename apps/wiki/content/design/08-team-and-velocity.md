@@ -56,6 +56,11 @@ player can give it; the owner writes, and Approve or Later is the answer ([Block
 Dev Hours a team does not spend stay in a company-wide **pool**, and the Team panel shows the pool
 and its fill rate. **Rush** spends the pool on one backlog item: it pays as much of that item's
 remaining cost as the pool holds, so an item finishes without waiting for a team to build it.
+Rushed work is hurried work: when the item finishes, it adds tech debt to its Service, 2 points for
+every full item's cost the pool paid. A half-rushed item adds 1. Cancelling the item before it
+finishes keeps none of that debt, because its code never lands. From Pre-seed, a rushed Feature also
+carries a bad-deploy risk into its deploy: 10 points for every full item's cost the pool paid, so a
+half-rushed Feature adds 5. The deploy rolls that risk with its usual chance.
 The autopilot rushes the item at the top of the backlog, and Add index rushes itself.
 
 ## Hiring
@@ -531,6 +536,11 @@ users. The game makes this visible with a market-share line in the Series B Era 
 Paydown: assign DH to "Refactor" on a service. Each DH removes a fixed amount of debt. Paying down
 debt earns nothing directly. It makes everything else cheaper, which is why it is real.
 
+A rushed item adds debt when it finishes: 2 points for every full item's cost the pool paid. The
+debt is the price of skipping the work a team would have done, and it lands whether the item is a
+Feature, a task, or a patch. From Pre-seed, a rushed Feature also raises its deploy's bad-deploy
+chance: 10 points for every full item's cost the pool paid.
+
 ## Team policy
 
 One setting per team, changeable at any time with a one-calendar-day transition.
@@ -563,7 +573,8 @@ Features ship in deploys. A feature finished between deploys waits for the next 
   with frequency, and it does not lower the chance.
 
 Every deploy then rolls for a bug: 10% from Pre-seed on (none in the Garage), times the policy's
-bad-deploy chance, times (1 + 2 × debt), times 0.7 with automated tests and 0.8 with code review. A
+bad-deploy chance, times (1 + 2 × debt), times 0.7 with automated tests and 0.8 with code review,
+plus the bad-deploy risk of any rushed Feature in its batch (10 points for a full rush). A
 bad deploy fails 8% of the requests for each item it shipped, up to the ceiling its deploy strategy
 sets. The ceiling is 40% without a Pipeline and on Rolling, 100% on Recreate, 10% on Blue-green, and
 5% on Canary.

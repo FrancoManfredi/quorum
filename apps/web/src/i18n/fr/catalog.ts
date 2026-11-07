@@ -2258,7 +2258,7 @@ export const catalog: Messages['catalog'] = {
       definition:
         "Raccourcis et architecture obsolète du code qui rendent chaque modification ultérieure plus lente ou plus risquée, comme les intérêts d'un prêt, jusqu'à ce que l'équipe rembourse la dette en refactorisant. Ward Cunningham a inventé la métaphore en 1992. Une certaine dette est un compromis délibéré à expédier plus tôt ; son coût est l'effort supplémentaire qu'il ajoute à chaque changement ultérieur.",
       inGame:
-        "Chaque service a un pourcentage de dette technique. Chaque fonctionnalité livrée ajoute 6 points sous Déplacement rapide, 3 sous Équilibré et 1 sous Qualité, plus 1 sans cadre, et une tâche expédiée lors d'un incident en ajoute 2. La dette réduit la vitesse de moitié, augmente les risques de mauvais déploiement jusqu'à 3 fois et rend chaque incident plus probable. La tâche Refactor (10 heures de développement) supprime 20 points, et la politique Qualité en rémunère elle-même.",
+        "Chaque service a un pourcentage de dette technique. Chaque fonctionnalité livrée ajoute 6 points sous Déplacement rapide, 3 sous Équilibré et 1 sous Qualité, plus 1 sans cadre, et une tâche expédiée lors d'un incident en ajoute 2. Un élément accéléré ajoute 2 points pour chaque coût complet d'élément payé par la réserve. La dette réduit la vitesse de moitié, augmente les risques de mauvais déploiement jusqu'à 3 fois et rend chaque incident plus probable. La tâche Refactor (10 heures de développement) supprime 20 points, et la politique Qualité en rémunère elle-même.",
       links: [
         { label: 'Martin Fowler : Dette technique' },
         { label: 'Wikipédia : Dette technique' },

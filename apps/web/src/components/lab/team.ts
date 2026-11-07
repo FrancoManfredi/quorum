@@ -64,16 +64,16 @@ import type {
   WorkKind,
 } from '@quorum/simulation/state'
 import {
-  badDeployChance,
   deployEvery,
   devHoursRate,
   doraMetrics,
   languageOfService,
   membersOf,
+  nextBadDeployChance,
+  ownerOf,
   payrollOf,
   policyNow,
   rampSeconds,
-  ownerOf,
   pipelineOf,
   salaryOf,
   serviceBurnOf,
@@ -108,13 +108,15 @@ import {
   removeRefusal,
   runbookKinds,
   runbookRefusal,
+  rushBugOf,
+  rushDebtOf,
   splitCost,
   splitRefusal,
   taskRefusal,
 } from '@quorum/simulation/work'
 import type { Refusal } from '@quorum/simulation/actions'
 import { refusalIn } from '@/i18n/refusal.ts'
-import { money } from '@quorum/ui/game/format'
+import { money, sharePercent } from '@quorum/ui/game/format'
 import { STACK_LOGOS } from '@quorum/ui/game/icons'
 import { Message } from '@/game/message.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
@@ -1818,8 +1820,10 @@ const card = (
 
 const rush = (game: Game, item: WorkItem, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+  const label = t.team.rushWith(dh(t, game.devHours), sharePercent(rushDebtOf(item, game.devHours)))
+  const risk = rushBugOf(game, item, game.devHours)
   return iconButton(
-    t.team.rushWith(dh(t, game.devHours)),
+    risk > 0 ? `${label} · ${t.team.rushBug(sharePercent(risk))}` : label,
     Zap,
     Message.WorkRushed({ id: item.id }),
     game.devHours >= 0.1,
@@ -1946,7 +1950,7 @@ const deployPill = (game: Game, h: HtmlBuilder<Message>): Html => {
 
   const built = awaitingFeatures(game).length
   const left = serviceOf(game).nextDeployAt - game.time
-  const chance = badDeployChance(game)
+  const chance = nextBadDeployChance(game)
   const stalled = game.incident?.kind === 'bad-deploy'
   return h.div(
     [

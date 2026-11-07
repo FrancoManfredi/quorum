@@ -2,15 +2,33 @@ import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import { installBackdoor, setPolicyOn, setProvider, setSlowStart, study } from '../src/actions.ts'
 import { saleOf } from '../src/calendar.ts'
-import { CALENDAR_START, FEATURE_IDS, RESEARCH_IDS, VENTURES } from '../src/catalog.ts'
+import {
+  CALENDAR_START,
+  FEATURE_IDS,
+  RESEARCH_IDS,
+  RUSH_BUG_CHANCE,
+  RUSH_DEBT,
+  VENTURES,
+} from '../src/catalog.ts'
 import { preseedGame } from '../src/company.ts'
 import { foundCompany } from '../src/founding.ts'
 import { solveFlow } from '../src/solve.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { step } from '../src/step.ts'
 import { newGame } from '../src/company.ts'
-import { NEW_ENGINEER } from '../src/state.ts'
-import { assignments, createTeam, featureRefusal, queueFeature, queueSpike } from '../src/work.ts'
+import { NEW_ENGINEER, type WorkItem } from '../src/state.ts'
+import {
+  assignments,
+  cancelItem,
+  createTeam,
+  featureRefusal,
+  queueFeature,
+  queueSpike,
+  rushBugOf,
+  rushItem,
+  serviceOfItem,
+} from '../src/work.ts'
+import { badDeployChance, nextBadDeployChance } from '../src/team.ts'
 import { spiked } from '../src/studies.ts'
 
 /* The Exit, Mail and Observability mechanics that change the Game: each runs in a Step or an Action. */
@@ -145,5 +163,95 @@ describe('Team assignments', () => {
 
     // Behind the Feature, the Spike would go to the second team, which has no engineers.
     expect(spiked({ ...game, backlog: [...game.backlog].reverse() })).toBe(false)
+  })
+})
+
+describe('Rush quality', () => {
+  test('a rush adds tech debt and a bad-deploy risk when the item finishes, in proportion to the pool', () => {
+    const open = () => {
+      const queued = Result.getOrThrow(queueFeature(preseedGame(1), FEATURE_IDS[0]!))
+      return {
+        // Keep the deploy slot away so the finished Feature stays in the batch for the chance test.
+        queued: {
+          ...queued,
+          services: queued.services.map((service) => ({
+            ...service,
+            nextDeployAt: queued.time + 10_000,
+          })),
+        },
+        item: queued.backlog[0]!,
+      }
+    }
+    const normal = open()
+    const base = serviceOfItem(
+      step({ ...normal.queued, backlog: [{ ...normal.item, spent: normal.item.cost }] }, 0.1).game,
+      normal.item,
+    ).debt
+
+    const full = open()
+    const rushedFull = step(
+      Result.getOrThrow(rushItem({ ...full.queued, devHours: full.item.cost }, full.item.id)),
+      0.1,
+    ).game
+    expect(serviceOfItem(rushedFull, full.item).debt).toBeCloseTo(base + RUSH_DEBT, 10)
+    expect(rushedFull.rushedFeatures[full.item.ref]).toBeCloseTo(1, 10)
+    expect(rushBugOf(full.queued, full.item, full.item.cost)).toBeCloseTo(RUSH_BUG_CHANCE, 10)
+    const fullService = serviceOfItem(rushedFull, full.item)
+    expect(nextBadDeployChance(rushedFull, undefined, fullService)).toBeCloseTo(
+      badDeployChance(rushedFull, undefined, fullService) + RUSH_BUG_CHANCE,
+      10,
+    )
+
+    const half = open()
+    const rushedHalf = Result.getOrThrow(
+      rushItem({ ...half.queued, devHours: half.item.cost / 2 }, half.item.id),
+    )
+    const finishedHalf = step(
+      { ...rushedHalf, backlog: [{ ...rushedHalf.backlog[0]!, spent: half.item.cost }] },
+      0.1,
+    ).game
+    expect(serviceOfItem(finishedHalf, half.item).debt).toBeCloseTo(base + RUSH_DEBT / 2, 10)
+    expect(finishedHalf.rushedFeatures[half.item.ref]).toBeCloseTo(0.5, 10)
+    expect(rushBugOf(half.queued, half.item, half.item.cost / 2)).toBeCloseTo(
+      RUSH_BUG_CHANCE / 2,
+      10,
+    )
+  })
+
+  test('a task carries no bad-deploy risk, because it ships no Feature', () => {
+    const task: WorkItem = {
+      id: 999,
+      kind: 'task',
+      ref: 'load-test',
+      cost: 15,
+      spent: 0,
+      block: { _tag: 'Free' },
+      answered: null,
+    }
+    expect(rushBugOf(preseedGame(1), task, task.cost)).toBe(0)
+  })
+
+  test('the Garage has no bad deploy, so a rushed Feature carries no risk there', () => {
+    const feature: WorkItem = {
+      id: 999,
+      kind: 'feature',
+      ref: FEATURE_IDS[0]!,
+      cost: 8,
+      spent: 0,
+      block: { _tag: 'Free' },
+      answered: null,
+    }
+    expect(rushBugOf(newGame(1), feature, feature.cost)).toBe(0)
+    expect(rushBugOf(preseedGame(1), feature, feature.cost)).toBeCloseTo(RUSH_BUG_CHANCE, 10)
+  })
+
+  test('a cancelled rushed item adds no debt, because its code never lands', () => {
+    const queued = Result.getOrThrow(queueFeature(preseedGame(1), FEATURE_IDS[0]!))
+    const item = queued.backlog[0]!
+    const before = serviceOfItem(queued, item).debt
+    const rushed = Result.getOrThrow(rushItem({ ...queued, devHours: item.cost }, item.id))
+    const cancelled = Result.getOrThrow(cancelItem(rushed, item.id))
+    const advanced = step(cancelled, 0.1).game
+    expect(serviceOfItem(advanced, item).debt).toBe(before)
   })
 })
