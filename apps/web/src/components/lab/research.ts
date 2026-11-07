@@ -178,7 +178,6 @@ const face = (
   entry: ResearchDef,
   state: State,
   grey: boolean,
-  large: boolean,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
   const t = copy(h)
@@ -194,16 +193,16 @@ const face = (
             h.Class(
               cn(
                 'flex items-center gap-1 text-[calc(12.5px*var(--type-scale))] leading-tight font-semibold',
-                large ? '' : 'truncate',
                 grey ? 'text-muted-foreground' : '',
               ),
             ),
           ],
           [
-            // At 150% the box is tall enough for a second line, so a long name wraps
-            // rather than ellipsizes (15 "Accessibility").
+            // A long name takes a second line before it ellipsizes: a Japanese name runs
+            // out of room sooner than an English one (15 "Accessibility"). `auto-phrase`
+            // breaks Japanese at a phrase boundary rather than mid-term, where it is supported.
             h.span(
-              [h.Class(large ? 'line-clamp-2' : 'truncate')],
+              [h.Class('[word-break:auto-phrase] line-clamp-2')],
               [t.catalog.research[entry.id].name],
             ),
             open ? icon(h, TriangleAlert, 'size-3 shrink-0 text-warn') : h.empty,
@@ -216,18 +215,12 @@ const face = (
 }
 
 /** A card node. Saving up: the card is the progress bar, a coloured copy wiping in from the left. */
-const card = (
-  game: Game,
-  entry: ResearchDef,
-  state: State,
-  large: boolean,
-  h: HtmlBuilder<Message>,
-) => {
+const card = (game: Game, entry: ResearchDef, state: State, h: HtmlBuilder<Message>) => {
   const share = Math.min(1, game.studies.find((item) => item.id === entry.id)?.progress ?? 0)
   const color = colorOf(LOOKS[entry.id])
   return state === 'saving'
     ? [
-        ...face(game, entry, state, true, large, h),
+        ...face(game, entry, state, true, h),
         h.span(
           [
             h.Key('fill'),
@@ -240,7 +233,7 @@ const card = (
               'clip-path': `inset(0 ${(1 - share) * 100}% 0 0)`,
             }),
           ],
-          face(game, entry, state, false, large, h),
+          face(game, entry, state, false, h),
         ),
         h.span(
           [
@@ -252,7 +245,7 @@ const card = (
           [],
         ),
       ]
-    : face(game, entry, state, state === 'locked', large, h)
+    : face(game, entry, state, state === 'locked', h)
 }
 
 /** The interface's type scale: the tree's boxes and spacing grow with it (15 "Accessibility"). */
@@ -262,7 +255,6 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
   const game = model.board.game
   const { entry } = place
   const state = stateOf(game, entry)
-  const large = model.prefs.text === 'large'
   const size = nodeSize(scaleOf(model))
   // Beyond the next Era: in the fog.
   const far = entry.era > game.stage + 1 && state === 'locked'
@@ -293,7 +285,7 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
         ),
       ),
     ],
-    card(game, entry, state, large, h),
+    card(game, entry, state, h),
   )
 }
 

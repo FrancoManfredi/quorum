@@ -7,9 +7,10 @@ import { ResearchScroll, researchPanel } from './research.ts'
 
 /* ==========================================================================
    15 "Accessibility", Text at 150%: the Research tree grows its Node boxes and
-   the spacing between them with the type, and a long item name wraps onto its
-   second line instead of ellipsizing in a box sized for one. At the interface's
-   own size nothing moves: the box is what it always was, on one line.
+   the spacing between them with the type. A long item name takes a second line
+   at any size rather than ellipsizing, because a Japanese name runs out of room
+   sooner than an English one; at the interface's own size the box is what it
+   always was, and the name fits inside it.
    ========================================================================== */
 
 const sized = (text: 'normal' | 'large'): Model => ({
@@ -33,14 +34,14 @@ test('at 150% the tree grows its Node boxes and wraps a long name', () => {
   )
 })
 
-test('at its own size the box and the single-line name are unchanged', () => {
+test('at its own size the box stays put and a long name still has a second line', () => {
   Scene.scene(
     { update, view: researchPanel },
     Scene.given(sized('normal')),
     scrolled(),
     Scene.expect(box('load-balancing')).toHaveStyle('height', '48px'),
     Scene.expect(box('load-balancing')).toHaveStyle('width', '184px'),
-    Scene.expect(Scene.selector('[data-research="load-balancing"] .line-clamp-2')).not.toExist(),
-    Scene.expect(Scene.selector('[data-research="load-balancing"] .truncate')).toExist(),
+    Scene.expect(Scene.selector('[data-research="load-balancing"] .line-clamp-2')).toExist(),
+    Scene.expect(Scene.text('Load balancing algorithms')).toExist(),
   )
 })

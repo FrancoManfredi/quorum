@@ -14,6 +14,7 @@
     "stress": "node src/board/stress.perf.ts"
   },
   "dependencies": {
+    "@chenglou/pretext": "^1.0.0",
     "@foldkit/ui": "0.168.0",
     "@quorum/simulation": "workspace:*",
     "cn": "0.5.0",
