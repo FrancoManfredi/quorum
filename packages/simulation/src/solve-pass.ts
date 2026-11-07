@@ -272,12 +272,19 @@ export const forward = (inputs: Inputs): Pass => {
   const connectionsIn: Array<number | undefined> = []
   for (const node of graph.order) {
     const slot = at.get(node.id) as number
-    const out = RULES[node.type].connections(solver, node, models[slot], connectionsIn[slot] ?? 0)
+    // An L4 Load Balancer hands the connections it holds on to its targets, each its share.
+    const through = node.type === 'lb'
+    const out = through
+      ? (connectionsIn[slot] ?? 0)
+      : RULES[node.type].connections(solver, node, models[slot], connectionsIn[slot] ?? 0)
     if (out <= 0) continue
+    const shares = through
+      ? new Map(splitOf(inputs, node, 'q-read').map(([edge, share]) => [edge, share]))
+      : null
     for (const edge of graph.out.get(node.id) ?? []) {
       const child = edge.to
       if (!accepts(child, 'q-read') && !accepts(child, 'q-write')) continue
-      connectionsIn[edge.toAt] = (connectionsIn[edge.toAt] ?? 0) + out
+      connectionsIn[edge.toAt] = (connectionsIn[edge.toAt] ?? 0) + out * (shares?.get(edge) ?? 1)
     }
   }
   const connections: Array<{ used: number; max: number } | undefined> = []

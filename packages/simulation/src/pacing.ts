@@ -688,9 +688,8 @@ const addReplica = (game: Game, ledger: Ledger, database: GameNode): Game => {
     if (grown === next) break
     next = grown
   }
-  const pooler = next.nodes.find((node) => node.type === 'pooler')
-  for (const from of pooler ? [pooler] : servers(next))
-    next = tried(next, connect(next, from.id, replica[1]))
+  // A pooler takes one link and an L7 Load Balancer no queries, so the App Servers pick the replica.
+  for (const from of servers(next)) next = tried(next, connect(next, from.id, replica[1]))
   return next
 }
 

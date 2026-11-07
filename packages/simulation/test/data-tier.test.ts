@@ -142,5 +142,10 @@ describe('a Connection Pooler', () => {
     expect(reads(first)).toBeGreaterThan(0)
     expect(reads(first)).toBeCloseTo(reads(second))
     expect(reads(database)).toBeCloseTo(reads(first))
+    // The pooler's server connections pass through the balancer, an equal share to each host.
+    const held = (id: string) => ledger.nodes[id]?.connections?.used ?? 0
+    expect(held(database)).toBeGreaterThan(0)
+    expect(held(first)).toBeCloseTo(held(database))
+    expect(held(second)).toBeCloseTo(held(database))
   })
 })
