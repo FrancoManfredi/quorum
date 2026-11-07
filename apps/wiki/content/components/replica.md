@@ -2,7 +2,7 @@ The Read Replica stands for a PostgreSQL or MySQL streaming replica: a copy of t
 
 ## When to place it
 
-- Place it when the Database CPU is high from reads and a [Cache](/components/cache) cannot hold the hot data. Link the primary and the replicas to a [Load Balancer](/components/lb), and reads spread across them by its algorithm. Writes go to the primary only. With a [Connection Pooler](/components/pooler) in front, link the pooler into the Load Balancer, because the pooler takes one link out.
+- Place it when the Database CPU is high from reads and a [Cache](/components/cache) cannot hold the hot data. Link the primary and the replicas to an L4 [Load Balancer](/components/lb), which needs the [L4 load balancer](/research/l4-lb) Research, and reads spread across them by its algorithm. Writes go to the primary only. With a [Connection Pooler](/components/pooler) in front, link the pooler into the Load Balancer, because the pooler takes one link out.
 - Skip it when the mix is write-heavy. That needs a bigger primary, not more replicas.
 
 The [Stale Checkout](/sandboxes/stale-checkout) and [Missed Write](/sandboxes/missed-write) Sandboxes show stale reads.

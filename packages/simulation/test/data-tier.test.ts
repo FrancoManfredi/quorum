@@ -4,6 +4,7 @@ import {
   connect,
   place,
   setCdnOptions,
+  setLbVariant,
   setPolicy,
   setSearchOptions,
   setShardKey,
@@ -120,8 +121,8 @@ describe('Search Engine and Object Storage products', () => {
 })
 
 describe('a Connection Pooler', () => {
-  test('pools to one host, and a Load Balancer after it spreads the reads', () => {
-    let game = withResearch(freeSandbox(), 'replication', 'pooling', 'load-balancing')
+  test('pools to one host, and an L4 Load Balancer after it spreads the reads', () => {
+    let game = withResearch(freeSandbox(), 'replication', 'pooling', 'load-balancing', 'l4-lb')
     let pooler: string, lb: string, database: string, first: string, second: string
     ;[game, pooler] = build(game, 'pooler')
     ;[game, lb] = build(game, 'lb')
@@ -129,11 +130,15 @@ describe('a Connection Pooler', () => {
     ;[game, first] = build(game, 'replica')
     ;[game, second] = build(game, 'replica')
     game = ok(connect(game, 'server', pooler))
+    // An L7 Load Balancer reads HTTP, so it refuses queries until it is an L4.
+    expect(Result.isFailure(connect(game, pooler, lb))).toBe(true)
+    game = ok(setLbVariant(game, lb, 'l4'))
     game = ok(connect(game, pooler, lb))
     expect(Result.isFailure(connect(game, pooler, database))).toBe(true)
     for (const to of [database, first, second]) game = ok(connect(game, lb, to))
     const ledger = solveFlow(game)
     const reads = (id: string) => ledger.nodes[id]?.traffic['q-read'] ?? 0
+    expect(Result.isFailure(setLbVariant(game, lb, 'l7'))).toBe(true)
     expect(reads(first)).toBeGreaterThan(0)
     expect(reads(first)).toBeCloseTo(reads(second))
     expect(reads(database)).toBeCloseTo(reads(first))

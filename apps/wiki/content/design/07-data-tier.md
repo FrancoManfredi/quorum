@@ -139,7 +139,7 @@ Real products: PgBouncer, ProxySQL.
 
 The Connection Pooler sits between App Servers and the Database, so that many client connections
 share a few server connections. It takes one link out, as PgBouncer sends every connection to one host
-and reads no SQL. A Load Balancer after it spreads reads across the Database and its Read Replicas.
+and reads no SQL. An L4 Load Balancer after it spreads reads across the Database and its Read Replicas.
 
 | Mode        | Server connections needed  | Limitation                                                                                                                                                           |
 | ----------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

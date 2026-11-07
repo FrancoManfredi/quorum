@@ -37,6 +37,7 @@ import {
   REQUEST_KINDS,
   RESEARCH,
   RUNTIMES,
+  DATA_KINDS,
   MAX_STUDIES,
   RESERVED_SECONDS,
   SIZES,
@@ -364,6 +365,11 @@ export const move = (game: Game, id: string, x: number, y: number): Game =>
 /** Kinds a Node sends on its routing links. */
 const emitsOf = (node: GameNode): ReadonlyArray<Kind> => COMPONENTS[node.type].sends
 
+/** A Load Balancer passes queries on only as an L4: an L7 one reads HTTP and takes requests. */
+const relays = (from: GameNode, to: GameNode, kind: Kind): boolean =>
+  !(DATA_KINDS as ReadonlyArray<Kind>).includes(kind) ||
+  [from, to].every((node) => node.type !== 'lb' || node.variant === 'l4')
+
 const reaches = (links: ReadonlyArray<GameLink>, from: string, to: string): boolean => {
   const seen = new Set<string>()
   const stack = [from]
@@ -421,7 +427,11 @@ export const connect = (game: Game, from: string, to: string): Action => {
   if (sourceDef.maxOut === 0 || emitsOf(source).length === 0)
     return notAllowed(`${sourceDef.name} sends nothing on. Link it into Analytics to sample it.`)
   if (targetDef.accepts.length === 0) return notAllowed(`${targetDef.name} has no input.`)
-  const carried = emitsOf(source).filter((kind) => targetDef.accepts.includes(kind))
+  const carried = emitsOf(source).filter(
+    (kind) => targetDef.accepts.includes(kind) && relays(source, target, kind),
+  )
+  if (carried.length === 0 && emitsOf(source).some((kind) => targetDef.accepts.includes(kind)))
+    return notAllowed('An L7 Load Balancer reads HTTP. Switch it to L4 to balance queries.')
   if (carried.length === 0)
     return notAllowed(
       `${targetDef.name} takes ${kindList(targetDef.accepts)}. ${sourceDef.name} sends ${kindList(emitsOf(source))}.`,

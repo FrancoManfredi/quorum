@@ -2,6 +2,8 @@ import { type Action, Refusal, no, notAllowed, ok, patch, withNode } from '../ac
 import type { Game, LbPolicy } from '../state.ts'
 import {
   CHECK_INTERVALS,
+  COMPONENTS,
+  DATA_KINDS,
   L4_CAPACITY,
   L4_MS,
   LB_POLICIES,
@@ -48,6 +50,19 @@ export const setLbVariant = (game: Game, id: string, variant: LbVariant): Action
       return no(
         Refusal.Locked({ what: LB_VARIANTS[variant].name, research: RESEARCH[research].name }),
       )
+    // An L7 Load Balancer reads HTTP: it cannot keep the Database queries an L4 passes on.
+    const queries = game.links.some((link) => {
+      const other = game.nodes.find(
+        (entry) => entry.id === (link.from === id ? link.to : link.from),
+      )
+      return (
+        (link.from === id || link.to === id) &&
+        other !== undefined &&
+        DATA_KINDS.some((kind) => COMPONENTS[other.type].accepts.includes(kind))
+      )
+    })
+    if (variant === 'l7' && queries)
+      return notAllowed('Cut its links to the Database and Read Replicas first: an L7 reads HTTP.')
     return ok(node.variant === variant ? game : patch(game, id, { variant }))
   })
 
