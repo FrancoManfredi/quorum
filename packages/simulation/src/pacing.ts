@@ -675,8 +675,8 @@ const seriesCBuild = (game: Game, ledger: Ledger): Game => {
 const MAX_REPLICAS = 4
 
 /**
- * A Read Replica of the same size, behind the Connection Pooler: reads scale with copies of the
- * Database, and the pooler keeps their connections inside the limit.
+ * A Read Replica of the same size, linked from the App Servers: reads scale with copies of the
+ * Database. A pooler takes one link, so the replica gets its own connections, not the pooler's.
  */
 const addReplica = (game: Game, ledger: Ledger, database: GameNode): Game => {
   const count = game.nodes.filter((node) => node.type === 'replica').length
