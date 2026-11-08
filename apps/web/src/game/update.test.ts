@@ -1036,17 +1036,136 @@ describe('M9: sound, achievements, glossary, keys', () => {
 
 describe('URL routing', () => {
   type Named = Readonly<{ name: string; args: Record<string, unknown> }>
+  const named = (commands: ReadonlyArray<unknown> | undefined) =>
+    (commands ?? []) as ReadonlyArray<Named>
   const pushed = (commands: ReadonlyArray<unknown> | undefined) =>
-    ((commands ?? []) as ReadonlyArray<Named>)
+    named(commands)
       .filter((command) => command.name === 'PushUrl' || command.name === 'ReplaceUrl')
       .map((command) => `${command.name} ${String(command.args['url'])}`)
+  const loads = (commands: ReadonlyArray<unknown> | undefined) =>
+    named(commands)
+      .filter((command) => command.name === 'LoadCompany')
+      .map((command) => command.args)
+  /** One stored Company, and the index that points at it. */
+  const stored = () => {
+    const game = { ...preseedGame(), wall: 0 }
+    const file = fileFor({
+      id: 'c-one',
+      name: 'Stored Co',
+      logo: 'signal',
+      founding: game.founding,
+      game,
+      now: 1_000,
+    })
+    return { game, index: { current: file.id, companies: [file] } }
+  }
+  const founder = () => {
+    const record = { ...initialModel().founder, deviceId: 'device' }
+    return { record, json: JSON.stringify(record) }
+  }
 
-  test('a board URL on a fresh load opens the menu that lists it', () => {
-    const challenge = init(at('/challenges/hello-world'))
-    expect(challenge.model.route).toEqual(AppRoute.Menu({ menu: 'challenges' }))
-    expect(pushed(challenge.commands)).toEqual(['ReplaceUrl /challenges'])
+  test('a board URL on a fresh load reopens that board once its data has loaded', () => {
+    const fresh = init(at('/company'))
+    expect(fresh.model.route).toEqual(AppRoute.Company())
+    expect(fresh.model.boot._tag).toBe('Ready')
+    expect(pushed(fresh.commands)).toEqual([])
+    const { index, game } = stored()
+    const waiting = update(
+      fresh.model,
+      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 2_000 }),
+    )
+    expect(loads(waiting.commands)).toEqual([{ id: 'c-one', open: true }])
+    const open = update(
+      waiting.model,
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 2_000 }),
+    )
+    expect(open.model.route).toEqual(AppRoute.Company())
+    expect(open.model.board.game.seed).toBe(game.seed)
+    expect(hasCompany(open.model)).toBe(true)
+  })
+
+  test('a Company URL with nothing to open goes back to the title', () => {
+    const fresh = init(at('/company'))
+    const none = update(fresh.model, Message.SavesLoaded({ index: null, legacy: null, now: 0 }))
+    expect(none.model.route).toEqual(AppRoute.Title())
+    expect(pushed(none.commands)).toEqual(['ReplaceUrl /'])
+    const { index } = stored()
+    const waiting = update(
+      fresh.model,
+      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
+    )
+    const missing = update(
+      waiting.model,
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: null, now: 0 }),
+    )
+    expect(missing.model.route).toEqual(AppRoute.Title())
+    expect(pushed(missing.commands)).toEqual(['ReplaceUrl /'])
+  })
+
+  test('a Sandbox URL on a fresh load reopens the stored free board', () => {
+    const free = preseedGame()
+    const fresh = init(at('/sandbox/free'))
+    expect(fresh.model.route).toEqual(AppRoute.Sandbox({ sandbox: 'free' }))
+    const model = update(
+      fresh.model,
+      Message.SandboxStoreLoaded({ json: JSON.stringify({ passed: [], free }) }),
+    ).model
+    expect(boardSandbox(model.board)?.id).toBeNull()
+    expect(model.board.game.seed).toBe(free.seed)
+  })
+
+  test('a Company that loads behind an open Sandbox waits aside', () => {
+    const { index, game } = stored()
+    const fresh = init(at('/sandbox/free'))
+    const sandbox = update(
+      fresh.model,
+      Message.SandboxStoreLoaded({
+        json: JSON.stringify({ passed: [], free: preseedGame(99) }),
+      }),
+    ).model
+    const waiting = update(
+      sandbox,
+      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 2_000 }),
+    ).model
+    const after = update(
+      waiting,
+      Message.CompanyLoaded({ id: 'c-one', open: false, json: JSON.stringify(game), now: 2_000 }),
+    ).model
+    expect(boardSandbox(after.board)?.id).toBeNull()
+    expect(after.board.game.seed).toBe(99)
+    expect(after.company?.game.seed).toBe(game.seed)
+    expect(after.saves.current).toBe('c-one')
+  })
+
+  test('a Challenge URL on a fresh load opens it once the Founder has loaded', () => {
+    const fresh = init(at('/challenges/hello-world'))
+    expect(fresh.model.route).toEqual(AppRoute.Challenge({ challenge: 'hello-world' }))
+    const { record, json } = founder()
+    const opened = update(
+      fresh.model,
+      Message.FounderLoaded({ json, deviceId: record.deviceId, today: '2026-11-02' }),
+    )
+    expect(boardChallenge(opened.model.board)?.id).toBe('hello-world')
+    expect(pushed(opened.commands)).toEqual([])
+  })
+
+  test('a Challenge URL that is still locked lands on the Challenge list', () => {
+    const fresh = init(at('/challenges/split-the-box'))
+    const { record, json } = founder()
+    const landed = update(
+      fresh.model,
+      Message.FounderLoaded({ json, deviceId: record.deviceId, today: '2026-11-02' }),
+    )
+    expect(landed.model.route).toEqual(AppRoute.Menu({ menu: 'challenges' }))
+    expect(pushed(landed.commands)).toEqual(['ReplaceUrl /challenges'])
+    expect(boardChallenge(landed.model.board)).toBeNull()
+  })
+
+  test('a menu URL on a fresh load keeps its page, and an unknown one drops to the title', () => {
     expect(pushed(init(at('/history')).commands)).toEqual([])
-    expect(init(at('/no/such/page')).model.route).toEqual(AppRoute.Title())
+    const unknown = init(at('/no/such/page'))
+    expect(unknown.model.route).toEqual(AppRoute.Title())
+    expect(pushed(unknown.commands)).toEqual(['ReplaceUrl /'])
   })
 
   test('opening a Sandbox adds its URL; back closes it and gives the Company back', () => {

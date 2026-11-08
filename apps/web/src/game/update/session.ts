@@ -107,6 +107,10 @@ export const visit = (model: Model, url: Url): UpdateResult => {
 
 export const parseStore = Schema.decodeUnknownOption(Schema.fromJsonString(SandboxStore))
 
+/** The Company's board that waits aside: one already loaded in the background, else the board played now. */
+const heldCompany = (model: Model): Board | null =>
+  offCompany(model) ? model.company : (model.company ?? model.board)
+
 /** Opens a Sandbox on the board. The Company waits aside until the title screen. */
 export const enterSandbox = (model: Model, game: Game, run: SandboxRun): UpdateResult => {
   const board = freshBoard(game)
@@ -115,7 +119,7 @@ export const enterSandbox = (model: Model, game: Game, run: SandboxRun): UpdateR
     route: AppRoute.Sandbox({ sandbox: run.id ?? 'free' }),
     toast: null,
     panel: 'none',
-    company: offCompany(model) ? model.company : model.board,
+    company: heldCompany(model),
     board: {
       ...board,
       session: sessionStep(board.session, { _tag: 'SandboxOpened', run }),
@@ -203,7 +207,7 @@ export const enterChallenge = (model: Model, id: string): UpdateResult => {
     route: AppRoute.Challenge({ challenge: id }),
     toast: null,
     panel: 'none',
-    company: offCompany(model) ? model.company : model.board,
+    company: heldCompany(model),
     board: {
       ...freshBoard(game),
       session: sessionStep(freshBoard(game).session, {
@@ -460,8 +464,12 @@ type SessionTag =
 export const sessionHandlers = (model: Model): MessageCases<UpdateResult, SessionTag> => ({
   SandboxStoreLoaded: ({ json }) =>
     Option.match(json === null ? Option.none() : parseStore(json), {
-      onNone: () => ({ model }),
-      onSome: (store) => ({ model: { ...model, passed: store.passed, freeBoard: store.free } }),
+      // A reload on a Sandbox opens it once its stored board has loaded.
+      onNone: () => (model.route._tag === 'Sandbox' ? open(model, model.route) : { model }),
+      onSome: (store) => {
+        const loaded: Model = { ...model, passed: store.passed, freeBoard: store.free }
+        return model.route._tag === 'Sandbox' ? open(loaded, model.route) : { model: loaded }
+      },
     }),
 
   ChallengeStarted: ({ id }) => enterChallenge(model, id),

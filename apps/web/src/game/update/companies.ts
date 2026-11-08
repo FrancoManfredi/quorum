@@ -1,5 +1,5 @@
 import * as Actions from '@quorum/simulation/actions'
-import { AppRoute, routeOfMenu } from '../route.ts'
+import { AppRoute, routeOfMenu, urlOf } from '../route.ts'
 import { Cause, Exit, Option, Result, Schema } from 'effect'
 import { DEFAULT_LOGO } from '../logos.ts'
 import {
@@ -10,6 +10,7 @@ import {
   WriteFounder,
   AppendLog,
   FitBoard,
+  ReplaceUrl,
 } from '../commands.ts'
 import { Founder, founded, foundingOf, recordExit } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
@@ -34,6 +35,7 @@ import {
   say,
   saveCommands,
   withToast,
+  type AnyCommand,
   type MessageCases,
   type UpdateResult,
 } from './shared.ts'
@@ -41,12 +43,21 @@ import { historyOfSave } from '../history.ts'
 import { inboxOfSave, mailed } from '../inbox.ts'
 import { migrateSaveFile } from '../save-migration.ts'
 import { ipoExit } from '@quorum/simulation/exit'
-import { ledgerOf, Model, currentFile, EMPTY_SURVEY, type Menu } from '../model.ts'
+import {
+  ledgerOf,
+  Model,
+  currentFile,
+  EMPTY_SURVEY,
+  offCompany,
+  type Board,
+  type Menu,
+} from '../model.ts'
 import { companyIdOf, isOpen, isPlaying, opened, step } from '../company-machine.ts'
 import { line } from '../telemetry.ts'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
-import { continued } from './session.ts'
+import { challengeById, challengeOpen } from '@quorum/simulation/challenges'
+import { continued, enterChallenge } from './session.ts'
 import { step as confirmDeleteStep } from '../confirm-delete-machine.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { disclosureOfSave, revealAtStart } from '../reveal.ts'
@@ -104,6 +115,15 @@ export const parseFounder = Schema.decodeUnknownOption(Schema.fromJsonString(Fou
 
 export const parseIndex = Schema.decodeUnknownOption(Schema.fromJsonString(SaveIndex))
 
+/** A Company that cannot open puts the title back where its URL named the board. */
+const titleIfBoard = (model: Model): UpdateResult =>
+  model.route._tag === 'Company'
+    ? {
+        model: { ...model, route: AppRoute.Title() },
+        commands: [ReplaceUrl({ url: urlOf(AppRoute.Title()) })],
+      }
+    : { model }
+
 /** A decoded Company Game goes onto the board. Time away plays out at 1×: a real
  *  second is a sim second (04 "Offline progress"). Opening it also leaves the title. */
 export const applyCompany = (
@@ -134,23 +154,28 @@ export const applyCompany = (
         kept,
       )
     : kept
+  // A Sandbox or Challenge on the board keeps the Company aside until the player comes back.
+  const aside = offCompany(model)
+  const held = aside ? (model.company ?? model.board) : model.board
+  const companyBoard: Board = {
+    ...held,
+    disclosure: disclosureOfSave(file),
+    dashboard: { ...held.dashboard, history: historyOfSave(file) },
+    game: played,
+    inbox,
+    clock: { ...held.clock, savedAt: played.time, sampledAt: played.time },
+    bottleneckAt: -1,
+  }
   const next: Model = {
     ...model,
     companyPhase: phase,
     saves: { ...model.saves, current: id },
-    route: open ? AppRoute.Company() : model.route,
-    panel: open ? (back ? 'away' : 'none') : model.panel,
+    route: open && !aside ? AppRoute.Company() : model.route,
+    panel: open && !aside ? (back ? 'away' : 'none') : model.panel,
     saveFocus: null,
     saveConfirm: { _tag: 'List' },
-    board: {
-      ...model.board,
-      disclosure: disclosureOfSave(file),
-      dashboard: { ...model.board.dashboard, history: historyOfSave(file) },
-      game: played,
-      inbox,
-      clock: { ...model.board.clock, savedAt: played.time, sampledAt: played.time },
-      bottleneckAt: -1,
-    },
+    board: aside ? model.board : companyBoard,
+    company: aside ? companyBoard : model.company,
   }
   return {
     model: { ...next, saves: refreshedIndex(next.saves, played) },
@@ -200,7 +225,7 @@ export const adoptLegacy = (model: Model, json: string, now: number): UpdateResu
     game,
     Option.getOrNull(raw),
     now,
-    false,
+    model.route._tag === 'Company',
   )
   return {
     ...applied,
@@ -338,24 +363,30 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
   SavesLoaded: ({ index, legacy, now }) => {
     if (index !== null) {
       const parsed = Option.getOrNull(parseIndex(index))
-      if (!parsed)
-        return withToast(model, say(model).toasts.unreadableList, 'warn', [
+      if (!parsed) {
+        const back = titleIfBoard(model)
+        return withToast(back.model, say(model).toasts.unreadableList, 'warn', [
           KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
+          ...(back.commands ?? []),
         ])
+      }
+      const loaded: Model = {
+        ...model,
+        saves: parsed,
+        oldSave: legacy !== null,
+        companyPhase: step(model.companyPhase, {
+          _tag: 'SavesLoaded',
+          current: parsed.current,
+        }),
+      }
+      if (parsed.current === null) return titleIfBoard(loaded)
       return {
-        model: {
-          ...model,
-          saves: parsed,
-          oldSave: legacy !== null,
-          companyPhase: step(model.companyPhase, {
-            _tag: 'SavesLoaded',
-            current: parsed.current,
-          }),
-        },
-        commands: parsed.current === null ? [] : [LoadCompany({ id: parsed.current, open: false })],
+        model: loaded,
+        // A reload on the Company's board opens it; anywhere else it waits for Continue.
+        commands: [LoadCompany({ id: parsed.current, open: model.route._tag === 'Company' })],
       }
     }
-    return legacy === null ? { model } : adoptLegacy(model, legacy, now)
+    return legacy === null ? titleIfBoard(model) : adoptLegacy(model, legacy, now)
   },
 
   CompanyLoaded: ({ id, open, json, now }) => {
@@ -364,10 +395,12 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       ...model,
       companyPhase: step(model.companyPhase, { _tag: 'Failed', id }),
     })
-    if (json === null)
+    if (json === null) {
+      const back = titleIfBoard(failed())
       return open
-        ? withToast(failed(), say(model).toasts.companyMissing, 'warn')
-        : { model: failed() }
+        ? withToast(back.model, say(model).toasts.companyMissing, 'warn', back.commands)
+        : { model: back.model }
+    }
     const raw = parseJson(json)
     const file = Option.map(raw, (value) =>
       typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -379,10 +412,13 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
     })
     // A save this version cannot read is set aside, not overwritten by the next autosave.
-    if (Exit.isFailure(decoded))
-      return withToast(failed(), say(model).toasts.unreadableCompany, 'warn', [
+    if (Exit.isFailure(decoded)) {
+      const back = titleIfBoard(failed())
+      return withToast(back.model, say(model).toasts.unreadableCompany, 'warn', [
         KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
+        ...(back.commands ?? []),
       ])
+    }
     return applyCompany(model, id, decoded.value, Option.getOrNull(file), now, open)
   },
 
@@ -477,9 +513,21 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       json === null ? Option.none() : parseFounder(json),
       () => model.founder,
     )
-    if (loaded.deviceId) return { model: { ...model, founder: loaded, today } }
-    const founder = { ...loaded, deviceId }
-    return { model: { ...model, founder, today }, commands: [WriteFounder({ founder })] }
+    const founder = loaded.deviceId ? loaded : { ...loaded, deviceId }
+    const next: Model = { ...model, founder, today }
+    const commands: Array<AnyCommand> = loaded.deviceId ? [] : [WriteFounder({ founder })]
+    // A reload on a Challenge opens it once the Founder says whether it is unlocked.
+    if (model.route._tag !== 'Challenge') return { model: next, commands }
+    const entry = challengeById(model.route.challenge)
+    if (entry && challengeOpen(entry, founder.completed)) {
+      const opened = enterChallenge(next, entry.id)
+      return { ...opened, commands: [...commands, ...(opened.commands ?? [])] }
+    }
+    const menu = AppRoute.Menu({ menu: 'challenges' })
+    return {
+      model: { ...next, route: menu },
+      commands: [...commands, ReplaceUrl({ url: urlOf(menu) })],
+    }
   },
 
   Saved: () => ({ model }),

@@ -1,4 +1,4 @@
-import { AppRoute, menuFor, onBoard, urlOf, urlToAppRoute } from './route.ts'
+import { AppRoute, onBoard, urlOf, urlToAppRoute } from './route.ts'
 import { DEFAULT_LOGO } from './logos.ts'
 import { EMPTY_SAVE_INDEX } from './saves.ts'
 import { Listbox, Menu as UiMenu } from '@foldkit/ui'
@@ -92,12 +92,19 @@ export const initialModel = (): Model =>
     moreMenu: UiMenu.init({ id: 'more-menu' }),
   })
 
-/** A fresh load opens on the title screen behind the clock-in splash, so a
- *  board URL opens the menu that lists that board instead. */
+/** A fresh load opens the screen its URL names. A board opens once the file or
+ *  store that fills it has loaded, so a reload stays on the board the player
+ *  was playing; a fresh load on the title screen still waits behind the
+ *  clock-in splash. */
 export const init: Runtime.RoutingApplicationInit<Model, Message, void, ApiRpc> = (url) => {
-  const route = menuFor(urlToAppRoute(url))
+  const route = urlToAppRoute(url)
   return {
-    model: { ...initialModel(), route, boot: { _tag: 'Shut' } },
+    model: {
+      ...initialModel(),
+      route,
+      // A board URL skips the splash: the player was already clocked in.
+      boot: onBoard(route) ? { _tag: 'Ready' } : { _tag: 'Shut' },
+    },
     commands: [
       LoadSaves({}),
       LoadSandboxStore({}),
@@ -199,10 +206,15 @@ export const logged = (model: Model, message: Message, result: UpdateResult): Up
 }
 
 /** The URL follows the route: a Message that opens another screen adds a
- *  history entry for it. ChangedUrl already came from the URL. */
+ *  history entry for it. ChangedUrl already came from the URL, and a handler
+ *  that corrects the URL itself keeps its own command. */
 export const withUrl = (model: Model, message: Message, result: UpdateResult): UpdateResult => {
   const url = urlOf(result.model.route)
   if (message._tag === 'ChangedUrl' || url === urlOf(model.route)) return result
+  const moved = (result.commands ?? []).some(
+    (command) => command.name === 'PushUrl' || command.name === 'ReplaceUrl',
+  )
+  if (moved) return result
   return { ...result, commands: [...(result.commands ?? []), PushUrl({ url })] }
 }
 

@@ -80,13 +80,3 @@ export const menuOf = (route: AppRoute): typeof MenuPage.Type | 'main' =>
 
 export const routeOfMenu = (menu: typeof MenuPage.Type | 'main'): AppRoute =>
   menu === 'main' ? AppRoute.Title() : AppRoute.Menu({ menu })
-
-/** Where a board route opens when its board cannot: the menu that lists it. */
-export const menuFor = (route: AppRoute): AppRoute =>
-  route._tag === 'Sandbox'
-    ? AppRoute.Menu({ menu: 'sandbox' })
-    : route._tag === 'Challenge'
-      ? AppRoute.Menu({ menu: 'challenges' })
-      : route._tag === 'Company'
-        ? AppRoute.Title()
-        : route

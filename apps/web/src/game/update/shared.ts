@@ -210,25 +210,28 @@ export const sync = (model: Model, fit: boolean, focus: string | null = null): A
   })
 
 /** The Company save: the Game, and what this Company has shown so far. */
-export const savePayloadOf = (model: Model) => ({
-  game: model.board.game,
-  revealed: model.board.disclosure.revealed,
+export const savePayloadOf = (model: Model, board: Board = model.board) => ({
+  game: board.game,
+  revealed: board.disclosure.revealed,
   pending:
-    model.board.disclosure._tag === 'Queued' || model.board.disclosure._tag === 'Cueing'
-      ? model.board.disclosure.pending
+    board.disclosure._tag === 'Queued' || board.disclosure._tag === 'Cueing'
+      ? board.disclosure.pending
       : [],
-  dashboard: model.board.dashboard.history,
-  inbox: savedInbox(model.board.inbox),
+  dashboard: board.dashboard.history,
+  inbox: savedInbox(board.inbox),
 })
 
 /** The open Company's file, with what the board has shown so far. Null when no Company is open. */
 export const saveOf = (model: Model): AnyCommand | null => {
   const id = playingId(model)
   if (id === null || !fileOf(model.saves, id)) return null
+  // A Sandbox or Challenge on the board keeps the Company aside: that board is the one to save.
+  const board = offCompany(model) ? model.company : model.board
+  if (board === null) return null
   return WriteCompany({
     id,
-    index: refreshedIndex(model.saves, model.board.game),
-    ...savePayloadOf(model),
+    index: refreshedIndex(model.saves, board.game),
+    ...savePayloadOf(model, board),
   })
 }
 

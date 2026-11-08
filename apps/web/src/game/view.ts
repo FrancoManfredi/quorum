@@ -5,7 +5,8 @@ import { settingsPanel } from '@/components/lab/panels.ts'
 import { labScreen } from './screens.ts'
 import { titleScreen } from './title.ts'
 import type { Message } from './message.ts'
-import type { Model } from './model.ts'
+import { boardChallenge, boardSandbox, type Model } from './model.ts'
+import { isPlaying } from './company-machine.ts'
 import { connecting } from './boot-machine.ts'
 import { onBoard } from './route.ts'
 
@@ -14,10 +15,21 @@ import { onBoard } from './route.ts'
    toast floats above it.
    ========================================================================== */
 
+/** The board for the route has its data: the Company file, or the Sandbox or Challenge it names. */
+const boardFilled = (model: Model): boolean =>
+  model.route._tag === 'Company'
+    ? isPlaying(model.companyPhase)
+    : model.route._tag === 'Sandbox'
+      ? boardSandbox(model.board) !== null
+      : model.route._tag === 'Challenge'
+        ? boardChallenge(model.board) !== null
+        : false
+
 export const view = (model: Model, builder: HtmlBuilder<Message>): Document => {
   const h = localizeBuilder(model.prefs.locale, builder)
   // The title stays up while its monitor connects to the board.
-  const board = onBoard(model.route) && !connecting(model.boot)
+  const screen = onBoard(model.route) && !connecting(model.boot)
+  const board = screen && boardFilled(model)
   return {
     title: 'Quorum',
     lang: model.prefs.locale,
@@ -29,7 +41,14 @@ export const view = (model: Model, builder: HtmlBuilder<Message>): Document => {
       [
         h.div(
           [h.Key(board ? 'board' : 'title'), h.Class('h-full')],
-          [board ? labScreen(model, h) : titleScreen(model, h)],
+          [
+            board
+              ? labScreen(model, h)
+              : // A reload shows the board's canvas until its save fills it, never an empty Company.
+                screen
+                ? h.div([h.Class('h-full bg-canvas')])
+                : titleScreen(model, h),
+          ],
         ),
         // Outside the title's dark palette, so Settings looks the same as on the board.
         !onBoard(model.route) && model.panel === 'settings' ? settingsPanel(model, h) : h.empty,
