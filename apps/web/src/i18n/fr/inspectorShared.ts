@@ -20,8 +20,10 @@ export const inspectorShared: Messages['inspectorShared'] = {
   compression: 'Compression',
   service: 'Service',
   engine: 'Moteur',
-  connectionsPostgresForksAProcessFor: (p0) =>
-    `${p0} connexions : Postgres crée un processus par connexion, MySQL donne un thread à chacune.`,
+  enginePostgres:
+    'Postgres : 100 connexions, lectures et scans moins chers, recherche plus forte. Les écritures coûtent plus, un ALTER TABLE verrouille la table, et les lignes mortes la gonflent jusqu’à VACUUM.',
+  engineMysql:
+    'MySQL : 500 connexions, écritures moins chères et changements de schéma en ligne. Lectures, scans et recherche plein texte coûtent plus.',
   regions: 'Régions',
   one: 'Une',
   spread: 'Répartir',

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { BLOAT_CPU, QUERY_CPU } from '../src/catalog.ts'
+import { BLOAT_CPU, DB_ENGINES, QUERY_CPU } from '../src/catalog.ts'
 import type { Receipt } from '../src/capacity.ts'
 import { startIncident } from '../src/director.ts'
 import { freeSandbox } from '../src/sandbox.ts'
@@ -47,12 +47,16 @@ describe('Cost receipt', () => {
 
 describe('Work share', () => {
   test('a write takes more of the CPU than its share of the queries', () => {
-    const database = solveFlow(freeSandbox()).nodes.database!
+    const game = freeSandbox()
+    const node = game.nodes.find((entry) => entry.type === 'database')!
+    const engine = DB_ENGINES[node.dbEngine]
+    const database = solveFlow(game).nodes.database!
     const reads = database.traffic['q-read']!
     const writes = database.traffic['q-write']!
-    // The sandbox researched Denormalization: reads cost 0.7 of their base, writes 1.2.
-    const readWork = reads * QUERY_CPU['q-read'] * 0.7
-    const writeWork = writes * QUERY_CPU['q-write'] * 1.2
+    // The sandbox researched Denormalization: reads cost 0.7 of their base, writes 1.2. The
+    // Database's engine then scales each: Postgres reads cheaper and writes dearer.
+    const readWork = reads * QUERY_CPU['q-read'] * 0.7 * engine.read
+    const writeWork = writes * QUERY_CPU['q-write'] * 1.2 * engine.write
     expect(database.workShare['q-write']).toBeCloseTo(writeWork / (readWork + writeWork), 6)
     expect(database.workShare['q-write']!).toBeGreaterThan(writes / database.inbound)
   })

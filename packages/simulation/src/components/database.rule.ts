@@ -26,7 +26,13 @@ import { type ComponentRule, slotOf, terminal } from '../rule-kit.ts'
 
 export const databaseRule: ComponentRule = {
   model: (solver, node, arriving) =>
-    databaseModel({ game: solver.game, node, arriving, boost: solver.boost(node) }),
+    databaseModel({
+      game: solver.game,
+      node,
+      arriving,
+      boost: solver.boost(node),
+      connections: solver.connections(node),
+    }),
   outcome: (answer, node, kind) => {
     // A full disk: Postgres cannot extend a file, so every write fails.
     if (

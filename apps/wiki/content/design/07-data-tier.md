@@ -52,12 +52,12 @@ The Database is the source of truth. It serves `q-read`, `q-write`, and `q-tx`. 
 \text{capacity} = \operatorname{min}\left(\text{cpu limit},\ \text{connection limit},\ \text{iops limit}\right)
 ```
 
-| Limit        | Detail                                                                                                                                                                   |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CPU          | Each query kind has a CPU cost. Missing indexes multiply it.                                                                                                             |
-| IOPS         | Reads that miss the buffer cache and every write go to disk. Storage class sets IOPS: general purpose (3,000 base) or provisioned (up to 64,000 at higher cost).         |
-| Connections  | Postgres forks one process per connection, 5 to 10 MB each. `max_connections` is 100 by default. MySQL uses a thread per connection and handles more connections per GB. |
-| Buffer cache | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database. |
+| Limit        | Detail                                                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CPU          | Each query kind has a CPU cost. Missing indexes multiply it.                                                                                                                   |
+| IOPS         | Reads that miss the buffer cache and every write go to disk. Storage class sets IOPS: general purpose (3,000 base) or provisioned (up to 64,000 at higher cost).               |
+| Connections  | Postgres forks one process per connection, about 8 MB each. `max_connections` is 100 by default. MySQL uses a thread per connection, about 1 MB each, and handles 500 of them. |
+| Buffer cache | RAM that holds hot data. When the working set exceeds RAM, reads go to disk and latency jumps. This is why a Memory instance can beat a Compute instance for a database.       |
 
 A general purpose volume answers 3,000 disk operations a second and a provisioned one 64,000, and provisioned storage bills 1.5× the Database's box. A disk
 operation waits 1 / IOPS ms and queues as the volume fills. So a Database whose working set outgrows
@@ -66,19 +66,35 @@ second while the CPU would answer 8,000. A shard brings its own volume.
 
 ### Variants
 
-| Variant    | Profile                                                                                                                                                                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PostgreSQL | Many features: JSONB, full-text search, extensions such as pgvector. Process per connection, so it needs a pooler early. MVCC leaves dead rows that `VACUUM` must clean; heavy update load without tuning causes bloat (incident "Table bloat"). |
-| MySQL      | Thread per connection, cheaper connections. Fewer built-in features: no pgvector, weaker full-text search. Replication is simple and widely used.                                                                                                |
+| Variant    | Connections          | CPU shape                                     | Schema changes               | Replication                          |
+| ---------- | -------------------- | --------------------------------------------- | ---------------------------- | ------------------------------------ |
+| PostgreSQL | 100, about 8 MB each | read 0.95×, scan 0.9×, write 1.15×, search 1× | many `ALTER`s lock the table | streaming; lags more under writes    |
+| MySQL      | 500, about 1 MB each | read 1.05×, scan 1.1×, write 0.85×, search 2× | online DDL for most changes  | row-based; keeps up with more writes |
 
-The player picks the engine on the Database's card and on a Read Replica's. Postgres holds 100
-connections and MySQL 500, so a fleet that exhausts `max_connections` on Postgres fits on MySQL.
-MySQL's `q-search` costs twice the CPU of Postgres's.
+Postgres forks a process for every connection, so a backend holds its own memory and
+`max_connections` is 100. MySQL gives each connection a thread: 500 fit on one box, and each costs
+about an eighth of a Postgres backend. A Connection Pooler cuts the number of server connections it
+holds, not the memory each one costs, so a busy Postgres box has less RAM left for its buffer cache.
+
+The engine is a shape of the same work, not a better or worse number. Postgres costs less CPU per read
+and per scan, and its full-text search is the stronger one. MySQL costs less per write and per
+checkout, because InnoDB's write path updates the row in place. A read-heavy Company wants Postgres; a
+write-heavy one wants MySQL.
+
+The player picks the engine on the Database's card and on a Read Replica's. A replica runs its
+primary's engine; MySQL's row-based replication applies writes faster than Postgres's streaming
+replication, so its replicas lag less under the same write load.
 
 Only PostgreSQL meets the **Table bloat** incident (Series A, sev 2, 120 s). Heavy updates outrun
 `VACUUM`, the table fills with dead rows, and every read and write on the busiest Database costs 2×
 the CPU until the incident ends. The weight is 1.5 on a Database that keeps everything and 0.5 on one
 with a retention window. On MySQL it is 0, because MySQL has no dead rows to clean.
+
+A schema change is a migration on both engines, but not the same migration. MySQL's online DDL keeps
+most `ALTER`s from blocking writes, so its Schema migration lock incident weighs 0.75× and its lock
+grows 0.75× as fast with the rows it copies. Postgres takes the table lock for more changes, so its
+incident weighs and grows 1.25×. Online migrations and expand and contract still remove the lock, as
+they do on either engine.
 
 Changing a Database's engine is a migration. The card queues 0.8 of the codebase in Dev Hours, then
 copies the data at one minute a GB, and the Database serves on its old engine until the copy ends
@@ -244,11 +260,11 @@ Real products: PostgreSQL streaming replication, MySQL replication, Aurora repli
 
 A Read Replica is a copy of the primary that serves `q-read`. Writes still go to the primary.
 
-| Option                              | Effect                                                                                                                                                              |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Asynchronous (start)                | No write cost. Replicas lag by `base_lag + write_rate × lag_factor`. Under heavy writes, lag reaches seconds. A read after a write on a lagging replica is `stale`. |
-| Synchronous                         | No lag on the synchronous replica. Every write waits for it: +2 ms in the same zone, more across zones. If the replica is down, writes stall.                       |
-| Read-your-writes routing (research) | Sends a user's reads to the primary for a few seconds after that user writes. Removes most `stale` errors and keeps some read load on the primary.                  |
+| Option                              | Effect                                                                                                                                                                                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Asynchronous (start)                | No write cost. Replicas lag by `base_lag + write_rate × lag_factor`. Under heavy writes, lag reaches seconds. A read after a write on a lagging replica is `stale`. MySQL's replica falls behind at 0.8× the write rate; Postgres's at 1×. |
+| Synchronous                         | No lag on the synchronous replica. Every write waits for it: +2 ms in the same zone, more across zones. If the replica is down, writes stall.                                                                                              |
+| Read-your-writes routing (research) | Sends a user's reads to the primary for a few seconds after that user writes. Removes most `stale` errors and keeps some read load on the primary.                                                                                         |
 
 Synchronous replication is a switch on each Read Replica's card, behind research `sync-replication`.
 Every write and checkout on the primary waits for its synchronous replicas, for the slowest of them:

@@ -211,7 +211,7 @@
       "name": "Database",
       "product": "PostgreSQL or MySQL",
       "group": "data",
-      "blurb": "The source of truth. Postgres forks a process per connection; MySQL gives each a thread.",
+      "blurb": "The source of truth. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.",
       "cost": 90,
       "latency": 2,
       "accepts": [
@@ -467,9 +467,9 @@
       "id": "replica",
       "code": "rep",
       "name": "Read Replica",
-      "product": "PostgreSQL replica",
+      "product": "PostgreSQL or MySQL replica",
       "group": "data",
-      "blurb": "Answers reads. Lags behind writes, so some API reads come back stale.",
+      "blurb": "Answers reads from a copy. Lags behind writes, so some API reads come back stale.",
       "cost": 160,
       "latency": 2,
       "accepts": ["q-read"]

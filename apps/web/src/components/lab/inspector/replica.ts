@@ -5,13 +5,13 @@ import { has } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 
 import { Message } from '@/game/message.ts'
-import { type Panel, caption, engine, picker, section } from './shared.ts'
+import { type Panel, caption, picker, replicaEngine, section } from './shared.ts'
 
-/** A Read Replica's engine, and whether every write waits for it (07 "Read Replica"). */
+/** A Read Replica runs the primary's engine, and whether every write waits for it (07 "Read Replica"). */
 const replica = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
   return [
-    engine(node, h),
+    replicaEngine(game, node, h),
     section(
       t.inspectorReplica.replication,
       [

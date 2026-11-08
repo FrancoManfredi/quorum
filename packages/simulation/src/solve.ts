@@ -47,6 +47,8 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
     }
   let taskFailure: Array<number | undefined> = []
   let taskCapacity: Array<number | undefined> = []
+  // A Database's connection memory follows the connections the last pass held open.
+  let connectionUsed: Array<number | undefined> = []
   const seed: Inputs = {
     game,
     graph,
@@ -61,6 +63,7 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
     intake,
     taskFailure,
     taskCapacity,
+    connectionUsed,
   }
   const seedSolver = solverOf(seed)
   for (const node of game.nodes)
@@ -84,6 +87,7 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
       intake,
       taskFailure,
       taskCapacity,
+      connectionUsed,
     }
     pass = forward(inputs)
     outcomes = outcomesOf(inputs, pass)
@@ -105,6 +109,7 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
     }
     taskFailure = nextTaskFailure
     taskCapacity = nextTaskCapacity
+    connectionUsed = pass.connections.map((entry) => entry?.used ?? 0)
     const nextLatency: Array<Calls | undefined> = []
     const nextInflight: Array<number | undefined> = []
     const nextWeights: Array<number | undefined> = []

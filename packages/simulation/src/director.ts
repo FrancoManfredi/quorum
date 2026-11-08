@@ -25,6 +25,7 @@ import {
   SUPPLY_CHAIN_CHURN,
   PAGE_LEAK_CHURN,
   CACHE_KEYS,
+  DB_ENGINES,
   MIGRATION_LOCK_PER_GB,
   RESTORE_MIN_MINUTES,
   RESTORE_MINUTES_PER_GB,
@@ -77,7 +78,7 @@ import { fixed, platformStaffed, quartersBehind, serviceOf } from './team.ts'
  * restores service 40% faster (08 "Teams"), so the incident and the recovery it drives run
  * 60% as long.
  */
-export const incidentDuration = (game: Game, kind: IncidentId): number => {
+export const incidentDuration = (game: Game, kind: IncidentId, node?: GameNode): number => {
   const def = INCIDENTS[kind]
   const clock = (): number => {
     // A retry storm ends when the backlog drains, not on the clock; a Sandbox gives it no clock.
@@ -86,9 +87,14 @@ export const incidentDuration = (game: Game, kind: IncidentId): number => {
     // duration, so it runs on its own clock (09 "Pricing models").
     if (kind === 'spot-reclaim') return def.duration
     // A schema migration locks the table while it copies it: the lock grows with the rows it holds
-    // (07 "Schema migrations"), up to four times the base.
-    if (kind === 'migration-lock')
-      return Math.min(def.duration * 4, def.duration + game.data * MIGRATION_LOCK_PER_GB)
+    // (07 "Schema migrations"), up to four times the base. MySQL's online DDL locks for less of it.
+    if (kind === 'migration-lock') {
+      const migration = node?.type === 'database' ? DB_ENGINES[node.dbEngine].migration : 1
+      return Math.min(
+        def.duration * 4,
+        def.duration + game.data * MIGRATION_LOCK_PER_GB * migration,
+      )
+    }
     return !game.sandbox && game.stage >= SLO_FROM_STAGE
       ? Math.min(def.duration, CALENDAR_DURATION[def.severity])
       : def.duration
@@ -571,15 +577,14 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     // Java warms for 30 s, so copies an Autoscaler adds during a spike make p99 worse (11).
     'jvm-warmup': () => Math.max(0, ...javaTargets(game, ledger).map(([, weight]) => weight)),
     // A big table and no online migrations: the ALTER holds its lock through the copy. Expand and
-    // contract never takes the lock at all, so it cannot stall a write (07 "Schema migrations").
-    'migration-lock': () =>
-      busiest(game, ledger, 'database')
-        ? has(game, 'expand-contract')
-          ? 0
-          : has(game, 'online-migrations')
-            ? 0.3
-            : 2.5
-        : 0,
+    // contract never takes the lock at all, so it cannot stall a write. MySQL's online DDL takes
+    // less of it (07 "Schema migrations").
+    'migration-lock': () => {
+      const database = busiest(game, ledger, 'database')
+      if (!database) return 0
+      const base = has(game, 'expand-contract') ? 0 : has(game, 'online-migrations') ? 0.3 : 2.5
+      return base * DB_ENGINES[database.dbEngine].migration
+    },
     // Every Service installs its dependencies; scanning is the only thing that reads them. A
     // Security team halves the weakness again, stacking with scanning (08 "Teams").
     'supply-chain': () =>
@@ -598,7 +603,7 @@ const rawWeakness = (game: Game, ledger: Ledger, kind: IncidentId): number => {
     // window keeps the tables small (07 "Variants").
     'table-bloat': () => {
       const database = busiest(game, ledger, 'database')
-      if (!database || database.dbEngine !== 'postgres') return 0
+      if (!database || !DB_ENGINES[database.dbEngine].bloat) return 0
       return database.keep === 'keep' ? 1.5 : 0.5
     },
     // PHP servers that cache compiled code run the old deploy until the cache resets; a Pipeline
@@ -800,7 +805,7 @@ export const startIncident = (
   const pushed = kind === 'config' && region !== null ? configReach(game, region) : []
   const incident: Incident = {
     kind,
-    remaining: incidentDuration(game, kind),
+    remaining: incidentDuration(game, kind, target ?? undefined),
     nodeId: target?.id ?? null,
     startedAt: game.time,
     baseline: ledger.revenue,

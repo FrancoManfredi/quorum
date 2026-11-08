@@ -3,14 +3,45 @@ import { def } from './define.ts'
 import { MAX_CONNECTIONS } from '../catalog/instances.ts'
 
 /**
- * Relational database engines (07 "Variants"). Postgres forks a process for every connection, so
- * its `max_connections` (100) is a limit it meets early; MySQL gives each connection a thread and
- * holds more of them on one box. MySQL's full-text search is the weaker of the two, so `q-search`
- * costs it twice the CPU.
+ * Relational database engines (07 "Variants"). Each is a different shape of the same work, not a
+ * better or worse number.
+ *
+ * - Postgres forks a process per connection, so it meets `max_connections` (100) early and each
+ *   backend holds its own memory. Its planner and MVCC make reads and scans cheaper, and its
+ *   full-text search is the stronger one. Those same row versions leave dead tuples for VACUUM, it
+ *   takes a table lock for many schema changes, and its streaming replication applies behind writes.
+ * - MySQL gives each connection a thread, so one box holds more of them with less memory. InnoDB's
+ *   write path is cheaper, and online DDL avoids most migration locks. Reads and scans cost more,
+ *   full-text search costs twice the CPU, and row-based replication keeps replicas closer.
+ *
+ * The multipliers are against the model's reference cost. `connectionMB` is the memory one server
+ * connection holds, and `lag` scales how far writes leave a replica behind.
  */
 export const DB_ENGINES = {
-  postgres: { name: 'PostgreSQL', connections: MAX_CONNECTIONS, searchCost: 1 },
-  mysql: { name: 'MySQL', connections: 500, searchCost: 2 },
+  postgres: {
+    name: 'PostgreSQL',
+    connections: MAX_CONNECTIONS,
+    connectionMB: 8,
+    read: 0.95,
+    write: 1.15,
+    scan: 0.9,
+    searchCost: 1,
+    migration: 1.25,
+    lag: 1,
+    bloat: true,
+  },
+  mysql: {
+    name: 'MySQL',
+    connections: 500,
+    connectionMB: 1,
+    read: 1.05,
+    write: 0.85,
+    scan: 1.1,
+    searchCost: 2,
+    migration: 0.75,
+    lag: 0.8,
+    bloat: false,
+  },
 } as const
 
 /**
@@ -141,7 +172,8 @@ export const databaseDef = def({
   name: 'Database',
   product: 'PostgreSQL or MySQL',
   group: 'data',
-  blurb: 'The source of truth. Postgres forks a process per connection; MySQL gives each a thread.',
+  blurb:
+    'The source of truth. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.',
   cost: 90,
   sized: true,
   latency: 2,

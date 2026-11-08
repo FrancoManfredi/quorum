@@ -4,6 +4,7 @@ import {
   connect,
   place,
   setCdnOptions,
+  setDbEngine,
   setLbVariant,
   setPolicy,
   setSearchOptions,
@@ -56,6 +57,29 @@ describe('sticky sessions', () => {
     const other = (ledger: typeof even) => ledger.nodes[second]?.inbound ?? 0
     expect(Math.abs(first(even) - other(even))).toBeLessThan(first(even) * 0.01)
     expect(first(sticky)).toBeGreaterThan(other(sticky))
+  })
+})
+
+describe('database engines', () => {
+  test('MySQL trades cheaper writes for dearer reads and scans', () => {
+    // Series B sends reports, so the Database's scan path has a Cost receipt too.
+    const postgresGame = { ...freeSandbox(), stage: 4 }
+    const database = postgresGame.nodes.find((node) => node.type === 'database')!
+    const postgres = solveFlow(postgresGame).nodes[database.id]!
+    const mysqlGame = ok(setDbEngine(postgresGame, database.id, 'mysql'))
+    const mysql = solveFlow(mysqlGame).nodes[database.id]!
+    expect(mysql.receipts['q-write']!.total).toBeLessThan(postgres.receipts['q-write']!.total)
+    expect(mysql.receipts['q-read']!.total).toBeGreaterThan(postgres.receipts['q-read']!.total)
+    expect(mysql.receipts['q-scan']!.total).toBeGreaterThan(postgres.receipts['q-scan']!.total)
+  })
+
+  test('Postgres holds more memory per server connection than MySQL', () => {
+    const postgresGame = freeSandbox()
+    const database = postgresGame.nodes.find((node) => node.type === 'database')!
+    const postgres = solveFlow(postgresGame).nodes[database.id]!
+    const mysqlGame = ok(setDbEngine(postgresGame, database.id, 'mysql'))
+    const mysql = solveFlow(mysqlGame).nodes[database.id]!
+    expect(mysql.resources.ramGb!.used).toBeLessThan(postgres.resources.ramGb!.used)
   })
 })
 

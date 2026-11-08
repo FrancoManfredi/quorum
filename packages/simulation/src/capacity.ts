@@ -74,6 +74,7 @@ import { mixOf, payloadFactor, queryFactor } from './features.ts'
 import {
   asLogin,
   edgeAuthOf,
+  engineOf,
   has,
   indexWriteFactor,
   networkOf,
@@ -1031,16 +1032,22 @@ export type DatabaseContext = Readonly<{
     >
   >
   boost: number
+  /** Server connections the App Servers and poolers hold open, from the previous pass. */
+  connections?: number
 }>
 
 export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boolean } => {
   const { game, node, arriving } = context
   const vcpu = vcpuOf(node) * context.boost
   const ram = ramOf(node) * context.boost
-  const workingSet = LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER
-  const disk = workingSet > ram - OS_RAM
   // A Database's engine and volume (07 "Variants", "Capacity"), and its shards (07 "Partitioning").
-  const engine = DB_ENGINES[node.dbEngine]
+  const engine = DB_ENGINES[engineOf(game, node)]
+  // A server connection holds its own memory: an 8 MB backend process on Postgres, a thread stack on
+  // MySQL. A pooler cuts the count but not the price of each connection (07 "Connection Pooler").
+  const connectionRam = ((context.connections ?? 0) * engine.connectionMB) / 1024
+  const workingSet = LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER
+  const footprint = workingSet + connectionRam
+  const disk = footprint > ram - OS_RAM
   const sharding = shardingOf(node)
   const { shards } = sharding
   // A resharding copies the data in the background, and the copy leaves the volume half its IOPS.
@@ -1073,6 +1080,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   // A report or a search touches every shard: the fan-out costs CPU on top (07 "Partitioning").
   const scanCpu =
     (QUERY_CPU['q-scan'] *
+      engine.scan *
       sharding.scatter *
       (game.incident?.kind === 'report-db' ? REPORT_SURGE : 1) *
       retention.rebuild *
@@ -1093,21 +1101,23 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
       : ((QUERY_CPU['q-read'] + scan) * (disk ? 1.5 : 1)) / warmth) *
     shard *
     bloat *
-    (denormalized ? DENORMALIZED_READ : 1)
+    (denormalized ? DENORMALIZED_READ : 1) *
+    engine.read
   const writeCpu =
     ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) *
     (1 + 0.5 * evicted) *
     shard *
     bloat *
     indexWriteFactor(game) *
-    (denormalized ? DENORMALIZED_WRITE : 1)
+    (denormalized ? DENORMALIZED_WRITE : 1) *
+    engine.write
   // Postgres full-text search and files stored as rows: both work, both badly at volume. MySQL's
   // full-text search is the weaker of the two engines, so it costs it more CPU (07 "Variants").
   const searchCpu =
     (QUERY_CPU['q-search'] * queryFactor(game, 'q-search') * engine.searchCost * sharding.scatter) /
     warmth
   const putCpu = QUERY_CPU['blob-put'] / warmth
-  const txCpu = QUERY_CPU['q-tx'] / warmth
+  const txCpu = (QUERY_CPU['q-tx'] * engine.write) / warmth
   const getCpu = QUERY_CPU['blob-get'] / warmth
   const reads = arriving['q-read'] ?? 0
   const writes = arriving['q-write'] ?? 0
@@ -1182,6 +1192,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
         QUERY_CPU['q-read'],
         [
           disk ? ['disk', 1.5] : ['eviction', 1 + 0.5 * evicted],
+          ['engine', engine.read],
           cold,
           ...shardFactors(false),
           ['denormalization', denormalized ? DENORMALIZED_READ : 1],
@@ -1194,6 +1205,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
         QUERY_CPU['q-write'],
         [
           ['features', queryFactor(game, 'q-write')],
+          ['engine', engine.write],
           cold,
           ['eviction', 1 + 0.5 * evicted],
           ['indexes', indexWriteFactor(game)],
@@ -1219,7 +1231,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
         [cold, ['busiest-shard', sharding.hot]],
         putCpu * sharding.hot,
       ),
-    'q-tx': () => receiptFor(QUERY_CPU['q-tx'], [cold], txCpu),
+    'q-tx': () => receiptFor(QUERY_CPU['q-tx'], [['engine', engine.write], cold], txCpu),
     'blob-get': () => receiptFor(QUERY_CPU['blob-get'], [cold], getCpu),
     'q-scan': () =>
       receiptFor(
@@ -1229,6 +1241,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
           ['report', game.incident?.kind === 'report-db' ? REPORT_SURGE : 1],
           ['retention', retention.rebuild],
           ['view', view],
+          ['engine', engine.scan],
           cold,
         ],
         scanCpu,
@@ -1292,7 +1305,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     inflight: 0,
     resources: {
       cpuCores: { used, total: cores },
-      ramGb: { used: Math.min(workingSet + OS_RAM, ram), total: ram },
+      ramGb: { used: Math.min(footprint + OS_RAM, ram), total: ram },
       slots: null,
       networkKbps: null,
       creditsCoreSeconds:

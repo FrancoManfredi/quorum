@@ -84,7 +84,7 @@ import {
   type Tuning,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
-import type { Game, GameNode, Pricing, StorageClass } from './state.ts'
+import type { DbEngine, Game, GameNode, Pricing, StorageClass } from './state.ts'
 
 /** The researched list as a set, built once per list: the solver asks on every hop. */
 const researchedSets = new WeakMap<ReadonlyArray<ResearchId>, ReadonlySet<ResearchId>>()
@@ -526,6 +526,16 @@ export const dataOf = (game: Game, node: GameNode): number => {
   if (node.type !== 'database') return 0
   const databases = game.nodes.filter((entry) => entry.type === 'database').length
   return game.data / Math.max(1, databases)
+}
+
+/**
+ * The engine a Node runs (07 "Variants"). A Read Replica copies its primary, so it runs the
+ * primary's engine whatever its own saved field says.
+ */
+export const engineOf = (game: Game, node: GameNode): DbEngine => {
+  if (node.type !== 'replica') return node.dbEngine
+  const database = game.nodes.find((entry) => entry.type === 'database')
+  return database?.dbEngine ?? node.dbEngine
 }
 
 /**

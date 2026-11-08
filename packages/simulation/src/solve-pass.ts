@@ -17,7 +17,7 @@ import {
 } from './catalog.ts'
 import { FLAT_CAPACITY, type Calls } from './capacity.ts'
 import { taskAttempts, failSome, hop, through, type Outcome } from './distribution.ts'
-import { has, isDown } from './lookups.ts'
+import { engineOf, has, isDown } from './lookups.ts'
 import {
   RULES,
   accepts,
@@ -66,6 +66,8 @@ export type Inputs = Readonly<{
   taskFailure: ReadonlyArray<number | undefined>
   /** Tasks per second each Worker could take on the last pass. */
   taskCapacity: ReadonlyArray<number | undefined>
+  /** Server connections held open on each Node on the last pass. */
+  connectionUsed: ReadonlyArray<number | undefined>
 }>
 
 /** Attempts a Queue gives a task: its max attempts with a dead-letter queue, else forever. */
@@ -106,6 +108,7 @@ export const solverOf = (
     boost: (node) => (inputs.boost === node.id ? 2 : 1),
     callLatency: (node) => inputs.callLatency[graph.at.get(node.id) as number] ?? NO_CALLS,
     inflight: (node) => inputs.inflight[graph.at.get(node.id) as number] ?? 0,
+    connections: (node) => inputs.connectionUsed[graph.at.get(node.id) as number] ?? 0,
     delegates: (node) => delegates(graph, node),
     runsLocalDb: (node) => runsLocalDb(graph, node),
     sampling: (node) => samplingOf(game, graph, node),
@@ -291,11 +294,15 @@ export const forward = (inputs: Inputs): Pass => {
     if (node.type !== 'database' && node.type !== 'replica') continue
     const slot = at.get(node.id) as number
     // Postgres forks a process per connection; MySQL gives each a thread and holds more (07).
+    // A replica runs its primary's engine.
+    const engine = DB_ENGINES[engineOf(game, node)]
     connections[slot] = {
       used: connectionsIn[slot] ?? 0,
-      max: DB_ENGINES[node.dbEngine].connections * (inputs.boost === node.id ? 2 : 1),
+      max: engine.connections * (inputs.boost === node.id ? 2 : 1),
     }
-    writes += arriving[slot]?.['q-write'] ?? 0
+    // An engine's replication applies writes at its own pace; MySQL's row-based apply keeps up
+    // with more of them than Postgres's streaming replication (07 "Read Replica").
+    writes += (arriving[slot]?.['q-write'] ?? 0) * engine.lag
   }
 
   // What each Queue's Workers take from it.

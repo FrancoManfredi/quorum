@@ -4,6 +4,7 @@ export const inspectorReplica: Messages['inspectorReplica'] = {
   replication: 'Réplication',
   asynchronous: 'Asynchrone',
   synchronous: 'Synchrone',
+  runsThePrimaryEngine: 'Il utilise le moteur du primaire.',
   noWriteCostAndTheReplica:
     "Aucun coût d'écriture, et le réplica prend du retard : une lecture après écriture peut être périmée.",
   everyWriteWaits: (wait) =>

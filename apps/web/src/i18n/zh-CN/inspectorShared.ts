@@ -20,8 +20,9 @@ export const inspectorShared: Messages['inspectorShared'] = {
   compression: '压缩',
   service: '服务',
   engine: '引擎',
-  connectionsPostgresForksAProcessFor: (p0) =>
-    `${p0} 个连接：Postgres 为每个连接创建一个进程，MySQL 为每个连接分配一个线程。`,
+  enginePostgres:
+    'Postgres：100 个连接，读取和扫描更便宜，全文搜索更强。写入更贵，ALTER TABLE 会锁表，死行会一直膨胀到 VACUUM。',
+  engineMysql: 'MySQL：500 个连接，写入更便宜，支持在线改表。读取、扫描和全文搜索更贵。',
   regions: '区域',
   one: '单个',
   spread: '分散',

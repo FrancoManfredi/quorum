@@ -51,6 +51,8 @@ export type Solver = Readonly<{
   callLatency: (node: GameNode) => Calls
   /** Requests in flight on the last pass. */
   inflight: (node: GameNode) => number
+  /** Server connections held open on this Node on the last pass. */
+  connections: (node: GameNode) => number
   /** An Auth Provider takes this App Server's logins. */
   delegates: (node: GameNode) => boolean
   /** Postgres still runs on this App Server. */

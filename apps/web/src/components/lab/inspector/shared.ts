@@ -14,7 +14,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Ledger, NodeLedger } from '@quorum/simulation/ledger'
-import { has, ramOf } from '@quorum/simulation/lookups'
+import { engineOf, has, ramOf } from '@quorum/simulation/lookups'
 import type { DbEngine, Game, GameLink, GameNode, PmMode, Service } from '@quorum/simulation/state'
 import { serviceOfNode } from '@quorum/simulation/work'
 import { Message } from '@/game/message.ts'
@@ -439,7 +439,7 @@ export const outbound = (
 export const caption = (text: string, h: HtmlBuilder<Message>): Html =>
   h.span([h.Class('text-[calc(12px*var(--type-scale))] font-medium text-muted-foreground')], [text])
 
-/** A Database's or Read Replica's engine (07 "Variants"). */
+/** A Database's engine (07 "Variants"). */
 export const engine = (node: GameNode, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return section(
@@ -457,9 +457,35 @@ export const engine = (node: GameNode, h: HtmlBuilder<Message>): Html => {
         'grid-cols-2',
       ),
       caption(
-        t.inspectorShared.connectionsPostgresForksAProcessFor(
-          DB_ENGINES[node.dbEngine].connections,
-        ),
+        node.dbEngine === 'postgres'
+          ? t.inspectorShared.enginePostgres
+          : t.inspectorShared.engineMysql,
+        h,
+      ),
+    ],
+    h,
+  )
+}
+
+/** A Read Replica's engine: it runs the primary's, so it cannot be picked here (07 "Variants"). */
+export const replicaEngine = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const engine = engineOf(game, node)
+  return section(
+    t.inspectorShared.engine,
+    [
+      h.div(
+        [h.Class('flex items-baseline justify-between gap-2')],
+        [
+          h.span(
+            [h.Class('text-[calc(12px*var(--type-scale))] font-medium text-foreground')],
+            [DB_ENGINES[engine].name],
+          ),
+        ],
+      ),
+      caption(t.inspectorReplica.runsThePrimaryEngine, h),
+      caption(
+        engine === 'postgres' ? t.inspectorShared.enginePostgres : t.inspectorShared.engineMysql,
         h,
       ),
     ],
