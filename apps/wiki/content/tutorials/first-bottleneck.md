@@ -17,7 +17,7 @@ you two limits to clear, memory first and then CPU credits, so start from the Co
 1. Keep the game running and collect your revenue.
 2. Watch the App Server card. At a few hundred users, its **Load** row jumps, and the row turns
    amber or red.
-3. Look above the App Server. A **BOTTLENECK** tag appears, and the card has a pulsing outline.
+3. Look at the App Server. Its outline starts to pulse in amber.
 
 The bottleneck is the one Node that costs you the most revenue now. See
 [How requests flow](/explanation/requests) for how the game finds it.
@@ -55,7 +55,7 @@ Now watch the HUD for half a minute:
 
 - **Apdex** climbs back over its target.
 - **Users** shows a ▲ again.
-- The **BOTTLENECK** tag leaves the App Server, or no Node has it.
+- The outline leaves the App Server, or no Node has it.
 
 If you made a mistake, press **Z** to undo. An undo within 30 seconds refunds the full cost.
 
@@ -74,7 +74,7 @@ when it works hard. When the credits run out, the box runs at a small fraction o
    falls as your traffic grows.
 3. When the gauge is empty, the Inspector shows **Out of CPU credits: throttled to 20% CPU.**
 
-The **Load** row turns red, and the **BOTTLENECK** tag comes back to the App Server.
+The **Load** row turns red, and the outline comes back to the App Server.
 
 ## Leave Burstable
 

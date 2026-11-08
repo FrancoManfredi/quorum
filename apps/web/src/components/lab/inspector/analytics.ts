@@ -2,6 +2,7 @@ import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { SAMPLE_RATES } from '@quorum/simulation/catalog'
 import { burnOf } from '@quorum/simulation/lookups'
+import { unsampledOf } from '@quorum/simulation/solve-insight'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import { money, rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
@@ -34,8 +35,9 @@ const sampler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
 }
 
 export const analyticsPanel: Panel = {
-  stats: ({ game, node, own, h }) => {
+  stats: ({ game, node, own, ledger, h }) => {
     const t = copy(h)
+    const unsampled = unsampledOf(ledger)
 
     return [
       row(t.inspectorAnalytics.sampling, t.inspectorAnalytics.s(rate(own.inbound)), 'plain', h),
@@ -45,8 +47,26 @@ export const analyticsPanel: Panel = {
         own.inbound > own.capacity ? 'warn' : 'plain',
         h,
       ),
+      // The share no tap sees: load the player pays for, with no Insight and no kind to read.
+      row(
+        t.hud.unclassified,
+        `${Math.round(unsampled.share * 100)}%`,
+        unsampled.share >= 0.01 ? 'warn' : 'plain',
+        h,
+      ),
       row(t.inspectorAnalytics.burn, t.inspectorAnalytics.s(money(burnOf(game, node))), 'plain', h),
     ]
   },
-  body: ({ game, node, h }) => [sampler(game, node, h)],
+  body: ({ game, node, ledger, h }) => {
+    const t = copy(h)
+    return [
+      unsampledOf(ledger).share >= 0.01
+        ? h.p(
+            [h.Class('px-4 pb-2 text-[calc(12px*var(--type-scale))] leading-snug text-warn')],
+            [t.hud.unsampledHint],
+          )
+        : h.empty,
+      sampler(game, node, h),
+    ]
+  },
 }

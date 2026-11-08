@@ -27,6 +27,7 @@ Analytics never breaks a request, and no incident targets it. It has costs:
 - Overloaded, it drops samples, and Insight slows.
 - A high sample rate adds CPU and latency to every tapped Node.
 - Without Analytics you earn no Insight from traffic, and Research stalls.
+- Traffic that reaches no tap is unclassified: the Design carries it, it earns nothing, and you cannot see what it is. The Analytics card and the Research screen show that share, and a tap on the path fixes it.
 
 :::Note{tone="real"}
 Real tracing systems sample too. Keeping every trace is expensive, and a small sample already shows the common paths. See [distributed tracing](/glossary/distributed-tracing) and [observability](/glossary/observability).

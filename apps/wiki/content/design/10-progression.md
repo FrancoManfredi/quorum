@@ -166,8 +166,9 @@ The company is listed, and play becomes an endless series of quarters.
 
 Research costs Insight of named request kinds and takes time, and each item is a **Study**. Each
 item belongs to a track, needs an Era, and may need other items. The research screen shows the tree by
-track, with the locked items of the next Era visible so that the player can plan
-([Interface](/design/15-ui-ux#research-screen)).
+track. The next Era's items show their price and requirements, so the player can plan. Later items are
+silhouettes: a name and one line of effect, with no price and no click, so the player can want them
+before the game makes them a choice ([Interface](/design/15-ui-ux#research-screen)).
 
 The track tables below list every item the game offers: 195 items across 10 tracks.
 
@@ -253,6 +254,23 @@ Component types. A trace needs more than one hop.
 The `rum` rule reads the Ledger's `breadthRegions`. Each of its kinds must be sampled by an Analytics
 tap on a Node in two regions, so the Study stalls until a second region has its own tap.
 
+**Shapes.** A few items ask the Design to show a behaviour before the Study runs. The Study stalls
+until the Ledger shows it, and the Research screen says what is missing. The item teaches a system, so
+the player runs the system first.
+
+| Item               | Shape                                              |
+| ------------------ | -------------------------------------------------- |
+| `pooling`          | A Database uses 70% of its connections.            |
+| `replication`      | A Database spends 60% of its work on reads.        |
+| `cache-strategies` | A Cache serves at 70% hit ratio.                   |
+| `event-streaming`  | A Queue holds a backlog of 1 s or more.            |
+| `data-warehouse`   | A Database spends 10% of its work on report scans. |
+| `autoscaling`      | A Node runs at 80% of its capacity.                |
+| `consensus`        | A Read Replica serves reads.                       |
+
+A shape reads the live Ledger, so it clears as soon as the Design does the thing, and it adds no save
+field. It asks for the behaviour, not for more traffic of a kind.
+
 ### Studies
 
 A Study runs one item. One Study runs at a time; the player queues up to 8, reorders them, and can
@@ -284,13 +302,14 @@ Each pool pays `draw(pool)` times the same factor. When a pool is empty, the Stu
 that pool earns, so the scarcest kind limits it. Traffic falls at night, so a `buy` Study slows at
 night. The player can start a Study with no Insight saved.
 
-A Study **stalls** when a recipe pool earns nothing and holds less than the Study still draws, or
-when the Design samples its kinds at too few Component types. A stalled running Study holds every
-Study behind it. The queue row, the Insight card, and the item's card mark a stalled Study and say
-why: the pool that earns nothing, and the Feature that brings its kind when one does, such as
-Password login for `login`. Queueing a stalled item says the same. While the running Study is
-stalled, a teammate's Mail waits in Needs action with an Open Research button; its Thread resolves
-when the Study moves again or leaves the queue.
+A Study **stalls** when a recipe pool earns nothing and holds less than the Study still draws, when
+the Design samples its kinds at too few Component types, or when the shape its item asks for is
+missing. A stalled running Study holds every Study behind it. The queue row, the Insight card, and
+the item's card mark a stalled Study and say why: the pool that earns nothing, the shape that is
+missing, and the Feature that brings the pool's kind when one does, such as Password login for
+`login`. Queueing a stalled item says the same. While the running Study is stalled, a teammate's Mail
+waits in Needs action with an Open Research button; its Thread resolves when the Study moves again or
+leaves the queue.
 
 `speed` is 1, and two things raise it:
 

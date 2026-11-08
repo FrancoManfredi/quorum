@@ -62,7 +62,7 @@ In the [Connection Limit](/sandboxes/connection-limit) Sandbox, a deploy doubles
    queue its task, because these ORM frameworks send several read queries where one would do. See
    [N+1 query](/glossary/n1-query).
 
-Check that the Database Load row falls under 70% and that the **BOTTLENECK** tag moves away.
+Check that the Database Load row falls under 70% and that the outline moves away.
 
 :::Note{tone="warn"}
 A Cache with a long **TTL** hits more often and serves more old data. A Read Replica lags behind

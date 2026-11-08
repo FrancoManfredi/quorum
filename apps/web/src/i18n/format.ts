@@ -1,4 +1,5 @@
 import { StudyStall } from '@quorum/simulation/studies'
+import type { StudyShapeKind } from '@quorum/simulation/catalog'
 import { insightName, type Messages } from './messages.ts'
 
 /**
@@ -56,4 +57,26 @@ export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
         : pool === 'failure'
           ? t.hud.stalledFailure
           : t.hud.stalledPool(insightName(t, pool)),
+    Shape: ({ shape, value }) => t.hud.stalledShape(shapeIn(t, shape, value)),
   })
+
+/** The behaviour a shape asks the Design to show, in this language. */
+const shapeIn = (t: Messages, shape: StudyShapeKind, value: number): string => {
+  const pct = Math.round(value * 100)
+  switch (shape) {
+    case 'connections':
+      return t.hud.shapeConnections(pct)
+    case 'read-share':
+      return t.hud.shapeReadShare(pct)
+    case 'cache-hit':
+      return t.hud.shapeCacheHit(pct)
+    case 'backlog':
+      return t.hud.shapeBacklog(value)
+    case 'report-share':
+      return t.hud.shapeReportShare(pct)
+    case 'saturation':
+      return t.hud.shapeSaturation(pct)
+    case 'replica':
+      return t.hud.shapeReplica
+  }
+}

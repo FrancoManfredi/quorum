@@ -2188,6 +2188,52 @@ export const BREADTH: Partial<Record<ResearchId, number>> = { tracing: 3, profil
 export const REGION_BREADTH: Partial<Record<ResearchId, number>> = { rum: 2 }
 
 /**
+ * A behaviour the Design must show before its Study runs (10 "Research shapes"). Research that
+ * teaches a system asks the system to do something first, so a Study is not only a price.
+ */
+export type StudyShape =
+  | Readonly<{ readonly kind: 'connections'; readonly share: number }>
+  | Readonly<{ readonly kind: 'read-share'; readonly share: number }>
+  | Readonly<{ readonly kind: 'cache-hit'; readonly ratio: number }>
+  | Readonly<{ readonly kind: 'backlog'; readonly seconds: number }>
+  | Readonly<{ readonly kind: 'report-share'; readonly share: number }>
+  | Readonly<{ readonly kind: 'saturation'; readonly ratio: number }>
+  | Readonly<{ readonly kind: 'replica' }>
+
+/** The shape tags, for the stall reason the interface shows. */
+export const STUDY_SHAPE_KINDS = [
+  'connections',
+  'read-share',
+  'cache-hit',
+  'backlog',
+  'report-share',
+  'saturation',
+  'replica',
+] as const
+export type StudyShapeKind = (typeof STUDY_SHAPE_KINDS)[number]
+
+/**
+ * The shapes each Era's research asks for. Each one is a behaviour a working system shows before
+ * the player can learn the next thing about it.
+ */
+export const SHAPE: Partial<Record<ResearchId, StudyShape>> = {
+  // The pool is near full: the Database answers more connections than one box holds.
+  pooling: { kind: 'connections', share: 0.7 },
+  // Reads dominate the Database's work, so a replica has something to take.
+  replication: { kind: 'read-share', share: 0.6 },
+  // A cache that works, so the next question is what happens when it misses.
+  'cache-strategies': { kind: 'cache-hit', ratio: 0.7 },
+  // A queue with a real backlog, so the Event Stream has a log worth keeping.
+  'event-streaming': { kind: 'backlog', seconds: 1 },
+  // A Database carrying report scans, which is why a warehouse exists.
+  'data-warehouse': { kind: 'report-share', share: 0.1 },
+  // A Node near its ceiling, so there is something to scale.
+  autoscaling: { kind: 'saturation', ratio: 0.8 },
+  // A replica that serves reads, so a quorum has a second copy to talk to.
+  consensus: { kind: 'replica' },
+}
+
+/**
  * Each Era's price scale: the ◇ prices keep their ratios, and this sets their
  * scale against the square-root yield (16 "Insight by kind and Studies").
  */

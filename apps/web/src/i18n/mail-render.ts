@@ -1,6 +1,6 @@
 import type { MailMessage, MailVars, Snippet } from '../game/mail-text.ts'
 import { StudyStall } from '@quorum/simulation/studies'
-import type { FeatureId, InsightPool } from '@quorum/simulation/catalog'
+import type { FeatureId, InsightPool, StudyShapeKind } from '@quorum/simulation/catalog'
 import { stallReasonIn } from './format.ts'
 import { copyIn, type Messages } from './messages.ts'
 
@@ -119,10 +119,15 @@ export const writtenIn = (
       t,
       message.letter.vars['stall'] === 'Breadth'
         ? StudyStall.cases.Breadth.make({ types: Number(message.letter.vars['types']) })
-        : StudyStall.cases.Pool.make({
-            pool: message.letter.vars['pool'] as InsightPool,
-            feature: (message.letter.vars['feature'] as FeatureId | null) ?? null,
-          }),
+        : message.letter.vars['stall'] === 'Shape'
+          ? StudyStall.cases.Shape.make({
+              shape: message.letter.vars['shape'] as StudyShapeKind,
+              value: Number(message.letter.vars['value']),
+            })
+          : StudyStall.cases.Pool.make({
+              pool: message.letter.vars['pool'] as InsightPool,
+              feature: (message.letter.vars['feature'] as FeatureId | null) ?? null,
+            }),
     )
   const written = letter(vars)
   const snippet = (part: MailMessage['before'][number]): string =>

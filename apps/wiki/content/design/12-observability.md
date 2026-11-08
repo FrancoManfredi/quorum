@@ -63,6 +63,12 @@ The rules behind the formula:
   budget, so failing on purpose is a bad trade. Postmortems pay no Insight
   ([Incidents](/design/11-incidents#postmortems)).
 
+**The share no tap samples.** Traffic that no Analytics tap samples earns no Insight and shows no
+kind. The Design carries load the player cannot explain, and a new path or region starts that way
+until a tap watches it. The Analytics card and the Research screen show that share as unclassified,
+with the fix: link a tap to the path. It is the first thing to check when research drags, because a
+rate of zero there can hide a kind the next Study asks for.
+
 ### The cost of seeing
 
 Sampling is not free, and real observability bills surprise teams in the same way.

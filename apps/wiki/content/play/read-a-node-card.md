@@ -1,9 +1,9 @@
 ---
 title: Read a Node card
-summary: Every row, gauge and mark on a Node card, what the four status shapes mean, the BOTTLENECK tag, and the footer button that you hold to buy.
+summary: Every row, gauge and mark on a Node card, what the four status shapes mean, the bottleneck outline, and the footer button that you hold to buy.
 section: play
 order: 6
-aliases: node card, card, status shape, load bar, bottleneck tag, footer, hold to buy, collect, stranded, limit row
+aliases: node card, card, status shape, load bar, bottleneck outline, footer, hold to buy, collect, stranded, limit row
 gdd: /design/15-ui-ux
 ---
 
@@ -51,19 +51,17 @@ Some Components swap rows for their own:
 
 - **Users** show **Users**, **Apdex** and **Requests**.
 - **Payments** show **Revenue** and **Drawer**, the Cash waiting to be collected. After the Stripe Research the row reads **Stripe**.
-- **Analytics** shows **Sampling**, **Kept** and the top Insight rows.
+- **Analytics** shows **Sampling**, **Kept**, **Unclassified** when some traffic reaches no tap, and the top Insight rows.
 - A **Database** shows **Engine**, **Volume** and **Connections**.
 - A **Cache** shows **Hit ratio**.
 
-## The BOTTLENECK tag
+## The bottleneck outline
 
-The Simulation picks the one Node whose extra Capacity would earn the most Revenue right now. That Node gets a pulsing amber outline and an amber **BOTTLENECK** tag above its top edge.
+The Simulation picks the one Node whose extra Capacity would earn the most Revenue right now. That Node gets a pulsing amber outline. No label names it, so read the card to find the cause.
 
-![A Node card with the BOTTLENECK tag and the amber outline.](/play/node-card-bottleneck.png)
+Look at the outline. The **Load** bar on that card is usually amber or red, and the **Limit** row names what to fix.
 
-Look at the tag and the outline. The **Load** bar on that card is usually amber or red, and the **Limit** row names what to fix.
-
-The tag moves when you fix the Node: if it jumps to a new Node, the first one is no longer the limit, and if no Node has it, nothing limits Revenue. The tag marks where Cash helps most, so check it before you buy size elsewhere.
+The outline moves when you fix the Node: if it jumps to a new Node, the first one is no longer the limit, and if no Node has it, nothing limits Revenue. The outline marks where Cash helps most, so check it before you buy size elsewhere.
 
 ## The footer
 

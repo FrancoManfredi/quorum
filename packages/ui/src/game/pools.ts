@@ -27,6 +27,7 @@ import {
   VENDOR_DISCOUNT,
   type InsightPool,
   type ResearchId,
+  type StudyShapeKind,
 } from '@quorum/simulation/catalog'
 import { StudyStall } from '@quorum/simulation/studies'
 
@@ -88,4 +89,26 @@ export const stallReason = (stall: StudyStall): string =>
         : pool === 'failure'
           ? 'Stalled: nothing earns Failure Insight. Failed requests earn it.'
           : `Stalled: nothing earns ${poolName(pool)} yet.`,
+    Shape: ({ shape, value }) => `Stalled: ${shapeReason(shape, value)}.`,
   })
+
+/** The behaviour a shape asks the Design to show, in one clause. */
+export const shapeReason = (shape: StudyShapeKind, value: number): string => {
+  const pct = `${Math.round(value * 100)}%`
+  switch (shape) {
+    case 'connections':
+      return `a Database must use ${pct} of its connections`
+    case 'read-share':
+      return `a Database must spend ${pct} of its work on reads`
+    case 'cache-hit':
+      return `a Cache must hit on ${pct} of its reads`
+    case 'backlog':
+      return `a Queue must hold a backlog of ${value} s or more`
+    case 'report-share':
+      return `a Database must spend ${pct} of its work on reports`
+    case 'saturation':
+      return `a Node must run at ${pct} of its capacity`
+    case 'replica':
+      return 'a Read Replica must serve reads'
+  }
+}

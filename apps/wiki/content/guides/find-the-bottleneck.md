@@ -16,8 +16,7 @@ A Design is only as fast as its slowest Node. That Node is the
 
 ## Find the Node
 
-1. Look for the **BOTTLENECK** tag on the board. It sits above one Node, and that Node has a
-   pulsing outline.
+1. Look for the Node with a pulsing amber outline. Only one Node has it at a time.
 2. Select that Node. The Inspector opens.
 3. Read the **Load** row. It shows the [utilization](/glossary/utilization) of that Node, as in
    "85% of 120/s".
@@ -29,7 +28,7 @@ A Design is only as fast as its slowest Node. That Node is the
 The game rechecks once per second, trying each of the busiest Nodes with double the capacity and
 marking the one that earns the most revenue. Only Nodes above 60% load can get the marker.
 
-If no Node has the tag, capacity does not limit your revenue, so go to "When there is no marker"
+If no Node has the outline, capacity does not limit your revenue, so go to "When there is no marker"
 below.
 
 ## Find the full resource
@@ -133,10 +132,9 @@ The rows show what happens, not what to buy. Compare each row's drop with its Bu
 2. Wait a few seconds of game time, so that the flow settles.
 3. Check that the Load row of the old bottleneck falls under 70%.
 4. Check that Apdex on the HUD rises toward its target.
-5. Look for the **BOTTLENECK** tag again. It usually moves to a new Node, so repeat from the first
-   step.
+5. Look for the outline again. It usually moves to a new Node, so repeat from the first step.
 
-If the tag stays on the same Node and its Load does not fall, you fixed the wrong resource, so go
+If the outline stays on the same Node and its Load does not fall, you fixed the wrong resource, so go
 back to the gauges and pick again.
 
 :::Note{tone="warn"}

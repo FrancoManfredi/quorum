@@ -37,6 +37,7 @@ import {
 import { compact } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { stallReasonIn } from '@/i18n/format.ts'
+import { unsampledOf } from '@quorum/simulation/solve-insight'
 import { ledgerOf, type Model } from '@/game/model.ts'
 import { POOL_ORDER, recipeOf } from '@quorum/ui/game/pools'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -176,6 +177,7 @@ const face = (
   state: State,
   grey: boolean,
   large: boolean,
+  far: boolean,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
   const t = copy(h)
@@ -201,13 +203,23 @@ const face = (
             // stays as the last guard against a name added later. `auto-phrase` breaks
             // Japanese at a phrase boundary rather than mid-term, where it is supported.
             h.span(
-              [h.Class('[word-break:auto-phrase] line-clamp-2')],
+              [h.Class(cn('[word-break:auto-phrase]', far ? 'line-clamp-1' : 'line-clamp-2'))],
               [t.catalog.research[entry.id].name],
             ),
             open ? icon(h, TriangleAlert, 'size-3 shrink-0 text-warn') : h.empty,
           ],
         ),
-        price(entry, state, grey, h),
+        // Beyond the next Era the card is a silhouette: what the item is for, never its price.
+        far
+          ? h.span(
+              [
+                h.Class(
+                  'line-clamp-1 text-[calc(10.5px*var(--type-scale))] leading-snug text-muted-foreground',
+                ),
+              ],
+              [t.catalog.research[entry.id].blurb],
+            )
+          : price(entry, state, grey, h),
       ],
     ),
   ]
@@ -219,13 +231,14 @@ const card = (
   entry: ResearchDef,
   state: State,
   large: boolean,
+  far: boolean,
   h: HtmlBuilder<Message>,
 ) => {
   const share = Math.min(1, studyProgressOf(game.studies.find((item) => item.id === entry.id)))
   const color = colorOf(LOOKS[entry.id])
   return state === 'saving'
     ? [
-        ...face(game, entry, state, true, large, h),
+        ...face(game, entry, state, true, large, far, h),
         h.span(
           [
             h.Key('fill'),
@@ -238,7 +251,7 @@ const card = (
               'clip-path': `inset(0 ${(1 - share) * 100}% 0 0)`,
             }),
           ],
-          face(game, entry, state, false, large, h),
+          face(game, entry, state, false, large, far, h),
         ),
         h.span(
           [
@@ -250,7 +263,7 @@ const card = (
           [],
         ),
       ]
-    : face(game, entry, state, state === 'locked', large, h)
+    : face(game, entry, state, state === 'locked', large, far, h)
 }
 
 /** The interface's type scale: the tree's boxes and spacing grow with it (15 "Accessibility"). */
@@ -262,37 +275,54 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
   const state = stateOf(game, entry)
   const large = model.prefs.text === 'large'
   const size = nodeSize(scaleOf(model))
-  // Beyond the next Era: in the fog.
+  // Beyond the next Era the item is a silhouette: a name and what it is for, no price,
+  // and no click. The player can still want it before research makes it a choice.
   const far = entry.era > game.stage + 1 && state === 'locked'
-  return h.button(
-    [
-      h.Key(entry.id),
-      h.Type('button'),
-      h.DataAttribute('research', entry.id),
-      h.AriaPressed(focused ? 'true' : 'false'),
-      h.OnClick(Message.ResearchChanged({ message: ResearchMessage.Focused({ id: entry.id }) })),
-      h.OnDoubleClick(
-        Message.ResearchChanged({ message: ResearchMessage.Bought({ id: entry.id }) }),
-      ),
-      h.Style({
-        left: `${place.x}px`,
-        top: `${place.y}px`,
-        width: `${size.w}px`,
-        height: `${size.h}px`,
-      }),
-      h.Class(
-        cn(
-          'press absolute flex items-center gap-2.5 overflow-hidden rounded-xl px-2.5 py-1 text-left transition-[filter,box-shadow,outline-color,opacity]',
-          NODE_CLASS[state],
-          focused
-            ? 'outline-2 outline-offset-2 outline-primary-strong'
-            : 'outline-2 outline-offset-2 outline-transparent',
-          far && !focused ? 'opacity-45' : '',
-        ),
-      ),
-    ],
-    card(game, entry, state, large, h),
+  const style = h.Style({
+    left: `${place.x}px`,
+    top: `${place.y}px`,
+    width: `${size.w}px`,
+    height: `${size.h}px`,
+  })
+  const shape = h.Class(
+    cn(
+      'absolute flex items-center gap-2.5 overflow-hidden rounded-xl px-2.5 py-1 text-left transition-[filter,box-shadow,outline-color,opacity]',
+      NODE_CLASS[state],
+      focused
+        ? 'outline-2 outline-offset-2 outline-primary-strong'
+        : 'outline-2 outline-offset-2 outline-transparent',
+      far ? 'opacity-45' : '',
+    ),
   )
+  const body = card(game, entry, state, large, far, h)
+  return far
+    ? h.div(
+        [
+          h.Key(entry.id),
+          h.DataAttribute('research', entry.id),
+          h.AriaDisabled(true),
+          style,
+          shape,
+        ],
+        body,
+      )
+    : h.button(
+        [
+          h.Key(entry.id),
+          h.Type('button'),
+          h.DataAttribute('research', entry.id),
+          h.AriaPressed(focused ? 'true' : 'false'),
+          h.OnClick(
+            Message.ResearchChanged({ message: ResearchMessage.Focused({ id: entry.id }) }),
+          ),
+          h.OnDoubleClick(
+            Message.ResearchChanged({ message: ResearchMessage.Bought({ id: entry.id }) }),
+          ),
+          style,
+          shape,
+        ],
+        body,
+      )
 }
 
 const wires = (model: Model, layout: Layout, focus: ResearchDef, h: HtmlBuilder<Message>): Html =>
@@ -553,23 +583,36 @@ export const ResearchScroll = Mount.define('ResearchScroll', {
 
 const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
-  return h.button(
-    [
-      h.Key(entry.id),
-      h.Type('button'),
-      h.OnClick(Message.ResearchChanged({ message: ResearchMessage.Focused({ id: entry.id }) })),
-      h.Class(
-        'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[calc(12.5px*var(--type-scale))] hover:bg-foreground/5',
-      ),
-    ],
-    [
-      researchMark(entry, 'sm', stateOf(game, entry) === 'locked', h),
-      h.span([h.Class('min-w-0 flex-1 truncate')], [t.catalog.research[entry.id].name]),
-      has(game, entry.id)
-        ? icon(h, Check, 'size-3.5 text-ok')
-        : icon(h, Lock, 'size-3 text-muted-foreground'),
-    ],
-  )
+  const far = entry.era > game.stage + 1 && !has(game, entry.id)
+  const inner = [
+    researchMark(entry, 'sm', stateOf(game, entry) === 'locked', h),
+    h.span([h.Class('min-w-0 flex-1 truncate')], [t.catalog.research[entry.id].name]),
+    has(game, entry.id)
+      ? icon(h, Check, 'size-3.5 text-ok')
+      : icon(h, Lock, 'size-3 text-muted-foreground'),
+  ]
+  return far
+    ? h.div(
+        [
+          h.Key(entry.id),
+          h.AriaDisabled(true),
+          h.Class('flex w-full items-center gap-2.5 px-2 py-1.5'),
+        ],
+        inner,
+      )
+    : h.button(
+        [
+          h.Key(entry.id),
+          h.Type('button'),
+          h.OnClick(
+            Message.ResearchChanged({ message: ResearchMessage.Focused({ id: entry.id }) }),
+          ),
+          h.Class(
+            'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[calc(12.5px*var(--type-scale))] hover:bg-foreground/5',
+          ),
+        ],
+        inner,
+      )
 }
 
 /** One (?) link per glossary term behind the item; each opens its Glossary entry. */
@@ -1019,6 +1062,7 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
   const focus = focusOf(model)
   const layout = researchLayout(scaleOf(model))
+  const unsampled = unsampledOf(ledgerOf(model))
   return h.div(
     [
       h.Key('research'),
@@ -1074,16 +1118,32 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     'flex flex-wrap items-center gap-x-3 gap-y-1 text-[calc(12.5px*var(--type-scale))]',
                   ),
                 ],
-                POOL_ORDER.filter((pool) => model.board.game.pools[pool] >= 1).map((pool) =>
-                  insightChip(
-                    pool,
-                    compact(model.board.game.pools[pool]),
-                    h,
-                    false,
-                    'plain',
-                    insightName(t, pool),
+                [
+                  ...POOL_ORDER.filter((pool) => model.board.game.pools[pool] >= 1).map((pool) =>
+                    insightChip(
+                      pool,
+                      compact(model.board.game.pools[pool]),
+                      h,
+                      false,
+                      'plain',
+                      insightName(t, pool),
+                    ),
                   ),
-                ),
+                  // Traffic no tap samples earns nothing and shows nothing: the first thing to fix
+                  // when research drags (12 "The cost of seeing").
+                  unsampled.share >= 0.01
+                    ? h.span(
+                        [
+                          h.Class('flex items-center gap-1 text-warn'),
+                          h.Title(t.hud.unsampledHint),
+                        ],
+                        [
+                          icon(h, TriangleAlert, 'size-3'),
+                          t.hud.unsampled(Math.round(unsampled.share * 100)),
+                        ],
+                      )
+                    : h.empty,
+                ],
               ),
             ],
           ),

@@ -393,8 +393,10 @@ export const stallFact = (game: Game, id: ResearchId, stall: StudyStall): Fact =
     reason: stallReason(stall),
     stall: stall._tag,
     types: stall._tag === 'Breadth' ? stall.types : null,
-    pool: stall._tag === 'Breadth' ? null : stall.pool,
-    feature: stall._tag === 'Breadth' ? null : (stall.feature ?? null),
+    pool: stall._tag === 'Pool' ? stall.pool : null,
+    feature: stall._tag === 'Pool' ? (stall.feature ?? null) : null,
+    shape: stall._tag === 'Shape' ? stall.shape : null,
+    value: stall._tag === 'Shape' ? stall.value : null,
   }
   const written = STALL[0]!({ ...vars, from: '' })
   return {

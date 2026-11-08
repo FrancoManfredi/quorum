@@ -2010,7 +2010,6 @@ class BoardController {
   private readonly boxNames = new Container()
   private boxesKey = ''
   private readonly overlay = new Graphics()
-  private readonly bottleneckTag = label(9, MONO, '600')
   private readonly ghost = new Container()
   private readonly views = new Map<string, NodeView>()
   /** Cards fading out after their Node left the Design. */
@@ -2128,8 +2127,6 @@ class BoardController {
     }
     this.host.append(this.app.canvas)
     this.app.stage.addChild(this.world)
-    this.bottleneckTag.style.fill = 0xffffff
-    this.bottleneckTag.visible = false
     this.chevrons.init(this.app.renderer)
     this.packets.init(this.app.renderer)
     this.wires.addChild(this.bodies, this.chevrons.root, this.mouths, this.portals, this.splitters)
@@ -2144,7 +2141,6 @@ class BoardController {
       this.places.root,
       this.cards,
       this.overlay,
-      this.bottleneckTag,
       this.ghost,
     )
     // Pixi rebuilds a render group's batches whenever a Graphics in it changes. The
@@ -3363,7 +3359,6 @@ class BoardController {
     const bottleneck = state.ledger.bottleneck ? byId.get(state.ledger.bottleneck) : undefined
     if (bottleneck) {
       const pulse = still ? 0.85 : 0.45 + 0.4 * Math.abs(Math.sin(this.phase * 2.4))
-      const pad = 5
       silhouette(
         this.overlay,
         COMPONENTS[bottleneck.type].group,
@@ -3371,23 +3366,8 @@ class BoardController {
         bottleneck.y,
         CARD_W,
         heightOf(bottleneck.type),
-        pad,
+        5,
       ).stroke({ color: colors.warn, width: 2.5, alpha: pulse })
-      const tag = state.translate('BOTTLENECK')
-      this.bottleneckTag.text = tag
-      this.overlay
-        .roundRect(
-          bottleneck.x - pad + 6,
-          bottleneck.y - pad - 18,
-          this.bottleneckTag.width + 12,
-          15,
-          5,
-        )
-        .fill({ color: colors.warn, alpha: 0.95 })
-      this.bottleneckTag.position.set(bottleneck.x - pad + 12, bottleneck.y - pad - 16.5)
-      this.bottleneckTag.visible = true
-    } else {
-      this.bottleneckTag.visible = false
     }
 
     // A disclosure cue: a ring around the one footer button to press next.

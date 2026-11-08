@@ -99,6 +99,18 @@ export const hud: Messages['hud'] = {
   stalledFailure:
     'Bloquée : rien ne rapporte de connaissances Échec. Les requêtes échouées en rapportent.',
   stalledPool: (pool) => `Bloquée : rien ne rapporte encore de ${pool}.`,
+  stalledShape: (shape) => `Bloquée : ${shape}.`,
+  shapeConnections: (pct) => `une Database doit utiliser ${pct} % de ses connexions`,
+  shapeReadShare: (pct) => `une Database doit consacrer ${pct} % de son travail aux lectures`,
+  shapeCacheHit: (pct) => `un Cache doit toucher ${pct} % de ses lectures`,
+  shapeBacklog: (seconds) => `une Queue doit retenir un arriéré de ${seconds} s ou plus`,
+  shapeReportShare: (pct) => `une Database doit consacrer ${pct} % de son travail aux rapports`,
+  shapeSaturation: (pct) => `un Node doit tourner à ${pct} % de sa capacité`,
+  shapeReplica: 'un Read Replica doit servir des lectures',
+  unclassified: 'Non classé',
+  unsampled: (pct) => `${pct} % non classé`,
+  unsampledHint:
+    "Ce trafic n'atteint aucune sonde Analytics. Il ne rapporte aucun Insight et vous ne voyez pas ce qu'il est. Reliez une sonde à ce chemin.",
   bridgeOffered: 'Prêt-relais proposé',
   outOfCash: 'Trésorerie épuisée',
   runwayMonths: (months) => `${months} mois`,

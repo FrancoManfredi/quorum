@@ -13,7 +13,7 @@ import {
 } from './catalog.ts'
 import { insightPerk } from './founding.ts'
 
-import type { KindLedger, NodeLedger, NodeStatus } from './ledger.ts'
+import type { KindLedger, Ledger, NodeLedger, NodeStatus } from './ledger.ts'
 import { grown, has, isDown, meshOf } from './lookups.ts'
 import { type Pass, type Rates } from './rules.ts'
 
@@ -45,6 +45,21 @@ export const sampledTraffic = (source: NodeLedger | undefined, rate: number): Ra
   for (const kind of Object.keys(source.traffic) as Array<Kind>)
     traffic[kind] = (source.traffic[kind] ?? 0) * scale
   return traffic
+}
+
+/**
+ * The share of traffic that no Analytics tap samples: the player sees the load but not what it
+ * is, and it earns no Insight. It is the first thing to fix when research drags (12 "The cost of
+ * seeing"). A kind counts as sampled once any Component type samples it.
+ */
+export const unsampledOf = (ledger: Ledger): Readonly<{ rate: number; share: number }> => {
+  let rate = 0
+  let served = 0
+  for (const [kind, entry] of Object.entries(ledger.kinds) as Array<[RequestKind, KindLedger]>) {
+    served += entry.rate
+    if ((ledger.breadth[kind] ?? 0) === 0) rate += entry.rate
+  }
+  return { rate, share: served > 0 ? rate / served : 0 }
 }
 
 /**

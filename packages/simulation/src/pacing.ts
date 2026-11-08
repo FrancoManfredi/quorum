@@ -65,7 +65,7 @@ import { foundCompany } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import { has, isDown, maxSize, ramOf, researchReady, securityStaffed } from './lookups.ts'
 import { isBuilt } from './features.ts'
-import { recipeOf } from './studies.ts'
+import { recipeOf, shapeHolds } from './studies.ts'
 import {
   Change,
   driftOf,
@@ -821,8 +821,11 @@ const studies = (
     )
   let next = game
   const head = next.studies[0]
-  if (head && !payable(head.id)) next = tried(next, cancelStudy(next, head.id))
-  const urgent = (realtime ? REALTIME_RESEARCH : []).find((id) => ready(id) && payable(id))
+  if (head && (!payable(head.id) || !shapeHolds(next, ledger, head.id)))
+    next = tried(next, cancelStudy(next, head.id))
+  const urgent = (realtime ? REALTIME_RESEARCH : []).find(
+    (id) => ready(id) && payable(id) && shapeHolds(next, ledger, id),
+  )
   if (urgent) next = tried(next, study(next, urgent, true))
   const order =
     strategy === 'greedy'
@@ -840,7 +843,11 @@ const studies = (
     next = planFeatureFor(next, ledger, blocked)
   for (const id of order) {
     if (next.studies.length >= QUEUED) break
-    if (payable(id) && !next.studies.some((entry) => entry.id === id))
+    if (
+      payable(id) &&
+      shapeHolds(next, ledger, id) &&
+      !next.studies.some((entry) => entry.id === id)
+    )
       next = tried(next, study(next, id))
   }
   return next

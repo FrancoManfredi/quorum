@@ -7,6 +7,8 @@ import {
   INSIGHT_POOLS,
   POOL_FLOOR,
   RECIPE,
+  SHAPE,
+  STUDY_SHAPE_KINDS,
   VENDOR_DISCOUNT,
   RESEARCH,
   RETENTION_WINDOWS,
@@ -161,21 +163,80 @@ export const limitingPool = (game: Game): InsightPool | null => {
 
 const InsightPoolSchema = Schema.Literals(INSIGHT_POOLS)
 
+/** The value a shape is measured against: a share, a ratio, or a wait in seconds. */
+export const shapeValueOf = (id: ResearchId): number => {
+  const shape = SHAPE[id]
+  if (!shape) return 0
+  return 'share' in shape
+    ? shape.share
+    : 'ratio' in shape
+      ? shape.ratio
+      : 'seconds' in shape
+        ? shape.seconds
+        : 0
+}
+
+/**
+ * Whether the Design shows the behaviour an item's Study needs (10 "Research shapes"). A cache
+ * that works, a Database near its connection limit, a Queue with a backlog, a replica serving
+ * reads: research asks the system to do the thing before the player can learn the next thing.
+ */
+export const shapeHolds = (game: Game, ledger: Ledger, id: ResearchId): boolean => {
+  const shape = SHAPE[id]
+  if (!shape) return true
+  for (const node of game.nodes) {
+    const entry = ledger.nodes[node.id]
+    if (!entry) continue
+    switch (shape.kind) {
+      case 'connections':
+        if (
+          entry.connections !== null &&
+          entry.connections.max > 0 &&
+          entry.connections.used / entry.connections.max >= shape.share
+        )
+          return true
+        break
+      case 'read-share':
+        if (node.type === 'database' && (entry.workShare['q-read'] ?? 0) >= shape.share) return true
+        break
+      case 'cache-hit':
+        if (node.type === 'cache' && (entry.hitRatio ?? 0) >= shape.ratio) return true
+        break
+      case 'backlog':
+        if (node.type === 'queue' && (entry.age ?? 0) >= shape.seconds) return true
+        break
+      case 'report-share':
+        if (node.type === 'database' && (entry.workShare['q-scan'] ?? 0) >= shape.share) return true
+        break
+      case 'saturation':
+        if (entry.capacity > 0 && entry.utilization >= shape.ratio) return true
+        break
+      case 'replica':
+        if (node.type === 'replica') return true
+        break
+    }
+  }
+  return false
+}
+
 /** Why a Study cannot finish on the Design as it is. */
 export const StudyStall = Schema.TaggedUnion({
   Breadth: { types: Schema.Finite },
   Pool: { pool: InsightPoolSchema, feature: Schema.NullOr(FeatureIdSchema) },
+  Shape: { shape: Schema.Literals(STUDY_SHAPE_KINDS), value: Schema.Finite },
 })
 export type StudyStall = typeof StudyStall.Type
 
 /**
  * Whether a Study stalls, or null when it can finish: the Design samples its kinds at too few
- * Component types, or a recipe pool earns nothing and holds less than the Study still draws.
- * A stalled first Study holds the whole queue. `feature` names the unshipped Feature that brings
- * the pool's kind, when one does.
+ * Component types, does not show the behaviour the item teaches, or a recipe pool earns nothing
+ * and holds less than the Study still draws. A stalled first Study holds the whole queue.
+ * `feature` names the unshipped Feature that brings the pool's kind, when one does.
  */
 export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
   if (!broadEnough(id, ledger)) return StudyStall.cases.Breadth.make({ types: BREADTH[id] ?? 0 })
+  if (!shapeHolds(game, ledger, id))
+    return StudyStall.cases.Shape.make({ shape: SHAPE[id]!.kind, value: shapeValueOf(id) })
   const left =
     1 -
     (() => {
@@ -209,7 +270,12 @@ export const advanceStudies = (
 ): Game => {
   const studies = game.studies.filter((entry) => !has(game, entry.id))
   const head = studies[0]
-  if (!head || !researchReady(game, head.id) || !broadEnough(head.id, ledger))
+  if (
+    !head ||
+    !researchReady(game, head.id) ||
+    !broadEnough(head.id, ledger) ||
+    !shapeHolds(game, ledger, head.id)
+  )
     return studies.length === game.studies.length ? game : { ...game, studies }
   // The first Study starts when it reaches the front of the queue.
   const started = studyStep(head.phase, { _tag: 'Started' })

@@ -67,7 +67,7 @@ A big news site linked to your product. Demand jumps to several times the normal
 time.
 
 1. Watch the cards. Your busiest Node turns red, and some requests fail.
-2. Select the Node with the **BOTTLENECK** tag, and read its **Load** row.
+2. Select the Node with the pulsing amber outline, and read its **Load** row.
 3. Wait. A Traffic spike ends on its own.
 
 **Larger** adds capacity, but the Node restarts first and drops its traffic for a moment. On a

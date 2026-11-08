@@ -36,7 +36,7 @@ The card's main button says what you can do now:
 | **Study after** items | A prerequisite is missing. Select it to queue the missing prerequisites first, then the item. The button names them. |
 | **Researched**        | You own it.                                                                                                          |
 
-A locked item is not an error. It tells you what to do next: wait for the Era, or queue it and let its prerequisites run first. When a long chain is missing, the button counts the prerequisites instead of naming them. A warning in the card, such as a pool that earns nothing, tells you why a Study will stall, and for a chain it names the first Study that will. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
+A locked item is not an error. It tells you what to do next: wait for the Era, or queue it and let its prerequisites run first. When a long chain is missing, the button counts the prerequisites instead of naming them. A warning in the card tells you why a Study will stall: a pool that earns nothing, or a shape the Design does not show yet, such as a Cache that never hits or a Database with no backlog behind it. For a chain, it names the first Study that will stall. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
 
 ### Start and queue a Study
 

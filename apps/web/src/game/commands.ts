@@ -92,10 +92,7 @@ export const SyncBoard = Command.define('SyncBoard', {
     Effect.sync(() => {
       setBoard('board', {
         locale,
-        translate: (text) =>
-          text === 'BOTTLENECK'
-            ? copyIn(locale).dashboard.bottleneck.toUpperCase()
-            : nameIn(copyIn(locale), text),
+        translate: (text) => nameIn(copyIn(locale), text),
         game: regionView(game, region),
         ordinals: nodeOrdinals(game),
         ledger: { ...solveFlow(game), bottleneck },

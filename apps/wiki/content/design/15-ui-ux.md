@@ -371,10 +371,11 @@ leading spans all read the same fields, so they agree.
 
 - A fullscreen tree that scrolls. Each track is a tree that grows up from its root, through one
   band per Era. Items with no prerequisite in their track branch off the track's trunk.
-- Locked items are visible and greyed, with their requirements, so the player can plan ahead.
-  Items beyond the next Era are faded. The screen opens scrolled to the focused item.
+- Locked items are visible and greyed, with their requirements, so the player can plan one Era
+  ahead. Items beyond the next Era are silhouettes: their name and their effect line, with no price,
+  and they do not open. The screen opens scrolled to the focused item.
 - Each item shows its cost as one chip per recipe pool, with the pool's icon and amount, its
-  duration, its effect in one line, and what it unlocks.
+  duration, its effect in one line, and what it unlocks. A silhouette shows only its effect line.
 - A queue of up to 8 Studies. The running Study shows its progress, and the pool that limits it.
 
 ### Insight pools
