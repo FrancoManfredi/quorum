@@ -26,6 +26,12 @@ let config: RoomConfig | null = null
 let timer: ReturnType<typeof setTimeout> | null = null
 let attempt = 0
 let stopped = true
+/**
+ * Which socket is current. A socket we replaced on purpose (`connect` with a
+ * new name or token, or `stop`) must not announce a drop or ask for a retry:
+ * that is how one tab ends up holding two sockets that fight over its Seat.
+ */
+let generation = 0
 
 const messages = new Set<(message: ServerMessage) => void>()
 const statuses = new Set<(status: RoomStatus) => void>()
@@ -49,14 +55,17 @@ const helloOf = (current: RoomConfig): Client => ({
 const open = (): void => {
   const current = config
   if (!current) return
+  const mine = (generation += 1)
   const next = new WebSocket(urlOf(current.code))
   socket = next
   next.addEventListener('open', () => {
+    if (mine !== generation) return next.close(1000, 'Superseded')
     attempt = 0
     next.send(JSON.stringify(encode(helloOf(current))))
     announce('open')
   })
   next.addEventListener('message', (event) => {
+    if (mine !== generation) return
     if (typeof event.data !== 'string') return
     let body: unknown
     try {
@@ -69,6 +78,9 @@ const open = (): void => {
     for (const listener of messages) listener(decoded.value)
   })
   next.addEventListener('close', () => {
+    // A socket we replaced: its Seat is the new socket's now, and retrying here
+    // would open a second one that the Room closes again.
+    if (mine !== generation) return
     if (socket === next) socket = null
     announce('closed')
     if (stopped || config === null) return
@@ -79,7 +91,9 @@ const open = (): void => {
       if (!stopped) open()
     }, wait)
   })
-  next.addEventListener('error', () => announce('error'))
+  next.addEventListener('error', () => {
+    if (mine === generation) announce('error')
+  })
 }
 
 /** Opens the socket for this tab, or leaves the open one alone. */
@@ -96,8 +110,11 @@ export const connect = (next: RoomConfig): void => {
   stopped = false
   if (timer !== null) clearTimeout(timer)
   timer = null
-  socket?.close(1000, 'Reconnecting')
+  // Supersede the socket we had, so its close stays quiet.
+  generation += 1
+  const old = socket
   socket = null
+  old?.close(1000, 'Reconnecting')
   attempt = 0
   open()
 }
@@ -105,10 +122,12 @@ export const connect = (next: RoomConfig): void => {
 export const stop = (): void => {
   stopped = true
   config = null
+  generation += 1
   if (timer !== null) clearTimeout(timer)
   timer = null
-  socket?.close(1000, 'Left')
+  const old = socket
   socket = null
+  old?.close(1000, 'Left')
 }
 
 export const send = (message: Client): void => {

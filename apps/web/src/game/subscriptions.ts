@@ -351,7 +351,9 @@ export const subscriptions = {
             seat: seatOf(),
             name: model.room.name,
             token: code === null ? null : (onlineFileOf(model, code)?.online?.token ?? null),
-            live: inRoom(model.room.phase),
+            // Wait for the save list: the first Hello must carry the owner token,
+            // or the tab joins as a guest and the Room sees two Seats for one tab.
+            live: inRoom(model.room.phase) && model.savesReady,
           }
         },
         dependenciesToStream: ({

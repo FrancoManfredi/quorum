@@ -436,6 +436,8 @@ export const Model = Schema.Struct({
   companyPhase: CompanyPhase,
   /** The Companies saved in the browser, and the one Continue opens. */
   saves: SaveIndex,
+  /** The list has been read, so a Room link knows whether it holds the owner token. */
+  savesReady: Schema.Boolean,
   /** The single save of the build before Company files exists and can still be recovered. */
   oldSave: Schema.Boolean,
   /** The founding screen: the name and logo the next Company starts with. */

@@ -357,36 +357,49 @@ type CompaniesTag =
   | 'CompanyFounded'
   | 'PreseedStarted'
 
-export const companiesHandlers = (model: Model): MessageCases<UpdateResult, CompaniesTag> => ({
-  SavesLoaded: ({ index, legacy, now }) => {
-    if (index !== null) {
-      const parsed = Option.getOrNull(parseIndex(index))
-      if (!parsed) {
-        const back = titleIfBoard(model)
-        return withToast(back.model, say(model).toasts.unreadableList, 'warn', [
-          KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
-          ...(back.commands ?? []),
-        ])
-      }
-      const loaded: Model = {
-        ...model,
-        saves: parsed,
-        oldSave: legacy !== null,
-        companyPhase: step(model.companyPhase, {
-          _tag: 'SavesLoaded',
-          current: parsed.current,
-        }),
-      }
-      if (parsed.current === null) return titleIfBoard(loaded)
-      return {
-        model: loaded,
-        // A reload on the Company's board opens it; anywhere else it waits for Continue.
-        commands: [LoadCompany({ id: parsed.current, open: model.route._tag === 'Company' })],
-      }
+/** Reads the Company list into the Model: the files, the one Continue opens, and the token. */
+const loadedSaves = (
+  model: Model,
+  index: string | null,
+  legacy: string | null,
+  now: number,
+): UpdateResult => {
+  if (index !== null) {
+    const parsed = Option.getOrNull(parseIndex(index))
+    if (!parsed) {
+      const back = titleIfBoard(model)
+      return withToast(back.model, say(model).toasts.unreadableList, 'warn', [
+        KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
+        ...(back.commands ?? []),
+      ])
     }
-    return legacy === null ? titleIfBoard(model) : adoptLegacy(model, legacy, now)
-  },
+    const loaded: Model = {
+      ...model,
+      saves: parsed,
+      oldSave: legacy !== null,
+      companyPhase: step(model.companyPhase, {
+        _tag: 'SavesLoaded',
+        current: parsed.current,
+      }),
+    }
+    if (parsed.current === null) return titleIfBoard(loaded)
+    return {
+      model: loaded,
+      // A reload on the Company's board opens it; anywhere else it waits for Continue.
+      commands: [LoadCompany({ id: parsed.current, open: model.route._tag === 'Company' })],
+    }
+  }
+  return legacy === null ? titleIfBoard(model) : adoptLegacy(model, legacy, now)
+}
 
+export const companiesHandlers = (model: Model): MessageCases<UpdateResult, CompaniesTag> => ({
+  // Whatever the list holds, the app now knows where the owner token is not.
+  SavesLoaded: ({ index, legacy, now }) => {
+    const result = loadedSaves(model, index, legacy, now)
+    return result.model.savesReady
+      ? result
+      : { ...result, model: { ...result.model, savesReady: true } }
+  },
   CompanyLoaded: ({ id, open, json, now }) => {
     // A file that does not answer leaves nothing opening.
     const failed = (): Model => ({
