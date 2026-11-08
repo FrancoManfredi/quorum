@@ -39,7 +39,12 @@ export const searchRule: ComponentRule = {
         heap.capacity) /
       queryFactor(solver.game, 'q-search')
     return {
-      ...flatModel(capacity, arriving, { fixed: variant.fixedMs, variable: 2 }, solver.boost(node)),
+      ...flatModel(
+        capacity,
+        arriving,
+        { fixedMs: variant.fixedMs, variableMs: 2 },
+        solver.boost(node),
+      ),
       tailP: heap.tailP,
       tailMs: heap.tailMs,
     }

@@ -2,14 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A Node's place in the rotation (11 "Drain a Node"). It serves, it drains so
-   the work it holds can finish, or the Company shut it down to stop its Burn.
-   The Node's lifecycle, its depth, and its `drainAt` stay on the Game's
-   Node; this machine only tracks whether traffic reaches it.
-   ========================================================================== */
-
-/** Taking traffic. */
 export const InService = Schema.TaggedStruct('InService', {})
 /** Taking no new traffic at `since`, finishing the work it holds. */
 export const Draining = Schema.TaggedStruct('Draining', { since: Schema.Finite })
@@ -18,11 +10,9 @@ export const Shut = Schema.TaggedStruct('Shut', {})
 export const NodeService = Schema.Union([InService, Draining, Shut])
 export type NodeService = typeof NodeService.Type
 
-/** The player drained it at `at`. */
 export const Drained = Schema.TaggedStruct('Drained', { at: Schema.Finite })
 /** Its held work finished, so it rejoins the rotation. */
 export const DrainFinished = Schema.TaggedStruct('DrainFinished', {})
-/** The Company shut it down. */
 export const Shutdown = Schema.TaggedStruct('Shutdown', {})
 /** The player brought a shut Node back. */
 export const Restarted = Schema.TaggedStruct('Restarted', {})

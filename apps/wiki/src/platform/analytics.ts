@@ -1,10 +1,5 @@
 import type { CaptureResult } from 'posthog-js'
 
-/* ==========================================================================
-   The wiki sends page views to the same PostHog project as the game. It has
-   no custom events: `$pageview` carries the path, the referrer, and UTMs.
-   ========================================================================== */
-
 const TOKEN = import.meta.env.VITE_POSTHOG_KEY
 const FORCED =
   typeof window === 'undefined'

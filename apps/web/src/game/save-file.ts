@@ -7,12 +7,6 @@ import type { History } from './history.ts'
 import type { SavedInbox } from './inbox.ts'
 import type { Reveal } from './model.ts'
 
-/* ==========================================================================
-   A save as text (15 "Save"): the JSON the save slot holds, behind a prefix
-   and the Simulation's version, so a string from another build is refused
-   before it can replace the Company. `QSV1:` and base64url JSON. Pure.
-   ========================================================================== */
-
 /** The Company save: the Game, the elements it has shown, and the client state beside it. */
 export type SaveFile = Readonly<{
   game: Game

@@ -7,12 +7,6 @@ import { halted, ledgerOf, type Model } from '../game/model.ts'
 import type { LogEntry } from '../game/playlog.ts'
 import { onBoard } from '../game/route.ts'
 
-/* ==========================================================================
-   Product analytics. The SDK is loaded after boot, only when a project token
-   is configured, and every event passes the free-tier budget in `before_send`.
-   The game never reads this module's state; `entry.ts` observes each Model.
-   ========================================================================== */
-
 type Client = typeof import('posthog-js').default
 
 const TOKEN = import.meta.env.VITE_POSTHOG_KEY

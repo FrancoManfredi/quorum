@@ -19,15 +19,11 @@ export type GlossaryEntry = Readonly<{
   id: string
   term: string
   category: GlossaryCategory
-  /** The real-world meaning. */
   definition: string
-  /** What the term does in Quorum. */
   inGame: string
-  /** Design record sections behind the term. */
   design?: ReadonlyArray<Readonly<{ label: string; url: string }>>
   /** Other entries, by id, to read next. */
   related: ReadonlyArray<string>
-  /** Sources to read more. */
   links: ReadonlyArray<Readonly<{ label: string; url: string }>>
 }>
 

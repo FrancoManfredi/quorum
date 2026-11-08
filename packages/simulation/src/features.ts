@@ -32,15 +32,8 @@ import { eraOf, has, isDown } from './lookups.ts'
 import { nextRandom } from './random.ts'
 import type { Game } from './state.ts'
 
-/* ==========================================================================
-   What shipped Features do to users, money, and load (08 "Features"). A
-   Sandbox runs its Era's mix with no Feature effects, as it always has.
-   ========================================================================== */
-
 /** The rate the experiment samples at when the Design runs no Analytics.  */
 const LIFT_SAMPLE_FLOOR = 0.01
-
-/* ---------- where each Feature stands (08 "Features") ---------- */
 
 /** Every Feature the Company built, in the order the save keeps them. */
 const idsOf = (game: Game): ReadonlyArray<FeatureId> =>
@@ -259,8 +252,6 @@ export const subscriptionsOf = (game: Game): number => {
 export const queryFactor = (game: Game, kind: BackendKind): number =>
   product(game, (feature, exposure) => atExposure(feature.queries[kind] ?? 1, exposure))
 
-/* ---------- adoption (08 "Adoption") ---------- */
-
 /** Sim seconds a Feature takes to reach about 63% of its effect, on the Team's calendar. */
 export const adoptionSeconds = (tuning: Tuning = LIVE_TUNING): number =>
   (ADOPTION_DAYS * CALENDAR_DAY) / tuning.calendarPace
@@ -288,8 +279,6 @@ export const advanceAdoption = (
   }
   return { ...game, features }
 }
-
-/* ---------- measured lift (08 "Measured lift") ---------- */
 
 /**
  * The share of requests the experiment observes: the best Analytics tap's sample rate, or a
@@ -328,9 +317,7 @@ export const liftOf = (game: Game, id: FeatureId): number => {
 export type LiftVerdict = 'wins' | 'loses' | 'early'
 
 export type LiftReading = Readonly<{
-  /** The measured lift, as a share. */
   lift: number
-  /** Half the 95% confidence interval. */
   halfWidth: number
   verdict: LiftVerdict
 }>

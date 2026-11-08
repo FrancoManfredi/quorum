@@ -38,12 +38,6 @@ import { blockIndexAt, startOf } from '@/game/history.ts'
 import { AppendLog } from '@/game/commands.ts'
 import { dashboardPanel } from './dashboard.ts'
 
-/* ==========================================================================
-   The Dashboard's rows by research, its Component rows, and its annotation
-   groups (12 "Charts by research", "Component rows", "Annotations"). Each
-   test asserts the figures a panel draws, read back from the same Ledger.
-   ========================================================================== */
-
 const RESEARCHED: ReadonlyArray<ResearchId> = [
   'metrics',
   'logs',
@@ -533,7 +527,9 @@ test('the Company row draws Cash, Burn, Equity, runway and each team’s velocit
   const core = teamOutputs(game, ledger)[0]
   if (core === undefined) throw new Error('the fixture Company has no team')
   const perMinute =
-    core.rate * 60 < 10 ? (core.rate * 60).toFixed(1) : String(Math.round(core.rate * 60))
+    core.devHoursPerSecond * 60 < 10
+      ? (core.devHoursPerSecond * 60).toFixed(1)
+      : String(Math.round(core.devHoursPerSecond * 60))
   Scene.scene(
     { update, view },
     Scene.given(model),
@@ -979,12 +975,6 @@ test('the scroll area takes focus, so the keyboard can reach the last rows', () 
   )
 })
 
-/* ==========================================================================
-   The Dashboard's long tail (12 "Annotations" and "Controls"): Research
-   marks, the group toggles, the compare line, the template variables and the
-   table view.
-   ========================================================================== */
-
 /** A `finished` Thread, as the Inbox writes one: a letter per item that finished. */
 const finishedOf = (entries: ReadonlyArray<readonly [number, string]>): Mail => ({
   id: 9,
@@ -1164,7 +1154,6 @@ test('the compare line draws yesterday’s figure on the traffic and latency Cha
         Scene.findAll(simulation.html, '[data-panel="latency"] path[stroke^="color-mix"]'),
       ).toHaveLength(1)
     }),
-    // The switch takes it away again.
     Scene.click(Scene.role('button', { name: 'Compare' })),
     Scene.Command.resolve(AppendLog, Message.Synced()),
     Scene.expect(Scene.selector('[data-panel="traffic"] path[stroke^="color-mix"]')).toBeAbsent(),

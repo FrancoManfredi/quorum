@@ -13,12 +13,6 @@ import { ledgerOf, type Model } from '@/game/model.ts'
 import { AppRoute } from '@/game/route.ts'
 import type { HtmlBuilder } from 'foldkit/html'
 
-/* ==========================================================================
-   15 "Accessibility": a screen-reader list of Nodes. The canvas says nothing,
-   so this list names every Node on the board — kind, size, load — in board
-   order, and each name is a button the keyboard reaches.
-   ========================================================================== */
-
 const model = (): Model => {
   const game = preseedGame()
   return {

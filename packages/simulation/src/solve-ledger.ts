@@ -48,8 +48,6 @@ import { outcomesOf } from './solve-outcomes.ts'
 import { billOf } from './solve-bill.ts'
 import { insightOf, sampledTraffic, statusOf } from './solve-insight.ts'
 
-/* ---------- the solve ---------- */
-
 /** A deep health check fails when a database behind the server is down or overloaded. */
 export const databaseSick = (graph: Graph, pass: Pass, server: GameNode): boolean => {
   const seen = new Set<string>()
@@ -97,7 +95,7 @@ export const completionsOf = (game: Game, pass: Pass, outcomes: ReturnType<typeo
         : {
             ...worker,
             success: 1 - lost,
-            fixed: worker.fixed + (wait + extra * TASK_RETRY_SECONDS) * 1000,
+            fixedMs: worker.fixedMs + (wait + extra * TASK_RETRY_SECONDS) * 1000,
             fail: { ...NO_FAILURES, upstream: lost },
           }
     for (const kind of Object.keys(tasks) as Array<RequestKind>) {
@@ -132,7 +130,7 @@ export const ledgerOf = (
       return {
         entry,
         raw,
-        answer: extraMs > 0 ? through(hop({ fixed: extraMs }), [[raw, 1]]) : raw,
+        answer: extraMs > 0 ? through(hop({ fixedMs: extraMs }), [[raw, 1]]) : raw,
       }
     })
   /** What one request of `kind` gets back, over every region's users. */
@@ -254,7 +252,7 @@ export const ledgerOf = (
     const hopByKind: Partial<Record<Kind, number>> = {}
     for (const kind of kindsHere) {
       const service = model?.service[kind]
-      if (service) hopByKind[kind] = service.fixed + service.variable
+      if (service) hopByKind[kind] = service.fixedMs + service.variableMs
     }
     const latency =
       inbound > 0 && model
@@ -281,8 +279,8 @@ export const ledgerOf = (
         ? percentile(
             through(
               hop({
-                fixed: own.fixed,
-                variable: own.variable,
+                fixedMs: own.fixedMs,
+                variableMs: own.variableMs,
                 tailP: model.tailP,
                 tailMs: model.tailMs,
               }),
@@ -339,7 +337,7 @@ export const ledgerOf = (
           : null,
       age:
         node.type === 'queue' || node.type === 'log' ? (completion.waits.get(node.id) ?? 0) : null,
-      lag: node.type === 'replica' ? pass.lag : null,
+      lagMs: node.type === 'replica' ? pass.lagMs : null,
       disk: model?.disk ?? false,
       out,
       resources: model?.resources ?? NO_RESOURCES,

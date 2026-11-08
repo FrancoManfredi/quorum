@@ -1,13 +1,6 @@
 import { navOf, pageAt } from './pages.ts'
 import type { Page } from './page.ts'
 
-/* ==========================================================================
-   Guided paths: short reading orders across the four kinds, so a reader is
-   led from a lesson to the idea behind it and then to the recipe, instead
-   of choosing from a list. A page shows its place in the first path that
-   holds it, and the step after it.
-   ========================================================================== */
-
 export type Path = Readonly<{
   id: string
   title: string
@@ -88,7 +81,6 @@ export const PATHS: ReadonlyArray<Path> = [
   },
 ]
 
-/** A path's pages that exist. */
 export const stepsOf = (path: Path): ReadonlyArray<Page> =>
   path.steps.flatMap((step) => {
     const page = pageAt(step)

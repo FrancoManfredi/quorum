@@ -2,11 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   The boot sequence: the clock-in reader, the title, and the monitor's
-   connect animation before a board. One state says where the app is.
-   ========================================================================== */
-
 export const Shut = Schema.TaggedStruct('Shut', {})
 export const Clocking = Schema.TaggedStruct('Clocking', {})
 export const Ready = Schema.TaggedStruct('Ready', {})

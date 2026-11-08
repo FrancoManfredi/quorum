@@ -15,12 +15,6 @@ import type { Game } from './state.ts'
 import { step } from './step.ts'
 import { devHoursRate } from './team.ts'
 
-/* ==========================================================================
-   Offline progress (04 "Offline progress"): the time the player was away, in
-   10-second Steps, with the day and week cycles, no incidents, revenue
-   straight to Cash, and churn capped at 5% of each region's users.
-   ========================================================================== */
-
 export const OFFLINE_STEP = 10
 /** Users the Company can lose while the player is away. */
 export const OFFLINE_CHURN = 0.05
@@ -28,14 +22,12 @@ export const OFFLINE_CHURN = 0.05
 export const OFFLINE_MIN = 60
 
 export type AwayReport = Readonly<{
-  /** Sim seconds simulated, after the cap. */
   seconds: number
   /** Sim seconds the player was away, before the cap. */
   away: number
   usersBefore: number
   usersAfter: number
   cash: number
-  /** Studies that completed while away. */
   studied: ReadonlyArray<ResearchId>
   devHours: number
   /** The highest utilization of any limiting Node, and its calendar hour and Node. */

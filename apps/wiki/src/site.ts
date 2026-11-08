@@ -5,7 +5,6 @@ export const GAME_ORIGIN = 'https://playquorum.dev'
 export const REPOSITORY = 'https://github.com/elianiva/quorum'
 export const KOFI = 'https://ko-fi.com/elianiva'
 
-/** The wiki's social card, public/og.png. */
 export const OG_IMAGE_ALT =
   'The Quorum Wiki card: how every Component works, and why your Design breaks.'
 

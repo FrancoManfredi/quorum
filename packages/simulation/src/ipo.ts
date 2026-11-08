@@ -7,14 +7,6 @@ import { drillPassed, drillRto, step as drillStep, type DrillPhase } from './dri
 import type { Game, GameNode } from './state.ts'
 import { valuationOf } from './valuation.ts'
 
-/* ==========================================================================
-   The IPO checklist and the DR drill (10 "Era 6: Pre-IPO"). Every item must
-   hold at once. The drill fails the home region for a minute; it passes when
-   users are served again within the hour and the data it would lose is under
-   five calendar minutes.
-   ========================================================================== */
-
-/** The Era the IPO checklist ends. */
 export const PRE_IPO_STAGE = 6
 /** The IPO pays this many seconds of Burn, like a funding round (plan 5.19). */
 export const IPO_BURN_SECONDS = 1_000
@@ -58,7 +50,7 @@ export const rpoOf = (game: Game, ledger: Ledger | null): number => {
       (other) => other.type === 'replica' && other.region !== node.region,
     )
     const lag = remote
-      ? (ledger?.nodes[replica?.id ?? '']?.lag ?? 0) / 60_000
+      ? (ledger?.nodes[replica?.id ?? '']?.lagMs ?? 0) / 60_000
       : Number.POSITIVE_INFINITY
     worst = Math.max(worst, Math.min(lag, BACKUPS[node.backup].rpo))
   }

@@ -1,11 +1,5 @@
 import { migrateSave } from '@quorum/simulation/save-migration'
 
-/* ==========================================================================
-   A save from an older build (15 "Save"). The Simulation upgrades the Game's
-   raw JSON, and this module upgrades the web state beside it. The loader runs
-   both before the live schemas decode, so a save from before a machine opens.
-   ========================================================================== */
-
 const objectOf = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)

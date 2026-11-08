@@ -2,13 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A Study (10 "Studies"). It waits in the queue, runs when it reaches the
-   front, and completes when its progress reaches the whole. The research, the
-   Insight draw, and the queue order stay on the Game's studies; this machine
-   only tracks where one Study stands.
-   ========================================================================== */
-
 /** It waits in the queue with `progress` of its base duration done. */
 export const Queued = Schema.TaggedStruct('Queued', { progress: Schema.Finite })
 /** It runs, with `progress` of its base duration done. */

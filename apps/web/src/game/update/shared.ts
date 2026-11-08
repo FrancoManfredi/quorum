@@ -252,8 +252,6 @@ export const stampOf = (model: Model) => {
   }))
 }
 
-/* ---------- Mail (GDD 18) ---------- */
-
 /** The Model with a toast raised, and the Command that clears it later. */
 export const toasted = (model: Model, message: string, tone: Tone): [Model, AnyCommand] => {
   const id = model.toastSeq + 1

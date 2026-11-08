@@ -1,11 +1,6 @@
 import { COMPONENTS } from './catalog.ts'
 import type { Game, GameNode } from './state.ts'
 
-/* ==========================================================================
-   Node labels: one stable, human-readable name per placed Node. The ordinal
-   is assigned once and never moves when another Node is placed or sold.
-   ========================================================================== */
-
 /** A Node's Component name and its ordinal, or 0 when the Design has one of its kind. */
 export const nodeLabelOf = (
   game: Game,

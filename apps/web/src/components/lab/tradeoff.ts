@@ -23,13 +23,6 @@ import { button } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
 import { FIGURE, PANEL } from '@quorum/ui/game/bits'
 
-/* ==========================================================================
-   The Tradeoff card (15 "Tradeoff cards"): what an option is, on the six
-   axes, and what the ghost run says it does to this Design. Every option set
-   gets the radar (16 D21): a Stack from 06's axes, an instance family from
-   05's RAM and price. Once an option set is confirmed, its card is one line.
-   ========================================================================== */
-
 const kindTitleOf = (t: Messages): Record<TradeoffOption['kind'], string> => ({
   runtime: t.tradeoff.runtime,
   framework: t.tradeoff.framework,
@@ -90,17 +83,17 @@ const currentOf = (node: GameNode, option: TradeoffOption): TradeoffOption => {
  * neutral. Higher is better on every axis, as for a runtime.
  */
 export const familyAxes = (family: FamilyId): Axes => {
-  const { ram, price } = FAMILIES[family]
+  const { ramPerVcpu, price } = FAMILIES[family]
   const throttled = family === 'burstable'
   // ARM is cheaper and 5% slower, and some software needs work to port (05 "App Server"), so it
   // gives up a point of tail and a point of operability for its price.
   const arm = family === 'arm'
   return {
     throughput: price <= 0.5 ? 5 : price <= 0.9 ? 4 : price <= 1.05 ? 3 : 2,
-    tail: throttled ? 1 : arm ? 3 : ram >= 8 ? 5 : 4,
-    memory: ram >= 8 ? 5 : ram >= 4 ? 3 : 2,
+    tail: throttled ? 1 : arm ? 3 : ramPerVcpu >= 8 ? 5 : 4,
+    memory: ramPerVcpu >= 8 ? 5 : ramPerVcpu >= 4 ? 3 : 2,
     velocity: 3,
-    resilience: throttled ? 2 : ram >= 8 ? 4 : ram >= 4 ? 3 : 2,
+    resilience: throttled ? 2 : ramPerVcpu >= 8 ? 4 : ramPerVcpu >= 4 ? 3 : 2,
     operability: throttled ? 2 : arm ? 3 : 4,
   }
 }
@@ -118,8 +111,6 @@ const stackOf = (
     : option.kind === 'framework'
       ? FRAMEWORKS[option.id]
       : familyOf(option.id)
-
-/* ---------- the radar ---------- */
 
 const SIZE = 220
 const CENTER = SIZE / 2
@@ -202,8 +193,6 @@ const radar = (now: Axes, next: Axes, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* ---------- lines ---------- */
-
 /** "+$0.80/s (+12%) · p99 +40 ms" from the ghost run. */
 const previewLine = (t: Messages, model: Model, preview: PreviewFigures): string =>
   deltaText(
@@ -275,8 +264,6 @@ const effect = (model: Model, card: TradeoffState, h: HtmlBuilder<Message>): Htm
     : card._tag === 'Refused'
       ? h.span([h.Class('text-[calc(12px*var(--type-scale))] text-warn')], [card.reason])
       : h.empty
-
-/* ---------- the card ---------- */
 
 const PLACE =
   'absolute top-[76px] right-[372px] z-20 w-[320px] compact:inset-x-2 compact:top-auto compact:right-2 compact:bottom-[calc(62%+16px)] compact:w-auto short:right-[340px]'

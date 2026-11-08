@@ -1,9 +1,3 @@
-/* ==========================================================================
-   The read-only tools an agent can call. This file only describes them; the
-   web app implements them over its Model, and the relay lists them for MCP
-   and forwards each call to the open page. No tool changes the game.
-   ========================================================================== */
-
 export type ToolDefinition = Readonly<{
   name: string
   description: string

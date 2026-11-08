@@ -2,16 +2,7 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   An Autoscaler's copies (05 "Autoscaler"). New copies boot, then join cold;
-   until they do, the Node runs on the copies it has. The copy counts and
-   cooldown stay on the Game's Node; this machine only tracks whether a scale
-   is still landing.
-   ========================================================================== */
-
-/** No copies are booting. */
 export const Steady = Schema.TaggedStruct('Steady', {})
-/** `pending` copies join in `readyIn` seconds. */
 export const Scaling = Schema.TaggedStruct('Scaling', {
   pending: Schema.Finite,
   readyIn: Schema.Finite,
@@ -24,7 +15,6 @@ export const Scaled = Schema.TaggedStruct('Scaled', {
   pending: Schema.Finite,
   readyIn: Schema.Finite,
 })
-/** The booting copies joined. */
 export const Ready = Schema.TaggedStruct('Ready', {})
 export const AutoscalerEvent = Schema.Union([Scaled, Ready])
 export type AutoscalerEvent = typeof AutoscalerEvent.Type

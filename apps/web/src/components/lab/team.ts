@@ -128,14 +128,6 @@ import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, PANEL, SCROLL, WELL, ring, stackLogo } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   The Team panel (08), drawn as the engineering floor. On the left each team
-   is a pod of seats: the founder, engineers, offers on their way, and an
-   open seat to hire into. On the right the work moves along a ship line,
-   queue → building → built → deploy → live, with a migration shown as the
-   share of traffic on each Stack, and the roadmap of Features and tasks.
-   ========================================================================== */
-
 const NAMES = [
   'Ada',
   'Linus',
@@ -157,7 +149,6 @@ const NAMES = [
 
 const nameOf = (id: string): string => NAMES[Number(id.slice(1)) % NAMES.length] ?? id
 
-/** Each person keeps one avatar colour. */
 const HUES = [28, 62, 150, 195, 240, 285, 330]
 const hueOf = (id: string): number => HUES[Number(id.slice(1)) % HUES.length] ?? 240
 
@@ -397,8 +388,6 @@ const halo = (share: number, className: string, h: HtmlBuilder<Message>): Html =
     ],
   )
 }
-
-/* ---------- the floor ---------- */
 
 const seat = (
   key: string,
@@ -786,7 +775,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
                     cn(FIGURE, 'text-[calc(22px*var(--type-scale))] leading-none font-medium'),
                   ),
                 ],
-                [perMinute(output?.rate ?? 0)],
+                [perMinute(output?.devHoursPerSecond ?? 0)],
               ),
               h.span(
                 [h.Class(cn(EYEBROW, 'mt-1 text-[calc(9.5px*var(--type-scale))]'))],
@@ -1349,10 +1338,6 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* ---------- the ship line ---------- */
-
-/* ---------- a migration ---------- */
-
 const stackName = (t: Messages, runtime: RuntimeId, framework: FrameworkId): string =>
   `${t.catalog.runtimes[runtime].name}${framework === 'none' ? '' : ` · ${t.catalog.frameworks[framework].name}`}`
 
@@ -1521,8 +1506,6 @@ const migrationCard = (game: Game, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-/* ---------- the board ---------- */
 
 type Status = 'queued' | 'building' | 'shipping' | 'live'
 
@@ -2252,8 +2235,6 @@ const chaos = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-/* ---------- the roadmap ---------- */
 
 const costPill = (cost: number, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

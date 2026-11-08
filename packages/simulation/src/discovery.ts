@@ -3,12 +3,6 @@ import type { ComponentId, IncidentId, ResearchId } from './catalog.ts'
 import type { StepEvent } from './events.ts'
 import type { Game } from './state.ts'
 
-/* ==========================================================================
-   Glossary discovery (15 "Glossary"): the entries a Company has met. The
-   panel shows every entry; met ones are marked. Pure: the browser calls it
-   per tick in a Company and keeps the ids in the Founder record.
-   ========================================================================== */
-
 export const BY_COMPONENT: Partial<Record<ComponentId, ReadonlyArray<string>>> = COMPONENT_GLOSSARY
 
 /** The entries each Research item teaches; the Research detail links to them. */

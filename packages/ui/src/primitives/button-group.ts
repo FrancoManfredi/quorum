@@ -22,11 +22,9 @@ export const buttonGroupOrientationClasses = {
 
 export type ButtonGroupOrientation = keyof typeof buttonGroupOrientationClasses
 
-/** Upstream ButtonGroupText string. */
 export const buttonGroupTextClass =
   "bg-well shadow-well gap-2 rounded-lg px-2.5 text-sm font-medium [&_svg:not([class*='size-'])]:size-4 flex items-center [&_svg]:pointer-events-none"
 
-/** Upstream ButtonGroupSeparator string. */
 export const buttonGroupSeparatorClass =
   'bg-hairline relative self-stretch data-horizontal:mx-px data-horizontal:w-auto data-vertical:my-px data-vertical:h-auto'
 
@@ -50,7 +48,6 @@ export const buttonGroup = <M>(
   )
 }
 
-/** Non-interactive text label inside a group. */
 export const buttonGroupText = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,

@@ -6,10 +6,6 @@ import type { Ledger } from './ledger.ts'
 import { drawerSize, eraOf, has, hasPricing, nextEra, researchAffordable } from './lookups.ts'
 import type { Game, GameNode } from './state.ts'
 
-/* ==========================================================================
-   The next thing to say: one fact, from the most urgent problem down, and who would say it.
-   ========================================================================== */
-
 /** Warn this many sim seconds before a Burstable box runs out of CPU credits. */
 const CREDIT_WARNING = 120
 
@@ -331,7 +327,7 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
     )
   }
   const draining = game.nodes.find((node) => {
-    const rate = ledger.nodes[node.id]?.resources.credits?.rate ?? 0
+    const rate = ledger.nodes[node.id]?.resources.creditsCoreSeconds?.rate ?? 0
     return node.credits >= 1 && rate < 0 && node.credits / -rate < CREDIT_WARNING
   })
   if (draining) {

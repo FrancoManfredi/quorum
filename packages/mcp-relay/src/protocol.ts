@@ -10,14 +10,12 @@ export const RELAY_PORT = 7437
 /** The page's address. Pages on localhost may also connect, for development. */
 export const QUORUM_ORIGIN = 'https://playquorum.dev'
 
-/** Page to relay. */
 export type PageMessage =
   | Readonly<{ type: 'hello'; visible: boolean }>
   | Readonly<{ type: 'visible'; visible: boolean }>
   | Readonly<{ type: 'result'; id: number; ok: true; text: string }>
   | Readonly<{ type: 'result'; id: number; ok: false; error: string }>
 
-/** Relay to page. */
 export type RelayMessage = Readonly<{
   type: 'call'
   id: number

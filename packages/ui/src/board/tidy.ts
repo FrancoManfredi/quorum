@@ -54,8 +54,6 @@ export const tidy = <K extends string | number>(
     return from === undefined || to === undefined || from === to ? [] : [[from, to] as const]
   })
 
-  /* ---------- 1. cycles ---------- */
-
   const n = byId.length
   const outs: Array<Array<number>> = byId.map(() => [])
   const ins: Array<Array<number>> = byId.map(() => [])
@@ -109,15 +107,11 @@ export const tidy = <K extends string | number>(
     rank[from]! < rank[to]! ? ([from, to] as const) : ([to, from] as const),
   )
 
-  /* ---------- 2. columns ---------- */
-
   const depth = byId.map(() => 0)
   const parents: Array<Array<number>> = byId.map(() => [])
   for (const [from, to] of forward) parents[to]!.push(from)
   for (const v of sequence)
     for (const u of parents[v]!) depth[v] = Math.max(depth[v]!, depth[u]! + 1)
-
-  /* ---------- 3 and 4, band by band ---------- */
 
   /** Lays out every band with the given columns, and measures the result. */
   const place = (col: ReadonlyArray<number>) => {
@@ -175,8 +169,6 @@ export const tidy = <K extends string | number>(
         layer.filter((item) => items[item]!.id !== null)
       const gapOf = (p: number, q: number) =>
         items[p]!.id === null && items[q]!.id === null ? LANE_GAP : CLEARANCE
-
-      /* ----- 3. order ----- */
 
       const stacked = (layer: ReadonlyArray<number>, tops: Array<number>) => {
         let at = 0
@@ -244,8 +236,6 @@ export const tidy = <K extends string | number>(
         } else idle += 1
       }
       layers = best
-
-      /* ----- 4. rows ----- */
 
       const slot = items.map(() => 0)
       for (const layer of layers) for (const [k, item] of layer.entries()) slot[item] = k
@@ -381,8 +371,6 @@ export const tidy = <K extends string | number>(
     }
     return { spots, width: right - left, height: y - CLEARANCE * 4 - top }
   }
-
-  /* ---------- 5. height bound ---------- */
 
   const children: Array<Array<number>> = byId.map(() => [])
   for (const [from, to] of forward) children[from]!.push(to)

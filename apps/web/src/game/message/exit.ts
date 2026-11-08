@@ -27,6 +27,4 @@ export const exitCases = {
   SurveySkipped: {},
   SurveySent: {},
   SurveyFailed: { message: Schema.String, offline: Schema.Boolean },
-
-  /** Playbooks. */
 }

@@ -20,11 +20,6 @@ import { icon } from '@quorum/ui/primitives/icon'
 import { stackLogo } from '@quorum/ui/game/bits'
 import { cn } from '@/lib/utils'
 
-/* ==========================================================================
-   The Stack pickers: a Runtime and a Framework as searchable dropdowns, so a
-   list of 28 runtimes stays one control with a search box.
-   ========================================================================== */
-
 /** Accept unaccented keyboard input as well as the spelling shown in the list. */
 const searchable = (text: string): string =>
   text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()

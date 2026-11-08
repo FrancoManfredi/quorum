@@ -2,18 +2,10 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A backlog item's block (18 "Blocked"). It moves, it waits on the player, or
-   the player approved what it waited for and it moves again. Progress, a
-   patch's deadline, and the player's answer stay on the Game's WorkItem; this
-   machine only tracks what stops it.
-   ========================================================================== */
-
 /** What a backlog item waits on (18 "Teammates"): the four the design names. */
 export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'hire'])
 export type BlockKind = typeof BlockKind.Type
 
-/** Nothing stops it. */
 export const Free = Schema.TaggedStruct('Free', {})
 /** It waits on the player, who is reminded again at `remindAt`. */
 export const Blocked = Schema.TaggedStruct('Blocked', {
@@ -42,7 +34,6 @@ export const BlockedEvent = Schema.TaggedStruct('Blocked', {
 export const ApprovedEvent = Schema.TaggedStruct('Approved', {})
 /** The player put it off: the block stays, and the owner writes again at `remindAt`. */
 export const Later = Schema.TaggedStruct('Later', { remindAt: Schema.Finite })
-/** A cleared block is done with. */
 export const Unblocked = Schema.TaggedStruct('Unblocked', {})
 export const WorkBlockEvent = Schema.Union([BlockedEvent, ApprovedEvent, Later, Unblocked])
 export type WorkBlockEvent = typeof WorkBlockEvent.Type

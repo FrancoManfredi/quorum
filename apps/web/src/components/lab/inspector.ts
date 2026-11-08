@@ -525,7 +525,7 @@ const stats = (
           ),
         ]
       : []),
-    ...(own.lag !== null ? [row(t.inspector.lag, formats(t).ms(own.lag), 'plain', h)] : []),
+    ...(own.lagMs !== null ? [row(t.inspector.lag, formats(t).ms(own.lagMs), 'plain', h)] : []),
     ...(node.certUntil !== null
       ? [
           row(
@@ -571,21 +571,21 @@ type GaugeSpec = Readonly<{
  * no entry here.
  */
 const gaugesOf = (t: Messages, node: GameNode, own: NodeLedger) => {
-  const { cpu, ram, slots, credits, network } = own.resources
+  const { cpuCores, ramGb, slots, creditsCoreSeconds, networkKbps } = own.resources
   const gauges: Partial<Record<Limit, GaugeSpec>> = {}
-  if (cpu)
+  if (cpuCores)
     gauges.cpu = {
       label: 'CPU',
-      used: cpu.used,
-      total: cpu.total,
-      text: t.inspector.cores(cpu.used.toFixed(2), cpu.total.toFixed(1)),
+      used: cpuCores.used,
+      total: cpuCores.total,
+      text: t.inspector.cores(cpuCores.used.toFixed(2), cpuCores.total.toFixed(1)),
     }
-  if (ram)
+  if (ramGb)
     gauges.memory = {
       label: t.inspector.rAM,
-      used: ram.used,
-      total: ram.total,
-      text: t.inspector.gigabytes(ram.used.toFixed(1), ram.total.toFixed(0)),
+      used: ramGb.used,
+      total: ramGb.total,
+      text: t.inspector.gigabytes(ramGb.used.toFixed(1), ramGb.total.toFixed(0)),
     }
   if (slots)
     gauges.workers = {
@@ -601,24 +601,24 @@ const gaugesOf = (t: Messages, node: GameNode, own: NodeLedger) => {
       total: own.connections.max,
       text: `${Math.round(own.connections.used)} / ${own.connections.max}`,
     }
-  if (credits) {
+  if (creditsCoreSeconds) {
     const cap = CREDIT_CAP * vcpuOf(node)
     gauges.credits = {
       label: t.inspector.cPUCredits,
-      used: credits.balance,
+      used: creditsCoreSeconds.balance,
       total: cap,
-      text: `${Math.round(credits.balance)} · ${t.units.perSecond(`${credits.rate >= 0 ? '+' : ''}${credits.rate.toFixed(2)}`)}`,
+      text: `${Math.round(creditsCoreSeconds.balance)} · ${t.units.perSecond(`${creditsCoreSeconds.rate >= 0 ? '+' : ''}${creditsCoreSeconds.rate.toFixed(2)}`)}`,
       invert: true,
     }
   }
-  if (network)
+  if (networkKbps)
     gauges.network = {
       label: t.inspector.network,
-      used: network.used,
-      total: network.total,
+      used: networkKbps.used,
+      total: networkKbps.total,
       text: t.inspector.megabytesPerSecond(
-        (network.used / 1_000).toFixed(1),
-        (network.total / 1_000).toFixed(0),
+        (networkKbps.used / 1_000).toFixed(1),
+        (networkKbps.total / 1_000).toFixed(0),
       ),
     }
   return gauges
@@ -1575,8 +1575,6 @@ const trafficBreakdown = (
     true,
   )
 }
-
-/* ---------- the panel ---------- */
 
 export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

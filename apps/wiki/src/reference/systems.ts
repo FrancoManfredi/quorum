@@ -169,7 +169,10 @@ const infrastructure = page({
               ['Family', 'RAM per vCPU', 'Price', 'Notes'],
               FAMILY_IDS.map((id) => {
                 const def = FAMILIES[id]
-                return { key: id, cells: [def.name, `${def.ram} GB`, `×${def.price}`, def.blurb] }
+                return {
+                  key: id,
+                  cells: [def.name, `${def.ramPerVcpu} GB`, `×${def.price}`, def.blurb],
+                }
               }),
               h,
               [1, 2],
@@ -373,8 +376,6 @@ const prestige = page({
       ],
     ),
 })
-
-/* ---------- Sandboxes ---------- */
 
 export const sandboxPath = (id: GuidedSandbox['id']): string => `/sandboxes/${id}`
 

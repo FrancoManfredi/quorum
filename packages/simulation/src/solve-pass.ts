@@ -45,8 +45,6 @@ import {
 export const REPLICA_LAG_MS = 20
 export const REPLICA_LAG_PER_WRITE = 2
 
-/* ---------- one pass ---------- */
-
 export type Inputs = Readonly<{
   game: Game
   graph: Graph
@@ -156,7 +154,7 @@ export const intakeOf = (demand: Partial<Record<RequestKind, number>>, share: nu
 
 /** A customer's webhook endpoint: slow, and it fails now and then (04 "Request kinds"). */
 export const CALLOUT: Outcome = failSome(
-  through(hop({ fixed: CALLOUT_MS / 2, variable: CALLOUT_MS / 2 })),
+  through(hop({ fixedMs: CALLOUT_MS / 2, variableMs: CALLOUT_MS / 2 })),
   CALLOUT_FAILURE,
   'upstream',
 )
@@ -329,7 +327,7 @@ export const forward = (inputs: Inputs): Pass => {
     connections,
     tasks,
     drained,
-    lag: surge ? lag * LAG_SURGE : lag,
+    lagMs: surge ? lag * LAG_SURGE : lag,
     staleShare: surge ? Math.min(0.5, (lag * LAG_SURGE) / 1000) : Math.min(0.15, lag / 1000),
   }
 }
@@ -475,7 +473,6 @@ export const pinned = (targets: ReadonlyArray<Edge>, base: Split): Split => {
   )
 }
 
-/** Shares proportional to each target's capacity. */
 export const weighted = (
   targets: ReadonlyArray<Edge>,
   weightOf: (edge: Edge) => number | undefined,

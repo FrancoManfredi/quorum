@@ -490,7 +490,6 @@ describe('Tradeoff cards', () => {
     expect(confirmed.board.game.services[0]?.migration?.runtime).toBe('node_cluster')
     expect(confirmed.board.game.backlog.some((item) => item.kind === 'migration')).toBe(true)
     expect(confirmed.board.change).not.toBeNull()
-    // The second time, a click applies at once.
     const fresh = { ...ready(), prefs: confirmed.prefs }
     const clicked = send(fresh, Message.OptionChosen({ nodeId: 'server', option }))
     expect(clicked.board.tradeoff).toEqual({ _tag: 'Closed' })

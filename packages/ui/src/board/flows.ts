@@ -2,13 +2,6 @@ import type { Game, GameNode } from '@quorum/simulation/state'
 import { placeMs } from '@quorum/simulation/regions'
 import { ms, rate as rateText } from '../game/format.ts'
 
-/* ==========================================================================
-   What a belt shows for its flow. With motion, items ride the belt at its
-   speed. With reduced motion (15 "Accessibility") the belt holds still and
-   shows fixed arrows, each belt carrying the rate it stands for, so the board
-   still says how much traffic a link moves without anything moving.
-   ========================================================================== */
-
 /** World pixels between the still arrows, and their most on one belt. */
 const ARROW_SPACING = 70
 const ARROW_LIMIT = 4

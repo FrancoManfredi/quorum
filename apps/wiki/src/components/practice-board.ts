@@ -19,12 +19,6 @@ import {
   type PracticeId,
 } from './practice.ts'
 
-/* ==========================================================================
-   One live Practice board: the game's own Pixi board on a local Game, with a
-   small dock, a goal list, a Reset button and the game's refusal text. It is
-   paused: no clock runs. Loaded on demand from practice.ts's island view.
-   ========================================================================== */
-
 const GOAL_TEXT: Record<PracticeId, string> = {
   place: 'Place an App Server and a Database. Pick a part in the dock, then click the board.',
   wire: 'Link Users to App Server, App Server to Database, and App Server to Analytics. Drag from the output port on the right edge of a card to another card. Then link one Load Balancer to the other, and link the second back to the first to read the loop refusal.',

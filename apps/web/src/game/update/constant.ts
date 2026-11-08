@@ -32,5 +32,3 @@ export const speedsOf = (game: Game): ReadonlyArray<number> => [
   ...SPEEDS,
   ...(DILATION_SPEEDS[perkLevel(game, 'time-dilation')] ?? []),
 ]
-
-/* ---------- init ---------- */

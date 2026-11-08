@@ -8,19 +8,10 @@ import { burnOf } from './lookups.ts'
 import { solveFlow } from './solve.ts'
 import type { Game, GameNode } from './state.ts'
 
-/* ==========================================================================
-   Runway (09 "Runway and running out of Cash"). Cash below zero stops spending;
-   at one calendar day of Burn the investors offer a bridge; at three, if the
-   bridge was left on the table, Nodes shut down most expensive first until the
-   net Burn is zero. The Company never ends: running out of money is a setback,
-   not a game over (01 "Pillar 5").
-   ========================================================================== */
-
 /** Calendar days of Burn at which the investors offer the bridge. */
 export const BRIDGE_AT_DAYS = 1
 /** Calendar days of Burn the bridge's grant covers. */
 export const BRIDGE_DAYS = 3
-/** Equity the bridge costs. */
 export const BRIDGE_DILUTION = 0.08
 /** Calendar days of Burn at which an unanswered bridge means Nodes shut down. */
 export const SHUTDOWN_AT_DAYS = 3

@@ -64,12 +64,6 @@ import { isGlobal, survivesRegion } from './regions.ts'
 import { collectorOf } from './capacity.ts'
 import { fixed, platformStaffed, quartersBehind, serviceOf } from './team.ts'
 
-/* ==========================================================================
-   The incident director. It attacks the Design, not the player: each
-   incident type weighs more when the Design has the weakness it tests. A
-   well-built Design survives most incidents without a click.
-   ========================================================================== */
-
 /**
  * Sim seconds an incident runs unmitigated. Once the error budget counts, it runs on
  * the calendar: at most 5, 20 or 60 sim seconds by severity (11 "Duration"). An SRE team
@@ -147,7 +141,7 @@ const gcTargets = (game: Game, ledger: Ledger): ReadonlyArray<readonly [GameNode
         node.type === 'server' && collectorOf(node) !== null && !isDown(node) && busy(ledger, node),
     )
     .map((node) => {
-      const ram = ledger.nodes[node.id]?.resources.ram
+      const ram = ledger.nodes[node.id]?.resources.ramGb
       const heap = ram && ram.total > 0 ? ram.used / ram.total : 0
       return [node, heap > 0.9 ? 3 : heap > 0.7 ? 1.5 : 0.3] as const
     })

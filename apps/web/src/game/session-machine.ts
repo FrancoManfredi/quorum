@@ -4,11 +4,6 @@ import { Progress, SANDBOX_IDS } from '@quorum/simulation/sandbox'
 import { ChallengeRun } from './challenge-machine.ts'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   What a board plays. The Company, a Sandbox and a Challenge are exclusive;
-   one machine moves between them.
-   ========================================================================== */
-
 export const SandboxId = Schema.Literals(SANDBOX_IDS)
 
 /** The Sandbox on the board: a guided one and its progress, or the free one when `id` is null. */

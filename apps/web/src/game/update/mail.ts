@@ -31,7 +31,6 @@ import { teamAction } from './team.ts'
 import { tradeoffOf } from './tradeoff.ts'
 
 /** A fact joins the Inbox; it needs no preview card while the Inbox panel is open. */
-/** Sim seconds in one calendar hour. */
 export const CALENDAR_HOUR = 60
 
 export const mailedTo = (model: Model, fact: Fact, time: number, repeats = false): Model => ({

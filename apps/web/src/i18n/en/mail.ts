@@ -16,10 +16,8 @@ import {
   type Written,
 } from '../../game/copy/index.ts'
 
-/** The values a letter quotes. */
 export type LetterVars = Readonly<Record<string, string | number | null>>
 
-/** One hand-written version of a letter. */
 export type Letter = (vars: LetterVars) => Written
 
 type Family = Readonly<Record<string, ReadonlyArray<unknown>>>

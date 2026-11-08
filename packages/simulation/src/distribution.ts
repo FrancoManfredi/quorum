@@ -1,15 +1,3 @@
-/* ==========================================================================
-   What happens to one request on its way through the Design. An Outcome is a
-   success share, a latency distribution, and the share that fails by cause.
-
-   Latency is a fixed part (base latencies, network hops) plus an exponential
-   part (service and queueing), plus a rare tail event such as an event loop
-   stall. The tail lands on the slowest `tailP` share of requests: they are the
-   ones that waited behind the stall. Exponential response times are the M/M/1 shape, so percentiles and
-   Apdex fall out of one formula. The math uses only + − × ÷, so it is exact
-   across JavaScript engines.
-   ========================================================================== */
-
 export const ERROR_CAUSES = [
   'stranded',
   'dropped',
@@ -30,10 +18,9 @@ export type Failures = Readonly<Record<ErrorCause, number>>
 export type Outcome = Readonly<{
   /** Share of requests that get an answer. */
   success: number
-  /** Milliseconds every request pays. */
-  fixed: number
+  fixedMs: number
   /** Mean of the exponential part, in milliseconds. */
-  variable: number
+  variableMs: number
   /** Share of requests hit by a tail event, and what it adds. */
   tailP: number
   tailMs: number
@@ -111,11 +98,10 @@ const addScaledInto = (into: Record<ErrorCause, number>, fail: Failures, by: num
   into.duplicate += fail.duplicate * by
 }
 
-/** Every request fails for one cause. */
 export const failed = (cause: ErrorCause): Outcome => ({
   success: 0,
-  fixed: 0,
-  variable: 0,
+  fixedMs: 0,
+  variableMs: 0,
   tailP: 0,
   tailMs: 0,
   stale: 0,
@@ -133,11 +119,10 @@ export const failSome = (outcome: Outcome, share: number, cause: ErrorCause): Ou
         fail: addFailures(outcome.fail, { ...NO_FAILURES, [cause]: outcome.success * share }),
       }
 
-/** Every request is answered here. */
-export const answered = (fixed: number, variable: number): Outcome => ({
+export const answered = (fixedMs: number, variableMs: number): Outcome => ({
   success: 1,
-  fixed,
-  variable,
+  fixedMs,
+  variableMs,
   tailP: 0,
   tailMs: 0,
   stale: 0,
@@ -150,8 +135,8 @@ export type Hop = Readonly<{
   /** Share it processes; the rest fails for `cause`. */
   share: number
   cause: ErrorCause
-  fixed: number
-  variable: number
+  fixedMs: number
+  variableMs: number
   tailP: number
   tailMs: number
   value: number
@@ -160,8 +145,8 @@ export type Hop = Readonly<{
 export const hop = (entry: Partial<Hop>): Hop => ({
   share: 1,
   cause: 'dropped',
-  fixed: 0,
-  variable: 0,
+  fixedMs: 0,
+  variableMs: 0,
   tailP: 0,
   tailMs: 0,
   value: 1,
@@ -181,8 +166,8 @@ export const through = (
   staleCounts = false,
 ): Outcome => {
   let success = 1
-  let fixed = own.fixed
-  let variable = own.variable
+  let fixedMs = own.fixedMs
+  let variableMs = own.variableMs
   // The Stack that answered sets the revenue: a multiplier reaches the user through every hop
   // between, so a Rails or Phoenix page view still earns its share.
   let value = own.value
@@ -195,8 +180,8 @@ export const through = (
     let reached = 1
     for (let index = 0; index < count; index += 1) reached *= call.success
     success *= reached
-    fixed += call.fixed * count
-    variable += call.variable * count
+    fixedMs += call.fixedMs * count
+    variableMs += call.variableMs * count
     tail = combineTail(tail.tailP, tail.tailMs, call.tailP, call.tailMs)
     addScaledInto(causes, call.fail, count)
     causeWeight += (1 - call.success) * count
@@ -214,8 +199,8 @@ export const through = (
   )
   return {
     success: reached * success * (1 - staleLoss),
-    fixed,
-    variable,
+    fixedMs,
+    variableMs,
     ...tail,
     stale: staleCounts ? 0 : stale,
     value,
@@ -228,8 +213,8 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
   const total = entries.reduce((sum, [, weight]) => sum + weight, 0)
   if (entries.length === 0 || total <= 0) return undefined
   let success = 0
-  let fixed = 0
-  let variable = 0
+  let fixedMs = 0
+  let variableMs = 0
   let tailP = 0
   let stale = 0
   let value = 0
@@ -239,8 +224,8 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
     const w = weight / total
     tailWeight += entry.tailP * w * entry.tailMs
     success += entry.success * w
-    fixed += entry.fixed * w
-    variable += entry.variable * w
+    fixedMs += entry.fixedMs * w
+    variableMs += entry.variableMs * w
     tailP += entry.tailP * w
     stale += entry.stale * w
     value += entry.value * w
@@ -248,8 +233,8 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
   }
   return {
     success,
-    fixed,
-    variable,
+    fixedMs,
+    variableMs,
     tailP,
     tailMs: tailP > 0 ? tailWeight / tailP : 0,
     stale,
@@ -257,8 +242,6 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
     fail,
   }
 }
-
-/* ---------- reading a distribution ---------- */
 
 /** e^(−x) for x ≥ 0, from a short series and eight squarings. */
 export const decay = (x: number): number => {
@@ -277,36 +260,34 @@ export const decay = (x: number): number => {
  */
 export const slowerThan = (outcome: Outcome, ms: number): number => {
   const base = (at: number): number => {
-    const left = at - outcome.fixed
+    const left = at - outcome.fixedMs
     if (left < 0) return 1
-    return outcome.variable > 0 ? decay(left / outcome.variable) : 0
+    return outcome.variableMs > 0 ? decay(left / outcome.variableMs) : 0
   }
   if (outcome.tailP <= 0 || outcome.tailMs <= 0) return base(ms)
   return Math.max(base(ms), Math.min(outcome.tailP, base(ms - outcome.tailMs)))
 }
 
 export const meanOf = (outcome: Outcome): number =>
-  outcome.fixed + outcome.variable + outcome.tailP * outcome.tailMs
-
-/* ---------- timeouts and retries ---------- */
+  outcome.fixedMs + outcome.variableMs + outcome.tailP * outcome.tailMs
 
 /**
  * A call with a timeout: answers slower than `ms` fail as `timeout`. The
  * answers left are the fast ones, so the exponential part shrinks to its mean
- * below the cut: v − L·e^(−L/v) / (1 − e^(−L/v)), with L the room above the fixed part.
+ * below the cut: v − L·e^(−L/v) / (1 − e^(−L/v)), with L the room above the fixedMs part.
  */
 export const timedOut = (outcome: Outcome, ms: number): Outcome => {
   const late = slowerThan(outcome, ms)
   if (late <= 1e-12 || outcome.success <= 0) return outcome
-  const room = ms - outcome.fixed
-  const v = outcome.variable
+  const room = ms - outcome.fixedMs
+  const v = outcome.variableMs
   const cut = room > 0 && v > 0 ? decay(room / v) : 1
-  const variable = room > 0 && v > 0 && cut < 1 ? Math.max(0, v - (room * cut) / (1 - cut)) : 0
-  const tailKept = outcome.fixed + outcome.tailMs < ms
+  const variableMs = room > 0 && v > 0 && cut < 1 ? Math.max(0, v - (room * cut) / (1 - cut)) : 0
+  const tailKept = outcome.fixedMs + outcome.tailMs < ms
   return {
     ...outcome,
     success: outcome.success * (1 - late),
-    variable,
+    variableMs,
     tailP: tailKept ? outcome.tailP : 0,
     tailMs: tailKept ? outcome.tailMs : 0,
     fail: { ...outcome.fail, timeout: outcome.fail.timeout + outcome.success * late },
@@ -338,17 +319,17 @@ export const taskLost = (failure: number, n: number): number => {
 /**
  * A timed-out call with up to three naive retries: only f⁴ still fails, and the
  * failed attempts add their time. A timeout costs the whole wait; a refusal
- * costs only the fixed part.
+ * costs only the fixedMs part.
  */
 export const retried = (call: Outcome, ms: number): Outcome => {
   const failure = 1 - call.success
   if (failure <= 1e-12) return call
   const still = failure * failure * failure * failure
-  const wasted = (call.fail.timeout * ms + (failure - call.fail.timeout) * call.fixed) / failure
+  const wasted = (call.fail.timeout * ms + (failure - call.fail.timeout) * call.fixedMs) / failure
   return {
     ...call,
     success: 1 - still,
-    fixed: call.fixed + (attemptsFor(failure) - 1) * wasted,
+    fixedMs: call.fixedMs + (attemptsFor(failure) - 1) * wasted,
     fail: scaleFailures(call.fail, still / failure),
   }
 }
@@ -368,11 +349,11 @@ export const backedOff = (call: Outcome, ms: number, budget: number): Outcome =>
   const extra = attemptsFor(failure) - 1
   const allowed = Math.min(1, budget / extra)
   const still = failure * (1 - allowed * (1 - failure * failure * failure))
-  const wasted = (call.fail.timeout * ms + (failure - call.fail.timeout) * call.fixed) / failure
+  const wasted = (call.fail.timeout * ms + (failure - call.fail.timeout) * call.fixedMs) / failure
   return {
     ...call,
     success: 1 - still,
-    fixed: call.fixed + allowed * extra * (wasted + BACKOFF_MS),
+    fixedMs: call.fixedMs + allowed * extra * (wasted + BACKOFF_MS),
     fail: scaleFailures(call.fail, still / failure),
   }
 }
@@ -382,11 +363,11 @@ export const backedOff = (call: Outcome, ms: number, budget: number): Outcome =>
  * above the latency this is the mean.
  */
 export const heldFor = (outcome: Outcome, ms: number): number => {
-  const room = ms - outcome.fixed
+  const room = ms - outcome.fixedMs
   if (room <= 0) return ms
-  const v = outcome.variable
+  const v = outcome.variableMs
   const part = v > 0 ? v * (1 - decay(room / v)) : 0
-  return outcome.fixed + part + outcome.tailP * Math.min(outcome.tailMs, Math.max(0, room - part))
+  return outcome.fixedMs + part + outcome.tailP * Math.min(outcome.tailMs, Math.max(0, room - part))
 }
 
 /** Apdex of the answered requests: satisfied plus half the tolerating. */
@@ -398,8 +379,8 @@ export const apdexOf = (outcome: Outcome, target: number): number => {
 
 /** The q-th percentile of answered requests, in milliseconds. */
 export const percentile = (outcome: Outcome, q: number): number => {
-  let low = outcome.fixed
-  let high = outcome.fixed + outcome.tailMs + outcome.variable * 12 + 1
+  let low = outcome.fixedMs
+  let high = outcome.fixedMs + outcome.tailMs + outcome.variableMs * 12 + 1
   for (let index = 0; index < 40; index += 1) {
     const middle = (low + high) / 2
     if (slowerThan(outcome, middle) > 1 - q) low = middle
@@ -425,7 +406,7 @@ export const kthFastest = (k: number, n: number): number => {
  */
 export const hedged = (call: Outcome): Outcome => ({
   ...call,
-  variable: call.variable * kthFastest(1, 2),
+  variableMs: call.variableMs * kthFastest(1, 2),
   tailP: call.tailP * call.tailP,
   tailMs: call.tailMs / 2,
 })

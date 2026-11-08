@@ -4,20 +4,12 @@ import { STABLE_TICKS, STEADY_TICKS } from './machine-state.ts'
 import { planState } from './machine.ts'
 import { Change, Delta, Figures } from './machine-state.ts'
 
-/* ==========================================================================
-   Feedback after a change: the figures settle, then a delta compares before
-   and after. A worse delta lasts until the next change; a better one counts
-   down. The machine has no clock, so the handler stamps the change's start and
-   the delta's id and shownAt, and keeps the SETTLE_LIMIT escape.
-   ========================================================================== */
-
 export const Idle = Schema.TaggedStruct('Idle', {})
 
 export const Settling = Schema.TaggedStruct('Settling', { change: Change })
 
 export const Settled = Schema.TaggedStruct('Settled', {
   delta: Delta,
-  /** Ticks "Stable" still shows. */
   ticks: Schema.Finite,
 })
 

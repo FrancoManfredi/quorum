@@ -1,10 +1,5 @@
 import type { Pitch } from './letter.ts'
 
-/* ==========================================================================
-   Spam (GDD 18, "Spam and phishing"). Noise, mostly; four kinds are traps.
-   Spam may lie about the world, but it never changes the game by itself.
-   ========================================================================== */
-
 export const SPAM: ReadonlyArray<Pitch> = [
   {
     sender: 'spam-datadug',

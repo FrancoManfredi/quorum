@@ -8,13 +8,6 @@ import {
   type ResearchTrack,
 } from '@quorum/simulation/catalog'
 
-/* ==========================================================================
-   The Research tree's layout: a tree per track, growing up from a root
-   through one band per Era. Each track's root holds up the items with no
-   prerequisite in their own track, so none of them float loose. The layout
-   comes from the catalog alone, so it is computed once.
-   ========================================================================== */
-
 /**
  * A Node box holds two lines of its name and a line of cost, so a long name fills
  * the box instead of ellipsizing. Every box is the same size, which keeps the

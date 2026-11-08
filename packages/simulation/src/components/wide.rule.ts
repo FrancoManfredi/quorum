@@ -14,8 +14,6 @@ import {
   terminal,
 } from '../rule-kit.ts'
 
-/* ---------- quorums, consensus and hot keys ---------- */
-
 /** Mean ms one Wide-column replica takes to answer.  */
 const WIDE_REPLICA_MS = 2
 
@@ -45,13 +43,13 @@ export const wideRule: ComponentRule = {
     const rate = reads + writes
     const capacity =
       (WIDE_OPS * flatScale(node)) / hotKeyFactor(solver.game, node) / (ops > 0 ? ops / rate : 1)
-    const model = flatModel(capacity, arriving, { fixed: 1, variable: 0 }, solver.boost(node))
-    const wait = model.service['q-read']?.variable ?? 0
-    const service: Record<string, { fixed: number; variable: number }> = {}
+    const model = flatModel(capacity, arriving, { fixedMs: 1, variableMs: 0 }, solver.boost(node))
+    const wait = model.service['q-read']?.variableMs ?? 0
+    const service: Record<string, { fixedMs: number; variableMs: number }> = {}
     for (const kind of Object.keys(arriving))
       service[kind] = {
-        fixed: 1,
-        variable:
+        fixedMs: 1,
+        variableMs:
           wait +
           WIDE_REPLICA_MS *
             kthFastest(kind === 'q-read' ? quorumR(node) : quorumW(node), quorumN(node)),

@@ -15,12 +15,6 @@ import { nextRandom } from './random.ts'
 import type { Game, WorkItem } from './state.ts'
 import { enqueue, memberOf, ownerOf, serviceOf } from './team.ts'
 
-/* ==========================================================================
-   CVEs (GDD 18): a disclosure is a ticket with a deadline. It joins the end
-   of the backlog, so the player must move it up or rush it; it is overdue once the deadline passes, and a grace later
-   the CVE is exploited: the ticket is gone and a Data breach starts.
-   ========================================================================== */
-
 /** Share of the Users a breach drives away. */
 export const BREACH_CHURN = 0.15
 

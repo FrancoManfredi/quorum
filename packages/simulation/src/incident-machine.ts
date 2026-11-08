@@ -2,14 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   The Incident loop (11 "The incident loop"). An incident is quiet until its
-   first signal lands, and a player can act before that signal: without
-   Alerting the board shows nothing until requests fail. Severity, remaining
-   time, magnitude, and the cost fields stay on the Game's Incident; this
-   machine only tracks how far the response got.
-   ========================================================================== */
-
 /** No incident runs, so the Game's `incident` is null. */
 export const Quiet = Schema.TaggedStruct('Quiet', {})
 /** A player acted before the signal: without Alerting, nothing paged them. */

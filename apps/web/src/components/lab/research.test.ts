@@ -5,13 +5,6 @@ import type { Model } from '@/game/model.ts'
 import { initialModel, update } from '@/game/update.ts'
 import { ResearchScroll, researchPanel } from './research.ts'
 
-/* ==========================================================================
-   15 "Accessibility", Text at 150%: the Research tree grows its Node boxes and
-   the spacing between them with the type. Every box holds two lines of its name
-   above its cost, so a long item name fills the box rather than ellipsizing,
-   because a Japanese or French name runs out of room sooner than an English one.
-   ========================================================================== */
-
 const sized = (text: 'normal' | 'large'): Model => ({
   ...initialModel(),
   prefs: { ...initialModel().prefs, text },

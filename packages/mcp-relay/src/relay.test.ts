@@ -94,7 +94,6 @@ describe('who may connect', () => {
     await page(relay, { origin: QUORUM_ORIGIN })
     await page(relay, { origin: 'http://localhost:5173' })
     await expect(page(relay, { origin: 'https://evil.example' })).rejects.toThrow('403')
-    // Looks like Quorum but is a different host.
     await expect(page(relay, { origin: 'https://playquorum.dev.evil.example' })).rejects.toThrow(
       '403',
     )

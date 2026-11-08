@@ -338,8 +338,6 @@ export const listed = (model: Model, game: Game): Readonly<{ game: Game; founder
   return { game: ipo.game, founder: recordExit(model.founder, ipo) }
 }
 
-/* ---------- Challenges ---------- */
-
 type CompaniesTag =
   | 'SavesLoaded'
   | 'CompanyLoaded'

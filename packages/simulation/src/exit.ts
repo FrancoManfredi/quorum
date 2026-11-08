@@ -14,12 +14,6 @@ import type { Ledger } from './ledger.ts'
 import { ComponentId, Founding, type Game } from './state.ts'
 import { valuationOf } from './valuation.ts'
 
-/* ==========================================================================
-   Exits (13 "Exits"): a Company ends, and Equity × Valuation × the Exit's
-   multiplier pays Legacy. The IPO pays at listing and the Company goes on;
-   Step down later pays only what the Company grew since.
-   ========================================================================== */
-
 /** Legacy for a payout: √(payout / $1M), times the founding's multiplier, floored. */
 export const legacyOf = (payout: number, multiplier = 1): number =>
   Math.floor(Math.sqrt(Math.max(0, payout) / 1_000_000) * multiplier)
@@ -37,13 +31,11 @@ export const HistoryRow = Schema.Struct({
   name: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed(''))),
   exit: Schema.Literals(EXIT_IDS),
   founding: Founding,
-  /** Sim seconds played. */
   time: Schema.Finite,
   peak: Schema.Finite,
   stage: Schema.Finite,
   payout: Schema.Finite,
   legacy: Schema.Finite,
-  /** App Servers and Workers per language. */
   stack: Schema.Array(Schema.Tuple([Schema.String, Schema.Finite])),
   snapshot: Snapshot,
 })

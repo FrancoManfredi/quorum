@@ -7,12 +7,6 @@ import { attachBoard } from '@quorum/ui/board/board'
 import { Message } from './message.ts'
 import { play } from './sound.ts'
 
-/* ==========================================================================
-   Foldkit's side of the Pixi board: an element-scoped Mount that owns the
-   renderer while the element is on screen and pushes gestures back as
-   Messages. The Model reaches the board through the SyncBoard Command.
-   ========================================================================== */
-
 type BoardMessage =
   | ReturnType<typeof Message.NodeTapped>
   | ReturnType<typeof Message.NodeMoved>

@@ -1,12 +1,5 @@
 import type { Page } from './page.ts'
 
-/* ==========================================================================
-   Search over every page, in the browser. Each page contributes its title,
-   aliases (Component codes such as `lb`, product names such as "Kafka"),
-   headings, summary, and text. A title match ranks above an alias, an alias
-   above a heading, and so on down.
-   ========================================================================== */
-
 export type Hit = Readonly<{ page: Page; heading: string | null }>
 
 export type Entry = Readonly<{

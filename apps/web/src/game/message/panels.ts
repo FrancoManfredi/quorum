@@ -26,9 +26,7 @@ export const panelsCases = {
   PrefsChanged: { message: PrefsMessage },
   /** The Exit survey's two fields; the parent sends the answers. */
   SurveyChanged: { message: SurveyMessage },
-  /** The window lost focus. */
   WindowBlurred: {},
-  /** The window got focus back. */
   WindowFocused: {},
   InsightHelpToggled: {},
   GlossaryOpened: { id: Schema.NullOr(Schema.String) },
@@ -38,7 +36,6 @@ export const panelsCases = {
   /** The save as text (15 "Save"): copied out, or asked for and pasted back. */
   DashboardChanged: { message: DashboardMessage },
   LanguagePickerChanged: { message: Listbox.Message },
-  /** The Settings panel's sound level. */
   VolumeSliderChanged: { message: VolumeSliderMessage },
   /** The searchable Stack pickers on the Inspector. */
   RuntimePickerChanged: { message: Combobox.Message },

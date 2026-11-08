@@ -37,12 +37,6 @@ import type { Ledger } from '@quorum/simulation/ledger'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import type { StackLogoId } from '../game/icons.ts'
 
-/* ==========================================================================
-   What every Component module shares: the row and footer vocabulary a card is
-   written in, the helpers more than one Component uses, and the shape of a
-   Component's board view. No Component module imports another.
-   ========================================================================== */
-
 export type RowTone = 'plain' | 'warn' | 'danger' | 'ok' | 'muted'
 /** Row glyphs by key, so the per-frame digest stays a short string. */
 export const ROW_ICONS = {

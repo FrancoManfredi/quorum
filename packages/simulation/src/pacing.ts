@@ -96,17 +96,6 @@ import {
 } from './work.ts'
 import { isApplying } from './mirror-machine.ts'
 
-/* ==========================================================================
-   Pacing bots (16 "Pacing model"): scripted players that run against the real
-   Simulation, so balance changes show up as test failures. Pure: no Vitest,
-   no UI. Balanced plays the way the design expects; Greedy only buys bigger
-   boxes and the cheapest research, and never hires; Stubborn never changes
-   runtime or framework; Decliner plays Balanced and turns every round down;
-   Polyglot plays Balanced and migrates to each new language it researches; Idle plays
-   Balanced but only every two hours.
-   Every bot leaves the Team's autopilot on, so Features ship.
-   ========================================================================== */
-
 export type Strategy = 'balanced' | 'greedy' | 'stubborn' | 'decliner' | 'polyglot' | 'idle'
 
 export type Milestone =
@@ -134,7 +123,6 @@ export type Milestone =
 
 /** Margin when an Era ends, at the build's prices. */
 export type MarginRecord = Readonly<{
-  /** The Era that just ended. */
   stage: number
   time: number
   live: number
@@ -270,14 +258,13 @@ const last = (game: Game): string => game.nodes.at(-1)?.id ?? ''
 
 /** Workers that fit in RAM with a margin, for runtimes with a pool. */
 const fittingWorkers = (node: GameNode): number => {
-  const each = RUNTIMES[node.runtime].memory + FRAMEWORKS[node.framework].memory
+  const each = RUNTIMES[node.runtime].memoryMb + FRAMEWORKS[node.framework].memoryMb
   return Math.max(
     POOL_LIMITS.min,
     Math.min(POOL_LIMITS.max, Math.floor(((ramOf(node) - OS_RAM) * 0.9 * 1024) / each)),
   )
 }
 
-/** Spends only what leaves the reserve. */
 const affordable = (game: Game, ledger: Ledger, apply: (game: Game) => Action): Game => {
   const reserve = ledger.burn * RESERVE_SECONDS
   const next = tried(game, apply(game))
@@ -783,8 +770,8 @@ const relieve = (game: Game, ledger: Ledger, node: GameNode, strategy: Strategy)
   if (
     node.type === 'database' &&
     has(game, 'caching') &&
-    (ledger.nodes[node.id]?.resources.cpu?.used ?? 0) >
-      0.7 * (ledger.nodes[node.id]?.resources.cpu?.total ?? 1) &&
+    (ledger.nodes[node.id]?.resources.cpuCores?.used ?? 0) >
+      0.7 * (ledger.nodes[node.id]?.resources.cpuCores?.total ?? 1) &&
     !game.nodes.some((entry) => entry.type === 'cache')
   )
     return inFront(game, ledger, node, 'cache')

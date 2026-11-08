@@ -1,10 +1,5 @@
 import type { AdviceLetters } from './letter.ts'
 
-/* ==========================================================================
-   Infrastructure advice: cloud notices about a Node at a hard limit, vendor
-   notes about the Payments drawer, and accountant reminders about Cash.
-   ========================================================================== */
-
 export const INFRA: Pick<
   AdviceLetters,
   | 'credits'

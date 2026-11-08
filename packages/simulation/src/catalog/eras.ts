@@ -8,16 +8,13 @@ export type EraDef = Readonly<{
   market: number
   /** Users needed to raise the next round. */
   raiseAt: number
-  /** Cash the next round pays out. */
   grant: number
   /**
    * Equity the next round costs. Seed through Series C follow Carta's medians: seed 19.4% and
    * Series A 18.7% (Q2 2026), Series B 12.9% (2025), and 16% across seed to Series C.
    */
   dilution: number
-  /** Growth rate per sim second. */
   growth: number
-  /** Apdex below this loses users. */
   apdexTarget: number
   /**
    * Multiplies placement, resize and Burn prices. The design keeps 1 until Seed;
@@ -262,7 +259,6 @@ export const CHURN = 0.004
 export const FICKLE_SHARE = 0.5
 /** Steady users leave at this share of the fickle users' rate.  */
 export const STEADY_CHURN = 0.2
-/** Growth multiplier from Funnel analytics. */
 export const FUNNEL_GROWTH = 1.1
 /** Growth multiplier in an Era that began with a declined round. */
 export const DECLINED_GROWTH = 0.7

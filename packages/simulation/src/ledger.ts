@@ -11,7 +11,6 @@ export type NodeStatus = 'idle' | 'ok' | 'warn' | 'danger' | 'down'
 
 /** The cloud bill by line (09 "The cloud bill"), in dollars per second. */
 export type BurnLines = Readonly<{
-  /** Compute, edge, and platform Nodes. */
   compute: number
   /** Data Nodes, without the GB they store. */
   data: number
@@ -23,14 +22,11 @@ export type BurnLines = Readonly<{
   thirdParty: number
   /** API Gateway requests, priced per request served. */
   requests: number
-  /** Analytics sampling and retention. */
   observability: number
-  /** Payroll. */
   salaries: number
 }>
 
 export type NodeLedger = Readonly<{
-  /** Requests per second that arrive. */
   inbound: number
   /** Offered arrivals per second by operation, before drops; sums to inbound. */
   traffic: Readonly<Partial<Record<Kind, number>>>
@@ -81,14 +77,13 @@ export type NodeLedger = Readonly<{
   strandedKinds: ReadonlyArray<Kind>
   /** Database connections in use, and the limit. */
   connections: Readonly<{ used: number; max: number }> | null
-  /** Cache or CDN hit ratio. */
   hitRatio: number | null
   /** Keys per second a Cache evicts to make room for its refills; null for any other Node. */
   evictions: number | null
   /** Seconds a new task waits in this Queue before a Worker takes it; infinite with none draining. */
   age: number | null
   /** Milliseconds a replica lags behind the primary. */
-  lag: number | null
+  lagMs: number | null
   /** The working set does not fit in RAM. */
   disk: boolean
   /** Requests per second sent on, by kind. */
@@ -114,7 +109,6 @@ export type LinkLedger = Readonly<{
 }>
 
 export type KindLedger = Readonly<{
-  /** Requests per second users send. */
   rate: number
   success: number
   /** Apdex, with the async part also scored on when its result is ready. */
@@ -131,13 +125,11 @@ export type KindLedger = Readonly<{
 export type RegionKindLedger = Readonly<{
   /** Requests per second this region's users send. */
   rate: number
-  /** Share answered. */
   success: number
   /** Apdex of the answered requests, with the users' hop. */
   apdex: number
   /** Apdex the same answers would have with no hop to reach the Design. */
   near: number
-  /** Share that fails, by cause. */
   fail: Failures
   /** Milliseconds the users' hop adds to reach the Design. */
   hopMs: number
@@ -152,9 +144,7 @@ export type ServiceLedger = Readonly<{
   kinds: ReadonlyArray<RequestKind>
   /** Requests per second users send to the Service's kinds. */
   rate: number
-  /** Requests per second answered. */
   served: number
-  /** Failed requests per second. */
   failed: number
   apdex: number
   mean: number
@@ -166,15 +156,10 @@ export type Ledger = Readonly<{
   nodes: Readonly<Record<string, NodeLedger>>
   links: ReadonlyArray<LinkLedger>
   kinds: Readonly<Partial<Record<RequestKind, KindLedger>>>
-  /** Requests per second users send. */
   demand: number
-  /** Requests per second answered. */
   served: number
-  /** Failed requests per second, by cause. */
   errors: Readonly<Record<ErrorCause, number>>
-  /** Share of requests that fail. */
   errorShare: number
-  /** Latency of answered requests, in ms. */
   latency: number
   p50: number
   p95: number
@@ -193,7 +178,6 @@ export type Ledger = Readonly<{
   regionKinds: Readonly<
     Partial<Record<RegionId, Readonly<Partial<Record<RequestKind, RegionKindLedger>>>>>
   >
-  /** Dollars per second: requests, plus subscriptions. */
   revenue: number
   /** Dollars per second from paid plans, included in `revenue`. */
   subscriptions: number

@@ -3,11 +3,6 @@ import type { Section } from './frontmatter.ts'
 import type { Page } from './page.ts'
 import { referencePages } from './reference/index.ts'
 
-/* ==========================================================================
-   Every page on the wiki, and the navigation over them. The build
-   prerenders exactly these paths (src/entry.server.ts).
-   ========================================================================== */
-
 export const PAGES: ReadonlyArray<Page> = [...authoredPages, ...referencePages]
 
 const byPath = new Map(PAGES.map((page) => [page.path, page]))
@@ -26,7 +21,6 @@ export const SECTION_ORDER: ReadonlyArray<Section> = [
   'about',
 ]
 
-/** A section's top-level pages in order. */
 export const navOf = (section: Section): ReadonlyArray<Page> =>
   PAGES.filter(
     (page) => page.section === section && page.parent === null && page.path !== '/',

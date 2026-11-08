@@ -15,7 +15,7 @@ export const vecRule: ComponentRule = {
     return flatModel(
       (VEC_QUERIES * flatScale(node) * index.queries) / hotKeyFactor(solver.game, node),
       arriving,
-      { fixed: 20, variable: 2 },
+      { fixedMs: 20, variableMs: 2 },
       solver.boost(node),
     )
   },

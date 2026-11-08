@@ -1,6 +1,5 @@
 /* Request kinds and backend kinds: what users send and what Nodes send downstream. */
 
-/** What users send. */
 export const REQUEST_KINDS = [
   'page',
   'read',
@@ -61,7 +60,6 @@ export const isBackendKind = (kind: Kind): kind is BackendKind =>
 
 export type KindInfo = Readonly<{
   label: string
-  /** Dollars earned per satisfied request. */
   value: number
   /** Particle colour on the board, as a 0xRRGGBB number. */
   color: number
@@ -95,7 +93,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   feed: { label: 'Feed', value: 0.3, color: 0xc9a227 },
   hook: { label: 'Webhook', value: 0.4, color: 0x6d8f3a },
   push: { label: 'Notify', value: 0.05, color: 0xd96b9a },
-  // The design's number for the bid kind is $0.001 (13 "Ventures"); the colour is
+  // The design's number for the bid kind is $0.001 (13 "Ventures"); the colour is proposed.
   bid: { label: 'Bid request', value: 0.001, color: 0x8e7cc3 },
   notify: { label: 'Push message', value: 0, color: 0xd96b9a },
   callout: { label: 'Customer call', value: 0, color: 0x6d8f3a },
@@ -122,7 +120,6 @@ export type RequestProfile = Readonly<{
   cpu: number
   /** Native code (bcrypt): the runtime speed does not divide it. */
   native: boolean
-  /** Apdex target T, in ms. */
   apdex: number
   /** Synchronous backend calls per request, by backend kind. */
   calls: Readonly<Partial<Record<Exclude<BackendKind, 'auth' | 'task'>, number>>>
@@ -139,7 +136,6 @@ export type RequestProfile = Readonly<{
   asyncKB: number
   /** Streamed: the user waits only for the first segment, not the whole response. */
   stream: boolean
-  /** Gzip shrinks the response. */
   compressible: boolean
   /** KB the request sends up, over the user's uplink. */
   inKB: number
@@ -476,7 +472,7 @@ export const CALLOUT_MS = 800
 export const CALLOUT_FAILURE = 0.02
 /**
  * Fan-out on write (07 "Fan-out"): a post becomes one timeline write per follower, and a
- * feed reads one timeline. Hybrid pulls the celebrities' posts. Followers are
+ * feed reads one timeline. Hybrid pulls the celebrities' posts. Followers are proposed.
  */
 export const FOLLOWERS = 20
 export const HYBRID_WRITES = 0.5

@@ -5,11 +5,6 @@ import { priceOf, refundOf } from '@quorum/simulation/lookups'
 import type { Board, Figures, Undo } from './model.ts'
 import type { Delta } from './machine-state.ts'
 
-/* ==========================================================================
-   Feedback after a change: Settling while the Design settles, then a delta
-   that compares before and after. Undo and redo keep the last 50 actions.
-   ========================================================================== */
-
 export { SETTLE_LIMIT, STABLE_TICKS, STEADY_TICKS } from './machine-state.ts'
 import { SETTLE_LIMIT, STEADY_TICKS } from './machine-state.ts'
 
@@ -52,7 +47,6 @@ export const advanceChange = (board: Board, ledger: Ledger, seq: number): Change
 
 /** Undo is exact for this long after an action; later, money settles at normal prices (16 D17). */
 export const UNDO_SECONDS = 30
-/** Undo keeps this many actions. */
 export const UNDO_LIMIT = 50
 
 /** The Design pieces of a Game, for the undo and redo stacks. */

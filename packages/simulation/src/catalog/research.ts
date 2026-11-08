@@ -241,7 +241,6 @@ export type ResearchDef = Readonly<{
   id: ResearchId
   name: string
   track: ResearchTrack
-  /** Insight to research it. */
   cost: number
   /** The first Era it is offered in. */
   era: number
@@ -2090,8 +2089,6 @@ export const FRAMEWORK_RESEARCH: Record<FrameworkId, ResearchId | null> = {
   rocket: 'fw-rocket',
 }
 
-/* ---------- recipes and Studies (10 "Recipes", "Studies") ---------- */
-
 /**
  * Each Era's default recipe. Until Seed, the request kinds the Era brings. From
  * Series A, the kinds of the Era before: a new Era's kinds arrive only with its
@@ -2200,9 +2197,7 @@ export const PRICE_SCALE = [1, 1, 2, 1.5, 1, 1, 1, 1] as const
 export const STUDY_SECONDS = [20, 60, 120, 240, 480, 900, 1_800, 3_600] as const
 /** Studies the queue holds, the running one included. */
 export const MAX_STUDIES = 8
-/** A Spike's speed (08 "Spikes"). */
 export const SPIKE_SPEED = 2
-/** Speed each study-speed research adds. */
 export const STUDY_SPEEDUP = 0.25
 export const STUDY_SPEED_RESEARCH: ReadonlyArray<ResearchId> = ['trace-search', 'notebooks']
 
@@ -2217,7 +2212,6 @@ const recipeFor = (entry: ResearchDef): Readonly<Partial<Record<InsightPool, num
   return cost
 }
 
-/** What each item costs, by pool. */
 export const RECIPE: Record<
   ResearchId,
   Readonly<Partial<Record<InsightPool, number>>>

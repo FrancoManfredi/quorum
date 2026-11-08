@@ -25,14 +25,12 @@ export const mailWords = {
     throttled: 'rate limited',
     duplicate: 'charged twice',
   } satisfies Record<ChurnCause, string>,
-  /** Why a teammate's item is blocked. */
   blocked: {
     decision: 'waiting on a decision',
     index: 'waiting on an index',
     copy: 'waiting on a database copy',
     hire: 'waiting on a hire',
   },
-  /** How serious an advisory is. */
   severities: { critical: 'critical', high: 'high', medium: 'medium', low: 'low' },
   phrases: {
     wholeDesign: 'the whole Design',
@@ -40,7 +38,6 @@ export const mailWords = {
     nothingOneCause: '- nothing one cause explains',
     patch: 'Patch',
   },
-  /** What a Mail's buttons say. */
   actions: {
     show: 'Show on Board',
     resize: 'Resize',

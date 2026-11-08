@@ -1,12 +1,6 @@
 import type { EventLetters } from './letter.ts'
 import { PEOPLE_EVENTS } from './people.ts'
 
-/* ==========================================================================
-   Step events (GDD 18): Mail about something that just happened in the
-   Design. A repeat of the same event joins its Thread, so some letters read
-   as a follow-up.
-   ========================================================================== */
-
 /** A teammate signs with their first name. */
 const first = (from: string): string => from.split(' ')[0] ?? from
 

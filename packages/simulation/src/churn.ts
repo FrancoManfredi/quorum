@@ -16,13 +16,6 @@ import { openRegions, regional, regionApdexOf, regionUsers } from './regions.ts'
 import type { Game } from './state.ts'
 import { forecastUsers, regionGrowth } from './step.ts'
 
-/* ==========================================================================
-   The Churn breakdown (12 "The Churn breakdown"): why each region's Users
-   leave, as the Apdex points each Request kind and cause takes, and the
-   fixes that win back the points the region needs. Every figure comes from
-   the Ledger and the growth rule, with no estimate.
-   ========================================================================== */
-
 /**
  * What takes Apdex: `far` is the round trip to a Design in another region,
  * `slow` is time inside the Design, and an error cause is a failure.
@@ -44,7 +37,6 @@ export type ChurnRow = Readonly<{
   points: number
   /** p99 of the kind for this region's users, in ms, once Percentiles is researched. */
   p99: number | null
-  /** The kind's Apdex T, in ms. */
   target: number
   /** Fixing this row and the ones above it wins back the points the region needs. */
   needed: boolean
@@ -70,7 +62,6 @@ export type RegionChurn = Readonly<{
   rows: ReadonlyArray<ChurnRow>
 }>
 
-/** Rows smaller than this are noise. */
 const MIN_POINTS = 0.002
 
 /** What fixes a failure, in one line. */
@@ -218,5 +209,4 @@ export const churnOf = (game: Game, ledger: Ledger): ReadonlyArray<RegionChurn> 
     .toSorted((a, b) => a.perHour - b.perHour)
 }
 
-/** The region's name, for copy. */
 export const regionName = (region: RegionId): string => REGION_INFO[region].name

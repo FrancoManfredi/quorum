@@ -11,7 +11,7 @@ export const llmRule: ComponentRule = {
     flatModel(
       LLM_RATE * flatScale(node),
       arriving,
-      { fixed: LLM_FIRST_TOKEN_MS, variable: 0 },
+      { fixedMs: LLM_FIRST_TOKEN_MS, variableMs: 0 },
       solver.boost(node),
     ),
   outcome: (answer, _, kind) => through({ ...answer.ownHop(kind), cause: 'throttled' }),

@@ -2,12 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   Deleting a Company file asks once. The list is the resting state; Confirming
-   holds the file the next press deletes, so a stale confirm cannot delete a
-   different Company.
-   ========================================================================== */
-
 export const List = Schema.TaggedStruct('List', {})
 
 export const Confirming = Schema.TaggedStruct('Confirming', {

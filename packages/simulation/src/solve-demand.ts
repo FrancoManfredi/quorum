@@ -38,7 +38,6 @@ export const ventureDiurnal = (game: Game): number => {
   return 1 + venture.amplitude * cosTurns((minute - venture.peak * 60) / 1440)
 }
 
-/** The Venture's weekly cycle. */
 export const ventureWeekly = (game: Game): number => {
   const venture = ventureOf(game)
   if (venture.id === 'b2b-saas') return weekly(game.time)

@@ -5,13 +5,6 @@ import { ResearchId } from '@quorum/simulation/state'
 import { Away as AwayReport } from './machine-state.ts'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   Which Company the page is playing, and what is happening to it. The list
-   has no Company open, Opening waits for the file, Open plays it, Away holds
-   the offline report, and Exited keeps the last Company until the player
-   leaves it. One state says which, so a load cannot land on another Company.
-   ========================================================================== */
-
 export const None = Schema.TaggedStruct('None', {})
 
 export const Opening = Schema.TaggedStruct('Opening', {
@@ -208,7 +201,6 @@ export const opened = (phase: CompanyPhase, id: string): CompanyPhase =>
 export const companyIdOf = (phase: CompanyPhase): string | null =>
   phase._tag === 'None' ? null : phase.id
 
-/** A Company is on the board. */
 export const isOpen = (phase: CompanyPhase): phase is Extract<CompanyPhase, { _tag: 'Open' }> =>
   phase._tag === 'Open'
 

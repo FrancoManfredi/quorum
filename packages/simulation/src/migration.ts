@@ -16,22 +16,12 @@ import { Refusal, setFramework, setRuntime, type Action } from './actions.ts'
 import type { Game, GameNode, Migration } from './state.ts'
 import { enqueue, serviceOf, stackOf, withService } from './team.ts'
 
-/* ==========================================================================
-   Migrations (08): a Stack change in a Company costs Dev Hours, sized by the
-   codebase. Both versions run while the strangler moves App Servers over at
-   5%, 25%, 50%, and 100%. Each step needs its share of the Dev Hours, and
-   each step that moves a server reveals bugs until Fix bugs ships.
-   ========================================================================== */
-
 export type StackTarget = Readonly<{ runtime: RuntimeId; framework: FrameworkId }>
-
-/* ---------- the migration machine ---------- */
 
 /** Steps shifted so far: every App Server moved once it reaches the step count. */
 export const stepOf = (migration: Migration): number =>
   migration._tag === 'Finishing' ? MIGRATION_STEPS.length : migration.step
 
-/** Traffic can shift only from Ready. */
 export const isReady = (migration: Migration): boolean => migration._tag === 'Ready'
 
 /** The next tranche's Dev Hours are built: Building becomes Ready. */

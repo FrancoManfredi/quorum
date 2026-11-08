@@ -1,18 +1,9 @@
 import { Schema } from 'effect'
 
-/* ==========================================================================
-   A Node's lifecycle, as a state machine. It was three fields: `down` (0 up,
-   seconds left down, −1 until replaced), `warm` (0 cold to 1 warm), and
-   `downCause`. Nothing stopped the fields from disagreeing. Now one tagged
-   state says where the Node is, and every transition lives in
-   `advanceLife` and the constructors below.
-   ========================================================================== */
-
 export const DownCause = Schema.Literals(['restart', 'failure', 'oom'])
 export type DownCause = typeof DownCause.Type
 
 export const Life = Schema.Union([
-  /** Serving at full speed. */
   Schema.TaggedStruct('Running', {}),
   /** Serving while its runtime warms up: capacity climbs from `warm` to 1. */
   Schema.TaggedStruct('Warming', { warm: Schema.Finite }),
@@ -22,7 +13,6 @@ export const Life = Schema.Union([
     cause: DownCause,
     warm: Schema.Finite,
   }),
-  /** Down until the player replaces it. */
   Schema.TaggedStruct('Stopped', { cause: DownCause, warm: Schema.Finite }),
 ])
 export type Life = typeof Life.Type
@@ -45,7 +35,6 @@ export const stopped = (cause: DownCause, warm: number): Life => ({
   warm,
 })
 
-/** It takes no traffic. */
 export const isDown = (life: Life): boolean => life._tag === 'Restarting' || life._tag === 'Stopped'
 
 /** The warm-up the capacity model reads: 1 when running, the stored value otherwise. */

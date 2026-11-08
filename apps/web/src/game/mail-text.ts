@@ -1,12 +1,5 @@
 import { Schema } from 'effect'
 
-/* ==========================================================================
-   What a Mail says, as data. The Model keeps the English a letter was written
-   with, and next to it which letter that was and the values it quotes, so the
-   Inbox can write it again in the player's language. A save from before has
-   only the English text, and shows that.
-   ========================================================================== */
-
 /** The values a letter quotes: names, numbers and short phrases, never a sentence. */
 export const MailVars = Schema.Record(
   Schema.String,

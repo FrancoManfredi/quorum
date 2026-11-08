@@ -9,7 +9,6 @@ export type Heading = Readonly<{ id: string; text: string; level: 2 | 3 }>
 export type View = (model: Model, h: HtmlBuilder<Message>) => Html
 
 export type Page = Readonly<{
-  /** Absolute, without a trailing slash: `/components/lb`. */
   path: string
   title: string
   /** One sentence: the search result and the page's description. */

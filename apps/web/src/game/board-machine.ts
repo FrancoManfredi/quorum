@@ -3,12 +3,6 @@ import { Schema } from 'effect'
 import { ComponentId } from '@quorum/simulation/state'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   What a click on the Board does. The board holds one tool at a time: a part
-   in hand, a Playbook to stamp, a link to finish, or a sale to confirm. One
-   state says which, so two tools can never be active together.
-   ========================================================================== */
-
 export const Idle = Schema.TaggedStruct('Idle', {})
 
 export const Placing = Schema.TaggedStruct('Placing', {

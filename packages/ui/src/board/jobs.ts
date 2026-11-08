@@ -34,12 +34,10 @@ export type Jobs = {
     input: Readonly<{ game: Game; nodeId: string; option: TradeoffOption }>
     output: Preview | null
   }
-  /** Link routes for the Design's positions. */
   route: {
     input: Readonly<{ nodes: ReadonlyArray<RoutedNode>; links: ReadonlyArray<RoutedLink> }>
     output: Map<string, Wire>
   }
-  /** The Bottleneck search. */
   bottleneck: { input: Readonly<{ game: Game }>; output: string | null }
   /** The Inspector's what-if rows for a busy Node (12 "Load diagnosis"). */
   whatIf: {

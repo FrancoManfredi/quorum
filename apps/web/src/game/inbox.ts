@@ -7,12 +7,6 @@ import { Folder, MailLabel, Mail as MailSchema, MailMute, type Inbox, type Mail 
 import { SENDER_KINDS } from './copy/senders.ts'
 import type { Snippet } from './mail-text.ts'
 
-/* ==========================================================================
-   The Inbox submodel (GDD 18): how Mail joins its Thread, resolves, and is
-   read. Every function takes the Inbox and returns the next one; `update`
-   handles the panel's gestures, and the parent folds it with foldChild.
-   ========================================================================== */
-
 const MAIL_KEPT = 40
 const THREAD_ENTRIES = 20
 
@@ -246,13 +240,10 @@ export const withMail = (inbox: Inbox, id: number, change: Partial<Mail>): Inbox
   mail: inbox.mail.map((mail) => (mail.id === id ? { ...mail, ...change } : mail)),
 })
 
-/* ---------- the save ---------- */
-
 /** What a Company keeps of its Inbox (18 "Open questions"): the Mail and the Senders it muted. */
 export const SavedInbox = Schema.Struct({
   mail: Schema.Array(MailSchema),
   mutes: Schema.Array(MailMute),
-  /** The spam filter's setting. */
   filter: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   /** The last event tick the world wrote Mail for, so a reload does not repeat it. */
   bucket: Schema.Finite,
@@ -282,8 +273,6 @@ export const inboxOfSave = (saved: unknown): Inbox => {
   return { ...inbox, focus: null, peek: null, folder: 'action', label: null }
 }
 
-/* ---------- the panel's gestures ---------- */
-
 export const InboxMessage = defineMessageUnion({
   /** Shows one Mail; null shows the newest in the folder. */
   Opened: { id: Schema.NullOr(Schema.Finite) },
@@ -298,9 +287,7 @@ export const InboxMessage = defineMessageUnion({
   FolderChosen: { folder: Folder },
   /** A filter chip: one Sender kind, or null for every label. */
   LabelChosen: { label: Schema.NullOr(MailLabel) },
-  /** A button on a Mail. */
   Acted: { id: Schema.Finite, action: Schema.String },
-  /** The Sandbox's mail generator. */
   SampleChosen: { id: Schema.String },
   Generated: { count: Schema.Finite },
   Resolved: {},

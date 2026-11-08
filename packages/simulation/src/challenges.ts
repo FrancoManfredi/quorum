@@ -29,14 +29,6 @@ import { StepEvent } from './events.ts'
 import { step } from './step.ts'
 import { SIM_VERSION } from './version.ts'
 
-/* ==========================================================================
-   Challenges (14 "Challenges"): fixed puzzles outside any Company. A fixed
-   start, palette, demand script and scripted incidents; the player's Design
-   runs from t = 0 on a fixed seed and scores three axes, lower is better:
-   Cost (mean Burn per second), Tail (request-weighted p99) and Complexity
-   (Nodes plus Links). The browser and the API Worker run the same code.
-   ========================================================================== */
-
 export type ScoreAxis = 'cost' | 'tail' | 'complexity'
 export const SCORE_AXES: ReadonlyArray<ScoreAxis> = ['cost', 'tail', 'complexity']
 
@@ -50,7 +42,6 @@ export type Challenge = Readonly<{
   /** First-completion Legacy, 1 to 10 by difficulty; the daily drill pays none. */
   legacy: number
   start: () => Game
-  /** Sim seconds the run lasts. */
   duration: number
   /** Sim seconds per Step, the same in the browser and on the server. */
   stepSeconds: number
@@ -76,11 +67,8 @@ export type Challenge = Readonly<{
   /** Most Dev Hours the Design may spend on fixes and Stack changes. */
   devHours?: number
   targets: Readonly<{
-    /** Highest share of failed requests. */
     errors: number
-    /** Highest Tail, in ms. */
     tail?: number
-    /** Highest Cost, in dollars per second. */
     cost?: number
     /** Highest share of requests refused for want of a connection. */
     refused?: number
@@ -93,7 +81,6 @@ export type Challenge = Readonly<{
   }>
   /** A rule the Design must keep, as the reason it breaks it, or null. */
   rule?: (game: Game) => string | null
-  /** Histogram bucket edges per axis, ascending. */
   edges: Readonly<Record<ScoreAxis, ReadonlyArray<number>>>
 }>
 
@@ -1584,9 +1571,6 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
   },
 ]
 
-/* ---------- the daily drill ---------- */
-
-/** FNV-1a over a string, 32 bits. */
 const fnv = (text: string): number => {
   let hash = 0x81_1c_9d_c5
   for (let index = 0; index < text.length; index += 1) {
@@ -1712,7 +1696,6 @@ const INCIDENT_BRIEF: Partial<Record<IncidentId, string>> = {
 
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-/** A real calendar date written `YYYY-MM-DD`. */
 export const isDrillDate = (date: string): boolean => {
   if (!DATE.test(date)) return false
   const [year = 0, month = 0, day = 0] = date.split('-').map(Number)
@@ -1730,11 +1713,8 @@ export const challengeById = (id: string): Challenge | undefined => {
   return CHALLENGES.find((entry) => entry.id === id)
 }
 
-/* ---------- the run ---------- */
-
 /** Running totals of a run, over the scored Steps. Kept in the browser's Model while it runs. */
 export const RunTotals = Schema.Struct({
-  /** Steps run so far. */
   step: Schema.Finite,
   scored: Schema.Finite,
   burn: Schema.Finite,
@@ -1781,7 +1761,6 @@ export const ChallengeResult = Schema.Struct({
   refused: Schema.Finite,
   /** Revenue less Burn, as a share of revenue. */
   margin: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** The first target missed, or null. */
   missed: Schema.NullOr(Schema.String),
   hash: Schema.String,
 })

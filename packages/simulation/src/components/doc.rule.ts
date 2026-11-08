@@ -46,18 +46,18 @@ export const docRule: ComponentRule = {
     const model = flatModel(
       capacity,
       arriving,
-      { fixed: 3, variable: DOC_OP_MS },
+      { fixedMs: 3, variableMs: DOC_OP_MS },
       solver.boost(node),
     )
     // A join makes the store touch three documents, and a transaction makes the write wait for
     // every one of them: the latency grows with the ops it costs, not only with the queue.
-    const wait = (model.service['q-read']?.variable ?? DOC_OP_MS) - DOC_OP_MS
-    const service: Record<string, { fixed: number; variable: number }> = {}
+    const wait = (model.service['q-read']?.variableMs ?? DOC_OP_MS) - DOC_OP_MS
+    const service: Record<string, { fixedMs: number; variableMs: number }> = {}
     for (const kind of Object.keys(arriving)) {
       const join = kind === 'q-tx' || kind === 'q-scan' ? DOC_JOIN_COST : 1
       const slower =
         node.transactions && (kind === 'q-write' || kind === 'q-tx') ? 1 + DOC_TXN_LATENCY : 1
-      service[kind] = { fixed: 3, variable: DOC_OP_MS * join * slower + wait }
+      service[kind] = { fixedMs: 3, variableMs: DOC_OP_MS * join * slower + wait }
     }
     return { ...model, service }
   },

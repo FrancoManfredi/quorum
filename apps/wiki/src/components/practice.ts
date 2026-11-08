@@ -8,13 +8,6 @@ import { solveFlow } from '@quorum/simulation/solve'
 import { CARD_W, boxOf, freeSpot, heightOf } from '@quorum/ui/board/geometry'
 import type { BoardState } from '@quorum/ui/board/board'
 
-/* ==========================================================================
-   The logic behind the Practice boards: a local Game, the board's selection,
-   and the same Simulation actions the game's update function calls. Nothing
-   here draws; practice-board.ts draws it. No rule is written here: a refused
-   action comes back with the game's own refusal text.
-   ========================================================================== */
-
 export type PracticeId = 'place' | 'wire' | 'rearrange'
 
 export type Note = Readonly<{ text: string; tone: 'ok' | 'warn' }>
@@ -28,7 +21,6 @@ export type Practice = Readonly<{
   note: Note | null
   /** Links the board started with, so a cut one can be told. */
   startLinks: number
-  /** Box-selected two or more Nodes. */
   grouped: boolean
   /** Moved a group of two or more Nodes. */
   groupMoved: boolean
@@ -84,7 +76,6 @@ export const startGame = (id: PracticeId): Game => {
       ],
       links: [],
     })
-  // A tangle: the Nodes sit where they were dropped, and the Links cross.
   return normalizeOrdinals({
     ...base,
     nodes: [
@@ -205,7 +196,6 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
     case 'Move': {
       const node = p.game.nodes.find((entry) => entry.id === event.nodeId)
       if (!node) return p
-      // A card in a multi-selection takes the rest of it along.
       const group =
         p.selection.length > 1 && p.selection.includes(event.nodeId) ? p.selection : [event.nodeId]
       const members = p.game.nodes.filter((entry) => group.includes(entry.id))

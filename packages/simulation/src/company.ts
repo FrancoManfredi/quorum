@@ -21,11 +21,6 @@ import {
 } from './state.ts'
 import { normalizeOrdinals } from './labels.ts'
 
-/* ==========================================================================
-   A new Company: the Garage start the design describes, and a Pre-seed start
-   for playtests that want to skip straight to the database problems.
-   ========================================================================== */
-
 export const node = (
   id: string,
   type: ComponentId,

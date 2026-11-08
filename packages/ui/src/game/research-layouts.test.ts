@@ -1,12 +1,6 @@
 import { expect, test } from 'vitest'
 import { NODE_SIZE, nodeSize, researchLayout } from './research-layouts.ts'
 
-/* ==========================================================================
-   15 "Accessibility", Text at 150%: the Research tree's Node boxes and the
-   spacing between them grow with the interface's type, so a long item name
-   still has room and the tree keeps its shape.
-   ========================================================================== */
-
 test('a Node box is its base size at the interface’s own scale', () => {
   expect(nodeSize(1)).toEqual(NODE_SIZE)
 })

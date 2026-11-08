@@ -47,8 +47,6 @@ const keyboardDriven = (element: HTMLElement, attribute: 'morph' | 'exit' | 'fli
   element.dataset[attribute] === 'gesture' &&
   document.documentElement.dataset['input'] === 'keyboard'
 
-/* ---------- morph ---------- */
-
 const sizes = new WeakMap<HTMLElement, Size>()
 const morphs = new WeakMap<HTMLElement, Animation>()
 
@@ -79,8 +77,6 @@ const morph = (element: HTMLElement): void => {
   )
 }
 
-/* ---------- flip ---------- */
-
 const places = new WeakMap<HTMLElement, Readonly<{ top: number; left: number }>>()
 
 const flip = (container: HTMLElement): void => {
@@ -99,8 +95,6 @@ const flip = (container: HTMLElement): void => {
     })
   }
 }
-
-/* ---------- exit ---------- */
 
 const boxes = new WeakMap<HTMLElement, Box>()
 
@@ -151,8 +145,6 @@ const exit = (element: HTMLElement, record: MutationRecord): void => {
   element.addEventListener('animationend', (event) => event.target === element && done())
   setTimeout(done, EXIT_LIMIT_MS)
 }
-
-/* ---------- the watcher ---------- */
 
 const closestElement = (node: Node, selector: string): HTMLElement | null =>
   (node instanceof Element ? node : node.parentElement)?.closest<HTMLElement>(selector) ?? null

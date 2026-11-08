@@ -2,7 +2,6 @@ import { preseedGame } from '../../src/company.ts'
 import type { Game } from '../../src/state.ts'
 import { step } from '../../src/step.ts'
 
-/** Sim seconds in one golden Step. */
 export const GOLDEN_STEP = 0.25
 
 /** The golden Company: the Pre-seed start with seed 1, so incidents fire and roll. */

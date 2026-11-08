@@ -1,10 +1,3 @@
-/* ==========================================================================
-   The English copy of the Simulation's catalog tables. `copyOf` reads the text
-   out of a table by id, so English has one source and cannot drift; each
-   language then writes the same shape by hand, and a missing id fails
-   typecheck.
-   ========================================================================== */
-
 type Table = Readonly<Record<string, object>>
 type Needed<Field extends string> = { readonly [F in Field]: string }
 type Maybe<Field extends string> = { readonly [F in Field]?: string }

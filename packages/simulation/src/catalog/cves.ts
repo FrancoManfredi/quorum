@@ -28,7 +28,6 @@ export const BACKDOOR_FUSE = 300
 /** Share of a Study's Insight a vendor's demo takes off (18 "Spam and phishing"). */
 export const VENDOR_DISCOUNT = 0.2
 
-/** Sim seconds between disclosures. */
 export const CVE_EVERY = 420
 /** Sim seconds a patch ticket can stay overdue before the CVE is exploited. */
 export const PATCH_GRACE = 60

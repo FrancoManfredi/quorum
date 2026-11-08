@@ -12,12 +12,6 @@ import { Message } from '@/game/message.ts'
 import { hud } from './hud.ts'
 import { postmortems } from './incidents.ts'
 
-/* ==========================================================================
-   The incident loop on screen, outside the Dashboard: the postmortem card's
-   three times (11 "Postmortems") and the SLA credit the HUD names beside the
-   runway (11 "SLA credits", 15 "Company and Incidents panels").
-   ========================================================================== */
-
 /** One Sample, as the Simulation writes one per sim second. */
 const sampleOf = (): Sample => ({
   users: 1_050,

@@ -4,12 +4,6 @@ import type { ComponentId, RegionId } from '@quorum/simulation/catalog'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import { flowLabel, flowMarks, placeLabel } from './flows.ts'
 
-/* ==========================================================================
-   15 "Accessibility", reduced motion: the moving packets stop and become
-   still arrows that carry the rate they stand for, so a still board still
-   says how much traffic a belt moves.
-   ========================================================================== */
-
 test('with motion, items ride the belt and no label is drawn', () => {
   const marks = flowMarks(false, 420, 600)
   expect(marks.packets).toBeGreaterThan(0)

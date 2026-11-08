@@ -45,14 +45,10 @@ export type FeatureDef = Readonly<{
   requires: ReadonlyArray<FeatureId>
   /** Research the Company needs before it can build it. */
   research: ResearchId | null
-  /** Multiplies the Era's market. */
   market: number
-  /** Multiplies user growth and churn. */
   growth: number
   churn: number
-  /** Multiplies the demand for a kind. */
   load: Partial<Record<RequestKind, number>>
-  /** Multiplies what a request earns. */
   value: Partial<Record<RequestKind, number>>
   /** Multiplies the response size of a kind. */
   payload: Partial<Record<RequestKind, number>>
@@ -71,9 +67,7 @@ export type FeatureDef = Readonly<{
    * needs no history.
    */
   history: number
-  /** Adds subscription revenue per paying user. */
   subscription: boolean
-  /** The effect, in one line. */
   effect: string
   /** The hidden cost, which Code review shows before it ships. */
   hidden: string | null

@@ -25,12 +25,12 @@ export const dsqlRule: ComponentRule = {
     const rate = reads + writes
     const work = reads * DSQL_READ_COST + writes
     const capacity = (DSQL_TX * flatScale(node)) / (work > 0 ? work / rate : 1)
-    const model = flatModel(capacity, arriving, { fixed: 3, variable: 1 }, solver.boost(node))
+    const model = flatModel(capacity, arriving, { fixedMs: 3, variableMs: 1 }, solver.boost(node))
     const majority = majorityMs(solver.game, node)
-    const service: Record<string, { fixed: number; variable: number }> = {}
+    const service: Record<string, { fixedMs: number; variableMs: number }> = {}
     for (const kind of Object.keys(arriving)) {
-      const base = model.service[kind] ?? { fixed: 3, variable: 1 }
-      service[kind] = kind === 'q-read' ? base : { ...base, fixed: base.fixed + majority }
+      const base = model.service[kind] ?? { fixedMs: 3, variableMs: 1 }
+      service[kind] = kind === 'q-read' ? base : { ...base, fixedMs: base.fixedMs + majority }
     }
     return { ...model, service }
   },

@@ -64,11 +64,6 @@ import {
   type Written,
 } from './copy/index.ts'
 
-/* ==========================================================================
-   Mail (GDD 18): who writes, and which of their letters they send. The copy
-   lives in `copy/`; this file picks a Sender and a letter for each fact.
-   ========================================================================== */
-
 export type { SenderKind } from './copy/index.ts'
 
 /** Mail that waits for a decision: not answered, not resolved, and a button that does something. */
@@ -206,7 +201,6 @@ export interface Fact {
   /** The body. A blank line starts a paragraph. */
   readonly text: string
   readonly actions: ReadonlyArray<AdviceAction>
-  /** The filter put it in Spam. */
   readonly spam: boolean
   /** What it says as data, so it can be shown in another language. */
   readonly message?: MailMessage
@@ -239,8 +233,6 @@ export const factOf = (advice: Advice, game: Game, salt: number | string = ''): 
     [...advice.actions],
   )
 }
-
-/* ---------- the world writes: teammates, CVEs, spam ---------- */
 
 /** One event is drawn per this many sim seconds. */
 export const EVENT_EVERY = 45
@@ -556,11 +548,8 @@ export const eventMail = (
   return null
 }
 
-/* ---------- the generator: every kind of Mail on demand (Sandbox) ---------- */
-
 export interface Sample {
   readonly id: string
-  /** The picker's heading for this sample. */
   readonly group: string
   readonly label: string
   /** `n` is unique per send, so each one starts its own Thread unless the sample repeats a key. */
@@ -829,8 +818,6 @@ export const SAMPLES: ReadonlyArray<Sample> = [
   })),
 ]
 
-/* ---------- an incident's follow-up, and the return from away ---------- */
-
 /** A teammate's follow-up once an Incident resolves: the postmortem is theirs to file (18 "Teammates"). */
 export const postmortemFact = (
   postmortem: Postmortem,
@@ -894,8 +881,6 @@ export const awayFacts = (report: AwayReport, game: Game): ReadonlyArray<Fact> =
     ),
   ]
 }
-
-/* ---------- Step events: what happened in the Design, as Mail ---------- */
 
 const EVENT_FROM: Record<string, SenderKind> = {
   CreditsExhausted: 'cloud',

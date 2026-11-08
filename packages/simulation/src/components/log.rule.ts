@@ -23,7 +23,7 @@ export const logRule: ComponentRule = {
     flatModel(
       (LOG_RATE * flatScale(node)) / hotKeyFactor(solver.game, node),
       arriving,
-      { fixed: LOG_ACKS[node.acks].latency * 5, variable: 0.1 },
+      { fixedMs: LOG_ACKS[node.acks].latency * 5, variableMs: 0.1 },
       solver.boost(node),
     ),
   // It offers its consumers what arrived plus a share of its lag, and no faster than one
@@ -42,7 +42,7 @@ export const logRule: ComponentRule = {
     const own = answer.ownHop(kind)
     // With no Worker linked, nothing consumes the stream.
     if (answer.downstream(kind).fail.stranded >= 1) return failed('stranded')
-    const appended = through({ ...own, fixed: own.fixed + BACKLOG_MS * node.depth })
+    const appended = through({ ...own, fixedMs: own.fixedMs + BACKLOG_MS * node.depth })
     const slot = slotOf(answer.pass, node)
     const inflow = answer.pass.arriving[slot]?.task ?? 0
     // How far behind the producer its consumers are, in seconds of arriving work.

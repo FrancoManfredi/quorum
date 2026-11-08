@@ -2,7 +2,6 @@
 
 const UNITS = ['', 'k', 'M', 'B', 'T'] as const
 
-/** 1234 → 1.23k, 5_600_000 → 5.6M. */
 export const compact = (value: number): string => {
   const sign = value < 0 ? '−' : ''
   let rest = Math.abs(value)
@@ -33,7 +32,6 @@ export const rate = (value: number): string =>
 export const ms = (value: number): string =>
   value < 1000 ? `${Math.round(value)} ms` : `${(value / 1000).toFixed(value < 10_000 ? 1 : 0)} s`
 
-/** A share such as `2.0%`. */
 export const sharePercent = (share: number): string => `${(share * 100).toFixed(1)}%`
 
 /** How long a new task waits in a Queue: seconds, minutes or hours, or stalled with no Worker draining. */

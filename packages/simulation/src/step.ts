@@ -94,12 +94,6 @@ import type { Alarms, FalseAlarms, Game, GameLink, GameNode, PerRegion, Sample }
 import { applyPolicies } from './policies.ts'
 import { advanceMorale, advanceTeam } from './work.ts'
 
-/* ==========================================================================
-   Time. `step` advances a Game by some seconds: money moves, credits drain,
-   cold Nodes warm up, users grow or leave, incidents run, and the pager
-   counts how long each alert condition has held.
-   ========================================================================== */
-
 export type StepResult = Readonly<{
   game: Game
   ledger: Ledger
@@ -396,7 +390,7 @@ const scaleLoadOf = (
     return waiting / (copies * SCALE_QUEUE_DEPTH)
   }
   if (signal === 'cpu') {
-    const cpu = own.resources.cpu
+    const cpu = own.resources.cpuCores
     return cpu && cpu.total > 0 ? cpu.used / cpu.total : 0
   }
   return own.utilization
@@ -558,7 +552,7 @@ const advanceNode = (
     const drain = own && own.inbound > 0 ? own.capacity : Number.POSITIVE_INFINITY
     next = { ...next, depth: Math.max(0, node.depth + ((own?.inbound ?? 0) - drain) * seconds) }
   }
-  const credits = ledger.nodes[node.id]?.resources.credits
+  const credits = ledger.nodes[node.id]?.resources.creditsCoreSeconds
   if (node.family === 'burstable' && credits) {
     const balance = Math.max(
       0,
@@ -571,7 +565,7 @@ const advanceNode = (
   // A pool the player sized too big for its RAM swaps, then the kernel kills it, and so does a
   // leak. Runtimes that size themselves (mod_php, Puma, Node.js) only swap: the player has no
   // pool size to fix, only the box.
-  const ram = ledger.nodes[node.id]?.resources.ram
+  const ram = ledger.nodes[node.id]?.resources.ramGb
   const killable = RUNTIMES[node.runtime].pool || node.leak > 0
   if (
     (node.type === 'server' || node.type === 'worker') &&

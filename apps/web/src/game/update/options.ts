@@ -58,8 +58,6 @@ export const migrationNote = (t: Messages, before: Game, after: Game): Note => {
   return [t.toasts.migrationQueued(Math.round(migration.total)), 'primary']
 }
 
-/* ---------- Tradeoff cards ---------- */
-
 /** The Message that applies an option, as the inspector sent before Tradeoff cards. */
 export const optionMessage = (nodeId: string, option: TradeoffOption): Message => {
   switch (option.kind) {

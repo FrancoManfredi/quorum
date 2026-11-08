@@ -156,7 +156,6 @@ const entity = (def: EraDef, index: number): Page => {
 
 const entities = ERAS.map(entity)
 
-/** What arrives in an Era, counted. */
 const arrivals = (index: number): string => {
   const parts = [
     [COMPONENT_IDS.filter((id) => componentEra(COMPONENTS[id]) === index).length, 'Components'],

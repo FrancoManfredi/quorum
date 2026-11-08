@@ -1,11 +1,5 @@
 import type { Cve, CveVars, Letters, Rewrite } from './letter.ts'
 
-/* ==========================================================================
-   Mail about the world around the Design (GDD 18): security advisories,
-   teammates who want help or a new language, and customers who wait.
-   ========================================================================== */
-
-/** Fictional vulnerabilities the Simulation can disclose. */
 export const CVES: ReadonlyArray<Cve> = [
   {
     id: 'CVE-2026-1337',

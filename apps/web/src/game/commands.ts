@@ -26,11 +26,6 @@ import { SurveySubmission } from '@quorum/rpc'
 import { ApiRpc } from '@/platform/rpc.ts'
 import { annotateSpan, reportSurveyFailure, setSentryConsent, traced } from '../platform/sentry.ts'
 
-/* ==========================================================================
-   Commands: every side effect Quorum has. The board, localStorage, the
-   fullscreen API, timers, and the playtest log.
-   ========================================================================== */
-
 /** The list of Companies: their names, logos, and the figures the title lists. */
 export const SAVE_INDEX_KEY = 'quorum.saves.v1'
 /** One Company's Game per file, so an autosave writes one Company only. */
@@ -573,7 +568,6 @@ export const CopyText = Command.define('CopyText', {
     }),
 })
 
-/** Asks for a save string. */
 export const AskSaveImport = Command.define('AskSaveImport', {
   args: {},
   messages: [Message.SaveImported],
@@ -581,7 +575,6 @@ export const AskSaveImport = Command.define('AskSaveImport', {
     Effect.sync(() => Message.SaveImported({ text: window.prompt('Paste a save (QSV1:…)') })),
 })
 
-/** Asks for a Playbook string. */
 export const AskPlaybook = Command.define('AskPlaybook', {
   args: {},
   messages: [Message.PlaybookImported],

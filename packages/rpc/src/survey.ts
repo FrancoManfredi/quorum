@@ -9,9 +9,7 @@ import { ApiError } from './errors.ts'
  */
 export const SurveyExit = Schema.Struct({
   exit: Schema.String,
-  /** The Era the Company reached. */
   stage: Schema.Finite,
-  /** Sim seconds played. */
   time: Schema.Finite,
   peak: Schema.Finite,
   payout: Schema.Finite,
@@ -30,7 +28,6 @@ export const SurveySubmission = Schema.Struct({
   exit: SurveyExit,
   /** What went wrong while the player played. */
   issues: Schema.String,
-  /** What the player liked. */
   likes: Schema.String,
 })
 export type SurveySubmission = typeof SurveySubmission.Type

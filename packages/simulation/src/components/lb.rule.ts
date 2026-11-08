@@ -32,7 +32,7 @@ export const lbRule: ComponentRule = {
         (node.policy === 'p2c' && has(solver.game, 'lb-algorithms') ? P2C_CAPACITY : 1),
       arriving,
       // An L4 forwards TCP: no HTTP parsing, so a fifth of the hop (05 "Load Balancer").
-      { fixed: node.variant === 'l4' ? L4_MS : 1, variable: 0.1 },
+      { fixedMs: node.variant === 'l4' ? L4_MS : 1, variableMs: 0.1 },
       solver.boost(node),
     ),
   serve: passOn,

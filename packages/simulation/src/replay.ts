@@ -16,13 +16,6 @@ import { openRegions } from './regions.ts'
 import { serviceOf } from './team.ts'
 import { setFix } from './work.ts'
 
-/* ==========================================================================
-   Replays (14 "Rules", plan D4): what a Challenge result uploads. A Design,
-   applied to the Challenge's start through the same actions the board uses,
-   and the actions taken during the run by Step. The server re-runs it; the
-   string form is `QRP1:` and base64url JSON.
-   ========================================================================== */
-
 /** A Design: every Node the player can change, by its board id, and every Link. */
 export const Design = Schema.Struct({
   nodes: Schema.Array(PlaybookNode),
@@ -33,7 +26,6 @@ export const Design = Schema.Struct({
       settings: Schema.Record(Schema.String, Schema.Unknown),
     }),
   ),
-  /** Regions the Design opened besides home. */
   regions: Schema.optionalKey(Schema.Array(Region)),
   /** Fixes in the code, on a Challenge whose fixes cost Dev Hours. */
   fixes: Schema.optionalKey(Schema.Array(FixId)),
@@ -86,8 +78,6 @@ export const MAX_REPLAY_CHARS = 65_536
 export const MAX_DESIGN_NODES = 80
 export const MAX_REPLAY_ACTIONS = 400
 
-/* ---------- capture ---------- */
-
 const changeable = (node: GameNode): boolean =>
   !COMPONENTS[node.type].fixed && !SHARED.includes(node.type)
 
@@ -95,7 +85,6 @@ const changeable = (node: GameNode): boolean =>
 const PLACE_SETTINGS = ['zone', 'region'] as const
 const SETTINGS = [...STACK_SETTINGS, ...NODE_SETTINGS, ...PLACE_SETTINGS]
 
-/** The board's Design, in board order. */
 export const designOf = (game: Game): Design => {
   const regions = openRegions(game).filter((region) => region !== HOME_REGION)
   return {
@@ -115,8 +104,6 @@ export const designOf = (game: Game): Design => {
     ...(game.scenario?.tasks ? { fixes: serviceOf(game).fixes } : {}),
   }
 }
-
-/* ---------- apply ---------- */
 
 type Built = Result.Result<Game, string>
 
@@ -379,8 +366,6 @@ export const applyAction = (game: Game, action: ReplayAction): Game => {
               : RESPOND[action.response](game)
   return Result.isSuccess(result) ? result.success : game
 }
-
-/* ---------- text ---------- */
 
 const PREFIX = 'QRP1:'
 

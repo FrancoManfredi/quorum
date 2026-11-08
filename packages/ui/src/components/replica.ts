@@ -29,7 +29,7 @@ export const replica: ComponentView = {
               : 'plain',
       },
       latency,
-      ...(own.lag === null ? [] : [{ glyph: 'lag', name: 'Lag', value: ms(own.lag) } as const]),
+      ...(own.lagMs === null ? [] : [{ glyph: 'lag', name: 'Lag', value: ms(own.lagMs) } as const]),
     ]
   },
 }

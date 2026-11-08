@@ -1,10 +1,3 @@
-/* ==========================================================================
-   The catalog: every request kind, Component, instance type, runtime,
-   framework, research item, Era and incident in the vertical slice (Garage
-   and Pre-seed). Pure data, one module per concern. The Simulation reads it;
-   the UI only displays it. Balance numbers live here and nowhere else.
-   ========================================================================== */
-
 export * from './catalog/achievements.ts'
 export * from './catalog/components.ts'
 export * from './catalog/cves.ts'

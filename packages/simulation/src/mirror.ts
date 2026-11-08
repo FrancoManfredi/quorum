@@ -30,18 +30,6 @@ import type {
 } from './state.ts'
 import { isApplying, seenOf, step as mirrorSyncStep } from './mirror-machine.ts'
 
-/* ==========================================================================
-   Mirrors (05 "Mirror a region", "Keeping a Mirror in sync", "IaC tools",
-   "GitOps"). A Mirror is a region built from another region's Nodes and Links.
-   Apply writes the source as it is now into the Mirror's code, pays for it, and
-   lands after the IaC tool's apply time. Drift is every difference between the
-   Mirror and its source that is not an override: the source ahead of the code is
-   behind, and the Mirror away from the code is a hand change. Apply brings the
-   Mirror back to the source and reverts every hand change its plan sees: all of
-   them with Terraform, which refreshes on every plan, and the ones the last
-   `pulumi refresh` or `alchemy drift` read with the other two.
-   ========================================================================== */
-
 /** Settings the code manages on a Node. The rest is state the Node runs with. */
 export const MANAGED = [
   'size',
@@ -125,7 +113,6 @@ export type Change =
   | Readonly<{ _tag: 'choose'; source: string; type: ComponentId }>
 
 export type Drift = Readonly<{
-  /** The changes the plan shows. */
   changes: ReadonlyArray<Change>
   /** Hand changes the plan cannot see until the player reads live state. */
   hidden: ReadonlyArray<Change>
@@ -180,8 +167,6 @@ const defaultPattern = (type: ComponentId): DataPattern =>
 
 /** Calendar minutes the Company has left moving to its IaC tool; 0 when Mirrors sync. */
 export const switchLeft = (game: Game): number => Math.max(0, (game.iac?.until ?? 0) - game.time)
-
-/* ---------- what the source says the Mirror should be ---------- */
 
 type Want = Readonly<{ source: string; spec: NodeSpec }>
 
@@ -304,8 +289,6 @@ const managedFrom = (game: Game, mirror: Mirror): ReadonlySet<string> => {
 }
 
 const valueOf = (node: GameNode, field: Managed): NodeSpec[string] => node[field]
-
-/* ---------- drift ---------- */
 
 /**
  * The plan: every difference between the Mirror and its source, each marked as
@@ -465,8 +448,6 @@ export const applyCost = (game: Game, mirror: Mirror): number => {
   }
   return cost
 }
-
-/* ---------- Apply and landing ---------- */
 
 /**
  * Calendar minutes from Apply until the plan lands: `mirror_time` when it builds
@@ -667,8 +648,6 @@ export const previewApply = (game: Game, region: RegionId): Game => {
   const pending = mirrorOf(written, region)
   return pending && isApplying(pending.sync) ? land(written, pending) : written
 }
-
-/* ---------- actions ---------- */
 
 const locked = (what: string, research: 'infra-as-code' | 'gitops'): Action =>
   no(Refusal.Locked({ what, research: RESEARCH[research].name }))
@@ -872,8 +851,6 @@ export const repairMirror = (game: Game, region: RegionId): Action => {
       : land(withMirror(paid, repaired), repaired),
   )
 }
-
-/* ---------- the Step ---------- */
 
 const syncDelay = (sync: SyncMode): number => (sync === 'staged' ? STAGE_WAIT : SYNC_POLL)
 

@@ -2,13 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   Where a Feature stands (08 "Features"). It is built and waiting for a
-   deploy, or it is live with a rollout, an adoption share, and a measured
-   lift. Outcomes and the queue of waiting Features stay on the Game; this
-   machine tracks the phase and what the phase shows.
-   ========================================================================== */
-
 /** One Feature's A/B samples (08 "Measured lift"): the exposed and holdout requests since its step. */
 export const LiftSample = Schema.Struct({
   exposed: Schema.Finite,
@@ -29,15 +22,11 @@ export const Live = Schema.TaggedStruct('Live', {
 export const FeaturePhase = Schema.Union([Awaiting, Live])
 export type FeaturePhase = typeof FeaturePhase.Type
 
-/** A Team finished building it. */
 export const Built = Schema.TaggedStruct('Built', {})
 /** A deploy shipped it, so it reaches users and adoption starts at 0. */
 export const Deployed = Schema.TaggedStruct('Deployed', {})
-/** Its flag's rollout moved to `share`. */
 export const RolloutChanged = Schema.TaggedStruct('RolloutChanged', { share: Schema.Finite })
-/** Its users reached `share` adoption. */
 export const Adopted = Schema.TaggedStruct('Adopted', { share: Schema.Finite })
-/** Its experiment read `lift`. */
 export const Sampled = Schema.TaggedStruct('Sampled', { lift: LiftSample })
 /** A bad deploy rolled it back, so it waits for the next one again. */
 export const RolledBack = Schema.TaggedStruct('RolledBack', {})

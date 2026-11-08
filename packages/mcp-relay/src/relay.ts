@@ -18,7 +18,6 @@ export type Relay = Readonly<{
   port: number
   /** Asks the page the player is looking at to run a tool, and returns its JSON text. */
   call: (tool: string, input: Record<string, unknown>) => Promise<string>
-  /** Open Quorum tabs connected right now. */
   pages: () => number
   close: () => Promise<void>
 }>

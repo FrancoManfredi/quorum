@@ -14,8 +14,8 @@ export const pspRule: ComponentRule = {
       PSP_CAPACITY * flatScale(node),
       arriving,
       {
-        fixed: 400,
-        variable: 30 + (solver.game.incident?.kind === 'double-charge' ? SLOW_CHARGE_MS : 0),
+        fixedMs: 400,
+        variableMs: 30 + (solver.game.incident?.kind === 'double-charge' ? SLOW_CHARGE_MS : 0),
       },
       solver.boost(node),
     ),

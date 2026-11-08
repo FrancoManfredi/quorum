@@ -8,7 +8,6 @@ import { DESIGN_IDS } from './patterns/designs/index.ts'
    the build with its file and line. src/island-views.ts renders them. */
 
 export const islandAttributes = {
-  /** An aside: `:::Note{tone="tip"}`. */
   Note: Schema.Struct({ tone: Schema.optionalKey(Schema.Literals(['tip', 'warn', 'real'])) }),
   /** A card that links a guided Sandbox: `::Sandbox{id="out-of-credits"}`. */
   Sandbox: Schema.Struct({ id: Schema.Literals(SANDBOX_IDS) }),

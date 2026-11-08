@@ -124,7 +124,6 @@ export type ComponentDef = Readonly<{
   /** Short mark for chips on the board and in the dock. */
   code: string
   name: string
-  /** Real-world product the Component stands for. */
   product: string
   group: BuildGroup
   blurb: string
@@ -170,8 +169,6 @@ export type ComponentDef = Readonly<{
   fixed: boolean
 }>
 
-/* ---------- the CDC Connector, Service Mesh, Feature Flags and Certificates (05) ---------- */
-
 /** The Components that terminate TLS, so each one holds a certificate of its own (05). */
 export const TLS_TERMINATORS: ReadonlyArray<ComponentId> = ['lb', 'cdn', 'waf', 'gw', 'ws', 'edge']
 
@@ -183,7 +180,6 @@ export const INTERNET_MS = 30
 /** MB in one uploaded file (04 "Request kinds"). */
 export const UPLOAD_MB = 2
 
-/** Egress price per GB (09 "Egress"). */
 export const EGRESS_ORIGIN = 0.09
 export const EGRESS_CDN = 0.02
 
@@ -283,8 +279,6 @@ export const SPREAD_REGIONS = 3
 /** During a hot key, this share of reads asks for one key, which lives on one shard (07 "Fan-out"). */
 export const HOT_KEY_SHARE = 0.3
 
-/* ---------- pricing models (09 "Pricing models") ---------- */
-
 /**
  * How a compute Node pays for its box. On-demand is the full rate, reserved a
  * discount for a calendar week's commitment, and spot a deeper one on capacity
@@ -334,8 +328,6 @@ export const SAVINGS_PLAN_RATE = 0.8
 export const PRICING_FROM_STAGE = 3
 /** A reserved term: one calendar week, in sim seconds (one sim second is one calendar minute). */
 export const RESERVED_SECONDS = 7 * 1_440
-
-/* ---------- sticky sessions, purges and cache keys (05) ---------- */
 
 /** Share of its `q-read` calls an App Server behind a sticky Load Balancer answers from its own memory. */
 export const STICKY_LOCAL_READ = 0.15

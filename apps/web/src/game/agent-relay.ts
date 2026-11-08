@@ -6,12 +6,6 @@ import {
 } from 'quorum-mcp-relay/protocol'
 import { readTool } from './agent-tools.ts'
 
-/* ==========================================================================
-   The page's end of the agent relay (packages/mcp-relay): while "Agent access"
-   is on, keep a WebSocket open to the relay on this machine and answer its
-   read-only questions. The relay asks, this answers; nothing is pushed.
-   ========================================================================== */
-
 const MAX_DELAY_MS = 30_000
 
 let wanted = false

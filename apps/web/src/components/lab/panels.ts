@@ -34,11 +34,6 @@ import { cn } from '@/lib/utils'
 import { languagePicker } from '@/i18n/picker.ts'
 import { EYEBROW, FIGURE, FLOAT, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
 
-/* ==========================================================================
-   The panels over the board: How to play, the funding offer, the
-   Era card, the end of the slice, and the playtest panel.
-   ========================================================================== */
-
 export const shell = (
   title: string,
   right: ReadonlyArray<Html>,
@@ -120,8 +115,6 @@ const stat = (name: string, value: string, h: HtmlBuilder<Message>) =>
 
 const stats = (columns: string, children: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
   h.div([h.Class(cn('grid w-full divide-x divide-hairline', WELL, columns))], children)
-
-/* ---------- how to play ---------- */
 
 const stepsOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
   [t.panels.wireIt, t.panels.dragFromANodeSBlue],
@@ -239,8 +232,6 @@ export const helpPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* ---------- game menu ---------- */
-
 const menuItem = (
   label: string,
   glyph: Parameters<typeof icon>[1],
@@ -308,8 +299,6 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     h,
   )
 }
-
-/* ---------- settings ---------- */
 
 /** The sound level, as a slider: its value lives in `prefs.volume`. */
 const volumeRow = (model: Model, h: HtmlBuilder<Message>): Html =>
@@ -451,8 +440,6 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     h,
   )
 }
-
-/* ---------- funding ---------- */
 
 export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -631,8 +618,6 @@ export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     h,
   )
 }
-
-/* ---------- playtest panel ---------- */
 
 export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

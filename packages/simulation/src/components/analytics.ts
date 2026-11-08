@@ -6,7 +6,6 @@ export const SAMPLE_RATES = [0.01, 0.05, 0.1, 0.5, 1] as const
 export const SAMPLE_OVERHEAD = [0.002, 0.01, 0.02, 0.08, 0.15] as const
 /** Milliseconds sampling adds to each tapped hop, per sample rate. */
 export const SAMPLE_LATENCY = [0, 0.5, 1, 3, 5] as const
-/** Storage Burn multiplier, per sample rate. */
 export const SAMPLE_STORAGE = [0.1, 0.5, 1, 5, 10] as const
 /** Seconds of traces Analytics keeps, and the Storage Burn multiplier of each window. */
 export const RETENTION_WINDOWS = [900, 3_600, 21_600] as const
@@ -19,9 +18,7 @@ export const analyticsGlossary: ReadonlyArray<string> = ['observability']
 
 /** The saved properties of a analytics Node, with the defaults an old save decodes to. */
 export const analyticsFields = {
-  /** Share of requests Analytics samples. */
   sampleRate: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0.1))),
-  /** Seconds of traces Analytics keeps. */
   retention: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(900))),
 } as const
 

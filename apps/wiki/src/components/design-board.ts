@@ -4,13 +4,6 @@ import { solveFlow } from '@quorum/simulation/solve'
 import { attachBoard, fitBoard, setBoard, type BoardState } from '@quorum/ui/board/board'
 import { DESIGNS } from '../patterns/designs/index.ts'
 
-/* ==========================================================================
-   One Pattern Design, drawn by the game's own board (Pixi) and solved by the
-   Simulation, so the cards read as they do in the game. The board is a
-   picture: it fits the Design and does not edit it. Loaded on demand from
-   design-card.ts.
-   ========================================================================== */
-
 const NOOP = () => {}
 
 export const drawDesign = (id: string, host: HTMLElement): (() => void) => {

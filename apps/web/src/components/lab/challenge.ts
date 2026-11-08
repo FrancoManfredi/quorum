@@ -40,11 +40,6 @@ import { cn } from '@/lib/utils'
 import { CHIPS, FIGURE, PANEL, WELL, meter, toneText, type Tone } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   Challenge mode: the HUD while the player builds and runs, the brief in the
-   goal slot, and the result card with each axis on its histogram.
-   ========================================================================== */
-
 const axisNamesOf = (t: Messages): Record<ScoreAxis, string> => ({
   cost: t.challenge.cost,
   tail: t.challenge.tail,
@@ -381,8 +376,6 @@ export const challengeBar = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-/* ---------- the result ---------- */
 
 const axisRow = (axis: ScoreAxis, run: ChallengeResultRun, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

@@ -36,11 +36,9 @@ export const scrollAreaClass = 'relative'
 export const scrollAreaViewportClass =
   'no-scrollbar overflow-scroll size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1'
 
-/** Upstream Scrollbar string. */
 export const scrollAreaScrollbarClass =
   'data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-l data-vertical:border-l-transparent flex touch-none p-px transition-colors select-none'
 
-/** Upstream Thumb string. */
 export const scrollAreaThumbClass = 'rounded-full relative flex-1 bg-border'
 
 const SCROLLBAR_PAD_PX = 1
@@ -457,7 +455,6 @@ export const subscriptions = Subscription.make<Model, Message>()((entry) => ({
 // VIEW
 
 export type ViewInputs = Readonly<{
-  /** Scrollable content rendered inside the viewport. */
   content: Html
   className?: string
 }>

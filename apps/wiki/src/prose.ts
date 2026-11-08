@@ -7,13 +7,6 @@ import { mathView } from './components/math.ts'
 import { islandViews } from './components/islands.ts'
 import { type Heading, slug } from './page.ts'
 
-/* ==========================================================================
-   Markdown in the wiki's style. Headings get anchors, links stay in the
-   wiki when they can, tables sit in the game's nested-group style,
-   ```latex fences are typeset by KaTeX, ```mermaid fences are drawn by Pele, and directives become live
-   islands (src/island-views.ts).
-   ========================================================================== */
-
 type Inline = Markdown.Inline
 
 /** The plain text of inline content, for anchors and search. */

@@ -22,7 +22,8 @@ export const STORAGE_CLASSES = {
 /**
  * Lifecycle rules (07 "Object Storage"): an object older than this many calendar days moves one
  * class cheaper, so Standard becomes Infrequent access and Infrequent access becomes Archive.
- * Days offered, and the age model below, are
+ * Days offered, and the age model below, are proposed: the design says "moves old objects to
+ * cheaper classes automatically" and gives no rule.
  */
 export const LIFECYCLE_DAYS = [0, 30, 90, 365] as const
 

@@ -7,7 +7,6 @@ export const saveCases = {
   SaveImportAsked: {},
   SaveImported: { text: Schema.NullOr(Schema.String) },
 
-  /** Playtest panel. */
   CheatCash: {},
   CheatInsight: {},
   CheatLegacy: {},

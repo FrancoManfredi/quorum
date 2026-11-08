@@ -107,7 +107,6 @@ export type IncidentDef = Readonly<{
   escalatesTo: 1 | 2 | null
   /** Sim seconds before it ends on its own. */
   duration: number
-  /** What happened, for the postmortem. */
   cause: string
   /** What would prevent it, for the postmortem. */
   prevention: string
@@ -130,7 +129,8 @@ export const DEADLINE_SURGE = 3
 /**
  * The signature incidents of the older Ventures (13 "Ventures"). The design names each one and
  * gives two numbers: a flash sale is "×20 demand" and a hot shard is one tenant on one shard.
- * The rest are
+ * The rest are proposed: a hot shard costs three times the CPU per query, a premiere lifts video
+ * four times, and a launch day lifts realtime six times.
  */
 export const HOT_SHARD_CPU = 3
 export const PREMIERE_SURGE = 4
@@ -144,8 +144,6 @@ export const KIND_SURGE: Partial<Record<IncidentId, readonly [RequestKind, numbe
   'flash-sale': ['buy', FLASH_SALE_SURGE],
 }
 
-/* ---------- the six kinds 11 names by hand ---------- */
-
 /**
  * Sim seconds a JVM warmup under load lasts: 11 gives "30 s", the warmup a cold Tomcat takes
  * (06 "Java"). It is the one number in this group the design gives.
@@ -157,8 +155,6 @@ export const SUPPLY_CHAIN_SECONDS = 90
 export const ACCIDENTAL_DELETE_SECONDS = 120
 export const OPERATOR_TYPO_SECONDS = 120
 export const LEAP_SECOND_SECONDS = 60
-
-/* ---------- the runtime incidents (06 "Runtime behaviors", "Variants by language") ---------- */
 
 /** Sim seconds a stale OPcache, a runtime compatibility break and a split brain last. */
 export const STALE_OPCACHE_SECONDS = 90
@@ -199,14 +195,14 @@ export const DELETE_CHURN = 0.1
 export const CLOCK_SKEW_MS = 1_000
 export const CLOCK_SKEW_LOSS = 0.1
 
-/* ---------- cascades (11 "One at a time, early") ---------- */
-
 /** Cascades start from Series A, when the design says they become possible. */
 export const CASCADE_FROM_STAGE = 3
 
 /**
  * The incident one left alone can start, by the kind it leaves alone (11 "One at a time, early").
- * The design says cascades happen and names no pairs, so this table is
+ * The design says cascades happen and names no pairs, so this table is proposed: each pair is the
+ * failure the catalog's own flagship section describes, a slowdown plus retries, a cache gone
+ * cold, a heap that fills, a clock that jumps into a partition.
  */
 export const CASCADES: Partial<Record<IncidentId, IncidentId>> = {
   'slow-query': 'retry-storm',
@@ -604,7 +600,7 @@ export const INCIDENTS: Record<IncidentId, IncidentDef> = {
     actions: [],
   },
   // Only a phishing Mail the player acts on starts this one (18 "Spam and phishing"); the
-  // director never draws it. The duration is
+  // director never draws it. The duration is proposed: the design gives none.
   'credential-leak': {
     id: 'credential-leak',
     name: 'Credential leak',
@@ -924,8 +920,6 @@ export const ROWS_PER_USER = 100
 
 /** An incident whose action item is still open is this many times as likely. */
 export const OPEN_ACTION_WEIGHT = 2
-
-/* ---------- the incident loop (11 "The incident loop", "Runbooks") ---------- */
 
 /**
  * Sim seconds an on-call rotation takes to answer a page: five calendar minutes. With `on-call`

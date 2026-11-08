@@ -44,11 +44,6 @@ import {
 } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   The Sandbox surfaces: the HUD that replaces the Company's, the objective in
-   the goal slot, and the card when a guided Sandbox passes.
-   ========================================================================== */
-
 /** The guided Sandbox after this one: the next in its track, then the next track. */
 export const nextGuided = (id: SandboxId): SandboxId | null => {
   const order = TRACKS.flatMap((track) => track.sandboxes)
@@ -179,8 +174,6 @@ const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* ---------- guided ---------- */
-
 const steps = (run: SandboxRun, id: SandboxId, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -246,8 +239,6 @@ export const objectiveBar = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-/* ---------- free ---------- */
 
 const tiny = (label: string, message: Message, h: HtmlBuilder<Message>, active = false): Html =>
   button(
@@ -425,8 +416,6 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* ---------- the HUD ---------- */
-
 export const sandboxHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -447,8 +436,6 @@ export const sandboxHud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>
     ],
   )
 }
-
-/* ---------- passed ---------- */
 
 export const passedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

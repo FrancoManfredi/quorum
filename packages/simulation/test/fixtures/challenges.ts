@@ -64,7 +64,6 @@ const more = (game: Game, like: string, count: number): Game => {
 const servers = (game: Game) =>
   game.nodes.filter((entry) => entry.type === 'server').map((entry) => entry.id)
 
-/** The fix each Challenge teaches. */
 export const REFERENCE: Record<string, (game: Game) => Game> = {
   'hello-world': (game) => ok(Actions.setFamily(game, 'server', 'general')),
   'split-the-box': (game) => {
@@ -324,7 +323,6 @@ export const replayOf = (
   actions,
 })
 
-/** The reference solution's replay. */
 export const referenceReplay = (challenge: Challenge): Replay =>
   replayOf(
     challenge,

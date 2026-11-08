@@ -2,13 +2,6 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { BACKEND_KINDS, KINDS, REQUEST_KINDS, type Kind } from '@quorum/simulation/catalog'
 import { cn } from 'cn'
 
-/* ==========================================================================
-   A packet's shape (15 "Accessibility"): colour is not the only cue. Each
-   request kind keeps its colour and takes one of four shapes, so a player who
-   cannot tell the colours apart can still tell the kinds apart. Kinds that
-   share a colour share a shape, so the two cues never disagree.
-   ========================================================================== */
-
 /** The four shapes, in the order the design names them. */
 export const PACKET_SHAPES = ['circle', 'square', 'triangle', 'diamond'] as const
 export type PacketShape = (typeof PACKET_SHAPES)[number]
@@ -33,7 +26,6 @@ export const PACKET_SHAPE_OF: Readonly<Record<Kind, PacketShape>> = (() => {
 /** The shape a kind's packets are drawn in. */
 export const packetShapeOf = (kind: Kind): PacketShape => PACKET_SHAPE_OF[kind]
 
-/** A kind's colour as CSS. */
 export const packetColor = (kind: Kind): string =>
   `#${KINDS[kind].color.toString(16).padStart(6, '0')}`
 

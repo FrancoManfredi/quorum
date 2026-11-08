@@ -83,7 +83,6 @@ type StyleConfig<M> = Readonly<{
   attributes?: ReadonlyArray<Attribute<M> | ChildAttribute>
 }>
 
-/** Dialog header wrapper. */
 export const header = <M>(
   config: StyleConfig<M>,
   children: ReadonlyArray<Child>,
@@ -124,7 +123,6 @@ export const description = <M>(
     children,
   )
 
-/** Dialog footer wrapper. */
 export const footer = <M>(
   config: StyleConfig<M>,
   children: ReadonlyArray<Child>,

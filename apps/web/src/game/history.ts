@@ -2,15 +2,6 @@ import { Option, Schema } from 'effect'
 import { CALENDAR_START } from '@quorum/simulation/catalog'
 import type { Sample } from '@quorum/simulation/state'
 
-/* ==========================================================================
-   The Dashboard's long history (12 "History and resolution"). The Game keeps
-   the last 600 one-minute Samples; this keeps 15-minute blocks for 7 days and
-   1-hour blocks for 30 days. Each block holds min, max, and sum of every
-   Sample field, and how many Samples it took, so a Chart can draw the mean
-   and the worst value. It is client state, like Mail: not in the Game, so
-   replays do not change.
-   ========================================================================== */
-
 export const FIELDS = [
   'users',
   'demand',

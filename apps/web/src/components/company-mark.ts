@@ -1,11 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { logoOf, type LogoId } from '@/game/logos.ts'
 
-/* ==========================================================================
-   A Company's logo, wherever the game shows it: the title screen's rows and
-   status column, the Companies page, and the board's menu.
-   ========================================================================== */
-
 export const companyMark = <M>(logo: LogoId, className: string, h: HtmlBuilder<M>): Html => {
   const def = logoOf(logo)
   return h.svg(

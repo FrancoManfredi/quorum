@@ -43,12 +43,6 @@ import {
   Region,
 } from '@quorum/simulation/state'
 
-/* ==========================================================================
-   Quorum — what the UI holds. The Game is the saved company; everything else
-   is the player's view of it. The Ledger is never stored: views derive it
-   from the Game with `ledgerOf`.
-   ========================================================================== */
-
 export const Panel = Schema.Literals([
   'none',
   'research',
@@ -79,7 +73,6 @@ export const BuildGroupKey = Schema.Literals(
   DOCK_GROUPS.map((group) => group.key) as [DockGroup, ...Array<DockGroup>],
 )
 
-/** The title menu's page. */
 export const Menu = Schema.Literals(['main', ...MENU_PAGES])
 export type Menu = typeof Menu.Type
 
@@ -96,7 +89,6 @@ export type SandboxStore = typeof SandboxStore.Type
 export const Survey = Schema.Struct({
   issues: Schema.String,
   likes: Schema.String,
-  /** Where the send stands. */
   phase: SurveyPhase,
 })
 export type Survey = typeof Survey.Type
@@ -144,9 +136,7 @@ const MAIL_FIELDS = {
   key: Schema.String,
   sender: Schema.String,
   subject: Schema.String,
-  /** The letter the subject came from. */
   message: Schema.optionalKey(MailMessage),
-  /** Game time of the newest entry. */
   time: Schema.Finite,
   entries: Schema.Array(MailEntry),
   actions: Schema.Array(MailAction),
@@ -228,9 +218,7 @@ export type AnnotationGroup = typeof AnnotationGroup.Type
 export const Dashboard = Schema.Struct({
   /** The 15-minute and 1-hour blocks, beyond the Game's 600 Samples. */
   history: History,
-  /** The time range in calendar minutes. */
   range: Schema.Finite,
-  /** The Sample the crosshair is on. */
   hover: Schema.NullOr(Schema.Finite),
   /** The Postmortem the Incidents row shows, or null for the list alone. */
   postmortem: Schema.NullOr(Schema.Finite),
@@ -255,9 +243,7 @@ export type MailMute = typeof MailMute.Type
 
 /** The Inbox: the Mail the game has sent, and how the panel and its preview card show it. */
 export const Inbox = Schema.Struct({
-  /** Oldest first. */
   mail: Schema.Array(Mail),
-  /** The Mail the panel shows. */
   focus: Schema.NullOr(Schema.Finite),
   /** The Mail whose preview card waits above the Inbox button until the player reads or dismisses it. */
   peek: Schema.NullOr(Schema.Finite),
@@ -265,7 +251,6 @@ export const Inbox = Schema.Struct({
   bucket: Schema.Finite,
   /** The Sandbox's mail generator: the sample the next send uses. */
   sample: Schema.String,
-  /** The folder the panel lists. */
   folder: Folder,
   /** The label the chips filter the folder by, or null for every kind. */
   label: Schema.NullOr(MailLabel),
@@ -281,9 +266,7 @@ export type Inbox = typeof Inbox.Type
 export const ServiceDraft = Schema.Struct({
   /** The name typed for the Service a split makes. */
   name: Schema.String,
-  /** The team that will own it. */
   owner: Schema.String,
-  /** The Features the split moves. */
   features: Schema.Array(FeatureId),
 })
 export type ServiceDraft = typeof ServiceDraft.Type
@@ -294,7 +277,6 @@ export type Team = typeof Team.Type
 /** The research item the Research panel shows in its side pane; null picks one. */
 export const Research = Schema.Struct({
   focus: Schema.NullOr(ResearchId),
-  /** The Study queue's drag gesture. */
   drag: DragAndDrop.Model,
 })
 export type Research = typeof Research.Type
@@ -311,7 +293,6 @@ export type Glossary = typeof Glossary.Type
 /** The board's clock: its speed, whether it runs, and when it last saved and sampled. */
 export const Clock = Schema.Struct({
   speed: Schema.Finite,
-  /** Running, or the reason it holds. */
   mode: ClockMode,
   /** Steps owed but not run yet: a tick at 1× is 2.5 Steps. */
   carry: Schema.Finite,
@@ -341,14 +322,12 @@ export const Board = Schema.Struct({
   game: Game,
   /** What the board plays. Exactly one of the three, never two at once. */
   session: Session,
-  /** The region tab the board shows. */
   region: Region,
   selected: Schema.NullOr(Schema.String),
   /** Nodes picked with shift for a Playbook. */
   selection: Schema.Array(Schema.String),
   /** What a click on the board does, and what follows the pointer. */
   flow: BoardFlow,
-  /** The Nodes last copied or cut. */
   clipboard: Schema.NullOr(Playbook),
   /** The open build tray, or null when the dock shows only its group icons. */
   buildGroup: Schema.NullOr(BuildGroupKey),
@@ -399,7 +378,6 @@ export const boardChallenge = (board: Board): ChallengeRun | null =>
 
 /** The session: what lasts while the page is open, and the board being played. */
 export const Model = Schema.Struct({
-  /** The screen, parsed from the URL. */
   route: AppRoute,
   /** Where the app is in its boot sequence: the clock-in splash, the title, or a board opening. */
   boot: Boot,
@@ -425,7 +403,6 @@ export const Model = Schema.Struct({
   founder: Founder,
   /** The Exit survey, until the player leaves the exited Company. */
   survey: Survey,
-  /** Guided Sandboxes the player has passed. */
   passed: Schema.Array(SandboxId),
   /** The free Sandbox as the player left it. */
   freeBoard: Schema.NullOr(Game),
@@ -440,7 +417,6 @@ export const Model = Schema.Struct({
   /** The searchable Stack pickers on the Inspector's App Server or Worker. */
   runtimePicker: Combobox.Model,
   frameworkPicker: Combobox.Model,
-  /** The phone toolbar's More menu. */
   moreMenu: UiMenu.Model,
 })
 export type Model = typeof Model.Type

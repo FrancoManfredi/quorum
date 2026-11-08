@@ -17,12 +17,12 @@ export const storageRule: ComponentRule = {
       Number.POSITIVE_INFINITY,
       arriving,
       {
-        fixed:
+        fixedMs:
           40 +
           (node.storeVariant === 'r2' && !solver.game.nodes.some((entry) => entry.type === 'cdn')
             ? R2_FIRST_BYTE_MS
             : 0),
-        variable: 5,
+        variableMs: 5,
       },
       1,
     ),

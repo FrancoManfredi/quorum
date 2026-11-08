@@ -67,15 +67,6 @@ import {
 } from '@quorum/ui/primitives/composed-chart'
 import { EYEBROW, FIGURE, PANEL, SCROLL, WELL } from '@quorum/ui/game/bits'
 
-/* ==========================================================================
-   The Dashboard (12 "The Dashboard"): the Design over time, as a full page
-   like Research, styled after a Grafana board in the game's own tokens, so
-   it follows the theme. Panels vary the way Grafana's do: stats, gauges, LCD bar gauges, a state timeline, time
-   series with gradient fills, a pie, and a table with coloured cells. Rows follow the visibility
-   ladder, then each Component the Board holds, and every time series carries a marker for a deploy, a
-   Design change, an Incident and a Company event (12 "Annotations").
-   ========================================================================== */
-
 /** Time ranges in calendar minutes: up to 10 hours read the Game's one-minute Samples, longer
     ones the 15-minute and 1-hour blocks (12 "History and resolution"). */
 export const DASHBOARD_RANGES = [60, 360, 1440, 10_080, 43_200] as const
@@ -123,10 +114,6 @@ const sloText = (slo: number): string => `${Number((slo * 100).toFixed(3))}%`
 
 /** One Chart row: its label and figures. A figure is null where the history holds no value. */
 type Row = Readonly<Record<string, number | string | null>>
-
-/* ==========================================================================
-   Data
-   ========================================================================== */
 
 /** The resolution a range reads: one-minute Samples, then 15-minute blocks, then 1-hour blocks. */
 const tierOf = (range: number): Tier | null =>
@@ -268,10 +255,6 @@ const tracksOf = (model: Model): ReadonlyArray<NodeTrack> => {
     }))
 }
 
-/* ==========================================================================
-   The Company and Incidents panels (15 "Panels")
-   ========================================================================== */
-
 const runwayText = (t: Messages, seconds: number | null): string =>
   seconds === null ? '∞' : t.dashboard.runwayMonths((seconds / RUNWAY_MONTH).toFixed(1))
 
@@ -379,10 +362,6 @@ const actionText = (t: Messages, game: Game, postmortem: Postmortem): string =>
     : has(game, postmortem.action)
       ? t.dashboard.ownedAction(t.catalog.research[postmortem.action].name)
       : t.catalog.research[postmortem.action].name
-
-/* ==========================================================================
-   Panel chrome
-   ========================================================================== */
 
 /** A status lamp, lit in its colour, like the dot on a Node card's icon. */
 const led = (color: string, h: HtmlBuilder<Message>): Html =>
@@ -504,7 +483,6 @@ const locked = (
   )
 }
 
-/** A Grafana row header. */
 const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html =>
   h.div(
     [
@@ -521,10 +499,6 @@ const rowHeader = (label: string, count: number, h: HtmlBuilder<Message>): Html 
       ),
     ],
   )
-
-/* ==========================================================================
-   Time series
-   ========================================================================== */
 
 /** Chart text in the game's figure face; only foldcn's hover bands take the pointer, not the fills drawn over them. */
 const PLOT =
@@ -1066,10 +1040,6 @@ const timeSeries = (
   )
 }
 
-/* ==========================================================================
-   Stat and gauge
-   ========================================================================== */
-
 /** A sparkline's bounds: room above the peak, so a flat history is a line, not a slab, and the
     zero line for a figure that can fall below it, such as Cash per second. */
 const sparkDomain = (
@@ -1262,10 +1232,6 @@ const gauge = (
     LEVEL_COLOR[level],
   )
 }
-
-/* ==========================================================================
-   Bar gauge, state timeline, pie, and table
-   ========================================================================== */
 
 const UTILIZATION: Thresholds = { warn: 0.7, danger: 0.9 }
 const CELLS = 32
@@ -1820,10 +1786,6 @@ const nodeTable = (
   )
 }
 
-/* ==========================================================================
-   Tables and bars
-   ========================================================================== */
-
 /** One cell of a table: its text, and optionally a colour, a fill, or a gauge bar. */
 type Cell = Readonly<{
   text: string
@@ -2048,11 +2010,6 @@ const barList = (
   )
 }
 
-/* ==========================================================================
-   The Company panel (15 "Panels"): money and runway, the team's shape, and
-   every round the Company entered. It reads the Game, the Ledger and the Inbox.
-   ========================================================================== */
-
 /**
  * The Money card's Cash series: the same Area the stat panels draw, over the
  * Dashboard's range. A Sample carries Cash since SIM_VERSION 26, so the row
@@ -2203,7 +2160,7 @@ const companyPanels = (
           { text: String(entry.headcount) },
           { text: entry.effective.toFixed(1) },
           { text: `×${entry.velocity.toFixed(2)}` },
-          { text: dhPerMinute(entry.rate) },
+          { text: dhPerMinute(entry.devHoursPerSecond) },
         ],
       })),
       h,
@@ -2239,11 +2196,6 @@ const companyPanels = (
     ),
   ]
 }
-
-/* ==========================================================================
-   The Incidents panel (15 "Panels"): the running Incident and the Postmortems
-   the Game keeps. The chosen row opens its Postmortem below the list.
-   ========================================================================== */
 
 /** SEV1 is the worst Incident, so the bars soften down the game's hues as the SEV does. */
 const SEVERITY_COLOR: Readonly<Record<number, string>> = { 1: RED, 2: AMBER, 3: PURPLE }
@@ -2613,10 +2565,6 @@ const incidentPanels = (
     ...(chosen === undefined ? [] : [postmortemDetail(game, chosen, h)]),
   ]
 }
-
-/* ==========================================================================
-   Rows by research (12 "Charts by research")
-   ========================================================================== */
 
 const RULES = ['errors', 'latency', 'saturation', 'queue', 'budget'] as const
 type Rule = (typeof RULES)[number]
@@ -3095,10 +3043,6 @@ const deviceTable = (ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* ==========================================================================
-   Component rows (12 "Component rows")
-   ========================================================================== */
-
 /** The Load Balancer's traffic per backend, which shows an uneven split. */
 const loadBalancer = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -3195,7 +3139,7 @@ const databases = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =>
         const connections = own?.connections ?? null
         const share = connections === null ? 0 : connections.used / Math.max(1, connections.max)
         const refused = own?.refused ?? 0
-        const lag = own?.lag ?? null
+        const lag = own?.lagMs ?? null
         return {
           key: node.id,
           cells: [
@@ -3372,10 +3316,6 @@ const managed = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
     h,
   )
 }
-
-/* ==========================================================================
-   The page
-   ========================================================================== */
 
 const rangeLabel = (t: Messages, minutes: number): string =>
   minutes >= 1440 ? t.units.dShort(minutes / 1440) : t.units.hShort(minutes / 60)

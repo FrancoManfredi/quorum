@@ -1,18 +1,10 @@
 import { Schema } from 'effect'
 
-/* ==========================================================================
-   The playtest log: every gesture, refusal, incident, change result and a
-   sample of the company every 10 sim seconds, kept in localStorage across
-   reloads and exported as JSON Lines for analysis. Commands call these
-   functions; nothing in the Model depends on them.
-   ========================================================================== */
-
 export const LOG_KEY = 'quorum.playlog.v1'
 const LIMIT = 50_000
 
 /** One line of the log. `data` is the event's payload as JSON. */
 export const LogEntry = Schema.Struct({
-  /** Sim seconds since the company started. */
   t: Schema.Finite,
   type: Schema.String,
   data: Schema.String,
@@ -22,7 +14,6 @@ export type LogEntry = typeof LogEntry.Type
 type Stored = Readonly<{
   session: string
   seq: number
-  /** Wall clock, ms since the epoch. */
   wall: number
   t: number
   type: string

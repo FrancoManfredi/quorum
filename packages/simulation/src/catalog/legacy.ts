@@ -173,7 +173,6 @@ export const PERKS: Record<PerkId, PerkDef> = {
   },
 }
 
-/** The Autopilot level each policy needs. */
 export const POLICY_LEVEL = { research: 1, hire: 2, upgrade: 3 } as const
 
 /** The Autopilot's hiring policy: payroll stays under this share of revenue, up to a headcount. */

@@ -8,7 +8,7 @@ export const SEARCH_QPS = 400
  * A Search Engine's refresh interval (07 "Search Engine"): how long a new document waits to
  * become searchable. A longer interval saves indexing CPU, so the Node answers more queries, and
  * a bigger share of its answers are staler than the index. 1 s is the design's default and fresh
- * enough to serve nothing stale; 5 s and 60 s, their capacity and their stale shares are
+ * enough to serve nothing stale; 5 s and 60 s, their capacity and their stale shares are proposed.
  */
 export const SEARCH_REFRESH = [
   { seconds: 1, capacity: 1, stale: 0 },

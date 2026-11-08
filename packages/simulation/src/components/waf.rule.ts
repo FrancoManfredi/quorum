@@ -39,7 +39,7 @@ export const wafRule: ComponentRule = {
       (flatCapacity(node) / wafOf(node, solver.game).cpu) *
         (solver.game.incident?.kind === 'regex' ? REGEX_CAPACITY : 1),
       arriving,
-      { fixed: 2 + (node.underAttack ? UNDER_ATTACK.latency : 0), variable: 0.1 },
+      { fixedMs: 2 + (node.underAttack ? UNDER_ATTACK.latency : 0), variableMs: 0.1 },
       solver.boost(node),
     ),
   // Bots stop here at the block rate; real users at the false positive rate.
@@ -76,6 +76,5 @@ export const setUnderAttack = (game: Game, id: string, underAttack: boolean): Ac
       : notAllowed('Only a WAF has Under attack mode.'),
   )
 
-/** Disables the WAF rule that backtracks. */
 export const disableRule = (game: Game): Action =>
   endIncident(game, 'regex', 'No WAF rule is backtracking.')

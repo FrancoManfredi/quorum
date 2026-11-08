@@ -3,13 +3,6 @@ import { MutatorId, VentureId } from '@quorum/simulation/state'
 import type { Game } from '@quorum/simulation/state'
 import { LogoId } from './logos.ts'
 
-/* ==========================================================================
-   Company files. A player keeps any number of Companies; the index names
-   them, remembers their logo and Venture, and carries the few figures the
-   title screen lists without decoding every file. Each Company's Game is
-   written under its own key, so an autosave touches one Company only.
-   ========================================================================== */
-
 export const MAX_COMPANY_NAME = 40
 
 /** One Company in the browser's index: the list row, and where its save lives. */
@@ -19,7 +12,6 @@ export const CompanyFile = Schema.Struct({
   logo: LogoId,
   venture: VentureId,
   mutators: Schema.Array(MutatorId),
-  /** Wall-clock milliseconds. */
   createdAt: Schema.Finite,
   updatedAt: Schema.Finite,
   /** The few figures the title screen lists. */
@@ -123,7 +115,6 @@ export const refreshedIndex = (index: SaveIndex, game: Game): SaveIndex => {
   return file === null ? index : savedIndex(index, game, file.updatedAt)
 }
 
-/** Newest first, for the Companies page. */
 export const recent = (files: ReadonlyArray<CompanyFile>): ReadonlyArray<CompanyFile> =>
   [...files].sort((a, b) => b.updatedAt - a.updatedAt)
 

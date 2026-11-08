@@ -4,12 +4,6 @@ import { planState } from './machine.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
 import { PreviewFigures } from './machine-state.ts'
 
-/* ==========================================================================
-   The Tradeoff card's phases: a hover previews an option, a click pins it, and
-   only a pinned card whose preview arrived can be confirmed. The machine says
-   which phase allows what; applying the option is the handler's work.
-   ========================================================================== */
-
 export const Closed = Schema.TaggedStruct('Closed', {})
 
 export const Hovering = Schema.TaggedStruct('Hovering', {
@@ -27,7 +21,6 @@ export const Pinned = Schema.TaggedStruct('Pinned', {
 export const Refused = Schema.TaggedStruct('Refused', {
   nodeId: Schema.String,
   option: TradeoffOption,
-  /** Why the option cannot be chosen. */
   reason: Schema.String,
 })
 

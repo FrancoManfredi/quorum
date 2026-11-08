@@ -10,12 +10,6 @@ import { Message } from '../main.ts'
 import { DESIGNS, DESIGN_IDS } from '../patterns/designs/index.ts'
 import type { Setting } from '../patterns/design.ts'
 
-/* ==========================================================================
-   A Pattern Design in a page: the game's own board, then a table of every
-   setting the picture uses and why. The build prerenders the frame and the
-   table; in the browser design-board.ts draws the board into the frame.
-   ========================================================================== */
-
 // Defined on first use: this module is imported while main.ts is still loading.
 const defineDesignMounted = () =>
   Mount.define('DesignMounted', {

@@ -16,11 +16,8 @@ export const FIRST_INCIDENT_AFTER = 90
  */
 export const CALENDAR_PACE = 24
 
-/** The pacing knobs the Simulation reads. */
 export type Tuning = Readonly<{
-  /** Multiplies the user growth rate `g`. */
   pace: number
-  /** Mean sim seconds between incidents. */
   incidentGap: number
   /** Sim seconds from the Pre-seed raise to the first incident. */
   firstIncidentAfter: number

@@ -39,7 +39,6 @@ export type Panel = Readonly<{
   stats?: (
     context: Omit<PanelContext, 'model'> & Readonly<{ own: NodeLedger }>,
   ) => ReadonlyArray<Html>
-  /** Sections before the instance type. */
   top?: (context: PanelContext) => ReadonlyArray<Html>
   /** Sections after the instance type, before placement and region. */
   body?: (context: PanelContext) => ReadonlyArray<Html>
@@ -226,7 +225,7 @@ export const stack = (
     0,
     Math.floor(
       ((ramOf(node) - OS_RAM - (node.localDb ? 1 : 0)) * 1024) /
-        (runtime.memory + FRAMEWORKS[node.framework].memory),
+        (runtime.memoryMb + FRAMEWORKS[node.framework].memoryMb),
     ),
   )
   return [

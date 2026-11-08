@@ -34,7 +34,6 @@ type StyleConfig = Readonly<{ className?: string }>
 
 type CardConfig = Readonly<{ className?: string; size?: CardSize }>
 
-/** Outermost card surface. */
 const cardContainer = <M>(
   config: CardConfig,
   children: ReadonlyArray<Child>,
@@ -60,7 +59,6 @@ const cardHeader = <M>(
     children,
   )
 
-/** Card title. */
 const cardTitle = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,
@@ -71,7 +69,6 @@ const cardTitle = <M>(
     children,
   )
 
-/** Card description text. */
 const cardDescription = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,
@@ -96,7 +93,6 @@ const cardAction = <M>(
     children,
   )
 
-/** Main content area. */
 const cardContent = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,
@@ -107,7 +103,6 @@ const cardContent = <M>(
     children,
   )
 
-/** Footer area. */
 const cardFooter = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,

@@ -13,12 +13,6 @@ import { proseAt } from '../content.ts'
 import { headingsOf, prose } from '../prose.ts'
 import { slug, type Heading, type Page, type View } from '../page.ts'
 
-/* ==========================================================================
-   The pieces every catalog page is built from: the facts box, sections with
-   anchors, link lists, and hub cards. A catalog page reads its prose from
-   content/<hub>/<id>.md when that file exists.
-   ========================================================================== */
-
 export type H = HtmlBuilder<Message>
 
 export const eraName = (era: number): string => ERAS[era]?.name ?? `Era ${era}`
@@ -32,7 +26,6 @@ export const termPath = (id: string): string => `/glossary/${id}`
 export const termName = (id: string): string =>
   GLOSSARY.find((entry) => entry.id === id)?.term ?? id
 
-/** A link inside the wiki. */
 export const link = (path: string, text: string, h: H): Html =>
   h.a(
     [

@@ -1,12 +1,6 @@
 import { expect, test } from 'vitest'
 import { CHIP_NONE, ROWS_FULL, ROWS_GONE, chipAt, rowsAt } from './lod.ts'
 
-/* ==========================================================================
-   15 "The board": zoomed out, a card drops its rows and then becomes a chip
-   with its name and its load, so a large Design stays readable when zoomed
-   out. Up close the rows are at full strength and there is no chip.
-   ========================================================================== */
-
 test('up close, a card shows its rows and no chip', () => {
   expect(rowsAt(1)).toBe(1)
   expect(chipAt(1)).toBe(0)

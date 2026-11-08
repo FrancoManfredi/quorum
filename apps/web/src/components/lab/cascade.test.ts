@@ -8,11 +8,6 @@ import type { Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
 import { pager, postmortems } from './incidents.ts'
 
-/* ==========================================================================
-   The chain a cascade carries on screen (11 "Cascades"): the pager names the
-   incident that was left alone, and its postmortem says what it followed.
-   ========================================================================== */
-
 const fixture = (game: Partial<Game> = {}): Model => {
   const base = preseedGame()
   const start = initialModel()

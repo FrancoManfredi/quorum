@@ -52,17 +52,9 @@ import {
   type Placed,
 } from '@quorum/ui/game/research-layouts'
 
-/* ==========================================================================
-   Research, fullscreen. The tree (research-layouts.ts) scrolls under a fixed
-   header. Click an item to read it in the detail card; research it from
-   there.
-   ========================================================================== */
-
 /** Items that list `id` as a prerequisite. */
 const followUps = (id: ResearchId): ReadonlyArray<ResearchDef> =>
   researchList.filter((entry) => entry.requires.includes(id))
-
-/* ---------- state ---------- */
 
 type State = 'owned' | 'buy' | 'saving' | 'locked'
 
@@ -86,8 +78,6 @@ const focusOf = (model: Model): ResearchDef => {
     .toSorted((a, b) => a.cost - b.cost)
   return ready[0] ?? researchList[0] ?? RESEARCH.stripe
 }
-
-/* ---------- nodes ---------- */
 
 const NODE_CLASS: Record<State, string> = {
   owned: 'bg-nested shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
@@ -304,8 +294,6 @@ const node = (model: Model, place: Placed, focused: boolean, h: HtmlBuilder<Mess
   )
 }
 
-/* ---------- lines ---------- */
-
 const wires = (model: Model, layout: Layout, focus: ResearchDef, h: HtmlBuilder<Message>): Html =>
   h.svg(
     [
@@ -348,8 +336,6 @@ const wires = (model: Model, layout: Layout, focus: ResearchDef, h: HtmlBuilder<
       )
     }),
   )
-
-/* ---------- the backdrop: Eras and tracks ---------- */
 
 const progressOf = (game: Game, track: ResearchTrack) => {
   const entries = researchList.filter((entry) => entry.track === track)
@@ -461,8 +447,6 @@ const backdrop = (model: Model, layout: Layout, h: HtmlBuilder<Message>) => {
   return [...bands, ...roots]
 }
 
-/* ---------- scrolling ---------- */
-
 /**
  * The screen scrolls like a page. It opens with the focused item in view,
  * and scrolls to an item when the player focuses one that is off screen.
@@ -565,8 +549,6 @@ export const ResearchScroll = Mount.define('ResearchScroll', {
         }),
     ).pipe(Effect.as(Message.Synced())),
 })
-
-/* ---------- the detail card ---------- */
 
 const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -1014,8 +996,6 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
     ],
   )
 }
-
-/* ---------- the screen ---------- */
 
 export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

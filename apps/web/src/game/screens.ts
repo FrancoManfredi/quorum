@@ -45,10 +45,6 @@ import {
   stampedPlaybook,
 } from './model.ts'
 
-/* ==========================================================================
-   The lab is the game, fullscreen. The title screen is in title.ts.
-   ========================================================================== */
-
 /** Display-contents on a desktop, so the HUD, toolbar and goals keep their own corners. */
 const TOP =
   'contents compact:pointer-events-none compact:absolute compact:inset-x-0 compact:top-0 compact:z-20 compact:flex compact:flex-col compact:gap-1.5 compact:[--toolbar-w:calc(196px*var(--type-scale))] compact:pt-[max(8px,env(safe-area-inset-top))] compact:pr-[max(8px,env(safe-area-inset-right))] compact:pb-0 compact:pl-[max(8px,env(safe-area-inset-left))]'
@@ -118,7 +114,6 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
-      // What you are doing on the board: the dock, or the bar for the mode you are in.
       h.div(
         [h.DataAttribute('flip', 'gesture'), h.Class(BOTTOM)],
         [

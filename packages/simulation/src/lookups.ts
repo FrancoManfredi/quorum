@@ -86,11 +86,6 @@ import {
 import { restarting, type DownCause } from './life.ts'
 import type { Game, GameNode, Pricing, StorageClass } from './state.ts'
 
-/* ==========================================================================
-   Small facts about a Game that the solver, the actions and the UI all ask:
-   what is researched, what a Node's hardware is, and what things cost.
-   ========================================================================== */
-
 /** The researched list as a set, built once per list: the solver asks on every hop. */
 const researchedSets = new WeakMap<ReadonlyArray<ResearchId>, ReadonlySet<ResearchId>>()
 
@@ -163,8 +158,6 @@ export const frameworkReady = (game: Game, framework: FrameworkId): boolean => {
   return needed === null || has(game, needed)
 }
 
-/* ---------- hardware ---------- */
-
 export const sizeName = (node: GameNode): string => SIZES[node.size]?.name ?? 'custom'
 
 /** What a card calls a size: the instance size, or a step number for flat Components. */
@@ -234,8 +227,7 @@ export const zoneMs = (from: GameNode, to: GameNode): number =>
 /** KB per second the box's network card moves: Gbps × 125,000. */
 export const networkOf = (node: GameNode): number => (SIZES[node.size]?.gbps ?? 1) * 125_000
 
-/** GB of RAM. */
-export const ramOf = (node: GameNode): number => vcpuOf(node) * FAMILIES[node.family].ram
+export const ramOf = (node: GameNode): number => vcpuOf(node) * FAMILIES[node.family].ramPerVcpu
 
 export const isDown = (node: GameNode): boolean =>
   node.life._tag === 'Restarting' || node.life._tag === 'Stopped'
@@ -282,7 +274,7 @@ export const restartSeconds = (node: GameNode): number =>
   node.type === 'server'
     ? Math.max(
         VM_RESTART_SECONDS,
-        RUNTIMES[node.runtime].startup + FRAMEWORKS[node.framework].startup,
+        RUNTIMES[node.runtime].startupSeconds + FRAMEWORKS[node.framework].startupSeconds,
       )
     : RESTART_SECONDS
 
@@ -343,8 +335,6 @@ export const edgeAuthOf = (game: Game): boolean =>
     (node) => node.type === 'gw' && node.authEdge && !isDown(node) && node.service._tag !== 'Shut',
   )
 
-/* ---------- the Service Mesh ---------- */
-
 /** The live Service Mesh Nodes, and the members that link into each, found once per Game. */
 const meshed = new WeakMap<Game, ReadonlyMap<string, ReadonlyArray<GameNode>>>()
 
@@ -387,8 +377,6 @@ export const meshOf = (game: Game, node: GameNode): boolean => {
 /** The App Servers and Workers a Service Mesh has put a sidecar beside: its billing members. */
 export const meshMembers = (game: Game, mesh: GameNode): ReadonlyArray<GameNode> =>
   meshMembersOf(game).get(mesh.id) ?? []
-
-/* ---------- certificates ---------- */
 
 /**
  * Sim seconds a TLS certificate lasts: 90 calendar days, and 45 from Series C (05 "Secrets and
@@ -438,8 +426,6 @@ export const certDaysLeft = (game: Game, tuning: Tuning = LIVE_TUNING): number |
 /** Whether a Secrets and Certificates Node is live to renew the certificate (05). */
 export const certManaged = (game: Game): boolean =>
   game.nodes.some((node) => node.type === 'pki' && !isDown(node))
-
-/* ---------- money ---------- */
 
 /** base × factor^steps by repeated multiplication: `**` is not exact across engines. */
 export const grown = (base: number, factor: number, steps: number): number => {
@@ -671,7 +657,6 @@ export const edgeBurnOf = (game: Game, node: GameNode, done: number): number =>
 
 /** Burn split the way the Cost panel reads it (09 "The cloud bill"), in dollars per second. */
 export type BurnShares = Readonly<{
-  /** Compute, edge, and platform Nodes. */
   compute: number
   /** Data Nodes, without the GB they store. */
   data: number
@@ -743,7 +728,6 @@ export const resizePrice = (game: Game, node: GameNode): number | null => {
   return Math.round(grown(COMPONENTS[node.type].cost, 2, node.size + 1) * index)
 }
 
-/** Cash to replace a failed Node. */
 export const replacePrice = (game: Game, node: GameNode): number =>
   game.sandbox ? 0 : Math.round(COMPONENTS[node.type].cost * 0.5 * eraOf(game).costIndex)
 
@@ -752,8 +736,6 @@ export const drawerSize = (game: Game, revenue: number): number => {
   const payments = game.nodes.find((node) => node.type === 'payments')
   return Math.max(DRAWER_MIN, revenue * DRAWER_SECONDS) * grown(1, 2, (payments?.size ?? 1) - 1)
 }
-
-/* ---------- sharding, synchronous replicas and indexes (07) ---------- */
 
 /**
  * How a Database's shards share its load (07 "Partitioning"). `hot` is the share of the writes

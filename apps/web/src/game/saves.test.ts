@@ -18,11 +18,6 @@ import {
   type SaveIndex,
 } from './saves.ts'
 
-/* ==========================================================================
-   Company files: many Companies in one browser, each with its own name,
-   logo, Venture, Mutators, and Game.
-   ========================================================================== */
-
 const send = (model: Model, ...messages: ReadonlyArray<Message>): Model =>
   messages.reduce((current, message) => update(current, message).model, model)
 

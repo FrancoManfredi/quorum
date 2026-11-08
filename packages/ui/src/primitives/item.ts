@@ -27,7 +27,6 @@ export const itemSizes: Record<ItemSize, string> = {
   xs: 'gap-2 px-2.5 py-2 in-data-[slot=dropdown-menu-content]:p-0',
 }
 
-/** Upstream cva base string. */
 export const itemClass =
   '[a]:hover:bg-muted rounded-xl border text-sm group/item flex w-full flex-wrap items-center transition-colors duration-100 outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 [a]:transition-colors'
 

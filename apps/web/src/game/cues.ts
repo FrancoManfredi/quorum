@@ -5,13 +5,6 @@ import { clockPaused, placingOf, boardSandbox, type Model, type Tone } from './m
 import { onBoard } from './route.ts'
 import type { Sound } from './sound.ts'
 
-/* ==========================================================================
-   Sound cues: what the player hears after each Message. One cue per update,
-   chosen from what changed, so a gesture sounds the same from the pointer and
-   from the keyboard. Warnings and errors win over everything else, and a
-   refused action never plays its success sound.
-   ========================================================================== */
-
 export type Cue = Readonly<{ sound: Sound; pitch: number; spatial: boolean }>
 
 const TONE_SOUND: Record<Tone, Sound> = {

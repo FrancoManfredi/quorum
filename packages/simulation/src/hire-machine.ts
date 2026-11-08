@@ -2,18 +2,11 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   One hire's wait (08 "Hiring"). An accepted offer joins the Team at
-   `readyAt`, and the engineer it becomes is built in `work.ts`; this machine
-   only says whether that engineer is on the payroll yet.
-   ========================================================================== */
-
 /**
  * The offer is accepted and the engineer joins at `readyAt`. A fresh machine
  * has no date yet: the caller sends `Hired` with the offer's own.
  */
 export const Pending = Schema.TaggedStruct('Pending', { readyAt: Schema.Finite })
-/** The engineer is on the payroll. */
 export const Joined = Schema.TaggedStruct('Joined', {})
 export const HirePhase = Schema.Union([Pending, Joined])
 export type HirePhase = typeof HirePhase.Type
@@ -64,5 +57,4 @@ export const hireMachine = Machine.make({ root: States, events: Events }).handle
 export const step = (phase: HirePhase, event: HireEvent): HirePhase =>
   planState(hireMachine, phase, event)
 
-/** The engineer is on the payroll. */
 export const isJoined = (phase: HirePhase): boolean => phase._tag === 'Joined'

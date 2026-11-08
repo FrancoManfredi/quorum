@@ -40,21 +40,6 @@ import type { Game, GameNode } from './state.ts'
 import { warmOf } from './life.ts'
 import { badDeployShareOf, blastService, buggy, failsKind } from './team.ts'
 
-/* ==========================================================================
-   What each Component does in the flow solve, one rule per Component. The
-   solve walks the graph, splits traffic, repeats its passes, and builds the
-   Ledger; a rule answers the questions that depend on the Component:
-
-   - `model`: its capacity and latency for the work that reaches it.
-   - `serve`: what it sends on for the work it processed.
-   - `outcome`: what one request of a kind gets back from it.
-   - `connections`: the database connections it opens to each data Node it calls.
-   - `probe`: the work it is weighed with, for a Load Balancer's split.
-
-   The table is a Record over every ComponentId, so a new Component cannot
-   compile until it answers each one.
-   ========================================================================== */
-
 export type Rates = Partial<Record<Kind, number>>
 
 /** What a rule may ask the solve about the Design in the current pass. */
@@ -107,8 +92,7 @@ export type Pass = Readonly<{
   tasks: ReadonlyArray<Partial<Record<RequestKind, number>> | undefined>
   /** Tasks per second each Queue's Workers take from it. */
   drained: ReadonlyArray<number | undefined>
-  /** Milliseconds replicas lag behind the primary. */
-  lag: number
+  lagMs: number
   /** Share of replica reads that are stale. */
   staleShare: number
 }>
@@ -210,8 +194,6 @@ export type ComponentRule = Readonly<{
   probe: (game: Game) => Rates | null
 }>
 
-/* ---------- shared pieces ---------- */
-
 /** Requests per second of a flat Component at its size. */
 export const flatCapacity = (node: GameNode): number =>
   (FLAT_CAPACITY[node.type] ?? 0) * flatScale(node)
@@ -228,7 +210,6 @@ export const each = (
   }
 }
 
-/** Sends everything it processed on, unchanged. */
 export const passOn = (serve: Serve, _: GameNode, rates: Rates, share: number) =>
   each(rates, share, (kind, processed) => serve.route(kind, processed))
 
@@ -244,10 +225,10 @@ export const relay = (answer: Answer, _: GameNode, kind: Kind): Outcome =>
 
 export const unlimited =
   (fixedMs: number, variableMs: number) => (_: Solver, __: GameNode, arriving: Rates) =>
-    flatModel(Number.POSITIVE_INFINITY, arriving, { fixed: fixedMs, variable: variableMs }, 1)
+    flatModel(Number.POSITIVE_INFINITY, arriving, { fixedMs, variableMs }, 1)
 
 export const flat =
-  (service: Readonly<{ fixed: number; variable: number }>, capacity = flatCapacity) =>
+  (service: Readonly<{ fixedMs: number; variableMs: number }>, capacity = flatCapacity) =>
   (solver: Solver, node: GameNode, arriving: Rates) =>
     flatModel(capacity(node), arriving, service, solver.boost(node))
 
@@ -292,8 +273,6 @@ export const staticPagesOf = (game: Game): number =>
         : best,
     0,
   )
-
-/* ---------- the API Gateway ---------- */
 
 /** Requests per second a Gateway lets through: its rate limit, or every request when it is 0. */
 export const gatewayLimitOf = (node: GameNode): number =>
@@ -340,8 +319,6 @@ export const aiValueOf = (game: Game, node: GameNode, kind: RequestKind): number
   return lift * mlValueOf(node, kind, vec !== undefined)
 }
 
-/* ---------- code that runs the Service's Stack ---------- */
-
 /**
  * What a Node that runs the Service's code sends on for the work it processed: one backend call
  * for every call the request kind makes. An App Server, a Worker and a function all answer with it.
@@ -371,8 +348,8 @@ export const answerCalls: ComponentRule['outcome'] = (answer, node, kind) => {
   // The response crosses the user's downlink: bytes over bandwidth.
   const own = {
     ...served,
-    fixed:
-      served.fixed +
+    fixedMs:
+      served.fixedMs +
       transferMs(node, requestKind, answer.offloads) * payloadFactor(game, requestKind),
   }
   const crashes = codeCrashes(game, node, kind)
@@ -408,8 +385,6 @@ export const answerCalls: ComponentRule['outcome'] = (answer, node, kind) => {
     ? failSome(relayed, MTU_LOSS, 'timeout')
     : relayed
 }
-
-/* ---------- the table ---------- */
 
 export const terminal: Pick<ComponentRule, 'serve' | 'connections' | 'probe'> = {
   serve: nothing,

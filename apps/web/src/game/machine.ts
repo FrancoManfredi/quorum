@@ -29,7 +29,6 @@ export const planState = <State extends Readonly<{ _tag: string }>>(
   return (plan.next as unknown as Readonly<{ state: { value: State } }>).state.value
 }
 
-/** The machine's initial tagged state. */
 export const initialState = <State>(machine: unknown): State => {
   const plan = Effect.runSync(Machine.planInitial(machine as never))
   return (plan.state as unknown as Readonly<{ state: { value: State } }>).state.value

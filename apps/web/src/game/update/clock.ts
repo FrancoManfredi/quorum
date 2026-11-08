@@ -292,8 +292,6 @@ export const eventLog = (event: StepEvent): Record<string, unknown> =>
     StudyCompleted: ({ research }) => ({ research }),
   })
 
-/* ---------- the clock ---------- */
-
 /** A Step event as a Toast in the player's language, for a Challenge: it has no Inbox to carry the Mail. */
 export const eventToast = (t: Messages, event: StepEvent, game: Game): Note => {
   const e = t.toasts.event
@@ -597,7 +595,6 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
     }
   }
 
-  // Feedback after a change.
   const change = advanceChange(next.board, ledger, next.toastSeq + 1)
   next = { ...next, board: { ...next.board, change } }
   if (change._tag === 'Settled' || change._tag === 'Lasting')

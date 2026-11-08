@@ -30,11 +30,6 @@ import { button } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, PANEL, WELL, insightChip } from '@quorum/ui/game/bits'
 
-/* ==========================================================================
-   The incident loop on screen: the pager, once Alerting is researched, and
-   the postmortems waiting to be written.
-   ========================================================================== */
-
 /** Symptom-based pages, like real alerting: they name what users feel, not the cause. A rule
  * that cried wolf too often today is ignored until the player changes its threshold. */
 /**

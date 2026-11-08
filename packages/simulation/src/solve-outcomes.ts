@@ -40,8 +40,6 @@ import {
 } from './solve-graph.ts'
 import { type Inputs, CALLOUT, splitOf } from './solve-pass.ts'
 
-/* ---------- outcomes ---------- */
-
 /**
  * A leap second repeats one, so every Node in the region fires its timers twice: its answer waits
  * on a clock that jumped, and a share of its answers time out (11 "Leap second or clock skew").
@@ -50,7 +48,11 @@ export const skewed = (game: Game, node: GameNode, answer: Outcome): Outcome => 
   const incident = game.incident
   if (incident?.kind !== 'leap-second' || incident.region === null) return answer
   if (node.region !== incident.region) return answer
-  return failSome(through(hop({ fixed: CLOCK_SKEW_MS }), [[answer, 1]]), CLOCK_SKEW_LOSS, 'timeout')
+  return failSome(
+    through(hop({ fixedMs: CLOCK_SKEW_MS }), [[answer, 1]]),
+    CLOCK_SKEW_LOSS,
+    'timeout',
+  )
 }
 
 /**
@@ -73,11 +75,14 @@ export const outcomesOf = (inputs: Inputs, pass: Pass) => {
 
   const ownHop = (node: GameNode, kind: Kind, value = 1) => {
     const model = pass.models[slotOf(pass, node)]
-    const service = model?.service[kind] ?? { fixed: COMPONENTS[node.type].latency, variable: 0 }
+    const service = model?.service[kind] ?? {
+      fixedMs: COMPONENTS[node.type].latency,
+      variableMs: 0,
+    }
     return hop({
       share: model?.shares?.[kind] ?? model?.share ?? 1,
-      fixed: service.fixed + samplingMsOf(graph, node),
-      variable: service.variable,
+      fixedMs: service.fixedMs + samplingMsOf(graph, node),
+      variableMs: service.variableMs,
       tailP: model?.tailP ?? 0,
       tailMs: model?.tailMs ?? 0,
       value,
@@ -138,7 +143,7 @@ export const outcomesOf = (inputs: Inputs, pass: Pass) => {
       return failed('timeout')
     const extra = placeMs(game, node, child) + (meshOf(game, node) ? MESH_HOP_MS : 0)
     const answer = call(edge, kind)
-    return extra > 0 ? through(hop({ fixed: extra }), [[answer, 1]]) : answer
+    return extra > 0 ? through(hop({ fixedMs: extra }), [[answer, 1]]) : answer
   }
 
   /** What one request of `kind` sent from `node` to its targets gets back. */
@@ -148,7 +153,7 @@ export const outcomesOf = (inputs: Inputs, pass: Pass) => {
       splitOf(inputs, node, kind).map(([edge, weight]) => [placed(edge, kind), weight]),
     )
     if (!mixed) return failed('stranded')
-    return extraHop > 0 ? through(hop({ fixed: extraHop }), [[mixed, 1]]) : mixed
+    return extraHop > 0 ? through(hop({ fixedMs: extraHop }), [[mixed, 1]]) : mixed
   }
 
   /** Milliseconds a caller holds its slot for one call: E[min(X, T)] per attempt, times the attempts. */
@@ -224,7 +229,7 @@ export const meanServiceOf = (pass: Pass, node: GameNode): number => {
     const service = model?.service[kind]
     const each = arriving[kind] ?? 0
     if (!service || each <= 0) continue
-    spent += each * (service.fixed + service.variable)
+    spent += each * (service.fixedMs + service.variableMs)
     rate += each
   }
   const cold = model ? model.tailP * model.tailMs : 0

@@ -35,11 +35,6 @@ import { sreStaffed } from './lookups.ts'
 import { NEW_ENGINEER } from './state.ts'
 import type { Founding, Game, GameNode, Region, Retries } from './state.ts'
 
-/* ==========================================================================
-   What a Company's founding changes (13): perk levels, the Venture, and the
-   Mutators. Every rule reads `game.founding`. A Sandbox ignores all of it.
-   ========================================================================== */
-
 /** The level of a perk the Company was founded with. 0 in a Sandbox. */
 export const perkLevel = (game: Game, id: PerkId): number =>
   game.sandbox ? 0 : Math.min(PERKS[id].costs.length, game.founding.perks[id] ?? 0)
@@ -68,8 +63,6 @@ export const hasMutator = (game: Game, id: MutatorId): boolean =>
 export const legacyMultiplier = (founding: Founding): number =>
   VENTURES[founding.venture].legacy *
   (1 + founding.mutators.reduce((sum, id) => sum + MUTATORS[id].legacy, 0))
-
-/* ---------- perks ---------- */
 
 /** Starting Cash: ×2 per Angel network level. */
 export const angelFactor = (level: number): number => {
@@ -108,8 +101,6 @@ export const mutatorWeight = (game: Game, kind: IncidentId): number =>
     ? CHAOS_WEIGHT
     : 1)
 
-/* ---------- Mutator rules ---------- */
-
 /** The language Single language holds every App Server to: the Garage's. */
 export const FOUNDING_LANGUAGE: LanguageId = 'php'
 
@@ -124,8 +115,6 @@ export const placeRefusal = (game: Game, type: ComponentId, region: Region): str
     return `${MUTATORS['one-region'].name}: the home region only.`
   return venturePlaceRefusal(game, type, region)
 }
-
-/* ---------- Venture rules (13 "Ventures") ---------- */
 
 /**
  * How much likelier a Venture's signature incident is for it, and the weakness
@@ -221,8 +210,6 @@ export const sloOf = (game: Game, slo: number): number => {
   return hasMutator(game, 'strict-slo') || signed ? stricterSlo(slo) : slo
 }
 
-/* ---------- founding a Company ---------- */
-
 /**
  * The board a founding starts on: the Garage, or Pre-seed for a Venture that
  * starts in it or for the Head start perk.
@@ -297,6 +284,5 @@ export const alumniOf = (game: Game, count: number) =>
     ...NEW_ENGINEER,
   }))
 
-/** The Era a founding starts in. */
 export const startEra = (founding: Founding): string =>
   ERAS[Math.min(PERKS['head-start'].costs.length, founding.perks['head-start'] ?? 0)]?.name ?? ''

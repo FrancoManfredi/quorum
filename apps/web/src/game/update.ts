@@ -115,8 +115,6 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, void, ApiRpc> 
   }
 }
 
-/* ---------- helpers ---------- */
-
 export const QUIET = new Set([
   'Ticked',
   'Synced',

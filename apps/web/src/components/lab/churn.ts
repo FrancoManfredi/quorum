@@ -13,11 +13,6 @@ import { cn } from '@/lib/utils'
 import { FIGURE, SCROLL, WELL, toneText } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   The Churn breakdown (GDD 12): why each region's Users leave, and the fixes
-   that win back the Apdex the region needs. It opens from Users on the HUD.
-   ========================================================================== */
-
 /** The button that applies a row's fix, or its advice as text. */
 const fixOf = (game: Game, entry: ChurnRow, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

@@ -3,12 +3,6 @@ import { Schema } from 'effect'
 import { planState } from './machine.ts'
 import { Reveal as RevealSchema, type Reveal } from './machine-state.ts'
 
-/* ==========================================================================
-   Progressive disclosure (GDD 15): one element glows at a time. A trigger
-   that fires while another cue is on screen waits its turn, and using an
-   element shows it for good and ends its glow.
-   ========================================================================== */
-
 /** UI ticks one cue glows, and the longest the next one waits for it: 30 s at any speed. */
 export const CUE_TICKS = 120
 

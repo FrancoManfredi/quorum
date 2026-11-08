@@ -7,13 +7,6 @@ import { RESEARCH_IDS, SIZES } from './catalog.ts'
 import { normalizeOrdinals } from './labels.ts'
 import type { Game, GameLink, GameNode } from './state.ts'
 
-/* ==========================================================================
-   Sandboxes: Boards outside any Company. A guided Sandbox teaches one
-   mechanic from a fixed Design through ordered objectives. Each objective
-   sets the demand, may script an incident, and passes when its condition on
-   the Ledger holds long enough. The free Sandbox is a test bench.
-   ========================================================================== */
-
 export type Objective = Condition &
   Readonly<{
     goal: string
@@ -68,8 +61,6 @@ export type GuidedSandbox = Readonly<{
 
 /** Seconds an objective's condition holds before its incident fires. */
 export const INCIDENT_AFTER = 20
-
-/* ---------- conditions ---------- */
 
 /** A figure the HUD shows next to Demand and Burn, because the objective is measured on it. */
 export type Watch = Readonly<{
@@ -129,8 +120,6 @@ const steadyReads = (p99: number, burn?: number): Condition => ({
     ledger.burn <= (burn ?? Number.POSITIVE_INFINITY) + 1e-9,
 })
 
-/* ---------- starting Designs ---------- */
-
 const SEED = 20_261_101
 
 const board = (
@@ -152,8 +141,6 @@ const board = (
     nextId: 1,
     boxes: [],
   })
-
-/* ---------- the tracks ---------- */
 
 const STAMPEDE_USERS = 6_000
 const STAMPEDE_BURN = 8
@@ -1043,8 +1030,6 @@ export const sandboxOpen = (id: SandboxId, passed: ReadonlyArray<SandboxId>): bo
   return before === undefined || passed.includes(before)
 }
 
-/* ---------- the free Sandbox ---------- */
-
 /** Every Component and Stack, the Pre-seed mix, and a small Design to start from. */
 export const freeSandbox = (): Game =>
   board(
@@ -1071,8 +1056,6 @@ export const sandboxOf = (game: Game): Game => ({
   nextId: game.nextId,
 })
 
-/* ---------- progress ---------- */
-
 export const Progress = Schema.Struct({
   /** Index of the current objective; past the last one means passed. */
   objective: Schema.Finite,
@@ -1091,7 +1074,6 @@ export const passedAll = (sandbox: GuidedSandbox, progress: Progress): boolean =
 export type Advance = Readonly<{
   game: Game
   progress: Progress
-  /** An objective passed on this advance. */
   advanced: boolean
 }>
 

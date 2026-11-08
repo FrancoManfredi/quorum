@@ -56,13 +56,6 @@ import { FOOT_ICONS, ROW_ICONS, footerOf, levelOf, rowsOf, sizePips, type RowTon
 import { COMPONENT_ICONS, GROUP_SHAPES, STACK_LOGOS, type StackLogoId } from '../game/icons.ts'
 import { packetShapeOf, type PacketShape } from '../game/packets.ts'
 
-/* ==========================================================================
-   The board: a PixiJS plane the player builds on. Foldkit owns the Model;
-   this module owns pixels and reports gestures back through BoardEvents.
-   Pointer input is read from DOM events and hit-tested by hand against the
-   Model's geometry, so what the player clicks is exactly what the Model says.
-   ========================================================================== */
-
 /** The sounds a gesture on the board makes. The host decides how to play them. */
 export type BoardSound = 'pull' | 'lift' | 'detent' | 'snap' | 'release'
 
@@ -93,7 +86,6 @@ export type Stamp = ReadonlyArray<
 export type BoardState = Readonly<{
   /** Names the language of the card text, so a change redraws it. */
   locale: string
-  /** Card text in the reader's language. */
   translate: (text: string) => string
   game: Game
   ledger: Ledger
@@ -143,8 +135,6 @@ export const fitBoard = (key: string): void => controllers.get(key)?.fit()
 
 /** Centers the view on a Node after a reveal, zooming in if the Board was far out. */
 export const focusBoard = (key: string, nodeId: string): void => controllers.get(key)?.focus(nodeId)
-
-/* ---------- colours, resolved once through the DOM ---------- */
 
 let pixel: CanvasRenderingContext2D | null | undefined
 
@@ -352,7 +342,6 @@ const badgeGlyph = (group: BuildGroup, r: number): number =>
     r * (GROUP_SHAPES[group] === 'diamond' ? 0.9 : GROUP_SHAPES[group] === 'chip' ? 0.95 : 1.1),
   )
 
-/** A cached left-to-right gradient. */
 const gradientX = (left: number, right: number): FillGradient => gradient(left, right, true)
 
 /** CSS cubic-bezier timing, so the board moves on the same curves as the DOM. */
@@ -372,7 +361,6 @@ const cubicBezier =
     return at((lo + hi) / 2, y1, y2)
   }
 
-/** `--ease-out` in styles.css. */
 const easeOut = cubicBezier(0.23, 1, 0.32, 1)
 const ENTER_S = 0.2
 const EXIT_S = 0.15
@@ -500,8 +488,6 @@ const paintLogo = (view: Sprite, id: StackLogoId, ink: number): void => {
   view.tint = logo.color ? Number.parseInt(logo.color.slice(1), 16) : ink
 }
 
-/* ---------- geometry ---------- */
-
 /** The footer button, in the node's own coordinates. */
 const footerRect = (type: ComponentId) => {
   const y = rowTop(layoutOf(type).rows) + 4
@@ -518,7 +504,6 @@ const inFooter = (node: GameNode, point: Pt): boolean => {
 
 /** Buying a size is held, not clicked: the fill crosses the button, and the buy lands at the end. */
 const HOLD_S = 0.6
-/** Seconds the bought-size burst plays. */
 const CHEER_S = 0.8
 
 /** The footer buys a size, so it asks to be held. */
@@ -748,8 +733,6 @@ const walk = (
   }
 }
 
-/* ---------- one node window ---------- */
-
 const MONO = '"Geist Mono", ui-monospace, monospace'
 const SANS = '"Geist", ui-sans-serif, system-ui, sans-serif'
 /** The medallion in a card's header: its centre and the badge's outer radius. It breaks
@@ -793,7 +776,6 @@ const headerBand = (g: Graphics, group: BuildGroup, hue: number, colors: Palette
     .stroke({ color: mix(colors.border, hue, 0.35), width: 1, alpha: 0.8 })
 }
 
-/** Width of `total` size pips. */
 const pipsWidth = (total: number): number => total * (total > 5 ? 5.5 : 7) - 2
 
 /** A Node's size as slanted pips: `filled` of `total` lit, drawn from (x, y). */
@@ -813,8 +795,6 @@ const pips = (
     g.poly([at + 2, y, at + w + 2, y, at + w, y + 9, at, y + 9]).fill(index < filled ? on : off)
   }
 }
-
-/* ---------- fitting a label ---------- */
 
 /** A label's font as a canvas font string: Pretext measures with it, so it must match Pixi's. */
 const fontOf = new WeakMap<Text, string>()
@@ -948,7 +928,6 @@ class NodeView {
   private readonly names: Array<Text> = []
   private readonly values: Array<Text> = []
   private readonly valueMarks: Array<Sprite> = []
-  /** The rows' icons, names and values. */
   private readonly rows = new Container()
   /**
    * The parts a tick changes: the rows and their bars, then the chip. Pixi rebuilds a
@@ -1592,8 +1571,6 @@ class NodeView {
   }
 }
 
-/* ---------- one belt ---------- */
-
 /**
  * One link's belt, in three layers so belts stack as they always have: a later belt
  * covers an earlier one's chevrons where they share a trunk. The body and the mouths
@@ -1974,8 +1951,6 @@ class NoteLayer {
   }
 }
 
-/* ---------- the controller ---------- */
-
 type Gesture =
   /** `cut` is the link under a finger that went down on it: a tap cuts it, a drag only pans. */
   | {
@@ -2250,8 +2225,6 @@ class BoardController {
     if (this.started) this.app.destroy(true, { children: true })
   }
 
-  /* ---------- camera ---------- */
-
   private onResize(): void {
     const { clientWidth: w, clientHeight: h } = this.host
     if (w === 0 || h === 0) return
@@ -2321,8 +2294,6 @@ class BoardController {
     const local = this.world.toLocal(new Point(event.clientX - rect.left, event.clientY - rect.top))
     return { x: local.x, y: local.y }
   }
-
-  /* ---------- hit tests ---------- */
 
   private nodes(dragged = this.dragged): ReadonlyArray<GameNode> {
     const nodes = this.state?.game.nodes ?? []
@@ -2553,8 +2524,6 @@ class BoardController {
             : null
     return this.landing
   }
-
-  /* ---------- pointer ---------- */
 
   /** The two fingers on the board: how far apart, and where between them. */
   private pinchOf(): Readonly<{ distance: number; center: Pt }> {
@@ -2982,8 +2951,6 @@ class BoardController {
     this.retract = { path: route(outPort(from), end, lane), t: 0 }
     this.events.onSound?.('release', 1, true)
   }
-
-  /* ---------- drawing ---------- */
 
   private syncCards(): void {
     const state = this.state

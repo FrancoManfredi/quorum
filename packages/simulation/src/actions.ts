@@ -113,11 +113,6 @@ import type {
   DbEngine,
 } from './state.ts'
 
-/* ==========================================================================
-   Everything the player can do. Each action returns the next Game, or a
-   Refusal that says why not. The update function only routes Messages here.
-   ========================================================================== */
-
 export { Refusal, describeRefusal, type Action } from './action-kit.ts'
 export { setProvider, switchProvider } from './components/psp.rule.ts'
 export { setSample, setRetention } from './components/analytics.rule.ts'
@@ -170,8 +165,6 @@ export const shortOfCash = (game: Game): boolean => !game.sandbox && game.cash <
 
 const shortfall = (): Action =>
   notAllowed('Out of Cash: no placement, upgrade, or hire until Cash is above zero.')
-
-/* ---------- placing and removing ---------- */
 
 export const blankNode = (
   game: Game,
@@ -360,8 +353,6 @@ export const sell = (game: Game, id: string): Action =>
 export const move = (game: Game, id: string, x: number, y: number): Game =>
   patch(game, id, { x: Math.round(x), y: Math.round(y) })
 
-/* ---------- links ---------- */
-
 /** Kinds a Node sends on its routing links. */
 const emitsOf = (node: GameNode): ReadonlyArray<Kind> => COMPONENTS[node.type].sends
 
@@ -528,8 +519,6 @@ export const disconnect = (game: Game, from: string, to: string): Game => ({
   links: game.links.filter((link) => !(link.from === from && link.to === to)),
 })
 
-/* ---------- sizing and Stacks ---------- */
-
 export const resize = (game: Game, id: string, direction: 1 | -1): Action =>
   withNode(game, id, (node) => {
     const def = COMPONENTS[node.type]
@@ -553,7 +542,6 @@ export const resize = (game: Game, id: string, direction: 1 | -1): Action =>
 /** What `upgradeAll` did: the Game it made, and what it left alone (15 "Bulk actions"). */
 export type UpgradeAllOutcome = Readonly<{
   readonly game: Game
-  /** Nodes that grew one size. */
   readonly upgraded: number
   /** Nodes that were already at their largest size. */
   readonly skipped: number
@@ -716,7 +704,6 @@ export const setTtl = (game: Game, id: string, ttl: number): Action =>
     return ok(patch(game, id, { ttl }))
   })
 
-/** Sets PHP-FPM's process manager. */
 export const setPm = (game: Game, id: string, pm: PmMode): Action =>
   withNode(game, id, (node) =>
     (node.type === 'server' || node.type === 'worker') && node.runtime === 'php_fpm'
@@ -816,7 +803,6 @@ export const setChaos = (game: Game, chaos: boolean): Action => {
   return ok(game.chaos === chaos ? game : { ...game, chaos, weakest: chaos ? game.weakest : null })
 }
 
-/* ---------- regions (docs/adr/0005) ---------- */
 /** Opens a region: its own Users Node, and a tab on the board. Needs Multiple regions. */
 export const openRegion = (game: Game, region: Region): Action => {
   if (!has(game, 'multi-region'))
@@ -883,7 +869,7 @@ export const setSplit = (game: Game, id: string, split: boolean): Action =>
 export const rollBackRoutes = (game: Game): Action =>
   endIncident(game, 'bgp', 'No routing change to roll back.')
 
-/** Share of the Users a phishing page drives away. The design gives no number: this is  */
+/** Share of the Users a phishing page drives away. The design gives no number: this is proposed. */
 export const PHISH_CHURN = 0.1
 
 /**
@@ -1039,8 +1025,6 @@ export const setAlertRule = (game: Game, rule: AlertRule, threshold: number): Ac
     falseAlarms: { ...game.falseAlarms, [rule]: 0 },
   })
 }
-
-/* ---------- incidents ---------- */
 
 /** Replaces a failed Node: it comes back cold after a restart. */
 export const replace = (game: Game, id: string): Action =>
@@ -1316,8 +1300,6 @@ export const filePostmortem = (game: Game, id: number, take: boolean): Action =>
   if (!take || !action || has(game, action)) return ok(filed)
   return study(filed, action, true)
 }
-
-/* ---------- research and money ---------- */
 
 /**
  * Queues an item's Study (10 "Studies"): at the end, or first so it runs now.

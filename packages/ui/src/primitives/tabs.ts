@@ -58,7 +58,6 @@ export const tabsContentClass = 'text-sm flex-1 outline-none'
 
 type StyleConfig = Readonly<{ className?: string }>
 
-/** Tab list wrapper. */
 export const list = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Html | string>,
@@ -69,7 +68,6 @@ export const list = <M>(
     children,
   )
 
-/** Individual tab trigger button. */
 export const trigger = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Html | string>,
@@ -80,7 +78,6 @@ export const trigger = <M>(
     children,
   )
 
-/** Tab content panel wrapper. */
 export const content = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Html | string>,

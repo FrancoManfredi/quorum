@@ -5,7 +5,6 @@ import type { Layout } from '../components/shared.ts'
 
 /* Card and port geometry, shared by the board, placement and link routing. */
 
-/** What geometry needs of a Node. */
 export type Placed = Pick<GameNode, 'type' | 'x' | 'y'>
 
 export const CARD_W = 216
@@ -40,7 +39,6 @@ export const inPort = (node: Placed): Pt => ({
 
 /** How far a backward link runs out of a port before it turns. */
 export const STUB = 16
-/** Corner radius of a link's bends. */
 const BEND = 6
 
 export const gap = (a: Pt, b: Pt): number => Math.hypot(b.x - a.x, b.y - a.y)

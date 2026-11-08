@@ -64,7 +64,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-/** Emitted when the selection changes. */
 export const OutMessage = defineMessageUnion({
   ChangedValue: { value: S.Array(S.String) },
 })
@@ -88,7 +87,6 @@ export type InitConfig = Readonly<{
   value?: ReadonlyArray<string>
 }>
 
-/** Creates an initial toggle group model. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
   type: config.type ?? 'single',

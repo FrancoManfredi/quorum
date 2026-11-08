@@ -2,12 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A buy or upgrade control repeats while it is held (15 "Bulk actions"). One
-   state says whether a control is held and which Node it buys for, so a lift
-   after a switch cannot keep repeating the old Node.
-   ========================================================================== */
-
 export const Idle = Schema.TaggedStruct('Idle', {})
 
 export const Held = Schema.TaggedStruct('Held', {

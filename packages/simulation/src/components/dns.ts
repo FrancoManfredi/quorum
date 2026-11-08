@@ -1,7 +1,6 @@
 import { def } from './define.ts'
 import { REQUEST_KINDS } from '../catalog/kinds.ts'
 
-/** DNS TTLs, in seconds. */
 export const DNS_TTLS = [30, 300, 3_600] as const
 
 /** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */

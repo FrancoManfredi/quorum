@@ -128,14 +128,6 @@ import {
 import { rollOutcome } from './features.ts'
 import { budgetVelocity } from './slo.ts'
 
-/* ==========================================================================
-   Work (08): the backlog, the Team, and deploys. Each team builds the first
-   backlog item no team ahead of it has; Dev Hours with nothing to build go
-   to the pool, which can rush any item. Built Features wait for the next
-   deploy. With the autopilot on, an idle team picks the next Feature itself,
-   so a player who never opens the Team panel still ships.
-   ========================================================================== */
-
 const ok = (game: Game): Action => Result.succeed(game)
 const no = (refusal: Refusal): Action => Result.fail(refusal)
 const notAllowed = (reason: string): Action => no(Refusal.NotAllowed({ reason }))
@@ -148,7 +140,6 @@ export const PLATFORM_STAGE = 3
 /** The autopilot refactors once debt reaches this. */
 const AUTO_REFACTOR = 0.3
 
-/** What a backlog item is called. */
 export const itemName = (item: WorkItem): string => {
   if (item.kind === 'feature') return FEATURES[item.ref as FeatureId]?.name ?? item.ref
   if (item.kind === 'task') {
@@ -175,8 +166,6 @@ const queued = (game: Game, ref: string): boolean => game.backlog.some((item) =>
 
 /** Features the Company has, has built, or has queued. */
 const planned = (game: Game, id: FeatureId): boolean => isBuilt(game, id) || queued(game, id)
-
-/* ---------- moves (08 "Migrations") ---------- */
 
 /** Dev Hours of a Database engine change: 0.8 of the codebase, to a tenth. */
 export const engineCost = (game: Game): number =>
@@ -290,8 +279,6 @@ const finishEngineChange = (game: Game): Game => {
     ),
   }
 }
-
-/* ---------- what can be queued ---------- */
 
 export const featureRefusal = (game: Game, id: FeatureId): Refusal | null => {
   const def = FEATURES[id]
@@ -459,8 +446,6 @@ export const queueFeature = (game: Game, id: FeatureId): Action =>
 export const queueTask = (game: Game, id: TaskId): Action =>
   refused(taskRefusal(game, id), () => enqueue(game, 'task', id, TASKS[id].dh))
 
-/* ---------- remove (08 "Rollout", "Upkeep") ---------- */
-
 /**
  * Why a live Feature cannot be removed, or null. A turned-off Feature still pays its upkeep
  * (08 "Rollout"); removing it is the only thing that ends it. A Feature another live or planned
@@ -510,8 +495,6 @@ export const queueRunbook = (game: Game, kind: IncidentId): Action =>
   refused(runbookRefusal(game, kind), () =>
     enqueue(game, 'task', 'runbook', TASKS.runbook.dh, false, { target: kind }),
   )
-
-/* ---------- splitting a Service (08 "Services") ---------- */
 
 /** What a split asks for: the new Service's name, its owner, and the Features it takes with it. */
 export type SplitRequest = Readonly<{
@@ -707,8 +690,6 @@ export const queueSpike = (game: Game): Action => {
   return ok(enqueue(game, 'spike', running.id, Number.MAX_SAFE_INTEGER, true))
 }
 
-/* ---------- the backlog ---------- */
-
 const withItem = (game: Game, id: number, apply: (index: number) => Action): Action => {
   const index = game.backlog.findIndex((item) => item.id === id)
   return index === -1 ? no(Refusal.Missing()) : apply(index)
@@ -783,8 +764,6 @@ export const rushBugOf = (game: Game, item: WorkItem, pool: number): number =>
 
 export const setAutopilot = (game: Game, autopilot: boolean): Game => ({ ...game, autopilot })
 
-/* ---------- blocked work (18 "Blocked") ---------- */
-
 /** Sim seconds after which a block the player put off writes again. */
 export const blockRemind = (tuning: Tuning = LIVE_TUNING): number =>
   (BLOCK_REMIND_DAYS * CALENDAR_DAY) / tuning.calendarPace
@@ -842,8 +821,6 @@ export const laterBlock = (game: Game, id: number, tuning: Tuning = LIVE_TUNING)
     })
   })
 
-/* ---------- a proposal to patch (18 "Proposal to patch") ---------- */
-
 const answerPatch = (game: Game, id: number, answer: 'now' | 'queued'): Action =>
   withItem(game, id, (index) => {
     const item = game.backlog[index]
@@ -892,8 +869,6 @@ export const addIndex = (game: Game, nodeId: string): Action => {
     return top && next.devHours > 0.01 ? Result.getOrElse(rushItem(next, top.id), () => next) : next
   })
 }
-
-/* ---------- the Team ---------- */
 
 /** Signs an engineer for the Service's language: they join after the time to hire. */
 export const hire = (game: Game, tuning: Tuning = LIVE_TUNING): Action => {
@@ -1092,8 +1067,6 @@ export const setTeamPolicy = (
   })
 }
 
-/* ---------- the Stack ---------- */
-
 /**
  * A runtime or framework choice on an App Server. A Sandbox swaps it at once.
  * A Company starts a migration of its Service: Dev Hours, then the strangler.
@@ -1122,8 +1095,6 @@ export const changeStack = (
 }
 
 export { cancelMigration, shiftMigration }
-
-/* ---------- incidents ---------- */
 
 /**
  * Ships a batch: each Feature becomes live for every user with no adoption yet, at the end of the
@@ -1168,8 +1139,6 @@ export const rollback = (game: Game): Action => {
   return ok(withServiceId(rolled, service.id, { lastDeploy: [] }))
 }
 
-/* ---------- the Step ---------- */
-
 type Advance = Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }>
 
 /** The next Feature the autopilot builds: the first in catalog order the Company can start. */
@@ -1203,8 +1172,6 @@ const autopilot = (game: Game, events: Array<StepEvent>): Game => {
   }
   return next
 }
-
-/* ---------- burnout and quitting (18 "Burnout and quitting") ---------- */
 
 const clampMood = (mood: number): number => Math.max(0, Math.min(MOOD_START, mood))
 
@@ -1261,7 +1228,6 @@ const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   })
 }
 
-/** What a finished item does. */
 const completed = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   // A patch, a split, and a spike have no effect to apply: finishing them is the effect.
   if (item.kind === 'spike' || item.kind === 'patch' || item.kind === 'split') return game
@@ -1566,7 +1532,7 @@ export const advanceTeam = (
     // A Platform, SRE or Data team runs the system: its Dev Hours build no backlog. An empty
     // team builds nothing, so it holds no item another team could take.
     if (!builds(next, output.team, index)) continue
-    const made = output.rate * seconds
+    const made = output.devHoursPerSecond * seconds
     const kept = made * policyNow(next, output.team, tuning).paydown
     paydown += kept
     const item = nextItem(next, backlog, output.team, taken)

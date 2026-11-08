@@ -23,32 +23,21 @@ import {
   type Founding,
 } from './state.ts'
 
-/* ==========================================================================
-   The Founder (13, plan D2): the player across Companies. Legacy, perks,
-   Playbooks, unlocked Ventures and Mutators, and the company history. The
-   browser keeps it apart from the Company save; the Simulation never reads it,
-   only the founding snapshot a new Company takes from it.
-   ========================================================================== */
-
 const withDefault = <S extends Schema.Top>(schema: S, value: S['Type']) =>
   schema.pipe(Schema.withDecodingDefaultKey(Effect.succeed(value)))
 
 export const Founder = Schema.Struct({
-  /** Legacy not spent yet. */
   legacy: withDefault(Schema.Finite, 0),
-  /** Legacy earned across every Exit. */
   earned: withDefault(Schema.Finite, 0),
   perks: withDefault(Schema.Record(Schema.String, Schema.Finite), {}),
   ventures: withDefault(Schema.Array(VentureSchema), ['b2b-saas']),
   mutators: withDefault(Schema.Array(MutatorSchema), []),
-  /** The next Company's Venture and Mutators. */
   venture: withDefault(VentureSchema, 'b2b-saas'),
   chosen: withDefault(Schema.Array(MutatorSchema), []),
   /** Research Institutional knowledge carries into the next Company. */
   keep: withDefault(Schema.Array(ResearchSchema), []),
   playbooks: withDefault(Schema.Array(Playbook), []),
   history: withDefault(Schema.Array(HistoryRow), []),
-  /** Eras reached in any Company. */
   erasReached: withDefault(Schema.Array(Schema.Finite), []),
   /** Challenges completed once, for their badge and first-completion Legacy. */
   completed: withDefault(Schema.Array(Schema.String), []),
@@ -125,7 +114,6 @@ export const toggleMutator = (founder: Founder, id: MutatorId): Change => {
   })
 }
 
-/** Research slots Institutional knowledge gives. */
 export const keepSlots = (founder: Founder): number => levelOf(founder, 'institutional-knowledge')
 
 export const toggleKeep = (founder: Founder, id: ResearchId): Change => {

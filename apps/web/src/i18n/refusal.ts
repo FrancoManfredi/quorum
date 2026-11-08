@@ -1,12 +1,6 @@
 import { Refusal } from '@quorum/simulation/actions'
 import { copyIn, type Messages } from './messages.ts'
 
-/* ==========================================================================
-   A Refusal, or any sentence the Simulation writes in English, in the player's
-   language. The names it quotes are found again in the catalog by their English
-   text; a sentence with no typed copy stays as the Simulation wrote it.
-   ========================================================================== */
-
 type Name = (t: Messages) => string
 
 /** Every catalog name and label, and the phrases of a refusal, from English text to the same entry in another language. */
@@ -79,7 +73,6 @@ export const reasonIn = (t: Messages, text: string): string => {
   return text
 }
 
-/** Why the Simulation refused, in words. */
 export const refusalIn = (t: Messages, refusal: Refusal): string =>
   Refusal.$match(refusal, {
     Locked: ({ what, research }) => t.team.refusal.locked(nameIn(t, what), nameIn(t, research)),

@@ -1,10 +1,5 @@
 import type { AdviceLetters } from './letter.ts'
 
-/* ==========================================================================
-   Investor and mentor advice (GDD 18). Investors write from a pool of funds;
-   mentors from a pool of advisors, so each letter signs with `from`.
-   ========================================================================== */
-
 export const PEOPLE: Pick<AdviceLetters, 'round' | 'research' | 'ipo' | 'grow'> = {
   round: [
     ({ from, round }) => ({

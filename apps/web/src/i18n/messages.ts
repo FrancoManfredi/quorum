@@ -28,7 +28,6 @@ export const speak = <H extends object>(locale: Locale, h: H): H => {
   return h
 }
 
-/** The language of this view's builder. */
 export const localeOf = (h: object): Locale => languageOf.get(h) ?? 'en'
 
 /** The copy in a language, for code that has the locale but no builder. */

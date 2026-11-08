@@ -3,14 +3,6 @@ import type { Game, Quarter } from './state.ts'
 import { marginOf } from './valuation.ts'
 import { step as quarterStep } from './quarter-machine.ts'
 
-/* ==========================================================================
-   Public quarters (10 "Era 7"). A quarter is 7 calendar days. The player sets
-   guidance on its first day; at its end the market compares revenue growth and
-   margin with it. A beat raises the multiple, a miss lowers it, and every
-   fourth beat in a row adds a bonus. The GDD gives no magnitudes: these are
-   set here and listed in 16's balance tables.
-   ========================================================================== */
-
 /** Sim seconds in a quarter: 7 calendar days. */
 export const QUARTER_SECONDS = 10_080
 /** Guidance may change only in the first calendar day. */

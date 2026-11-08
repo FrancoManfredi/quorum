@@ -2,14 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A Link's circuit breaker (05 "Circuit breakers"). It trips when calls fail,
-   fails fast until `until`, then closes to try again. The failure share and
-   the breaker's settings stay on the Game's Link; this machine only tracks
-   whether the Link sends anything.
-   ========================================================================== */
-
-/** Calls go through. */
 export const Closed = Schema.TaggedStruct('Closed', {})
 /** Calls fail fast until `until`; the Link sends nothing. */
 export const Open = Schema.TaggedStruct('Open', { until: Schema.Finite })

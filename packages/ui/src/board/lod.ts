@@ -1,9 +1,3 @@
-/* ==========================================================================
-   Level of detail on the board (15 "The board"): as the player zooms out, a
-   card drops its rows first, then the whole card gives way to a chip with its
-   name, so a large Design still reads as named blocks when zoomed out.
-   ========================================================================== */
-
 /** Below this zoom the rows are a few pixels tall and are left out. */
 export const ROWS_GONE = 0.3
 /** At this zoom the rows are at full strength. */

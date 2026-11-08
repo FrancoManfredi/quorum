@@ -77,9 +77,7 @@ export type StyledViewInputs<M = never> = Readonly<{
   /** Positioning overrides. Defaults to `TOOLTIP_ANCHOR`
    *  (`placement: 'top'`, `gap: 4`), matching the shadcn reference. */
   anchor?: AnchorConfig
-  /** Trigger element content. */
   trigger: Child
-  /** Tooltip text. */
   content: Child
   className?: string
   triggerClass?: string

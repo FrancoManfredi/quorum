@@ -2,14 +2,6 @@ import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-/* ==========================================================================
-   Writes two pages from the git history, one section per day (UTC), newest
-   first: content/about/changelog.md shows the last few days with each day cut
-   to its first commits, and content/about/changelog/all.md lists everything.
-   Run it with `pnpm --filter @quorum/wiki changelog`; the Changelog workflow
-   runs it every Monday. The pages are generated, so edit this file, not them.
-   ========================================================================== */
-
 export type Commit = Readonly<{ hash: string; date: string; subject: string }>
 
 const REPOSITORY = 'https://github.com/elianiva/quorum'

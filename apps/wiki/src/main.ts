@@ -8,14 +8,6 @@ import * as Quiz from './submodels/quiz.ts'
 import * as Search from './submodels/search.ts'
 import * as Spoilers from './submodels/spoilers.ts'
 
-/* ==========================================================================
-   The wiki as one Foldkit application. The server prerenders every page from
-   the same init and view, and the browser hydrates it. The root owns the
-   page and the phone menu; each thing a reader changes is a Submodel under
-   src/submodels: the search, the spoiler filter, reading progress, and the
-   quizzes.
-   ========================================================================== */
-
 export const Model = Schema.Struct({
   /** The page path, without a trailing slash. */
   path: Schema.String,
@@ -43,7 +35,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-/** `/components/lb/` and `/components/lb` are one page. */
 export const normalize = (pathname: string): string => {
   const trimmed = pathname.replace(/\/+$/, '')
   return trimmed === '' ? '/' : trimmed
@@ -151,7 +142,6 @@ export const update = (model: Model, message: Message): Return =>
       const path = normalize(url.pathname)
       const hash = url.hash._tag === 'Some' ? url.hash.value.replace(/^#/, '') : ''
       const scroll = path === model.path && !hash ? [] : [ScrollTo({ hash })]
-      // A new page closes the search and the menu, and counts as read.
       const visited = foldProgress(
         { ...model, path, menu: false, navToggled: [], search: Search.init },
         Progress.Message.Visited({ path }),

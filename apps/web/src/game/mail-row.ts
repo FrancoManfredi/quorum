@@ -1,11 +1,6 @@
 import type { Mail, MailAction as MailActionSchema } from './model.ts'
 import { KIND_LABEL, needsAction, senderOf, type SenderKind } from './mail.ts'
 
-/* ==========================================================================
-   What a Mail row and its buttons say beyond the copy (GDD 18): the kind
-   label on a row, the coloured priority bar, and where a button really goes.
-   ========================================================================== */
-
 type MailAction = typeof MailActionSchema.Type
 
 /** A Mail's label is its Sender's kind: the same one its filter chip selects. */

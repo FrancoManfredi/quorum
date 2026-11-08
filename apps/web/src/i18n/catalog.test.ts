@@ -6,12 +6,6 @@ import { localizeBuilder } from './builder.ts'
 import { copy, copyIn } from './messages.ts'
 import { supportedLocales } from './index.ts'
 
-/* ==========================================================================
-   The typed copy: the compiler checks every language has the same shape, and
-   tables keyed by a plain string id are checked here. English is read from the
-   Simulation's tables, so it is the tables' own text.
-   ========================================================================== */
-
 describe('typed copy', () => {
   test('a builder speaks its language, and an untagged builder speaks English', () => {
     expect(copy(localizeBuilder('fr', inertHtml)).hud.cash).toBe(copyIn('fr').hud.cash)

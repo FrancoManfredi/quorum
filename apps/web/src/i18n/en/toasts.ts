@@ -86,7 +86,6 @@ export const toasts = {
   costs: (what: Value, price: Value) => `${what} costs ${price}.`,
   /** One refusal needs no more than this when it is a name's own. */
   missing: 'That is gone.',
-  /** Sentences laid one after another. */
   sentences: (parts: ReadonlyArray<string>) => parts.join(' '),
   nodes: (count: Value, one: boolean) => (one ? `${count} Node` : `${count} Nodes`),
 

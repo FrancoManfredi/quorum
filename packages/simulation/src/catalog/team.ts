@@ -16,11 +16,8 @@ export type PolicyDef = Readonly<{
   id: PolicyId
   label: string
   velocity: number
-  /** Tech debt each shipped Feature adds. */
   debt: number
-  /** Multiplies the bad-deploy chance. */
   badDeploy: number
-  /** Most deploys in one calendar day. */
   deploysPerDay: number
   /** Share of the team's Dev Hours that pays down debt on its own. */
   paydown: number
@@ -59,8 +56,6 @@ export const POLICIES: Record<PolicyId, PolicyDef> = {
 /** Calendar days before a new policy takes over from the old one. */
 export const POLICY_SWITCH_DAYS = 1
 
-/* ---------- hiring and pay ---------- */
-
 /** Dollars per second per engineer at salary index 1 (09 "Base prices"). */
 export const SALARY_BASE = 0.4
 /** Cash to sign an engineer in the Pre-seed Era, before the language's salary factor. */
@@ -78,8 +73,6 @@ export const MORALE_DAYS = 7
 export const COORDINATION = 0.08
 export const RETROGRADE = 0.0004
 
-/* ---------- codebases and tech debt ---------- */
-
 /** Thousands of lines in the first codebase, and per Dev Hour of shipped Features. */
 export const START_KLOC = 5
 export const KLOC_PER_DH = 0.5
@@ -94,8 +87,6 @@ export const RUSH_DEBT = 0.02
 /** Extra bad-deploy chance a fully rushed Feature carries into its deploy. */
 export const RUSH_BUG_CHANCE = 0.1
 
-/* ---------- upkeep (08 "Upkeep") ---------- */
-
 /**
  * What a live Feature costs to keep: `0.4 × S / (S + 2,000) × (1 + debt)`, capped at 0.6, where S
  * is the Dev Hours of the Features shipped on a Service and not yet removed (08 "Upkeep"). The
@@ -104,8 +95,6 @@ export const RUSH_BUG_CHANCE = 0.1
 export const UPKEEP_SHARE = 0.4
 export const UPKEEP_HALF = 2_000
 export const UPKEEP_CEILING = 0.6
-
-/* ---------- outcomes (08 "Outcomes") ---------- */
 
 /**
  * A Feature's outcome, rolled from the Company's seed when it is queued (08 "Outcomes"): the share
@@ -127,8 +116,6 @@ export const OUTCOME_BANDS: ReadonlyArray<Readonly<{ lo: number; hi: number }>> 
  */
 export const MARKET_GAIN_CAP = 2
 
-/* ---------- adoption and measured lift (08 "Adoption", "Measured lift") ---------- */
-
 /** Calendar days a Feature takes to reach about 63% of its effect. */
 export const ADOPTION_DAYS = 7
 /** The spread of a relative effect, for the confidence interval (08 "Measured lift"). */
@@ -139,16 +126,11 @@ export const LIFT_CONFIDENCE = 1.96
 export const LIFT_MIN_ROLLOUT = 0.05
 export const LIFT_MAX_ROLLOUT = 0.5
 
-/* ---------- blocked work (18 "Teammates") ---------- */
-
 /** Calendar days after which Later brings a block back to the Inbox.  */
 export const BLOCK_REMIND_DAYS = 1
 /** A Team this big waits on a hire before it can move: past the coordination table's flat part.  */
 export const BLOCK_HIRE_AT = 8
 
-/* ---------- burnout and quitting (18 "Teammates") ---------- */
-
-/** Where an engineer's mood starts. */
 export const MOOD_START = 1
 /** Mood at or below this makes an engineer unhappy: they write, and ask to be heard.  */
 export const UNHAPPY_MOOD = 0.35
@@ -163,11 +145,7 @@ export const PAY_GAP_MOOD_DAYS = 3
 /** Calendar days a spell of time off lasts.  */
 export const TIME_OFF_DAYS = 3
 
-/* ---------- the three Team research effects (10 "Track: Product and business") ---------- */
-
-/** Hiring pipeline: time to hire −30%. */
 export const HIRING_PIPELINE = 0.7
-/** Trunk-based development: deploy frequency +50%. */
 export const TRUNK_FREQUENCY = 1.5
 /** A Data team: `report` and `ai` Features cost −30% Dev Hours. */
 export const DATA_TEAM_HOURS = 0.7
@@ -182,14 +160,11 @@ export const DATA_TEAM_LAG = 0.5
 export const SECURITY_TEAM_SUPPLY_CHAIN = 0.5
 export const SECURITY_TEAM_GRACE = 2
 
-/* ---------- deploys ---------- */
-
 /** Work hours in a calendar day, in minutes: deploys happen in them. */
 export const WORK_MINUTES = 480
 /** Minutes to deploy by hand, or through a pipeline after Continuous delivery. */
 export const MANUAL_DEPLOY_MINUTES = 30
 export const CI_DEPLOY_MINUTES = 5
-/** Minutes to check a deploy. */
 export const VERIFY_MINUTES = 15
 /** Bad-deploy chance per deploy, per Era (11 "Bad deploy"). */
 export const BAD_DEPLOY_BASE: ReadonlyArray<number> = [0, 0.1, 0.1]
@@ -199,8 +174,6 @@ export const BAD_DEPLOY_MAX = 0.4
 /** Automated tests and code review lower the bad-deploy chance. */
 export const TESTS_FACTOR = 0.3
 export const CODE_REVIEW_FACTOR = 0.2
-
-/* ---------- migrations (08 "Migrations") ---------- */
 
 /** The strangler steps: the share of traffic on the new Stack. */
 export const MIGRATION_STEPS: ReadonlyArray<number> = [0.05, 0.25, 0.5, 1]
@@ -220,8 +193,6 @@ export const MIGRATION_FEATURE_SPEED = 0.5
  */
 export const SHARED_DB_COORDINATION = 0.5
 
-/* ---------- engineering tasks and moves (08 "Engineering tasks", "Migrations") ---------- */
-
 /** Seconds before a Link the Add timeouts and retries task touches gives up.  */
 export const TASK_LINK_TIMEOUT = 5
 
@@ -237,12 +208,8 @@ export const ENGINE_FACTOR = 0.8
 /** Calendar minutes the data copy of an engine change takes per GB the Databases hold.  */
 export const ENGINE_COPY_MINUTES_PER_GB = 1
 
-/* ---------- pooler modes (07 "Connection Pooler") ---------- */
-
 /** Pooled queries that fail in transaction mode while the code still uses session state. */
 export const SESSION_STATE_CRASHES = 0.05
-
-/* ---------- subscriptions (09 "Sources") ---------- */
 
 /** Share of users on a paid plan, and what a plan pays per calendar day. */
 export const PAYING_SHARE = 0.05

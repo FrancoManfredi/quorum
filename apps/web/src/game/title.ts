@@ -48,22 +48,7 @@ import { menuOf, type MenuPage } from './route.ts'
 import { supportedLocales } from '../i18n/index.ts'
 import { play } from './sound.ts'
 
-/* ==========================================================================
-   The title screen: the on-call booth at night. You sit at the desk, and the
-   menu runs on your own monitor like a game's menu: one list, one selection
-   bar that follows the pointer and the arrow keys, pages that replace the list
-   in place. The keyboard and mouse on the desk answer what you do. The screen
-   is the room's only light.
-   ========================================================================== */
-
 type Page = typeof MenuPage.Type | 'main' | 'save'
-
-/* --------------------------------------------------------------------------
-   The driver: everything the screen does below the Model. The selection bar is
-   focus, so Enter and Space work as they do on any button; the arrows move it,
-   Escape and Backspace press Back, the pointer moves it and the desk mouse,
-   and each key lights its key on the desk.
-   -------------------------------------------------------------------------- */
 
 /** The page the screen showed before main, so Back lands on the row that opened it. */
 let lastPage: Page = 'main'
@@ -196,11 +181,6 @@ export const PageMounted = Mount.define('PageMounted', {
     }),
 })
 
-/* --------------------------------------------------------------------------
-   The wordmark. Monoline geometric lowercase on a 100-unit x-height with a
-   22-unit stroke; the q's tail is a link that ends in a lit node.
-   -------------------------------------------------------------------------- */
-
 const GLYPHS: ReadonlyArray<{ at: number; paths: ReadonlyArray<string> }> = [
   { at: 0, paths: ['M89 11V150', 'M50 11a39 39 0 1 0 0.01 0'] },
   { at: 120, paths: ['M11 0V50a39 39 0 0 0 78 0', 'M89 0V100'] },
@@ -237,17 +217,11 @@ const wordmark = (h: HtmlBuilder<Message>): Html =>
     ],
   )
 
-/* --------------------------------------------------------------------------
-   Rows. Every page is one list of rows: actions are buttons, records (history,
-   achievements) are rows the selection can still rest on.
-   -------------------------------------------------------------------------- */
-
 type Row = Readonly<{
   key: string
   label: string
   detail?: string
   side?: Html | string | undefined
-  /** A Company's logo, before the label. */
   mark?: Html
   message: Message | null
   big?: boolean
@@ -920,10 +894,6 @@ const hint = (h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* --------------------------------------------------------------------------
-   The status column: the saved Company at a glance, from the save itself.
-   -------------------------------------------------------------------------- */
-
 /** The busiest Node of the saved Design, by utilization. */
 const busiest = (t: Messages, game: Game): { name: string; load: number } | null => {
   const flow = solveFlow(game)
@@ -994,10 +964,6 @@ const status = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
   )
 }
-
-/* --------------------------------------------------------------------------
-   The taskbar: the Founder's pages, Settings, and the wall clock.
-   -------------------------------------------------------------------------- */
 
 export const ReaderClock = Mount.define('ReaderClock', {
   messages: [Message.Synced],
@@ -1141,12 +1107,6 @@ const screen = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/* --------------------------------------------------------------------------
-   The desk, seen straight on at eye level like the monitor: a keyboard slab
-   whose keycap tops catch the screen's light and light up when pressed, and a
-   mouse that follows the pointer.
-   -------------------------------------------------------------------------- */
-
 /** The keycap tops seen over the slab's front edge, with the keys the driver lights by name. */
 const keysOf = (t: Messages): ReadonlyArray<readonly [string, string?]> => [
   ['', t.title.escape],
@@ -1277,12 +1237,6 @@ const booth = (model: Model, h: HtmlBuilder<Message>): Html =>
       strip(h),
     ],
   )
-
-/* --------------------------------------------------------------------------
-   The clock-in splash. Browsers play sound only after a click or key press,
-   so a fresh load opens on a badge reader: the badge goes in, the reader
-   beeps, and the booth follows with its sounds.
-   -------------------------------------------------------------------------- */
 
 const reader = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)

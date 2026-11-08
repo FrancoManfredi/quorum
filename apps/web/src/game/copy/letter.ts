@@ -1,11 +1,5 @@
 import type { AdviceAction, AdviceVars } from '@quorum/simulation/goals'
 
-/* ==========================================================================
-   The shape of Mail copy (GDD 18). Every Mail has several hand-written
-   letters; the Inbox picks one by the Company's seed, the Thread, and the
-   time, so the same news rarely reads the same way twice.
-   ========================================================================== */
-
 /** A written Mail. In `body`, a blank line starts a paragraph and a single newline breaks a line. */
 export interface Written {
   readonly subject: string

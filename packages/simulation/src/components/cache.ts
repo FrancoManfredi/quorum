@@ -92,7 +92,6 @@ export const cacheFields = {
   earlyExpiry: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** A Cache serves the old value while one request refreshes it (07 "Stampedes"). */
   swr: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** The Cache's engine. */
   engine: CacheEngine.pipe(Schema.withDecodingDefaultKey(Effect.succeed('redis' as const))),
   /** What a Cache does on a write (07 "Strategies"). */
   cacheStrategy: CacheStrategy.pipe(

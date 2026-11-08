@@ -6,12 +6,6 @@ import { COMPONENTS, COMPONENT_IDS, type ComponentId } from '@quorum/simulation/
 import { heightOf } from '@quorum/ui/board/geometry'
 import { Message } from '../main.ts'
 
-/* ==========================================================================
-   A Component's Node card in a page. The build prerenders an empty canvas
-   of the card's size; in the browser the game's own board draws the card
-   into it (node-board.ts), so it looks exactly as it does in the game.
-   ========================================================================== */
-
 /** What node-board.ts asks the board for: the zoom it fits to at most, its fit margin, and its top and bottom insets. */
 const SCALE = 1.1
 const PAD = 8

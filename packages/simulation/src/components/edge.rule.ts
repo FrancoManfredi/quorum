@@ -14,8 +14,6 @@ import { failed } from '../distribution.ts'
 
 import { type ComponentRule, answerCalls, each, noConnections, noProbe } from '../rule-kit.ts'
 
-/* ---------- the Edge Function ---------- */
-
 /** Whether the Service's Stack runs at the edge: JavaScript, TypeScript, or Rust or Go to WASM. */
 export const edgeRuns = (node: GameNode): boolean =>
   EDGE_LANGUAGES.includes(RUNTIMES[node.runtime].language)
@@ -35,7 +33,7 @@ export const edgeRule: ComponentRule = {
     flatModel(
       Number.POSITIVE_INFINITY,
       arriving,
-      { fixed: EDGE_MS, variable: 0 },
+      { fixedMs: EDGE_MS, variableMs: 0 },
       solver.boost(node),
     ),
   serve: (serve, node, rates, share) => {

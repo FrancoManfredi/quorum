@@ -16,14 +16,6 @@ export const Observed = Schema.Struct({
 })
 export type Observed = typeof Observed.Type
 
-/* ==========================================================================
-   A Mirror's sync (05 "Mirror a region"). It is in sync while its live state
-   matches its code, applying while an Apply waits to land, and drifted when
-   the source moved ahead of the code or someone changed the Mirror by hand.
-   The code, the hold, the overrides, and the computed settings stay on the
-   Game's Mirror; this machine only tracks where the sync stands.
-   ========================================================================== */
-
 /** An Apply waits to land at `readyAt`; the live state is not read until it does. */
 export const Applying = Schema.TaggedStruct('Applying', { readyAt: Schema.Finite })
 /** The Mirror matches its code. `seen` is the last refresh, or null until one. */
@@ -38,7 +30,6 @@ export type MirrorSync = typeof MirrorSync.Type
 
 /** An Apply was written at `readyAt` and has not landed yet. */
 export const Applied = Schema.TaggedStruct('Applied', { readyAt: Schema.Finite })
-/** The waiting Apply landed. */
 export const Landed = Schema.TaggedStruct('Landed', {})
 /** A refresh read the Mirror's live state. */
 export const ObservedEvent = Schema.TaggedStruct('Observed', { observed: Observed })

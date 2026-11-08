@@ -12,20 +12,6 @@ import type { Page } from './page.ts'
 import { PAGES, SECTION_ORDER, childrenOf, navOf, pageAt } from './pages.ts'
 import { WIKI_ORIGIN } from './site.ts'
 
-/* ==========================================================================
-   Every page as Markdown, for agents and anyone who prefers plain text. The
-   page at /explanation/latency has a twin at /explanation/latency.md, and
-   /llms.txt indexes them all (llmstxt.org). `pageMarkdown` is the one
-   function from Page to Markdown:
-
-   - an authored page converts its source document, and directives become
-     text from the catalog (`blocksMarkdown`);
-   - a generated reference page converts the view that renders it, so the
-     two cannot drift (`htmlMarkdown`).
-
-   The build writes the files into the build output (vite.config.ts).
-   ========================================================================== */
-
 type Inline = Markdown.Inline
 type Block = Markdown.MarkdownDocument['blocks'][number]
 
@@ -42,8 +28,6 @@ const target = (url: string): string => {
   const rest = hash === -1 ? '' : url.slice(hash)
   return `${markdownUrl(path.replace(/\/+$/, '') || '/')}${rest}`
 }
-
-/* ---- Authored pages: the Markdown document ----------------------------- */
 
 const inlines = (content: ReadonlyArray<Inline>): string =>
   content
@@ -186,8 +170,6 @@ const blockMarkdown = (block: Block): string => {
 export const blocksMarkdown = (blocks: ReadonlyArray<Block>): string =>
   blocks.map(blockMarkdown).join('\n\n')
 
-/* ---- Generated pages: the view that renders them ----------------------- */
-
 type Node = Readonly<{
   sel?: string
   text?: string
@@ -292,8 +274,6 @@ export const htmlMarkdown = (html: Html): string =>
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 
-/* ---- Pages ------------------------------------------------------------- */
-
 // A page body reads the model only for reader state, which a static document does not have.
 const modelAt = (path: string): Model => {
   const { model } = (init as unknown as (url: unknown) => Readonly<{ model: Model }>)({
@@ -341,8 +321,6 @@ const renderMarkdown = (page: Page): string => {
     .concat('\n')
 }
 
-/* ---- The index (llmstxt.org) ------------------------------------------- */
-
 const SECTION_LABELS: Record<Section, string> = {
   play: 'Play the game',
   tutorials: 'Tutorials',
@@ -381,7 +359,6 @@ export const llmsTxt = (): string => {
     .concat('\n')
 }
 
-/** `/llms-full.txt`: every page, one after another. */
 export const llmsFullTxt = (): string =>
   PAGES.map((page) => `<!-- ${markdownUrl(page.path)} -->\n\n${pageMarkdown(page)}`).join(
     '\n---\n\n',

@@ -7,13 +7,6 @@ import {
   type GlossaryEntry,
 } from '@quorum/simulation/catalog'
 
-/* ==========================================================================
-   Advisories (GDD 18, "CVEs and patches", "How to tell"): the CVEs the
-   Simulation can disclose, as entries the Glossary lists. A real advisory
-   names an id the Glossary knows; a fake one names an id it does not, which
-   is the second tell, after the sender's address.
-   ========================================================================== */
-
 /** An advisory prints its CVE id in the subject and the body: CVE-2026-0451. */
 const CVE_ID = /CVE-\d{4}-\d{4,}/
 

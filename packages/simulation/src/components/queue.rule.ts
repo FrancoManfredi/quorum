@@ -7,7 +7,7 @@ import { flatScale } from '../lookups.ts'
 import { type ComponentRule, flat, noConnections, noProbe, slotOf } from '../rule-kit.ts'
 
 export const queueRule: ComponentRule = {
-  model: flat({ fixed: 2, variable: 0.05 }, (node) => QUEUE_RATE * flatScale(node)),
+  model: flat({ fixedMs: 2, variableMs: 0.05 }, (node) => QUEUE_RATE * flatScale(node)),
   // It offers its Workers what arrived, plus a share of its backlog as far as they have room.
   serve: (serve, node, rates, share) => {
     if (share <= 0) return
@@ -20,7 +20,7 @@ export const queueRule: ComponentRule = {
     const own = answer.ownHop(kind)
     // With no Worker linked, the task has nowhere to go.
     if (answer.downstream(kind).fail.stranded >= 1) return failed('stranded')
-    const enqueued = through({ ...own, fixed: own.fixed + BACKLOG_MS * node.depth })
+    const enqueued = through({ ...own, fixedMs: own.fixedMs + BACKLOG_MS * node.depth })
     // A full Queue refuses what its Workers cannot take (RabbitMQ `reject-publish`).
     if (node.maxLength <= 0 || node.depth < node.maxLength) return enqueued
     const slot = slotOf(answer.pass, node)

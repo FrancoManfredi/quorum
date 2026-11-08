@@ -7,14 +7,6 @@ import { causeOf, leftOf, RUNNING } from './life.ts'
 import type { Game, GameNode } from './state.ts'
 import { step } from './step.ts'
 
-/* ==========================================================================
-   The Tradeoff preview (15 "Tradeoff cards"): a ghost Simulation that runs
-   the Design with and without a change for a few sim seconds and reports
-   both. Pure: it never touches the Game it is given, and no incident starts
-   inside it. The changed Nodes start up and warm, so the preview shows the
-   settled effect; the restart they would pay is reported apart (16 D19).
-   ========================================================================== */
-
 /** The figures a change is measured by. */
 export type Figures = Readonly<{
   revenue: number
@@ -34,7 +26,6 @@ export type Preview = Readonly<{
   cash: number
 }>
 
-/** Sim seconds each ghost runs. */
 export const PREVIEW_SECONDS = 10
 
 export const figuresOf = (ledger: Ledger): Figures => ({
@@ -108,12 +99,6 @@ export const previewOf = (
   previews.set(game, entries)
   return result
 }
-
-/* ==========================================================================
-   What-if rows (12 "Load diagnosis"): the utilization a busy Node would have
-   after one change the player can make now. Each row is a ghost run of the
-   same length as a Tradeoff preview; a refused change gives no row.
-   ========================================================================== */
 
 export type WhatIf = Readonly<{
   /** Larger is one size up on `target`; Retries off stops every retry on Links into the Node. */

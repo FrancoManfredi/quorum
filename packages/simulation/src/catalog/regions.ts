@@ -8,7 +8,6 @@ export const HOME_REGION: RegionId = 'na'
 
 export type RegionDef = Readonly<{
   name: string
-  /** Tab label. */
   short: string
   /** Share of users who live here, from Series C.  */
   share: number
@@ -28,7 +27,7 @@ export const REGION_INFO: Record<RegionId, RegionDef> = {
 
 /**
  * Round trips between regions, in ms (05 "Zones and regions": US East to Europe 75,
- * Europe to Asia 160, US East to Sydney 200). The South America figures are
+ * Europe to Asia 160, US East to Sydney 200). The South America figures are proposed.
  */
 const RTT: Readonly<Record<string, number>> = {
   'na-eu': 75,
@@ -96,8 +95,6 @@ export const NO_DEVICE_LATENCY: Record<DeviceId, number> = {
   tablet: 0,
 }
 
-/* ---------- Mirrors (05 "Mirror a region") ---------- */
-
 /**
  * Calendar minutes from Apply until a Mirror's new Nodes serve (16 `mirror_time`):
  * about what `terraform apply` takes to boot instances and a replica.
@@ -129,7 +126,6 @@ export const REFRESH_TIME = 0.5
 
 export type IacToolDef = Readonly<{
   name: string
-  /** What the code is written in. */
   language: string
   /**
    * Every plan reads live state first, so it shows every hand change (`terraform plan` refreshes).

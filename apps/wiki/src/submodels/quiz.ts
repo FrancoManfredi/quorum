@@ -32,9 +32,7 @@ export const update = (model: Model, message: Message): Update.Return<Model, Mes
 export type Question = Readonly<{
   key: string
   question: string
-  /** Separated by `|`. */
   options: string
-  /** Counting from 1. */
   answer: string
   explain: string
 }>

@@ -29,15 +29,12 @@ export const reflectRange = FoldkitSlider.reflectRange
 export type InitConfig = FoldkitSlider.InitConfig
 export type SliderAttributes = FoldkitSlider.SliderAttributes
 
-/** Upstream SliderPrimitive.Control string. */
 export const sliderRootClass =
   'data-vertical:min-h-40 relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:w-auto data-vertical:flex-col'
 
-/** Upstream SliderPrimitive.Track string. */
 export const sliderTrackClass =
   'bg-well shadow-well rounded-full data-horizontal:h-1.5 data-horizontal:w-full data-vertical:h-full data-vertical:w-1.5 relative grow overflow-hidden select-none'
 
-/** Upstream SliderPrimitive.Indicator string. */
 export const sliderFilledTrackClass =
   'bg-primary-fill rounded-full select-none data-horizontal:h-full data-vertical:w-full'
 

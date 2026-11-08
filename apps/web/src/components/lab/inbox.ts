@@ -56,13 +56,6 @@ const destinationIn = (t: Messages, h: object, action: Mail['actions'][number]):
   )
 }
 
-/* ==========================================================================
-   The Inbox (GDD 18): the game's voice, as a mail window docked above its
-   corner button. Senders wear the app's own badges: the shape and colour
-   say what kind of party wrote (a person, a provider, an alarm), the way
-   the dock's badges say what kind of Component it is.
-   ========================================================================== */
-
 /** The badge each kind of sender wears: a shape from the build groups, a glyph, a colour. */
 const BADGE: Record<SenderKind, { group: BuildGroup; glyph: IconNode }> = {
   cloud: { group: 'edge', glyph: Cloud },

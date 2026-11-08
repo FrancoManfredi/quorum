@@ -260,7 +260,7 @@ test('the Resource section draws the network gauge and a goal bar naming the tig
   const start = fixture()
   const model: Model = { ...start, board: { ...start.board, selected: 'server' } }
   const own = ledgerOf(model).nodes.server
-  const network = own?.resources.network
+  const network = own?.resources.networkKbps
   if (!own || !network) throw new Error('the fixture App Server holds no network gauge')
   Scene.scene(
     { update, view },

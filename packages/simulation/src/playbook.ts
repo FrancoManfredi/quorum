@@ -16,13 +16,6 @@ import { placeRefusal, retryRefusal } from './founding.ts'
 import { isUnlocked } from './lookups.ts'
 import { ComponentId, GameLink, GameNode, type Game, type Region, type Retries } from './state.ts'
 
-/* ==========================================================================
-   Playbooks (13 "Playbooks"): a saved part of a Design. Placing one places
-   every Node the Company can build, with its Stack and settings, in one
-   action. Nodes whose Component is locked come back as ghosts. A Playbook
-   travels as text: `QPB1:` and base64url JSON.
-   ========================================================================== */
-
 /** A Link end: a Node of the Playbook by key, or a fixed Node by `@type`. */
 export const PlaybookNode = Schema.Struct({
   key: Schema.String,
@@ -319,8 +312,6 @@ export const duplicate = (
     }
     return { ...placed, game: next }
   })
-
-/* ---------- sharing ---------- */
 
 const PREFIX = 'QPB1:'
 

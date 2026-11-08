@@ -5,11 +5,6 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Message } from '../main.ts'
 import { TITLES, type PracticeId } from './practice.ts'
 
-/* ==========================================================================
-   A live Practice board in a page. The build prerenders an empty frame; in
-   the browser practice-board.ts fills it with the game's own board.
-   ========================================================================== */
-
 const IDS = ['place', 'wire', 'rearrange'] as const
 
 // Defined on first use: this module is imported while main.ts is still loading.

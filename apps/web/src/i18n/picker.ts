@@ -8,7 +8,6 @@ import { languageListbox } from './listbox.ts'
 import { supportedLocales, type Locale } from './index.ts'
 import { copyIn } from './messages.ts'
 
-/** The interface language, in Settings. */
 export const languagePicker = (locale: Locale, model: Listbox.Model, h: HtmlBuilder<Message>) =>
   h.div(
     [h.DataAttribute('language-picker', '')],

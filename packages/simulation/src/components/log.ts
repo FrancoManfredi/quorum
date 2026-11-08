@@ -14,7 +14,7 @@ export const LOG_PARTITIONS = [1, 3, 6, 12] as const
 /**
  * Acknowledgements (07 "Event Stream"): what a producer waits for before it moves on. `0` does not
  * wait, `1` waits for the partition leader, `all` for every replica. Each is a multiple of the
- * 5 ms append. The multiples are
+ * 5 ms append. The multiples are proposed: the design gives the direction only.
  */
 export const LOG_ACKS = {
   '0': { name: 'No ack', latency: 0.4 },

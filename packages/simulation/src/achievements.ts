@@ -25,12 +25,6 @@ import { budgetOf, budgeted } from './slo.ts'
 import type { Game, GameNode } from './state.ts'
 import { valuationOf } from './valuation.ts'
 
-/* ==========================================================================
-   Achievements (14 "Achievements"): what a Company's Steps did that is worth
-   a badge. Pure: the browser calls it on each tick of a Company, never in a
-   Sandbox or a Challenge, and keeps the badges in the Founder record.
-   ========================================================================== */
-
 /** Counts the Founder keeps across Companies for the counting achievements. */
 export type AchievementStats = Readonly<{
   postmortems: number
@@ -95,7 +89,6 @@ const foundedEquity = (game: Game): number =>
 export const isTermination = (event: StepEvent): boolean =>
   event._tag === 'IncidentResolved' && event.postmortem.kind === 'instance'
 
-/** The Founder's counts after these events. */
 export const countStats = (
   stats: AchievementStats,
   events: ReadonlyArray<StepEvent>,
@@ -135,7 +128,6 @@ const memoryIncident = (game: Game, events: ReadonlyArray<StepEvent>): boolean =
 const atLocalPeak = (game: Game): boolean =>
   REGIONS.some((region) => regionDiurnal(game.time, region) >= PEAK)
 
-/** The wide-column stores the Design runs. */
 const wideStores = (game: Game): ReadonlyArray<GameNode> =>
   game.nodes.filter((node) => node.type === 'wide' && !isDown(node))
 

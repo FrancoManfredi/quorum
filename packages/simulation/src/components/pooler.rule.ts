@@ -6,7 +6,7 @@ import { fixed } from '../team.ts'
 import { type ComponentRule, flat, noProbe, passOn, relay } from '../rule-kit.ts'
 
 export const poolerRule: ComponentRule = {
-  model: flat({ fixed: 0.3, variable: 0 }),
+  model: flat({ fixedMs: 0.3, variableMs: 0 }),
   serve: passOn,
   // Transaction pooling breaks code that keeps session state, until a task removes it. Statement
   // pooling shares the fewest server connections of all, and cannot run a multi-statement

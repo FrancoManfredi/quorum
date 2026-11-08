@@ -2,20 +2,11 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A funding round (09 "Funding rounds"). An Era's Milestone puts one offer on
-   the table; the player raises or declines it, and the next Era starts once
-   the round is answered. The grant, dilution, and Era advance stay in
-   `actions.ts`; this machine only tracks where the offer stands.
-   ========================================================================== */
-
 /** No offer waits: the Era's Milestone has not been reached, or its round is answered. */
 export const Waiting = Schema.TaggedStruct('Waiting', {})
 /** An offer waits for the player's answer. */
 export const Offered = Schema.TaggedStruct('Offered', {})
-/** The player took the round. */
 export const Raised = Schema.TaggedStruct('Raised', {})
-/** The player turned the round down. */
 export const Declined = Schema.TaggedStruct('Declined', {})
 export const EraRound = Schema.Union([Waiting, Offered, Raised, Declined])
 export type EraRound = typeof EraRound.Type

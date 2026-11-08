@@ -2,14 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A Database move's data copy (07 "Partitioning" and 08 "Migrations"). The
-   Dev Hours are built first, then the data copies until `until`, and then the
-   Database runs the new shape. The Node, the new shards or engine, and the
-   copy's end stay on the Game's Resharding or EngineChange; this machine only
-   tracks where the move stands.
-   ========================================================================== */
-
 /** The Dev Hours are still being built. */
 export const Building = Schema.TaggedStruct('Building', {})
 /** The data copies until `until`, in sim seconds. */

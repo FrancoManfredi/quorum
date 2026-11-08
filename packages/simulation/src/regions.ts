@@ -64,7 +64,6 @@ export const regionDiurnal = (time: number, region: RegionId): number => {
   return 1 + DIURNAL_AMPLITUDE * cosTurns((minute - 20 * 60) / 1440)
 }
 
-/** One figure for each region. */
 export const perRegion = (figure: (region: RegionId) => number): PerRegion =>
   Object.fromEntries(REGIONS.map((region) => [region, figure(region)])) as PerRegion
 
@@ -153,11 +152,8 @@ export const userHopMs = (game: Game, ms: number, kind: RequestKind): number =>
   kind === 'page' && has(game, 'http2') ? ms * (1 - HTTP2_CUT) : ms
 
 export type UserRoute = Readonly<{
-  /** Where these users live. */
   region: RegionId
-  /** The Users Node they enter through. */
   source: GameNode | undefined
-  /** Their share of the demand. */
   share: number
   /** Milliseconds their hop to the source adds. */
   extraMs: number

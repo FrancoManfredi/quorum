@@ -13,7 +13,7 @@ export const cdcRule: ComponentRule = {
       CDC_RATE * flatScale(node),
       arriving,
       // A Data team owns the pipelines, and a pipeline has half the lag with one (08 "Teams").
-      { fixed: CDC_MS * (dataStaffed(solver.game) ? DATA_TEAM_LAG : 1), variable: 0.05 },
+      { fixedMs: CDC_MS * (dataStaffed(solver.game) ? DATA_TEAM_LAG : 1), variableMs: 0.05 },
       solver.boost(node),
     ),
   serve: (serve, node, rates, share) => {

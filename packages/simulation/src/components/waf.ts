@@ -14,7 +14,7 @@ export const UNDER_ATTACK = { block: 0.99, falsePositive: 0.01, latency: 40, cpu
 /**
  * Share by which Bot management lowers a WAF's false positives (10 "Track: Infrastructure"): a
  * suspicious client is challenged instead of blocked, so a real user it flags still gets through.
- * The design gives the direction and no rate, so half is
+ * The design gives the direction and no rate, so half is proposed.
  */
 export const BOT_MANAGEMENT_FALSE = 0.5
 
@@ -25,7 +25,6 @@ export const wafGlossary: ReadonlyArray<string> = ['rate-limiting', 'waf-web-app
 export const wafFields = {
   /** A WAF's paranoia level, 1 to 4. */
   paranoia: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(2))),
-  /** A WAF challenges every request. */
   underAttack: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
 } as const
 

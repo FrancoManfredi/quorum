@@ -1,10 +1,5 @@
 /* Instance types, and the hardware constants every sized Node shares. */
 
-/**
- * Each step doubles vCPU and RAM, up to `metal` (96 vCPU, a 1.5× last step).
- * `gbps` is the network bandwidth. Saves store an index here, so sizes only
- * ever append.
- */
 export const SIZES = [
   { name: 'nano', vcpu: 0.5, gbps: 0.5 },
   { name: 'micro', vcpu: 1, gbps: 1 },
@@ -23,9 +18,7 @@ export type FamilyId = (typeof FAMILY_IDS)[number]
 export type FamilyDef = Readonly<{
   id: FamilyId
   name: string
-  /** GB of RAM per vCPU. */
-  ram: number
-  /** Price per vCPU, relative to General. */
+  ramPerVcpu: number
   price: number
   blurb: string
 }>
@@ -34,19 +27,19 @@ export const FAMILIES: Record<FamilyId, FamilyDef> = {
   burstable: {
     id: 'burstable',
     name: 'Burstable',
-    ram: 2,
+    ramPerVcpu: 2,
     price: 0.4,
     blurb: 'Cheap. Earns CPU credits while idle and drops to 20% CPU when they run out.',
   },
-  general: { id: 'general', name: 'General', ram: 4, price: 1, blurb: '1 vCPU : 4 GB.' },
-  compute: { id: 'compute', name: 'Compute', ram: 2, price: 0.85, blurb: '1 vCPU : 2 GB.' },
-  memory: { id: 'memory', name: 'Memory', ram: 8, price: 1.3, blurb: '1 vCPU : 8 GB.' },
+  general: { id: 'general', name: 'General', ramPerVcpu: 4, price: 1, blurb: '1 vCPU : 4 GB.' },
+  compute: { id: 'compute', name: 'Compute', ramPerVcpu: 2, price: 0.85, blurb: '1 vCPU : 2 GB.' },
+  memory: { id: 'memory', name: 'Memory', ramPerVcpu: 8, price: 1.3, blurb: '1 vCPU : 8 GB.' },
   // 05 "App Server": the same vCPU and RAM as General for 0.8× the price, and some software runs
   // slower or needs work to port (the speed is 0.95; the price is 20% less).
   arm: {
     id: 'arm',
     name: 'ARM',
-    ram: 4,
+    ramPerVcpu: 4,
     price: 0.8,
     blurb: 'Same as General for 20% less. Some runtimes and libraries need work to port.',
   },
@@ -70,7 +63,6 @@ export const LOCAL_DB_RAM = 0.6
 export const LOCAL_DB_RAM_PER_USER = 0.0015
 /** Postgres and the app fight over the same cores and page cache on one box. */
 export const LOCAL_DB_CONTENTION = 1.5
-/** Postgres `max_connections`. */
 export const MAX_CONNECTIONS = 100
 /** Server connections a pooler keeps open to each database. */
 export const POOLER_CONNECTIONS = 20

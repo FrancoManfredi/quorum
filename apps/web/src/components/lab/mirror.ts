@@ -36,11 +36,6 @@ import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, SCROLL, WELL } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   Mirrors (GDD 05 "Mirror a region"): the IaC tool, GitOps, and the plan for
-   the region on the board. It opens from the region tabs.
-   ========================================================================== */
-
 const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
   size: t.mirror.fieldSize,
   family: t.mirror.family,
@@ -198,8 +193,6 @@ const segmented = <A>(
 const heading = (text: string, h: HtmlBuilder<Message>): Html =>
   h.span([h.Class(cn(EYEBROW, 'px-1'))], [text])
 
-/* ---------- the IaC tool and GitOps ---------- */
-
 const toolCards = (game: Game, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -288,8 +281,6 @@ const gitops = (game: Game, h: HtmlBuilder<Message>): Html => {
         ],
       )
 }
-
-/* ---------- the region on the board ---------- */
 
 const driftText = (t: Messages, game: Game, mirror: Mirror, drift: Drift): string => {
   if (isApplying(mirror.sync))

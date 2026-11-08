@@ -19,8 +19,6 @@ import { flatModel } from '../capacity.ts'
 import { flatScale, grown, has, hopMs } from '../lookups.ts'
 import { type ComponentRule, each, hotKeyFactor, noProbe, relay, slotOf } from '../rule-kit.ts'
 
-/* ---------- the Cache ---------- */
-
 /**
  * The strategy a Cache runs (07 "Strategies"). The three that change the write path need their
  * research; without it the Cache is cache-aside.
@@ -65,7 +63,7 @@ export const cacheRule: ComponentRule = {
     flatModel(
       cacheCapacity(node) / hotKeyFactor(solver.game, node),
       arriving,
-      { fixed: 0.5, variable: 0.2 },
+      { fixedMs: 0.5, variableMs: 0.2 },
       solver.boost(node),
     ),
   serve: (serve, node, rates, share) => {
@@ -110,7 +108,7 @@ export const cacheRule: ComponentRule = {
     // Write-through pays one more cache write; write-behind answers before the Database sees it.
     if (kind === 'q-write' && strategy.write === 'through') {
       const own = answer.ownHop(kind)
-      return through({ ...own, fixed: own.fixed + strategy.writeMs }, [
+      return through({ ...own, fixedMs: own.fixedMs + strategy.writeMs }, [
         [answer.downstream(kind, hopMs(answer.game)), 1],
       ])
     }

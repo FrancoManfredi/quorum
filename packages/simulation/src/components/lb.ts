@@ -18,7 +18,7 @@ export const P2C_IMBALANCE = 0.1
 export const CHECK_INTERVALS = [2, 10, 30] as const
 /**
  * What the L4 variant changes (05 "Load Balancer"): ten times the throughput, 0.2 ms instead of
- * 1 ms, and cheaper. The exact price cut is
+ * 1 ms, and cheaper. The exact price cut is proposed: 05 says only "cheaper".
  */
 export const L4_CAPACITY = 10
 export const L4_MS = 0.2
@@ -52,7 +52,6 @@ export type LbPolicy = typeof LbPolicy.Type
 
 /** The saved properties of a lb Node, with the defaults an old save decodes to. */
 export const lbFields = {
-  /** How a Load Balancer splits traffic. */
   policy: LbPolicy.pipe(Schema.withDecodingDefaultKey(Effect.succeed('weighted' as const))),
   /** A Load Balancer keeps a user on one target (05 "Load Balancer"). */
   sticky: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),

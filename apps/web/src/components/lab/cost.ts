@@ -10,11 +10,6 @@ import { FIGURE, WELL } from '@quorum/ui/game/bits'
 import { cn } from '@/lib/utils'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   The cloud bill (09 "The cloud bill", 15 "Panels"): every line the build
-   charges, so Burn can be read as a bill rather than one number.
-   ========================================================================== */
-
 type Line = Readonly<{ key: keyof BurnLines; label: string; note: string }>
 
 const linesOf = (t: Messages): ReadonlyArray<Line> => [

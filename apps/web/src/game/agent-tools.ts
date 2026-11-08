@@ -12,13 +12,6 @@ import {
   type Model,
 } from './model.ts'
 
-/* ==========================================================================
-   The read-only tools an agent can call: the agent relay for a terminal agent,
-   and the "Copy state as JSON" button. They share one set of readers over the
-   last Model that `publish` saw. Nothing here can send a Message: the player
-   decides. Tool names and descriptions live in `quorum-mcp-relay/tools`.
-   ========================================================================== */
-
 type Input = Record<string, unknown>
 
 let latest: Model | null = null

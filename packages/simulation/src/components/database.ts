@@ -32,7 +32,7 @@ export const SHARD_COUNTS = [1, 2, 4, 8] as const
  * older than its window. Keep everything bills every GB and answers a report from the table;
  * archive moves old rows to cheap storage and a report waits on the restore; delete drops them,
  * so a report rebuilds its figures from the event log at three times the scan. The 30-day window
- * and the three prices are
+ * and the three prices are proposed: the design names the trade and gives no numbers.
  */
 export const DB_RETENTIONS = {
   keep: { name: 'Keep everything', days: 0, price: 1, scanMs: 0, rebuild: 1 },
@@ -62,7 +62,7 @@ export const MATERIALIZED_STALE = 0.05
 export const DENORMALIZED_READ = 0.7
 export const DENORMALIZED_WRITE = 1.2
 
-/** Backups (07 "Backups"): RPO in calendar minutes, and Burn on top of the Database's. Costs  */
+/** Backups (07 "Backups"): RPO in calendar minutes, and Burn on top of the Database's. Costs proposed. */
 export const BACKUPS = {
   none: { name: 'None', rpo: Number.POSITIVE_INFINITY, burn: 0 },
   nightly: { name: 'Nightly', rpo: 1_440, burn: 0.05 },

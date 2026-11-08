@@ -7,14 +7,6 @@ import { rate } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
 
-/* ==========================================================================
-   The board for a screen reader (15 "Accessibility"): the canvas says nothing,
-   so this list names every Node on the board in board order, with its kind,
-   its size, and its load. Each entry is a button, so the keyboard reaches the
-   Nodes and Enter opens the Inspector on the one it names. It stays `sr-only`
-   until a sighted keyboard player tabs into it, then it shows as a list.
-   ========================================================================== */
-
 /** A Node's load as the cards show it: the share of its limiting resource in use. */
 const loadOf = (t: Messages, ledger: Ledger, id: string): string => {
   const own = ledger.nodes[id]

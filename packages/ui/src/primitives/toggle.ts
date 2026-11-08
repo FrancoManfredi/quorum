@@ -51,7 +51,6 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-/** Emitted when the pressed state changes. */
 export const OutMessage = defineMessageUnion({
   ChangedPressed: { isPressed: S.Boolean },
 })
@@ -64,7 +63,6 @@ export type InitConfig = Readonly<{
   isPressed?: boolean
 }>
 
-/** Creates an initial toggle model. */
 export const init = (config: InitConfig): Model => ({
   id: config.id,
   isPressed: config.isPressed ?? false,

@@ -14,7 +14,6 @@ export type StepEvent = Data.TaggedEnum<{
   CreditsExhausted: { readonly nodeId: string }
   AlertFired: { readonly rule: AlertRule }
   AlertIgnored: { readonly rule: AlertRule }
-  /** A hire joined the team. */
   Hired: { readonly engineerId: string }
   /** A backlog item is built. A Feature then waits for a deploy. */
   WorkFinished: { readonly item: WorkItem }

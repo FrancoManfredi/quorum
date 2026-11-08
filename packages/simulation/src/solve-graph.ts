@@ -14,8 +14,6 @@ import { slotOf, accepts, type Pass, type Rates } from './rules.ts'
 import { type Game, type GameLink, type GameNode } from './state.ts'
 import { fixed } from './team.ts'
 
-/* ---------- the graph ---------- */
-
 /**
  * A routing Link as the solve sees it: numbered, so per-Link state in a pass lives in
  * arrays, with its key and policy worked out once per solve instead of on every call.
@@ -47,7 +45,6 @@ export type Graph = Readonly<{
    * the source keeps all of it, and the connector reads the changes off its log.
    */
   mirrors: ReadonlyMap<string, ReadonlyArray<Edge>>
-  /** Every Edge, by index. */
   edges: ReadonlyArray<Edge>
   routes: ReadonlyMap<string, ReadonlyArray<GameNode>>
   parents: ReadonlyMap<string, ReadonlyArray<GameNode>>

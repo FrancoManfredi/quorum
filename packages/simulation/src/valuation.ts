@@ -2,11 +2,6 @@ import { has } from './lookups.ts'
 import type { Ledger } from './ledger.ts'
 import type { Game } from './state.ts'
 
-/* ==========================================================================
-   The valuation (09 "Valuation"): ARR times a multiple the Rule of 40 sets.
-   Growth reads the users at the start of the SLO window, a calendar week ago.
-   ========================================================================== */
-
 /** Converts a year of game revenue into real ARR (16 "Valuation scale"). */
 export const VALUATION_SCALE = 0.00015
 /** Investor relations adds this to the multiple. */

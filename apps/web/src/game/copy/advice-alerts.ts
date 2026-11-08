@@ -1,11 +1,5 @@
 import type { AdviceLetters } from './letter.ts'
 
-/* ==========================================================================
-   Monitoring advice (GDD 18): the pager, the dashboard, and the error
-   tracker. Every letter must read right from any sender in the pool, so the
-   name is always `${from}`.
-   ========================================================================== */
-
 export const ALERTS: Pick<
   AdviceLetters,
   | 'workers'

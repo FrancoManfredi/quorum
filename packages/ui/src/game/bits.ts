@@ -6,18 +6,10 @@ import { icon } from '../primitives/icon.ts'
 import { GROUP_SHAPES, type GroupShape, STACK_LOGOS, type StackLogoId } from './icons.ts'
 import { POOL_ICONS, poolColor, poolName } from './pools.ts'
 
-/* ==========================================================================
-   Small pieces every Quorum surface shares, in the game and on the wiki: the
-   surfaces, group badges, brand marks, labels, and figures. Depth comes from
-   the four elevations in theme.css: well, raised, card, float.
-   ========================================================================== */
-
 export const EYEBROW =
   'font-mono text-[calc(10.5px*var(--type-scale))] font-medium uppercase tracking-[0.08em] text-muted-foreground'
 export const SCROLL = 'overflow-auto [scrollbar-width:thin]'
-/** A panel resting on the board. */
 export const PANEL = 'rounded-2xl bg-surface shadow-card'
-/** A panel above everything else. */
 export const FLOAT = 'rounded-2xl bg-surface shadow-float'
 /** A group inside a panel, one step lighter, with hairline dividers. */
 export const NESTED =

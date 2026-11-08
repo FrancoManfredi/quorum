@@ -2,11 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   The board's clock. Running, paused by the player, paused because the window
-   lost focus, or auto-paused by a severe Incident: four phases, one reason.
-   ========================================================================== */
-
 export const Running = Schema.TaggedStruct('Running', {})
 export const PausedByPlayer = Schema.TaggedStruct('PausedByPlayer', {})
 export const PausedByBlur = Schema.TaggedStruct('PausedByBlur', {})
@@ -83,7 +78,6 @@ export const clockMachine = Machine.make({ root: States, events: Events }).handl
 export const clockStep = (mode: ClockMode, event: ClockEvent): ClockMode =>
   planState(clockMachine, mode, event)
 
-/** The clock holds still. */
 export const paused = (mode: ClockMode): boolean => mode._tag !== 'Running'
 
 /** The pause came from the window losing focus, so focus resumes it. */

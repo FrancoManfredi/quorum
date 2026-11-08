@@ -32,11 +32,6 @@ import { SurveyMessage } from '@/game/survey.ts'
 import { isSending, isSent, isSkipped } from '@/game/survey-machine.ts'
 import { shell } from './panels.ts'
 
-/* ==========================================================================
-   Exit and Legacy on the board (13): the Exit offers, the summary after an
-   Exit, the return from time away, and the Playbooks tray.
-   ========================================================================== */
-
 const stat = (name: string, value: string, h: HtmlBuilder<Message>) =>
   h.div(
     [h.Key(name), h.Class('flex flex-col gap-1 px-4 py-3')],

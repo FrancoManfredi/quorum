@@ -1,13 +1,6 @@
 import { MIGRATION_STEPS } from './catalog.ts'
 import { lifeOf } from './life.ts'
 
-/* ==========================================================================
-   A save from an older build (15 "Save"). The schemas describe the live Game,
-   so the loader upgrades the raw JSON before it decodes: old flags and dates
-   become the tagged phases the machines use. This is the only place that knows
-   the old shapes, and it runs once per save rather than on every decode.
-   ========================================================================== */
-
 const record = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)

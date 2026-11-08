@@ -42,7 +42,7 @@ export const gwRule: ComponentRule = {
     flatModel(
       flatCapacity(node),
       arriving,
-      { fixed: 6 + (node.authEdge ? GATEWAY_AUTH_MS : 0), variable: 0.1 },
+      { fixedMs: 6 + (node.authEdge ? GATEWAY_AUTH_MS : 0), variableMs: 0.1 },
       solver.boost(node),
     ),
   serve: (serve, node, rates, share) => {

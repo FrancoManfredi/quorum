@@ -1,11 +1,5 @@
 import type { EventLetters } from './letter.ts'
 
-/* ==========================================================================
-   Teammate Mail (GDD 18 "Teammates"): a Blocked item, burnout and quitting,
-   and a proposal to patch. An engineer signs with their name, so the letters
-   carry the whole voice and the Inbox supplies the name.
-   ========================================================================== */
-
 export const PEOPLE_EVENTS: Pick<EventLetters, 'blocked' | 'unhappy' | 'patch-proposed'> = {
   blocked: [
     ({ from, item, reason }) => ({

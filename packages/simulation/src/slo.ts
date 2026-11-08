@@ -6,14 +6,6 @@ import { eraOf, has } from './lookups.ts'
 import { calendarMinute } from './solve.ts'
 import type { BudgetHour, Game } from './state.ts'
 
-/* ==========================================================================
-   The SLO and its error budget (11 "SLOs and error budgets"). The window is
-   the last calendar week, kept as hourly counts of the requests users sent
-   and the ones that failed. Bots do not count: the Ledger leaves them out. A
-   real user the WAF blocked got a 403, a client error, so it does not spend
-   the budget either: the budget counts what the service failed to answer.
-   ========================================================================== */
-
 /** Requests per second that spend the error budget: every failure but a WAF block. */
 export const budgetFailures = (ledger: Ledger): number => {
   let failed = 0

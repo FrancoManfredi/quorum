@@ -100,11 +100,6 @@ import {
   toneText,
 } from '@quorum/ui/game/bits'
 
-/* ==========================================================================
-   The HUD: the company at a glance on the left, the controls on the right,
-   and the goal and the last change in the middle.
-   ========================================================================== */
-
 /** A phone shows Apdex before Errors and Latency, which scroll off the edge. */
 const CHIP_ORDER: Record<string, string> = {
   Errors: 'compact:order-2',

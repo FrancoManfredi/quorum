@@ -10,11 +10,6 @@ import { Replay, ReplayAction } from '@quorum/simulation/replay'
 import { Game } from '@quorum/simulation/state'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A Challenge run is a flow, not a bag of nullable fields. Building has no
-   replay, and Running has no result.
-   ========================================================================== */
-
 export const Building = Schema.TaggedStruct('Building', {
   id: Schema.String,
   totals: RunTotals,

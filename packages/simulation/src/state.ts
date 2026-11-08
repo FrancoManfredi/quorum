@@ -62,7 +62,6 @@ export const FixId = Schema.Literals(FIXES)
 export const VentureId = Schema.Literals(VENTURE_IDS)
 export const MutatorId = Schema.Literals(MUTATOR_IDS)
 
-/** A relational Database's engine (07 "Variants"). */
 export const DbEngine = Schema.Literals(['postgres', 'mysql'])
 export type DbEngine = typeof DbEngine.Type
 
@@ -75,7 +74,6 @@ export type Zone = typeof Zone.Type
 export const Region = Schema.Literals(REGIONS)
 export type Region = typeof Region.Type
 
-/** One figure for each region. */
 export const PerRegion = Schema.Struct({
   na: Schema.Finite,
   eu: Schema.Finite,
@@ -87,7 +85,6 @@ export type PerRegion = typeof PerRegion.Type
 export const Backup = Schema.Literals(['none', 'nightly', 'pitr'])
 export type Backup = typeof Backup.Type
 
-/** A compute Node's pricing model. */
 export const Pricing = Schema.Literals(PRICING_IDS)
 export type Pricing = typeof Pricing.Type
 
@@ -237,9 +234,7 @@ const NODE_FIELDS_UNORDERED = {
   framework: FrameworkId,
   /** Old saves' index into the sample rates. Unused: `sampleRate` holds the rate by value. */
   sample: Schema.Finite,
-  /** Burstable CPU credits, in core-seconds. */
   credits: Schema.Finite,
-  /** GB leaked by a memory leak. */
   leak: Schema.Finite,
   /**
    * Where the Node stands in the rotation: in service, draining so its held work can finish, or
@@ -250,7 +245,6 @@ const NODE_FIELDS_UNORDERED = {
   ),
   /** Sim time the Node last went down, so health checks and DNS notice it late. */
   downAt: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** DNS or Cache TTL, in seconds. */
   ttl: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(300))),
   /** The sim second this Node's TLS certificate runs out, or null until one is issued (05 "Secrets and Certificates"). */
   certUntil: Schema.NullOr(Schema.Finite).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
@@ -260,13 +254,11 @@ const NODE_FIELDS_UNORDERED = {
   restore: Schema.Literals(['ok', 'failed']).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed('ok' as const)),
   ),
-  /** Tasks waiting in a Queue. */
   depth: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** Attempts a Queue with a dead-letter queue gives a task before it parks it there. */
   attempts: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(25))),
   /** Tasks each Worker process takes from its Queue ahead of time. */
   prefetch: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(10))),
-  /** The zone the Node runs in. */
   zone: Zone.pipe(Schema.withDecodingDefaultKey(Effect.succeed('a' as const))),
   /** A data Node keeps a standby in another zone and fails over to it. */
   standby: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
@@ -313,7 +305,6 @@ export type Retries = typeof Retries.Type
 export const GameLink = Schema.Struct({
   from: Schema.String,
   to: Schema.String,
-  /** Seconds before the caller gives up. */
   timeout: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(30))),
   retries: Retries.pipe(Schema.withDecodingDefaultKey(Effect.succeed('none' as const))),
   /** The request kinds a Load Balancer sends on this link, or null for every kind. */
@@ -340,7 +331,6 @@ export type GameLink = typeof GameLink.Type
 
 export const Incident = Schema.Struct({
   kind: IncidentId,
-  /** Sim seconds left. */
   remaining: Schema.Finite,
   nodeId: Schema.NullOr(Schema.String),
   startedAt: Schema.Finite,
@@ -396,7 +386,6 @@ export const Postmortem = Schema.Struct({
   failed: Schema.Finite,
   /** The research this postmortem opens as an action item. */
   action: Schema.NullOr(ResearchId),
-  /** The SEV level it ended at. */
   severity: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(3))),
   /**
    * The sim second it ended at, so the Dashboard can place it on a time axis
@@ -488,8 +477,6 @@ export const FalseAlarms = Schema.Struct({
 })
 export type FalseAlarms = typeof FalseAlarms.Type
 
-/* ---------- the Team (08) ---------- */
-
 /** An engineer on the payroll. The founder is not one: every Company has them. */
 export const Engineer = Schema.Struct({
   id: Schema.String,
@@ -569,7 +556,6 @@ const MIGRATION_FIELDS = {
   framework: FrameworkId,
   fromRuntime: RuntimeId,
   fromFramework: FrameworkId,
-  /** Dev Hours for the whole migration. */
   total: Schema.Finite,
   /** The new Stack fails some requests until Fix bugs ships. */
   bugs: Schema.Boolean,
@@ -618,13 +604,11 @@ export type Resharding = typeof Resharding.Type
 export const Service = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
-  /** Tech debt, 0 to 1. */
   debt: Schema.Finite,
   /** Thousands of lines: what a migration has to move. */
   codebase: Schema.Finite,
   /** Engineering tasks that changed the code for good. */
   fixes: Schema.Array(FixId),
-  /** Query shapes with no index. */
   shapes: Schema.Finite,
   /** Indexes the Service has added: each one makes every write cost more (07 "Indexes"). */
   indexes: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
@@ -803,8 +787,6 @@ export const Scenario = Schema.Struct({
 })
 export type Scenario = typeof Scenario.Type
 
-/* ---------- Mirrors (05 "Mirror a region") ---------- */
-
 export const IacTool = Schema.Literals(IAC_TOOLS)
 export type IacTool = typeof IacTool.Type
 
@@ -904,9 +886,7 @@ export const Game = Schema.Struct({
   /** Studies in order; the first one runs (10 "Studies"). */
   studies: Schema.Array(Study).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   users: Schema.Finite,
-  /** Revenue waiting in the Payments drawer. */
   pending: Schema.Finite,
-  /** Revenue lost to a full drawer. */
   spilled: Schema.Finite,
   researched: Schema.Array(ResearchId),
   stage: Schema.Finite,
@@ -1021,7 +1001,6 @@ export const Game = Schema.Struct({
   autopilot: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   deploys: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   badDeploys: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
-  /** GB held in Object Storage. */
   stored: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   /** GB of rows the Databases hold: every write and realtime message adds some (07 "Data volume"). */
   data: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),

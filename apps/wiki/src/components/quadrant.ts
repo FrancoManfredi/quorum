@@ -14,12 +14,6 @@ import type { BuildGroup } from '@quorum/simulation/catalog'
 import { groupBadge } from '@quorum/ui/game/bits'
 import type { Section } from '../frontmatter.ts'
 
-/* ==========================================================================
-   The wiki's four kinds of page (Diátaxis), each worn as one of the game's
-   four Component groups: the same badge shape and the same colour. A reader
-   learns the shapes on the board and the wiki at the same time.
-   ========================================================================== */
-
 export type Quadrant = Readonly<{
   label: string
   /** What a reader comes to the kind for, in a few words. */

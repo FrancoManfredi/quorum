@@ -2,12 +2,6 @@ import { expect, test } from 'vitest'
 import { BACKEND_KINDS, KINDS, REQUEST_KINDS, type Kind } from '@quorum/simulation/catalog'
 import { PACKET_SHAPES, PACKET_SHAPE_OF, packetColor, packetShapeOf } from './packets.ts'
 
-/* ==========================================================================
-   15 "Accessibility": a shape per request kind. Packets keep the kind's
-   colour and gain one of four shapes, so colour is not the only cue, and kinds
-   that share a colour share a shape rather than contradicting it.
-   ========================================================================== */
-
 const KINDS_IN_ORDER: ReadonlyArray<Kind> = [...REQUEST_KINDS, ...BACKEND_KINDS]
 
 test('every kind has one of the four shapes, and all four are used', () => {

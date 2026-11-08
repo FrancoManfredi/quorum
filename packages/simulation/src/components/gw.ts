@@ -13,7 +13,7 @@ export const GATEWAY_LIMITS = [0, 100, 500, 1_000, 2_500, 5_000] as const
 /**
  * Requests a Gateway's token bucket holds on top of its rate limit, once Rate limiting is
  * researched (10 "Track: Infrastructure"). A burst up to this many requests passes whole and the
- * long-run average holds; the design gives the mechanism and no size, so 200 is
+ * long-run average holds; the design gives the mechanism and no size, so 200 is proposed.
  */
 export const GATEWAY_BURST = 200
 export const GATEWAY_AUTH_MS = 2

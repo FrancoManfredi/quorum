@@ -33,12 +33,11 @@ const serving = (runtime: RuntimeId): number => {
   return solveFlow(game).nodes[server?.id ?? '']?.capacity ?? 0
 }
 
-/** Reference scores where bigger is better. */
 const SCORES: Readonly<Record<string, (runtime: RuntimeId) => number>> = {
   throughput: serving,
-  memory: (id) => 1 / RUNTIMES[id].memory,
+  memory: (id) => 1 / RUNTIMES[id].memoryMb,
   connections: (id) => 1 / (RUNTIMES[id].connectionKB ?? Number.POSITIVE_INFINITY),
-  startup: (id) => 1 / (1 + RUNTIMES[id].startup),
+  startup: (id) => 1 / (1 + RUNTIMES[id].startupSeconds),
   coldSpeed: (id) => RUNTIMES[id].warmFrom,
   noStall: (id) => (RUNTIMES[id].blocking === null ? 1 : 0),
   noPause: (id) => 1 / (RUNTIMES[id].gc?.pauseMs ?? 0.01),

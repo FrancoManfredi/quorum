@@ -8,7 +8,6 @@ export const serverGlossary: ReadonlyArray<string> = ['process-per-request']
 export const PmMode = Schema.Literals(['static', 'dynamic', 'ondemand'])
 export type PmMode = typeof PmMode.Type
 
-/** A Java App Server's garbage collector. */
 export const Collector = Schema.Literals(['g1', 'parallel', 'zgc'])
 export type Collector = typeof Collector.Type
 
@@ -17,7 +16,6 @@ export type Fanout = typeof Fanout.Type
 
 /** The saved properties of a server Node, with the defaults an old save decodes to. */
 export const serverFields = {
-  /** Pool size for pooled runtimes. */
   workers: Schema.Finite,
   /** Postgres runs on this App Server. Only the starting box has it. */
   localDb: Schema.Boolean,
@@ -27,7 +25,6 @@ export const serverFields = {
   recycle: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The App Server gzips page and read responses. */
   compress: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
-  /** PHP-FPM's process manager. */
   pm: PmMode.pipe(Schema.withDecodingDefaultKey(Effect.succeed('static' as const))),
   /** A Java App Server's collector, and a Go App Server's GOGC. */
   collector: Collector.pipe(Schema.withDecodingDefaultKey(Effect.succeed('g1' as const))),

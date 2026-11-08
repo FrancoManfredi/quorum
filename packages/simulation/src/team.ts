@@ -68,11 +68,6 @@ import {
   type WorkItem,
 } from './state.ts'
 
-/* ==========================================================================
-   The Team (08): who works, how fast, and what it costs. Pure numbers; the
-   actions and the Step that use them are in work.ts.
-   ========================================================================== */
-
 /**
  * Headcount after the coordination penalty (08 "Coordination"). A team whose Service shares a
  * Database with another keeps half of the penalty again: a schema change still needs agreement.
@@ -103,8 +98,6 @@ export const withServiceId = (game: Game, id: string, change: Partial<Service>):
     service.id === id ? { ...service, ...change } : service,
   ),
 })
-
-/* ---------- Ownership (08 "Services") ---------- */
 
 /** The team that owns a Service: the one whose Dev Hours fix it, and the one an incident pages. */
 export const ownerOf = (game: Game, service: Service): Team =>
@@ -185,7 +178,6 @@ export const stackOf = (game: Game): Readonly<{ runtime: RuntimeId; framework: F
   return { runtime, framework }
 }
 
-/** The language the Service hires for. */
 export const languageOfService = (game: Game): LanguageId => {
   const node = servers(game).find((entry) => entry.runtime === stackOf(game).runtime)
   return node ? languageOf(node) : 'php'
@@ -198,8 +190,6 @@ export const coordinationOf = (game: Game): number =>
 /** The multiplier a framework puts on the tech debt each Feature adds: Symfony 0.7, Express 1.1. */
 export const debtGrowthOf = (game: Game): number => FRAMEWORKS[stackOf(game).framework].debt ?? 1
 
-/* ---------- ownership and upkeep (08 "Upkeep") ---------- */
-
 /** The Dev Hours of the Features a Service carries and has not removed. */
 export const featureHoursOn = (game: Game, service: Service): number =>
   liveFeatures(game).reduce(
@@ -207,11 +197,6 @@ export const featureHoursOn = (game: Game, service: Service): number =>
     0,
   )
 
-/**
- * The share of a Service's Dev Hours that keeps its live Features running (08 "Upkeep"):
- * `0.4 × S / (S + 2,000) × (1 + debt)`, capped at 0.6, where S is the Dev Hours of the Features
- * shipped on the Service. 500 DH costs 8%, 4,000 DH 27%, and it approaches 40% with no debt.
- */
 export const upkeepShare = (game: Game, service: Service): number => {
   const hours = featureHoursOn(game, service)
   if (hours <= 0) return 0
@@ -232,8 +217,6 @@ export const serviceBurnOf = (game: Game, ledger: Ledger, service: Service): num
   const total = game.services.reduce((sum, entry) => sum + entry.codebase, 0)
   return total > 0 ? (ledger.burn * service.codebase) / total : ledger.burn
 }
-
-/* ---------- pay and mood (08 "Hiring", 18 "Burnout and quitting") ---------- */
 
 /** The salary index an engineer is paid at: the one set at hire or by a raise, else the Era's. */
 export const paidIndex = (game: Game, engineer: Engineer): number =>
@@ -272,8 +255,6 @@ export const memberOf = (game: Game, teamId: string, salt: number): Engineer | u
   return members[Math.abs(Math.trunc(salt)) % Math.max(1, members.length)]
 }
 
-/* ---------- calendar time ---------- */
-
 export const days = (count: number, tuning: Tuning): number =>
   (count * CALENDAR_DAY) / tuning.calendarPace
 
@@ -310,8 +291,6 @@ export const hireSeconds = (
 
 export const moraleSeconds = (tuning: Tuning = LIVE_TUNING): number => days(MORALE_DAYS, tuning)
 
-/* ---------- the platform (08 "Teams") ---------- */
-
 /** A Platform team with at least one engineer runs the Clusters and the deploy pipeline. */
 export const platformStaffed = (game: Game): boolean =>
   game.teams.some(
@@ -346,16 +325,13 @@ export const quartersBehind = (
 export const platformTax = (game: Game): number =>
   platformStaffed(game) ? 0 : PLATFORM_TAX * liveClusters(game) + MESH_TAX * liveMeshes(game)
 
-/* ---------- output ---------- */
-
 export type TeamOutput = Readonly<{
   team: Team
   /** People on the team, the founder included. */
   headcount: number
   effective: number
   velocity: number
-  /** Dev Hours per sim second. */
-  rate: number
+  devHoursPerSecond: number
 }>
 
 export const membersOf = (game: Game, team: Team): ReadonlyArray<Engineer> =>
@@ -400,7 +376,7 @@ export const teamOutputs = (
     const upkeep = team.kind === 'product' ? 1 - upkeepShare(game, owned) : 1
     const rate =
       (effective * velocity * upkeep * DEV_HOURS_PER_DAY * tuning.calendarPace) / CALENDAR_DAY
-    return { team, headcount, effective, velocity, rate }
+    return { team, headcount, effective, velocity, devHoursPerSecond: rate }
   })
   // Each Cluster takes engineers' worth of Dev Hours from the product teams, in proportion.
   const tax = platformTax(game)
@@ -409,14 +385,14 @@ export const teamOutputs = (
   const engineers = product.reduce((sum, entry) => sum + entry.effective, 0)
   const kept = engineers > 0 ? Math.max(0, 1 - tax / engineers) : 0
   return outputs.map((entry) =>
-    entry.team.kind === 'product' ? { ...entry, rate: entry.rate * kept } : entry,
+    entry.team.kind === 'product'
+      ? { ...entry, devHoursPerSecond: entry.devHoursPerSecond * kept }
+      : entry,
   )
 }
 
 export const devHoursRate = (game: Game, ledger: Ledger, tuning: Tuning = LIVE_TUNING): number =>
-  teamOutputs(game, ledger, tuning).reduce((sum, entry) => sum + entry.rate, 0)
-
-/* ---------- money ---------- */
+  teamOutputs(game, ledger, tuning).reduce((sum, entry) => sum + entry.devHoursPerSecond, 0)
 
 export const salaryOf = (game: Game, language: LanguageId): number =>
   SALARY_BASE * eraOf(game).salaryIndex * LANGUAGES[language].salary
@@ -431,8 +407,6 @@ export const signingOf = (game: Game, language: LanguageId): number =>
     (SIGNING_BASE * LANGUAGES[language].salary * eraOf(game).salaryIndex) /
       (ERAS[1]?.salaryIndex ?? 1),
   )
-
-/* ---------- deploys ---------- */
 
 /** The CI/CD Pipeline a Company has placed, or null. Its strategy needs the Node, not just the research. */
 export const pipelineOf = (game: Game): GameNode | null =>
@@ -473,7 +447,6 @@ export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number 
   return base * (has(game, 'trunk-based') ? TRUNK_FREQUENCY : 1)
 }
 
-/** Sim seconds between deploy slots. */
 export const deployEvery = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
   CALENDAR_DAY / deploysPerDay(game, tuning) / tuning.calendarPace
 
@@ -516,10 +489,7 @@ export const nextBadDeployChance = (
   return Math.min(1, base + rush)
 }
 
-/* ---------- DORA metrics (08 "Deploy frequency") ---------- */
-
 export type DoraMetrics = Readonly<{
-  /** Deploys per calendar day. */
   deploysPerDay: number
   /** Sim seconds from a backlog item's start to the deploy that ships it: one deploy slot. */
   leadTime: number
@@ -578,8 +548,6 @@ export const badDeployShareOf = (game: Game, service: Service): number => {
 
 /** The share of the Design a bad deploy breaks: the deploy that broke, or the starting Service. */
 export const badDeployShare = (game: Game): number => badDeployShareOf(game, serviceOf(game))
-
-/* ---------- the backlog ---------- */
 
 /** Adds an item to the backlog: at the end, or at the top. */
 export const enqueue = (

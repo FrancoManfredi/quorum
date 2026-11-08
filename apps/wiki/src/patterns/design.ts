@@ -4,13 +4,6 @@ import { heightOf } from '@quorum/ui/board/geometry'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
 import type { Game, GameLink, GameNode } from '@quorum/simulation/state'
 
-/* ==========================================================================
-   A Pattern Design: a small Board a page draws on the game's own canvas.
-   The Nodes' and Links' settings are written once, here, and the page's
-   settings table is read back from the same objects, so the picture, the
-   table and the Simulation cannot disagree.
-   ========================================================================== */
-
 /** One setting on a Node or Link: the field it sets, how the table names it, and why. */
 export type Setting = Readonly<{
   field: string
@@ -63,7 +56,6 @@ export const wire = (
 ): LinkSpec => ({ from, to, settings })
 
 export type DesignDef = Readonly<{
-  /** Users while the Design is solved. */
   users: number
   /** The Era index whose request mix the Design runs. */
   stage: number

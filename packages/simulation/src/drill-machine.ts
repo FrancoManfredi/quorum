@@ -3,14 +3,6 @@ import { Schema } from 'effect'
 import { DRILL_RECOVERED, DRILL_RPO, DRILL_RTO, DRILL_SECONDS } from './catalog.ts'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   The DR drill (10 "Era 6: Pre-IPO"). The home region fails for a minute: the
-   drill recovers when the error share falls back under 1%, and it times out
-   when the outage runs its full length plus the RTO budget. The start, the
-   RPO, and whether the drill passed stay on the Game's Drill; this machine
-   only tracks where the run stands.
-   ========================================================================== */
-
 /** The drill runs: it began at `startedAt` and would lose `rpo` minutes of writes. */
 export const Running = Schema.TaggedStruct('Running', {
   startedAt: Schema.Finite,

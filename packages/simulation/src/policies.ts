@@ -15,14 +15,6 @@ import type { Game, Policies } from './state.ts'
 import { languageOfService, salaryOf, signingOf } from './team.ts'
 import { hire } from './work.ts'
 
-/* ==========================================================================
-   The Autopilot perk's policies (13 "The Legacy shop"): rules the player sets
-   once and the Company follows. Level 1 queues the cheapest Study, level 2
-   hires while payroll stays a modest share of revenue, and level 3 buys the
-   next size for an App Server that runs hot. Each runs only while its switch
-   is on, and none spends Cash the Company needs to keep running.
-   ========================================================================== */
-
 /** Whether a policy runs: the perk has the level, and the switch is on. */
 export const policyOn = (game: Game, policy: keyof Policies): boolean =>
   !game.sandbox && perkLevel(game, 'autopilot') >= POLICY_LEVEL[policy] && game.policies[policy]

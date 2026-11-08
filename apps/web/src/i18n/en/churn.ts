@@ -25,7 +25,6 @@ export const churn = {
     throttled: 'throttled',
     duplicate: 'duplicate',
   } satisfies Record<ChurnCause, string>,
-  /** The fix a failure row advises. */
   fixes: {
     stranded: 'Link a Node that accepts this kind.',
     dropped: 'Add capacity: a Node is past its backlog.',

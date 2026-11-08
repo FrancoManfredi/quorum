@@ -61,7 +61,6 @@ export type GpuType = typeof GpuType.Type
 
 /** The saved properties of a gpu Node, with the defaults an old save decodes to. */
 export const gpuFields = {
-  /** A GPU Node's GPU type. */
   gpu: GpuType.pipe(Schema.withDecodingDefaultKey(Effect.succeed('t4' as const))),
   /** A GPU Node's weight precision: FP16, INT8 or INT4 (05 "GPU Node"). */
   precision: Schema.Literals(['fp16', 'int8', 'int4']).pipe(

@@ -18,12 +18,6 @@ import { Kbd } from '@quorum/ui/primitives/kbd'
 import { cn } from '@/lib/utils'
 import { FIGURE, GROUP_TEXT, PANEL, groupBadge, tool } from '@quorum/ui/game/bits'
 
-/* ==========================================================================
-   The build dock, disclosed in steps: seven group icons. A group opens a list
-   of its Components; picking one closes the list and arms it, then a click
-   on the board places it.
-   ========================================================================== */
-
 /** The highlight's offset under the open tab, by the tab's place in the dock. */
 const TAB_OFFSET = [
   'translate-x-0',

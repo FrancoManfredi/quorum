@@ -113,27 +113,24 @@ export type Limit =
 export type Gauge = Readonly<{ used: number; total: number }>
 
 export type Resources = Readonly<{
-  /** Cores. */
-  cpu: Gauge | null
-  /** GB. */
-  ram: Gauge | null
-  /** Requests in flight against worker slots. */
+  cpuCores: Gauge | null
+  ramGb: Gauge | null
   slots: Gauge | null
   /** KB per second sent, against what the network card moves. */
-  network: Gauge | null
+  networkKbps: Gauge | null
   /** Burstable credits in core-seconds, and their change per second. */
-  credits: Readonly<{ balance: number; rate: number }> | null
+  creditsCoreSeconds: Readonly<{ balance: number; rate: number }> | null
 }>
 
 export const NO_RESOURCES: Resources = {
-  cpu: null,
-  ram: null,
+  cpuCores: null,
+  ramGb: null,
   slots: null,
-  network: null,
-  credits: null,
+  networkKbps: null,
+  creditsCoreSeconds: null,
 }
 
-export type Service = Readonly<{ fixed: number; variable: number }>
+export type Service = Readonly<{ fixedMs: number; variableMs: number }>
 
 /** What makes one request of a kind cost more or less at a Node (12 "Load diagnosis"). */
 export type CostCause =
@@ -221,7 +218,6 @@ const extended = (
 })
 
 export type NodeModel = Readonly<{
-  /** Offered work over capacity. */
   utilization: number
   limit: Limit
   /** Share of arrivals processed; the rest is dropped. */
@@ -247,9 +243,7 @@ export type NodeModel = Readonly<{
   /** Event-loop stalls: the share of requests hit and the stall length. */
   tailP: number
   tailMs: number
-  /** Processes that hold database connections. */
   processes: number
-  /** Requests in flight. */
   inflight: number
   resources: Resources
   throttled: boolean
@@ -263,7 +257,6 @@ export const GC_HEAP = 0.7
 /** Share of requests a GC pause lands on at a full heap: the p99, not the p50.  */
 export const GC_TAIL_SHARE = 0.02
 
-/** M/M/c-style waiting time, capped at saturation. */
 const waitFor = (service: number, utilization: number, servers: number): number => {
   const rho = Math.min(utilization, 0.98)
   return (service * rho) / (Math.max(1, servers) * (1 - rho))
@@ -271,8 +264,6 @@ const waitFor = (service: number, utilization: number, servers: number): number 
 
 const total = (rates: Readonly<Record<string, number>>): number =>
   Object.values(rates).reduce((sum, rate) => sum + rate, 0)
-
-/* ---------- App Server ---------- */
 
 /** Backend calls per request, or milliseconds per call, by backend kind. A missing kind is 0. */
 export type Calls = Readonly<Partial<Record<BackendKind, number>>>
@@ -345,11 +336,9 @@ export type ServerContext = Readonly<{
   callLatency: Calls
   /** An Auth Provider takes this server's logins. */
   delegated: boolean
-  /** Postgres runs on this box. */
   local: boolean
   /** Requests in flight on the previous pass, for Apache's process count. */
   inflight: number
-  /** Capacity multiplier, for the bottleneck test. */
   boost: number
   /** CPU overhead from Analytics sampling this Node. */
   sampling: number
@@ -403,7 +392,7 @@ const speedParts = (game: Game, node: GameNode): ReadonlyArray<readonly [CostCau
   // A recycled process starts cold every RECYCLE_CYCLE seconds: its boot, then its warmup.
   const recycled =
     node.recycle && runtime.persistent
-      ? 1 - (runtime.startup + (1 - runtime.warmFrom) * runtime.warmup) / RECYCLE_CYCLE
+      ? 1 - (runtime.startupSeconds + (1 - runtime.warmFrom) * runtime.warmup) / RECYCLE_CYCLE
       : 1
   // A JVM that scaled up under load runs its new copies cold: the Node answers at its cold
   // speed until the warmup finishes (11 "JVM warmup under load").
@@ -781,7 +770,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const ramUsed =
     OS_RAM * copies +
     (resident *
-      (runtime.memory * variant.factor * (collectorOf(node)?.memory ?? 1) + framework.memory)) /
+      (runtime.memoryMb * variant.factor * (collectorOf(node)?.memory ?? 1) + framework.memoryMb)) /
       1024 +
     (resident * variant.extraMB) / 1024 +
     (context.local ? LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER : 0) +
@@ -897,7 +886,6 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
 
   // One event loop runs one callback at a time: a heavy callback stalls every request behind
   // it (06 "Event loops and blocking"). The squared term lets rare heavy kinds dominate:
-  //   loop_block_ms = Σ λ·cpu² / Σ λ·cpu,   added_p99 = loop_block_ms × min(1, 2ρ)
   // The stall hits LOOP_TAIL_SHARE of requests, above 1%, so it lands on the p99 and not the p95.
   // The libuv pool and an Auth Provider take the login hash off the loop, not the rest.
   const offLoop = (kind: RequestKind): boolean =>
@@ -949,8 +937,8 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     REQUEST_KINDS.map((kind) => [
       kind,
       {
-        fixed: 2,
-        variable: cpu[kind] / perRequest + cpuWait + slotWait + (pooled(kind) ? poolWait : 0),
+        fixedMs: 2,
+        variableMs: cpu[kind] / perRequest + cpuWait + slotWait + (pooled(kind) ? poolWait : 0),
       },
     ]),
   )
@@ -1000,14 +988,14 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     processes: resident,
     inflight: (slotWork * share) / 1000,
     resources: {
-      cpu: { used, total: cores },
-      ram: { used: ramUsed, total: ram },
+      cpuCores: { used, total: cores },
+      ramGb: { used: ramUsed, total: ram },
       slots:
         slots === Number.POSITIVE_INFINITY
           ? null
           : { used: (slotWork * share) / 1000, total: slots },
-      network: { used: bytes * share, total: networkOf(node) * context.boost },
-      credits:
+      networkKbps: { used: bytes * share, total: networkOf(node) * context.boost },
+      creditsCoreSeconds:
         node.family === 'burstable'
           ? { balance: node.credits, rate: BURST_BASELINE * vcpu - used }
           : null,
@@ -1021,10 +1009,6 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   if (node.degrade && has(game, 'graceful-degradation')) return shedding(context, model, true)
   return node.shed && has(game, 'load-shedding') ? shedding(context, model) : model
 }
-
-/* ---------- Serverless Function ---------- */
-
-/* ---------- Database and Read Replica ---------- */
 
 /** Extra latency on a read query that misses the buffer cache. */
 const DISK_READ_MS = 8
@@ -1266,8 +1250,8 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const distributed = 1 + 2 * sharding.cross
   const syncMs = syncWaitMs(game, node)
   const txService = {
-    fixed: 2.5 * distributed + syncMs + sharding.farMs,
-    variable: (txCpu / perRequest + wait + ioWait) * distributed,
+    fixedMs: 2.5 * distributed + syncMs + sharding.farMs,
+    variableMs: (txCpu / perRequest + wait + ioWait) * distributed,
   }
   return {
     utilization,
@@ -1286,21 +1270,21 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     receiptOf: (kind) => (kind in receipts ? receipts[kind as keyof typeof receipts]() : undefined),
     service: {
       'q-read': {
-        fixed:
+        fixedMs:
           2.5 + sharding.farMs + (disk ? DISK_READ_MS : evicted > 0 ? DISK_READ_MS * evicted : 0),
-        variable: readCpu / perRequest + wait + (disk ? ioWait : 0),
+        variableMs: readCpu / perRequest + wait + (disk ? ioWait : 0),
       },
       'q-write': {
-        fixed: 2.5 + syncMs + sharding.farMs,
-        variable: writeCpu / perRequest + wait + ioWait,
+        fixedMs: 2.5 + syncMs + sharding.farMs,
+        variableMs: writeCpu / perRequest + wait + ioWait,
       },
-      'q-search': { fixed: 2.5 + sharding.scatterMs, variable: searchCpu / perRequest + wait },
-      'blob-put': { fixed: 2.5, variable: putCpu / perRequest + wait + ioWait },
+      'q-search': { fixedMs: 2.5 + sharding.scatterMs, variableMs: searchCpu / perRequest + wait },
+      'blob-put': { fixedMs: 2.5, variableMs: putCpu / perRequest + wait + ioWait },
       'q-tx': txService,
-      'blob-get': { fixed: 2.5 + DISK_READ_MS, variable: getCpu / perRequest + wait + ioWait },
+      'blob-get': { fixedMs: 2.5 + DISK_READ_MS, variableMs: getCpu / perRequest + wait + ioWait },
       'q-scan': {
-        fixed: 2.5 + DISK_READ_MS + retention.scanMs + sharding.scatterMs,
-        variable: scanCpu / perRequest + wait + ioWait,
+        fixedMs: 2.5 + DISK_READ_MS + retention.scanMs + sharding.scatterMs,
+        variableMs: scanCpu / perRequest + wait + ioWait,
       },
     },
     tailP: 0,
@@ -1308,11 +1292,11 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     processes: 0,
     inflight: 0,
     resources: {
-      cpu: { used, total: cores },
-      ram: { used: Math.min(workingSet + OS_RAM, ram), total: ram },
+      cpuCores: { used, total: cores },
+      ramGb: { used: Math.min(workingSet + OS_RAM, ram), total: ram },
       slots: null,
-      network: null,
-      credits:
+      networkKbps: null,
+      creditsCoreSeconds:
         node.family === 'burstable'
           ? { balance: node.credits, rate: BURST_BASELINE * vcpu - used }
           : null,
@@ -1322,8 +1306,6 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     disk,
   }
 }
-
-/* ---------- Components with a flat capacity ---------- */
 
 /** Requests per second for Components without an instance type. */
 export const FLAT_CAPACITY: Readonly<Record<string, number>> = {
@@ -1347,8 +1329,8 @@ export const flatModel = (
   const rate = total(arriving)
   const utilization = capacity === Number.POSITIVE_INFINITY ? 0 : rate / (capacity * boost)
   const share = utilization > 1 ? 1 / utilization : 1
-  const wait = waitFor(service.variable, utilization, 1)
-  const entry = { fixed: service.fixed, variable: service.variable + wait }
+  const wait = waitFor(service.variableMs, utilization, 1)
+  const entry = { fixedMs: service.fixedMs, variableMs: service.variableMs + wait }
   return {
     utilization,
     limit: utilization <= 0 ? 'none' : 'throughput',

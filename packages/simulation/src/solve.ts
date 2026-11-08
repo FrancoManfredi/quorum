@@ -12,16 +12,6 @@ import { type Inputs, NO_CALLS, solverOf, probeCapacity, forward } from './solve
 import { outcomesOf } from './solve-outcomes.ts'
 import { databaseSick, sumRates, ledgerOf } from './solve-ledger.ts'
 
-/* ==========================================================================
-   The flow solve: turns a Design and the current demand into the Ledger.
-
-   Requests walk the graph from Users in topological order. Each Node takes
-   what its capacity allows and sends the rest of the work on. An App Server's
-   capacity depends on how long its database calls take, and the database's
-   latency depends on how much the App Servers send, so the solve repeats the
-   walk a few times and blends the call latencies until they settle.
-   ========================================================================== */
-
 const PASSES = 6
 
 export { calendarMinute, clockOf, cosTurns } from './calendar.ts'
@@ -174,8 +164,6 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
  * task is lost.
  */
 
-/* ---------- the bottleneck ---------- */
-
 /**
  * The Node whose doubled capacity would earn the most: re-solve with each of
  * the three busiest Nodes boosted and keep the largest gain.
@@ -198,8 +186,6 @@ export const bottleneckOf = (game: Game, base: Ledger): string | null => {
   }
   return best
 }
-
-/* ---------- entry points ---------- */
 
 const flows = new WeakMap<Game, Ledger>()
 const marked = new WeakMap<Game, Ledger>()

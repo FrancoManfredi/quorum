@@ -63,7 +63,7 @@ export const billOf = (
     for (const node of game.nodes) {
       if (node.type === 'server') {
         const own = nodes[node.id]
-        const bytes = own?.resources.network?.used ?? 0
+        const bytes = own?.resources.networkKbps?.used ?? 0
         // The share of this Node's own traffic that Object Storage serves: its payload rides
         // R2's $0 egress once the Node links to a storage Node.
         const r2Share =

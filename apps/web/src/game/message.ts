@@ -15,11 +15,6 @@ import { shellCases } from './message/shell.ts'
 import { teamCases } from './message/team.ts'
 import { tradeoffCases } from './message/tradeoff.ts'
 
-/* ==========================================================================
-   Every gesture in Quorum becomes one of these. The cases live in ./message,
-   one file per subject; this file composes the union.
-   ========================================================================== */
-
 export const Message = defineMessageUnion({
   ...canvasCases,
   ...clockCases,

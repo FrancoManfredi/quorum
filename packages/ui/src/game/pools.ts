@@ -56,7 +56,6 @@ export const POOL_ICONS: Record<InsightPool, IconNode> = {
   failure: Flame,
 }
 
-/** The pool's colour as CSS. */
 export const poolColor = (pool: InsightPool): string =>
   `#${POOLS[pool].color.toString(16).padStart(6, '0')}`
 

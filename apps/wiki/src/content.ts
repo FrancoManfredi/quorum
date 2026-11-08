@@ -4,20 +4,12 @@ import { Frontmatter } from './frontmatter.ts'
 import { headingsOf, linksIn, prose, textOf } from './prose.ts'
 import type { Page } from './page.ts'
 
-/* ==========================================================================
-   Authored pages: every Markdown file under content/. Its path is its URL
-   (content/guides/find-the-bottleneck.md is /guides/find-the-bottleneck, and
-   index.md is its folder). A file without frontmatter is prose for a
-   catalog page, such as content/components/lb.md; src/reference/ reads it.
-   ========================================================================== */
-
 type Module = Readonly<{ default: unknown; frontmatter: unknown }>
 
 const modules = import.meta.glob<Module>('../content/**/*.md', { eager: true })
 
 const decodeFrontmatter = Schema.decodeUnknownSync(Frontmatter)
 
-/** `../content/guides/x.md` → `/guides/x`; `../content/index.md` → `/`. */
 const pathOf = (file: string): string => {
   const path = file
     .replace(/^\.\.\/content/, '')

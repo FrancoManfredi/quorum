@@ -103,8 +103,6 @@ export const visit = (model: Model, url: Url): UpdateResult => {
   }
 }
 
-/* ---------- update ---------- */
-
 export const parseStore = Schema.decodeUnknownOption(Schema.fromJsonString(SandboxStore))
 
 /** The Company's board that waits aside: one already loaded in the background, else the board played now. */
@@ -172,8 +170,6 @@ export const DEMAND_STEPS = [100, 250, 500, 1_000, 2_000, 4_000, 8_000, 16_000, 
 
 /** After a round: the Era card, or the end of the slice. */
 export const afterRound = (game: Game): Model['panel'] => (isFinalEra(game) ? 'end' : 'era')
-
-/* ---------- the Founder ---------- */
 
 /**
  * A Challenge's start with its cards apart: each card in board order moves to the nearest
@@ -393,8 +389,6 @@ export const leaveChallenge = (model: Model): UpdateResult => ({
     company: null,
   },
 })
-
-/* ---------- routes ---------- */
 
 export const continued = (model: Model): UpdateResult => {
   const next: Model = {

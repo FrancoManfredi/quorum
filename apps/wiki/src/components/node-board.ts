@@ -5,12 +5,6 @@ import { freeSandbox } from '@quorum/simulation/sandbox'
 import { solveFlow } from '@quorum/simulation/solve'
 import { attachBoard, setBoard, type BoardState } from '@quorum/ui/board/board'
 
-/* ==========================================================================
-   One Component's Node card, drawn by the game's own board (Pixi). The Node
-   is solved on the free Sandbox's Design, so its rows read as in the game;
-   only the Node itself is drawn. Loaded on demand from node-card.ts.
-   ========================================================================== */
-
 const NOOP = () => {}
 
 export const drawNodeCard = (key: string, type: ComponentId, host: HTMLElement): (() => void) => {

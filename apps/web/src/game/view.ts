@@ -10,11 +10,6 @@ import { isPlaying } from './company-machine.ts'
 import { connecting } from './boot-machine.ts'
 import { onBoard } from './route.ts'
 
-/* ==========================================================================
-   The root view. Quorum is one window: the active screen fills it, and the
-   toast floats above it.
-   ========================================================================== */
-
 /** The board for the route has its data: the Company file, or the Sandbox or Challenge it names. */
 const boardFilled = (model: Model): boolean =>
   model.route._tag === 'Company'

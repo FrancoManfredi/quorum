@@ -53,7 +53,6 @@ type Layer =
       at: number
       /** Partial frequencies, already scaled by the object's size. */
       partials: ReadonlyArray<number>
-      /** Each partial's initial amplitude. */
       amplitudes: ReadonlyArray<number>
       /** Gaver's material damping δ0: partial n decays as e^(-f·δ0·t). */
       damping: number
@@ -84,8 +83,6 @@ type Layer =
       /** A low-pass at this frequency softens the wave. */
       cutoff: number
     }>
-
-/* ---- objects: Gaver's parameters ---- */
 
 /** Partial ratios by shape. Bars follow (2n + 1)² / 9; plates are inharmonic. */
 const SHAPE = {
@@ -196,8 +193,6 @@ const thump = (at: number, from: number, to: number, length: number, gain: numbe
   cutoff: 1000,
 })
 
-/* ---- earcons: one beeper, told apart by register and rhythm ---- */
-
 /** One pulse of the panel beeper: a square softened by a low-pass, rich in harmonics so it is not masked. */
 const beep = (at: number, frequency: number, length: number, gain: number, onset = 4): Layer => ({
   kind: 'tone',
@@ -269,7 +264,6 @@ const latch = (at: number, size: number, gain: number) =>
   impact({ at, size, shape: 'plate', material: 'iron', hardness: 0.9, gain })
 
 const SOUNDS = {
-  /* ---- the title screen ---- */
   /** The badge goes in: it slides along the slot, latches, and the reader beeps twice. */
   clockin: hero(2.5, [
     hiss(0, 2600, 1800, 60, 150, 0.12),
@@ -292,7 +286,6 @@ const SOUNDS = {
     ...impact({ size: 120, shape: 'plate', material: 'plastic', hardness: 0.5, gain: 1 }),
     ...impact({ size: 1100, shape: 'bar', material: 'iron', hardness: 0.9, gain: 0.25 }),
   ]),
-  /** A part seats onto its plate. */
   pop: control(1, [...key(0, 1800, 0.6), thump(0, 240, 120, 50, 0.3)]),
   /** The pointer reaches a menu item: a soft touch on a key. */
   hover: control(
@@ -302,7 +295,6 @@ const SOUNDS = {
   /** A menu item is chosen: a key press and a confirm beep. */
   choose: control(5, [...key(0, 1400, 0.8), thump(0, 200, 90, 80, 0.5), beep(20, 1320, 50, 0.3)]),
 
-  /* ---- controls: heard tens of times a minute, so barely there ---- */
   /** A selection moves: a dry key tick. */
   tick: control(0, [...key(0, 2400, 0.7), thump(0, 260, 140, 35, 0.25)]),
   /** A setting changes: a relay pulls in, its armature thunks, and the contact bounces once. */
@@ -338,7 +330,6 @@ const SOUNDS = {
     thump(55, 190, 70, 120, 1),
   ]),
 
-  /* ---- the board ---- */
   /** A card lifts off the board: a servo whirs up. */
   lift: gesture(6, [motor(0, 140, 260, 70, 0.22), ...key(0, 1900, 0.25)]),
   /** A dragged card crosses a grid line: a detent, barely there. */
@@ -451,7 +442,6 @@ const SOUNDS = {
     thump(60, 190, 90, 70, 0.4),
   ]),
 
-  /* ---- progress: rare, so they may ring ---- */
   /** A Research lands: a printer chatters out the result, then two beeps. */
   unlock: hero(0.5, [
     thump(0, 160, 60, 120, 0.6),
@@ -528,12 +518,10 @@ const SOUNDS = {
     })),
   ]),
 
-  /* ---- notices: earcons, in order of urgency ---- */
   /** A change settled: one faint, short, high pulse. */
   settle: notice(-2.5, [beep(0, 1760, 12, 0.08)]),
   /** A gesture could not go: one low, short pulse, an answer rather than an alarm. */
   refuse: notice(-1, [beep(0, 523, 45, 0.18, 8)]),
-  /** Something to know: one pulse. */
   notify: notice(0.5, [beep(0, 880, 70, 0.2)]),
   /** Something went well: two slow pulses, rising a fifth. */
   success: notice(2, [beep(0, 660, 50, 0.18), beep(90, 990, 80, 0.18)]),
@@ -575,7 +563,6 @@ const SOUNDS = {
     beep(130, 233, 140, 0.12),
   ]),
 
-  /* ---- moments ---- */
   /** An incident starts: the most urgent sound, a fast two-tone klaxon, high and inharmonic. */
   incident: hero(2.5, [
     thump(0, 110, 40, 300, 1.2),
@@ -638,8 +625,6 @@ const SOUNDS = {
 
 export type Sound = keyof typeof SOUNDS
 export const SOUND_NAMES = Object.keys(SOUNDS) as ReadonlyArray<Sound>
-
-/* ---- the engine ---- */
 
 /** The output every sound goes into: dry to the compressor, and a send to the room. */
 export type Bus = Readonly<{ dry: AudioNode; room: AudioNode }>

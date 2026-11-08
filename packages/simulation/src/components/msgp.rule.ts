@@ -11,7 +11,7 @@ export const msgpRule: ComponentRule = {
     flatModel(
       MSGP_RATE * flatScale(node),
       arriving,
-      { fixed: 100, variable: 10 },
+      { fixedMs: 100, variableMs: 10 },
       solver.boost(node),
     ),
   outcome: (answer, _, kind) => through(answer.ownHop(kind)),

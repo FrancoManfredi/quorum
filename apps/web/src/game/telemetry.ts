@@ -6,11 +6,6 @@ import type { Game, GameNode } from '@quorum/simulation/state'
 import { clockPaused, currentFile, type Model } from './model.ts'
 import type { LogEntry } from './playlog.ts'
 
-/* ==========================================================================
-   What the playtest log records about a moment: a compact context for each
-   gesture, what the gesture changed, and a periodic sample of the company.
-   ========================================================================== */
-
 const round = (value: number, digits = 2): number => {
   const scale = 10 ** digits
   return Math.round(value * scale) / scale

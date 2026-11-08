@@ -28,26 +28,20 @@ import {
 export { FOOT_ICONS, POOLER_MODES, ROW_ICONS, membersOf, outRate, pct }
 export type { Footer, Row, RowTone }
 
-/* ==========================================================================
-   What a Node card says: its rows, its header level, and its footer button,
-   as plain data from the Game and the Ledger. The board paints them with
-   Pixi; the wiki prints the same card as HTML. No renderer imports here.
-   ========================================================================== */
-
 /** What limits a Node, in the words a card has room for (15 "Node cards"). */
 const limitText = (own: Ledger['nodes'][string]): string => {
-  const { cpu, ram, slots, network } = own.resources
+  const { cpuCores, ramGb, slots, networkKbps } = own.resources
   const share = (gauge: { used: number; total: number } | null): string =>
     gauge !== null && gauge.total > 0 ? pct(gauge.used / gauge.total) : ''
   switch (own.limit) {
     case 'cpu':
-      return `CPU ${share(cpu)}`
+      return `CPU ${share(cpuCores)}`
     case 'memory':
-      return `RAM ${share(ram)}`
+      return `RAM ${share(ramGb)}`
     case 'workers':
       return slots ? `Workers ${Math.round(slots.used)}/${Math.round(slots.total)}` : 'Workers'
     case 'network':
-      return `Network ${share(network)}`
+      return `Network ${share(networkKbps)}`
     case 'credits':
       return 'CPU credits'
     case 'connections':

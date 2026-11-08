@@ -3,12 +3,6 @@ import type { StudyStall } from '@quorum/simulation/studies'
 import { stallReasonIn } from './format.ts'
 import { copyIn, type Messages } from './messages.ts'
 
-/* ==========================================================================
-   A Mail written again in the player's language. The letter is typed copy in
-   `t.mail`; the values it quotes are names from the catalog, so they are
-   looked up by their English name and shown in the same language.
-   ========================================================================== */
-
 type Name = (t: Messages) => string
 
 /** Every catalog name and label, from its English text to the same entry in another language. */

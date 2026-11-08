@@ -27,12 +27,6 @@ import { isFeatureLive } from './features.ts'
 import { assignments } from './work.ts'
 import type { Game, InsightPools, Study } from './state.ts'
 
-/* ==========================================================================
-   Studies (10 "Studies"): research runs one item at a time, and takes its
-   Insight from its recipe's pools as it runs, like a Factorio lab takes
-   packs. The scarcest pool sets the pace.
-   ========================================================================== */
-
 /** Seconds of traces the Company keeps: its longest Analytics retention. */
 export const retentionOf = (game: Game): number =>
   game.nodes.reduce(
@@ -143,7 +137,6 @@ export const studySpeed = (game: Game): number =>
   (spiked(game) ? SPIKE_SPEED : 1) *
   (1 + STUDY_SPEEDUP * STUDY_SPEED_RESEARCH.filter((id) => has(game, id)).length)
 
-/** Base seconds of an item's Study. */
 export const studySeconds = (id: ResearchId): number =>
   STUDY_SECONDS[RESEARCH[id].era] ?? STUDY_SECONDS[STUDY_SECONDS.length - 1] ?? 3_600
 

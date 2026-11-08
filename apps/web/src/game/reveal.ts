@@ -16,12 +16,6 @@ import type { Message } from './message.ts'
 import { Reveal, offCompany, type Model } from './model.ts'
 import { step as disclosureStep, type DisclosureFlow } from './disclosure-machine.ts'
 
-/* ==========================================================================
-   Progressive disclosure (GDD 15): a first Company shows each element the
-   first time the game state makes it useful, one at a time, and the new
-   element glows until the player uses it.
-   ========================================================================== */
-
 const ALL: ReadonlyArray<Reveal> = Reveal.literals
 
 /** The Sandbox, Challenges, and every Company after the first Exit show everything. */
@@ -111,7 +105,6 @@ export const advanceReveals = (model: Model, ledger: Ledger): Model => {
   }
 }
 
-/** What using each element looks like. */
 const USES: Partial<Record<Message['_tag'], (message: Message) => Reveal | null>> = {
   UndoChosen: () => 'undo',
   Collected: () => 'collect',
@@ -171,8 +164,6 @@ export const disclosureOfSave = (saved: unknown): DisclosureFlow => {
     ? { _tag: 'Queued', revealed, pending: [pending[0]!, ...pending.slice(1)] }
     : { _tag: 'Idle', revealed }
 }
-
-/* ---------- the build dock ---------- */
 
 /** A group's Components the dock lists: those the player can place, then the next one to unlock. */
 export const dockItems = (game: Game, group: DockGroup): ReadonlyArray<ComponentId> => {

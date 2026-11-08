@@ -37,7 +37,7 @@ export const gpuRule: ComponentRule = {
         batch.gain *
         Math.max(0.1, warmOf(node.life)),
       arriving,
-      { fixed: GPU_FIRST_TOKEN_MS + (batched ? 0 : batch.ttft), variable: 100 },
+      { fixedMs: GPU_FIRST_TOKEN_MS + (batched ? 0 : batch.ttft), variableMs: 100 },
       solver.boost(node),
     )
   },

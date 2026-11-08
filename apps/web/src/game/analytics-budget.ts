@@ -19,7 +19,6 @@ const FUNNEL = new Set([
 ])
 
 type Store = Readonly<{
-  /** UTC month, `YYYY-MM`. */
   month: string
   events: number
   session: string

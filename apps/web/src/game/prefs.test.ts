@@ -11,12 +11,6 @@ import { Message as SliderMessage } from '@quorum/ui/primitives/slider'
 import { parsePrefs } from './update/panels.ts'
 import { settingsPanel } from '../components/lab/panels.ts'
 
-/* ==========================================================================
-   15 "Accessibility": Text at 150%. The setting is a pref like Mute and Reduce
-   motion, it is applied to the root as `data-text`, and styles.css scales the
-   type through `--type-scale` while the boxes keep their size.
-   ========================================================================== */
-
 type Named = Readonly<{ name: string; args: Record<string, unknown> }>
 
 const named = (model: Model, message: Message): ReadonlyArray<Named> =>

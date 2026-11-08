@@ -58,7 +58,6 @@ export const fieldErrorClass = 'text-destructive text-sm font-normal'
 
 type StyleConfig = Readonly<{ className?: string }>
 
-/** Outermost fieldset wrapper. */
 export const fieldSet = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,
@@ -126,7 +125,6 @@ export const fieldContent = <M>(
     children,
   )
 
-/** Standalone label (drop-in for `label.tsx`'s `Label`). */
 export const label = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,
@@ -149,7 +147,6 @@ export const fieldLabel = <M>(
     children,
   )
 
-/** Non-interactive title for a field group. */
 export const fieldTitle = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,
@@ -160,7 +157,6 @@ export const fieldTitle = <M>(
     children,
   )
 
-/** Field description / helper text. */
 export const fieldDescription = <M>(
   config: StyleConfig,
   children: ReadonlyArray<Child>,

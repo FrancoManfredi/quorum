@@ -16,8 +16,6 @@ import { flatModel } from '../capacity.ts'
 import { flatScale, has, pinnedOf } from '../lookups.ts'
 import { type ComponentRule, noConnections, nothing } from '../rule-kit.ts'
 
-/* ---------- the Realtime Hub ---------- */
-
 /**
  * Connections a Hub holds at its size: the RAM it gives them over what one costs its runtime
  * (06 "Realtime connections"). A runtime that holds a worker or a thread per connection holds
@@ -48,11 +46,16 @@ export const wsRule: ComponentRule = {
   // refuses it, rather than dividing a box that cannot hold a connection.
   model: (solver, node, arriving) =>
     RUNTIMES[node.runtime].connectionKB === null
-      ? flatModel(Number.POSITIVE_INFINITY, arriving, { fixed: 1, variable: 0 }, solver.boost(node))
+      ? flatModel(
+          Number.POSITIVE_INFINITY,
+          arriving,
+          { fixedMs: 1, variableMs: 0 },
+          solver.boost(node),
+        )
       : flatModel(
           hubRate(node, distributedErlang(solver.game, node)),
           arriving,
-          { fixed: 1, variable: 0 },
+          { fixedMs: 1, variableMs: 0 },
           solver.boost(node),
         ),
   serve: nothing,

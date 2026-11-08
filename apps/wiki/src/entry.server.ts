@@ -7,11 +7,6 @@ import { PAGES, pageAt } from './pages.ts'
 import { GAME_ORIGIN, OG_IMAGE_ALT, WIKI_ORIGIN } from './site.ts'
 import { view } from './view.ts'
 
-/* ==========================================================================
-   The server entry. The build prerenders every page in `prerenderPaths`; a
-   deployed Worker answers the rest: a 404 page for any other path.
-   ========================================================================== */
-
 const FONTS =
   'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap'
 

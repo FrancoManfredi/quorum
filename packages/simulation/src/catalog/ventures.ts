@@ -121,7 +121,6 @@ export type VentureDef = Readonly<{
   /** The daily peak, in calendar hours, and how far demand swings around the mean. */
   peak: number
   amplitude: number
-  /** Saturday and Sunday demand. */
   weekend: number
   /** Multiplies a kind's share of the mix, where the Era has it. */
   mix: Partial<Record<RequestKind, number>>
@@ -250,7 +249,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   }),
   // Flat, bursty API clients. The no-naive-retries rule and the Series C
   // webhooks are the design's; the curve, the mix boosts, the market, the start
-  // and the Legacy multiplier are
+  // and the Legacy multiplier are proposed.
   'developer-platform': venture({
     id: 'developer-platform',
     name: 'Developer platform',
@@ -264,8 +263,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     summary: 'Flat, bursty; reads ×2; webhooks ×3 from Series C; no naive retries',
   }),
   // Business hours, writes and records. The residency rule, from Series A, is
-  // the design's; the curve, the ×1.5 writes and the Legacy multiplier are
-  //
+  // the design's; the curve, the ×1.5 writes and the Legacy multiplier are proposed.
   healthcare: venture({
     id: 'healthcare',
     name: 'Healthcare',
@@ -279,7 +277,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     summary: 'Business hours; writes +50%; data stays in the home region from Series A',
   }),
   // Flat, enormous, and cheap per request. The 100 ms deadline, the bid kind's value, its 100 ms
-  // Apdex target and its ×10 volume are the design's; the market and the value are
+  // Apdex target and its ×10 volume are the design's; the market and the value are proposed.
   'ad-tech': venture({
     id: 'ad-tech',
     name: 'Ad tech',
@@ -296,7 +294,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   }),
   // Business hours and deadline spikes, on a Java or C# service bought through a
   // procurement cycle. The rule is the design's; the curve, the contract cash
-  // and the Java starter are
+  // and the Java starter are proposed.
   government: venture({
     id: 'government',
     name: 'Government contract',
@@ -346,7 +344,6 @@ export type MutatorDef = Readonly<{
   id: MutatorId
   name: string
   rule: string
-  /** Added to the Legacy multiplier. */
   legacy: number
 }>
 
@@ -408,7 +405,6 @@ export const MUTATORS: Record<MutatorId, MutatorDef> = {
   },
 }
 
-/** What each Mutator refuses to place. */
 export const MUTATOR_BANS: Partial<Record<MutatorId, ReadonlyArray<ComponentId>>> = {
   'no-caches': ['cache', 'cdn'],
   postgres: ['cache', 'wide', 'dsql', 'warehouse'],
@@ -424,7 +420,6 @@ export const CHAOS_FROM_STAGE = 2
 /** Shared tenancy: the most CPU a noisy neighbour takes, and the sim seconds each draw lasts. */
 export const STEAL_MAX = 0.3
 export const STEAL_SECONDS = 30
-/** Hacker News front page: spike weight. */
 export const HN_WEIGHT = 3
 /** SLO levels: Strict SLO moves each Era's target to the next one up. */
 export const SLO_LEVELS: ReadonlyArray<number> = [0.99, 0.995, 0.999, 0.9995, 0.9999, 0.99999]

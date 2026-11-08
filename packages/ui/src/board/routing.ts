@@ -164,8 +164,6 @@ export const routeLinks = (
   const wires = new Map<string, Wire>()
   if (ends.length === 0) return wires
 
-  /* ---------- 1. the grid ---------- */
-
   const xSet = new Set<number>()
   const ySet = new Set<number>()
   for (const rect of rects) {
@@ -276,8 +274,6 @@ export const routeLinks = (
     const edge = d === 0 ? v * 2 : d === 1 ? to * 2 : d === 2 ? v * 2 + 1 : to * 2 + 1
     return open[edge] ? { edge, to } : null
   }
-
-  /* ---------- 2 and 3. paths, in passes ---------- */
 
   const history = new Float64Array(count * 2)
   const order = [...ends].sort((a, b) => (keyOf(a.link) < keyOf(b.link) ? -1 : 1))
@@ -408,8 +404,6 @@ export const routeLinks = (
     if (!over) break
   }
 
-  /* ---------- 4. nudging ---------- */
-
   // Runs: the stretches of one tree along one grid line.
   const runs: Array<Run> = []
   const runOf = new Map<string, Run>()
@@ -528,8 +522,6 @@ export const routeLinks = (
     settle(cluster)
   }
 
-  /* ---------- polylines ---------- */
-
   const corners = new Map<string, Array<Pt>>()
   for (const end of order) {
     const key = keyOf(end.link)
@@ -571,8 +563,6 @@ export const routeLinks = (
     points.push(end.in)
     corners.set(key, points)
   }
-
-  /* ---------- 5. gaps where lanes cross ---------- */
 
   const hops = new Map<string, Array<Pt>>()
   const entries = [...corners]

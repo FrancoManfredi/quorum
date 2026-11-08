@@ -12,12 +12,6 @@ import {
 } from 'foldkit/route'
 import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
 
-/* ==========================================================================
-   The URL of each screen. The title menu pages, the Company, each Sandbox,
-   and each Challenge have their own path, so back and forward move between
-   them. Every other path opens the title screen.
-   ========================================================================== */
-
 export const MENU_PAGES = [
   'sandbox',
   'found',

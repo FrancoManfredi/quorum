@@ -27,8 +27,7 @@ import { type ComponentRule, answerCalls, serveCalls } from '../rule-kit.ts'
 /**
  * Share of invocations that find no warm execution environment (05 "Cold starts"): an
  * environment goes away after `SERVERLESS_IDLE_SECONDS` without work, so at a low request rate
- * the next invocation starts cold. 1 / (1 + λ × idle) is 1 at an idle function and near 0 under
- * steady load.
+ * the next invocation starts cold.
  */
 export const coldShareOf = (rate: number): number =>
   1 / (1 + Math.max(0, rate) * SERVERLESS_IDLE_SECONDS)
@@ -45,7 +44,6 @@ export type ServerlessContext = Readonly<{
   sampling: number
   /** Login hashing costs this many times more (incident "Event loop block"). */
   hashing: number
-  /** Capacity multiplier, for the bottleneck test. */
   boost: number
 }>
 
@@ -99,7 +97,7 @@ export const serverlessModel = (context: ServerlessContext): NodeModel => {
     service: Object.fromEntries(
       REQUEST_KINDS.map((kind) => [
         kind,
-        { fixed: SERVERLESS_MS, variable: cpu[kind] + waiting(kind) },
+        { fixedMs: SERVERLESS_MS, variableMs: cpu[kind] + waiting(kind) },
       ]),
     ),
     tailP: cold,
@@ -108,11 +106,11 @@ export const serverlessModel = (context: ServerlessContext): NodeModel => {
     processes: used,
     inflight: used,
     resources: {
-      cpu: null,
-      ram: null,
+      cpuCores: null,
+      ramGb: null,
       slots: { used, total: concurrency },
-      network: null,
-      credits: null,
+      networkKbps: null,
+      creditsCoreSeconds: null,
     },
     throttled: false,
     swapping: false,
@@ -140,7 +138,7 @@ export const fnRule: ComponentRule = {
     // An export runs as long as the rows it reads take; past 15 minutes the function is killed.
     const ms = answer.game.data * EXPORT_MS_PER_GB
     if (ms > FUNCTION_LIMIT_MS) return failed('timeout')
-    return through({ ...hop({ fixed: ms }) }, [[own, 1]])
+    return through({ ...hop({ fixedMs: ms }) }, [[own, 1]])
   },
   // Each concurrent execution opens its own connections: a spike exhausts the Database's pool.
   connections: (_, node, model) => (model?.processes ?? 0) * RUNTIMES[node.runtime].connections,

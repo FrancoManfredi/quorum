@@ -8,12 +8,6 @@ import { supportedLocales } from './index.ts'
 /** Every language but English, which is the letters' own source. */
 const others = supportedLocales.map(({ value }) => value).filter((value) => value !== 'en')
 
-/* ==========================================================================
-   Every letter the game can write, in every language: the same letters in the
-   same order, and a Mail written again from what it says reads as the English
-   it was stored with.
-   ========================================================================== */
-
 const game = preseedGame()
 const facts = SAMPLES.flatMap((sample) => [1, 2, 3].map((n) => sample.make(game, n * 7)))
 

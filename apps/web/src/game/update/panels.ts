@@ -32,7 +32,6 @@ import { updateDashboard } from '../dashboard.ts'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { updateGlossary } from '../glossary.ts'
 
-/** Saves and applies the Model's settings. */
 export const savePrefs = (model: Model): UpdateResult => ({
   model,
   commands: [

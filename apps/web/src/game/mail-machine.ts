@@ -2,12 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/* ==========================================================================
-   A Mail's lifecycle (GDD 18): it waits for the player, holds the answer they
-   chose, and resolves when its cause is gone. Whether it is read, and which
-   folder holds it, stay outside this machine.
-   ========================================================================== */
-
 export const Active = Schema.TaggedStruct('Active', {})
 export const Answered = Schema.TaggedStruct('Answered', {
   answer: Schema.String,

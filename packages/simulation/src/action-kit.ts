@@ -3,25 +3,15 @@ import type { IncidentId } from './catalog.ts'
 import type { Game, GameNode, Incident } from './state.ts'
 import { step as incidentStep } from './incident-machine.ts'
 
-/* ==========================================================================
-   What every action shares: the Refusal an action can end in, and the small
-   helpers that build its Result. A Component's `<id>.rule.ts` imports these
-   for its own setters, so they live here and not in `actions.ts`.
-   ========================================================================== */
-
 export type Refusal = Data.TaggedEnum<{
-  /** Needs research first. */
   Locked: { readonly what: string; readonly research: string }
-  /** Needs a later Era. */
   TooEarly: { readonly what: string; readonly era: string }
   Unaffordable: {
     readonly what: string
     readonly price: number
     readonly currency: 'cash'
   }
-  /** Breaks a rule of the Design. */
   NotAllowed: { readonly reason: string }
-  /** The Node or item is gone. */
   Missing: {}
 }>
 

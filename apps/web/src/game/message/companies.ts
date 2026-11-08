@@ -15,7 +15,6 @@ export const companiesCases = {
     json: Schema.NullOr(Schema.String),
     now: Schema.Finite,
   },
-  /** The founding screen's name field. */
   CompanyNameChanged: { name: Schema.String },
   LogoChosen: { logo: LogoId },
   /** The Companies page opens one Company's file. */
