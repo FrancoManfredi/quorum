@@ -264,3 +264,32 @@ export const FUNNEL_GROWTH = 1.1
 export const DECLINED_GROWTH = 0.7
 /** The Apdex average covers one calendar hour. */
 export const APDEX_WINDOW = 60
+
+/**
+ * The Seed and Series A request mixes that puzzles were tuned on. A live Era rebalance must not
+ * move a puzzle's demand, so a Sandbox or a Challenge whose targets depend on the shares pins its
+ * mix as its scenario (14 "Challenges").
+ */
+export const TUNED_SEED_MIX: Partial<Record<RequestKind, number>> = {
+  page: 0.3,
+  read: 0.3,
+  write: 0.12,
+  login: 0.04,
+  search: 0.1,
+  upload: 0.04,
+  bot: 0.1,
+}
+
+export const TUNED_SERIES_A_MIX: Partial<Record<RequestKind, number>> = {
+  page: 0.21,
+  read: 0.25,
+  write: 0.1,
+  login: 0.03,
+  search: 0.08,
+  upload: 0.03,
+  bot: 0.08,
+  media: 0.1,
+  rt: 0.08,
+  buy: 0.03,
+  bid: 0.01,
+}

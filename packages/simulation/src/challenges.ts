@@ -1,6 +1,14 @@
 import { Effect, Result, Schema } from 'effect'
 import type { ComponentId, IncidentId, RequestKind, ResearchId } from './catalog.ts'
-import { COMPONENTS, CHALLENGE_TUNING, KINDS, REQUEST_KINDS, TASKS } from './catalog.ts'
+import {
+  COMPONENTS,
+  CHALLENGE_TUNING,
+  KINDS,
+  REQUEST_KINDS,
+  TASKS,
+  TUNED_SEED_MIX,
+  TUNED_SERIES_A_MIX,
+} from './catalog.ts'
 import type { Ledger } from './ledger.ts'
 import { stopped, warmOf } from './life.ts'
 import { isDown } from './lookups.ts'
@@ -773,7 +781,10 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     brief: 'Rails at 400 rps. 13 engineers have one day: 104 Dev Hours.',
     inspiredBy: 'Instagram had 13 employees when Facebook acquired it (2012)',
     legacy: 4,
-    start: () => railsBoard(THIRTEEN_USERS, 3, 3, 3, THIRTEEN_KLOC, true),
+    start: () => {
+      const game = railsBoard(THIRTEEN_USERS, 3, 3, 3, THIRTEEN_KLOC, true)
+      return { ...game, scenario: { ...game.scenario, mix: TUNED_SEED_MIX } }
+    },
     duration: 240,
     stepSeconds: 1,
     demand: [{ at: 0, users: THIRTEEN_USERS }],
@@ -832,7 +843,10 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     brief: 'Demand triples at minute 5 for 5 minutes. Spend as little as you can.',
     inspiredBy: 'Retail peak days',
     legacy: 4,
-    start: () => seriesA(FRIDAY_USERS, 2, {}, 4),
+    start: () => {
+      const game = seriesA(FRIDAY_USERS, 2, {}, 4)
+      return { ...game, scenario: { ...game.scenario, mix: TUNED_SERIES_A_MIX } }
+    },
     duration: 900,
     stepSeconds: 1,
     demand: [

@@ -124,6 +124,7 @@ picks a direction, and each player's best results usually come from different de
   open for replay, and the daily drill is always open.
 - A Challenge's palette is fixed. Legacy perks do not apply. Every player has the same tools.
 - The seed is fixed. Incidents in a Challenge are scripted and the same for everyone.
+- A Challenge pins the request mix it was tuned on, so a live Era rebalance cannot move its targets.
 - The browser scores the run and sends nothing. A device ID is a random string the player can reset, so
   a server score per device would prove little. With accounts, the result goes up as a design plus a
   seed, and the server re-runs it and keeps its own score. That works because the simulation is
