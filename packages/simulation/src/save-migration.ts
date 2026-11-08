@@ -167,11 +167,22 @@ const workOf = (raw: unknown): unknown => {
   return next
 }
 
+/**
+ * The wait on a Team's size was saved as "hire" before the words changed. The block keeps its
+ * place; only the reason is renamed.
+ */
+const sizeOf = (raw: unknown): unknown => {
+  const item = record(raw)
+  const block = record(item?.block)
+  if (!item || !block || block.reason !== 'hire') return raw
+  return { ...item, block: { ...block, reason: 'size' } }
+}
+
 const serviceOf = (raw: unknown): unknown => {
   const service = record(raw)
   if (!service) return raw
   const next = { ...service }
-  if (Array.isArray(next.backlog)) next.backlog = next.backlog.map(workOf)
+  if (Array.isArray(next.backlog)) next.backlog = next.backlog.map(workOf).map(sizeOf)
   if (Array.isArray(next.hires)) next.hires = next.hires.map(hireOf)
   if (next.reshard !== undefined && next.reshard !== null) next.reshard = moveOf(next.reshard)
   if (next.engineChange !== undefined && next.engineChange !== null)
@@ -271,7 +282,7 @@ export const migrateSave = (raw: Record<string, unknown>): Record<string, unknow
   if (Array.isArray(save.links)) save.links = save.links.map((link) => linkOf(link, time))
   if (Array.isArray(save.hires)) save.hires = save.hires.map(hireOf)
   if (Array.isArray(save.studies)) save.studies = save.studies.map(studyOf)
-  if (Array.isArray(save.backlog)) save.backlog = save.backlog.map(workOf)
+  if (Array.isArray(save.backlog)) save.backlog = save.backlog.map(workOf).map(sizeOf)
   if (Array.isArray(save.services)) save.services = save.services.map(serviceOf)
   if (save.migration !== undefined && save.migration !== null)
     save.migration = migrationOf(save.migration)

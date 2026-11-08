@@ -223,7 +223,7 @@ export const toasts: Messages['toasts'] = {
     waitDecision: '判断待ち',
     waitIndex: 'インデックス待ち',
     waitCopy: 'データベースのコピー待ち',
-    waitHire: '採用待ち',
+    waitSize: 'チームが大きすぎます',
     finished: (item) => `${item}が完了しました。`,
     deployedBad: (features) =>
       `${features}をバグ付きでデプロイしました。アプリサーバーがクラッシュしています。`,

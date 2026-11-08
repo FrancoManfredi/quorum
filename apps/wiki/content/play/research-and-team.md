@@ -66,7 +66,9 @@ The floor shows one card per Team. Each card lists its engineers, starting with 
 3. To lay someone off, hover their card and use its **Lay off** button.
 4. Select **New team** to add a Team. A Team has a kind: Product, Platform, SRE, Data or Security.
 
-A Product team has three policies: **Move fast**, **Balanced** and **Quality**. They trade speed against debt and bad deploys. The other kinds run the system and do not build Features: SRE holds the pager, Data runs the warehouse, Platform runs Clusters and deploys, and Security handles patches and compliance. Hiring early to go faster backfires, because more engineers cost payroll every second and coordination slows a large Team, so read [Team and velocity](/explanation/team-and-velocity) before you hire a Team you do not need.
+A Product team has three policies: **Move fast**, **Balanced** and **Quality**. They trade speed against debt and bad deploys. The other kinds run the system and do not build Features: SRE holds the pager, Data runs the warehouse, Platform runs Clusters and deploys, and Security runs WAF rules, dependency scanning, and compliance. Hiring early to go faster backfires, because more engineers cost payroll every second and coordination slows a large Team, so read [Team and velocity](/explanation/team-and-velocity) before you hire a Team you do not need.
+
+A team of eight engineers stops starting work. Every item it starts waits for your approval, and the Team board says **Waiting on you: team too big**. Approve the item, or move engineers to another team. On Core the founder is an extra person, so Core waits at nine people.
 
 ### The Board (right)
 

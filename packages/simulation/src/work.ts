@@ -1,6 +1,6 @@
 import { Result } from 'effect'
 import {
-  BLOCK_HIRE_AT,
+  BLOCK_SIZE_AT,
   BLOCK_REMIND_DAYS,
   CALENDAR_DAY,
   COMPONENTS,
@@ -771,14 +771,18 @@ export const blockRemind = (tuning: Tuning = LIVE_TUNING): number =>
 /**
  * Why an item stops (18 "Teammates"): the first of the four waits that holds. It waits on an index
  * while its Service has a query shape with none; on a copy while the Service shares its Database
- * with another; on a hire while its Team is too big to coordinate; and on a decision while the
+ * with another; on a Team too big to coordinate; and on a decision while the
  * Design is failing its Apdex target, when what to build first is the player's call.
  */
 export const blockReason = (game: Game, item: WorkItem): BlockKind | null => {
+  // A patch ticket waits on nothing but its deadline (18 "CVEs and patches"): a CVE does not care
+  // that the team outgrew itself or that the Design misses its Apdex target, and "Patch now" has
+  // to mean now, or the ticket blocks until it is exploited.
+  if (item.kind === 'patch') return null
   const service = serviceOfItem(game, item)
   if (service.shapes > 0) return 'index'
   if (sharesDatabase(game, service)) return 'copy'
-  if (membersOf(game, ownerOf(game, service)).length >= BLOCK_HIRE_AT) return 'hire'
+  if (membersOf(game, ownerOf(game, service)).length >= BLOCK_SIZE_AT) return 'size'
   if (game.apdex < eraOf(game).apdexTarget) return 'decision'
   return null
 }
@@ -1432,9 +1436,13 @@ const deploy = (
   )
 }
 
-/** Whether a Team can work on an item: a Spike waits for its Study, and a blocked item for the player. */
+/**
+ * Whether a Team can work on an item: a Spike waits for its Study, and a blocked item for the
+ * player. A patch never waits, even when a save from before that rule carries its block.
+ */
 export const takeable = (game: Game, item: WorkItem): boolean =>
-  (item.kind !== 'spike' || game.studies[0]?.id === item.ref) && item.block._tag !== 'Blocked'
+  (item.kind !== 'spike' || game.studies[0]?.id === item.ref) &&
+  (item.kind === 'patch' || item.block._tag !== 'Blocked')
 
 /** A Product team with someone on it builds the backlog; the first team has the founder. */
 const builds = (game: Game, team: Team, index: number): boolean =>
@@ -1540,8 +1548,9 @@ export const advanceTeam = (
       pool += made - kept
       continue
     }
-    // An item that has not started can stop on a decision, an index, a copy or a hire (18). The
-    // roll happens once: a block marks the item, and work that starts leaves `spent` above zero.
+    // An item that has not started can stop on a decision, an index, a copy or a Team too big to
+    // coordinate (18). The roll happens once: a block marks the item, and work that starts leaves
+    // `spent` above zero.
     if (item.block._tag === 'Free' && item.spent <= 0 && item.kind !== 'spike') {
       const reason = blockReason(next, item)
       const owner = memberOf(next, ownerOf(next, serviceOfItem(next, item)).id, item.id)

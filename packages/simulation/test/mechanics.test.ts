@@ -4,6 +4,7 @@ import { installBackdoor, setPolicyOn, setProvider, setSlowStart, study } from '
 import { saleOf } from '../src/calendar.ts'
 import {
   CALENDAR_START,
+  CVE_EVERY,
   FEATURE_IDS,
   RESEARCH_IDS,
   RUSH_BUG_CHANCE,
@@ -19,9 +20,11 @@ import { newGame } from '../src/company.ts'
 import { NEW_ENGINEER, type WorkItem } from '../src/state.ts'
 import {
   assignments,
+  blockReason,
   cancelItem,
   createTeam,
   featureRefusal,
+  prioritizeItem,
   queueFeature,
   queueSpike,
   rushBugOf,
@@ -149,6 +152,35 @@ describe('Team assignments', () => {
 
     const after = step(game, 5).game
     expect(after.backlog.find((item) => item.id === second?.id)?.spent ?? 1).toBeGreaterThan(0)
+  })
+
+  test('a patch ticket skips the waits, even on a team past eight engineers', () => {
+    let game = founded({ 'head-start': 3 })
+    game = {
+      ...game,
+      cash: 10_000_000,
+      engineers: Array.from({ length: 12 }, (_, index) => ({
+        ...NEW_ENGINEER,
+        id: `e${index + 1}`,
+        team: game.teams[0]?.id ?? 'core',
+        language: 'php' as const,
+        hiredAt: game.time - 3_600,
+      })),
+    }
+    const open = FEATURE_IDS.find((id) => featureRefusal(game, id) === null)
+    if (!open) throw new Error('expected an open Feature')
+    game = Result.getOrThrow(queueFeature(game, open))
+
+    // A CVE is disclosed every CVE_EVERY seconds, and each one files a patch ticket.
+    const disclosed = step({ ...game, time: CVE_EVERY - 5 }, 5).game
+    const patch = disclosed.backlog.find((item) => item.kind === 'patch')
+    if (!patch) throw new Error('expected a patch ticket')
+    expect(blockReason(disclosed, patch)).toBeNull()
+
+    // Patch now moves it ahead of the product, and the team picks it up the next Step.
+    const top = Result.getOrThrow(prioritizeItem(disclosed, patch.id))
+    const after = step(top, 5).game
+    expect(after.backlog.find((item) => item.id === patch.id)?.spent ?? 0).toBeGreaterThan(0)
   })
 
   test('a Spike speeds its Study only while a Team builds it', () => {

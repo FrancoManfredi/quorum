@@ -93,11 +93,11 @@ export type Note = readonly [string, Tone] | null
 export type EventNote = readonly [string, Tone, EventMail] | null
 
 /** What a blocked item waits on, in the words the Mail uses (18 "Teammates"). */
-export const BLOCK_TEXT: Readonly<Record<'decision' | 'index' | 'copy' | 'hire', string>> = {
+export const BLOCK_TEXT: Readonly<Record<'decision' | 'index' | 'copy' | 'size', string>> = {
   decision: 'waiting on a decision',
   index: 'waiting on an index',
   copy: 'waiting on a database copy',
-  hire: 'waiting on a hire',
+  size: 'waiting on your call because the team is too big',
 }
 
 export const eventText = (event: StepEvent, game: Game): EventNote =>
@@ -367,7 +367,7 @@ export const eventToast = (t: Messages, event: StepEvent, game: Game): Note => {
             ? e.waitIndex
             : reason === 'copy'
               ? e.waitCopy
-              : e.waitHire,
+              : e.waitSize,
       ),
       'warn',
     ],

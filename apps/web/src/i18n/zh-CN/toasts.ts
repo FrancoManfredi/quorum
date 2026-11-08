@@ -211,7 +211,7 @@ export const toasts: Messages['toasts'] = {
     waitDecision: '等待决策',
     waitIndex: '等待索引',
     waitCopy: '等待数据库副本',
-    waitHire: '等待招聘',
+    waitSize: '团队规模过大',
     finished: (item) => `${item}已完成。`,
     deployedBad: (features) => `已部署${features}，但带有缺陷。应用服务器正在崩溃。`,
     deployed: (features) => `已部署${features}。`,

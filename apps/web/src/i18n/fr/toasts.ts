@@ -234,7 +234,7 @@ export const toasts: Messages['toasts'] = {
     waitDecision: 'en attente d’une décision',
     waitIndex: 'en attente d’un index',
     waitCopy: 'en attente d’une copie de la base de données',
-    waitHire: 'en attente d’un recrutement',
+    waitSize: 'l’équipe est trop grande',
     finished: (item) => `${item} est terminé.`,
     deployedBad: (features) =>
       `${features} déployé avec un bug. Les serveurs applicatifs plantent.`,

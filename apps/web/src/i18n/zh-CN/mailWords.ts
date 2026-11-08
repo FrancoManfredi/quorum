@@ -48,7 +48,7 @@ export const mailWords: Messages['mailWords'] = {
     decision: '等待决定',
     index: '等待索引',
     copy: '等待数据库副本',
-    hire: '等待招聘',
+    size: '团队规模过大，等待你的决定',
   },
   severities: {
     critical: '严重',

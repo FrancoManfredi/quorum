@@ -232,7 +232,7 @@ export const toasts = {
     waitDecision: 'waiting on a decision',
     waitIndex: 'waiting on an index',
     waitCopy: 'waiting on a database copy',
-    waitHire: 'waiting on a hire',
+    waitSize: 'the team is too big',
     finished: (item: Value) => `${item} is done.`,
     deployedBad: (features: Value) => `Deployed ${features} with a bug. App Servers are crashing.`,
     deployed: (features: Value) => `Deployed ${features}.`,

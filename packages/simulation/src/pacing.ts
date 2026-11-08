@@ -985,11 +985,11 @@ const look = (game: Game, tuning: Tuning, strategy: Strategy): Game => {
     )
       next = tried(next, setWorkers(next, server.id, fittingWorkers(server)))
 
-  // A blocked item waits on the player's answer: the bot approves a hire block (a team past 8 engineers stops shipping
+  // A blocked item waits on the player's answer: the bot approves a team-size block (a team past 8 engineers stops shipping
   // Features otherwise). A decision block stays: it holds Features while Apdex misses its target,
   // and an index block clears when the bot adds the index.
   for (const item of next.backlog)
-    if (WorkBlock.guards.Blocked(item.block) && item.block.reason === 'hire')
+    if (WorkBlock.guards.Blocked(item.block) && item.block.reason === 'size')
       next = tried(next, approveBlock(next, item.id))
 
   // A resharding is the Database's way out, and a migration's bugs fail requests until fixed: each

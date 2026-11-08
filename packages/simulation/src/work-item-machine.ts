@@ -2,7 +2,7 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'hire'])
+export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'size'])
 export type BlockKind = typeof BlockKind.Type
 
 export const WorkBlock = Schema.TaggedUnion({

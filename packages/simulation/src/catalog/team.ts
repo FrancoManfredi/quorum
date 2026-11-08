@@ -128,8 +128,8 @@ export const LIFT_MAX_ROLLOUT = 0.5
 
 /** Calendar days after which Later brings a block back to the Inbox.  */
 export const BLOCK_REMIND_DAYS = 1
-/** A Team this big waits on a hire before it can move: past the coordination table's flat part.  */
-export const BLOCK_HIRE_AT = 8
+/** A Team this big waits on the player before it can move: past the coordination table's flat part.  */
+export const BLOCK_SIZE_AT = 8
 
 export const MOOD_START = 1
 /** Mood at or below this makes an engineer unhappy: they write, and ask to be heard.  */

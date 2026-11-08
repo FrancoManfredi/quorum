@@ -219,7 +219,7 @@ their language, their seniority, and the state of the Design.
 | Mail                 | Triggers on                                                                                        | Actions                                            |
 | -------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
 | Shipped              | A feature or task finishes                                                                         | Show on Board                                      |
-| Blocked              | A task cannot move: waiting for a decision, an index, a database copy, or a hire                   | Approve, Later                                     |
+| Blocked              | A task cannot move: waiting for a decision, an index, a database copy, or a team too big           | Approve, Later                                     |
 | Rewrite proposal     | An engineer who knows a language well and sees a service with high **tech debt** or a slow runtime | Review \<language\> migration, Decline             |
 | Hire request         | A team is past its coordination limit or its backlog is long                                       | Approve hire, Later                                |
 | Incident follow-up   | An Incident resolved                                                                               | File postmortem, File and research the action item |
@@ -239,7 +239,7 @@ reason:
 
 - an index the Service needs
 - a copy of a Database it shares
-- a hire its team has outgrown
+- a team too big to move alone
 - a decision the player has to make
 
 The engineer whose item it is writes. The item waits, its Dev Hours go to the pool, and later items

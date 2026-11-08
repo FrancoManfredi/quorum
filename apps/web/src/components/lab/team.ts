@@ -54,6 +54,7 @@ import { perkLevel } from '@quorum/simulation/founding'
 import { has, sreStaffed } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
 import type {
+  BlockKind,
   Engineer,
   Game,
   GameNode,
@@ -100,6 +101,7 @@ import {
   setTeamKind,
   loadBalancersOf,
   nodesOfService,
+  worksOn,
 } from '@quorum/simulation/work'
 import {
   featureHoursOf,
@@ -863,7 +865,12 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
               ? dataWork(h)
               : team.kind === 'security'
                 ? securityWork(h)
-                : working(assignments(game).get(team.id), index === 0 || members.length > 0, h),
+                : working(
+                    assignments(game).get(team.id),
+                    index === 0 || members.length > 0,
+                    waitingFor(game, team),
+                    h,
+                  ),
     ],
   )
 }
@@ -932,7 +939,12 @@ const securityWork = (h: HtmlBuilder<Message>): Html => {
   )
 }
 
-const working = (item: WorkItem | undefined, staffed: boolean, h: HtmlBuilder<Message>): Html => {
+const working = (
+  item: WorkItem | undefined,
+  staffed: boolean,
+  waits: number,
+  h: HtmlBuilder<Message>,
+): Html => {
   const t = copy(h)
   return h.div(
     [h.Class(cn('flex items-center gap-2 px-2.5 py-2', WELL, 'rounded-[10px]'))],
@@ -956,7 +968,13 @@ const working = (item: WorkItem | undefined, staffed: boolean, h: HtmlBuilder<Me
           statusMark('queued', 0, h),
           h.span(
             [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-            [staffed ? t.team.nothingAssigned : t.team.noEngineers],
+            [
+              staffed
+                ? waits > 0
+                  ? t.team.waitingItems(waits)
+                  : t.team.nothingAssigned
+                : t.team.noEngineers,
+            ],
           ),
         ],
   )
@@ -1582,6 +1600,36 @@ const label = (kind: WorkKind, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** The wait that holds an item, in the words the Toast and the Mail use (18 "Blocked"). */
+const waitOf = (t: Messages): Record<BlockKind, string> => ({
+  decision: t.team.waitForDecision,
+  index: t.team.waitForIndex,
+  copy: t.team.waitForCopy,
+  size: t.team.waitForSize,
+})
+
+/**
+ * Why an item waits on the player, on its card. Without it a blocked item looks like a queued
+ * one, and a full backlog over an idle team reads as a team that will not work.
+ */
+const waitChip = (item: WorkItem, h: HtmlBuilder<Message>): Html | null => {
+  // A patch never waits, so an old save's block on one is not a wait to show.
+  if (item.block._tag !== 'Blocked' || item.kind === 'patch') return null
+  const t = copy(h)
+  return h.span(
+    [
+      h.Class(
+        'inline-flex h-5 items-center gap-1 rounded-full px-1.5 text-[calc(10.5px*var(--type-scale))] font-medium text-warn shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
+      ),
+    ],
+    [icon(h, Hourglass, 'size-3'), t.team.waitingOnYou(waitOf(t)[item.block.reason])],
+  )
+}
+
+/** The blocked items a team may take: what an idle team is waiting on the player for. */
+const waitingFor = (game: Game, team: Team): number =>
+  game.backlog.filter((item) => item.block._tag === 'Blocked' && worksOn(game, team, item)).length
+
 /**
  * What a live Feature's users have and what A/B testing reads from it (08 "Adoption", "Measured
  * lift"): the adoption share, and the lift with its interval once the research is done.
@@ -1832,6 +1880,7 @@ const backlogCard = (
 
   const share = clamp(item.spent / item.cost)
   const late = overdueBy(game, item) > 0
+  const waiting = waitChip(item, h)
   return card(
     `item-${item.id}`,
     codeOf(item.kind, item.ref),
@@ -1841,6 +1890,7 @@ const backlogCard = (
     team ? assignees(game, team, h) : unassigned(h),
     [
       label(item.kind, h),
+      ...(waiting ? [waiting] : []),
       estimate(
         team || item.spent > 0 ? `${amount(item.spent)}/${dh(t, item.cost)}` : dh(t, item.cost),
         h,
@@ -1848,6 +1898,9 @@ const backlogCard = (
       deadline(game, item, h),
     ],
     [
+      item.block._tag === 'Blocked'
+        ? iconButton(t.team.approve, Check, Message.WorkApproved({ id: item.id }), true, h)
+        : h.empty,
       team
         ? h.empty
         : iconButton(
@@ -1876,6 +1929,7 @@ const backlogCard = (
 
 const idleCard = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+  const waits = waitingFor(game, team)
   return h.div(
     [
       h.Key(`idle-${team.id}`),
@@ -1886,10 +1940,16 @@ const idleCard = (game: Game, team: Team, h: HtmlBuilder<Message>): Html => {
     [
       assignees(game, team, h),
       h.span(
-        [h.Class('flex-1 truncate text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
+        [
+          h.Class(
+            'min-w-0 flex-1 text-[calc(12.5px*var(--type-scale))] leading-snug text-muted-foreground',
+          ),
+        ],
         [
           game.teams[0]?.id === team.id || membersOf(game, team).length > 0
-            ? t.team.idle(teamName(t, team))
+            ? waits > 0
+              ? t.team.idleOnYou(teamName(t, team), waits)
+              : t.team.idle(teamName(t, team))
             : t.team.noEngineersOn(teamName(t, team)),
         ],
       ),

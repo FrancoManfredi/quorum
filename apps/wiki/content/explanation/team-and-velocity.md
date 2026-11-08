@@ -4,7 +4,7 @@ summary: Where Dev Hours come from, why a bigger team is not a faster team, and 
 section: explanation
 order: 8
 era: 1
-aliases: team, dev hours, dh, velocity, engineers, hiring, layoff, coordination, brooks's law, tech debt, policy, deploys, backlog, migration, platform team, autopilot
+aliases: team, dev hours, dh, velocity, engineers, hiring, layoff, coordination, team size, brooks's law, tech debt, policy, deploys, backlog, migration, platform team, autopilot
 gdd: /design/08-team-and-velocity
 ---
 
@@ -64,6 +64,32 @@ that slow down as you add cores. Real companies split into small teams for the s
 Service in Quorum works the same way. A Service is a codebase one team owns, and a split moves
 Features to a new Service with its own team, deploys, and bad deploys. See
 [Conway's law](/glossary/conways-law).
+:::
+
+## The eighth engineer
+
+A team of eight engineers stops. Each item the team starts waits for you, and its card says
+**Waiting on you: team too big**. On Core you are an extra person on the card, so your own team waits
+at nine people.
+
+Approve an item to let it move, but the next item waits too. The real answer is a smaller team, so
+move some engineers to another team or split the Service.
+
+Nine engineers do less than eight, which is why the stop comes before the drop. Coordination grows
+faster than headcount, and effort per person falls as a group grows. Your ninth engineer adds less
+than the eighth did, and the tenth adds less again.
+
+:::Note{tone="real"}
+The limit is well studied. An analysis of the ISBSG project database found teams of nine or more
+significantly less productive than smaller teams
+([Rodríguez et al., 2012](https://www.sciencedirect.com/science/article/abs/pii/S0164121211002366)),
+and a study of 491 projects put the best size at three to seven people
+([Putnam, 1997](https://qsm.com/articles/team-size-can-be-key-successful-project)). An analysis of 58
+open-source projects found that each developer's contribution falls as the team grows, the Ringelmann
+effect ([Scholtes et al., 2016](https://link.springer.com/article/10.1007/s10664-015-9406-4)). In one
+experiment, people in the largest teams worked about 30% less than people working alone
+([Mao et al., 2016](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0153048)).
+Amazon keeps a team below ten people, and the Scrum Guide calls ten the usual ceiling.
 :::
 
 ## The backlog and deploys

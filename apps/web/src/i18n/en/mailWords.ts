@@ -29,7 +29,7 @@ export const mailWords = {
     decision: 'waiting on a decision',
     index: 'waiting on an index',
     copy: 'waiting on a database copy',
-    hire: 'waiting on a hire',
+    size: 'waiting on your call because the team is too big',
   },
   severities: { critical: 'critical', high: 'high', medium: 'medium', low: 'low' },
   phrases: {

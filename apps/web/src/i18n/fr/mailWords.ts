@@ -48,7 +48,7 @@ export const mailWords: Messages['mailWords'] = {
     decision: 'en attente d’une décision',
     index: 'en attente d’un index',
     copy: 'en attente d’une copie de base de données',
-    hire: 'en attente d’une embauche',
+    size: 'en attente de votre décision : l’équipe est trop grande',
   },
   severities: {
     critical: 'critique',

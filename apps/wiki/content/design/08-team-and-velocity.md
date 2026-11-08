@@ -426,16 +426,19 @@ Dev Hours build no backlog. The Team panel's Live column shows the share.
 An item can stop before its team does any work on it. The build checks the four waits the design
 names, and the first that holds is the reason:
 
-| Wait       | Holds when                                                                                      |
-| ---------- | ----------------------------------------------------------------------------------------------- |
-| An index   | The Service has a query shape with no index ([Data tier](/design/07-data-tier#indexes)).        |
-| A copy     | The Service shares its Database with another ([the distributed monolith](#blast-radius)).       |
-| A hire     | The team has eight engineers, near where the coordination table flattens.                       |
-| A decision | The Design is below its Apdex target: what to build first is the player's call, not the team's. |
+| Wait           | Holds when                                                                                      |
+| -------------- | ----------------------------------------------------------------------------------------------- |
+| An index       | The Service has a query shape with no index ([Data tier](/design/07-data-tier#indexes)).        |
+| A copy         | The Service shares its Database with another ([the distributed monolith](#blast-radius)).       |
+| A team too big | The team has eight engineers, near where the coordination table flattens.                       |
+| A decision     | The Design is below its Apdex target: what to build first is the player's call, not the team's. |
 
 An item with none of them moves. The team's owner writes and the item waits: its Dev Hours go to the
 pool, and later items go ahead of it. **Approve** clears the wait for good, because an item never
 stops twice. **Later** keeps it waiting and brings the Mail back after a calendar day.
+
+A **patch ticket** skips all four waits: a CVE's deadline is the only clock it answers to
+([Mail](/design/18-mail#cves-and-patches)). Once you move it up or rush it, a team starts on it.
 
 ## Engineering tasks
 
