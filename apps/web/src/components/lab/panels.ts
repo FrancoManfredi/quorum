@@ -39,7 +39,7 @@ import { switch_ } from '@quorum/ui/primitives/switch'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { cn } from '@/lib/utils'
 import { languagePicker } from '@/i18n/picker.ts'
-import { EYEBROW, FIGURE, FLOAT, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
+import { EYEBROW, FIGURE, FLOAT, SCROLL, WELL } from '@quorum/ui/game/bits'
 
 export const shell = (
   title: string,
@@ -132,99 +132,182 @@ const stepsOf = (t: Messages): ReadonlyArray<readonly [string, string]> => [
   [t.panels.raise, t.panels.atTheUserTargetTakeOr],
 ]
 
-const keysOf = (t: Messages, easyMode: boolean): ReadonlyArray<readonly [string, string]> => [
-  ['1–7', t.panels.buildGroup],
-  [t.panels.enter, t.panels.inspectorPlaceConfirm],
-  ['L', t.panels.linkTheSelectedNode],
-  [t.panels.shiftT, t.panels.tidyByZone],
-  [t.panels.shiftF, t.panels.fitTheBoard],
-  ['R', t.panels.research],
-  ['T', t.panels.team],
-  ['P', t.panels.playbooks],
-  [t.panels.shiftClick, t.panels.selectForAPlaybook],
-  ['Ctrl+A', t.panels.selectAll],
-  [t.panels.ctrlCXV, t.panels.copyCutPasteNodes],
-  ['Ctrl+D', t.panels.duplicateNodes],
-  [t.panels.shiftCtrlAltDrag, t.panels.addToRemoveFromSelection],
-  [t.panels.shiftArrows, t.panels.nudgeNodes16Px],
-  ['U', t.panels.resizeSelected],
-  ['Z', t.panels.undo],
-  [t.panels.shiftZ, t.panels.redo],
-  [t.panels.del, t.panels.sellSelected],
-  ['C', t.panels.collect],
-  ...(easyMode ? [['S', t.panels.speed] as const] : []),
-  ['D', t.panels.dashboard],
-  ['G', t.panels.glossary],
-  ['M', t.panels.mute],
-  ['I', t.panels.inbox],
-  ['$', t.panels.cost],
-  ['F', t.panels.fullscreen],
-  [t.panels.arrows, t.panels.selectNearestNode],
-  ...(easyMode ? [[t.panels.space, t.panels.pause] as const] : []),
-  ['`', t.panels.playtestPanel],
-  [t.panels.esc, t.panels.backOutThenMenu],
+type KeyGroup = readonly [label: string, rows: ReadonlyArray<readonly [string, string]>]
+
+const keyGroupsOf = (t: Messages, easyMode: boolean): ReadonlyArray<KeyGroup> => [
+  [
+    t.panels.keysBuild,
+    [
+      ['1–7', t.panels.buildGroup],
+      [t.panels.enter, t.panels.inspectorPlaceConfirm],
+    ],
+  ],
+  [
+    t.panels.keysClock,
+    [
+      ['Z', t.panels.undo],
+      [t.panels.shiftZ, t.panels.redo],
+      ['C', t.panels.collect],
+      ...(easyMode
+        ? [['S', t.panels.speed] as const, [t.panels.space, t.panels.pause] as const]
+        : []),
+      ['M', t.panels.mute],
+      ['F', t.panels.fullscreen],
+      [t.panels.shiftT, t.panels.tidyByZone],
+      [t.panels.shiftF, t.panels.fitTheBoard],
+    ],
+  ],
+  [
+    t.panels.keysSelect,
+    [
+      ['L', t.panels.linkTheSelectedNode],
+      [t.panels.arrows, t.panels.selectNearestNode],
+      [t.panels.shiftArrows, t.panels.nudgeNodes16Px],
+      ['U', t.panels.resizeSelected],
+      [t.panels.shiftClick, t.panels.selectForAPlaybook],
+      ['Ctrl+A', t.panels.selectAll],
+      [t.panels.ctrlCXV, t.panels.copyCutPasteNodes],
+      ['Ctrl+D', t.panels.duplicateNodes],
+      [t.panels.shiftCtrlAltDrag, t.panels.addToRemoveFromSelection],
+      [t.panels.del, t.panels.sellSelected],
+    ],
+  ],
+  [
+    t.panels.keysPanels,
+    [
+      ['R', t.panels.research],
+      ['T', t.panels.team],
+      ['P', t.panels.playbooks],
+      ['D', t.panels.dashboard],
+      ['G', t.panels.glossary],
+      ['I', t.panels.inbox],
+      ['$', t.panels.cost],
+      ['`', t.panels.playtestPanel],
+      [t.panels.esc, t.panels.backOutThenMenu],
+    ],
+  ],
 ]
+
+/** Each keys column keeps its own vertical rule; the layout folds to two, then one. */
+const keyColumnRule = (index: number): string =>
+  index === 0
+    ? ''
+    : index === 1
+      ? 'border-l border-hairline compact:border-l-0 compact:border-t'
+      : 'border-l border-hairline max-[1000px]:border-t max-[1000px]:border-l-0 compact:border-l-0'
+
+const keyRow = ([key, action]: readonly [string, string], h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [
+      h.Key(action),
+      h.Class(
+        'flex items-center justify-between gap-3 py-0.5 text-[calc(12px*var(--type-scale))] leading-snug',
+      ),
+    ],
+    [
+      h.span([h.Class('text-muted-foreground')], [action]),
+      Kbd({ className: 'shrink-0' }, [key], h),
+    ],
+  )
+
+const stepCell = (
+  [title, body]: readonly [string, string],
+  index: number,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const first = index === 0
+  return h.li(
+    [
+      h.Key(title),
+      h.Class(
+        cn(
+          'flex flex-col px-4 py-2.5',
+          first
+            ? 'bg-primary-fill text-on-primary-fill dark:bg-raised dark:text-foreground'
+            : 'bg-surface',
+        ),
+      ),
+    ],
+    [
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'text-[calc(23px*var(--type-scale))] leading-none font-medium tracking-[-0.05em]',
+              first
+                ? 'text-on-primary-fill dark:text-muted-foreground'
+                : 'text-muted-foreground/55',
+            ),
+          ),
+        ],
+        [String(index + 1).padStart(2, '0')],
+      ),
+      h.span(
+        [h.Class('mt-2 text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]')],
+        [title],
+      ),
+      h.span(
+        [
+          h.Class(
+            cn(
+              'mt-1 text-[calc(12px*var(--type-scale))] leading-relaxed',
+              first
+                ? 'text-on-primary-fill/70 dark:text-muted-foreground'
+                : 'text-muted-foreground',
+            ),
+          ),
+        ],
+        [body],
+      ),
+    ],
+  )
+}
 
 export const helpPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+  const groups = keyGroupsOf(t, model.prefs.easyMode)
+  const columns = [groups.slice(0, 2), groups.slice(2, 3), groups.slice(3)]
   return shell(
     t.panels.howToPlay,
     [],
     [
       h.div(
-        [
-          h.Class(
-            `grid min-h-0 grid-cols-[minmax(0,1fr)_230px] gap-4 px-5 pt-1 pb-5 compact:grid-cols-1 ${SCROLL}`,
-          ),
-        ],
+        [h.Class(`flex min-h-0 flex-col gap-3 px-5 pt-1 pb-4 compact:gap-4 ${SCROLL}`)],
         [
           h.ol(
-            [h.Class('grid grid-cols-2 gap-2 narrow:grid-cols-1')],
-            stepsOf(t).map(([title, body], index) =>
-              h.li(
-                [
-                  h.Key(title),
-                  h.Class(
-                    'flex flex-col gap-1.5 rounded-xl bg-nested p-4 shadow-[inset_0_0_0_1px_var(--hairline-soft)]',
-                  ),
-                ],
-                [
-                  h.span(
-                    [
-                      h.Class(
-                        cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'),
-                      ),
-                    ],
-                    [String(index + 1).padStart(2, '0')],
-                  ),
-                  h.span([h.Class('text-[calc(15px*var(--type-scale))] font-semibold')], [title]),
-                  h.span(
-                    [
-                      h.Class(
-                        'text-[calc(13px*var(--type-scale))] leading-relaxed text-muted-foreground',
-                      ),
-                    ],
-                    [body],
-                  ),
-                ],
+            [
+              h.Class(
+                'grid shrink-0 grid-cols-3 gap-px overflow-hidden rounded-xl bg-hairline shadow-[inset_0_0_0_1px_var(--hairline-soft)] max-[1000px]:grid-cols-2 compact:grid-cols-1',
               ),
-            ),
+            ],
+            stepsOf(t).map((step, index) => stepCell(step, index, h)),
           ),
-          h.div(
-            [h.Class('flex flex-col gap-2 compact:hidden')],
+          h.section(
+            [h.Class('flex shrink-0 flex-col gap-1.5')],
             [
               h.span([h.Class(EYEBROW)], [t.panels.keys]),
               h.div(
-                [h.Class(NESTED)],
-                keysOf(t, model.prefs.easyMode).map(([key, action]) =>
+                [
+                  h.Class(
+                    'grid grid-cols-3 overflow-hidden rounded-xl bg-nested shadow-[inset_0_0_0_1px_var(--hairline-soft)] max-[1000px]:grid-cols-2 compact:grid-cols-1',
+                  ),
+                ],
+                columns.map((columnGroups, index) =>
                   h.div(
-                    [
-                      h.Key(key),
-                      h.Class(
-                        'flex items-center justify-between gap-2 px-3 py-1.5 text-[calc(12.5px*var(--type-scale))]',
+                    [h.Class(cn('flex flex-col gap-2.5 p-2', keyColumnRule(index)))],
+                    columnGroups.map(([label, rows]) =>
+                      h.div(
+                        [h.Key(label), h.Class('flex flex-col')],
+                        [
+                          h.span([h.Class(EYEBROW)], [label]),
+                          h.div(
+                            [h.Class('mt-0.5 divide-y divide-hairline')],
+                            rows.map((row) => keyRow(row, h)),
+                          ),
+                        ],
                       ),
-                    ],
-                    [h.span([h.Class('text-muted-foreground')], [action]), Kbd({}, [key], h)],
+                    ),
                   ),
                 ),
               ),
@@ -234,7 +317,7 @@ export const helpPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
       footer([primaryButton(t.panels.startBuilding, Message.PanelClosed(), h)], h),
     ],
-    'max-w-[980px]',
+    'max-w-[1040px]',
     h,
   )
 }
