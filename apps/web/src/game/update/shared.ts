@@ -1,9 +1,11 @@
-import * as Actions from '@quorum/simulation/actions'
+import { Actions, planIn } from '../board-actions.ts'
 import { EMPTY_HISTORY } from '../history.ts'
 import { EMPTY_INBOX, savedInbox } from '../inbox.ts'
 import { EMPTY_RESEARCH } from '../research.ts'
 import { discoverTerm, earnAchievements } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
+import { applyIntents, type Intent } from '@quorum/simulation/room'
+import type { Action } from '@quorum/simulation/action-kit'
 import { Message } from '../message.ts'
 import {
   Model,
@@ -12,6 +14,7 @@ import {
   offCompany,
   placingOf,
   playingId,
+  roomLive,
   stampedPlaybook,
   boardChallenge,
   ANNOTATION_GROUPS,
@@ -27,6 +30,7 @@ import {
   AppendLog,
   ClearToast,
   PlaySound,
+  SendRoom,
   SyncBoard,
 } from '../commands.ts'
 import { beginChange, figuresOf, pushUndo, snapshotOf, type Reversal } from '../feedback.ts'
@@ -277,17 +281,40 @@ export type ActOptions = Readonly<{
   note?: (game: Game) => readonly [string, Tone] | null
 }>
 
+/** What a handler asks the board to do: an action, one Intent, or a batch. */
+export type ActTarget = Action | Game | Intent | ReadonlyArray<Action | Game | Intent>
+
+const isIntent = (target: Action | Game | Intent): target is Intent =>
+  typeof target === 'object' && target !== null && 'ns' in target && 'args' in target
+
+/** An action carries its Intent; anything a Seat may not send has none. */
+const intentsOf = (target: ActTarget): ReadonlyArray<Intent> | null => {
+  const batch = Array.isArray(target) ? target : [target]
+  const plans = batch.map((entry) => (isIntent(entry) ? entry : planIn(entry)))
+  return plans.some((plan) => plan === null) ? null : (plans as ReadonlyArray<Intent>)
+}
+
+/** An action of the Simulation: a refusal, or the Game it produced. */
+const appliedOf = (target: Action | Game): Action =>
+  Result.isResult(target) ? (target as Action) : Result.succeed(target as Game)
+
 /**
- * Applies a Simulation action. A refusal becomes a toast that says why; a
- * success syncs the board and starts measuring the change.
+ * Applies a Simulation action, or the same action as Intents. In a live Room
+ * the Intents go to the server, which owns the Game; the local apply is only
+ * optimism until the next snapshot.
  */
 export const act = (
   model: Model,
   label: string,
-  action: Actions.Action,
+  target: ActTarget,
   options: ActOptions = {},
-): UpdateResult =>
-  Result.match(action, {
+): UpdateResult => {
+  const intents = intentsOf(target)
+  if (intents === null && roomLive(model))
+    return withToast(model, say(model).room.notAvailable, 'warn')
+  const action =
+    intents === null ? appliedOf(target as Action | Game) : applyIntents(model.board.game, intents)
+  return Result.match(action, {
     onFailure: (refusal) => withToast(model, refusalIn(say(model), refusal), 'warn'),
     onSuccess: (applied) => {
       if (applied === model.board.game) return { model }
@@ -321,9 +348,17 @@ export const act = (
         },
       }
       const note = options.note?.(game)
-      return note ? withToast(next, note[0], note[1]) : { model: next }
+      const sent =
+        intents !== null && roomLive(model)
+          ? SendRoom({ message: { _tag: 'Intents', id: model.room.seq, intents } })
+          : null
+      const stamped =
+        sent === null ? next : { ...next, room: { ...next.room, seq: next.room.seq + 1 } }
+      const result = note ? withToast(stamped, note[0], note[1]) : { model: stamped }
+      return sent === null ? result : { ...result, commands: [...(result.commands ?? []), sent] }
     },
   })
+}
 
 /** Applies an undo or a redo, or says why it cannot. */
 export const reverse = (
@@ -332,6 +367,9 @@ export const reverse = (
   verb: 'Undid' | 'Redid',
 ): UpdateResult => {
   if (typeof reversal === 'string') return withToast(model, reasonIn(say(model), reversal), 'plain')
+  // Undo rewrites the Game on this tab, and a Room owns it. Every Seat's moves
+  // land in one order, so there is no tab whose history to unwind.
+  if (roomLive(model)) return withToast(model, say(model).room.notAvailable, 'warn')
   const challenge = boardChallenge(model.board)
   if (challenge && challenge._tag !== 'Building')
     return withToast(model, say(model).toasts.rebuildToChange, 'warn')

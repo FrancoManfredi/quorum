@@ -1,4 +1,4 @@
-import * as Mirrors from '@quorum/simulation/mirror'
+import { Mirrors } from '../board-actions.ts'
 import { Model } from '../model.ts'
 import { REGION_INFO, IAC_TOOL_INFO } from '@quorum/simulation/catalog'
 import { act, type MessageCases, type UpdateResult } from './shared.ts'

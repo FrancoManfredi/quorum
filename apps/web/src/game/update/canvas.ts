@@ -1,9 +1,8 @@
-import * as Actions from '@quorum/simulation/actions'
-import * as Work from '@quorum/simulation/work'
+import { Actions } from '../board-actions.ts'
+import { intent, workIntent } from '@quorum/simulation/room'
 import { CARD_W, boxOf, crowds, freeSpot, heightOf } from '@quorum/ui/board/geometry'
 import { COMPONENTS } from '@quorum/simulation/catalog'
 import { FocusInspector } from '../commands.ts'
-import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
 import { Model, confirmSellOf, placingOf, stampedPlaybook } from '../model.ts'
 import { step as boardStep } from '../board-machine.ts'
@@ -39,16 +38,7 @@ export const NUDGE = 16
 export const countNodes = (count: number): string => (count === 1 ? '1 Node' : `${count} Nodes`)
 
 /** Sells every Node it can. Fixed Nodes stay; it fails only when nothing sold. */
-export const sellAll = (game: Game, ids: ReadonlyArray<string>): Actions.Action => {
-  let next = game
-  let refusal: Actions.Action = Actions.sell(game, '')
-  for (const id of ids) {
-    const sold = Actions.sell(next, id)
-    if (Result.isSuccess(sold)) next = sold.success
-    else refusal = sold
-  }
-  return next === game ? refusal : Result.succeed(next)
-}
+export const sellAll = Actions.sellAll
 
 type CanvasTag =
   | 'BuildGroupChosen'
@@ -202,7 +192,7 @@ export const canvasHandlers = (
     act(
       model,
       `Moved a Node to ${model.board.game.services.find((entry) => entry.id === serviceId)?.name ?? 'a Service'}`,
-      Work.assignService(model.board.game, nodeId, serviceId),
+      workIntent('assignService', nodeId, serviceId),
     ),
 
   RevealNode: ({ nodeId }) => {
@@ -297,8 +287,8 @@ export const canvasHandlers = (
     return act(
       model,
       `Cut ${countNodes(playbook.nodes.length)}`,
-      sellAll(
-        model.board.game,
+      intent(
+        'sellAll',
         playbook.nodes.map((node) => node.key),
       ),
       {
@@ -402,7 +392,7 @@ export const canvasHandlers = (
         flow: boardStep(model.board.flow, { _tag: 'SellConfirmed' }),
       },
     }
-    return act(cleared, `Sold ${countNodes(ids.length)}`, sellAll(model.board.game, ids), {
+    return act(cleared, `Sold ${countNodes(ids.length)}`, intent('sellAll', ids), {
       undoable: true,
       patch: () => ({
         selected: null,
@@ -449,17 +439,13 @@ export const canvasHandlers = (
     })
     const dx = spot.x - left
     const dy = spot.y - top
-    const next: Model = {
-      ...model,
-      board: {
-        ...model.board,
-        game: members.reduce(
-          (game, entry) => Actions.move(game, entry.id, entry.x + dx, entry.y + dy),
-          model.board.game,
-        ),
-      },
-    }
-    return { model: next }
+    // A drag shows the landing at once and becomes one move per Node, so a Room
+    // applies the same landing instead of replaying the drag.
+    return act(
+      model,
+      `Moved ${countNodes(members.length)}`,
+      members.map((entry) => Actions.move(model.board.game, entry.id, entry.x + dx, entry.y + dy)),
+    )
   },
 
   LinkRequested: ({ from, to }) =>
@@ -482,7 +468,7 @@ export const canvasHandlers = (
     act(
       model,
       `Cut ${nodeName(model.board.game, from)} → ${nodeName(model.board.game, to)}`,
-      Result.succeed(Actions.disconnect(model.board.game, from, to)),
+      Actions.disconnect(model.board.game, from, to),
       {
         undoable: true,
       },

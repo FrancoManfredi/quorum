@@ -1,0 +1,306 @@
+import { AppRoute } from '../route.ts'
+import { record } from '../history.ts'
+import {
+  currentFile,
+  hasCompany,
+  ledgerOf,
+  onlineFileOf,
+  roomCode,
+  roomLive,
+  roomOwner,
+  type Model,
+  type Room,
+} from '../model.ts'
+import { RoomPhase, roomStep } from '../room-machine.ts'
+import { withFile } from '../saves.ts'
+import { WriteCompany, PublishRoom, SendRoom } from '../commands.ts'
+import { refusalIn } from '../../i18n/refusal.ts'
+import { ServerMessage } from '@quorum/simulation/room'
+import type { ClientMessage } from '@quorum/simulation/room'
+import type { Sample } from '@quorum/simulation/state'
+import type { RoomEnd } from '../room-machine.ts'
+import {
+  milestones,
+  say,
+  savePayloadOf,
+  withToast,
+  type MessageCases,
+  type UpdateResult,
+} from './shared.ts'
+
+/* ==========================================================================
+   The Room this tab is in. The server owns the Game; this file paints the
+   snapshots, sends what the player asks for, and writes the Company back when
+   the owner takes it offline.
+   ========================================================================== */
+
+type RoomTag =
+  | 'RoomReceived'
+  | 'RoomStatusChanged'
+  | 'RoomPublishAsked'
+  | 'RoomPublished'
+  | 'RoomPublishFailed'
+  | 'RoomTakeOfflineAsked'
+  | 'RoomLeaveAsked'
+  | 'RoomVoteAsked'
+  | 'RoomBallot'
+  | 'RoomSpeedChosen'
+  | 'RoomKickAsked'
+  | 'RoomSent'
+  | 'RoomChecked'
+
+const emptyRoom = (phase: Room['phase']): Room => ({
+  phase,
+  seats: [],
+  speed: 1,
+  vote: null,
+  seq: 1,
+})
+
+/** Paints one Room frame onto the Board. */
+const painted = (
+  model: Model,
+  frame: Readonly<{
+    game: Model['board']['game']
+    seats: Room['seats']
+    speed: number
+    vote: Room['vote']
+    samples: ReadonlyArray<Sample>
+    time: number
+  }>,
+): Model => {
+  const history = record(model.board.dashboard.history, frame.samples, frame.time)
+  return {
+    ...model,
+    board: {
+      ...model.board,
+      game: { ...frame.game, history: [] },
+      clock: { ...model.board.clock, speed: frame.speed, mode: { _tag: 'Running' } },
+      bottleneckAt: -1,
+      dashboard: { ...model.board.dashboard, history },
+    },
+    room: {
+      ...model.room,
+      seats: frame.seats,
+      speed: frame.speed,
+      vote: frame.vote,
+    },
+  }
+}
+
+const send = (model: Model, message: ClientMessage): UpdateResult => ({
+  model,
+  commands: [SendRoom({ message })],
+})
+
+const received = (model: Model, message: ServerMessage): UpdateResult =>
+  ServerMessage.match(message, {
+    Welcome: (frame) => {
+      const next: Model = {
+        ...painted(model, {
+          game: frame.game,
+          seats: frame.seats,
+          speed: frame.speed,
+          vote: frame.vote,
+          samples: frame.samples,
+          time: frame.game.time,
+        }),
+        panel: 'none',
+        room: {
+          ...model.room,
+          phase: roomStep(model.room.phase, {
+            _tag: 'Joined',
+            seat: frame.seat,
+            owner: frame.seat === frame.owner,
+          }),
+          seats: frame.seats,
+          speed: frame.speed,
+          vote: frame.vote,
+        },
+      }
+      return roomOwner(next)
+        ? milestones(model, { model: next }, [], ledgerOf(next))
+        : { model: next, commands: [] }
+    },
+    Snapshot: (frame) => {
+      const next = painted(model, {
+        game: frame.game,
+        seats: frame.seats,
+        speed: frame.speed,
+        vote: frame.vote,
+        samples: frame.samples,
+        time: frame.time,
+      })
+      // Achievements belong to the owner's Founder; a guest earns none.
+      return roomOwner(next)
+        ? milestones(model, { model: next }, [], ledgerOf(next))
+        : { model: next }
+    },
+    Seats: (frame) => ({
+      model: {
+        ...model,
+        room: {
+          ...model.room,
+          seats: frame.seats,
+          speed: frame.speed,
+          vote: frame.vote,
+        },
+      },
+    }),
+    Refused: (frame) => withToast(model, refusalIn(say(model), frame.refusal), 'warn'),
+    Final: (frame) => handover(model, frame.game),
+    Ended: (frame) => {
+      const next = roomStep(model.room.phase, { _tag: 'Ended', reason: frame.reason })
+      // The Room is gone. The owner has been handed the Company (Final), and a
+      // guest has nothing left to look at, so it goes back to the title.
+      const route = AppRoute.guards.Room(model.route) ? AppRoute.Title() : model.route
+      return withToast(
+        { ...model, route, room: { ...model.room, phase: next, seats: [] }, panel: 'none' },
+        say(model).room[reasonKeyOf(frame.reason)],
+        'plain',
+      )
+    },
+  })
+
+const REASON_KEY: Record<
+  RoomEnd,
+  'endOffline' | 'endHandover' | 'endExpired' | 'endStale' | 'endRemoved'
+> = {
+  offline: 'endOffline',
+  handover: 'endHandover',
+  expired: 'endExpired',
+  stale: 'endStale',
+  removed: 'endRemoved',
+}
+
+const reasonKeyOf = (reason: RoomEnd) => REASON_KEY[reason]
+
+/** The owner brought the Company home: write it and leave the Room. */
+const handover = (model: Model, game: Model['board']['game']): UpdateResult => {
+  const code = roomCode(model)
+  const file = code === null ? null : onlineFileOf(model, code)
+  const board = { ...model.board, game }
+  const online = file === null ? model.saves : withFile(model.saves, { ...file, online: null })
+  const next: Model = {
+    ...model,
+    board,
+    saves: online,
+    room: { ...model.room, phase: roomStep(model.room.phase, { _tag: 'Left' }) },
+    route: AppRoute.Company(),
+    panel: 'none',
+  }
+  const commands =
+    file === null
+      ? []
+      : [
+          WriteCompany({
+            id: file.id,
+            index: withFile(next.saves, { ...file, online: null }),
+            ...savePayloadOf(next, board),
+          }),
+        ]
+  return { model: next, commands }
+}
+
+const published = (model: Model, code: string, token: string): UpdateResult => {
+  const file = currentFile(model)
+  if (file === null) return withToast(model, say(model).room.notAvailable, 'warn')
+  const saves = withFile(model.saves, {
+    ...file,
+    online: { code, token, at: Date.now() },
+  })
+  const next: Model = {
+    ...model,
+    saves,
+    route: AppRoute.Room({ room: code }),
+    panel: 'room',
+    room: emptyRoom(roomStep(model.room.phase, { _tag: 'Connecting', code })),
+  }
+  return {
+    model: next,
+    commands: [WriteCompany({ id: file.id, index: saves, ...savePayloadOf(next, next.board) })],
+  }
+}
+
+export const roomHandlers = (model: Model): MessageCases<UpdateResult, RoomTag> => ({
+  RoomReceived: ({ message }) => received(model, message),
+  RoomStatusChanged: ({ status }) => {
+    if (status === 'open') return { model }
+    if (!RoomPhase.guards.Online(model.room.phase)) return { model }
+    return {
+      model: {
+        ...model,
+        room: { ...model.room, phase: roomStep(model.room.phase, { _tag: 'Dropped' }) },
+      },
+    }
+  },
+  RoomChecked: ({ code, exists }) => {
+    if (exists || roomCode(model) !== code) return { model }
+    const next = roomStep(model.room.phase, { _tag: 'Ended', reason: 'removed' })
+    return withToast(
+      {
+        ...model,
+        route: AppRoute.Title(),
+        room: { ...model.room, phase: next, seats: [] },
+        panel: 'none',
+      },
+      say(model).room.missing,
+      'plain',
+    )
+  },
+  RoomPublishAsked: () => {
+    const file = currentFile(model)
+    if (file === null) return withToast(model, say(model).room.notAvailable, 'warn')
+    if (file.online !== null)
+      return {
+        model: {
+          ...model,
+          route: AppRoute.Room({ room: file.online.code }),
+          panel: 'room',
+          room: emptyRoom(
+            roomStep(model.room.phase, { _tag: 'Connecting', code: file.online.code }),
+          ),
+        },
+      }
+    return {
+      model,
+      commands: [
+        PublishRoom({
+          name: file.name,
+          game: { ...model.board.game, history: [] },
+          samples: model.board.game.history,
+          wall: Date.now(),
+        }),
+      ],
+    }
+  },
+  RoomPublished: ({ code, token }) => published(model, code, token),
+  RoomPublishFailed: ({ message }) => withToast(model, message, 'warn'),
+  RoomTakeOfflineAsked: () =>
+    RoomPhase.guards.Online(model.room.phase) && model.room.phase.owner
+      ? send(model, { _tag: 'TakeOffline' })
+      : withToast(model, say(model).room.notAvailable, 'warn'),
+  RoomLeaveAsked: () => {
+    const next: Model = {
+      ...model,
+      room: { ...model.room, phase: roomStep(model.room.phase, { _tag: 'Left' }) },
+      route: hasCompany(model) ? AppRoute.Company() : AppRoute.Title(),
+      panel: 'none',
+    }
+    return withToast(next, say(model).room.left, 'plain')
+  },
+  RoomVoteAsked: ({ kind }) => send(model, { _tag: 'StartVote', kind }),
+  RoomBallot: ({ vote, yes }) => send(model, { _tag: 'Ballot', vote, yes }),
+  RoomSpeedChosen: ({ value }) => {
+    const speed = value === 0.5 || value === 3 || value === 10 ? value : 1
+    return RoomPhase.guards.Online(model.room.phase) && model.room.phase.owner
+      ? send(model, { _tag: 'Speed', value: speed })
+      : withToast(model, say(model).room.notAvailable, 'warn')
+  },
+  RoomKickAsked: ({ seat }) => send(model, { _tag: 'Kick', seat }),
+  RoomSent: () => ({ model }),
+})
+
+/** The Room this tab is in steps the Company, so the tick does not. */
+export const roomSteps = (model: Model): boolean =>
+  roomLive(model) && !RoomPhase.guards.Connecting(model.room.phase)

@@ -5,6 +5,7 @@ import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { initFrameworkPicker, initRuntimePicker } from './stack-picker.ts'
 import {
+  CheckRoom,
   LoadFounder,
   LoadSaves,
   AppendLog,
@@ -25,7 +26,7 @@ import { freshBoard, milestones, sync, type UpdateResult } from './update/shared
 import { isExited } from './company-machine.ts'
 import { isSending, isSent } from './survey-machine.ts'
 import { has } from '@quorum/simulation/lookups'
-import { ledgerOf, Model, halted, EMPTY_SURVEY } from './model.ts'
+import { ledgerOf, Model, halted, EMPTY_ROOM, EMPTY_SURVEY } from './model.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
 import { type Ledger } from '@quorum/simulation/ledger'
@@ -45,6 +46,7 @@ import { exitHandlers } from './update/exit.ts'
 import { teamHandlers } from './update/team.ts'
 import { panelsHandlers } from './update/panels.ts'
 import { saveHandlers } from './update/save.ts'
+import { roomHandlers } from './update/room.ts'
 
 /** Every Message. Handlers live in ./update, grouped by what they touch; this file routes them. */
 
@@ -58,6 +60,7 @@ export const initialModel = (): Model =>
     toast: null,
     toastSeq: 0,
     board: freshBoard(newGame()),
+    room: EMPTY_ROOM,
     company: null,
     companyPhase: { _tag: 'None' },
     saves: EMPTY_SAVE_INDEX,
@@ -102,6 +105,16 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, void, ApiRpc> 
     model: {
       ...initialModel(),
       route,
+      // A Room URL joins straight away; the welcome fills the Board.
+      ...(AppRoute.guards.Room(route)
+        ? {
+            panel: 'room' as const,
+            room: {
+              ...EMPTY_ROOM,
+              phase: { _tag: 'Connecting' as const, code: route.room },
+            },
+          }
+        : {}),
       // A board URL skips the splash: the player was already clocked in.
       boot: onBoard(route) ? { _tag: 'Ready' } : { _tag: 'Shut' },
     },
@@ -110,6 +123,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, void, ApiRpc> 
       LoadSandboxStore({}),
       LoadPrefs({}),
       LoadFounder({}),
+      ...(AppRoute.guards.Room(route) ? [CheckRoom({ code: route.room })] : []),
       ...(url.pathname === urlOf(route) ? [] : [ReplaceUrl({ url: urlOf(route) })]),
     ],
   }
@@ -276,6 +290,7 @@ function handle(model: Model, message: Message): UpdateResult {
     ...teamHandlers(model),
     ...panelsHandlers(model, route),
     ...saveHandlers(model, route),
+    ...roomHandlers(model),
   })
 }
 

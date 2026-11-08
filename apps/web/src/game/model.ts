@@ -20,6 +20,8 @@ export { CompanyPhase } from './company-machine.ts'
 import { TradeoffState } from './tradeoff-machine.ts'
 export { TradeoffState } from './tradeoff-machine.ts'
 import { ClockMode, away as clockAwayOf, paused as clockPausedOf } from './clock-machine.ts'
+import { RoomPhase, inRoom } from './room-machine.ts'
+import { Seat, Vote } from '@quorum/simulation/room'
 import { HoldFlow } from './hold-machine.ts'
 import { ChangeState } from './change-machine.ts'
 import { ConfirmDelete } from './confirm-delete-machine.ts'
@@ -45,6 +47,7 @@ import {
 
 export const Panel = Schema.Literals([
   'none',
+  'room',
   'research',
   'team',
   'exit',
@@ -377,6 +380,40 @@ export const boardChallenge = (board: Board): ChallengeRun | null =>
   board.session._tag === 'Challenge' ? board.session.run : null
 
 /** The session: what lasts while the page is open, and the board being played. */
+/** The Room this tab is in, and what the Room last said. */
+export const Room = Schema.Struct({
+  phase: RoomPhase,
+  seats: Schema.Array(Seat),
+  speed: Schema.Finite,
+  vote: Schema.NullOr(Vote),
+  /** The number on the next Intent batch this tab sends. */
+  seq: Schema.Finite,
+})
+export type Room = typeof Room.Type
+
+export const EMPTY_ROOM: Room = {
+  phase: { _tag: 'Idle' },
+  seats: [],
+  speed: 1,
+  vote: null,
+  seq: 1,
+}
+
+/** The Room is live: the server steps the Company, not this tab. */
+export const roomLive = (model: Model): boolean => inRoom(model.room.phase)
+
+/** The Company file that is online in this Room, or null. */
+export const onlineFileOf = (model: Model, code: string) =>
+  model.saves.companies.find((file) => file.online?.code === code) ?? null
+
+/** The code of the Room this tab is in, or null. */
+export const roomCode = (model: Model): string | null =>
+  RoomPhase.guards.Idle(model.room.phase) ? null : model.room.phase.code
+
+/** This tab holds the owner Seat. */
+export const roomOwner = (model: Model): boolean =>
+  RoomPhase.guards.Online(model.room.phase) && model.room.phase.owner
+
 export const Model = Schema.Struct({
   route: AppRoute,
   /** Where the app is in its boot sequence: the clock-in splash, the title, or a board opening. */
@@ -385,6 +422,8 @@ export const Model = Schema.Struct({
   toast: Schema.NullOr(Toast),
   toastSeq: Schema.Finite,
   board: Board,
+  /** The Room this tab is in, or an idle one. */
+  room: Room,
   /** The Company's board, kept aside while a Sandbox or Challenge is open. */
   company: Schema.NullOr(Board),
   /** Which Company the page is playing, and what is happening to it. */
@@ -455,10 +494,12 @@ export const inMenu = (model: Model): boolean =>
 /** The clock holds still: the player paused it, or the game menu is open. */
 /** The clock holds still: paused for any reason, or the game menu is open. */
 export const halted = (model: Model): boolean =>
-  clockPausedOf(model.board.clock.mode) || inMenu(model) || model.boot._tag === 'Connecting'
+  !roomLive(model) &&
+  (clockPausedOf(model.board.clock.mode) || inMenu(model) || model.boot._tag === 'Connecting')
 
-/** The clock is paused, whatever the reason. */
-export const clockPaused = (model: Model): boolean => clockPausedOf(model.board.clock.mode)
+/** The clock is paused, whatever the reason. A live Room never pauses: the server owns it. */
+export const clockPaused = (model: Model): boolean =>
+  !roomLive(model) && clockPausedOf(model.board.clock.mode)
 
 /** The pause came from the window losing focus. */
 export const clockAway = (model: Model): boolean => clockAwayOf(model.board.clock.mode)

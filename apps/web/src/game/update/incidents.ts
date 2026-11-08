@@ -1,7 +1,7 @@
-import * as Actions from '@quorum/simulation/actions'
+import { Actions } from '../board-actions.ts'
 import { Model } from '../model.ts'
 import { logResponse } from './session.ts'
-import { say, withToast, act, nodeName, type MessageCases, type UpdateResult } from './shared.ts'
+import { say, act, nodeName, type MessageCases, type UpdateResult } from './shared.ts'
 
 type IncidentsTag =
   | 'LeaderFenced'
@@ -97,14 +97,11 @@ export const incidentsHandlers = (model: Model): MessageCases<UpdateResult, Inci
   Collected: () => {
     if (model.board.game.pending <= 0) return { model }
     const amount = model.board.game.pending
-    const next: Model = {
-      ...model,
-      board: { ...model.board, game: Actions.collect(model.board.game) },
-    }
-    return withToast(
-      next,
-      say(model).toasts.collected(`$${Math.round(amount).toLocaleString('en-US')}`),
-      'ok',
-    )
+    return act(model, 'Collected the Cash', Actions.collect(model.board.game), {
+      note: () => [
+        say(model).toasts.collected(`$${Math.round(amount).toLocaleString('en-US')}`),
+        'ok',
+      ],
+    })
   },
 })

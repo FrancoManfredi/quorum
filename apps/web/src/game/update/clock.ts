@@ -1,5 +1,5 @@
-import * as Actions from '@quorum/simulation/actions'
-import * as Work from '@quorum/simulation/work'
+import { Actions } from '../board-actions.ts'
+import { Work } from '../board-actions.ts'
 import {
   ALERT_RULES,
   COMPONENTS,
@@ -33,10 +33,10 @@ import {
   offCompany,
   boardChallenge,
   boardSandbox,
+  roomLive,
   type Tone,
 } from '../model.ts'
 import { clockStep } from '../clock-machine.ts'
-import { Result } from 'effect'
 import { advanceChange } from '../feedback.ts'
 import { SAVE_EVERY, SAMPLE_EVERY, mostSteps, speedsOf } from './constant.ts'
 import { StepEvent } from '@quorum/simulation/events'
@@ -393,9 +393,10 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   const owed =
     model.board.clock.carry + (elapsedMs * model.board.clock.speed) / (1_000 * STEP_SECONDS)
   const most = mostSteps(model.board.clock.speed)
-  const steps = Math.min(Math.floor(owed), most)
+  // A live Room steps the Company on the server; this tab only paints it.
+  const steps = roomLive(model) ? 0 : Math.min(Math.floor(owed), most)
   // Over the cap, the clock drops the excess instead of saving it for the next tick.
-  const carry = steps === most ? 0 : owed - steps
+  const carry = roomLive(model) || steps === most ? 0 : owed - steps
   let game = model.board.game
   const events: Array<StepEvent> = []
   for (let index = 0; index < steps; index += 1) {
@@ -831,11 +832,8 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
       group: zoned(node) ? node.zone : 'all',
     }))
     const spots = tidy(nodes, view.links, ['all', 'a', 'b', 'c'])
-    const game = [...spots].reduce(
-      (game, [id, spot]) => Actions.move(game, id, spot.x, spot.y),
-      model.board.game,
-    )
-    const tidied = act(model, 'Tidied the board by zone', Result.succeed(game), {
+    const moved = [...spots].map(([id, spot]) => Actions.move(model.board.game, id, spot.x, spot.y))
+    const tidied = act(model, 'Tidied the board by zone', moved, {
       undoable: true,
     })
     return { ...tidied, commands: [...(tidied.commands ?? []), FitBoard({})] }

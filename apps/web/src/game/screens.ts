@@ -9,6 +9,7 @@ import {
   eraPanel,
   helpPanel,
   menuPanel,
+  roomPanel,
   offerPanel,
   settingsPanel,
 } from '@/components/lab/panels.ts'
@@ -143,6 +144,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
       model.panel === 'playbooks' ? playbooksPanel(model, h) : h.empty,
       model.panel === 'help' ? helpPanel(model, h) : h.empty,
       model.panel === 'menu' ? menuPanel(model, h) : h.empty,
+      model.panel === 'room' ? roomPanel(model, h) : h.empty,
       model.panel === 'settings' ? settingsPanel(model, h) : h.empty,
       model.panel === 'inbox' ? inboxPanel(model, h) : h.empty,
       model.panel === 'glossary' ? glossaryPanel(model, h) : h.empty,

@@ -1,4 +1,4 @@
-import * as Actions from '@quorum/simulation/actions'
+import { Actions } from '../board-actions.ts'
 import { AskSaveImport, CopyText, WriteFounder, ClearLog, ExportLog } from '../commands.ts'
 import { Game } from '@quorum/simulation/state'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE } from '@quorum/simulation/ipo'

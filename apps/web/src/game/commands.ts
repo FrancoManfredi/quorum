@@ -23,8 +23,11 @@ import { setAgentAccess } from './agent-relay.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
 import { forward, setAnalyticsEnabled } from '../platform/analytics.ts'
 import { SurveySubmission } from '@quorum/rpc'
+import { ClientMessage } from '@quorum/simulation/room'
+import { Sample } from '@quorum/simulation/state'
 import { ApiRpc } from '@/platform/rpc.ts'
 import { annotateSpan, reportSurveyFailure, setSentryConsent, traced } from '../platform/sentry.ts'
+import { send as sendRoom } from '../platform/room-socket.ts'
 
 /** The list of Companies: their names, logos, and the figures the title lists. */
 export const SAVE_INDEX_KEY = 'quorum.saves.v1'
@@ -189,6 +192,52 @@ export const FitBoard = Command.define('FitBoard', {
 })
 
 /** Reads the Company index, and the single save of the build before Company files. */
+/** Takes the open Company online: the Room steps it from here. */
+export const PublishRoom = Command.define('PublishRoom', {
+  args: {
+    name: Schema.String,
+    game: Game,
+    samples: Schema.Array(Sample),
+    wall: Schema.Finite,
+  },
+  messages: [Message.RoomPublished, Message.RoomPublishFailed],
+  execute: ({ name, game, samples, wall }) =>
+    Effect.gen(function* () {
+      const rpc = yield* ApiRpc
+      return yield* rpc.roomPublish({ name, game, samples, wall })
+    }).pipe(
+      Effect.match({
+        onSuccess: ({ code, token }) => Message.RoomPublished({ code, token }),
+        onFailure: (error) => Message.RoomPublishFailed({ message: error.message }),
+      }),
+    ),
+})
+
+/** Asks whether the Room a link named is still open, so a dead link says so. */
+export const CheckRoom = Command.define('CheckRoom', {
+  args: { code: Schema.String },
+  messages: [Message.RoomChecked],
+  execute: ({ code }) =>
+    Effect.gen(function* () {
+      const rpc = yield* ApiRpc
+      return yield* rpc.roomInfo({ code })
+    }).pipe(
+      Effect.match({
+        onSuccess: (info) => Message.RoomChecked({ code, exists: info.exists }),
+        // A Room the network cannot reach is left to the socket to retry.
+        onFailure: () => Message.RoomChecked({ code, exists: true }),
+      }),
+    ),
+})
+
+/** One frame out to the Room. A closed socket drops it; the next snapshot repairs the Board. */
+export const SendRoom = Command.define('SendRoom', {
+  args: { message: ClientMessage },
+  messages: [Message.RoomSent],
+  execute: ({ message }) =>
+    Effect.sync(() => sendRoom(message)).pipe(Effect.as(Message.RoomSent())),
+})
+
 export const LoadSaves = Command.define('LoadSaves', {
   args: {},
   messages: [Message.SavesLoaded],

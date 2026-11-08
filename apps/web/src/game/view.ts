@@ -8,17 +8,19 @@ import type { Message } from './message.ts'
 import { boardChallenge, boardSandbox, type Model } from './model.ts'
 import { isPlaying } from './company-machine.ts'
 import { connecting } from './boot-machine.ts'
-import { onBoard } from './route.ts'
+import { AppRoute, onBoard } from './route.ts'
+import { RoomPhase } from './room-machine.ts'
 
-/** The board for the route has its data: the Company file, or the Sandbox or Challenge it names. */
+/** The board for the route has its data: the Company file, or the board its Session names. */
 const boardFilled = (model: Model): boolean =>
-  model.route._tag === 'Company'
-    ? isPlaying(model.companyPhase)
-    : model.route._tag === 'Sandbox'
-      ? boardSandbox(model.board) !== null
-      : model.route._tag === 'Challenge'
-        ? boardChallenge(model.board) !== null
-        : false
+  AppRoute.match(model.route, {
+    Title: () => false,
+    Menu: () => false,
+    Company: () => isPlaying(model.companyPhase),
+    Sandbox: () => boardSandbox(model.board) !== null,
+    Challenge: () => boardChallenge(model.board) !== null,
+    Room: () => RoomPhase.isAnyOf(['Online', 'Reconnecting'])(model.room.phase),
+  })
 
 export const view = (model: Model, builder: HtmlBuilder<Message>): Document => {
   const h = localizeBuilder(model.prefs.locale, builder)

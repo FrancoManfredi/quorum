@@ -1,5 +1,5 @@
-import * as Actions from '@quorum/simulation/actions'
-import * as Work from '@quorum/simulation/work'
+import { Actions } from '../board-actions.ts'
+import { Work } from '../board-actions.ts'
 import {
   DIGEST_ID,
   InboxMessage,

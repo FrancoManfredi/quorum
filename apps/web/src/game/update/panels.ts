@@ -1,7 +1,7 @@
 import { ApplySettings, FocusDashboard, WriteFounder, WritePrefs } from '../commands.ts'
 import { EMPTY_RESEARCH, ResearchMessage } from '../research.ts'
 import { Message } from '../message.ts'
-import { Model, Prefs, clockAway, halted } from '../model.ts'
+import { Model, Prefs, clockAway, halted, roomLive } from '../model.ts'
 import { isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
 import { step as holdStep } from '../hold-machine.ts'
@@ -353,7 +353,9 @@ export const panelsHandlers = (
             },
           }
         : model
-    if (!held.prefs.blurPause || halted(held) || !onBoard(held.route)) return { model: held }
+    // A live Room runs on its own clock: a hidden tab must not freeze it for the others.
+    if (!held.prefs.blurPause || halted(held) || roomLive(held) || !onBoard(held.route))
+      return { model: held }
     const next: Model = {
       ...held,
       board: {

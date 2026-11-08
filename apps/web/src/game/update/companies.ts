@@ -1,4 +1,4 @@
-import * as Actions from '@quorum/simulation/actions'
+import type { Refusal } from '@quorum/simulation/action-kit'
 import { AppRoute, routeOfMenu, urlOf } from '../route.ts'
 import { Cause, Exit, Option, Result, Schema } from 'effect'
 import { DEFAULT_LOGO } from '../logos.ts'
@@ -284,7 +284,7 @@ export const importOldSave = (model: Model, json: string | null, now: number): U
 /** Applies a change to the Founder record, saves it, or says why not. */
 export const changeFounder = (
   model: Model,
-  change: Result.Result<Founder, Actions.Refusal>,
+  change: Result.Result<Founder, Refusal>,
   done?: string,
 ): UpdateResult =>
   Result.match(change, {

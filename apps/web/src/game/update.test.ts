@@ -32,11 +32,20 @@ import { JOBS } from '@quorum/ui/board/jobs'
 import { Message } from './message.ts'
 import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
 import { titleIsOpen } from './boot-machine.ts'
-import { boardChallenge, boardSandbox, hasCompany, type Mail, type Model } from './model.ts'
+import {
+  boardChallenge,
+  boardSandbox,
+  hasCompany,
+  EMPTY_ROOM,
+  type Mail,
+  type Model,
+} from './model.ts'
 import { TICK_MS, init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
 import { boxOf, crowds, inPort, outPort } from '@quorum/ui/board/geometry'
+import { act } from './update/shared.ts'
+import { Actions } from './board-actions.ts'
 
 /* The clock: 100 ms Steps under a 250 ms UI tick, and the Bottleneck search once per sim second. */
 
@@ -2341,4 +2350,64 @@ test('a Rush says the tech debt and bad-deploy risk it adds', () => {
     'Rushed work: +2.0% tech debt, +10.0% bad-deploy risk when it deploys.',
   )
   expect(pressed.toast?.tone).toBe('warn')
+})
+
+/* A Room owns the clock: the tab that joined it must not advance the Game. */
+test('a live Room does not step the Company on this tab', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: true },
+    },
+  }
+  const ticked = tick(model, 8)
+  expect(ticked.board.game.time).toBe(model.board.game.time)
+  expect(ticked.board.clock.carry).toBe(0)
+})
+
+/* A Room's refusal to step is not the same as a pause: a hidden tab must not freeze it. */
+test('a live Room stays unpaused when the window loses focus', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: true },
+    },
+  }
+  const away = update(model, Message.WindowBlurred()).model
+  expect(away.board.clock.mode).toEqual({ _tag: 'Running' })
+})
+
+/* A Seat's action travels as the Intent that names it, so a Room runs the same move. */
+test('a board action in a live Room goes out as the Intent it stands for', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const node = model.board.game.nodes[0]!
+  const moved = act(model, 'Moved', Actions.move(model.board.game, node.id, 45, 60))
+  const sent = (moved.commands ?? []).find((command) => command.name === 'SendRoom')
+  expect(sent?.args?.['message']).toEqual({
+    _tag: 'Intents',
+    id: model.room.seq,
+    intents: [{ ns: 'actions', name: 'move', args: [node.id, 45, 60] }],
+  })
+})
+
+/* Raising a round is a vote, so the action itself never leaves a Seat's browser. */
+test('an action only a vote may take is refused in a live Room', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const raised = act(model, 'Raised', Actions.raise(model.board.game))
+  expect((raised.commands ?? []).some((command) => command.name === 'SendRoom')).toBe(false)
+  expect(raised.model.toast?.message).toBe('That is not available in a Room yet.')
 })

@@ -5,6 +5,14 @@ import { LogoId } from './logos.ts'
 
 export const MAX_COMPANY_NAME = 40
 
+/** A Room this Company is online in: the code, the owner token, and when it went online. */
+export const RoomLink = Schema.Struct({
+  code: Schema.String,
+  token: Schema.String,
+  at: Schema.Finite,
+})
+export type RoomLink = typeof RoomLink.Type
+
 /** One Company in the browser's index: the list row, and where its save lives. */
 export const CompanyFile = Schema.Struct({
   id: Schema.String,
@@ -20,6 +28,8 @@ export const CompanyFile = Schema.Struct({
   time: Schema.Finite,
   /** This Company came from the single save of the build before Company files. */
   recovered: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** The Room this Company is online in, or null. */
+  online: Schema.NullOr(RoomLink).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
 })
 export type CompanyFile = typeof CompanyFile.Type
 
@@ -70,6 +80,7 @@ export const fileFor = (args: {
   users: args.game.users,
   time: args.game.time,
   recovered: args.recovered ?? false,
+  online: null,
 })
 
 /** The file's figures brought up to the Game it just saved. */

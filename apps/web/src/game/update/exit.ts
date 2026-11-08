@@ -1,4 +1,4 @@
-import * as Actions from '@quorum/simulation/actions'
+import { Actions } from '../board-actions.ts'
 import * as Runway from '@quorum/simulation/runway'
 import {
   AskPlaybook,

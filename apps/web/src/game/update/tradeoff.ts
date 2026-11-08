@@ -1,4 +1,4 @@
-import * as Work from '@quorum/simulation/work'
+import { Work } from '../board-actions.ts'
 import { AppendLog, ComputePreview, WritePrefs } from '../commands.ts'
 import { Model, type TradeoffOption } from '../model.ts'
 import { Result } from 'effect'

@@ -1,3 +1,4 @@
+import { room } from './room.ts'
 import { toasts } from './toasts.ts'
 import { mailWords } from './mailWords.ts'
 import { mail } from './mail.ts'
@@ -60,6 +61,7 @@ import { catalog } from './catalog.ts'
 import type { Messages } from '../messages.ts'
 
 export const fr: Messages = {
+  room,
   challenge,
   churn,
   cost,

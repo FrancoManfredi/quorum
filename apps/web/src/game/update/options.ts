@@ -1,5 +1,5 @@
-import * as Actions from '@quorum/simulation/actions'
-import * as Work from '@quorum/simulation/work'
+import { Actions } from '../board-actions.ts'
+import { Work } from '../board-actions.ts'
 import { BIG_PURCHASE } from '../cues.ts'
 import {
   CACHE_ENGINES,
@@ -174,37 +174,32 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
     const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
     if (!node) return { model }
     let game = model.board.game
-    let steps = 0
+    const resized: Array<ReturnType<typeof Actions.resize>> = []
     for (let index = 0; index < (mode === 'ten' ? 10 : SIZES.length); index += 1) {
       const next = Actions.resize(game, nodeId, 1)
       if (Result.isFailure(next)) break
+      resized.push(next)
       game = next.success
-      steps += 1
     }
-    if (steps === 0) return { model }
-    return act(
-      model,
-      `Resized ${nodeName(model.board.game, nodeId)} ×${steps}`,
-      Result.succeed(game),
-      {
-        undoable: true,
-        note: (after) => {
-          const t = say(model)
-          return [
-            t.toasts.sentences([
-              t.toasts.grewSizes(
-                t.catalog.components[node.type].name,
-                steps,
-                sizeText(t, node.size),
-                isOne(model.prefs.locale, steps),
-              ),
-              ...refundNote(t, model.board.game.cash - after.cash),
-            ]),
-            'ok',
-          ]
-        },
+    if (resized.length === 0) return { model }
+    return act(model, `Resized ${nodeName(model.board.game, nodeId)} ×${resized.length}`, resized, {
+      undoable: true,
+      note: (after) => {
+        const t = say(model)
+        return [
+          t.toasts.sentences([
+            t.toasts.grewSizes(
+              t.catalog.components[node.type].name,
+              resized.length,
+              sizeText(t, node.size),
+              isOne(model.prefs.locale, resized.length),
+            ),
+            ...refundNote(t, model.board.game.cash - after.cash),
+          ]),
+          'ok',
+        ]
       },
-    )
+    })
   },
 
   UpgradeAllChosen: ({ nodeId }) => {

@@ -33,6 +33,7 @@ export const AppRoute = defineRouteUnion({
   Company: {},
   Sandbox: { sandbox: SandboxPath },
   Challenge: { challenge: Schema.String },
+  Room: { room: Schema.String },
 })
 export type AppRoute = typeof AppRoute.Type
 
@@ -49,9 +50,10 @@ export const challengeRouter = pipe(
   slash(string('challenge')),
   mapTo(AppRoute.Challenge),
 )
+export const roomRouter = pipe(literal('room'), slash(string('room')), mapTo(AppRoute.Room))
 
 export const urlToAppRoute = parseUrlWithFallback(
-  oneOf(titleRouter, menuRouter, companyRouter, sandboxRouter, challengeRouter),
+  oneOf(titleRouter, menuRouter, companyRouter, sandboxRouter, challengeRouter, roomRouter),
   { make: () => AppRoute.Title() },
 )
 
@@ -62,11 +64,19 @@ export const urlOf = (route: AppRoute): string =>
     Company: () => companyRouter(),
     Sandbox: (sandbox) => sandboxRouter(sandbox),
     Challenge: (challenge) => challengeRouter(challenge),
+    Room: (room) => roomRouter(room),
   })
 
 /** The board is open: a Company, a Sandbox, or a Challenge. */
 export const onBoard = (route: AppRoute): boolean =>
-  route._tag === 'Company' || route._tag === 'Sandbox' || route._tag === 'Challenge'
+  AppRoute.match(route, {
+    Title: () => false,
+    Menu: () => false,
+    Company: () => true,
+    Sandbox: () => true,
+    Challenge: () => true,
+    Room: () => true,
+  })
 
 /** The title menu page a route shows. */
 export const menuOf = (route: AppRoute): typeof MenuPage.Type | 'main' =>

@@ -8,7 +8,9 @@ import { Subscription } from 'foldkit'
 import { Message } from './message.ts'
 import { TeamMessage } from './team.ts'
 import { ResearchMessage } from './research.ts'
-import { clockAway, halted, type Model } from './model.ts'
+import { clockAway, halted, onlineFileOf, roomCode, type Model } from './model.ts'
+import { inRoom } from './room-machine.ts'
+import { connect, nameOf, onMessage, onStatus, seatOf, stop } from '@/platform/room-socket.ts'
 import { onBoard } from './route.ts'
 import { TICK_MS, REPEAT_MS } from './update.ts'
 
@@ -328,6 +330,67 @@ export const subscriptions = {
         dependenciesToStream: ({ held }: { held: boolean }) => (held ? releases : Stream.empty),
       },
     ),
+    /**
+     * The Room socket. It opens while this tab is in a Room, sends Hello with
+     * the Seat's name and the owner token, and feeds every frame back as a
+     * Message. A dropped socket reconnects and the Room answers with a snapshot.
+     */
+    room: entry(
+      {
+        code: Schema.NullOr(Schema.String),
+        seat: Schema.String,
+        name: Schema.String,
+        token: Schema.NullOr(Schema.String),
+        live: Schema.Boolean,
+      },
+      {
+        modelToDependencies: (model: Model) => {
+          const code = roomCode(model)
+          return {
+            code,
+            seat: seatOf(),
+            name: nameOf(),
+            token: code === null ? null : (onlineFileOf(model, code)?.online?.token ?? null),
+            live: inRoom(model.room.phase),
+          }
+        },
+        dependenciesToStream: ({
+          code,
+          seat,
+          name,
+          token,
+          live,
+        }: {
+          code: string | null
+          seat: string
+          name: string
+          token: string | null
+          live: boolean
+        }) =>
+          live && code !== null
+            ? Stream.callback<Message>((queue) =>
+                Effect.acquireRelease(
+                  Effect.sync(() => {
+                    const offMessage = onMessage((message) =>
+                      Queue.offerUnsafe(queue, Message.RoomReceived({ message })),
+                    )
+                    const offStatus = onStatus((status) =>
+                      Queue.offerUnsafe(queue, Message.RoomStatusChanged({ status })),
+                    )
+                    connect({ code, seat, name, ...(token === null ? {} : { token }) })
+                    return () => {
+                      offMessage()
+                      offStatus()
+                      stop()
+                    }
+                  }),
+                  () => Effect.void,
+                ),
+              )
+            : Stream.empty,
+      },
+    ),
+
     teamDragScroll: entry(
       { active: Schema.Boolean },
       {

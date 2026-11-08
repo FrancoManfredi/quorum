@@ -1,5 +1,5 @@
-import * as Actions from '@quorum/simulation/actions'
-import * as Work from '@quorum/simulation/work'
+import { Actions } from '../board-actions.ts'
+import { Work } from '../board-actions.ts'
 import { AppRoute, onBoard, urlOf, urlToAppRoute } from '../route.ts'
 import { COMPONENTS, STEP_SECONDS, TASKS } from '@quorum/simulation/catalog'
 import { EMPTY_HISTORY } from '../history.ts'
@@ -56,6 +56,7 @@ import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
 import { isAway, isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
+import { roomStep } from '../room-machine.ts'
 import { type Url } from 'foldkit/url'
 
 /** Opens a route's screen. A board that cannot open (no Company to continue)
@@ -79,6 +80,20 @@ export const open = (model: Model, route: AppRoute): UpdateResult =>
       const entry = challengeById(challenge)
       return entry ? enterChallenge(model, challenge) : { model }
     },
+    Room: ({ room }) => ({
+      model: {
+        ...model,
+        route,
+        panel: 'room',
+        room: {
+          ...model.room,
+          phase: roomStep(model.room.phase, { _tag: 'Connecting', code: room }),
+          seats: [],
+          speed: 1,
+          vote: null,
+        },
+      },
+    }),
   })
 
 /** Follows a URL from back, forward, or a link: closes the open board, opens

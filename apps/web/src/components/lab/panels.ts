@@ -7,10 +7,12 @@ import {
   DoorOpen,
   Download,
   House,
+  LogOut,
   Play,
   Settings,
   Trash2,
   Upload,
+  Users,
   X,
 } from 'lucide'
 import { UrlRequest } from 'foldkit/navigation'
@@ -25,6 +27,9 @@ import { Message } from '@/game/message.ts'
 import { currentFile, exitLegacy, type Model } from '@/game/model.ts'
 import { companyMark } from '@/components/company-mark.ts'
 import { speedsOf } from '@/game/update.ts'
+import { roomOwner } from '@/game/model.ts'
+import { RoomPhase } from '@/game/room-machine.ts'
+import { seatOf } from '@/platform/room-socket.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { Kbd } from '@quorum/ui/primitives/kbd'
@@ -286,6 +291,7 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.Class('flex flex-col gap-2 px-5 pt-1 pb-5')],
         [
           menuItem(t.panels.resume, Play, Message.PanelClosed(), h, true),
+          menuItem(t.room.title, Users, Message.PanelOpened({ panel: 'room' }), h),
           menuItem(t.panels.settings, Settings, Message.PanelOpened({ panel: 'settings' }), h),
           menuItem(t.panels.exportPlaytestLog, Download, Message.LogExported(), h),
           exitLegacy(model) === null
@@ -296,6 +302,146 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
     ],
     'max-w-[calc(320px*var(--type-scale))]',
+    h,
+  )
+}
+
+/** The Room: the code, the Seats, the vote, the speed, and the way out. */
+export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const phase = model.room.phase
+  const file = currentFile(model)
+  const owner = roomOwner(model)
+  const live = RoomPhase.isAnyOf(['Online', 'Reconnecting'])(phase)
+  const vote = model.room.vote
+  const seat = seatOf()
+
+  const row = (label: string, value: string) =>
+    h.div(
+      [h.Class('flex items-center justify-between gap-3 px-5 py-1.5 text-sm')],
+      [
+        h.span([h.Class('text-muted-foreground')], [label]),
+        h.span([h.Class('font-medium tabular-nums')], [value]),
+      ],
+    )
+
+  const seatRows = model.room.seats.map((entry) =>
+    h.div(
+      [h.Class('flex items-center justify-between gap-3 px-5 py-1.5 text-sm')],
+      [
+        h.span(
+          [h.Class('flex min-w-0 items-center gap-2')],
+          [
+            h.span(
+              [
+                h.Class('size-2 shrink-0 rounded-full bg-foreground/70'),
+                h.Style({ '--seat': String(entry.colour) }),
+              ],
+              [],
+            ),
+            h.span([h.Class('truncate')], [entry.name]),
+            h.span(
+              [h.Class('shrink-0 text-xs text-muted-foreground')],
+              [entry.owner ? t.room.owner : t.room.guest],
+            ),
+          ],
+        ),
+        owner && !entry.owner
+          ? secondaryButton(t.room.kick, Message.RoomKickAsked({ seat: entry.id }), h)
+          : entry.id === seat
+            ? h.span([h.Class('text-xs text-muted-foreground')], ['•'])
+            : h.empty,
+      ],
+    ),
+  )
+
+  const body: Array<Html> = []
+  if (RoomPhase.isAnyOf(['Idle', 'Closed'])(phase)) {
+    body.push(h.p([h.Class('px-5 pb-2 text-sm text-muted-foreground')], [t.room.onlineHint]))
+    if (file !== null)
+      body.push(
+        menuItem(
+          file.online === null ? t.room.online : `${t.room.code} ${file.online.code}`,
+          Play,
+          Message.RoomPublishAsked(),
+          h,
+          true,
+        ),
+      )
+    if (RoomPhase.guards.Closed(phase))
+      body.push(h.p([h.Class('px-5 pt-2 text-sm text-muted-foreground')], [t.room.ended]))
+  } else if (RoomPhase.guards.Connecting(phase)) {
+    body.push(h.p([h.Class('px-5 pb-2 text-sm text-muted-foreground')], [t.room.joining]))
+    body.push(row(t.room.code, phase.code))
+  } else {
+    body.push(row(t.room.code, phase.code))
+    body.push(
+      h.a(
+        [
+          h.Href(`${window.location.origin}/room/${phase.code}`),
+          h.Class('block whitespace-nowrap px-5 py-1.5 text-sm text-link underline'),
+        ],
+        [`/room/${phase.code}`],
+      ),
+    )
+    body.push(row(t.room.seats, String(model.room.seats.length)))
+    body.push(row(t.room.speed, `${model.room.speed}×`))
+    if (RoomPhase.guards.Reconnecting(phase))
+      body.push(h.p([h.Class('px-5 pt-2 text-sm text-muted-foreground')], [t.room.connecting]))
+  }
+
+  if (live) {
+    body.push(h.div([h.Class('mt-2 border-t border-hairline')], []))
+    body.push(...seatRows)
+    body.push(h.div([h.Class('mt-2 border-t border-hairline')], []))
+    if (vote === null) {
+      body.push(menuItem(t.room.voteFund, ArrowUpRight, Message.RoomVoteAsked({ kind: 'fund' }), h))
+      body.push(menuItem(t.room.voteExit, DoorOpen, Message.RoomVoteAsked({ kind: 'exit' }), h))
+    } else {
+      body.push(row(t.room.vote, `${vote.yes.length} / ${model.room.seats.length}`))
+      body.push(
+        menuItem(
+          t.room.coins,
+          ArrowUpRight,
+          Message.RoomBallot({ vote: vote.id, yes: true }),
+          h,
+          true,
+        ),
+      )
+      body.push(menuItem(t.room.no, X, Message.RoomBallot({ vote: vote.id, yes: false }), h))
+    }
+    if (owner) {
+      body.push(h.div([h.Class('mt-2 border-t border-hairline')], []))
+      for (const speed of [0.5, 1, 3, 10])
+        body.push(
+          menuItem(
+            `${t.room.speed} ${speed}×`,
+            Play,
+            Message.RoomSpeedChosen({ value: speed }),
+            h,
+            speed === model.room.speed,
+          ),
+        )
+    }
+  }
+
+  const actions: Array<Html> = []
+  if (live && owner)
+    actions.push(primaryButton(t.room.takeOffline, Message.RoomTakeOfflineAsked(), h))
+  else actions.push(primaryButton(t.room.leave, Message.RoomLeaveAsked(), h))
+  if (live && owner)
+    actions.push(secondaryButton(t.room.leave, Message.RoomLeaveAsked(), h, LogOut))
+
+  return shell(
+    t.room.title,
+    [],
+    [
+      // A Room with four Seats and a vote runs past a short window, so the rows
+      // scroll and the actions stay in reach.
+      h.div([h.Class(`flex min-h-0 flex-col overflow-y-auto ${SCROLL}`)], body),
+      footer(actions, h),
+    ],
+    'max-w-[calc(380px*var(--type-scale))]',
     h,
   )
 }
