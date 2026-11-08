@@ -27,6 +27,7 @@ import type { Ledger, NodeStatus } from '@quorum/simulation/ledger'
 import { has, zoned, zoneMs } from '@quorum/simulation/lookups'
 
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
+import type { SeatActivity } from '@quorum/simulation/room'
 
 import {
   CARD_W,
@@ -77,7 +78,14 @@ export type BoardEvents = Readonly<{
   /** Shift-drag on empty space: select every Node the box touches. */
   onBox: (ids: ReadonlyArray<string>, mode: 'replace' | 'add' | 'subtract') => void
   /** Where the pointer is on the Design, for the other Seats. The board sends it at most 25 times a second. */
-  onCursor?: (at: Readonly<{ x: number; y: number; region: Region }>) => void
+  onCursor?: (
+    at: Readonly<{
+      x: number
+      y: number
+      region: Region
+      activity: SeatActivity | null
+    }>,
+  ) => void
   /** The pointer left the Board or the window, so the other Seats stop drawing it. */
   onCursorGone?: () => void
   onSound?: (sound: BoardSound, pitch?: number, spatial?: boolean) => void
@@ -92,6 +100,8 @@ export type BoardState = Readonly<{
   /** Names the language of the card text, so a change redraws it. */
   locale: string
   translate: (text: string) => string
+  /** A Seat's panel in this language, such as "opening the team panel". */
+  translateActivity?: (activity: SeatActivity) => string
   game: Game
   ledger: Ledger
   selected: string | null
@@ -2089,6 +2099,14 @@ class BoardController {
   /** A pointer position waiting to go out, and when the last one went. */
   private cursorWaiting = false
   private cursorSentAt = 0
+  /** The panel this Seat is in, sent with its last position so the pointer stays put. */
+  private activity: SeatActivity | null = null
+  /** Whether the pointer has been on the Board, so there is a spot to keep. */
+  private pointerKnown = false
+  /** Whether the pointer is over the Board now. */
+  private over = false
+  /** Writes an activity key in this Board's language. */
+  private activityOf: (activity: SeatActivity) => string = (activity) => activity
   private readonly resize: ResizeObserver
   /** Watches whether the board is on screen: a board scrolled out of view draws nothing. */
   private readonly sight: IntersectionObserver
@@ -2175,6 +2193,7 @@ class BoardController {
   draw(state: BoardState): void {
     if (this.started && this.seeded) this.diffLinks(state)
     this.state = state
+    this.activityOf = state.translateActivity ?? ((activity) => activity)
     const dragged = this.dragged
     if (dragged && this.gesture?.kind !== 'node') {
       const node = state.game.nodes.find((entry) => entry.id === dragged.id)
@@ -2593,6 +2612,10 @@ class BoardController {
         }
         const point = this.toWorld(event)
         this.pointer = point
+        this.over = true
+        this.pointerKnown = true
+        // A press on the Board is board work, not the panel the cursor last announced.
+        this.activity = null
         if (event.button === 2) {
           const link = this.linkAt(point)
           if (link) this.selectLink(link)
@@ -2708,6 +2731,10 @@ class BoardController {
         }
         const point = this.toWorld(event)
         this.pointer = point
+        // Back on the Board: the pointer moves again, so it stops saying what the panel was.
+        this.over = true
+        this.pointerKnown = true
+        this.activity = null
         this.cursorWaiting = true
         const gesture = this.gesture
         if (gesture?.kind === 'pan') {
@@ -2873,8 +2900,14 @@ class BoardController {
     canvas.addEventListener(
       'pointerleave',
       () => {
+        this.over = false
         this.hoverLink = null
         this.hoverNode = null
+        // A panel is open: the pointer stays on the Board and says what this Seat is doing.
+        if (this.activity !== null) {
+          this.emitCursor()
+          return
+        }
         this.cursorWaiting = false
         this.events.onCursorGone?.()
       },
@@ -2885,6 +2918,7 @@ class BoardController {
     window.addEventListener(
       'blur',
       () => {
+        this.over = false
         this.cursorWaiting = false
         this.events.onCursorGone?.()
       },
@@ -3141,6 +3175,7 @@ class BoardController {
       now,
       { x: this.world.position.x, y: this.world.position.y, scale: this.world.scale.x },
       state.region,
+      this.activityOf,
     )
     const colors = palette()
     // The phase is sim time: at 10× the belts carry ten times as many items per real second.
@@ -3584,9 +3619,38 @@ class BoardController {
     if (!this.cursorWaiting) return
     const state = this.state
     if (state === null || now - this.cursorSentAt < CURSOR_MS) return
+    this.emitCursor()
+  }
+
+  /** Sends the pointer now, with what this Seat is doing: a position and its activity. */
+  private emitCursor(): void {
+    const state = this.state
+    if (state === null || !this.pointerKnown) return
     this.cursorWaiting = false
-    this.cursorSentAt = now
-    this.events.onCursor?.({ x: this.pointer.x, y: this.pointer.y, region: state.region })
+    this.cursorSentAt = performance.now()
+    this.events.onCursor?.({
+      x: this.pointer.x,
+      y: this.pointer.y,
+      region: state.region,
+      activity: this.activity,
+    })
+  }
+
+  /**
+   * A panel opened or closed. An open panel keeps the pointer where it last was,
+   * so the other Seats see what this Seat is doing instead of an empty Board.
+   */
+  setCursorActivity(activity: SeatActivity | null): void {
+    if (this.activity === activity) return
+    this.activity = activity
+    if (this.state === null || !this.pointerKnown) return
+    // Back on the Board: resume normal movement. Elsewhere: the pointer is gone.
+    if (activity !== null || this.over) {
+      this.emitCursor()
+      return
+    }
+    this.cursorWaiting = false
+    this.events.onCursorGone?.()
   }
 
   /** Another Seat moved its pointer. */
@@ -3629,4 +3693,9 @@ export const hideSeatCursor = (key: string, seat: string): void => {
 /** The Room is over: no Seat's pointer stays on the Board. */
 export const clearSeatCursors = (key: string): void => {
   controllers.get(key)?.clearSeatCursors()
+}
+
+/** This Seat opened or closed a panel: the other Seats hear what it is doing. */
+export const setSeatActivity = (key: string, activity: SeatActivity | null): void => {
+  controllers.get(key)?.setCursorActivity(activity)
 }

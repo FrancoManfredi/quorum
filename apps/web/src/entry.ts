@@ -1,8 +1,10 @@
 import { Layer } from 'effect'
 import { Runtime } from 'foldkit'
+import { setSeatActivity } from '@quorum/ui/board/board'
 import { init, Message, Model, subscriptions, update, view } from './app/main.ts'
 import { startMotion } from './game/motion.ts'
 import { PREFS_KEY } from './game/commands.ts'
+import { activityChange } from './game/presence.ts'
 import { publish } from './game/agent-tools.ts'
 import { observe } from './platform/analytics.ts'
 import { ApiRpc } from './platform/rpc.ts'
@@ -23,6 +25,9 @@ const application = Runtime.makeApplication({
   init,
   update: (model, message) => {
     const result = timedUpdate(message, () => update(model, message))
+    // A panel keeps this Seat's pointer on the Board, saying what it is doing.
+    const activity = activityChange(model, result.model)
+    if (activity !== undefined) setSeatActivity('board', activity)
     publish(result.model)
     observe(result.model)
     return result

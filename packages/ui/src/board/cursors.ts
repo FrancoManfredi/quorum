@@ -1,4 +1,5 @@
 import type { Region } from '@quorum/simulation/state'
+import type { SeatActivity } from '@quorum/simulation/room'
 
 /* ==========================================================================
    The other Seats' pointers. A Seat sends a position about 25 times a second,
@@ -17,6 +18,8 @@ export type SeatCursor = Readonly<{
   x: number
   y: number
   region: Region
+  /** The panel that Seat is in. Its pointer stays put and says so. */
+  activity: SeatActivity | null
 }>
 
 /** How far behind the newest sample a cursor is drawn, in milliseconds. */
@@ -35,6 +38,7 @@ type Track = Readonly<{
   name: string
   colour: string
   region: Region
+  activity: SeatActivity | null
   samples: ReadonlyArray<Sample>
 }>
 
@@ -86,6 +90,7 @@ export class CursorTracks {
       name: cursor.name,
       colour: cursor.colour,
       region: cursor.region,
+      activity: cursor.activity,
       samples: samples.filter((sample) => now - sample.t <= KEEP_MS),
     })
   }
@@ -108,6 +113,7 @@ export class CursorTracks {
         name: track.name,
         colour: track.colour,
         region: track.region,
+        activity: track.activity,
         x: point.x,
         y: point.y,
       }
@@ -121,9 +127,13 @@ export type CursorCamera = Readonly<{ x: number; y: number; scale: number }>
 type CursorElement = {
   root: HTMLDivElement
   label: HTMLSpanElement
+  who: HTMLSpanElement
+  what: HTMLSpanElement
   mark: SVGPathElement
   name: string
   colour: string
+  /** The activity line as it is drawn now, so a new language or panel repaints it. */
+  doing: string | null
 }
 
 /**
@@ -161,13 +171,21 @@ export class CursorOverlay {
     this.elements.clear()
   }
 
-  /** Places every cursor for this frame. Only the shown region's cursors draw. */
-  tick(now: number, camera: CursorCamera, region: Region): void {
+  /**
+   * Places every cursor for this frame. Only the shown region's cursors draw.
+   * `activityOf` writes a Seat's panel in the language of this client.
+   */
+  tick(
+    now: number,
+    camera: CursorCamera,
+    region: Region,
+    activityOf: (activity: SeatActivity) => string,
+  ): void {
     const shown = new Set<string>()
     for (const cursor of this.tracks.play(now)) {
       if (cursor.region !== region) continue
       shown.add(cursor.seat)
-      const element = this.element(cursor)
+      const element = this.element(cursor, activityOf)
       element.root.style.display = 'block'
       // The arrow's tip sits 3px in and 1.5px down from its box, so the tip lands on the pointer.
       element.root.style.transform = `translate3d(${camera.x + cursor.x * camera.scale - 3}px, ${
@@ -187,12 +205,21 @@ export class CursorOverlay {
     this.root = null
   }
 
-  private element(cursor: SeatCursor): CursorElement {
+  private element(
+    cursor: SeatCursor,
+    activityOf: (activity: SeatActivity) => string,
+  ): CursorElement {
+    const doing = cursor.activity === null ? null : activityOf(cursor.activity)
     const known = this.elements.get(cursor.seat)
     if (known) {
       if (known.name !== cursor.name) {
         known.name = cursor.name
-        known.label.textContent = cursor.name
+        known.who.textContent = cursor.name
+      }
+      if (known.doing !== doing) {
+        known.doing = doing
+        known.what.textContent = doing ?? ''
+        known.what.style.display = doing === null ? 'none' : 'block'
       }
       if (known.colour !== cursor.colour) {
         known.colour = cursor.colour
@@ -217,13 +244,30 @@ export class CursorOverlay {
     mark.setAttribute('stroke-linejoin', 'round')
     svg.append(mark)
     const label = document.createElement('span')
-    label.textContent = cursor.name
     label.style.cssText =
-      'position:absolute;left:12px;top:16px;max-width:192px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:6px;padding:2px 6px;color:#ffffff;font:600 11px/1.4 Geist,system-ui,sans-serif'
+      'position:absolute;left:12px;top:16px;display:flex;max-width:224px;flex-direction:column;border-radius:7px;padding:3px 7px;color:#ffffff;font:600 11px/1.35 Geist,system-ui,sans-serif;white-space:nowrap'
     label.style.background = cursor.colour
+    const who = document.createElement('span')
+    who.textContent = cursor.name
+    who.style.cssText = 'overflow:hidden;text-overflow:ellipsis'
+    const what = document.createElement('span')
+    what.textContent = doing ?? ''
+    what.style.cssText =
+      'display:block;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:500;opacity:0.82'
+    what.style.display = doing === null ? 'none' : 'block'
+    label.append(who, what)
     root.append(svg, label)
     this.root?.append(root)
-    const element = { root, label, mark, name: cursor.name, colour: cursor.colour }
+    const element = {
+      root,
+      label,
+      who,
+      what,
+      mark,
+      name: cursor.name,
+      colour: cursor.colour,
+      doing,
+    }
     this.elements.set(cursor.seat, element)
     return element
   }

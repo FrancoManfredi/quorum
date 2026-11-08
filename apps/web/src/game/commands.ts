@@ -1,6 +1,7 @@
 import { Locale } from '../i18n/index.ts'
 import { copyIn } from '../i18n/messages.ts'
 import { nameIn } from '../i18n/refusal.ts'
+import { activityIn } from './presence.ts'
 import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Command } from 'foldkit'
@@ -96,6 +97,7 @@ export const SyncBoard = Command.define('SyncBoard', {
       setBoard('board', {
         locale,
         translate: (text) => nameIn(copyIn(locale), text),
+        translateActivity: (activity) => activityIn(locale, activity),
         game: regionView(game, region),
         ordinals: nodeOrdinals(game),
         ledger: { ...solveFlow(game), bottleneck },

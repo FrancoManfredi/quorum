@@ -8,6 +8,7 @@ const cursor = (x: number, y = 0): SeatCursor => ({
   x,
   y,
   region: 'na',
+  activity: null,
 })
 
 test('a cursor waits out the delay, then follows the samples', () => {

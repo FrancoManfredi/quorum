@@ -390,6 +390,7 @@ export const subscriptions = {
                           x: message.x,
                           y: message.y,
                           region: message.region,
+                          activity: message.activity ?? null,
                         })
                         return
                       }

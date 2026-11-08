@@ -1,7 +1,12 @@
 import { Option, Schema } from 'effect'
 import { ROOM_SOCKET_PATH } from '@quorum/rpc'
 import { ROOM_NAME_LENGTH, randomName } from '../game/names.ts'
-import { ClientMessage, ServerMessage, type ClientMessage as Client } from '@quorum/simulation/room'
+import {
+  ClientMessage,
+  ServerMessage,
+  type ClientMessage as Client,
+  type SeatActivity,
+} from '@quorum/simulation/room'
 import type { Region } from '@quorum/simulation/state'
 
 /* ==========================================================================
@@ -137,8 +142,21 @@ export const send = (message: Client): void => {
 }
 
 /** Tells the Room where this tab's pointer is. A closed socket drops it. */
-export const sendCursor = (at: Readonly<{ x: number; y: number; region: Region }>): void =>
-  send({ _tag: 'Cursor', ...at })
+export const sendCursor = (
+  at: Readonly<{
+    x: number
+    y: number
+    region: Region
+    activity: SeatActivity | null
+  }>,
+): void =>
+  send({
+    _tag: 'Cursor',
+    x: at.x,
+    y: at.y,
+    region: at.region,
+    ...(at.activity === null ? {} : { activity: at.activity }),
+  })
 
 /** Tells the Room this tab's pointer left the Board. */
 export const hideCursor = (): void => send({ _tag: 'HideCursor' })

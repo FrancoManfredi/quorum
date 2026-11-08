@@ -45,7 +45,9 @@ to the browser and deletes the object.
 
 Cursors are Presence, not a move. A Seat sends its pointer 25 times a second at most, the Room relays
 each frame to the other Seats without saving it, and the Board draws the gaps as a spline. A pointer
-never enters a snapshot, so a Seat that joins late sees no one else's stale cursor.
+never enters a snapshot, so a Seat that joins late sees no one else's stale cursor. A frame can also
+carry the panel its Seat opened: the pointer stays where it was, and its label says what the Seat is
+doing until the pointer moves again.
 
 ## Telemetry
 

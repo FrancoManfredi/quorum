@@ -1,7 +1,12 @@
 import * as Sentry from '@sentry/cloudflare'
 import { DurableObject } from 'cloudflare:workers'
 import { Option, Result, Schema } from 'effect'
-import { ClientMessage, ROOM_SPEEDS, ServerMessage } from '@quorum/simulation/room'
+import {
+  ClientMessage,
+  ROOM_SPEEDS,
+  ServerMessage,
+  type SeatActivity,
+} from '@quorum/simulation/room'
 import type { Region } from '@quorum/simulation/state'
 import type { PublishInput, RoomStub } from '../contexts/room/directory.ts'
 import {
@@ -106,7 +111,8 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
       Intents: (frame) => this.intents(ws, frame.id, frame.intents),
       Ballot: (frame) => this.ballot(ws, frame.vote, frame.yes),
       StartVote: (frame) => this.startVote(ws, frame.kind),
-      Cursor: (frame) => Promise.resolve(this.cursor(ws, frame.x, frame.y, frame.region)),
+      Cursor: (frame) =>
+        Promise.resolve(this.cursor(ws, frame.x, frame.y, frame.region, frame.activity)),
       HideCursor: () => Promise.resolve(this.hideCursor(ws)),
       Speed: (frame) => this.speed(ws, frame.value),
       Kick: (frame) => this.kick(ws, frame.seat),
@@ -253,7 +259,13 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
    * frame, so one Seat cannot move another's cursor, and it relays the frame
    * without saving it or waiting for the next snapshot.
    */
-  private cursor(ws: WebSocket, x: number, y: number, region: Region): void {
+  private cursor(
+    ws: WebSocket,
+    x: number,
+    y: number,
+    region: Region,
+    activity: SeatActivity | undefined,
+  ): void {
     const current = this.state
     if (current === null) return
     const seat = current.seats.find((entry) => entry.id === this.seatOf(ws))
@@ -267,6 +279,7 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
         x,
         y,
         region,
+        ...(activity === undefined ? {} : { activity }),
       },
       ws,
     )

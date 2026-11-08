@@ -38,6 +38,30 @@ export const VoteKind = Schema.Literals(['fund', 'exit'])
 export type VoteKind = typeof VoteKind.Type
 
 /**
+ * What a Seat is doing while its pointer is off the Board: the panel it opened.
+ * The Room relays the key, so each client writes it in its own language.
+ */
+export const SeatActivity = Schema.Literals([
+  'inspector',
+  'research',
+  'team',
+  'dashboard',
+  'playbooks',
+  'help',
+  'dev',
+  'inbox',
+  'cost',
+  'churn',
+  'mirror',
+  'settings',
+  'menu',
+  'room',
+  'exit',
+  'challenge',
+])
+export type SeatActivity = typeof SeatActivity.Type
+
+/**
  * One decision the Seats make together. It lives beside the Game, so a vote
  * never changes the save format.
  */
@@ -322,9 +346,15 @@ export const ClientMessage = Schema.TaggedUnion({
   StartVote: { kind: VoteKind },
   /**
    * Where this Seat's pointer is, in Design coordinates. It is Presence, not a
-   * move: the Room relays it to the other Seats and never stores it.
+   * move: the Room relays it to the other Seats and never stores it. An activity
+   * keeps the pointer on the Board while its owner works in a panel.
    */
-  Cursor: { x: Schema.Finite, y: Schema.Finite, region: Region },
+  Cursor: {
+    x: Schema.Finite,
+    y: Schema.Finite,
+    region: Region,
+    activity: Schema.optionalKey(SeatActivity),
+  },
   /** The pointer left the Board, or this tab lost it. */
   HideCursor: {},
   /** The owner takes the Company back to its browser. */
@@ -372,6 +402,8 @@ export const ServerMessage = Schema.TaggedUnion({
     x: Schema.Finite,
     y: Schema.Finite,
     region: Region,
+    /** The panel this Seat is in, so its pointer can say what it is doing. */
+    activity: Schema.optionalKey(SeatActivity),
   },
   /** A Seat's pointer left the Board: stop drawing it. */
   CursorGone: { seat: Schema.String },
