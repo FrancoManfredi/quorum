@@ -467,6 +467,48 @@ _Avoid_: daily challenge, daily quest, streak
 The distribution of every player's best result on one axis of one Challenge, per Simulation version. Players would see their percentile, never a rank. Not built: it waits for accounts ([ADR 0016](https://github.com/elianiva/quorum/blob/main/docs/adr/0016-challenges-stay-in-the-browser-until-accounts.md)).
 _Avoid_: leaderboard, ranking, high score
 
+### Multiplayer
+
+**Online**:
+A Company a Room runs instead of the browser. A Company is online or offline, and going offline
+returns it to its Company file.
+_Avoid_: hosted, live, published, broadcasting
+
+**Room**:
+The Durable Object that runs one online Company, with its Seats, its open vote, and its revision. It
+keeps the Company for 24 hours after the last Seat leaves.
+_Avoid_: lobby, session, server, match
+
+**Room code**:
+The six characters that open a Room. It is the only invitation.
+_Avoid_: invite, key, PIN
+
+**Seat**:
+One player in a Room, with a name and a colour. A refresh takes the same Seat.
+_Avoid_: player slot, member, user
+
+**Owner**:
+The Seat that took the Company online. It holds the token, sets the speed, removes Seats, and takes
+the Company offline.
+_Avoid_: host, admin, moderator
+
+**Intent**:
+What a Seat asks the Room to do: the name of a Simulation action and its arguments. The Room runs the
+action and either applies it or refuses it.
+_Avoid_: command (that is a Foldkit Command), action (that is a Simulation function)
+
+**Vote**:
+A Room decision on a funding round or the end of the session. It passes when yes is more than half of
+the connected Seats, and a tie fails. The Exit itself is offline only.
+_Avoid_: poll, ballot (except as one Seat's answer)
+
+**Snapshot**:
+The Game a Seat renders, at one revision.
+_Avoid_: frame, state, sync packet
+
+**Revision**:
+The count of changes a Room has accepted.
+
 ## Relationships
 
 - A **Company** has one **Venture**, any number of **Mutators**, and passes through **Eras** in order.
@@ -480,3 +522,5 @@ _Avoid_: leaderboard, ranking, high score
 - The **Founder** keeps **Legacy**, **Perks**, and **Playbooks** from one **Company** to the next.
 - A **Sandbox track** holds guided **Sandboxes** for one **Era**. **Challenges** form a separate list across Eras, and every one is open.
 - A **Challenge** run is a **Replay** that stays in the browser. A server that re-runs it and keeps **Histograms** waits for accounts.
+- A **Company** is offline, played by the browser, or **Online**, run by one **Room**. The owner takes it offline, which ends the Room with the Company's latest Game.
+- A **Room** has one owner **Seat** and up to three guest **Seats**. A **Vote** passes with more than half of the connected Seats.

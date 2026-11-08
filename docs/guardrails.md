@@ -9,6 +9,8 @@ rule and its check in the same commit.
 | Simulation purity | `packages/simulation` imports only `effect`, `@typeonce/effect-machine`, and its own files, and names no browser or host globals.                                                                                               | `packages/simulation/src/purity.test.ts`; its tsconfig has no DOM library       |
 | Determinism       | The Simulation uses only exact math (no `Math.cos`, `Math.exp`, `Math.pow`, `**`, and the like), and one fixed Company and every reference replay end on the same hash in every engine.                                         | `purity.test.ts`; `pnpm test:engines` in Chromium, Firefox, WebKit, and workerd |
 | Agent access      | An agent can only read the game: the relay forwards named read-only tools, and the page answers from its last Model. The relay accepts only Quorum's origin or loopback, on a loopback Host. A Challenge answers nothing.       | `packages/mcp-relay/src/relay.test.ts`; `apps/web/src/game/agent-tools.test.ts` |
+| Room authority    | A live Room's Simulation runs only in `RoomObject`; the browser never steps the Company, and its Intents go to the Room.                                                                                                        | `apps/web/src/game/update.test.ts` ("a live Room does not step the Company")    |
+| Room protocol     | Intents and Room messages are declared in `packages/simulation/src/room.ts`; `packages/rpc` keeps the paths and the two Room RPCs.                                                                                              | review of the dependency direction in `docs/architecture.md`                    |
 | UI package        | `packages/ui` imports no app and not `packages/rpc`; its primitives import neither its game views, its board, nor the Simulation.                                                                                               | `packages/ui/src/boundary.test.ts`                                              |
 | Localization      | Views read copy from typed `Messages` through `copy(h)`, and every language has the same shape. English catalog copy is read from the Simulation's tables. Text composed at runtime goes through the English-keyed `translate`. | `Messages` in typecheck; `apps/web/src/i18n/catalog.test.ts`                    |
 | Wire contract     | Only `packages/rpc` declares RPC groups, schemas, declared errors, and path prefixes.                                                                                                                                           | Dependency direction in `docs/architecture.md`                                  |
@@ -43,6 +45,7 @@ APIs cannot reach them by accident. `apps/web` allows `effect/rpc` in
 Before you call a change done:
 
 - Does the change extend the wire contract instead of starting a second one?
+- Does a Room change keep the Simulation in `RoomObject` and the browser rendering snapshots?
 - Does every handler stay free of bindings and platform types?
 - Does each new endpoint have a test that crosses the RPC path?
 - Did you edit an allowlist, and is the new entry as narrow as the code needs?

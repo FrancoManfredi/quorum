@@ -36,13 +36,16 @@ When you play, the game sends events to PostHog, our analytics processor:
   browsers. An error report also carries the kind of screen, the Era, and the version of the game's
   rules. It never carries your Company or its name.
 - On the wiki, the page you read and the site that referred you.
+- While a Company is online, a nickname you choose, shown to the other players in the Room. It is
+  stored by Cloudflare only while the Room lives, deleted with it, and never sent to PostHog.
 
 PostHog derives an approximate country from your IP address. The game does not send your IP address
 itself.
 
 ## What is not recorded
 
-- Your name, email address, or any account information. Quorum has no accounts.
+- Your name, email address, or any account information. Quorum has no accounts. A Room nickname is
+  whatever you type, and it disappears with the Room.
 - The name you give a Company.
 - Session recordings, keystrokes, or clipboard contents. The only text you type that leaves the
   browser is an Exit survey you choose to send.

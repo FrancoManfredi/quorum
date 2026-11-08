@@ -35,6 +35,7 @@ debugging shape with completion and history metadata, and a `Game` is saved, has
 | Flow              | Source                                            | States                                                          | Stored in                                             |
 | ----------------- | ------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
 | Boot              | `apps/web/src/game/boot-machine.ts`               | `Shut`, `Clocking`, `Ready`, `Connecting`                       | `Model.boot`                                          |
+| Room              | `apps/web/src/game/room-machine.ts`               | `Idle`, `Connecting`, `Online`, `Reconnecting`, `Closed`        | `Model.room.phase`                                    |
 | Board session     | `apps/web/src/game/session-machine.ts`            | `Company`, `Sandbox`, `Challenge`                               | `Board.session`                                       |
 | Challenge run     | `apps/web/src/game/challenge-machine.ts`          | `Building`, `Running`, `Result`                                 | `Board.session.run`                                   |
 | Company           | `apps/web/src/game/company-machine.ts`            | `None`, `Opening`, `Open`, `Away`, `Exited`                     | `Model.companyPhase`                                  |

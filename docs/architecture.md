@@ -29,6 +29,20 @@ The website Worker therefore receives only requests under that prefix, and forwa
 
 The API Worker sets `workersDev: false`. The website origin is its only public surface, so a caller cannot skip the website Worker by addressing the API directly.
 
+## Rooms
+
+A Company can go online in a Room. The Room is the `RoomObject` Durable Object, hosted by the API
+Worker and bound through Alchemy as one namespace. It owns the Game, its Dashboard samples, the
+Seats, the open vote, and the revision. The website Worker forwards `/api/room/socket` through the
+same service binding, and the API Worker hands the upgrade to the Room's object.
+
+The browser never steps a Company in a live Room. `tick` still solves the Ledger and the Bottleneck
+so the Board draws, but time advances only on the Room's alarm. Intents and Room messages are
+declared in `packages/simulation/src/room.ts`, beside the Simulation, because their payloads are the
+Game and its Intents; `packages/rpc` keeps the paths and the two plain RPCs. The owner takes the
+Company offline with a token that lives in its Company file, which writes the Room's final Game back
+to the browser and deletes the object.
+
 ## Telemetry
 
 Sentry records errors, traces, and profiles ([ADR 0013](./adr/0013-sentry-for-errors-traces-and-profiles.md)). Cloudflare Workers Observability keeps logs only: `alchemy.run.ts` turns its traces off, so a request is traced once. Observability is configured on the host resources in `alchemy.run.ts`, never in contexts.
@@ -80,6 +94,7 @@ The web app must not import backend implementation modules. The wiki must not im
 
 ## Cloudflare scope
 
-The stack provisions the website Worker, the API Worker, and one D1 database, `Results`, bound to the API Worker as `FEEDBACK` for the Exit survey. The resource keeps its first name because renaming it would create a new, empty database. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). Challenges are scored in the browser and send nothing ([ADR 0016](./adr/0016-challenges-stay-in-the-browser-until-accounts.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
+The stack provisions the website Worker, the API Worker, one D1 database, `Results`, bound to the API Worker as `FEEDBACK` for the Exit survey, and the `RoomObject` Durable Object namespace the API Worker hosts. The resource keeps its first name because renaming it would create a new, empty database. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). Challenges are scored in the browser and send nothing ([ADR 0016](./adr/0016-challenges-stay-in-the-browser-until-accounts.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
 
-The survey context sees only its store service, `SurveyStore` (`apps/backend/src/contexts/survey/store.ts`). Its D1 implementation uses the structural `SqlRunner` in `apps/backend/src/platform/sql.ts`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. Add R2, Access, Durable Objects, or other Cloudflare services only when a product feature requires them.
+The survey context sees only its store service, `SurveyStore` (`apps/backend/src/contexts/survey/store.ts`). Its D1 implementation uses the structural `SqlRunner` in `apps/backend/src/platform/sql.ts`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. A Room is that requirement for the one Durable Object namespace. Add R2, Access, or other Cloudflare
+services only when a product feature requires them.
