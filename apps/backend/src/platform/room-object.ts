@@ -183,6 +183,7 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
       sampleAt: next.state.samples.length,
     } satisfies Attachment)
     this.seats()
+    if (next.newSeat) this.everyone({ _tag: 'Joined', seat }, ws)
     await this.schedule()
   }
 

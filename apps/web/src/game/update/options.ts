@@ -30,6 +30,7 @@ import {
   SIZES,
 } from '@quorum/simulation/catalog'
 import { FitBoard } from '../commands.ts'
+import { intent } from '@quorum/simulation/room'
 import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
 import { Model, boardChallenge, type TradeoffOption } from '../model.ts'
@@ -212,21 +213,26 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
     const { game, upgraded, skipped, short } = outcome.success
     const name = COMPONENTS[node.type].name
     const spent = before.cash - game.cash
-    return act(model, `Upgraded ${name} ×${upgraded}`, Result.succeed(game), {
-      undoable: true,
-      note: () => {
-        const t = say(model)
-        return [
-          t.toasts.sentences([
-            t.toasts.upgradedAll(t.catalog.components[node.type].name, upgraded),
-            ...(skipped > 0 ? [t.toasts.atLargest(skipped)] : []),
-            ...(short ? [t.toasts.cashRanOut] : []),
-            ...refundNote(t, spent),
-          ]),
-          'ok',
-        ]
+    return act(
+      model,
+      `Upgraded ${name} ×${upgraded}`,
+      intent('upgradeAll', node.type, node.region),
+      {
+        undoable: true,
+        note: () => {
+          const t = say(model)
+          return [
+            t.toasts.sentences([
+              t.toasts.upgradedAll(t.catalog.components[node.type].name, upgraded),
+              ...(skipped > 0 ? [t.toasts.atLargest(skipped)] : []),
+              ...(short ? [t.toasts.cashRanOut] : []),
+              ...refundNote(t, spent),
+            ]),
+            'ok',
+          ]
+        },
       },
-    })
+    )
   },
 
   HoldStarted: ({ nodeId, now }) => {

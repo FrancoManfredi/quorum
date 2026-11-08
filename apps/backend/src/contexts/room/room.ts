@@ -120,7 +120,7 @@ export const join = (
   state: RoomState,
   entering: Joining,
   now: number,
-): Result.Result<Readonly<{ state: RoomState; seat: Seat }>, SeatFault> => {
+): Result.Result<Readonly<{ state: RoomState; seat: Seat; newSeat: boolean }>, SeatFault> => {
   if (!state.open) return Result.fail('closed')
   if (expired(state, now)) return Result.fail('stale')
 
@@ -139,6 +139,7 @@ export const join = (
     return Result.succeed({
       state: { ...state, seats, ownerSeat: seat.id, idleAt: null },
       seat,
+      newSeat: existing === undefined,
     })
   }
 
@@ -152,6 +153,7 @@ export const join = (
         idleAt: null,
       },
       seat,
+      newSeat: false,
     })
   }
   if (state.seats.length >= ROOM_SEATS) return Result.fail('full')
@@ -164,6 +166,7 @@ export const join = (
   return Result.succeed({
     state: { ...state, seats: [...state.seats, seat], idleAt: null },
     seat,
+    newSeat: true,
   })
 }
 

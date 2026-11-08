@@ -1,15 +1,15 @@
-import { Actions } from '../board-actions.ts'
-import * as Runway from '@quorum/simulation/runway'
+import { Actions, Runway } from '../board-actions.ts'
 import {
   AskPlaybook,
   DeleteCompany,
   CopyText,
   WriteFounder,
   AppendLog,
+  SendRoom,
   SubmitSurvey,
 } from '../commands.ts'
 import { EXITS, RESEARCH } from '@quorum/simulation/catalog'
-import { Model, currentFile, EMPTY_SURVEY } from '../model.ts'
+import { Model, currentFile, roomLive, EMPTY_SURVEY } from '../model.ts'
 import { companyIdOf, isExited, step } from '../company-machine.ts'
 import { canSubmit, isSending, step as surveyStep } from '../survey-machine.ts'
 import { PRE_IPO_STAGE } from '@quorum/simulation/ipo'
@@ -230,6 +230,13 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
         ),
 
   RoundRaised: () => {
+    // A Room owns the Game, and its Seats decide a funding round by vote, so
+    // the offer starts that vote instead of taking the round here.
+    if (roomLive(model))
+      return {
+        model: { ...model, panel: 'offer' },
+        commands: [SendRoom({ message: { _tag: 'StartVote', kind: 'fund' } })],
+      }
     if (model.board.game.stage !== PRE_IPO_STAGE || !Actions.canRaise(model.board.game))
       return act(model, 'Raised a round', Actions.raise(model.board.game), { panel: afterRound })
     const ipo = listed(model, model.board.game)

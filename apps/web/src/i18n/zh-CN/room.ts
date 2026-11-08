@@ -16,6 +16,7 @@ export const room = {
   voteExit: '结束会话',
   voteStarted: (name: string) => `${name} 发起了投票。`,
   voteOpen: '投票进行中。',
+  joined: (name: string) => `${name} 加入了房间。`,
   takeOffline: '转为离线',
   takeOfflineHint: '公司回到这个浏览器，房间关闭。',
   leave: '离开',

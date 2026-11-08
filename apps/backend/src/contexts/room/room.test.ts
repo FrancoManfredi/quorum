@@ -55,6 +55,18 @@ describe('seats', () => {
     expect(new Set(state.seats.map((entry) => entry.colour)).size).toBe(2)
   })
 
+  test('a seat the Room already holds is not new', () => {
+    const { state } = withSeats()
+    const late = join(state, { id: 'tab-3', name: 'Grace' }, 0)
+    expect(late._tag).toBe('Success')
+    if (late._tag !== 'Success') return
+    expect(late.success.newSeat).toBe(true)
+
+    const again = join(late.success.state, { id: 'tab-3', name: 'Grace Hopper' }, 0)
+    expect(again._tag).toBe('Success')
+    if (again._tag === 'Success') expect(again.success.newSeat).toBe(false)
+  })
+
   test('a fifth seat is refused', () => {
     const { state } = withSeats()
     let room = state
@@ -71,6 +83,7 @@ describe('seats', () => {
     const again = join(state, { id: guest, name: 'Ada Lovelace' }, 0)
     expect(again._tag).toBe('Success')
     if (again._tag === 'Success') {
+      expect(again.success.newSeat).toBe(false)
       expect(again.success.state.seats.length).toBe(2)
       expect(again.success.state.seats.find((entry) => entry.id === guest)?.name).toBe(
         'Ada Lovelace',

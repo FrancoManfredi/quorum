@@ -25,8 +25,9 @@ import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { cheatCash, cheatInsight } from '@/game/cheats.ts'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { currentFile, exitLegacy, roomCode, type Model } from '@/game/model.ts'
+import { currentFile, exitLegacy, roomCode, roomLive, type Model } from '@/game/model.ts'
 import { seatColour } from '@/game/seat-colour.ts'
+import type { Vote } from '@quorum/simulation/room'
 import { companyMark } from '@/components/company-mark.ts'
 import { speedsOf } from '@/game/update.ts'
 import { roomOwner } from '@/game/model.ts'
@@ -396,6 +397,76 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** One open vote: the count, a dot per Seat, and the two ballots. */
+const voteCard = (model: Model, open: Vote, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const seat = seatOf()
+  const mine = open.yes.includes(seat) ? 'yes' : open.no.includes(seat) ? 'no' : null
+  return h.div(
+    [h.Class(cn(WELL, 'flex flex-col gap-2.5 p-3'))],
+    [
+      h.div(
+        [h.Class('flex items-baseline justify-between gap-3')],
+        [
+          h.span(
+            [h.Class('text-sm font-medium')],
+            [open.kind === 'fund' ? t.room.voteFund : t.room.voteExit],
+          ),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-xs text-muted-foreground'))],
+            [`${open.yes.length} / ${model.room.seats.length}`],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('flex items-center gap-1.5')],
+        model.room.seats.map((entry) => {
+          const colour = seatColour(entry.colour)
+          const yes = open.yes.includes(entry.id)
+          const no = open.no.includes(entry.id)
+          return h.span(
+            [
+              h.Key(`ballot-${entry.id}`),
+              h.Class('size-2 rounded-full'),
+              h.Style({
+                // A yes is filled, a no is a ring, and a Seat that has not voted is faint.
+                background: no ? 'transparent' : colour,
+                boxShadow: no ? `inset 0 0 0 1px ${colour}` : 'none',
+                opacity: yes || no ? '1' : '0.3',
+              }),
+            ],
+            [],
+          )
+        }),
+      ),
+      h.div(
+        [h.Class('flex gap-2')],
+        [
+          button(
+            {
+              onClick: Message.RoomBallot({ vote: open.id, yes: true }),
+              variant: mine === 'yes' ? 'default' : 'outline',
+              size: 'lg',
+              className: 'flex-1',
+            },
+            t.room.coins,
+            h,
+          ),
+          button(
+            {
+              onClick: Message.RoomBallot({ vote: open.id, yes: false }),
+              variant: mine === 'no' ? 'secondary' : 'outline',
+              size: 'lg',
+              className: 'flex-1',
+            },
+            t.room.no,
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+}
 /** The Room: the code, the Seats, the name, the vote, the speed, and the way out. */
 export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -526,75 +597,6 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     }),
   )
 
-  const voteCard = (open: typeof vote & { readonly id: number }) => {
-    const yes = open.yes.length
-    const mine = open.yes.includes(seat) ? 'yes' : open.no.includes(seat) ? 'no' : null
-    return h.div(
-      [h.Class(cn(WELL, 'flex flex-col gap-2.5 p-3'))],
-      [
-        h.div(
-          [h.Class('flex items-baseline justify-between gap-3')],
-          [
-            h.span(
-              [h.Class('text-sm font-medium')],
-              [open.kind === 'fund' ? t.room.voteFund : t.room.voteExit],
-            ),
-            h.span(
-              [h.Class(cn(FIGURE, 'text-xs text-muted-foreground'))],
-              [`${yes} / ${model.room.seats.length}`],
-            ),
-          ],
-        ),
-        h.div(
-          [h.Class('flex items-center gap-1.5')],
-          model.room.seats.map((entry) => {
-            const colour = seatColour(entry.colour)
-            const yes = open.yes.includes(entry.id)
-            const no = open.no.includes(entry.id)
-            return h.span(
-              [
-                h.Key(`ballot-${entry.id}`),
-                h.Class('size-2 rounded-full'),
-                h.Style({
-                  // A yes is filled, a no is a ring, and a Seat that has not voted is faint.
-                  background: no ? 'transparent' : colour,
-                  boxShadow: no ? `inset 0 0 0 1px ${colour}` : 'none',
-                  opacity: yes || no ? '1' : '0.3',
-                }),
-              ],
-              [],
-            )
-          }),
-        ),
-        h.div(
-          [h.Class('flex gap-2')],
-          [
-            button(
-              {
-                onClick: Message.RoomBallot({ vote: open.id, yes: true }),
-                variant: mine === 'yes' ? 'default' : 'outline',
-                size: 'lg',
-                className: 'flex-1',
-              },
-              t.room.coins,
-              h,
-            ),
-            button(
-              {
-                onClick: Message.RoomBallot({ vote: open.id, yes: false }),
-                variant: mine === 'no' ? 'secondary' : 'outline',
-                size: 'lg',
-                className: 'flex-1',
-              },
-              t.room.no,
-              h,
-            ),
-          ],
-        ),
-      ],
-    )
-  }
-
   const voteStart = h.div(
     [h.Class('flex gap-2')],
     [
@@ -675,7 +677,7 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       body.push(divider())
       body.push(section(`${t.room.seats} · ${model.room.seats.length}`, [seatChips]))
       body.push(divider())
-      body.push(section(t.room.vote, vote === null ? [voteStart] : [voteCard(vote)]))
+      body.push(section(t.room.vote, vote === null ? [voteStart] : [voteCard(model, vote, h)]))
       if (owner) {
         body.push(divider())
         body.push(section(t.room.speed, [speedRow]))
@@ -852,10 +854,21 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const deal = offer(model.board.game)
   if (!deal) return h.empty
   const ipo = model.board.game.stage === PRE_IPO_STAGE
+  const title = ipo
+    ? t.panels.iPO
+    : t.panels.round(t.catalog.eras[model.board.game.stage + 1]?.name ?? deal.era.name)
+  // A Room decides the round by vote, so the offer shows that vote while it is open.
+  const vote = roomLive(model) && model.room.vote?.kind === 'fund' ? model.room.vote : null
+  if (vote !== null)
+    return shell(
+      title,
+      [],
+      [h.div([h.Class('px-5 pt-1 pb-5')], [voteCard(model, vote, h)])],
+      'max-w-[calc(420px*var(--type-scale))]',
+      h,
+    )
   return shell(
-    ipo
-      ? t.panels.iPO
-      : t.panels.round(t.catalog.eras[model.board.game.stage + 1]?.name ?? deal.era.name),
+    title,
     [],
     [
       h.div(

@@ -16,6 +16,7 @@ export const room = {
   voteExit: 'セッションを終える',
   voteStarted: (name: string) => `${name} が投票を始めました。`,
   voteOpen: '投票中です。',
+  joined: (name: string) => `${name} がルームに入りました。`,
   takeOffline: 'オフラインに戻す',
   takeOfflineHint: '会社はこのブラウザに戻り、ルームは閉じます。',
   leave: '退出',

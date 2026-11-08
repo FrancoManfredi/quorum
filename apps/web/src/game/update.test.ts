@@ -2433,3 +2433,119 @@ test('an action only a vote may take is refused in a live Room', () => {
   expect((raised.commands ?? []).some((command) => command.name === 'SendRoom')).toBe(false)
   expect(raised.model.toast?.message).toBe('That is not available in a Room yet.')
 })
+
+/* The offer's Raise button opens the vote the Room uses in place of the action. */
+test('a funding round in a live Room starts the fund vote', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const asked = update(model, Message.RoundRaised())
+  const sent = (asked.commands ?? []).find((command) => command.name === 'SendRoom')
+  expect(sent?.args?.['message']).toEqual({ _tag: 'StartVote', kind: 'fund' })
+  expect(asked.model.board.game).toBe(model.board.game)
+  expect(asked.model.panel).toBe('offer')
+})
+
+/* A Load Balancer policy was the report that started the allowlist fix. */
+test('a Load Balancer policy in a live Room goes out as its intent', () => {
+  const game = Result.getOrThrow(Actions.place(preseedGame(), 'lb', 300, 100))
+  const balancer = game.nodes.find((entry) => entry.type === 'lb')!
+  const model: Model = {
+    ...inLab(),
+    board: { ...inLab().board, game },
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const changed = update(
+    model,
+    Message.PolicyChosen({ nodeId: balancer.id, policy: 'round-robin' }),
+  )
+  const sent = (changed.commands ?? []).find((command) => command.name === 'SendRoom')
+  expect(sent?.args?.['message']).toEqual({
+    _tag: 'Intents',
+    id: model.room.seq,
+    intents: [{ ns: 'actions', name: 'setPolicy', args: [balancer.id, 'round-robin'] }],
+  })
+  expect(changed.model.board.game.nodes.find((entry) => entry.id === balancer.id)?.policy).toBe(
+    'round-robin',
+  )
+})
+
+/* A bulk control reaches the Room as the compound action it stands for. */
+test('a bulk upgrade in a live Room goes out as its intent', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const server = model.board.game.nodes.find((entry) => entry.type === 'server')!
+  const upgraded = update(model, Message.UpgradeAllChosen({ nodeId: server.id }))
+  const sent = (upgraded.commands ?? []).find((command) => command.name === 'SendRoom')
+  expect(sent?.args?.['message']).toEqual({
+    _tag: 'Intents',
+    id: model.room.seq,
+    intents: [{ ns: 'actions', name: 'upgradeAll', args: [server.type, server.region] }],
+  })
+  expect(upgraded.model.board.game).not.toBe(model.board.game)
+})
+
+/* Once the vote passes, the offer the Seat was looking at becomes the Era card. */
+test('a passed round closes the offer it came from', () => {
+  const model: Model = {
+    ...inLab(),
+    panel: 'offer',
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const game = { ...model.board.game, round: { _tag: 'Raised' as const } }
+  const painted = update(
+    model,
+    Message.RoomReceived({
+      message: {
+        _tag: 'Snapshot',
+        revision: 2,
+        time: game.time,
+        game,
+        samples: [],
+        seats: [],
+        owner: 'tab-1',
+        speed: 1,
+        vote: null,
+      },
+    }),
+  ).model
+  expect(painted.panel).toBe('era')
+})
+
+/* A Seat that arrives is announced by name to the others. */
+test('a Seat that joins is announced to the others', () => {
+  const model: Model = {
+    ...inLab(),
+    route: AppRoute.Room({ room: 'ABC234' }),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: true },
+    },
+  }
+  const joined = update(
+    model,
+    Message.RoomReceived({
+      message: {
+        _tag: 'Joined',
+        seat: { id: 'tab-2', name: 'Ada', colour: 1, owner: false },
+      },
+    }),
+  ).model
+  expect(joined.toast?.message).toBe('Ada joined the Room.')
+  expect(joined.toast?.tone).toBe('plain')
+})

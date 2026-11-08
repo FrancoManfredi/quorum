@@ -12,6 +12,7 @@ import {
   type Room,
 } from '../model.ts'
 import { RoomPhase, roomStep } from '../room-machine.ts'
+import { afterRound } from './session.ts'
 import { withFile } from '../saves.ts'
 import { CopyText, WriteCompany, PublishRoom, SendRoom } from '../commands.ts'
 import { ROOM_NAME_LENGTH } from '../names.ts'
@@ -64,6 +65,10 @@ const emptyRoom = (model: Model, phase: Room['phase']): Room => ({
   seq: 1,
 })
 
+/** An answered funding round closes the offer it came from, as it does offline. */
+const panelAfter = (panel: Model['panel'], game: Model['board']['game']): Model['panel'] =>
+  panel === 'offer' && game.round._tag !== 'Offered' ? afterRound(game) : panel
+
 /**
  * Paints one Room frame onto the Board. `whole` says how much of the Room's sample window the
  * frame carries: a Welcome every Sample the Room keeps, a Snapshot only the ones this Seat has
@@ -88,6 +93,7 @@ const painted = (
   )
   return {
     ...model,
+    panel: panelAfter(model.panel, frame.game),
     board: {
       ...model.board,
       game: { ...frame.game, history: [...samples] },
@@ -115,20 +121,21 @@ const received = (model: Model, message: ServerMessage): UpdateResult =>
       // The first join shows the Board; a reconnect (a rename, a dropped socket)
       // leaves the panel the player has open alone.
       const first = RoomPhase.guards.Connecting(model.room.phase)
+      const shown = painted(
+        model,
+        {
+          game: frame.game,
+          seats: frame.seats,
+          speed: frame.speed,
+          vote: frame.vote,
+          samples: frame.samples,
+          time: frame.game.time,
+        },
+        true,
+      )
       const next: Model = {
-        ...painted(
-          model,
-          {
-            game: frame.game,
-            seats: frame.seats,
-            speed: frame.speed,
-            vote: frame.vote,
-            samples: frame.samples,
-            time: frame.game.time,
-          },
-          true,
-        ),
-        panel: first ? 'none' : model.panel,
+        ...shown,
+        panel: first ? 'none' : shown.panel,
         room: {
           ...model.room,
           phase: roomStep(model.room.phase, {
@@ -174,6 +181,7 @@ const received = (model: Model, message: ServerMessage): UpdateResult =>
         },
       },
     }),
+    Joined: (frame) => withToast(model, say(model).room.joined(frame.seat.name), 'plain'),
     Refused: (frame) => withToast(model, refusalIn(say(model), frame.refusal), 'warn'),
     // Cursors are Presence. The socket hands them to the Board's overlay, so
     // they never reach the Model; these cases keep the union whole.

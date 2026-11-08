@@ -16,6 +16,7 @@ export const room = {
   voteExit: 'End the session',
   voteStarted: (name: string) => `${name} started a vote.`,
   voteOpen: 'A vote is open.',
+  joined: (name: string) => `${name} joined the Room.`,
   takeOffline: 'Take offline',
   takeOfflineHint: 'The Company comes back to this browser and the Room closes.',
   leave: 'Leave',

@@ -1,5 +1,6 @@
 import { Schema } from 'effect'
 import * as Simulation from '@quorum/simulation/actions'
+import * as RunwayActions from '@quorum/simulation/runway'
 import * as WorkActions from '@quorum/simulation/work'
 import * as MirrorActions from '@quorum/simulation/mirror'
 import { planOf, type Intent } from '@quorum/simulation/room'
@@ -49,3 +50,4 @@ const planned = <T extends object>(module: T): T => {
 export const Actions = planned(Simulation)
 export const Work = planned(WorkActions)
 export const Mirrors = planned(MirrorActions)
+export const Runway = planned(RunwayActions)

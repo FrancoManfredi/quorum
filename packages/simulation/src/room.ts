@@ -1,7 +1,9 @@
 import { Result, Schema } from 'effect'
 import * as Actions from './actions.ts'
 import { Refusal } from './action-kit.ts'
+import { type ComponentId } from './catalog.ts'
 import * as Mirrors from './mirror.ts'
+import * as Runway from './runway.ts'
 import { Game, Region, Sample } from './state.ts'
 import * as Work from './work.ts'
 
@@ -73,178 +75,110 @@ export type Intent = typeof Intent.Type
 
 type Rest<F> = F extends (game: Game, ...rest: infer A) => unknown ? A : never
 
+/** A bulk upgrade reports what it skipped beside the Game; a Room keeps the Game. */
+const upgradeAll = (game: Game, type: ComponentId, region?: Region) =>
+  Result.map(Actions.upgradeAll(game, type, region), (outcome) => outcome.game)
+
 /**
- * The actions a Seat may take. Every entry is a function the board calls, so a
- * Room and a browser cannot disagree about what a move does. Actions the game
- * runs on its own (a director's incident, a scripted trap) and the two vote
- * decisions stay out.
+ * A module's exported moves, minus the entries that are not a Seat's to make.
+ * A blacklist keeps every new action available without editing this file; a
+ * helper that slipped through only fails the Game schema when it is applied.
  */
+const seatMoves = <T extends object, Denied extends keyof T>(
+  module: T,
+  denied: ReadonlyArray<Denied>,
+): Omit<T, Denied> =>
+  Object.fromEntries(
+    Object.entries(module).filter(
+      ([name, value]) => typeof value === 'function' && !denied.includes(name as Denied),
+    ),
+  ) as Omit<T, Denied>
+
+/** The Game's own moves: every one the board calls, bar these. */
+const NOT_A_MOVE = [
+  'LINK_TIMEOUTS',
+  'PHISH_CHURN',
+  'Refusal',
+  'acknowledge', // The board acknowledges an Incident as the next move.
+  'blankNode', // Placement's private constructor.
+  'canRaise', // Reads the Game.
+  'describeRefusal', // Formats a refusal's prose.
+  'offer', // Reads the Game.
+  'raise', // A funding round is a vote.
+  'restartable', // Reads a Node.
+  'rollRestore', // The restore drill's private roll.
+  'shortOfCash', // Reads the Game.
+  'upgradeAll', // Added below, wrapped to return the Game it made.
+] as const
+
+/** Runway moves: accepting the bridge is the board's, the rest are the tick's. */
+const NOT_A_RUNWAY_MOVE = [
+  'BRIDGE_AT_DAYS',
+  'BRIDGE_DAYS',
+  'BRIDGE_DILUTION',
+  'RUNWAY_MONTH',
+  'SHUTDOWN_AT_DAYS',
+  'advanceRunway',
+  'runwayOf',
+] as const
+
 const PLAYER_ACTIONS = {
-  boxNodes: Actions.boxNodes,
-  cancelMigration: Actions.cancelMigration,
-  cancelReport: Actions.cancelReport,
-  cancelStudy: Actions.cancelStudy,
-  collect: Actions.collect,
-  connect: Actions.connect,
-  decline: Actions.decline,
-  deleteMessage: Actions.deleteMessage,
-  disableRule: Actions.disableRule,
-  disconnect: Actions.disconnect,
-  drain: Actions.drain,
-  expandVolume: Actions.expandVolume,
-  failOver: Actions.failOver,
-  failOverRegion: Actions.failOverRegion,
-  failOverZone: Actions.failOverZone,
-  fenceLeader: Actions.fenceLeader,
-  filePostmortem: Actions.filePostmortem,
-  installBackdoor: Actions.installBackdoor,
-  move: Actions.move,
-  moveKind: Actions.moveKind,
-  moveStudy: Actions.moveStudy,
-  moveStudyTo: Actions.moveStudyTo,
-  openRegion: Actions.openRegion,
-  payFakeInvoice: Actions.payFakeInvoice,
-  phished: Actions.phished,
-  pinAndRedeploy: Actions.pinAndRedeploy,
-  place: Actions.place,
-  renewCertificate: Actions.renewCertificate,
-  replace: Actions.replace,
-  resize: Actions.resize,
-  restart: Actions.restart,
-  restartClocks: Actions.restartClocks,
-  restoreBackup: Actions.restoreBackup,
-  rollBackConfig: Actions.rollBackConfig,
-  rollBackRoutes: Actions.rollBackRoutes,
-  runDrill: Actions.runDrill,
-  runRestoreDrill: Actions.runRestoreDrill,
-  sell: Actions.sell,
-  sellAll: Actions.sellAll,
-  setAlertRule: Actions.setAlertRule,
-  setAttempts: Actions.setAttempts,
-  setAutoscaler: Actions.setAutoscaler,
-  setBackup: Actions.setBackup,
-  setBatch: Actions.setBatch,
-  setCacheEngine: Actions.setCacheEngine,
-  setCacheGuard: Actions.setCacheGuard,
-  setCacheStrategy: Actions.setCacheStrategy,
-  setCdnOptions: Actions.setCdnOptions,
-  setChaos: Actions.setChaos,
-  setCollector: Actions.setCollector,
-  setCompression: Actions.setCompression,
-  setDbEngine: Actions.setDbEngine,
-  setDbRetention: Actions.setDbRetention,
-  setDegrade: Actions.setDegrade,
-  setDeployStrategy: Actions.setDeployStrategy,
-  setDlq: Actions.setDlq,
-  setDocOptions: Actions.setDocOptions,
-  setFamily: Actions.setFamily,
-  setFanout: Actions.setFanout,
-  setGatewayBucket: Actions.setGatewayBucket,
-  setGatewayOptions: Actions.setGatewayOptions,
-  setGogc: Actions.setGogc,
-  setGpuModel: Actions.setGpuModel,
-  setGpuType: Actions.setGpuType,
-  setGuidance: Actions.setGuidance,
-  setHealthCheck: Actions.setHealthCheck,
-  setHubOptions: Actions.setHubOptions,
-  setLbVariant: Actions.setLbVariant,
-  setLifecycle: Actions.setLifecycle,
-  setLinkKinds: Actions.setLinkKinds,
-  setLinkPolicy: Actions.setLinkPolicy,
-  setLogOptions: Actions.setLogOptions,
-  setMaterialized: Actions.setMaterialized,
-  setMaxLength: Actions.setMaxLength,
-  setParanoia: Actions.setParanoia,
-  setPm: Actions.setPm,
-  setPolicyOn: Actions.setPolicyOn,
-  setPoolerMode: Actions.setPoolerMode,
-  setPrecision: Actions.setPrecision,
-  setPrefetch: Actions.setPrefetch,
-  setPricing: Actions.setPricing,
-  setProvider: Actions.setProvider,
-  setQuorum: Actions.setQuorum,
-  setRateLimit: Actions.setRateLimit,
-  setRecycle: Actions.setRecycle,
-  setRegion: Actions.setRegion,
-  setRollout: Actions.setRollout,
-  setRyw: Actions.setRyw,
-  setSample: Actions.setSample,
-  setSearchOptions: Actions.setSearchOptions,
-  setSearchRefresh: Actions.setSearchRefresh,
-  setShardKey: Actions.setShardKey,
-  setShards: Actions.setShards,
-  setShed: Actions.setShed,
-  setSlowStart: Actions.setSlowStart,
-  setSplit: Actions.setSplit,
-  setSpread: Actions.setSpread,
-  setStandby: Actions.setStandby,
-  setSticky: Actions.setSticky,
-  setStorageClass: Actions.setStorageClass,
-  setStorageIops: Actions.setStorageIops,
-  setStoreVariant: Actions.setStoreVariant,
-  setSync: Actions.setSync,
-  setTtl: Actions.setTtl,
-  setUnderAttack: Actions.setUnderAttack,
-  setVecIndex: Actions.setVecIndex,
-  setWorkers: Actions.setWorkers,
-  setZone: Actions.setZone,
-  study: Actions.study,
-  switchProvider: Actions.switchProvider,
-  takeDiscount: Actions.takeDiscount,
-  throttleConnects: Actions.throttleConnects,
-  unboxNodes: Actions.unboxNodes,
-} as const
+  ...seatMoves(Actions, NOT_A_MOVE),
+  ...seatMoves(Runway, NOT_A_RUNWAY_MOVE),
+  upgradeAll,
+}
 
-const PLAYER_WORK = {
-  acceptResignation: Work.acceptResignation,
-  addIndex: Work.addIndex,
-  approveBlock: Work.approveBlock,
-  assign: Work.assign,
-  assignService: Work.assignService,
-  cancelItem: Work.cancelItem,
-  cancelMigration: Work.cancelMigration,
-  changeStack: Work.changeStack,
-  createTeam: Work.createTeam,
-  giveTimeOff: Work.giveTimeOff,
-  hire: Work.hire,
-  laterBlock: Work.laterBlock,
-  layoff: Work.layoff,
-  moveItem: Work.moveItem,
-  moveService: Work.moveService,
-  patchNow: Work.patchNow,
-  prioritizeItem: Work.prioritizeItem,
-  queueAuthMove: Work.queueAuthMove,
-  queueEngineChange: Work.queueEngineChange,
-  queueFeature: Work.queueFeature,
-  queuePatch: Work.queuePatch,
-  queueReshard: Work.queueReshard,
-  queueRunbook: Work.queueRunbook,
-  queueTask: Work.queueTask,
-  raiseSalary: Work.raiseSalary,
-  removeFeature: Work.removeFeature,
-  removeTeam: Work.removeTeam,
-  rollback: Work.rollback,
-  rushItem: Work.rushItem,
-  setAutopilot: Work.setAutopilot,
-  setFix: Work.setFix,
-  setTeamKind: Work.setTeamKind,
-  setTeamPolicy: Work.setTeamPolicy,
-  shiftMigration: Work.shiftMigration,
-  splitService: Work.splitService,
-} as const
+/** Team work: every move the Team panel can make, bar these. */
+const NOT_WORK = [
+  'MAX_TEAMS',
+  'PLATFORM_STAGE',
+  'advanceMorale',
+  'advanceTeam',
+  'assignments',
+  'blockReason',
+  'blockRemind',
+  'engineCost',
+  'featureHoursOf',
+  'featureRefusal',
+  'itemName',
+  'loadBalancersOf',
+  'nextFeature',
+  'nodesOfService',
+  'removeRefusal',
+  'runbookKinds',
+  'runbookRefusal',
+  'rushBugOf',
+  'rushDebtOf',
+  'serviceOfItem',
+  'serviceOfNode',
+  'splitCost',
+  'splitRefusal',
+  'takeable',
+  'taskRefusal',
+  'worksOn',
+] as const
 
-const PLAYER_MIRRORS = {
-  applyMirror: Mirrors.applyMirror,
-  pickIacTool: Mirrors.pickIacTool,
-  refreshMirror: Mirrors.refreshMirror,
-  repairMirror: Mirrors.repairMirror,
-  setComputed: Mirrors.setComputed,
-  setMirrorData: Mirrors.setMirrorData,
-  setOverride: Mirrors.setOverride,
-  setSyncMode: Mirrors.setSyncMode,
-  startMirror: Mirrors.startMirror,
-  stopMirror: Mirrors.stopMirror,
-} as const
+const PLAYER_WORK = seatMoves(Work, NOT_WORK)
+
+/** Mirrors: every move the Mirror panel can make, bar these. */
+const NOT_A_MIRROR_MOVE = [
+  'Change',
+  'MANAGED',
+  'advanceMirrors',
+  'applyCost',
+  'applySeconds',
+  'driftOf',
+  'mirrorOf',
+  'mirrorsOf',
+  'overridable',
+  'patternsFor',
+  'previewApply',
+  'refreshesOnPlan',
+  'switchLeft',
+  'toolOf',
+] as const
+
+const PLAYER_MIRRORS = seatMoves(Mirrors, NOT_A_MIRROR_MOVE)
 
 const tables: Record<IntentNamespace, Record<string, unknown>> = {
   actions: PLAYER_ACTIONS,
@@ -447,6 +381,8 @@ export const ServerMessage = Schema.TaggedUnion({
     speed: Schema.Finite,
     vote: Schema.NullOr(Vote),
   },
+  /** A Seat took a place. The others hear it; the Seat itself gets `Welcome`. */
+  Joined: { seat: Seat },
   /** The owner's copy: the whole Company, on the way offline. */
   Final: {
     revision: Schema.Finite,

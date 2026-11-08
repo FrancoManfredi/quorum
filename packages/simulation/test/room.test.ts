@@ -1,7 +1,7 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
 import * as Actions from '../src/actions.ts'
-import { newGame } from '../src/company.ts'
+import { newGame, preseedGame } from '../src/company.ts'
 import {
   applyIntent,
   applyIntents,
@@ -35,6 +35,32 @@ describe('plans', () => {
     expect(planOf('acknowledge', [])).toBeNull()
   })
 
+  test('every board control a Seat can use has a plan', () => {
+    expect(planOf('setPolicy', ['lb', 'round-robin'])).toEqual({
+      ns: 'actions',
+      name: 'setPolicy',
+      args: ['lb', 'round-robin'],
+    })
+    expect(planOf('upgradeAll', ['server', 'na'])).toEqual({
+      ns: 'actions',
+      name: 'upgradeAll',
+      args: ['server', 'na'],
+    })
+    expect(planOf('acceptBridge', [])).toEqual({ ns: 'actions', name: 'acceptBridge', args: [] })
+    expect(planOf('queueSpike', [])).toEqual({ ns: 'work', name: 'queueSpike', args: [] })
+  })
+
+  test('a move the blacklist does not name is a Seat’s to make', () => {
+    // These were never added by hand, so the modules' exports are the source.
+    expect(planOf('setRetention', ['analytics', 30])).not.toBeNull()
+    expect(planOf('setRuntime', ['server', 'node'])).not.toBeNull()
+    expect(planOf('setFramework', ['server', 'next'])).not.toBeNull()
+    // Reads and helpers stay out.
+    expect(planOf('canRaise', [])).toBeNull()
+    expect(planOf('itemName', ['x'])).toBeNull()
+    expect(planOf('driftOf', [])).toBeNull()
+  })
+
   test('an argument that cannot cross the wire has no plan', () => {
     expect(planOf('move', [node.id, () => 1])).toBeNull()
     expect(planOf('move', [node.id, Number.NaN, 2])).toBeNull()
@@ -65,6 +91,18 @@ describe('intents', () => {
   test('a name outside the registry is refused', () => {
     const applied = applyIntent(game, { ns: 'actions', name: 'raise', args: [] })
     expect(Result.isFailure(applied)).toBe(true)
+  })
+
+  test('a Load Balancer policy change runs in the Room', () => {
+    const placed = Actions.place(preseedGame(), 'lb', 120, 120)
+    expect(Result.isSuccess(placed)).toBe(true)
+    if (Result.isFailure(placed)) return
+    const lb = placed.success.nodes.find((entry) => entry.type === 'lb')
+    if (!lb) throw new Error('no Load Balancer')
+    const applied = applyIntent(placed.success, intent('setPolicy', lb.id, 'round-robin'))
+    expect(Result.isSuccess(applied)).toBe(true)
+    if (Result.isSuccess(applied))
+      expect(applied.success.nodes.find((entry) => entry.id === lb.id)?.policy).toBe('round-robin')
   })
 
   test('a batch stops at the first refusal', () => {
@@ -131,6 +169,12 @@ describe('the wire', () => {
   test('every server message has a tag', () => {
     const encoded = Schema.encodeSync(ServerMessage)({ _tag: 'Ended', reason: 'offline' })
     expect(encoded).toEqual({ _tag: 'Ended', reason: 'offline' })
+  })
+
+  test('a join notice carries the Seat that arrived', () => {
+    const seat = { id: 'b', name: 'Ada', colour: 1, owner: false }
+    const encoded = Schema.encodeSync(ServerMessage)({ _tag: 'Joined', seat })
+    expect(encoded).toEqual({ _tag: 'Joined', seat })
   })
 
   test('a refusal crosses as a tag and its fields', () => {
