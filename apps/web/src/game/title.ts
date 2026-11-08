@@ -73,7 +73,8 @@ const rowsOf = (root: ParentNode) =>
     (row) => !(row instanceof HTMLButtonElement && row.disabled),
   )
 
-const BoothDriver = Mount.define('BoothDriver', {
+/** The title's Mounts. A Scene test resolves them by hand. */
+export const BoothDriver = Mount.define('BoothDriver', {
   messages: [Message.Synced],
   execute: ({ element }) =>
     Effect.acquireRelease(
@@ -180,7 +181,7 @@ const BoothDriver = Mount.define('BoothDriver', {
 })
 
 /** Each page puts the selection on its first row after Back, or main on the row that opened the last page. */
-const PageMounted = Mount.define('PageMounted', {
+export const PageMounted = Mount.define('PageMounted', {
   messages: [Message.Synced],
   execute: ({ element }) =>
     Effect.sync(() => {
@@ -656,9 +657,7 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
     )
   return [
     backRow(h),
-    ...(drill
-      ? [challenge(drill.id, t.title.dailyDrill, t.catalog.challenges[drill.id]!.brief, 0, true)]
-      : []),
+    ...(drill ? [challenge(drill.id, t.title.dailyDrill, drill.brief, 0, true)] : []),
     ...ERAS.flatMap((era, stage) => {
       const list = CHALLENGES.filter((entry) => entry.era === stage)
       return list.length === 0
@@ -1000,7 +999,7 @@ const status = (model: Model, h: HtmlBuilder<Message>): Html => {
    The taskbar: the Founder's pages, Settings, and the wall clock.
    -------------------------------------------------------------------------- */
 
-const ReaderClock = Mount.define('ReaderClock', {
+export const ReaderClock = Mount.define('ReaderClock', {
   messages: [Message.Synced],
   execute: ({ element }) =>
     Effect.acquireRelease(
@@ -1076,7 +1075,7 @@ const sessionOf = (model: Model): readonly [string, string] => {
     return [
       `drill@${challengeRun.id.replace(':', '-')}`,
       challenge
-        ? `${t.catalog.challenges[challenge.id]!.name} · ${t.catalog.challenges[challenge.id]!.brief}`
+        ? `${t.catalog.challenges[challenge.id]?.name ?? challenge.name} · ${t.catalog.challenges[challenge.id]?.brief ?? challenge.brief}`
         : '',
     ]
   }
