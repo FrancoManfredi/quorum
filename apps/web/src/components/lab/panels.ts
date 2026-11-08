@@ -1,3 +1,4 @@
+import { Option } from 'effect'
 import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
 import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -24,10 +25,11 @@ import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { cheatCash, cheatInsight } from '@/game/cheats.ts'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { currentFile, exitLegacy, type Model } from '@/game/model.ts'
+import { currentFile, exitLegacy, roomCode, type Model } from '@/game/model.ts'
 import { companyMark } from '@/components/company-mark.ts'
 import { speedsOf } from '@/game/update.ts'
 import { roomOwner } from '@/game/model.ts'
+import { ROOM_NAME_LENGTH } from '@/game/names.ts'
 import { RoomPhase } from '@/game/room-machine.ts'
 import { seatOf } from '@/platform/room-socket.ts'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -291,7 +293,12 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.Class('flex flex-col gap-2 px-5 pt-1 pb-5')],
         [
           menuItem(t.panels.resume, Play, Message.PanelClosed(), h, true),
-          menuItem(t.room.title, Users, Message.PanelOpened({ panel: 'room' }), h),
+          menuItem(
+            roomCode(model) === null ? t.room.title : `${t.room.title} · ${roomCode(model)}`,
+            Users,
+            Message.PanelOpened({ panel: 'room' }),
+            h,
+          ),
           menuItem(t.panels.settings, Settings, Message.PanelOpened({ panel: 'settings' }), h),
           menuItem(t.panels.exportPlaytestLog, Download, Message.LogExported(), h),
           exitLegacy(model) === null
@@ -306,7 +313,15 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** The Room: the code, the Seats, the vote, the speed, and the way out. */
+/** The four Seat colours, in the order a Room hands them out. */
+const SEAT_COLOURS = [
+  'oklch(0.62 0.16 30)',
+  'oklch(0.58 0.15 255)',
+  'oklch(0.6 0.13 155)',
+  'oklch(0.6 0.17 320)',
+] as const
+
+/** The Room: the code, the Seats, the name, the vote, the speed, and the way out. */
 export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   const phase = model.room.phase
@@ -315,122 +330,291 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const live = RoomPhase.isAnyOf(['Online', 'Reconnecting'])(phase)
   const vote = model.room.vote
   const seat = seatOf()
+  const unchanged = model.room.draft.trim() === model.room.name
 
-  const row = (label: string, value: string) =>
+  const section = (label: string, rows: ReadonlyArray<Html>) =>
     h.div(
-      [h.Class('flex items-center justify-between gap-3 px-5 py-1.5 text-sm')],
-      [
-        h.span([h.Class('text-muted-foreground')], [label]),
-        h.span([h.Class('font-medium tabular-nums')], [value]),
-      ],
+      [h.Class('flex flex-col gap-2.5 px-5 pt-4')],
+      [h.span([h.Class(EYEBROW)], [label]), ...rows],
     )
 
-  const seatRows = model.room.seats.map((entry) =>
+  const divider = () => h.div([h.Class('mx-5 mt-2.5 border-t border-hairline')], [])
+
+  const codeBlock = (code: string) =>
     h.div(
-      [h.Class('flex items-center justify-between gap-3 px-5 py-1.5 text-sm')],
+      [h.Class('flex flex-col gap-1.5 px-5 pt-3')],
       [
-        h.span(
-          [h.Class('flex min-w-0 items-center gap-2')],
+        h.span([h.Class(EYEBROW)], [t.room.code]),
+        h.div(
+          [h.Class('flex items-center justify-between gap-3')],
           [
             h.span(
               [
-                h.Class('size-2 shrink-0 rounded-full bg-foreground/70'),
-                h.Style({ '--seat': String(entry.colour) }),
+                h.Class(
+                  cn(FIGURE, 'text-[calc(20px*var(--type-scale))] font-medium tracking-[0.16em]'),
+                ),
               ],
-              [],
+              [code],
             ),
-            h.span([h.Class('truncate')], [entry.name]),
-            h.span(
-              [h.Class('shrink-0 text-xs text-muted-foreground')],
-              [entry.owner ? t.room.owner : t.room.guest],
+            button(
+              {
+                onClick: Message.RoomLinkCopied(),
+                variant: 'outline',
+                size: 'sm',
+                className: 'gap-1.5',
+                attributes: [h.AriaLabel(t.room.copyLink)],
+              },
+              [icon(h, Copy, 'size-3.5'), t.room.copyLink],
+              h,
             ),
           ],
         ),
-        owner && !entry.owner
-          ? secondaryButton(t.room.kick, Message.RoomKickAsked({ seat: entry.id }), h)
-          : entry.id === seat
-            ? h.span([h.Class('text-xs text-muted-foreground')], ['•'])
-            : h.empty,
       ],
+    )
+
+  const nameBlock = h.div(
+    [h.Class('flex items-center gap-2 px-5 pt-3')],
+    [
+      h.label(
+        [h.Class(cn(WELL, 'flex h-9 min-w-0 flex-1 items-center px-2.5'))],
+        [
+          h.input([
+            h.Type('text'),
+            h.Value(model.room.draft),
+            h.Maxlength(ROOM_NAME_LENGTH),
+            h.Autocomplete('off'),
+            h.Spellcheck(false),
+            h.AriaLabel(t.room.yourName),
+            h.OnInput((name) => Message.RoomNameChanged({ name })),
+            h.OnKeyDownPreventDefault((key) =>
+              key === 'Enter' ? Option.some(Message.RoomNameSaved()) : Option.none(),
+            ),
+            h.Class('w-full min-w-0 bg-transparent text-sm outline-none'),
+          ]),
+        ],
+      ),
+      button(
+        {
+          onClick: Message.RoomNameSaved(),
+          variant: unchanged ? 'outline' : 'default',
+          size: 'lg',
+          isDisabled: unchanged,
+        },
+        t.room.saveName,
+        h,
+      ),
+    ],
+  )
+
+  const seatChips = h.div(
+    [h.Class('flex flex-wrap gap-1.5')],
+    model.room.seats.map((entry) => {
+      const colour = SEAT_COLOURS[entry.colour % SEAT_COLOURS.length] ?? SEAT_COLOURS[0]
+      return h.div(
+        [
+          h.Key(entry.id),
+          h.Class(
+            'flex min-w-0 items-center gap-1.5 rounded-full bg-foreground/[0.05] py-1 pr-1.5 pl-2 text-xs',
+          ),
+        ],
+        [
+          h.span([h.Class('size-1.5 shrink-0 rounded-full'), h.Style({ background: colour })], []),
+          h.span([h.Class('min-w-0 max-w-36 truncate font-medium')], [entry.name]),
+          entry.owner
+            ? h.span(
+                [
+                  h.Class(
+                    'shrink-0 text-[calc(10px*var(--type-scale))] uppercase tracking-[0.08em] text-muted-foreground',
+                  ),
+                ],
+                [t.room.owner],
+              )
+            : h.empty,
+          entry.id === seat
+            ? h.span([h.Class('shrink-0 text-muted-foreground')], [t.room.you])
+            : h.empty,
+          owner && !entry.owner
+            ? button(
+                {
+                  onClick: Message.RoomKickAsked({ seat: entry.id }),
+                  variant: 'ghost',
+                  size: 'icon-xs',
+                  className: 'size-5 text-muted-foreground',
+                  attributes: [h.AriaLabel(t.room.kick)],
+                },
+                icon(h, X, 'size-3'),
+                h,
+              )
+            : h.empty,
+        ],
+      )
+    }),
+  )
+
+  const voteCard = (open: typeof vote & { readonly id: number }) => {
+    const yes = open.yes.length
+    const mine = open.yes.includes(seat) ? 'yes' : open.no.includes(seat) ? 'no' : null
+    return h.div(
+      [h.Class(cn(WELL, 'flex flex-col gap-2.5 p-3'))],
+      [
+        h.div(
+          [h.Class('flex items-baseline justify-between gap-3')],
+          [
+            h.span(
+              [h.Class('text-sm font-medium')],
+              [open.kind === 'fund' ? t.room.voteFund : t.room.voteExit],
+            ),
+            h.span(
+              [h.Class(cn(FIGURE, 'text-xs text-muted-foreground'))],
+              [`${yes} / ${model.room.seats.length}`],
+            ),
+          ],
+        ),
+        h.div(
+          [h.Class('flex items-center gap-1.5')],
+          model.room.seats.map((entry) => {
+            const colour = SEAT_COLOURS[entry.colour % SEAT_COLOURS.length] ?? SEAT_COLOURS[0]
+            const yes = open.yes.includes(entry.id)
+            const no = open.no.includes(entry.id)
+            return h.span(
+              [
+                h.Key(`ballot-${entry.id}`),
+                h.Class('size-2 rounded-full'),
+                h.Style({
+                  // A yes is filled, a no is a ring, and a Seat that has not voted is faint.
+                  background: no ? 'transparent' : colour,
+                  boxShadow: no ? `inset 0 0 0 1px ${colour}` : 'none',
+                  opacity: yes || no ? '1' : '0.3',
+                }),
+              ],
+              [],
+            )
+          }),
+        ),
+        h.div(
+          [h.Class('flex gap-2')],
+          [
+            button(
+              {
+                onClick: Message.RoomBallot({ vote: open.id, yes: true }),
+                variant: mine === 'yes' ? 'default' : 'outline',
+                size: 'lg',
+                className: 'flex-1',
+              },
+              t.room.coins,
+              h,
+            ),
+            button(
+              {
+                onClick: Message.RoomBallot({ vote: open.id, yes: false }),
+                variant: mine === 'no' ? 'secondary' : 'outline',
+                size: 'lg',
+                className: 'flex-1',
+              },
+              t.room.no,
+              h,
+            ),
+          ],
+        ),
+      ],
+    )
+  }
+
+  const voteStart = h.div(
+    [h.Class('flex gap-2')],
+    [
+      button(
+        {
+          onClick: Message.RoomVoteAsked({ kind: 'fund' }),
+          variant: 'outline',
+          size: 'lg',
+          className: 'min-w-0 flex-1 gap-1.5 px-2',
+        },
+        [icon(h, ArrowUpRight, 'size-4'), t.room.voteFund],
+        h,
+      ),
+      button(
+        {
+          onClick: Message.RoomVoteAsked({ kind: 'exit' }),
+          variant: 'outline',
+          size: 'lg',
+          className: 'min-w-0 flex-1 gap-1.5 px-2',
+        },
+        [icon(h, DoorOpen, 'size-4'), t.room.voteExit],
+        h,
+      ),
+    ],
+  )
+
+  const speedRow = h.div(
+    [h.Class('flex gap-1.5')],
+    [0.5, 1, 3, 10].map((speed) =>
+      button(
+        {
+          onClick: Message.RoomSpeedChosen({ value: speed }),
+          variant: model.room.speed === speed ? 'default' : 'outline',
+          size: 'lg',
+          className: cn(FIGURE, 'flex-1'),
+        },
+        `${speed}×`,
+        h,
+      ),
     ),
   )
 
   const body: Array<Html> = []
+
   if (RoomPhase.isAnyOf(['Idle', 'Closed'])(phase)) {
-    body.push(h.p([h.Class('px-5 pb-2 text-sm text-muted-foreground')], [t.room.onlineHint]))
+    body.push(h.p([h.Class('px-5 pt-4 text-sm text-muted-foreground')], [t.room.onlineHint]))
     if (file !== null)
       body.push(
-        menuItem(
-          file.online === null ? t.room.online : `${t.room.code} ${file.online.code}`,
-          Play,
-          Message.RoomPublishAsked(),
-          h,
-          true,
+        h.div(
+          [h.Class('px-5 pt-4')],
+          [
+            button(
+              {
+                onClick: Message.RoomPublishAsked(),
+                size: 'lg',
+                className: 'w-full justify-start gap-2.5',
+              },
+              [
+                icon(h, Play, 'size-4'),
+                file.online === null ? t.room.online : `${t.room.code} ${file.online.code}`,
+              ],
+              h,
+            ),
+            h.p([h.Class('pt-2 text-xs text-muted-foreground')], [t.room.joinHint]),
+          ],
         ),
       )
     if (RoomPhase.guards.Closed(phase))
-      body.push(h.p([h.Class('px-5 pt-2 text-sm text-muted-foreground')], [t.room.ended]))
-  } else if (RoomPhase.guards.Connecting(phase)) {
-    body.push(h.p([h.Class('px-5 pb-2 text-sm text-muted-foreground')], [t.room.joining]))
-    body.push(row(t.room.code, phase.code))
+      body.push(h.p([h.Class('px-5 pt-3 text-sm text-muted-foreground')], [t.room.ended]))
   } else {
-    body.push(row(t.room.code, phase.code))
-    body.push(
-      h.a(
-        [
-          h.Href(`${window.location.origin}/room/${phase.code}`),
-          h.Class('block whitespace-nowrap px-5 py-1.5 text-sm text-link underline'),
-        ],
-        [`/room/${phase.code}`],
-      ),
-    )
-    body.push(row(t.room.seats, String(model.room.seats.length)))
-    body.push(row(t.room.speed, `${model.room.speed}×`))
-    if (RoomPhase.guards.Reconnecting(phase))
-      body.push(h.p([h.Class('px-5 pt-2 text-sm text-muted-foreground')], [t.room.connecting]))
-  }
-
-  if (live) {
-    body.push(h.div([h.Class('mt-2 border-t border-hairline')], []))
-    body.push(...seatRows)
-    body.push(h.div([h.Class('mt-2 border-t border-hairline')], []))
-    if (vote === null) {
-      body.push(menuItem(t.room.voteFund, ArrowUpRight, Message.RoomVoteAsked({ kind: 'fund' }), h))
-      body.push(menuItem(t.room.voteExit, DoorOpen, Message.RoomVoteAsked({ kind: 'exit' }), h))
-    } else {
-      body.push(row(t.room.vote, `${vote.yes.length} / ${model.room.seats.length}`))
-      body.push(
-        menuItem(
-          t.room.coins,
-          ArrowUpRight,
-          Message.RoomBallot({ vote: vote.id, yes: true }),
-          h,
-          true,
-        ),
-      )
-      body.push(menuItem(t.room.no, X, Message.RoomBallot({ vote: vote.id, yes: false }), h))
-    }
-    if (owner) {
-      body.push(h.div([h.Class('mt-2 border-t border-hairline')], []))
-      for (const speed of [0.5, 1, 3, 10])
-        body.push(
-          menuItem(
-            `${t.room.speed} ${speed}×`,
-            Play,
-            Message.RoomSpeedChosen({ value: speed }),
-            h,
-            speed === model.room.speed,
-          ),
-        )
+    if (RoomPhase.guards.Connecting(phase))
+      body.push(h.p([h.Class('px-5 pt-4 text-sm text-muted-foreground')], [t.room.joining]))
+    body.push(codeBlock(phase.code))
+    body.push(nameBlock)
+    if (live) {
+      if (RoomPhase.guards.Reconnecting(phase))
+        body.push(h.p([h.Class('px-5 pt-3 text-xs text-muted-foreground')], [t.room.connecting]))
+      body.push(divider())
+      body.push(section(`${t.room.seats} · ${model.room.seats.length}`, [seatChips]))
+      body.push(divider())
+      body.push(section(t.room.vote, vote === null ? [voteStart] : [voteCard(vote)]))
+      if (owner) {
+        body.push(divider())
+        body.push(section(t.room.speed, [speedRow]))
+      }
     }
   }
 
   const actions: Array<Html> = []
-  if (live && owner)
+  if (live && owner) {
     actions.push(primaryButton(t.room.takeOffline, Message.RoomTakeOfflineAsked(), h))
-  else actions.push(primaryButton(t.room.leave, Message.RoomLeaveAsked(), h))
-  if (live && owner)
     actions.push(secondaryButton(t.room.leave, Message.RoomLeaveAsked(), h, LogOut))
+  } else if (live || RoomPhase.guards.Connecting(phase)) {
+    actions.push(primaryButton(t.room.leave, Message.RoomLeaveAsked(), h))
+  }
 
   return shell(
     t.room.title,
@@ -438,8 +622,8 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     [
       // A Room with four Seats and a vote runs past a short window, so the rows
       // scroll and the actions stay in reach.
-      h.div([h.Class(`flex min-h-0 flex-col overflow-y-auto ${SCROLL}`)], body),
-      footer(actions, h),
+      h.div([h.Class(`flex min-h-0 flex-col overflow-y-auto pb-4 ${SCROLL}`)], body),
+      actions.length === 0 ? h.empty : footer(actions, h),
     ],
     'max-w-[calc(380px*var(--type-scale))]',
     h,

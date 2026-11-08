@@ -1,7 +1,7 @@
 import { localizeBuilder } from '../i18n/builder.ts'
 import type { Document, HtmlBuilder } from 'foldkit/html'
 import { toast } from '@/components/lab/toast.ts'
-import { settingsPanel } from '@/components/lab/panels.ts'
+import { roomPanel, settingsPanel } from '@/components/lab/panels.ts'
 import { labScreen } from './screens.ts'
 import { titleScreen } from './title.ts'
 import type { Message } from './message.ts'
@@ -49,6 +49,10 @@ export const view = (model: Model, builder: HtmlBuilder<Message>): Document => {
         ),
         // Outside the title's dark palette, so Settings looks the same as on the board.
         !onBoard(model.route) && model.panel === 'settings' ? settingsPanel(model, h) : h.empty,
+        // A Room URL that has not joined yet, or that ended, still says where it stands.
+        AppRoute.guards.Room(model.route) && model.panel === 'room' && !boardFilled(model)
+          ? roomPanel(model, h)
+          : h.empty,
         toast(model.toast, model.panel !== 'none', h),
       ],
     ),

@@ -2398,6 +2398,34 @@ test('a board action in a live Room goes out as the Intent it stands for', () =>
   })
 })
 
+/* A Seat's name lives in this browser: the player types it, and the Room hears it. */
+test('a Seat keeps the name the player types', () => {
+  const model: Model = {
+    ...inLab(),
+    room: { ...EMPTY_ROOM, name: 'MarvelousMonkey', draft: 'MarvelousMonkey' },
+  }
+  const typed = update(model, Message.RoomNameChanged({ name: 'QuietQuokka' })).model
+  expect(typed.room.draft).toBe('QuietQuokka')
+  expect(typed.room.name).toBe('MarvelousMonkey')
+  const saved = update(typed, Message.RoomNameSaved()).model
+  expect(saved.room.name).toBe('QuietQuokka')
+})
+
+test('an empty name is not saved, and a name the Room already has changes nothing', () => {
+  const named: Model = {
+    ...inLab(),
+    room: { ...EMPTY_ROOM, name: 'BraveBison', draft: 'BraveBison' },
+  }
+  const blank = update(
+    { ...named, room: { ...named.room, draft: '   ' } },
+    Message.RoomNameSaved(),
+  ).model
+  expect(blank.room.name).toBe('BraveBison')
+  expect(blank.room.draft).toBe('BraveBison')
+  const same = update(named, Message.RoomNameSaved()).model
+  expect(same).toBe(named)
+})
+
 /* Raising a round is a vote, so the action itself never leaves a Seat's browser. */
 test('an action only a vote may take is refused in a live Room', () => {
   const model: Model = {

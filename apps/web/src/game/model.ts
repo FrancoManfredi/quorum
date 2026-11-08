@@ -388,6 +388,10 @@ export const Room = Schema.Struct({
   vote: Schema.NullOr(Vote),
   /** The number on the next Intent batch this tab sends. */
   seq: Schema.Finite,
+  /** The name this tab sends on the next Hello, and shows in the Seat list. */
+  name: Schema.String,
+  /** What the name field holds while the player types. */
+  draft: Schema.String,
 })
 export type Room = typeof Room.Type
 
@@ -397,6 +401,8 @@ export const EMPTY_ROOM: Room = {
   speed: 1,
   vote: null,
   seq: 1,
+  name: '',
+  draft: '',
 }
 
 /** The Room is live: the server steps the Company, not this tab. */

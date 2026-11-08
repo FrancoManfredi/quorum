@@ -13,7 +13,9 @@ import {
 } from '../model.ts'
 import { RoomPhase, roomStep } from '../room-machine.ts'
 import { withFile } from '../saves.ts'
-import { WriteCompany, PublishRoom, SendRoom } from '../commands.ts'
+import { CopyText, WriteCompany, PublishRoom, SendRoom } from '../commands.ts'
+import { ROOM_NAME_LENGTH } from '../names.ts'
+import { setRoomName } from '../../platform/room-socket.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { ServerMessage } from '@quorum/simulation/room'
 import type { ClientMessage } from '@quorum/simulation/room'
@@ -48,8 +50,13 @@ type RoomTag =
   | 'RoomKickAsked'
   | 'RoomSent'
   | 'RoomChecked'
+  | 'RoomNameChanged'
+  | 'RoomNameSaved'
+  | 'RoomLinkCopied'
 
-const emptyRoom = (phase: Room['phase']): Room => ({
+/** The Room's server state, cleared: the name this tab sends stays. */
+const emptyRoom = (model: Model, phase: Room['phase']): Room => ({
+  ...model.room,
   phase,
   seats: [],
   speed: 1,
@@ -96,6 +103,9 @@ const send = (model: Model, message: ClientMessage): UpdateResult => ({
 const received = (model: Model, message: ServerMessage): UpdateResult =>
   ServerMessage.match(message, {
     Welcome: (frame) => {
+      // The first join shows the Board; a reconnect (a rename, a dropped socket)
+      // leaves the panel the player has open alone.
+      const first = RoomPhase.guards.Connecting(model.room.phase)
       const next: Model = {
         ...painted(model, {
           game: frame.game,
@@ -105,7 +115,7 @@ const received = (model: Model, message: ServerMessage): UpdateResult =>
           samples: frame.samples,
           time: frame.game.time,
         }),
-        panel: 'none',
+        panel: first ? 'none' : model.panel,
         room: {
           ...model.room,
           phase: roomStep(model.room.phase, {
@@ -214,7 +224,7 @@ const published = (model: Model, code: string, token: string): UpdateResult => {
     saves,
     route: AppRoute.Room({ room: code }),
     panel: 'room',
-    room: emptyRoom(roomStep(model.room.phase, { _tag: 'Connecting', code })),
+    room: emptyRoom(model, roomStep(model.room.phase, { _tag: 'Connecting', code })),
   }
   return {
     model: next,
@@ -248,6 +258,33 @@ export const roomHandlers = (model: Model): MessageCases<UpdateResult, RoomTag> 
       'plain',
     )
   },
+  RoomNameChanged: ({ name }) => ({
+    model: {
+      ...model,
+      room: { ...model.room, draft: name.slice(0, ROOM_NAME_LENGTH) },
+    },
+  }),
+  RoomNameSaved: () => {
+    const name = model.room.draft.trim().slice(0, ROOM_NAME_LENGTH)
+    if (name === '') return { model: { ...model, room: { ...model.room, draft: model.room.name } } }
+    if (name === model.room.name) return { model }
+    setRoomName(name)
+    return { model: { ...model, room: { ...model.room, name, draft: name } } }
+  },
+  RoomLinkCopied: () => {
+    const code = roomCode(model)
+    if (code === null) return { model }
+    return {
+      model,
+      commands: [
+        CopyText({
+          text: `${window.location.origin}/room/${code}`,
+          done: say(model).room.linkCopied,
+          blocked: say(model).toasts.clipboardBlocked,
+        }),
+      ],
+    }
+  },
   RoomPublishAsked: () => {
     const file = currentFile(model)
     if (file === null) return withToast(model, say(model).room.notAvailable, 'warn')
@@ -258,6 +295,7 @@ export const roomHandlers = (model: Model): MessageCases<UpdateResult, RoomTag> 
           route: AppRoute.Room({ room: file.online.code }),
           panel: 'room',
           room: emptyRoom(
+            model,
             roomStep(model.room.phase, { _tag: 'Connecting', code: file.online.code }),
           ),
         },

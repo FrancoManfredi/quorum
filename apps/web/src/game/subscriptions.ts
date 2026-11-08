@@ -10,7 +10,7 @@ import { TeamMessage } from './team.ts'
 import { ResearchMessage } from './research.ts'
 import { clockAway, halted, onlineFileOf, roomCode, type Model } from './model.ts'
 import { inRoom } from './room-machine.ts'
-import { connect, nameOf, onMessage, onStatus, seatOf, stop } from '@/platform/room-socket.ts'
+import { connect, onMessage, onStatus, seatOf, stop } from '@/platform/room-socket.ts'
 import { onBoard } from './route.ts'
 import { TICK_MS, REPEAT_MS } from './update.ts'
 
@@ -349,7 +349,7 @@ export const subscriptions = {
           return {
             code,
             seat: seatOf(),
-            name: nameOf(),
+            name: model.room.name,
             token: code === null ? null : (onlineFileOf(model, code)?.online?.token ?? null),
             live: inRoom(model.room.phase),
           }

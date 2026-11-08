@@ -19,4 +19,10 @@ export const roomCases = {
   RoomSent: {},
   /** The Room a link named does not exist, or it has ended. */
   RoomChecked: { code: Schema.String, exists: Schema.Boolean },
+  /** The name field, while the player types. */
+  RoomNameChanged: { name: Schema.String },
+  /** The player keeps the name they typed. */
+  RoomNameSaved: {},
+  /** Copies this Room's link. */
+  RoomLinkCopied: {},
 }

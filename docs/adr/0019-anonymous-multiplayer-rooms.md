@@ -44,6 +44,8 @@ The message schemas live beside the Simulation because their payloads are the Ga
 - A funding round and the end of a session are votes. A vote passes when yes is more than half of the
   connected Seats; a tie fails, and a Seat that leaves drops its ballot.
 - The owner sets the speed and can remove a Seat. Anyone answers an incident.
+- A Seat is a name and a colour, and nothing else. The first visit picks a name from two word lists,
+  and the Room panel lets the player change it. No account, no email, no password.
 - The Company runs while at least one Seat is connected and freezes when the Room empties. The Room
   keeps it for 24 hours, then reports it expired and leaves the owner the copy from when it went
   online.

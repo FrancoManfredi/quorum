@@ -1,5 +1,6 @@
 import { Option, Schema } from 'effect'
 import { ROOM_SOCKET_PATH } from '@quorum/rpc'
+import { ROOM_NAME_LENGTH, randomName } from '../game/names.ts'
 import { ClientMessage, ServerMessage, type ClientMessage as Client } from '@quorum/simulation/room'
 
 /* ==========================================================================
@@ -137,15 +138,19 @@ export const seatOf = (): string => {
   return seat
 }
 
-/** What the other Seats see. Local to the browser until the name field exists. */
+/** The browser's storage, or none while the app is under test. */
+const names = (): Storage | null => (typeof window === 'undefined' ? null : window.localStorage)
+
+/** What the other Seats see. The first visit picks a name, and the player may change it. */
 export const nameOf = (): string => {
-  const stored = window.localStorage.getItem(NAME_KEY)
+  const store = names()
+  const stored = store?.getItem(NAME_KEY) ?? null
   if (stored !== null && stored.trim() !== '') return stored
-  const name = `Guest ${seatOf().slice(0, 4).toUpperCase()}`
-  window.localStorage.setItem(NAME_KEY, name)
+  const name = randomName()
+  store?.setItem(NAME_KEY, name)
   return name
 }
 
 export const setRoomName = (name: string): void => {
-  window.localStorage.setItem(NAME_KEY, name.trim().slice(0, 24))
+  names()?.setItem(NAME_KEY, name.trim().slice(0, ROOM_NAME_LENGTH))
 }

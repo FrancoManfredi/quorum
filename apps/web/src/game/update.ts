@@ -27,6 +27,7 @@ import { isExited } from './company-machine.ts'
 import { isSending, isSent } from './survey-machine.ts'
 import { has } from '@quorum/simulation/lookups'
 import { ledgerOf, Model, halted, EMPTY_ROOM, EMPTY_SURVEY } from './model.ts'
+import { nameOf } from '../platform/room-socket.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
 import { type Ledger } from '@quorum/simulation/ledger'
@@ -52,15 +53,16 @@ import { roomHandlers } from './update/room.ts'
 
 export { TICK_MS, REPEAT_MS, SPEEDS, speedsOf } from './update/constant.ts'
 
-export const initialModel = (): Model =>
-  Model.make({
+export const initialModel = (): Model => {
+  const seatName = nameOf()
+  return Model.make({
     route: AppRoute.Title(),
     boot: { _tag: 'Ready' },
     panel: 'none',
     toast: null,
     toastSeq: 0,
     board: freshBoard(newGame()),
-    room: EMPTY_ROOM,
+    room: { ...EMPTY_ROOM, name: seatName, draft: seatName },
     company: null,
     companyPhase: { _tag: 'None' },
     saves: EMPTY_SAVE_INDEX,
@@ -94,6 +96,7 @@ export const initialModel = (): Model =>
     frameworkPicker: initFrameworkPicker(),
     moreMenu: UiMenu.init({ id: 'more-menu' }),
   })
+}
 
 /** A fresh load opens the screen its URL names. A board opens once the file or
  *  store that fills it has loaded, so a reload stays on the board the player
@@ -101,18 +104,16 @@ export const initialModel = (): Model =>
  *  clock-in splash. */
 export const init: Runtime.RoutingApplicationInit<Model, Message, void, ApiRpc> = (url) => {
   const route = urlToAppRoute(url)
+  const base = initialModel()
   return {
     model: {
-      ...initialModel(),
+      ...base,
       route,
       // A Room URL joins straight away; the welcome fills the Board.
       ...(AppRoute.guards.Room(route)
         ? {
             panel: 'room' as const,
-            room: {
-              ...EMPTY_ROOM,
-              phase: { _tag: 'Connecting' as const, code: route.room },
-            },
+            room: { ...base.room, phase: { _tag: 'Connecting' as const, code: route.room } },
           }
         : {}),
       // A board URL skips the splash: the player was already clocked in.

@@ -498,7 +498,12 @@ const companyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
           mark: companyMark(file.logo, 'booth-logo-mini', h),
           label: file.name,
           detail: `${t.catalog.ventures[file.venture].name} · ${t.title.eraUsersTime(t.catalog.eras[file.stage]?.name ?? '', compact(file.users), clock(file.time))}`,
-          side: file.id === model.saves.current ? t.title.current : dateOf(file),
+          side:
+            file.online !== null
+              ? `${t.room.onlineMark} · ${file.online.code}`
+              : file.id === model.saves.current
+                ? t.title.current
+                : dateOf(file),
           message: Message.CompanyChosen({ id: file.id }),
         },
         h,
