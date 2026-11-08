@@ -7,7 +7,7 @@ aliases: inbox, mail, spam, thread, dashboard, metrics, glossary, pager, alerts,
 gdd: /design/15-ui-ux
 ---
 
-Press `I` for Mail, `D` for the Dashboard and `G` for the Glossary. The pager and the region tabs sit on the board itself, so you never open them.
+Press `I` for Mail and `D` for the Dashboard. The pager and the region tabs sit on the board itself, so you never open them.
 
 ## The Inbox
 
@@ -59,17 +59,11 @@ More charts appear with each visibility Research, and a chart without its Resear
 
 ## The Glossary
 
-The Glossary opens with `G`, after you meet your first Tradeoff card. It explains the engineering terms the game uses.
+The game links each engineering term to its page on the [Glossary](/glossary) of this wiki. The book button in the toolbar opens the hub, after you meet your first Tradeoff card.
 
-![The Glossary with the search box, the category chips and a term open](/play/glossary.png)
+A term chip on a Tradeoff card, a `?` chip on a Research item, and a CVE id in a Security advisory all open their page in a new tab. Security advisories are listed under **Security** on the hub.
 
-1. Type in **Search the glossary** to filter the list. Accents do not matter.
-2. Pick a category chip, such as Performance, Reliability or Data. **All** clears the filter.
-3. Click a term in the **Terms** list. Its entry opens with a short explanation, related terms and links to learn more.
-
-The counter at the top, such as "5 / 80", shows how many terms you have met. A check mark marks each met term. Terms appear as the game shows them to you: a Tradeoff card, an advisory in Mail, or a link from an Inspector.
-
-The whole Glossary is also on the wiki, under [Glossary](/glossary).
+Each page says what the term means at work and what it does in Quorum, with related terms and sources to read next.
 
 ## The pager and the incident bar
 

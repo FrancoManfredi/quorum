@@ -6,7 +6,7 @@ export const SYNC_MS = 2
 /** Calendar minutes a new Read Replica copies per GB before it serves, and the least it takes. */
 export const REPLICA_SYNC_MINUTES_PER_GB = 0.5
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const replicaGlossary: ReadonlyArray<string> = [
   'eventual-consistency',
   'read-replica',

@@ -41,7 +41,7 @@ and [pillar 5: respect the player](/design/01-vision#pillar-5-respect-the-player
 The layout shows every element, but a new Company starts with fewer
 ([Progressive disclosure](#progressive-disclosure)). The toolbar at the top right holds Research
 (`R`), Team (`T`), Playbooks, Dashboard, How to play, Glossary, Undo, Redo, Pause, Speed, Tidy, Fit and
-Fullscreen. The dock holds only the build groups. Cost has no button: `$` opens it.
+Fullscreen. Glossary opens the wiki, in a new tab. The dock holds only the build groups. Cost has no button: `$` opens it.
 
 ## Progressive disclosure
 
@@ -79,7 +79,7 @@ time the game state makes it useful.
 | Hiring in the Team panel           | The Pre-seed Era starts                                           |
 | Engineering in the Team panel      | The first memory leak or the first tech debt                      |
 | Autopilot in the Team panel        | The backlog holds two items                                       |
-| Glossary (`G`)                     | The first Tradeoff card opens                                     |
+| Glossary                           | The first Tradeoff card opens                                     |
 | Dashboard (`D`)                    | Metrics is researched                                             |
 | The pager                          | Alerting is researched                                            |
 | Postmortems                        | The first incident ends                                           |
@@ -211,7 +211,7 @@ replication mode, a deploy strategy, a pricing model.
   from its RAM per vCPU and its price per vCPU, which 05's family table carries. Throughput is vCPU
   per dollar, memory is RAM per vCPU, and a Burstable box loses tail, resilience, and operability to
   its credit throttle. Velocity sits neutral, because the Stack sets it, not the family.
-- Glossary terms on a card are buttons that open the glossary at that entry.
+- Glossary terms on a card are links that open that entry on the wiki, in a new tab.
 
 ## Bulk actions
 
@@ -241,7 +241,6 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 | Cost      | `$` only     | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
 | Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                                                                          |
 | Incidents | `D`          | The running Incident and its Postmortems with their three times, as a Dashboard row ([below](#company-and-incidents-panels)).        |
-| Glossary  | `G`          | The engineering glossary, with discovered entries highlighted                                                                        |
 | Company   | `D`          | Cash, runway, the Team's shape, and the funding history, as a Dashboard row ([below](#company-and-incidents-panels))                 |
 | Churn     | Users on HUD | The [Churn breakdown](/design/12-observability#the-churn-breakdown) by region                                                        |
 

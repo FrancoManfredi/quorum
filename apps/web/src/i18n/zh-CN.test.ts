@@ -1,14 +1,12 @@
 import { describe, expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
-import { GLOSSARY } from '@quorum/simulation/catalog'
 import { inboxPanel, peek } from '../components/lab/inbox.ts'
-import { glossaryPanel } from '../components/lab/glossary.ts'
 import { ADVICE } from '../game/copy/index.ts'
 import { EMPTY_INBOX, mailed } from '../game/inbox.ts'
 import { initialModel, update } from '../game/update.ts'
 import { localizeBuilder } from './builder.ts'
 
-describe('Chinese mail and glossary views', () => {
+describe('Chinese mail views', () => {
   test('a funding letter written from its data shows in both the preview and the inbox without changing stored mail', () => {
     const letter = ADVICE.round[4]!({ from: 'Sequel Capital', round: 'Pre-seed' })
     const inbox = mailed(
@@ -57,23 +55,5 @@ describe('Chinese mail and glossary views', () => {
       Scene.expect(Scene.text(letter.subject)).toExist(),
     )
     expect(JSON.stringify(inbox)).toBe(original)
-  })
-
-  test('the annotation definition, explanation and source label translate and remain searchable', () => {
-    const entry = GLOSSARY.find(({ id }) => id === 'annotation')!
-    const base = initialModel()
-    const model = {
-      ...base,
-      prefs: { ...base.prefs, locale: 'zh-CN' as const },
-      glossary: { ...base.glossary, query: '注解' },
-    }
-    Scene.scene(
-      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
-      Scene.given(model),
-      Scene.expect(Scene.text('注解')).toExist(),
-      Scene.expect(Scene.text(entry.definition)).not.toExist(),
-      Scene.expect(Scene.text(entry.inGame)).not.toExist(),
-      Scene.expect(Scene.text('Learn more')).not.toExist(),
-    )
   })
 })

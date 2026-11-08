@@ -16,6 +16,7 @@ import type { GameNode } from '@quorum/simulation/state'
 import { deltaText } from './hud.ts'
 import { money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
+import { glossaryUrl } from '@/platform/analytics.ts'
 import type { Model, PreviewFigures, TradeoffOption } from '@/game/model.ts'
 import type { TradeoffState } from '@/game/tradeoff-machine.ts'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -38,7 +39,7 @@ const axisLabelOf = (t: Messages): Record<Axis, string> => ({
   operability: t.tradeoff.operability,
 })
 
-/** Glossary headings for the anchors the catalog names (packages/simulation/src/catalog/glossary.ts). */
+/** Term names for the anchors the catalog names, shown as links to the wiki glossary. */
 const termsOf = (t: Messages): Readonly<Record<string, string>> => ({
   'process-per-request': t.tradeoff.processPerRequest,
   'shared-nothing': t.tradeoff.sharedNothing,
@@ -352,11 +353,12 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
         ? h.div(
             [h.Class('flex flex-wrap gap-1.5')],
             stack.glossary.map((anchor) =>
-              h.button(
+              h.a(
                 [
                   h.Key(anchor),
-                  h.Type('button'),
-                  h.OnClick(Message.GlossaryOpened({ id: anchor })),
+                  h.Href(glossaryUrl(anchor)),
+                  h.Target('_blank'),
+                  h.Rel('noreferrer noopener'),
                   h.Class(
                     'rounded-md bg-nested px-1.5 py-0.5 text-[calc(11px*var(--type-scale))] text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground',
                   ),

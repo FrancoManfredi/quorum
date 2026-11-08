@@ -1,5 +1,6 @@
 import { cn } from 'cn'
 import {
+  CVE_TERMS,
   GLOSSARY,
   GLOSSARY_CATEGORIES,
   type GlossaryCategory,
@@ -19,7 +20,7 @@ import {
   termPath,
 } from './shared.ts'
 
-/* One page per engineering term, and a hub grouped by category. The text is the game's Glossary panel's. */
+/* One page per engineering term, and a hub grouped by category. The game links its terms here. */
 
 const CATEGORY_LABELS: Record<GlossaryCategory, string> = {
   performance: 'Performance',
@@ -34,6 +35,9 @@ const CATEGORY_LABELS: Record<GlossaryCategory, string> = {
   business: 'Business',
 }
 
+/** Every page the glossary lists: the engineering terms, then the CVEs the Simulation can disclose. */
+const ALL_TERMS: ReadonlyArray<GlossaryEntry> = [...GLOSSARY, ...CVE_TERMS]
+
 const entity = (entry: GlossaryEntry): Page => {
   const path = termPath(entry.id)
   const text = authored(path)
@@ -42,7 +46,7 @@ const entity = (entry: GlossaryEntry): Page => {
     title: entry.term,
     summary: entry.definition,
     parent: '/glossary',
-    order: GLOSSARY.indexOf(entry),
+    order: ALL_TERMS.indexOf(entry),
     aliases: [entry.id, CATEGORY_LABELS[entry.category]],
     source: text.source,
     headings: [
@@ -123,8 +127,8 @@ const entity = (entry: GlossaryEntry): Page => {
   })
 }
 
-const sorted = [...GLOSSARY].sort((a, b) => a.term.localeCompare(b.term))
-const entities = GLOSSARY.map(entity)
+const sorted = [...ALL_TERMS].sort((a, b) => a.term.localeCompare(b.term))
+const entities = ALL_TERMS.map(entity)
 
 const hub = page({
   path: '/glossary',
@@ -134,13 +138,13 @@ const hub = page({
   order: 6,
   aliases: ['terms', 'definitions', 'dictionary'],
   headings: headingsFor(GLOSSARY_CATEGORIES.map((category) => CATEGORY_LABELS[category])),
-  text: GLOSSARY.map((entry) => entry.term).join(' '),
+  text: ALL_TERMS.map((entry) => entry.term).join(' '),
   body: (_model, h) =>
     h.div(
       [h.Class('prose')],
       [
         paragraph(
-          'Quorum models real systems, so its words are real words. Each term has the meaning you would use at work, and what it does in the game.',
+          'Quorum models real systems, so its words are real words. Each term has the meaning you would use at work, and what it does in the game. Security also lists the advisories the Simulation can disclose.',
           h,
         ),
         ...GLOSSARY_CATEGORIES.map((category) =>

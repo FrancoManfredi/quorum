@@ -2,7 +2,7 @@ import { Effect, Schema } from 'effect'
 import { def } from './define.ts'
 import { REQUEST_KINDS } from '../catalog/kinds.ts'
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const serverGlossary: ReadonlyArray<string> = ['process-per-request']
 
 export const PmMode = Schema.Literals(['static', 'dynamic', 'ondemand'])

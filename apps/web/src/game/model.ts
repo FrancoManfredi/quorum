@@ -63,7 +63,6 @@ export const Panel = Schema.Literals([
   'challenge',
   'menu',
   'settings',
-  'glossary',
   'inbox',
   'dashboard',
   'churn',
@@ -264,7 +263,6 @@ export const Inbox = Schema.Struct({
 })
 export type Inbox = typeof Inbox.Type
 
-/** The Glossary panel: its open entry, search, category filter, and the panel it closes back to. */
 /** The Team panel's transient drag gesture for moving engineers between teams. */
 export const ServiceDraft = Schema.Struct({
   /** The name typed for the Service a split makes. */
@@ -283,15 +281,6 @@ export const Research = Schema.Struct({
   drag: DragAndDrop.Model,
 })
 export type Research = typeof Research.Type
-
-export const Glossary = Schema.Struct({
-  focus: Schema.NullOr(Schema.String),
-  /** Research when a (?) link opened it. */
-  returnTo: Panel,
-  query: Schema.String,
-  category: Schema.NullOr(Schema.String),
-})
-export type Glossary = typeof Glossary.Type
 
 /** The board's clock: its speed, whether it runs, and when it last saved and sampled. */
 export const Clock = Schema.Struct({
@@ -457,7 +446,6 @@ export const Model = Schema.Struct({
   today: Schema.String,
   /** The player's settings, kept in the browser apart from saves. */
   prefs: Prefs,
-  glossary: Glossary,
   languagePicker: Listbox.Model,
   /** The Settings panel's sound level, whose value lives in `prefs.volume`. */
   volumeSlider: VolumeSlider.Model,

@@ -1,5 +1,4 @@
 import { DashboardMessage } from '../dashboard.ts'
-import { GlossaryMessage } from '../glossary.ts'
 import { InboxMessage } from '../inbox.ts'
 import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Message as VolumeSliderMessage } from '@quorum/ui/primitives/slider'
@@ -21,7 +20,7 @@ export const panelsCases = {
   },
   PanelClosed: {},
 
-  /** Settings and the Glossary (15). Each panel is a Submodel with its own Messages. */
+  /** Settings (15). Each panel is a Submodel with its own Messages. */
   PrefsLoaded: { json: Schema.NullOr(Schema.String) },
   PrefsChanged: { message: PrefsMessage },
   /** The Exit survey's two fields; the parent sends the answers. */
@@ -29,8 +28,6 @@ export const panelsCases = {
   WindowBlurred: {},
   WindowFocused: {},
   InsightHelpToggled: {},
-  GlossaryOpened: { id: Schema.NullOr(Schema.String) },
-  GlossaryChanged: { message: GlossaryMessage },
   InboxChanged: { message: InboxMessage },
 
   /** The save as text (15 "Save"): copied out, or asked for and pasted back. */

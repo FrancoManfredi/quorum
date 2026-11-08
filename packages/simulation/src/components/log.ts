@@ -39,7 +39,7 @@ export const LOG_REPLICAS = [1, 2, 3] as const
  */
 export const LOG_LOSS = { '0': 0.1, '1': 0.05, all: 0 } as const
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const logGlossary: ReadonlyArray<string> = [
   'at-least-once-delivery',
   'cdc-change-data-capture',

@@ -40,7 +40,7 @@ export type LbVariant = keyof typeof LB_VARIANTS
 export const STICKY_SHARE = 0.4
 export const STICKY_DECAY = 0.8
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const lbGlossary: ReadonlyArray<string> = [
   'health-check',
   'load-balancer',

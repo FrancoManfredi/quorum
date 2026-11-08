@@ -52,7 +52,7 @@ export const GPU_BATCHES = [
   { batch: 32, gain: 2.2, ttft: 500 },
 ] as const
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const gpuGlossary: ReadonlyArray<string> = ['model-inference']
 
 /** A GPU Node's GPU type (05 "GPU Node"). */

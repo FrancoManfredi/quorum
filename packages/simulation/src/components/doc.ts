@@ -30,7 +30,7 @@ export const DOC_PATTERN_FACTOR = 1.1
 /** A Feature that changes the data shape costs this share of its Dev Hours there (07: −25%). */
 export const DOC_SHAPE_DH = 0.75
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const docGlossary: ReadonlyArray<string> = ['hot-key', 'sharding']
 
 /** The saved properties of a doc Node, with the defaults an old save decodes to. */

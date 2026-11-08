@@ -1,16 +1,16 @@
 import { expect, test } from 'vitest'
-import { CVE_DEFS } from '@quorum/simulation/catalog'
+import { CVE_DEFS, CVE_TERMS, cveTermId } from '@quorum/simulation/catalog'
 import { preseedGame } from '@quorum/simulation/company'
 import type { WorkItem } from '@quorum/simulation/state'
 import { EMPTY_INBOX, folderHolds, folderList, labelHolds, mailed } from './inbox.ts'
 import { SPAM } from './copy/index.ts'
-import { CVE_TERMS, advisoryTell, cveIdIn, cveTermId, glossaryKnowsCve } from './advisories.ts'
+import { advisoryTell, cveIdIn, glossaryKnowsCve } from './advisories.ts'
 import { disclosureFact, senderOf, type Fact } from './mail.ts'
 import { barOf, destinationOf, kindLabelOf, kindOf, priorityOf } from './mail-row.ts'
 import type { Inbox } from './model.ts'
 
 /* The Mail long tail (GDD 18): the kind label on a row, the priority bar, the hover that names
-   a trap's real destination, and the second tell, a CVE the Glossary knows. */
+   a trap's real destination, and the second tell, a CVE the wiki glossary knows. */
 
 const game = preseedGame()
 
@@ -153,13 +153,13 @@ test('the second tell names a CVE only when the Glossary knows the id', () => {
   expect(cveTermId('CVE-2026-0451')).toBe('cve-2026-0451')
 
   const fake = fakeAdvisory()
-  // The fake advisory does name CVE ids; none of them is one the Glossary lists.
+  // The fake advisory does name CVE ids; none of them is one the glossary lists.
   expect(cveIdIn(`${fake.subject}\n${fake.text}`)).not.toBeNull()
   expect(advisoryTell(`${fake.subject}\n${fake.text}`)).toBeNull()
   expect(glossaryKnowsCve('CVE-2099-0001')).toBe(false)
   expect(glossaryKnowsCve('CVE-2026-0451')).toBe(true)
 
-  // The Glossary lists exactly the CVEs the Simulation can disclose, so the lookup is real.
+  // The glossary lists exactly the CVEs the Simulation can disclose, so the lookup is real.
   expect(CVE_TERMS.map((entry) => entry.term)).toEqual(CVE_DEFS.map((def) => def.id))
   expect(CVE_TERMS.every((entry) => entry.category === 'security')).toBe(true)
 })

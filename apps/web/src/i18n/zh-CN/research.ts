@@ -5,7 +5,7 @@ export const research: Messages['research'] = {
   cost: (p0) => `成本 · ${p0}`,
   held: (p0) => `持有 ${p0}`,
   s: (p0) => `+${p0}/秒`,
-  glossary: (p0) => `术语表：${p0}`,
+  glossary: (p0) => `在 Wiki 术语表中打开：${p0}`,
   studyQueue: '研究队列',
   queue: '队列',
   moveUp: '上移',

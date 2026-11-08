@@ -14,7 +14,7 @@ import {
   type ComponentDef,
   type ComponentId,
 } from '@quorum/simulation/catalog'
-import { BY_COMPONENT } from '@quorum/simulation/discovery'
+import { BY_COMPONENT } from '@quorum/simulation/term-links'
 import { groupBadge } from '@quorum/ui/game/bits'
 import { money, ms } from '@quorum/ui/game/format'
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'

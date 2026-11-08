@@ -46,7 +46,6 @@ Keys work when you are on the board and not typing in a field. They do not work 
 | `T`        | Team, once it shows                                      |
 | `D`        | Dashboard, after `metrics`                               |
 | `P`        | Playbooks, after your first Exit                         |
-| `G`        | Glossary, after your first Tradeoff card                 |
 | `I`        | Inbox                                                    |
 | `$`        | The cloud bill: Burn, Revenue, margin. It has no button. |
 | `H` or `?` | How to play                                              |

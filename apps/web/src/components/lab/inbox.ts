@@ -25,7 +25,7 @@ import {
   Dices,
 } from 'lucide'
 import { badge as chip } from '@quorum/ui/primitives/badge'
-import { button } from '@quorum/ui/primitives/button'
+import { button, buttonBase, buttonSizes, buttonVariants } from '@quorum/ui/primitives/button'
 import { clock } from '@quorum/ui/game/format'
 import { SAMPLES, needsAction, senderOf, type Sender, type SenderKind } from '@/game/mail.ts'
 import type { BuildGroup } from '@quorum/simulation/catalog'
@@ -38,6 +38,7 @@ import {
 import { folderHolds, folderList, digestOf, labelsIn, DIGEST_ID } from '@/game/inbox.ts'
 import { TRAP_SITES, barOf, kindOf, priorityOf } from '@/game/mail-row.ts'
 import { advisoryTell } from '@/game/advisories.ts'
+import { glossaryUrl } from '@/platform/analytics.ts'
 import { Message } from '@/game/message.ts'
 import { boardSandbox, type Folder, type Mail, type MailLabel, type Model } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -701,19 +702,23 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
               h.span([h.Class(EYEBROW)], [t.inbox.kinds[sender.kind]]),
               tell === null
                 ? h.empty
-                : button(
-                    {
-                      onClick: Message.GlossaryOpened({ id: tell.term }),
-                      variant: 'ghost',
-                      size: 'sm',
-                      className: '-ml-1 h-6 px-1.5 text-muted-foreground',
-                      attributes: [
-                        h.Key(`glossary-${tell.id}`),
-                        h.Title(t.inbox.opensTheGlossaryOnThisAdvisory),
-                      ],
-                    },
+                : h.a(
+                    [
+                      h.Key(`glossary-${tell.id}`),
+                      h.Href(glossaryUrl(tell.term)),
+                      h.Target('_blank'),
+                      h.Rel('noreferrer noopener'),
+                      h.Title(t.inbox.opensTheGlossaryOnThisAdvisory),
+                      h.Class(
+                        cn(
+                          buttonBase,
+                          buttonVariants.ghost,
+                          buttonSizes.sm,
+                          '-ml-1 h-6 px-1.5 text-muted-foreground',
+                        ),
+                      ),
+                    ],
                     [icon(h, ShieldAlert, 'size-3.5'), tell.id, ' · ', t.inbox.inTheGlossary],
-                    h,
                   ),
               mail.phase._tag === 'Resolved'
                 ? h.span(

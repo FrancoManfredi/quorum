@@ -5,7 +5,7 @@ export const research: Messages['research'] = {
   cost: (value) => `コスト · ${value}`,
   held: (value) => `${value} 保有`,
   s: (value) => `+${value}/s`,
-  glossary: (value) => `用語集: ${value}`,
+  glossary: (value) => `Wiki用語集で開く: ${value}`,
   studyQueue: '研究キュー',
   queue: 'キュー',
   moveUp: '上へ',

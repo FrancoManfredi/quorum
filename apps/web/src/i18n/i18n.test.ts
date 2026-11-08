@@ -1,15 +1,11 @@
 import { PrefsMessage } from '../game/prefs.ts'
 import { describe, expect, test } from 'vitest'
 import { Option, Schema } from 'effect'
-import { Scene } from 'foldkit/test'
 import { Listbox } from '@foldkit/ui'
-import { glossaryPanel } from '../components/lab/glossary.ts'
 import { Prefs } from '../game/model.ts'
 import { Message } from '../game/message.ts'
 import { initialModel, update } from '../game/update.ts'
 import { AppRoute } from '../game/route.ts'
-import { localizeBuilder } from './builder.ts'
-import { copyIn } from './messages.ts'
 import { supportedLocales } from './index.ts'
 
 /** Every language but English: the ones a switch can move to. */
@@ -133,22 +129,4 @@ describe('interface languages', () => {
       expect(closed.commands?.map((command) => command.name)).not.toContain('WritePrefs')
     },
   )
-
-  test('upstream glossary categories still constrain Chinese search results', () => {
-    const model = {
-      ...initialModel(),
-      prefs: { ...initialModel().prefs, locale: 'zh-CN' as const },
-      glossary: { ...initialModel().glossary, query: '背压' },
-    }
-    Scene.scene(
-      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
-      Scene.given(model),
-      Scene.expect(Scene.text(copyIn('zh-CN').catalog.glossary['backpressure']!.term)).toExist(),
-    )
-    Scene.scene(
-      { update, view: (m, h) => glossaryPanel(m, localizeBuilder(m.prefs.locale, h)) },
-      Scene.given({ ...model, glossary: { ...model.glossary, category: 'security' } }),
-      Scene.expect(Scene.text(copyIn('zh-CN').glossary.noMatches)).toExist(),
-    )
-  })
 })

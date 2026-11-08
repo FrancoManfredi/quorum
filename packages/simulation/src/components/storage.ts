@@ -39,7 +39,7 @@ export const STORE_VARIANTS = {
   r2: { name: 'R2', egress: false, get: 0.000432, put: 0.0054 },
 } as const
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const storageGlossary: ReadonlyArray<string> = ['object-storage']
 
 /** The class Object Storage keeps its objects in (07 "Object Storage"). */

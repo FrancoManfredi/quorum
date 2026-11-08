@@ -21,8 +21,9 @@ kept the GDD out of the wiki because it mixes targets, roadmap, and rules.
 
 ## Consequences
 
-- `docs/gdd` no longer exists. The in-game Glossary is built from `packages/simulation`'s catalog,
-  and the wiki renders its `/glossary` pages from the same catalog, so there is one copy of each entry. `glossary.test.ts` checks that every reference in the catalog resolves.
+- `docs/gdd` no longer exists. The wiki renders its `/glossary` pages from `packages/simulation`'s
+  catalog, and the game links every term to those pages, so there is one copy of each entry.
+  `glossary.test.ts` checks that every reference in the catalog resolves.
 - The design section is public. It is written for developers, so it names simplifications, open
   questions, and unbuilt mechanics; the hub says so at the top.
 - A design page is a wiki page: it needs frontmatter, and its links must resolve or the wiki build

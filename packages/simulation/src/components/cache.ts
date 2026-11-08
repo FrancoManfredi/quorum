@@ -66,7 +66,7 @@ export const WARMED = 0.8
 export const EARLY_LIFT = 0.5
 export const EARLY_REFRESH = 0.02
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const cacheGlossary: ReadonlyArray<string> = [
   'cache-hit-rate',
   'cache-aside',

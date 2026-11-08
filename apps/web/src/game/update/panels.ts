@@ -1,4 +1,4 @@
-import { ApplySettings, FocusDashboard, WriteFounder, WritePrefs } from '../commands.ts'
+import { ApplySettings, FocusDashboard, WritePrefs } from '../commands.ts'
 import { EMPTY_RESEARCH, ResearchMessage } from '../research.ts'
 import { Message } from '../message.ts'
 import { Model, Prefs, clockAway, halted, roomLive } from '../model.ts'
@@ -16,7 +16,6 @@ import {
   type MessageCases,
   type UpdateResult,
 } from './shared.ts'
-import { discoverTerm } from '@quorum/simulation/founder'
 import { foldInbox } from './mail.ts'
 import { leaveExited } from './companies.ts'
 import { has } from '@quorum/simulation/lookups'
@@ -30,7 +29,6 @@ import { openingFolder, reading } from '../inbox.ts'
 import { type RegionId as Region, type ResearchId } from '@quorum/simulation/catalog'
 import { updateDashboard } from '../dashboard.ts'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
-import { updateGlossary } from '../glossary.ts'
 
 export const savePrefs = (model: Model): UpdateResult => ({
   model,
@@ -81,13 +79,6 @@ export const foldPrefs = (model: Model, message: PrefsMessage): UpdateResult =>
     message._tag === 'EasyModeToggled' ? plainClock : (model: Model) => ({ model }),
     savePrefs,
   ])
-
-export const foldGlossary = Update.foldChild({
-  update: updateGlossary,
-  read: (model: Model) => Option.some(model.glossary),
-  write: (model, glossary) => ({ ...model, glossary }),
-  toParentMessage: (message) => Message.GlossaryChanged({ message }),
-})
 
 /** The Exit survey's two fields; the parent sends the answers. */
 export const foldSurvey = Update.foldChild({
@@ -194,7 +185,6 @@ export const MORE_ACTIONS: Record<MoreItem, Message> = {
   playbooks: Message.PanelOpened({ panel: 'playbooks' }),
   dashboard: Message.PanelOpened({ panel: 'dashboard' }),
   help: Message.PanelOpened({ panel: 'help' }),
-  glossary: Message.GlossaryOpened({ id: null }),
   undo: Message.UndoChosen(),
   redo: Message.RedoChosen(),
   tidy: Message.BoardTidied(),
@@ -225,8 +215,6 @@ type PanelsTag =
   | 'WindowBlurred'
   | 'WindowFocused'
   | 'InsightHelpToggled'
-  | 'GlossaryOpened'
-  | 'GlossaryChanged'
   | 'InboxChanged'
   | 'DashboardChanged'
   | 'LanguagePickerChanged'
@@ -387,31 +375,6 @@ export const panelsHandlers = (
   InsightHelpToggled: () => ({
     model: { ...model, board: { ...model.board, insightHelp: !model.board.insightHelp } },
   }),
-
-  GlossaryOpened: ({ id }) => {
-    const founder = id ? discoverTerm(model.founder, id) : model.founder
-    // Browsing inside the panel keeps the search and filter; opening it from outside resets them.
-    const browsing = model.panel === 'glossary' && id !== null
-    const next: Model = {
-      ...model,
-      panel: 'glossary',
-      glossary: {
-        focus: id,
-        returnTo:
-          model.panel === 'research' ? 'research' : browsing ? model.glossary.returnTo : 'none',
-        query: browsing ? model.glossary.query : '',
-        category: browsing ? model.glossary.category : null,
-      },
-      founder,
-      board: { ...model.board, flow: { _tag: 'Idle' } },
-    }
-    return {
-      model: next,
-      commands: founder === model.founder ? [] : [WriteFounder({ founder })],
-    }
-  },
-
-  GlossaryChanged: ({ message }) => foldGlossary(model, message),
 
   InboxChanged: ({ message }) => foldInbox(model, message, route),
 

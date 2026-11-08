@@ -3,7 +3,7 @@ import { REQUEST_KINDS } from '../catalog/kinds.ts'
 
 export const DNS_TTLS = [30, 300, 3_600] as const
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const dnsGlossary: ReadonlyArray<string> = [
   'dns-round-robin',
   'health-check',

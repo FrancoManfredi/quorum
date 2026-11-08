@@ -57,7 +57,8 @@ export const buttonSizes: Record<ButtonSize, string> = {
 
 export type ButtonSize = (typeof buttonSizeKeys)[number]
 
-const buttonBase =
+/** The classes every button shares, for an anchor that must look like a button. */
+export const buttonBase =
   "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:aria-invalid:border-destructive/50 rounded-lg border border-transparent bg-clip-padding text-sm font-medium focus-visible:ring-3 aria-invalid:ring-3 press [&_svg:not([class*='size-'])]:size-4 group/button inline-flex shrink-0 items-center justify-center whitespace-nowrap outline-none select-none [&_svg]:pointer-events-none [&_svg]:shrink-0 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-disabled:pointer-events-none data-disabled:opacity-50"
 
 export type ButtonConfig<M> = Readonly<{

@@ -11,7 +11,7 @@ export const LLM_PRICE = 2.5
 /** Prompts per second the LLM API takes at its first usage tier; each tier doubles it.  */
 export const LLM_RATE = 100
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const llmGlossary: ReadonlyArray<string> = ['model-inference', 'rate-limiting']
 
 export const llmDef = def({

@@ -104,7 +104,6 @@ export const panels: Messages['panels'] = {
   del: 'Suppr',
   sellSelected: 'Vendre la sélection',
   dashboard: 'Tableau de bord',
-  glossary: 'Glossaire',
   mute: 'Couper le son',
   inbox: 'Boîte de réception',
   cost: 'Coût',

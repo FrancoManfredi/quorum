@@ -13,7 +13,7 @@ export const SECOND_PROVIDER_FEE = 1.15
 /** Checkouts per second the Payment Provider takes at its first usage tier; each tier doubles it. */
 export const PSP_CAPACITY = 1_000
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const pspGlossary: ReadonlyArray<string> = ['idempotency']
 
 /** The saved properties of a psp Node, with the defaults an old save decodes to. */

@@ -438,8 +438,8 @@ A badge the Founder earns for knowledge, an unusual build, or a real engineering
 _Avoid_: trophy, badge (in UI copy), quest
 
 **Glossary**:
-The in-game list of engineering terms, transcribed from the design glossary. Entries the Founder has met in play are marked.
-_Avoid_: encyclopedia, codex, wiki
+The wiki's list of engineering terms and of the advisories the Simulation can disclose. The game links each term to its page.
+_Avoid_: encyclopedia, codex, dictionary
 
 ### Outside the Company
 

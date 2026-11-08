@@ -202,11 +202,6 @@ export const keysHandlers = (
             }
           : { model }
       }
-      case 'g':
-        if (!shown(model, 'glossary')) return { model }
-        return model.panel === 'glossary'
-          ? { model: { ...model, panel: 'none' } }
-          : route(model, Message.GlossaryOpened({ id: null }))
       case 'ArrowUp':
       case 'ArrowDown':
       case 'ArrowLeft':

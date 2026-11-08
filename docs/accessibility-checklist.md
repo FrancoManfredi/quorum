@@ -21,5 +21,5 @@ then the keyboard-only run below.
 
 Keyboard-only run: from the title, Tab to Continue and press Enter; press an arrow key to select the
 first Node, arrows to move, Enter to reach the Inspector, Tab through its controls, Esc to return;
-Tab into the Node list and press Enter to open a Node's Inspector; press G to open the Glossary and
-type in its search; press M and turn on Text at 150%.
+Tab into the Node list and press Enter to open a Node's Inspector; Tab to a glossary term and press
+Enter to open its page on the wiki; press M and turn on Text at 150%.

@@ -16,7 +16,7 @@ export const QUEUE_LENGTHS = [0, 1_000, 10_000, 100_000] as const
 /** A Queue bills each task as a message: SQS's $0.40 per million requests, three requests a message, times 1,200. */
 export const QUEUE_MESSAGE_PRICE = 0.00144
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const queueGlossary: ReadonlyArray<string> = [
   'at-least-once-delivery',
   'backpressure',

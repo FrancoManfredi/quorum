@@ -82,6 +82,7 @@ import {
 import { drillPassed, drillRto } from '@quorum/simulation/drill-machine'
 import { POOL_ICONS, POOL_ORDER, poolColor } from '@quorum/ui/game/pools'
 import { moreMenu, type MoreItem } from '@/game/more.ts'
+import { WIKI_URL } from '@/platform/analytics.ts'
 import { glowing, playbooksShown, shown } from '@/game/reveal.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
@@ -1040,7 +1041,6 @@ const moreOf = (t: Messages): Record<MoreItem, Readonly<{ label: string; glyph: 
   playbooks: { label: t.hud.playbooks, glyph: BookCopy },
   dashboard: { label: t.hud.dashboard, glyph: ChartLine },
   help: { label: t.hud.howToPlay, glyph: CircleHelp },
-  glossary: { label: t.hud.glossary, glyph: BookOpen },
   undo: { label: t.hud.undo, glyph: Undo2 },
   redo: { label: t.hud.redo, glyph: Redo2 },
   tidy: { label: t.hud.tidyByZone, glyph: LayoutGrid },
@@ -1053,7 +1053,6 @@ const moreItems = (model: Model): ReadonlyArray<MoreItem> => [
   ...(playbooksShown(model) ? (['playbooks'] as const) : []),
   ...(has(model.board.game, 'metrics') ? (['dashboard'] as const) : []),
   'help',
-  ...(shown(model, 'glossary') ? (['glossary'] as const) : []),
   ...(shown(model, 'undo') ? (['undo', 'redo'] as const) : []),
   'tidy',
   'fit',
@@ -1065,7 +1064,7 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
 
   const legacy = exitLegacy(model)
   // A dot when something inside asks for attention: Legacy on offer, or a cue on a hidden control.
-  const calling = (legacy ?? 0) > 0 || glowing(model, 'undo') || glowing(model, 'glossary')
+  const calling = (legacy ?? 0) > 0 || glowing(model, 'undo')
   return h.submodel({
     slotId: 'more-menu',
     model: model.moreMenu,
@@ -1241,19 +1240,6 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
             model.panel === 'help',
             h,
           ),
-          shown(model, 'glossary')
-            ? toolButton(
-                t.hud.glossaryG,
-                BookOpen,
-                model.panel === 'glossary'
-                  ? Message.PanelClosed()
-                  : Message.GlossaryOpened({ id: null }),
-                model.panel === 'glossary',
-                h,
-                h.empty,
-                glowing(model, 'glossary'),
-              )
-            : h.empty,
           ...(shown(model, 'undo')
             ? [
                 divider(h),
@@ -1277,6 +1263,26 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
         h,
       ),
+      shown(model, 'glossary')
+        ? h.a(
+            [
+              h.Key('glossary'),
+              h.Href(`${WIKI_URL}/glossary`),
+              h.Target('_blank'),
+              h.Rel('noreferrer noopener'),
+              h.Title(t.hud.glossary),
+              h.AriaLabel(t.hud.glossary),
+              h.Class(
+                cn(
+                  tool(false),
+                  'enter-pop compact:size-9',
+                  glowing(model, 'glossary') && 'cue-glow',
+                ),
+              ),
+            ],
+            [icon(h, BookOpen, 'size-[18px]')],
+          )
+        : h.empty,
       ...(model.prefs.easyMode
         ? [
             divider(h),

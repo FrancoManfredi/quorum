@@ -3,7 +3,7 @@ import { def } from './define.ts'
 /** Auth Provider price, in dollars per second per user. */
 export const AUTH_PRICE_PER_USER = 0.00006
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const authGlossary: ReadonlyArray<string> = ['bcrypt']
 
 export const authDef = def({

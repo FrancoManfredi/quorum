@@ -23,7 +23,8 @@ import {
   type ResearchId,
   type ResearchTrack,
 } from '@quorum/simulation/catalog'
-import { BY_RESEARCH } from '@quorum/simulation/discovery'
+import { BY_RESEARCH } from '@quorum/simulation/term-links'
+import { glossaryUrl } from '@/platform/analytics.ts'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { has, missingPrerequisites, needs, researchReady } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
@@ -615,7 +616,7 @@ const linkRow = (game: Game, entry: ResearchDef, h: HtmlBuilder<Message>): Html 
       )
 }
 
-/** One (?) link per glossary term behind the item; each opens its Glossary entry. */
+/** One (?) link per term behind the item; each opens its page on the wiki. */
 const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -626,12 +627,13 @@ const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
     ? h.div(
         [h.Class('flex flex-wrap gap-1.5')],
         entries.map((term) =>
-          h.button(
+          h.a(
             [
               h.Key(term.id),
-              h.Type('button'),
+              h.Href(glossaryUrl(term.id)),
+              h.Target('_blank'),
+              h.Rel('noreferrer noopener'),
               h.Title(t.research.glossary(t.catalog.glossary[term.id]?.term ?? term.term)),
-              h.OnClick(Message.GlossaryOpened({ id: term.id })),
               h.Class(
                 'flex items-center gap-1 rounded-md bg-nested px-1.5 py-0.5 text-[calc(11.5px*var(--type-scale))] text-muted-foreground hover:text-foreground',
               ),

@@ -14,7 +14,6 @@ import {
   settingsPanel,
 } from '@/components/lab/panels.ts'
 import { inboxButton, inboxPanel, peek } from '@/components/lab/inbox.ts'
-import { glossaryPanel } from '@/components/lab/glossary.ts'
 import { churnPanel } from '@/components/lab/churn.ts'
 import { costPanel } from '@/components/lab/cost.ts'
 import { mirrorPanel } from '@/components/lab/mirror.ts'
@@ -147,7 +146,6 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
       model.panel === 'room' ? roomPanel(model, h) : h.empty,
       model.panel === 'settings' ? settingsPanel(model, h) : h.empty,
       model.panel === 'inbox' ? inboxPanel(model, h) : h.empty,
-      model.panel === 'glossary' ? glossaryPanel(model, h) : h.empty,
       model.panel === 'dashboard' ? dashboardPanel(model, h) : h.empty,
       model.panel === 'churn' ? churnPanel(model, h) : h.empty,
       model.panel === 'cost' ? costPanel(model, h) : h.empty,

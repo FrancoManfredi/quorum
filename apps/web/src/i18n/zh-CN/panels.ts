@@ -103,7 +103,6 @@ export const panels: Messages['panels'] = {
   del: 'Del',
   sellSelected: '出售所选节点',
   dashboard: '仪表盘',
-  glossary: '术语表',
   mute: '静音',
   inbox: '收件箱',
   cost: '成本',

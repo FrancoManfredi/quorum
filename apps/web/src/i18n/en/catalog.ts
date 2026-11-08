@@ -60,10 +60,7 @@ export const catalog = {
   families: copyOf(FAMILIES, ['name', 'blurb'], []),
   features: copyOf(FEATURES, ['name', 'effect'], ['hidden']),
   frameworks: copyOf(FRAMEWORKS, ['name', 'blurb'], []),
-  glossary: copyOfList(GLOSSARY, 'id', ['term', 'definition', 'inGame'], [], {
-    links: ['label'],
-    design: ['label'],
-  }),
+  glossary: copyOfList(GLOSSARY, 'id', ['term'], []),
   gpuModels: copyOf(GPU_MODELS, ['name'], []),
   incidents: copyOf(INCIDENTS, ['name', 'cause', 'prevention'], []),
   kinds: copyOf(KINDS, ['label'], []),

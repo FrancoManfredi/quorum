@@ -1,6 +1,7 @@
 /* CVEs (GDD 18): vulnerabilities in software a Design runs. All fictional. */
 
-import type { ComponentId } from './components.ts'
+import { COMPONENTS, type ComponentId } from './components.ts'
+import type { GlossaryEntry } from './glossary.ts'
 
 export type CveDef = Readonly<{
   id: string
@@ -35,3 +36,25 @@ export const PATCH_GRACE = 60
 export const patchCost = (score: number): number => Math.max(2, Math.round(score / 2))
 /** Sim seconds from disclosure to the deadline: 3.5 minutes for a 9.9, 6.5 for a 5.3. */
 export const patchWindow = (score: number): number => Math.round(600 - 40 * score)
+
+/** The glossary's id for an advisory: CVE-2026-0451 is `cve-2026-0451`. */
+export const cveTermId = (id: string): string => `cve-${id.replace(/^cve-/i, '').toLowerCase()}`
+
+/**
+ * Every CVE the Simulation can disclose, as a glossary entry: the id, what it affects,
+ * and the patch ticket it files. These are the ids a real advisory names, so a player
+ * can look one up on the wiki and see the ones the Design can run.
+ */
+export const CVE_TERMS: ReadonlyArray<GlossaryEntry> = CVE_DEFS.map((def) => ({
+  id: cveTermId(def.id),
+  term: def.id,
+  category: 'security',
+  definition: `Score ${def.score} of 10. Affects ${def.affects
+    .map((id) => COMPONENTS[id].name)
+    .join(', ')}.`,
+  inGame: `Security mail names it and files a patch ticket: ${patchCost(def.score)} DH, due ${Math.round(
+    patchWindow(def.score) / 60,
+  )} minutes after disclosure. Overdue, it turns red on the Team backlog, and a minute later it is exploited.`,
+  related: ['dependency-scanning'],
+  links: [],
+}))

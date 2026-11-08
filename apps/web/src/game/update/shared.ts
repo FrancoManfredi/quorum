@@ -2,7 +2,7 @@ import { Actions, planIn } from '../board-actions.ts'
 import { EMPTY_HISTORY } from '../history.ts'
 import { EMPTY_INBOX, savedInbox } from '../inbox.ts'
 import { EMPTY_RESEARCH } from '../research.ts'
-import { discoverTerm, earnAchievements } from '@quorum/simulation/founder'
+import { earnAchievements } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
 import { applyIntents, type Intent } from '@quorum/simulation/room'
 import type { Action } from '@quorum/simulation/action-kit'
@@ -37,7 +37,6 @@ import { beginChange, figuresOf, pushUndo, snapshotOf, type Reversal } from '../
 import { copyIn, type Messages } from '../../i18n/messages.ts'
 import { countStats, detectAchievements } from '@quorum/simulation/achievements'
 import { cueNode } from '../reveal.ts'
-import { discoverTerms } from '@quorum/simulation/discovery'
 import { eraReachedOf, line } from '../telemetry.ts'
 import { fileOf, refreshedIndex } from '../saves.ts'
 import { ghostReason } from '@quorum/simulation/playbook'
@@ -113,8 +112,8 @@ export const freshBoard = (game: Game): Board => ({
 })
 
 /**
- * What a Company's moment earns beyond the Game: achievements, glossary
- * entries, and the incident and Era sounds. Never in a Sandbox or Challenge.
+ * What a Company's moment earns beyond the Game: achievements, and the
+ * incident and Era sounds. Never in a Sandbox or Challenge.
  */
 export const milestones = (
   before: Model,
@@ -137,13 +136,9 @@ export const milestones = (
     },
     after.founder.achievements,
   )
-  const terms = discoverTerms(after.board.game, events).filter(
-    (id) => !after.founder.glossary.includes(id),
-  )
   let next = after
   if (stats !== after.founder.stats && events.some((event) => event._tag === 'IncidentResolved'))
     next = { ...next, founder: { ...next.founder, stats } }
-  if (terms.length > 0) next = { ...next, founder: terms.reduce(discoverTerm, next.founder) }
   const [achieved, earnedCommands] = achieve(next, earned)
   next = achieved
   commands.push(...earnedCommands)
@@ -177,16 +172,10 @@ export const milestones = (
 /** The copy in the player's language: a Toast is written when it is raised. */
 export const say = (model: Model): Messages => copyIn(model.prefs.locale)
 
-/** The panel under the open one: the Glossary goes back to where it opened, Settings on the board to the game menu. */
+/** The panel under the open one: Settings on the board goes back to the game menu. */
 export const closePanel = (model: Model): Model => ({
   ...model,
-  panel:
-    model.panel === 'glossary'
-      ? model.glossary.returnTo
-      : model.panel === 'settings' && onBoard(model.route)
-        ? 'menu'
-        : 'none',
-  glossary: { ...model.glossary, returnTo: 'none' },
+  panel: model.panel === 'settings' && onBoard(model.route) ? 'menu' : 'none',
 })
 
 export const sync = (model: Model, fit: boolean, focus: string | null = null): AnyCommand =>

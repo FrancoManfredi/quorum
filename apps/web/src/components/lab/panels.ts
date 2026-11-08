@@ -179,7 +179,6 @@ const keyGroupsOf = (t: Messages, easyMode: boolean): ReadonlyArray<KeyGroup> =>
       ['T', t.panels.team],
       ['P', t.panels.playbooks],
       ['D', t.panels.dashboard],
-      ['G', t.panels.glossary],
       ['I', t.panels.inbox],
       ['$', t.panels.cost],
       ['`', t.panels.playtestPanel],

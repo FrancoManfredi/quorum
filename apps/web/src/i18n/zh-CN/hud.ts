@@ -52,7 +52,6 @@ export const hud: Messages['hud'] = {
   playbooksP: '运维手册（P）',
   dashboardD: '仪表盘（D）',
   howToPlayH: '玩法指南（H）',
-  glossaryG: '术语表（G）',
   undoZ: '撤销（Z）',
   redoShiftZ: '重做（Shift+Z）',
   resumeSpace: '继续（空格）',

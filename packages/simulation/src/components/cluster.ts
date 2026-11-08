@@ -19,7 +19,7 @@ export const SUPPORTED_QUARTERS = 1
 /** Engineers of Dev Hours each Cluster takes from the product teams without a Platform team (08). */
 export const PLATFORM_TAX = 0.5
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const clusterGlossary: ReadonlyArray<string> = ['cold-start', 'container-orchestration']
 
 /** The saved properties of a cluster Node, with the defaults an old save decodes to. */

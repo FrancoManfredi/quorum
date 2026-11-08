@@ -466,7 +466,6 @@ describe('a playtest browser', () => {
       history: [],
       playbooks: [],
       achievements: ['first-exit'],
-      glossary: ['apdex'],
     })
     const playlog = JSON.stringify([
       {

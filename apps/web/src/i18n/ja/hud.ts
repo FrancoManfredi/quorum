@@ -53,7 +53,6 @@ export const hud: Messages['hud'] = {
   playbooksP: 'プレイブック (P)',
   dashboardD: 'ダッシュボード (D)',
   howToPlayH: '遊び方 (H)',
-  glossaryG: '用語集 (G)',
   undoZ: '元に戻す (Z)',
   redoShiftZ: 'やり直す (Shift+Z)',
   resumeSpace: '再開 (Space)',

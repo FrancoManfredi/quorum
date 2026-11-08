@@ -57,21 +57,21 @@ Later rows appear when they apply: an **SLO** row, an **SLA** row, an Insight ca
 
 The toolbar is the strip at the top right. Hover a button to read its name and key.
 
-| Button                  | Key            | What it does                                                             |
-| ----------------------- | -------------- | ------------------------------------------------------------------------ |
-| **Research**            | `R`            | Opens the research tree. A badge counts the Studies you can start.       |
-| **Team**                | `T`            | Opens the Team panel. An amber dot means the backlog is empty.           |
-| **Playbooks**           | `P`            | Opens saved Design parts. Appears after your first Exit.                 |
-| **Exit**                | None           | Opens the Exit panel, from Series A. It shows the Legacy you would earn. |
-| **Dashboard**           | `D`            | Opens the Charts. Needs the `metrics` research.                          |
-| **How to play**         | `H`            | Opens the six core actions and the key table.                            |
-| **Glossary**            | `G`            | Opens the engineering terms. Appears after your first Tradeoff card.     |
-| **Undo** and **Redo**   | `Z`, `Shift+Z` | Appear after your first action on the Board.                             |
-| **Pause** or **Resume** | `Space`        | Stops and restarts the clock.                                            |
-| **Speed**               | `S`            | Shows the speed, such as `1×`. Each press moves to the next one.         |
-| **Tidy by zone**        | `Shift+T`      | Arranges the Nodes by zone.                                              |
-| **Fit the board**       | `Shift+F`      | Zooms and pans so every Node is in view.                                 |
-| **Fullscreen**          | `F`            | Toggles fullscreen.                                                      |
+| Button                  | Key            | What it does                                                                     |
+| ----------------------- | -------------- | -------------------------------------------------------------------------------- |
+| **Research**            | `R`            | Opens the research tree. A badge counts the Studies you can start.               |
+| **Team**                | `T`            | Opens the Team panel. An amber dot means the backlog is empty.                   |
+| **Playbooks**           | `P`            | Opens saved Design parts. Appears after your first Exit.                         |
+| **Exit**                | None           | Opens the Exit panel, from Series A. It shows the Legacy you would earn.         |
+| **Dashboard**           | `D`            | Opens the Charts. Needs the `metrics` research.                                  |
+| **How to play**         | `H`            | Opens the six core actions and the key table.                                    |
+| **Glossary**            | None           | Opens the engineering terms on the wiki. Appears after your first Tradeoff card. |
+| **Undo** and **Redo**   | `Z`, `Shift+Z` | Appear after your first action on the Board.                                     |
+| **Pause** or **Resume** | `Space`        | Stops and restarts the clock.                                                    |
+| **Speed**               | `S`            | Shows the speed, such as `1×`. Each press moves to the next one.                 |
+| **Tidy by zone**        | `Shift+T`      | Arranges the Nodes by zone.                                                      |
+| **Fit the board**       | `Shift+F`      | Zooms and pans so every Node is in view.                                         |
+| **Fullscreen**          | `F`            | Toggles fullscreen.                                                              |
 
 At the start you see **How to play**, **Pause**, **Speed**, and the three board buttons. The rest appear as they become useful, so a missing **Research**, **Team**, or **Undo** button has not been earned yet. On a phone, a **More** button holds the same actions. [Clock, undo, and saves](/play/clock-undo-saves) covers the speeds. [Settings and key reference](/play/settings-and-keys) lists every key.
 

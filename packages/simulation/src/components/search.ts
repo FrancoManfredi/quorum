@@ -67,7 +67,7 @@ export const SEARCH_VARIANTS = {
 /** Share of a Search Engine's RAM and index the volume under it holds, per GB of rows. */
 export const SEARCH_INDEX_SHARE = 0.3
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const searchGlossary: ReadonlyArray<string> = ['inverted-index']
 
 /** A Search Engine's refresh interval, in seconds (07 "Search Engine"). */

@@ -16,7 +16,7 @@ export const inbox = {
   olderUpdates: (p0: string | number | null) => `${p0} older updates`,
   earlierMessages: (p0: string | number | null) =>
     p0 === 1 ? '1 earlier message' : `${p0} earlier messages`,
-  opensTheGlossaryOnThisAdvisory: 'Opens the Glossary on this advisory',
+  opensTheGlossaryOnThisAdvisory: 'Opens this advisory on the wiki glossary',
   inTheGlossary: 'In the Glossary',
   resolved: (p0: string | number | null) => `Resolved ${p0}`,
   moveToInboxE: 'Move to Inbox (E)',

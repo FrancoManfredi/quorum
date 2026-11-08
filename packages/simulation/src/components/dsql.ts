@@ -4,7 +4,7 @@ import { def } from './define.ts'
 export const DSQL_TX = 6_000
 export const DSQL_READ_COST = 0.25
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const dsqlGlossary: ReadonlyArray<string> = ['quorum', 'raft', 'synchronous-replication']
 
 export const dsqlDef = def({

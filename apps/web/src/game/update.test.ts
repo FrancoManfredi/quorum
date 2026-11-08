@@ -2,7 +2,6 @@ import { EMPTY_SAVE_INDEX, fileFor, withFile } from './saves.ts'
 import { ResearchMessage, STUDY_QUEUE } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
-import { GlossaryMessage } from './glossary.ts'
 import { EMPTY_INBOX, InboxMessage, folderHolds, mailed, reading } from './inbox.ts'
 import { PrefsMessage } from './prefs.ts'
 import { cueOf } from './cues.ts'
@@ -903,7 +902,7 @@ describe('Challenges', () => {
   }, 60_000)
 })
 
-describe('M9: sound, achievements, glossary, keys', () => {
+describe('M9: sound, achievements, keys', () => {
   type Named = Readonly<{ name: string; args: Record<string, unknown> }>
   const names = (commands: ReadonlyArray<unknown> | undefined): ReadonlyArray<Named> =>
     (commands ?? []) as ReadonlyArray<Named>
@@ -997,7 +996,7 @@ describe('M9: sound, achievements, glossary, keys', () => {
     expect(twice.founder.achievements.filter((id) => id === 'hello-world')).toHaveLength(1)
   })
 
-  test('a Sandbox earns no achievement and meets no glossary entry', () => {
+  test('a Sandbox earns no achievement', () => {
     const sandbox: Model = {
       ...inLab(),
       board: {
@@ -1011,7 +1010,6 @@ describe('M9: sound, achievements, glossary, keys', () => {
     }
     const after = update(sandbox, Message.Ticked({ elapsedMs: TICK_MS })).model
     expect(after.founder.achievements).toEqual([])
-    expect(after.founder.glossary).toEqual([])
   })
 
   test('mute and reduced motion are saved as prefs, not in the Game', () => {
@@ -1026,13 +1024,6 @@ describe('M9: sound, achievements, glossary, keys', () => {
       update(start, Message.PrefsChanged({ message: PrefsMessage.MotionToggled() })).model.prefs
         .motion,
     ).toBe('reduce')
-  })
-
-  test('a Tradeoff term opens the Glossary on it and marks it met', () => {
-    const opened = update(inLab(), Message.GlossaryOpened({ id: 'event-loop' })).model
-    expect(opened.panel).toBe('glossary')
-    expect(opened.glossary.focus).toBe('event-loop')
-    expect(opened.founder.glossary).toContain('event-loop')
   })
 
   test('arrow keys move the selection between Nodes', () => {
@@ -1788,21 +1779,6 @@ test('a save travels as one line of text, and only a save of this build opens it
 test('the board redraws after any Message that changes what it shows, and fits after the redraw', () => {
   const syncs = (result: ReturnType<typeof update>) =>
     (result.commands ?? []).filter((command) => command.name === 'SyncBoard')
-  const placing = update(inLab(), Message.PlacingChosen({ type: 'server' })).model
-  // Opening the Glossary drops the part off the pointer, so the board must hear about it.
-  const glossary = update(placing, Message.GlossaryOpened({ id: null }))
-  expect(syncs(glossary)).toEqual([
-    expect.objectContaining({ args: expect.objectContaining({ placing: null, fit: false }) }),
-  ])
-  expect(
-    syncs(
-      update(
-        glossary.model,
-        Message.GlossaryChanged({ message: GlossaryMessage.Searched({ query: 'cache' }) }),
-      ),
-    ),
-  ).toEqual([])
-
   const entered = update(initialModel(), Message.FreeSandboxStarted())
   const names = (entered.commands ?? []).map((command) => command.name)
   expect(names).not.toContain('FitBoard')

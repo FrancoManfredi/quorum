@@ -14,7 +14,7 @@ import {
   researchList,
   type ResearchDef,
 } from '@quorum/simulation/catalog'
-import { BY_RESEARCH } from '@quorum/simulation/discovery'
+import { BY_RESEARCH } from '@quorum/simulation/term-links'
 import { EYEBROW, FIGURE, SCROLL, insightChip } from '@quorum/ui/game/bits'
 import { compact } from '@quorum/ui/game/format'
 import { POOL_ICONS, poolColor, poolName, recipeOf } from '@quorum/ui/game/pools'

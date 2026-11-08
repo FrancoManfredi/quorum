@@ -20,7 +20,7 @@ export const VEC_INDEXES = {
  */
 export const VEC_AI_LIFT = 1.35
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const vecGlossary: ReadonlyArray<string> = ['model-inference']
 
 /** A Vector Index's type (07 "Vector Index"): exact, or approximate HNSW. */

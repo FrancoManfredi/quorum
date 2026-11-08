@@ -5,7 +5,7 @@ export const research: Messages['research'] = {
   cost: (p0) => `Coût · ${p0}`,
   held: (p0) => `${p0} en réserve`,
   s: (p0) => `+${p0}/s`,
-  glossary: (p0) => `Glossaire : ${p0}`,
+  glossary: (p0) => `Ouvrir dans le glossaire du wiki : ${p0}`,
   studyQueue: "File d'attente des études",
   queue: 'File d’attente',
   moveUp: 'Monter',

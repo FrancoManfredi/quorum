@@ -80,7 +80,7 @@ export const COMPONENT_DEFS: Record<ComponentId, ComponentDef> = {
   pki: pkiDef,
 }
 
-/** The Glossary entries each Component teaches once a Company runs it. */
+/** The glossary entries each Component teaches; the wiki Component page links to them. */
 export const COMPONENT_GLOSSARY: Partial<Record<ComponentId, ReadonlyArray<string>>> = {
   queue: queueGlossary,
   autoscaler: autoscalerGlossary,

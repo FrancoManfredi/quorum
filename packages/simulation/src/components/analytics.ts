@@ -13,7 +13,7 @@ export const RETENTION_STORAGE = [1, 2, 4] as const
 /** Samples per second Analytics keeps at size 1. Each size step doubles it. */
 export const ANALYTICS_CAPACITY = 4
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const analyticsGlossary: ReadonlyArray<string> = ['observability']
 
 /** The saved properties of a analytics Node, with the defaults an old save decodes to. */

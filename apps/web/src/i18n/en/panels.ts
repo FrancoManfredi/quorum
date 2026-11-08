@@ -102,7 +102,6 @@ export const panels = {
   del: 'Del',
   sellSelected: 'Sell selected',
   dashboard: 'Dashboard',
-  glossary: 'Glossary',
   mute: 'Mute',
   inbox: 'Inbox',
   cost: 'Cost',

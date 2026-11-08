@@ -3,7 +3,7 @@ export const research = {
   cost: (p0: string | number | null) => `Cost · ${p0}`,
   held: (p0: string | number | null) => `${p0} held`,
   s: (p0: string | number | null) => `+${p0}/s`,
-  glossary: (p0: string | number | null) => `Glossary: ${p0}`,
+  glossary: (p0: string | number | null) => `Open in the wiki glossary: ${p0}`,
   studyQueue: 'Study queue',
   queue: 'Queue',
   moveUp: 'Move up',

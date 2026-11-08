@@ -384,7 +384,7 @@ Four of these kinds need more detail:
 - **Fake CVE alert.** Its button runs a patcher that leaves a backdoor in the Company, and the
   Simulation records when. 300 sim seconds later the attacker uses it and a Data breach
   starts. A Security team finds the backdoor in half that time and closes it. Dependency scanning
-  stops the dropper before it runs. The alert's id is not in the Glossary, which is the tell that
+  stops the dropper before it runs. The alert's id is not in the glossary, which is the tell that
   catches it before the click.
 - **Vendor pitch.** About one in four is a real demo of an unstudied Observability research, with a
   Book the demo button. Taking it takes a fifth off that item's Insight cost.
@@ -397,9 +397,9 @@ Four of these kinds need more detail:
 - **How to tell.** There are two tells.
   - The first is the sender's address, which is on a lookalike domain (`billing@awol-cloud.support`
     against `no-reply@awol.cloud`).
-  - The second is the CVE id. A real advisory names one the Glossary lists, because its advisory
-    block carries every CVE the Simulation can disclose, with the score and the Components it
-    affects. A fake one names an id the Glossary does not know, so there is nothing to open. The
+  - The second is the CVE id. A real advisory names one the wiki glossary lists, because its
+    advisory block carries every CVE the Simulation can disclose, with the score and the Components
+    it affects. A fake one names an id the glossary does not know, so there is nothing to open. The
     reader marks a known id with "In the Glossary" and leaves an unknown one bare.
 - **A button is a commitment.** A trap's action button looks normal, and clicking it is the player's
   act, not the game's. On hover, every button names where it really goes. A game button names the
@@ -528,7 +528,7 @@ Thread's key, so one Thread keeps one sender, and a Company hears from several.
 | **Chad from TalentBro**                            | Recruiter spam, "bro" culture  | "Let us circle back on your circle back" is corporate speak turned in on itself.                                                                                                                 |
 | **Incohere**                                       | Cohere, and AI startup pitches | An AI company whose product is the opposite of coherent. "Confidently wrong, at scale."                                                                                                          |
 | **AWOL Web Services** at `awol-cloud.support`      | Phishing lookalike             | The tell is the domain, not the name: a real engineer checks the address. This is the lesson of Spam.                                                                                            |
-| **Commonly Vulnerable & Exposed** at `cve-fyi.top` | Fake advisory                  | The same name on a `.top` domain, with a CVE id that the Glossary does not know.                                                                                                                 |
+| **Commonly Vulnerable & Exposed** at `cve-fyi.top` | Fake advisory                  | The same name on a `.top` domain, with a CVE id that the glossary does not know.                                                                                                                 |
 
 ### Domains and sign-offs
 
@@ -579,8 +579,8 @@ Teammates draw a name from a pool and keep it for life.
   sender-kind filter chips above the list. Each row carries its sender kind as a label, so the list
   says what the chip filters by, and Mail that wants the player wears the priority bar.
 - **Hover destinations and the second tell:** every button names where it really goes, and a trap's
-  names the off-site address it leaves for. The Glossary lists the CVEs the Simulation can disclose,
-  so a real advisory's id opens an entry and a fake one has nothing to open.
+  names the off-site address it leaves for. The wiki glossary lists the CVEs the Simulation can
+  disclose, so a real advisory's id opens a page and a fake one has nothing to open.
 - **Saving the Inbox:** the Company save keeps the Mail, the mutes, and the last event tick the world
   wrote for. An older save opens with an empty Inbox rather than failing.
 - **The Digest:** when more than eight threads in a folder are unread, the oldest low-priority ones
@@ -623,8 +623,8 @@ Teammates draw a name from a pool and keep it for life.
 - **CVEs:** every 420 sim seconds the Simulation discloses one CVE that affects a Component the
   Design runs, as a patch ticket. Security writes the advisory. "Rush patch" sends the rush Action,
   and the Node list is behind Dependency scanning ("Check whether you run this" without it). Every
-  CVE the Simulation can disclose is a Glossary entry, with its score and what it affects, so the
-  advisory's id is one the player can look up.
+  CVE the Simulation can disclose is a glossary entry on the wiki, with its score and what it
+  affects, so the advisory's id is one the player can look up.
 - **Pause on SEV1 and SEV2:** an optional setting stops the clock when such an incident starts.
   The Company also offers a 0.5× speed.
 - **Switch provider:** a Payment Provider Node has a Provider setting, First or Second. Switching is a

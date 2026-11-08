@@ -1,11 +1,10 @@
 import { COMPONENT_GLOSSARY } from './components/defs.ts'
 import type { ComponentId, IncidentId, ResearchId } from './catalog.ts'
-import type { StepEvent } from './events.ts'
-import type { Game } from './state.ts'
 
+/** The entries each Component teaches; the wiki's Component page links to them. */
 export const BY_COMPONENT: Partial<Record<ComponentId, ReadonlyArray<string>>> = COMPONENT_GLOSSARY
 
-/** The entries each Research item teaches; the Research detail links to them. */
+/** The entries each Research item teaches; the wiki Research page links to them. */
 export const BY_RESEARCH: Partial<Record<ResearchId, ReadonlyArray<string>>> = {
   anycast: ['anycast', 'bgp-border-gateway-protocol'],
   'lang-node': ['async-io', 'blast-radius', 'event-loop'],
@@ -130,6 +129,7 @@ export const BY_RESEARCH: Partial<Record<ResearchId, ReadonlyArray<string>>> = {
   'expand-contract': ['expand-and-contract', 'tech-debt'],
 }
 
+/** The entries each Incident teaches; the wiki Incident page links to them. */
 export const BY_INCIDENT: Partial<Record<IncidentId, ReadonlyArray<string>>> = {
   poison: ['at-least-once-delivery', 'dead-letter-queue'],
   'double-charge': [
@@ -180,51 +180,4 @@ export const BY_INCIDENT: Partial<Record<IncidentId, ReadonlyArray<string>>> = {
   'bot-surge': ['rate-limiting', 'waf-web-application-firewall'],
   audit: ['soc-2'],
   certificate: ['tls-certificate'],
-}
-
-const ALWAYS = ['apdex', 'utilization', 'diurnal-traffic']
-const BY_STATE = [
-  'mttr',
-  'strangler-pattern',
-  'tech-debt',
-  'brookss-law',
-  'conways-law',
-  'rule-of-40',
-  'token-bucket',
-]
-
-/** Every id discovery can name, for the test that keeps them glossary ids. */
-export const DISCOVERABLE: ReadonlyArray<string> = [
-  ...ALWAYS,
-  ...BY_STATE,
-  ...[BY_COMPONENT, BY_RESEARCH, BY_INCIDENT].flatMap((map) =>
-    Object.values(map).flatMap((ids) => ids ?? []),
-  ),
-]
-
-/** Glossary ids the Company meets in this moment: what it runs, owns, and just went through. */
-export const discoverTerms = (
-  game: Game,
-  events: ReadonlyArray<StepEvent>,
-): ReadonlyArray<string> => {
-  if (game.sandbox) return []
-  const found = new Set<string>(ALWAYS)
-  for (const node of game.nodes) for (const id of BY_COMPONENT[node.type] ?? []) found.add(id)
-  for (const id of game.researched) for (const term of BY_RESEARCH[id] ?? []) found.add(term)
-  for (const event of events) {
-    if (event._tag === 'IncidentStarted')
-      for (const term of BY_INCIDENT[event.incident.kind] ?? []) found.add(term)
-    if (event._tag === 'IncidentResolved') {
-      found.add('mttr')
-      found.add('mttd-and-mtta')
-    }
-    if (event._tag === 'MigrationShifted') found.add('strangler-pattern')
-    if (event._tag === 'CreditsExhausted') found.add('token-bucket')
-  }
-  if (game.services.some((service) => service.debt >= 0.25)) found.add('tech-debt')
-  if (game.engineers.length >= 8) found.add('brookss-law')
-  if (game.teams.length > 1) found.add('conways-law')
-  if (game.quarter) found.add('rule-of-40')
-  if (game.nodes.some((node) => node.service._tag === 'Draining')) found.add('node-drain')
-  return [...found]
 }

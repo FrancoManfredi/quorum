@@ -52,8 +52,6 @@ export const Founder = Schema.Struct({
     }),
     { postmortems: 0, terminations: 0, fallacies: [] },
   ),
-  /** Glossary entries the player has met in play. */
-  glossary: withDefault(Schema.Array(Schema.String), []),
 })
 export type Founder = typeof Founder.Type
 
@@ -123,10 +121,6 @@ export const earnAchievements = (founder: Founder, ids: ReadonlyArray<Achievemen
   if (fresh.length === 0) return founder
   return { ...founder, achievements: [...founder.achievements, ...fresh] }
 }
-
-/** Notes a glossary entry met in play. */
-export const discoverTerm = (founder: Founder, id: string): Founder =>
-  founder.glossary.includes(id) ? founder : { ...founder, glossary: [...founder.glossary, id] }
 
 /** What the next Company is founded with. */
 export const foundingOf = (founder: Founder): Founding => ({

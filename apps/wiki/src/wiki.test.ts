@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import {
   COMPONENT_IDS,
+  CVE_TERMS,
   ERAS,
   FRAMEWORK_IDS,
   GLOSSARY,
@@ -50,6 +51,7 @@ test('every catalog entry has its own page', () => {
     ...RUNTIME_IDS.map((id) => `/runtimes/${id}`),
     ...FRAMEWORK_IDS.map((id) => `/frameworks/${id}`),
     ...GLOSSARY.map((entry) => `/glossary/${entry.id}`),
+    ...CVE_TERMS.map((entry) => `/glossary/${entry.id}`),
     ...SANDBOX_IDS.map((id) => `/sandboxes/${id}`),
   ]
   expect(ids.filter((path) => !pageAt(path))).toEqual([])

@@ -1,31 +1,9 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { expect, test } from 'vitest'
-import { GLOSSARY } from '../src/catalog.ts'
-import { newGame } from '../src/company.ts'
-import { DISCOVERABLE, discoverTerms } from '../src/discovery.ts'
-import { StepEvent } from '../src/events.ts'
-import type { Incident } from '../src/state.ts'
+import { CVE_TERMS, GLOSSARY } from '../src/catalog.ts'
 
-const incident: Incident = {
-  kind: 'spike',
-  remaining: 60,
-  nodeId: null,
-  startedAt: 0,
-  baseline: 0,
-  usersAtStart: 0,
-  impaired: 0,
-  lostRevenue: 0,
-  failed: 0,
-  phase: { _tag: 'Quiet' },
-  severity: 3,
-  magnitude: 3,
-  zone: null,
-  region: null,
-  causedBy: null,
-}
-
-/* The glossary catalog is the one source for the Glossary panel and the wiki's /glossary pages. */
+/* The glossary catalog is the one source for the wiki's /glossary pages. */
 
 const designDir = fileURLToPath(new URL('../../../apps/wiki/content/design/', import.meta.url))
 
@@ -42,13 +20,13 @@ const anchorsOf = async (page: string): Promise<ReadonlySet<string>> => {
 }
 
 test('every glossary entry is complete and every reference resolves', async () => {
-  const ids = new Set(GLOSSARY.map((entry) => entry.id))
-  expect(ids.size).toBe(GLOSSARY.length)
-  for (const entry of GLOSSARY) {
+  const terms = [...GLOSSARY, ...CVE_TERMS]
+  const ids = new Set(terms.map((entry) => entry.id))
+  expect(ids.size).toBe(terms.length)
+  for (const entry of terms) {
     expect(entry.id, entry.term).toBe(slug(entry.term))
     expect(entry.definition.length, entry.id).toBeGreaterThan(0)
     expect(entry.inGame.length, entry.id).toBeGreaterThan(0)
-    expect(entry.links.length, entry.id).toBeGreaterThan(0)
     for (const link of entry.links) expect(link.url, entry.id).toMatch(/^https:\/\//)
     for (const id of entry.related) {
       expect(ids.has(id) && id !== entry.id, `${entry.id} → ${id}`).toBe(true)
@@ -61,28 +39,6 @@ test('every glossary entry is complete and every reference resolves', async () =
       )
     }
   }
-})
-
-test('discovery meets entries from what the Company runs and goes through, never in a Sandbox', () => {
-  const game = newGame(7)
-  const ids = new Set(GLOSSARY.map((entry) => entry.id))
-  const first = discoverTerms(game, [])
-  expect(first).toContain('apdex')
-  expect(first).not.toContain('cache-aside')
-  const cached = {
-    ...game,
-    nodes: [...game.nodes, { ...game.nodes[1]!, id: 'c', type: 'cache' as const }],
-  }
-  expect(discoverTerms(cached, [])).toContain('cache-aside')
-  const storm = discoverTerms(game, [
-    StepEvent.IncidentStarted({ incident: { ...incident, kind: 'retry-storm' } }),
-  ])
-  expect(storm).toContain('metastable-failure')
-  for (const id of storm) expect(ids.has(id)).toBe(true)
-  expect(discoverTerms({ ...game, sandbox: true }, [])).toEqual([])
-})
-
-test('every discovery id names a glossary entry', () => {
-  const ids = new Set(GLOSSARY.map((entry) => entry.id))
-  for (const id of DISCOVERABLE) expect(ids.has(id), id).toBe(true)
+  // Every engineering term names a source to read next; an advisory is read from its patch ticket.
+  for (const entry of GLOSSARY) expect(entry.links.length, entry.id).toBeGreaterThan(0)
 })

@@ -16,8 +16,8 @@ describe('typed copy', () => {
   test('English catalog copy is the Simulation table text, not a second copy', () => {
     const english = copyIn('en').catalog
     expect(english.research.stripe.name).toBe(RESEARCH.stripe.name)
-    expect(english.glossary['annotation']!.definition).toBe(
-      GLOSSARY.find(({ id }) => id === 'annotation')!.definition,
+    expect(english.glossary['annotation']!.term).toBe(
+      GLOSSARY.find(({ id }) => id === 'annotation')!.term,
     )
   })
 
@@ -25,10 +25,8 @@ describe('typed copy', () => {
     'every Glossary entry and Challenge has %s copy',
     (locale) => {
       const { catalog } = copyIn(locale)
-      for (const { id } of GLOSSARY) {
+      for (const { id } of GLOSSARY)
         expect(catalog.glossary[id]?.term, `glossary ${id}`).toBeTruthy()
-        expect(catalog.glossary[id]?.definition, `glossary ${id}`).toBeTruthy()
-      }
       for (const { id } of CHALLENGES)
         expect(catalog.challenges[id]?.name, `challenge ${id}`).toBeTruthy()
     },

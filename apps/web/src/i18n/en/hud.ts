@@ -53,7 +53,6 @@ export const hud = {
   playbooksP: 'Playbooks (P)',
   dashboardD: 'Dashboard (D)',
   howToPlayH: 'How to play (H)',
-  glossaryG: 'Glossary (G)',
   undoZ: 'Undo (Z)',
   redoShiftZ: 'Redo (Shift+Z)',
   resumeSpace: 'Resume (Space)',

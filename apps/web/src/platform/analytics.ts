@@ -22,6 +22,9 @@ export const WIKI_URL = 'https://wiki.playquorum.dev'
 export const PRIVACY_URL = `${WIKI_URL}/about/privacy`
 export const DISCLAIMER_URL = `${WIKI_URL}/about/disclaimer`
 
+/** The wiki's page for an engineering term. The game links its terms here. */
+export const glossaryUrl = (id: string): string => `${WIKI_URL}/glossary/${id}`
+
 let client: Client | null = null
 let starting = false
 let latest: Model | null = null

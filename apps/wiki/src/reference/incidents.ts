@@ -1,7 +1,7 @@
 import type { Html } from 'foldkit/html'
 import { cn } from 'cn'
 import { INCIDENTS, INCIDENT_IDS, type IncidentDef } from '@quorum/simulation/catalog'
-import { BY_INCIDENT } from '@quorum/simulation/discovery'
+import { BY_INCIDENT } from '@quorum/simulation/term-links'
 import { FIGURE } from '@quorum/ui/game/bits'
 import { duration } from '@quorum/ui/game/format'
 import { GUIDED } from '@quorum/simulation/sandbox'

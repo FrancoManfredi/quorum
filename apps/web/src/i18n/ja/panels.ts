@@ -104,7 +104,6 @@ export const panels: Messages['panels'] = {
   del: 'Del',
   sellSelected: '選択を売却',
   dashboard: 'ダッシュボード',
-  glossary: '用語集',
   mute: '消音',
   inbox: '受信箱',
   cost: 'コスト',

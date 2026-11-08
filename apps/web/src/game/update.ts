@@ -90,7 +90,6 @@ export const initialModel = (): Model => {
       agentAccess: false,
       analytics: true,
     },
-    glossary: { focus: null, returnTo: 'none', query: '', category: null },
     languagePicker: Listbox.init({ id: 'interface-language' }),
     volumeSlider: VolumeSlider.init({ id: 'volume', min: 0, max: 100, step: 5 }),
     runtimePicker: initRuntimePicker(),

@@ -9,7 +9,6 @@ import { churn } from './churn.ts'
 import { cost } from './cost.ts'
 import { dashboard } from './dashboard.ts'
 import { dock } from './dock.ts'
-import { glossary } from './glossary.ts'
 import { hud } from './hud.ts'
 import { inbox } from './inbox.ts'
 import { incidents } from './incidents.ts'
@@ -65,7 +64,6 @@ export const ja = {
   cost,
   dashboard,
   dock,
-  glossary,
   hud,
   inbox,
   incidents,

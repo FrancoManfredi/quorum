@@ -18,7 +18,7 @@ export const UNDER_ATTACK = { block: 0.99, falsePositive: 0.01, latency: 40, cpu
  */
 export const BOT_MANAGEMENT_FALSE = 0.5
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const wafGlossary: ReadonlyArray<string> = ['rate-limiting', 'waf-web-application-firewall']
 
 /** The saved properties of a waf Node, with the defaults an old save decodes to. */

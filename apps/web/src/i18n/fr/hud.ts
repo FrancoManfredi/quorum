@@ -53,7 +53,6 @@ export const hud: Messages['hud'] = {
   playbooksP: 'Plans types (P)',
   dashboardD: 'Tableau de bord (D)',
   howToPlayH: 'Comment jouer (H)',
-  glossaryG: 'Glossaire (G)',
   undoZ: 'Annuler (Z)',
   redoShiftZ: 'Rétablir (Maj+Z)',
   resumeSpace: 'Reprendre (Espace)',

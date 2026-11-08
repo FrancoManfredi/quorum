@@ -6,7 +6,6 @@ export type MoreItem =
   | 'playbooks'
   | 'dashboard'
   | 'help'
-  | 'glossary'
   | 'undo'
   | 'redo'
   | 'tidy'

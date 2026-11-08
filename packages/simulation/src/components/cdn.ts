@@ -34,7 +34,7 @@ export const CACHE_KEYS = {
   path: { name: 'Path only', hit: 1.2, leak: 2.5 },
 } as const
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const cdnGlossary: ReadonlyArray<string> = [
   'cache-hit-rate',
   'cdn-content-delivery-network',

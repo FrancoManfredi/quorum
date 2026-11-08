@@ -13,7 +13,7 @@ export const WIDE_STALE = 0.5
 export const WIDE_TX_STALE = 0.02
 export const WIDE_TX_DUPLICATE = 0.01
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const wideGlossary: ReadonlyArray<string> = [
   'consistent-hashing',
   'eventual-consistency',

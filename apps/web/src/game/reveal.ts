@@ -112,7 +112,6 @@ const USES: Partial<Record<Message['_tag'], (message: Message) => Reveal | null>
   TaskQueued: () => 'engineering',
   AuthMoveQueued: () => 'engineering',
   AutopilotToggled: () => 'autopilot',
-  GlossaryOpened: () => 'glossary',
   PanelOpened: (message) =>
     message._tag === 'PanelOpened' && (message.panel === 'research' || message.panel === 'team')
       ? message.panel

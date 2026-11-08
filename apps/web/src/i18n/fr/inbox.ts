@@ -14,7 +14,7 @@ export const inbox: Messages['inbox'] = {
     'Plus de huit discussions étaient non lues : les plus anciennes qui n’attendaient rien de vous ont été repliées ici. Elles sont toutes encore là.',
   olderUpdates: (p0) => `${p0} mises à jour plus anciennes`,
   earlierMessages: (p0) => (p0 === 1 ? '1 message plus ancien' : `${p0} messages plus anciens`),
-  opensTheGlossaryOnThisAdvisory: 'Ouvre le glossaire sur cet avis',
+  opensTheGlossaryOnThisAdvisory: 'Ouvre cet avis dans le glossaire du wiki',
   inTheGlossary: 'Dans le glossaire',
   resolved: (p0) => `Résolu ${p0}`,
   moveToInboxE: 'Déplacer vers la boîte de réception (E)',

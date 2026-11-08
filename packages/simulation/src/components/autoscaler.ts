@@ -22,7 +22,7 @@ export const SCHEDULE_LEAD_MINUTES = 120
 export const SCALE_RPS_PER_VCPU = 100
 export const SCALE_QUEUE_DEPTH = 100
 
-/** The Glossary entries a Company meets once it runs this Component (15 "Glossary"). */
+/** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const autoscalerGlossary: ReadonlyArray<string> = [
   'autoscaling',
   'cold-start',
