@@ -7,6 +7,10 @@ export const API_PREFIX = '/api'
 
 export const RPC_PATH = `${API_PREFIX}/rpc`
 
+/** Where a Room's WebSocket lives. The website Worker forwards the prefix. */
+export const ROOM_PATH = `${API_PREFIX}/room`
+export const ROOM_SOCKET_PATH = `${ROOM_PATH}/socket`
+
 /**
  * The same-origin path the website Worker proxies to PostHog. It is not part
  * of the API: the browser sends analytics here so blockers do not match
