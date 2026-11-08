@@ -610,9 +610,11 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
   const percentiles = has(game, 'percentiles')
   const runway = runwayOf(game, ledger)
   const short = game.cash <= 0
+  // The Bridge state is a union, so only an open offer is short of Cash and worth naming here.
+  const bridging = game.bridge._tag === 'Offered'
   // The SLA pays its credits on top of Burn: its own HUD row names them beside the runway (11).
   const credit = slaCreditsOf(game, ledger)
-  const cashNote = game.bridge
+  const cashNote = bridging
     ? t.hud.bridgeOffered
     : short
       ? t.hud.outOfCash
@@ -641,11 +643,11 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             Wallet,
             money(game.cash),
             cashNote,
-            game.cash < 0 || game.bridge ? 'danger' : net >= 0 && income > 0 ? 'ok' : 'plain',
+            game.cash < 0 || bridging ? 'danger' : net >= 0 && income > 0 ? 'ok' : 'plain',
             h,
-            game.bridge ? t.hud.cashShortBridge : t.hud.cashAndNet,
-            short || game.bridge ? 'cursor-pointer rounded-lg hover:bg-muted' : '',
-            short || game.bridge ? Message.PanelOpened({ panel: 'dashboard' }) : undefined,
+            bridging ? t.hud.cashShortBridge : t.hud.cashAndNet,
+            short || bridging ? 'cursor-pointer rounded-lg hover:bg-muted' : '',
+            short || bridging ? Message.PanelOpened({ panel: 'dashboard' }) : undefined,
           ),
           stat(
             t.hud.users,
