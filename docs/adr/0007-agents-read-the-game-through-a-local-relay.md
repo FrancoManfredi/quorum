@@ -1,5 +1,7 @@
 # Agents read the game through a local relay
 
+Superseded by [ADR 0020](./0020-agents-read-a-company-through-a-remote-mcp-server.md).
+
 A player can let a coding agent (Claude Code, Pi, Codex, and the like) read their game and give
 feedback, without screenshots. The agent never acts: the player makes every decision.
 

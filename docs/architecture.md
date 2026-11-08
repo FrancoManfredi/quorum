@@ -79,28 +79,27 @@ The browser sends anonymous PostHog events through the website Worker at `/q` (`
 - `packages/rpc` owns the public wire contract only: Effect RPC groups, request/response schemas, declared errors, and the API path prefix.
 - `packages/simulation` owns the Simulation: the catalog, the Game schema, the solver, the Step, actions, and the Sandboxes. A Node's lifecycle is one tagged state in `src/life.ts`, not separate fields ([ADR 0011](adr/0011-state-machines-are-for-flows.md)). The browser plays it and the API Worker will replay Challenges with it ([ADR 0004](adr/0004-simulation-package.md)). It imports only `effect` and its own files, and uses only exact math, so every runtime computes the same Game.
 - `packages/ui` (`@quorum/ui`) owns the design language and the views both apps show ([ADR 0010](adr/0010-ui-package.md)): the primitives under `src/primitives`, the Graphite theme in `src/theme.css` (each app imports it after Tailwind), the shared game views, number formats, and icons under `src/game`, and the Pixi board with its routing and compute worker under `src/board`. A view takes the data it shows, never an app's Model; the board takes a `BoardState` with a `translate` function and reports gestures and sounds through callbacks. It ships TypeScript source; each app's Vite build compiles it. `src/boundary.test.ts` checks its import rules.
-- `packages/mcp-relay` is `quorum-mcp-relay`, the one package published to npm. Its CLI runs on the player's machine as an MCP server on stdio and as a WebSocket server on loopback, which the Quorum page connects to ([ADR 0007](adr/0007-agents-read-the-game-through-a-local-relay.md)). `src/tools.ts` and `src/protocol.ts` import nothing, so the web app imports them for the tool list and the wire messages.
+- `packages/agent` owns the read-only agent surface: the tool list, the Agent snapshot schema, the incremental upload schema, the shared `readTool`, and the MCP request handler. The browser builds a snapshot from its Model and uploads it; the API Worker answers `/mcp` from the Agent room's Durable Object ([ADR 0020](adr/0020-agents-read-a-company-through-a-remote-mcp-server.md)). It imports the Simulation, so the tool view reads the same Game the board does.
 - `examples/reference` shows a complete Query-to-RPC path in a separate website app. Run it with `pnpm dev:reference`, which uses the root Alchemy entrypoint with the `reference` stage; it is deliberately excluded from the default stack.
 
 ## Dependency direction
 
 ```text
-apps/web ─────────► packages/rpc, packages/simulation, packages/ui
-apps/backend ─────► packages/rpc, packages/simulation
+apps/web ─────────► packages/agent, packages/rpc, packages/simulation, packages/ui
+apps/backend ─────► packages/agent, packages/rpc, packages/simulation
 apps/wiki ────────► packages/simulation, packages/ui
 examples/reference ► packages/rpc
-apps/web ─────────► packages/mcp-relay (tools, protocol only)
 packages/rpc ─────► effect
 packages/simulation ► effect
-packages/mcp-relay ► ws
+packages/agent ─────► packages/simulation, effect
 packages/ui ───────► packages/simulation, foldkit, @foldkit/ui, lucide, pixi.js
 ```
 
-The web app must not import backend implementation modules. The wiki must not import either other app or `packages/rpc`. The RPC package must not import either app or the Simulation. The Simulation must not import either app, `packages/rpc`, or any UI, browser, or Cloudflare module. The relay must not import either app, `packages/rpc`, or the Simulation. The UI package must not import an app or `packages/rpc`, and its primitives must not import its game views, its board, or the Simulation. Share the wire contract, not internal backend models.
+The web app must not import backend implementation modules. The wiki must not import either other app or `packages/rpc`. The RPC package must not import either app or the Simulation. The Simulation must not import either app, `packages/rpc`, or any UI, browser, or Cloudflare module. The agent package must not import either app, `packages/rpc`, or a UI, browser, or Cloudflare module; it may import the Simulation because it reads the Game. The UI package must not import an app or `packages/rpc`, and its primitives must not import its game views, its board, or the Simulation. Share the wire contract, not internal backend models.
 
 ## Cloudflare scope
 
-The stack provisions the website Worker, the API Worker, one D1 database, `Results`, bound to the API Worker as `FEEDBACK` for the Exit survey, and the `RoomObject` Durable Object namespace the API Worker hosts. The resource keeps its first name because renaming it would create a new, empty database. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). Challenges are scored in the browser and send nothing ([ADR 0016](./adr/0016-challenges-stay-in-the-browser-until-accounts.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
+The stack provisions the website Worker, the API Worker, one D1 database, `Results`, bound to the API Worker as `FEEDBACK` for the Exit survey, and two Durable Object namespaces the API Worker hosts: `RoomObject` for an online Company, and `AgentRoom` for a Company exposed to agents. The D1 database keeps its first name because renaming it would create a new, empty database. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). Challenges are scored in the browser and send nothing ([ADR 0016](./adr/0016-challenges-stay-in-the-browser-until-accounts.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
 
-The survey context sees only its store service, `SurveyStore` (`apps/backend/src/contexts/survey/store.ts`). Its D1 implementation uses the structural `SqlRunner` in `apps/backend/src/platform/sql.ts`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. A Room is that requirement for the one Durable Object namespace. Add R2, Access, or other Cloudflare
+The survey context sees only its store service, `SurveyStore` (`apps/backend/src/contexts/survey/store.ts`). Its D1 implementation uses the structural `SqlRunner` in `apps/backend/src/platform/sql.ts`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. A Room and an Agent room are that requirement for the two Durable Object namespaces. Add R2, Access, or other Cloudflare
 services only when a product feature requires them.

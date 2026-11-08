@@ -3,8 +3,9 @@ import * as Alchemy from 'alchemy'
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
-import { API_PREFIX, INGEST_PREFIX } from '@quorum/rpc'
+import { API_PREFIX, INGEST_PREFIX, MCP_PATH } from '@quorum/rpc'
 import { simVersion } from './packages/simulation/sim-version.ts'
+import type { AgentRoomInstance } from './apps/backend/src/platform/agent-room.ts'
 import type { RoomInstance } from './apps/backend/src/platform/room-object.ts'
 
 const compatibility = { date: '2026-10-08' }
@@ -115,6 +116,8 @@ export default Alchemy.Stack(
         FEEDBACK: Results,
         // The one stateful object in the stack: an online Company's Room.
         ROOMS: Cloudflare.DurableObject<RoomInstance>('RoomObject'),
+        // A Company exposed to agents: one object per agent room id.
+        AGENT_ROOMS: Cloudflare.DurableObject<AgentRoomInstance>('AgentRoom'),
         ...sentryEnv,
       },
       ...apiBuild,
@@ -129,7 +132,7 @@ export default Alchemy.Stack(
       main: 'src/worker.ts',
       env: { API: ApiWorker, ...sentryEnv },
       assets: {
-        runWorkerFirst: [`${API_PREFIX}/*`, `${INGEST_PREFIX}/*`],
+        runWorkerFirst: [MCP_PATH, `${MCP_PATH}/*`, `${API_PREFIX}/*`, `${INGEST_PREFIX}/*`],
         notFoundHandling: 'single-page-application',
       },
       ...(stage === 'prod' && { domain: PRODUCTION_DOMAIN }),

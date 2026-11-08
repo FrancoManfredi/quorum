@@ -1,5 +1,14 @@
 export { ApiError } from './errors.ts'
-export { API_PREFIX, INGEST_PREFIX, ROOM_PATH, ROOM_SOCKET_PATH, RPC_PATH } from './paths.ts'
+export {
+  AGENT_PREFIX,
+  AGENT_ROOM_PATH,
+  API_PREFIX,
+  INGEST_PREFIX,
+  MCP_PATH,
+  ROOM_PATH,
+  ROOM_SOCKET_PATH,
+  RPC_PATH,
+} from './paths.ts'
 export { RoomInfo, RoomOpened, RoomPublish, RoomQuery, RoomRpc } from './room.ts'
 export { SurveyExit, SurveyReceipt, SurveyRpc, SurveySubmission } from './survey.ts'
 export { SystemRpc, SystemStatus } from './system.ts'

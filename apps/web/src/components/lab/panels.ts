@@ -25,7 +25,7 @@ import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { cheatCash, cheatInsight } from '@/game/cheats.ts'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { currentFile, exitLegacy, roomCode, roomLive, type Model } from '@/game/model.ts'
+import { currentFile, exitLegacy, playingId, roomCode, roomLive, type Model } from '@/game/model.ts'
 import { seatColour } from '@/game/seat-colour.ts'
 import type { Vote } from '@quorum/simulation/room'
 import { companyMark } from '@/components/company-mark.ts'
@@ -34,6 +34,7 @@ import { roomOwner } from '@/game/model.ts'
 import { ROOM_NAME_LENGTH } from '@/game/names.ts'
 import { RoomPhase } from '@/game/room-machine.ts'
 import { seatOf } from '@/platform/room-socket.ts'
+import { agentRoomId } from '@/game/agent-room.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { Kbd } from '@quorum/ui/primitives/kbd'
@@ -109,6 +110,26 @@ const secondaryButton = (
     [...(glyph ? [icon(h, glyph, 'size-4')] : []), label],
     h,
   )
+
+const agentRoomRow = (model: Model, h: HtmlBuilder<Message>) => {
+  const t = copy(h)
+  const company = playingId(model)
+  const id = company === null ? null : agentRoomId(company)
+  if (id === null) return h.empty
+  return h.div(
+    [h.Class('flex flex-col gap-2')],
+    [
+      h.span([h.Class(EYEBROW)], [t.panels.agentRoom]),
+      h.div(
+        [h.Class('flex items-center gap-2')],
+        [
+          h.code([h.Class('min-w-0 flex-1 truncate font-mono text-xs')], [id]),
+          secondaryButton(t.panels.copyAgentRoom, Message.AgentRoomCopied(), h, Copy),
+        ],
+      ),
+    ],
+  )
+}
 
 const footer = (children: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
   h.div([h.Class('flex justify-end gap-2 border-t border-hairline bg-nested px-5 py-3')], children)
@@ -810,6 +831,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             },
             h,
           ),
+          model.prefs.agentAccess ? agentRoomRow(model, h) : h.empty,
           switch_(
             {
               id: 'setting-analytics',

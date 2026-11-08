@@ -1,0 +1,26 @@
+{
+  "name": "@quorum/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tools": "./src/tools.ts",
+    "./snapshot": "./src/snapshot.ts",
+    "./view": "./src/view.ts",
+    "./mcp": "./src/mcp.ts",
+    "./store": "./src/store.ts",
+    "./sync": "./src/sync.ts",
+    "./node-metrics": "./src/node-metrics.ts",
+    "./room-id": "./src/room-id.ts",
+    "./origin": "./src/origin.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck": "tsrs --noEmit -p tsconfig.json && effect-tsrs diagnostics --strict --project tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@quorum/simulation": "workspace:*",
+    "effect": "4.1.2"
+  }
+}

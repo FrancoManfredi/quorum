@@ -6,6 +6,7 @@ import { startMotion } from './game/motion.ts'
 import { PREFS_KEY } from './game/commands.ts'
 import { activityChange } from './game/presence.ts'
 import { publish } from './game/agent-tools.ts'
+import { syncAgent } from './game/agent-room.ts'
 import { observe } from './platform/analytics.ts'
 import { ApiRpc } from './platform/rpc.ts'
 import {
@@ -29,6 +30,7 @@ const application = Runtime.makeApplication({
     const activity = activityChange(model, result.model)
     if (activity !== undefined) setSeatActivity('board', activity)
     publish(result.model)
+    syncAgent(result.model)
     observe(result.model)
     return result
   },

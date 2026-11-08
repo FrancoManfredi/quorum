@@ -14,5 +14,6 @@ export const saveCases = {
   IncidentForced: { kind: IncidentId },
   LogExported: {},
   StateCopied: {},
+  AgentRoomCopied: {},
   LogCleared: {},
 }

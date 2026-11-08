@@ -21,6 +21,8 @@ export const panels = {
   textAt150: 'Text at 150%',
   darkMode: 'Dark mode',
   agentAccess: 'Agent access',
+  agentRoom: 'Agent room',
+  copyAgentRoom: 'Copy room id',
   shareAnonymousUsageData: 'Share anonymous usage data',
   language: 'Language',
   privacyPolicy: 'Privacy policy',

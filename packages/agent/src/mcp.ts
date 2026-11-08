@@ -1,14 +1,13 @@
-import { createInterface } from 'node:readline'
-import type { Readable, Writable } from 'node:stream'
+import { isRoomId } from './room-id.ts'
 import { TOOLS } from './tools.ts'
-import type { Relay } from './relay.ts'
 
 /* ==========================================================================
-   MCP over stdio, by hand: the four requests a read-only tool server answers.
-   One JSON message per line (https://modelcontextprotocol.io/specification).
+   MCP over Streamable HTTP, by hand: the requests a read-only server answers.
+   The transport adapter in the API Worker turns one POST into one reply. No
+   session, no SSE, no server-initiated messages.
    ========================================================================== */
 
-const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'] as const
+export const SUPPORTED = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'] as const
 
 type Request = Readonly<{ jsonrpc: '2.0'; id?: number | string; method: string; params?: unknown }>
 
@@ -24,9 +23,21 @@ const failure = (id: number | string | null, code: number, message: string) => (
   error: { code, message },
 })
 
-export type McpInfo = Readonly<{ name: string; version: string }>
+export type CallTool = (
+  room: string,
+  name: string,
+  input: Record<string, unknown>,
+) => Promise<string>
 
-const handle = async (relay: Relay, info: McpInfo, request: Request): Promise<unknown> => {
+export type RoomStatus = (room: string) => Promise<unknown>
+
+const isKnown = (name: string): boolean => TOOLS.some((tool) => tool.name === name)
+
+export const handleMcp = async (
+  request: Request,
+  call: CallTool,
+  status: RoomStatus,
+): Promise<unknown> => {
   const { id, method } = request
   // A notification has no id and gets no answer.
   if (id === undefined) return undefined
@@ -40,9 +51,9 @@ const handle = async (relay: Relay, info: McpInfo, request: Request): Promise<un
           ? asked
           : SUPPORTED[1],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: info,
+        serverInfo: { name: 'quorum', version: '1.0.0' },
         instructions:
-          'Read-only view of the Quorum game the player has open in their browser. Start with get_company. These tools cannot change the game: the player makes every decision.',
+          'Read-only view of a Room the player exposed from Quorum. Pass the room id shown in Settings as the `room` argument on every tool. Start with get_status to see how fresh the snapshot is, then get_company. These tools cannot change the game.',
       })
     }
     case 'ping':
@@ -56,10 +67,27 @@ const handle = async (relay: Relay, info: McpInfo, request: Request): Promise<un
       })
     case 'tools/call': {
       const name = params['name']
-      if (typeof name !== 'string' || !TOOLS.some((tool) => tool.name === name))
+      if (typeof name !== 'string' || !isKnown(name))
         return failure(id, -32602, `Unknown tool: ${String(name)}`)
+      const args = record(params['arguments'])
+      const room = args['room']
+      if (typeof room !== 'string' || !isRoomId(room))
+        return reply(id, {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: 'Pass the agent room id shown in Quorum Settings as the room argument.',
+            },
+          ],
+        })
+      const input = { ...args }
+      delete input['room']
       try {
-        const text = await relay.call(name, record(params['arguments']))
+        const text =
+          name === 'get_status'
+            ? JSON.stringify((await status(room)) ?? { stored: false })
+            : await call(room, name, input)
         return reply(id, { content: [{ type: 'text', text }] })
       } catch (error) {
         const text = error instanceof Error ? error.message : String(error)
@@ -70,31 +98,3 @@ const handle = async (relay: Relay, info: McpInfo, request: Request): Promise<un
       return failure(id, -32601, `Method not found: ${method}`)
   }
 }
-
-/** Answers MCP requests from `input` until it ends. Replies go to `output`, one per line. */
-export const serveMcp = (
-  relay: Relay,
-  info: McpInfo,
-  input: Readable,
-  output: Writable,
-): Promise<void> =>
-  new Promise((done) => {
-    const lines = createInterface({ input })
-    const work = new Set<Promise<void>>()
-    lines.on('line', (line) => {
-      if (!line.trim()) return
-      const task = (async () => {
-        let request: Request
-        try {
-          request = JSON.parse(line) as Request
-        } catch {
-          output.write(`${JSON.stringify(failure(null, -32700, 'Parse error'))}\n`)
-          return
-        }
-        const response = await handle(relay, info, request)
-        if (response !== undefined) output.write(`${JSON.stringify(response)}\n`)
-      })().finally(() => work.delete(task))
-      work.add(task)
-    })
-    lines.on('close', () => void Promise.all(work).then(() => done()))
-  })

@@ -25,6 +25,7 @@ import { listed } from './companies.ts'
 import { afterRound } from './session.ts'
 import { reasonIn } from '../../i18n/refusal.ts'
 import { refusal, stateJson } from '../agent-tools.ts'
+import { agentRoomId } from '../agent-room.ts'
 import { solveFlow } from '@quorum/simulation/solve'
 
 type SaveTag =
@@ -38,6 +39,7 @@ type SaveTag =
   | 'IncidentForced'
   | 'LogExported'
   | 'StateCopied'
+  | 'AgentRoomCopied'
   | 'LogCleared'
 
 export const saveHandlers = (
@@ -205,6 +207,23 @@ export const saveHandlers = (
             CopyText({
               text: stateJson(model),
               done: say(model).toasts.copiedState,
+              blocked: say(model).toasts.clipboardBlocked,
+            }),
+          ],
+        }
+  },
+
+  AgentRoomCopied: () => {
+    const company = playingId(model)
+    const id = company === null ? null : agentRoomId(company)
+    return id === null
+      ? withToast(model, say(model).toasts.agentRoomMissing, 'warn')
+      : {
+          model,
+          commands: [
+            CopyText({
+              text: id,
+              done: say(model).toasts.copiedAgentRoom,
               blocked: say(model).toasts.clipboardBlocked,
             }),
           ],

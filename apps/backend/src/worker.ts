@@ -1,13 +1,16 @@
 import * as Sentry from '@sentry/cloudflare'
-import { ROOM_SOCKET_PATH } from '@quorum/rpc'
+import { AGENT_ROOM_PATH, MCP_PATH, ROOM_SOCKET_PATH } from '@quorum/rpc'
+import type { AgentRooms } from './contexts/agent/room.ts'
 import type { RoomStub } from './contexts/room/directory.ts'
 import { handlerFor } from './handler.ts'
+import { agentHttp } from './platform/agent-http.ts'
+import { AgentRoom } from './platform/agent-room.ts'
 import { roomDirectory } from './platform/room-directory.ts'
 import { RoomObject } from './platform/room-object.ts'
 import type { Env } from './handler.ts'
 
 // The Durable Object class must be exported by the script that hosts it.
-export { RoomObject }
+export { AgentRoom, RoomObject }
 export type { Env }
 
 // Built on the first request and kept for the isolate, once per database binding.
@@ -41,7 +44,10 @@ export default Sentry.withSentry(
     // The incoming request carries the browser's trace headers. Sentry continues that trace, and
     // the service binding passes the same headers on, so the API Worker joins it.
     fetch: (request: Request, env: Env): Promise<Response> => {
-      if (new URL(request.url).pathname === ROOM_SOCKET_PATH) return roomSocket(request, env)
+      const path = new URL(request.url).pathname
+      if (path === ROOM_SOCKET_PATH) return roomSocket(request, env)
+      if (path === MCP_PATH || path === AGENT_ROOM_PATH)
+        return agentHttp(request, env.AGENT_ROOMS as unknown as AgentRooms)
       if (built?.feedback !== env.FEEDBACK || built.rooms !== env.ROOMS)
         built = {
           feedback: env.FEEDBACK,

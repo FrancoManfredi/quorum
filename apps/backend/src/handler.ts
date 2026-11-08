@@ -13,6 +13,7 @@ import { SurveyHandlers } from './contexts/survey/handlers.ts'
 import { SurveyStore } from './contexts/survey/store.ts'
 import { SystemHandlers } from './contexts/system/handlers.ts'
 import { d1SurveyStore } from './platform/d1-survey-store.ts'
+import type { AgentRoomInstance } from './platform/agent-room.ts'
 import type { RoomInstance } from './platform/room-object.ts'
 import type { SqlRunner } from './platform/sql.ts'
 
@@ -23,6 +24,7 @@ import type { SqlRunner } from './platform/sql.ts'
 export type Env = Readonly<{
   FEEDBACK: SqlRunner
   ROOMS: DurableObjectNamespace<RoomInstance>
+  AGENT_ROOMS: DurableObjectNamespace<AgentRoomInstance>
   SENTRY_DSN?: string
   SENTRY_RELEASE?: string
 }>

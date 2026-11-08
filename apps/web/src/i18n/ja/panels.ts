@@ -23,6 +23,8 @@ export const panels: Messages['panels'] = {
   textAt150: '文字サイズ150%',
   darkMode: 'ダークモード',
   agentAccess: 'エージェントアクセス',
+  agentRoom: 'エージェントルーム',
+  copyAgentRoom: 'ルームIDをコピー',
   shareAnonymousUsageData: '匿名の利用データを共有',
   language: '言語',
   privacyPolicy: 'プライバシーポリシー',

@@ -509,6 +509,14 @@ _Avoid_: frame, state, sync packet
 **Revision**:
 The count of changes a Room has accepted.
 
+**Agent room**:
+The read-only copy of a Company that its browser uploads for agents. One per Company, named by a public id; the write key stays in the browser.
+_Avoid_: relay, share link, session
+
+**Agent snapshot**:
+What an Agent room stores: the Game without history, the screen, and the samples since the last upload. It is not a Seat's Snapshot.
+_Avoid_: save, state dump
+
 ## Relationships
 
 - A **Company** has one **Venture**, any number of **Mutators**, and passes through **Eras** in order.
@@ -524,3 +532,4 @@ The count of changes a Room has accepted.
 - A **Challenge** run is a **Replay** that stays in the browser. A server that re-runs it and keeps **Histograms** waits for accounts.
 - A **Company** is offline, played by the browser, or **Online**, run by one **Room**. The owner takes it offline, which ends the Room with the Company's latest Game.
 - A **Room** has one owner **Seat** and up to three guest **Seats**. A **Vote** passes with more than half of the connected Seats.
+- A **Company** may have one **Agent room** while Agent access is on. Turning it off clears the Agent room.

@@ -193,6 +193,8 @@ export const toasts: Messages['toasts'] = {
   incidentRunning: (name) => `${name}はまだ続いています。`,
   incidentNoTarget: (name) => `この設計には${name}の対象がありません。`,
   copiedState: 'ゲームの状態をJSONとしてコピーしました。',
+  copiedAgentRoom: 'エージェントルームIDをコピーしました。',
+  agentRoomMissing: '先にエージェントアクセスをオンにしてください。',
   logCleared: 'プレイテストログを消去しました。',
   clipboardBlocked: 'クリップボードがブロックされています。',
 

@@ -17,3 +17,10 @@ export const ROOM_SOCKET_PATH = `${ROOM_PATH}/socket`
  * PostHog's hostname.
  */
 export const INGEST_PREFIX = '/q'
+
+/** The public MCP endpoint. The website Worker forwards it to the API Worker. */
+export const MCP_PATH = '/mcp'
+
+/** Where a browser uploads its agent snapshot. */
+export const AGENT_PREFIX = `${API_PREFIX}/agent`
+export const AGENT_ROOM_PATH = `${AGENT_PREFIX}/room`

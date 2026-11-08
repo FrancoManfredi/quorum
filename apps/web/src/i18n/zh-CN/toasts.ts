@@ -182,6 +182,8 @@ export const toasts: Messages['toasts'] = {
   incidentRunning: (name) => `${name} 仍在进行中。`,
   incidentNoTarget: (name) => `此设计中没有 ${name} 的目标。`,
   copiedState: '已将游戏状态复制为 JSON。',
+  copiedAgentRoom: '已复制智能体房间 ID。',
+  agentRoomMissing: '请先开启智能体访问。',
   logCleared: '试玩日志已清空。',
   clipboardBlocked: '剪贴板访问被阻止。',
 

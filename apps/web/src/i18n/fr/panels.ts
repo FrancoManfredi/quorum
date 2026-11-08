@@ -23,6 +23,8 @@ export const panels: Messages['panels'] = {
   textAt150: 'Texte à 150 %',
   darkMode: 'Mode sombre',
   agentAccess: 'Accès des agents',
+  agentRoom: 'Salle d’agent',
+  copyAgentRoom: 'Copier l’identifiant de salle',
   shareAnonymousUsageData: 'Partager des données d’utilisation anonymes',
   language: 'Langue',
   privacyPolicy: 'Politique de confidentialité',

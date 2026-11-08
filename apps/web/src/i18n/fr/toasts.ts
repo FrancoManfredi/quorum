@@ -203,6 +203,8 @@ export const toasts: Messages['toasts'] = {
   incidentRunning: (name) => `${name} est toujours en cours.`,
   incidentNoTarget: (name) => `${name} n’a aucune cible dans cette architecture.`,
   copiedState: 'État du jeu copié au format JSON.',
+  copiedAgentRoom: 'Identifiant de salle d’agent copié.',
+  agentRoomMissing: 'Activez d’abord l’accès des agents.',
   logCleared: 'Journal de playtest effacé.',
   clipboardBlocked: 'Le presse-papiers est bloqué.',
 

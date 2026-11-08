@@ -201,6 +201,8 @@ export const toasts = {
   incidentRunning: (name: Value) => `${name} is still running.`,
   incidentNoTarget: (name: Value) => `${name} has no target in this Design.`,
   copiedState: 'Copied the game state as JSON.',
+  copiedAgentRoom: 'Copied the agent room id.',
+  agentRoomMissing: 'Turn on Agent access first.',
   logCleared: 'Playtest log cleared.',
   clipboardBlocked: 'The clipboard is blocked.',
 

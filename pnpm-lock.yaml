@@ -165,6 +165,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@quorum/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@quorum/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc
@@ -189,6 +192,9 @@ importers:
       '@foldkit/vite-plugin':
         specifier: 0.29.0
         version: 0.29.0(effect@4.1.2)(foldkit@0.170.0(@effect/platform-browser@4.1.2(effect@4.1.2))(effect@4.1.2))(redis@6.3.1(@opentelemetry/api@1.10.0))(vite@8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+      '@quorum/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@quorum/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc
@@ -225,9 +231,6 @@ importers:
       posthog-js:
         specifier: 1.447.1
         version: 1.447.1
-      quorum-mcp-relay:
-        specifier: workspace:*
-        version: link:../../packages/mcp-relay
       vite:
         specifier: 8.3.6
         version: 8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
@@ -327,15 +330,14 @@ importers:
         specifier: 8.3.6
         version: 8.3.6(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1)
 
-  packages/mcp-relay:
+  packages/agent:
     dependencies:
-      ws:
-        specifier: 8.22.1
-        version: 8.22.1
-    devDependencies:
-      '@types/ws':
-        specifier: 8.18.2
-        version: 8.18.2
+      '@quorum/simulation':
+        specifier: workspace:*
+        version: link:../simulation
+      effect:
+        specifier: 4.1.2
+        version: 4.1.2
 
   packages/rpc:
     dependencies:

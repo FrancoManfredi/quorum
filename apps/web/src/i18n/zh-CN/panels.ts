@@ -23,6 +23,8 @@ export const panels: Messages['panels'] = {
   textAt150: '文字放大到 150%',
   darkMode: '深色模式',
   agentAccess: '允许智能体读取',
+  agentRoom: '智能体房间',
+  copyAgentRoom: '复制房间 ID',
   shareAnonymousUsageData: '分享匿名使用数据',
   language: '语言',
   privacyPolicy: '隐私政策',

@@ -10,7 +10,7 @@
 - Game rules, catalog, and Game schema live in `packages/simulation`; rendering, input, and storage live in `apps/web`.
 - Never type a catalog number into `apps/wiki/content`; wiki facts come from the catalog. The exception is `apps/wiki/content/design`, the game design document (ADR 0014), which may state numbers by hand.
 - `packages/ui` views take data and Messages, never an app's Model.
-- Agent tools only read. Names and protocol live in `packages/mcp-relay`; implementation lives in `apps/web/src/game/agent-tools.ts`.
+- Agent tools only read. The tool list, the snapshot and the view live in `packages/agent`; the browser uploads a snapshot and the API Worker answers MCP.
 - RPC schemas and errors live in `packages/rpc`; handlers live in `apps/backend`.
 - Retained remote data uses Foldkit Query; loading decisions belong in update handlers.
 - Do not add a workspace package, domain package, or Cloudflare service without a concrete need.
