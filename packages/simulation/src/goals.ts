@@ -216,6 +216,8 @@ const SHOW = (id: string): AdviceAction => ({ id: `show:${id}`, label: 'Show on 
  * Cloud Mail about a Node (GDD 18 "Senders"): the Inspector is where a Node is resized, where its
  * limit is raised, and where its pricing model is chosen, so every button selects the Node and
  * opens it. Switch to Reserved needs a pricing model to switch: a sized compute Node from Series A.
+ * Acknowledge is the one button that answers the Mail, so a warning the player has read leaves
+ * Needs action while the Thread still records the cause.
  */
 export const cloudActions = (game: Game, nodeId: string): ReadonlyArray<AdviceAction> => {
   const node = game.nodes.find((entry) => entry.id === nodeId)
@@ -226,6 +228,7 @@ export const cloudActions = (game: Game, nodeId: string): ReadonlyArray<AdviceAc
     ...(node && hasPricing(node) && game.stage >= PRICING_FROM_STAGE
       ? [{ id: `reserved:${nodeId}`, label: 'Switch to Reserved' }]
       : []),
+    { id: 'ack', label: 'Acknowledge' },
   ]
 }
 

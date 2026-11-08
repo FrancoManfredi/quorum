@@ -93,18 +93,18 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
 Each sender has one voice and one reason to write. All names and companies are fictional. A sender
 has a **kind**, a **name**, an **address**, and a colour.
 
-| Kind       | Examples                                                                      | Actions                                                |
-| ---------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Cloud      | AWOL Web Services, Gooble Cloud Platypus, Azzure Compute Services, Cloudscare | Show on Board, Resize, Raise quota, Switch to Reserved |
-| Monitoring | PagerDooty, Grafauna, Centry                                                  | Show on Board, Acknowledge, Mute for 1 h               |
-| Vendor     | Swipe Payments, PayPaul                                                       | Show on Board, Switch provider (when a second exists)  |
-| Teammate   | Each hired engineer, by name                                                  | Approve, Decline, Later                                |
-| Investor   | Sand Hill Road Runner Capital, Sequel Capital, Why Combinator                 | Raise, Decline                                         |
-| Security   | Commonly Vulnerable & Exposed, National Vulnerability Dumpster                | Show on Board, Patch now, Rush patch                   |
-| Finance    | QuickBroke Books, Zero Accounting                                             | None                                                   |
-| Customers  | Zenfail Support Desk, Intercomatose                                           | Open Churn breakdown, Add to backlog                   |
-| Mentor     | Dr. Leslie Lamportant, Prof. Edsger Dijkstrah, Grace Hoppertunity             | None                                                   |
-| Spam       | Anyone ([Spam](#spam-and-phishing))                                           | Usually none; a few are traps                          |
+| Kind       | Examples                                                                      | Actions                                                             |
+| ---------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Cloud      | AWOL Web Services, Gooble Cloud Platypus, Azzure Compute Services, Cloudscare | Show on Board, Resize, Raise quota, Switch to Reserved, Acknowledge |
+| Monitoring | PagerDooty, Grafauna, Centry                                                  | Show on Board, Acknowledge, Mute for 1 h                            |
+| Vendor     | Swipe Payments, PayPaul                                                       | Show on Board, Switch provider (when a second exists)               |
+| Teammate   | Each hired engineer, by name                                                  | Approve, Decline, Later                                             |
+| Investor   | Sand Hill Road Runner Capital, Sequel Capital, Why Combinator                 | Raise, Decline                                                      |
+| Security   | Commonly Vulnerable & Exposed, National Vulnerability Dumpster                | Show on Board, Patch now, Rush patch                                |
+| Finance    | QuickBroke Books, Zero Accounting                                             | None                                                                |
+| Customers  | Zenfail Support Desk, Intercomatose                                           | Open Churn breakdown, Add to backlog                                |
+| Mentor     | Dr. Leslie Lamportant, Prof. Edsger Dijkstrah, Grace Hoppertunity             | None                                                                |
+| Spam       | Anyone ([Spam](#spam-and-phishing))                                           | Usually none; a few are traps                                       |
 
 What each kind writes about:
 
@@ -137,11 +137,13 @@ buttons follow the sender:
 
 - **Resize**, **Raise quota**, and **Switch to Reserved** are Cloud's. Each selects the Node and
   opens its Inspector, because that is the one place a Node is resized, its limit raised, and its
-  pricing model chosen. None of them answers the Mail, so the warning stays in Needs action until the
-  cause is gone. Switch to Reserved appears only where that control exists: on a sized compute Node,
-  from the Era that has pricing models ([Economy](/design/09-economy#pricing-models)). A Cloud Mail
-  about anything else carries three buttons.
-- **Acknowledge** marks the Mail read and dismisses its card above the Inbox button.
+  pricing model chosen. None of them answers the Mail. **Acknowledge** does, so a warning the player
+  has read leaves Needs action and the Thread keeps the cause until it is gone. Switch to Reserved
+  appears only where that control exists: on a sized compute Node, from the Era that has pricing
+  models ([Economy](/design/09-economy#pricing-models)). A Cloud Mail about anything else carries
+  four buttons.
+- **Acknowledge** marks the Mail read, dismisses its card above the Inbox button, and answers the
+  Mail, so it moves to FYI while the cause stands. The Thread still resolves when the cause is gone.
 - **Mute for 1 h** silences that sender for one calendar hour: their Mail lands read, with no dot,
   no card above the Inbox button, and no chime, until the hour is up.
 - **Add to backlog** queues the Feature a customer asks for at the end of the Team backlog, which is
@@ -593,8 +595,8 @@ Teammates draw a name from a pool and keep it for life.
   phishing Mail as spam takes its button away.
 - **Actions:** every button is on screen and takes a number key from `1` to `9`.
   - Show on Board: wherever a Mail names a Node.
-  - Resize, Raise quota, and Switch to Reserved: Cloud, which open the Node's Inspector and its
-    pricing control.
+  - Resize, Raise quota, Switch to Reserved, and Acknowledge: Cloud, whose first three open the
+    Node's Inspector and its pricing control, and whose last answers the Mail.
   - Acknowledge and Mute for 1 h: alerts, which the Inbox carries out itself.
   - Raise and Decline: an investor.
   - Approve hire and Later: a teammate's hire request.

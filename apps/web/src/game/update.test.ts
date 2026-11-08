@@ -3,7 +3,7 @@ import { ResearchMessage, STUDY_QUEUE } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
 import { GlossaryMessage } from './glossary.ts'
-import { EMPTY_INBOX, InboxMessage, mailed, reading } from './inbox.ts'
+import { EMPTY_INBOX, InboxMessage, folderHolds, mailed, reading } from './inbox.ts'
 import { PrefsMessage } from './prefs.ts'
 import { cueOf } from './cues.ts'
 import { SurveyMessage } from './survey.ts'
@@ -2089,13 +2089,29 @@ describe('Mail actions (GDD 18)', () => {
       }),
     )
 
-  test('a capacity warning offers Show on Board, Resize and Raise quota', () => {
+  test('a capacity warning offers Show on Board, Resize, Raise quota and Acknowledge', () => {
     const [, fact] = about('server')
     expect(fact.actions).toEqual([
       { id: 'show:server', label: 'Show on Board' },
       { id: 'resize:server', label: 'Resize' },
       { id: 'quota:server', label: 'Raise quota' },
+      { id: 'ack', label: 'Acknowledge' },
     ])
+  })
+
+  test('Acknowledge answers a capacity warning, which stops needing action', () => {
+    const [game, fact] = about('server')
+    const started = withMail(fact, game)
+    const mail = started.board.inbox.mail[0]
+    expect(mail && folderHolds(mail, 'action')).toBe(true)
+    const acted = press(started, 'ack')
+    const answered = acted.model.board.inbox.mail[0]
+    expect(answerOf(answered)).toBe('You acknowledged it.')
+    expect(answered?.read).toBe(true)
+    expect(acted.model.board.inbox.peek).toBeNull()
+    expect(answered && folderHolds(answered, 'action')).toBe(false)
+    expect(answered && folderHolds(answered, 'fyi')).toBe(true)
+    expect(acted.model.board.game).toBe(game)
   })
 
   test.each(['resize:server', 'quota:server'])(
@@ -2120,6 +2136,7 @@ describe('Mail actions (GDD 18)', () => {
       'resize:server',
       'quota:server',
       'reserved:server',
+      'ack',
     ])
     const acted = press(withMail(fact, game), 'reserved:server')
     expect(acted.model.panel).toBe('none')
@@ -2231,6 +2248,7 @@ describe('Mail actions (GDD 18)', () => {
       'show:server',
       'resize:server',
       'quota:server',
+      'ack',
     ])
     const incident = eventFact(
       { _tag: 'IncidentStarted', incident: { nodeId: 'database' } },
