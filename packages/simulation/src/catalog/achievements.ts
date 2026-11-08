@@ -1,7 +1,5 @@
 /* Achievements (14 "Achievements"): knowledge, unusual builds, and real engineering moments, never hours played. */
 
-import type { MutatorId, VentureId } from './ventures.ts'
-
 export const ACHIEVEMENT_IDS = [
   'hello-world',
   'works-on-my-machine',
@@ -52,7 +50,6 @@ export type AchievementDef = Readonly<{
   id: AchievementId
   name: string
   condition: string
-  unlocks?: Readonly<{ venture?: VentureId; mutator?: MutatorId }>
 }>
 
 const achievement = (def: AchievementDef): AchievementDef => def
@@ -137,7 +134,6 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'no-cache',
     name: 'No Cache',
     condition: 'Reach Series A with no Cache and no CDN',
-    unlocks: { mutator: 'no-caches' },
   }),
   celebrity: achievement({
     id: 'celebrity',
@@ -153,13 +149,11 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'postgres-for-everything',
     name: 'Postgres for Everything',
     condition: 'Reach Series B with only Postgres data Components',
-    unlocks: { mutator: 'postgres' },
   }),
   'hug-of-death': achievement({
     id: 'hug-of-death',
     name: 'Hug of Death',
     condition: 'Survive a ×10 spike with no lost users',
-    unlocks: { mutator: 'hn-front-page' },
   }),
   'egress-shock': achievement({
     id: 'egress-shock',
@@ -170,7 +164,6 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'chaos-monkey',
     name: 'Chaos Monkey',
     condition: 'Survive 100 random terminations',
-    unlocks: { mutator: 'chaos-monkey' },
   }),
   blameless: achievement({
     id: 'blameless',
@@ -181,7 +174,6 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'nines',
     name: 'Nines',
     condition: 'Hold 99.99% for a calendar week',
-    unlocks: { mutator: 'strict-slo' },
   }),
   'five-nines': achievement({
     id: 'five-nines',
@@ -192,13 +184,11 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     id: 'monoglot',
     name: 'Monoglot',
     condition: 'Reach IPO with one language',
-    unlocks: { mutator: 'single-language' },
   }),
   'default-alive': achievement({
     id: 'default-alive',
     name: 'Default Alive',
     condition: 'Reach IPO without raising any round',
-    unlocks: { venture: 'bootstrapped' },
   }),
   unicorn: achievement({
     id: 'unicorn',
@@ -276,11 +266,3 @@ export const ACHIEVEMENTS: Record<AchievementId, AchievementDef> = {
     condition: 'Have an Elixir service survive 1,000 crashes with no failed requests',
   }),
 }
-
-/** Mutators no achievement in 14 unlocks: the first Exit opens them. */
-export const EXIT_MUTATORS: ReadonlyArray<MutatorId> = [
-  'legacy-monolith',
-  'one-region',
-  'tight-budget',
-  'shared-tenancy',
-]

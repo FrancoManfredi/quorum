@@ -98,77 +98,84 @@ const tripling = (first: number, levels: number): ReadonlyArray<number> => {
   return costs
 }
 
+/**
+ * Ventures no longer cost Legacy, so the shop takes over their share. Prices rise 12.5% before
+ * rounding, which leaves the twelve Perks at 1,766★ in all.
+ */
+const shopPrice = (costs: ReadonlyArray<number>): ReadonlyArray<number> =>
+  costs.map((cost) => Math.round(cost * 1.125))
+
 export const PERKS: Record<PerkId, PerkDef> = {
   'angel-network': {
     id: 'angel-network',
     name: 'Angel network',
-    costs: doubling(2, 5),
+    costs: shopPrice(doubling(2, 5)),
     effect: 'Starting Cash ×2',
   },
   'alumni-network': {
     id: 'alumni-network',
     name: 'Alumni network',
-    costs: doubling(3, 5),
+    costs: shopPrice(doubling(3, 5)),
     effect: '+1 engineer at Pre-seed',
   },
   'institutional-knowledge': {
     id: 'institutional-knowledge',
     name: 'Institutional knowledge',
-    costs: Array.from({ length: 10 }, () => 5),
+    costs: shopPrice(Array.from({ length: 10 }, () => 5)),
     effect: 'Keep 1 research through an Exit',
   },
   'pattern-recognition': {
     id: 'pattern-recognition',
     name: 'Pattern recognition',
-    costs: doubling(4, 5),
+    costs: shopPrice(doubling(4, 5)),
     effect: 'Insight +20%',
   },
   'founders-reputation': {
     id: 'founders-reputation',
     name: 'Founder’s reputation',
-    costs: doubling(4, 5),
+    costs: shopPrice(doubling(4, 5)),
     effect: 'User growth +10%',
   },
   'better-terms': {
     id: 'better-terms',
     name: 'Better terms',
-    costs: doubling(6, 5),
+    costs: shopPrice(doubling(6, 5)),
     effect: 'Dilution per round −2 points',
   },
   'night-shift': {
     id: 'night-shift',
     name: 'Night shift',
-    costs: tripling(5, 3),
+    costs: shopPrice(tripling(5, 3)),
     effect: 'Offline cap 12 h, 18 h, 24 h',
   },
   'time-dilation': {
     id: 'time-dilation',
     name: 'Time dilation',
-    costs: [20, 80],
+    costs: shopPrice([20, 80]),
     effect: 'Unlocks 20×, then 40× speed',
   },
   playbooks: {
     id: 'playbooks',
     name: 'Playbooks',
-    costs: tripling(5, 4),
+    costs: shopPrice(tripling(5, 4)),
     effect: 'Playbook slots 2, 5, 10, 25',
   },
   'war-stories': {
     id: 'war-stories',
     name: 'War stories',
-    costs: tripling(8, 3),
+    costs: shopPrice(tripling(8, 3)),
     effect: 'Open action items raise odds half as much',
   },
   'head-start': {
     id: 'head-start',
     name: 'Head start',
-    costs: [25, 75, 225],
+    costs: shopPrice([25, 75, 225]),
     effect: 'Start in Pre-seed, then Seed, then Series A',
   },
   autopilot: {
     id: 'autopilot',
     name: 'Autopilot',
-    costs: tripling(10, 3),
+    costs: shopPrice(tripling(10, 3)),
     effect: 'Policies: queue the cheapest Study, hire, keep App Servers cool',
   },
 }

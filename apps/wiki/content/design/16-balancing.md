@@ -318,19 +318,19 @@ dollar, and 3× to 6× with a database at 100 ms. A single Node.js process with 
 \text{legacy} = \operatorname{floor}\left(\sqrt{\text{payout} / \$1{,}000{,}000}\right)
 ```
 
-| Company | Expected payout | Legacy | Cumulative | Shop progress (1,563 ★)        |
-| ------- | --------------- | ------ | ---------- | ------------------------------ |
-| 1       | $500 million    | 22     | 22         | 1%                             |
-| 2       | $1.5 billion    | 38     | 60         | 4%                             |
-| 3       | $5 billion      | 70     | 130        | 8%                             |
-| 5       | $20 billion     | 141    | 371        | 24%                            |
-| 8       | $50 billion     | 223    | 967        | 62%                            |
-| 9       | $80 billion     | 282    | 1,249      | 80%                            |
-| 12      | $200 billion    | 447    | 2,442      | the whole shop, and half again |
+| Company | Expected payout | Legacy | Cumulative | Shop progress (1,766 ★)           |
+| ------- | --------------- | ------ | ---------- | --------------------------------- |
+| 1       | $500 million    | 22     | 22         | 1%                                |
+| 2       | $1.5 billion    | 38     | 60         | 3%                                |
+| 3       | $5 billion      | 70     | 130        | 7%                                |
+| 5       | $20 billion     | 141    | 371        | 21%                               |
+| 8       | $50 billion     | 223    | 967        | 55%                               |
+| 9       | $80 billion     | 282    | 1,249      | 71%                               |
+| 12      | $200 billion    | 447    | 2,442      | the whole shop, and a third again |
 
-The twelve perks of [the Legacy shop](/design/13-prestige#the-legacy-shop) cost 1,563 ★ in all. The
+The twelve perks of [the Legacy shop](/design/13-prestige#the-legacy-shop) cost 1,766 ★ in all. The
 cumulative column follows payouts of $500 million, $1.5, $5, $10, $20, $30, $40, $50, $80, $120,
-$160, and $200 billion for companies 1 to 12, so the shop is complete around the tenth company.
+$160, and $200 billion for companies 1 to 12, so the shop is complete around the eleventh company.
 
 Payout is Equity × Valuation × the Exit's multiplier, so the rounds set it
 ([Economy](/design/09-economy#funding)):

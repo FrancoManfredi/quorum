@@ -56,7 +56,7 @@ import { companyIdOf, isOpen, isPlaying, opened, step } from '../company-machine
 import { line } from '../telemetry.ts'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
-import { challengeById, challengeOpen } from '@quorum/simulation/challenges'
+import { challengeById } from '@quorum/simulation/challenges'
 import { continued, enterChallenge } from './session.ts'
 import { step as confirmDeleteStep } from '../confirm-delete-machine.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
@@ -514,10 +514,10 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
     const founder = loaded.deviceId ? loaded : { ...loaded, deviceId }
     const next: Model = { ...model, founder, today }
     const commands: Array<AnyCommand> = loaded.deviceId ? [] : [WriteFounder({ founder })]
-    // A reload on a Challenge opens it once the Founder says whether it is unlocked.
+    // A reload on a Challenge reopens it. Every Challenge is open.
     if (model.route._tag !== 'Challenge') return { model: next, commands }
     const entry = challengeById(model.route.challenge)
-    if (entry && challengeOpen(entry, founder.completed)) {
+    if (entry) {
       const opened = enterChallenge(next, entry.id)
       return { ...opened, commands: [...commands, ...(opened.commands ?? [])] }
     }

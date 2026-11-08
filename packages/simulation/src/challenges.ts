@@ -2041,20 +2041,3 @@ export const bucketOf = (edges: ReadonlyArray<number>, value: number): number =>
   const index = edges.findIndex((edge) => value <= edge)
   return index < 0 ? edges.length : index
 }
-
-/** The Challenge before this one in the global list, or undefined for the first. */
-const previousChallenge = (challenge: Challenge): Challenge | undefined => {
-  const index = CHALLENGES.findIndex((entry) => entry.id === challenge.id)
-  return index > 0 ? CHALLENGES[index - 1] : undefined
-}
-
-/**
- * The first Challenge is open. Each later Challenge opens when the one before
- * it in the global list is complete, across Era boundaries. A completed
- * Challenge stays open for another run.
- */
-export const challengeOpen = (challenge: Challenge, completed: ReadonlyArray<string>): boolean => {
-  if (challenge.id.startsWith('daily:') || completed.includes(challenge.id)) return true
-  const previous = previousChallenge(challenge)
-  return previous === undefined || completed.includes(previous.id)
-}

@@ -80,8 +80,8 @@ Perks last for every future Company. For example, **Angel network** doubles your
 and **Institutional knowledge** keeps one Research item through an Exit. See
 [Perks](/prestige#perks) for the full list.
 
-If you prefer to save your Legacy, skip the purchase. Legacy also unlocks new
-[Ventures](/prestige#ventures).
+If you prefer to save your Legacy, skip the purchase. Legacy buys only Perks. Every
+[Venture](/prestige#ventures) and Mutator is open at founding.
 
 ## Found your next Company
 
@@ -89,9 +89,8 @@ If you prefer to save your Legacy, skip the purchase. Legacy also unlocks new
 2. Type a name in **Company name** and select a logo. Each Company keeps its own name and logo.
 3. Read the **Venture** list. A Venture sets the kind of company: its request mix, its demand
    shape, and its rules. Your first Venture is selected.
-4. Read the **Mutators** list. Mutators make a Company harder for more Legacy. Your first Exit opens four
-   of them: Legacy monolith, One region forever, Shared tenancy, and Tight budget. Achievements open
-   the rest, so those still show a lock.
+4. Read the **Mutators** list. Mutators make a Company harder for more Legacy. Every Mutator is
+   open, so choose the rules you want to run.
 5. Select **Found**. Its row shows the starting Era and the Legacy multiplier.
 
 The new Company starts with new Cash, new users, no Research and an empty board, while your Legacy,

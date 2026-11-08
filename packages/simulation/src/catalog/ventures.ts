@@ -116,8 +116,6 @@ export const NO_CONSTRAINT: VentureConstraint = {
 export type VentureDef = Readonly<{
   id: VentureId
   name: string
-  /** Legacy to unlock it; 0 for the default. Bootstrapped indie opens with the first Exit. */
-  cost: number
   /** The daily peak, in calendar hours, and how far demand swings around the mean. */
   peak: number
   amplitude: number
@@ -141,7 +139,7 @@ export type VentureDef = Readonly<{
 }>
 
 const venture = (
-  entry: Pick<VentureDef, 'id' | 'name' | 'cost' | 'legacy' | 'summary'> & Partial<VentureDef>,
+  entry: Pick<VentureDef, 'id' | 'name' | 'legacy' | 'summary'> & Partial<VentureDef>,
 ): VentureDef => ({
   peak: 20,
   amplitude: 0.45,
@@ -162,7 +160,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'b2b-saas': venture({
     id: 'b2b-saas',
     name: 'B2B SaaS',
-    cost: 0,
     legacy: 1,
     constraint: { ...NO_CONSTRAINT, sla: 4 },
     signature: 'hot-shard',
@@ -171,7 +168,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'consumer-social': venture({
     id: 'consumer-social',
     name: 'Consumer social',
-    cost: 5,
     weekend: 1.15,
     mix: { media: 1.5 },
     value: 0.5,
@@ -184,7 +180,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   fintech: venture({
     id: 'fintech',
     name: 'Fintech',
-    cost: 10,
     peak: 14,
     amplitude: 0.6,
     weekend: 0.4,
@@ -197,7 +192,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   streaming: venture({
     id: 'streaming',
     name: 'Streaming media',
-    cost: 10,
     peak: 21,
     amplitude: 0.55,
     mix: { media: 4 },
@@ -212,7 +206,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'game-backend': venture({
     id: 'game-backend',
     name: 'Game backend',
-    cost: 15,
     peak: 21,
     mix: { rt: 4 },
     legacy: 1.3,
@@ -226,7 +219,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'ai-startup': venture({
     id: 'ai-startup',
     name: 'AI startup',
-    cost: 15,
     amplitude: 0.1,
     mix: { ai: 3 },
     legacy: 1.3,
@@ -237,7 +229,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'e-commerce': venture({
     id: 'e-commerce',
     name: 'E-commerce',
-    cost: 20,
     mix: { buy: 2, search: 2 },
     legacy: 1.2,
     signature: 'flash-sale',
@@ -253,7 +244,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'developer-platform': venture({
     id: 'developer-platform',
     name: 'Developer platform',
-    cost: 20,
     amplitude: 0.1,
     mix: { read: 2, hook: 3 },
     market: 1.5,
@@ -267,7 +257,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   healthcare: venture({
     id: 'healthcare',
     name: 'Healthcare',
-    cost: 30,
     peak: 14,
     weekend: 0.4,
     mix: { write: 1.5 },
@@ -281,7 +270,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   'ad-tech': venture({
     id: 'ad-tech',
     name: 'Ad tech',
-    cost: 30,
     amplitude: 0.05,
     mix: { bid: 10 },
     value: 0.4,
@@ -298,7 +286,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   government: venture({
     id: 'government',
     name: 'Government contract',
-    cost: 40,
     peak: 14,
     weekend: 0.2,
     value: 2,
@@ -317,7 +304,6 @@ export const VENTURES: Record<VentureId, VentureDef> = {
   bootstrapped: venture({
     id: 'bootstrapped',
     name: 'Bootstrapped indie',
-    cost: 0,
     bootstrapped: true,
     legacy: 1.4,
     // The design's row names Runway, which is a figure rather than an incident: no Cash-versus-Burn

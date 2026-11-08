@@ -18,8 +18,8 @@ _Look at the Founder badge. Clicking it is the only way past this screen._
 2. Select **Start a company**. The **New company** screen opens. If you already have a Company, the same row reads **New company**, and a **Continue** row sits above it.
 3. Type a name in **Company name**. The field holds up to 40 characters. An empty field founds a Company called Untitled company.
 4. Pick a logo from the **Logo** tiles. The big logo beside the name changes with each click.
-5. Leave **B2B SaaS** selected under **Venture**. Other Ventures show a price in Legacy, and you cannot choose one until you have the Legacy for it.
-6. Leave **Mutators** alone. Each one shows a lock until you earn it.
+5. Leave **B2B SaaS** selected under **Venture**, or pick another. Every Venture is open. The row shows its traffic shape and its Legacy multiplier, so you can start with the rules you want to learn.
+6. Leave **Mutators** alone, or turn on any that you want. Every Mutator is open; each one makes the Company harder and raises its Legacy multiplier.
 7. Select **Found** followed by your name, at the bottom of the screen. The row stays in view while the list scrolls.
 
 **Continue** appears only once a Company exists, so a first start goes through **Start a company**.

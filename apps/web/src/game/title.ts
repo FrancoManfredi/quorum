@@ -36,7 +36,7 @@ import { foundingOf, levelOf, perkPrice } from '@quorum/simulation/founder'
 import { legacyMultiplier, startEra } from '@quorum/simulation/founding'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { Game } from '@quorum/simulation/state'
-import { CHALLENGES, challengeById, challengeOpen, dailyDrill } from '@quorum/simulation/challenges'
+import { CHALLENGES, challengeById, dailyDrill } from '@quorum/simulation/challenges'
 import { TRACKS, sandboxOpen } from '@quorum/simulation/sandbox'
 import { clock, compact } from '@quorum/ui/game/format'
 import { Message } from './message.ts'
@@ -442,23 +442,13 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
     group(t.title.venture, h),
     ...VENTURE_IDS.map((id) => {
       const def = localized(VENTURES[id], t.catalog.ventures[id])
-      const owned = founder.ventures.includes(id)
       return row(
         {
           key: id,
           label: def.name,
           detail: def.summary,
-          side: owned
-            ? id === founding.venture
-              ? done(h)
-              : `×${def.legacy.toFixed(1)}`
-            : def.bootstrapped
-              ? locked(h)
-              : t.title.legacy(def.cost),
-          message:
-            owned || (!def.bootstrapped && founder.legacy >= def.cost)
-              ? Message.VentureChosen({ id })
-              : null,
+          side: id === founding.venture ? done(h) : `×${def.legacy.toFixed(1)}`,
+          message: Message.VentureChosen({ id }),
           pressed: id === founding.venture,
         },
         h,
@@ -471,12 +461,10 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
           key: id,
           label: t.catalog.mutators[id].name,
           detail: t.catalog.mutators[id].rule,
-          side: founder.mutators.includes(id)
-            ? founding.mutators.includes(id)
-              ? done(h)
-              : `+${Math.round(MUTATORS[id].legacy * 100)}%`
-            : locked(h),
-          message: founder.mutators.includes(id) ? Message.MutatorToggled({ id }) : null,
+          side: founding.mutators.includes(id)
+            ? done(h)
+            : `+${Math.round(MUTATORS[id].legacy * 100)}%`,
+          message: Message.MutatorToggled({ id }),
           pressed: founding.mutators.includes(id),
         },
         h,
@@ -612,7 +600,7 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
 
   const founder = model.founder
   const drill = model.today ? dailyDrill(model.today) : null
-  const challenge = (id: string, name: string, detail: string, legacy: number, open: boolean) =>
+  const challenge = (id: string, name: string, detail: string, legacy: number) =>
     row(
       {
         key: id,
@@ -620,18 +608,16 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
         detail,
         side: founder.completed.includes(id)
           ? done(h)
-          : open
-            ? legacy > 0
-              ? t.title.legacy(legacy)
-              : undefined
-            : locked(h),
-        message: open ? Message.ChallengeStarted({ id }) : null,
+          : legacy > 0
+            ? t.title.legacy(legacy)
+            : undefined,
+        message: Message.ChallengeStarted({ id }),
       },
       h,
     )
   return [
     backRow(h),
-    ...(drill ? [challenge(drill.id, t.title.dailyDrill, drill.brief, 0, true)] : []),
+    ...(drill ? [challenge(drill.id, t.title.dailyDrill, drill.brief, 0)] : []),
     ...ERAS.flatMap((era, stage) => {
       const list = CHALLENGES.filter((entry) => entry.era === stage)
       return list.length === 0
@@ -644,7 +630,6 @@ const challengeRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Htm
                 t.catalog.challenges[entry.id]!.name,
                 t.catalog.challenges[entry.id]!.brief,
                 entry.legacy,
-                challengeOpen(entry, founder.completed),
               ),
             ),
           ]
@@ -1004,15 +989,12 @@ const taskbar = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
       [icon(h, glyph, 'booth-icon'), extra ? h.span([h.Class('booth-figure')], [extra]) : h.empty],
     )
   const veteran = model.founder.history.length > 0
+  const hasLegacy = model.founder.earned > 0
   return h.nav(
     [h.Class('booth-taskbar'), h.AriaLabel(t.title.taskbar)],
     [
-      ...(veteran
-        ? [
-            tool('legacy', t.title.legacyShop, Store, `${model.founder.legacy}`),
-            tool('history', t.title.history, ScrollText),
-          ]
-        : []),
+      ...(hasLegacy ? [tool('legacy', t.title.legacyShop, Store, `${model.founder.legacy}`)] : []),
+      ...(veteran ? [tool('history', t.title.history, ScrollText)] : []),
       tool('achievements', t.title.achievements, Trophy),
       tool('settings', t.title.settings, Settings),
       h.a(

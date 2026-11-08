@@ -119,10 +119,10 @@ flowchart LR
 
 - An **Exit** ends a company. Its payout depends on Equity and valuation
   ([Exit and Legacy](/design/13-prestige#exits)).
-- **Legacy** buys permanent perks, Playbooks, and new Ventures.
+- **Legacy** buys permanent perks. Playbooks keep a known-good setup for the next company.
 - A **Venture** changes the rules of the next company: its request mix, its constraints, and its
   incidents. A fintech company and a game backend need different designs
-  ([Exit and Legacy](/design/13-prestige#ventures)).
+  ([Exit and Legacy](/design/13-prestige#ventures)). Every Venture and Mutator is open at founding.
 
 The first company takes 9 to 12 hours. Later companies take 3 to 6 hours, because Legacy speeds
 the early Eras and Playbooks remove repeated setup.

@@ -10,10 +10,11 @@ gdd: /design/13-prestige
 
 Quorum is endless, but a single Company is not. At some point you sell it, list it, or step down, and
 that is an **Exit**. The Exit pays **Legacy**, which stays with you as the Founder. Legacy buys
-permanent Perks and opens new Ventures, which change the rules of your next Company.
+permanent Perks. Every Venture and Mutator is open when you found a Company, so the next Company can
+play by different rules without waiting for a shop.
 
-Incremental games call this pattern prestige. Each Company starts over, but you start it stronger and
-with more choices, so the second Garage takes less time than the first.
+Incremental games call this pattern prestige. Each Company starts over, and the Perks you bought
+with Legacy carry into it. A Venture or Mutator carries no cost: choose the rules you want to learn.
 
 ## The four Exits
 
@@ -62,7 +63,6 @@ The Founder keeps:
 
 - Legacy, and the Perks it bought.
 - Playbooks: saved parts of a Design that you can place again in one action.
-- Unlocked Ventures and Mutators.
 - Achievements, Challenge results, and the glossary terms you met.
 - The company history: one row per Exit, with its name, Venture, payout, Legacy, peak users, Stack,
   and a snapshot of the board.
@@ -87,8 +87,8 @@ The [Prestige](/prestige#perks) reference lists every Perk with its prices.
 
 ## Ventures change the rules
 
-A **Venture** is the kind of Company you found. B2B SaaS is open from the start, others cost Legacy
-to unlock, and one comes from an achievement. A Venture changes what your users send and when:
+A **Venture** is the kind of Company you found. Every Venture is open, and B2B SaaS is the default. A
+Venture changes what your users send and when:
 
 - **Consumer social** has twice the market and half the value per request, with more media.
 - **Fintech** peaks in business hours and sends four times the purchases.
@@ -96,8 +96,8 @@ to unlock, and one comes from an achievement. A Venture changes what your users 
 - **Game backend** sends four times the realtime traffic.
 - **AI startup** has flat demand and three times the AI prompts.
 - **E-commerce** doubles purchases and search.
-- **Bootstrapped indie** takes no funding rounds, and its Equity stays at 100%. It opens with the
-  Default Alive achievement: reach IPO without raising a round.
+- **Bootstrapped indie** takes no funding rounds, and its Equity stays at 100%. The Default Alive
+  achievement still marks the run: reach IPO without raising a round.
 
 Each Venture has its own Legacy multiplier, shown before you found it, and a harder Venture pays
 more. The [Prestige](/prestige#ventures) reference has the details.
@@ -105,8 +105,8 @@ more. The [Prestige](/prestige#ventures) reference has the details.
 ## Mutators make it harder for more Legacy
 
 A **Mutator** is an optional rule that makes a Company harder. Each one adds to the founding
-multiplier: the Venture's multiplier times one plus the sum of the Mutators' shares. Your first Exit
-opens some Mutators. Achievements open the rest.
+multiplier: the Venture's multiplier times one plus the sum of the Mutators' shares. Every Mutator is
+open at founding, so the only reason to choose one is the Company you want to run.
 
 Examples:
 

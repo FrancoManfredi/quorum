@@ -272,7 +272,7 @@ const prestige = page({
       [h.Class('prose')],
       [
         paragraph(
-          'An Exit ends the Company and pays Legacy on its valuation. Spend Legacy on Perks that make the next Company start stronger, or on Ventures and Mutators that change the rules.',
+          'An Exit ends the Company and pays Legacy on its valuation. Spend Legacy on Perks that make the next Company start stronger. Every Venture and Mutator is open at founding.',
           h,
         ),
         section(
@@ -326,16 +326,16 @@ const prestige = page({
           'Ventures',
           [
             table(
-              ['Venture', 'Traffic', 'Cost', 'Legacy ×'],
+              ['Venture', 'Traffic', 'Legacy ×'],
               VENTURE_IDS.map((id) => {
                 const def = VENTURES[id]
                 return {
                   key: id,
-                  cells: [def.name, def.summary, String(def.cost), `×${def.legacy}`],
+                  cells: [def.name, def.summary, `×${def.legacy}`],
                 }
               }),
               h,
-              [2, 3],
+              [2],
             ),
           ],
           h,
@@ -359,14 +359,10 @@ const prestige = page({
           'Achievements',
           [
             table(
-              ['Achievement', 'How to earn it', 'Unlocks'],
+              ['Achievement', 'How to earn it'],
               ACHIEVEMENT_IDS.map((id) => {
                 const def = ACHIEVEMENTS[id]
-                const unlocks = [
-                  def.unlocks?.venture ? VENTURES[def.unlocks.venture].name : null,
-                  def.unlocks?.mutator ? MUTATORS[def.unlocks.mutator].name : null,
-                ].filter((name) => name !== null)
-                return { key: id, cells: [def.name, def.condition, unlocks.join(', ') || '—'] }
+                return { key: id, cells: [def.name, def.condition] }
               }),
               h,
             ),

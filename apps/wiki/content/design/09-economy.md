@@ -325,7 +325,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  exit["Exit (Equity × valuation)"] --> legacy[Legacy] --> perks["Permanent perks, Playbooks, Ventures"]
+  exit["Exit (Equity × valuation)"] --> legacy[Legacy] --> perks["Permanent perks"]
 ```
 
 The three main currencies (Cash, Insight, Dev Hours) compete for the player's attention, not for

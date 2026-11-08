@@ -17,12 +17,12 @@ import { Result } from 'effect'
 import { afterRound } from './session.ts'
 import {
   buyPerk,
+  chooseVenture,
   recordExit,
   removePlaybook,
   savePlaybook,
   toggleKeep,
   toggleMutator,
-  unlockVenture,
 } from '@quorum/simulation/founder'
 import { capture, decodePlaybook, encodePlaybook } from '@quorum/simulation/playbook'
 import { changeFounder, listed } from './companies.ts'
@@ -169,7 +169,7 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
       say(model).toasts.perkBought(say(model).catalog.perks[id].name),
     ),
 
-  VentureChosen: ({ id }) => changeFounder(model, unlockVenture(model.founder, id)),
+  VentureChosen: ({ id }) => changeFounder(model, chooseVenture(model.founder, id)),
 
   MutatorToggled: ({ id }) => changeFounder(model, toggleMutator(model.founder, id)),
 

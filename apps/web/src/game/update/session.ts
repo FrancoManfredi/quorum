@@ -21,7 +21,6 @@ import {
   advanceRun,
   beginRun,
   challengeById,
-  challengeOpen,
   resultOf,
   responseAllowed,
   stepsOf,
@@ -78,10 +77,7 @@ export const open = (model: Model, route: AppRoute): UpdateResult =>
         : enterSandbox(model, GUIDED[sandbox].start(), { id: sandbox, progress: START }),
     Challenge: ({ challenge }) => {
       const entry = challengeById(challenge)
-      if (!entry) return { model }
-      return challengeOpen(entry, model.founder.completed)
-        ? enterChallenge(model, challenge)
-        : { model: { ...model, route: AppRoute.Menu({ menu: 'challenges' }) } }
+      return entry ? enterChallenge(model, challenge) : { model }
     },
   })
 

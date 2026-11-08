@@ -426,7 +426,7 @@ The permanent currency earned at Exit and spent in the Legacy shop.
 _Avoid_: prestige points, souls, tokens
 
 **Founder**:
-The player across Companies: the record of Legacy, Legacy shop perks, Playbooks, unlocked Ventures and Mutators, Achievements, Glossary entries met, and the company history. It survives every Exit.
+The player across Companies: the record of Legacy, Legacy shop perks, Playbooks, Achievements, Glossary entries met, and the company history. It survives every Exit.
 _Avoid_: profile, account, player save, meta
 
 **Perk**:
@@ -434,7 +434,7 @@ A permanent upgrade bought in the Legacy shop, with levels.
 _Avoid_: upgrade, talent, bonus
 
 **Achievement**:
-A badge the Founder earns for knowledge, an unusual build, or a real engineering moment, never for hours played. Some unlock a Venture or a Mutator.
+A badge the Founder earns for knowledge, an unusual build, or a real engineering moment, never for hours played.
 _Avoid_: trophy, badge (in UI copy), quest
 
 **Glossary**:
@@ -478,5 +478,5 @@ _Avoid_: leaderboard, ranking, high score
 - **Analytics** turns sampled traffic into **Insight** of each request kind. A **Study** takes Insight from its **Recipe**'s pools and completes a **Research** item. A **Spike** puts a **Team** on the running Study.
 - An **Exit** turns **Equity** × **Valuation** into **Legacy**.
 - The **Founder** keeps **Legacy**, **Perks**, and **Playbooks** from one **Company** to the next.
-- A **Sandbox track** holds guided **Sandboxes** for one **Era**. **Challenges** form a separate sequence across Eras; completing one opens the next.
+- A **Sandbox track** holds guided **Sandboxes** for one **Era**. **Challenges** form a separate list across Eras, and every one is open.
 - A **Challenge** run is a **Replay** that stays in the browser. A server that re-runs it and keeps **Histograms** waits for accounts.

@@ -858,19 +858,13 @@ describe('Challenges', () => {
     ])
   })
 
-  test('a locked Challenge URL lands on the Challenge list; a completed one opens', () => {
-    const locked = send(
+  test('a Challenge URL opens its Challenge whatever the Founder has completed', () => {
+    const opened = send(
       initialModel(),
       Message.ChangedUrl({ url: at('/challenges/split-the-box') }),
     )
-    expect(boardChallenge(locked.board)).toBeNull()
-    expect(locked.route).toEqual(AppRoute.Menu({ menu: 'challenges' }))
-    const completed = {
-      ...initialModel(),
-      founder: { ...initialModel().founder, completed: ['hello-world'] },
-    }
-    const opened = send(completed, Message.ChangedUrl({ url: at('/challenges/split-the-box') }))
     expect(boardChallenge(opened.board)?.id).toBe('split-the-box')
+    expect(opened.route).toEqual(AppRoute.Challenge({ challenge: 'split-the-box' }))
   })
 
   test('every Challenge opens with its cards apart, and Run keeps them where they are', () => {
@@ -1148,8 +1142,8 @@ describe('URL routing', () => {
     expect(pushed(opened.commands)).toEqual([])
   })
 
-  test('a Challenge URL that is still locked lands on the Challenge list', () => {
-    const fresh = init(at('/challenges/split-the-box'))
+  test('a Challenge URL for an unknown Challenge lands on the Challenge list', () => {
+    const fresh = init(at('/challenges/no-such-challenge'))
     const { record, json } = founder()
     const landed = update(
       fresh.model,

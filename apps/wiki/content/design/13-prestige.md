@@ -5,8 +5,9 @@ section: design
 order: 13
 ---
 
-A company ends in an **Exit**, and the Exit pays **Legacy**. Legacy buys permanent perks and opens new
-**Ventures**, which change the rules of the next company. This is the idle game prestige pattern
+A company ends in an **Exit**, and the Exit pays **Legacy**. Legacy buys permanent perks. Every
+**Venture** and **Mutator** is open when the player founds a company, so the rules of a company are a
+choice rather than a purchase. This is the idle game prestige pattern
 ([Influences](/design/02-influences#idle-game-theory)). Ventures and Mutators keep each company
 different, which answers the Upload Labs complaint about repetition.
 
@@ -43,27 +44,27 @@ exponentially more, so the player keeps a reason to improve rather than repeat
 
 **What resets.** Cash, Insight, Dev Hours, users, research, the board, the team, and Equity.
 
-**What stays.** Legacy, Legacy shop purchases, Playbooks, achievements, Challenge results, unlocked
-Ventures and Mutators, and the engineering glossary entries the player has discovered.
+**What stays.** Legacy, Legacy shop purchases, Playbooks, achievements, Challenge results, and the
+engineering glossary entries the player has discovered.
 
 ## The Legacy shop
 
 | Perk                    | Levels | Cost (★) per level | Effect per level                                                                                                                                                                                                           |
 | ----------------------- | ------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Angel network           | 5      | 2, 4, 8, 16, 32    | Starting Cash ×2                                                                                                                                                                                                           |
-| Alumni network          | 5      | 3, 6, 12, 24, 48   | +1 starting engineer (from the Pre-seed Era)                                                                                                                                                                               |
-| Institutional knowledge | 10     | 5 each             | Keep one researched item of your choice through the next Exit                                                                                                                                                              |
-| Pattern recognition     | 5      | 4, 8, 16, 32, 64   | Insight +20%                                                                                                                                                                                                               |
-| Founder's reputation    | 5      | 4, 8, 16, 32, 64   | User growth +10%                                                                                                                                                                                                           |
-| Better terms            | 5      | 6, 12, 24, 48, 96  | Dilution per round −2 points                                                                                                                                                                                               |
-| Night shift             | 3      | 5, 15, 45          | Offline cap 12 h, 18 h, 24 h                                                                                                                                                                                               |
-| Time dilation           | 2      | 20, 80             | Unlocks 20× and then 40× speed                                                                                                                                                                                             |
-| Playbooks               | 4      | 5, 15, 45, 135     | Playbook slots: one free, then 2, 5, 10, 25 ([Playbooks](#playbooks))                                                                                                                                                      |
-| Autopilot               | 3      | 10, 30, 90         | Policies, each a switch in the Team panel: queue the cheapest Study; hire while payroll is under a quarter of revenue; buy the next size for App Servers above 70% load                                                    |
-| War stories             | 3      | 8, 24, 72          | Open action items raise incident odds by half as much                                                                                                                                                                      |
-| Head start              | 3      | 25, 75, 225        | Start the next company in the Pre-seed Era, then in Seed, then in Series A, with that Era's Cash, Equity, Users and research, and a Design that has a Cache (and a Load Balancer behind a second App Server from Series A) |
+| Angel network           | 5      | 2, 5, 9, 18, 36    | Starting Cash ×2                                                                                                                                                                                                           |
+| Alumni network          | 5      | 3, 7, 14, 27, 54   | +1 starting engineer (from the Pre-seed Era)                                                                                                                                                                               |
+| Institutional knowledge | 10     | 6 each             | Keep one researched item of your choice through the next Exit                                                                                                                                                              |
+| Pattern recognition     | 5      | 5, 9, 18, 36, 72   | Insight +20%                                                                                                                                                                                                               |
+| Founder's reputation    | 5      | 5, 9, 18, 36, 72   | User growth +10%                                                                                                                                                                                                           |
+| Better terms            | 5      | 7, 14, 27, 54, 108 | Dilution per round −2 points                                                                                                                                                                                               |
+| Night shift             | 3      | 6, 17, 51          | Offline cap 12 h, 18 h, 24 h                                                                                                                                                                                               |
+| Time dilation           | 2      | 23, 90             | Unlocks 20× and then 40× speed                                                                                                                                                                                             |
+| Playbooks               | 4      | 6, 17, 51, 152     | Playbook slots: one free, then 2, 5, 10, 25 ([Playbooks](#playbooks))                                                                                                                                                      |
+| Autopilot               | 3      | 11, 34, 101        | Policies, each a switch in the Team panel: queue the cheapest Study; hire while payroll is under a quarter of revenue; buy the next size for App Servers above 70% load                                                    |
+| War stories             | 3      | 9, 27, 81          | Open action items raise incident odds by half as much                                                                                                                                                                      |
+| Head start              | 3      | 28, 84, 253        | Start the next company in the Pre-seed Era, then in Seed, then in Series A, with that Era's Cash, Equity, Users and research, and a Design that has a Cache (and a Load Balancer behind a second App Server from Series A) |
 
-The twelve perks cost 1,563 ★ in all. Costs grow so that a full shop takes several Exits, which is
+The twelve perks cost 1,766 ★ in all. Costs grow so that a full shop takes several Exits, which is
 the target for 80 to 150 hours.
 
 ## Playbooks
@@ -84,23 +85,22 @@ Playbooks remove the post-prestige tedium that Upload Labs players report
 ## Ventures
 
 A **Venture** is the kind of company the player founds. Each Venture changes the request mix, demand
-shape, constraints, and incidents. The default Venture is unlocked from the start. Others cost Legacy
-or come from achievements.
+shape, constraints, and incidents. B2B SaaS is the default, and every Venture is open at founding.
 
-| Venture             | Unlock                      | Demand shape                                           | Mix changes                        | Constraint                                                                                                     | Signature incident          |
-| ------------------- | --------------------------- | ------------------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| B2B SaaS (default)  | Start                       | Evening peak (20\:00), weekend 1×                      | None: the default mix              | SLA credits from Series B                                                                                      | Big tenant hot shard        |
-| Consumer social     | 5 ★                         | Evening peak, weekend 1.15×, viral spikes              | `media` +50% from Series A         | Very low value per request; huge volume                                                                        | Celebrity post              |
-| Fintech             | 10 ★                        | Business hours, month-end peaks                        | `buy` ×4, `write` +50%             | Any `stale` on money kinds is a compliance fine                                                                | Double charge               |
-| Streaming media     | 10 ★                        | Evening peak, premieres                                | `media` ×4                         | Egress dominates the bill                                                                                      | Premiere spike              |
-| Game backend        | 15 ★                        | Evening peak by region                                 | `rt` ×4                            | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
-| AI startup          | 15 ★                        | Flat, with launch spikes                               | `ai` ×3 from Series B              | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
-| E-commerce          | 20 ★                        | Daily, with a yearly event                             | `buy` ×2, `search` ×2              | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
-| Developer platform  | 20 ★                        | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
-| Healthcare          | 30 ★                        | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                       | Data Components stay in the home region from Series A                                                          | Audit finding               |
-| Ad tech             | 30 ★                        | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
-| Bootstrapped indie  | Achievement "Default Alive" | Any                                                    | Default                            | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
-| Government contract | 40 ★                        | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
+| Venture             | Demand shape                                           | Mix changes                        | Constraint                                                                                                     | Signature incident          |
+| ------------------- | ------------------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| B2B SaaS (default)  | Evening peak (20\:00), weekend 1×                      | None: the default mix              | SLA credits from Series B                                                                                      | Big tenant hot shard        |
+| Consumer social     | Evening peak, weekend 1.15×, viral spikes              | `media` +50% from Series A         | Very low value per request; huge volume                                                                        | Celebrity post              |
+| Fintech             | Business hours, month-end peaks                        | `buy` ×4, `write` +50%             | Any `stale` on money kinds is a compliance fine                                                                | Double charge               |
+| Streaming media     | Evening peak, premieres                                | `media` ×4                         | Egress dominates the bill                                                                                      | Premiere spike              |
+| Game backend        | Evening peak by region                                 | `rt` ×4                            | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
+| AI startup          | Flat, with launch spikes                               | `ai` ×3 from Series B              | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
+| E-commerce          | Daily, with a yearly event                             | `buy` ×2, `search` ×2              | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
+| Developer platform  | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
+| Healthcare          | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                       | Data Components stay in the home region from Series A                                                          | Audit finding               |
+| Ad tech             | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
+| Bootstrapped indie  | Any                                                    | Default                            | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
+| Government contract | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
 
 Every Venture has its demand shape and its rule. Developer platform, Healthcare, Ad tech, and
 Government contract also have their signature incident. So do the other Ventures, with one exception:
@@ -129,10 +129,10 @@ What each Venture starts with:
 All twelve Ventures start in the Garage, and the Head start perk still opens Pre-seed.
 
 The game owns Cash, Equity, the demand curves and amplitudes, the market and value multipliers, the
-mix boosts, and the Legacy multipliers. This document sets the rest: the unlock costs, the 100 ms bid deadline, the Java-or-C# rule,
-calendar-day procurement, Series A residency, the no-naive-retry rule, the Series B SLA, realtime
-regions from Series A, scarce GPUs, and the signature incidents. The SLA's one SLO level and the AI
-startup's two GPU Nodes are the game's own.
+mix boosts, and the Legacy multipliers. This document sets the rest: the 100 ms bid deadline, the
+Java-or-C# rule, calendar-day procurement, Series A residency, the no-naive-retry rule, the Series B
+SLA, realtime regions from Series A, scarce GPUs, and the signature incidents. The SLA's one SLO level
+and the AI startup's two GPU Nodes are the game's own.
 
 Each signature incident hits for a few minutes:
 
@@ -188,10 +188,9 @@ Each Venture has its own Legacy multiplier (1.0× to 1.5×), shown before foundi
 
 ## Mutators
 
-A **Mutator** is an optional rule that makes a company harder in exchange for more Legacy. Four
-Mutators open on the first Exit: Legacy monolith, One region forever, Shared tenancy, and Tight
-budget. The other six come from achievements ([Challenges](/design/14-challenges#achievements)). Each one adds a
-Legacy multiplier.
+A **Mutator** is an optional rule that makes a company harder in exchange for more Legacy. Every
+Mutator is open at founding, so a player can pick the rule that teaches the lesson they want. Each one
+adds a Legacy multiplier.
 
 | Mutator                 | Rule                                                                                      | Legacy |
 | ----------------------- | ----------------------------------------------------------------------------------------- | ------ |
