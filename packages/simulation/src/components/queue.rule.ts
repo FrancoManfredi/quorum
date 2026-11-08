@@ -19,7 +19,7 @@ export const queueRule: ComponentRule = {
   outcome: (answer, node, kind) => {
     const own = answer.ownHop(kind)
     // With no Worker linked, the task has nowhere to go.
-    if (answer.downstream(kind).fail.stranded >= 1) return failed('stranded')
+    if (answer.downstream(kind).failStranded >= 1) return failed('stranded')
     const enqueued = through({ ...own, fixedMs: own.fixedMs + BACKLOG_MS * node.depth })
     // A full Queue refuses what its Workers cannot take (RabbitMQ `reject-publish`).
     if (node.maxLength <= 0 || node.depth < node.maxLength) return enqueued

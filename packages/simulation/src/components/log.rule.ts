@@ -41,7 +41,7 @@ export const logRule: ComponentRule = {
   outcome: (answer, node, kind) => {
     const own = answer.ownHop(kind)
     // With no Worker linked, nothing consumes the stream.
-    if (answer.downstream(kind).fail.stranded >= 1) return failed('stranded')
+    if (answer.downstream(kind).failStranded >= 1) return failed('stranded')
     const appended = through({ ...own, fixedMs: own.fixedMs + BACKLOG_MS * node.depth })
     const slot = slotOf(answer.pass, node)
     const inflow = answer.pass.arriving[slot]?.task ?? 0

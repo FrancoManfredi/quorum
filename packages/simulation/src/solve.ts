@@ -99,7 +99,7 @@ const solveWith = (game: Game, boost: string | null): Ledger => {
       if (utilization > 0 && offered > 0) nextTaskCapacity[slot] = offered / utilization
       if (!pass.tasks[slot]) continue
       const result = outcomes.outcome(node, 'task')
-      const fresh = Math.max(0, 1 - (result.success + result.fail.dropped))
+      const fresh = Math.max(0, 1 - (result.success + result.failDropped))
       const previous = taskFailure[slot]
       nextTaskFailure[slot] = previous === undefined ? fresh : (previous + fresh) / 2
     }

@@ -28,8 +28,22 @@ export type Outcome = Readonly<{
   stale: number
   /** Revenue multiplier from the Stack that answered. */
   value: number
-  /** Share of requests that fail, by cause. Sums to 1 − success. */
-  fail: Failures
+  /**
+   * Share of requests that fail, by cause. They live flat on the outcome so a hop builds one
+   * object instead of a record per term. They sum to 1 − success.
+   */
+  failStranded: number
+  failDropped: number
+  failRefused: number
+  failDown: number
+  failStale: number
+  failOom: number
+  failTimeout: number
+  failCrash: number
+  failBlocked: number
+  failUpstream: number
+  failThrottled: number
+  failDuplicate: number
 }>
 
 export const NO_FAILURES: Failures = {
@@ -47,87 +61,115 @@ export const NO_FAILURES: Failures = {
   duplicate: 0,
 }
 
+/** The failures of an Outcome as the record the Ledger and the rules pass around. */
+export const failuresOf = (outcome: Outcome): Failures => ({
+  stranded: outcome.failStranded,
+  dropped: outcome.failDropped,
+  refused: outcome.failRefused,
+  down: outcome.failDown,
+  stale: outcome.failStale,
+  oom: outcome.failOom,
+  timeout: outcome.failTimeout,
+  crash: outcome.failCrash,
+  blocked: outcome.failBlocked,
+  upstream: outcome.failUpstream,
+  throttled: outcome.failThrottled,
+  duplicate: outcome.failDuplicate,
+})
+
+/** The twelve failure fields at zero, in the one shape every builder spreads. */
+const NO_FAILURE_FIELDS = {
+  failStranded: 0,
+  failDropped: 0,
+  failRefused: 0,
+  failDown: 0,
+  failStale: 0,
+  failOom: 0,
+  failTimeout: 0,
+  failCrash: 0,
+  failBlocked: 0,
+  failUpstream: 0,
+  failThrottled: 0,
+  failDuplicate: 0,
+} as const
+
+/** The outcome fields a Node with no time and no queue behind it adds. */
+const NO_HOP = { fixedMs: 0, variableMs: 0, tailP: 0, tailMs: 0, stale: 0 }
+
 /*
- * These run on every hop of every solve. Object literals with the causes in
- * ERROR_CAUSES order keep one object shape, which is several times faster than
- * a loop over the causes.
+ * These run on every hop of every solve, so they build one object with every field named: V8 keeps
+ * one shape, which is several times faster than a loop or a spread per term.
  */
-const scaleFailures = (fail: Failures, by: number): Failures => ({
-  stranded: fail.stranded * by,
-  dropped: fail.dropped * by,
-  refused: fail.refused * by,
-  down: fail.down * by,
-  stale: fail.stale * by,
-  oom: fail.oom * by,
-  timeout: fail.timeout * by,
-  crash: fail.crash * by,
-  blocked: fail.blocked * by,
-  upstream: fail.upstream * by,
-  throttled: fail.throttled * by,
-  duplicate: fail.duplicate * by,
+/** The same outcome with every failure share scaled, for retries. */
+const withScaledFailures = (outcome: Outcome, by: number): Outcome => ({
+  ...outcome,
+  failStranded: outcome.failStranded * by,
+  failDropped: outcome.failDropped * by,
+  failRefused: outcome.failRefused * by,
+  failDown: outcome.failDown * by,
+  failStale: outcome.failStale * by,
+  failOom: outcome.failOom * by,
+  failTimeout: outcome.failTimeout * by,
+  failCrash: outcome.failCrash * by,
+  failBlocked: outcome.failBlocked * by,
+  failUpstream: outcome.failUpstream * by,
+  failThrottled: outcome.failThrottled * by,
+  failDuplicate: outcome.failDuplicate * by,
 })
 
-const addFailures = (a: Failures, b: Failures): Failures => ({
-  stranded: a.stranded + b.stranded,
-  dropped: a.dropped + b.dropped,
-  refused: a.refused + b.refused,
-  down: a.down + b.down,
-  stale: a.stale + b.stale,
-  oom: a.oom + b.oom,
-  timeout: a.timeout + b.timeout,
-  crash: a.crash + b.crash,
-  blocked: a.blocked + b.blocked,
-  upstream: a.upstream + b.upstream,
-  throttled: a.throttled + b.throttled,
-  duplicate: a.duplicate + b.duplicate,
+/** The same outcome with no failures at all, for a hop that replaces them. */
+export const withoutFailures = (outcome: Outcome): Outcome => ({
+  ...outcome,
+  ...NO_FAILURE_FIELDS,
 })
-
-/** Adds `fail` × `by` into `into`, in place: the loops below build one record each, not two per term. */
-const addScaledInto = (into: Record<ErrorCause, number>, fail: Failures, by: number): void => {
-  into.stranded += fail.stranded * by
-  into.dropped += fail.dropped * by
-  into.refused += fail.refused * by
-  into.down += fail.down * by
-  into.stale += fail.stale * by
-  into.oom += fail.oom * by
-  into.timeout += fail.timeout * by
-  into.crash += fail.crash * by
-  into.blocked += fail.blocked * by
-  into.upstream += fail.upstream * by
-  into.throttled += fail.throttled * by
-  into.duplicate += fail.duplicate * by
-}
 
 export const failed = (cause: ErrorCause): Outcome => ({
   success: 0,
-  fixedMs: 0,
-  variableMs: 0,
-  tailP: 0,
-  tailMs: 0,
-  stale: 0,
   value: 1,
-  fail: { ...NO_FAILURES, [cause]: 1 },
+  ...NO_HOP,
+  failStranded: cause === 'stranded' ? 1 : 0,
+  failDropped: cause === 'dropped' ? 1 : 0,
+  failRefused: cause === 'refused' ? 1 : 0,
+  failDown: cause === 'down' ? 1 : 0,
+  failStale: cause === 'stale' ? 1 : 0,
+  failOom: cause === 'oom' ? 1 : 0,
+  failTimeout: cause === 'timeout' ? 1 : 0,
+  failCrash: cause === 'crash' ? 1 : 0,
+  failBlocked: cause === 'blocked' ? 1 : 0,
+  failUpstream: cause === 'upstream' ? 1 : 0,
+  failThrottled: cause === 'throttled' ? 1 : 0,
+  failDuplicate: cause === 'duplicate' ? 1 : 0,
 })
 
 /** The same outcome with a share of its answered requests failing for `cause` instead. */
-export const failSome = (outcome: Outcome, share: number, cause: ErrorCause): Outcome =>
-  share <= 0
-    ? outcome
-    : {
-        ...outcome,
-        success: outcome.success * (1 - share),
-        fail: addFailures(outcome.fail, { ...NO_FAILURES, [cause]: outcome.success * share }),
-      }
+export const failSome = (outcome: Outcome, share: number, cause: ErrorCause): Outcome => {
+  if (share <= 0) return outcome
+  const add = outcome.success * share
+  return {
+    ...outcome,
+    success: outcome.success * (1 - share),
+    failStranded: outcome.failStranded + (cause === 'stranded' ? add : 0),
+    failDropped: outcome.failDropped + (cause === 'dropped' ? add : 0),
+    failRefused: outcome.failRefused + (cause === 'refused' ? add : 0),
+    failDown: outcome.failDown + (cause === 'down' ? add : 0),
+    failStale: outcome.failStale + (cause === 'stale' ? add : 0),
+    failOom: outcome.failOom + (cause === 'oom' ? add : 0),
+    failTimeout: outcome.failTimeout + (cause === 'timeout' ? add : 0),
+    failCrash: outcome.failCrash + (cause === 'crash' ? add : 0),
+    failBlocked: outcome.failBlocked + (cause === 'blocked' ? add : 0),
+    failUpstream: outcome.failUpstream + (cause === 'upstream' ? add : 0),
+    failThrottled: outcome.failThrottled + (cause === 'throttled' ? add : 0),
+    failDuplicate: outcome.failDuplicate + (cause === 'duplicate' ? add : 0),
+  }
+}
 
 export const answered = (fixedMs: number, variableMs: number): Outcome => ({
   success: 1,
+  value: 1,
+  ...NO_HOP,
   fixedMs,
   variableMs,
-  tailP: 0,
-  tailMs: 0,
-  stale: 0,
-  value: 1,
-  fail: NO_FAILURES,
+  ...NO_FAILURE_FIELDS,
 })
 
 /** What a Node adds before it passes the request on. */
@@ -172,7 +214,18 @@ export const through = (
   // between, so a Rails or Phoenix page view still earns its share.
   let value = own.value
   let tail = { tailP: own.tailP, tailMs: own.tailMs }
-  const causes = { ...NO_FAILURES }
+  let stranded = 0
+  let dropped = 0
+  let refused = 0
+  let down = 0
+  let staleFail = 0
+  let oom = 0
+  let timeout = 0
+  let crash = 0
+  let blocked = 0
+  let upstream = 0
+  let throttled = 0
+  let duplicate = 0
   let causeWeight = 0
   let stale = 0
   for (const [call, count] of calls) {
@@ -183,28 +236,48 @@ export const through = (
     fixedMs += call.fixedMs * count
     variableMs += call.variableMs * count
     tail = combineTail(tail.tailP, tail.tailMs, call.tailP, call.tailMs)
-    addScaledInto(causes, call.fail, count)
+    stranded += call.failStranded * count
+    dropped += call.failDropped * count
+    refused += call.failRefused * count
+    down += call.failDown * count
+    staleFail += call.failStale * count
+    oom += call.failOom * count
+    timeout += call.failTimeout * count
+    crash += call.failCrash * count
+    blocked += call.failBlocked * count
+    upstream += call.failUpstream * count
+    throttled += call.failThrottled * count
+    duplicate += call.failDuplicate * count
     causeWeight += (1 - call.success) * count
     stale = Math.max(stale, call.stale)
     value *= call.value
   }
   const staleLoss = staleCounts ? stale : 0
   const childFailure = 1 - success
-  const childFail =
-    causeWeight > 0 ? scaleFailures(causes, childFailure / causeWeight) : NO_FAILURES
+  const ratio = causeWeight > 0 ? childFailure / causeWeight : 0
   const reached = own.share
-  const fail = addFailures(
-    { ...NO_FAILURES, [own.cause]: 1 - reached },
-    scaleFailures(addFailures(childFail, { ...NO_FAILURES, stale: success * staleLoss }), reached),
-  )
+  const ownFail = 1 - reached
   return {
     success: reached * success * (1 - staleLoss),
     fixedMs,
     variableMs,
-    ...tail,
+    tailP: tail.tailP,
+    tailMs: tail.tailMs,
     stale: staleCounts ? 0 : stale,
     value,
-    fail,
+    failStranded: stranded * ratio * reached + (own.cause === 'stranded' ? ownFail : 0),
+    failDropped: dropped * ratio * reached + (own.cause === 'dropped' ? ownFail : 0),
+    failRefused: refused * ratio * reached + (own.cause === 'refused' ? ownFail : 0),
+    failDown: down * ratio * reached + (own.cause === 'down' ? ownFail : 0),
+    failStale:
+      (staleFail * ratio + success * staleLoss) * reached + (own.cause === 'stale' ? ownFail : 0),
+    failOom: oom * ratio * reached + (own.cause === 'oom' ? ownFail : 0),
+    failTimeout: timeout * ratio * reached + (own.cause === 'timeout' ? ownFail : 0),
+    failCrash: crash * ratio * reached + (own.cause === 'crash' ? ownFail : 0),
+    failBlocked: blocked * ratio * reached + (own.cause === 'blocked' ? ownFail : 0),
+    failUpstream: upstream * ratio * reached + (own.cause === 'upstream' ? ownFail : 0),
+    failThrottled: throttled * ratio * reached + (own.cause === 'throttled' ? ownFail : 0),
+    failDuplicate: duplicate * ratio * reached + (own.cause === 'duplicate' ? ownFail : 0),
   }
 }
 
@@ -218,7 +291,18 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
   let tailP = 0
   let stale = 0
   let value = 0
-  const fail = { ...NO_FAILURES }
+  let stranded = 0
+  let dropped = 0
+  let refused = 0
+  let down = 0
+  let staleFail = 0
+  let oom = 0
+  let timeout = 0
+  let crash = 0
+  let blocked = 0
+  let upstream = 0
+  let throttled = 0
+  let duplicate = 0
   let tailWeight = 0
   for (const [entry, weight] of entries) {
     const w = weight / total
@@ -229,7 +313,18 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
     tailP += entry.tailP * w
     stale += entry.stale * w
     value += entry.value * w
-    addScaledInto(fail, entry.fail, w)
+    stranded += entry.failStranded * w
+    dropped += entry.failDropped * w
+    refused += entry.failRefused * w
+    down += entry.failDown * w
+    staleFail += entry.failStale * w
+    oom += entry.failOom * w
+    timeout += entry.failTimeout * w
+    crash += entry.failCrash * w
+    blocked += entry.failBlocked * w
+    upstream += entry.failUpstream * w
+    throttled += entry.failThrottled * w
+    duplicate += entry.failDuplicate * w
   }
   return {
     success,
@@ -239,7 +334,18 @@ export const blend = (entries: ReadonlyArray<readonly [Outcome, number]>): Outco
     tailMs: tailP > 0 ? tailWeight / tailP : 0,
     stale,
     value,
-    fail,
+    failStranded: stranded,
+    failDropped: dropped,
+    failRefused: refused,
+    failDown: down,
+    failStale: staleFail,
+    failOom: oom,
+    failTimeout: timeout,
+    failCrash: crash,
+    failBlocked: blocked,
+    failUpstream: upstream,
+    failThrottled: throttled,
+    failDuplicate: duplicate,
   }
 }
 
@@ -290,7 +396,7 @@ export const timedOut = (outcome: Outcome, ms: number): Outcome => {
     variableMs,
     tailP: tailKept ? outcome.tailP : 0,
     tailMs: tailKept ? outcome.tailMs : 0,
-    fail: { ...outcome.fail, timeout: outcome.fail.timeout + outcome.success * late },
+    failTimeout: outcome.failTimeout + outcome.success * late,
   }
 }
 
@@ -325,12 +431,11 @@ export const retried = (call: Outcome, ms: number): Outcome => {
   const failure = 1 - call.success
   if (failure <= 1e-12) return call
   const still = failure * failure * failure * failure
-  const wasted = (call.fail.timeout * ms + (failure - call.fail.timeout) * call.fixedMs) / failure
+  const wasted = (call.failTimeout * ms + (failure - call.failTimeout) * call.fixedMs) / failure
   return {
-    ...call,
+    ...withScaledFailures(call, still / failure),
     success: 1 - still,
     fixedMs: call.fixedMs + (attemptsFor(failure) - 1) * wasted,
-    fail: scaleFailures(call.fail, still / failure),
   }
 }
 
@@ -349,12 +454,11 @@ export const backedOff = (call: Outcome, ms: number, budget: number): Outcome =>
   const extra = attemptsFor(failure) - 1
   const allowed = Math.min(1, budget / extra)
   const still = failure * (1 - allowed * (1 - failure * failure * failure))
-  const wasted = (call.fail.timeout * ms + (failure - call.fail.timeout) * call.fixedMs) / failure
+  const wasted = (call.failTimeout * ms + (failure - call.failTimeout) * call.fixedMs) / failure
   return {
-    ...call,
+    ...withScaledFailures(call, still / failure),
     success: 1 - still,
     fixedMs: call.fixedMs + allowed * extra * (wasted + BACKOFF_MS),
-    fail: scaleFailures(call.fail, still / failure),
   }
 }
 

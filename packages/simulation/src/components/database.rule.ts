@@ -19,7 +19,7 @@ import {
   SHARD_KEYS,
 } from '../catalog.ts'
 import { nextRandom } from '../random.ts'
-import { NO_FAILURES, answered, failSome, failed, through, type Outcome } from '../distribution.ts'
+import { answered, failSome, failed, through, type Outcome } from '../distribution.ts'
 import { databaseModel } from '../capacity.ts'
 import { has, replacePrice, shardingOf, syncStalled } from '../lookups.ts'
 import { type ComponentRule, slotOf, terminal } from '../rule-kit.ts'
@@ -72,7 +72,7 @@ export const databaseRule: ComponentRule = {
         node.type === 'replica' && kind === 'q-read' && !node.sync ? answer.pass.staleShare : 0,
         staleScan,
       ),
-      fail: { ...NO_FAILURES, refused },
+      failRefused: refused,
     }
     const own = through(answer.ownHop(kind), [[reply, 1]])
     // A transaction across shards commits on each of them, and any one can fail (07 "Partitioning").

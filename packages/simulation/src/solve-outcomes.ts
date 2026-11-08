@@ -113,7 +113,7 @@ export const outcomesOf = (inputs: Inputs, pass: Pass) => {
         ? retried(once, policy.timeout)
         : backedOff(once, policy.timeout, RETRY_BUDGET)
     // A charge that succeeded on a retry after a timeout charged twice: the first one went through.
-    const timedOutShare = once.success < 1 ? once.fail.timeout / (1 - once.success) : 0
+    const timedOutShare = once.success < 1 ? once.failTimeout / (1 - once.success) : 0
     const duplicates =
       again.success > 0
         ? (Math.max(0, again.success - once.success) / again.success) * timedOutShare

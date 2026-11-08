@@ -27,10 +27,12 @@ import {
   apdexOf,
   blend,
   failed,
+  failuresOf,
   hop,
   meanOf,
   percentile,
   through,
+  withoutFailures,
   type ErrorCause,
   type Outcome,
 } from './distribution.ts'
@@ -85,18 +87,18 @@ export const completionsOf = (game: Game, pass: Pass, outcomes: ReturnType<typeo
     if (!tasks || isDown(queue)) continue
     const worker = outcomes.downstream(queue, 'task')
     // A task a busy Worker dropped waits in the Queue: the wait counts it, not the attempts.
-    const failure = Math.min(1, Math.max(0, 1 - worker.success - worker.fail.dropped))
+    const failure = Math.min(1, Math.max(0, 1 - worker.success - worker.failDropped))
     const allowed = attemptsAllowed(queue)
     const lost = taskLost(failure, allowed)
     const extra = taskAttempts(failure, allowed) - 1
     const done: Outcome =
-      wait === Number.POSITIVE_INFINITY || worker.fail.stranded >= 1
+      wait === Number.POSITIVE_INFINITY || worker.failStranded >= 1
         ? failed('stranded')
         : {
-            ...worker,
+            ...withoutFailures(worker),
             success: 1 - lost,
             fixedMs: worker.fixedMs + (wait + extra * TASK_RETRY_SECONDS) * 1000,
-            fail: { ...NO_FAILURES, upstream: lost },
+            failUpstream: lost,
           }
     for (const kind of Object.keys(tasks) as Array<RequestKind>) {
       const target = PROFILES[kind].completion
@@ -199,7 +201,7 @@ export const ledgerOf = (
           success: answer.success,
           apdex: own,
           near: raw === answer ? own : apdexOf(raw, PROFILES[kind].apdex) * finish,
-          fail: answer.fail,
+          fail: failuresOf(answer),
           hopMs: userHopMs(game, entry.extraMs, kind),
           p99: percentile(answer, 0.99),
         },
@@ -219,12 +221,23 @@ export const ledgerOf = (
       valueFactor(game, kind) *
       (earnsInTime(game, mean) ? 1 : 0)
     latencyWeight += rate * result.success * mean
-    for (const cause of ERROR_CAUSES) errors[cause] += rate * result.fail[cause]
+    errors.stranded += rate * result.failStranded
+    errors.dropped += rate * result.failDropped
+    errors.refused += rate * result.failRefused
+    errors.down += rate * result.failDown
+    errors.stale += rate * result.failStale
+    errors.oom += rate * result.failOom
+    errors.timeout += rate * result.failTimeout
+    errors.crash += rate * result.failCrash
+    errors.blocked += rate * result.failBlocked
+    errors.upstream += rate * result.failUpstream
+    errors.throttled += rate * result.failThrottled
+    errors.duplicate += rate * result.failDuplicate
     // Fintech fines a stale answer to a money kind (13 "Ventures").
     if (!game.sandbox && MONEY_KINDS.includes(kind))
-      fines += rate * result.fail.stale * KINDS[kind].value * ventureOf(game).constraint.staleFine
+      fines += rate * result.failStale * KINDS[kind].value * ventureOf(game).constraint.staleFine
     if (result.success > 0) mixture.push([result, rate * result.success])
-    if (result.success < 0.05 && result.fail.stranded >= 0.5) failing.push(kind)
+    if (result.success < 0.05 && result.failStranded >= 0.5) failing.push(kind)
   }
   const overall = blend(mixture)
 
