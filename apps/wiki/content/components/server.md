@@ -14,6 +14,37 @@ A request holds its worker slot while it waits on each backend call. So a slow D
 
 The Garage box runs Postgres on the same machine. When you link it to a [Database](/components/database), [Connection Pooler](/components/pooler), or [Cache](/components/cache), Postgres moves off the box for good. A Burstable box earns CPU credits while idle and is throttled when they run out.
 
+## Options
+
+::Options{id="server"}
+
+### Stack
+
+The Stack is the language, its runtime, and the framework. It sets how the box shares work, how fast each request runs, the memory each process holds, and whether the runtime can keep a connection open.
+
+- **Runtime**: the server that runs your code. Each one uses a model such as a process per request, a thread pool, or an event loop, and the model decides how a request waits on a backend. See [Runtimes](/runtimes).
+- **Framework**: the library around the runtime. It adds CPU and memory to every request, and it buys velocity. The picker lists the frameworks for the runtime's language.
+- **Pool size**: how many worker processes serve requests. A request holds one slot while it waits on each backend call, so a slow Database fills the pool while CPU stays idle. The figure beside the control says how many workers the box's RAM fits. Go past it and the box swaps, then kills a process.
+- **Process manager**: PHP-FPM keeps a pool of worker processes, and the process manager decides which of them stay running. Static keeps the whole pool resident, so no request waits for a fork, and the box holds that memory even when idle. Dynamic keeps the busy workers plus two spares, so a burst makes a small share of requests wait a moment for a fork. On demand keeps only the busy workers, so idle RAM is lowest and more requests wait. Pick Static when RAM is spare, Dynamic for most Designs, and On demand when memory is the limit and the tail can wait.
+- **Recycle workers**: restarts each process now and then. It caps a memory leak before the process runs out, and every restart comes back cold. Turn it on for a runtime that keeps memory between requests.
+- **Compression**: Gzip on the responses that shrink well. It cuts their size, the egress they bill, and the time they take to reach a user, and it costs CPU on each one. Uploads and media do not shrink.
+- **Service**: which Service the Node belongs to. It appears once the app splits into more than one Service.
+
+### Garbage collection
+
+- **Collector**: a Java runtime's garbage collector. G1 balances pause against throughput. Parallel is a little faster and pauses longer, with a little less memory. ZGC keeps pauses tiny at less throughput and more memory. Pick ZGC when a spike in p99 hurts more than CPU.
+- **GOGC**: a Go runtime's collection target. A lower value collects more often, so memory stays small and CPU goes to the collector. A higher value does the reverse. Go collects without a long pause either way.
+
+### Overload
+
+- **Shedding**: [Priority load shedding](/patterns/load-shedding) answers a full Node by dropping whole request kinds, lowest value first, until it is back under its line. The default, Drop evenly, refuses a share of every kind instead of whole kinds. The kinds it keeps stay fast, and the dropped ones count as errors.
+- **Degradation**: [Graceful degradation](/patterns/graceful-degradation) drops the kinds that cost the most CPU first, so the cheap, high-volume kinds keep their latency. A Node with both settings on degrades first.
+- **Read your writes**: sends a read that follows a write to the primary, so a lagging replica cannot answer it with old data. See [Read your writes](/patterns/read-your-writes).
+
+### Feeds
+
+- **Feeds**: how the App Server serves a feed. Pull merges the accounts a user follows at read time. Push writes a copy into each follower's timeline. Push becomes the hybrid with [Hybrid fan-out](/research/hybrid-fanout). See [Fan-out on write and on read](/patterns/fan-out-on-write-and-on-read).
+
 ## How it fails
 
 - Overloaded, it queues requests, then drops them.

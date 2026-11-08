@@ -10,6 +10,7 @@ import { islandAttributes } from './islands.ts'
 import { init, type Message, type Model } from './main.ts'
 import type { Page } from './page.ts'
 import { PAGES, SECTION_ORDER, childrenOf, navOf, pageAt } from './pages.ts'
+import { OPTION_CONTROLS } from './reference/options.ts'
 import { WIKI_ORIGIN } from './site.ts'
 
 type Inline = Markdown.Inline
@@ -73,6 +74,7 @@ const decode = {
   Note: Schema.decodeUnknownSync(islandAttributes.Note),
   Sandbox: Schema.decodeUnknownSync(islandAttributes.Sandbox),
   Component: Schema.decodeUnknownSync(islandAttributes.Component),
+  Options: Schema.decodeUnknownSync(islandAttributes.Options),
   Mix: Schema.decodeUnknownSync(islandAttributes.Mix),
   Track: Schema.decodeUnknownSync(islandAttributes.Track),
   Quiz: Schema.decodeUnknownSync(islandAttributes.Quiz),
@@ -98,6 +100,18 @@ const island = (block: Extract<Block, { _tag: 'Island' }>): string => {
       const { id } = decode.Component(block.attributes)
       const def = COMPONENTS[id]
       return `Component: [${def.name}](${markdownUrl(`/components/${id}`)}) (${def.product}): ${def.blurb}`
+    }
+    case 'Options': {
+      const { id } = decode.Options(block.attributes)
+      const controls = OPTION_CONTROLS[id] ?? []
+      if (controls.length === 0) return ''
+      return [
+        '| Control | Settings | When |',
+        '| --- | --- | --- |',
+        ...controls.map(
+          (control) => `| ${control.name} | ${control.settings} | ${control.shown} |`,
+        ),
+      ].join('\n')
     }
     case 'Mix': {
       const era = ERAS[Number(decode.Mix(block.attributes).era)]

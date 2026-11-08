@@ -12,15 +12,15 @@ New copies are not instant. A VM takes minutes to boot, while a pod in a [Kubern
 
 ## Options
 
-Settings on its card:
+::Options{id="autoscaler"}
 
-- **Signal**: CPU, load (the Node's tightest limit), request rate, or queue depth.
-- **Target**: the utilization to hold. Lower is safer and costs more.
-- **Min and max copies**: the max is your cost guard.
+- **Signal**: what it reads. CPU suits a CPU-bound runtime. Load reads the Node's tightest limit, so it suits a runtime that waits on I/O and fills its workers while CPU stays low. The request rate follows the traffic whatever the runtime. Queue depth suits a Worker that a Queue feeds.
+- **Target**: the utilization each copy holds. A higher target packs more work into each copy and leaves less room for a spike. A lower target keeps headroom and costs more.
+- **Min copies**: the floor. Keep it high enough to survive the first minutes of a spike, because a new copy takes time to boot and warm.
+- **Max copies**: the ceiling, and your cost guard. No max lets a runaway loop bill without end.
+- **Schedule**: with [Scheduled scaling](/research/scheduled-scaling), the Autoscaler provisions for the daily peak a couple of hours before it arrives, so the copies are warm when demand lands. On load waits for the load instead.
 
-The signal can be CPU, the Node's whole load, the requests a second each copy takes, or the tasks waiting in the Queues that feed it. CPU misreads a runtime that waits on I/O, because its workers fill while its CPU stays low. Request rate follows the traffic whatever the runtime.
-
-Queue depth suits a Worker. It adds copies when the backlog grows, and a Node no Queue feeds reads zero on it.
+A Node that no Queue feeds reads zero on queue depth, so pick a signal its traffic moves. A scaled Node also needs a [Load Balancer](/components/lb) in front to share traffic across its copies, or something else that spreads the work.
 
 ## How it fails
 

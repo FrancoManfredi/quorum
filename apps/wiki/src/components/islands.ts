@@ -3,6 +3,7 @@ import type { HtmlBuilder } from 'foldkit/html'
 import { cn } from 'cn'
 import { ArrowRight, Info, Lightbulb, TriangleAlert } from 'lucide'
 import { COMPONENTS, ERAS, researchList } from '@quorum/simulation/catalog'
+import { OPTION_CONTROLS } from '../reference/options.ts'
 import { groupBadge } from '@quorum/ui/game/bits'
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
 import { researchMark } from '@quorum/ui/game/research-marks'
@@ -48,6 +49,55 @@ export const islandViews = (model: Model, h: HtmlBuilder<Message>): Markdown.Isl
       }),
     Sandbox: ({ id }, _content, index) => sandboxView(model, id, index, h),
     Design: ({ id }) => designView(id, h),
+    Options: ({ id }) => {
+      const controls = OPTION_CONTROLS[id] ?? []
+      if (controls.length === 0) return h.empty
+      return h.div(
+        [h.Class('not-prose my-6 overflow-x-auto rounded-lg border border-border')],
+        [
+          h.table(
+            [h.Class('w-full border-collapse text-[13.5px] leading-snug')],
+            [
+              h.thead(
+                [],
+                [
+                  h.tr(
+                    [],
+                    ['Control', 'Settings', 'When'].map((header) =>
+                      h.th(
+                        [
+                          h.Key(header),
+                          h.Class(
+                            'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12.5px] font-medium whitespace-nowrap text-muted-foreground',
+                          ),
+                        ],
+                        [header],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              h.tbody(
+                [h.Class('divide-y divide-border')],
+                controls.map((control) =>
+                  h.tr(
+                    [h.Key(control.name)],
+                    [
+                      h.td([h.Class('px-3 py-2 align-top font-medium')], [control.name]),
+                      h.td(
+                        [h.Class('px-3 py-2 align-top text-muted-foreground')],
+                        [control.settings],
+                      ),
+                      h.td([h.Class('px-3 py-2 align-top text-muted-foreground')], [control.shown]),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      )
+    },
     Component: ({ id }) => {
       const def = COMPONENTS[id]
       return h.a(

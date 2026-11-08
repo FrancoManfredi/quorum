@@ -34,7 +34,9 @@ A hot shard from incident [Hot key](/incidents/hot-key) divides its rate, the sa
 
 ## Options
 
-- **Multi-document transactions**: they make a checkout atomic across documents, and every write waits for the rest, so its latency rises by half.
+::Options{id="doc"}
+
+- **Transactions**: Multi-document makes a checkout atomic across documents, and every write waits for the rest, so its latency rises. One document is faster and cannot commit two documents together.
 
 ## How it fails
 

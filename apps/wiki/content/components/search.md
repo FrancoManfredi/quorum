@@ -14,13 +14,15 @@ Until you link a Search Engine, the [Database](/components/database) answers sea
 
 ## Options
 
-- **Refresh interval:** how long a new document waits before it is searchable, and how much indexing CPU the Node spends. A long interval answers more queries a second but returns staler results. A short one is fresher and answers fewer. A stale result fails a search that needed the new document. [Data tier](/design/07-data-tier#search-engine) says what each costs.
-- **Product:** Elasticsearch, OpenSearch, or Meilisearch. The first two share a profile and take every option. Meilisearch is one smaller, faster node with none of the options below, and its relevance falls as the index grows.
-- **Shards:** parallelize the index but fan every query out, so each one adds less than the last.
-- **Replicas:** each adds query capacity, a box, and a copy of the index on a volume.
-- **Heap:** trades garbage collection pauses against the file system cache. Too small pauses often. Too large pauses long and answers fewer queries.
+::Options{id="search"}
 
-[Data tier](/design/07-data-tier#search-engine) holds the numbers.
+- **Product**: Elasticsearch and OpenSearch share a profile and take every option below. Meilisearch is one smaller, faster node with no shards, replicas, or heap, and its relevance falls as the index grows.
+- **Refresh**: how long a new document waits before it is searchable, and how much indexing CPU the Node spends. A long interval answers more queries a second but returns staler results. A short one is fresher and answers fewer. A stale result fails a search that needed the new document.
+- **Shards**: parallelize the index but fan every query out, so each one adds less than the last.
+- **Replicas**: each adds query capacity, a box, and a copy of the index on a volume.
+- **Heap**: trades garbage collection pauses against the file system cache. Too small pauses often. Too large pauses long and answers fewer queries.
+
+[Data tier](/design/07-data-tier#search-engine) holds the numbers. See [Full-text search and the inverted index](/patterns/full-text-search-and-inverted-index).
 
 ## How it fails
 

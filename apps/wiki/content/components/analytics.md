@@ -17,8 +17,9 @@ Analytics keeps a limited number of samples per second, and each size step doubl
 
 ## Options
 
-- **Sample rate**: how much of the tapped copy it samples. A high rate adds CPU and latency to every tapped Node and multiplies storage Burn.
-- **Retention**: how long it keeps traces. A longer window costs more Burn.
+::Options{id="analytics"}
+
+- **Sample rate**: how much of the tapped copy it samples. A higher rate earns more Insight and a finer breakdown of kinds, and costs CPU and latency on every tapped Node plus storage Burn. A lower rate misses more, and the traffic no tap sees shows as unclassified.
 
 ## How it fails
 

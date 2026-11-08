@@ -13,7 +13,14 @@ An export runs many read queries in its task, so link the Worker to the data it 
 
 ## Options
 
-- **Prefetch:** how many tasks each process takes ahead of time. Higher prefetch spends less time waiting on the broker, but a crash loses every task a process had taken.
+::Options{id="worker"}
+
+The Stack controls work as they do on an [App Server](/components/server#options). A Worker fills its pool with tasks instead of requests, and a task holds a worker for as long as it runs, including every backend call it waits on.
+
+- **Pool size**: how many tasks run at once. More workers drain the Queue faster, hold more memory, and cost more CPU when the tasks compete for it.
+- **Process manager**: PHP-FPM's rule for which workers stay running. Static keeps the whole pool resident, Dynamic keeps two spares, and On demand keeps only the busy workers. The trade is the same: idle RAM against a short wait for a fork.
+- **Recycle workers**: restarts each process now and then, which caps a leak and costs a cold start. A planned restart hands its prefetched tasks back first.
+- **Prefetch**: how many tasks each worker takes from the Queue ahead of time. A higher prefetch spends less time waiting on the broker, and a crash loses more.
 
 ## How it fails
 

@@ -16,9 +16,12 @@ It takes `rt` and nothing else, and sends nothing on: it answers the message its
 
 ## Options
 
-- **Presence:** tracks who is online. It earns 25% more per message for the social features that need it, and spends 15% of the box's CPU on joins and leaves, so a box holds fewer connections.
-- **Reconnect backoff:** spreads the wave of clients that reconnect after a restart. Without it they come back at once, a [thundering herd](/glossary/thundering-herd), and the Hub refuses half of them while it warms.
-- **Clustering:** gives several hubs a shared pub/sub backbone. It is needed above one box: without it only the first box takes connections, and the larger sizes add Burn and no room.
+::Options{id="ws"}
+
+- **Runtime**: the server that holds the connections. The runtime sets how many a box fits, because one that keeps a worker per connection holds far fewer than an event loop or the BEAM. See [Runtimes](/runtimes).
+- **Presence**: tracks who is online. It earns more per message for the social features that need it, and spends some of the box's CPU on joins and leaves, so a box holds fewer connections.
+- **Reconnect backoff**: spreads the wave of clients that reconnect after a restart. Without it they come back at once, a [thundering herd](/glossary/thundering-herd), and the Hub refuses half of them while it warms.
+- **Clustering**: gives several hubs a shared pub/sub backbone. It is needed above one box: without it only the first box takes connections, and the larger sizes add Burn and no room.
 
 ## How it fails
 

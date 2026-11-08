@@ -15,9 +15,16 @@ You can spread it across your open regions. Each region then keeps its own repli
 
 ## Options
 
-- **N:** how many replicas hold each key.
-- **W:** how many replicas must confirm a write.
-- **R:** how many replicas a read asks.
+::Options{id="wide"}
+
+- **N**: how many replicas hold each key. A higher N survives more lost replicas and stores more copies.
+- **W**: how many replicas must confirm a write. A higher W is safer and slower.
+- **R**: how many replicas a read asks. A higher R is more consistent and slower.
+
+A read sees the latest write when R + W is greater than N. When it is not, a read can come back stale. See [Quorum reads and writes](/patterns/quorum-reads-and-writes).
+
+- **Hot keys**: with [Hybrid fan-out](/research/hybrid-fanout), Split moves a hot key off its shard, so one key stops setting the pace. See [Hot keys and hot shards](/patterns/hot-keys-and-hot-shards).
+- **Regions**: Spread keeps a quorum in every open region, so the store serves through a region outage. Each region adds Burn, and a write waits for the regions its quorum needs.
 
 ## How it fails
 

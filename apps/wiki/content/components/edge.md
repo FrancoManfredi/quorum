@@ -14,9 +14,9 @@ A live Edge Function also holds the edge key-value cache that a [CDN](/component
 
 It bills per request, on the Requests line of the [cloud bill](/design/09-economy#the-cloud-bill), and nothing while it idles.
 
-## Options
+## Ceilings
 
-Two ceilings stand in for an instance type:
+Edge Functions have no instance type and no size to pick. Two ceilings stand in for one:
 
 - **CPU.** A request may spend 10 ms of CPU. Past it the handler is killed and the request fails as a timeout.
 - **Memory.** A handler runs in 128 MB of isolate, which fits a small handler and its response but not a working set.

@@ -15,13 +15,13 @@ It takes `task` from the Nodes that produce async work and sends `task` on to th
 
 ## Options
 
-| Option             | What it decides                                                                                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Partitions         | How many consumers can read at once. A consumer group uses one consumer per partition, so a stream reads at most one partition's rate per partition: 20,000 messages a second each.                                 |
-| Partition key      | Order. A key keeps one entity's events in one partition, so they stay in order, but one key with all the traffic makes a hot partition. Round robin spreads evenly and loses order.                                 |
-| Replication factor | Safety. Each replica is another copy of every partition, and bills half a broker's Burn again. With one replica a broker that fails takes every event it held; with more, the acknowledgements decide what is lost. |
-| Acknowledgements   | Latency. `0` does not wait, `1` waits for the partition leader, `all` for every replica.                                                                                                                            |
-| Retention          | How long a message stays. Ten hours, two and a half days, or a week.                                                                                                                                                |
+::Options{id="log"}
+
+- **Partitions**: how many consumers read at once. A consumer group uses one consumer per partition, so a stream reads at its partition rate for each partition it has.
+- **Partition key**: Keyed keeps one entity's events in one partition, so they stay in order, and a hot key fills one partition. Round robin spreads evenly and loses order.
+- **Replicas**: copies of every partition. Each replica bills again. With one replica, a broker that fails takes every event it held. With more, the acknowledgements decide what is lost.
+- **Acknowledgements**: what a producer waits for before it moves on. No ack does not wait, Leader waits for the partition leader, and All replicas waits for every copy. A longer wait is a safer write.
+- **Retention**: how long a message stays. A consumer further behind than the window loses the oldest events, and the tasks they carried never happen.
 
 ## How it fails
 

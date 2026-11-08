@@ -17,12 +17,9 @@ Search requests route to it too, because a similarity search is a search. A Desi
 
 ## Options
 
-| Type  | Lookups | Memory                                                          | Recall                                               |
-| ----- | ------- | --------------------------------------------------------------- | ---------------------------------------------------- |
-| Exact | 1×      | 1×                                                              | 100%: every lookup finds its true nearest neighbour. |
-| HNSW  | 2×      | 2×: the graph sits beside the vectors, and bills twice the Burn | 95%: one lookup in twenty quotes the wrong document. |
+::Options{id="vec"}
 
-Exact scans every vector. That is perfect, but slow once the collection outgrows a scan. HNSW walks a graph instead, which is what a real index does at scale, and it gives up a little recall for it.
+- **Index**: Exact compares the query to every vector, so recall is perfect and a large collection makes it slow. HNSW walks a graph instead, answers more queries, keeps the index in memory at a higher Burn, and gives up a little recall: now and then a lookup quotes the wrong document, which fails a search that needed it. See [Vector search and embeddings](/patterns/vector-search-and-embeddings).
 
 ## How it fails
 

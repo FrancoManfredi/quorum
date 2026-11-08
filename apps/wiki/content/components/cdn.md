@@ -14,9 +14,11 @@ Egress from the edge costs less than egress from your App Servers, so a CDN also
 
 ## Options
 
-- **TTL**: the default is a sensible start. A longer TTL raises the hit ratio, so raise it when pages change rarely.
-- **Purge on deploy**: a release empties the CDN, and the origin takes the misses while it refills, a small stampede on every deploy. Without it the edge keeps serving the last release's pages until their TTL passes, so some users see old pages after a deploy.
-- **Cache key**: what makes two requests the same page. A key with the path, the query string and the cookies shares nothing between users. Leaving out the query string or the cookie lifts the hit ratio. With [Edge-side includes](/research/esi) a logged-in page is cached, so a key without the cookie can serve one user's page to another. That is the Cached page leak incident, and users leave at once.
+::Options{id="cdn"}
+
+- **TTL**: how long the edge keeps a page. A longer TTL raises the hit ratio, so raise it for pages that change rarely.
+- **Purge on deploy**: a release empties the edge, and the origin takes the misses while it refills. Without it the edge keeps serving the last release's pages until their TTL passes, so some users see old pages after a deploy.
+- **Cache key**: what makes two requests the same page. A key with the path, the query string, and the cookies shares nothing between users. Leaving out the query string or the cookie lifts the hit ratio. With [Edge-side includes](/research/esi) a logged-in page is cached, so a key without the cookie can serve one user's page to another. That is the Cached page leak incident, and users leave at once.
 
 ## How it fails
 

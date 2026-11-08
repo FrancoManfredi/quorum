@@ -14,15 +14,12 @@ A new or restarted GPU Node starts cold: it loads its model and serves at a frac
 
 ## Options
 
-The **GPU type** sets the tradeoff:
+::Options{id="gpu"}
 
-- T4 is cheap and slow.
-- A100 is balanced.
-- H100 is the cheapest per token and the hardest to get.
-
-Changing the type restarts the Node.
-
-The **model** (small, medium or large) sets how many prompts a second the Node serves and what each answer is worth: a larger model earns more and serves fewer. The weights, at the chosen precision, and the batch's attention cache must fit in the GPUs' memory. If they do not, the Node is killed as it loads and every prompt fails as `oom`. A lower precision, a smaller model, a smaller batch or a bigger GPU fits it. Changing the model reloads the weights.
+- **GPU**: T4 is cheap and slow. A100 is balanced. H100 is the cheapest per token and the hardest to get. Changing the type restarts the Node.
+- **Model**: a larger model earns more per prompt and serves fewer. The weights, the precision, and the batch's attention cache must fit in the GPUs' memory. If they do not, the Node is killed as it loads and every prompt fails as `oom`. A lower precision, a smaller model, a smaller batch, or a bigger GPU fits it. Changing the model reloads the weights.
+- **Precision**: a lower precision serves faster, uses less memory, and is worth less per answer. It needs [Quantization](/research/quantization).
+- **Batch**: a larger batch serves more prompts and raises the time to first token. [Continuous batching](/research/continuous-batching) keeps the throughput and drops the added latency. See [An LLM behind a gateway on GPUs](/patterns/llm-behind-a-gateway-on-gpus).
 
 ## How it fails
 

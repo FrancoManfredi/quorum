@@ -15,6 +15,8 @@ export const islandAttributes = {
   Design: Schema.Struct({ id: Schema.Literals(DESIGN_IDS) }),
   /** A Component's card, as it stands on the board: `::Component{id="lb"}`. */
   Component: Schema.Struct({ id: Schema.Literals(COMPONENT_IDS) }),
+  /** The controls a Component adds to its Inspector: `::Options{id="lb"}`. */
+  Options: Schema.Struct({ id: Schema.Literals(COMPONENT_IDS) }),
   /** An Era's request mix as one bar: `::Mix{era="3"}`. */
   Mix: Schema.Struct({
     era: Schema.Literals(ERAS.map((_, index) => String(index)) as ReadonlyArray<string>),

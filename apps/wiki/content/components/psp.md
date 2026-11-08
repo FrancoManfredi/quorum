@@ -13,6 +13,12 @@ Link an App Server to it, and each checkout sends one charge. It is a Managed Co
 
 Do not confuse it with [Payments](/components/payments), the drawer where your revenue waits. Checkouts are the highest-value request kind, so the Payment Provider sits on your most important path.
 
+## Options
+
+::Options{id="psp"}
+
+- **Provider**: the first provider takes every checkout. The second serves while the first is down, and charges more per checkout. Set it before an outage, or press **Switch provider** when one starts.
+
 ## How it fails
 
 - Past its tier's rate, it drops charges. Resize it before a spike.

@@ -17,7 +17,10 @@ Replicas lag behind the primary, and the lag grows with the write rate. A read t
 
 ## Options
 
-With [Synchronous replication](/research/sync-replication) a replica can be made synchronous. Every write on the primary then waits for it, more across zones and regions, and it serves no stale read. If it goes down, every write times out until it is back. Keep one when a read must never be stale and the writes can afford the wait.
+::Options{id="replica"}
+
+- **Engine**: Postgres forks a process per connection, and MySQL gives it a thread and holds more of them on the same box. A MySQL replica fits more connections for the same RAM.
+- **Replication**: Synchronous makes every write on the primary wait for this replica. It then serves no stale read, and while it is down every write times out. Asynchronous is the default and can lag, which is what [read-your-writes routing](/patterns/read-your-writes) answers. See [Replication strategies](/patterns/replication-strategies).
 
 ## How it fails
 

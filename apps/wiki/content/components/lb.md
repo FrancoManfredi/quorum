@@ -15,9 +15,14 @@ By default it splits traffic by each target's capacity, so a large App Server ge
 
 ## Options
 
-- **Algorithm**: round robin is on offer. The [Load balancing algorithms](/research/lb-algorithms) Research adds least connections, which suits App Servers of mixed sizes or runtimes, and [power of two choices](/glossary/power-of-two-choices), which handles more traffic with a little imbalance. Consistent hash gives every target an equal share of the keys whatever its load, and a target that leaves moves only its own keys.
-- **Health checks**: the [Health checks](/research/health-checks) Research lets you change the interval and turn on deep checks.
-- **Sticky sessions**: a switch on the card keeps users on the target they first reached. It helps in-process caches and realtime clients, because a user's next request finds the memory the last one filled. It also unbalances the load. Pinned users do not move when you add a copy, so the oldest target carries the most, and a target that dies takes its sessions with it.
+::Options{id="lb"}
+
+- **Variant**: L7 terminates HTTP, so it can route by request kind, retry a failed call, and check health. L4 forwards TCP and passes queries too, so it can sit in front of a [Database](/components/database) and its [Read Replicas](/components/replica). L4 carries far more traffic, adds less latency, and bills less, and it gives up routing, retries, and HTTP awareness. See [Layer 4 and layer 7 load balancing](/patterns/layer-4-and-layer-7-load-balancing).
+- **Policy**: how it picks a target. Weighted, the default, shares by each target's capacity, so a larger App Server gets a larger share. Round robin gives every target an equal turn. Least connections suits mixed sizes or runtimes. Two choices handles more traffic with a little imbalance. Consistent hash keeps a key on its target, and a target that leaves moves only its own keys. See [Load balancing algorithms](/patterns/load-balancing-algorithms).
+- **Sessions**: Sticky keeps a user on the target it first reached, so an in-process cache or a realtime client finds its memory. It also unbalances the load, because pinned users do not move when you add a copy, and a target that dies takes its sessions with it. See [Sticky sessions](/patterns/sticky-sessions).
+- **Slow start**: a target that just joined takes a growing share of traffic instead of its full share. A new JVM copy then never answers at its cold speed, and the [JVM warmup under load](/incidents/jvm-warmup) incident is much less likely. See [Cold start](/glossary/cold-start).
+- **Health checks**: how often the Load Balancer asks each target whether it is alive. A shorter interval drops a dead target sooner and adds checks. A **Deep** check also asks about the Database behind the target, so a slow Database can remove every target at once. An interval other than the default and a deep check both need [Health checks](/research/health-checks). See [Drop dead nodes with health checks](/patterns/drop-dead-nodes-with-health-checks).
+- **Routes**: which request kinds each Link carries. Every kind goes through until you turn one off. Send slow kinds such as exports to their own App Servers, or send realtime to its own Hub. An L4 cannot route this way.
 
 ## How it fails
 

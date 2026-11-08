@@ -11,6 +11,12 @@ Its capacity is counted in transactions, and a read costs a fraction of one. Eac
 
 Every write waits for a majority of its replicas. In one region that costs a few milliseconds. Spread across regions, a write waits for a cross-region round trip, so write latency rises. Reads stay local. When spread, its Burn grows with each region.
 
+## Options
+
+::Options{id="dsql"}
+
+- **Regions**: One keeps every write in one region, so writes pay local latency and a region outage takes the store down. Spread replicates across the open regions, so the store survives a region outage and every write waits for a cross-region round trip. It needs two open regions, and its Burn grows with each one. See [Distributed SQL and leaderless stores](/patterns/distributed-sql-and-leaderless-stores).
+
 ## How it fails
 
 - Spread across regions, every write pays the round trip. Write-heavy kinds feel it in p99.

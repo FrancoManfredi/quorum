@@ -12,7 +12,9 @@ DNS ignores size, so a small App Server gets the same share as a large one. It a
 
 ## Options
 
-- **TTL**: the [Health checks](/research/health-checks) Research makes DNS drop a dead host once its TTL runs out, and lets you set the TTL. A short TTL drops a dead host faster, and a long one keeps sending users to it.
+::Options{id="dns"}
+
+- **TTL**: how long a resolver keeps an answer. The [Health checks](/research/health-checks) Research makes DNS drop a dead host once its TTL runs out, and lets you set the TTL. A short TTL drops a dead host faster and adds lookups. A long TTL keeps sending users to a host that died.
 
 ## How it fails
 

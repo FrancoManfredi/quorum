@@ -20,6 +20,8 @@ Until you link Object Storage, the [Database](/components/database) stores files
 
 ## Options
 
+::Options{id="storage"}
+
 **Product.** The store is S3, or R2 with [Egress optimization](/research/egress-optimization). R2 has no egress to the internet, and a read waits a little longer for its first byte unless a CDN is on the board. Every read and write also bills per request, at its product's price.
 
 **Storage class.** The class sets what the bytes cost to keep, and what they cost to read back.

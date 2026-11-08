@@ -24,8 +24,10 @@ Close it with the **Close** button (the X) or `Esc`. Select another Node and it 
 5. **Resources.**
 6. **Instance.**
 7. Sections for the Component's own options. Which ones appear depends on the Component, such as the **Stack** of an App Server or the policy of a Load Balancer.
-8. **Calls.**
-9. **Upgrade all**, then the footer buttons.
+8. **Zone**, and **Standby** on a data Node.
+9. **Region**, once a second region is open.
+10. **Calls.**
+11. **Upgrade all**, then the footer buttons.
 
 ## Resources
 
@@ -62,6 +64,26 @@ cause means and what fixes it.
 - The family row picks **Burstable**, **General**, **Compute**, **Memory** or **ARM**. A family can show a Tradeoff card first. Read it and press **Confirm**.
 
 Refusals are plain: **App Server is at its largest size.** and **App Server is at its smallest size.**
+
+## Zone and standby
+
+The **Zone** section picks the failure domain the Node runs in. Zones fail on their own, so copies in different zones survive a zone outage. A call between zones adds latency and Egress, and zones need [Multiple zones](/research/multi-az).
+
+A Database, a Connection Pooler, a Cache, a Search Engine, and a Queue can also keep a **Standby** in another zone. The standby takes over by itself after a few seconds, or at once with **Fail over**, and it bills a second box while it exists. A Node with no standby stays down until the incident ends. See [Availability and nines](/patterns/availability-and-nines).
+
+## Region
+
+Once a second region is open, a **Region** section moves the Node from one region's Board to another. Each region has its own Users and its own round trip, and a call between regions pays it. Global Nodes, such as Users and DNS, have no Region section. See [Go global](/guides/go-global).
+
+## Pricing
+
+From Series A, a compute Node also has a **Pricing** model:
+
+- **On-demand** bills the full rate and lets you remove the Node at any time.
+- **Reserved** bills less for a commitment of one calendar week. Selling before the term ends owes the Burn.
+- **Spot** bills least. The provider can reclaim the Node with a short warning, and the Node comes back cold.
+
+Keep the Nodes on the request path on On-demand or Reserved, and use Spot only on a fleet that can lose a Node. See [Rightsizing, Spot and Reserved](/patterns/rightsizing-spot-and-reserved).
 
 ## Calls
 

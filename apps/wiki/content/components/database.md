@@ -15,6 +15,8 @@ Its CPU limits how many queries it answers. When the working set outgrows RAM, r
 
 ## Options
 
+::Options{id="database"}
+
 ### Engine
 
 Postgres runs one process per connection, and the Database refuses connections past its limit. Every App Server and Worker process holds its own pool of connections, so more App Servers can take the Database down. [The data tier](/explanation/the-data-tier) explains why.
@@ -53,6 +55,14 @@ Every write the Database answers adds rows, and so does every realtime message i
 | Delete after 30 d  | Nothing | Rebuilds its figures from the event log, slower. |
 
 A window caps the rows at what the Company writes inside it, so an old Company that archives stops growing. The price is the history, since a report over the window is slow or has to be rebuilt. The card says which policy is on, and [Data tier](/design/07-data-tier#data-volume) holds the trade.
+
+### Reports
+
+- **Reports**: a materialized view keeps the answer to a report ready, so the report reads it instead of scanning the table. It takes most of the scan CPU off the Database, and a few reports answer from a result that is slightly stale. It needs [Materialized views](/research/precompute). See [Materialized views and denormalization](/patterns/materialized-views-and-denormalization).
+
+### Backups
+
+- **Backups**: None leaves a lost table with nothing to restore. Nightly restores the state at the last backup, so the writes since then are gone. PITR restores to the moment before the loss. A backup bills on the Database's Burn, and a restore waits on the rows it reads. Press **Restore drill** on the card to test one before you need it. See [RPO and RTO](/patterns/rpo-and-rto).
 
 ## How it fails
 

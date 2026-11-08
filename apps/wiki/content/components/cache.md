@@ -14,7 +14,7 @@ The hit ratio rises with memory relative to your hot data, and your hot data gro
 
 ## Options
 
-Two engines are on offer. Redis runs on one main thread and reloads part of its data after a restart. Memcached uses every core but comes back empty.
+::Options{id="cache"}
 
 ### Strategy
 
@@ -29,7 +29,20 @@ The Inspector shows which way a write travels. [Data tier](/design/07-data-tier#
 
 ### Stampede options
 
-With [Stampede protection](/research/stampede-protection) the card has three switches. Coalescing makes one request reload a key while the others wait. Early expiration refreshes a key a little before it expires, so a short TTL keeps more of its hits and the Database takes a few extra reads. Stale-while-revalidate answers from the old value while one request refreshes it, so an expired key never misses, and those answers count as stale. [Data tier](/design/07-data-tier#stampedes) holds the numbers.
+[Stampede protection](/research/stampede-protection) adds three switches. All three answer the moment a popular key expires and every request misses at once.
+
+- **Coalesce**: one request reloads the key while the others wait. The Database sees one miss instead of the whole wave.
+- **Early expiry**: refreshes a key a little before it expires, so a short TTL keeps more of its hits and the Database takes a few extra reads.
+- **Stale while revalidating**: answers from the old value while one request refreshes it, so an expired key never misses, and those answers count as stale.
+
+See [Cache stampede protection](/patterns/cache-stampede-protection).
+
+### Engine and TTL
+
+- **Engine**: Redis runs on one main thread and reloads part of its data after a restart. Memcached uses every core and comes back empty.
+- **TTL**: how long a value stays. A longer TTL keeps more of the hits and serves staler data.
+- **Warming**: with [Cache warming](/research/cache-warming), Warm start fills the Cache before it takes traffic, so a restart does not begin cold. See [Cache warming and tiered caching](/patterns/cache-warming-and-tiered-caching).
+- **Hot keys**: with [Hybrid fan-out](/research/hybrid-fanout), Split puts a hot key on its own shard, so one key stops setting the pace. See [Hot keys and hot shards](/patterns/hot-keys-and-hot-shards).
 
 ## How it fails
 

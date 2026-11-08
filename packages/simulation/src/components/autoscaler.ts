@@ -6,8 +6,9 @@ export const VM_REACTION = 180
 export const POD_REACTION = 30
 /** Seconds between two scaling actions on one Node. */
 export const SCALE_COOLDOWN = 30
-/** Targets, and the most copies, the player can pick. Zero copies means no max. */
+/** Targets, and the fewest and most copies, the player can pick. Zero copies means no max. */
 export const SCALE_TARGETS = [0.4, 0.6, 0.8] as const
+export const SCALE_MINIMA = [1, 2, 4, 8] as const
 export const SCALE_MAXIMA = [4, 8, 16, 0] as const
 /** A Node scales in when its load falls below this share of the target. */
 export const SCALE_IN = 0.6

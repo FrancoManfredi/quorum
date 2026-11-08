@@ -1,12 +1,10 @@
 import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { SCALE_MAXIMA, SCALE_TARGETS } from '@quorum/simulation/catalog'
+import { SCALE_MAXIMA, SCALE_MINIMA, SCALE_TARGETS } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
 import { type Panel, caption, picker, section } from './shared.ts'
-
-const MIN_COPIES = [1, 2, 4, 8] as const
 
 const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -34,7 +32,7 @@ const autoscaler = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html =
       ),
       picker(
         'scale-min',
-        MIN_COPIES.map((copies) => [copies, t.inspectorAutoscaler.min(copies)] as const),
+        SCALE_MINIMA.map((copies) => [copies, t.inspectorAutoscaler.min(copies)] as const),
         node.minCopies,
         (minCopies) => Message.AutoscalerChosen({ nodeId: node.id, minCopies }),
         h,

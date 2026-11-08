@@ -14,9 +14,12 @@ Unlike every other Component, which bills per second of uptime, the gateway bill
 
 ## Options
 
-- **Rate limit**: Off, or a cap in requests a second.
-- **Auth at the edge**: validates each token once at the gateway. It adds to the gateway's hop and takes the token check off every service.
-- **Request coalescing**: merges identical reads that are in flight at once, so the busier the gateway, the less it sends on.
+::Options{id="gw"}
+
+- **Rate limit**: the requests a second the gateway lets through. Past it, requests fail as `throttled` instead of reaching your services. Off lets everything through.
+- **Burst**: Flat cap refuses every request over the limit. Token bucket holds a small reserve, so a short burst passes whole while the long-run average still holds. It needs [Rate limiting](/research/rate-limiting).
+- **Auth**: Auth at the edge validates each token once, at the gateway, and the services behind it skip the check. Services check leaves the validation to every service.
+- **Coalescing**: merges identical reads that are in flight at once. The busier the gateway, the more it saves.
 
 ## How it fails
 

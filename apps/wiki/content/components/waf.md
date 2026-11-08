@@ -17,8 +17,10 @@ Each size step doubles its capacity. It spans every zone.
 
 ## Options
 
-- **Paranoia level:** sets the tradeoff. A higher level blocks more bots, blocks more real users, and costs more CPU per request, so the WAF handles less traffic.
-- **Under attack mode:** challenges every request. It blocks nearly all junk, blocks some real users, and adds latency.
+::Options{id="waf"}
+
+- **Paranoia**: how hard the rules look. A higher level blocks more bots, blocks more real users, and costs more CPU per request, so the WAF handles less traffic.
+- **Under attack**: challenges every request while it is on. It blocks nearly all junk, blocks some real users, and adds latency. Turn it off when the flood ends.
 
 ## How it fails
 

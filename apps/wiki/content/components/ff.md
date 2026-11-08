@@ -22,7 +22,9 @@ The flag is a ceiling of its own, so it wins over the strategy: Recreate cannot 
 
 ## Options
 
-- **Rollout step**: dark, 5%, 25%, 50%, or every user, set per Feature. A lower step limits the blast radius and nothing else.
+::Options{id="ff"}
+
+- **Rollout**: the share of users that get a Feature, set per Feature. A lower share caps what a bad deploy of it can break, and Off takes the Feature away from everyone without a deploy, which is the kill switch. See [Feature flags](/patterns/feature-flags).
 
 ## How it fails
 

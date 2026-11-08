@@ -13,8 +13,11 @@ Queue depth is the number of tasks waiting. A large backlog slows each enqueue a
 
 ## Options
 
+::Options{id="queue"}
+
+- **Dead-letter queue**: moves a task aside after its max attempts. Without one, a failing task retries forever and blocks the Queue. See [dead-letter queue](/glossary/dead-letter-queue).
+- **Max attempts**: how many times a task is tried before it moves aside. More attempts survive a temporary fault and delay the moment a poison message stops holding the Queue.
 - **Max length**: refuses new tasks when full, instead of growing without limit. See [backpressure](/glossary/backpressure).
-- **Dead-letter queue**: moves a task aside after its max attempts. Without one, a failing task retries forever. See [dead-letter queue](/glossary/dead-letter-queue).
 
 ## How it fails
 

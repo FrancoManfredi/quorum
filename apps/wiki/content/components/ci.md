@@ -14,7 +14,9 @@ More deploys mean smaller batches, and a smaller batch is a smaller bad deploy. 
 
 ## Options
 
-The card has one setting, the **deploy strategy**. Rolling is the default, and the one an old save opens on.
+::Options{id="ci"}
+
+The card has one setting. Rolling is the default.
 
 | Deploy strategy | Deploy time | Bad deploy blast radius | Burn              |
 | --------------- | ----------- | ----------------------- | ----------------- |

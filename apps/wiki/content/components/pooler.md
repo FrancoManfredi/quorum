@@ -18,10 +18,12 @@ Both pooled modes break session state the same way: prepared statements and `SET
 
 ## Options
 
+::Options{id="pooler"}
+
 Its mode sets how many Database connections it opens:
 
-- **Transaction** (the default): every client shares 20 server connections. Code that keeps session state breaks, and a share of requests crash until your team finishes the "Drop session state" task on the [Team](/team#tasks) page.
-- **Statement**: one server connection per statement. It shares the same 20 server connections as Transaction, so it packs no tighter here. A transaction that spans several statements cannot run through it, so every checkout fails. Choose it only in a Design whose writes are single statements.
+- **Transaction** (the default): every client shares a small set of server connections. Code that keeps session state breaks, and a share of requests crash until your team finishes the "Drop session state" task on the [Team](/team#tasks) page.
+- **Statement**: one server connection per statement. It shares the same small set, so it packs no tighter here. A transaction that spans several statements cannot run through it, so every checkout fails. Choose it only in a Design whose writes are single statements.
 - **Session**: one server connection per client. Nothing breaks, and it barely helps.
 
 ## How it fails
