@@ -1,73 +1,113 @@
+import MiniSearch, { type Options } from 'minisearch'
+import type { Section } from './frontmatter.ts'
 import type { Page } from './page.ts'
 
-export type Hit = Readonly<{ page: Page; heading: string | null }>
+/* Full-text search over every page, in the browser. The index is built at build time
+   (vite.config.ts) and fetched when a reader first opens the search, so a reader who never
+   searches downloads none of it. Why MiniSearch: docs/research/full-text-search.md. */
 
-export type Entry = Readonly<{
-  page: Page
+export type Hit = Readonly<{
+  path: string
   title: string
-  aliases: ReadonlyArray<string>
-  headings: ReadonlyArray<Readonly<{ id: string; text: string }>>
   summary: string
-  text: string
+  section: Section
+  /** The heading the query names, for the result's anchor. */
+  heading: string | null
 }>
 
-const fold = (text: string): string => text.toLowerCase().normalize('NFKD')
+type Anchor = Readonly<{ id: string; text: string }>
 
-export const indexOf = (pages: ReadonlyArray<Page>): ReadonlyArray<Entry> =>
-  pages.map((page) => ({
-    page,
-    title: fold(page.title),
-    aliases: page.aliases.map(fold),
-    headings: page.headings.map((heading) => ({ id: heading.id, text: fold(heading.text) })),
-    summary: fold(page.summary),
-    text: fold(page.text),
-  }))
+type Document = Readonly<{
+  id: string
+  path: string
+  title: string
+  aliases: string
+  headings: string
+  summary: string
+  text: string
+  section: Section
+  anchors: ReadonlyArray<Anchor>
+}>
 
-const scoreOf = (
-  entry: Entry,
-  words: ReadonlyArray<string>,
-): Readonly<{ score: number; heading: string | null }> => {
-  let score = 0
-  let heading: string | null = null
-  for (const word of words) {
-    const titleAt = entry.title.indexOf(word)
-    const best =
-      entry.title === word
-        ? 100
-        : titleAt === 0
-          ? 60
-          : titleAt > 0
-            ? 40
-            : entry.aliases.some((alias) => alias === word)
-              ? 50
-              : entry.aliases.some((alias) => alias.includes(word))
-                ? 30
-                : entry.headings.some((candidate) => candidate.text.includes(word))
-                  ? 20
-                  : entry.summary.includes(word)
-                    ? 12
-                    : entry.text.includes(word)
-                      ? 4
-                      : 0
-    if (best === 0) return { score: 0, heading: null }
-    if (best === 20 && heading === null)
-      heading = entry.headings.find((candidate) => candidate.text.includes(word))?.id ?? null
-    score += best
-  }
-  return { score, heading }
+type Stored = Readonly<Pick<Document, 'path' | 'title' | 'summary' | 'section' | 'anchors'>>
+
+/** A title or alias match beats a heading, which beats the summary and the body. */
+const OPTIONS: Options<Document> = {
+  fields: ['title', 'aliases', 'headings', 'summary', 'text'],
+  storeFields: ['path', 'title', 'summary', 'section', 'anchors'],
+  tokenize: (text) =>
+    text
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean),
+  searchOptions: {
+    boost: { title: 6, aliases: 5, headings: 3, summary: 2 },
+    // "autoscalr" and "kubernets" reach their pages; "lb" stays exact.
+    fuzzy: 0.2,
+    prefix: true,
+  },
 }
 
-export const search = (
-  index: ReadonlyArray<Entry>,
-  query: string,
-  limit = 8,
-): ReadonlyArray<Hit> => {
-  const words = fold(query).split(/\s+/).filter(Boolean)
+export type Index = MiniSearch<Document>
+
+const documentOf = (page: Page): Document => ({
+  id: page.path,
+  path: page.path,
+  title: page.title,
+  aliases: page.aliases.join(' '),
+  headings: page.headings.map((heading) => heading.text).join(' '),
+  summary: page.summary,
+  text: page.text,
+  section: page.section,
+  anchors: page.headings.map(({ id, text }) => ({ id, text })),
+})
+
+export const buildIndex = (pages: ReadonlyArray<Page>): Index => {
+  const index = new MiniSearch<Document>(OPTIONS)
+  index.addAll(pages.map(documentOf))
+  return index
+}
+
+/** The index as the one file the build writes beside the pages. */
+export const indexJson = (pages: ReadonlyArray<Page>): string => JSON.stringify(buildIndex(pages))
+
+export const loadIndex = (json: string): Index => MiniSearch.loadJSON<Document>(json, OPTIONS)
+
+/** The heading a query names, so a result opens at that section rather than the page top. Short
+    words such as "the" and "of" name every heading, so only words of four letters or more, and
+    terms with a digit such as "p99", count. */
+const headingOf = (anchors: ReadonlyArray<Anchor>, words: ReadonlyArray<string>): string | null => {
+  const candidates = words.filter((word) => word.length >= 4 || /\d/.test(word))
+  let best: Readonly<{ id: string; score: number }> | null = null
+  for (const anchor of anchors) {
+    const text = anchor.text.toLowerCase()
+    const score = candidates.reduce(
+      (total, word) => (text.includes(word) ? total + word.length : total),
+      0,
+    )
+    if (score > 0 && (best === null || score > best.score)) best = { id: anchor.id, score }
+  }
+  return best?.id ?? null
+}
+
+export const search = (index: Index, query: string, limit = 8): ReadonlyArray<Hit> => {
+  const words = query
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
   if (words.length === 0) return []
   return index
-    .map((entry) => ({ entry, ...scoreOf(entry, words) }))
-    .filter((result) => result.score > 0)
-    .sort((a, b) => b.score - a.score || a.entry.page.title.length - b.entry.page.title.length)
+    .search(query)
     .slice(0, limit)
-    .map((result) => ({ page: result.entry.page, heading: result.heading }))
+    .map((result) => {
+      // MiniSearch types stored fields as `any`; this is the shape `storeFields` writes.
+      const stored = result as unknown as Stored
+      return {
+        path: stored.path,
+        title: stored.title,
+        summary: stored.summary,
+        section: stored.section,
+        heading: headingOf(stored.anchors, words),
+      }
+    })
 }

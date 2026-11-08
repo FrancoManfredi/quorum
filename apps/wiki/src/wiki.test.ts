@@ -15,7 +15,7 @@ import { normalize } from './main.ts'
 import { renderPage, prerenderPaths } from './entry.server.ts'
 import { PAGES, SECTION_ORDER, navOf, pageAt } from './pages.ts'
 import { componentsHitBy, sandboxesFiring } from './reference/graph.ts'
-import { indexOf, search } from './search.ts'
+import { buildIndex, indexJson, loadIndex, search } from './search.ts'
 import * as Search from './submodels/search.ts'
 import { PER_DAY, dayOf, renderAll, renderRecent } from '../scripts/changelog.ts'
 
@@ -72,11 +72,19 @@ test('a trailing slash reaches the same page', async () => {
   expect(result._tag === 'Rendered' && result.status).toBeUndefined()
 })
 
-test('search ranks a title match first and finds a page by its alias', () => {
-  const index = indexOf(PAGES)
-  expect(search(index, 'improve the wiki')[0]?.page.path).toBe('/about/contributing')
-  expect(search(index, 'github')[0]?.page.path).toBe('/about/contributing')
-  expect(search(index, 'zzzz-no-match')).toEqual([])
+test('search ranks a title match first, finds aliases, and survives a typo', () => {
+  const index = buildIndex(PAGES)
+  expect(search(index, 'improve the wiki')[0]?.path).toBe('/about/contributing')
+  expect(search(index, 'github').map((hit) => hit.path)).toContain('/about/contributing')
+  expect(search(index, 'lb')[0]?.path).toBe('/components/lb')
+  expect(search(index, 'kubernets')[0]?.path).toBe('/components/cluster')
+  expect(search(index, 'zzzz')).toEqual([])
+})
+
+test('the built search index loads the way the browser loads it', () => {
+  const loaded = loadIndex(indexJson(PAGES))
+  expect(search(loaded, 'lb')[0]?.path).toBe('/components/lb')
+  expect(search(loaded, 'kubernets')[0]?.path).toBe('/components/cluster')
 })
 
 test('the play section comes first and its pages follow their order', () => {
@@ -93,8 +101,10 @@ test('an incident page names the Components that teach it and the Sandboxes that
 
 test('the arrow keys wrap around the search results', () => {
   const at = (active: number, delta: number) =>
-    Search.update({ query: 'cache', open: true, active }, Search.Message.Moved({ delta, count: 3 }))
-      .model.active
+    Search.update(
+      { query: 'cache', open: true, active, status: 'ready' },
+      Search.Message.Moved({ delta, count: 3 }),
+    ).model.active
   expect([at(2, 1), at(0, -1), at(0, 1)]).toEqual([0, 2, 1])
 })
 

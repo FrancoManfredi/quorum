@@ -3,13 +3,10 @@ import { cn } from 'cn'
 import { ArrowUpRight, Menu, X } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
 import { Message, type Model } from '../main.ts'
-import { PAGES, SECTION_ORDER, navOf, pageAt } from '../pages.ts'
+import { SECTION_ORDER, navOf, pageAt } from '../pages.ts'
 import { QUADRANTS } from './quadrant.ts'
-import { indexOf } from '../search.ts'
 import { GAME_ORIGIN } from '../site.ts'
 import * as Search from '../submodels/search.ts'
-
-const INDEX = indexOf(PAGES)
 
 /* The header bar: the wordmark, the search, the spoiler filter, the game version, and Play. */
 
@@ -73,7 +70,6 @@ export const header = (model: Model, h: H): Html =>
             slotId: 'search',
             model: model.search,
             view: Search.view,
-            viewInputs: INDEX,
             toParentMessage: (message) => Message.SearchChanged({ message }),
           }),
           h.div([h.Class('hidden flex-1 sm:block')], []),

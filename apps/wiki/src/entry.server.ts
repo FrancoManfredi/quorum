@@ -4,6 +4,7 @@ import { init, normalize } from './main.ts'
 import { markdownPath } from './markdown.ts'
 import type { Page } from './page.ts'
 import { PAGES, pageAt } from './pages.ts'
+import { indexJson } from './search.ts'
 import { GAME_ORIGIN, OG_IMAGE_ALT, WIKI_ORIGIN } from './site.ts'
 import { view } from './view.ts'
 
@@ -99,6 +100,9 @@ export const renderDocument: Server.DocumentRenderer = (application, assets) => 
 
 /** The files the build adds beside the pages (vite.config.ts): llms.txt and every page's Markdown. */
 export { markdownFiles } from './markdown.ts'
+
+/** The search index the build writes beside the pages (vite.config.ts). */
+export const searchIndex = (): string => indexJson(PAGES)
 
 export const prerenderPaths: ReadonlyArray<string> = PAGES.map((page) => page.path)
 

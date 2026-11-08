@@ -7,15 +7,22 @@ import { cn } from 'cn'
 import { Search as SearchIcon } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
 import { QUADRANTS } from '../components/quadrant.ts'
-import { search, type Entry } from '../search.ts'
+import { loadIndex, search, type Hit, type Index } from '../search.ts'
 
-/* The search box in the header: the query, and whether its results are open. */
+/* The search box in the header: the query, whether its results are open, and the index it loads
+   on first use. The index is not a schema value, so it lives beside the model rather than in it. */
+
+const INDEX_URL = '/search-index.json'
+
+let index: Index | null = null
 
 export const Model = Schema.Struct({
   query: Schema.String,
   open: Schema.Boolean,
   /** The result the arrow keys have reached; Enter opens it. */
   active: Schema.Finite,
+  /** The index arrives once per page load, on the reader's first search. */
+  status: Schema.Literals(['idle', 'loading', 'ready', 'failed'] as const),
 })
 export type Model = typeof Model.Type
 
@@ -25,11 +32,13 @@ export const Message = defineMessageUnion({
   Focused: {},
   Moved: { delta: Schema.Finite, count: Schema.Finite },
   Chosen: { href: Schema.String },
+  IndexLoaded: {},
+  IndexFailed: {},
   Settled: {},
 })
 export type Message = typeof Message.Type
 
-export const init: Model = { query: '', open: false, active: 0 }
+export const init: Model = { query: '', open: false, active: 0, status: 'idle' }
 
 const GoTo = Command.define('GoTo', {
   args: { href: Schema.String },
@@ -45,24 +54,64 @@ const FocusSearch = Command.define('FocusSearch', {
   }),
 })
 
+/** One fetch of the whole index, kept for the rest of the session. A failure leaves search
+    unavailable rather than breaking the page. */
+const LoadIndex = Command.define('LoadIndex', {
+  messages: [Message.IndexLoaded, Message.IndexFailed],
+  execute: Effect.promise(async () => {
+    if (index !== null) return Message.IndexLoaded()
+    try {
+      const response = await fetch(INDEX_URL)
+      if (!response.ok) throw new Error(`Search index: HTTP ${response.status}`)
+      index = loadIndex(await response.text())
+      return Message.IndexLoaded()
+    } catch {
+      return Message.IndexFailed()
+    }
+  }),
+})
+
 export const update = (model: Model, message: Message): Update.Return<Model, Message> =>
   Message.match<Update.Return<Model, Message>>(message, {
-    QueryChanged: ({ query }) => ({ model: { query, open: query.trim() !== '', active: 0 } }),
+    QueryChanged: ({ query }) => {
+      const loading = query.trim() !== '' && model.status === 'idle'
+      return {
+        model: {
+          query,
+          open: query.trim() !== '',
+          active: 0,
+          status: loading ? 'loading' : model.status,
+        },
+        commands: loading ? [LoadIndex()] : [],
+      }
+    },
     Moved: ({ delta, count }) => ({
       model: { ...model, active: count === 0 ? 0 : (model.active + delta + count) % count },
     }),
     Chosen: ({ href }) => ({ model: { ...model, open: false }, commands: [GoTo({ href })] }),
     Closed: () => ({ model: { ...model, open: false } }),
-    Focused: () => ({ model, commands: [FocusSearch()] }),
+    Focused: () => {
+      const loading = model.status === 'idle' || model.status === 'failed'
+      return {
+        model: loading ? { ...model, status: 'loading' } : model,
+        commands: loading ? [FocusSearch(), LoadIndex()] : [FocusSearch()],
+      }
+    },
+    IndexLoaded: () => ({ model: { ...model, status: 'ready' } }),
+    IndexFailed: () => ({ model: { ...model, status: 'failed' } }),
     Settled: () => ({ model }),
   })
 
-/** The page index is a view input, so this module does not load every page. */
-export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, index, h) => {
-  const hits = model.open ? search(index, model.query) : []
-  const hrefOf = (hit: (typeof hits)[number]): string =>
-    hit.heading ? `${hit.page.path}#${hit.heading}` : hit.page.path
+export const view = defineView<Model, Message>((model, h) => {
+  const hits = model.open && index !== null ? search(index, model.query) : []
+  const hrefOf = (hit: Hit): string => (hit.heading ? `${hit.path}#${hit.heading}` : hit.path)
   const active = hits[model.active]
+  const emptiness =
+    model.status === 'loading'
+      ? 'Searching…'
+      : model.status === 'failed'
+        ? 'Search is unavailable.'
+        : 'No page matches.'
   return h.div(
     [h.Class('relative min-w-0 flex-1 sm:max-w-[360px]')],
     [
@@ -118,30 +167,25 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
               h.Id('search-results'),
               h.Role('listbox'),
               h.AriaLabel('Search results'),
+              h.AriaBusy(model.status === 'loading'),
               h.Class(
                 'fixed top-[52px] right-3 left-3 z-50 max-h-[70dvh] overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-lg sm:absolute sm:top-10 sm:right-0 sm:left-0 sm:max-h-none sm:overflow-hidden',
               ),
             ],
             hits.length === 0
-              ? [
-                  h.p(
-                    [h.Class('px-3 py-2.5 text-[13px] text-muted-foreground')],
-                    ['No page matches.'],
-                  ),
-                ]
-              : hits.map((hit, index) => {
-                  const { page } = hit
+              ? [h.p([h.Class('px-3 py-2.5 text-[13px] text-muted-foreground')], [emptiness])]
+              : hits.map((hit, position) => {
                   return h.a(
                     [
-                      h.Key(page.path),
-                      h.Id(`hit-${index}`),
+                      h.Key(hit.path),
+                      h.Id(`hit-${position}`),
                       h.Role('option'),
-                      h.AriaSelected(index === model.active),
+                      h.AriaSelected(position === model.active),
                       h.Href(hrefOf(hit)),
                       h.Class(
                         cn(
                           'block rounded-md px-3 py-2 hover:bg-muted focus-visible:bg-muted focus-visible:outline-none',
-                          index === model.active && 'bg-muted',
+                          position === model.active && 'bg-muted',
                         ),
                       ),
                     ],
@@ -151,17 +195,17 @@ export const view = defineView<Model, Message, ReadonlyArray<Entry>>((model, ind
                         [
                           h.span(
                             [h.Class('text-[13.5px] font-medium text-foreground')],
-                            [page.title],
+                            [hit.title],
                           ),
                           h.span(
                             [h.Class('text-[11.5px] text-muted-foreground')],
-                            [QUADRANTS[page.section].label],
+                            [QUADRANTS[hit.section].label],
                           ),
                         ],
                       ),
                       h.p(
                         [h.Class('mt-0.5 line-clamp-1 text-[12.5px] text-muted-foreground')],
-                        [page.summary],
+                        [hit.summary],
                       ),
                     ],
                   )
