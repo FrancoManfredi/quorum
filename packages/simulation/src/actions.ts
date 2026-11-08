@@ -156,6 +156,18 @@ export { setCacheEngine, setCacheGuard, setCacheStrategy } from './components/ca
 export { setPrefetch } from './components/worker.rule.ts'
 export { setDlq, setAttempts, setMaxLength, deleteMessage } from './components/queue.rule.ts'
 
+/** Sells every Node it can. Fixed Nodes stay; it fails only when nothing sold. */
+export const sellAll = (game: Game, ids: ReadonlyArray<string>): Action => {
+  let next = game
+  let refusal: Action = sell(game, '')
+  for (const id of ids) {
+    const sold = sell(next, id)
+    if (Result.isSuccess(sold)) next = sold.success
+    else refusal = sold
+  }
+  return next === game ? refusal : Result.succeed(next)
+}
+
 /**
  * Cash is short (09 "Runway and running out of Cash"): at zero or below, the
  * Company places nothing, upgrades nothing, and hires nobody until Cash is
