@@ -10,7 +10,7 @@ import {
 import { recipeOf } from './studies.ts'
 import { perkLevel } from './founding.ts'
 import type { Ledger } from './ledger.ts'
-import { isDown } from './lookups.ts'
+import { isDown, researchReady } from './lookups.ts'
 import type { Game, Policies } from './state.ts'
 import { languageOfService, salaryOf, signingOf } from './team.ts'
 import { hire } from './work.ts'
@@ -34,8 +34,10 @@ export const applyPolicies = (game: Game, ledger: Ledger): Game => {
   if (game.sandbox || perkLevel(game, 'autopilot') === 0) return game
   let next = game
   if (policyOn(next, 'research') && next.studies.length === 0) {
+    // Only items it can study now: a locked one would queue a chain priced by its last member.
     const cheapest = RESEARCH_IDS.filter(
-      (id) => payable(next, ledger, id) && Result.isSuccess(study(next, id)),
+      (id) =>
+        researchReady(next, id) && payable(next, ledger, id) && Result.isSuccess(study(next, id)),
     ).toSorted((a, b) => RESEARCH[a].cost - RESEARCH[b].cost)[0]
     if (cheapest) next = Result.getOrElse(study(next, cheapest), () => next)
   }

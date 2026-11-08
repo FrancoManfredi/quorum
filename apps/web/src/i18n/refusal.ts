@@ -60,6 +60,14 @@ const patterns: ReadonlyArray<
     /^The Design needs (.+) Dev Hours; the budget is (.+)\.$/,
     (t, [a, b]) => t.toasts.reason.devHours(a!, b!),
   ],
+  [
+    /^(.+) needs (.+) first\.$/,
+    (t, [a, b]) => t.toasts.reason.needsFirst(nameIn(t, a!), nameIn(t, b!)),
+  ],
+  [
+    /^The queue holds (\d+) Studies, and (.+) needs (\d+) of them\.$/,
+    (t, [a, b, c]) => t.toasts.reason.queueTooShort(a!, nameIn(t, b!), c!),
+  ],
 ]
 
 /** A sentence the Simulation or the game wrote in English, in the language of `t`; unknown text stays. */

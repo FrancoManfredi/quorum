@@ -25,7 +25,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { BY_RESEARCH } from '@quorum/simulation/discovery'
 import type { Ledger } from '@quorum/simulation/ledger'
-import { has, researchReady } from '@quorum/simulation/lookups'
+import { has, missingPrerequisites, needs, researchReady } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
 import {
   limitingPool,
@@ -58,13 +58,14 @@ const followUps = (id: ResearchId): ReadonlyArray<ResearchDef> =>
 
 type State = 'owned' | 'buy' | 'saving' | 'locked'
 
+// A queued item is saving even while locked: it waits behind its queued prerequisites.
 const stateOf = (game: Game, entry: ResearchDef): State =>
   has(game, entry.id)
     ? 'owned'
-    : !researchReady(game, entry.id)
-      ? 'locked'
-      : game.studies.some((item) => item.id === entry.id)
-        ? 'saving'
+    : game.studies.some((item) => item.id === entry.id)
+      ? 'saving'
+      : !researchReady(game, entry.id)
+        ? 'locked'
         : 'buy'
 
 /** The item the side pane shows: the player's pick, else the most useful next one. */
@@ -787,7 +788,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                   Message.ResearchChanged({
                     message: ResearchMessage.StudyMoved({ id: item.id, direction: -1 }),
                   }),
-                  index > 0,
+                  index > 0 && !needs(item.id, studies[index - 1]?.id ?? item.id),
                   h,
                 ),
                 queueButton(
@@ -796,7 +797,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                   Message.ResearchChanged({
                     message: ResearchMessage.StudyMoved({ id: item.id, direction: 1 }),
                   }),
-                  index < studies.length - 1,
+                  index < studies.length - 1 && !needs(studies[index + 1]?.id ?? item.id, item.id),
                   h,
                 ),
                 queueButton(
@@ -851,21 +852,32 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
   const state = stateOf(game, entry)
   const open = state !== 'owned' && game.openActions.includes(entry.id)
   const track = t.catalog.researchTracks[entry.track].label
-  const missing = entry.requires.filter((id) => !has(game, id))
-  const stall =
-    state === 'buy' || state === 'saving' ? studyStall(game, ledgerOf(model), entry.id) : null
+  // A locked item queues with its missing prerequisites (10 "Studies"), once every one is open.
+  const chain = state === 'locked' ? missingPrerequisites(game, entry.id) : []
+  const era = Math.max(entry.era, ...chain.map((id) => RESEARCH[id].era))
+  const ledger = ledgerOf(model)
+  // The first Study that cannot finish: the item's own, or one that queueing it would add.
+  const stalled =
+    state === 'owned' || era > game.stage
+      ? undefined
+      : [...chain, entry.id]
+          .map((id) => ({ id, stall: studyStall(game, ledger, id) }))
+          .find((item) => item.stall !== null)
   const label =
     state === 'owned'
       ? t.research.researched
       : state === 'buy'
         ? t.research.startStudy(duration(t, game, entry))
-        : entry.era > game.stage
-          ? t.research.opensIn(t.catalog.eras[entry.era]?.name ?? eraName(entry.era))
-          : missing.length > 0
-            ? t.research.needs(missing.map((id) => t.catalog.research[id].name).join(', '))
-            : queued > 0
-              ? t.research.studyNow
-              : t.research.studying(Math.floor(studyProgressOf(game.studies[0]) * 100))
+        : era > game.stage
+          ? t.research.opensIn(t.catalog.eras[era]?.name ?? eraName(era))
+          : chain.length > 2
+            ? t.research.studyAfterCount(chain.length)
+            : chain.length > 0
+              ? t.research.studyAfter(chain.map((id) => t.catalog.research[id].name))
+              : queued > 0
+                ? t.research.studyNow
+                : t.research.studying(Math.floor(studyProgressOf(game.studies[0]) * 100))
+  const queueable = era <= game.stage && chain.length > 0
   const follow = followUps(entry.id)
   return h.aside(
     [
@@ -923,7 +935,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 ],
               )
             : h.empty,
-          stall
+          stalled?.stall
             ? h.div(
                 [
                   h.Class(
@@ -932,13 +944,18 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                 ],
                 [
                   icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
-                  queued === 0
-                    ? t.research.everyStudyBehindItWaits(stallReasonIn(t, stall))
-                    : t.research.atTheFrontOfTheQueue(stallReasonIn(t, stall)),
+                  stalled.id !== entry.id
+                    ? t.research.stallsFirst(
+                        t.catalog.research[stalled.id].name,
+                        stallReasonIn(t, stalled.stall),
+                      )
+                    : queued === 0
+                      ? t.research.everyStudyBehindItWaits(stallReasonIn(t, stalled.stall))
+                      : t.research.atTheFrontOfTheQueue(stallReasonIn(t, stalled.stall)),
                 ],
               )
             : h.empty,
-          state === 'owned' ? h.empty : costRows(game, ledgerOf(model), entry, h),
+          state === 'owned' ? h.empty : costRows(game, ledger, entry, h),
           entry.requires.length > 0
             ? h.div(
                 [h.Class('flex flex-col gap-1')],
@@ -970,9 +987,9 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
                     ? ResearchMessage.StudyPrioritized({ id: entry.id })
                     : ResearchMessage.Bought({ id: entry.id }),
               }),
-              isDisabled: state !== 'buy' && !(state === 'saving' && queued > 0),
+              isDisabled: !(state === 'buy' || queueable || (state === 'saving' && queued > 0)),
               size: 'lg',
-              variant: state === 'buy' || queued > 0 ? 'default' : 'outline',
+              variant: state === 'buy' || queueable || queued > 0 ? 'default' : 'outline',
               className: cn(FIGURE, 'min-w-0 flex-1'),
             },
             [state === 'owned' ? icon(h, Check, 'size-4 text-ok') : h.empty, label],

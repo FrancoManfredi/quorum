@@ -114,10 +114,31 @@ export const foldResearch = (model: Model, message: ResearchMessage): UpdateResu
         Study: ({ id }) =>
           act(parent, `Study ${RESEARCH[id].name}`, Actions.study(parent.board.game, id), {
             note: (game) => {
-              // A Study that cannot finish holds the queue: say why. Short pools only slow it.
               const t = say(parent)
               const name = t.catalog.research[id].name
-              const stall = studyStall(game, ledgerOf(parent), id)
+              const ledger = ledgerOf(parent)
+              // A locked item brings its prerequisites: name what joined, and the first that stalls.
+              const added = game.studies
+                .filter((item) => !parent.board.game.studies.some((was) => was.id === item.id))
+                .map((item) => item.id)
+              if (added.length > 1) {
+                const names = added.map((study) => t.catalog.research[study].name)
+                const first = added
+                  .map((study) => ({ study, stall: studyStall(game, ledger, study) }))
+                  .find((item) => item.stall !== null)
+                return first?.stall
+                  ? [
+                      t.toasts.studiesQueuedStalled(
+                        names,
+                        t.catalog.research[first.study].name,
+                        stallReasonIn(t, first.stall),
+                      ),
+                      'warn',
+                    ]
+                  : [t.toasts.studiesQueued(names), 'primary']
+              }
+              // A Study that cannot finish holds the queue: say why. Short pools only slow it.
+              const stall = studyStall(game, ledger, id)
               if (stall) return [t.toasts.studyQueuedStalled(name, stallReasonIn(t, stall)), 'warn']
               const short = recipeOf(id, game.discounts)
                 .filter(([pool, cost]) => game.pools[pool] < cost)
@@ -137,10 +158,20 @@ export const foldResearch = (model: Model, message: ResearchMessage): UpdateResu
             `Study ${RESEARCH[id].name} now`,
             Actions.study(parent.board.game, id, true),
             {
-              note: () => [
-                say(parent).toasts.studyingNow(say(parent).catalog.research[id].name),
-                'primary',
-              ],
+              // Study now brings the item's queued prerequisites to the front with it.
+              note: (game) => {
+                const t = say(parent)
+                const running = game.studies[0]?.id
+                return [
+                  running && running !== id
+                    ? t.toasts.studyingNowThen(
+                        t.catalog.research[running].name,
+                        t.catalog.research[id].name,
+                      )
+                    : t.toasts.studyingNow(t.catalog.research[id].name),
+                  'primary',
+                ]
+              },
             },
           ),
         Cancel: ({ id }) =>
@@ -149,10 +180,22 @@ export const foldResearch = (model: Model, message: ResearchMessage): UpdateResu
             `Cancelled ${RESEARCH[id].name}`,
             Actions.cancelStudy(parent.board.game, id),
             {
-              note: () => [
-                say(parent).toasts.studyCancelled(say(parent).catalog.research[id].name),
-                'plain',
-              ],
+              // The queued Studies that needed it leave with it: name them.
+              note: (game) => {
+                const t = say(parent)
+                const name = t.catalog.research[id].name
+                const gone = parent.board.game.studies
+                  .filter(
+                    (item) => item.id !== id && !game.studies.some((left) => left.id === item.id),
+                  )
+                  .map((item) => t.catalog.research[item.id].name)
+                return [
+                  gone.length > 0
+                    ? t.toasts.studyCancelledWith(name, gone)
+                    : t.toasts.studyCancelled(name),
+                  'plain',
+                ]
+              },
             },
           ),
       }),

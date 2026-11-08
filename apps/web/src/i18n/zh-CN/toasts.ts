@@ -74,6 +74,9 @@ export const toasts: Messages['toasts'] = {
     slotsFull: (slots) => `运维手册栏位已满（${slots}）。请删除一个，或在传承商店购买更多。`,
     otherBuild: (version, current) => `该存档来自另一个版本（${version}；当前版本为 ${current}）。`,
     devHours: (spent, budget) => `该设计需要 ${spent} 开发工时；预算为 ${budget}。`,
+    needsFirst: (name, needed) => `${name}需要先完成${needed}。`,
+    queueTooShort: (limit, name, count) =>
+      `队列最多容纳 ${limit} 项研究，而${name}需要其中 ${count} 项。`,
   },
   costs: (what, price) => `${what}的费用为 ${price}。`,
   missing: '它已经不存在了。',
@@ -103,8 +106,13 @@ export const toasts: Messages['toasts'] = {
   studyQueuedStalled: (name, reason) => `已加入研究队列：${name}。${reason}`,
   studyQueuedShort: (name, pools) =>
     `已加入研究队列：${name}。${pools}暂时不足：将按其获取速度推进。`,
+  studiesQueued: (names) => `已加入研究队列：${names.join('、')}。`,
+  studiesQueuedStalled: (names, first, reason) =>
+    `已加入研究队列：${names.join('、')}。${first}会先停滞。${reason}`,
   studyingNow: (name) => `正在研究：${name}。`,
+  studyingNowThen: (running, name) => `正在研究：${running}，之后是${name}。`,
   studyCancelled: (name) => `已取消研究：${name}。`,
+  studyCancelledWith: (name, gone) => `已取消研究：${name}，以及依赖它的${gone.join('、')}。`,
   achievement: (name) => `成就：${name}。`,
   objectiveDone: (done, total) => `已完成第 ${done} 个目标，共 ${total} 个。`,
   pausedBySevere: (severity, name) => `已暂停：SEV${severity} ${name}。按空格继续。`,

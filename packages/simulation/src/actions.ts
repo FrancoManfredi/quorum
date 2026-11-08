@@ -71,7 +71,8 @@ import {
   pricingOf,
   refundOf,
   replacePrice,
-  researchReady,
+  missingPrerequisites,
+  needs,
   resizePrice,
   restarted,
   warmAfterRestart,
@@ -1302,62 +1303,84 @@ export const filePostmortem = (game: Game, id: number, take: boolean): Action =>
 }
 
 /**
- * Queues an item's Study (10 "Studies"): at the end, or first so it runs now.
- * A queued item put first keeps its progress.
+ * Queues an item's Study (10 "Studies"): at the end, or first so it runs now. A locked item
+ * brings its missing prerequisites, each queued ahead of what needs it, so the first Study can
+ * always run. Queued members of the chain keep their place in the queue and their progress.
  */
 export const study = (game: Game, id: ResearchId, first = false): Action => {
   const entry = RESEARCH[id]
   if (has(game, id)) return notAllowed(`${entry.name} is already yours.`)
-  if (entry.era > game.stage)
-    return no(Refusal.TooEarly({ what: entry.name, era: ERAS[entry.era]?.name ?? 'a later Era' }))
-  if (!researchReady(game, id)) {
-    const missing = entry.requires.filter((needed) => !has(game, needed))
-    return no(
-      Refusal.Locked({
-        what: entry.name,
-        research: missing.map((needed) => RESEARCH[needed].name).join(' and '),
-      }),
+  const chain = [...missingPrerequisites(game, id), id]
+  // The whole chain must be open: the item waits for the latest Era any member needs.
+  const era = Math.max(...chain.map((needed) => RESEARCH[needed].era))
+  if (era > game.stage)
+    return no(Refusal.TooEarly({ what: entry.name, era: ERAS[era]?.name ?? 'a later Era' }))
+  const queued = new Map(game.studies.map((item) => [item.id, item]))
+  if (!first && queued.has(id)) return notAllowed(`${entry.name} is in the queue.`)
+  const fresh = chain.filter((needed) => !queued.has(needed)).length
+  if (game.studies.length + fresh > MAX_STUDIES)
+    return notAllowed(
+      fresh > 1
+        ? `The queue holds ${MAX_STUDIES} Studies, and ${entry.name} needs ${fresh} of them.`
+        : `The queue holds ${MAX_STUDIES} Studies.`,
     )
-  }
-  const queued = game.studies.find((item) => item.id === id)
-  if (queued) {
-    if (!first) return notAllowed(`${entry.name} is in the queue.`)
-    return ok({ ...game, studies: [queued, ...game.studies.filter((item) => item.id !== id)] })
-  }
-  if (game.studies.length >= MAX_STUDIES)
-    return notAllowed(`The queue holds ${MAX_STUDIES} Studies.`)
-  const added = { id, phase: { _tag: 'Queued' as const, progress: 0 } }
-  return ok({ ...game, studies: first ? [added, ...game.studies] : [...game.studies, added] })
+  const items = chain.map(
+    (needed) =>
+      queued.get(needed) ?? { id: needed, phase: { _tag: 'Queued' as const, progress: 0 } },
+  )
+  return ok({
+    ...game,
+    studies: first
+      ? [...items, ...game.studies.filter((item) => !chain.includes(item.id))]
+      : [...game.studies, ...items.filter((item) => !queued.has(item.id))],
+  })
 }
 
-/** Moves a queued Study to a position. The first one runs. */
+/**
+ * Moves a queued Study to a position. The first one runs. No Study moves above a queued
+ * prerequisite, and none moves below a queued Study that needs it, so the first can always run.
+ */
 export const moveStudyTo = (game: Game, id: ResearchId, index: number): Action => {
   const from = game.studies.findIndex((item) => item.id === id)
   if (from === -1) return no(Refusal.Missing())
   const to = Math.max(0, Math.min(game.studies.length - 1, Math.trunc(index)))
   if (to === from) return ok(game)
+  const up = to < from
+  // The rows the Study passes, nearest first.
+  const crossed = up ? game.studies.slice(to, from).reverse() : game.studies.slice(from + 1, to + 1)
+  const blocker = crossed.find((item) => (up ? needs(id, item.id) : needs(item.id, id)))
+  if (blocker) {
+    const [before, after] = up ? [blocker.id, id] : [id, blocker.id]
+    return notAllowed(`${RESEARCH[after].name} needs ${RESEARCH[before].name} first.`)
+  }
   const studies = [...game.studies]
   const [item] = studies.splice(from, 1)
   if (item) studies.splice(to, 0, item)
   return ok({ ...game, studies })
 }
 
-/** Moves a queued Study up or down. The first one runs. */
+/** Moves a queued Study up or down, under the same rule as a drag. The first one runs. */
 export const moveStudy = (game: Game, id: ResearchId, direction: 1 | -1): Action => {
   const index = game.studies.findIndex((item) => item.id === id)
   if (index === -1) return no(Refusal.Missing())
   return moveStudyTo(game, id, index + direction)
 }
 
-/** Takes a Study off the queue. Its progress and the Insight it took are lost, and its Spike ends. */
-export const cancelStudy = (game: Game, id: ResearchId): Action =>
-  game.studies.some((item) => item.id === id)
-    ? ok({
-        ...game,
-        studies: game.studies.filter((item) => item.id !== id),
-        backlog: game.backlog.filter((item) => !(item.kind === 'spike' && item.ref === id)),
-      })
-    : no(Refusal.Missing())
+/**
+ * Takes a Study off the queue, with every queued Study that needs it. Their progress and the
+ * Insight they took are lost, and their Spikes end.
+ */
+export const cancelStudy = (game: Game, id: ResearchId): Action => {
+  if (!game.studies.some((item) => item.id === id)) return no(Refusal.Missing())
+  const gone = new Set<string>(
+    game.studies.filter((item) => item.id === id || needs(item.id, id)).map((item) => item.id),
+  )
+  return ok({
+    ...game,
+    studies: game.studies.filter((item) => !gone.has(item.id)),
+    backlog: game.backlog.filter((item) => !(item.kind === 'spike' && gone.has(item.ref))),
+  })
+}
 
 export const collect = (game: Game): Game => ({
   ...game,

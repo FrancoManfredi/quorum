@@ -13,12 +13,15 @@ export const research = {
   cancel: 'Cancel',
   startStudy: (p0: string | number | null) => `Start Study · ${p0}`,
   opensIn: (p0: string | number | null) => `Opens in ${p0}`,
-  needs: (p0: string | number | null) => `Needs ${p0}`,
+  studyAfter: (names: ReadonlyArray<string>) => `Study after ${names.join(', ')}`,
+  studyAfterCount: (count: number) => `Study after ${count} prerequisites`,
   studyNow: 'Study now',
   studying: (p0: string | number | null) => `Studying · ${p0}%`,
   openActionItemTheIncidentIt:
     'Open action item. The incident it prevents is twice as likely until you research it.',
   everyStudyBehindItWaits: (p0: string | number | null) => `${p0} Every Study behind it waits.`,
+  stallsFirst: (name: string, reason: string) =>
+    `${name} stalls first. ${reason} Every Study behind it waits.`,
   atTheFrontOfTheQueue: (p0: string | number | null) =>
     `${p0} At the front of the queue, it holds every Study behind it.`,
   requires: 'Requires',

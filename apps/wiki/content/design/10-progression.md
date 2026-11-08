@@ -302,6 +302,26 @@ when the Study moves again or leaves the queue.
 Studies run offline ([Simulation](/design/04-simulation#offline-progress)). A postmortem's action item
 puts its Study first in the queue ([Incidents](/design/11-incidents#postmortems)).
 
+Queueing a locked item queues its missing prerequisites with it, each ahead of what needs it, as
+picking a distant technology in Civilization researches the path to it. In Seed with nothing
+researched, queueing Trace search adds Metrics, Percentiles, Distributed tracing and Trace search, in
+that order. Every member of the chain must be open, so an item whose chain reaches a later Era opens
+in that Era. The 8-Study limit counts the whole chain: a queue that holds 5 Studies has no room for
+those 4. Queueing a chain names what joined and, if one of them will stall, the first that does.
+
+A queued Study never sits above a queued prerequisite, so the running Study is always one the
+player can research. The queue keeps that rule in three places:
+
+- **Moving.** A move by arrow or drag that would pass a prerequisite is refused, and the toast
+  names the pair.
+- **Study now.** Switching to an item brings its queued prerequisites to the front with it. Each
+  keeps its progress.
+- **Cancelling.** Cancelling a prerequisite cancels the queued Studies that need it, and their
+  Spikes.
+
+The autopilot's research policy queues only items whose prerequisites the Company owns. It judges a
+Study by that item's own price and recipe, which would misjudge a chain.
+
 ### Cost bands
 
 The ◇ column in the track tables is a Study's list price. A Study charges that price times its Era's

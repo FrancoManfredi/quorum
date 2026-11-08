@@ -139,6 +139,22 @@ export const isUnlocked = (game: Game, type: ComponentId): boolean => {
 export const researchReady = (game: Game, id: ResearchId): boolean =>
   RESEARCH[id].era <= game.stage && RESEARCH[id].requires.every((needed) => has(game, needed))
 
+/** Whether `id` needs `other` first: directly, or through its own prerequisites. */
+export const needs = (id: ResearchId, other: ResearchId): boolean =>
+  RESEARCH[id].requires.some((needed) => needed === other || needs(needed, other))
+
+/** The prerequisites of `id` the Company does not have yet, each after its own prerequisites. */
+export const missingPrerequisites = (game: Game, id: ResearchId): ReadonlyArray<ResearchId> => {
+  const missing: Array<ResearchId> = []
+  const visit = (needed: ResearchId): void => {
+    if (has(game, needed) || missing.includes(needed)) return
+    for (const before of RESEARCH[needed].requires) visit(before)
+    missing.push(needed)
+  }
+  for (const needed of RESEARCH[id].requires) visit(needed)
+  return missing
+}
+
 /** Insight covers the cheapest Research item the player can study now: Research is worth opening. */
 export const researchAffordable = (game: Game): boolean =>
   insightTotal(game.pools) >=

@@ -15,12 +15,15 @@ export const research: Messages['research'] = {
   cancel: 'Annuler',
   startStudy: (p0) => `Commencer l'étude · ${p0}`,
   opensIn: (p0) => `Disponible à l’étape ${p0}`,
-  needs: (p0) => `Nécessite ${p0}`,
+  studyAfter: (names) => `Étudier après ${names.join(', ')}`,
+  studyAfterCount: (count) => `Étudier après ${count} prérequis`,
   studyNow: 'Étudier maintenant',
   studying: (p0) => `Étudier · ${p0}%`,
   openActionItemTheIncidentIt:
     "Ouvrir l'élément d'action. L’incident qu’il évite est deux fois plus probable jusqu’à ce que vous le recherchiez.",
   everyStudyBehindItWaits: (p0) => `${p0} Toutes les études derrière elle attendent.`,
+  stallsFirst: (name, reason) =>
+    `${name} bloque en premier. ${reason} Toutes les études derrière elle attendent.`,
   atTheFrontOfTheQueue: (p0) =>
     `${p0} En tête de file, elle bloque toutes les études derrière elle.`,
   requires: 'Nécessite',

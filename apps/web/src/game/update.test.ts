@@ -13,11 +13,18 @@ import { DragAndDrop } from '@foldkit/ui'
 import { fromString } from 'foldkit/url'
 import { newGame, preseedGame } from '@quorum/simulation/company'
 import { SIZES } from '@quorum/simulation/catalog'
-import { COMPONENTS, FEATURE_IDS, researchList } from '@quorum/simulation/catalog'
+import {
+  COMPONENTS,
+  FEATURE_IDS,
+  MAX_STUDIES,
+  researchList,
+  type ResearchId,
+} from '@quorum/simulation/catalog'
 import { researchReady, resizePrice } from '@quorum/simulation/lookups'
 import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
 import { NEW_ENGINEER, type Postmortem, type WorkItem } from '@quorum/simulation/state'
+import * as Work from '@quorum/simulation/work'
 import { SHARED } from '@quorum/simulation/playbook'
 import { queueFeature } from '@quorum/simulation/work'
 import { encodeText } from '@quorum/simulation/codec'
@@ -1552,6 +1559,128 @@ test('dragging a Study row reorders the queue and keeps its progress', () => {
     { id: second.id, phase: { _tag: 'Queued', progress: 0 } },
     { id: first.id, phase: { _tag: 'Running', progress: 0.25 } },
   ])
+})
+
+/* Queueing a locked Study with its prerequisites. In the Garage, OPcache needs PHP-FPM. */
+
+const queuedStudy = (id: ResearchId, progress = 0) => ({
+  id,
+  phase: { _tag: 'Queued' as const, progress },
+})
+
+const withStudies = (studies: Model['board']['game']['studies'], model = inLab()): Model => ({
+  ...model,
+  panel: 'research',
+  board: { ...model.board, game: { ...model.board.game, studies } },
+})
+
+const research = (model: Model, message: ResearchMessage) =>
+  update(model, Message.ResearchChanged({ message })).model
+
+test('queueing a locked item queues its missing prerequisites first, within the queue limit', () => {
+  const queued = research(withStudies([]), ResearchMessage.Bought({ id: 'opcache' }))
+  expect(queued.board.game.studies).toEqual([queuedStudy('php-fpm'), queuedStudy('opcache')])
+  expect(queued.toast?.message).toMatch(/^Studies queued: PHP-FPM, OPcache\./)
+  // A queued prerequisite keeps its place: only the item joins, at the end.
+  const behind = research(
+    withStudies([queuedStudy('php-fpm', 0.4), queuedStudy('gzip')]),
+    ResearchMessage.Bought({ id: 'opcache' }),
+  )
+  expect(behind.board.game.studies).toEqual([
+    queuedStudy('php-fpm', 0.4),
+    queuedStudy('gzip'),
+    queuedStudy('opcache'),
+  ])
+  // The limit counts the whole chain: one free slot is not room for two Studies.
+  const others = researchList
+    .filter((entry) => researchReady(newGame(), entry.id) && entry.id !== 'php-fpm')
+    .slice(0, MAX_STUDIES - 1)
+    .map((entry) => queuedStudy(entry.id))
+  const full = withStudies(others)
+  const refused = research(full, ResearchMessage.Bought({ id: 'opcache' }))
+  expect(refused.board.game.studies).toBe(full.board.game.studies)
+  expect(refused.toast?.message).toBe(
+    `The queue holds ${MAX_STUDIES} Studies, and OPcache needs 2 of them.`,
+  )
+})
+
+test('Study now brings the chain to the front, and queued members keep their progress', () => {
+  const running = { id: 'gzip' as const, phase: { _tag: 'Running' as const, progress: 0.25 } }
+  const now = research(
+    withStudies([running, queuedStudy('php-fpm', 0.4)]),
+    ResearchMessage.StudyPrioritized({ id: 'opcache' }),
+  )
+  expect(now.board.game.studies).toEqual([
+    queuedStudy('php-fpm', 0.4),
+    queuedStudy('opcache'),
+    running,
+  ])
+  expect(now.toast?.message).toBe('Studying now: PHP-FPM, then OPcache.')
+})
+
+test('no move puts a Study above a queued prerequisite, by drag or by arrow', () => {
+  const start = withStudies([queuedStudy('php-fpm'), queuedStudy('gzip'), queuedStudy('opcache')])
+  const drag = (model: Model, id: ResearchId, from: number, to: number) => {
+    const send = (current: Model, message: DragAndDrop.Message) =>
+      research(current, ResearchMessage.DragChanged({ message }))
+    const picked = send(
+      model,
+      DragAndDrop.Message.PressedDraggable({
+        itemId: id,
+        containerId: STUDY_QUEUE,
+        index: from,
+        screenX: 0,
+        screenY: 0,
+      }),
+    )
+    const over = send(
+      picked,
+      DragAndDrop.Message.MovedPointer({
+        screenX: 0,
+        screenY: 40,
+        clientX: 0,
+        clientY: 40,
+        maybeDropTarget: Option.some({ containerId: STUDY_QUEUE, index: to }),
+      }),
+    )
+    return send(over, DragAndDrop.Message.ReleasedPointer())
+  }
+  const ids = (model: Model) => model.board.game.studies.map((item) => item.id)
+  // Two rows up, past Gzip and then PHP-FPM: refused, and the queue stays as it was.
+  const above = drag(start, 'opcache', 2, 0)
+  expect(ids(above)).toEqual(['php-fpm', 'gzip', 'opcache'])
+  expect(above.toast?.message).toBe('OPcache needs PHP-FPM first.')
+  // The component counts the dragged row where it started, so index 3 is the end of the queue.
+  expect(ids(drag(start, 'php-fpm', 0, 3))).toEqual(['php-fpm', 'gzip', 'opcache'])
+  // A row that needs neither moves freely.
+  expect(ids(drag(start, 'gzip', 1, 0))).toEqual(['gzip', 'php-fpm', 'opcache'])
+  const swapped = withStudies([queuedStudy('php-fpm'), queuedStudy('opcache')])
+  const arrow = research(swapped, ResearchMessage.StudyMoved({ id: 'opcache', direction: -1 }))
+  expect(ids(arrow)).toEqual(['php-fpm', 'opcache'])
+  // The refusal reads in the player's language.
+  const french = { ...swapped, prefs: { ...swapped.prefs, locale: 'fr' as const } }
+  expect(
+    research(french, ResearchMessage.StudyMoved({ id: 'php-fpm', direction: 1 })).toast?.message,
+  ).toBe('OPcache nécessite d’abord PHP-FPM.')
+})
+
+test('cancelling a prerequisite cancels the queued Studies that need it, and its Spike', () => {
+  const start = withStudies([queuedStudy('php-fpm'), queuedStudy('gzip'), queuedStudy('opcache')])
+  const spiked: Model = {
+    ...start,
+    board: {
+      ...start.board,
+      game: Result.getOrThrow(Work.queueSpike(start.board.game)),
+    },
+  }
+  expect(spiked.board.game.backlog.some((item) => item.kind === 'spike')).toBe(true)
+  const cancelled = research(spiked, ResearchMessage.StudyCancelled({ id: 'php-fpm' }))
+  expect(cancelled.board.game.studies).toEqual([queuedStudy('gzip')])
+  expect(cancelled.board.game.backlog.some((item) => item.kind === 'spike')).toBe(false)
+  expect(cancelled.toast?.message).toBe('Study cancelled: PHP-FPM, with OPcache, which needed it.')
+  // Cancelling the dependant leaves its prerequisite queued.
+  const alone = research(start, ResearchMessage.StudyCancelled({ id: 'opcache' }))
+  expect(alone.board.game.studies).toEqual([queuedStudy('php-fpm'), queuedStudy('gzip')])
 })
 
 test('pointer-rate Messages stay out of the playtest log, and gestures go in', () => {

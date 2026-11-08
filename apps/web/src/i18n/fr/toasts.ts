@@ -77,6 +77,9 @@ export const toasts: Messages['toasts'] = {
       `Cette sauvegarde vient d’une autre version (${version} ; cette version est ${current}).`,
     devHours: (spent, budget) =>
       `L’architecture demande ${spent} heures de dev ; le budget est de ${budget}.`,
+    needsFirst: (name, needed) => `${name} nécessite d’abord ${needed}.`,
+    queueTooShort: (limit, name, count) =>
+      `La file contient au plus ${limit} études, et ${name} en nécessite ${count}.`,
   },
   costs: (what, price) => `${what} coûte ${price}.`,
   missing: 'C’est parti.',
@@ -114,8 +117,14 @@ export const toasts: Messages['toasts'] = {
   studyQueuedStalled: (name, reason) => `Étude en file d’attente : ${name}. ${reason}`,
   studyQueuedShort: (name, pools) =>
     `Étude en file d’attente : ${name}. Pas assez de ${pools} pour l’instant : elle avance au rythme de leur gain.`,
+  studiesQueued: (names) => `Études en file d’attente : ${names.join(', ')}.`,
+  studiesQueuedStalled: (names, first, reason) =>
+    `Études en file d’attente : ${names.join(', ')}. ${first} bloque en premier. ${reason}`,
   studyingNow: (name) => `Étude en cours : ${name}.`,
+  studyingNowThen: (running, name) => `Étude en cours : ${running}, puis ${name}.`,
   studyCancelled: (name) => `Étude annulée : ${name}.`,
+  studyCancelledWith: (name, gone) =>
+    `Étude annulée : ${name}, avec ${gone.join(', ')}, qui en dépendai${gone.length > 1 ? 'ent' : 't'}.`,
   achievement: (name) => `Succès : ${name}.`,
   objectiveDone: (done, total) => `Objectif ${done} sur ${total} réalisé.`,
   pausedBySevere: (severity, name) => `En pause : SEV${severity} ${name}. Espace pour reprendre.`,

@@ -76,6 +76,9 @@ export const toasts: Messages['toasts'] = {
     otherBuild: (version, current) =>
       `そのセーブは別のビルドのものです（${version}、このビルドは${current}）。`,
     devHours: (spent, budget) => `設計には${spent} DH必要です。予算は${budget}です。`,
+    needsFirst: (name, needed) => `${name}には先に${needed}が必要です。`,
+    queueTooShort: (limit, name, count) =>
+      `キューに入る研究は${limit}件までで、${name}にはそのうち${count}件が必要です。`,
   },
   costs: (what, price) => `${what}には${price}かかります。`,
   missing: 'もうありません。',
@@ -109,8 +112,14 @@ export const toasts: Messages['toasts'] = {
   studyQueuedStalled: (name, reason) => `研究をキューに追加: ${name}。${reason}`,
   studyQueuedShort: (name, pools) =>
     `研究をキューに追加: ${name}。${pools}がまだ足りません。稼ぎの速度で進みます。`,
+  studiesQueued: (names) => `研究をキューに追加: ${names.join('、')}。`,
+  studiesQueuedStalled: (names, first, reason) =>
+    `研究をキューに追加: ${names.join('、')}。${first}が先に停滞します。${reason}`,
   studyingNow: (name) => `研究中: ${name}。`,
+  studyingNowThen: (running, name) => `研究中: ${running}。次は${name}。`,
   studyCancelled: (name) => `研究を中止: ${name}。`,
+  studyCancelledWith: (name, gone) =>
+    `研究を中止: ${name}。これを前提とする${gone.join('、')}も中止しました。`,
   achievement: (name) => `実績: ${name}。`,
   objectiveDone: (done, total) => `目標 ${done}/${total} 達成。`,
   pausedBySevere: (severity, name) => `一時停止: SEV${severity} ${name}。Spaceで再開。`,

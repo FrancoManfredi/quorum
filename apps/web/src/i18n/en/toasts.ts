@@ -82,6 +82,9 @@ export const toasts = {
       `That save is from another build (${version}; this build is ${current}).`,
     devHours: (spent: Value, budget: Value) =>
       `The Design needs ${spent} Dev Hours; the budget is ${budget}.`,
+    needsFirst: (name: Value, needed: Value) => `${name} needs ${needed} first.`,
+    queueTooShort: (limit: Value, name: Value, count: Value) =>
+      `The queue holds ${limit} Studies, and ${name} needs ${count} of them.`,
   },
   costs: (what: Value, price: Value) => `${what} costs ${price}.`,
   /** One refusal needs no more than this when it is a name's own. */
@@ -117,8 +120,14 @@ export const toasts = {
   studyQueuedStalled: (name: Value, reason: Value) => `Study queued: ${name}. ${reason}`,
   studyQueuedShort: (name: Value, pools: Value) =>
     `Study queued: ${name}. Not enough ${pools} yet: it runs at their earn rate.`,
+  studiesQueued: (names: ReadonlyArray<string>) => `Studies queued: ${names.join(', ')}.`,
+  studiesQueuedStalled: (names: ReadonlyArray<string>, first: Value, reason: Value) =>
+    `Studies queued: ${names.join(', ')}. ${first} stalls first. ${reason}`,
   studyingNow: (name: Value) => `Studying now: ${name}.`,
+  studyingNowThen: (running: Value, name: Value) => `Studying now: ${running}, then ${name}.`,
   studyCancelled: (name: Value) => `Study cancelled: ${name}.`,
+  studyCancelledWith: (name: Value, gone: ReadonlyArray<string>) =>
+    `Study cancelled: ${name}, with ${gone.join(', ')}, which needed it.`,
   achievement: (name: Value) => `Achievement: ${name}.`,
   objectiveDone: (done: Value, total: Value) => `Objective ${done} of ${total} done.`,
   pausedBySevere: (severity: Value, name: Value) =>

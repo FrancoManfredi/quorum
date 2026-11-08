@@ -62,14 +62,22 @@ Failure Insight, because you learn reliability by seeing failures.
 So more page views never buy Series B Research. You must serve the new kinds first. Factory games use
 the same design with science packs, where each stage's production line pays for the next step.
 
-You cannot study an item before its Era or before the items it requires. Locked items of the next Era
-stay visible, so you can plan.
+No item opens before its Era, and none runs before the items it requires. Locked items of the next
+Era stay visible, so you can plan.
 
 ## Studies run one at a time
 
 A Research item runs as a **Study**, and one Study runs at a time. You can queue up to 8, reorder
 them, and switch which one runs. A Study keeps its progress when you switch away, but cancelling one
 loses its progress and the Insight it took. Its effect starts when it completes.
+
+You can queue a locked item too, as Civilization lets you pick a distant technology and researches
+the path to it. Queue [Node.js cluster mode](/research/node-cluster) without Node.js, and Node.js joins
+the queue ahead of it. The button says what it adds before you press it. Because the running Study
+must be one you can research, the queue holds an order: a Study never moves above one it needs,
+**Study now** brings an item's prerequisites to the front with it, and cancelling a prerequisite
+cancels what needs it. The cost is that a long chain fills the queue fast, and if the first Study in
+it stalls, everything behind it waits.
 
 A Study draws Insight as it runs, not all at once. Each Era sets a base duration, from seconds in the
 Garage to an hour of sim time in the Public Era. Each second, the Study takes its share of the cost

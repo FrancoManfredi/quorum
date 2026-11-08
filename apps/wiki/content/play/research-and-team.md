@@ -27,16 +27,16 @@ Click an item to focus it. The detail card at the bottom right shows:
 
 The card's main button says what you can do now:
 
-| Button            | Meaning                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| **Start Study**   | You can start it. The button also shows how long it takes. |
-| **Studying · n%** | It runs now.                                               |
-| **Study now**     | It waits in the queue. Select it to move it to the front.  |
-| **Opens in** Era  | The Era has not started yet.                               |
-| **Needs** item    | A prerequisite is missing. The button names it.            |
-| **Researched**    | You own it.                                                |
+| Button                | Meaning                                                                                                              |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Start Study**       | You can start it. The button also shows how long it takes.                                                           |
+| **Studying · n%**     | It runs now.                                                                                                         |
+| **Study now**         | It waits in the queue. Select it to move it to the front, with any prerequisite it waits on.                         |
+| **Opens in** Era      | The Era has not started yet.                                                                                         |
+| **Study after** items | A prerequisite is missing. Select it to queue the missing prerequisites first, then the item. The button names them. |
+| **Researched**        | You own it.                                                                                                          |
 
-A locked item is not an error. It tells you what to do next: reach the Era, or study the named prerequisite first. A warning in the card, such as a pool that earns nothing, tells you why a Study will stall. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
+A locked item is not an error. It tells you what to do next: wait for the Era, or queue it and let its prerequisites run first. When a long chain is missing, the button counts the prerequisites instead of naming them. A warning in the card, such as a pool that earns nothing, tells you why a Study will stall, and for a chain it names the first Study that will. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
 
 ### Start and queue a Study
 
@@ -45,7 +45,9 @@ A locked item is not an error. It tells you what to do next: reach the Era, or s
 3. Select **Start Study**. The Insight card on the HUD shows the Study's name and its percentage.
 4. Press `Esc` to go back to the board. The Study keeps running.
 
-To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies, and an unaffordable Study at the front holds every Study behind it, which the card tells you. Under the card, **Move up**, **Move down** and **Cancel** reorder or remove a queued Study. **Cancel** loses its progress.
+To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies, a chain counts every Study in it, and an unaffordable Study at the front holds every Study behind it, which the card tells you. Under the card, **Move up**, **Move down** and **Cancel** reorder or remove a queued Study, and you can drag a row to a new place. **Cancel** loses its progress.
+
+A Study never moves above a prerequisite it needs. Its **Move up** button turns off, and a drag that would pass the prerequisite is refused with a toast that names it. Cancelling a prerequisite also cancels the queued Studies that need it.
 
 ## The Team panel
 
