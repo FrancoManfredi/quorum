@@ -163,22 +163,24 @@ export const limitingPool = (game: Game): InsightPool | null => {
 
 const InsightPoolSchema = Schema.Literals(INSIGHT_POOLS)
 
-/** The value a shape is measured against: a share, a ratio, or a wait in seconds. */
+/** The value a shape is measured against: a count, a share, a ratio, or a wait in seconds. */
 export const shapeValueOf = (id: ResearchId): number => {
   const shape = SHAPE[id]
   if (!shape) return 0
-  return 'share' in shape
-    ? shape.share
-    : 'ratio' in shape
-      ? shape.ratio
-      : 'seconds' in shape
-        ? shape.seconds
-        : 0
+  return 'moreThan' in shape
+    ? shape.moreThan
+    : 'share' in shape
+      ? shape.share
+      : 'ratio' in shape
+        ? shape.ratio
+        : 'seconds' in shape
+          ? shape.seconds
+          : 0
 }
 
 /**
  * Whether the Design shows the behaviour an item's Study needs (10 "Research shapes"). A cache
- * that works, a Database near its connection limit, a Queue with a backlog, a replica serving
+ * that works, more App connections than a Pooler keeps, a Queue with a backlog, a replica serving
  * reads: research asks the system to do the thing before the player can learn the next thing.
  */
 export const shapeHolds = (game: Game, ledger: Ledger, id: ResearchId): boolean => {
@@ -189,12 +191,7 @@ export const shapeHolds = (game: Game, ledger: Ledger, id: ResearchId): boolean 
     if (!entry) continue
     switch (shape.kind) {
       case 'connections':
-        if (
-          entry.connections !== null &&
-          entry.connections.max > 0 &&
-          entry.connections.used / entry.connections.max >= shape.share
-        )
-          return true
+        if (entry.connections !== null && entry.connections.used > shape.moreThan) return true
         break
       case 'read-share':
         if (node.type === 'database' && (entry.workShare['q-read'] ?? 0) >= shape.share) return true
@@ -228,15 +225,20 @@ export const StudyStall = Schema.TaggedUnion({
 export type StudyStall = typeof StudyStall.Type
 
 /**
- * Whether a Study stalls, or null when it can finish: the Design samples its kinds at too few
- * Component types, does not show the behaviour the item teaches, or a recipe pool earns nothing
- * and holds less than the Study still draws. A stalled first Study holds the whole queue.
+ * Whether a Study stalls, or null when it can finish: before it starts, the Design samples its
+ * kinds at too few Component types or does not show the behaviour the item teaches; in any phase,
+ * a recipe pool earns nothing and holds less than the Study still draws. Once a Study has started,
+ * the shape and breadth stop stalling it, so a shape that follows the load can lapse as the
+ * calendar moves. A stalled first Study holds the whole queue.
  * `feature` names the unshipped Feature that brings the pool's kind, when one does.
  */
 export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
-  if (!broadEnough(id, ledger)) return StudyStall.cases.Breadth.make({ types: BREADTH[id] ?? 0 })
-  if (!shapeHolds(game, ledger, id))
-    return StudyStall.cases.Shape.make({ shape: SHAPE[id]!.kind, value: shapeValueOf(id) })
+  const running = StudyPhase.guards.Running(game.studies.find((item) => item.id === id)?.phase)
+  if (!running) {
+    if (!broadEnough(id, ledger)) return StudyStall.cases.Breadth.make({ types: BREADTH[id] ?? 0 })
+    if (!shapeHolds(game, ledger, id))
+      return StudyStall.cases.Shape.make({ shape: SHAPE[id]!.kind, value: shapeValueOf(id) })
+  }
   const left =
     1 -
     (() => {
@@ -270,15 +272,15 @@ export const advanceStudies = (
 ): Game => {
   const studies = game.studies.filter((entry) => !has(game, entry.id))
   const head = studies[0]
-  if (
-    !head ||
-    !researchReady(game, head.id) ||
-    !broadEnough(head.id, ledger) ||
-    !shapeHolds(game, ledger, head.id)
-  )
+  if (!head || !researchReady(game, head.id))
+    return studies.length === game.studies.length ? game : { ...game, studies }
+  // The shape and breadth gate the start, not the whole run: a Study that has started keeps going
+  // while the load it proved moves with the calendar.
+  const starting = StudyPhase.guards.Queued(head.phase)
+  if (starting && (!broadEnough(head.id, ledger) || !shapeHolds(game, ledger, head.id)))
     return studies.length === game.studies.length ? game : { ...game, studies }
   // The first Study starts when it reaches the front of the queue.
-  const started = studyStep(head.phase, { _tag: 'Started' })
+  const started = starting ? studyStep(head.phase, { _tag: 'Started' }) : head.phase
   const running = { ...head, phase: started }
   const progress = started._tag === 'Queued' || started._tag === 'Running' ? started.progress : 0
   const speed = studySpeed(game)

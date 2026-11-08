@@ -99,7 +99,8 @@ export const hud = {
   stalledFailure: 'Stalled: nothing earns Failure Insight. Failed requests earn it.',
   stalledPool: (pool: string | number) => `Stalled: nothing earns ${pool} yet.`,
   stalledShape: (shape: string | number) => `Stalled: ${shape}.`,
-  shapeConnections: (pct: string | number) => `a Database must use ${pct}% of its connections`,
+  shapeConnections: (count: string | number) =>
+    `the App Servers must hold more than ${count} database connections`,
   shapeReadShare: (pct: string | number) => `a Database must spend ${pct}% of its work on reads`,
   shapeCacheHit: (pct: string | number) => `a Cache must hit on ${pct}% of its reads`,
   shapeBacklog: (seconds: string | number) => `a Queue must hold a backlog of ${seconds} s or more`,

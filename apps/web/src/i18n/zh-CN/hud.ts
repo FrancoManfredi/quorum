@@ -96,7 +96,7 @@ export const hud: Messages['hud'] = {
   stalledFailure: '已停滞：没有任何来源产出失败洞察。失败的请求会产出它。',
   stalledPool: (pool) => `已停滞：目前没有任何来源产出${pool}。`,
   stalledShape: (shape) => `已停滞：${shape}。`,
-  shapeConnections: (pct) => `数据库必须使用其${pct}%的连接`,
+  shapeConnections: (count) => `应用服务器必须持有超过${count}个数据库连接`,
   shapeReadShare: (pct) => `数据库必须将${pct}%的工作用于读取`,
   shapeCacheHit: (pct) => `缓存必须在${pct}%的读取中命中`,
   shapeBacklog: (seconds) => `队列必须积压${seconds}秒或更久`,

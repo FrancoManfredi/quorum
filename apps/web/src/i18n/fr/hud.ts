@@ -100,7 +100,8 @@ export const hud: Messages['hud'] = {
     'Bloquée : rien ne rapporte de connaissances Échec. Les requêtes échouées en rapportent.',
   stalledPool: (pool) => `Bloquée : rien ne rapporte encore de ${pool}.`,
   stalledShape: (shape) => `Bloquée : ${shape}.`,
-  shapeConnections: (pct) => `une Database doit utiliser ${pct} % de ses connexions`,
+  shapeConnections: (count) =>
+    `les App Servers doivent détenir plus de ${count} connexions à la base`,
   shapeReadShare: (pct) => `une Database doit consacrer ${pct} % de son travail aux lectures`,
   shapeCacheHit: (pct) => `un Cache doit toucher ${pct} % de ses lectures`,
   shapeBacklog: (seconds) => `une Queue doit retenir un arriéré de ${seconds} s ou plus`,

@@ -803,6 +803,13 @@ const TAP_RESERVE = 4
 /** Studies the bot keeps queued, the running one included. */
 const QUEUED = 2
 
+/** The Database's connections as a share of its limit, or 0 when the Design has none. */
+const connectionUse = (game: Game, ledger: Ledger): number => {
+  const database = game.nodes.find((entry) => entry.type === 'database')
+  const connections = database ? ledger.nodes[database.id]?.connections : null
+  return connections ? connections.used / Math.max(1, connections.max) : 0
+}
+
 /**
  * Keeps the Study queue full from the priority list (10 "Studies"). A Study
  * whose recipe has a pool the Design does not earn yet would stall the queue,
@@ -819,12 +826,20 @@ const studies = (
     (Object.keys(RECIPE[id]) as Array<InsightPool>).every(
       (pool) => ledger.insight[pool] > 0 || game.pools[pool] >= (recipeOf(game, id)[pool] ?? 0),
     )
+  // The gate lets a Pooler through at 20 connections; the bot buys it only when the Database is
+  // near its limit, the same point where it puts one in front of the Database.
+  const wants = (id: ResearchId) => id !== 'pooling' || connectionUse(game, ledger) > POOLER_AT
   let next = game
   const head = next.studies[0]
-  if (head && (!payable(head.id) || !shapeHolds(next, ledger, head.id)))
+  // A running Study keeps its shape; only a Study that has not started waits for it.
+  if (
+    head &&
+    (!payable(head.id) ||
+      (head.phase._tag === 'Queued' && (!shapeHolds(next, ledger, head.id) || !wants(head.id))))
+  )
     next = tried(next, cancelStudy(next, head.id))
   const urgent = (realtime ? REALTIME_RESEARCH : []).find(
-    (id) => ready(id) && payable(id) && shapeHolds(next, ledger, id),
+    (id) => ready(id) && payable(id) && shapeHolds(next, ledger, id) && wants(id),
   )
   if (urgent) next = tried(next, study(next, urgent, true))
   const order =
@@ -846,6 +861,7 @@ const studies = (
     if (
       payable(id) &&
       shapeHolds(next, ledger, id) &&
+      wants(id) &&
       !next.studies.some((entry) => entry.id === id)
     )
       next = tried(next, study(next, id))

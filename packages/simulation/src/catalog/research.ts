@@ -1,5 +1,6 @@
 /* Research: what Insight buys, by track and Era, and the Studies that run it. */
 
+import { POOLER_CONNECTIONS } from './instances.ts'
 import type { InsightPool } from './kinds.ts'
 import { FRAMEWORKS, RUNTIMES, type FrameworkId } from './runtimes.ts'
 
@@ -2192,7 +2193,7 @@ export const REGION_BREADTH: Partial<Record<ResearchId, number>> = { rum: 2 }
  * teaches a system asks the system to do something first, so a Study is not only a price.
  */
 export type StudyShape =
-  | Readonly<{ readonly kind: 'connections'; readonly share: number }>
+  | Readonly<{ readonly kind: 'connections'; readonly moreThan: number }>
   | Readonly<{ readonly kind: 'read-share'; readonly share: number }>
   | Readonly<{ readonly kind: 'cache-hit'; readonly ratio: number }>
   | Readonly<{ readonly kind: 'backlog'; readonly seconds: number }>
@@ -2217,12 +2218,12 @@ export type StudyShapeKind = (typeof STUDY_SHAPE_KINDS)[number]
  * the player can learn the next thing about it.
  */
 export const SHAPE: Partial<Record<ResearchId, StudyShape>> = {
-  // The pool is near full: the Database answers more connections than one box holds.
-  pooling: { kind: 'connections', share: 0.7 },
+  // More client connections than the Pooler keeps: below that, sharing them saves nothing.
+  pooling: { kind: 'connections', moreThan: POOLER_CONNECTIONS },
   // Reads dominate the Database's work, so a replica has something to take.
   replication: { kind: 'read-share', share: 0.6 },
   // A cache that works, so the next question is what happens when it misses.
-  'cache-strategies': { kind: 'cache-hit', ratio: 0.7 },
+  'cache-strategies': { kind: 'cache-hit', ratio: 0.6 },
   // A queue with a real backlog, so the Event Stream has a log worth keeping.
   'event-streaming': { kind: 'backlog', seconds: 1 },
   // A Database carrying report scans, which is why a warehouse exists.

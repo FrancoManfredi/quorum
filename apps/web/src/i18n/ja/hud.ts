@@ -99,7 +99,7 @@ export const hud: Messages['hud'] = {
   stalledFailure: '停滞: 失敗のインサイトを稼ぐものがありません。失敗したリクエストが稼ぎます。',
   stalledPool: (pool) => `停滞: ${pool}をまだ稼ぐものがありません。`,
   stalledShape: (shape) => `停滞: ${shape}。`,
-  shapeConnections: (pct) => `データベースが接続の${pct}%を使っていること`,
+  shapeConnections: (count) => `アプリサーバーが${count}を超えるデータベース接続を保持していること`,
   shapeReadShare: (pct) => `データベースが作業の${pct}%を読み取りに使っていること`,
   shapeCacheHit: (pct) => `キャッシュが読み取りの${pct}%をヒットすること`,
   shapeBacklog: (seconds) => `キューが${seconds}秒以上の滞留を抱えていること`,

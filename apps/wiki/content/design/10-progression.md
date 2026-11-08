@@ -243,7 +243,8 @@ Items whose recipe is not the default:
 | `anomaly-detection`                                                     | Failure, `feed`, `hook`, `push` |                                             |
 
 **Breadth.** Some Observability items also need their recipe kinds sampled at a number of
-Component types. A trace needs more than one hop.
+Component types. A trace needs more than one hop. The count is checked before the Study starts, like
+a shape: once the Study runs, removing a tap does not stall it.
 
 | Item        | Breadth              |
 | ----------- | -------------------- |
@@ -252,24 +253,31 @@ Component types. A trace needs more than one hop.
 | `rum`       | Sampled in 2 regions |
 
 The `rum` rule reads the Ledger's `breadthRegions`. Each of its kinds must be sampled by an Analytics
-tap on a Node in two regions, so the Study stalls until a second region has its own tap.
+tap on a Node in two regions, so the Study waits for a second region to have its own tap before it
+starts.
 
-**Shapes.** A few items ask the Design to show a behaviour before the Study runs. The Study stalls
+**Shapes.** A few items ask the Design to show a behaviour before the Study starts. The Study stalls
 until the Ledger shows it, and the Research screen says what is missing. The item teaches a system, so
 the player runs the system first.
 
 | Item               | Shape                                              |
 | ------------------ | -------------------------------------------------- |
-| `pooling`          | A Database uses 70% of its connections.            |
+| `pooling`          | App Servers hold more than 20 connections.         |
 | `replication`      | A Database spends 60% of its work on reads.        |
-| `cache-strategies` | A Cache serves at 70% hit ratio.                   |
+| `cache-strategies` | A Cache hits on 60% of its reads.                  |
 | `event-streaming`  | A Queue holds a backlog of 1 s or more.            |
 | `data-warehouse`   | A Database spends 10% of its work on report scans. |
 | `autoscaling`      | A Node runs at 80% of its capacity.                |
 | `consensus`        | A Read Replica serves reads.                       |
 
+The `pooling` count is the Pooler's own 20 server connections, not a share of the Database's
+`max_connections`. Below 20, a Pooler that keeps 20 saves nothing. An absolute count also asks the
+same of Postgres and MySQL: a larger connection budget never makes the gate harder.
+
 A shape reads the live Ledger, so it clears as soon as the Design does the thing, and it adds no save
-field. It asks for the behaviour, not for more traffic of a kind.
+field. The shape gates the start of the Study, not its whole run: once a Study has started it keeps
+running if the behaviour lapses, so a shape that follows demand or the calendar, such as a Node at
+80% of its capacity, does not stall halfway through a Study that spans hours.
 
 ### Studies
 
@@ -303,13 +311,13 @@ that pool earns, so the scarcest kind limits it. Traffic falls at night, so a `b
 night. The player can start a Study with no Insight saved.
 
 A Study **stalls** when a recipe pool earns nothing and holds less than the Study still draws, when
-the Design samples its kinds at too few Component types, or when the shape its item asks for is
-missing. A stalled running Study holds every Study behind it. The queue row, the Insight card, and
-the item's card mark a stalled Study and say why: the pool that earns nothing, the shape that is
-missing, and the Feature that brings the pool's kind when one does, such as Password login for
-`login`. Queueing a stalled item says the same. While the running Study is stalled, a teammate's Mail
-waits in Needs action with an Open Research button; its Thread resolves when the Study moves again or
-leaves the queue.
+it has not started and the Design samples its kinds at too few Component types, or when it has not
+started and the shape its item asks for is missing. A stalled running Study holds every Study behind
+it. The queue row, the Insight card, and the item's card mark a stalled Study and say why: the pool
+that earns nothing, the shape that is missing, and the Feature that brings the pool's kind when one
+does, such as Password login for `login`. Queueing a stalled item says the same. While the running
+Study is stalled, a teammate's Mail waits in Needs action with an Open Research button; its Thread
+resolves when the Study moves again or leaves the queue.
 
 `speed` is 1, and two things raise it:
 

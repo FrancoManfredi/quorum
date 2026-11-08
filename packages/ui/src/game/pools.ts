@@ -97,7 +97,7 @@ export const shapeReason = (shape: StudyShapeKind, value: number): string => {
   const pct = `${Math.round(value * 100)}%`
   switch (shape) {
     case 'connections':
-      return `a Database must use ${pct} of its connections`
+      return `the App Servers must hold more than ${value} database connections`
     case 'read-share':
       return `a Database must spend ${pct} of its work on reads`
     case 'cache-hit':

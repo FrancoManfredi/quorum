@@ -65,7 +65,7 @@ const shapeIn = (t: Messages, shape: StudyShapeKind, value: number): string => {
   const pct = Math.round(value * 100)
   switch (shape) {
     case 'connections':
-      return t.hud.shapeConnections(pct)
+      return t.hud.shapeConnections(value)
     case 'read-share':
       return t.hud.shapeReadShare(pct)
     case 'cache-hit':
