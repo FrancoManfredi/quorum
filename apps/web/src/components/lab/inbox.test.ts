@@ -91,3 +91,33 @@ test('the chips and the Digest are on screen, and the Digest lists what it folde
     Scene.expect(Scene.text('Ticket 2')).toExist(),
   )
 })
+
+test('a thread shows its newest entry and folds the earlier ones away', () => {
+  const game = preseedGame()
+  const warning = (text: string): Fact => ({
+    key: 'cloud:cpu:app-01',
+    sender: 'cloud',
+    subject: 'Capacity warning',
+    text,
+    actions: [],
+    spam: false,
+  })
+  let inbox: Inbox = { ...EMPTY_INBOX, folder: 'fyi' }
+  inbox = mailed(inbox, warning('app-01 is at 100% CPU.'), 60, true)
+  inbox = mailed(inbox, warning('app-01 is still at 100% CPU.'), 120, true, true)
+  inbox = mailed(inbox, warning('app-01 is now at 130% CPU.'), 180, true, true)
+  const model: Model = {
+    ...initialModel(),
+    route: AppRoute.Company(),
+    panel: 'inbox',
+    board: { ...initialModel().board, game, inbox: reading(inbox) },
+  }
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.expect(Scene.text('2 earlier messages')).toExist(),
+    // The newest line is expanded; the two before it wait behind the summary.
+    Scene.expect(Scene.text('app-01 is now at 130% CPU.')).toExist(),
+    Scene.expect(Scene.selector('details.fold')).not.toHaveAttr('open'),
+  )
+})

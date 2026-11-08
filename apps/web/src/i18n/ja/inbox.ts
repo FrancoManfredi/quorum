@@ -13,6 +13,7 @@ export const inbox: Messages['inbox'] = {
   moreThanEightThreadsWereUnread:
     '8件を超えるスレッドが未読だったので、あなたに何も求めない古いものからこの1件にまとめられました。どれもここに残っています。',
   olderUpdates: (p0) => `${p0}件の古い更新`,
+  earlierMessages: (p0) => `${p0}件の以前のメッセージ`,
   opensTheGlossaryOnThisAdvisory: '用語集でこの勧告を開きます',
   inTheGlossary: '用語集にあり',
   resolved: (p0) => `${p0}に解決`,

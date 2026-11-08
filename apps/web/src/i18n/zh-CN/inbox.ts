@@ -13,6 +13,7 @@ export const inbox: Messages['inbox'] = {
   moreThanEightThreadsWereUnread:
     '有超过八个未读会话，其中最早的、不需要你处理的那些被折叠到这里。它们都还在。',
   olderUpdates: (p0) => `${p0} 条较早的更新`,
+  earlierMessages: (p0) => `${p0} 条较早的消息`,
   opensTheGlossaryOnThisAdvisory: '在术语表中打开此通告',
   inTheGlossary: '收录于术语表',
   resolved: (p0) => `已解决 ${p0}`,

@@ -14,6 +14,8 @@ export const inbox = {
   moreThanEightThreadsWereUnread:
     'More than eight threads were unread, so the oldest ones that needed nothing from you folded into this one. They are all still here.',
   olderUpdates: (p0: string | number | null) => `${p0} older updates`,
+  earlierMessages: (p0: string | number | null) =>
+    p0 === 1 ? '1 earlier message' : `${p0} earlier messages`,
   opensTheGlossaryOnThisAdvisory: 'Opens the Glossary on this advisory',
   inTheGlossary: 'In the Glossary',
   resolved: (p0: string | number | null) => `Resolved ${p0}`,

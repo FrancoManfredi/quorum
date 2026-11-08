@@ -72,7 +72,10 @@ A compact two-pane email window, after Proton Mail, Superhuman, and Gmail.
   left edge: red while a clock runs, amber while a decision waits.
 - **Reader:** the sender's kind as a label above the subject, the subject, the sender's name and
   address, the body, the sign-off, and the action buttons. The time appears only on a thread with
-  more than one entry: a single letter shows no timestamp.
+  more than one entry: a single letter shows no timestamp. A thread opens on its newest entry, and
+  the entries before it fold under one "N earlier messages" row, so the line the player came for is
+  on screen without scrolling. The row opens the older entries in order, and a repeat folds them
+  again.
 - **Labels:** each Mail has one label from its sender kind (Cloud, Team, Investor, Security, and so
   on). The labels are the filter chips above the list: `All`, then every kind the open folder holds,
   with its count. Choosing a chip shows that kind alone and selects the newest of them. Choosing
@@ -199,8 +202,9 @@ joins its thread instead of adding a row, and the row shows a count.
   churn thread for a region, `customers:churn:eu`, resolves when that region's users grow again.
 - A thread **reopens** if the cause returns after it resolved.
 - Deleting a thread removes the whole thread. A later repeat starts a new one.
-- A thread keeps its newest 20 entries. Older entries are dropped without a marker. A long thread has
-  no "N earlier messages" line, and the reader shows no sign that anything is missing.
+- A thread keeps its newest 20 entries. Older entries are dropped without a marker, so the reader
+  shows no sign that anything is missing. The entries the thread does keep fold under the "N earlier
+  messages" row, which is a fold of the record, not a count of what was dropped.
 
 Matching on the key, not on the text, lets Mail tell a repeat from a new problem.
 

@@ -7,6 +7,7 @@ import {
   Activity,
   ArchiveRestore,
   Ban,
+  ChevronRight,
   CircleCheck,
   Cloud,
   Compass,
@@ -92,6 +93,34 @@ const bodyOf = (h: HtmlBuilder<Message>, entry: Mail['entries'][number]): string
 /** A Mail's subject in the builder's language. */
 const subjectOf = (h: HtmlBuilder<Message>, mail: Mail): string =>
   (mail.message ? writtenIn(copy(h), mail.message)?.subject : undefined) ?? mail.subject
+
+/** One entry of a thread: its time when the Mail repeats, then its paragraphs. */
+const entryOf = (
+  h: HtmlBuilder<Message>,
+  entry: Mail['entries'][number],
+  threaded: boolean,
+  index: number,
+): Html =>
+  h.div(
+    [
+      h.Key(`entry-${index}`),
+      h.Class(threaded ? 'flex flex-col gap-0.5 border-l-2 border-hairline pl-3' : 'flex flex-col'),
+    ],
+    [
+      threaded
+        ? h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(10.5px*var(--type-scale))] text-muted-foreground'))],
+            [clock(entry.time)],
+          )
+        : h.empty,
+      h.div(
+        [h.Class('flex flex-col gap-3 whitespace-pre-line')],
+        bodyOf(h, entry)
+          .split('\n\n')
+          .map((paragraph) => h.p([], [paragraph])),
+      ),
+    ],
+  )
 
 /** The first line of a letter that says something, for the preview. */
 const gist = (h: HtmlBuilder<Message>, mail: Mail): string => {
@@ -624,6 +653,8 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
   if (mail.id === DIGEST_ID) return digestLetter(mail, folded, h)
   const sender = senderOf(mail.sender)
   const threaded = mail.entries.length > 1
+  const latest = mail.entries.at(-1)
+  const earlier = mail.entries.slice(0, -1)
   // The second tell (18 "How to tell"): a real advisory names an id the Glossary lists, and a
   // fake one names an id it does not, so there is nothing here to open.
   const tell = advisoryTell(
@@ -658,7 +689,8 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           )
         : []
   return h.article(
-    [h.Key(String(mail.id)), h.Class('flex min-h-0 flex-1 flex-col')],
+    // A new entry remounts the letter, which puts its scroll back at the top, on the newest line.
+    [h.Key(`${mail.id}:${mail.entries.length}`), h.Class('flex min-h-0 flex-1 flex-col')],
     [
       h.div(
         [h.Class(cn('flex min-h-0 flex-1 flex-col gap-3 px-5 py-4', SCROLL))],
@@ -731,39 +763,38 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           ),
           h.div(
             [h.Class('flex flex-col gap-3 text-[calc(13px*var(--type-scale))] leading-relaxed')],
-            mail.entries.map((entry, index) =>
-              h.div(
-                [
-                  h.Key(`entry-${index}`),
-                  h.Class(
-                    threaded
-                      ? 'flex flex-col gap-0.5 border-l-2 border-hairline pl-3'
-                      : 'flex flex-col',
-                  ),
-                ],
-                [
-                  threaded
-                    ? h.span(
+            [
+              // The newest line is what the player opened the thread for, so the rest waits behind
+              // one row (18 "The Inbox"). A repeat folds the old lines again, and the reader stays
+              // at the top, where the new line is.
+              earlier.length > 0
+                ? h.details(
+                    [h.Key('earlier'), h.Class('fold group flex flex-col')],
+                    [
+                      h.summary(
                         [
                           h.Class(
-                            cn(
-                              FIGURE,
-                              'text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
-                            ),
+                            'flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden',
                           ),
                         ],
-                        [clock(entry.time)],
-                      )
-                    : h.empty,
-                  h.div(
-                    [h.Class('flex flex-col gap-3 whitespace-pre-line')],
-                    bodyOf(h, entry)
-                      .split('\n\n')
-                      .map((paragraph) => h.p([], [paragraph])),
-                  ),
-                ],
-              ),
-            ),
+                        [
+                          icon(
+                            h,
+                            ChevronRight,
+                            'fold-chevron size-3.5 shrink-0 text-muted-foreground group-open:rotate-90',
+                          ),
+                          h.span([h.Class(EYEBROW)], [t.inbox.earlierMessages(earlier.length)]),
+                        ],
+                      ),
+                      h.div(
+                        [h.Class('flex flex-col gap-3 pt-2')],
+                        earlier.map((entry, index) => entryOf(h, entry, threaded, index)),
+                      ),
+                    ],
+                  )
+                : h.empty,
+              latest ? entryOf(h, latest, threaded, mail.entries.length - 1) : h.empty,
+            ],
           ),
           h.p(
             [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
@@ -988,8 +1019,10 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.div(
                 [
                   h.AriaLabel(t.inbox.labels),
+                  // The chips keep their height: a scrolled row would otherwise give its space to
+                  // the list and clip them under the first Mail.
                   h.Class(
-                    'flex flex-nowrap gap-1.5 overflow-x-auto border-b border-hairline px-3 py-2',
+                    'flex shrink-0 flex-nowrap gap-1.5 overflow-x-auto border-b border-hairline px-3 py-2',
                   ),
                 ],
                 [
@@ -1008,7 +1041,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.ul(
                 [
                   h.AriaLabel(t.inbox.mail),
-                  h.Class(cn('flex flex-col divide-y divide-hairline', SCROLL)),
+                  h.Class(cn('flex min-h-0 flex-1 flex-col divide-y divide-hairline', SCROLL)),
                 ],
                 newest.length === 0
                   ? [
