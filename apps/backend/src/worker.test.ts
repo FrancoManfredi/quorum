@@ -5,16 +5,23 @@ import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { Api, RPC_PATH, type SurveyExit, type SurveySubmission } from '@quorum/rpc'
+import { RoomDirectory } from './contexts/room/directory.ts'
 import { sqliteRunner } from './platform/sqlite-runner.ts'
-import worker, { type Env } from './worker.ts'
+import type { SqlRunner } from './platform/sql.ts'
+import { handlerFor } from './handler.ts'
 
 const url = `http://api.test${RPC_PATH}`
 
-const database = (): Pick<Env, 'FEEDBACK'> => ({ FEEDBACK: sqliteRunner() })
+const directory = (): RoomDirectory['Service'] => ({
+  publish: () => Effect.succeed({ code: 'AAAAAA', token: 'token' }),
+  info: () => Effect.succeed({ exists: false, seats: 0 }),
+})
 
-let env: Env = database()
+let feedback: SqlRunner = sqliteRunner()
+let handler = handlerFor({ feedback, directory: directory() })
 beforeEach(() => {
-  env = database()
+  feedback = sqliteRunner()
+  handler = handlerFor({ feedback, directory: directory() })
 })
 
 /**
@@ -23,7 +30,7 @@ beforeEach(() => {
  */
 const fetchThroughWorker: typeof globalThis.fetch = async (input, init) => {
   const request = new Request(input, init)
-  return worker.fetch(request, env)
+  return handler.handler(request)
 }
 
 const protocol = RpcClient.layerProtocolHttp({ url }).pipe(
@@ -56,10 +63,7 @@ test('the API Worker serves the shared RPC contract over HTTP', async () => {
 })
 
 test('the API Worker rejects unknown paths', async () => {
-  const response = await worker.fetch(
-    new Request('http://api.test/unknown', { method: 'POST' }),
-    env,
-  )
+  const response = await handler.handler(new Request('http://api.test/unknown', { method: 'POST' }))
 
   expect(response.status).toBe(404)
 })
@@ -101,9 +105,9 @@ test('an Exit survey is stored, and a retry keeps the first answer', async () =>
   expect(await run(survey({ issues: 'A second answer.', likes: '' }))).toEqual({
     received: true,
   })
-  const rows = await env.FEEDBACK.prepare(
-    'SELECT exit_id, issues, likes FROM survey_responses',
-  ).all<{ exit_id: string; issues: string; likes: string }>()
+  const rows = await feedback
+    .prepare('SELECT exit_id, issues, likes FROM survey_responses')
+    .all<{ exit_id: string; issues: string; likes: string }>()
   expect(rows.results).toEqual([
     {
       exit_id: 'acquisition',
@@ -146,7 +150,7 @@ test('a survey that is not a real Exit fails with ApiError and stores nothing', 
     tag: 'ApiError',
     message: 'The device id is not valid.',
   })
-  const rows = await env.FEEDBACK.prepare('SELECT COUNT(*) AS n FROM survey_responses').all<{
+  const rows = await feedback.prepare('SELECT COUNT(*) AS n FROM survey_responses').all<{
     n: number
   }>()
   expect(rows.results[0]?.n).toBe(0)
@@ -154,14 +158,12 @@ test('a survey that is not a real Exit fails with ApiError and stores nothing', 
 
 test('a failing survey store reaches the client as unavailable and logs its cause', async () => {
   const cause = new Error('D1_ERROR: no such table: survey_responses')
-  env = {
-    ...env,
-    FEEDBACK: {
-      prepare: () => {
-        throw cause
-      },
+  feedback = {
+    prepare: () => {
+      throw cause
     },
-  }
+  } as unknown as SqlRunner
+  handler = handlerFor({ feedback, directory: directory() })
   const logged: Array<unknown> = []
   const spies = (['log', 'error', 'warn'] as const).map((level) =>
     vi.spyOn(console, level).mockImplementation((...args) => void logged.push(...args)),

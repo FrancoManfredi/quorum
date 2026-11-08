@@ -1,66 +1,32 @@
 import * as Sentry from '@sentry/cloudflare'
-import { SentryEffectLogger, SentryEffectTracer } from '@sentry/effect'
-import { ErrorReporter, Schema } from 'effect'
-import * as HttpRouter from 'effect/http/HttpRouter'
-import * as Layer from 'effect/Layer'
-import * as Logger from 'effect/Logger'
-import * as Tracer from 'effect/Tracer'
-import { RpcSerialization, RpcServer } from 'effect/rpc'
-import { Api, ApiError, RPC_PATH } from '@quorum/rpc'
-import { SurveyHandlers } from './contexts/survey/handlers.ts'
-import { SurveyStore } from './contexts/survey/store.ts'
-import { SystemHandlers } from './contexts/system/handlers.ts'
-import { d1SurveyStore } from './platform/d1-survey-store.ts'
-import type { SqlRunner } from './platform/sql.ts'
+import { ROOM_SOCKET_PATH } from '@quorum/rpc'
+import type { RoomStub } from './contexts/room/directory.ts'
+import { handlerFor } from './handler.ts'
+import { roomDirectory } from './platform/room-directory.ts'
+import { RoomObject } from './platform/room-object.ts'
+import type { Env } from './handler.ts'
 
-/**
- * The bindings `alchemy.run.ts` gives the API Worker. A `D1Database` is a `SqlRunner`.
- * `FEEDBACK` holds the Exit survey.
- * Without `SENTRY_DSN` the Sentry SDK stays off.
- */
-export type Env = Readonly<{
-  FEEDBACK: SqlRunner
-  SENTRY_DSN?: string
-  SENTRY_RELEASE?: string
-}>
-
-/**
- * Sentry gets every failure Effect reports except `ApiError`: it is the declared answer to a bad
- * request, not a fault, so it stays out of the issue list.
- */
-const SentryErrors = ErrorReporter.layer(
-  [
-    ErrorReporter.make(({ error }) => {
-      if (Schema.is(ApiError)(error)) return
-      Sentry.captureException(error)
-    }),
-  ],
-  { mergeWithExisting: true },
-)
-
-/** Effect spans become Sentry spans, and Effect logs reach Sentry next to the console. */
-const SentryLive = Layer.mergeAll(
-  SentryErrors,
-  Layer.succeed(Tracer.Tracer, SentryEffectTracer),
-  Logger.layer([SentryEffectLogger], { mergeWithExisting: true }),
-)
-
-const handlerFor = (env: Env) =>
-  HttpRouter.toWebHandler(
-    RpcServer.layerHttp({
-      group: Api,
-      path: RPC_PATH,
-      protocol: 'http',
-    }).pipe(
-      Layer.provide(Layer.mergeAll(SystemHandlers, SurveyHandlers)),
-      Layer.provide(Layer.succeed(SurveyStore, d1SurveyStore(env.FEEDBACK))),
-      Layer.provideMerge(RpcSerialization.layerJson),
-      Layer.provide(SentryLive),
-    ),
-  )
+// The Durable Object class must be exported by the script that hosts it.
+export { RoomObject }
+export type { Env }
 
 // Built on the first request and kept for the isolate, once per database binding.
-let built: Readonly<{ feedback: SqlRunner; handler: ReturnType<typeof handlerFor> }> | undefined
+let built:
+  | Readonly<{
+      feedback: Env['FEEDBACK']
+      rooms: Env['ROOMS']
+      handler: ReturnType<typeof handlerFor>
+    }>
+  | undefined
+
+/** A Room's socket is forwarded to its object, which owns the connection. */
+const roomSocket = (request: Request, env: Env): Promise<Response> => {
+  const code = new URL(request.url).searchParams.get('code')
+  if (code === null || !/^[2-9A-HJ-NP-Z]{6}$/.test(code))
+    return Promise.resolve(new Response('No such Room', { status: 404 }))
+  const room = env.ROOMS.getByName(code) as unknown as RoomStub
+  return room.fetch(request)
+}
 
 export default Sentry.withSentry(
   (env: Env) => ({
@@ -72,9 +38,19 @@ export default Sentry.withSentry(
     initialScope: { tags: { service: 'api-worker' } },
   }),
   {
+    // The incoming request carries the browser's trace headers. Sentry continues that trace, and
+    // the service binding passes the same headers on, so the API Worker joins it.
     fetch: (request: Request, env: Env): Promise<Response> => {
-      if (built?.feedback !== env.FEEDBACK)
-        built = { feedback: env.FEEDBACK, handler: handlerFor(env) }
+      if (new URL(request.url).pathname === ROOM_SOCKET_PATH) return roomSocket(request, env)
+      if (built?.feedback !== env.FEEDBACK || built.rooms !== env.ROOMS)
+        built = {
+          feedback: env.FEEDBACK,
+          rooms: env.ROOMS,
+          handler: handlerFor({
+            feedback: env.FEEDBACK,
+            directory: roomDirectory((code) => env.ROOMS.getByName(code) as unknown as RoomStub),
+          }),
+        }
       return built.handler.handler(request)
     },
   },

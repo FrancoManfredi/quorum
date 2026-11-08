@@ -5,6 +5,7 @@ import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import { API_PREFIX, INGEST_PREFIX } from '@quorum/rpc'
 import { simVersion } from './packages/simulation/sim-version.ts'
+import type { RoomInstance } from './apps/backend/src/platform/room-object.ts'
 
 const compatibility = { date: '2026-10-08' }
 // The Sentry SDK in the API and website Workers needs AsyncLocalStorage, which `nodejs_compat` gives.
@@ -110,7 +111,12 @@ export default Alchemy.Stack(
     const Results = Cloudflare.D1.Database('Results', { migrations: './apps/backend/migrations' })
     const ApiWorker = Cloudflare.Worker('Api', {
       main: './apps/backend/src/worker.ts',
-      env: { FEEDBACK: Results, ...sentryEnv },
+      env: {
+        FEEDBACK: Results,
+        // The one stateful object in the stack: an online Company's Room.
+        ROOMS: Cloudflare.DurableObject<RoomInstance>('RoomObject'),
+        ...sentryEnv,
+      },
       ...apiBuild,
       compatibility: sentryCompatibility,
       observability,
