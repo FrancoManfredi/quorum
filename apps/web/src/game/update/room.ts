@@ -17,7 +17,7 @@ import { CopyText, WriteCompany, PublishRoom, SendRoom } from '../commands.ts'
 import { ROOM_NAME_LENGTH } from '../names.ts'
 import { setRoomName } from '../../platform/room-socket.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
-import { ServerMessage } from '@quorum/simulation/room'
+import { ROOM_SAMPLES, ServerMessage } from '@quorum/simulation/room'
 import type { ClientMessage } from '@quorum/simulation/room'
 import type { Sample } from '@quorum/simulation/state'
 import type { RoomEnd } from '../room-machine.ts'
@@ -64,7 +64,12 @@ const emptyRoom = (model: Model, phase: Room['phase']): Room => ({
   seq: 1,
 })
 
-/** Paints one Room frame onto the Board. */
+/**
+ * Paints one Room frame onto the Board. `whole` says how much of the Room's sample window the
+ * frame carries: a Welcome every Sample the Room keeps, a Snapshot only the ones this Seat has
+ * not seen. The Game keeps them exactly as an offline Game does, because the Dashboard's short
+ * ranges read the Game's own history.
+ */
 const painted = (
   model: Model,
   frame: Readonly<{
@@ -75,13 +80,17 @@ const painted = (
     samples: ReadonlyArray<Sample>
     time: number
   }>,
+  whole: boolean,
 ): Model => {
   const history = record(model.board.dashboard.history, frame.samples, frame.time)
+  const samples = (whole ? frame.samples : [...model.board.game.history, ...frame.samples]).slice(
+    -ROOM_SAMPLES,
+  )
   return {
     ...model,
     board: {
       ...model.board,
-      game: { ...frame.game, history: [] },
+      game: { ...frame.game, history: [...samples] },
       clock: { ...model.board.clock, speed: frame.speed, mode: { _tag: 'Running' } },
       bottleneckAt: -1,
       dashboard: { ...model.board.dashboard, history },
@@ -107,14 +116,18 @@ const received = (model: Model, message: ServerMessage): UpdateResult =>
       // leaves the panel the player has open alone.
       const first = RoomPhase.guards.Connecting(model.room.phase)
       const next: Model = {
-        ...painted(model, {
-          game: frame.game,
-          seats: frame.seats,
-          speed: frame.speed,
-          vote: frame.vote,
-          samples: frame.samples,
-          time: frame.game.time,
-        }),
+        ...painted(
+          model,
+          {
+            game: frame.game,
+            seats: frame.seats,
+            speed: frame.speed,
+            vote: frame.vote,
+            samples: frame.samples,
+            time: frame.game.time,
+          },
+          true,
+        ),
         panel: first ? 'none' : model.panel,
         room: {
           ...model.room,
@@ -133,14 +146,18 @@ const received = (model: Model, message: ServerMessage): UpdateResult =>
         : { model: next, commands: [] }
     },
     Snapshot: (frame) => {
-      const next = painted(model, {
-        game: frame.game,
-        seats: frame.seats,
-        speed: frame.speed,
-        vote: frame.vote,
-        samples: frame.samples,
-        time: frame.time,
-      })
+      const next = painted(
+        model,
+        {
+          game: frame.game,
+          seats: frame.seats,
+          speed: frame.speed,
+          vote: frame.vote,
+          samples: frame.samples,
+          time: frame.time,
+        },
+        false,
+      )
       // Achievements belong to the owner's Founder; a guest earns none.
       return roomOwner(next)
         ? milestones(model, { model: next }, [], ledgerOf(next))

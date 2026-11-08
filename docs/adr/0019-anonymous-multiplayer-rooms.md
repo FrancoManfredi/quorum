@@ -73,8 +73,10 @@ The message schemas live beside the Simulation because their payloads are the Ga
 
 - The API Worker hosts the `RoomObject` Durable Object and binds one namespace. No other Cloudflare
   resource is added.
-- `game.history` stays out of a Room's Game. Achievements read the sample history, so an online
-  Company earns Achievements from the owner's snapshots only, and guests earn none.
+- The Game a Room sends carries no `history`. The browser rebuilds it from the Samples the Room
+  sends, so the Dashboard's short ranges and the HUD's trend read the Room's own Samples. Achievements
+  read that history, so an online Company earns them from the owner's snapshots only, and guests earn
+  none.
 - A Room's Game is saved by the owner's browser at the handover. A lost token, an expiry, or a deploy
   can lose the progress since the Company went online, which the title screen states.
 - The Room's protocol is declared in `packages/simulation/src/room.ts`, not in `packages/rpc`, because

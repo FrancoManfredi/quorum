@@ -31,7 +31,7 @@ import { teamOutputs } from '@quorum/simulation/team'
 import { compact, money, ms, queueWait, rate as rateText } from '@quorum/ui/game/format'
 import { DashboardMessage } from '@/game/dashboard.ts'
 import { initialModel, update } from '@/game/update.ts'
-import { ledgerOf, type Mail, type Model } from '@/game/model.ts'
+import { EMPTY_ROOM, ledgerOf, type Mail, type Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
 import { sampleNode, type NodeSample } from '@/game/node-metrics.ts'
 import { blockIndexAt, startOf } from '@/game/history.ts'
@@ -1283,5 +1283,60 @@ test('the table view reads each Chart’s cells back with the figures its plot d
         history.length,
       )
     }),
+  )
+})
+
+/* The Room moves the Samples a Step produced out of its Game, and sends them beside the snapshot:
+   a Welcome carries the window, a Snapshot only the new ones. The Dashboard reads the Game's own
+   history for its short ranges, so a paint that drops them leaves it with an empty frame. */
+test('a Room’s Samples reach the Dashboard’s charts', () => {
+  const model: Model = {
+    ...fixture(),
+    room: { ...EMPTY_ROOM, phase: { _tag: 'Connecting', code: 'ABC234' } },
+  }
+  const game = { ...model.board.game, time: 1_600, history: [] }
+  const seats = [{ id: 'tab-1', name: 'Owner', colour: 0, owner: true }]
+  const joined = update(
+    model,
+    Message.RoomReceived({
+      message: {
+        _tag: 'Welcome',
+        revision: 1,
+        simVersion: 'test',
+        seat: 'tab-1',
+        game,
+        samples: samplesOf(30),
+        seats,
+        owner: 'tab-1',
+        speed: 1,
+        vote: null,
+      },
+    }),
+  ).model
+  expect(joined.board.game.history).toHaveLength(30)
+
+  const next = update(
+    joined,
+    Message.RoomReceived({
+      message: {
+        _tag: 'Snapshot',
+        revision: 2,
+        time: 1_602,
+        game: { ...game, time: 1_602 },
+        samples: samplesOf(2),
+        seats,
+        owner: 'tab-1',
+        speed: 1,
+        vote: null,
+      },
+    }),
+  ).model
+  expect(next.board.game.history).toHaveLength(32)
+
+  Scene.scene(
+    { update, view },
+    Scene.given(next),
+    Scene.expect(panelOf('traffic')).toExist(),
+    Scene.expect(panelOf('latency')).toExist(),
   )
 })
