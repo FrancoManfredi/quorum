@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import type { ComponentId, IncidentId, ResearchId } from './catalog.ts'
+import type { ComponentId, IncidentId, RequestKind, ResearchId } from './catalog.ts'
 import { company, link, node } from './company.ts'
 import { forceIncident } from './director.ts'
 import type { Ledger } from './ledger.ts'
@@ -53,7 +53,7 @@ export type SandboxId = (typeof SANDBOX_IDS)[number]
 export type GuidedSandbox = Readonly<{
   id: SandboxId
   name: string
-  /** The Era whose track holds it, and whose request mix it runs. */
+  /** The Era whose track holds it and whose rules it runs. A puzzle may pin its own request mix. */
   stage: number
   start: () => Game
   objectives: ReadonlyArray<Objective>
@@ -122,12 +122,40 @@ const steadyReads = (p99: number, burn?: number): Condition => ({
 
 const SEED = 20_261_101
 
+/**
+ * The request mix a puzzle was tuned on. A live Era rebalance must not move a puzzle's demand, so
+ * a Sandbox whose objectives depend on the shares pins its mix as its scenario (14 "Challenges").
+ */
+const TUNED_SEED_MIX: Partial<Record<RequestKind, number>> = {
+  page: 0.3,
+  read: 0.3,
+  write: 0.12,
+  login: 0.04,
+  search: 0.1,
+  upload: 0.04,
+  bot: 0.1,
+}
+const TUNED_SERIES_A_MIX: Partial<Record<RequestKind, number>> = {
+  page: 0.21,
+  read: 0.25,
+  write: 0.1,
+  login: 0.03,
+  search: 0.08,
+  upload: 0.03,
+  bot: 0.08,
+  media: 0.1,
+  rt: 0.08,
+  buy: 0.03,
+  bid: 0.01,
+}
+
 const board = (
   stage: number,
   users: number,
   researched: ReadonlyArray<ResearchId>,
   nodes: ReadonlyArray<GameNode>,
   links: ReadonlyArray<readonly [string, string]>,
+  mix?: Partial<Record<RequestKind, number>>,
 ): Game =>
   normalizeOrdinals({
     ...company(SEED),
@@ -140,6 +168,7 @@ const board = (
     links: links.map(([from, to]): GameLink => link(from, to)),
     nextId: 1,
     boxes: [],
+    ...(mix ? { scenario: { mix } } : {}),
   })
 
 const STAMPEDE_USERS = 6_000
@@ -549,6 +578,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
           ]),
           ['cache', 'database'],
         ],
+        TUNED_SEED_MIX,
       ),
     objectives: [
       { goal: 'Keep Apdex above 0.9 for 90 seconds.', hold: 90, ...serving(0.9) },
@@ -596,6 +626,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
             [`server${index}`, 'storage'],
           ]),
         ],
+        TUNED_SEED_MIX,
       ),
     objectives: [
       { goal: 'Keep Apdex above 0.9 for 90 seconds.', hold: 90, ...serving(0.9) },
@@ -681,6 +712,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
           ...seriesAData(),
         ],
         [['users', 'lb'], ...seriesALinks(['server1', 'server2'])],
+        TUNED_SERIES_A_MIX,
       ),
     objectives: [
       { goal: 'Keep Apdex above 0.9 for 90 seconds.', hold: 90, ...serving(0.9) },

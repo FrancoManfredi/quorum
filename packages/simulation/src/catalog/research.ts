@@ -2234,12 +2234,6 @@ export const SHAPE: Partial<Record<ResearchId, StudyShape>> = {
   consensus: { kind: 'replica' },
 }
 
-/**
- * Each Era's price scale: the ◇ prices keep their ratios, and this sets their
- * scale against the square-root yield (16 "Insight by kind and Studies").
- */
-export const PRICE_SCALE = [1, 1, 2, 1.5, 1, 1, 1, 1] as const
-
 /** Each Era's base Study duration, in seconds. */
 export const STUDY_SECONDS = [20, 60, 120, 240, 480, 900, 1_800, 3_600] as const
 /** Studies the queue holds, the running one included. */
@@ -2250,7 +2244,10 @@ export const STUDY_SPEED_RESEARCH: ReadonlyArray<ResearchId> = ['trace-search', 
 
 const recipeFor = (entry: ResearchDef): Readonly<Partial<Record<InsightPool, number>>> => {
   const kinds = RECIPES[entry.id] ?? ERA_RECIPES[entry.era] ?? EVERY_KIND
-  const price = entry.cost * (PRICE_SCALE[entry.era] ?? 1)
+  // The list price is the price, whatever the Era: prices already grow tenfold an Era, and a pack's
+  // Insight grows with the square root of its traffic, so a scale above one would make an Era's
+  // research unpayable. A median Study would take several base durations at the Era's top traffic.
+  const price = entry.cost
   const cost: Partial<Record<InsightPool, number>> = {}
   // Half of every Reliability item's cost is Failure Insight.
   const failure = entry.track === 'reliability' && !kinds.includes('failure') ? price / 2 : 0

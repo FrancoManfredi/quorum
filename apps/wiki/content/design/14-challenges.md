@@ -30,7 +30,8 @@ tutorial level.
   An Incident the player must answer by hand, such as a slow query, fires once.
 - **Palette.** The research the Sandbox grants. It holds the fix, plus at least one wrong option that
   a reasonable player would try. The wrong option plays out, so the player sees why it fails.
-- **Demand and seed.** Fixed and flat, with no daily cycle. Users do not grow or leave.
+- **Demand and seed.** Fixed and flat, with no daily cycle. Users do not grow or leave. The request
+  mix is the Era's, unless the puzzle pins the mix it was tuned on.
 - **Visibility.** The Sandbox grants the [visibility step](/design/12-observability#the-visibility-ladder)
   that the mechanic needs. A player cannot learn tail latency without seeing the p99.
 - **Money.** None. Placing and resizing are free; Burn shows, because some objectives set a budget.

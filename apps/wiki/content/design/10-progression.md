@@ -37,12 +37,12 @@ Shares of demand, in percent. Features and Ventures shift these shares.
 
 | Kind     | Garage | Pre-seed | Seed | Series A | Series B | Series C+ |
 | -------- | ------ | -------- | ---- | -------- | -------- | --------- |
-| `page`   | 60     | 45       | 30   | 21       | 17       | 13        |
+| `page`   | 60     | 45       | 28   | 17       | 17       | 13        |
 | `read`   | 40     | 35       | 30   | 25       | 22       | 18        |
 | `write`  |        | 15       | 12   | 10       | 9        | 8         |
 | `login`  |        | 5        | 4    | 3        | 3        | 2         |
-| `search` |        |          | 10   | 8        | 7        | 6         |
-| `upload` |        |          | 4    | 3        | 3        | 2         |
+| `search` |        |          | 10   | 10       | 7        | 6         |
+| `upload` |        |          | 6    | 5        | 3        | 2         |
 | `bot`    |        |          | 10   | 8        | 7        | 7         |
 | `media`  |        |          |      | 10       | 10       | 10        |
 | `rt`     |        |          |      | 8        | 8        | 8         |
@@ -201,6 +201,10 @@ Feature needs costs the kind that Feature brings.
 A Venture's request mix changes which recipes are cheap. Fintech serves 4× `buy`, so its Series A
 research is fast. Every Venture serves every request kind, so every recipe can be paid.
 
+**Every Era's packs stay payable.** An Era's default recipe kinds keep enough of its demand that a
+median Study of that Era takes about a base duration at the Era's top traffic. A pack with a small
+share of the mix slows every Study of its Era; a pack with none stalls the queue.
+
 **Reliability track rule.** Half of every Reliability item's cost is Failure Insight. The other half
 uses the item's recipe.
 
@@ -353,15 +357,15 @@ Study by that item's own price and recipe, which would misjudge a chain.
 
 ### Cost bands
 
-The ◇ column in the track tables is a Study's list price. A Study charges that price times its Era's
-price scale: ×2 in Seed and ×1.5 in Series A, ×1 in every other Era. The bands below are the charged
-range.
+The ◇ column in the track tables is what a Study pays. Prices already grow tenfold an Era, so there
+is no Era multiplier on top: a pack's Insight grows with the square root of its traffic, and a
+multiplier would make an Era's research unpayable.
 
 | Era      | Cost range (◇)       |
 | -------- | -------------------- |
 | Garage   | 10–60                |
 | Pre-seed | 60–300               |
-| Seed     | 600–3,000            |
+| Seed     | 300–900              |
 | Series A | 1,500–8,000          |
 | Series B | 8,000–40,000         |
 | Series C | 40,000–200,000       |
