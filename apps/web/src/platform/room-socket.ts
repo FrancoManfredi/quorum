@@ -2,6 +2,7 @@ import { Option, Schema } from 'effect'
 import { ROOM_SOCKET_PATH } from '@quorum/rpc'
 import { ROOM_NAME_LENGTH, randomName } from '../game/names.ts'
 import { ClientMessage, ServerMessage, type ClientMessage as Client } from '@quorum/simulation/room'
+import type { Region } from '@quorum/simulation/state'
 
 /* ==========================================================================
    One socket per tab. The Subscription opens it while the Model says a Room is
@@ -134,6 +135,13 @@ export const send = (message: Client): void => {
   if (socket === null || socket.readyState !== WebSocket.OPEN) return
   socket.send(JSON.stringify(encode(message)))
 }
+
+/** Tells the Room where this tab's pointer is. A closed socket drops it. */
+export const sendCursor = (at: Readonly<{ x: number; y: number; region: Region }>): void =>
+  send({ _tag: 'Cursor', ...at })
+
+/** Tells the Room this tab's pointer left the Board. */
+export const hideCursor = (): void => send({ _tag: 'HideCursor' })
 
 export const onMessage = (listener: (message: ServerMessage) => void): (() => void) => {
   messages.add(listener)

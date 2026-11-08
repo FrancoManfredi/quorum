@@ -4,13 +4,16 @@ import * as Stream from 'effect/Stream'
 import { Option, Schema } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
+import { clearSeatCursors, hideSeatCursor, moveSeatCursor } from '@quorum/ui/board/board'
 import { Subscription } from 'foldkit'
 import { Message } from './message.ts'
 import { TeamMessage } from './team.ts'
 import { ResearchMessage } from './research.ts'
 import { clockAway, halted, onlineFileOf, roomCode, type Model } from './model.ts'
+import { seatColour } from './seat-colour.ts'
 import { inRoom } from './room-machine.ts'
 import { connect, onMessage, onStatus, seatOf, stop } from '@/platform/room-socket.ts'
+import { ServerMessage } from '@quorum/simulation/room'
 import { onBoard } from './route.ts'
 import { TICK_MS, REPEAT_MS } from './update.ts'
 
@@ -373,9 +376,29 @@ export const subscriptions = {
             ? Stream.callback<Message>((queue) =>
                 Effect.acquireRelease(
                   Effect.sync(() => {
-                    const offMessage = onMessage((message) =>
-                      Queue.offerUnsafe(queue, Message.RoomReceived({ message })),
-                    )
+                    const offMessage = onMessage((message) => {
+                      // A Welcome starts the Seat list over, so a pointer from a socket
+                      // that dropped does not outlive it.
+                      if (ServerMessage.guards.Welcome(message)) clearSeatCursors('board')
+                      // A cursor is Presence. It moves the Board's overlay and never the
+                      // Model, so a whole Room of pointers does not repaint the Company.
+                      if (ServerMessage.guards.Cursor(message)) {
+                        moveSeatCursor('board', {
+                          seat: message.seat,
+                          name: message.name,
+                          colour: seatColour(message.colour),
+                          x: message.x,
+                          y: message.y,
+                          region: message.region,
+                        })
+                        return
+                      }
+                      if (ServerMessage.guards.CursorGone(message)) {
+                        hideSeatCursor('board', message.seat)
+                        return
+                      }
+                      Queue.offerUnsafe(queue, Message.RoomReceived({ message }))
+                    })
                     const offStatus = onStatus((status) =>
                       Queue.offerUnsafe(queue, Message.RoomStatusChanged({ status })),
                     )
@@ -383,6 +406,7 @@ export const subscriptions = {
                     return () => {
                       offMessage()
                       offStatus()
+                      clearSeatCursors('board')
                       stop()
                     }
                   }),

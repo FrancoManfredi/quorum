@@ -6,6 +6,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import { attachBoard } from '@quorum/ui/board/board'
 import { Message } from './message.ts'
 import { play } from './sound.ts'
+import { hideCursor, sendCursor } from '@/platform/room-socket.ts'
 
 type BoardMessage =
   | ReturnType<typeof Message.NodeTapped>
@@ -53,6 +54,9 @@ const BoardMounted = Mount.defineStream('BoardMounted', {
               onEmptyTap: () => offer(Message.EmptyTapped()),
               onNodeToggle: (nodeId) => offer(Message.NodeToggled({ nodeId })),
               onBox: (ids, mode) => offer(Message.SelectionBoxed({ ids: [...ids], mode })),
+              // Presence, not a Message: 25 frames a second never repaints the Board.
+              onCursor: sendCursor,
+              onCursorGone: hideCursor,
               onSound: play,
             }),
           ),

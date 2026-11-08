@@ -43,6 +43,10 @@ Game and its Intents; `packages/rpc` keeps the paths and the two plain RPCs. The
 Company offline with a token that lives in its Company file, which writes the Room's final Game back
 to the browser and deletes the object.
 
+Cursors are Presence, not a move. A Seat sends its pointer 25 times a second at most, the Room relays
+each frame to the other Seats without saving it, and the Board draws the gaps as a spline. A pointer
+never enters a snapshot, so a Seat that joins late sees no one else's stale cursor.
+
 ## Telemetry
 
 Sentry records errors, traces, and profiles ([ADR 0013](./adr/0013-sentry-for-errors-traces-and-profiles.md)). Cloudflare Workers Observability keeps logs only: `alchemy.run.ts` turns its traces off, so a request is traced once. Observability is configured on the host resources in `alchemy.run.ts`, never in contexts.

@@ -55,6 +55,7 @@ import { type RoutedLink, type RoutedNode, type Wire } from './routing.ts'
 import { FOOT_ICONS, ROW_ICONS, footerOf, levelOf, rowsOf, sizePips, type RowTone } from './card.ts'
 import { COMPONENT_ICONS, GROUP_SHAPES, STACK_LOGOS, type StackLogoId } from '../game/icons.ts'
 import { packetShapeOf, type PacketShape } from '../game/packets.ts'
+import { CursorOverlay, type SeatCursor } from './cursors.ts'
 
 /** The sounds a gesture on the board makes. The host decides how to play them. */
 export type BoardSound = 'pull' | 'lift' | 'detent' | 'snap' | 'release'
@@ -75,6 +76,10 @@ export type BoardEvents = Readonly<{
   onNodeToggle: (nodeId: string) => void
   /** Shift-drag on empty space: select every Node the box touches. */
   onBox: (ids: ReadonlyArray<string>, mode: 'replace' | 'add' | 'subtract') => void
+  /** Where the pointer is on the Design, for the other Seats. The board sends it at most 25 times a second. */
+  onCursor?: (at: Readonly<{ x: number; y: number; region: Region }>) => void
+  /** The pointer left the Board or the window, so the other Seats stop drawing it. */
+  onCursorGone?: () => void
   onSound?: (sound: BoardSound, pitch?: number, spatial?: boolean) => void
 }>
 
@@ -369,6 +374,8 @@ const DRAW_IN_S = 0.22
 const GLOW_S = 0.6
 const CUT_S = 0.18
 const RETRACT_S = 0.18
+/** How often the board tells the Room where the pointer is: 25 times a second. */
+const CURSOR_MS = 40
 
 let reduceQuery: MediaQueryList | null = null
 
@@ -2077,6 +2084,11 @@ class BoardController {
   /** Links that just left, fading where they were. */
   private cuts: Array<{ path: Route; t: number }> = []
   private readonly abort = new AbortController()
+  /** The other Seats' pointers, drawn over the Board. */
+  private readonly cursorLayer = new CursorOverlay()
+  /** A pointer position waiting to go out, and when the last one went. */
+  private cursorWaiting = false
+  private cursorSentAt = 0
   private readonly resize: ResizeObserver
   /** Watches whether the board is on screen: a board scrolled out of view draws nothing. */
   private readonly sight: IntersectionObserver
@@ -2126,6 +2138,7 @@ class BoardController {
       return
     }
     this.host.append(this.app.canvas)
+    this.cursorLayer.mount(this.host)
     this.app.stage.addChild(this.world)
     this.chevrons.init(this.app.renderer)
     this.packets.init(this.app.renderer)
@@ -2218,6 +2231,8 @@ class BoardController {
     this.abort.abort()
     this.resize.disconnect()
     this.sight.disconnect()
+    this.cursorLayer.destroy()
+    this.events.onCursorGone?.()
     if (this.started) this.app.destroy(true, { children: true })
   }
 
@@ -2693,6 +2708,7 @@ class BoardController {
         }
         const point = this.toWorld(event)
         this.pointer = point
+        this.cursorWaiting = true
         const gesture = this.gesture
         if (gesture?.kind === 'pan') {
           const dx = event.clientX - gesture.x
@@ -2859,6 +2875,18 @@ class BoardController {
       () => {
         this.hoverLink = null
         this.hoverNode = null
+        this.cursorWaiting = false
+        this.events.onCursorGone?.()
+      },
+      { signal },
+    )
+    // A hidden window takes the pointer with it, and a cursor left on the
+    // Board would keep pointing at a spot nobody is looking at.
+    window.addEventListener(
+      'blur',
+      () => {
+        this.cursorWaiting = false
+        this.events.onCursorGone?.()
       },
       { signal },
     )
@@ -3107,6 +3135,13 @@ class BoardController {
   private animate(seconds: number): void {
     const state = this.state
     if (!state) return
+    const now = performance.now()
+    this.flushCursor(now)
+    this.cursorLayer.tick(
+      now,
+      { x: this.world.position.x, y: this.world.position.y, scale: this.world.scale.x },
+      state.region,
+    )
     const colors = palette()
     // The phase is sim time: at 10× the belts carry ten times as many items per real second.
     if (!state.paused) this.phase += seconds * state.speed
@@ -3543,6 +3578,30 @@ class BoardController {
         this.pointer.y - heightOf(this.ghostType ?? 'server') / 2,
       )
   }
+
+  /** Sends the pointer to the other Seats: the latest spot, 25 times a second. */
+  private flushCursor(now: number): void {
+    if (!this.cursorWaiting) return
+    const state = this.state
+    if (state === null || now - this.cursorSentAt < CURSOR_MS) return
+    this.cursorWaiting = false
+    this.cursorSentAt = now
+    this.events.onCursor?.({ x: this.pointer.x, y: this.pointer.y, region: state.region })
+  }
+
+  /** Another Seat moved its pointer. */
+  moveSeatCursor(cursor: SeatCursor): void {
+    this.cursorLayer.move(cursor, performance.now())
+  }
+
+  /** A Seat's pointer left its Board, or the Seat did. */
+  hideSeatCursor(seat: string): void {
+    this.cursorLayer.remove(seat)
+  }
+
+  clearSeatCursors(): void {
+    this.cursorLayer.clear()
+  }
 }
 
 export const attachBoard = (key: string, host: HTMLElement, events: BoardEvents): (() => void) => {
@@ -3555,4 +3614,19 @@ export const attachBoard = (key: string, host: HTMLElement, events: BoardEvents)
     controller.destroy()
     if (controllers.get(key) === controller) controllers.delete(key)
   }
+}
+
+/** Another Seat's pointer moved: the Board at `key` draws it. */
+export const moveSeatCursor = (key: string, cursor: SeatCursor): void => {
+  controllers.get(key)?.moveSeatCursor(cursor)
+}
+
+/** Another Seat's pointer is gone: the Board at `key` stops drawing it. */
+export const hideSeatCursor = (key: string, seat: string): void => {
+  controllers.get(key)?.hideSeatCursor(seat)
+}
+
+/** The Room is over: no Seat's pointer stays on the Board. */
+export const clearSeatCursors = (key: string): void => {
+  controllers.get(key)?.clearSeatCursors()
 }

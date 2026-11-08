@@ -158,6 +158,10 @@ const received = (model: Model, message: ServerMessage): UpdateResult =>
       },
     }),
     Refused: (frame) => withToast(model, refusalIn(say(model), frame.refusal), 'warn'),
+    // Cursors are Presence. The socket hands them to the Board's overlay, so
+    // they never reach the Model; these cases keep the union whole.
+    Cursor: () => ({ model }),
+    CursorGone: () => ({ model }),
     Final: (frame) => handover(model, frame.game),
     Ended: (frame) => {
       const next = roomStep(model.room.phase, { _tag: 'Ended', reason: frame.reason })

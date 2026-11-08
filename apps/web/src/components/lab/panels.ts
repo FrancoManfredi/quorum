@@ -26,6 +26,7 @@ import { cheatCash, cheatInsight } from '@/game/cheats.ts'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { currentFile, exitLegacy, roomCode, type Model } from '@/game/model.ts'
+import { seatColour } from '@/game/seat-colour.ts'
 import { companyMark } from '@/components/company-mark.ts'
 import { speedsOf } from '@/game/update.ts'
 import { roomOwner } from '@/game/model.ts'
@@ -395,14 +396,6 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** The four Seat colours, in the order a Room hands them out. */
-const SEAT_COLOURS = [
-  'oklch(0.62 0.16 30)',
-  'oklch(0.58 0.15 255)',
-  'oklch(0.6 0.13 155)',
-  'oklch(0.6 0.17 320)',
-] as const
-
 /** The Room: the code, the Seats, the name, the vote, the speed, and the way out. */
 export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -491,7 +484,7 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const seatChips = h.div(
     [h.Class('flex flex-wrap gap-1.5')],
     model.room.seats.map((entry) => {
-      const colour = SEAT_COLOURS[entry.colour % SEAT_COLOURS.length] ?? SEAT_COLOURS[0]
+      const colour = seatColour(entry.colour)
       return h.div(
         [
           h.Key(entry.id),
@@ -555,7 +548,7 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         h.div(
           [h.Class('flex items-center gap-1.5')],
           model.room.seats.map((entry) => {
-            const colour = SEAT_COLOURS[entry.colour % SEAT_COLOURS.length] ?? SEAT_COLOURS[0]
+            const colour = seatColour(entry.colour)
             const yes = open.yes.includes(entry.id)
             const no = open.no.includes(entry.id)
             return h.span(

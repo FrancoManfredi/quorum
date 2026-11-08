@@ -2,7 +2,7 @@ import { Result, Schema } from 'effect'
 import * as Actions from './actions.ts'
 import { Refusal } from './action-kit.ts'
 import * as Mirrors from './mirror.ts'
-import { Game, Sample } from './state.ts'
+import { Game, Region, Sample } from './state.ts'
 import * as Work from './work.ts'
 
 /* ==========================================================================
@@ -386,6 +386,13 @@ export const ClientMessage = Schema.TaggedUnion({
   Intents: { id: Schema.Finite, intents: Schema.Array(Intent) },
   Ballot: { vote: Schema.Finite, yes: Schema.Boolean },
   StartVote: { kind: VoteKind },
+  /**
+   * Where this Seat's pointer is, in Design coordinates. It is Presence, not a
+   * move: the Room relays it to the other Seats and never stores it.
+   */
+  Cursor: { x: Schema.Finite, y: Schema.Finite, region: Region },
+  /** The pointer left the Board, or this tab lost it. */
+  HideCursor: {},
   /** The owner takes the Company back to its browser. */
   TakeOffline: {},
   /** The owner sets the Room's speed. */
@@ -420,6 +427,20 @@ export const ServerMessage = Schema.TaggedUnion({
     vote: Schema.NullOr(Vote),
   },
   Refused: { id: Schema.Finite, refusal: RefusalWire },
+  /**
+   * Another Seat's pointer. It carries the name and colour the Cursor panel
+   * shows, so a client can draw it without waiting for a snapshot.
+   */
+  Cursor: {
+    seat: Schema.String,
+    name: Schema.String,
+    colour: Schema.Finite,
+    x: Schema.Finite,
+    y: Schema.Finite,
+    region: Region,
+  },
+  /** A Seat's pointer left the Board: stop drawing it. */
+  CursorGone: { seat: Schema.String },
   Seats: {
     seats: Schema.Array(Seat),
     owner: Schema.String,

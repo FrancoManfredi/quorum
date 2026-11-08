@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/cloudflare'
 import { DurableObject } from 'cloudflare:workers'
 import { Option, Result, Schema } from 'effect'
 import { ClientMessage, ROOM_SPEEDS, ServerMessage } from '@quorum/simulation/room'
+import type { Region } from '@quorum/simulation/state'
 import type { PublishInput, RoomStub } from '../contexts/room/directory.ts'
 import {
   advance,
@@ -105,6 +106,8 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
       Intents: (frame) => this.intents(ws, frame.id, frame.intents),
       Ballot: (frame) => this.ballot(ws, frame.vote, frame.yes),
       StartVote: (frame) => this.startVote(ws, frame.kind),
+      Cursor: (frame) => Promise.resolve(this.cursor(ws, frame.x, frame.y, frame.region)),
+      HideCursor: () => Promise.resolve(this.hideCursor(ws)),
       Speed: (frame) => this.speed(ws, frame.value),
       Kick: (frame) => this.kick(ws, frame.seat),
       TakeOffline: () => this.takeOffline(ws),
@@ -244,6 +247,36 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
     this.broadcast()
   }
 
+  /**
+   * Presence only. The Room stamps the Seat from the socket, not from the
+   * frame, so one Seat cannot move another's cursor, and it relays the frame
+   * without saving it or waiting for the next snapshot.
+   */
+  private cursor(ws: WebSocket, x: number, y: number, region: Region): void {
+    const current = this.state
+    if (current === null) return
+    const seat = current.seats.find((entry) => entry.id === this.seatOf(ws))
+    if (seat === undefined) return
+    this.everyone(
+      {
+        _tag: 'Cursor',
+        seat: seat.id,
+        name: seat.name,
+        colour: seat.colour,
+        x,
+        y,
+        region,
+      },
+      ws,
+    )
+  }
+
+  private hideCursor(ws: WebSocket): void {
+    const seat = this.seatOf(ws)
+    if (seat === '') return
+    this.everyone({ _tag: 'CursorGone', seat }, ws)
+  }
+
   private async speed(ws: WebSocket, value: number): Promise<void> {
     if (this.state === null || this.seatOf(ws) !== this.state.ownerSeat) return
     if (!(ROOM_SPEEDS as ReadonlyArray<number>).includes(value)) return
@@ -258,6 +291,7 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
   private async kick(ws: WebSocket, seat: string): Promise<void> {
     if (this.state === null || this.seatOf(ws) !== this.state.ownerSeat) return
     this.state = kick(this.state, seat, Date.now())
+    this.everyone({ _tag: 'CursorGone', seat })
     for (const other of this.ctx.getWebSockets()) {
       if (this.seatOf(other) !== seat) continue
       this.end(other, 'removed')
@@ -330,6 +364,7 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
     ws.serializeAttachment(NO_SEAT)
     this.state = leave(this.state, seat, Date.now())
     await this.save()
+    this.everyone({ _tag: 'CursorGone', seat }, ws)
     this.seats()
     this.broadcast()
     await this.schedule()
