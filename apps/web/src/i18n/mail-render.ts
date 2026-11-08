@@ -118,11 +118,16 @@ export const writtenIn = (
     vars['reason'] = stallReasonIn(
       t,
       message.letter.vars['stall'] === 'Breadth'
-        ? StudyStall.cases.Breadth.make({ types: Number(message.letter.vars['types']) })
+        ? StudyStall.cases.Breadth.make({
+            unit: message.letter.vars['unit'] === 'regions' ? 'regions' : 'components',
+            target: Number(message.letter.vars['target'] ?? message.letter.vars['types'] ?? 0),
+            current: Number(message.letter.vars['current'] ?? 0),
+          })
         : message.letter.vars['stall'] === 'Shape'
           ? StudyStall.cases.Shape.make({
               shape: message.letter.vars['shape'] as StudyShapeKind,
               value: Number(message.letter.vars['value']),
+              current: Number(message.letter.vars['shapeCurrent'] ?? 0),
             })
           : StudyStall.cases.Pool.make({
               pool: message.letter.vars['pool'] as InsightPool,

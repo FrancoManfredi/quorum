@@ -17,6 +17,7 @@ import {
 } from 'lucide'
 import {
   GLOSSARY,
+  MAX_STUDIES,
   RESEARCH,
   researchList,
   type ResearchDef,
@@ -34,17 +35,19 @@ import {
   studySpeed,
   studyStall,
   progressOf as studyProgressOf,
+  type StudyStall,
 } from '@quorum/simulation/studies'
 import { compact } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { stallReasonIn } from '@/i18n/format.ts'
+import { stallNeedIn, stallReasonIn } from '@/i18n/format.ts'
 import { unsampledOf } from '@quorum/simulation/solve-insight'
 import { ledgerOf, type Model } from '@/game/model.ts'
 import { POOL_ORDER, recipeOf } from '@quorum/ui/game/pools'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
+import { badge, type BadgeVariant } from '@quorum/ui/primitives/badge'
 import { cn } from '@/lib/utils'
-import { EYEBROW, FIGURE, FLOAT, PANEL, SCROLL, insightChip } from '@quorum/ui/game/bits'
+import { EYEBROW, FIGURE, FLOAT, SCROLL, insightChip, meter } from '@quorum/ui/game/bits'
 import { LOOKS, TRACK_ICONS, colorOf, researchMark } from '@quorum/ui/game/research-marks'
 import {
   eraName,
@@ -121,7 +124,7 @@ const duration = (t: Messages, game: Game, entry: ResearchDef): string => {
   return seconds < 90 ? t.units.s(Math.round(seconds)) : t.units.min(Math.round(seconds / 60))
 }
 
-/** Each pool of the recipe: what it costs, what the pool holds, and what it earns. */
+/** The item's recipe: each pool's cost, what it holds, and what it earns. */
 const costRows = (
   game: Game,
   ledger: Ledger,
@@ -132,44 +135,174 @@ const costRows = (
 
   const running = game.studies[0]?.id === entry.id
   const limit = running ? limitingPool(game) : null
-  return h.div(
-    [h.Class('flex flex-col gap-1')],
+  return h.section(
+    [h.Key('cost'), h.Class('border-b border-hairline px-5 py-4 last:border-b-0')],
     [
-      h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.cost(duration(t, game, entry))]),
-      ...recipeOf(entry.id, game.discounts).map(([pool, cost]) =>
-        h.div(
-          [
-            h.Key(pool),
-            h.Class(cn(FIGURE, 'flex items-center gap-2 px-2 text-[calc(12px*var(--type-scale))]')),
-          ],
-          [
-            insightChip(pool, compact(cost), h, false, 'plain', insightName(t, pool)),
-            h.span(
-              [
-                h.Class(
-                  cn('ml-auto', game.pools[pool] < cost ? 'text-warn' : 'text-muted-foreground'),
-                ),
-              ],
-              [t.research.held(compact(game.pools[pool]))],
-            ),
-            h.span(
-              [
-                h.Class(
-                  cn(
-                    'w-[64px] text-right',
-                    ledger.insight[pool] > 0 ? 'text-ok' : 'text-warn',
-                    pool === limit ? 'font-semibold' : '',
+      h.div(
+        [h.Class('flex items-baseline justify-between gap-3')],
+        [
+          h.span([h.Class(EYEBROW)], [t.research.costLabel]),
+          h.span(
+            [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
+            [duration(t, game, entry)],
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class(cn(FIGURE, 'mt-2 flex flex-col divide-y divide-hairline'))],
+        recipeOf(entry.id, game.discounts).map(([pool, cost]) =>
+          h.div(
+            [
+              h.Key(pool),
+              h.Class('flex items-center gap-3 py-1.5 text-[calc(12px*var(--type-scale))]'),
+            ],
+            [
+              insightChip(pool, compact(cost), h, false, 'plain', insightName(t, pool)),
+              h.span(
+                [
+                  h.Class(
+                    cn('ml-auto', game.pools[pool] < cost ? 'text-warn' : 'text-muted-foreground'),
                   ),
-                ),
-              ],
-              [t.research.s(ledger.insight[pool].toFixed(1))],
-            ),
-          ],
+                ],
+                [t.research.held(compact(game.pools[pool]))],
+              ),
+              h.span(
+                [
+                  h.Class(
+                    cn(
+                      'w-[60px] text-right',
+                      ledger.insight[pool] > 0 ? 'text-ok' : 'text-warn',
+                      pool === limit ? 'font-semibold' : '',
+                    ),
+                  ),
+                ],
+                [t.research.s(ledger.insight[pool].toFixed(1))],
+              ),
+            ],
+          ),
         ),
       ),
     ],
   )
 }
+
+/** How far the Design is from a stall's requirement, in the units its meter shows. */
+const gapOf = (
+  t: Messages,
+  stall: StudyStall,
+): Readonly<{ share: number; label: string }> | null => {
+  switch (stall._tag) {
+    case 'Shape': {
+      if (stall.shape === 'replica')
+        return { share: stall.current, label: t.research.gapReplica(stall.current) }
+      if (stall.shape === 'connections')
+        return {
+          share: stall.value > 0 ? stall.current / (stall.value + 1) : 0,
+          label: t.research.gapConnections(stall.current, stall.value),
+        }
+      const share = stall.value > 0 ? stall.current / stall.value : 0
+      return {
+        share,
+        label:
+          stall.shape === 'backlog'
+            ? t.research.gapSeconds(stall.current, stall.value)
+            : t.research.gapShare(stall.current, stall.value),
+      }
+    }
+    case 'Breadth':
+      return {
+        share: stall.target > 0 ? stall.current / stall.target : 0,
+        label:
+          stall.unit === 'regions'
+            ? t.research.gapRegions(stall.current, stall.target)
+            : t.research.gapComponents(stall.current, stall.target),
+      }
+    case 'Pool':
+      return null
+  }
+}
+
+/** Why a Study waits, how far the Design has got, and what the queue does meanwhile. */
+const requirement = (
+  t: Messages,
+  stall: StudyStall,
+  first: string | null,
+  consequence: string | null,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const gap = gapOf(t, stall)
+  return h.section(
+    [h.Class('shrink-0 border-b border-hairline bg-[var(--warn-soft)] px-5 py-4')],
+    [
+      h.div(
+        [h.Class('flex items-baseline justify-between gap-3')],
+        [
+          h.span(
+            [
+              h.Class(
+                'font-mono text-[calc(10.5px*var(--type-scale))] font-medium tracking-[0.08em] text-warn uppercase',
+              ),
+            ],
+            [t.research.requirement],
+          ),
+          gap === null
+            ? h.empty
+            : h.span(
+                [
+                  h.Class(
+                    cn(FIGURE, 'text-[calc(11.5px*var(--type-scale))] font-semibold text-warn'),
+                  ),
+                ],
+                [gap.label],
+              ),
+        ],
+      ),
+      h.p(
+        [
+          h.Class(
+            'mt-1.5 text-[calc(12.5px*var(--type-scale))] leading-snug font-semibold text-warn',
+          ),
+        ],
+        [
+          first === null
+            ? t.research.cannotRun(stallNeedIn(t, stall))
+            : t.research.firstCannotRun(first, stallNeedIn(t, stall)),
+        ],
+      ),
+      gap === null ? h.empty : h.div([h.Class('mt-2.5')], [meter(gap.share, 'bg-warn', h)]),
+      consequence === null
+        ? h.empty
+        : h.p(
+            [
+              h.Class(
+                'mt-2 text-[calc(11.5px*var(--type-scale))] leading-snug text-warn opacity-80',
+              ),
+            ],
+            [consequence],
+          ),
+    ],
+  )
+}
+
+/** A section of related research items, each a row that focuses its item. */
+const linkSection = (
+  label: string,
+  entries: ReadonlyArray<ResearchDef>,
+  game: Game,
+  h: HtmlBuilder<Message>,
+): Html =>
+  entries.length === 0
+    ? h.empty
+    : h.section(
+        [h.Class('border-b border-hairline px-5 py-4 last:border-b-0')],
+        [
+          h.span([h.Class(EYEBROW)], [label]),
+          h.div(
+            [h.Class('-mx-2 mt-2 flex flex-col')],
+            entries.map((entry) => linkRow(game, entry, h)),
+          ),
+        ],
+      )
 
 /** A card's icon, name and price or status; `grey` draws it uncoloured. */
 const face = (
@@ -715,7 +848,7 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
     [
       h.Key('queue'),
       ...(dragging ? [h.DataAttribute('research-drag-active', '')] : []),
-      h.Class(cn('flex max-h-[40%] shrink-0 flex-col border-b border-hairline p-1.5', SCROLL)),
+      h.Class('flex max-h-[30%] shrink-0 flex-col border-b border-hairline'),
       // The queue is a listbox, so the window-level shortcuts ignore it; Escape still closes
       // the panel unless a drag is running (the drag component handles that Escape itself).
       h.OnKeyDownPreventDefault((key) =>
@@ -724,19 +857,27 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
     ],
     [
       h.div(
+        [h.Class('flex shrink-0 items-baseline justify-between gap-3 px-5 pt-4 pb-2')],
+        [
+          h.span([h.Class(EYEBROW)], [t.research.studyQueue]),
+          h.span(
+            [h.Class(cn(FIGURE, 'text-[calc(11px*var(--type-scale))] text-muted-foreground'))],
+            [t.research.queueCount(studies.length, MAX_STUDIES)],
+          ),
+        ],
+      ),
+      h.div(
         [
           ...DragAndDrop.droppable(STUDY_QUEUE, t.research.studyQueue),
-          // Team pods ring their whole rounded card; the queue gets the same treatment, inset
-          // by the section's padding so the ring follows its corners instead of the card edge.
+          // Rows ring together while a drop lands, inset from the panel edge.
           h.Class(
             cn(
-              'flex flex-col gap-0.5 rounded-xl transition-shadow',
+              'flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto px-3 pb-3 [scrollbar-width:thin]',
               overQueue && 'ring-2 ring-primary ring-offset-2',
             ),
           ),
         ],
         [
-          h.span([h.Class(cn(EYEBROW, 'px-2 pt-1 pb-0.5'))], [t.research.queue]),
           ...studies.map((item, index) => {
             const entry = localized(RESEARCH[item.id], t.catalog.research[item.id])
             const stall = studyStall(game, ledger, item.id)
@@ -822,7 +963,9 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
                       ],
                       [
                         stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
-                        `${Math.floor(Math.min(1, studyProgressOf(item)) * 100)}%`,
+                        stall
+                          ? t.research.cannotRunShort
+                          : `${Math.floor(Math.min(1, studyProgressOf(item)) * 100)}%`,
                       ],
                     ),
                   ],
@@ -912,7 +1055,9 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
     state === 'owned'
       ? t.research.researched
       : state === 'buy'
-        ? t.research.startStudy(duration(t, game, entry))
+        ? stalled?.stall
+          ? t.research.queueStudy(duration(t, game, entry))
+          : t.research.startStudy(duration(t, game, entry))
         : era > game.stage
           ? t.research.opensIn(t.catalog.eras[era]?.name ?? eraName(era))
           : chain.length > 2
@@ -921,108 +1066,126 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
               ? t.research.studyAfter(chain.map((id) => t.catalog.research[id].name))
               : queued > 0
                 ? t.research.studyNow
-                : t.research.studying(Math.floor(studyProgressOf(game.studies[0]) * 100))
+                : stalled?.stall
+                  ? t.research.queued
+                  : t.research.studying(Math.floor(studyProgressOf(game.studies[0]) * 100))
+  const first = stalled && stalled.id !== entry.id ? t.catalog.research[stalled.id].name : null
+  const consequence =
+    first === null
+      ? queued === 0
+        ? t.research.atTheFront
+        : queued > 0
+          ? t.research.everyStudyBehindItWaits
+          : t.research.queueToStart
+      : null
   const queueable = era <= game.stage && chain.length > 0
   const follow = followUps(entry.id)
+  const status: Readonly<{ label: string; tone: BadgeVariant }> =
+    state === 'owned'
+      ? { label: t.research.researched, tone: 'ok' }
+      : stalled?.stall
+        ? { label: t.research.cannotRunShort, tone: 'warn' }
+        : state === 'saving'
+          ? queued === 0
+            ? { label: t.research.studyingShort, tone: 'default' }
+            : { label: t.research.queued, tone: 'secondary' }
+          : state === 'locked' || era > game.stage
+            ? { label: t.research.locked, tone: 'outline' }
+            : { label: t.research.available, tone: 'secondary' }
   return h.aside(
     [
       h.Key('detail'),
+      h.DataAttribute('exit', 'gesture'),
       h.Class(
-        cn(
-          FLOAT,
-          'absolute right-4 bottom-4 z-10 flex max-h-[calc(100%-96px)] w-[320px] flex-col overflow-hidden compact:right-3 compact:bottom-3 compact:left-3 compact:max-h-[46%] compact:w-auto',
-        ),
+        'absolute inset-y-0 right-0 z-20 flex w-[368px] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:border-t compact:border-l-0',
       ),
     ],
     [
-      queuePanel(model, entry.id, h),
       h.div(
-        [h.Key(entry.id), h.Class(`flex min-h-0 flex-1 flex-col gap-4 p-5 ${SCROLL} enter-pop`)],
+        [h.Class('flex shrink-0 items-start gap-3 border-b border-hairline px-5 py-4')],
         [
+          researchMark(entry, 'lg', state === 'locked', h),
           h.div(
-            [h.Class('flex items-center gap-3')],
+            [h.Class('flex min-w-0 flex-1 flex-col gap-1')],
             [
-              researchMark(entry, 'lg', state === 'locked', h),
               h.div(
-                [h.Class('flex min-w-0 flex-col gap-1')],
+                [h.Class('flex min-w-0 items-center gap-2')],
                 [
                   h.span(
                     [
                       h.Class(
-                        'text-[calc(16px*var(--type-scale))] leading-tight font-semibold tracking-[-0.02em]',
+                        'truncate text-[calc(17px*var(--type-scale))] leading-tight font-semibold tracking-[-0.025em]',
                       ),
                     ],
                     [t.catalog.research[entry.id].name],
                   ),
-                  h.span(
-                    [h.Class(EYEBROW)],
-                    [`${track} · ${t.catalog.eras[entry.era]?.name ?? eraName(entry.era)}`],
-                  ),
+                  badge({ variant: status.tone, className: 'shrink-0' }, [status.label], h),
                 ],
+              ),
+              h.span(
+                [h.Class(EYEBROW)],
+                [`${track} · ${t.catalog.eras[entry.era]?.name ?? eraName(entry.era)}`],
               ),
             ],
           ),
-          h.p(
-            [h.Class('text-[calc(13px*var(--type-scale))] leading-relaxed text-foreground/85')],
-            [t.catalog.research[entry.id].blurb],
+          button(
+            {
+              onClick: Message.PanelClosed(),
+              variant: 'ghost',
+              size: 'icon-sm',
+              className: 'shrink-0 text-muted-foreground',
+              attributes: [h.AriaLabel(t.research.closeEsc), h.Title(t.research.closeEsc)],
+            },
+            icon(h, X, 'size-4'),
+            h,
           ),
-          terms(entry, h),
+        ],
+      ),
+      stalled?.stall ? requirement(t, stalled.stall, first, consequence, h) : h.empty,
+      queuePanel(model, entry.id, h),
+      h.div(
+        [h.Key(entry.id), h.Class('min-h-0 flex-1 overflow-auto [scrollbar-width:thin] enter-pop')],
+        [
+          h.section(
+            [h.Class('border-b border-hairline px-5 py-4 last:border-b-0')],
+            [
+              h.p(
+                [h.Class('text-[calc(13px*var(--type-scale))] leading-relaxed text-foreground/85')],
+                [t.catalog.research[entry.id].blurb],
+              ),
+              h.div([h.Class('mt-3')], [terms(entry, h)]),
+            ],
+          ),
           open
-            ? h.div(
+            ? h.section(
+                [h.Class('border-b border-hairline px-5 py-4 last:border-b-0')],
                 [
-                  h.Class(
-                    'flex items-start gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-[calc(12px*var(--type-scale))] leading-snug text-warn',
+                  h.div(
+                    [
+                      h.Class(
+                        'flex items-start gap-2 text-[calc(12px*var(--type-scale))] leading-snug text-warn',
+                      ),
+                    ],
+                    [
+                      icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
+                      t.research.openActionItemTheIncidentIt,
+                    ],
                   ),
-                ],
-                [
-                  icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
-                  t.research.openActionItemTheIncidentIt,
-                ],
-              )
-            : h.empty,
-          stalled?.stall
-            ? h.div(
-                [
-                  h.Class(
-                    'flex items-start gap-2 rounded-lg bg-[var(--warn-soft)] px-3 py-2 text-[12px] leading-snug text-warn',
-                  ),
-                ],
-                [
-                  icon(h, TriangleAlert, 'mt-px size-3.5 shrink-0'),
-                  stalled.id !== entry.id
-                    ? t.research.stallsFirst(
-                        t.catalog.research[stalled.id].name,
-                        stallReasonIn(t, stalled.stall),
-                      )
-                    : queued === 0
-                      ? t.research.everyStudyBehindItWaits(stallReasonIn(t, stalled.stall))
-                      : t.research.atTheFrontOfTheQueue(stallReasonIn(t, stalled.stall)),
                 ],
               )
             : h.empty,
           state === 'owned' ? h.empty : costRows(game, ledger, entry, h),
-          entry.requires.length > 0
-            ? h.div(
-                [h.Class('flex flex-col gap-1')],
-                [
-                  h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.requires]),
-                  ...entry.requires.map((id) => linkRow(game, RESEARCH[id], h)),
-                ],
-              )
-            : h.empty,
-          follow.length > 0
-            ? h.div(
-                [h.Class('flex flex-col gap-1')],
-                [
-                  h.span([h.Class(cn(EYEBROW, 'px-2'))], [t.research.leadsTo]),
-                  ...follow.map((next) => linkRow(game, next, h)),
-                ],
-              )
-            : h.empty,
+          linkSection(
+            t.research.requires,
+            entry.requires.map((id) => RESEARCH[id]),
+            game,
+            h,
+          ),
+          linkSection(t.research.leadsTo, follow, game, h),
         ],
       ),
       h.div(
-        [h.Class('flex gap-2 border-t border-hairline p-3')],
+        [h.Class('flex shrink-0 gap-2 border-t border-hairline p-3')],
         [
           button(
             {
@@ -1073,51 +1236,27 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
     [
       h.div(
+        [h.Class('absolute inset-y-0 left-0 right-[368px] flex flex-col compact:right-0')],
         [
-          h.Key('scroll'),
-          h.OnMount(ResearchScroll()),
-          h.Class(`absolute inset-0 cursor-grab ${SCROLL}`),
-        ],
-        [
-          // Room above for the header, and to the right and below for the detail card.
           h.div(
-            [h.Class('w-fit pt-20 pr-[360px] pb-10 pl-4 compact:pr-4 compact:pb-[50vh]')],
             [
-              h.div(
-                [
-                  h.Class('relative'),
-                  h.Style({ width: `${layout.width}px`, height: `${layout.height}px` }),
-                ],
-                [
-                  ...backdrop(model, layout, h),
-                  wires(model, layout, focus, h),
-                  ...[...layout.placed.values()].map((place) =>
-                    node(model, place, place.entry.id === focus.id, h),
-                  ),
-                ],
+              h.Class(
+                'flex h-[76px] shrink-0 items-center gap-4 border-b border-hairline bg-surface px-4 compact:h-14',
               ),
             ],
-          ),
-        ],
-      ),
-      h.div(
-        [
-          h.Class(
-            'pointer-events-none absolute inset-x-4 top-4 z-10 flex items-start justify-between gap-3 compact:inset-x-3 compact:top-[max(12px,env(safe-area-inset-top))]',
-          ),
-        ],
-        [
-          h.div(
-            [h.Class(cn(PANEL, 'pointer-events-auto flex items-baseline gap-4 px-4 py-2.5'))],
             [
-              h.span(
-                [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
-                [t.research.research],
-              ),
               h.span(
                 [
                   h.Class(
-                    'flex flex-wrap items-center gap-x-3 gap-y-1 text-[calc(12.5px*var(--type-scale))]',
+                    'shrink-0 text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]',
+                  ),
+                ],
+                [t.research.research],
+              ),
+              h.div(
+                [
+                  h.Class(
+                    'flex min-w-0 flex-1 items-center gap-3 overflow-x-auto text-[calc(12.5px*var(--type-scale))] [scrollbar-width:none]',
                   ),
                 ],
                 [
@@ -1150,18 +1289,35 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
           ),
           h.div(
-            [h.Class(cn(PANEL, 'pointer-events-auto p-1'))],
+            [h.Class('relative min-h-0 flex-1')],
             [
-              button(
-                {
-                  onClick: Message.PanelClosed(),
-                  variant: 'ghost',
-                  size: 'icon',
-                  className: 'text-muted-foreground',
-                  attributes: [h.AriaLabel(t.research.closeEsc)],
-                },
-                icon(h, X, 'size-4'),
-                h,
+              h.div(
+                [
+                  h.Key('scroll'),
+                  h.OnMount(ResearchScroll()),
+                  h.Class(`absolute inset-0 cursor-grab ${SCROLL}`),
+                ],
+                [
+                  // Room below for the detail sheet on a narrow screen.
+                  h.div(
+                    [h.Class('w-fit p-4 compact:pb-[68vh]')],
+                    [
+                      h.div(
+                        [
+                          h.Class('relative'),
+                          h.Style({ width: `${layout.width}px`, height: `${layout.height}px` }),
+                        ],
+                        [
+                          ...backdrop(model, layout, h),
+                          wires(model, layout, focus, h),
+                          ...[...layout.placed.values()].map((place) =>
+                            node(model, place, place.entry.id === focus.id, h),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

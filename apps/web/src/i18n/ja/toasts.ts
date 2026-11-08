@@ -114,7 +114,7 @@ export const toasts: Messages['toasts'] = {
     `研究をキューに追加: ${name}。${pools}がまだ足りません。稼ぎの速度で進みます。`,
   studiesQueued: (names) => `研究をキューに追加: ${names.join('、')}。`,
   studiesQueuedStalled: (names, first, reason) =>
-    `研究をキューに追加: ${names.join('、')}。${first}が先に停滞します。${reason}`,
+    `研究をキューに追加: ${names.join('、')}。${first}が先です。${reason}`,
   studyingNow: (name) => `研究中: ${name}。`,
   studyingNowThen: (running, name) => `研究中: ${running}。次は${name}。`,
   studyCancelled: (name) => `研究を中止: ${name}。`,

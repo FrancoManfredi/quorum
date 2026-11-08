@@ -91,22 +91,22 @@ export const hud: Messages['hud'] = {
   fitTheBoard: 'Cadrer le plan',
   fullscreen: 'Plein écran',
   spent: 'épuisé',
-  stalledBreadth: (types) =>
-    `Bloquée : Analytics doit échantillonner ses types de requêtes sur ${types} types de Composants.`,
-  stalledShip: (pool, feature) =>
-    `Bloquée : rien ne rapporte de ${pool}. Livrez ${feature} pour en gagner.`,
-  stalledFailure:
-    'Bloquée : rien ne rapporte de connaissances Échec. Les requêtes échouées en rapportent.',
-  stalledPool: (pool) => `Bloquée : rien ne rapporte encore de ${pool}.`,
-  stalledShape: (shape) => `Bloquée : ${shape}.`,
+  studyBlocked: (need) => `Elle ne peut pas avancer : ${need}.`,
+  needBreadth: (types) =>
+    `Analytics n’échantillonne pas ses types de requêtes sur ${types} types de Composants`,
+  needBreadthRegions: (regions) =>
+    `Analytics n’échantillonne pas ses types de requêtes dans ${regions} régions`,
+  needShip: (pool, feature) => `rien ne rapporte de ${pool} (livrez ${feature})`,
+  needFailure: 'les requêtes échouées ne rapportent pas de connaissances Échec',
+  needPool: (pool) => `rien ne rapporte encore de ${pool}`,
   shapeConnections: (count) =>
-    `les App Servers doivent détenir plus de ${count} connexions à la base`,
-  shapeReadShare: (pct) => `une Database doit consacrer ${pct} % de son travail aux lectures`,
-  shapeCacheHit: (pct) => `un Cache doit toucher ${pct} % de ses lectures`,
-  shapeBacklog: (seconds) => `une Queue doit retenir un arriéré de ${seconds} s ou plus`,
-  shapeReportShare: (pct) => `une Database doit consacrer ${pct} % de son travail aux rapports`,
-  shapeSaturation: (pct) => `un Node doit tourner à ${pct} % de sa capacité`,
-  shapeReplica: 'un Read Replica doit servir des lectures',
+    `les App Servers ne détiennent pas plus de ${count} connexions à la base`,
+  shapeReadShare: (pct) => `une Database ne consacre pas ${pct} % de son travail aux lectures`,
+  shapeCacheHit: (pct) => `un Cache ne touche pas ${pct} % de ses lectures`,
+  shapeBacklog: (seconds) => `une Queue ne retient pas un arriéré de ${seconds} s ou plus`,
+  shapeReportShare: (pct) => `une Database ne consacre pas ${pct} % de son travail aux rapports`,
+  shapeSaturation: (pct) => `un Node ne tourne pas à ${pct} % de sa capacité`,
+  shapeReplica: 'un Read Replica ne sert pas de lectures',
   unclassified: 'Non classé',
   unsampled: (pct) => `${pct} % non classé`,
   unsampledHint:

@@ -313,11 +313,13 @@ night. The player can start a Study with no Insight saved.
 A Study **stalls** when a recipe pool earns nothing and holds less than the Study still draws, when
 it has not started and the Design samples its kinds at too few Component types, or when it has not
 started and the shape its item asks for is missing. A stalled running Study holds every Study behind
-it. The queue row, the Insight card, and the item's card mark a stalled Study and say why: the pool
+it. The queue row, the Insight card, and the item's sidebar mark a stalled Study and say why: the pool
 that earns nothing, the shape that is missing, and the Feature that brings the pool's kind when one
-does, such as Password login for `login`. Queueing a stalled item says the same. While the running
-Study is stalled, a teammate's Mail waits in Needs action with an Open Research button; its Thread
-resolves when the Study moves again or leaves the queue.
+does, such as Password login for `login`. The item's sidebar shows the Design's current value against
+the requirement, such as 47% of 60% of a Database's work on reads, and **Queue Study** puts the item
+in the queue to start when the Design clears it. Queueing a stalled item says the same. While the
+running Study is stalled, a teammate's Mail waits in Needs action with an Open Research button; its
+Thread resolves when the Study moves again or leaves the queue.
 
 `speed` is 1, and two things raise it:
 

@@ -115,16 +115,33 @@ const recipeKinds = (id: ResearchId): ReadonlyArray<RequestKind> =>
     (pool): pool is RequestKind => pool !== 'failure',
   )
 
-/** Whether the Design samples an item's recipe kinds at enough Component types. */
-export const broadEnough = (id: ResearchId, ledger: Ledger): boolean => {
-  const needed = BREADTH[id] ?? 0
+/** The gap in an item's breadth: the recipe kind sampled at the fewest places. */
+export const breadthGap = (
+  id: ResearchId,
+  ledger: Ledger,
+): Readonly<{
+  unit: 'components' | 'regions'
+  target: number
+  current: number
+}> | null => {
+  const kinds = recipeKinds(id)
+  if (kinds.length === 0) return null
+  const components = BREADTH[id] ?? 0
+  if (components > 0) {
+    const current = Math.min(...kinds.map((kind) => ledger.breadth[kind] ?? 0))
+    if (current < components) return { unit: 'components', target: components, current }
+  }
   const regions = REGION_BREADTH[id] ?? 0
-  return (
-    (needed === 0 || recipeKinds(id).every((kind) => (ledger.breadth[kind] ?? 0) >= needed)) &&
-    (regions === 0 ||
-      recipeKinds(id).every((kind) => (ledger.breadthRegions[kind] ?? 0) >= regions))
-  )
+  if (regions > 0) {
+    const current = Math.min(...kinds.map((kind) => ledger.breadthRegions[kind] ?? 0))
+    if (current < regions) return { unit: 'regions', target: regions, current }
+  }
+  return null
 }
+
+/** Whether the Design samples an item's recipe kinds at enough Component types. */
+export const broadEnough = (id: ResearchId, ledger: Ledger): boolean =>
+  breadthGap(id, ledger) === null
 
 /** Whether a Team spikes the running Study: a Team builds its Spike now. */
 export const spiked = (game: Game): boolean => {
@@ -163,19 +180,63 @@ export const limitingPool = (game: Game): InsightPool | null => {
 
 const InsightPoolSchema = Schema.Literals(INSIGHT_POOLS)
 
-/** The value a shape is measured against: a count, a share, a ratio, or a wait in seconds. */
+/** The value a shape is measured against: a count, a share, a ratio, a wait in seconds, or one replica. */
 export const shapeValueOf = (id: ResearchId): number => {
   const shape = SHAPE[id]
   if (!shape) return 0
-  return 'moreThan' in shape
-    ? shape.moreThan
-    : 'share' in shape
-      ? shape.share
-      : 'ratio' in shape
-        ? shape.ratio
-        : 'seconds' in shape
-          ? shape.seconds
-          : 0
+  switch (shape.kind) {
+    case 'connections':
+      return shape.moreThan
+    case 'read-share':
+    case 'report-share':
+      return shape.share
+    case 'cache-hit':
+    case 'saturation':
+      return shape.ratio
+    case 'backlog':
+      return shape.seconds
+    case 'replica':
+      return 1
+  }
+}
+
+/**
+ * The closest the Design comes to a shape (10 "Research shapes"): the App Servers with the most
+ * database connections, the Database that spends the most of its work on reads, the Cache with
+ * the best hit ratio, the Queue with the oldest task.
+ */
+export const shapeCurrent = (game: Game, ledger: Ledger, id: ResearchId): number => {
+  const shape = SHAPE[id]
+  if (!shape) return 0
+  let best = 0
+  for (const node of game.nodes) {
+    const entry = ledger.nodes[node.id]
+    if (!entry) continue
+    switch (shape.kind) {
+      case 'connections':
+        if (entry.connections !== null) best = Math.max(best, entry.connections.used)
+        break
+      case 'read-share':
+        if (node.type === 'database') best = Math.max(best, entry.workShare['q-read'] ?? 0)
+        break
+      case 'cache-hit':
+        if (node.type === 'cache') best = Math.max(best, entry.hitRatio ?? 0)
+        break
+      case 'backlog':
+        if (node.type === 'queue') best = Math.max(best, entry.age ?? 0)
+        break
+      case 'report-share':
+        if (node.type === 'database') best = Math.max(best, entry.workShare['q-scan'] ?? 0)
+        break
+      case 'saturation':
+        if (entry.capacity > 0) best = Math.max(best, entry.utilization)
+        break
+      case 'replica':
+        if (node.type === 'replica') return 1
+        break
+    }
+  }
+  return best
 }
 
 /**
@@ -186,41 +247,23 @@ export const shapeValueOf = (id: ResearchId): number => {
 export const shapeHolds = (game: Game, ledger: Ledger, id: ResearchId): boolean => {
   const shape = SHAPE[id]
   if (!shape) return true
-  for (const node of game.nodes) {
-    const entry = ledger.nodes[node.id]
-    if (!entry) continue
-    switch (shape.kind) {
-      case 'connections':
-        if (entry.connections !== null && entry.connections.used > shape.moreThan) return true
-        break
-      case 'read-share':
-        if (node.type === 'database' && (entry.workShare['q-read'] ?? 0) >= shape.share) return true
-        break
-      case 'cache-hit':
-        if (node.type === 'cache' && (entry.hitRatio ?? 0) >= shape.ratio) return true
-        break
-      case 'backlog':
-        if (node.type === 'queue' && (entry.age ?? 0) >= shape.seconds) return true
-        break
-      case 'report-share':
-        if (node.type === 'database' && (entry.workShare['q-scan'] ?? 0) >= shape.share) return true
-        break
-      case 'saturation':
-        if (entry.capacity > 0 && entry.utilization >= shape.ratio) return true
-        break
-      case 'replica':
-        if (node.type === 'replica') return true
-        break
-    }
-  }
-  return false
+  const current = shapeCurrent(game, ledger, id)
+  return shape.kind === 'connections' ? current > shape.moreThan : current >= shapeValueOf(id)
 }
 
-/** Why a Study cannot finish on the Design as it is. */
+/** Why a Study cannot finish on the Design as it is, and how far the Design has got. */
 export const StudyStall = Schema.TaggedUnion({
-  Breadth: { types: Schema.Finite },
+  Breadth: {
+    unit: Schema.Literals(['components', 'regions']),
+    target: Schema.Finite,
+    current: Schema.Finite,
+  },
   Pool: { pool: InsightPoolSchema, feature: Schema.NullOr(FeatureIdSchema) },
-  Shape: { shape: Schema.Literals(STUDY_SHAPE_KINDS), value: Schema.Finite },
+  Shape: {
+    shape: Schema.Literals(STUDY_SHAPE_KINDS),
+    value: Schema.Finite,
+    current: Schema.Finite,
+  },
 })
 export type StudyStall = typeof StudyStall.Type
 
@@ -235,9 +278,15 @@ export type StudyStall = typeof StudyStall.Type
 export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
   const running = StudyPhase.guards.Running(game.studies.find((item) => item.id === id)?.phase)
   if (!running) {
-    if (!broadEnough(id, ledger)) return StudyStall.cases.Breadth.make({ types: BREADTH[id] ?? 0 })
-    if (!shapeHolds(game, ledger, id))
-      return StudyStall.cases.Shape.make({ shape: SHAPE[id]!.kind, value: shapeValueOf(id) })
+    const breadth = breadthGap(id, ledger)
+    if (breadth) return StudyStall.cases.Breadth.make(breadth)
+    const shape = SHAPE[id]
+    if (shape && !shapeHolds(game, ledger, id))
+      return StudyStall.cases.Shape.make({
+        shape: shape.kind,
+        value: shapeValueOf(id),
+        current: shapeCurrent(game, ledger, id),
+      })
   }
   const left =
     1 -

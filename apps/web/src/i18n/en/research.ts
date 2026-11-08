@@ -19,11 +19,29 @@ export const research = {
   studying: (p0: string | number | null) => `Studying · ${p0}%`,
   openActionItemTheIncidentIt:
     'Open action item. The incident it prevents is twice as likely until you research it.',
-  everyStudyBehindItWaits: (p0: string | number | null) => `${p0} Every Study behind it waits.`,
-  stallsFirst: (name: string, reason: string) =>
-    `${name} stalls first. ${reason} Every Study behind it waits.`,
-  atTheFrontOfTheQueue: (p0: string | number | null) =>
-    `${p0} At the front of the queue, it holds every Study behind it.`,
+  cannotRun: (need: string) => `This Study can’t run unless ${need}.`,
+  cannotRunShort: 'Can’t run',
+  available: 'Available',
+  locked: 'Locked',
+  studyingShort: 'Studying',
+  requirement: 'Requirement',
+  costLabel: 'Cost',
+  firstCannotRun: (name: string, need: string) =>
+    `${name} comes first and can’t run unless ${need}. Until it runs, this Study waits.`,
+  atTheFront: 'At the front of the queue, it holds every Study behind it.',
+  everyStudyBehindItWaits: 'Every Study behind it waits.',
+  queueToStart: 'Queue it to start when the requirement is met.',
+  gapShare: (current: number, target: number) =>
+    `${Math.round(current * 100)}% of ${Math.round(target * 100)}%`,
+  gapConnections: (current: number, target: number) =>
+    `${current} of more than ${target} connections`,
+  gapSeconds: (current: number, target: number) => `${current.toFixed(1)} s of ${target} s`,
+  gapReplica: (current: number) => (current >= 1 ? 'Placed' : 'Not placed'),
+  gapComponents: (current: number, target: number) => `${current} of ${target} Component types`,
+  gapRegions: (current: number, target: number) => `${current} of ${target} regions`,
+  queueStudy: (duration: string | number) => `Queue Study · ${duration}`,
+  queued: 'Queued',
+  queueCount: (count: number, max: number) => `${count} of ${max}`,
   requires: 'Requires',
   leadsTo: 'Leads to',
   research: 'Research',

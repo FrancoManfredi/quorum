@@ -333,7 +333,7 @@ export const EASY_MODE: Letters = [
 /** A teammate says why the running Study is stalled. */
 export const STALL: Letters<{ readonly research: string; readonly reason: string }> = [
   ({ research, reason }) => ({
-    subject: `${research} is stalled`,
+    subject: `${research} can’t run yet`,
     body: `${reason}\n\nEvery Study behind it waits until it moves. Fix the cause, or open Research to move another Study up or cancel this one.`,
   }),
 ]

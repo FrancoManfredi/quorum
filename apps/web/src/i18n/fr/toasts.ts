@@ -119,7 +119,7 @@ export const toasts: Messages['toasts'] = {
     `Étude en file d’attente : ${name}. Pas assez de ${pools} pour l’instant : elle avance au rythme de leur gain.`,
   studiesQueued: (names) => `Études en file d’attente : ${names.join(', ')}.`,
   studiesQueuedStalled: (names, first, reason) =>
-    `Études en file d’attente : ${names.join(', ')}. ${first} bloque en premier. ${reason}`,
+    `Études en file d’attente : ${names.join(', ')}. ${first} passe en premier. ${reason}`,
   studyingNow: (name) => `Étude en cours : ${name}.`,
   studyingNowThen: (running, name) => `Étude en cours : ${running}, puis ${name}.`,
   studyCancelled: (name) => `Étude annulée : ${name}.`,

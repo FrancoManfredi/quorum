@@ -1860,7 +1860,7 @@ test('a stalled running Study raises a teammate alert that opens Research and cl
   const alert = stalled.board.inbox.mail.find(
     (mail) => mail.key === 'research:stalled:auth-provider',
   )
-  expect(alert?.subject).toBe('Managed identity is stalled')
+  expect(alert?.subject).toBe('Managed identity can’t run yet')
   expect(alert?.entries).toHaveLength(1)
   expect(alert?.actions[0]?.id).toBe('research:auth-provider')
   const opened = update(

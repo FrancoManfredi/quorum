@@ -108,7 +108,7 @@ export const toasts: Messages['toasts'] = {
     `已加入研究队列：${name}。${pools}暂时不足：将按其获取速度推进。`,
   studiesQueued: (names) => `已加入研究队列：${names.join('、')}。`,
   studiesQueuedStalled: (names, first, reason) =>
-    `已加入研究队列：${names.join('、')}。${first}会先停滞。${reason}`,
+    `已加入研究队列：${names.join('、')}。${first}排在前面。${reason}`,
   studyingNow: (name) => `正在研究：${name}。`,
   studyingNowThen: (running, name) => `正在研究：${running}，之后是${name}。`,
   studyCancelled: (name) => `已取消研究：${name}。`,

@@ -122,7 +122,7 @@ export const toasts = {
     `Study queued: ${name}. Not enough ${pools} yet: it runs at their earn rate.`,
   studiesQueued: (names: ReadonlyArray<string>) => `Studies queued: ${names.join(', ')}.`,
   studiesQueuedStalled: (names: ReadonlyArray<string>, first: Value, reason: Value) =>
-    `Studies queued: ${names.join(', ')}. ${first} stalls first. ${reason}`,
+    `Studies queued: ${names.join(', ')}. ${first} comes first. ${reason}`,
   studyingNow: (name: Value) => `Studying now: ${name}.`,
   studyingNowThen: (running: Value, name: Value) => `Studying now: ${running}, then ${name}.`,
   studyCancelled: (name: Value) => `Study cancelled: ${name}.`,

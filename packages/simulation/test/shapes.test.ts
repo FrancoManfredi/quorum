@@ -6,7 +6,14 @@ import { link, newGame, node, preseedGame } from '../src/company.ts'
 import { freeSandbox, GUIDED } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
 import { unsampledOf } from '../src/solve-insight.ts'
-import { advanceStudies, broadEnough, progressOf, shapeHolds, studyStall } from '../src/studies.ts'
+import {
+  advanceStudies,
+  broadEnough,
+  progressOf,
+  shapeCurrent,
+  shapeHolds,
+  studyStall,
+} from '../src/studies.ts'
 import type { Game } from '../src/state.ts'
 
 /* A Study asks the Design to do the thing it teaches (10 "Research shapes"), and traffic no tap
@@ -37,6 +44,28 @@ test('a Study waits for the behaviour it teaches', () => {
     _tag: 'Shape',
     shape: 'saturation',
   })
+})
+
+test('a stalled shape reports how far the Design has got', () => {
+  const game = newGame(1)
+  const ledger = solveFlow(game)
+  const stall = studyStall(game, ledger, 'autoscaling')
+  if (stall?._tag !== 'Shape') throw new Error('expected a shape stall')
+  expect(stall.current).toBe(shapeCurrent(game, ledger, 'autoscaling'))
+  expect(stall.current).toBeLessThan(stall.value)
+})
+
+test('a Study that needs two regions reports regions, not Component types', () => {
+  const base = preseedGame()
+  const game = {
+    ...base,
+    stage: 5,
+    researched: [...base.researched, 'percentiles', 'tracing'] as const,
+  }
+  const stall = studyStall(game, solveFlow(game), 'rum')
+  expect(stall).toMatchObject({ _tag: 'Breadth', unit: 'regions', target: 2 })
+  if (stall?._tag !== 'Breadth') throw new Error('expected a breadth stall')
+  expect(stall.current).toBeLessThan(stall.target)
 })
 
 test('a Read Replica satisfies the shape that leads to consensus', () => {

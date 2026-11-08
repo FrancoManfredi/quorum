@@ -306,6 +306,8 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
   const recipe = running ? simRecipe(game, running.id) : {}
   const limit = running ? limitingPool(game) : null
   const stall = running ? studyStall(game, ledger, running.id) : null
+  const queued = game.studies.length - 1
+  const runningLabel = `${stall ? t.research.cannotRunShort : `${Math.floor(studyProgressOf(running) * 100)}%`}${queued > 0 ? ` · +${queued}` : ''}`
   const pools = POOL_ORDER.filter(
     (pool) => game.pools[pool] >= 1 || ledger.insight[pool] > 0 || (recipe[pool] ?? 0) > 0,
   )
@@ -359,12 +361,7 @@ const insightCard = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Htm
                         ),
                       ),
                     ],
-                    [
-                      stall ? icon(h, TriangleAlert, 'size-3') : h.empty,
-                      game.studies.length > 1
-                        ? `${Math.floor(studyProgressOf(running) * 100)}% · +${game.studies.length - 1}`
-                        : `${Math.floor(studyProgressOf(running) * 100)}%`,
-                    ],
+                    [stall ? icon(h, TriangleAlert, 'size-3') : h.empty, runningLabel],
                   )
                 : h.empty,
             ],

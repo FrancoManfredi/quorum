@@ -4467,7 +4467,7 @@ ${v.from}`,
     ],
     stall: [
       (v) => ({
-        subject: `${v.research} est bloquée`,
+        subject: `Impossible d’avancer : ${v.research}`,
         body: `${v.reason}
 
 Toutes les études derrière elle attendent qu’elle avance. Corrigez la cause, ou ouvrez la Recherche pour faire monter une autre étude ou annuler celle-ci.`,

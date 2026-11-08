@@ -47,21 +47,26 @@ export const formats = (t: Messages) => ({
             : t.units.nodeAboveLoad(Math.round(threshold * 100)),
 })
 
-/** Why a Study stalls, in one sentence (10 "Studies"). */
-export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
+/** What a Study waits for, as the rest of a "can’t run unless …" sentence (10 "Studies"). */
+export const stallNeedIn = (t: Messages, stall: StudyStall): string =>
   StudyStall.match(stall, {
-    Breadth: ({ types }) => t.hud.stalledBreadth(types),
+    Breadth: ({ unit, target }) =>
+      unit === 'regions' ? t.hud.needBreadthRegions(target) : t.hud.needBreadth(target),
     Pool: ({ pool, feature }) =>
       feature
-        ? t.hud.stalledShip(insightName(t, pool), t.catalog.features[feature].name)
+        ? t.hud.needShip(insightName(t, pool), t.catalog.features[feature].name)
         : pool === 'failure'
-          ? t.hud.stalledFailure
-          : t.hud.stalledPool(insightName(t, pool)),
-    Shape: ({ shape, value }) => t.hud.stalledShape(shapeIn(t, shape, value)),
+          ? t.hud.needFailure
+          : t.hud.needPool(insightName(t, pool)),
+    Shape: ({ shape, value }) => shapeNeedIn(t, shape, value),
   })
 
+/** Why a Study stalls, in one sentence, for a surface that names the Study beside it. */
+export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
+  t.hud.studyBlocked(stallNeedIn(t, stall))
+
 /** The behaviour a shape asks the Design to show, in this language. */
-const shapeIn = (t: Messages, shape: StudyShapeKind, value: number): string => {
+const shapeNeedIn = (t: Messages, shape: StudyShapeKind, value: number): string => {
   const pct = Math.round(value * 100)
   switch (shape) {
     case 'connections':

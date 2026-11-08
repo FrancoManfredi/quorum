@@ -13,19 +13,19 @@ Press `R` to open Research and spend Insight on a Study. Press `T` to open Team 
 
 The Research button is in the toolbar at the top right. It shows up the first time your Insight can pay for an item, and a badge counts the items you can afford. Before that, `R` does nothing.
 
-![The Research panel with the tree on the left and the detail card at the bottom right](/play/research-panel.png)
+![The Research panel with the tree on the left and the detail sidebar on the right](/play/research-panel.png)
 
 Look at the header chips. Each chip is one Insight pool and the amount you hold. Then look at the tree: each track grows up from its root, with one band per Era. The tracks are Infrastructure, Data, Reliability, Observability, Performance, Runtimes, Frameworks, Security, Product, and Cost.
 
 ### Read an item
 
-Click an item to focus it. The detail card at the bottom right shows:
+Click an item to focus it. The detail sidebar on the right shows:
 
 - **Cost**: one row per pool in the item's recipe. Each row shows the cost, how much you **held**, and the rate the pool earns per second. A held amount in amber means you cannot pay yet.
 - **Requires**: the items you must own first. Click one to jump to it.
 - **Leads to**: what the item opens.
 
-The card's main button says what you can do now:
+The sidebar's main button says what you can do now:
 
 | Button                | Meaning                                                                                                              |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -36,7 +36,7 @@ The card's main button says what you can do now:
 | **Study after** items | A prerequisite is missing. Select it to queue the missing prerequisites first, then the item. The button names them. |
 | **Researched**        | You own it.                                                                                                          |
 
-A locked item is not an error. It tells you what to do next: wait for the Era, or queue it and let its prerequisites run first. When a long chain is missing, the button counts the prerequisites instead of naming them. A warning in the card tells you why a Study will stall: a pool that earns nothing, or a shape the Design does not show yet, such as a Cache that never hits or a Database with no backlog behind it. For a chain, it names the first Study that will stall. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
+A locked item is not an error. It tells you what to do next: wait for the Era, or queue it and let its prerequisites run first. When a long chain is missing, the button counts the prerequisites instead of naming them. A warning in the sidebar says what a Study is waiting for: a pool that earns nothing, or a shape the Design does not show yet, such as a Cache that never hits or a Database that spends too little of its work on reads. The sidebar shows how far the Design is from the requirement, such as **47% of 60%**, and **Queue Study** puts the item in the queue to start when the requirement is met. For a chain, it names the first Study that waits. A pool stops filling at its cap, so Insight you hoard past that point earns nothing more. Read [Earn Insight and research](/tutorials/research-and-insight) for where Insight comes from.
 
 ### Start and queue a Study
 
@@ -45,7 +45,7 @@ A locked item is not an error. It tells you what to do next: wait for the Era, o
 3. Select **Start Study**. The Insight card on the HUD shows the Study's name and its percentage.
 4. Press `Esc` to go back to the board. The Study keeps running.
 
-To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies, a chain counts every Study in it, and an unaffordable Study at the front holds every Study behind it, which the card tells you. Under the card, **Move up**, **Move down** and **Cancel** reorder or remove a queued Study, and you can drag a row to a new place. **Cancel** loses its progress.
+To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies, a chain counts every Study in it, and an unaffordable Study at the front holds every Study behind it, which the sidebar tells you. Each queue row has **Move up**, **Move down** and **Cancel** buttons, and you can drag a row to a new place. **Cancel** loses its progress.
 
 A Study never moves above a prerequisite it needs. Its **Move up** button turns off, and a drag that would pass the prerequisite is refused with a toast that names it. Cancelling a prerequisite also cancels the queued Studies that need it.
 

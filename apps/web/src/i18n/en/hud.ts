@@ -91,22 +91,23 @@ export const hud = {
   fitTheBoard: 'Fit the board',
   fullscreen: 'Fullscreen',
   spent: 'spent',
-  stalledBreadth: (types: string | number) =>
-    `Stalled: Analytics must sample its request kinds at ${types} Component types.`,
-  stalledShip: (pool: string | number, feature: string | number) =>
-    `Stalled: nothing earns ${pool}. Ship ${feature} to earn it.`,
-  stalledFailure: 'Stalled: nothing earns Failure Insight. Failed requests earn it.',
-  stalledPool: (pool: string | number) => `Stalled: nothing earns ${pool} yet.`,
-  stalledShape: (shape: string | number) => `Stalled: ${shape}.`,
+  studyBlocked: (need: string | number) => `It can’t run unless ${need}.`,
+  needBreadth: (types: string | number) =>
+    `Analytics samples its request kinds at ${types} Component types`,
+  needBreadthRegions: (regions: string | number) =>
+    `Analytics samples its request kinds in ${regions} regions`,
+  needShip: (pool: string | number, feature: string | number) =>
+    `something earns ${pool} (ship ${feature})`,
+  needFailure: 'failed requests earn Failure Insight',
+  needPool: (pool: string | number) => `something earns ${pool}`,
   shapeConnections: (count: string | number) =>
-    `the App Servers must hold more than ${count} database connections`,
-  shapeReadShare: (pct: string | number) => `a Database must spend ${pct}% of its work on reads`,
-  shapeCacheHit: (pct: string | number) => `a Cache must hit on ${pct}% of its reads`,
-  shapeBacklog: (seconds: string | number) => `a Queue must hold a backlog of ${seconds} s or more`,
-  shapeReportShare: (pct: string | number) =>
-    `a Database must spend ${pct}% of its work on reports`,
-  shapeSaturation: (pct: string | number) => `a Node must run at ${pct}% of its capacity`,
-  shapeReplica: 'a Read Replica must serve reads',
+    `the App Servers hold more than ${count} database connections`,
+  shapeReadShare: (pct: string | number) => `a Database spends ${pct}% of its work on reads`,
+  shapeCacheHit: (pct: string | number) => `a Cache hits on ${pct}% of its reads`,
+  shapeBacklog: (seconds: string | number) => `a Queue holds a backlog of ${seconds} s or more`,
+  shapeReportShare: (pct: string | number) => `a Database spends ${pct}% of its work on reports`,
+  shapeSaturation: (pct: string | number) => `a Node runs at ${pct}% of its capacity`,
+  shapeReplica: 'a Read Replica serves reads',
   unclassified: 'Unclassified',
   unsampled: (pct: string | number) => `${pct}% unclassified`,
   unsampledHint:

@@ -4525,7 +4525,7 @@ ${v.from}`,
     ],
     stall: [
       (v) => ({
-        subject: `${v.research}已停滞`,
+        subject: `${v.research}无法推进`,
         body: `${v.reason}
 
 排在它后面的研究都会等它推进。解决原因，或打开研究，把其他研究上移或取消这一项。`,

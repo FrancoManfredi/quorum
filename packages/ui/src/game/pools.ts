@@ -78,37 +78,42 @@ export const recipeOf = (
       : []
   })
 
-/** Why a Study stalls, in one sentence (10 "Studies"). */
-export const stallReason = (stall: StudyStall): string =>
+/** What a stalled Study waits for, as the rest of a "can’t run unless …" sentence (10 "Studies"). */
+export const stallNeed = (stall: StudyStall): string =>
   StudyStall.match(stall, {
-    Breadth: ({ types }) =>
-      `Stalled: Analytics must sample its request kinds at ${types} Component types.`,
+    Breadth: ({ unit, target }) =>
+      unit === 'regions'
+        ? `Analytics samples its request kinds in ${target} regions`
+        : `Analytics samples its request kinds at ${target} Component types`,
     Pool: ({ pool, feature }) =>
       feature
-        ? `Stalled: nothing earns ${poolName(pool)}. Ship ${FEATURES[feature].name} to earn it.`
+        ? `something earns ${poolName(pool)} (ship ${FEATURES[feature].name})`
         : pool === 'failure'
-          ? 'Stalled: nothing earns Failure Insight. Failed requests earn it.'
-          : `Stalled: nothing earns ${poolName(pool)} yet.`,
-    Shape: ({ shape, value }) => `Stalled: ${shapeReason(shape, value)}.`,
+          ? 'failed requests earn Failure Insight'
+          : `something earns ${poolName(pool)}`,
+    Shape: ({ shape, value }) => shapeNeed(shape, value),
   })
 
+/** Why a Study stalls, in one sentence, for a surface that names the Study beside it. */
+export const stallReason = (stall: StudyStall): string => `It can’t run unless ${stallNeed(stall)}.`
+
 /** The behaviour a shape asks the Design to show, in one clause. */
-export const shapeReason = (shape: StudyShapeKind, value: number): string => {
+export const shapeNeed = (shape: StudyShapeKind, value: number): string => {
   const pct = `${Math.round(value * 100)}%`
   switch (shape) {
     case 'connections':
-      return `the App Servers must hold more than ${value} database connections`
+      return `the App Servers hold more than ${value} database connections`
     case 'read-share':
-      return `a Database must spend ${pct} of its work on reads`
+      return `a Database spends ${pct} of its work on reads`
     case 'cache-hit':
-      return `a Cache must hit on ${pct} of its reads`
+      return `a Cache hits on ${pct} of its reads`
     case 'backlog':
-      return `a Queue must hold a backlog of ${value} s or more`
+      return `a Queue holds a backlog of ${value} s or more`
     case 'report-share':
-      return `a Database must spend ${pct} of its work on reports`
+      return `a Database spends ${pct} of its work on reports`
     case 'saturation':
-      return `a Node must run at ${pct} of its capacity`
+      return `a Node runs at ${pct} of its capacity`
     case 'replica':
-      return 'a Read Replica must serve reads'
+      return 'a Read Replica serves reads'
   }
 }
