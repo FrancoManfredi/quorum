@@ -2,27 +2,20 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-export const Closed = Schema.TaggedStruct('Closed', {})
-/** Calls fail fast until `until`; the Link sends nothing. */
-export const Open = Schema.TaggedStruct('Open', { until: Schema.Finite })
-export const Breaker = Schema.Union([Closed, Open])
+export const Breaker = Schema.TaggedUnion({
+  Closed: {},
+  Open: { until: Schema.Finite },
+})
 export type Breaker = typeof Breaker.Type
 
-/** Calls failed, so the breaker opened until `until`. */
-export const Tripped = Schema.TaggedStruct('Tripped', { until: Schema.Finite })
-/** A Step reached `at`: the open window is over. */
-export const ClosedAt = Schema.TaggedStruct('ClosedAt', { at: Schema.Finite })
-export const BreakerEvent = Schema.Union([Tripped, ClosedAt])
-export type BreakerEvent = typeof BreakerEvent.Type
-
-const States = Machine.state({
-  states: { Closed, Open },
-})
-
-const Events = Machine.events({
+export const BreakerEvent = Schema.TaggedUnion({
   Tripped: { until: Schema.Finite },
   ClosedAt: { at: Schema.Finite },
 })
+export type BreakerEvent = typeof BreakerEvent.Type
+
+const States = Machine.state({ states: Breaker.cases })
+const Events = Machine.eventsFromSchemas(BreakerEvent)
 
 export const breakerMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Closed' },
@@ -37,7 +30,6 @@ export const breakerMachine = Machine.make({ root: States, events: Events }).han
     },
     Open: {
       on: {
-        // A Step may land after `until`; it never closes the breaker early.
         ClosedAt: {
           target: 'Closed',
           guard: ({ state, event }) => event.at >= state.until,
@@ -48,13 +40,13 @@ export const breakerMachine = Machine.make({ root: States, events: Events }).han
   },
 })
 
-/** The next breaker state, or the same one when the event does not apply. */
 export const step = (breaker: Breaker, event: BreakerEvent): Breaker =>
   planState(breakerMachine, breaker, event)
 
-/** The Link fails fast and sends nothing. */
-export const isOpen = (breaker: Breaker): boolean => breaker._tag === 'Open'
+export const isOpen = Breaker.guards.Open
 
-/** The sim second the breaker closes again, or null while it is closed. */
 export const openUntil = (breaker: Breaker): number | null =>
-  breaker._tag === 'Open' ? breaker.until : null
+  Breaker.match(breaker, {
+    Closed: () => null,
+    Open: ({ until }) => until,
+  })

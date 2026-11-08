@@ -1,3 +1,4 @@
+import { Schema } from 'effect'
 import {
   BREADTH,
   REGION_BREADTH,
@@ -16,15 +17,15 @@ import {
   researchList,
   type InsightPool,
   type RequestKind,
-  type FeatureId,
   type ResearchId,
 } from './catalog.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { step as studyStep } from './study-machine.ts'
+import { StudyPhase, step as studyStep } from './study-machine.ts'
 import { has, researchReady } from './lookups.ts'
 import { isFeatureLive } from './features.ts'
 import { assignments } from './work.ts'
+import { FeatureId as FeatureIdSchema } from './state.ts'
 import type { Game, InsightPools, Study } from './state.ts'
 
 /** Seconds of traces the Company keeps: its longest Analytics retention. */
@@ -158,10 +159,14 @@ export const limitingPool = (game: Game): InsightPool | null => {
   return worst
 }
 
+const InsightPoolSchema = Schema.Literals(INSIGHT_POOLS)
+
 /** Why a Study cannot finish on the Design as it is. */
-export type StudyStall =
-  | Readonly<{ _tag: 'Breadth'; types: number }>
-  | Readonly<{ _tag: 'Pool'; pool: InsightPool; feature: FeatureId | null }>
+export const StudyStall = Schema.TaggedUnion({
+  Breadth: { types: Schema.Finite },
+  Pool: { pool: InsightPoolSchema, feature: Schema.NullOr(FeatureIdSchema) },
+})
+export type StudyStall = typeof StudyStall.Type
 
 /**
  * Whether a Study stalls, or null when it can finish: the Design samples its kinds at too few
@@ -170,26 +175,30 @@ export type StudyStall =
  * the pool's kind, when one does.
  */
 export const studyStall = (game: Game, ledger: Ledger, id: ResearchId): StudyStall | null => {
-  if (!broadEnough(id, ledger)) return { _tag: 'Breadth', types: BREADTH[id] ?? 0 }
+  if (!broadEnough(id, ledger)) return StudyStall.cases.Breadth.make({ types: BREADTH[id] ?? 0 })
   const left =
     1 -
     (() => {
       const phase = game.studies.find((item) => item.id === id)?.phase
-      return phase?._tag === 'Queued' || phase?._tag === 'Running' ? phase.progress : 0
+      return StudyPhase.guards.Queued(phase) || StudyPhase.guards.Running(phase)
+        ? phase.progress
+        : 0
     })()
   for (const [pool, cost] of Object.entries(recipeOf(game, id)) as Array<[InsightPool, number]>) {
     if (ledger.insight[pool] > 0 || game.pools[pool] >= cost * left) continue
     const feature = Object.values(FEATURES).find(
       (entry) => entry.unlocks?.kind === pool && !isFeatureLive(game, entry.id),
     )
-    return { _tag: 'Pool', pool, feature: feature?.id ?? null }
+    return StudyStall.cases.Pool.make({ pool, feature: feature?.id ?? null })
   }
   return null
 }
 
 /** The share of a Study's base duration done, or 0 when it is not queued or running. */
 export const progressOf = (study: Study | undefined): number =>
-  study?.phase._tag === 'Queued' || study?.phase._tag === 'Running' ? study.phase.progress : 0
+  StudyPhase.guards.Queued(study?.phase) || StudyPhase.guards.Running(study?.phase)
+    ? study.phase.progress
+    : 0
 
 /** Advances the running Study by some seconds, and completes it when done. */
 export const advanceStudies = (

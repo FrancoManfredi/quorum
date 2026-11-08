@@ -67,6 +67,7 @@ import { has, isDown, maxSize, ramOf, researchReady, securityStaffed } from './l
 import { isBuilt } from './features.ts'
 import { recipeOf } from './studies.ts'
 import {
+  Change,
   driftOf,
   mirrorOf,
   pickIacTool,
@@ -95,6 +96,9 @@ import {
   rushItem,
 } from './work.ts'
 import { isApplying } from './mirror-machine.ts'
+import { Life } from './life.ts'
+import { StepEvent } from './events.ts'
+import { WorkBlock } from './work-item-machine.ts'
 
 export type Strategy = 'balanced' | 'greedy' | 'stubborn' | 'decliner' | 'polyglot' | 'idle'
 
@@ -637,7 +641,7 @@ const seriesCBuild = (game: Game, ledger: Ledger): Game => {
     if (!mirror || isApplying(mirror.sync)) continue
     // A new data Node in the home region: the Mirror reads it from a replica, and copies its objects.
     for (const change of driftOf(next, mirror).changes)
-      if (change._tag === 'choose')
+      if (Change.guards.choose(change))
         next = tried(
           next,
           setMirrorData(
@@ -650,7 +654,7 @@ const seriesCBuild = (game: Game, ledger: Ledger): Game => {
     const fresh = mirrorOf(next, region)
     if (!fresh) continue
     const drift = driftOf(next, fresh)
-    const creates = drift.changes.some((change) => change._tag === 'create')
+    const creates = drift.changes.some(Change.guards.create)
     // New Nodes apply at once; drift in sizes and options waits for a calendar quarter-day.
     if (drift.changes.length > 0 && (creates || Math.round(next.time) % MIRROR_EVERY === 0))
       next = affordable(next, ledger, (current) => applyMirror(current, region))
@@ -894,7 +898,7 @@ const look = (game: Game, tuning: Tuning, strategy: Strategy): Game => {
   // Each action item's Study goes first: an unfixed root cause comes back.
   for (const postmortem of next.postmortems)
     next = tried(next, filePostmortem(next, postmortem.id, true))
-  for (const node of next.nodes.filter((entry) => entry.life._tag === 'Stopped'))
+  for (const node of next.nodes.filter((entry) => Life.guards.Stopped(entry.life)))
     next = tried(next, replace(next, node.id))
   const incident = next.incident
   if (incident?.kind === 'leak' && incident.nodeId)
@@ -953,7 +957,7 @@ const look = (game: Game, tuning: Tuning, strategy: Strategy): Game => {
   for (const server of servers(next))
     if (
       RUNTIMES[server.runtime].pool &&
-      server.life._tag === 'Restarting' &&
+      Life.guards.Restarting(server.life) &&
       server.workers < fittingWorkers(server)
     )
       next = tried(next, setWorkers(next, server.id, fittingWorkers(server)))
@@ -962,7 +966,7 @@ const look = (game: Game, tuning: Tuning, strategy: Strategy): Game => {
   // Features otherwise). A decision block stays: it holds Features while Apdex misses its target,
   // and an index block clears when the bot adds the index.
   for (const item of next.backlog)
-    if (item.block._tag === 'Blocked' && item.block.reason === 'hire')
+    if (WorkBlock.guards.Blocked(item.block) && item.block.reason === 'hire')
       next = tried(next, approveBlock(next, item.id))
 
   // A resharding is the Database's way out, and a migration's bugs fail requests until fixed: each
@@ -1140,9 +1144,9 @@ export const runBot = (
     }
     const result = step(game, 1, tuning)
     game = result.game
-    if (result.events.some((event) => event._tag === 'IncidentStarted')) mark('first-incident')
-    if (result.events.some((event) => event._tag === 'Deployed')) mark('first-feature')
-    if (result.events.some((event) => event._tag === 'StudyCompleted')) mark('first-research')
+    if (result.events.some(StepEvent.$is('IncidentStarted'))) mark('first-incident')
+    if (result.events.some(StepEvent.$is('Deployed'))) mark('first-feature')
+    if (result.events.some(StepEvent.$is('StudyCompleted'))) mark('first-research')
   }
   return { game, milestones, margins }
 }

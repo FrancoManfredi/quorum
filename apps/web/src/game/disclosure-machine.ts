@@ -3,38 +3,39 @@ import { Schema } from 'effect'
 import { planState } from './machine.ts'
 import { Reveal as RevealSchema, type Reveal } from './machine-state.ts'
 
-/** UI ticks one cue glows, and the longest the next one waits for it: 30 s at any speed. */
 export const CUE_TICKS = 120
 
-export const Idle = Schema.TaggedStruct('Idle', {
-  revealed: Schema.Array(RevealSchema),
+export const DisclosureFlow = Schema.TaggedUnion({
+  Idle: {
+    revealed: Schema.Array(RevealSchema),
+  },
+  Queued: {
+    revealed: Schema.Array(RevealSchema),
+    pending: Schema.NonEmptyArray(RevealSchema),
+  },
+  Cueing: {
+    revealed: Schema.Array(RevealSchema),
+    pending: Schema.Array(RevealSchema),
+    key: RevealSchema,
+    left: Schema.Finite,
+  },
 })
-export const Queued = Schema.TaggedStruct('Queued', {
-  revealed: Schema.Array(RevealSchema),
-  pending: Schema.NonEmptyArray(RevealSchema),
-})
-export const Cueing = Schema.TaggedStruct('Cueing', {
-  revealed: Schema.Array(RevealSchema),
-  pending: Schema.Array(RevealSchema),
-  key: RevealSchema,
-  left: Schema.Finite,
-})
-export const DisclosureFlow = Schema.Union([Idle, Queued, Cueing])
 export type DisclosureFlow = typeof DisclosureFlow.Type
 
-export const Ticked = Schema.TaggedStruct('Ticked', {
-  triggered: Schema.Array(RevealSchema),
+export const DisclosureEvent = Schema.TaggedUnion({
+  Ticked: {
+    triggered: Schema.Array(RevealSchema),
+  },
+  Used: { key: RevealSchema },
+  RevealedAtStart: {
+    triggered: Schema.Array(RevealSchema),
+  },
 })
-export const Used = Schema.TaggedStruct('Used', { key: RevealSchema })
-export const RevealedAtStart = Schema.TaggedStruct('RevealedAtStart', {
-  triggered: Schema.Array(RevealSchema),
-})
-export const DisclosureEvent = Schema.Union([Ticked, Used, RevealedAtStart])
 export type DisclosureEvent = typeof DisclosureEvent.Type
 
-type IdleState = Extract<DisclosureFlow, Readonly<{ _tag: 'Idle' }>>
-type QueuedState = Extract<DisclosureFlow, Readonly<{ _tag: 'Queued' }>>
-type CueingState = Extract<DisclosureFlow, Readonly<{ _tag: 'Cueing' }>>
+type IdleState = typeof DisclosureFlow.cases.Idle.Type
+type QueuedState = typeof DisclosureFlow.cases.Queued.Type
+type CueingState = typeof DisclosureFlow.cases.Cueing.Type
 
 const idle = (revealed: ReadonlyArray<Reveal>): IdleState => ({
   _tag: 'Idle',
@@ -46,7 +47,6 @@ const queued = (
   pending: Readonly<[Reveal, ...ReadonlyArray<Reveal>]>,
 ): QueuedState => ({ _tag: 'Queued', revealed: [...revealed], pending: [...pending] })
 
-/** A key counts as shown from the moment its cue starts: the glow is the last of it. */
 const cue = (
   revealed: ReadonlyArray<Reveal>,
   pending: ReadonlyArray<Reveal>,
@@ -59,7 +59,6 @@ const cue = (
   left: CUE_TICKS,
 })
 
-/** The triggers not already shown or waiting, in the order they fired. */
 const fresh = (
   revealed: ReadonlyArray<Reveal>,
   pending: ReadonlyArray<Reveal>,
@@ -86,19 +85,13 @@ const unique = (keys: ReadonlyArray<Reveal>): ReadonlyArray<Reveal> => [...new S
 const sameKeys = (left: ReadonlyArray<Reveal>, right: ReadonlyArray<Reveal>): boolean =>
   left.length === right.length && left.every((key, index) => key === right[index])
 
-const States = Machine.state({ states: { Idle, Queued, Cueing } })
-
-const Events = Machine.events({
-  Ticked: { triggered: Schema.Array(RevealSchema) },
-  Used: { key: RevealSchema },
-  RevealedAtStart: { triggered: Schema.Array(RevealSchema) },
-})
+const States = Machine.state({ states: DisclosureFlow.cases })
+const Events = Machine.eventsFromSchemas(DisclosureEvent)
 
 export const disclosureMachine = Machine.make({
   root: States,
   events: Events,
   branches: {
-    /** Where a cue or a queue leaves the flow: a new cue, a queue, or nothing left to show. */
     settle: {
       cue: { target: 'Cueing' },
       queued: { target: 'Queued' },
@@ -207,6 +200,5 @@ export const disclosureMachine = Machine.make({
   },
 })
 
-/** The next disclosure, or the same one when the event changes nothing. */
 export const step = (flow: DisclosureFlow, event: DisclosureEvent): DisclosureFlow =>
   planState(disclosureMachine, flow, event)

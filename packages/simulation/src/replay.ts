@@ -1,4 +1,4 @@
-import { Result, Schema } from 'effect'
+import { Option, Result, Schema } from 'effect'
 import * as Actions from './actions.ts'
 import { COMPONENTS, HOME_REGION } from './catalog.ts'
 import { decodeText, encodeText } from './codec.ts'
@@ -54,14 +54,14 @@ export const RESPONSES = [
 export type Response = (typeof RESPONSES)[number]
 
 /** What the player may do while a Challenge runs: answer failures and incidents, and resize. */
-export const ReplayAction = Schema.Union([
-  Schema.TaggedStruct('Restart', { node: Schema.String }),
-  Schema.TaggedStruct('Replace', { node: Schema.String }),
-  Schema.TaggedStruct('FailOver', { node: Schema.String }),
-  Schema.TaggedStruct('Throttle', { node: Schema.String }),
-  Schema.TaggedStruct('Resize', { node: Schema.String, direction: Schema.Literals([1, -1]) }),
-  Schema.TaggedStruct('Respond', { response: Schema.Literals(RESPONSES) }),
-])
+export const ReplayAction = Schema.TaggedUnion({
+  Restart: { node: Schema.String },
+  Replace: { node: Schema.String },
+  FailOver: { node: Schema.String },
+  Throttle: { node: Schema.String },
+  Resize: { node: Schema.String, direction: Schema.Literals([1, -1]) },
+  Respond: { response: Schema.Literals(RESPONSES) },
+})
 export type ReplayAction = typeof ReplayAction.Type
 
 export const Replay = Schema.Struct({
@@ -223,7 +223,7 @@ const configure = (game: Game, id: string, settings: Record<string, unknown>): B
   const start = nodeIn(game, id)
   if (!start) return Result.fail('A Node of the Design is missing.')
   const wanted = decodeNode({ ...start, ...pick(settings, SETTINGS) })
-  if (wanted._tag === 'None') return Result.fail('A Node of the Design has a bad setting.')
+  if (Option.isNone(wanted)) return Result.fail('A Node of the Design has a bad setting.')
   const target = wanted.value
   let next = game
   const attempt = (action: Actions.Action) => {
@@ -298,7 +298,7 @@ export const applyDesign = (start: Game, design: Design): Built => {
         entry.type,
         entry.dx,
         entry.dy,
-        region._tag === 'Some' ? region.value : undefined,
+        Option.getOrUndefined(region),
       )
       if (Result.isFailure(placed)) return Result.fail(Actions.describeRefusal(placed.failure))
       game = placed.success
@@ -319,7 +319,7 @@ export const applyDesign = (start: Game, design: Design): Built => {
     if (Result.isFailure(linked)) return Result.fail(Actions.describeRefusal(linked.failure))
     game = linked.success
     const wanted = decodeLink({ ...link(from, to), ...pick(entry.settings, LINK_SETTINGS) })
-    if (wanted._tag === 'None') return Result.fail('A Link of the Design has a bad setting.')
+    if (Option.isNone(wanted)) return Result.fail('A Link of the Design has a bad setting.')
     const { timeout, retries, breaker, kinds } = wanted.value
     const policy = Actions.setLinkPolicy(game, from, to, { timeout, retries, breaker })
     if (Result.isSuccess(policy)) game = policy.success
@@ -352,18 +352,14 @@ const RESPOND: Record<Response, (game: Game) => Actions.Action> = {
 
 /** Applies one run action. A refused action changes nothing, as a refused click does. */
 export const applyAction = (game: Game, action: ReplayAction): Game => {
-  const result =
-    action._tag === 'Restart'
-      ? Actions.restart(game, action.node)
-      : action._tag === 'Replace'
-        ? Actions.replace(game, action.node)
-        : action._tag === 'FailOver'
-          ? Actions.failOver(game, action.node)
-          : action._tag === 'Throttle'
-            ? Actions.throttleConnects(game, action.node)
-            : action._tag === 'Resize'
-              ? Actions.resize(game, action.node, action.direction)
-              : RESPOND[action.response](game)
+  const result = ReplayAction.match(action, {
+    Restart: ({ node }) => Actions.restart(game, node),
+    Replace: ({ node }) => Actions.replace(game, node),
+    FailOver: ({ node }) => Actions.failOver(game, node),
+    Throttle: ({ node }) => Actions.throttleConnects(game, node),
+    Resize: ({ node, direction }) => Actions.resize(game, node, direction),
+    Respond: ({ response }) => RESPOND[response](game),
+  })
   return Result.isSuccess(result) ? result.success : game
 }
 
@@ -377,7 +373,7 @@ const decode = Schema.decodeUnknownOption(Replay)
 export const decodeReplay = (text: string): Result.Result<Replay, string> => {
   if (text.length > MAX_REPLAY_CHARS) return Result.fail('The replay is too long.')
   const parsed = decode(decodeText(PREFIX, text))
-  if (parsed._tag === 'None') return Result.fail('That is not a replay.')
+  if (Option.isNone(parsed)) return Result.fail('That is not a replay.')
   if (parsed.value.actions.length > MAX_REPLAY_ACTIONS)
     return Result.fail('The replay has too many actions.')
   return Result.succeed(parsed.value)

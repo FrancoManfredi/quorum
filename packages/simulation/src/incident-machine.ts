@@ -2,38 +2,26 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/** No incident runs, so the Game's `incident` is null. */
-export const Quiet = Schema.TaggedStruct('Quiet', {})
-/** A player acted before the signal: without Alerting, nothing paged them. */
-export const Responded = Schema.TaggedStruct('Responded', { ackAt: Schema.Finite })
-/** The first signal landed, and nobody has acknowledged it yet. */
-export const Announced = Schema.TaggedStruct('Announced', { signalAt: Schema.Finite })
-/** The signal landed and someone answered it, in either order. */
-export const Acknowledged = Schema.TaggedStruct('Acknowledged', {
-  signalAt: Schema.Finite,
-  ackAt: Schema.Finite,
+export const IncidentPhase = Schema.TaggedUnion({
+  Quiet: {},
+  Responded: { ackAt: Schema.Finite },
+  Announced: { signalAt: Schema.Finite },
+  Acknowledged: {
+    signalAt: Schema.Finite,
+    ackAt: Schema.Finite,
+  },
 })
-export const IncidentPhase = Schema.Union([Quiet, Responded, Announced, Acknowledged])
 export type IncidentPhase = typeof IncidentPhase.Type
 
-/** The first signal landed at `at`: the pager, or the board when nothing pages. */
-export const Signalled = Schema.TaggedStruct('Signalled', { at: Schema.Finite })
-/** A player first acted at `at`, or the on-call rotation answered the page. */
-export const Acked = Schema.TaggedStruct('Acked', { at: Schema.Finite })
-/** The incident ended; the caller clears the Game's `incident` field. */
-export const Resolved = Schema.TaggedStruct('Resolved', {})
-export const IncidentEvent = Schema.Union([Signalled, Acked, Resolved])
-export type IncidentEvent = typeof IncidentEvent.Type
-
-const States = Machine.state({
-  states: { Quiet, Responded, Announced, Acknowledged },
-})
-
-const Events = Machine.events({
+export const IncidentEvent = Schema.TaggedUnion({
   Signalled: { at: Schema.Finite },
   Acked: { at: Schema.Finite },
   Resolved: {},
 })
+export type IncidentEvent = typeof IncidentEvent.Type
+
+const States = Machine.state({ states: IncidentPhase.cases })
+const Events = Machine.eventsFromSchemas(IncidentEvent)
 
 export const incidentMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Quiet' },
@@ -53,7 +41,6 @@ export const incidentMachine = Machine.make({ root: States, events: Events }).ha
     },
     Responded: {
       on: {
-        // The signal lands after the action, so both times are known now.
         Signalled: {
           target: 'Acknowledged',
           data: ({ state, event }) => ({
@@ -80,47 +67,32 @@ export const incidentMachine = Machine.make({ root: States, events: Events }).ha
     },
     Acknowledged: {
       on: {
-        // The signal and the acknowledgement are recorded once, at their first Step.
         Resolved: { target: 'Quiet' },
       },
     },
   },
 })
 
-/** The next phase, or the same one when the event does not apply. */
 export const step = (phase: IncidentPhase, event: IncidentEvent): IncidentPhase =>
   planState(incidentMachine, phase, event)
 
-/** The sim second the first signal landed, or null before it does. */
-export const signalAtOf = (phase: IncidentPhase): number | null => {
-  switch (phase._tag) {
-    case 'Announced':
-    case 'Acknowledged':
-      return phase.signalAt
-    case 'Quiet':
-    case 'Responded':
-      return null
-  }
-}
+export const signalAtOf = (phase: IncidentPhase): number | null =>
+  IncidentPhase.match(phase, {
+    Quiet: () => null,
+    Responded: () => null,
+    Announced: ({ signalAt }) => signalAt,
+    Acknowledged: ({ signalAt }) => signalAt,
+  })
 
-/** The sim second someone first answered the incident, or null until they do. */
-export const ackAtOf = (phase: IncidentPhase): number | null => {
-  switch (phase._tag) {
-    case 'Responded':
-    case 'Acknowledged':
-      return phase.ackAt
-    case 'Quiet':
-    case 'Announced':
-      return null
-  }
-}
+export const ackAtOf = (phase: IncidentPhase): number | null =>
+  IncidentPhase.match(phase, {
+    Quiet: () => null,
+    Responded: ({ ackAt }) => ackAt,
+    Announced: () => null,
+    Acknowledged: ({ ackAt }) => ackAt,
+  })
 
-/** Someone answered the incident, before or after its signal. */
 export const hasAck = (phase: IncidentPhase): boolean => ackAtOf(phase) !== null
 
-/**
- * The incident festered: nobody answered it and its time ran out (11 "Cascades").
- * The caller still has to check that no earlier incident started this one.
- */
 export const isLeftAlone = (phase: IncidentPhase, remaining: number): boolean =>
   !hasAck(phase) && remaining <= 0

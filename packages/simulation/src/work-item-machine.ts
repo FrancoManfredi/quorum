@@ -2,47 +2,26 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/** What a backlog item waits on (18 "Teammates"): the four the design names. */
 export const BlockKind = Schema.Literals(['decision', 'index', 'copy', 'hire'])
 export type BlockKind = typeof BlockKind.Type
 
-export const Free = Schema.TaggedStruct('Free', {})
-/** It waits on the player, who is reminded again at `remindAt`. */
-export const Blocked = Schema.TaggedStruct('Blocked', {
-  reason: BlockKind,
-  owner: Schema.String,
-  at: Schema.Finite,
-  remindAt: Schema.Finite,
+export const WorkBlock = Schema.TaggedUnion({
+  Free: {},
+  Blocked: {
+    reason: BlockKind,
+    owner: Schema.String,
+    at: Schema.Finite,
+    remindAt: Schema.Finite,
+  },
+  Approved: {
+    reason: BlockKind,
+    owner: Schema.String,
+    at: Schema.Finite,
+  },
 })
-/** The player approved it: it moves again, and the block never stops it twice. */
-export const Approved = Schema.TaggedStruct('Approved', {
-  reason: BlockKind,
-  owner: Schema.String,
-  at: Schema.Finite,
-})
-export const WorkBlock = Schema.Union([Free, Blocked, Approved])
 export type WorkBlock = typeof WorkBlock.Type
 
-/** It stopped at `at` on `reason`, owned by `owner`, and reminds again at `remindAt`. */
-export const BlockedEvent = Schema.TaggedStruct('Blocked', {
-  reason: BlockKind,
-  owner: Schema.String,
-  at: Schema.Finite,
-  remindAt: Schema.Finite,
-})
-/** The player approved what it waited for. */
-export const ApprovedEvent = Schema.TaggedStruct('Approved', {})
-/** The player put it off: the block stays, and the owner writes again at `remindAt`. */
-export const Later = Schema.TaggedStruct('Later', { remindAt: Schema.Finite })
-export const Unblocked = Schema.TaggedStruct('Unblocked', {})
-export const WorkBlockEvent = Schema.Union([BlockedEvent, ApprovedEvent, Later, Unblocked])
-export type WorkBlockEvent = typeof WorkBlockEvent.Type
-
-const States = Machine.state({
-  states: { Free, Blocked, Approved },
-})
-
-const Events = Machine.events({
+export const WorkBlockEvent = Schema.TaggedUnion({
   Blocked: {
     reason: BlockKind,
     owner: Schema.String,
@@ -53,6 +32,10 @@ const Events = Machine.events({
   Later: { remindAt: Schema.Finite },
   Unblocked: {},
 })
+export type WorkBlockEvent = typeof WorkBlockEvent.Type
+
+const States = Machine.state({ states: WorkBlock.cases })
+const Events = Machine.eventsFromSchemas(WorkBlockEvent)
 
 export const workBlockMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Free' },
@@ -73,7 +56,6 @@ export const workBlockMachine = Machine.make({ root: States, events: Events }).h
     },
     Blocked: {
       on: {
-        // The approval keeps what the block was and when it started.
         Approved: {
           target: 'Approved',
           data: ({ state }) => ({
@@ -83,7 +65,6 @@ export const workBlockMachine = Machine.make({ root: States, events: Events }).h
             at: state.at,
           }),
         },
-        // Later is not a no: the block stays, and only the next reminder moves.
         Later: {
           target: 'Blocked',
           data: ({ state, event }) => ({ ...state, remindAt: event.remindAt }),
@@ -98,6 +79,5 @@ export const workBlockMachine = Machine.make({ root: States, events: Events }).h
   },
 })
 
-/** The next block phase, or the same one when the event does not apply. */
 export const step = (block: WorkBlock, event: WorkBlockEvent): WorkBlock =>
   planState(workBlockMachine, block, event)

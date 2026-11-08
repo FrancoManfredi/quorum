@@ -4,59 +4,49 @@ import { STABLE_TICKS, STEADY_TICKS } from './machine-state.ts'
 import { planState } from './machine.ts'
 import { Change, Delta, Figures } from './machine-state.ts'
 
-export const Idle = Schema.TaggedStruct('Idle', {})
-
-export const Settling = Schema.TaggedStruct('Settling', { change: Change })
-
-export const Settled = Schema.TaggedStruct('Settled', {
-  delta: Delta,
-  ticks: Schema.Finite,
+export const ChangeState = Schema.TaggedUnion({
+  Idle: {},
+  Settling: { change: Change },
+  Settled: {
+    delta: Delta,
+    ticks: Schema.Finite,
+  },
+  Lasting: { delta: Delta },
 })
-
-/** A worse delta stays: it says why the figures did not come back. */
-export const Lasting = Schema.TaggedStruct('Lasting', { delta: Delta })
-
-export const ChangeState = Schema.Union([Idle, Settling, Settled, Lasting])
 export type ChangeState = typeof ChangeState.Type
 
-/** The ledger sample a change compares; `Change.recent` holds the same shape. */
 const Sample = Schema.Struct({
   revenue: Schema.Finite,
   served: Schema.Finite,
   errors: Schema.Finite,
 })
 
-export const Changed = Schema.TaggedStruct('Changed', {
-  label: Schema.String,
-  before: Figures,
-  startedAt: Schema.Finite,
+export const ChangeEvent = Schema.TaggedUnion({
+  Changed: {
+    label: Schema.String,
+    before: Figures,
+    startedAt: Schema.Finite,
+  },
+  Ticked: {
+    sample: Sample,
+    after: Figures,
+    warming: Schema.Boolean,
+    at: Schema.Finite,
+    seq: Schema.Finite,
+  },
+  Expired: {},
 })
-
-export const Ticked = Schema.TaggedStruct('Ticked', {
-  sample: Sample,
-  after: Figures,
-  /** Some Node is down or still warming, so the figures cannot hold yet. */
-  warming: Schema.Boolean,
-  at: Schema.Finite,
-  seq: Schema.Finite,
-})
-
-export const Expired = Schema.TaggedStruct('Expired', {})
-
-export const ChangeEvent = Schema.Union([Changed, Ticked, Expired])
 export type ChangeEvent = typeof ChangeEvent.Type
 
 type SampleValue = typeof Sample.Type
-type ChangedEvent = typeof Changed.Type
-type SettlingState = typeof Settling.Type
+type ChangedEvent = typeof ChangeEvent.cases.Changed.Type
+type SettlingState = typeof ChangeState.cases.Settling.Type
 
-/** Two samples agree: revenue and served within 1%, error share within 0.1 points. */
 const close = (a: SampleValue, b: SampleValue): boolean =>
   Math.abs(a.revenue - b.revenue) <= Math.max(1e-6, 0.01 * Math.abs(b.revenue)) &&
   Math.abs(a.served - b.served) <= Math.max(1e-6, 0.01 * Math.abs(b.served)) &&
   Math.abs(a.errors - b.errors) <= 0.001
 
-/** Trailing samples that agree with the newest one. */
 const steadyCount = (recent: ReadonlyArray<SampleValue>): number => {
   const newest = recent.at(-1)
   if (!newest) return 0
@@ -69,7 +59,6 @@ const steadyCount = (recent: ReadonlyArray<SampleValue>): number => {
   return count
 }
 
-/** The delta a settled change shows. The handler stamps its id and shownAt. */
 const deltaOf = (change: Change, after: Figures, at: number, seq: number): Delta => ({
   id: seq,
   label: change.count > 1 ? `${change.count} changes` : change.label,
@@ -80,7 +69,6 @@ const deltaOf = (change: Change, after: Figures, at: number, seq: number): Delta
   shownAt: at,
 })
 
-/** A new change starts settling. The handler stamps its startedAt. */
 const begun = (event: ChangedEvent): SettlingState => ({
   _tag: 'Settling',
   change: {
@@ -93,37 +81,23 @@ const begun = (event: ChangedEvent): SettlingState => ({
   },
 })
 
-/** A change during a settling one extends it: several quick changes settle as one. */
 const extended = (change: Change, event: ChangedEvent): SettlingState => ({
   _tag: 'Settling',
   change: { ...change, label: event.label, count: change.count + 1, recent: [], steady: 0 },
 })
 
-const States = Machine.state({ states: { Idle, Settling, Settled, Lasting } })
-
-const Events = Machine.events({
-  Changed: { label: Schema.String, before: Figures, startedAt: Schema.Finite },
-  Ticked: {
-    sample: Sample,
-    after: Figures,
-    warming: Schema.Boolean,
-    at: Schema.Finite,
-    seq: Schema.Finite,
-  },
-  Expired: {},
-})
+const States = Machine.state({ states: ChangeState.cases })
+const Events = Machine.eventsFromSchemas(ChangeEvent)
 
 export const changeMachine = Machine.make({
   root: States,
   events: Events,
   branches: {
-    // A tick either holds while the figures move, or settles into a delta.
     tick: {
       settling: { target: 'Settling' },
       settled: { target: 'Settled' },
       lasting: { target: 'Lasting' },
     },
-    // "Stable" counts down, and the last tick closes the delta.
     countdown: {
       settled: { target: 'Settled' },
       idle: { target: 'Idle' },
@@ -185,6 +159,5 @@ export const changeMachine = Machine.make({
   },
 })
 
-/** The next phase, or the same one when the event does not apply. */
 export const step = (state: ChangeState, event: ChangeEvent): ChangeState =>
   planState(changeMachine, state, event)

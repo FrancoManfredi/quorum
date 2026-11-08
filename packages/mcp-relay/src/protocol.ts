@@ -16,6 +16,22 @@ export type PageMessage =
   | Readonly<{ type: 'result'; id: number; ok: true; text: string }>
   | Readonly<{ type: 'result'; id: number; ok: false; error: string }>
 
+const recordOf = (value: unknown): Record<string, unknown> | null =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+
+export const isPageMessage = (value: unknown): value is PageMessage => {
+  const message = recordOf(value)
+  if (!message) return false
+  if (message['type'] === 'hello' || message['type'] === 'visible')
+    return typeof message['visible'] === 'boolean'
+  if (message['type'] !== 'result' || typeof message['id'] !== 'number') return false
+  return message['ok'] === true
+    ? typeof message['text'] === 'string'
+    : message['ok'] === false && typeof message['error'] === 'string'
+}
+
 export type RelayMessage = Readonly<{
   type: 'call'
   id: number

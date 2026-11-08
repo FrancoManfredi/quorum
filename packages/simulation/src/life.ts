@@ -3,60 +3,66 @@ import { Schema } from 'effect'
 export const DownCause = Schema.Literals(['restart', 'failure', 'oom'])
 export type DownCause = typeof DownCause.Type
 
-export const Life = Schema.Union([
-  Schema.TaggedStruct('Running', {}),
-  /** Serving while its runtime warms up: capacity climbs from `warm` to 1. */
-  Schema.TaggedStruct('Warming', { warm: Schema.Finite }),
-  /** Down for `left` seconds, then it warms up from `warm`. */
-  Schema.TaggedStruct('Restarting', {
+export const Life = Schema.TaggedUnion({
+  Running: {},
+  Warming: { warm: Schema.Finite },
+  Restarting: {
     left: Schema.Finite,
     cause: DownCause,
     warm: Schema.Finite,
-  }),
-  Schema.TaggedStruct('Stopped', { cause: DownCause, warm: Schema.Finite }),
-])
+  },
+  Stopped: { cause: DownCause, warm: Schema.Finite },
+})
 export type Life = typeof Life.Type
 
-export const RUNNING: Life = { _tag: 'Running' }
+export const RUNNING: Life = Life.cases.Running.make({})
 
-/** Warm up from `warm`; 1 is already running. */
-export const warming = (warm: number): Life => (warm >= 1 ? RUNNING : { _tag: 'Warming', warm })
+export const warming = (warm: number): Life =>
+  warm >= 1 ? RUNNING : Life.cases.Warming.make({ warm })
 
-export const restarting = (left: number, cause: DownCause, warm: number): Life => ({
-  _tag: 'Restarting',
-  left,
-  cause,
-  warm,
-})
+export const restarting = (left: number, cause: DownCause, warm: number): Life =>
+  Life.cases.Restarting.make({ left, cause, warm })
 
-export const stopped = (cause: DownCause, warm: number): Life => ({
-  _tag: 'Stopped',
-  cause,
-  warm,
-})
+export const stopped = (cause: DownCause, warm: number): Life =>
+  Life.cases.Stopped.make({ cause, warm })
 
-export const isDown = (life: Life): boolean => life._tag === 'Restarting' || life._tag === 'Stopped'
+export const isDown = Life.isAnyOf(['Restarting', 'Stopped'])
 
-/** The warm-up the capacity model reads: 1 when running, the stored value otherwise. */
-export const warmOf = (life: Life): number => (life._tag === 'Running' ? 1 : life.warm)
+export const warmOf = (life: Life): number =>
+  Life.match(life, {
+    Running: () => 1,
+    Warming: ({ warm }) => warm,
+    Restarting: ({ warm }) => warm,
+    Stopped: ({ warm }) => warm,
+  })
 
-/** Why it is down; a running Node reports the last cause it had. */
 export const causeOf = (life: Life): DownCause =>
-  life._tag === 'Restarting' || life._tag === 'Stopped' ? life.cause : 'restart'
+  Life.match(life, {
+    Running: (): DownCause => 'restart',
+    Warming: (): DownCause => 'restart',
+    Restarting: ({ cause }) => cause,
+    Stopped: ({ cause }) => cause,
+  })
 
-/** Seconds left down: −1 until replaced, 0 when up. */
 export const leftOf = (life: Life): number =>
-  life._tag === 'Restarting' ? life.left : life._tag === 'Stopped' ? -1 : 0
+  Life.match(life, {
+    Running: () => 0,
+    Warming: () => 0,
+    Restarting: ({ left }) => left,
+    Stopped: () => -1,
+  })
 
-/** The same lifecycle with a different warm-up: an engine swap, a scale, a cache reset. */
 export const withWarm = (life: Life, warm: number): Life =>
-  life._tag === 'Running' || life._tag === 'Warming' ? warming(warm) : { ...life, warm }
+  Life.match(life, {
+    Running: () => warming(warm),
+    Warming: () => warming(warm),
+    Restarting: (state) => Life.cases.Restarting.make({ ...state, warm }),
+    Stopped: (state) => Life.cases.Stopped.make({ ...state, warm }),
+  })
 
-/** Takes the Node down for `left` seconds, or until replaced when `left` is −1. */
 export const down = (life: Life, left: number, cause: DownCause): Readonly<{ life: Life }> => ({
   life: left === -1 ? stopped(cause, warmOf(life)) : restarting(left, cause, warmOf(life)),
 })
 
-/** The lifecycle the three old fields described: `down` 0, −1, or seconds left. */
 export const lifeOf = (down: number, warm: number, cause: DownCause): Life =>
   down === -1 ? stopped(cause, warm) : down > 0 ? restarting(down, cause, warm) : warming(warm)

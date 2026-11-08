@@ -1,4 +1,4 @@
-import type { StudyStall } from '@quorum/simulation/studies'
+import { StudyStall } from '@quorum/simulation/studies'
 import { insightName, type Messages } from './messages.ts'
 
 /**
@@ -48,10 +48,12 @@ export const formats = (t: Messages) => ({
 
 /** Why a Study stalls, in one sentence (10 "Studies"). */
 export const stallReasonIn = (t: Messages, stall: StudyStall): string =>
-  stall._tag === 'Breadth'
-    ? t.hud.stalledBreadth(stall.types)
-    : stall.feature
-      ? t.hud.stalledShip(insightName(t, stall.pool), t.catalog.features[stall.feature].name)
-      : stall.pool === 'failure'
-        ? t.hud.stalledFailure
-        : t.hud.stalledPool(insightName(t, stall.pool))
+  StudyStall.match(stall, {
+    Breadth: ({ types }) => t.hud.stalledBreadth(types),
+    Pool: ({ pool, feature }) =>
+      feature
+        ? t.hud.stalledShip(insightName(t, pool), t.catalog.features[feature].name)
+        : pool === 'failure'
+          ? t.hud.stalledFailure
+          : t.hud.stalledPool(insightName(t, pool)),
+  })

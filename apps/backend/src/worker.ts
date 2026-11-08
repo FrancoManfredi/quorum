@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/cloudflare'
 import { SentryEffectLogger, SentryEffectTracer } from '@sentry/effect'
-import { ErrorReporter } from 'effect'
+import { ErrorReporter, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as Layer from 'effect/Layer'
 import * as Logger from 'effect/Logger'
 import * as Tracer from 'effect/Tracer'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
-import { Api, RPC_PATH } from '@quorum/rpc'
+import { Api, ApiError, RPC_PATH } from '@quorum/rpc'
 import { SurveyHandlers } from './contexts/survey/handlers.ts'
 import { SurveyStore } from './contexts/survey/store.ts'
 import { SystemHandlers } from './contexts/system/handlers.ts'
@@ -31,7 +31,7 @@ export type Env = Readonly<{
 const SentryErrors = ErrorReporter.layer(
   [
     ErrorReporter.make(({ error }) => {
-      if ('_tag' in error && error._tag === 'ApiError') return
+      if (Schema.is(ApiError)(error)) return
       Sentry.captureException(error)
     }),
   ],

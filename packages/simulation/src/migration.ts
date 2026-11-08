@@ -13,39 +13,27 @@ import {
 } from './catalog.ts'
 import { hasMutator } from './founding.ts'
 import { Refusal, setFramework, setRuntime, type Action } from './actions.ts'
-import type { Game, GameNode, Migration } from './state.ts'
+import { Migration } from './state.ts'
+import type { Game, GameNode } from './state.ts'
 import { enqueue, serviceOf, stackOf, withService } from './team.ts'
 
 export type StackTarget = Readonly<{ runtime: RuntimeId; framework: FrameworkId }>
 
 /** Steps shifted so far: every App Server moved once it reaches the step count. */
 export const stepOf = (migration: Migration): number =>
-  migration._tag === 'Finishing' ? MIGRATION_STEPS.length : migration.step
+  Migration.match(migration, {
+    Building: ({ step }) => step,
+    Ready: ({ step }) => step,
+    Finishing: () => MIGRATION_STEPS.length,
+  })
 
-export const isReady = (migration: Migration): boolean => migration._tag === 'Ready'
+export const isReady = Migration.guards.Ready
 
 /** The next tranche's Dev Hours are built: Building becomes Ready. */
 export const trancheBuilt = (migration: Migration): Migration => {
-  if (migration._tag !== 'Building') return migration
+  if (!Migration.guards.Building(migration)) return migration
   const { runtime, framework, fromRuntime, fromFramework, total, step, bugs } = migration
-  return { _tag: 'Ready', runtime, framework, fromRuntime, fromFramework, total, step, bugs }
-}
-
-/**
- * Shifts traffic one step. A migration that moved its last App Server and has
- * no bugs left ends; one that moved it with bugs stays to be fixed.
- */
-export const shifted = (migration: Migration, moved: boolean): Migration | null => {
-  if (migration._tag !== 'Ready') return migration
-  const { runtime, framework, fromRuntime, fromFramework, total } = migration
-  const step = migration.step + 1
-  const bugs = migration.bugs || moved
-  if (step >= MIGRATION_STEPS.length)
-    return bugs
-      ? { _tag: 'Finishing', runtime, framework, fromRuntime, fromFramework, total, bugs }
-      : null
-  return {
-    _tag: 'Building',
+  return Migration.cases.Ready.make({
     runtime,
     framework,
     fromRuntime,
@@ -53,12 +41,43 @@ export const shifted = (migration: Migration, moved: boolean): Migration | null 
     total,
     step,
     bugs,
-  }
+  })
+}
+
+/**
+ * Shifts traffic one step. A migration that moved its last App Server and has
+ * no bugs left ends; one that moved it with bugs stays to be fixed.
+ */
+export const shifted = (migration: Migration, moved: boolean): Migration | null => {
+  if (!Migration.guards.Ready(migration)) return migration
+  const { runtime, framework, fromRuntime, fromFramework, total } = migration
+  const step = migration.step + 1
+  const bugs = migration.bugs || moved
+  if (step >= MIGRATION_STEPS.length)
+    return bugs
+      ? Migration.cases.Finishing.make({
+          runtime,
+          framework,
+          fromRuntime,
+          fromFramework,
+          total,
+          bugs,
+        })
+      : null
+  return Migration.cases.Building.make({
+    runtime,
+    framework,
+    fromRuntime,
+    fromFramework,
+    total,
+    step,
+    bugs,
+  })
 }
 
 /** Fix bugs shipped: a finished migration ends, and a running one stops failing requests. */
 export const fixed = (migration: Migration): Migration | null =>
-  migration._tag === 'Finishing' ? null : { ...migration, bugs: false }
+  Migration.guards.Finishing(migration) ? null : { ...migration, bugs: false }
 
 /** The migration factor: a variant 0.1, a framework 0.5, a language 1 over the new language's velocity. */
 export const migrationFactor = (from: StackTarget, to: StackTarget): number => {
@@ -132,10 +151,9 @@ export const startMigration = (game: Game, to: StackTarget): Action => {
   if (running)
     return Result.fail(
       Refusal.NotAllowed({
-        reason:
-          running._tag === 'Finishing'
-            ? 'Fix the last migration’s bugs first.'
-            : `Finish or cancel the migration to ${RUNTIMES[running.runtime].name} first.`,
+        reason: Migration.guards.Finishing(running)
+          ? 'Fix the last migration’s bugs first.'
+          : `Finish or cancel the migration to ${RUNTIMES[running.runtime].name} first.`,
       }),
     )
   const from = stackOf(game)
@@ -145,8 +163,7 @@ export const startMigration = (game: Game, to: StackTarget): Action => {
   // The research gates of the Stack itself.
   const checked = swap(game, first.id, to)
   if (Result.isFailure(checked)) return checked
-  const migration: Migration = {
-    _tag: 'Building',
+  const migration = Migration.cases.Building.make({
     runtime: to.runtime,
     framework: to.framework,
     fromRuntime: from.runtime,
@@ -154,7 +171,7 @@ export const startMigration = (game: Game, to: StackTarget): Action => {
     total: migrationCost(game, to),
     step: 0,
     bugs: false,
-  }
+  })
   return Result.succeed(
     enqueue(withService(game, { migration }), 'migration', 'step-1', trancheOf(migration, 1)),
   )
@@ -164,7 +181,7 @@ export const startMigration = (game: Game, to: StackTarget): Action => {
 export const shiftMigration = (game: Game): Action => {
   const migration = serviceOf(game).migration
   if (!migration) return Result.fail(Refusal.NotAllowed({ reason: 'No migration is running.' }))
-  if (migration._tag !== 'Ready')
+  if (!Migration.guards.Ready(migration))
     return Result.fail(Refusal.NotAllowed({ reason: 'The next step is still being built.' }))
   const step = migration.step + 1
   const stack = { runtime: migration.runtime, framework: migration.framework }
@@ -195,7 +212,7 @@ export const bugsFixed = (game: Game): Game => {
 export const cancelMigration = (game: Game): Action => {
   const migration = serviceOf(game).migration
   if (!migration) return Result.fail(Refusal.NotAllowed({ reason: 'No migration is running.' }))
-  if (migration._tag === 'Finishing')
+  if (Migration.guards.Finishing(migration))
     return Result.fail(Refusal.NotAllowed({ reason: 'Every App Server has moved. Fix its bugs.' }))
   const from = { runtime: migration.fromRuntime, framework: migration.fromFramework }
   const reverted = convert(game, from, servers(game).length)

@@ -2,37 +2,26 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-export const Open = Schema.TaggedStruct('Open', {})
-/** The answers are with the API Worker. */
-export const Sending = Schema.TaggedStruct('Sending', {})
-export const Sent = Schema.TaggedStruct('Sent', {})
-/** The send failed at `note`, and the player can try again. */
-export const Failed = Schema.TaggedStruct('Failed', { note: Schema.String })
-export const Skipped = Schema.TaggedStruct('Skipped', {})
-export const SurveyPhase = Schema.Union([Open, Sending, Sent, Failed, Skipped])
+export const SurveyPhase = Schema.TaggedUnion({
+  Open: {},
+  Sending: {},
+  Sent: {},
+  Failed: { note: Schema.String },
+  Skipped: {},
+})
 export type SurveyPhase = typeof SurveyPhase.Type
 
-export const Submitted = Schema.TaggedStruct('Submitted', {})
-export const SentEvent = Schema.TaggedStruct('Sent', {})
-/** The API Worker rejected the answers, or the network did. */
-export const FailedEvent = Schema.TaggedStruct('Failed', { note: Schema.String })
-export const SkippedEvent = Schema.TaggedStruct('Skipped', {})
-/** The next Company starts with a fresh survey. */
-export const Reset = Schema.TaggedStruct('Reset', {})
-export const SurveyEvent = Schema.Union([Submitted, SentEvent, FailedEvent, SkippedEvent, Reset])
-export type SurveyEvent = typeof SurveyEvent.Type
-
-const States = Machine.state({
-  states: { Open, Sending, Sent, Failed, Skipped },
-})
-
-const Events = Machine.events({
+export const SurveyEvent = Schema.TaggedUnion({
   Submitted: {},
   Sent: {},
   Failed: { note: Schema.String },
   Skipped: {},
   Reset: {},
 })
+export type SurveyEvent = typeof SurveyEvent.Type
+
+const States = Machine.state({ states: SurveyPhase.cases })
+const Events = Machine.eventsFromSchemas(SurveyEvent)
 
 export const surveyMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Open' },
@@ -46,7 +35,6 @@ export const surveyMachine = Machine.make({ root: States, events: Events }).hand
     },
     Sending: {
       on: {
-        // A send that already failed cannot land: the player may retry from Failed.
         Sent: { target: 'Sent' },
         Failed: {
           target: 'Failed',
@@ -75,21 +63,22 @@ export const surveyMachine = Machine.make({ root: States, events: Events }).hand
   },
 })
 
-/** The next survey phase, or the same one when the event does not apply. */
 export const step = (phase: SurveyPhase, event: SurveyEvent): SurveyPhase =>
   planState(surveyMachine, phase, event)
 
-/** The survey waits for an answer, or a retry after a failed send. */
-export const canSubmit = (phase: SurveyPhase): boolean =>
-  phase._tag === 'Open' || phase._tag === 'Failed'
+export const canSubmit = SurveyPhase.isAnyOf(['Open', 'Failed'])
 
-/** The answers are with the API Worker. */
-export const isSending = (phase: SurveyPhase): boolean => phase._tag === 'Sending'
+export const isSending = SurveyPhase.guards.Sending
 
-export const isSent = (phase: SurveyPhase): boolean => phase._tag === 'Sent'
+export const isSent = SurveyPhase.guards.Sent
 
-export const isSkipped = (phase: SurveyPhase): boolean => phase._tag === 'Skipped'
+export const isSkipped = SurveyPhase.guards.Skipped
 
-/** Why the last send failed, or null. */
 export const noteOf = (phase: SurveyPhase): string | null =>
-  phase._tag === 'Failed' ? phase.note : null
+  SurveyPhase.match(phase, {
+    Open: () => null,
+    Sending: () => null,
+    Sent: () => null,
+    Failed: ({ note }) => note,
+    Skipped: () => null,
+  })

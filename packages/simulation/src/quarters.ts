@@ -1,7 +1,7 @@
 import type { Ledger } from './ledger.ts'
 import type { Game, Quarter } from './state.ts'
 import { marginOf } from './valuation.ts'
-import { step as quarterStep } from './quarter-machine.ts'
+import { QuarterEvent, QuarterPhase, step as quarterStep } from './quarter-machine.ts'
 
 /** Sim seconds in a quarter: 7 calendar days. */
 export const QUARTER_SECONDS = 10_080
@@ -28,10 +28,11 @@ export const firstQuarter = (game: Game, revenue: number): Quarter => ({
   streak: 0,
   bonus: 0,
   last: null,
-  phase: { _tag: 'AwaitingGuidance' },
+  phase: QuarterPhase.cases.AwaitingGuidance.make({}),
 })
 
-export const guidanceOpen = (game: Game): boolean => game.quarter?.phase._tag === 'AwaitingGuidance'
+export const guidanceOpen = (game: Game): boolean =>
+  QuarterPhase.guards.AwaitingGuidance(game.quarter?.phase)
 
 /** Revenue growth since the quarter began, in percent. The quarter ends at the same hour of the week. */
 export const quarterGrowth = (quarter: Quarter, ledger: Ledger): number =>
@@ -58,6 +59,6 @@ export const advanceQuarter = (game: Game, ledger: Ledger): Quarter | null => {
     streak,
     bonus: Math.max(-BONUS_LIMIT, Math.min(BONUS_LIMIT, quarter.bonus + change)),
     last: { beat, growth, margin },
-    phase: quarterStep(quarter.phase, { _tag: 'Started' }),
+    phase: quarterStep(quarter.phase, QuarterEvent.cases.Started.make({})),
   }
 }

@@ -15,7 +15,7 @@ import {
   start,
   update,
   type Practice,
-  type PracticeEvent,
+  PracticeEvent,
   type PracticeId,
 } from './practice.ts'
 
@@ -133,7 +133,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
         )
         button.addEventListener('click', () => {
           openGroup = null
-          send({ _tag: 'Arm', type })
+          send(PracticeEvent.Arm({ type }))
         })
         return button
       })
@@ -143,7 +143,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
           type: 'button',
         })
       : null
-    stop?.addEventListener('click', () => send({ _tag: 'Arm', type: null }))
+    stop?.addEventListener('click', () => send(PracticeEvent.Arm({ type: null })))
     dockHost.replaceChildren(
       el('div', 'flex flex-wrap items-center gap-2', [
         el('div', 'flex gap-1.5', tabs, { role: 'group', 'aria-label': 'Build' }),
@@ -207,10 +207,10 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
       const target = event.target as HTMLElement
       if (event.key === 'Escape') {
         event.preventDefault()
-        send({ _tag: 'Arm', type: null })
+        send(PracticeEvent.Arm({ type: null }))
       } else if (event.key === 'Enter' && target.tagName !== 'BUTTON') {
         event.preventDefault()
-        send({ _tag: 'Place', x: 400, y: 120 })
+        send(PracticeEvent.Place({ x: 400, y: 120 }))
       }
     },
     { signal: events.signal },
@@ -218,15 +218,15 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
 
   setBoard(key, boardState(state))
   const detach = attachBoard(key, host, {
-    onNodeTap: (nodeId) => send({ _tag: 'Tap', nodeId }),
-    onNodeMove: (nodeId, x, y) => send({ _tag: 'Move', nodeId, x, y }),
-    onFooter: (nodeId) => send({ _tag: 'Footer', nodeId }),
-    onLink: (from, to) => send({ _tag: 'Link', from, to }),
-    onUnlink: (from, to) => send({ _tag: 'Unlink', from, to }),
-    onPlace: (x, y) => send({ _tag: 'Place', x, y }),
-    onEmptyTap: () => send({ _tag: 'Empty' }),
-    onNodeToggle: (nodeId) => send({ _tag: 'Toggle', nodeId }),
-    onBox: (ids, mode) => send({ _tag: 'Box', ids, mode }),
+    onNodeTap: (nodeId) => send(PracticeEvent.Tap({ nodeId })),
+    onNodeMove: (nodeId, x, y) => send(PracticeEvent.Move({ nodeId, x, y })),
+    onFooter: (nodeId) => send(PracticeEvent.Footer({ nodeId })),
+    onLink: (from, to) => send(PracticeEvent.Link({ from, to })),
+    onUnlink: (from, to) => send(PracticeEvent.Unlink({ from, to })),
+    onPlace: (x, y) => send(PracticeEvent.Place({ x, y })),
+    onEmptyTap: () => send(PracticeEvent.Empty()),
+    onNodeToggle: (nodeId) => send(PracticeEvent.Toggle({ nodeId })),
+    onBox: (ids, mode) => send(PracticeEvent.Box({ ids, mode })),
   })
   render()
   // The board starts asynchronously and draws a state sent before that; send it again over its

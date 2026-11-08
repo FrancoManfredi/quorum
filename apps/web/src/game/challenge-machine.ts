@@ -10,44 +10,44 @@ import { Replay, ReplayAction } from '@quorum/simulation/replay'
 import { Game } from '@quorum/simulation/state'
 import { planState } from './machine.ts'
 
-export const Building = Schema.TaggedStruct('Building', {
-  id: Schema.String,
-  totals: RunTotals,
+export const ChallengeRun = Schema.TaggedUnion({
+  Building: {
+    id: Schema.String,
+    totals: RunTotals,
+  },
+  Running: {
+    id: Schema.String,
+    totals: RunTotals,
+    board: Game,
+    replay: Replay,
+  },
+  Result: {
+    id: Schema.String,
+    totals: RunTotals,
+    board: Game,
+    replay: Replay,
+    result: ChallengeResult,
+  },
 })
-export const Running = Schema.TaggedStruct('Running', {
-  id: Schema.String,
-  totals: RunTotals,
-  /** The build board at Run, restored by Rebuild. */
-  board: Game,
-  /** The Design at Run, and the actions logged since. */
-  replay: Replay,
-})
-export const Result = Schema.TaggedStruct('Result', {
-  id: Schema.String,
-  totals: RunTotals,
-  board: Game,
-  replay: Replay,
-  result: ChallengeResult,
-})
-export const ChallengeRun = Schema.Union([Building, Running, Result])
 export type ChallengeRun = typeof ChallengeRun.Type
-/** A scored run: the only phase with a result. */
-export type ChallengeResultRun = Extract<ChallengeRun, Readonly<{ _tag: 'Result' }>>
-/** A run in progress: the only phase with a replay and a build board. */
-export type ChallengeRunningRun = Extract<ChallengeRun, Readonly<{ _tag: 'Running' }>>
 
-export const Run = Schema.TaggedStruct('Run', {
-  board: Game,
-  replay: Replay,
+export type ChallengeResultRun = typeof ChallengeRun.cases.Result.Type
+
+export type ChallengeRunningRun = typeof ChallengeRun.cases.Running.Type
+
+export const ChallengeEvent = Schema.TaggedUnion({
+  Run: {
+    board: Game,
+    replay: Replay,
+  },
+  Ticked: { totals: RunTotals },
+  ActionLogged: { action: ReplayAction },
+  Finished: { result: ChallengeResult },
+  Rebuilt: {},
 })
-export const Ticked = Schema.TaggedStruct('Ticked', { totals: RunTotals })
-export const ActionLogged = Schema.TaggedStruct('ActionLogged', { action: ReplayAction })
-export const Finished = Schema.TaggedStruct('Finished', { result: ChallengeResult })
-export const Rebuilt = Schema.TaggedStruct('Rebuilt', {})
-export const ChallengeEvent = Schema.Union([Run, Ticked, ActionLogged, Finished, Rebuilt])
 export type ChallengeEvent = typeof ChallengeEvent.Type
 
-type ChallengeBuildingRun = Extract<ChallengeRun, Readonly<{ _tag: 'Building' }>>
+type ChallengeBuildingRun = typeof ChallengeRun.cases.Building.Type
 
 const building = (id: string): ChallengeBuildingRun => ({
   _tag: 'Building',
@@ -64,15 +64,8 @@ const scored = (state: ChallengeRunningRun, result: ChallengeResultType): Challe
   result,
 })
 
-const States = Machine.state({ states: { Building, Running, Result } })
-
-const Events = Machine.events({
-  Run: { board: Game, replay: Replay },
-  Ticked: { totals: RunTotals },
-  ActionLogged: { action: ReplayAction },
-  Finished: { result: ChallengeResult },
-  Rebuilt: {},
-})
+const States = Machine.state({ states: ChallengeRun.cases })
+const Events = Machine.eventsFromSchemas(ChallengeEvent)
 
 export const challengeMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Building', data: { id: '', totals: NO_TOTALS } },
@@ -128,6 +121,5 @@ export const challengeMachine = Machine.make({ root: States, events: Events }).h
   },
 })
 
-/** The next phase, or the same one when the event does not apply. */
 export const challengeStep = (run: ChallengeRun, event: ChallengeEvent): ChallengeRun =>
   planState(challengeMachine, run, event)

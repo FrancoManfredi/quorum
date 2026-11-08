@@ -2,28 +2,24 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-export const Shut = Schema.TaggedStruct('Shut', {})
-export const Clocking = Schema.TaggedStruct('Clocking', {})
-export const Ready = Schema.TaggedStruct('Ready', {})
-export const Connecting = Schema.TaggedStruct('Connecting', {})
-export const Boot = Schema.Union([Shut, Clocking, Ready, Connecting])
+export const Boot = Schema.TaggedUnion({
+  Shut: {},
+  Clocking: {},
+  Ready: {},
+  Connecting: {},
+})
 export type Boot = typeof Boot.Type
 
-export const ClockedIn = Schema.TaggedStruct('ClockedIn', {})
-export const TitleRevealed = Schema.TaggedStruct('TitleRevealed', {})
-export const BoardOpened = Schema.TaggedStruct('BoardOpened', {})
-export const Connected = Schema.TaggedStruct('Connected', {})
-export const BootEvent = Schema.Union([ClockedIn, TitleRevealed, BoardOpened, Connected])
-export type BootEvent = typeof BootEvent.Type
-
-const States = Machine.state({ states: { Shut, Clocking, Ready, Connecting } })
-
-const Events = Machine.events({
+export const BootEvent = Schema.TaggedUnion({
   ClockedIn: {},
   TitleRevealed: {},
   BoardOpened: {},
   Connected: {},
 })
+export type BootEvent = typeof BootEvent.Type
+
+const States = Machine.state({ states: Boot.cases })
+const Events = Machine.eventsFromSchemas(BootEvent)
 
 export const bootMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Shut' },
@@ -51,12 +47,8 @@ export const bootMachine = Machine.make({ root: States, events: Events }).handle
   },
 })
 
-/** The next state, or the same one when the event does not apply. */
 export const bootStep = (boot: Boot, event: BootEvent): Boot => planState(bootMachine, boot, event)
 
-/** The title has finished revealing, so the booth replaces the reader. */
-export const titleIsOpen = (boot: Boot): boolean =>
-  boot._tag === 'Ready' || boot._tag === 'Connecting'
+export const titleIsOpen = Boot.isAnyOf(['Ready', 'Connecting'])
 
-/** The monitor is playing its connect sequence: the clock holds and keys are ignored. */
-export const connecting = (boot: Boot): boolean => boot._tag === 'Connecting'
+export const connecting = Boot.guards.Connecting

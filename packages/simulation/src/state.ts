@@ -561,20 +561,20 @@ const MIGRATION_FIELDS = {
   bugs: Schema.Boolean,
 } as const
 
-export const Migration = Schema.Union([
-  Schema.TaggedStruct('Building', {
+export const Migration = Schema.TaggedUnion({
+  Building: {
     ...MIGRATION_FIELDS,
     /** Steps shifted so far, 0 to 3. */
     step: Schema.Finite,
-  }),
-  Schema.TaggedStruct('Ready', {
+  },
+  Ready: {
     ...MIGRATION_FIELDS,
     /** Steps shifted so far, 0 to 3. */
     step: Schema.Finite,
-  }),
+  },
   /** Every App Server moved; only Fix bugs remains. */
-  Schema.TaggedStruct('Finishing', { ...MIGRATION_FIELDS }),
-]).pipe(Schema.toType)
+  Finishing: { ...MIGRATION_FIELDS },
+})
 export type Migration = typeof Migration.Type
 
 export const MigrationState = Migration

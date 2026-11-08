@@ -1,4 +1,5 @@
 import { migrateSave } from '@quorum/simulation/save-migration'
+import { MailPhase } from './mail-machine.ts'
 
 const objectOf = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -17,14 +18,14 @@ const migrateInbox = (save: Record<string, unknown>): Record<string, unknown> =>
         const mail = objectOf(raw)
         if (!mail || mail.phase !== undefined) return raw
         const next = { ...mail }
-        if (typeof next.resolved === 'number') next.phase = { _tag: 'Resolved', at: next.resolved }
+        if (typeof next.resolved === 'number')
+          next.phase = MailPhase.cases.Resolved.make({ at: next.resolved })
         else if (typeof next.answer === 'string')
-          next.phase = {
-            _tag: 'Answered',
+          next.phase = MailPhase.cases.Answered.make({
             answer: next.answer,
             answerId: typeof next.answerId === 'string' ? next.answerId : '',
-          }
-        else next.phase = { _tag: 'Active' }
+          })
+        else next.phase = MailPhase.cases.Active.make({})
         delete next.answer
         delete next.answerId
         delete next.resolved

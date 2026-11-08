@@ -1,7 +1,9 @@
-import { Result } from 'effect'
+import { Result, Schema } from 'effect'
+import { defineMessageUnion } from 'foldkit/message'
 import * as Actions from '@quorum/simulation/actions'
 import { DOCK_OF, HOME_REGION, type ComponentId, type DockGroup } from '@quorum/simulation/catalog'
 import { company, link, node } from '@quorum/simulation/company'
+import { ComponentId as ComponentIdSchema } from '@quorum/simulation/state'
 import type { Game } from '@quorum/simulation/state'
 import { nodeOrdinals, normalizeOrdinals } from '@quorum/simulation/labels'
 import { solveFlow } from '@quorum/simulation/solve'
@@ -28,17 +30,19 @@ export type Practice = Readonly<{
   loopRefused: boolean
 }>
 
-export type PracticeEvent =
-  | { _tag: 'Arm'; type: ComponentId | null }
-  | { _tag: 'Place'; x: number; y: number }
-  | { _tag: 'Link'; from: string; to: string }
-  | { _tag: 'Unlink'; from: string; to: string }
-  | { _tag: 'Move'; nodeId: string; x: number; y: number }
-  | { _tag: 'Tap'; nodeId: string }
-  | { _tag: 'Empty' }
-  | { _tag: 'Toggle'; nodeId: string }
-  | { _tag: 'Box'; ids: ReadonlyArray<string>; mode: 'replace' | 'add' | 'subtract' }
-  | { _tag: 'Footer'; nodeId: string }
+export const PracticeEvent = defineMessageUnion({
+  Arm: { type: Schema.NullOr(ComponentIdSchema) },
+  Place: { x: Schema.Finite, y: Schema.Finite },
+  Link: { from: Schema.String, to: Schema.String },
+  Unlink: { from: Schema.String, to: Schema.String },
+  Move: { nodeId: Schema.String, x: Schema.Finite, y: Schema.Finite },
+  Tap: { nodeId: Schema.String },
+  Empty: {},
+  Toggle: { nodeId: Schema.String },
+  Box: { ids: Schema.Array(Schema.String), mode: Schema.Literals(['replace', 'add', 'subtract']) },
+  Footer: { nodeId: Schema.String },
+})
+export type PracticeEvent = typeof PracticeEvent.Type
 
 export type Goal = Readonly<{ label: string; done: boolean }>
 
@@ -149,11 +153,10 @@ const refuse = (p: Practice, refusal: Actions.Refusal): Practice => ({
 const regionNodes = (game: Game) => game.nodes.filter((entry) => entry.region === HOME_REGION)
 
 /** The game's update function, reduced to the handlers a Practice board has. */
-export const update = (p: Practice, event: PracticeEvent): Practice => {
-  switch (event._tag) {
-    case 'Arm':
-      return { ...p, placing: p.placing === event.type ? null : event.type, note: null }
-    case 'Place': {
+export const update = (p: Practice, event: PracticeEvent): Practice =>
+  PracticeEvent.match<Practice>(event, {
+    Arm: (event) => ({ ...p, placing: p.placing === event.type ? null : event.type, note: null }),
+    Place: (event) => {
       if (!p.placing) return p
       const spot = freeSpot(regionNodes(p.game).map(boxOf), {
         x: event.x,
@@ -173,9 +176,9 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
           note: null,
         }),
       })
-    }
-    case 'Link':
-      return Result.match(Actions.connect(p.game, event.from, event.to), {
+    },
+    Link: (event) =>
+      Result.match(Actions.connect(p.game, event.from, event.to), {
         onFailure: (refusal) => ({
           ...refuse(p, refusal),
           loopRefused:
@@ -190,10 +193,13 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
               ? { text: 'Postgres moved off the App Server to its own Database.', tone: 'ok' }
               : null,
         }),
-      })
-    case 'Unlink':
-      return { ...p, game: Actions.disconnect(p.game, event.from, event.to), note: null }
-    case 'Move': {
+      }),
+    Unlink: (event) => ({
+      ...p,
+      game: Actions.disconnect(p.game, event.from, event.to),
+      note: null,
+    }),
+    Move: (event) => {
       const node = p.game.nodes.find((entry) => entry.id === event.nodeId)
       if (!node) return p
       const group =
@@ -222,12 +228,10 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
         note: null,
         groupMoved: p.groupMoved || (group.length > 1 && (dx !== 0 || dy !== 0)),
       }
-    }
-    case 'Tap':
-      return { ...p, selected: event.nodeId, selection: [], note: null }
-    case 'Empty':
-      return { ...p, selected: null, selection: [] }
-    case 'Toggle': {
+    },
+    Tap: (event) => ({ ...p, selected: event.nodeId, selection: [], note: null }),
+    Empty: () => ({ ...p, selected: null, selection: [] }),
+    Toggle: (event) => {
       const selection = p.selection.includes(event.nodeId)
         ? p.selection.filter((id) => id !== event.nodeId)
         : [
@@ -238,8 +242,8 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
             event.nodeId,
           ]
       return { ...p, selection, selected: null }
-    }
-    case 'Box': {
+    },
+    Box: (event) => {
       const selection =
         event.mode === 'add'
           ? [...new Set([...p.selection, ...(p.selected ? [p.selected] : []), ...event.ids])]
@@ -247,14 +251,13 @@ export const update = (p: Practice, event: PracticeEvent): Practice => {
             ? p.selection.filter((id) => !event.ids.includes(id))
             : [...event.ids]
       return { ...p, selection, selected: null, grouped: p.grouped || selection.length >= 2 }
-    }
-    case 'Footer':
-      return Result.match(Actions.resize(p.game, event.nodeId, 1), {
+    },
+    Footer: (event) =>
+      Result.match(Actions.resize(p.game, event.nodeId, 1), {
         onFailure: (refusal) => refuse(p, refusal),
         onSuccess: (game) => ({ ...p, game, note: null }),
-      })
-  }
-}
+      }),
+  })
 
 export const boardState = (p: Practice): BoardState => ({
   locale: 'en',

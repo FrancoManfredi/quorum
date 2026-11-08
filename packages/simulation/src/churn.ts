@@ -1,3 +1,4 @@
+import { Schema } from 'effect'
 import {
   CALENDAR_DAY,
   DEVICES,
@@ -23,12 +24,16 @@ import { forecastUsers, regionGrowth } from './step.ts'
  */
 export type ChurnCause = 'far' | 'slow' | 'failed' | ErrorCause
 
+const RegionIdSchema = Schema.Literals(REGIONS)
+
 /** What the player can do about a row. */
-export type ChurnFix =
-  | Readonly<{ _tag: 'region'; region: RegionId }>
-  | Readonly<{ _tag: 'research'; research: 'multi-region' | 'geo-dns' }>
-  | Readonly<{ _tag: 'node'; nodeId: string }>
-  | Readonly<{ _tag: 'advice'; text: string }>
+export const ChurnFix = Schema.TaggedUnion({
+  region: { region: RegionIdSchema },
+  research: { research: Schema.Literals(['multi-region', 'geo-dns']) },
+  node: { nodeId: Schema.String },
+  advice: { text: Schema.String },
+})
+export type ChurnFix = typeof ChurnFix.Type
 
 export type ChurnRow = Readonly<{
   kind: RequestKind

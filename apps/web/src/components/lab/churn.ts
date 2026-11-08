@@ -1,7 +1,7 @@
 import { formats } from '@/i18n/format.ts'
 import { copy, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { churnOf, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
+import { churnOf, ChurnFix, type ChurnRow, type RegionChurn } from '@quorum/simulation/churn'
 import { has } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
 import type { Game } from '@quorum/simulation/state'
@@ -16,39 +16,42 @@ import { shell } from './panels.ts'
 /** The button that applies a row's fix, or its advice as text. */
 const fixOf = (game: Game, entry: ChurnRow, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
-  const fix = entry.fix
-
-  if (fix._tag === 'advice')
-    return h.span(
-      [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-      [entry.cause === 'far' ? '' : t.churn.fixes[entry.cause]],
+  const apply = (kind: 'region' | 'research' | 'node', label: string, target: string): Html =>
+    button(
+      {
+        onClick: Message.ChurnFixTaken({ fix: kind, target }),
+        variant: 'outline',
+        size: 'sm',
+        className: 'justify-self-start',
+      },
+      label,
+      h,
     )
-  const shown = fix._tag === 'node' ? game.nodes.find((node) => node.id === fix.nodeId) : undefined
-  const [label, message] =
-    fix._tag === 'region'
-      ? [
-          has(game, 'infra-as-code') &&
-          !game.nodes.some((node) => node.region === fix.region && node.type !== 'users')
-            ? t.churn.mirrorInto[fix.region]
-            : openRegions(game).includes(fix.region)
-              ? t.churn.buildIn[fix.region]
-              : t.churn.openRegion[fix.region],
-          Message.ChurnFixTaken({ fix: 'region', target: fix.region }),
-        ]
-      : fix._tag === 'research'
-        ? [
-            t.churn.research(t.catalog.research[fix.research].name),
-            Message.ChurnFixTaken({ fix: 'research', target: fix.research }),
-          ]
-        : [
-            t.churn.show(shown ? nodeTitle(t, game, shown) : t.churn.node),
-            Message.ChurnFixTaken({ fix: 'node', target: fix.nodeId }),
-          ]
-  return button(
-    { onClick: message, variant: 'outline', size: 'sm', className: 'justify-self-start' },
-    label,
-    h,
-  )
+
+  return ChurnFix.match(entry.fix, {
+    advice: () =>
+      h.span(
+        [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
+        [entry.cause === 'far' ? '' : t.churn.fixes[entry.cause]],
+      ),
+    node: ({ nodeId }) => {
+      const shown = game.nodes.find((node) => node.id === nodeId)
+      return apply('node', t.churn.show(shown ? nodeTitle(t, game, shown) : t.churn.node), nodeId)
+    },
+    region: ({ region }) =>
+      apply(
+        'region',
+        has(game, 'infra-as-code') &&
+          !game.nodes.some((node) => node.region === region && node.type !== 'users')
+          ? t.churn.mirrorInto[region]
+          : openRegions(game).includes(region)
+            ? t.churn.buildIn[region]
+            : t.churn.openRegion[region],
+        region,
+      ),
+    research: ({ research }) =>
+      apply('research', t.churn.research(t.catalog.research[research].name), research),
+  })
 }
 
 /** The slowest hop and the internet hop per device that a row names, as one line. */

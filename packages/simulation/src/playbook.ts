@@ -1,4 +1,4 @@
-import { Result, Schema } from 'effect'
+import { Option, Result, Schema } from 'effect'
 import { COMPONENTS, HOME_REGION, RESEARCH } from './catalog.ts'
 import {
   Refusal,
@@ -195,7 +195,7 @@ const configure = (game: Game, id: string, settings: Record<string, unknown>): G
   const current = node()
   if (!current) return next
   const merged = decodeNode({ ...current, ...pick(settings, NODE_SETTINGS) })
-  if (merged._tag === 'Some')
+  if (Option.isSome(merged))
     next = { ...next, nodes: next.nodes.map((entry) => (entry.id === id ? merged.value : entry)) }
   // A placed backup is as untested as one taken by hand: placing a Playbook rolls its restore.
   if (typeof settings.backup === 'string' && settings.backup !== 'none')
@@ -213,7 +213,7 @@ const linkWith = (game: Game, from: string, to: string, settings: object): Game 
   if (typeof shared.retries === 'string' && retryRefusal(linked.success, shared.retries as Retries))
     delete shared.retries
   const merged = made ? decodeLink({ ...made, ...shared }) : null
-  return merged?._tag === 'Some'
+  return merged !== null && Option.isSome(merged)
     ? {
         ...linked.success,
         links: linked.success.links.map((entry) => (entry === made ? merged.value : entry)),
@@ -322,7 +322,8 @@ const decode = Schema.decodeUnknownOption(Playbook)
 
 export const decodePlaybook = (text: string): Result.Result<Playbook, Refusal> => {
   const parsed = decode(decodeText(PREFIX, text))
-  return parsed._tag === 'Some'
-    ? Result.succeed(parsed.value)
-    : Result.fail(Refusal.NotAllowed({ reason: 'That is not a Playbook.' }))
+  return Option.match(parsed, {
+    onNone: () => Result.fail(Refusal.NotAllowed({ reason: 'That is not a Playbook.' })),
+    onSome: (value) => Result.succeed(value),
+  })
 }

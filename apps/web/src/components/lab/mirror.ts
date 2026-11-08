@@ -20,7 +20,7 @@ import {
   patternsFor,
   previewApply,
   switchLeft,
-  type Change,
+  Change,
   type Drift,
   type Managed,
 } from '@quorum/simulation/mirror'
@@ -301,43 +301,37 @@ const changeRow = (
 ): Html => {
   const t = copy(h)
 
-  const [mark, text, keep] = ((): readonly [string, string, Message | null] => {
-    switch (change._tag) {
-      case 'create':
-        return ['+', t.catalog.components[change.type].name, null]
-      case 'remove':
-        return [
-          '−',
-          `${t.catalog.components[change.type].name}${change.data ? ` · ${t.mirror.needsConfirm}` : ''}`,
-          null,
-        ]
-      case 'set':
-        return [
-          '~',
-          `${nodeName(t, game, change.node, mirror)} · ${fieldLabelOf(t)[change.field]} ${valueText(t, change.field, change.from)} → ${valueText(t, change.field, change.to)}`,
-          change.hand && overridable(game)
-            ? Message.MirrorOverrideSet({
-                region: mirror.region,
-                nodeId: change.node,
-                field: change.field,
-                keep: true,
-              })
-            : null,
-        ]
-      case 'link':
-        return [
-          change.add ? '+' : '−',
-          t.mirror.link(
-            nodeName(t, game, change.from, mirror),
-            nodeName(t, game, change.to, mirror),
-          ),
-          null,
-        ]
-      case 'choose':
-        return ['?', t.mirror.pickAPattern(t.catalog.components[change.type].name), null]
-    }
-  })()
-  const hand = change._tag !== 'choose' && change.hand
+  const [mark, text, keep]: readonly [string, string, Message | null] = Change.match(change, {
+    create: (change) => ['+', t.catalog.components[change.type].name, null] as const,
+    remove: (change) =>
+      [
+        '−',
+        `${t.catalog.components[change.type].name}${change.data ? ` · ${t.mirror.needsConfirm}` : ''}`,
+        null,
+      ] as const,
+    set: (change) =>
+      [
+        '~',
+        `${nodeName(t, game, change.node, mirror)} · ${fieldLabelOf(t)[change.field]} ${valueText(t, change.field, change.from)} → ${valueText(t, change.field, change.to)}`,
+        change.hand && overridable(game)
+          ? Message.MirrorOverrideSet({
+              region: mirror.region,
+              nodeId: change.node,
+              field: change.field,
+              keep: true,
+            })
+          : null,
+      ] as const,
+    link: (change) =>
+      [
+        change.add ? '+' : '−',
+        t.mirror.link(nodeName(t, game, change.from, mirror), nodeName(t, game, change.to, mirror)),
+        null,
+      ] as const,
+    choose: (change) =>
+      ['?', t.mirror.pickAPattern(t.catalog.components[change.type].name), null] as const,
+  })
+  const hand = !Change.guards.choose(change) && change.hand
   return h.div(
     [
       h.Key(`${index}`),

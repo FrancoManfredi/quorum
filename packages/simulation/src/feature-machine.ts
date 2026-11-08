@@ -2,52 +2,24 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { planState } from './machine.ts'
 
-/** One Feature's A/B samples (08 "Measured lift"): the exposed and holdout requests since its step. */
 export const LiftSample = Schema.Struct({
   exposed: Schema.Finite,
   holdout: Schema.Finite,
-  /** The rollout step the counts belong to: a new step starts the count again. */
   step: Schema.Finite,
 })
 export type LiftSample = typeof LiftSample.Type
 
-/** Built and waiting for the next deploy. */
-export const Awaiting = Schema.TaggedStruct('Awaiting', {})
-/** Live for `rollout` of users, adopted by `adoption` of them, at a measured `lift`. */
-export const Live = Schema.TaggedStruct('Live', {
-  rollout: Schema.Finite,
-  adoption: Schema.Finite,
-  lift: Schema.NullOr(LiftSample),
+export const FeaturePhase = Schema.TaggedUnion({
+  Awaiting: {},
+  Live: {
+    rollout: Schema.Finite,
+    adoption: Schema.Finite,
+    lift: Schema.NullOr(LiftSample),
+  },
 })
-export const FeaturePhase = Schema.Union([Awaiting, Live])
 export type FeaturePhase = typeof FeaturePhase.Type
 
-export const Built = Schema.TaggedStruct('Built', {})
-/** A deploy shipped it, so it reaches users and adoption starts at 0. */
-export const Deployed = Schema.TaggedStruct('Deployed', {})
-export const RolloutChanged = Schema.TaggedStruct('RolloutChanged', { share: Schema.Finite })
-export const Adopted = Schema.TaggedStruct('Adopted', { share: Schema.Finite })
-export const Sampled = Schema.TaggedStruct('Sampled', { lift: LiftSample })
-/** A bad deploy rolled it back, so it waits for the next one again. */
-export const RolledBack = Schema.TaggedStruct('RolledBack', {})
-/** The Feature left the Company: the caller removes its entry. */
-export const Removed = Schema.TaggedStruct('Removed', {})
-export const FeatureEvent = Schema.Union([
-  Built,
-  Deployed,
-  RolloutChanged,
-  Adopted,
-  Sampled,
-  RolledBack,
-  Removed,
-])
-export type FeatureEvent = typeof FeatureEvent.Type
-
-const States = Machine.state({
-  states: { Awaiting, Live },
-})
-
-const Events = Machine.events({
+export const FeatureEvent = Schema.TaggedUnion({
   Built: {},
   Deployed: {},
   RolloutChanged: { share: Schema.Finite },
@@ -56,13 +28,16 @@ const Events = Machine.events({
   RolledBack: {},
   Removed: {},
 })
+export type FeatureEvent = typeof FeatureEvent.Type
+
+const States = Machine.state({ states: FeaturePhase.cases })
+const Events = Machine.eventsFromSchemas(FeatureEvent)
 
 export const featureMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Awaiting' },
   states: {
     Awaiting: {
       on: {
-        // A build finished again: still waiting for a deploy.
         Built: { target: 'Awaiting', data: () => ({ _tag: 'Awaiting' }) },
         Deployed: {
           target: 'Live',
@@ -85,7 +60,6 @@ export const featureMachine = Machine.make({ root: States, events: Events }).han
           target: 'Live',
           data: ({ state, event }) => ({ ...state, lift: event.lift }),
         },
-        // A rollback takes it out of the rotation and back onto the queue.
         RolledBack: { target: 'Awaiting', data: () => ({ _tag: 'Awaiting' }) },
         Removed: { target: 'Awaiting', data: () => ({ _tag: 'Awaiting' }) },
       },
@@ -93,21 +67,25 @@ export const featureMachine = Machine.make({ root: States, events: Events }).han
   },
 })
 
-/** The next phase, or the same one when the event does not apply. */
 export const step = (phase: FeaturePhase, event: FeatureEvent): FeaturePhase =>
   planState(featureMachine, phase, event)
 
-/** A deploy shipped it, so its effects reach users. */
-export const isLive = (phase: FeaturePhase): phase is typeof Live.Type => phase._tag === 'Live'
+export const isLive = FeaturePhase.guards.Live
 
-/** The share of users it reaches: 0 until a deploy ships it. */
 export const rolloutOf = (phase: FeaturePhase): number =>
-  phase._tag === 'Live' ? phase.rollout : 0
+  FeaturePhase.match(phase, {
+    Awaiting: () => 0,
+    Live: ({ rollout }) => rollout,
+  })
 
-/** The share of its effect users have adopted: 0 until a deploy ships it. */
 export const adoptionOf = (phase: FeaturePhase): number =>
-  phase._tag === 'Live' ? phase.adoption : 0
+  FeaturePhase.match(phase, {
+    Awaiting: () => 0,
+    Live: ({ adoption }) => adoption,
+  })
 
-/** Its A/B samples since the current step, or null before a deploy and before one is read. */
 export const liftOf = (phase: FeaturePhase): LiftSample | null =>
-  phase._tag === 'Live' ? phase.lift : null
+  FeaturePhase.match(phase, {
+    Awaiting: () => null,
+    Live: ({ lift }) => lift,
+  })

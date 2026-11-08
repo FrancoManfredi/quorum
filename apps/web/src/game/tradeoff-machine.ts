@@ -4,84 +4,56 @@ import { planState } from './machine.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
 import { PreviewFigures } from './machine-state.ts'
 
-export const Closed = Schema.TaggedStruct('Closed', {})
-
-export const Hovering = Schema.TaggedStruct('Hovering', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
-  preview: Schema.NullOr(PreviewFigures),
+export const TradeoffState = Schema.TaggedUnion({
+  Closed: {},
+  Hovering: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+    preview: Schema.NullOr(PreviewFigures),
+  },
+  Pinned: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+    preview: Schema.NullOr(PreviewFigures),
+  },
+  Refused: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+    reason: Schema.String,
+  },
 })
-
-export const Pinned = Schema.TaggedStruct('Pinned', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
-  preview: Schema.NullOr(PreviewFigures),
-})
-
-export const Refused = Schema.TaggedStruct('Refused', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
-  reason: Schema.String,
-})
-
-export const TradeoffState = Schema.Union([Closed, Hovering, Pinned, Refused])
 export type TradeoffState = typeof TradeoffState.Type
 
-export const Hovered = Schema.TaggedStruct('Hovered', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
+export const TradeoffEvent = Schema.TaggedUnion({
+  Hovered: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+  },
+  PreviewComputed: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+    preview: PreviewFigures,
+  },
+  Left: {},
+  Chosen: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+  },
+  Confirmed: {},
+  Cancelled: {},
+  Refused: {
+    nodeId: Schema.String,
+    option: TradeoffOption,
+    reason: Schema.String,
+  },
 })
-
-export const PreviewComputed = Schema.TaggedStruct('PreviewComputed', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
-  preview: PreviewFigures,
-})
-
-export const Left = Schema.TaggedStruct('Left', {})
-
-export const Chosen = Schema.TaggedStruct('Chosen', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
-})
-
-export const Confirmed = Schema.TaggedStruct('Confirmed', {})
-
-export const Cancelled = Schema.TaggedStruct('Cancelled', {})
-
-/** A refusal is both a phase and an event: the same option, refused for a reason. */
-export const RefusedEvent = Schema.TaggedStruct('Refused', {
-  nodeId: Schema.String,
-  option: TradeoffOption,
-  reason: Schema.String,
-})
-
-export const TradeoffEvent = Schema.Union([
-  Hovered,
-  PreviewComputed,
-  Left,
-  Chosen,
-  Confirmed,
-  Cancelled,
-  RefusedEvent,
-])
 export type TradeoffEvent = typeof TradeoffEvent.Type
 
-/** Two options are the same when their kinds and ids agree; ids are per kind. */
 const sameOption = (a: TradeoffOption, b: TradeoffOption): boolean =>
   a.kind === b.kind && a.id === b.id
 
-const States = Machine.state({ states: { Closed, Hovering, Pinned, Refused } })
-
-const Events = Machine.events({
-  Hovered: { nodeId: Schema.String, option: TradeoffOption },
-  PreviewComputed: { nodeId: Schema.String, option: TradeoffOption, preview: PreviewFigures },
-  Left: {},
-  Chosen: { nodeId: Schema.String, option: TradeoffOption },
-  Confirmed: {},
-  Cancelled: {},
-  Refused: { nodeId: Schema.String, option: TradeoffOption, reason: Schema.String },
-})
+const States = Machine.state({ states: TradeoffState.cases })
+const Events = Machine.eventsFromSchemas(TradeoffEvent)
 
 export const tradeoffMachine = Machine.make({ root: States, events: Events }).handle({
   initial: { target: 'Closed' },
@@ -130,7 +102,6 @@ export const tradeoffMachine = Machine.make({ root: States, events: Events }).ha
         },
         PreviewComputed: {
           target: 'Hovering',
-          // A ghost run for an option the player has since left does not land.
           guard: ({ state, event }) =>
             state.nodeId === event.nodeId && sameOption(state.option, event.option),
           data: ({ state, event }) => ({ ...state, preview: event.preview }),
@@ -166,7 +137,6 @@ export const tradeoffMachine = Machine.make({ root: States, events: Events }).ha
         },
         Confirmed: {
           target: 'Closed',
-          // Confirm applies the option, so the card must know what it costs first.
           guard: ({ state }) => state.preview !== null,
         },
         Cancelled: { target: 'Closed' },
@@ -190,6 +160,5 @@ export const tradeoffMachine = Machine.make({ root: States, events: Events }).ha
   },
 })
 
-/** The next phase, or the same one when the event does not apply. */
 export const step = (state: TradeoffState, event: TradeoffEvent): TradeoffState =>
   planState(tradeoffMachine, state, event)

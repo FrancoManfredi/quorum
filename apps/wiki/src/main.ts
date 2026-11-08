@@ -140,7 +140,10 @@ export const update = (model: Model, message: Message): Return =>
       }),
     ChangedUrl: ({ url }) => {
       const path = normalize(url.pathname)
-      const hash = url.hash._tag === 'Some' ? url.hash.value.replace(/^#/, '') : ''
+      const hash = Option.match(url.hash, {
+        onNone: () => '',
+        onSome: (value) => value.replace(/^#/, ''),
+      })
       const scroll = path === model.path && !hash ? [] : [ScrollTo({ hash })]
       const visited = foldProgress(
         { ...model, path, menu: false, navToggled: [], search: Search.init },

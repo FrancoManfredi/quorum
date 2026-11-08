@@ -1,5 +1,14 @@
 import { MIGRATION_STEPS } from './catalog.ts'
+import { Autoscaler } from './autoscaler-machine.ts'
+import { Breaker } from './breaker-machine.ts'
+import { DataMovePhase } from './data-move-machine.ts'
+import { EraRound } from './era-round-machine.ts'
+import { FeaturePhase } from './feature-machine.ts'
+import { HirePhase } from './hire-machine.ts'
+import { IncidentPhase } from './incident-machine.ts'
 import { lifeOf } from './life.ts'
+import { NodeService } from './node-service-machine.ts'
+import { StudyPhase } from './study-machine.ts'
 
 const record = (value: unknown): Record<string, unknown> | null =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -30,10 +39,10 @@ const nodeOf = (raw: unknown): unknown => {
   if (next.service === undefined) {
     next.service =
       next.shut === true
-        ? { _tag: 'Shut' }
+        ? NodeService.cases.Shut.make({})
         : next.draining === true
-          ? { _tag: 'Draining', since: number(next.drainAt, 0) }
-          : { _tag: 'InService' }
+          ? NodeService.cases.Draining.make({ since: number(next.drainAt, 0) })
+          : NodeService.cases.InService.make({})
   }
   delete next.shut
   delete next.draining
@@ -43,8 +52,8 @@ const nodeOf = (raw: unknown): unknown => {
     const pending = number(next.pending, 0)
     next.scaler =
       pending > 0
-        ? { _tag: 'Scaling', pending, readyIn: number(next.readyIn, 0) }
-        : { _tag: 'Steady' }
+        ? Autoscaler.cases.Scaling.make({ pending, readyIn: number(next.readyIn, 0) })
+        : Autoscaler.cases.Steady.make({})
   }
   delete next.pending
   delete next.readyIn
@@ -58,7 +67,8 @@ const linkOf = (raw: unknown, time: number): unknown => {
   const next = { ...link }
   if (next.fuse === undefined) {
     const open = number(next.open, 0)
-    next.fuse = open > 0 ? { _tag: 'Open', until: time + open } : { _tag: 'Closed' }
+    next.fuse =
+      open > 0 ? Breaker.cases.Open.make({ until: time + open }) : Breaker.cases.Closed.make({})
   }
   delete next.open
   return next
@@ -94,7 +104,7 @@ const hireOf = (raw: unknown): unknown => {
   if (!hire || hire.phase !== undefined) return raw
   const next: Record<string, unknown> = {
     ...hire,
-    phase: { _tag: 'Pending', readyAt: number(hire.readyAt, 0) },
+    phase: HirePhase.cases.Pending.make({ readyAt: number(hire.readyAt, 0) }),
   }
   delete next.readyAt
   return next
@@ -106,7 +116,10 @@ const studyOf = (raw: unknown, index: number): unknown => {
   const progress = number(study.progress, 0)
   const next: Record<string, unknown> = {
     ...study,
-    phase: index === 0 ? { _tag: 'Running', progress } : { _tag: 'Queued', progress },
+    phase:
+      index === 0
+        ? StudyPhase.cases.Running.make({ progress })
+        : StudyPhase.cases.Queued.make({ progress }),
   }
   delete next.progress
   return next
@@ -118,7 +131,10 @@ const moveOf = (raw: unknown): unknown => {
   const until = number(move.until, 0)
   const next: Record<string, unknown> = {
     ...move,
-    phase: until > 0 ? { _tag: 'Copying', until } : { _tag: 'Building' },
+    phase:
+      until > 0
+        ? DataMovePhase.cases.Copying.make({ until })
+        : DataMovePhase.cases.Building.make({}),
   }
   delete next.until
   return next
@@ -175,12 +191,12 @@ const incidentOf = (raw: unknown): unknown => {
     ...incident,
     phase:
       signalAt !== null && ackAt !== null
-        ? { _tag: 'Acknowledged', signalAt, ackAt }
+        ? IncidentPhase.cases.Acknowledged.make({ signalAt, ackAt })
         : signalAt !== null
-          ? { _tag: 'Announced', signalAt }
+          ? IncidentPhase.cases.Announced.make({ signalAt })
           : ackAt !== null
-            ? { _tag: 'Responded', ackAt }
-            : { _tag: 'Quiet' },
+            ? IncidentPhase.cases.Responded.make({ ackAt })
+            : IncidentPhase.cases.Quiet.make({}),
   }
   delete next.signalAt
   delete next.ackAt
@@ -225,7 +241,7 @@ const featuresOf = (save: Record<string, unknown>): Record<string, unknown> | nu
   for (const raw of list(save.services))
     Object.assign(rollouts, record(record(raw)?.rollouts) ?? {})
   const features: Record<string, unknown> = {}
-  for (const id of awaiting) features[id] = { _tag: 'Awaiting' }
+  for (const id of awaiting) features[id] = FeaturePhase.cases.Awaiting.make({})
   for (const id of shipped)
     features[id] = {
       _tag: 'Live',
@@ -267,7 +283,8 @@ export const migrateSave = (raw: Record<string, unknown>): Record<string, unknow
     save.engineChange = moveOf(save.engineChange)
 
   if (save.round === undefined)
-    save.round = save.declined === true ? { _tag: 'Declined' } : { _tag: 'Waiting' }
+    save.round =
+      save.declined === true ? EraRound.cases.Declined.make({}) : EraRound.cases.Waiting.make({})
   delete save.declined
   return save
 }

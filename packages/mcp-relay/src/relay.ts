@@ -4,7 +4,7 @@ import {
   QUORUM_ORIGIN,
   RELAY_HOST,
   RELAY_PORT,
-  type PageMessage,
+  isPageMessage,
   type RelayMessage,
 } from './protocol.ts'
 
@@ -122,12 +122,14 @@ export const startRelay = ({
       log('A Quorum tab connected.')
 
       socket.on('message', (data) => {
-        let message: PageMessage
+        let parsed: unknown
         try {
-          message = JSON.parse(textOf(data)) as PageMessage
+          parsed = JSON.parse(textOf(data))
         } catch {
           return
         }
+        if (!isPageMessage(parsed)) return
+        const message = parsed
         if (message.type === 'hello' || message.type === 'visible') {
           if (message.visible) page.activeAt = Date.now()
           return

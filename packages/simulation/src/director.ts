@@ -52,11 +52,18 @@ import {
   zoned,
   rampedOf,
 } from './lookups.ts'
-import { hasAck, signalAtOf, ackAtOf, step as incidentStep } from './incident-machine.ts'
+import {
+  IncidentEvent,
+  IncidentPhase,
+  hasAck,
+  signalAtOf,
+  ackAtOf,
+  step as incidentStep,
+} from './incident-machine.ts'
 import { nodeLabel } from './labels.ts'
 
 export { zoned }
-import { causeOf, down as takeDown, withWarm } from './life.ts'
+import { Life, causeOf, down as takeDown, withWarm } from './life.ts'
 import { drillPassed } from './drill-machine.ts'
 import { nextRandom, pickWeighted } from './random.ts'
 import type { Game, GameLink, GameNode, Incident, Postmortem, Region, Zone } from './state.ts'
@@ -801,7 +808,7 @@ export const startIncident = (
     impaired: 0,
     lostRevenue: 0,
     failed: 0,
-    phase: { _tag: 'Quiet' },
+    phase: IncidentPhase.cases.Quiet.make({}),
     severity: INCIDENTS[kind].severity,
     magnitude:
       kind === 'spike'
@@ -1048,7 +1055,7 @@ const resolve = (
       configured(node) &&
       causeOf(node.life) === 'failure' &&
       node.downAt === incident.startedAt &&
-      node.life._tag === 'Restarting'
+      Life.guards.Restarting(node.life)
     )
       return { ...node, ...restarted(node) }
     // A resolution with no player action puts back the Nodes the Incident took down with it.
@@ -1056,11 +1063,11 @@ const resolve = (
       auto &&
       node.downAt === incident.startedAt &&
       causeOf(node.life) === 'failure' &&
-      node.life._tag === 'Restarting'
+      Life.guards.Restarting(node.life)
     )
       return { ...node, ...restarted(node) }
     if (node.id !== incident.nodeId) return node
-    if (incident.kind === 'instance' && node.life._tag === 'Stopped')
+    if (incident.kind === 'instance' && Life.guards.Stopped(node.life))
       return { ...node, ...restarted(node) }
     if (incident.kind === 'leak' && node.leak > 0)
       return { ...node, ...restarted(node, 'oom'), leak: 0, downAt: game.time }
@@ -1133,7 +1140,10 @@ export const markSignal = (game: Game, ledger: Ledger): Game => {
         ...game,
         incident: {
           ...incident,
-          phase: incidentStep(incident.phase, { _tag: 'Signalled', at: game.time }),
+          phase: incidentStep(
+            incident.phase,
+            IncidentEvent.cases.Signalled.make({ at: game.time }),
+          ),
         },
       }
     : game
@@ -1189,10 +1199,10 @@ export const advanceIncident = (
     game.time >= signalledAt + ON_CALL_ACK
       ? {
           ...tracked,
-          phase: incidentStep(tracked.phase, {
-            _tag: 'Acked',
-            at: signalledAt + ON_CALL_ACK,
-          }),
+          phase: incidentStep(
+            tracked.phase,
+            IncidentEvent.cases.Acked.make({ at: signalledAt + ON_CALL_ACK }),
+          ),
         }
       : tracked
   const target = game.nodes.find((node) => node.id === incident.nodeId)
@@ -1225,11 +1235,11 @@ export const advanceIncident = (
   const elapsedAfter = game.time - incident.startedAt
   const held = nodes.find((node) => node.id === incident.nodeId)
   const fixed =
-    (incident.kind === 'instance' && (!target || target.life._tag !== 'Stopped')) ||
+    (incident.kind === 'instance' && (!target || !Life.guards.Stopped(target.life))) ||
     (incident.kind === 'leak' &&
       (!target || (target.leak === 0 && incident.remaining < incidentDuration(game, 'leak')))) ||
     // A restart clears the heap.
-    (incident.kind === 'gc-storm' && (!target || target.life._tag === 'Restarting')) ||
+    (incident.kind === 'gc-storm' && (!target || Life.guards.Restarting(target.life))) ||
     // The storm is over once the trigger has passed and the backlog has drained.
     (incident.kind === 'retry-storm' &&
       elapsedAfter >= STORM_TRIGGER &&
@@ -1244,10 +1254,10 @@ export const advanceIncident = (
     // A reclaimed Node is back, sold, or no longer spot: the reclaim is over.
     (incident.kind === 'spot-reclaim' &&
       elapsedAfter >= SPOT_WARNING &&
-      (!held || held.life._tag !== 'Restarting')) ||
+      (!held || !Life.guards.Restarting(held.life))) ||
     // A restart resets OPcache, and rejoins the halves of a split cluster.
     ((incident.kind === 'stale-opcache' || incident.kind === 'split-brain') &&
-      (!target || target.life._tag === 'Restarting')) ||
+      (!target || Life.guards.Restarting(target.life))) ||
     // The login traffic has been moved off the blocked event loop.
     (incident.kind === 'loop' &&
       hasAck(incident.phase) &&
@@ -1258,7 +1268,7 @@ export const advanceIncident = (
           (ledger.nodes[node.id]?.traffic.login ?? 0) > 0,
       )) ||
     // The Hub is warm again: the reconnect wave is over.
-    (incident.kind === 'reconnect' && (!held || held.life._tag === 'Running')) ||
+    (incident.kind === 'reconnect' && (!held || Life.guards.Running(held.life))) ||
     // Re-adding capacity: a Node of the Component the command emptied serves again (11).
     (incident.kind === 'operator-typo' &&
       target !== undefined &&

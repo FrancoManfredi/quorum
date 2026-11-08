@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/browser'
 import { SentryEffectTracer } from '@sentry/effect/client'
-import { Layer, Option, Tracer } from 'effect'
+import { Layer, Option, Schema, Tracer } from 'effect'
 import { Runtime } from 'foldkit'
-import { API_PREFIX } from '@quorum/rpc'
+import { API_PREFIX, ApiError } from '@quorum/rpc'
 import { SIM_VERSION } from '@quorum/simulation/version'
 import { crashTagsOf } from '../game/crash-context.ts'
 import type { Message } from '../game/message.ts'
@@ -104,7 +104,7 @@ export const reportSurveyFailure = (
   exit: { readonly exit: string; readonly stage: number },
 ): void => {
   if (!DSN) return
-  const rejected = error._tag === 'ApiError'
+  const rejected = Option.isSome(Schema.decodeUnknownOption(ApiError)(error))
   const report = new Error(rejected ? error.message : 'The API Worker could not be reached.')
   report.name = rejected ? 'SurveyRejected' : 'SurveyUnreachable'
   Sentry.captureException(report, {
