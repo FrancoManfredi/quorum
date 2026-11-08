@@ -254,15 +254,14 @@
   --highlight: oklch(1 0 0 / 0.07);
   --primary-fill-top: oklch(0.99 0 0);
   --primary-fill-bottom: oklch(0.88 0.003 260);
-  --primary-edge: oklch(0 0 0 / 0.6);
+  --primary-edge: oklch(0 0 0 / 0.2);
   --on-primary-fill: oklch(0.2 0.004 260);
 
   --elev-well:
     inset 0 1px 3px oklch(0 0 0 / 0.45), inset 0 0 0 1px oklch(0 0 0 / 0.25),
     0 1px 0 var(--highlight);
   --elev-raised:
-    inset 0 1px 0 oklch(1 0 0 / 0.1), 0 0 0 1px oklch(0 0 0 / 0.45), 0 1px 2px oklch(0 0 0 / 0.4),
-    0 3px 6px -2px oklch(0 0 0 / 0.35);
+    inset 0 1px 0 var(--highlight), 0 0 0 1px var(--hairline), 0 1px 2px oklch(0 0 0 / 0.28);
   --elev-card:
     inset 0 1px 0 var(--highlight), 0 0 0 1px var(--hairline-soft), 0 1px 2px oklch(0 0 0 / 0.35),
     0 12px 32px -12px oklch(0 0 0 / 0.6);
@@ -270,8 +269,8 @@
     inset 0 1px 0 oklch(1 0 0 / 0.08), 0 0 0 1px oklch(1 0 0 / 0.1), 0 2px 6px oklch(0 0 0 / 0.4),
     0 28px 56px -16px oklch(0 0 0 / 0.75);
   --elev-primary:
-    inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 -1px 0 oklch(0 0 0 / 0.18),
-    0 0 0 1px var(--primary-edge), 0 1px 2px oklch(0 0 0 / 0.45);
+    inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 -1px 0 oklch(0 0 0 / 0.12),
+    0 0 0 1px var(--primary-edge), 0 1px 2px oklch(0 0 0 / 0.28);
 }
 
 /* A white switch thumb on a white track disappears, so keep it dark. */
