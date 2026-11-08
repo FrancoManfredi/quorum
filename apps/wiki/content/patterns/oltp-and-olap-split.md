@@ -31,4 +31,4 @@ The warehouse lags the primary by the pipeline's delay, so reports show slightly
 
 The other Nodes in the picture only serve the other request kinds of Series B, such as checkouts and realtime. Report requests send scans. With only a [Database](/components/database), the scans run there. With a [Data Warehouse](/components/warehouse) linked, the scans go there instead, so the Database serves users alone. A scan on the warehouse is slow but has no capacity limit, and it is billed per scan. The game does not model how stale the warehouse copy is.
 
-The warehouse unlocks with [Data warehousing](/research/data-warehouse). The [Report kills the database](/incidents/report-db) incident is what it prevents. The glossary defines [OLTP and OLAP](/glossary/oltp-and-olap). [Reports off the primary](/patterns/reports-off-the-primary-warehouse) is the ladder rung.
+The warehouse unlocks with [Data warehousing](/research/data-warehouse). The [Report kills the database](/incidents/report-db) incident is what it prevents. The glossary defines [OLTP and OLAP](/glossary/oltp-and-olap). [Reports off the primary](/patterns/reports-off-the-primary-warehouse) is the step.

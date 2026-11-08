@@ -82,7 +82,7 @@ The Patterns section teaches system design in small pieces. A page stays under a
 
 Real-world numbers are fine as examples ("a 30-second timeout", "10% retry budget"). A game number never appears in prose. It appears only in the Design's settings table and caption, which the build reads from the Design itself.
 
-Pages sit in groups, set by `group` and `order` in the frontmatter. A group's orders are adjacent. Foundations take 10 to 19, the Stack ladder 101 to 134, patterns 201 to 999, and Outside the game 1001 and up.
+Pages sit in groups, set by `group` and `order` in the frontmatter. A group's orders are adjacent. Foundations take 10 to 19, the scaling steps 101 to 134, patterns 201 to 999, and Outside the game 1001 and up.
 
 ### Pattern page
 
@@ -108,16 +108,16 @@ Where the game teaches it. A `::Design{id="..."}` shows a Board that uses the pa
 
 A pattern the game cannot build has no Design and no "In Quorum" section. Its page is "Outside the game" (below).
 
-### Stack ladder page
+### Scaling step page
 
-A rung is one Design a player builds, and each rung fixes what the last one broke. The ladder pages are the only Patterns pages whose Design is the point of the page.
+A scaling step is one Design a player builds, and each step fixes what the last one broke. These pages are the only Patterns pages whose Design is the point of the page.
 
 ```md
 One sentence: the change, in the game's words.
 
 ## Move up when
 
-- The symptom on the Board or in a gauge that tells the reader the last rung has run out.
+- The symptom on the Board or in a gauge that tells the reader the last step has run out.
 
 ## The Design
 
@@ -135,7 +135,7 @@ What the change adds: a hop, a Node, a failure mode, Burn.
 
 ## In Quorum
 
-The Components and Research the rung needs, and a link to the next rung.
+The Components and Research the step needs, and a link to the next step.
 ```
 
 ### Foundations page

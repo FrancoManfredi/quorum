@@ -14,8 +14,8 @@ export const PATTERN_GROUPS: ReadonlyArray<Readonly<{ name: string; blurb: strin
     blurb: 'The vocabulary the rest leans on: latency, availability, CAP and the tail.',
   },
   {
-    name: 'Stack ladder',
-    blurb: 'Build a system one rung at a time, from a single box to several regions.',
+    name: 'Scaling steps',
+    blurb: 'Build a system one step at a time, from a single box to several regions.',
   },
   { name: 'Scaling reads and compute', blurb: 'Caches, replicas, load balancers and autoscaling.' },
   {
@@ -44,10 +44,10 @@ const hub = page({
   path: '/patterns',
   title: 'Patterns',
   summary:
-    'System design in small pieces: build a Design one rung at a time, then look up the pattern behind each rung.',
+    'System design in small pieces: build a Design one step at a time, then look up the pattern behind each step.',
   section: 'patterns',
   order: 0,
-  aliases: ['system design', 'cheatsheet', 'architecture', 'design patterns', 'scaling', 'ladder'],
+  aliases: ['system design', 'cheatsheet', 'architecture', 'design patterns', 'scaling'],
   headings: headingsFor(PATTERN_GROUPS.map((group) => group.name)),
   text: PATTERN_GROUPS.map((group) => `${group.name} ${group.blurb}`).join(' '),
   body: (_model, h) => {
@@ -56,7 +56,7 @@ const hub = page({
       [h.Class('prose')],
       [
         paragraph(
-          'A cheatsheet for designing systems, in two halves that point at each other. The Stack ladder adds one piece at a time and says when to climb. The patterns explain the idea behind each rung, what it costs, and how to set it in the game.',
+          'A cheatsheet for designing systems, in two halves that point at each other. The scaling steps add one piece at a time and say when to move. The patterns explain the idea behind each step, what it costs, and how to set it in the game.',
           h,
         ),
         h.p(
@@ -64,7 +64,7 @@ const hub = page({
           [
             'New here? Start at ',
             link('/patterns/one-box', 'One box', h),
-            ' and climb, or jump to a pattern when a gauge on your Board turns red. Most pages draw a real Design on the game’s own board and explain every setting it uses.',
+            ' and work up, or jump to a pattern when a gauge on your Board turns red. Most pages draw a real Design on the game’s own board and explain every setting it uses.',
           ],
         ),
         ...PATTERN_GROUPS.flatMap((group) => {
@@ -80,7 +80,7 @@ const hub = page({
                       members.map((entry) =>
                         hubCard(
                           entry,
-                          group.name === 'Stack ladder'
+                          group.name === 'Scaling steps'
                             ? h.span(
                                 [
                                   h.Class(

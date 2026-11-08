@@ -2,7 +2,7 @@
 title: Pooler between servers and database
 summary: Put a Connection Pooler between the App Servers and the Database so many app connections share a few database connections.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 107
 aliases: connection pooling, pgbouncer, max connections, too many connections, connection pool, proxy
 ---
@@ -32,4 +32,4 @@ The pooler adds a small hop and one more Node that can fail. Transaction mode br
 
 ## In Quorum
 
-Research [Connection pooling](/research/pooling) to unlock the [Connection Pooler](/components/pooler). The [Connection Limit](/sandboxes/connection-limit) Sandbox shows the failure, and [Connection exhaustion](/incidents/connections) is the incident. [Connection pooling](/patterns/connection-pooling) covers the pattern. The next rung is [DNS in front](/patterns/dns-in-front).
+Research [Connection pooling](/research/pooling) to unlock the [Connection Pooler](/components/pooler). The [Connection Limit](/sandboxes/connection-limit) Sandbox shows the failure, and [Connection exhaustion](/incidents/connections) is the incident. [Connection pooling](/patterns/connection-pooling) covers the pattern. The next step is [DNS in front](/patterns/dns-in-front).

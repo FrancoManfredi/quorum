@@ -2,7 +2,7 @@
 title: Split the database by feature
 summary: Give each feature its own App Server and Database, so one feature's load and failures stay in its own lane.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 115
 aliases: federation, functional partitioning, database per service, split by domain, vertical partitioning
 ---
@@ -31,4 +31,4 @@ A query that joins across the split no longer works. The app has to call both si
 
 ## In Quorum
 
-Draw it as above, with one Link setting that carries only some request kinds from a [Load Balancer](/components/lb). Separate codebases and teams come with [Service boundaries](/research/service-boundaries). The pattern is on [Federation](/patterns/federation), and the opposite move, spreading one table, is [Sharding](/patterns/sharding). The next rung moves slow work off the request: [Slow work to a queue and workers](/patterns/slow-work-to-a-queue-and-workers).
+Draw it as above, with one Link setting that carries only some request kinds from a [Load Balancer](/components/lb). Separate codebases and teams come with [Service boundaries](/research/service-boundaries). The pattern is on [Federation](/patterns/federation), and the opposite move, spreading one table, is [Sharding](/patterns/sharding). The next step moves slow work off the request: [Slow work to a queue and workers](/patterns/slow-work-to-a-queue-and-workers).

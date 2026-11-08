@@ -2,7 +2,7 @@
 title: Message platform for fan-out
 summary: Send each notification through a Queue and Workers to a managed provider, so a slow or failing send never holds a request.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 117
 aliases: push notifications, sns, ses, email, pub sub, fan out, notification service, webhooks
 ---
@@ -33,4 +33,4 @@ Delivery is at least once, so a notification can arrive twice unless the send is
 
 ## In Quorum
 
-The [Push Provider](/components/msgp) needs [Notifications](/research/notifications), and it sits behind the [Queue](/components/queue) and [Worker](/components/worker) of the last rung. Both Link settings need [Timeouts and retries](/research/timeouts), and backoff needs [Backoff with jitter](/research/backoff-jitter). The [Timeouts](/patterns/timeouts) and [Retry with backoff](/patterns/retry-with-backoff) pages explain the two Link settings. The next rung covers spiky work with no box: [Functions for spiky jobs](/patterns/functions-for-spiky-jobs).
+The [Push Provider](/components/msgp) needs [Notifications](/research/notifications), and it sits behind the [Queue](/components/queue) and [Worker](/components/worker) of the last step. Both Link settings need [Timeouts and retries](/research/timeouts), and backoff needs [Backoff with jitter](/research/backoff-jitter). The [Timeouts](/patterns/timeouts) and [Retry with backoff](/patterns/retry-with-backoff) pages explain the two Link settings. The next step covers spiky work with no box: [Functions for spiky jobs](/patterns/functions-for-spiky-jobs).

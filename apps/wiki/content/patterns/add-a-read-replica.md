@@ -2,7 +2,7 @@
 title: Add a read replica
 summary: Copy the Database to a replica that answers reads, so the primary's capacity goes to writes and read traffic scales out.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 111
 aliases: replica, replication, follower, read scaling, replication lag, stale read, standby reads
 ---
@@ -32,4 +32,4 @@ A replica lags behind the primary, so some reads come back stale. In the ledger 
 
 ## In Quorum
 
-Research [Read replicas](/research/replication) to unlock the [Read Replica](/components/replica). The [Stale Checkout](/sandboxes/stale-checkout) Sandbox shows the stale read, and [Replication lag](/incidents/repl-lag) is the incident. [Read-your-writes routing](/research/ryw-routing) is the repair. [Read replicas](/patterns/read-replicas) covers the pattern. The next rung is to [route reads and writes apart](/patterns/route-reads-and-writes-apart).
+Research [Read replicas](/research/replication) to unlock the [Read Replica](/components/replica). The [Stale Checkout](/sandboxes/stale-checkout) Sandbox shows the stale read, and [Replication lag](/incidents/repl-lag) is the incident. [Read-your-writes routing](/research/ryw-routing) is the repair. [Read replicas](/patterns/read-replicas) covers the pattern. The next step is to [route reads and writes apart](/patterns/route-reads-and-writes-apart).

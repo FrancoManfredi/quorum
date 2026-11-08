@@ -2,7 +2,7 @@
 title: DNS in front
 summary: Put DNS ahead of several Load Balancers so the entry point is not a single machine, and set its TTL to match how fast you need failover.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 108
 aliases: dns round robin, route 53, ttl, multiple load balancers, redundant load balancer, domain
 ---
@@ -32,4 +32,4 @@ DNS has no health checks until you research them, so a dead host keeps its share
 
 ## In Quorum
 
-The [DNS](/components/dns) Component unlocks with [DNS round robin](/research/dns-rr). Changing the TTL needs [Health checks](/research/health-checks), and DNS drops a dead host only once your Team has also built the Health check endpoint. The glossary defines [DNS round robin](/glossary/dns-round-robin). The next rung is [static files on object storage and a CDN](/patterns/static-files-on-object-storage-and-a-cdn).
+The [DNS](/components/dns) Component unlocks with [DNS round robin](/research/dns-rr). Changing the TTL needs [Health checks](/research/health-checks), and DNS drops a dead host only once your Team has also built the Health check endpoint. The glossary defines [DNS round robin](/glossary/dns-round-robin). The next step is [static files on object storage and a CDN](/patterns/static-files-on-object-storage-and-a-cdn).

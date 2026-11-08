@@ -7,7 +7,7 @@ settings list would drift from the Simulation.
 ## Decision
 
 1. `patterns` is a section of its own, beside the Diátaxis kinds. Pages sit under headings set by a
-   `group` frontmatter field: Foundations, the Stack ladder, one group per pattern family, and
+   `group` frontmatter field: Foundations, the scaling steps, one group per pattern family, and
    Outside the game.
 2. The `::Design{id}` directive draws a Design on the game's own board, read-only, and solves it
    with the Simulation. Designs live in `apps/wiki/src/patterns/designs`. Each setting is written

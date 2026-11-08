@@ -1,9 +1,9 @@
 import type { Design } from '../design.ts'
 import { at, design, set, setLink, wire } from '../design.ts'
 
-/* Ladder tier 3: the front door, safe change, realtime, and the data and compute that outgrow one machine. */
+/* Scaling steps 3: the front door, safe change, realtime, and the data and compute that outgrow one machine. */
 
-export const ladder3 = {
+export const step3 = {
   'gateway-auth-tls': design({
     users: 2000,
     stage: 2,
@@ -444,7 +444,7 @@ export const ladder3 = {
     researched: ['multi-region', 'geo-dns', 'multi-az', 'sharding', 'leaderless', 'dr-drills'],
     nodes: [
       at('server', 'server', 1, 0, [
-        set('size', 4, 'Instance size', 'Large, as in the earlier rungs.'),
+        set('size', 4, 'Instance size', 'Large, as in the earlier steps.'),
       ]),
       at('wide', 'wide', 2, 0, [
         set(

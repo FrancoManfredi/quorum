@@ -2,7 +2,7 @@
 title: Compute at the edge
 summary: Run small handlers on Edge Functions next to the user and keep heavy work on the App Server, so cheap requests skip the trip to the origin.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 131
 aliases: edge functions, cloudflare workers, isolates, cold start, wasm, edge handlers, cpu ceiling, edge cache
 ---
@@ -33,4 +33,4 @@ An edge handler that calls the Database on every request still pays the trip, so
 
 ## In Quorum
 
-Place an [Edge Function](/components/edge) and set a Stack that compiles for it. Research [Edge compute](/research/edge-compute), which needs Content delivery. A live Edge Function also holds the edge cache that a CDN answers reads from. The [Certificate expired](/incidents/certificate) incident applies to it. The next rung, [disaster recovery and a failover region](/patterns/disaster-recovery-and-failover-region), covers losing a whole region.
+Place an [Edge Function](/components/edge) and set a Stack that compiles for it. Research [Edge compute](/research/edge-compute), which needs Content delivery. A live Edge Function also holds the edge cache that a CDN answers reads from. The [Certificate expired](/incidents/certificate) incident applies to it. The next step, [disaster recovery and a failover region](/patterns/disaster-recovery-and-failover-region), covers losing a whole region.

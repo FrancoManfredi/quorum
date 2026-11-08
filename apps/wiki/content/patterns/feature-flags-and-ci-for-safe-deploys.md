@@ -2,7 +2,7 @@
 title: Feature flags and CI for safe deploys
 summary: Ship through a pipeline that sends a canary first, and put new Features behind flags, so a bad deploy breaks a slice of users instead of all of them.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 124
 aliases: ci cd, continuous delivery, canary release, rollout, feature toggle, bad deploy, blast radius, deploy strategy, launchdarkly
 ---
@@ -33,4 +33,4 @@ A safer strategy takes longer per deploy and bills more than a plain rolling one
 
 ## In Quorum
 
-Place a [CI/CD Pipeline](/components/ci) and [Feature Flags](/components/ff). Research [Continuous delivery](/research/ci), [Canary deploys](/research/canary) and [Feature flags](/research/feature-flags). Canary needs Percentiles. The [Bad deploy](/incidents/bad-deploy) incident is the one this limits. Read [canary deployment](/glossary/canary-deployment) and [feature flags](/glossary/feature-flag). The next rung, a [Realtime Hub](/patterns/websockets-tier-for-realtime), holds the connections that realtime features need.
+Place a [CI/CD Pipeline](/components/ci) and [Feature Flags](/components/ff). Research [Continuous delivery](/research/ci), [Canary deploys](/research/canary) and [Feature flags](/research/feature-flags). Canary needs Percentiles. The [Bad deploy](/incidents/bad-deploy) incident is the one this limits. Read [canary deployment](/glossary/canary-deployment) and [feature flags](/glossary/feature-flag). The next step, a [Realtime Hub](/patterns/websockets-tier-for-realtime), holds the connections that realtime features need.

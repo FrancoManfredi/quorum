@@ -15,7 +15,7 @@ The costs are real. Each sidecar uses CPU and memory on every instance, and Azur
 
 ## Nearest in Quorum
 
-The game builds this one. The [Service Mesh](/components/mesh) puts a sidecar proxy beside each App Server and Worker that links into it, gives them retries, a circuit breaker and metrics, and charges the CPU and a hop for it. It needs the [Service mesh](/research/service-mesh) Research, and only services running in a [Kubernetes Cluster](/components/cluster) get a sidecar. [Split into services with a mesh](/patterns/split-into-services-with-a-mesh) shows the rung, and [Circuit breaker](/patterns/circuit-breaker) is one of the features it hands out.
+The game builds this one. The [Service Mesh](/components/mesh) puts a sidecar proxy beside each App Server and Worker that links into it, gives them retries, a circuit breaker and metrics, and charges the CPU and a hop for it. It needs the [Service mesh](/research/service-mesh) Research, and only services running in a [Kubernetes Cluster](/components/cluster) get a sidecar. [Split into services with a mesh](/patterns/split-into-services-with-a-mesh) shows the step, and [Circuit breaker](/patterns/circuit-breaker) is one of the features it hands out.
 
 ## References
 

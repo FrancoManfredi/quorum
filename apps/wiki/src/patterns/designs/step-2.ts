@@ -2,15 +2,15 @@ import type { RequestKind } from '@quorum/simulation/catalog'
 import { at, design, set, setLink, wire } from '../design.ts'
 import type { Design, DesignDef } from '../design.ts'
 
-/** A Design whose Users send only the kinds the rung is about, instead of the whole Era's mix. */
+/** A Design whose Users send only the kinds the step is about, instead of the whole Era's mix. */
 const withMix = (def: DesignDef, mix: Partial<Record<RequestKind, number>>): Design => {
   const built = design(def)
   return { ...built, game: { ...built.game, scenario: { mix } } }
 }
 
-/* Ladder tier 2: the data tier grows sideways, then the work that can wait leaves the request. */
+/* Scaling steps 2: the data tier grows sideways, then the work that can wait leaves the request. */
 
-export const ladder2 = {
+export const step2 = {
   'read-write-split': withMix(
     {
       users: 3000,

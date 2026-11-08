@@ -2,7 +2,7 @@
 title: Document and wide-column stores
 summary: Use a document store for data read and written by key with a changing shape, and a wide-column store when writes outgrow one machine, and accept what each gives up.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 114
 aliases: nosql, mongodb, dynamodb, firestore, cassandra, quorum, tunable consistency, leaderless
 ---
@@ -35,4 +35,4 @@ A document store has no joins, so a checkout or report that spans documents cost
 
 ## In Quorum
 
-The [Document Store](/components/doc) needs [Document databases](/research/document-db). The [Wide-column Store](/components/wide) needs [Sharding](/research/sharding) and then [Leaderless replication](/research/leaderless). Watch for the [Hot key](/incidents/hot-key) incident. See [quorum](/glossary/quorum) and [eventual consistency](/glossary/eventual-consistency), and the pattern on [Quorum reads and writes](/patterns/quorum-reads-and-writes). The next rung keeps several stores apart: [Split the database by feature](/patterns/split-the-database-by-feature).
+The [Document Store](/components/doc) needs [Document databases](/research/document-db). The [Wide-column Store](/components/wide) needs [Sharding](/research/sharding) and then [Leaderless replication](/research/leaderless). Watch for the [Hot key](/incidents/hot-key) incident. See [quorum](/glossary/quorum) and [eventual consistency](/glossary/eventual-consistency), and the pattern on [Quorum reads and writes](/patterns/quorum-reads-and-writes). The next step keeps several stores apart: [Split the database by feature](/patterns/split-the-database-by-feature).

@@ -2,7 +2,7 @@
 title: One box
 summary: Run the code and the data on one machine. It is the cheapest way to launch and the right place to start.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 101
 aliases: single server, monolith, lamp stack, all in one, one server, starter box, garage
 ---
@@ -31,4 +31,4 @@ One machine is one failure. When the host dies, the app and the data die togethe
 
 ## In Quorum
 
-The starting [App Server](/components/server) runs Postgres on its own box until you link it to a [Database](/components/database). An [Instance failure](/incidents/instance) shows what the single box costs. The next rung is to [split the server and the storage](/patterns/split-the-server-and-storage).
+The starting [App Server](/components/server) runs Postgres on its own box until you link it to a [Database](/components/database). An [Instance failure](/incidents/instance) shows what the single box costs. The next step is to [split the server and the storage](/patterns/split-the-server-and-storage).

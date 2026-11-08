@@ -2,7 +2,7 @@
 title: Logs, metrics and traces
 summary: Tap the Nodes into Analytics and research the visibility track, so you can see error causes, history and the slow hop of each request instead of guessing.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 128
 aliases: observability, logging, metrics, tracing, opentelemetry, sampling, tail sampling, p99, dashboards, retention
 ---
@@ -33,4 +33,4 @@ Sampling adds CPU and latency to every tapped Node and storage Burn to Analytics
 
 ## In Quorum
 
-Place [Analytics](/components/analytics) and link Nodes into it. Research [Structured logs](/research/logs), [Metrics](/research/metrics), [Percentiles](/research/percentiles), [Distributed tracing](/research/tracing) and [Tail-based sampling](/research/tail-sampling). Read [Insight and observability](/explanation/observability) and [distributed tracing](/glossary/distributed-tracing). The next rung, [services with a mesh](/patterns/split-into-services-with-a-mesh), needs this view to be debuggable.
+Place [Analytics](/components/analytics) and link Nodes into it. Research [Structured logs](/research/logs), [Metrics](/research/metrics), [Percentiles](/research/percentiles), [Distributed tracing](/research/tracing) and [Tail-based sampling](/research/tail-sampling). Read [Insight and observability](/explanation/observability) and [distributed tracing](/glossary/distributed-tracing). The next step, [services with a mesh](/patterns/split-into-services-with-a-mesh), needs this view to be debuggable.

@@ -2,7 +2,7 @@
 title: Autoscale the compute tier
 summary: Link App Servers to an Autoscaler so the number of copies follows the load, inside a floor and a cap you choose.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 119
 aliases: auto scaling group, hpa, scale out, scale in, cooldown, target tracking, elastic
 ---
@@ -31,4 +31,4 @@ New copies are not instant. A VM takes minutes to boot, so a sudden spike hurts 
 
 ## In Quorum
 
-Place an [Autoscaler](/components/autoscaler) after [Autoscaling](/research/autoscaling), and put copies behind a [Load Balancer](/components/lb). [Scheduled scaling](/research/scheduled-scaling) provisions ahead of a known peak. The pattern is on [Autoscaling](/patterns/autoscaling-reactive-and-scheduled), and [Survive a traffic spike](/guides/survive-a-traffic-spike) uses it. The next rung keeps copies of data in sync: [Stream changes with CDC](/patterns/stream-changes-with-cdc).
+Place an [Autoscaler](/components/autoscaler) after [Autoscaling](/research/autoscaling), and put copies behind a [Load Balancer](/components/lb). [Scheduled scaling](/research/scheduled-scaling) provisions ahead of a known peak. The pattern is on [Autoscaling](/patterns/autoscaling-reactive-and-scheduled), and [Survive a traffic spike](/guides/survive-a-traffic-spike) uses it. The next step keeps copies of data in sync: [Stream changes with CDC](/patterns/stream-changes-with-cdc).

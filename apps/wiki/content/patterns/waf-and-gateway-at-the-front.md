@@ -2,7 +2,7 @@
 title: WAF and gateway at the front
 summary: Put a WAF and an API Gateway in front of the App Servers, so bots and bursts are stopped before they cost you capacity.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 122
 aliases: web application firewall, modsecurity, api gateway, kong, rate limit, throttle, bots, ddos, paranoia level
 ---
@@ -31,4 +31,4 @@ Both layers add a hop to every request. A paranoia level that is too high blocks
 
 ## In Quorum
 
-Place a [WAF](/components/waf) after [Web application firewall](/research/waf), and an [API Gateway](/components/gw) after [API gateway](/research/api-gateway). [Rate limiting](/research/rate-limiting) adds a token bucket for bursts, and [Bot management](/research/bot-management) challenges a client instead of blocking it. See [WAF and bot management](/patterns/waf-and-bot-management) and [API gateway patterns](/patterns/api-gateway-patterns). The next rung is [Auth and TLS at the gateway](/patterns/auth-and-tls-at-the-gateway).
+Place a [WAF](/components/waf) after [Web application firewall](/research/waf), and an [API Gateway](/components/gw) after [API gateway](/research/api-gateway). [Rate limiting](/research/rate-limiting) adds a token bucket for bursts, and [Bot management](/research/bot-management) challenges a client instead of blocking it. See [WAF and bot management](/patterns/waf-and-bot-management) and [API gateway patterns](/patterns/api-gateway-patterns). The next step is [Auth and TLS at the gateway](/patterns/auth-and-tls-at-the-gateway).

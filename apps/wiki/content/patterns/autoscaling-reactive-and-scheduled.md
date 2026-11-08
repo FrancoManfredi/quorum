@@ -31,4 +31,4 @@ Link an [App Server](/components/server) into an [Autoscaler](/components/autosc
 
 ::Design{id="autoscaled"}
 
-The [JVM warmup under load](/incidents/jvm-warmup) incident shows cold copies arriving mid-spike. The glossary defines [autoscaling](/glossary/autoscaling) and [diurnal traffic](/glossary/diurnal-traffic), and the [Autoscale the compute tier](/patterns/autoscale-the-compute-tier) rung builds it step by step.
+The [JVM warmup under load](/incidents/jvm-warmup) incident shows cold copies arriving mid-spike. The glossary defines [autoscaling](/glossary/autoscaling) and [diurnal traffic](/glossary/diurnal-traffic), and the [Autoscale the compute tier](/patterns/autoscale-the-compute-tier) step builds it piece by piece.

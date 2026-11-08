@@ -32,7 +32,7 @@ Each tier up multiplies the bill and the complexity, and active-active adds the 
 
 ## In Quorum
 
-The game has the rungs that matter. A snapshot-only Database is backup and restore. A zone standby covers a lost zone. A replica in another region behind GeoDNS is a warm standby, and a Spread store is active-active. It has no pilot light. The Design below shows the zone rung.
+The game covers the tiers that matter. A snapshot-only Database is backup and restore. A zone standby covers a lost zone. A replica in another region behind GeoDNS is a warm standby, and a Spread store is active-active. It has no pilot light. The Design below shows a zone standby.
 
 ::Design{id="dr-zone-standby"}
 

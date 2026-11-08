@@ -2,7 +2,7 @@
 title: Shard the database
 summary: Split the Database into shards by a key, so writes divide across several primaries once one box at its largest size is full.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 126
 aliases: partitioning, horizontal partitioning, shard key, resharding, scatter gather, cross shard transaction, hash sharding, range sharding
 ---
@@ -31,4 +31,4 @@ Every shard bills as a full Database. A report or search touches every shard, so
 
 ## In Quorum
 
-Set **Shards** and **Shard key** on a [Database](/components/database). Research [Sharding](/research/sharding). The [Big tenant hot shard](/incidents/hot-shard) incident shows a bad key. See [sharding](/patterns/sharding), [hot keys and hot shards](/patterns/hot-keys-and-hot-shards) and [Scale the database](/guides/scale-the-database). The next rung, [distributed SQL and leaderless stores](/patterns/distributed-sql-and-leaderless-stores), moves the splitting into the store itself.
+Set **Shards** and **Shard key** on a [Database](/components/database). Research [Sharding](/research/sharding). The [Big tenant hot shard](/incidents/hot-shard) incident shows a bad key. See [sharding](/patterns/sharding), [hot keys and hot shards](/patterns/hot-keys-and-hot-shards) and [Scale the database](/guides/scale-the-database). The next step, [distributed SQL and leaderless stores](/patterns/distributed-sql-and-leaderless-stores), moves the splitting into the store itself.

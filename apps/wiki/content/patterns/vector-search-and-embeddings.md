@@ -2,7 +2,7 @@
 title: Vector search and embeddings
 summary: Keep embeddings of your documents in a Vector Index and look up the nearest ones before each prompt, so answers use your own data instead of only the model's.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 134
 aliases: vector database, embeddings, rag, retrieval augmented generation, hnsw, nearest neighbour, pgvector, pinecone, qdrant, recall
 ---

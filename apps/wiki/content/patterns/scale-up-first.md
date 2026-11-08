@@ -2,7 +2,7 @@
 title: Scale up first
 summary: Give the App Server a bigger instance before you add a second one. It is the cheapest change that adds capacity.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 104
 aliases: vertical scaling, scale up, bigger instance, resize, instance size, upgrade the server
 ---
@@ -36,4 +36,4 @@ A runtime that runs one process cannot use extra cores. Plain Node.js is one eve
 
 ## In Quorum
 
-Resize from the Node's Inspector, and read the cost before you commit. [Find the bottleneck](/guides/find-the-bottleneck) shows how to tell the App Server from the Database. The glossary defines [vertical and horizontal scaling](/glossary/vertical-and-horizontal-scaling). The next rung is [several App Servers behind a Load Balancer](/patterns/several-app-servers-behind-a-load-balancer).
+Resize from the Node's Inspector, and read the cost before you commit. [Find the bottleneck](/guides/find-the-bottleneck) shows how to tell the App Server from the Database. The glossary defines [vertical and horizontal scaling](/glossary/vertical-and-horizontal-scaling). The next step is [several App Servers behind a Load Balancer](/patterns/several-app-servers-behind-a-load-balancer).

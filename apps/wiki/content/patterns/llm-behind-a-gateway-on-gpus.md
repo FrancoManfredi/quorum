@@ -2,7 +2,7 @@
 title: An LLM behind a gateway on GPUs
 summary: Serve AI prompts from your own GPU Nodes beside a hosted LLM API, and tune model, precision and batch size, because a GPU is cheaper per prompt only while it stays busy.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 133
 aliases: llm, gpu, inference, vllm, quantization, batching, model serving, tokens, hosted model, ai prompts
 ---
@@ -31,4 +31,4 @@ A GPU Node bills all the time and is cheaper per prompt only while it stays busy
 
 ## In Quorum
 
-Place a [GPU Node](/components/gpu) and an [LLM API](/components/llm). Research [Hosted models](/research/hosted-models), [Model serving](/research/model-serving), [Quantization](/research/quantization) and [Continuous batching](/research/continuous-batching). Read [model inference](/glossary/model-inference), [quantization](/glossary/quantization) and [continuous batching](/glossary/continuous-batching). The next rung, [vector search and embeddings](/patterns/vector-search-and-embeddings), gives the model your own data.
+Place a [GPU Node](/components/gpu) and an [LLM API](/components/llm). Research [Hosted models](/research/hosted-models), [Model serving](/research/model-serving), [Quantization](/research/quantization) and [Continuous batching](/research/continuous-batching). Read [model inference](/glossary/model-inference), [quantization](/glossary/quantization) and [continuous batching](/glossary/continuous-batching). The next step, [vector search and embeddings](/patterns/vector-search-and-embeddings), gives the model your own data.

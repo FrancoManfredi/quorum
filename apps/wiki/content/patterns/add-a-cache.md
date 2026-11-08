@@ -2,7 +2,7 @@
 title: Add a cache
 summary: Put a Cache between the App Server and the Database so repeated reads are answered from memory and the Database keeps its capacity for writes.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 110
 aliases: redis, memcached, ttl, hit ratio, in memory, read heavy, cache aside
 ---
@@ -32,4 +32,4 @@ You buy stale reads. A write invalidates data, but a cache-aside race can keep a
 
 ## In Quorum
 
-Research [Caching](/research/caching) to unlock the [Cache](/components/cache). The [Read Mostly](/sandboxes/read-mostly) Sandbox shows the symptom. [Cache-aside](/patterns/cache-aside) covers the pattern, and [Stampede protection](/research/stampede-protection) handles a cold start. The next rung is to [add a read replica](/patterns/add-a-read-replica).
+Research [Caching](/research/caching) to unlock the [Cache](/components/cache). The [Read Mostly](/sandboxes/read-mostly) Sandbox shows the symptom. [Cache-aside](/patterns/cache-aside) covers the pattern, and [Stampede protection](/research/stampede-protection) handles a cold start. The next step is to [add a read replica](/patterns/add-a-read-replica).

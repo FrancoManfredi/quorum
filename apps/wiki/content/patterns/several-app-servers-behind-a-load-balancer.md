@@ -2,7 +2,7 @@
 title: Several app servers behind a load balancer
 summary: Put a Load Balancer in front of identical App Servers so traffic splits across them and capacity grows by adding copies.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 105
 aliases: horizontal scaling, scale out, load balancer, nginx, reverse proxy, fleet, round robin
 ---
@@ -26,7 +26,7 @@ The first picture is one App Server over capacity. In the second, Users reach th
 
 Each server now takes half the requests, so its load bar falls under full, drops stop, and p99 returns to normal. The default algorithm splits by capacity. With identical servers that is an even split, and with mixed sizes each server takes a share that matches its capacity. Least connections follows live load instead, which helps when servers slow unevenly, and needs research.
 
-This works because the previous rungs left no state on the server. If a user's next request lands on the other copy, it finds the same rows and files.
+This works because the previous steps left no state on the server. If a user's next request lands on the other copy, it finds the same rows and files.
 
 ## What it costs
 
@@ -34,4 +34,4 @@ The Load Balancer is one more hop and one more Node to size. Alone, it is the ne
 
 ## In Quorum
 
-Research [Load balancing](/research/load-balancing) to unlock the [Load Balancer](/components/lb), then link it to each [App Server](/components/server). [Load balancing algorithms](/research/lb-algorithms) adds least connections. The glossary defines the [load balancer](/glossary/load-balancer). The next rung is [dropping dead nodes with health checks](/patterns/drop-dead-nodes-with-health-checks).
+Research [Load balancing](/research/load-balancing) to unlock the [Load Balancer](/components/lb), then link it to each [App Server](/components/server). [Load balancing algorithms](/research/lb-algorithms) adds least connections. The glossary defines the [load balancer](/glossary/load-balancer). The next step is [dropping dead nodes with health checks](/patterns/drop-dead-nodes-with-health-checks).

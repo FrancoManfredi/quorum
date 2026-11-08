@@ -17,12 +17,12 @@ export const PATHS: ReadonlyArray<Path> = [
     steps: navOf('play').map((page) => page.path),
   },
   {
-    id: 'stack-ladder',
-    title: 'Climb the stack ladder',
+    id: 'scaling-steps',
+    title: 'Scale a system step by step',
     summary:
-      'Build a system one rung at a time, from a single box to several regions, with every setting explained.',
+      'Build a system one step at a time, from a single box to several regions, with every setting explained.',
     steps: navOf('patterns')
-      .filter((page) => page.group === 'Stack ladder')
+      .filter((page) => page.group === 'Scaling steps')
       .map((page) => page.path),
   },
   {

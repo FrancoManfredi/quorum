@@ -2,7 +2,7 @@
 title: Disaster recovery and a failover region
 summary: Back up the primary, keep a standby for zone loss and a store spread across regions for region loss, and prove it with a drill.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 132
 aliases: dr, failover, standby, rpo, rto, backups, pitr, region outage, dr drill, restore drill, multi az
 ---
@@ -33,4 +33,4 @@ You pay for a second region's Nodes while it sits mostly idle, and for standby a
 
 ## In Quorum
 
-Set **Spread** on a [Wide-column Store](/components/wide) after researching [Leaderless replication](/research/leaderless). On a [Database](/components/database), set **Backup** and **Standby**. Research [Backups](/research/pitr), [Restore drills](/research/restore-drills), [Multiple zones](/research/multi-az) and [Disaster recovery drills](/research/dr-drills). The [Region outage](/incidents/region) and [DR drill](/incidents/dr-drill) incidents test it. Read [RPO and RTO](/glossary/rpo-and-rto) and [Prepare for an Exit](/guides/prepare-for-an-exit). The next rung, [an LLM behind a gateway on GPUs](/patterns/llm-behind-a-gateway-on-gpus), adds AI prompts.
+Set **Spread** on a [Wide-column Store](/components/wide) after researching [Leaderless replication](/research/leaderless). On a [Database](/components/database), set **Backup** and **Standby**. Research [Backups](/research/pitr), [Restore drills](/research/restore-drills), [Multiple zones](/research/multi-az) and [Disaster recovery drills](/research/dr-drills). The [Region outage](/incidents/region) and [DR drill](/incidents/dr-drill) incidents test it. Read [RPO and RTO](/glossary/rpo-and-rto) and [Prepare for an Exit](/guides/prepare-for-an-exit). The next step, [an LLM behind a gateway on GPUs](/patterns/llm-behind-a-gateway-on-gpus), adds AI prompts.

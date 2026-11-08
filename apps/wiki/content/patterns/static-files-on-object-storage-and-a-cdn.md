@@ -2,7 +2,7 @@
 title: Static files on object storage and a CDN
 summary: Serve pages and media from the edge and keep files in Object Storage, so the origin only handles what must be fresh.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 109
 aliases: cdn, cloudflare, s3, static assets, edge cache, object storage, egress, cache hit ratio
 ---
@@ -34,4 +34,4 @@ The CDN does not cache API reads, writes, logins or checkouts. A long TTL withou
 
 ## In Quorum
 
-Research [Content delivery](/research/cdn) for the [CDN](/components/cdn) and [Object storage](/research/object-storage) for [Object Storage](/components/storage). The glossary defines a [CDN](/glossary/cdn-content-delivery-network) and [egress](/glossary/egress). [CDN push and pull](/patterns/cdn-push-and-pull) covers the pattern. The next rung is to [add a cache](/patterns/add-a-cache).
+Research [Content delivery](/research/cdn) for the [CDN](/components/cdn) and [Object storage](/research/object-storage) for [Object Storage](/components/storage). The glossary defines a [CDN](/glossary/cdn-content-delivery-network) and [egress](/glossary/egress). [CDN push and pull](/patterns/cdn-push-and-pull) covers the pattern. The next step is to [add a cache](/patterns/add-a-cache).

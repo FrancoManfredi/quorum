@@ -2,7 +2,7 @@
 title: Slow work to a queue and workers
 summary: Hand work the user does not wait for to a Queue, and let Workers drain it at their own pace.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 116
 aliases: message queue, background jobs, workers, rabbitmq, sqs, sidekiq, async, task queue, dead letter
 ---
@@ -33,4 +33,4 @@ You add two Nodes and a delay the user can see, since the result is not ready wh
 
 ## In Quorum
 
-Place a [Queue](/components/queue) and a [Worker](/components/worker) after [Background jobs](/research/background-jobs) and [Message queues](/research/queues). The pattern is [Queue-based load leveling](/patterns/queue-load-leveling), with [competing consumers](/patterns/competing-consumers) and a [dead-letter queue](/patterns/dead-letter-queue). The glossary has [at-least-once delivery](/glossary/at-least-once-delivery). The next rung sends one task to many receivers: [Message platform for fan-out](/patterns/message-platform-for-fan-out).
+Place a [Queue](/components/queue) and a [Worker](/components/worker) after [Background jobs](/research/background-jobs) and [Message queues](/research/queues). The pattern is [Queue-based load leveling](/patterns/queue-load-leveling), with [competing consumers](/patterns/competing-consumers) and a [dead-letter queue](/patterns/dead-letter-queue). The glossary has [at-least-once delivery](/glossary/at-least-once-delivery). The next step sends one task to many receivers: [Message platform for fan-out](/patterns/message-platform-for-fan-out).

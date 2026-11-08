@@ -35,4 +35,4 @@ The two Designs serve the same Users with the same total CPU. The first has one 
 
 ::Design{id="scale-out"}
 
-The [Scale up first](/patterns/scale-up-first) and [Several app servers behind a load balancer](/patterns/several-app-servers-behind-a-load-balancer) rungs cover each step. The glossary defines [vertical and horizontal scaling](/glossary/vertical-and-horizontal-scaling), and [Survive a traffic spike](/guides/survive-a-traffic-spike) uses both.
+The [Scale up first](/patterns/scale-up-first) and [Several app servers behind a load balancer](/patterns/several-app-servers-behind-a-load-balancer) steps cover one approach each. The glossary defines [vertical and horizontal scaling](/glossary/vertical-and-horizontal-scaling), and [Survive a traffic spike](/guides/survive-a-traffic-spike) uses both.

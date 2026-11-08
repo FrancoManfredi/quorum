@@ -2,7 +2,7 @@
 title: Reports off the primary, in a warehouse
 summary: Send report scans to a columnar Data Warehouse, so analytics stops evicting the buffer cache that checkouts depend on.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 121
 aliases: olap, oltp, bigquery, redshift, snowflake, analytics, reporting, columnar, data warehouse
 ---
@@ -29,8 +29,8 @@ A Warehouse has no capacity limit and bills per scan, so a busy month costs more
 
 ## What it costs
 
-Each scan is slow, so this is for reports and not for page loads. The warehouse needs data, and this Design does not load it. In real systems a pipeline copies changes in, and the previous rung shows one. The data is a little behind, and per-scan pricing punishes a dashboard that refreshes every few seconds.
+Each scan is slow, so this is for reports and not for page loads. The warehouse needs data, and this Design does not load it. In real systems a pipeline copies changes in, and the previous step shows one. The data is a little behind, and per-scan pricing punishes a dashboard that refreshes every few seconds.
 
 ## In Quorum
 
-Place a [Data Warehouse](/components/warehouse) after [Data warehousing](/research/data-warehouse), and watch for the [Report kills the database](/incidents/report-db) incident. The pattern is on [OLTP and OLAP split](/patterns/oltp-and-olap-split), and the glossary has [OLTP and OLAP](/glossary/oltp-and-olap). The next rung protects the front door: [WAF and gateway at the front](/patterns/waf-and-gateway-at-the-front).
+Place a [Data Warehouse](/components/warehouse) after [Data warehousing](/research/data-warehouse), and watch for the [Report kills the database](/incidents/report-db) incident. The pattern is on [OLTP and OLAP split](/patterns/oltp-and-olap-split), and the glossary has [OLTP and OLAP](/glossary/oltp-and-olap). The next step protects the front door: [WAF and gateway at the front](/patterns/waf-and-gateway-at-the-front).

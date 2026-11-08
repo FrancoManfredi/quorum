@@ -84,7 +84,7 @@ const groupBlock = (
   color: string,
   h: H,
 ): Html => {
-  const numbered = name === 'Stack ladder'
+  const numbered = name === 'Scaling steps'
   return h.div(
     [h.Key(`group-${name}`), h.Class('mt-2')],
     [

@@ -2,7 +2,7 @@
 title: Multi-region with GeoDNS
 summary: Open a second region, route each region's Users to it with GeoDNS, and keep reads local, so far Users stop paying the ocean twice on every request.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 130
 aliases: geodns, regions, latency abroad, europe, region tab, round trip, read replica abroad, anycast, geo routing
 ---
@@ -37,4 +37,4 @@ Writes still cross to the primary, and some replica reads come back stale. Calls
 
 ## In Quorum
 
-Set a Node's **Region** and place a Users Node there. Research [Multiple zones](/research/multi-az), [Multiple regions](/research/multi-region), [GeoDNS](/research/geo-dns) and [Infrastructure as code](/research/infra-as-code). Follow [Go global](/guides/go-global) and read [GeoDNS](/glossary/geodns). The next rung, [compute at the edge](/patterns/compute-at-the-edge), moves small handlers next to the user.
+Set a Node's **Region** and place a Users Node there. Research [Multiple zones](/research/multi-az), [Multiple regions](/research/multi-region), [GeoDNS](/research/geo-dns) and [Infrastructure as code](/research/infra-as-code). Follow [Go global](/guides/go-global) and read [GeoDNS](/glossary/geodns). The next step, [compute at the edge](/patterns/compute-at-the-edge), moves small handlers next to the user.

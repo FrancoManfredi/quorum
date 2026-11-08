@@ -2,7 +2,7 @@
 title: A WebSockets tier for realtime
 summary: Hold realtime connections open on a Realtime Hub that runs a runtime built for them, and route only realtime traffic to it, so chat and live updates stop eating App Server workers.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 125
 aliases: websocket, realtime, chat, live updates, socket.io, presence, reconnect, long lived connections, connection count
 ---
@@ -33,4 +33,4 @@ A Hub is a stateful Node. A restart drops every connection and invites a reconne
 
 ## In Quorum
 
-Place a [Realtime Hub](/components/ws) and link it from a [Load Balancer](/components/lb). Set the Link's kinds so only realtime reaches it. Research [WebSockets](/research/websockets), and a runtime such as [Node.js](/research/lang-node). The next rung, [sharding the database](/patterns/shard-the-database), splits the data tier once one primary cannot take the writes.
+Place a [Realtime Hub](/components/ws) and link it from a [Load Balancer](/components/lb). Set the Link's kinds so only realtime reaches it. Research [WebSockets](/research/websockets), and a runtime such as [Node.js](/research/lang-node). The next step, [sharding the database](/patterns/shard-the-database), splits the data tier once one primary cannot take the writes.

@@ -2,7 +2,7 @@
 title: Search beside the database
 summary: Put full-text search on its own Search Engine, so a busy query stops taking CPU and cache from checkouts and writes.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 113
 aliases: elasticsearch, opensearch, meilisearch, full text search, inverted index, search index, lucene
 ---
@@ -33,4 +33,4 @@ You now keep two copies of the data. If the app writes to both in one request, a
 
 ## In Quorum
 
-Place a [Search Engine](/components/search) after [Full-text search](/research/full-text-search). The pattern is on [Full-text search and the inverted index](/patterns/full-text-search-and-inverted-index), and the glossary defines the [inverted index](/glossary/inverted-index). The next rung stores data that does not fit rows: [Document and wide-column stores](/patterns/document-and-wide-column-stores).
+Place a [Search Engine](/components/search) after [Full-text search](/research/full-text-search). The pattern is on [Full-text search and the inverted index](/patterns/full-text-search-and-inverted-index), and the glossary defines the [inverted index](/glossary/inverted-index). The next step stores data that does not fit rows: [Document and wide-column stores](/patterns/document-and-wide-column-stores).

@@ -2,7 +2,7 @@
 title: Distributed SQL and leaderless stores
 summary: Replace hand-made shards with a store that replicates by itself, either leaderless with tunable quorums or SQL on Raft, and pick by whether you need every read correct.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 127
 aliases: cassandra, cockroachdb, raft, quorum, leaderless replication, wide column, newsql, tunable consistency, n r w
 ---
@@ -33,8 +33,8 @@ Even a strong quorum is not a transaction. A checkout on the wide-column store s
 
 ## What it costs
 
-Both bill several nodes at once, and distributed SQL bills the most. Neither takes searches or uploads, so a Database stays for them. A split can lose a replica, and a quorum that needs every replica then refuses. Both can also **Spread** across regions, which the multi-region rung uses. The game does not model a lightweight transaction on the wide-column store.
+Both bill several nodes at once, and distributed SQL bills the most. Neither takes searches or uploads, so a Database stays for them. A split can lose a replica, and a quorum that needs every replica then refuses. Both can also **Spread** across regions, which the multi-region step uses. The game does not model a lightweight transaction on the wide-column store.
 
 ## In Quorum
 
-Place a [Wide-column Store](/components/wide) or [Distributed SQL](/components/dsql). Research [Leaderless replication](/research/leaderless) or [Consensus databases](/research/consensus). Read [quorums](/glossary/quorum), [Raft](/glossary/raft) and [The data tier](/explanation/the-data-tier). The next rung, [logs, metrics and traces](/patterns/logs-metrics-and-traces), shows where these stores spend their time.
+Place a [Wide-column Store](/components/wide) or [Distributed SQL](/components/dsql). Research [Leaderless replication](/research/leaderless) or [Consensus databases](/research/consensus). Read [quorums](/glossary/quorum), [Raft](/glossary/raft) and [The data tier](/explanation/the-data-tier). The next step, [logs, metrics and traces](/patterns/logs-metrics-and-traces), shows where these stores spend their time.

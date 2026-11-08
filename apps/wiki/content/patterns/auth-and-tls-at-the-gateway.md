@@ -2,7 +2,7 @@
 title: Auth and TLS at the gateway
 summary: Check each token once at the API Gateway, hand password hashing to an Auth Provider, and let a certificate manager renew TLS, so the front door stops costing the App Server and stops expiring.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 123
 aliases: authentication, jwt, token validation, tls termination, certificates, certificate renewal, password hashing, identity provider, auth0
 ---
@@ -33,4 +33,4 @@ The gateway adds a hop to every request and bills per request, so it is cheap wh
 
 ## In Quorum
 
-Place an [API Gateway](/components/gw), an [Auth Provider](/components/auth) and [Secrets and Certificates](/components/pki). Research [API gateway](/research/api-gateway), [Managed identity](/research/auth-provider) and [Certificate automation](/research/cert-automation). The [Certificate expired](/incidents/certificate) incident is the failure this prevents. See [bcrypt](/glossary/bcrypt) and [TLS certificates](/glossary/tls-certificate). The next rung, [feature flags and CI](/patterns/feature-flags-and-ci-for-safe-deploys), limits what a bad deploy can break.
+Place an [API Gateway](/components/gw), an [Auth Provider](/components/auth) and [Secrets and Certificates](/components/pki). Research [API gateway](/research/api-gateway), [Managed identity](/research/auth-provider) and [Certificate automation](/research/cert-automation). The [Certificate expired](/incidents/certificate) incident is the failure this prevents. See [bcrypt](/glossary/bcrypt) and [TLS certificates](/glossary/tls-certificate). The next step, [feature flags and CI](/patterns/feature-flags-and-ci-for-safe-deploys), limits what a bad deploy can break.

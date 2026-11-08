@@ -2,7 +2,7 @@
 title: Drop dead nodes with health checks
 summary: Have the Load Balancer probe each server and stop sending traffic to one that has failed, so a dead host costs seconds instead of a share of requests.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 106
 aliases: health check, failover, dead host, probe, liveness, readiness, deep check, drain
 ---
@@ -34,4 +34,4 @@ A short interval means more probe traffic and more chance of removing a host ove
 
 ## In Quorum
 
-Research [Health checks](/research/health-checks) to change the interval or turn on deep checks. The same research unlocks draining a Node. An [Instance failure](/incidents/instance) shows the gap. The glossary defines a [health check](/glossary/health-check). The next rung is a [pooler between servers and database](/patterns/pooler-between-servers-and-database).
+Research [Health checks](/research/health-checks) to change the interval or turn on deep checks. The same research unlocks draining a Node. An [Instance failure](/incidents/instance) shows the gap. The glossary defines a [health check](/glossary/health-check). The next step is a [pooler between servers and database](/patterns/pooler-between-servers-and-database).

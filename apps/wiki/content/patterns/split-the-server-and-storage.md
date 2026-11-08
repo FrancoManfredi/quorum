@@ -2,7 +2,7 @@
 title: Split the server and the storage
 summary: Move the data off the App Server into its own Database Node, so code and data stop fighting over one machine and each can grow alone.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 102
 aliases: separate database, two tier, app and database, web tier, data tier, database server
 ---
@@ -33,4 +33,4 @@ Every request now pays a network hop to the Database, so latency rises a little.
 
 ## In Quorum
 
-Place a [Database](/components/database) and link the [App Server](/components/server) to it. The Link's timeout needs [Timeouts and retries](/research/timeouts). The next rung adds a [Load Balancer](/patterns/several-app-servers-behind-a-load-balancer) in front of more App Servers, and [Connection pooling](/patterns/connection-pooling) protects the Database when they multiply.
+Place a [Database](/components/database) and link the [App Server](/components/server) to it. The Link's timeout needs [Timeouts and retries](/research/timeouts). The next step adds a [Load Balancer](/patterns/several-app-servers-behind-a-load-balancer) in front of more App Servers, and [Connection pooling](/patterns/connection-pooling) protects the Database when they multiply.

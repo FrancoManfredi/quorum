@@ -2,7 +2,7 @@
 title: Split into services with a mesh
 summary: Break one codebase into Services on a Kubernetes Cluster and put a Service Mesh beside them, so each deploys alone and every call gets retries, a breaker and metrics.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 129
 aliases: microservices, service mesh, istio, sidecar, mtls, service boundaries, kubernetes, per service deploy, blast radius
 ---
@@ -33,4 +33,4 @@ The mesh adds latency to each hop and takes a share of the member's CPU, and it 
 
 ## In Quorum
 
-Place a [Service Mesh](/components/mesh) and a [Kubernetes Cluster](/components/cluster), then link App Servers into both. Research [Container orchestration](/research/containers) and [Service mesh](/research/service-mesh). Read [container orchestration](/glossary/container-orchestration) and [blast radius](/glossary/blast-radius). The next rung, [multi-region with GeoDNS](/patterns/multi-region-with-geodns), puts copies near far users.
+Place a [Service Mesh](/components/mesh) and a [Kubernetes Cluster](/components/cluster), then link App Servers into both. Research [Container orchestration](/research/containers) and [Service mesh](/research/service-mesh). Read [container orchestration](/glossary/container-orchestration) and [blast radius](/glossary/blast-radius). The next step, [multi-region with GeoDNS](/patterns/multi-region-with-geodns), puts copies near far users.

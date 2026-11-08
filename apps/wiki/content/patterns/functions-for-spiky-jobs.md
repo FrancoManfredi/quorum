@@ -2,7 +2,7 @@
 title: Functions for spiky jobs
 summary: Run bursty or rare work on a Serverless Function that bills per use and scales from zero, and keep steady load on boxes.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 118
 aliases: serverless, lambda, cloud functions, cold start, scale to zero, faas
 ---
@@ -31,4 +31,4 @@ An environment that sat idle is gone, so the next call pays a cold start. Past t
 
 ## In Quorum
 
-Place a [Serverless Function](/components/fn) after [Serverless](/research/serverless), and a runtime Research such as Go for the **Runtime**. Put a [CDN](/patterns/cdn-push-and-pull) or [Cache](/components/cache) in front, because every request that reaches a function bills. The glossary has [cold start](/glossary/cold-start). The next rung scales boxes: [Autoscale the compute tier](/patterns/autoscale-the-compute-tier).
+Place a [Serverless Function](/components/fn) after [Serverless](/research/serverless), and a runtime Research such as Go for the **Runtime**. Put a [CDN](/patterns/cdn-push-and-pull) or [Cache](/components/cache) in front, because every request that reaches a function bills. The glossary has [cold start](/glossary/cold-start). The next step scales boxes: [Autoscale the compute tier](/patterns/autoscale-the-compute-tier).

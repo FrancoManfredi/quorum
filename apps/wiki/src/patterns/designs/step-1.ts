@@ -1,7 +1,7 @@
 import { at, design, set, setLink, wire } from '../design.ts'
 import type { Design } from '../design.ts'
 
-/* Ladder tier 1: one box. */
+/* Scaling steps 1: one box. */
 
 /** A failed host. Its table row reads "Down", and the Simulation sees a stopped Node. */
 const DOWN = Object.defineProperty(
@@ -16,7 +16,7 @@ const secondsAfter = (seconds: number, base: Design): Design => ({
   game: { ...base.game, time: seconds },
 })
 
-export const ladder1 = {
+export const step1 = {
   'one-box': design({
     users: 200,
     stage: 0,
@@ -177,7 +177,7 @@ export const ladder1 = {
           'size',
           2,
           'Instance size',
-          'Small was enough a rung ago. At this many Users its CPU is over full.',
+          'Small was enough until this step. At this many Users its CPU is over full.',
         ),
       ]),
       at('database', 'database', 2, 0, [

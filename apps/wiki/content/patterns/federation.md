@@ -31,4 +31,4 @@ A query or transaction that crossed features now crosses services. Joins become 
 
 The game has no per-table split, so the Design splits by request kind. The [Load Balancer](/components/lb) Links carry a list of request kinds, so writes, checkouts and logins reach the orders service and everything else reaches the catalog service. Each [App Server](/components/server) has its own [Database](/components/database), sized apart from the other.
 
-[Split the database by feature](/patterns/split-the-database-by-feature) is the ladder rung, and [The data tier](/explanation/the-data-tier) covers the choices.
+[Split the database by feature](/patterns/split-the-database-by-feature) is the step, and [The data tier](/explanation/the-data-tier) covers the choices.

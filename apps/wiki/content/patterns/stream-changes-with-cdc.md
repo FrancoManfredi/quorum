@@ -2,7 +2,7 @@
 title: Stream changes with CDC
 summary: Read the Database's write log and publish each change to a stream, so search and other copies follow the data without a second write.
 section: patterns
-group: Stack ladder
+group: Scaling steps
 order: 120
 aliases: change data capture, debezium, kafka, event stream, dual write, binlog, write ahead log
 ---
@@ -33,4 +33,4 @@ You add a connector, a stream, and a Worker, and each has its own Burn and failu
 
 ## In Quorum
 
-The [CDC Connector](/components/cdc) needs [Change data capture](/research/cdc), which follows [Event streaming](/research/event-streaming) and [Data warehousing](/research/data-warehouse). Place it beside the [Event Stream](/components/log). The pattern is [Change data capture](/patterns/change-data-capture), and the older option is the [Transactional outbox](/patterns/transactional-outbox). The glossary has [CDC](/glossary/cdc-change-data-capture). The next rung moves reports off the primary: [Reports off the primary, in a warehouse](/patterns/reports-off-the-primary-warehouse).
+The [CDC Connector](/components/cdc) needs [Change data capture](/research/cdc), which follows [Event streaming](/research/event-streaming) and [Data warehousing](/research/data-warehouse). Place it beside the [Event Stream](/components/log). The pattern is [Change data capture](/patterns/change-data-capture), and the older option is the [Transactional outbox](/patterns/transactional-outbox). The glossary has [CDC](/glossary/cdc-change-data-capture). The next step moves reports off the primary: [Reports off the primary, in a warehouse](/patterns/reports-off-the-primary-warehouse).
