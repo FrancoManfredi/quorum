@@ -801,14 +801,12 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const kinds = REQUEST_KINDS.filter((kind) => (arriving[kind] ?? 0) > 0)
   const rate = kinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0), 0)
   const { calls, raw } = tablesOf(context)
-  const cpu = Object.fromEntries(
-    REQUEST_KINDS.map((kind) => [
-      kind,
-      (raw[kind] / efficiency) * (collecting > 1 ? collecting : 1),
-    ]),
-  ) as Record<RequestKind, number>
+  // Only the kinds that arrive are ever read, so only they build a cost.
+  const cpu: Partial<Record<RequestKind, number>> = Object.fromEntries(
+    kinds.map((kind) => [kind, (raw[kind] / efficiency) * (collecting > 1 ? collecting : 1)]),
+  )
 
-  const cpuWork = kinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0) * cpu[kind], 0)
+  const cpuWork = kinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0) * (cpu[kind] ?? 0), 0)
   const cpuUtilization = cores > 0 ? cpuWork / (cores * 1000) : rate > 0 ? 99 : 0
   const meanService = rate > 0 ? cpuWork / rate / perRequest : 0
   const cpuWait = waitFor(meanService, cpuUtilization, cores)
@@ -828,7 +826,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     return ((profile.inKB * 8) / USER_UP_MBPS) * kept
   }
   const residence = (kind: RequestKind): number =>
-    cpu[kind] / perRequest + cpuWait + waiting(kind) + receiving(kind)
+    (cpu[kind] ?? 0) / perRequest + cpuWait + waiting(kind) + receiving(kind)
   const slotWork = kinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0) * residence(kind), 0)
   const slotUtilization = slots === Number.POSITIVE_INFINITY ? 0 : slotWork / (slots * 1000)
   const slotWait = rate > 0 ? waitFor(slotWork / rate, slotUtilization, slots) : 0
@@ -857,7 +855,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
   const poolKinds = kinds.filter(pooled)
   const poolRate = poolKinds.reduce((sum, kind) => sum + (arriving[kind] ?? 0), 0)
   const poolWork = poolKinds.reduce(
-    (sum, kind) => sum + ((arriving[kind] ?? 0) * cpu[kind]) / perRequest,
+    (sum, kind) => sum + ((arriving[kind] ?? 0) * (cpu[kind] ?? 0)) / perRequest,
     0,
   )
   const poolThreads = Math.max(1, Math.min(LIBUV_THREADS * Math.max(1, processes), cores))
@@ -903,7 +901,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
       ? null
       : runtime.blocking
   const onLoop = blocking !== null ? kinds.filter((kind) => !offLoop(kind)) : []
-  const callback = (kind: RequestKind): number => cpu[kind] / perRequest
+  const callback = (kind: RequestKind): number => (cpu[kind] ?? 0) / perRequest
   const loopWork = onLoop.reduce((sum, kind) => sum + (arriving[kind] ?? 0) * callback(kind), 0)
   const loopSquares = onLoop.reduce(
     (sum, kind) => sum + (arriving[kind] ?? 0) * callback(kind) * callback(kind),
@@ -934,11 +932,12 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
     : collected
 
   const service = Object.fromEntries(
-    REQUEST_KINDS.map((kind) => [
+    kinds.map((kind) => [
       kind,
       {
         fixedMs: 2,
-        variableMs: cpu[kind] / perRequest + cpuWait + slotWait + (pooled(kind) ? poolWait : 0),
+        variableMs:
+          (cpu[kind] ?? 0) / perRequest + cpuWait + slotWait + (pooled(kind) ? poolWait : 0),
       },
     ]),
   )
@@ -960,7 +959,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
           payloadFactor(context.game, requestKind)
       : workUnit === 'workers'
         ? residence(requestKind)
-        : cpu[requestKind]
+        : (cpu[requestKind] ?? 0)
   }
   const kindReceipt = (kind: Kind): Receipt | undefined => {
     if (!(REQUEST_KINDS as ReadonlyArray<Kind>).includes(kind)) return undefined
@@ -971,7 +970,7 @@ export const serverModel = (context: ServerContext, shed = true): NodeModel => {
         ['swapping', 1 / efficiency],
         ['gc', collecting > 1 ? collecting : 1],
       ],
-      cpu[requestKind],
+      cpu[requestKind] ?? 0,
     )
   }
   const model: NodeModel = {
