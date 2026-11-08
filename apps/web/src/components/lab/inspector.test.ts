@@ -1,6 +1,5 @@
 import { expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
-import { Combobox } from '@foldkit/ui'
 import type { HtmlBuilder } from 'foldkit/html'
 import { link, node, preseedGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
@@ -58,21 +57,6 @@ const fixture = (evidence: Partial<NodeSample> = {}): Model => {
 
 const view = (model: Model, h: HtmlBuilder<Message>) => inspector(model, ledgerOf(model), h)
 
-/** The two Stack pickers each mount a pointerdown guard on their toggle. */
-const stackMounts = [
-  Scene.Mount.resolve(
-    Combobox.AttachComboboxPreventBlur,
-    Combobox.Message.CompletedAttachComboboxPreventBlur(),
-  ),
-  Scene.Mount.resolve(
-    Combobox.AttachComboboxPreventBlur,
-    Combobox.Message.CompletedAttachComboboxPreventBlur(),
-  ),
-] as const
-
-/** A Realtime Hub has one Runtime picker. */
-const hubMounts = stackMounts.slice(0, 1)
-
 const diskHint =
   'The working set exceeds RAM and reads hit disk. Consider more RAM, caching, or a read replica.'
 
@@ -84,7 +68,6 @@ test('the Inspector is keyed by the Node it inspects, so its controls keep that 
       expect((simulation.html as { key?: string }).key).toBe('inspector-database')
     }),
     Scene.Subscription.emit(Message.NodeTapped({ nodeId: 'server' })),
-    ...stackMounts,
     Scene.Command.resolveAll([SyncBoard, Message.Synced()], [AppendLog, Message.Synced()]),
     Scene.tap((simulation) => {
       // A shared key would let snabbdom reuse the Database's buttons, and their click handlers
@@ -205,7 +188,6 @@ test('an App Server shows the Load Balancer that routes to it, against its capac
   Scene.scene(
     { update, view },
     Scene.given(routed()),
-    ...stackMounts,
     Scene.expect(Scene.text('Inbound')).toExist(),
     Scene.expect(Scene.text('Outbound')).toExist(),
     Scene.expect(Scene.role('button', { name: 'Open Load Balancer' })).toExist(),
@@ -218,28 +200,21 @@ test('the inbound route and its meter survive zero demand', () => {
   Scene.scene(
     { update, view },
     Scene.given(routed(0)),
-    ...stackMounts,
     Scene.expect(Scene.role('button', { name: 'Open Load Balancer' })).toExist(),
     Scene.expect(Scene.selector('[data-slot="progress"]')).toExist(),
     Scene.expect(Scene.selector('[data-inspector]')).toContainText('0.0/s'),
   )
 })
 
-test('the Runtime picker shows the current runtime and filters the list as you type', () => {
+test('the Runtime picker lists the runtimes in place and filters them as you type', () => {
   Scene.scene(
     { update, view },
     Scene.given(routed()),
-    ...stackMounts,
-    Scene.expect(Scene.placeholder('PHP-FPM')).toExist(),
-    Scene.focus(Scene.placeholder('PHP-FPM')),
-    Scene.Mount.resolveAll(
-      [Combobox.AnchorCombobox, Combobox.Message.CompletedAnchorCombobox()],
-      [Combobox.PortalComboboxBackdrop, Combobox.Message.CompletedPortalComboboxBackdrop()],
-    ),
-    Scene.expect(Scene.role('listbox')).toExist(),
-    Scene.expect(Scene.text('Node.js')).toExist(),
-    Scene.type(Scene.placeholder('Search…'), 'node'),
-    Scene.expect(Scene.text('Node.js')).toExist(),
+    Scene.expect(Scene.role('combobox', { name: 'Runtime' })).toExist(),
+    Scene.expect(Scene.role('option', { name: 'PHP-FPM', selected: true })).toExist(),
+    Scene.expect(Scene.role('option', { name: 'Node.js' })).toExist(),
+    Scene.type(Scene.role('combobox', { name: 'Runtime' }), 'node'),
+    Scene.expect(Scene.role('option', { name: 'Node.js' })).toExist(),
     Scene.expect(Scene.text('PHP-FPM')).toBeAbsent(),
   )
 })
@@ -265,7 +240,6 @@ test('the Resource section draws the network gauge and a goal bar naming the tig
   Scene.scene(
     { update, view },
     Scene.given(model),
-    ...stackMounts,
     Scene.expect(Scene.text('Network')).toExist(),
     Scene.expect(Scene.selector('[data-inspector]')).toContainText(
       `${(network.used / 1_000).toFixed(1)} / ${(network.total / 1_000).toFixed(0)} MB/s`,
@@ -344,7 +318,6 @@ test('a pricing model is offered from Series A, and a reserved Node shows its te
   Scene.scene(
     { update, view },
     Scene.given(reserved()),
-    ...stackMounts,
     Scene.expect(Scene.role('button', { name: 'On-demand' })).toExist(),
     Scene.expect(Scene.text('Pricing · reserved for 7 more d')).toExist(),
   )
@@ -408,7 +381,6 @@ test('a Realtime Hub shows its connections and its options, and choosing one set
   Scene.scene(
     { update, view },
     Scene.given(hubBoard()),
-    ...hubMounts,
     Scene.expect(Scene.text('Connections')).toExist(),
     Scene.expect(Scene.text('Clients')).toExist(),
     Scene.expect(Scene.text('Presence')).toExist(),
@@ -467,20 +439,17 @@ test('Upgrade all is offered once a kind has two Nodes, and goes dead when nothi
   Scene.scene(
     { update, view },
     Scene.given(twoServers(1e9)),
-    ...stackMounts,
     Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeEnabled(),
   )
   Scene.scene(
     { update, view },
     Scene.given(twoServers(10)),
-    ...stackMounts,
     Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeDisabled(),
   )
   // Both at metal: there is nothing left to buy, so the control is dead too.
   Scene.scene(
     { update, view },
     Scene.given(twoServers(1e9, 8)),
-    ...stackMounts,
     Scene.expect(Scene.role('button', { name: 'Upgrade every App Server here' })).toBeDisabled(),
   )
   // A single App Server has no bulk action.

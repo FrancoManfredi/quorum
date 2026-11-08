@@ -24,6 +24,7 @@ import {
   type UpdateResult,
 } from './shared.ts'
 import { type Note } from './clock.ts'
+import { initStackPicker } from '../stack-picker.ts'
 
 /** The Nodes an edit applies to: the multi-selection, or the one Node open. */
 export const chosenIds = (model: Model): ReadonlyArray<string> =>
@@ -177,6 +178,9 @@ export const canvasHandlers = (
   NodeTapped: ({ nodeId }) => {
     const next: Model = {
       ...model,
+      // The Stack pickers filter for the Node they were opened on, so a new Node starts them over.
+      runtimePicker: initStackPicker(),
+      frameworkPicker: initStackPicker(),
       board: {
         ...model.board,
         selected: nodeId,

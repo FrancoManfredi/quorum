@@ -21,7 +21,7 @@ import { leaveExited } from './companies.ts'
 import { has } from '@quorum/simulation/lookups'
 import { initTeam } from '../team.ts'
 import { languageListbox } from '../../i18n/listbox.ts'
-import { frameworkPicker, runtimePicker } from '../stack-picker.ts'
+import { updateStackPicker } from '../stack-picker.ts'
 import { moreMenu, type MoreItem } from '../more.ts'
 import { onBoard } from '../route.ts'
 import { openRegions } from '@quorum/simulation/regions'
@@ -131,52 +131,6 @@ export const foldLanguagePicker = (route: Dispatch) =>
           model,
           Message.PrefsChanged({ message: PrefsMessage.LocaleChosen({ locale: value }) }),
         ),
-  })
-
-/** The Node the Inspector shows, which a Stack picker changes. */
-const selectedNode = (model: Model) =>
-  model.board.game.nodes.find((entry) => entry.id === model.board.selected)
-
-export const foldRuntimePicker = (route: Dispatch) =>
-  Update.foldChild({
-    update: runtimePicker.update,
-    read: (model: Model) => Option.some(model.runtimePicker),
-    write: (model, runtimePicker) => ({ ...model, runtimePicker }),
-    toParentMessage: (message) => Message.RuntimePickerChanged({ message }),
-    foldOutMessage: (outMessage) => (model) => {
-      if (outMessage._tag !== 'Selected') return { model }
-      const node = selectedNode(model)
-      return node
-        ? route(
-            model,
-            Message.OptionChosen({
-              nodeId: node.id,
-              option: { kind: 'runtime', id: outMessage.value },
-            }),
-          )
-        : { model }
-    },
-  })
-
-export const foldFrameworkPicker = (route: Dispatch) =>
-  Update.foldChild({
-    update: frameworkPicker.update,
-    read: (model: Model) => Option.some(model.frameworkPicker),
-    write: (model, frameworkPicker) => ({ ...model, frameworkPicker }),
-    toParentMessage: (message) => Message.FrameworkPickerChanged({ message }),
-    foldOutMessage: (outMessage) => (model) => {
-      if (outMessage._tag !== 'Selected') return { model }
-      const node = selectedNode(model)
-      return node
-        ? route(
-            model,
-            Message.OptionChosen({
-              nodeId: node.id,
-              option: { kind: 'framework', id: outMessage.value },
-            }),
-          )
-        : { model }
-    },
   })
 
 /** What each item in the phone toolbar's More menu does: the same as its desktop button. */
@@ -384,34 +338,13 @@ export const panelsHandlers = (
 
   VolumeSliderChanged: ({ message }) => foldVolumeSlider(route)(model, message),
 
-  RuntimePickerChanged: ({ message }) => {
-    const result = foldRuntimePicker(route)(model, message)
-    // Focusing the picker turns it into a search box: start from every option.
-    return message._tag === 'Opened' ||
-      (message._tag === 'PressedToggleButton' && result.model.runtimePicker.isOpen)
-      ? {
-          ...result,
-          model: {
-            ...result.model,
-            runtimePicker: { ...result.model.runtimePicker, inputValue: '' },
-          },
-        }
-      : result
-  },
+  RuntimePickerChanged: ({ message }) => ({
+    model: { ...model, runtimePicker: updateStackPicker(model.runtimePicker, message) },
+  }),
 
-  FrameworkPickerChanged: ({ message }) => {
-    const result = foldFrameworkPicker(route)(model, message)
-    return message._tag === 'Opened' ||
-      (message._tag === 'PressedToggleButton' && result.model.frameworkPicker.isOpen)
-      ? {
-          ...result,
-          model: {
-            ...result.model,
-            frameworkPicker: { ...result.model.frameworkPicker, inputValue: '' },
-          },
-        }
-      : result
-  },
+  FrameworkPickerChanged: ({ message }) => ({
+    model: { ...model, frameworkPicker: updateStackPicker(model.frameworkPicker, message) },
+  }),
 
   MoreMenuChanged: ({ message }) => foldMoreMenu(route)(model, message),
 

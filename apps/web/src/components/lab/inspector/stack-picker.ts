@@ -1,7 +1,6 @@
 import { Option } from 'effect'
-import type { Combobox } from '@foldkit/ui'
-import { childAttributes, type Html, type HtmlBuilder } from 'foldkit/html'
-import { Check, ChevronDown, Lock } from 'lucide'
+import type { Html, HtmlBuilder } from 'foldkit/html'
+import { Check, Lock, Search } from 'lucide'
 import {
   FRAMEWORKS,
   FRAMEWORK_IDS,
@@ -15,9 +14,9 @@ import type { GameNode } from '@quorum/simulation/state'
 import { copy, type Messages } from '@/i18n/messages.ts'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
-import { frameworkPicker, runtimePicker } from '@/game/stack-picker.ts'
+import { StackPickerMessage, type StackPicker } from '@/game/stack-picker.ts'
 import { icon } from '@quorum/ui/primitives/icon'
-import { stackLogo } from '@quorum/ui/game/bits'
+import { WELL, stackLogo } from '@quorum/ui/game/bits'
 import { cn } from '@/lib/utils'
 
 /** Accept unaccented keyboard input as well as the spelling shown in the list. */
@@ -25,12 +24,12 @@ const searchable = (text: string): string =>
   text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 
 type PickerConfig<Item extends string> = Readonly<{
-  bundle: Combobox.Bundle<Item>
-  picker: Combobox.Model
-  slotId: string
-  toParentMessage: (message: Combobox.Message) => Message
+  /** The DOM id prefix, so a page can hold both lists. */
+  id: string
+  picker: StackPicker
+  toParentMessage: (message: StackPickerMessage) => Message
+  onChoose: (item: Item) => Message
   current: Item
-  currentLabel: string
   items: ReadonlyArray<Item>
   labelOf: (item: Item) => string
   searchOf: (item: Item) => string
@@ -44,108 +43,132 @@ type PickerConfig<Item extends string> = Readonly<{
   ariaLabel: string
 }>
 
+const row = <Item extends string>(
+  config: PickerConfig<Item>,
+  item: Item,
+  index: number,
+  isActive: boolean,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const isDisabled = !config.isReady(item)
+  const isSelected = item === config.current
+  const logo = config.logoOf(item)
+  return h.li(
+    [
+      h.Key(item),
+      h.Id(`${config.id}-option-${index}`),
+      h.Role('option'),
+      h.AriaSelected(isSelected),
+      ...(isDisabled ? [h.AriaDisabled(true), h.Title(config.lockHintOf(item))] : []),
+      ...(config.previewOf && !isDisabled && !isSelected
+        ? [h.OnMouseEnter(config.previewOf(item)), h.OnMouseLeave(Message.OptionLeft())]
+        : []),
+      ...(isDisabled ? [] : [h.OnClick(config.onChoose(item))]),
+      h.Class(
+        cn(
+          'flex min-h-8 items-center gap-2 px-2.5 text-[calc(12px*var(--type-scale))] transition-colors',
+          isActive ? 'bg-muted text-foreground' : 'text-muted-foreground',
+          isSelected && 'text-foreground',
+          isDisabled
+            ? 'cursor-not-allowed text-muted-foreground/45 [&_svg]:opacity-45 [&_svg]:grayscale'
+            : 'cursor-pointer hover:bg-muted hover:text-foreground',
+        ),
+      ),
+    ],
+    [
+      ...(logo ? [logo] : []),
+      h.span([h.Class('min-w-0 flex-1 truncate')], [config.labelOf(item)]),
+      config.proposed === item
+        ? h.span(
+            [h.Class('text-[calc(10px*var(--type-scale))] text-group-compute')],
+            [config.t.inspectorShared.proposed],
+          )
+        : h.empty,
+      isSelected ? icon(h, Check, 'size-3.5 shrink-0 text-primary') : h.empty,
+      isDisabled ? icon(h, Lock, 'size-3 shrink-0 text-muted-foreground/45') : h.empty,
+    ],
+  )
+}
+
 const pickerView = <Item extends string>(
   config: PickerConfig<Item>,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const query = config.picker.isOpen ? config.picker.inputValue.trim() : ''
+  const query = config.picker.query.trim()
   const visible =
     query === ''
       ? config.items
       : config.items.filter((item) => searchable(config.searchOf(item)).includes(searchable(query)))
-  const logo = config.logoOf(config.current)
+  const active = visible[config.picker.active]
+  const activeIndex = active === undefined ? -1 : config.picker.active
   return h.div(
-    [h.Class('flex w-full flex-col gap-1')],
+    [h.Class(cn(WELL, 'flex flex-col overflow-hidden'))],
     [
-      h.div(
-        [h.Class('relative w-full')],
+      h.label(
         [
-          logo
-            ? h.span(
-                [h.Class('pointer-events-none absolute top-1/2 left-2.5 z-10 -translate-y-1/2')],
-                [logo],
-              )
-            : h.empty,
-          h.submodel({
-            slotId: config.slotId,
-            model: config.picker.isOpen ? config.picker : { ...config.picker, inputValue: '' },
-            view: config.bundle.view,
-            toParentMessage: config.toParentMessage,
-            viewInputs: {
-              items: visible,
-              restingInputValue: config.currentLabel,
-              maybeSelectedValue: Option.some(config.current),
-              itemToValue: (item) => item,
-              itemToDisplayText: (item) => config.labelOf(item),
-              itemToConfig: (item, { isActive, isDisabled, isSelected }) => {
-                const itemLogo = config.logoOf(item)
-                return {
-                  className: cn(
-                    'flex min-h-9 cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[calc(12px*var(--type-scale))] outline-none',
-                    isActive ? 'bg-muted text-foreground' : 'text-muted-foreground',
-                    isDisabled &&
-                      'cursor-not-allowed text-muted-foreground/45 [&_svg]:opacity-45 [&_svg]:grayscale',
+          h.Class(
+            'flex h-8 shrink-0 items-center gap-2 border-b border-hairline px-2.5 text-muted-foreground',
+          ),
+        ],
+        [
+          icon(h, Search, 'size-3.5 shrink-0'),
+          h.input([
+            h.Id(`${config.id}-search`),
+            h.Type('search'),
+            h.Value(config.picker.query),
+            h.Placeholder(config.t.inspectorShared.searchPlaceholder),
+            h.AriaLabel(config.ariaLabel),
+            h.Role('combobox'),
+            h.AriaExpanded(true),
+            h.AriaControls(`${config.id}-list`),
+            ...(activeIndex >= 0
+              ? [h.AriaActiveDescendant(`${config.id}-option-${activeIndex}`)]
+              : []),
+            h.Autocomplete('off'),
+            h.Spellcheck(false),
+            h.Class(
+              'h-full min-w-0 flex-1 bg-transparent text-[calc(12px*var(--type-scale))] text-foreground outline-none placeholder:text-muted-foreground',
+            ),
+            h.OnInput((value) =>
+              config.toParentMessage(StackPickerMessage.Searched({ query: value })),
+            ),
+            h.OnKeyDownSelfPreventDefault((key) => {
+              if (key === 'Escape')
+                return Option.some(
+                  config.toParentMessage(StackPickerMessage.Searched({ query: '' })),
+                )
+              if (key === 'ArrowDown' || key === 'ArrowUp')
+                return Option.some(
+                  config.toParentMessage(
+                    StackPickerMessage.Moved({
+                      delta: key === 'ArrowDown' ? 1 : -1,
+                      count: visible.length,
+                    }),
                   ),
-                  content: h.div(
-                    [
-                      h.Class('flex w-full min-w-0 items-center gap-2'),
-                      ...(isDisabled ? [h.Title(config.lockHintOf(item))] : []),
-                      ...(config.previewOf && !isDisabled && !isSelected
-                        ? [
-                            h.OnMouseEnter(config.previewOf(item)),
-                            h.OnMouseLeave(Message.OptionLeft()),
-                          ]
-                        : []),
-                    ],
-                    [
-                      ...(itemLogo ? [itemLogo] : []),
-                      h.span([h.Class('min-w-0 flex-1 truncate')], [config.labelOf(item)]),
-                      config.proposed === item
-                        ? h.span(
-                            [h.Class('text-[calc(10px*var(--type-scale))] text-group-compute')],
-                            [config.t.inspectorShared.proposed],
-                          )
-                        : h.empty,
-                      isSelected ? icon(h, Check, 'size-3.5 text-primary') : h.empty,
-                      isDisabled ? icon(h, Lock, 'size-3 text-muted-foreground/45') : h.empty,
-                    ],
-                  ),
-                }
-              },
-              isItemDisabled: (item) => !config.isReady(item),
-              inputPlaceholder: config.picker.isOpen
-                ? config.t.inspectorShared.searchPlaceholder
-                : config.currentLabel,
-              ariaLabel: config.ariaLabel,
-              inputClassName: cn(
-                'h-8 w-full rounded-lg bg-well pr-8 text-[calc(12px*var(--type-scale))] font-medium text-foreground shadow-well outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50',
-                config.picker.isOpen
-                  ? 'placeholder:text-muted-foreground'
-                  : 'placeholder:text-foreground',
-                logo ? 'pl-8' : 'pl-2.5',
-              ),
-              inputWrapperClassName: 'relative w-full',
-              className: 'relative w-full',
-              buttonContent: icon(h, ChevronDown, 'size-3.5 text-muted-foreground'),
-              buttonClassName:
-                'absolute top-1/2 right-2 flex size-5 -translate-y-1/2 items-center justify-center rounded text-muted-foreground outline-none',
-              buttonAttributes: childAttributes([h.AriaLabel(config.ariaLabel)]),
-              itemsClassName:
-                'z-50 w-[var(--button-width)] rounded-xl border border-border bg-raised p-1 text-foreground shadow-lg outline-none',
-              itemsScrollClassName: 'max-h-64 overflow-y-auto',
-              backdropClassName: 'fixed inset-0 z-40',
-              anchor: { placement: 'bottom-start', gap: 4, portal: true },
-              openOnFocus: true,
-            },
-          }),
+                )
+              if (key === 'Enter' && active !== undefined && config.isReady(active))
+                return Option.some(config.onChoose(active))
+              return Option.none()
+            }),
+          ]),
         ],
       ),
-      config.picker.isOpen && visible.length === 0
+      visible.length === 0
         ? h.p(
-            [h.Class('px-0.5 text-[calc(11px*var(--type-scale))] text-muted-foreground')],
+            [h.Class('px-2.5 py-2 text-[calc(11px*var(--type-scale))] text-muted-foreground')],
             [config.t.inspectorShared.noMatches],
           )
-        : h.empty,
+        : h.ul(
+            [
+              h.Id(`${config.id}-list`),
+              h.Role('listbox'),
+              h.AriaLabel(config.ariaLabel),
+              h.Class(
+                'max-h-40 divide-y divide-hairline overflow-y-auto overscroll-contain [scrollbar-width:thin]',
+              ),
+            ],
+            visible.map((item, index) => row(config, item, index, item === active, h)),
+          ),
     ],
   )
 }
@@ -162,12 +185,11 @@ export const runtimePickerView = (
   const game = model.board.game
   return pickerView(
     {
-      bundle: runtimePicker,
+      id: 'stack-runtime',
       picker: model.runtimePicker,
-      slotId: 'stack-runtime',
       toParentMessage: (message) => Message.RuntimePickerChanged({ message }),
+      onChoose: (id) => Message.OptionChosen({ nodeId: node.id, option: { kind: 'runtime', id } }),
       current: node.runtime,
-      currentLabel: t.catalog.runtimes[node.runtime].name,
       items: RUNTIME_IDS,
       labelOf: (id) => t.catalog.runtimes[id].name,
       searchOf: (id) =>
@@ -204,12 +226,12 @@ export const frameworkPickerView = (
   )
   return pickerView(
     {
-      bundle: frameworkPicker,
+      id: 'stack-framework',
       picker: model.frameworkPicker,
-      slotId: 'stack-framework',
       toParentMessage: (message) => Message.FrameworkPickerChanged({ message }),
+      onChoose: (id) =>
+        Message.OptionChosen({ nodeId: node.id, option: { kind: 'framework', id } }),
       current: node.framework,
-      currentLabel: t.catalog.frameworks[node.framework].name,
       items,
       labelOf: (id) => t.catalog.frameworks[id].name,
       searchOf: (id) => `${t.catalog.frameworks[id].name} ${FRAMEWORKS[id].name}`,

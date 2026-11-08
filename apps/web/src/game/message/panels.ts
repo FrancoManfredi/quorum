@@ -1,10 +1,11 @@
 import { DashboardMessage } from '../dashboard.ts'
 import { InboxMessage } from '../inbox.ts'
-import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
+import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import { Message as VolumeSliderMessage } from '@quorum/ui/primitives/slider'
 import { Panel, Tone } from '../model.ts'
 import { PrefsMessage } from '../prefs.ts'
 import { SurveyMessage } from '../survey.ts'
+import { StackPickerMessage } from '../stack-picker.ts'
 import { Schema } from 'effect'
 import { ResearchId } from '@quorum/simulation/state'
 
@@ -34,9 +35,9 @@ export const panelsCases = {
   DashboardChanged: { message: DashboardMessage },
   LanguagePickerChanged: { message: Listbox.Message },
   VolumeSliderChanged: { message: VolumeSliderMessage },
-  /** The searchable Stack pickers on the Inspector. */
-  RuntimePickerChanged: { message: Combobox.Message },
-  FrameworkPickerChanged: { message: Combobox.Message },
+  /** The inline Stack pickers on the Inspector: a search query and the highlighted row. */
+  RuntimePickerChanged: { message: StackPickerMessage },
+  FrameworkPickerChanged: { message: StackPickerMessage },
   MoreMenuChanged: { message: UiMenu.Message },
   ToastRaised: { message: Schema.String, tone: Tone },
   ToastCleared: { id: Schema.Finite },

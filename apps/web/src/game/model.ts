@@ -1,6 +1,6 @@
 import { MailMessage, Snippet } from './mail-text.ts'
 import { TradeoffOption } from '@quorum/ui/game/tradeoff'
-import { Combobox, Listbox, Menu as UiMenu } from '@foldkit/ui'
+import { Listbox, Menu as UiMenu } from '@foldkit/ui'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { Locale } from '../i18n/index.ts'
 import { Effect, Schema } from 'effect'
@@ -32,6 +32,7 @@ import { SENDER_KINDS } from './copy/senders.ts'
 import { SandboxId, SandboxRun, Session } from './session-machine.ts'
 import { History } from './history.ts'
 import { NodeSample } from './node-metrics.ts'
+import { StackPicker } from './stack-picker.ts'
 import { AppRoute, MENU_PAGES } from './route.ts'
 import { LogoId } from './logos.ts'
 import { fileOf, SaveIndex } from './saves.ts'
@@ -449,9 +450,9 @@ export const Model = Schema.Struct({
   languagePicker: Listbox.Model,
   /** The Settings panel's sound level, whose value lives in `prefs.volume`. */
   volumeSlider: VolumeSlider.Model,
-  /** The searchable Stack pickers on the Inspector's App Server or Worker. */
-  runtimePicker: Combobox.Model,
-  frameworkPicker: Combobox.Model,
+  /** The inline Stack pickers on the Inspector's App Server or Worker. */
+  runtimePicker: StackPicker,
+  frameworkPicker: StackPicker,
   moreMenu: UiMenu.Model,
 })
 export type Model = typeof Model.Type
