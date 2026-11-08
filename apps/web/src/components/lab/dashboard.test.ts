@@ -509,6 +509,36 @@ test('a Design change in the undo stack marks the timeline', () => {
   )
 })
 
+test('marks at the same second stack their labels, and a third keeps only its line', () => {
+  const model = fixture({
+    board: {
+      undo: [
+        changeOf('Placed Cache', 998),
+        changeOf('Placed Cache', 998),
+        changeOf('Placed Cache', 998),
+      ],
+    },
+  })
+  Scene.scene(
+    { update, view },
+    Scene.given(model),
+    Scene.tap((simulation) => {
+      const panel = '[data-panel="traffic"]'
+      const labels = Scene.findAll(simulation.html, `${panel} text`).filter(
+        (node) => Scene.textContent(node) === 'Placed Cache',
+      )
+      // Two label rows at the top of the plot, so a crowd never draws one over another.
+      expect(labels.length).toBeGreaterThan(1)
+      const rows = labels.map((node) => Number(Option.getOrNull(Scene.attr(node, 'y'))))
+      expect(new Set(rows).size).toBe(labels.length)
+      // Every mark keeps its line, whether its label found a row or not.
+      expect(
+        Scene.findAll(simulation.html, `${panel} line[stroke="var(--group-edge)"]`),
+      ).toHaveLength(3)
+    }),
+  )
+})
+
 const panelOf = (key: string) => Scene.selector(`[data-panel="${key}"]`)
 
 test('the Company row draws Cash, Burn, Equity, runway and each team’s velocity', () => {

@@ -191,12 +191,12 @@ const withCashRate = (rows: ReadonlyArray<Row>): ReadonlyArray<Row> =>
     }
   })
 
-/** The label of the row a sim time falls in, if the range holds it. */
-const labelAt = (rows: ReadonlyArray<Row>, time: number): string | null => {
-  const row = rows.find(
+/** The row a sim time falls in, if the range holds it. */
+const rowAt = (rows: ReadonlyArray<Row>, time: number): number | null => {
+  const index = rows.findIndex(
     (entry) => Number(entry.at) <= time && time < Number(entry.at) + Number(entry.span),
   )
-  return row ? String(row.t) : null
+  return index < 0 ? null : index
 }
 
 /** A calendar day in sim seconds: the distance to the same moment yesterday (12 "Controls"). */
@@ -507,6 +507,23 @@ const PLOT =
 /** Lifts a marker's label from the bottom of the plot to its top. */
 const TOP_OF_PLOT = -150
 
+/** The Chart's frame, as `timeSeries` hands it to ComposedChart. */
+const CHART_WIDTH = 760
+const CHART_HEIGHT = 210
+const CHART_MARGIN = { top: 10, right: 12, bottom: 0, left: 2 } as const
+const Y_AXIS_WIDTH = 58
+const X_AXIS_PAD = 32
+
+/** Where row `index` of `count` draws on a Chart `width` wide: chart-core's category axis. */
+const plotX = (index: number, count: number, width: number): number => {
+  const left = CHART_MARGIN.left + Y_AXIS_WIDTH + X_AXIS_PAD
+  const right = width - CHART_MARGIN.right
+  return left + ((right - left) * (index + 0.5)) / Math.max(1, count)
+}
+
+/** The scale the interface text draws at, which the top of the plot lays its labels out for. */
+const typeScaleOf = (model: Model): number => (model.prefs.text === 'large' ? 1.5 : 1)
+
 const ANNOTATION_COLOR: Record<AnnotationGroup, string> = {
   design: BLUE,
   deploys: PURPLE,
@@ -669,13 +686,22 @@ const exemplarsOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<Exem
   return found.toSorted((a, b) => b.p99 - a.p99).slice(0, 3)
 }
 
-const exemplarMarks = (exemplars: ReadonlyArray<Exemplar>): ReadonlyArray<CartesianChild> =>
+const exemplarMarks = (
+  exemplars: ReadonlyArray<Exemplar>,
+  scale: number,
+): ReadonlyArray<CartesianChild> =>
   exemplars.map((exemplar) =>
     ReferenceLine({
       x: exemplar.t,
       stroke: 'var(--accent)',
       strokeOpacity: 0.6,
-      label: { value: '●', dx: 0, dy: TOP_OF_PLOT + 14, fill: 'var(--accent)' },
+      // Under every annotation label row, so an exemplar never draws over one.
+      label: {
+        value: '●',
+        dx: 0,
+        dy: TOP_OF_PLOT + ((LABEL_LANES + REVEAL_LANES) * LANE_HEIGHT + 6) * scale,
+        fill: 'var(--accent)',
+      },
     }),
   )
 
@@ -709,21 +735,145 @@ const exemplarStrip = (exemplars: ReadonlyArray<Exemplar>, h: HtmlBuilder<Messag
   )
 }
 
-/** The annotations, as labelled vertical markers on every time series. */
-const markersOf = (model: Model, rows: ReadonlyArray<Row>): ReadonlyArray<CartesianChild> =>
-  annotationsOf(model).flatMap((mark) => {
-    const t = labelAt(rows, Math.floor(mark.at))
-    if (t === null) return []
+/** The lane a mark's label draws in, and the offset that keeps it beside its line. */
+type LabelPlace = Readonly<{ lane: number; dx: number }>
+
+/** An Incident or a Deploy takes the room before a busy Design change takes it. */
+const LABEL_ORDER: Record<AnnotationGroup, number> = {
+  incidents: 0,
+  company: 1,
+  deploys: 2,
+  design: 3,
+  research: 4,
+}
+
+/** The label rows at the top of the plot: two, so a busy range still reads. */
+const LABEL_LANES = 2
+/** Rows under them, where the label a hover brings back draws without moving another. */
+const REVEAL_LANES = 2
+const LANE_HEIGHT = 12
+/** Space between two labels in a lane, and the room the leading symbol takes. */
+const LABEL_GAP = 6
+const LABEL_PAD = 14
+/** How near the crosshair, in plot pixels, a mark must sit to bring its label back. */
+const REVEAL_PX = 4
+
+const WIDE_GLYPH =
+  /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE6F\uFF00-\uFF60\uFFE0-\uFFE6]/u
+
+/** A label's width at the plot's 10px figure face: wide glyphs take two columns. */
+const labelSpan = (label: string, scale: number): number =>
+  [...label].reduce((width, glyph) => width + (WIDE_GLYPH.test(glyph) ? 12.4 : 6.2), LABEL_PAD) *
+  scale
+
+/**
+ * Places the marks' labels in the rows at the top of the plot, an Incident before a Research.
+ * A label goes in the first row where it clears the labels already there, and flips to the left
+ * of its line where the right edge would clip it. A mark whose label fits nowhere keeps its line
+ * and no text, so dense ranges never draw one label over another. The crosshair brings back the
+ * labels the crowd dropped, in the rows under the two the chart always uses.
+ */
+const labelPlacesOf = (
+  marks: ReadonlyArray<Annotation>,
+  rows: ReadonlyArray<Row>,
+  width: number,
+  scale: number,
+  hovered: number | null,
+): ReadonlyMap<Annotation, LabelPlace> => {
+  const lanes: Array<Array<readonly [number, number]>> = Array.from(
+    { length: LABEL_LANES + REVEAL_LANES },
+    () => [],
+  )
+  const placed = new Map<Annotation, LabelPlace>()
+  const right = width - CHART_MARGIN.right
+
+  /** Draws a mark's label in the first free row from `from` down, and reports whether it fit. */
+  const place = (mark: Annotation, from: number): boolean => {
+    const index = rowAt(rows, Math.floor(mark.at))
+    if (index === null) return false
+    const x = plotX(index, rows.length, width)
+    const span = labelSpan(mark.label, scale)
+    const dx = x + 4 + span > right ? -span - 4 : 4
+    const start = x + dx - LABEL_GAP
+    const end = x + dx + span + LABEL_GAP
+    for (let lane = from; lane < lanes.length; lane += 1) {
+      const taken = lanes[lane]
+      if (taken === undefined || taken.some(([head, tail]) => start < tail && head < end)) continue
+      taken.push([start, end])
+      placed.set(mark, { lane, dx })
+      return true
+    }
+    return false
+  }
+
+  const ordered = [...marks].sort(
+    (left, right) => LABEL_ORDER[left.group] - LABEL_ORDER[right.group] || left.at - right.at,
+  )
+  const dropped: Array<Annotation> = []
+  for (const mark of ordered) if (!place(mark, 0)) dropped.push(mark)
+
+  // The crosshair names the marks its columns dropped, nearest first.
+  if (hovered !== null) {
+    const plotLeft = CHART_MARGIN.left + Y_AXIS_WIDTH + X_AXIS_PAD
+    const rowWidth = (right - plotLeft) / Math.max(1, rows.length)
+    const reach = Math.max(1, Math.round(REVEAL_PX / rowWidth))
+    const near = dropped.flatMap((mark) => {
+      const index = rowAt(rows, Math.floor(mark.at))
+      if (index === null) return []
+      const distance = Math.abs(index - hovered)
+      return distance <= reach ? [{ mark, distance }] : []
+    })
+    near.sort(
+      (left, right) =>
+        left.distance - right.distance ||
+        LABEL_ORDER[left.mark.group] - LABEL_ORDER[right.mark.group],
+    )
+    for (const { mark } of near) place(mark, LABEL_LANES)
+  }
+  return placed
+}
+
+/** The annotations, as vertical markers on every time series, labelled where the labels fit. */
+const markersOf = (
+  model: Model,
+  rows: ReadonlyArray<Row>,
+  width: number,
+): ReadonlyArray<CartesianChild> => {
+  const marks = annotationsOf(model)
+  const scale = typeScaleOf(model)
+  const hover = model.board.dashboard.hover
+  const places = labelPlacesOf(
+    marks,
+    rows,
+    width,
+    scale,
+    hover !== null && hover >= 0 && hover < rows.length ? hover : null,
+  )
+  return marks.flatMap((mark) => {
+    const index = rowAt(rows, Math.floor(mark.at))
+    const row = index === null ? undefined : rows[index]
+    if (row === undefined) return []
     const color = ANNOTATION_COLOR[mark.group]
+    const place = places.get(mark)
     return [
       ReferenceLine({
-        x: t,
+        x: String(row.t),
         stroke: color,
         strokeDasharray: '3 3',
-        label: { value: mark.label, dx: 4, dy: TOP_OF_PLOT, fill: color },
+        ...(place === undefined
+          ? {}
+          : {
+              label: {
+                value: mark.label,
+                dx: place.dx,
+                dy: TOP_OF_PLOT + place.lane * LANE_HEIGHT * scale,
+                fill: color,
+              },
+            }),
       }),
     ]
   })
+}
 
 type Series = Readonly<{
   key: string
@@ -899,6 +1049,7 @@ const timeSeries = (
   h: HtmlBuilder<Message>,
 ): Html => {
   const t = copy(h)
+  const width = spec.width ?? CHART_WIDTH
 
   const hovered =
     model.board.dashboard.hover !== null ? rows[model.board.dashboard.hover] : undefined
@@ -946,9 +1097,9 @@ const timeSeries = (
                   {
                     data,
                     responsive: true,
-                    width: spec.width ?? 760,
-                    height: 210,
-                    margin: { top: 10, right: 12, bottom: 0, left: 2 },
+                    width,
+                    height: CHART_HEIGHT,
+                    margin: CHART_MARGIN,
                     title: spec.title,
                     className: PLOT,
                     accessibilityLayer: true,
@@ -962,28 +1113,22 @@ const timeSeries = (
                       CartesianGrid({ stroke: 'var(--hairline)' }),
                       XAxis({
                         dataKey: 't',
-                        interval: Math.max(
-                          0,
-                          Math.ceil(rows.length / ((spec.width ?? 760) / 70)) - 1,
-                        ),
-                        padding: { left: 32 },
+                        interval: Math.max(0, Math.ceil(rows.length / (width / 70)) - 1),
+                        padding: { left: X_AXIS_PAD },
                         // Ends the right-most label at the plot edge, so the well does not clip it.
                         tick: ({ x, y, value }) =>
                           h.text(
                             [
                               h.Attribute('x', String(x)),
                               h.Attribute('y', String(y - 14)),
-                              h.Attribute(
-                                'text-anchor',
-                                x + 30 > (spec.width ?? 760) ? 'end' : 'middle',
-                              ),
+                              h.Attribute('text-anchor', x + 30 > width ? 'end' : 'middle'),
                             ],
                             [String(value)],
                           ),
                         stroke: 'var(--hairline)',
                       }),
                       YAxis({
-                        width: 58,
+                        width: Y_AXIS_WIDTH,
                         tickCount: 5,
                         ...(spec.domain ? { domain: spec.domain } : {}),
                         tickFormatter: (value) => spec.format(Number(value)),
@@ -3623,7 +3768,6 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const credit = slaCreditsOf(game, ledger)
   const slo = budget.slo > 0 && budget.slo < 1 ? budget.slo : 0.999
   const rows = rowsOf(model, slo)
-  const markers = markersOf(model, rows)
   const tracks = tracksOf(model)
   const latest = game.history[game.history.length - 1]
   /** Cash per second now: the last row's `cash` against the row before it (12 "The Dashboard"). */
@@ -3658,16 +3802,19 @@ export const dashboardPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     null,
   )
   const exemplars = exemplarsOf(model, rows)
-  const series = (spec: SeriesSpec) =>
-    timeSeries(
+  const series = (spec: SeriesSpec) => {
+    // A Chart lays its labels out for its own width, which the errors Chart narrows.
+    const markers = markersOf(model, rows, spec.width ?? CHART_WIDTH)
+    return timeSeries(
       model,
       rows,
       spec.key === 'latency' && has(game, 'tracing')
-        ? [...markers, ...exemplarMarks(exemplars)]
+        ? [...markers, ...exemplarMarks(exemplars, typeScaleOf(model))]
         : markers,
       spec,
       h,
     )
+  }
 
   const panels: ReadonlyArray<Html> =
     rows.length < 2 || !latest
