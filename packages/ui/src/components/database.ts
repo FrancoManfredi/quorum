@@ -1,11 +1,12 @@
 import { Database } from 'lucide'
 import { DB_ENGINES, DB_RETENTIONS, STORAGE_IOPS } from '@quorum/simulation/catalog'
+import { leaderOf } from '@quorum/simulation/lookups'
 import { type ComponentView } from './shared.ts'
 
 export const database: ComponentView = {
   icon: Database,
   layout: { rows: 6, inRow: 0, outRow: 5, footer: true },
-  rows: ({ node, own, inbound, capacity, latency }) => {
+  rows: ({ game, node, own, inbound, capacity, latency }) => {
     const pool = own.connections
     const engine = DB_ENGINES[node.dbEngine]
     // Sharding (07 "Partitioning"): writes divide across the shards, and each is a copy.
@@ -16,14 +17,21 @@ export const database: ComponentView = {
         : node.topology === 'multi'
           ? 'Multi-leader'
           : 'Single'
+    // Under Single primary the leader is the one Database that takes the writes (07 "Topologies").
+    const leader = leaderOf(game)
     return [
       inbound,
       capacity,
       {
         glyph: 'stack',
         name: 'Engine',
-        value: `${engine.name} · ${topology}${shards > 1 ? ` · ${shards} shards` : ''}`,
-        tone: node.topology === 'single' && shards === 1 ? 'muted' : 'plain',
+        value: `${engine.name} · ${leader?.id === node.id && node.topology === 'single' ? 'Primary' : topology}${shards > 1 ? ` · ${shards} shards` : ''}`,
+        tone:
+          leader?.id === node.id && node.topology === 'single'
+            ? 'plain'
+            : node.topology === 'single' && shards === 1
+              ? 'muted'
+              : 'plain',
       },
       {
         glyph: 'stored',

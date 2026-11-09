@@ -581,9 +581,20 @@ test('Feature Flags offer each Feature’s rollout and the blast radius the flag
   )
 })
 
+test('a single Database labels itself the primary and lists its Read Replicas', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.expect(Scene.text('Primary')).toExist(),
+    Scene.expect(
+      Scene.text('None. A Read Replica takes reads off the primary without loading it.'),
+    ).toExist(),
+  )
+})
+
 /** A Board with one more Node of `type`, selected, and the research a card's options need. */
 const cardOfType = (
-  type: 'lb' | 'gpu' | 'database' | 'gw' | 'autoscaler',
+  type: 'lb' | 'gpu' | 'database' | 'gw' | 'autoscaler' | 'replica',
   researched: ReadonlyArray<Game['researched'][number]>,
   extra: Partial<Game['nodes'][number]> = {},
 ): Model => {
@@ -596,6 +607,16 @@ const cardOfType = (
   }
   return { ...start, board: { ...start.board, game, selected: type } }
 }
+
+test('a Read Replica names the Database it copies', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('replica', [])),
+    Scene.expect(
+      Scene.text('Database takes the writes. This Node answers reads from its copy.'),
+    ).toExist(),
+  )
+})
 
 test('a Load Balancer card offers the L4 variant, and the Gateway card its token bucket', () => {
   Scene.scene(

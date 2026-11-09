@@ -1,18 +1,29 @@
-import { copy } from '@/i18n/messages.ts'
+import { copy, nodeTitle } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { SYNC_MS } from '@quorum/simulation/catalog'
-import { has, databasesOf } from '@quorum/simulation/lookups'
+import { databasesOf, has, leaderOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 
 import { Message } from '@/game/message.ts'
 import { button } from '@quorum/ui/primitives/button'
-import { type Panel, caption, picker, replicaEngine, section } from './shared.ts'
+import { type Panel, caption, nodeLink, picker, replicaEngine, section } from './shared.ts'
 
-/** A Read Replica runs the primary's engine, whether every write waits for it, and promotion (07 "Read Replica", "Failover"). */
+/** A Read Replica copies the single primary, whether every write waits for it, and promotion (07 "Read Replica", "Failover"). */
 const replica = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
+  const primary = leaderOf(game)
   const promotable = databasesOf(game).length === 1
   return [
+    section(
+      t.inspectorReplica.primary,
+      primary
+        ? [
+            nodeLink(game, primary, h),
+            caption(t.inspectorReplica.primaryNote(nodeTitle(t, game, primary)), h),
+          ]
+        : [caption(t.inspectorReplica.noSinglePrimary, h)],
+      h,
+    ),
     replicaEngine(game, node, h),
     section(
       t.inspectorReplica.replication,

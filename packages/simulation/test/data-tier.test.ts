@@ -2,6 +2,7 @@ import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import {
   connect,
+  describeRefusal,
   place,
   promoteReplica,
   resize,
@@ -19,7 +20,14 @@ import {
 } from '../src/actions.ts'
 import * as Work from '../src/work.ts'
 import { warmOf } from '../src/life.ts'
-import { burnOf, dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
+import {
+  burnOf,
+  dataOf,
+  leaderOf,
+  shardingOf,
+  syncWaitMs,
+  topologyOf,
+} from '../src/lookups.ts'
 import { sharesDatabase } from '../src/team.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
@@ -191,13 +199,66 @@ describe('topologies', () => {
     const shardedGame = ok(setTopology(withTwo, first, 'sharded'))
     expect(sharesDatabase(shardedGame, shardedGame.services[0]!)).toBe(false)
   })
-  test('a Company queues a topology switch with Dev Hours and a data copy', () => {
+  test('one Database is the leader, and several leave no single leader', () => {
+    let game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    // One Database takes every write, whatever topology the card picks for the next one.
+    expect(leaderOf(game)?.id).toBe(first)
+    game = ok(setTopology(game, first, 'sharded'))
+    expect(leaderOf(game)?.id).toBe(first)
+    let _second: string
+    ;[game, _second] = build(game, 'database')
+    expect(leaderOf(game)).toBeNull()
+  })
+  test('Single primary refuses a second Database', () => {
+    let company: Game = freeSandbox()
+    const first = company.nodes.find((node) => node.type === 'database')!.id
+    company = ok(setTopology(company, first, 'sharded'))
+    company = ok(place(company, 'database', 300, 300))
+    company = { ...company, sandbox: false, cash: 100_000 }
+    expect(Result.isFailure(Work.queueTopology(company, first, 'single'))).toBe(true)
+  })
+  test('a topology pick on one Database lands at once, so a second can be placed', () => {
     const company: Game = { ...freeSandbox(), sandbox: false, cash: 100_000 }
     const first = company.nodes.find((node) => node.type === 'database')!.id
-    const result = Work.queueTopology(company, first, 'sharded')
+    const picked = ok(Work.queueTopology(company, first, 'sharded'))
+    // Nothing moves between Databases yet, so the choice needs no Dev Hours and no copy.
+    expect(picked.nodes.find((node) => node.id === first)?.topology).toBe('sharded')
+    expect(picked.reshard).toBeNull()
+    expect(picked.backlog.some((item) => item.ref === 'reshard')).toBe(false)
+    const withTwo = ok(place(picked, 'database', 300, 300))
+    expect(withTwo.nodes.filter((node) => node.type === 'database')).toHaveLength(2)
+    // The new Database follows the topology the Design picked.
+    expect(withTwo.nodes.at(-1)?.topology).toBe('sharded')
+  })
+  test('a Company queues a topology switch with Dev Hours and a data copy', () => {
+    let company: Game = freeSandbox()
+    const first = company.nodes.find((node) => node.type === 'database')!.id
+    // A second Database makes the rows move, so the switch waits for a copy.
+    company = ok(setTopology(company, first, 'sharded'))
+    company = ok(place(company, 'database', 300, 300))
+    company = { ...company, sandbox: false, cash: 100_000 }
+    const result = Work.queueTopology(company, first, 'multi')
     if (Result.isFailure(result)) throw new Error('refused ' + JSON.stringify(result.failure))
-    expect(result.success.reshard?.topology).toBe('sharded')
+    expect(result.success.reshard?.topology).toBe('multi')
     expect(result.success.backlog.some((item) => item.ref === 'reshard')).toBe(true)
+  })
+  test('a Database does not link to another Database or a Read Replica', () => {
+    let game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    game = ok(setTopology(game, first, 'sharded'))
+    let second: string
+    ;[game, second] = build(game, 'database')
+    const betweenDatabases = connect(game, first, second)
+    expect(Result.isFailure(betweenDatabases)).toBe(true)
+    if (Result.isFailure(betweenDatabases))
+      expect(describeRefusal(betweenDatabases.failure)).toContain('do not link to each other')
+    let replica: string
+    ;[game, replica] = build(game, 'replica')
+    const toReplica = connect(game, first, replica)
+    expect(Result.isFailure(toReplica)).toBe(true)
+    if (Result.isFailure(toReplica))
+      expect(describeRefusal(toReplica.failure)).toContain('copies its primary automatically')
   })
   test('a second Database needs Sharded or Multi-leader first', () => {
     let game = freeSandbox()

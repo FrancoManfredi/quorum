@@ -19,6 +19,8 @@ import {
   CACHE_TTLS,
   CDN_TTLS,
   COMPONENTS,
+  DOCK_GROUPS,
+  DOCK_OF,
   STANDBY_TYPES,
   ZONES,
   rttOf,
@@ -75,6 +77,7 @@ import {
   replacePrice,
   missingPrerequisites,
   needs,
+  pickedTopologyOf,
   resizePrice,
   restarted,
   warmAfterRestart,
@@ -332,14 +335,16 @@ export const place = (
       )
   }
   const node = blankNode(game, `n${game.nextId}`, type, x, y, region)
+  // A Database joins the topology the Design already picked (07 "Topologies").
+  const placed = type === 'database' ? { ...node, topology: pickedTopologyOf(game) } : node
   return spend(game, priceOf(game, type), def.name, (paid) => ({
     ...paid,
     nextId: paid.nextId + 1,
-    nodes: [...paid.nodes, { ...node, life: placedLife(paid, node) }],
+    nodes: [...paid.nodes, { ...placed, life: placedLife(paid, placed) }],
   }))
 }
 
-/** Draws a box around the chosen Nodes, named in order: Box 1, Box 2. A Node leaves the box it was in. */
+/** Draws a box around the chosen Nodes, labelled by the group they share: Data, Compute, or Box 3. A Node leaves the box it was in. */
 export const boxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
   const chosen = ids.filter((id) => game.nodes.some((node) => node.id === id))
   if (chosen.length < 2) return notAllowed('Select two or more Nodes to box.')
@@ -348,9 +353,18 @@ export const boxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
   const kept = game.boxes
     .map((box) => ({ ...box, nodes: box.nodes.filter((id) => !chosen.includes(id)) }))
     .filter((box) => box.nodes.length >= 2)
+  // A cluster of one kind takes its name: the future Data Group reuses this id and name.
+  const docks = new Set(
+    chosen.flatMap((id) => {
+      const node = game.nodes.find((entry) => entry.id === id)
+      return node ? [DOCK_OF[node.type]] : []
+    }),
+  )
+  const dock = docks.size === 1 ? [...docks][0] : null
+  const shared = dock ? DOCK_GROUPS.find((group) => group.key === dock)?.label : null
   return ok({
     ...game,
-    boxes: [...kept, { id: `box${number}`, name: `Box ${number}`, nodes: chosen }],
+    boxes: [...kept, { id: `box${number}`, name: shared ?? `Box ${number}`, nodes: chosen }],
   })
 }
 
@@ -451,6 +465,13 @@ export const connect = (game: Game, from: string, to: string): Action => {
       return notAllowed(`${sourceDef.name} has no traffic to sample.`)
     return ok({ ...game, links: [...game.links, link(from, to)] })
   }
+  // Replication is a copy, not a request path: no Database sends traffic to another (07 "Read Replica").
+  if (source.type === 'database' && (target.type === 'database' || target.type === 'replica'))
+    return notAllowed(
+      target.type === 'replica'
+        ? 'A Read Replica copies its primary automatically. Link App Servers to the replica to send reads there.'
+        : 'Databases do not link to each other. The topology decides how they share rows. Link App Servers to each Database.',
+    )
   if (sourceDef.maxOut === 0 || emitsOf(source).length === 0)
     return notAllowed(`${sourceDef.name} sends nothing on. Link it into Analytics to sample it.`)
   if (targetDef.accepts.length === 0) return notAllowed(`${targetDef.name} has no input.`)

@@ -542,6 +542,30 @@ export const topologyOf = (game: Game): DbTopology => {
 }
 
 /**
+ * The topology the card picked, even while one Database runs it (07 "Topologies"). A Database
+ * placed next inherits it, so every Database follows the one choice.
+ */
+export const pickedTopologyOf = (game: Game): DbTopology => {
+  const databases = databasesOf(game)
+  if (databases.some((node) => node.topology === 'multi')) return 'multi'
+  if (databases.some((node) => node.topology === 'sharded')) return 'sharded'
+  return 'single'
+}
+
+/**
+ * The Database that takes every write while the Design runs one (07 "Topologies"), or null when
+ * several exist: Sharded divides the writes, and every multi-leader takes them.
+ */
+export const leaderOf = (game: Game): GameNode | null => {
+  const databases = databasesOf(game)
+  return databases.length === 1 ? databases[0]! : null
+}
+
+/** The Read Replicas in the Design, in order. */
+export const replicasOf = (game: Game): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => node.type === 'replica')
+
+/**
  * GB of the Company's rows one Database holds: a shard holds its partition, a multi-leader
  * holds every row, and a single primary holds them all (07 "Topologies"). A legacy Design with
  * several Databases still on `single` keeps the old split.

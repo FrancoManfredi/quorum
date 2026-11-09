@@ -9,7 +9,7 @@ import {
   SHARD_KEYS,
   RESTORE_DRILL_DH,
 } from '@quorum/simulation/catalog'
-import { has, shardingOf } from '@quorum/simulation/lookups'
+import { databasesOf, has, leaderOf, replicasOf, shardingOf } from '@quorum/simulation/lookups'
 import type {
   Game,
   GameNode,
@@ -21,7 +21,7 @@ import type {
 
 import { Message } from '@/game/message.ts'
 import { button } from '@quorum/ui/primitives/button'
-import { type Panel, caption, engine, picker, section } from './shared.ts'
+import { type Panel, caption, engine, nodeLink, picker, section } from './shared.ts'
 
 /** What a shard key does to the load, in one line. */
 const shardKeyNote = (t: Messages, node: GameNode): string => {
@@ -47,6 +47,8 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
   const volume = STORAGE_IOPS[node.iops]
   const iops = `${volume.iops / 1_000}k`
   const shards = Math.max(1, Math.floor(node.shards))
+  const leader = leaderOf(game)
+  const replicas = leader?.id === node.id ? replicasOf(game) : []
   return [
     section(
       t.inspectorDatabase.topology,
@@ -72,9 +74,41 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
               : t.inspectorDatabase.topologySingle,
           h,
         ),
+        ...(leader && leader.id === node.id && node.topology === 'single'
+          ? [
+              h.div(
+                [h.Class('flex items-baseline justify-between gap-2')],
+                [
+                  h.span(
+                    [
+                      h.Class(
+                        'text-[calc(12px*var(--type-scale))] font-medium text-muted-foreground',
+                      ),
+                    ],
+                    [t.inspectorDatabase.leader],
+                  ),
+                  nodeLink(game, leader, h),
+                ],
+              ),
+            ]
+          : []),
+        ...(databasesOf(game).length <= 1 && node.topology !== 'single'
+          ? [caption(t.inspectorDatabase.secondDatabaseFollows, h)]
+          : []),
       ],
       h,
     ),
+    ...(leader && leader.id === node.id && node.topology === 'single'
+      ? [
+          section(
+            t.inspectorDatabase.readReplicas,
+            replicas.length > 0
+              ? replicas.map((replica) => nodeLink(game, replica, h))
+              : [caption(t.inspectorDatabase.noReadReplicas, h)],
+            h,
+          ),
+        ]
+      : []),
     engine(node, h),
     section(
       t.inspectorDatabase.volume,

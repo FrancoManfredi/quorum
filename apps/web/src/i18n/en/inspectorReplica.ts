@@ -1,5 +1,9 @@
 export const inspectorReplica = {
   replication: 'Replication',
+  primary: 'Primary',
+  primaryNote: (name: string | number | null) =>
+    `${name} takes the writes. This Node answers reads from its copy.`,
+  noSinglePrimary: 'The Design has several Databases, so this Read Replica has no single primary.',
   asynchronous: 'Asynchronous',
   synchronous: 'Synchronous',
   runsThePrimaryEngine: "Runs the primary's engine.",

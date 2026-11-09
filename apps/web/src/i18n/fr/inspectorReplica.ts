@@ -2,6 +2,11 @@ import type { Messages } from '../messages.ts'
 
 export const inspectorReplica: Messages['inspectorReplica'] = {
   replication: 'Réplication',
+  primary: 'Primaire',
+  primaryNote: (name) =>
+    `${name} prend les écritures. Ce nœud répond aux lectures depuis sa copie.`,
+  noSinglePrimary:
+    'Le design a plusieurs bases : cette réplique de lecture n’a pas de primaire unique.',
   asynchronous: 'Asynchrone',
   synchronous: 'Synchrone',
   runsThePrimaryEngine: 'Il utilise le moteur du primaire.',

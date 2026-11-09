@@ -23,6 +23,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   aReservedNodeStaysReservedUntilIts:
     'Un nœud réservé le reste jusqu’à la fin de sa semaine calendaire.',
   aReshardingIsAlreadyRunning: 'Un resharding est déjà en cours.',
+  aReadReplicaCopiesItsPrimaryAutomatically:
+    'Une réplique de lecture copie son primaire automatiquement. Reliez les serveurs applicatifs à la réplique pour y envoyer les lectures.',
   aRolloutIsOff52550:
     'Un déploiement progressif est à 0 %, 5 %, 25 %, 50 % ou pour tous les utilisateurs.',
   aRunbookNeedsAnSRETeamWith:
@@ -36,6 +38,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   chooseTheIncidentARunbookCovers: 'Choisissez l’incident couvert par la procédure.',
   dependencyScanningCaughtTheDropperBeforeIt:
     'L’analyse des dépendances a arrêté le dropper avant son exécution.',
+  databasesDoNotLinkToEachOther:
+    'Les bases ne se relient pas entre elles. La topologie décide comment elles partagent les lignes. Reliez les serveurs applicatifs à chaque base.',
   everyAppServerHasMovedFixIts: "Chaque serveur d'applications a été déplacé. Corrigez ses bugs.",
   everyAppServerRunsNodeJs: "Chaque serveur d'applications exécute Node.js.",
   everyLinkOutOfAServerAlready: 'Chaque lien sortant d’un serveur a déjà une politique.',
@@ -195,6 +199,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   selectTwoOrMoreNodesToBox: 'Sélectionnez au moins deux nœuds à encadrer.',
   shipTheFeatureBeforeItHasA:
     'Livrez la fonctionnalité avant de lui donner un déploiement progressif.',
+  singlePrimaryHoldsOneDatabase:
+    'Le primaire unique tient une seule base. Vendez les autres, ou choisissez Partitionné ou Multi-leader.',
   spotPricingNeedsResearchSpotInstances:
     'La tarification Spot exige une recherche : Instances Spot.',
   takeABackupBeforeDrillingARestore: 'Faites une sauvegarde avant de tester une restauration.',

@@ -25,7 +25,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { POOL_ICONS } from '../game/pools.ts'
 import type { Ledger, NodeStatus } from '@quorum/simulation/ledger'
-import { has, zoned, zoneMs } from '@quorum/simulation/lookups'
+import { has, leaderOf, replicasOf, zoned, zoneMs } from '@quorum/simulation/lookups'
 
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import type { SeatActivity } from '@quorum/simulation/room'
@@ -653,6 +653,25 @@ const traceOf = (graphics: Graphics, path: Route): Graphics => {
   if (!first) return graphics
   graphics.moveTo(first.x, first.y)
   for (const point of rest) graphics.lineTo(point.x, point.y)
+  return graphics
+}
+
+/** A dashed polyline: short segments with gaps, drawn into one Graphics path. */
+const dashed = (graphics: Graphics, path: Route, dash = 9, space = 6): Graphics => {
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const from = path[index]
+    const to = path[index + 1]
+    if (!from || !to) continue
+    const length = gap(from, to)
+    if (length <= 0) continue
+    const ux = (to.x - from.x) / length
+    const uy = (to.y - from.y) / length
+    for (let at = 0; at < length; at += dash + space) {
+      const end = Math.min(at + dash, length)
+      graphics.moveTo(from.x + ux * at, from.y + uy * at)
+      graphics.lineTo(from.x + ux * end, from.y + uy * end)
+    }
+  }
   return graphics
 }
 
@@ -2046,8 +2065,11 @@ class BoardController {
   /** The boxes drawn around Nodes, under the belts, and their names. */
   private readonly boxLayer = new Container()
   private readonly boxes = new Graphics()
+  /** Replication copies, drawn as dashed lines and never as Links. */
+  private readonly replication = new Graphics()
   private readonly boxNames = new Container()
   private boxesKey = ''
+  private replicationKey = ''
   private readonly overlay = new Graphics()
   private readonly ghost = new Container()
   private readonly views = new Map<string, NodeView>()
@@ -2192,7 +2214,7 @@ class BoardController {
     this.chevrons.init(this.app.renderer)
     this.packets.init(this.app.renderer)
     this.wires.addChild(this.bodies, this.chevrons.root, this.mouths, this.portals, this.splitters)
-    this.boxLayer.addChild(this.boxes, this.boxNames)
+    this.boxLayer.addChild(this.boxes, this.replication, this.boxNames)
     this.boxLayer.isRenderGroup = true
     this.world.addChild(
       this.boxLayer,
@@ -2525,17 +2547,31 @@ class BoardController {
           .map((node) => [node.id, { x: node.x, y: node.y }]),
       )
     } else if (held) this.heldLanding = null
-    const key = `${placed.map((node) => `${node.id}:${node.type}:${node.x}:${node.y}`).join('|')}#${game.links.map((link) => `${link.from}>${link.to}`).join('|')}`
+    const links = [
+      ...game.links.map(({ from, to }) => ({ from, to })),
+      ...this.replicationLinks(game),
+    ]
+    const key = `${placed.map((node) => `${node.id}:${node.type}:${node.x}:${node.y}`).join('|')}#${links.map((link) => `${link.from}>${link.to}`).join('|')}`
     if (key !== this.routedFor) {
       this.routedFor = key
       this.routeWanted = {
         key,
         nodes: placed.map(({ id, type, x, y }) => ({ id, type, x, y })),
-        links: game.links.map(({ from, to }) => ({ from, to })),
+        links,
       }
       this.askRoute()
     }
     return this.routed
+  }
+
+  /** The dashed replication cables the router places with the other lanes. */
+  private replicationLinks(game: Game): ReadonlyArray<RoutedLink> {
+    const primary = leaderOf(game)
+    const region = this.state?.region
+    if (!primary || !region || primary.region !== region) return []
+    return replicasOf(game)
+      .filter((replica) => replica.region === region)
+      .map((replica) => ({ from: primary.id, to: replica.id }))
   }
 
   private askRoute(): void {
@@ -3207,7 +3243,9 @@ class BoardController {
   /** Draws a dashed box and a name around each group of Nodes, when one moved, came or went. */
   private drawBoxes(game: Game, colors: Palette): void {
     const pad = 18
-    const found: Array<Readonly<{ name: string; x: number; y: number; w: number; h: number }>> = []
+    const found: Array<
+      Readonly<{ name: string; x: number; y: number; w: number; h: number; hue: number }>
+    > = []
     for (const box of game.boxes) {
       const members = game.nodes.filter((node) => box.nodes.includes(node.id))
       if (members.length < 2) continue
@@ -3221,24 +3259,68 @@ class BoardController {
         y: top - pad - 16,
         w: right - left + 2 * pad,
         h: bottom - top + 2 * pad + 16,
+        hue: members.every(
+          (node) => COMPONENTS[node.type].group === COMPONENTS[members[0]!.type].group,
+        )
+          ? colors.groups[COMPONENTS[members[0]!.type].group]
+          : colors.accent,
       })
     }
-    const key = `${this.state?.locale ?? 'en'}|${found.map((box) => `${box.name}:${box.x}:${box.y}:${box.w}:${box.h}`).join(';')}`
+    const key = `${this.state?.locale ?? 'en'}|${found.map((box) => `${box.name}:${box.x}:${box.y}:${box.w}:${box.h}:${box.hue}`).join(';')}`
     if (key === this.boxesKey) return
     this.boxesKey = key
     this.boxes.clear()
     this.boxNames.removeChildren().forEach((child) => child.destroy())
     for (const box of found) {
-      this.boxes
-        .roundRect(box.x, box.y, box.w, box.h, 16)
-        .fill({ color: colors.accent, alpha: 0.05 })
-        .stroke({ color: colors.accent, width: 1.5, alpha: 0.55 })
+      this.boxes.roundRect(box.x, box.y, box.w, box.h, 16).fill({ color: box.hue, alpha: 0.05 })
+      dashed(
+        this.boxes,
+        [
+          { x: box.x, y: box.y },
+          { x: box.x + box.w, y: box.y },
+          { x: box.x + box.w, y: box.y + box.h },
+          { x: box.x, y: box.y + box.h },
+          { x: box.x, y: box.y },
+        ],
+        9,
+        6,
+      )
+      this.boxes.stroke({ color: box.hue, width: 1.5, alpha: 0.55 })
       const name = label(12, SANS, '600')
       name.text = (this.state?.translate ?? String)(box.name)
-      name.style.fill = colors.accent
+      name.style.fill = box.hue
       name.position.set(box.x + 12, box.y + 6)
       this.boxNames.addChild(name)
     }
+  }
+
+  /** Dashed lines from a single primary to its Read Replicas, on the same lanes as the Links. */
+  private drawReplication(state: BoardState, colors: Palette): void {
+    const primary = leaderOf(state.game)
+    const replicas =
+      primary && primary.region === state.region
+        ? replicasOf(state.game).filter((replica) => replica.region === state.region)
+        : []
+    if (!primary || replicas.length === 0) {
+      if (this.replicationKey !== '') {
+        this.replicationKey = ''
+        this.replication.clear()
+      }
+      return
+    }
+    const wires = replicas.map((replica) => ({ replica, wire: this.wireOf(primary, replica) }))
+    const key = wires
+      .map(
+        ({ replica, wire }) =>
+          `${replica.id}:${wire.path.map((point) => `${point.x},${point.y}`).join(' ')}`,
+      )
+      .join(';')
+    if (key === this.replicationKey) return
+    this.replicationKey = key
+    this.replication.clear()
+    for (const { wire } of wires)
+      for (const piece of wire.pieces) dashed(this.replication, piece, 9, 6)
+    this.replication.stroke({ color: colors.accent, width: 1.25, alpha: 0.45 })
   }
 
   private animate(seconds: number): void {
@@ -3482,6 +3564,7 @@ class BoardController {
     this.places.end()
     this.chevrons.end()
     this.drawBoxes(state.game, colors)
+    this.drawReplication(state, colors)
 
     const portalColor = colors.edge
     const sameMouths =

@@ -13,6 +13,10 @@ export const inspectorDatabase = {
     'Multi-leader: every Database holds every row and takes writes. Certification drops conflicting writes, first commit wins.',
   topologySingle:
     'Single primary: one Database takes writes, a Read Replica takes reads. A second Database needs a topology first.',
+  leader: 'Primary',
+  readReplicas: 'Read Replicas',
+  noReadReplicas: 'None. A Read Replica takes reads off the primary without loading it.',
+  secondDatabaseFollows: 'Place a second Database under Data, and it follows this choice.',
   promote: 'Promote to primary',
   promoteNote:
     'The replica becomes the primary and the old primary its replica. An asynchronous replica still held writes in flight, so promotion loses them; a synchronous one loses none.',

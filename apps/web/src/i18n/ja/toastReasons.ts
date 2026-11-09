@@ -22,6 +22,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   aReservedNodeStaysReservedUntilIts:
     '予約したノードはカレンダーで1週間が終わるまで予約されたままです。',
   aReshardingIsAlreadyRunning: 'リシャーディングはすでに実行中です。',
+  aReadReplicaCopiesItsPrimaryAutomatically:
+    'リードレプリカはプライマリを自動でコピーします。読み取りを送るには、アプリサーバーをレプリカにリンクしてください。',
   aRolloutIsOff52550: 'ロールアウトはオフ、5%、25%、50%、全ユーザーのいずれかです。',
   aRunbookNeedsAnSRETeamWith: 'ランブックにはエンジニアのいるSREチームが必要です。',
   aTargetIs4060Or80: '目標は40%、60%、80%のいずれかです。',
@@ -33,6 +35,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   chooseTheIncidentARunbookCovers: 'ランブックが扱うインシデントを選んでください。',
   dependencyScanningCaughtTheDropperBeforeIt:
     '依存関係スキャンが、実行される前にドロッパーを捕まえました。',
+  databasesDoNotLinkToEachOther:
+    'データベース同士はリンクできません。行の共有方法はトポロジーが決めます。各データベースにアプリサーバーをリンクしてください。',
   everyAppServerHasMovedFixIts: 'アプリサーバーはすべて移りました。バグを直してください。',
   everyAppServerRunsNodeJs: 'アプリサーバーはすべてNode.jsで動いています。',
   everyLinkOutOfAServerAlready: 'サーバーから出るリンクは、すでにすべてポリシーを持っています。',
@@ -185,6 +189,8 @@ export const reasons: Messages['toasts']['reasons'] = {
     'リザーブド料金にはリサーチが必要です: リザーブドインスタンス。',
   selectTwoOrMoreNodesToBox: '枠に入れるには2つ以上のノードを選んでください。',
   shipTheFeatureBeforeItHasA: 'ロールアウトを設定する前に、その機能を出荷してください。',
+  singlePrimaryHoldsOneDatabase:
+    '単一プライマリはデータベースを1つだけ持ちます。他を売却するか、シャードかマルチリーダーを選んでください。',
   spotPricingNeedsResearchSpotInstances:
     'スポット料金にはリサーチが必要です: スポットインスタンス。',
   takeABackupBeforeDrillingARestore: 'リストア訓練の前にバックアップを取ってください。',

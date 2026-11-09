@@ -314,11 +314,15 @@ A second Database is not a follower. The Design picks one topology, and every Da
 
 Placing a second Database while the Design is still on Single primary is refused: pick Sharded or
 Multi-leader first, or place a Read Replica for single-leader reads. The card sets one topology for
-every Database.
+every Database. Single primary holds one Database, so the card refuses a switch back to it while
+another Database runs.
 
 Switching the topology moves the rows, so it costs like a resharding. The card queues 24 Dev Hours,
 then copies the data at a minute a GB for at least a calendar day, and the volume runs at half its
 IOPS while it copies. The Databases keep the old topology until the copy ends.
+
+One Database has nowhere to move its rows, so its card sets the topology at once. The copy and its
+Dev Hours start with the second Database, when the rows really move.
 
 ### Single primary
 

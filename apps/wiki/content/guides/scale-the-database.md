@@ -111,6 +111,10 @@ A second Database is not a follower: the Design picks Sharded or Multi-leader fi
 Single primary and adds Read Replicas for reads. Placing a second Database while the Design is
 still on Single primary is refused.
 
+Open the first Database and pick **Sharded** or **Multi-leader** under **Topology**. One Database
+has nowhere to copy its rows, so the pick lands at once. Once two Databases run, a further topology
+switch takes 24 Dev Hours and a copy of the data, like a resharding.
+
 - **Sharded** splits the rows across the Databases, so writes scale. Keep transactions inside one
   shard where you can; a cross-shard one costs up to 3× and can fail on either shard.
 - **Multi-leader** copies every row to every Database, so any of them takes writes. Certification

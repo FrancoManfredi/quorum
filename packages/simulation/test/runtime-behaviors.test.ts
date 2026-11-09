@@ -159,10 +159,20 @@ describe('certificates, evictions and boxes', () => {
     const ids = game.nodes.slice(-2).map((node) => node.id)
     const boxed = ok(Actions.boxNodes(game, ids))
     expect(boxed.boxes).toHaveLength(1)
+    // Both sit in the Edge group, so the cluster takes its label.
+    expect(boxed.boxes[0]?.name).toBe('Edge')
     const loose = ok(Actions.unboxNodes(boxed, ids))
     expect(loose.boxes).toHaveLength(0)
     expect(loose.nodes).toHaveLength(game.nodes.length)
     expect(Result.isFailure(Actions.boxNodes(game, ids.slice(0, 1)))).toBe(true)
+  })
+
+  test('a mixed box keeps its number', () => {
+    const game = ok(Actions.place(freeSandbox(), 'lb', 100, 100))
+    const server = game.nodes.find((node) => node.type === 'server') as GameNode
+    const lb = game.nodes.find((node) => node.type === 'lb') as GameNode
+    const boxed = ok(Actions.boxNodes(game, [server.id, lb.id]))
+    expect(boxed.boxes[0]?.name).toBe('Box 1')
   })
 })
 

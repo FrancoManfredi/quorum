@@ -21,6 +21,8 @@ export const reasons = {
   aReservedNodeStaysReservedUntilIts:
     'A reserved Node stays reserved until its calendar week ends.',
   aReshardingIsAlreadyRunning: 'A resharding is already running.',
+  aReadReplicaCopiesItsPrimaryAutomatically:
+    'A Read Replica copies its primary automatically. Link App Servers to the replica to send reads there.',
   aRolloutIsOff52550: 'A rollout is off, 5%, 25%, 50%, or every user.',
   aRunbookNeedsAnSRETeamWith: 'A runbook needs an SRE team with an engineer on it.',
   aTargetIs4060Or80: 'A target is 40%, 60%, or 80%.',
@@ -32,6 +34,8 @@ export const reasons = {
   chooseTheIncidentARunbookCovers: 'Choose the incident a runbook covers.',
   dependencyScanningCaughtTheDropperBeforeIt:
     'Dependency scanning caught the dropper before it ran.',
+  databasesDoNotLinkToEachOther:
+    'Databases do not link to each other. The topology decides how they share rows. Link App Servers to each Database.',
   everyAppServerHasMovedFixIts: 'Every App Server has moved. Fix its bugs.',
   everyAppServerRunsNodeJs: 'Every App Server runs Node.js.',
   everyLinkOutOfAServerAlready: 'Every Link out of a server already has a policy.',
@@ -174,6 +178,8 @@ export const reasons = {
     'Reserved pricing needs research: Reserved instances.',
   selectTwoOrMoreNodesToBox: 'Select two or more Nodes to box.',
   shipTheFeatureBeforeItHasA: 'Ship the Feature before it has a rollout.',
+  singlePrimaryHoldsOneDatabase:
+    'Single primary holds one Database. Sell the others, or pick Sharded or Multi-leader.',
   spotPricingNeedsResearchSpotInstances: 'Spot pricing needs research: Spot instances.',
   takeABackupBeforeDrillingARestore: 'Take a backup before drilling a restore.',
   thatIsGone: 'That is gone.',

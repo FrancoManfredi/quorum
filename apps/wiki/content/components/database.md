@@ -40,8 +40,9 @@ the numbers.
 
 A second Database is not a follower. The Design picks one topology, and every Database follows it:
 
-- **Single primary** (start): one Database takes writes, Read Replicas take reads. Placing a
-  second Database is refused until you pick another topology.
+- **Single primary** (start): one Database takes writes, Read Replicas take reads. The card marks
+  that Database as the **Primary**, and its Inspector links the Read Replicas that copy it. Placing
+  a second Database is refused until you pick another topology.
 - **Sharded**: each Database holds its partition of the rows. Writes divide across them, a read
   asks the one Database that holds its key, and a transaction that spans two Databases costs up to
   3× and can fail on either. Reports and searches read every Database.
@@ -49,7 +50,11 @@ A second Database is not a follower. The Design picks one topology, and every Da
   conflicting writes (first commit wins), and every write costs 1.25× the CPU to replicate.
 
 Switching the topology moves the rows: 24 Dev Hours and a copy at a minute per GB, like a
-resharding. [Data tier](/design/07-data-tier#topologies) holds the trade.
+resharding. One Database has nowhere to move them, so its card sets the topology at once; the copy
+starts with the second Database. [Data tier](/design/07-data-tier#topologies) holds the trade.
+
+Links carry requests, not replication. A Database has no out port to another Database or to a Read
+Replica. Link App Servers to each Database, and link reads to the replica.
 
 ### Volume
 

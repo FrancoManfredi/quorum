@@ -56,7 +56,8 @@ each Database its partition of the rows, so writes scale but cross-shard transac
 and can fail on either shard. Multi-leader copies every row to every Database and lets each take
 writes, so local writes are fast but certification drops conflicting writes (first commit wins) and
 every write costs 1.25× the CPU to replicate. Switching the topology moves the rows: 24 Dev Hours
-and a minute a GB, like a resharding.
+and a minute a GB, like a resharding. One Database has nowhere to move them, so it takes the pick at
+once and the copy starts with the second Database.
 
 Quorum stores ([Wide-column Store](/components/wide)) and consensus ([Distributed SQL](/components/dsql))
 are the other answers to "writes on more than one node": a quorum waits for R of N on a read and W

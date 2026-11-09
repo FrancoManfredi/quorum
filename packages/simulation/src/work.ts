@@ -65,11 +65,18 @@ import {
   type TaskId,
   type Tuning,
 } from './catalog.ts'
-import { Refusal, setFramework, setRuntime, shortOfCash, type Action } from './actions.ts'
+import {
+  Refusal,
+  setFramework,
+  setRuntime,
+  setTopology,
+  shortOfCash,
+  type Action,
+} from './actions.ts'
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { has, eraOf, isDown, restarted, sreStaffed } from './lookups.ts'
+import { databasesOf, has, eraOf, isDown, restarted, sreStaffed } from './lookups.ts'
 import { step as hireStep } from './hire-machine.ts'
 import { step as moveStep } from './data-move-machine.ts'
 import { step as blockStep } from './work-item-machine.ts'
@@ -214,7 +221,15 @@ export const queueTopology = (game: Game, nodeId: string, topology: DbTopology):
   const node = game.nodes.find((entry) => entry.id === nodeId)
   if (!node || node.type !== 'database') return notAllowed('Only a Database changes topology.')
   if (node.topology === topology) return ok(game)
+  // Single primary is one Database: a second one is not a follower, so it cannot join that choice.
+  if (topology === 'single' && databasesOf(game).length > 1)
+    return notAllowed(
+      'Single primary holds one Database. Sell the others, or pick Sharded or Multi-leader.',
+    )
   if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
+  // One Database already holds every row, so a topology pick moves nothing and lands at once. The
+  // copy starts once a second Database exists and the rows have somewhere to go (07 "Topologies").
+  if (databasesOf(game).length <= 1) return setTopology(game, nodeId, topology)
   return ok({
     ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
     reshard: {

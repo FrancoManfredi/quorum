@@ -20,6 +20,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   aPatchStaysUntilItIsBuilt: '补丁会一直保留，直到开发完成或过期。',
   aReservedNodeStaysReservedUntilIts: '预留节点在其自然周结束前保持预留。',
   aReshardingIsAlreadyRunning: '重新分片已在进行中。',
+  aReadReplicaCopiesItsPrimaryAutomatically:
+    '只读副本会自动复制主库。要将读取发送到副本，请将应用服务器链接到副本。',
   aRolloutIsOff52550: '灰度发布可设为关闭、5%、25%、50% 或全部用户。',
   aRunbookNeedsAnSRETeamWith: '运维手册需要一支至少有一名工程师的 SRE 团队。',
   aTargetIs4060Or80: '目标值只能为 40%、60% 或 80%。',
@@ -30,6 +32,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   chooseAtLeastOneFeatureToMove: '请至少选择一项要迁移的功能。',
   chooseTheIncidentARunbookCovers: '请选择运维手册所针对的事故。',
   dependencyScanningCaughtTheDropperBeforeIt: '依赖扫描在投放器运行前就将其拦截。',
+  databasesDoNotLinkToEachOther:
+    '数据库之间不能互相链接。拓扑决定它们如何共享行。请将应用服务器链接到每个数据库。',
   everyAppServerHasMovedFixIts: '所有应用服务器均已迁移。请修复迁移缺陷。',
   everyAppServerRunsNodeJs: '所有应用服务器都运行 Node.js。',
   everyLinkOutOfAServerAlready: '服务器的每条出站链路都已有策略。',
@@ -164,6 +168,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   reservedPricingNeedsResearchReservedInstances: '预留计费需要先研究：预留实例。',
   selectTwoOrMoreNodesToBox: '请选择两个或更多节点进行框选。',
   shipTheFeatureBeforeItHasA: '请先上线功能，再设置灰度发布。',
+  singlePrimaryHoldsOneDatabase: '单主只能有一个数据库。出售其他数据库，或选择分片或多主。',
   spotPricingNeedsResearchSpotInstances: '竞价计费需要先研究：竞价实例。',
   takeABackupBeforeDrillingARestore: '演练恢复之前请先做一次备份。',
   thatIsGone: '它已经不存在了。',

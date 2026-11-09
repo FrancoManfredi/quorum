@@ -880,7 +880,7 @@ export const NO_FALSE_ALARMS: FalseAlarms = {
   budget: 0,
 }
 
-/** A box the player drew around some Nodes: a name on the board, and the Nodes it holds. */
+/** A box the player drew around some Nodes: a cluster label on the board, and the Nodes it holds. */
 export const Box = Schema.Struct({
   id: Schema.String,
   name: Schema.String,
