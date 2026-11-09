@@ -833,7 +833,9 @@ export const syncWaitMs = (game: Game, database: GameNode): number => {
     0,
   )
   const standbyWait =
-    database.standby && database.standbySync && database.type === 'database' ? SYNC_MS + CROSS_ZONE_MS : 0
+    database.standby && database.standbySync && database.type === 'database'
+      ? SYNC_MS + CROSS_ZONE_MS
+      : 0
   return Math.max(replicaWait, standbyWait)
 }
 

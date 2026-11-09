@@ -1151,15 +1151,11 @@ export const failOver = (game: Game, id: string): Action =>
     const out = game.incident?.zone ?? null
     const zone = ZONES.find((entry) => entry !== node.zone && entry !== out) ?? node.zone
     const loss = !node.standbySync && node.type === 'database' ? PROMOTE_DATA_LOSS : 0
-    const promoted = patch(
-      { ...game, data: game.data * (1 - loss) },
-      id,
-      {
-        life: warming(warmAfterRestart(node)),
-        zone,
-        standby: false,
-      },
-    )
+    const promoted = patch({ ...game, data: game.data * (1 - loss) }, id, {
+      life: warming(warmAfterRestart(node)),
+      zone,
+      standby: false,
+    })
     return ok(game.incident ? { ...promoted, incident: answering(game, game.incident) } : promoted)
   })
 
