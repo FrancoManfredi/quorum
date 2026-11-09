@@ -200,6 +200,17 @@ export type Ledger = Readonly<{
   /** The same Burn, split by the lines 09 "The cloud bill" lists. Their sum is `burn`. */
   burnLines: BurnLines
   /**
+   * Dollars per second each scored request kind earns, from the same formula as `revenue` before
+   * subscriptions: `rate × success × apdex × value × result value × feature factor`, and 0 when
+   * the mean misses the Venture's deadline. Subscriptions are added to `revenue` separately.
+   */
+  revenueByKind: Readonly<Partial<Record<RequestKind, number>>>
+  /**
+   * Dollars per second a Venture's compliance fine costs each money kind, from stale answers only
+   * (13 "Ventures"). Their sum is `fines`.
+   */
+  finesByKind: Readonly<Partial<Record<RequestKind, number>>>
+  /**
    * Dollars per served request of each kind: `burn` split across kinds by their share of
    * `demand`, each divided by its own served rate (10 "Track: Cost", `unit-economics`).
    */

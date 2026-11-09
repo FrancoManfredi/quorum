@@ -163,6 +163,8 @@ export const ledgerOf = (
   let revenue = 0
   let fines = 0
   let latencyWeight = 0
+  const revenueByKind: Partial<Record<RequestKind, number>> = {}
+  const finesByKind: Partial<Record<RequestKind, number>> = {}
   const failing: Array<RequestKind> = []
   for (const kind of REQUEST_KINDS) {
     const rate = demand[kind] ?? 0
@@ -213,7 +215,7 @@ export const ledgerOf = (
     satisfied += rate * result.success * apdex
     const mean = meanOf(result)
     // A request that misses the Venture's deadline earns nothing (13 "Ventures", Ad tech).
-    revenue +=
+    const earned =
       rate *
       result.success *
       apdex *
@@ -221,6 +223,8 @@ export const ledgerOf = (
       result.value *
       valueFactor(game, kind) *
       (earnsInTime(game, mean) ? 1 : 0)
+    revenue += earned
+    if (earned > 0) revenueByKind[kind] = earned
     latencyWeight += rate * result.success * mean
     errors.stranded += rate * result.failStranded
     errors.dropped += rate * result.failDropped
@@ -235,8 +239,14 @@ export const ledgerOf = (
     errors.throttled += rate * result.failThrottled
     errors.duplicate += rate * result.failDuplicate
     // Fintech fines a stale answer to a money kind (13 "Ventures").
-    if (!game.sandbox && MONEY_KINDS.includes(kind))
-      fines += rate * result.failStale * KINDS[kind].value * ventureOf(game).constraint.staleFine
+    if (!game.sandbox && MONEY_KINDS.includes(kind)) {
+      const fine =
+        rate * result.failStale * KINDS[kind].value * ventureOf(game).constraint.staleFine
+      if (fine > 0) {
+        fines += fine
+        finesByKind[kind] = fine
+      }
+    }
     if (result.success > 0) mixture.push([result, rate * result.success])
     if (result.success < 0.05 && result.failStranded >= 0.5) failing.push(kind)
   }
@@ -426,9 +436,10 @@ export const ledgerOf = (
     kinds,
   )
   const errorTotal = ERROR_CAUSES.reduce((total, cause) => total + errors[cause], 0)
-  // Unit economics splits Burn across kinds by their share of demand, then costs each kind's
-  // own served rate (10 "Track: Cost", `unit-economics`); cost allocation rolls that up by the
-  // Service each kind's code lives in (10 "Track: Cost", `cost-allocation`).
+  // Unit economics splits Burn across kinds by their share of scored demand, then costs each
+  // kind's own served rate (10 "Track: Cost", `unit-economics`); cost allocation rolls that up by
+  // the Service each kind's code lives in (10 "Track: Cost", `cost-allocation`). Bots are
+  // unscored and carry no revenue, so they are excluded from the split.
   const costPerKind: Partial<Record<RequestKind, number>> = {}
   const costPerService: Partial<Record<string, number>> = {}
   const serviceWork: Record<
@@ -446,7 +457,7 @@ export const ledgerOf = (
     serviceWork[service.id] = { kinds: [], rate: 0, served: 0, satisfied: 0, latency: 0, p99: 0 }
   for (const kind of REQUEST_KINDS) {
     const entry = kinds[kind]
-    if (!entry || entry.rate <= 0) continue
+    if (!entry || entry.rate <= 0 || !PROFILES[kind].scored) continue
     const service = serviceOfKind(game, kind).id
     const work = serviceWork[service]
     if (work) {
@@ -527,6 +538,8 @@ export const ledgerOf = (
       observability: shares.observability,
       salaries,
     },
+    revenueByKind,
+    finesByKind,
     costPerKind,
     costPerService,
     services,
