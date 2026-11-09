@@ -81,4 +81,5 @@ export const title: Messages['title'] = {
   playtestBuild: 'プレイテスト版 ·',
   support: '支援',
   supportOnKofi: 'Ko-fiでQuorumを支援',
+  openSourceOnGitHub: 'GitHubでオープンソース',
 }

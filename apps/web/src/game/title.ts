@@ -3,7 +3,7 @@ import { copy, localized, eraWords } from '@/i18n/messages.ts'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
 import { UrlRequest } from 'foldkit/navigation'
-import { DISCLAIMER_URL, PRIVACY_URL, WIKI_URL } from '@/platform/analytics.ts'
+import { DISCLAIMER_URL, PRIVACY_URL, SOURCE_URL, WIKI_URL } from '@/platform/analytics.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUpRight,
@@ -19,6 +19,7 @@ import {
   Trophy,
 } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
+import { githubMark } from '@quorum/ui/primitives/github'
 import { companyMark } from '@/components/company-mark.ts'
 import { connecting, titleIsOpen } from './boot-machine.ts'
 import {
@@ -1149,7 +1150,7 @@ const disclaimer = (h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** The edge of the screen: the playtest tools and the warning that saves can break. */
+/** The edge of the screen: the playtest tools, the source, and the way to support it. */
 const strip = (h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return h.header(
@@ -1185,6 +1186,16 @@ const strip = (h: HtmlBuilder<Message>): Html => {
           h.AriaLabel(t.title.supportOnKofi),
         ],
         [icon(h, Coffee, 'size-3.5'), h.span([h.Class('booth-strip-label')], [t.title.support])],
+      ),
+      h.a(
+        [
+          h.Href(SOURCE_URL),
+          h.Target('_blank'),
+          h.Rel('noreferrer noopener'),
+          h.Title(t.title.openSourceOnGitHub),
+          h.AriaLabel(t.title.openSourceOnGitHub),
+        ],
+        [githubMark(h, 'size-3.5')],
       ),
     ],
   )

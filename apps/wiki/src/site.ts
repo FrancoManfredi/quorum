@@ -3,6 +3,8 @@
 export const WIKI_ORIGIN = 'https://wiki.playquorum.dev'
 export const GAME_ORIGIN = 'https://playquorum.dev'
 export const REPOSITORY = 'https://github.com/elianiva/quorum'
+/** The repository's public record: stars, forks, issues, license, and language. */
+export const REPOSITORY_API = 'https://api.github.com/repos/elianiva/quorum'
 export const KOFI = 'https://ko-fi.com/elianiva'
 
 export const OG_IMAGE_ALT =

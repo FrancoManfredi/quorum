@@ -1,11 +1,12 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { cn } from 'cn'
 import { ArrowUpRight, Menu, X } from 'lucide'
+import { githubMark } from '@quorum/ui/primitives/github'
 import { icon } from '@quorum/ui/primitives/icon'
 import { Message, type Model } from '../main.ts'
 import { SECTION_ORDER, navOf, pageAt } from '../pages.ts'
 import { QUADRANTS } from './quadrant.ts'
-import { GAME_ORIGIN } from '../site.ts'
+import { GAME_ORIGIN, REPOSITORY } from '../site.ts'
 import * as Search from '../submodels/search.ts'
 
 /* The header bar: the wordmark, the search, the spoiler filter, the game version, and Play. */
@@ -73,6 +74,17 @@ export const header = (model: Model, h: H): Html =>
             toParentMessage: (message) => Message.SearchChanged({ message }),
           }),
           h.div([h.Class('hidden flex-1 sm:block')], []),
+          h.a(
+            [
+              h.Href(REPOSITORY),
+              h.Title('Quorum on GitHub'),
+              h.AriaLabel('Quorum on GitHub'),
+              h.Class(
+                'hidden h-8 w-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground sm:grid',
+              ),
+            ],
+            [githubMark(h, 'size-[17px]')],
+          ),
           h.a(
             [
               h.Href(GAME_ORIGIN),

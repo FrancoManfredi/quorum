@@ -80,4 +80,5 @@ export const title: Messages['title'] = {
   playtestBuild: '试玩版 ·',
   support: '支持',
   supportOnKofi: '在 Ko-fi 上支持 Quorum',
+  openSourceOnGitHub: '在 GitHub 上开源',
 }

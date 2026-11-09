@@ -12,15 +12,17 @@ import {
 } from '@quorum/simulation/catalog'
 import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
 import { FIGURE } from '@quorum/ui/game/bits'
+import { githubMark } from '@quorum/ui/primitives/github'
 import { icon } from '@quorum/ui/primitives/icon'
 import type { Section } from '../frontmatter.ts'
 import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { navOf, pageAt } from '../pages.ts'
 import { PATHS, stepsOf } from '../paths.ts'
-import { KOFI } from '../site.ts'
+import { KOFI, REPOSITORY } from '../site.ts'
 import { componentBadge } from '../reference/components.ts'
 import { pathCard } from './path-nav.ts'
+import { projectCard } from './project.ts'
 import { QUADRANTS, quadrantBadge } from './quadrant.ts'
 
 /* The home page: what the wiki is, the guided paths, then the four kinds of page and the catalog. */
@@ -244,6 +246,15 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                     ],
                     [icon(h, BookOpen, 'size-4'), 'Browse the Components'],
                   ),
+                  h.a(
+                    [
+                      h.Href(REPOSITORY),
+                      h.Class(
+                        'inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-4 text-[14px] font-medium hover:border-foreground/30',
+                      ),
+                    ],
+                    [githubMark(h, 'size-4'), 'Open source on GitHub'],
+                  ),
                 ],
               ),
             ],
@@ -275,51 +286,46 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
       block(
         'Browse by kind',
         'Six kinds of page, each for a different need.',
-        h.div(
-          [],
-          [
-            grid(
-              'sm:grid-cols-2 xl:grid-cols-3',
-              (
-                ['play', 'tutorials', 'guides', 'explanation', 'patterns', 'reference'] as const
-              ).map((section) => kind(section, h)),
-              h,
-            ),
-            h.p(
-              [h.Class('mt-6 text-[13px] text-muted-foreground')],
-              [
-                'Want the rules, formulas, and open questions behind the game? Read the ',
-                h.a(
-                  [h.Href('/design'), h.Class('text-foreground underline underline-offset-4')],
-                  ['Design'],
-                ),
-                ' document, or see ',
-                h.a(
-                  [
-                    h.Href('/about/changelog'),
-                    h.Class('text-foreground underline underline-offset-4'),
-                  ],
-                  ['what changed this week'],
-                ),
-                '. Quorum is a game, and it simplifies real systems on purpose. ',
-                h.a(
-                  [
-                    h.Href('/about/disclaimer'),
-                    h.Class('text-foreground underline underline-offset-4'),
-                  ],
-                  ['Read what that means'],
-                ),
-                ' before you act on what you learn here. If the game helps you, ',
-                h.a(
-                  [h.Href(KOFI), h.Class('text-foreground underline underline-offset-4')],
-                  ['support it on Ko-fi'],
-                ),
-                '.',
-              ],
-            ),
-          ],
+        grid(
+          'sm:grid-cols-2 xl:grid-cols-3',
+          (['play', 'tutorials', 'guides', 'explanation', 'patterns', 'reference'] as const).map(
+            (section) => kind(section, h),
+          ),
+          h,
         ),
         h,
+      ),
+      block(
+        'Open source',
+        'The game, the Simulation, and this wiki share one repository.',
+        projectCard(model.project, h),
+        h,
+      ),
+      h.p(
+        [h.Class('mt-8 max-w-[75ch] text-[13px] leading-relaxed text-muted-foreground')],
+        [
+          'Want the rules, formulas, and open questions behind the game? Read the ',
+          h.a(
+            [h.Href('/design'), h.Class('text-foreground underline underline-offset-4')],
+            ['Design'],
+          ),
+          ' document, or see ',
+          h.a(
+            [h.Href('/about/changelog'), h.Class('text-foreground underline underline-offset-4')],
+            ['what changed this week'],
+          ),
+          '. Quorum is a game, and it simplifies real systems on purpose. ',
+          h.a(
+            [h.Href('/about/disclaimer'), h.Class('text-foreground underline underline-offset-4')],
+            ['Read what that means'],
+          ),
+          ' before you act on what you learn here. If the game helps you, ',
+          h.a(
+            [h.Href(KOFI), h.Class('text-foreground underline underline-offset-4')],
+            ['support it on Ko-fi'],
+          ),
+          '.',
+        ],
       ),
     ],
   )

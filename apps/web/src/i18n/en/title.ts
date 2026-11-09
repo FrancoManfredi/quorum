@@ -78,4 +78,5 @@ export const title = {
   playtestBuild: 'Playtest build ·',
   support: 'Support',
   supportOnKofi: 'Support Quorum on Ko-fi',
+  openSourceOnGitHub: 'Open source on GitHub',
 }

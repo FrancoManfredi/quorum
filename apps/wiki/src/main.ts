@@ -4,6 +4,7 @@ import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Url, toString as urlToString } from 'foldkit/url'
 import * as Progress from './submodels/progress.ts'
+import * as Project from './submodels/project.ts'
 import * as Quiz from './submodels/quiz.ts'
 import * as Search from './submodels/search.ts'
 import * as Spoilers from './submodels/spoilers.ts'
@@ -19,6 +20,8 @@ export const Model = Schema.Struct({
   spoilers: Spoilers.Model,
   progress: Progress.Model,
   quiz: Quiz.Model,
+  /** The repository's public numbers, for the card on the home page. */
+  project: Project.Model,
 })
 export type Model = typeof Model.Type
 
@@ -32,6 +35,7 @@ export const Message = defineMessageUnion({
   SpoilersChanged: { message: Spoilers.Message },
   ProgressChanged: { message: Progress.Message },
   QuizChanged: { message: Quiz.Message },
+  ProjectChanged: { message: Project.Message },
 })
 export type Message = typeof Message.Type
 
@@ -118,6 +122,16 @@ const foldQuiz = Update.foldChild({
   toParentMessage: (message) => Message.QuizChanged({ message }),
 })
 
+const foldProject = Update.foldChild({
+  update: Project.update,
+  read: (model: Model) => Option.some(model.project),
+  write: (model, project) => ({ ...model, project }),
+  toParentMessage: (message) => Message.ProjectChanged({ message }),
+})
+
+const loadProject = () =>
+  Command.mapMessages([Project.Load()], (message) => Message.ProjectChanged({ message }))
+
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
   const path = normalize(url.pathname)
   return {
@@ -129,6 +143,8 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
       spoilers: Spoilers.init,
       progress: Progress.init,
       quiz: Quiz.init,
+      // The home page is the only page with the project card, so it starts the one read.
+      project: path === '/' ? { status: 'loading', stats: null } : Project.init,
     },
     commands: [
       RevealCurrent(),
@@ -136,6 +152,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
       ...Command.mapMessages([Progress.Load({ path })], (message) =>
         Message.ProgressChanged({ message }),
       ),
+      ...(path === '/' ? loadProject() : []),
     ],
   }
 }
@@ -162,9 +179,17 @@ export const update = (model: Model, message: Message): Return =>
         { ...model, path, menu: false, navToggled: [], search: Search.init },
         Progress.Message.Visited({ path }),
       )
+      const wantProject = path === '/' && model.project.status === 'idle'
       return {
-        model: visited.model,
-        commands: [ScrollTo({ hash }), RevealCurrent(), ...(visited.commands ?? [])],
+        model: wantProject
+          ? { ...visited.model, project: { status: 'loading', stats: null } }
+          : visited.model,
+        commands: [
+          ScrollTo({ hash }),
+          RevealCurrent(),
+          ...(visited.commands ?? []),
+          ...(wantProject ? loadProject() : []),
+        ],
       }
     },
     Navigated: () => ({ model }),
@@ -181,4 +206,5 @@ export const update = (model: Model, message: Message): Return =>
     SpoilersChanged: ({ message }) => foldSpoilers(model, message),
     ProgressChanged: ({ message }) => foldProgress(model, message),
     QuizChanged: ({ message }) => foldQuiz(model, message),
+    ProjectChanged: ({ message }) => foldProject(model, message),
   })
