@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { Option } from 'effect'
 import { Scene } from 'foldkit/test'
 import type { HtmlBuilder } from 'foldkit/html'
 import { link, node, preseedGame } from '@quorum/simulation/company'
@@ -127,6 +128,20 @@ test('selecting a spike shows its operation rates, deltas, and former source ins
     Scene.click(Scene.role('button', { name: 'Back to live' })),
     Scene.expect(Scene.text('Live traffic')).toExist(),
     Scene.expect(Scene.text('App Server 3')).toBeAbsent(),
+  )
+})
+
+test('Traffic & load starts folded, so the player can close it like the other sections', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(fixture()),
+    Scene.tap((simulation) => {
+      const folds = Scene.findAll(simulation.html, 'details')
+      const traffic = folds.find((fold) => Scene.textContent(fold).includes('Traffic & load'))
+      expect(traffic).toBeDefined()
+      // A forced open attribute would put it back on the next render after the player closes it.
+      expect(Option.isNone(Scene.attr(traffic!, 'open'))).toBe(true)
+    }),
   )
 })
 

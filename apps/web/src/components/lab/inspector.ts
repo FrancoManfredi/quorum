@@ -1577,7 +1577,6 @@ const trafficBreakdown = (
         : []),
     ],
     h,
-    true,
   )
 }
 
