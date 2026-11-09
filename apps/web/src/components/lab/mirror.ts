@@ -53,6 +53,7 @@ const fieldLabelOf = (t: Messages): Record<Managed, string> => ({
   pm: t.mirror.processManager,
   engine: t.mirror.engine,
   dbEngine: t.mirror.databaseEngine,
+  topology: t.mirror.databaseTopology,
   iops: t.mirror.volume,
   shards: t.mirror.shards,
   storageClass: t.mirror.storageClass,

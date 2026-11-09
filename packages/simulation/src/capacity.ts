@@ -63,6 +63,10 @@ import {
   DB_ENGINES,
   DB_RETENTIONS,
   STORAGE_IOPS,
+  MULTI_WRITE_CPU,
+  SHARD_KEYS,
+  SCATTER_CPU,
+  DISTRIBUTED_TX_FAILURE,
   diskMs,
   MESH_OVERHEAD,
   ARM_SPEED,
@@ -81,6 +85,8 @@ import {
   pinnedOf,
   shardingOf,
   syncWaitMs,
+  databasesOf,
+  topologyOf,
   payloadOf,
   profileOf,
   ramOf,
@@ -163,6 +169,7 @@ export type CostCause =
   | 'indexes'
   | 'features'
   | 'engine'
+  | 'multi-leader'
   | 'scatter'
   | 'report'
   | 'retention'
@@ -1045,11 +1052,26 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   // A server connection holds its own memory: an 8 MB backend process on Postgres, a thread stack on
   // MySQL. A pooler cuts the count but not the price of each connection (07 "Connection Pooler").
   const connectionRam = ((context.connections ?? 0) * engine.connectionMB) / 1024
-  const workingSet = LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER
+  // How more than one Database holds the rows (07 "Topologies"): a shard holds its partition of
+  // the hot rows, while a multi-leader holds every row on every Database.
+  const topology = node.type === 'database' ? topologyOf(game) : 'single'
+  const databaseCount = node.type === 'database' ? databasesOf(game).length : 1
+  const shardShare = topology === 'sharded' && databaseCount > 1 ? 1 / databaseCount : 1
+  const workingSet = (LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER) * shardShare
   const footprint = workingSet + connectionRam
   const disk = footprint > ram - OS_RAM
-  const sharding = shardingOf(node)
-  const { shards } = sharding
+  const logical = shardingOf(node)
+  // Physical sharding (07 "Topologies") adds its Boards to the logical shards: each Database is
+  // another shard, so scatter, busiest-shard and cross-shard costs grow with all of them.
+  const shards =
+    logical.shards * (topology === 'sharded' && node.type === 'database' ? databaseCount : 1)
+  const key = SHARD_KEYS[node.shardKey]
+  const cross = shards > 1 ? key.cross * (1 - 1 / shards) : 0
+  const scatter = 1 + SCATTER_CPU * (shards - 1)
+  const hot = shards > 1 ? key.hot + (1 - key.hot) / shards : 1
+  const farMs = shards > 1 ? key.farMs * (1 - 1 / shards) : 0
+  const distributedFailure = cross * DISTRIBUTED_TX_FAILURE * shards
+  const sharding = { ...logical, shards, cross, scatter, hot, farMs, failure: distributedFailure }
   // A resharding copies the data in the background, and the copy leaves the volume half its IOPS.
   const resharding =
     game.reshard?.node === node.id &&
@@ -1103,6 +1125,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     bloat *
     (denormalized ? DENORMALIZED_READ : 1) *
     engine.read
+  const multiLeader = topology === 'multi' && databaseCount > 1
   const writeCpu =
     ((QUERY_CPU['q-write'] * queryFactor(game, 'q-write')) / warmth) *
     (1 + 0.5 * evicted) *
@@ -1110,14 +1133,16 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
     bloat *
     indexWriteFactor(game) *
     (denormalized ? DENORMALIZED_WRITE : 1) *
-    engine.write
+    engine.write *
+    // A multi-leader replicates every write to the other leaders before it answers (07 "Multi-leader").
+    (multiLeader ? MULTI_WRITE_CPU : 1)
   // Postgres full-text search and files stored as rows: both work, both badly at volume. MySQL's
   // full-text search is the weaker of the two engines, so it costs it more CPU (07 "Variants").
   const searchCpu =
     (QUERY_CPU['q-search'] * queryFactor(game, 'q-search') * engine.searchCost * sharding.scatter) /
     warmth
   const putCpu = QUERY_CPU['blob-put'] / warmth
-  const txCpu = (QUERY_CPU['q-tx'] * engine.write) / warmth
+  const txCpu = (QUERY_CPU['q-tx'] * engine.write * (multiLeader ? MULTI_WRITE_CPU : 1)) / warmth
   const getCpu = QUERY_CPU['blob-get'] / warmth
   const reads = arriving['q-read'] ?? 0
   const writes = arriving['q-write'] ?? 0
@@ -1206,6 +1231,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
         [
           ['features', queryFactor(game, 'q-write')],
           ['engine', engine.write],
+          ...(multiLeader ? [['multi-leader', MULTI_WRITE_CPU] as const] : []),
           cold,
           ['eviction', 1 + 0.5 * evicted],
           ['indexes', indexWriteFactor(game)],
@@ -1231,7 +1257,16 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
         [cold, ['busiest-shard', sharding.hot]],
         putCpu * sharding.hot,
       ),
-    'q-tx': () => receiptFor(QUERY_CPU['q-tx'], [['engine', engine.write], cold], txCpu),
+    'q-tx': () =>
+      receiptFor(
+        QUERY_CPU['q-tx'],
+        [
+          ['engine', engine.write],
+          ...(multiLeader ? [['multi-leader', MULTI_WRITE_CPU] as const] : []),
+          cold,
+        ],
+        txCpu,
+      ),
     'blob-get': () => receiptFor(QUERY_CPU['blob-get'], [cold], getCpu),
     'q-scan': () =>
       receiptFor(

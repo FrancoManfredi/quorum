@@ -111,6 +111,14 @@ _Avoid_: board (for a single region), map, planet
 The replicas a Wide-column Store waits for: R on a read and W on a write, of N per key. R + W > N means every read sees the latest write.
 _Avoid_: consensus (that is Distributed SQL), majority
 
+**Topology**:
+How more than one Database holds the rows: single primary, sharded, or multi-leader.
+_Avoid_: peer, layout (that is a Design)
+
+**Failover**:
+Promoting a Read Replica to the primary when the primary is gone. An asynchronous replica loses writes still in flight; a synchronous one loses none.
+_Avoid_: promotion (alone in UI copy)
+
 **Spread**:
 A Wide-column Store or Distributed SQL Node that replicates across the open regions, so it serves through a Region outage.
 _Avoid_: global table, geo-replicated

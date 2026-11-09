@@ -10,7 +10,14 @@ import {
   RESTORE_DRILL_DH,
 } from '@quorum/simulation/catalog'
 import { has, shardingOf } from '@quorum/simulation/lookups'
-import type { Game, GameNode, IopsClass, ShardKey, DbRetention } from '@quorum/simulation/state'
+import type {
+  Game,
+  GameNode,
+  IopsClass,
+  ShardKey,
+  DbRetention,
+  DbTopology,
+} from '@quorum/simulation/state'
 
 import { Message } from '@/game/message.ts'
 import { button } from '@quorum/ui/primitives/button'
@@ -33,7 +40,7 @@ const shardKeyNote = (t: Messages, node: GameNode): string => {
   )}${far}`
 }
 
-/** A Database's engine, its volume, and its shards (07 "Variants", "Capacity", "Partitioning"). */
+/** A Database's topology, engine, volume, and its shards (07 "Topologies", "Variants", "Capacity"). */
 const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
 
@@ -41,6 +48,33 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
   const iops = `${volume.iops / 1_000}k`
   const shards = Math.max(1, Math.floor(node.shards))
   return [
+    section(
+      t.inspectorDatabase.topology,
+      [
+        picker(
+          'topology',
+          [
+            ['single', t.inspectorDatabase.singlePrimary],
+            ['sharded', t.inspectorDatabase.sharded],
+            ['multi', t.inspectorDatabase.multiLeader],
+          ] as ReadonlyArray<readonly [DbTopology, string]>,
+          node.topology,
+          (chosen) => Message.DbTopologyChosen({ nodeId: node.id, topology: chosen }),
+          h,
+          () => true,
+          'grid-cols-3',
+        ),
+        caption(
+          node.topology === 'sharded'
+            ? t.inspectorDatabase.topologySharded
+            : node.topology === 'multi'
+              ? t.inspectorDatabase.topologyMulti
+              : t.inspectorDatabase.topologySingle,
+          h,
+        ),
+      ],
+      h,
+    ),
     engine(node, h),
     section(
       t.inspectorDatabase.volume,

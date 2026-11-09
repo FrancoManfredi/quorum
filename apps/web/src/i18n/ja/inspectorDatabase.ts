@@ -4,6 +4,19 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   volume: 'ボリューム',
   iOPSAtTheBoxSBurn: (p0, p1) =>
     `${p0} IOPSで、ボックスの支出の${p1}倍。バッファキャッシュに当たらない読み取りと、すべての書き込みがそれを待ちます。`,
+  topology: 'トポロジー',
+  singlePrimary: '単一プライマリ',
+  sharded: 'シャード',
+  multiLeader: 'マルチリーダー',
+  topologySharded:
+    'シャード：各データベースが参照する行の一部を持ちます。トランザクションは可能な限り1つのシャード内に収め、シャードをまたぐものは触れたどのシャードでも失敗し、レポートは全部読みます。',
+  topologyMulti:
+    'マルチリーダー：すべてのデータベースが全行を持ち、書き込みを受け付けます。certificationが競合する書き込みを落とし、先にコミットしたものが勝ちます。',
+  topologySingle:
+    '単一プライマリ：書き込みは1つのデータベース、読み取りはリードレプリカが引き受けます。2つ目のデータベースにはまずトポロジーが必要です。',
+  promote: 'プライマリに昇格',
+  promoteNote:
+    'レプリカがプライマリになり、元のプライマリがそのレプリカになります。非同期レプリカは未送信の書き込みを保持しているため昇格では失われます。同期では失いません。',
   shards: 'シャード',
   onePrimaryAReadReplicaIs: 'プライマリは1つ。読み取りをそこから引き受けるのがリードレプリカです。',
   shardKey: 'シャードキー',

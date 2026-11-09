@@ -10,14 +10,20 @@ export const database: ComponentView = {
     const engine = DB_ENGINES[node.dbEngine]
     // Sharding (07 "Partitioning"): writes divide across the shards, and each is a copy.
     const shards = Math.max(1, Math.floor(node.shards))
+    const topology =
+      node.topology === 'sharded'
+        ? 'Sharded'
+        : node.topology === 'multi'
+          ? 'Multi-leader'
+          : 'Single'
     return [
       inbound,
       capacity,
       {
         glyph: 'stack',
         name: 'Engine',
-        value: shards > 1 ? `${engine.name} · ${shards} shards` : engine.name,
-        tone: shards > 1 ? 'plain' : 'muted',
+        value: `${engine.name} · ${topology}${shards > 1 ? ` · ${shards} shards` : ''}`,
+        tone: node.topology === 'single' && shards === 1 ? 'muted' : 'plain',
       },
       {
         glyph: 'stored',

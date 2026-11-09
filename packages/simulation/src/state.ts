@@ -91,7 +91,7 @@ export type Pricing = typeof Pricing.Type
 export { LbPolicy } from './components/lb.ts'
 export { PmMode, Collector, Fanout } from './components/server.ts'
 export { CacheEngine, CacheStrategy } from './components/cache.ts'
-export { IopsClass, DbRetention, ShardKey } from './components/database.ts'
+export { IopsClass, DbRetention, ShardKey, DbTopology } from './components/database.ts'
 import { ShardKey } from './components/database.ts'
 export { VecIndexType } from './components/vec.ts'
 export { Acks } from './components/log.ts'
@@ -218,6 +218,7 @@ const NODE_FIELD_ORDER = [
   'acks',
   'retain',
   'keyed',
+  'topology',
 ] as const
 
 const NODE_FIELDS_UNORDERED = {

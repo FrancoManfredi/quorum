@@ -41,6 +41,7 @@ export const mirror: Messages['mirror'] = {
   processManager: 'Gestionnaire de processus',
   engine: 'Moteur',
   databaseEngine: 'Moteur de base de données',
+  databaseTopology: 'Topologie',
   volume: 'Volume',
   shards: 'Shards',
   storageClass: 'Classe de stockage',

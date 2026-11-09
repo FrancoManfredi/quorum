@@ -132,6 +132,7 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
   [['dbEngine'], (game, id, node) => Actions.setDbEngine(game, id, node.dbEngine)],
   [['iops'], (game, id, node) => Actions.setStorageIops(game, id, node.iops)],
   [['shards'], (game, id, node) => Actions.setShards(game, id, node.shards)],
+  [['topology'], (game, id, node) => Actions.setTopology(game, id, node.topology)],
   [['storageClass'], (game, id, node) => Actions.setStorageClass(game, id, node.storageClass)],
   [['keep'], (game, id, node) => Actions.setDbRetention(game, id, node.keep)],
   [['lifecycle'], (game, id, node) => Actions.setLifecycle(game, id, node.lifecycle)],

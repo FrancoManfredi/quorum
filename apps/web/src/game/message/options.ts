@@ -7,6 +7,7 @@ import {
   Collector,
   DbEngine,
   DbRetention,
+  DbTopology,
   DeployStrategy,
   FamilyId,
   Fanout,
@@ -110,6 +111,8 @@ export const optionsCases = {
   },
   ShardKeyChosen: { nodeId: Schema.String, shardKey: ShardKey },
   SyncChosen: { nodeId: Schema.String, sync: Schema.Boolean },
+  PromoteReplica: { nodeId: Schema.String },
+  DbTopologyChosen: { nodeId: Schema.String, topology: DbTopology },
   SearchOptionsChosen: {
     nodeId: Schema.String,
     searchVariant: Schema.optional(SearchVariant),

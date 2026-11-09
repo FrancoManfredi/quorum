@@ -5,6 +5,8 @@ import { def } from './define.ts'
 export const SYNC_MS = 2
 /** Calendar minutes a new Read Replica copies per GB before it serves, and the least it takes. */
 export const REPLICA_SYNC_MINUTES_PER_GB = 0.5
+/** Share of rows an asynchronous promotion loses: writes still in flight never shipped (07 "Failover"). */
+export const PROMOTE_DATA_LOSS = 0.02
 
 /** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const replicaGlossary: ReadonlyArray<string> = [

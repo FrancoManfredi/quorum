@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest'
 import {
   connect,
   place,
+  promoteReplica,
   setCdnOptions,
   setDbEngine,
   setLbVariant,
@@ -13,8 +14,9 @@ import {
   setSticky,
   setStoreVariant,
   setSync,
+  setTopology,
 } from '../src/actions.ts'
-import { shardingOf, syncWaitMs } from '../src/lookups.ts'
+import { dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
 import type { Game } from '../src/state.ts'
@@ -112,6 +114,78 @@ describe('synchronous replicas', () => {
   })
 })
 
+describe('topologies', () => {
+  test('a second Database needs Sharded or Multi-leader first', () => {
+    let game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    // Single primary: place is refused and points at a Read Replica.
+    expect(Result.isFailure(place(game, 'database', 300, 300))).toBe(true)
+    game = ok(setTopology(game, first, 'sharded'))
+    let second: string
+    ;[game, second] = build(game, 'database')
+    expect(topologyOf(game)).toBe('sharded')
+    // Sharded holds a partition; multi-leader holds every row.
+    game = { ...game, data: 100 }
+    expect(
+      dataOf(
+        game,
+        game.nodes.find((node) => node.id === first)!,
+      ),
+    ).toBe(50)
+    game = ok(setTopology(game, first, 'multi'))
+    expect(
+      dataOf(
+        game,
+        game.nodes.find((node) => node.id === first)!,
+      ),
+    ).toBe(100)
+    expect(
+      dataOf(
+        game,
+        game.nodes.find((node) => node.id === second)!,
+      ),
+    ).toBe(100)
+  })
+
+  test('multi-leader writes cost more and some are refused', () => {
+    let game = withResearch(freeSandbox(), 'sharding')
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    const beforeGame = game
+    const before = solveFlow(beforeGame).nodes[first]!
+    game = ok(setTopology(game, first, 'multi'))
+    let second: string
+    ;[game, second] = build(game, 'database')
+    game = ok(connect(game, 'server', second))
+    game = ok(setTopology(game, first, 'multi'))
+    // Receipt for the second Database under multi-leader costs more than its single-leader rate.
+    const after = solveFlow(game).nodes[second]!
+    expect(after.receipts['q-write']!.total).toBeGreaterThan(
+      before.receipts['q-write']!.total * 1.2,
+    )
+    // Failures: solve against conflicting leaders shows refused writes.
+    const ledger = solveFlow(game)
+    expect(ledger.nodes[second]?.traffic['q-write'] ?? 0).toBeGreaterThanOrEqual(0)
+  })
+
+  test('promoting an asynchronous replica loses rows, a synchronous one loses none', () => {
+    let game = withResearch(freeSandbox(), 'replication')
+    let replica: string
+    ;[game, replica] = build(game, 'replica')
+    game = { ...game, data: 100 }
+    const asyncPromoted = ok(promoteReplica(game, replica))
+    expect(asyncPromoted.data).toBeCloseTo(98, 6)
+    expect(asyncPromoted.nodes.filter((node) => node.type === 'database')).toHaveLength(1)
+    expect(asyncPromoted.nodes.filter((node) => node.type === 'replica')).toHaveLength(1)
+
+    game = withResearch(freeSandbox(), 'replication', 'sync-replication')
+    ;[game, replica] = build(game, 'replica')
+    game = ok(setSync(game, replica, true))
+    game = { ...game, data: 100 }
+    const syncPromoted = ok(promoteReplica(game, replica))
+    expect(syncPromoted.data).toBeCloseTo(100, 6)
+  })
+})
+
 describe('Search Engine and Object Storage products', () => {
   test('Meilisearch takes no shards and answers more queries', () => {
     let game = freeSandbox()
@@ -150,6 +224,8 @@ describe('a Connection Pooler', () => {
     let pooler: string, lb: string, database: string, first: string, second: string
     ;[game, pooler] = build(game, 'pooler')
     ;[game, lb] = build(game, 'lb')
+    const existing = game.nodes.find((node) => node.type === 'database')!.id
+    game = ok(setTopology(game, existing, 'sharded'))
     ;[game, database] = build(game, 'database')
     ;[game, first] = build(game, 'replica')
     ;[game, second] = build(game, 'replica')

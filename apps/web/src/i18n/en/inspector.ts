@@ -226,6 +226,7 @@ export const inspector = {
     indexes: 'Indexes',
     features: 'Features',
     engine: 'Search engine',
+    'multi-leader': 'Multi-leader replication',
     scatter: 'Shard fan-out',
     report: 'Quarter-end report',
     retention: 'Retention',

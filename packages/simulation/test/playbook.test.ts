@@ -137,7 +137,9 @@ test('a Playbook carries the data tier options, and a placed Cache keeps its str
     researched: [...source.researched, 'retention', 'caching', 'cache-strategies'],
     nodes: [
       ...source.nodes.map((node) =>
-        node.id === 'database' ? { ...node, keep: 'archive' as const } : node,
+        node.id === 'database'
+          ? { ...node, keep: 'archive' as const, topology: 'sharded' as const }
+          : node,
       ),
       {
         ...(source.nodes[1] as Game['nodes'][number]),

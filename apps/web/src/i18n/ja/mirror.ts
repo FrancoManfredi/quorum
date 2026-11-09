@@ -40,6 +40,7 @@ export const mirror: Messages['mirror'] = {
   processManager: 'プロセスマネージャー',
   engine: 'エンジン',
   databaseEngine: 'データベースエンジン',
+  databaseTopology: 'トポロジー',
   volume: 'ボリューム',
   shards: 'シャード',
   storageClass: 'ストレージクラス',

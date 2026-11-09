@@ -120,6 +120,8 @@ type OptionsTag =
   | 'CdnOptionsChosen'
   | 'ShardKeyChosen'
   | 'SyncChosen'
+  | 'PromoteReplica'
+  | 'DbTopologyChosen'
   | 'SearchOptionsChosen'
   | 'StoreVariantChosen'
   | 'DlqChosen'
@@ -669,6 +671,19 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
       model,
       sync ? 'Synchronous replica' : 'Asynchronous replica',
       Actions.setSync(model.board.game, nodeId, sync),
+      { undoable: true },
+    ),
+
+  PromoteReplica: ({ nodeId }) =>
+    act(model, 'Promote replica to primary', Actions.promoteReplica(model.board.game, nodeId), {
+      undoable: true,
+    }),
+
+  DbTopologyChosen: ({ nodeId, topology }) =>
+    act(
+      model,
+      `Topology: ${topology === 'single' ? 'Single primary' : topology === 'sharded' ? 'Sharded' : 'Multi-leader'}`,
+      Actions.setTopology(model.board.game, nodeId, topology),
       { undoable: true },
     ),
 

@@ -41,6 +41,7 @@ export const mirror = {
   processManager: 'Process manager',
   engine: 'Engine',
   databaseEngine: 'Database engine',
+  databaseTopology: 'Topology',
   volume: 'Volume',
   shards: 'Shards',
   storageClass: 'Storage class',

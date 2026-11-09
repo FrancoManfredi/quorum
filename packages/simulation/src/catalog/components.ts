@@ -475,6 +475,8 @@ export {
   RESTORE_MINUTES_PER_GB,
   RESTORE_MIN_MINUTES,
   MIGRATION_LOCK_PER_GB,
+  MULTI_WRITE_CPU,
+  MULTI_CONFLICT,
 } from '../components/database.ts'
 export { PSP_RATE, PSP_FIXED, SECOND_PROVIDER_FEE, PSP_CAPACITY } from '../components/psp.ts'
 export {

@@ -229,6 +229,7 @@ export const inspector: Messages['inspector'] = {
     indexes: 'Index',
     features: 'Fonctionnalités',
     engine: 'Moteur de recherche',
+    'multi-leader': 'Réplication multi-leader',
     scatter: 'Diffusion sur les shards',
     report: 'Rapport de fin de trimestre',
     retention: 'Rétention',

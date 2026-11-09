@@ -223,6 +223,7 @@ export const inspector: Messages['inspector'] = {
     indexes: 'インデックス',
     features: '機能',
     engine: '検索エンジン',
+    'multi-leader': 'マルチリーダーレプリケーション',
     scatter: 'シャードへのファンアウト',
     report: '四半期末レポート',
     retention: '保持期間',

@@ -4,6 +4,17 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   volume: '存储卷',
   iOPSAtTheBoxSBurn: (p0, p1) =>
     `${p0} IOPS，消耗机器 Burn 的 ${p1} 倍。未命中缓冲区的读取和每次写入都要等待它。`,
+  topology: '拓扑',
+  singlePrimary: '单主',
+  sharded: '分片',
+  multiLeader: '多主',
+  topologySharded:
+    '分片：每个数据库只保留它那部分行。尽量把事务放在同一分片内；跨分片事务可能在触及的任何分片上失败，报表则读取全部。',
+  topologyMulti: '多主：每个数据库都保留全部行并接受写入。认证会丢弃冲突写入，先提交者胜出。',
+  topologySingle: '单主：一个数据库负责写入，只读副本负责读取。第二个数据库需先选择拓扑。',
+  promote: '提升为主库',
+  promoteNote:
+    '副本成为主库，旧主库成为它的副本。异步副本仍有未发送的写入，提升会丢失它们；同步副本不会丢失。',
   shards: '分片',
   onePrimaryAReadReplicaIs: '单个主库：由只读副本分担读取。',
   shardKey: '分片键',

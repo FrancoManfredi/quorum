@@ -213,6 +213,7 @@ export const inspector: Messages['inspector'] = {
     indexes: '索引',
     features: '功能',
     engine: '搜索引擎',
+    'multi-leader': '多主复制',
     scatter: '分片扇出',
     report: '季末报表',
     retention: '保留期',

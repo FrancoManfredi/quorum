@@ -152,6 +152,21 @@ export type DbRetention = typeof DbRetention.Type
 export const ShardKey = Schema.Literals(['hash', 'range', 'tenant', 'region'])
 export type ShardKey = typeof ShardKey.Type
 
+/**
+ * How more than one Database holds the rows (07 "Topologies").
+ *
+ * - `single`: one primary, Read Replicas for reads. A second Database is not a follower.
+ * - `sharded`: each Database holds its partition of the rows. A report or search reads them all.
+ * - `multi`: each Database holds every row and takes writes. Certification drops conflicting writes.
+ */
+export const DbTopology = Schema.Literals(['single', 'sharded', 'multi'])
+export type DbTopology = typeof DbTopology.Type
+
+/** Write CPU a multi-leader replica set pays to replicate each write (07 "Multi-leader"). */
+export const MULTI_WRITE_CPU = 1.25
+/** Share of concurrent multi-leader writes that certify against each other (07 "Multi-leader"). */
+export const MULTI_CONFLICT = 0.02
+
 /** The saved properties of a database Node, with the defaults an old save decodes to. */
 export const databaseFields = {
   /** The key a Database shards on (07 "Partitioning"). */
@@ -164,6 +179,8 @@ export const databaseFields = {
   keep: DbRetention.pipe(Schema.withDecodingDefaultKey(Effect.succeed('keep' as const))),
   /** A Database answers reports from a stored view, at half the scan CPU (Materialized views). */
   materialized: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** How more than one Database holds the rows (07 "Topologies"). */
+  topology: DbTopology.pipe(Schema.withDecodingDefaultKey(Effect.succeed('single' as const))),
 } as const
 
 export const databaseDef = def({

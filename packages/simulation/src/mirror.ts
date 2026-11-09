@@ -55,6 +55,7 @@ export const MANAGED = [
   'pm',
   'engine',
   'dbEngine',
+  'topology',
   'iops',
   'shards',
   'storageClass',

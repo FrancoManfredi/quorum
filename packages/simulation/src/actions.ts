@@ -123,7 +123,7 @@ export { setVecIndex } from './components/vec.rule.ts'
 export { setDocOptions } from './components/doc.rule.ts'
 export { setStoreVariant, setStorageClass, setLifecycle } from './components/storage.rule.ts'
 export { setSearchOptions, setSearchRefresh } from './components/search.rule.ts'
-export { setSync } from './components/replica.rule.ts'
+export { setSync, promoteReplica } from './components/replica.rule.ts'
 export {
   setBackup,
   rollRestore,
@@ -133,6 +133,7 @@ export {
   setShards,
   setShardKey,
   setDbRetention,
+  setTopology,
   expandVolume,
 } from './components/database.rule.ts'
 export { setQuorum } from './components/wide.rule.ts'
@@ -301,6 +302,7 @@ export const blankNode = (
     acks: 'all',
     retain: 3_600,
     keyed: true,
+    topology: 'single',
   }
 }
 
@@ -319,6 +321,13 @@ export const place = (
   const banned = placeRefusal(game, type, region)
   if (banned) return notAllowed(banned)
   if (!openRegions(game).includes(region)) return notAllowed('Open that region first.')
+  if (type === 'database') {
+    const databases = game.nodes.filter((node) => node.type === 'database')
+    if (databases.length >= 1 && databases.every((node) => node.topology === 'single'))
+      return notAllowed(
+        'A second Database picks a topology first: Sharded splits the rows, Multi-leader copies every row to every Database. For reads only, place a Read Replica.',
+      )
+  }
   const node = blankNode(game, `n${game.nextId}`, type, x, y, region)
   return spend(game, priceOf(game, type), def.name, (paid) => ({
     ...paid,

@@ -84,7 +84,7 @@ import {
   type Tuning,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
-import type { DbEngine, Game, GameNode, Pricing, StorageClass } from './state.ts'
+import type { DbEngine, DbTopology, Game, GameNode, Pricing, StorageClass } from './state.ts'
 
 /** The researched list as a set, built once per list: the solver asks on every hop. */
 const researchedSets = new WeakMap<ReadonlyArray<ResearchId>, ReadonlySet<ResearchId>>()
@@ -521,11 +521,31 @@ export const storageBurnOf = (game: Game, node: GameNode): number =>
 /** Dollars per GB per second a Database's rows bill: gp3 against S3 Standard, about 3.5×. */
 export const DB_GB_PRICE = STORAGE_PRICE * DB_STORAGE_MULT
 
-/** GB of the Company's rows one Database holds: the figure split over the Databases it lives in. */
+/** The Databases in the Design, in order. */
+export const databasesOf = (game: Game): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => node.type === 'database')
+
+/** How more than one Database holds the rows (07 "Topologies"). One Database is `single`. */
+export const topologyOf = (game: Game): DbTopology => {
+  const databases = databasesOf(game)
+  if (databases.length <= 1) return 'single'
+  if (databases.some((node) => node.topology === 'multi')) return 'multi'
+  if (databases.some((node) => node.topology === 'sharded')) return 'sharded'
+  return 'single'
+}
+
+/**
+ * GB of the Company's rows one Database holds: a shard holds its partition, a multi-leader
+ * holds every row, and a single primary holds them all (07 "Topologies"). A legacy Design with
+ * several Databases still on `single` keeps the old split.
+ */
 export const dataOf = (game: Game, node: GameNode): number => {
   if (node.type !== 'database') return 0
-  const databases = game.nodes.filter((entry) => entry.type === 'database').length
-  return game.data / Math.max(1, databases)
+  const databases = databasesOf(game).length
+  if (databases <= 1) return game.data
+  return topologyOf(game) === 'sharded' || topologyOf(game) === 'single'
+    ? game.data / databases
+    : game.data
 }
 
 /**

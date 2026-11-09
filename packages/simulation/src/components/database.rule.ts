@@ -9,7 +9,7 @@ import {
   spend,
   withNode,
 } from '../action-kit.ts'
-import type { Backup, DbRetention, Game, IopsClass, ShardKey } from '../state.ts'
+import type { Backup, DbRetention, DbTopology, Game, IopsClass, ShardKey } from '../state.ts'
 import {
   MATERIALIZED_STALE,
   RESEARCH,
@@ -17,11 +17,13 @@ import {
   RESTORE_FAILURE,
   SHARD_COUNTS,
   SHARD_KEYS,
+  MULTI_CONFLICT,
+  DISTRIBUTED_TX_FAILURE,
 } from '../catalog.ts'
 import { nextRandom } from '../random.ts'
 import { answered, failSome, failed, through, type Outcome } from '../distribution.ts'
 import { databaseModel } from '../capacity.ts'
-import { has, replacePrice, shardingOf, syncStalled } from '../lookups.ts'
+import { has, replacePrice, shardingOf, databasesOf, topologyOf, syncStalled } from '../lookups.ts'
 import { type ComponentRule, slotOf, terminal } from '../rule-kit.ts'
 
 export const databaseRule: ComponentRule = {
@@ -81,8 +83,29 @@ export const databaseRule: ComponentRule = {
       failRefused: refused,
     }
     const own = through(answer.ownHop(kind), [[reply, 1]])
+    // A multi-leader certifies every write against its peers: when two leaders touch the same row
+    // at once, the first commit wins and the loser rolls back (07 "Multi-leader").
+    if (
+      node.type === 'database' &&
+      (kind === 'q-write' || kind === 'q-tx' || kind === 'blob-put') &&
+      topologyOf(answer.game) === 'multi'
+    ) {
+      const count = databasesOf(answer.game).length
+      if (count > 1) return failSome(own, Math.min(0.5, MULTI_CONFLICT * (count - 1)), 'refused')
+    }
     // A transaction across shards commits on each of them, and any one can fail (07 "Partitioning").
-    return kind === 'q-tx' ? failSome(own, shardingOf(node).failure, 'timeout') : own
+    // Physical sharding (07 "Topologies") widens the same count: N Databases are N shards.
+    if (kind === 'q-tx') {
+      const topology = topologyOf(answer.game)
+      const count = databasesOf(answer.game).length
+      const logical = shardingOf(node)
+      const shards = logical.shards * (topology === 'sharded' ? Math.max(1, count) : 1)
+      const key = SHARD_KEYS[node.shardKey]
+      const cross = shards > 1 ? key.cross * (1 - 1 / shards) : 0
+      const failure = cross * DISTRIBUTED_TX_FAILURE * shards
+      return failSome(own, failure, 'timeout')
+    }
+    return own
   },
   ...terminal,
   probe: () => ({ 'q-read': 1 }),
@@ -184,6 +207,22 @@ export const setDbRetention = (game: Game, id: string, keep: DbRetention): Actio
     if (keep !== 'keep' && !has(game, 'retention'))
       return no(Refusal.Locked({ what: 'Retention', research: RESEARCH.retention.name }))
     return ok(node.keep === keep ? game : patch(game, id, { keep }))
+  })
+
+/**
+ * Picks how more than one Database holds the rows (07 "Topologies"). One choice for every
+ * Database: `single` is one primary with Read Replicas, `sharded` splits the rows across them,
+ * `multi` copies every row to every Database and lets each take writes.
+ */
+export const setTopology = (game: Game, id: string, topology: DbTopology): Action =>
+  withNode(game, id, (node) => {
+    if (node.type !== 'database') return notAllowed('Only a Database picks a topology.')
+    return ok({
+      ...game,
+      nodes: game.nodes.map((entry) =>
+        entry.type === 'database' ? { ...entry, topology } : entry,
+      ),
+    })
   })
 
 /** Expands a full Database volume: writes come back. Costs what a replacement would. */

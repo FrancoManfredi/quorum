@@ -138,6 +138,7 @@ export const node = (
   acks: 'all',
   retain: 3_600,
   keyed: true,
+  topology: 'single',
   ...extra,
 })
 

@@ -9,6 +9,7 @@ import {
   rollRestore,
   setFramework,
   setRuntime,
+  setTopology,
   type Action,
 } from './actions.ts'
 import { decodeText, encodeText } from './codec.ts'
@@ -52,6 +53,7 @@ export const NODE_SETTINGS = [
   'ttl',
   'engine',
   'dbEngine',
+  'topology',
   'iops',
   'shards',
   'storageClass',
@@ -236,6 +238,15 @@ export const placePlaybook = (
   let next = game
   const ids = new Map<string, string>()
   const ghosts: Array<PlaybookNode> = []
+  // A Playbook that carries a topology picks it before its Databases land (07 "Topologies"),
+  // so a sharded or multi-leader paste is not refused by the second Database gate.
+  const wantedTopology = playbook.nodes.find((entry) => entry.type === 'database')?.settings
+    .topology
+  const firstDatabase = next.nodes.find((entry) => entry.type === 'database')
+  if (firstDatabase && (wantedTopology === 'sharded' || wantedTopology === 'multi')) {
+    const picked = setTopology(next, firstDatabase.id, wantedTopology)
+    if (Result.isSuccess(picked)) next = picked.success
+  }
   for (const entry of playbook.nodes) {
     if (ghostReason(next, entry, region)) {
       ghosts.push(entry)

@@ -2,8 +2,21 @@ export const inspectorDatabase = {
   volume: 'Volume',
   iOPSAtTheBoxSBurn: (p0: string | number | null, p1: string | number | null) =>
     `${p0} IOPS at ${p1}× the box's Burn. Reads that miss the buffer cache and every write wait on it.`,
-  shards: 'Shards',
+  topology: 'Topology',
+  singlePrimary: 'Single primary',
+  sharded: 'Sharded',
+  multiLeader: 'Multi-leader',
   onePrimaryAReadReplicaIs: 'One primary: a Read Replica is what takes the reads off it.',
+  topologySharded:
+    'Sharded: each Database holds its partition of the rows. Keep transactions inside one shard where you can; a cross-shard transaction fails on any shard it touches, and reports read them all.',
+  topologyMulti:
+    'Multi-leader: every Database holds every row and takes writes. Certification drops conflicting writes, first commit wins.',
+  topologySingle:
+    'Single primary: one Database takes writes, a Read Replica takes reads. A second Database needs a topology first.',
+  promote: 'Promote to primary',
+  promoteNote:
+    'The replica becomes the primary and the old primary its replica. An asynchronous replica still held writes in flight, so promotion loses them; a synchronous one loses none.',
+  shards: 'Shards',
   shardKey: 'Shard key',
   reports: 'Reports',
   scanTheTable: 'Scan the table',

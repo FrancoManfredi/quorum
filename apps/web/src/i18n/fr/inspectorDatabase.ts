@@ -4,6 +4,19 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   volume: 'Volume',
   iOPSAtTheBoxSBurn: (p0, p1) =>
     `${p0} IOPS pour ${p1}× le Burn de la machine. Les lectures qui ratent le cache et chaque écriture l’attendent.`,
+  topology: 'Topologie',
+  singlePrimary: 'Primaire unique',
+  sharded: 'Partitionné',
+  multiLeader: 'Multi-leader',
+  topologySharded:
+    'Partitionné : chaque base tient sa part des lignes. Gardez les transactions dans un seul shard quand vous le pouvez ; une transaction à cheval peut échouer sur n’importe quel shard, et les rapports lisent tous',
+  topologyMulti:
+    'Multi-leader : chaque base tient toutes les lignes et accepte des écritures. La certification écarte les écritures contradictoires, la première à valider gagne.',
+  topologySingle:
+    'Primaire unique : une base prend les écritures, une réplique de lecture prend les lectures. Une seconde base demande d’abord une topologie.',
+  promote: 'Promouvoir primaire',
+  promoteNote:
+    'La réplique devient le primaire et l’ancien primaire sa réplique. Une réplique asynchrone retenait encore des écritures en vol : la promotion les perd ; une synchrone ne perd rien.',
   shards: 'Shards',
   onePrimaryAReadReplicaIs:
     'Un seul primaire : c’est la réplique de lecture qui en retire les lectures.',

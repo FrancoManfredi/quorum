@@ -40,6 +40,7 @@ export const mirror: Messages['mirror'] = {
   processManager: '进程管理器',
   engine: '引擎',
   databaseEngine: '数据库引擎',
+  databaseTopology: '拓扑',
   volume: '存储卷',
   shards: '分片',
   storageClass: '存储类别',

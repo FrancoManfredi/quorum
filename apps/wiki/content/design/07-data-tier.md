@@ -276,6 +276,51 @@ waits for it.
 A misconfigured route is a common bug: sending `q-write` to a replica fails every write. The card
 shows a red "Read-only" row.
 
+## Topologies
+
+A second Database is not a follower. The Design picks one topology, and every Database follows it.
+
+| Topology       | Rows per Database  | Writes go to | What costs                                                                  |
+| -------------- | ------------------ | ------------ | --------------------------------------------------------------------------- |
+| Single primary | All of them, once  | The primary  | Reads that miss the primary stall writes; take them off with a Read Replica |
+| Sharded        | Its partition      | Each shard   | Cross-shard transactions and scatter-gather reports                         |
+| Multi-leader   | All of them, twice | Any leader   | Write replication and certification conflicts                               |
+
+Placing a second Database while the Design is still on Single primary is refused: pick Sharded or
+Multi-leader first, or place a Read Replica for single-leader reads. The card sets one topology for
+every Database.
+
+### Single primary
+
+One Database takes writes. Reads split between it and its Read Replicas. This is the starting point,
+and the right answer until the primary's write CPU, not its reads, is the limit. A Read Replica is
+what answers reads without touching the primary.
+
+### Sharded
+
+Each Database holds one partition of the rows, by the shard key. Writes divide across them, so a
+Design that is out of write CPU buys capacity with Boards, not with a bigger box. A read asks the one
+Database that holds its key. A transaction that spans two Databases touches two of them, so it costs
+up to 3× and can fail as a timeout on either. A report or a search touches every Database, and each
+one past the first adds 15% CPU and 2 ms. Keep transactions inside one shard where you can; a
+cross-shard transaction is the Vitess 2PC, paid only when unavoidable.
+
+### Multi-leader
+
+Every Database holds every row, and every one takes writes. Local writes are fast, which is why this
+topology exists, and the copies must agree. Certification drops conflicting writes: when two leaders
+touch the same row at once, the first commit wins and the loser rolls back as refused. The share
+scales with the leaders: 2% per extra leader on writes, checkouts, and file puts. Every write also
+replicates to the other leaders before it answers, so it costs 1.25× the CPU. Avoid conflicts by
+routing related writes to one leader; merging after the fact is the expensive alternative.
+
+### Failover
+
+Promote a Read Replica to the primary when the primary is gone. The replica becomes the Database and
+the old primary becomes its replica, fenced so writes never split between two primaries. A
+synchronous replica has no writes in flight, so nothing is lost. An asynchronous one still held
+writes the primary had not shipped, so promotion loses 2% of the rows. The new primary starts cold.
+
 ## Partitioning (sharding)
 
 Research "Sharding" splits one Database into N shards by a key.
