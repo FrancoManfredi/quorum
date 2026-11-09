@@ -5,6 +5,7 @@ import { isAllowedOrigin } from '@quorum/agent/origin'
 import { isWriteKey, roomIdOf } from '@quorum/agent/room-id'
 import { Upload } from '@quorum/agent/snapshot'
 import type { AgentRooms } from '../contexts/agent/room.ts'
+import { WIKI_PAGES } from './wiki-pages.ts'
 
 /* ==========================================================================
    The two public edges behind the website Worker: the keyless MCP endpoint,
@@ -94,6 +95,7 @@ const mcp = async (
     body as Parameters<typeof handleMcp>[0],
     (room, name, input) => rooms.getByName(room).read(name, input),
     (room) => rooms.getByName(room).status(),
+    WIKI_PAGES,
   )
   return response === undefined
     ? new Response(null, { status: 202, headers: cors(origin) })

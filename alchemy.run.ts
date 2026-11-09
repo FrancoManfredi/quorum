@@ -4,6 +4,7 @@ import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import { API_PREFIX, INGEST_PREFIX, MCP_PATH } from '@quorum/rpc'
+import { wikiSources } from './packages/agent/wiki-sources.ts'
 import { simVersion } from './packages/simulation/sim-version.ts'
 import type { AgentRoomInstance } from './apps/backend/src/platform/agent-room.ts'
 import type { RoomInstance } from './apps/backend/src/platform/room-object.ts'
@@ -46,6 +47,8 @@ const apiBuild = {
       plugins: [
         // Fills in the Simulation's version, the git hash of `packages/simulation/src`.
         simVersion(),
+        // Bundles the wiki pages an agent can read as MCP resources.
+        wikiSources(),
         ...(sentryAuthToken
           ? [
               sentryRollupPlugin({

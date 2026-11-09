@@ -65,12 +65,17 @@ The agent has eight tools, and all of them only read:
 | --------------- | --------------------------------------------------------------------------------------------------------------- |
 | `get_status`    | When the snapshot last synced, the mode, and how much it holds. Call it first.                                  |
 | `get_company`   | Cash, users, Apdex, the Era, latency percentiles, revenue, Burn, the bottleneck, and your Research. Start here. |
-| `get_design`    | Every Node and Link, with its live load, latency, and drops, plus the health of each request kind.              |
+| `get_design`    | Every Node with its inbound and outbound Links and their rates, live load, drops, and each kind's health.       |
 | `get_incidents` | The running incident, the alert rules and alarms, and recent postmortems.                                       |
 | `get_inbox`     | Your mail, with the choices each message offers. The agent can read the choices, not take them.                 |
 | `get_history`   | Recent samples of users, revenue, Burn, latency, p99, Apdex, and errors, to see trends.                         |
 | `explain_node`  | Why one Node is busy: its Load change, the traffic behind it, and the research that reveals it.                 |
 | `get_game`      | The whole saved Game as JSON. It is large, so the agent should prefer the others.                               |
+
+The server also offers the wiki as resources. `quorum://wiki/index` lists them: how requests flow,
+latency, errors and retries, incidents, money, and a page for each Component. An agent that reads a
+page can explain your Design with the game's own rules instead of guessing. The design document, the
+patterns, and the reference pages stay on the website.
 
 Every tool takes the room id as its `room` argument. The agent reads the last upload, so pause the
 game (**Space**) if you want its answer to match what you see. When you close the tab, the last

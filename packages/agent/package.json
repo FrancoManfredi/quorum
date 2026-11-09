@@ -13,6 +13,7 @@
     "./node-metrics": "./src/node-metrics.ts",
     "./room-id": "./src/room-id.ts",
     "./origin": "./src/origin.ts",
+    "./wiki": "./src/wiki.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

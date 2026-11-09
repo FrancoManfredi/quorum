@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 import { handleMcp } from './mcp.ts'
+import { wikiPages } from './wiki.ts'
 
 const roomId = 'abcdefghijklmnopqrstuv'
 
@@ -118,5 +119,80 @@ describe('the MCP handler', () => {
     )) as { result: { isError: boolean; content: Array<{ text: string }> } }
     expect(response.result.isError).toBe(true)
     expect(response.result.content[0]!.text).toBe('No snapshot yet.')
+  })
+
+  describe('wiki resources', () => {
+    const pages = wikiPages({
+      'explanation/requests':
+        '---\ntitle: How requests flow\nsummary: Routing.\n---\n\nSee [queues](/explanation/queues) and [the Eras](/eras).\n\n::Mix{era="3"}\n\n:::Note{tone="real"}\nReal systems queue.\n:::\n',
+      'explanation/queues': '---\ntitle: Queues\nsummary: Waiting.\n---\n\nBody.\n',
+      'components/cache':
+        'A Cache answers repeated reads. See [Database](/components/database#how-it-works).\n',
+    })
+    const ask = (method: string, params?: unknown) =>
+      handleMcp(
+        request(method, params),
+        async () => '{}',
+        async () => null,
+        pages,
+      ) as Promise<{
+        result: {
+          capabilities: Record<string, unknown>
+          resources: Array<{ uri: string; title: string; description: string }>
+          contents: Array<{ text: string; mimeType: string }>
+        }
+        error?: { code: number }
+      }>
+
+    test('are advertised only when the server has pages', async () => {
+      const init = (await handleMcp(
+        request('initialize', {}),
+        async () => '{}',
+        async () => null,
+      )) as { result: { capabilities: Record<string, unknown> } }
+      expect(init.result.capabilities).not.toHaveProperty('resources')
+      expect((await ask('initialize', {})).result.capabilities).toHaveProperty('resources')
+    })
+
+    test('list the index first, with titles and no page text', async () => {
+      const { result } = await ask('resources/list')
+      expect(result.resources.map((entry: { uri: string }) => entry.uri)).toEqual([
+        'quorum://wiki/index',
+        'quorum://wiki/components/cache',
+        'quorum://wiki/explanation/queues',
+        'quorum://wiki/explanation/requests',
+      ])
+      expect(result.resources[3]).toMatchObject({
+        title: 'How requests flow',
+        description: 'Routing.',
+      })
+      expect(result.resources[1]!.title).toBe('Cache')
+      expect(JSON.stringify(result)).not.toContain('Real systems')
+    })
+
+    test('read a page as plain Markdown with links an agent can follow', async () => {
+      const { result } = await ask('resources/read', { uri: 'quorum://wiki/explanation/requests' })
+      const text = result.contents[0]!.text
+      expect(result.contents[0]).toMatchObject({ mimeType: 'text/markdown' })
+      // A page the server has links to its resource; any other goes to the website.
+      expect(text).toContain('[queues](quorum://wiki/explanation/queues)')
+      expect(text).toContain('[the Eras](https://wiki.playquorum.dev/eras)')
+      // A live view is dropped, a note keeps its words, and no frontmatter or directive is left.
+      expect(text).not.toContain('::')
+      expect(text).not.toContain('title:')
+      expect(text).toContain('**In real systems:**\nReal systems queue.')
+      const cache = await ask('resources/read', { uri: 'quorum://wiki/components/cache' })
+      expect(cache.result.contents[0]!.text).toContain(
+        '(https://wiki.playquorum.dev/components/database#how-it-works)',
+      )
+    })
+
+    test('the index lists every page, and an unknown page is a protocol error', async () => {
+      const { result } = await ask('resources/read', { uri: 'quorum://wiki/index' })
+      expect(result.contents[0]!.text).toContain(
+        '[Queues](quorum://wiki/explanation/queues): Waiting.',
+      )
+      expect((await ask('resources/read', { uri: 'quorum://wiki/nope' })).error?.code).toBe(-32002)
+    })
   })
 })

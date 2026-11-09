@@ -2,6 +2,7 @@ import { nodeLabel } from '@quorum/simulation/labels'
 import type { NodeLedger } from '@quorum/simulation/ledger'
 import { has } from '@quorum/simulation/lookups'
 import { solveFlow } from '@quorum/simulation/solve'
+import type { GameLink } from '@quorum/simulation/state'
 import { hasTraffic, hourBefore, loadChangeOf, sampleNode } from './node-metrics.ts'
 import type { AgentSnapshot } from './snapshot.ts'
 import type { ToolName } from './tools.ts'
@@ -59,10 +60,27 @@ const runs: Record<ToolName, (snapshot: AgentSnapshot, input: Input) => unknown>
   get_design: (snapshot) => {
     const game = snapshot.game!
     const ledger = ledgerOf(snapshot)
+    const labels = new Map(game.nodes.map((node) => [node.id, nodeLabel(game, node)]))
+    const carried = (link: GameLink) => {
+      const own = ledger.links.find((l) => l.from === link.from && l.to === link.to)
+      return {
+        rate: round(own?.rate ?? 0),
+        traffic: own?.traffic ?? {},
+        failing: own?.failing ?? false,
+      }
+    }
     return {
       nodes: game.nodes.map((node) => ({
         ...node,
-        label: nodeLabel(game, node),
+        label: labels.get(node.id),
+        // The Links that carry traffic into and out of this Node, so a reader sees what feeds it
+        // and what it calls without matching ids against `links`.
+        inbound: game.links
+          .filter((link) => link.to === node.id)
+          .map((link) => ({ from: link.from, label: labels.get(link.from), ...carried(link) })),
+        outbound: game.links
+          .filter((link) => link.from === node.id)
+          .map((link) => ({ to: link.to, label: labels.get(link.to), ...carried(link) })),
         ledger: ledger.nodes[node.id] ? withoutDiagnosis(ledger.nodes[node.id]!) : null,
       })),
       links: game.links.map((link) => ({

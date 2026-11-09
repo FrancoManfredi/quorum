@@ -16,19 +16,19 @@ export const TOOLS = [
   {
     name: 'get_company',
     description:
-      'Headline state of the Room: time, cash, users, Apdex, Era, Venture, the Bottleneck, and what the player has on screen. Start here.',
+      'Headline state of the Room: time, cash, users, Apdex, Era, Venture, the Bottleneck, and what the player has on screen. Start here. What the figures mean: quorum://wiki/explanation/apdex-and-revenue and quorum://wiki/explanation/money.',
     inputSchema: object({ room }),
   },
   {
     name: 'get_design',
     description:
-      'The Design: every Node and Link as placed, plus the live Ledger figures for each (utilization, status, latency, drops) and per-request-kind health.',
+      'The Design: every Node as placed, with the Links that carry traffic into it (`inbound`) and out of it (`outbound`) and their rates, plus the live Ledger figures (utilization, status, latency, drops), every Link, and per-request-kind health. How traffic moves through it: quorum://wiki/explanation/requests.',
     inputSchema: object({ room }),
   },
   {
     name: 'get_incidents',
     description:
-      'The running incident, the alert rules and alarms, and recent postmortems with their cost.',
+      'The running incident, the alert rules and alarms, and recent postmortems with their cost. What incidents are: quorum://wiki/explanation/incidents.',
     inputSchema: object({
       room,
       limit: { type: 'number', description: 'Most recent postmortems to return. Default 5.' },
@@ -56,7 +56,7 @@ export const TOOLS = [
   {
     name: 'explain_node',
     description:
-      "Why one Node is busy, as far as the player's research shows: its Load change since an hour earlier, the Users' Request kinds and retries behind its traffic, each kind's Work share and Cost receipt, and what-if rows. Names causes, not fixes. Defaults to the selected Node, then the Bottleneck.",
+      "Why one Node is busy, as far as the player's research shows: its Load change since an hour earlier, the Users' Request kinds and retries behind its traffic, each kind's Work share and Cost receipt, and what-if rows. Names causes, not fixes. Defaults to the selected Node, then the Bottleneck. Background: quorum://wiki/explanation/queues and quorum://wiki/explanation/errors-and-retries. Each Component has its own page under quorum://wiki/components/.",
     inputSchema: object({
       room,
       nodeId: {

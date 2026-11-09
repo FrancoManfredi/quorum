@@ -47,6 +47,11 @@ Considered options:
   last upload.
 - Turning Agent access off clears every Agent room this browser made. A lost write key leaves the
   object until it expires.
+- The same endpoint serves the wiki's explanation, Component, guide, and tutorial pages as MCP
+  resources, so an agent can read the rules that the figures follow. The API Worker bundles the
+  Markdown at build time (`packages/agent/wiki-sources.ts`), and `packages/agent/src/wiki.ts` turns
+  each page into plain Markdown. The design document, Patterns, and the catalog pages stay on the
+  website.
 - The local relay and its npm package are gone. `packages/agent` holds the tool list, the snapshot
   schema, the view, and the MCP handler, and both apps import it.
 - What would change it: a WebSocket back to the tab if players want live incident answers, or

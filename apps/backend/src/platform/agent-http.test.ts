@@ -127,6 +127,36 @@ describe('the public agent edge', () => {
     })
   })
 
+  test('serves the bundled wiki as resources', async () => {
+    type Result = {
+      resources: Array<{ uri: string }>
+      contents: Array<{ text: string }>
+    }
+    const ask = async (method: string, params?: unknown) =>
+      (
+        (await (
+          await agentHttp(mcp({ jsonrpc: '2.0', id: 1, method, params }), fakeRooms([]))
+        ).json()) as { result: Result }
+      ).result
+
+    const { resources } = await ask('resources/list')
+    const uris = resources.map((entry) => entry.uri)
+    expect(uris).toContain('quorum://wiki/explanation/requests')
+    expect(uris).toContain('quorum://wiki/components/database')
+
+    const page = (await ask('resources/read', { uri: 'quorum://wiki/explanation/requests' }))
+      .contents[0]!.text
+    expect(page).toContain('## Users send request kinds')
+    expect(page).not.toMatch(/^---$|^:{2,}[A-Za-z]/m)
+
+    // Every link between pages lands on a resource the server has.
+    for (const uri of uris) {
+      const text = (await ask('resources/read', { uri })).contents[0]!.text
+      for (const [, target] of text.matchAll(/\]\((quorum:\/\/wiki\/[^)#]*)/g))
+        expect(uris, `${uri} links to ${target}`).toContain(target)
+    }
+  })
+
   test('a notification is accepted with no body, and GET is refused', async () => {
     const response = await agentHttp(
       mcp({ jsonrpc: '2.0', method: 'notifications/initialized' }),

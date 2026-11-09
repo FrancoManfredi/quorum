@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { newGame } from '@quorum/simulation/company'
+import { newGame, preseedGame } from '@quorum/simulation/company'
 import { Sample } from '@quorum/simulation/state'
 import { describe, expect, test } from 'vitest'
 import type { AgentHead, AgentSnapshot, Upload } from './snapshot.ts'
@@ -80,6 +80,38 @@ describe('an upload becomes a tool answer', () => {
 
     const whole = JSON.parse(readTool(stored, 'get_game')) as { history?: unknown }
     expect(whole.history).toBeUndefined()
+  })
+
+  test('get_design lists the Links into and out of each Node with the rate they carry', () => {
+    const busy = { ...preseedGame(), users: 4_000 }
+    const store = applyUpload(
+      emptyStore(),
+      upload(snapshot({ game: busy, samples: [] })),
+      100,
+    ).store
+    type Side = { label: string; rate: number }
+    const design = JSON.parse(readTool(snapshotOfStore(store), 'get_design')) as {
+      nodes: Array<{
+        id: string
+        inbound: Array<Side & { from: string }>
+        outbound: Array<Side & { to: string }>
+      }>
+    }
+    const node = (id: string) => design.nodes.find((entry) => entry.id === id)!
+
+    expect(node('users').inbound).toEqual([])
+    expect(node('users').outbound.map((link) => link.to)).toEqual(['server'])
+    expect(node('server').inbound.map((link) => link.from)).toEqual(['users'])
+    expect(node('server').outbound.map((link) => [link.to, link.label])).toEqual([
+      ['database', 'Database'],
+      ['analytics', 'Analytics'],
+    ])
+    expect(node('database').outbound).toEqual([])
+    // The rate on the Database's one inbound Link is what the App Server sends it.
+    expect(node('database').inbound[0]!.rate).toBeGreaterThan(0)
+    expect(node('database').inbound[0]!.rate).toBe(
+      node('server').outbound.find((link) => link.to === 'database')!.rate,
+    )
   })
 
   test('a Challenge snapshot still refuses', () => {
