@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "changelog": "node scripts/changelog.ts",
+    "changelog:render": "node scripts/changelog.ts render",
+    "changelog:write": "node scripts/changelog.ts write",
     "typecheck": "tsrs --noEmit -p tsconfig.json && effect-tsrs diagnostics --strict --project tsconfig.json",
     "test": "vitest run"
   },

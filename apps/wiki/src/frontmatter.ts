@@ -30,5 +30,7 @@ export const Frontmatter = Schema.Struct({
   aliases: Schema.optionalKey(Schema.String),
   /** The design page this page rewrites, for readers who want the source. */
   gdd: Schema.optionalKey(Schema.String),
+  /** List only the top-level headings in the contents rail, for a page with many subheadings. */
+  toc: Schema.optionalKey(Schema.Literal('top')),
 })
 export type Frontmatter = typeof Frontmatter.Type

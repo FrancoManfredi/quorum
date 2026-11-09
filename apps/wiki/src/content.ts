@@ -56,6 +56,7 @@ export const authoredPages: ReadonlyArray<Page> = entries.flatMap((entry) => {
   const meta = entry.frontmatter
   if (!meta) return []
   const document = entry.document
+  const headings = headingsOf(document)
   return [
     {
       path: entry.path,
@@ -72,7 +73,7 @@ export const authoredPages: ReadonlyArray<Page> = entries.flatMap((entry) => {
         .filter(Boolean),
       source: entry.source,
       gdd: meta.gdd ?? null,
-      headings: headingsOf(document),
+      headings: meta.toc === 'top' ? headings.filter((heading) => heading.level === 2) : headings,
       wide: false,
       aside: null,
       body: (model, h) => prose(document, model, h),

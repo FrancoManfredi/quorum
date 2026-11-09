@@ -8,4 +8,6 @@ coverage/
 .env.*
 !.env.example
 .amp/portals/
+# The changelog writer's scratch files: the day's commits and a rejected draft.
+apps/wiki/.changelog/
 .DS_Store

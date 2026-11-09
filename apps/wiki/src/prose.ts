@@ -99,13 +99,22 @@ export const prose = (
   model: Model,
   h: HtmlBuilder<Message>,
 ): Html => {
+  // A page can repeat a heading, such as the changelog's "Added" on every day. Suffix the later
+  // copies so ids stay unique and each anchor link reaches its own section.
+  const seen = new Map<string, number>()
+  const idOf = (text: string): string => {
+    const base = slug(text)
+    const count = (seen.get(base) ?? 0) + 1
+    seen.set(base, count)
+    return count === 1 ? base : `${base}-${count}`
+  }
   return h.div(
     [h.Class('prose')],
     Markdown.viewBlocks(document, {
       islands: islandViews(model, h),
       views: {
         Heading: (heading, content) => {
-          const id = slug(plain(heading.content))
+          const id = idOf(plain(heading.content))
           const anchor = h.a(
             [h.Href(`#${id}`), h.AriaLabel('Link to this section'), h.Class('anchor')],
             ['#'],

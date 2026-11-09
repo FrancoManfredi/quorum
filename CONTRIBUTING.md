@@ -52,6 +52,24 @@ pnpm build
 
 Pre-commit runs `pnpm check`. Pre-push runs the typecheck and the tests.
 
+## Changelog
+
+`apps/wiki/changelog/` holds one Markdown file per UTC day. `changelog:write` reads that day's
+commits, writes the entry, and renders both changelog pages:
+
+```sh
+pnpm --filter @quorum/wiki changelog:write -- 2026-11-08
+pnpm --filter @quorum/wiki changelog:render
+```
+
+The `changelog` workflow runs the first command every day at 00:17 UTC and opens a pull request. Edit
+the day's file in that pull request if the wording is off. An existing entry is never rewritten;
+delete the file to write it again, or pass `--force`.
+
+The writer calls Workers AI with `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Set
+`CHANGELOG_API_URL`, `CHANGELOG_API_KEY`, and `CHANGELOG_MODEL` to use another OpenAI-compatible
+endpoint. [ADR 0021](docs/adr/0021-the-changelog-is-written-from-the-commits.md) has the reasoning.
+
 ## Deploy
 
 CI deploys every push to `main` to the `prod` stage at <https://playquorum.dev>, after the

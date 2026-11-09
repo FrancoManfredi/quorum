@@ -19,7 +19,15 @@ import { PAGES, SECTION_ORDER, navOf, pageAt } from './pages.ts'
 import { componentsHitBy, sandboxesFiring } from './reference/graph.ts'
 import { buildIndex, indexJson, loadIndex, search } from './search.ts'
 import * as Search from './submodels/search.ts'
-import { PER_DAY, dayOf, renderAll, renderRecent } from '../scripts/changelog.ts'
+import {
+  MAX_WORDS,
+  RECENT_ENTRIES,
+  dayOf,
+  problemsIn,
+  renderAll,
+  renderRecent,
+  tidy,
+} from '../scripts/changelog.ts'
 
 /* The wiki's contract: every page has one clean path, renders at build time, and can be found. */
 
@@ -110,31 +118,64 @@ test('the arrow keys wrap around the search results', () => {
   expect([at(2, 1), at(0, -1), at(0, 1)]).toEqual([0, 2, 1])
 })
 
-test('the changelog groups commits by UTC day, cuts the short page, and keeps every commit on the full one', () => {
+test('the changelog shows the latest entries on the short page and every entry on the full one', () => {
   expect(dayOf('2026-11-08T23:59:00+00:00')).toBe('2026-11-08')
   expect(dayOf('2026-11-09T03:00:00+07:00')).toBe('2026-11-08')
-  const commit = (n: number, date: string, subject: string) => ({
-    hash: String(n).repeat(40),
-    date,
-    subject,
-  })
-  const busy = Array.from({ length: PER_DAY + 2 }, (_, n) =>
-    commit(n, '2026-11-08T10:00:00Z', `Busy day change ${n}`),
-  )
-  const commits = [
-    commit(9, '2026-11-09T10:00:00Z', 'Add the Monday thing'),
-    commit(8, '2026-11-08T11:00:00Z', 'Merge branch x'),
-    ...busy,
-  ]
-  const recent = renderRecent(commits)
+  const entries = Array.from({ length: RECENT_ENTRIES + 2 }, (_, n) => ({
+    day: `2026-11-${String(n + 1).padStart(2, '0')}`,
+    body: `Change ${n + 1}.`,
+  })).sort((a, b) => b.day.localeCompare(a.day))
+  const recent = renderRecent(entries)
   expect(recent.indexOf('Monday, 9 November 2026')).toBeLessThan(
     recent.indexOf('Sunday, 8 November 2026'),
   )
-  expect(recent).not.toContain('Merge branch')
-  expect(recent).toContain('Busy day change 0')
-  expect(recent).not.toContain(`Busy day change ${PER_DAY}`)
-  expect(recent).toContain('(/about/changelog/all#sunday-8-november-2026)')
-  expect(renderAll(commits)).toContain(`Busy day change ${PER_DAY + 1}`)
+  expect(recent).toContain('Change 9.')
+  expect(recent).not.toContain('Change 1.')
+  expect(renderAll(entries)).toContain('Change 1.')
+})
+
+test('a changelog entry keeps to the Keep a Changelog sections and the day’s commits', () => {
+  const commit = (hash: string): { hash: string; date: string; subject: string; body: string } => ({
+    hash,
+    date: '2026-11-08T10:00:00Z',
+    subject: 'A change',
+    body: '',
+  })
+  const day = [commit('a'.repeat(40))]
+  const linked = `- A change. ([aaaaaaa](https://github.com/elianiva/quorum/commit/${'a'.repeat(40)}))`
+  const entry = `### Added\n\n${linked}\n`
+  const bare = `### Added\n\n- A change. [${'a'.repeat(40)}]`
+  expect(problemsIn(entry, day)).toEqual([])
+  expect(tidy(bare, day)).toBe(
+    `### Added\n\n- A change. [aaaaaaa](https://github.com/elianiva/quorum/commit/${'a'.repeat(40)})`,
+  )
+  expect(tidy('full\u2011height', day)).toBe('full-height')
+  expect(tidy('a **bold** word', day)).toBe('a bold word')
+  expect(tidy(`### Added\n\n- A change. (${'a'.repeat(40)})`, day)).toBe(
+    `### Added\n\n- A change. ([aaaaaaa](https://github.com/elianiva/quorum/commit/${'a'.repeat(40)}))`,
+  )
+  expect(problemsIn('### Added\n\n- A change.', day)).toContain('the entry links no commit')
+  expect(problemsIn(`### Added\n\n${linked}\n- No link here.`, day)).toContainEqual(
+    expect.stringContaining('a bullet links no commit'),
+  )
+  expect(problemsIn('### Added\n\n- The player can move. (link)', day)).toContain(
+    'the entry talks about "the player"; address the reader as "you"',
+  )
+  expect(problemsIn('## A change', day)).toContain(
+    'the entry uses a heading other than a ### Keep a Changelog section',
+  )
+  expect(problemsIn('### Misc\n\n- A change.', day)).toContain(
+    '"Misc" is not one of Added, Changed, Deprecated, Removed, Fixed, or Security',
+  )
+  expect(problemsIn('### Added\n\nA change.', day)).toContain(
+    'the Added section is not a bullet list',
+  )
+  expect(problemsIn(entry.replace('a'.repeat(40), 'b'.repeat(40)), day)).toContain(
+    "the entry links bbbbbbb, which is not one of the day's commits",
+  )
+  expect(problemsIn(`### Added\n\n${'word '.repeat(MAX_WORDS + 1)}`, day)).toContainEqual(
+    expect.stringContaining(`the limit is ${MAX_WORDS}`),
+  )
 })
 
 const urlOf = (pathname: string, hash = ''): Url => ({

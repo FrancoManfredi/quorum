@@ -2,17 +2,34 @@ name: Changelog
 
 on:
   schedule:
-    # Monday 00:30 UTC, after the week the page lists has closed.
-    - cron: '30 0 * * 1'
+    # 00:17 UTC, after the UTC day has closed. That is 07:17 in Jakarta.
+    - cron: '17 0 * * *'
   workflow_dispatch:
+    inputs:
+      day:
+        description: 'UTC day to write, as YYYY-MM-DD. Default: yesterday.'
+        required: false
 
 permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: changelog
+  cancel-in-progress: false
+
 jobs:
   changelog:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      # The deploy token already reaches Workers AI, so the changelog needs no new secret.
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # Any OpenAI-compatible endpoint works: set these to leave Cloudflare.
+      CHANGELOG_API_URL: ${{ vars.CHANGELOG_API_URL }}
+      CHANGELOG_API_KEY: ${{ secrets.CHANGELOG_API_KEY }}
+      CHANGELOG_MODEL: ${{ vars.CHANGELOG_MODEL }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -20,17 +37,63 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 26
-      - run: node apps/wiki/scripts/changelog.ts
-      - name: Open a pull request when the page changed
+
+      # The writer reads git and calls one HTTP endpoint, so it needs no install.
+      - name: Write the day's entry
+        id: entry
+        run: |
+          day="${{ inputs.day }}"
+          if [ -z "$day" ]; then day="$(date -u -d yesterday +%F)"; fi
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+          node apps/wiki/scripts/changelog.ts write "$day"
+          node apps/wiki/scripts/changelog.ts render
+
+      - name: Check what changed
+        id: changed
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing to publish."
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "any=true" >> "$GITHUB_OUTPUT"
+          git status --porcelain
+          status=0
+          while read -r _ path; do
+            case "$path" in
+              apps/wiki/changelog/*.md|apps/wiki/content/about/changelog.md|apps/wiki/content/about/changelog/all.md) ;;
+              *) echo "::error title=Unexpected file::$path is not the changelog."; status=1 ;;
+            esac
+          done < <(git status --porcelain)
+          exit "$status"
+
+      - name: Open a pull request
+        if: steps.changed.outputs.any == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          DAY: ${{ steps.entry.outputs.day }}
         run: |
-          if git diff --quiet -- apps/wiki/content/about; then exit 0; fi
-          branch="changelog/$(date -u +%F)"
+          branch="changelog/$DAY"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add apps/wiki/content/about
-          git commit -m "Update the wiki changelog"
-          git push origin "$branch"
-          gh pr create --title "Update the wiki changelog" --body "Regenerated from the commit history by \`apps/wiki/scripts/changelog.ts\`." --base main --head "$branch"
+          git add apps/wiki/changelog apps/wiki/content/about/changelog.md apps/wiki/content/about/changelog/all.md
+          git commit -m "Add the changelog entry for $DAY"
+          git push --force origin "$branch"
+
+          if gh pr list --head "$branch" --json number --jq '.[0].number' | grep -q .; then
+            echo "Updated the existing pull request for $branch."
+            exit 0
+          fi
+
+          cat > /tmp/body.md <<EOF
+          The changelog entry for $DAY, written from that day's commits. Edit \`apps/wiki/changelog/$DAY.md\` before merging if the wording is off.
+
+          Commits: https://github.com/${GITHUB_REPOSITORY}/compare/$DAY...$(date -u -d "$DAY + 1 day" +%F)
+          EOF
+
+          if ! gh pr create --base main --head "$branch" \
+            --title "Add the changelog entry for $DAY" --body-file /tmp/body.md; then
+            echo "::error title=Cannot open a pull request::Turn on 'Allow GitHub Actions to create and approve pull requests' in Settings > Actions > General, or push a token that can open pull requests."
+            exit 1
+          fi
