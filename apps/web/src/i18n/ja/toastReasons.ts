@@ -190,7 +190,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   selectTwoOrMoreNodesToBox: '枠に入れるには2つ以上のノードを選んでください。',
   shipTheFeatureBeforeItHasA: 'ロールアウトを設定する前に、その機能を出荷してください。',
   singlePrimaryHoldsOneDatabase:
-    '単一プライマリはデータベースを1つだけ持ちます。他を売却するか、シャードかマルチリーダーを選んでください。',
+    '単一プライマリはデータベースを1つだけ持ちます。データグループを分けるか、シャードかマルチリーダーを選んでください。',
   spotPricingNeedsResearchSpotInstances:
     'スポット料金にはリサーチが必要です: スポットインスタンス。',
   takeABackupBeforeDrillingARestore: 'リストア訓練の前にバックアップを取ってください。',

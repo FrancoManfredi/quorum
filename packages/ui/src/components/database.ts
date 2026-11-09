@@ -1,6 +1,6 @@
 import { Database } from 'lucide'
 import { DB_ENGINES, DB_RETENTIONS, STORAGE_IOPS } from '@quorum/simulation/catalog'
-import { leaderOf } from '@quorum/simulation/lookups'
+import { dataGroupOf, leaderOfGroup, topologyOfGroup } from '@quorum/simulation/lookups'
 import { type ComponentView } from './shared.ts'
 
 export const database: ComponentView = {
@@ -11,27 +11,21 @@ export const database: ComponentView = {
     const engine = DB_ENGINES[node.dbEngine]
     // Sharding (07 "Partitioning"): writes divide across the shards, and each is a copy.
     const shards = Math.max(1, Math.floor(node.shards))
-    const topology =
-      node.topology === 'sharded'
-        ? 'Sharded'
-        : node.topology === 'multi'
-          ? 'Multi-leader'
-          : 'Single'
-    // Under Single primary the leader is the one Database that takes the writes (07 "Topologies").
-    const leader = leaderOf(game)
+    // A Data Group holds its rows one way (07 "Data Groups"), and only a Single primary has one
+    // Database that takes every write.
+    const topology = topologyOfGroup(game, dataGroupOf(game, node))
+    const label =
+      topology === 'sharded' ? 'Sharded' : topology === 'multi' ? 'Multi-leader' : 'Single'
+    const leader = leaderOfGroup(game, dataGroupOf(game, node))
+    const primary = leader?.id === node.id
     return [
       inbound,
       capacity,
       {
         glyph: 'stack',
         name: 'Engine',
-        value: `${engine.name} · ${leader?.id === node.id && node.topology === 'single' ? 'Primary' : topology}${shards > 1 ? ` · ${shards} shards` : ''}`,
-        tone:
-          leader?.id === node.id && node.topology === 'single'
-            ? 'plain'
-            : node.topology === 'single' && shards === 1
-              ? 'muted'
-              : 'plain',
+        value: `${engine.name} · ${primary ? 'Primary' : label}${shards > 1 ? ` · ${shards} shards` : ''}`,
+        tone: primary ? 'plain' : topology === 'single' && shards === 1 ? 'muted' : 'plain',
       },
       {
         glyph: 'stored',

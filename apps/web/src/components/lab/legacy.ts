@@ -21,7 +21,7 @@ import { legacyMultiplier } from '@quorum/simulation/founding'
 import { valuationOf } from '@quorum/simulation/valuation'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { confirmSellOf, ledgerOf, type Model, offCompany, stampedPlaybook } from '@/game/model.ts'
+import { confirmSellOf, ledgerOf, type Model, stampedPlaybook } from '@/game/model.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { textarea } from '@quorum/ui/primitives/textarea'
@@ -334,45 +334,43 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** Shown while Nodes are shift-selected: save them as a Playbook. */
+/** Shown while Nodes are shift-selected: copy them, box them into a Data Group, or save them as a Playbook. */
 export const selectionBar = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
-  return offCompany(model)
+  return model.board.selection.length === 0
     ? h.empty
-    : model.board.selection.length === 0
-      ? h.empty
-      : h.div(
-          [
-            h.Key('selection'),
-            h.Class(
-              'pointer-events-auto enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface py-1.5 pr-1.5 pl-3.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
+    : h.div(
+        [
+          h.Key('selection'),
+          h.Class(
+            'pointer-events-auto enter-pop flex h-[52px] items-center gap-2 rounded-2xl bg-surface py-1.5 pr-1.5 pl-3.5 text-[calc(12.5px*var(--type-scale))] shadow-card',
+          ),
+        ],
+        [
+          h.span([h.Class(FIGURE)], [t.legacy.selected(model.board.selection.length)]),
+          ...(
+            [
+              [Message.NodesCopied(), Copy, t.legacy.copyCtrlC],
+              [Message.NodesDuplicated(), CopyPlus, t.legacy.duplicateCtrlD],
+              [Message.NodesBoxed(), SquareDashed, t.legacy.boxTheNodes],
+              [Message.SellAsked(), Trash2, t.legacy.sellDel],
+              [Message.PlaybookSaved(), BookCopy, t.legacy.saveAsPlaybook],
+              [Message.SelectionCleared(), X, t.legacy.clearSelectionEsc],
+            ] as const
+          ).map(([onClick, glyph, label]) =>
+            button(
+              {
+                onClick,
+                size: 'icon-sm',
+                variant: 'ghost',
+                attributes: [h.AriaLabel(label), h.Title(label)],
+              },
+              icon(h, glyph, 'size-4'),
+              h,
             ),
-          ],
-          [
-            h.span([h.Class(FIGURE)], [t.legacy.selected(model.board.selection.length)]),
-            ...(
-              [
-                [Message.NodesCopied(), Copy, t.legacy.copyCtrlC],
-                [Message.NodesDuplicated(), CopyPlus, t.legacy.duplicateCtrlD],
-                [Message.NodesBoxed(), SquareDashed, t.legacy.boxTheNodes],
-                [Message.SellAsked(), Trash2, t.legacy.sellDel],
-                [Message.PlaybookSaved(), BookCopy, t.legacy.saveAsPlaybook],
-                [Message.SelectionCleared(), X, t.legacy.clearSelectionEsc],
-              ] as const
-            ).map(([onClick, glyph, label]) =>
-              button(
-                {
-                  onClick,
-                  size: 'icon-sm',
-                  variant: 'ghost',
-                  attributes: [h.AriaLabel(label), h.Title(label)],
-                },
-                icon(h, glyph, 'size-4'),
-                h,
-              ),
-            ),
-          ],
-        )
+          ),
+        ],
+      )
 }
 
 /** Asks before Nodes are sold: the sale waits for Enter or the button. */

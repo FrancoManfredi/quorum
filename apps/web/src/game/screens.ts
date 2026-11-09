@@ -45,7 +45,6 @@ import {
   boardChallenge,
   ledgerOf,
   type Model,
-  offCompany,
   boardSandbox,
   confirmSellOf,
   stampedPlaybook,
@@ -119,7 +118,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div([h.Class('hidden compact:contents')], [phoneOffer(model, h)]),
           confirmSellOf(model.board)
             ? sellBar(model, h)
-            : !offCompany(model) && model.board.selection.length > 0
+            : model.board.selection.length > 0
               ? selectionBar(model, h)
               : stampedPlaybook(model)
                 ? stampBar(model, h)

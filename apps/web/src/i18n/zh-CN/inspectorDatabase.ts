@@ -11,11 +11,14 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   topologySharded:
     '分片：每个数据库只保留它那部分行。尽量把事务放在同一分片内；跨分片事务可能在触及的任何分片上失败，报表则读取全部。',
   topologyMulti: '多主：每个数据库都保留全部行并接受写入。认证会丢弃冲突写入，先提交者胜出。',
-  topologySingle: '单主：一个数据库负责写入，只读副本负责读取。第二个数据库需先选择拓扑。',
+  topologySingle:
+    '单主：一个数据库负责写入，只读副本负责读取。用框把两个或更多数据库框在一起，就成为一个数据组。',
   leader: '主库',
+  dataGroup: '数据组',
   readReplicas: '只读副本',
-  noReadReplicas: '没有。只读副本可在不增加主库负载的情况下分担读取。',
-  secondDatabaseFollows: '在「数据」下放置第二个数据库，它会遵循此选择。',
+  noReadReplicas: '没有。把只读副本链接到此数据库，即可分担读取。',
+  secondDatabaseFollows:
+    '把此数据库与另一个数据库框在一起，就成为一个数据组。该组只按一种方式保存数据。',
   promote: '提升为主库',
   promoteNote:
     '副本成为主库，旧主库成为它的副本。异步副本仍有未发送的写入，提升会丢失它们；同步副本不会丢失。',

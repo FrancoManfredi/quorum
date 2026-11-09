@@ -9,7 +9,15 @@ import {
   SHARD_KEYS,
   RESTORE_DRILL_DH,
 } from '@quorum/simulation/catalog'
-import { databasesOf, has, leaderOf, replicasOf, shardingOf } from '@quorum/simulation/lookups'
+import {
+  dataGroupOf,
+  databasesOfGroup,
+  has,
+  leaderOfGroup,
+  primaryOf,
+  replicasOfGroup,
+  shardingOf,
+} from '@quorum/simulation/lookups'
 import type {
   Game,
   GameNode,
@@ -47,8 +55,14 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
   const volume = STORAGE_IOPS[node.iops]
   const iops = `${volume.iops / 1_000}k`
   const shards = Math.max(1, Math.floor(node.shards))
-  const leader = leaderOf(game)
-  const replicas = leader?.id === node.id ? replicasOf(game) : []
+  // A Data Group holds its rows one way, and one Database takes every write in it (07 "Data Groups").
+  const group = dataGroupOf(game, node)
+  const databases = databasesOfGroup(game, group)
+  const leader = leaderOfGroup(game, group)
+  const replicas = game.nodes.filter(
+    (entry) => entry.type === 'replica' && primaryOf(game, entry)?.id === node.id,
+  )
+  const others = databases.filter((database) => database.id !== node.id)
   return [
     section(
       t.inspectorDatabase.topology,
@@ -92,23 +106,37 @@ const database = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Readonly
               ),
             ]
           : []),
-        ...(databasesOf(game).length <= 1 && node.topology !== 'single'
-          ? [caption(t.inspectorDatabase.secondDatabaseFollows, h)]
-          : []),
+        ...(others.length > 0
+          ? [
+              h.div(
+                [h.Class('flex items-baseline justify-between gap-2')],
+                [
+                  h.span(
+                    [
+                      h.Class(
+                        'text-[calc(12px*var(--type-scale))] font-medium text-muted-foreground',
+                      ),
+                    ],
+                    [t.inspectorDatabase.dataGroup],
+                  ),
+                  h.div(
+                    [h.Class('flex flex-wrap justify-end gap-x-2 gap-y-1')],
+                    others.map((database) => nodeLink(game, database, h)),
+                  ),
+                ],
+              ),
+            ]
+          : [caption(t.inspectorDatabase.secondDatabaseFollows, h)]),
       ],
       h,
     ),
-    ...(leader && leader.id === node.id && node.topology === 'single'
-      ? [
-          section(
-            t.inspectorDatabase.readReplicas,
-            replicas.length > 0
-              ? replicas.map((replica) => nodeLink(game, replica, h))
-              : [caption(t.inspectorDatabase.noReadReplicas, h)],
-            h,
-          ),
-        ]
-      : []),
+    section(
+      t.inspectorDatabase.readReplicas,
+      replicas.length > 0
+        ? replicas.map((replica) => nodeLink(game, replica, h))
+        : [caption(t.inspectorDatabase.noReadReplicas, h)],
+      h,
+    ),
     engine(node, h),
     section(
       t.inspectorDatabase.volume,

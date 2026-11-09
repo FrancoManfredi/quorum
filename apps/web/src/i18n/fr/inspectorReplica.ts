@@ -5,8 +5,7 @@ export const inspectorReplica: Messages['inspectorReplica'] = {
   primary: 'Primaire',
   primaryNote: (name) =>
     `${name} prend les écritures. Ce nœud répond aux lectures depuis sa copie.`,
-  noSinglePrimary:
-    'Le design a plusieurs bases : cette réplique de lecture n’a pas de primaire unique.',
+  noSinglePrimary: 'Reliez une base à cette réplique de lecture pour qu’elle la copie.',
   asynchronous: 'Asynchrone',
   synchronous: 'Synchrone',
   runsThePrimaryEngine: 'Il utilise le moteur du primaire.',

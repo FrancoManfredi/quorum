@@ -87,7 +87,15 @@ import {
   type Tuning,
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
-import type { DbEngine, DbTopology, Game, GameNode, Pricing, StorageClass } from './state.ts'
+import type {
+  DbEngine,
+  DbTopology,
+  Game,
+  GameNode,
+  Pricing,
+  Service,
+  StorageClass,
+} from './state.ts'
 
 /** A Legacy Perk's level in this Company: zero in a Sandbox, and at most the perk's top level. */
 export const perkLevel = (game: Game, id: PerkId): number =>
@@ -532,9 +540,25 @@ export const DB_GB_PRICE = STORAGE_PRICE * DB_STORAGE_MULT
 export const databasesOf = (game: Game): ReadonlyArray<GameNode> =>
   game.nodes.filter((node) => node.type === 'database')
 
-/** How more than one Database holds the rows (07 "Topologies"). One Database is `single`. */
-export const topologyOf = (game: Game): DbTopology => {
-  const databases = databasesOf(game)
+/**
+ * The Data Group a Node belongs to (07 "Data Groups"): the box that holds it, or its own id while
+ * it stands alone. A Read Replica copies the Database linked into it, so it belongs to that
+ * Database's group wherever it is drawn.
+ */
+export const dataGroupOf = (game: Game, node: GameNode): string => {
+  const primary = primaryOf(game, node)
+  if (primary) return dataGroupOf(game, primary)
+  const box = game.boxes.find((entry) => entry.nodes.includes(node.id))
+  return box ? box.id : node.id
+}
+
+/** The Databases in one Data Group, in order. */
+export const databasesOfGroup = (game: Game, group: string): ReadonlyArray<GameNode> =>
+  databasesOf(game).filter((node) => dataGroupOf(game, node) === group)
+
+/** How a Data Group holds its rows (07 "Topologies"). One Database is `single`. */
+export const topologyOfGroup = (game: Game, group: string): DbTopology => {
+  const databases = databasesOfGroup(game, group)
   if (databases.length <= 1) return 'single'
   if (databases.some((node) => node.topology === 'multi')) return 'multi'
   if (databases.some((node) => node.topology === 'sharded')) return 'sharded'
@@ -542,41 +566,91 @@ export const topologyOf = (game: Game): DbTopology => {
 }
 
 /**
- * The topology the card picked, even while one Database runs it (07 "Topologies"). A Database
- * placed next inherits it, so every Database follows the one choice.
+ * The Database that takes every write in one Data Group (07 "Topologies"), or null when the group
+ * has several: Sharded divides the writes, and every multi-leader takes them.
  */
-export const pickedTopologyOf = (game: Game): DbTopology => {
-  const databases = databasesOf(game)
-  if (databases.some((node) => node.topology === 'multi')) return 'multi'
-  if (databases.some((node) => node.topology === 'sharded')) return 'sharded'
-  return 'single'
+export const leaderOfGroup = (game: Game, group: string): GameNode | null => {
+  const databases = databasesOfGroup(game, group)
+  return databases.length === 1 && topologyOfGroup(game, group) === 'single' ? databases[0]! : null
+}
+
+/** The Read Replicas in one Data Group, in order. */
+export const replicasOfGroup = (game: Game, group: string): ReadonlyArray<GameNode> =>
+  game.nodes.filter((node) => node.type === 'replica' && dataGroupOf(game, node) === group)
+
+/**
+ * Each Read Replica and the Database whose link into it carries the write log (07 "Read Replica").
+ * The Board draws these as dashed cables.
+ */
+export const replicationPairsOf = (game: Game): ReadonlyArray<{ from: GameNode; to: GameNode }> =>
+  game.nodes.flatMap((node) => {
+    const primary = primaryOf(game, node)
+    return primary ? [{ from: primary, to: node }] : []
+  })
+
+/** The Database a Service reads and writes: its own, or the Design's first one. */
+export const datastoreNodeOf = (game: Game, service: Service): GameNode | null => {
+  const id =
+    service.datastore && game.nodes.some((node) => node.id === service.datastore)
+      ? service.datastore
+      : databasesOf(game)[0]?.id
+  return id ? (game.nodes.find((node) => node.id === id) ?? null) : null
+}
+
+/** The Data Group a Service reads and writes, or null when the Design has no Database. */
+export const dataGroupOfService = (game: Game, service: Service): string | null => {
+  const node = datastoreNodeOf(game, service)
+  return node ? dataGroupOf(game, node) : null
 }
 
 /**
- * The Database that takes every write while the Design runs one (07 "Topologies"), or null when
- * several exist: Sharded divides the writes, and every multi-leader takes them.
+ * GB of the Company's rows one Data Group holds: each Service owns an equal share of the rows,
+ * and a group holds the shares of the Services that point into it. This is how two groups stay
+ * independent while the Company keeps one total.
  */
-export const leaderOf = (game: Game): GameNode | null => {
-  const databases = databasesOf(game)
-  return databases.length === 1 ? databases[0]! : null
+export const groupDataOf = (game: Game, group: string): number => {
+  const services = game.services
+  if (services.length === 0) {
+    const first = databasesOf(game)[0]
+    return first && dataGroupOf(game, first) === group ? game.data : 0
+  }
+  const share = game.data / services.length
+  return services.reduce(
+    (sum, service) => (dataGroupOfService(game, service) === group ? sum + share : sum),
+    0,
+  )
 }
 
-/** The Read Replicas in the Design, in order. */
-export const replicasOf = (game: Game): ReadonlyArray<GameNode> =>
-  game.nodes.filter((node) => node.type === 'replica')
+/** How many Services read and write a Data Group. */
+export const groupServicesOf = (game: Game, group: string): ReadonlyArray<Service> =>
+  game.services.filter((service) => dataGroupOfService(game, service) === group)
 
 /**
- * GB of the Company's rows one Database holds: a shard holds its partition, a multi-leader
- * holds every row, and a single primary holds them all (07 "Topologies"). A legacy Design with
- * several Databases still on `single` keeps the old split.
+ * The Company's users that read and write one Data Group: each Service serves an equal share, and
+ * a group serves the shares of its Services.
+ */
+export const usersOfGroup = (game: Game, group: string): number => {
+  const services = game.services
+  if (services.length === 0) {
+    const first = databasesOf(game)[0]
+    return first && dataGroupOf(game, first) === group ? game.users : 0
+  }
+  return (game.users * groupServicesOf(game, group).length) / services.length
+}
+
+/**
+ * GB of the Company's rows one Database holds: a shard holds its group's partition, a multi-leader
+ * holds every row in its group, and a single primary holds them all (07 "Topologies"). A legacy
+ * group with several Databases still on `single` keeps the old split.
  */
 export const dataOf = (game: Game, node: GameNode): number => {
   if (node.type !== 'database') return 0
-  const databases = databasesOf(game).length
-  if (databases <= 1) return game.data
-  return topologyOf(game) === 'sharded' || topologyOf(game) === 'single'
-    ? game.data / databases
-    : game.data
+  const group = dataGroupOf(game, node)
+  const databases = databasesOfGroup(game, group)
+  if (databases.length <= 1) return groupDataOf(game, group)
+  return topologyOfGroup(game, group) === 'multi'
+    ? groupDataOf(game, group)
+    : groupDataOf(game, group) / databases.length
 }
 
 /**
@@ -851,11 +925,18 @@ export const shardingOf = (node: GameNode) => {
   }
 }
 
-/** The Read Replicas every write waits for: those on synchronous replication, once researched. */
-export const syncReplicasOf = (game: Game): ReadonlyArray<GameNode> =>
+/**
+ * The Read Replicas a Data Group's writes wait for: those on synchronous replication, once
+ * researched. Another Data Group's replicas never hold these writes back (07 "Data Groups").
+ */
+export const syncReplicasOf = (game: Game, group: string): ReadonlyArray<GameNode> =>
   has(game, 'sync-replication')
     ? game.nodes.filter(
-        (node) => node.type === 'replica' && node.sync && node.service._tag !== 'Shut',
+        (node) =>
+          node.type === 'replica' &&
+          node.sync &&
+          node.service._tag !== 'Shut' &&
+          dataGroupOf(game, node) === group,
       )
     : []
 
@@ -865,7 +946,7 @@ export const syncReplicasOf = (game: Game): ReadonlyArray<GameNode> =>
  * across regions.
  */
 export const syncWaitMs = (game: Game, database: GameNode): number => {
-  const replicaWait = syncReplicasOf(game).reduce(
+  const replicaWait = syncReplicasOf(game, dataGroupOf(game, database)).reduce(
     (most, replica) =>
       Math.max(
         most,
@@ -886,8 +967,8 @@ export const syncWaitMs = (game: Game, database: GameNode): number => {
 }
 
 /** Whether a synchronous replica is down: every write on the primary stalls until it is back. */
-export const syncStalled = (game: Game): boolean =>
-  syncReplicasOf(game).some((replica) => isDown(replica))
+export const syncStalled = (game: Game, group: string): boolean =>
+  syncReplicasOf(game, group).some((replica) => isDown(replica))
 
 /** The indexes the Services have added: each one makes every write cost more (07 "Indexes"). */
 export const indexWriteFactor = (game: Game): number =>

@@ -77,7 +77,6 @@ import {
   replacePrice,
   missingPrerequisites,
   needs,
-  pickedTopologyOf,
   resizePrice,
   restarted,
   warmAfterRestart,
@@ -327,33 +326,26 @@ export const place = (
   const banned = placeRefusal(game, type, region)
   if (banned) return notAllowed(banned)
   if (!openRegions(game).includes(region)) return notAllowed('Open that region first.')
-  if (type === 'database') {
-    const databases = game.nodes.filter((node) => node.type === 'database')
-    if (databases.length >= 1 && databases.every((node) => node.topology === 'single'))
-      return notAllowed(
-        'A second Database picks a topology first: Sharded splits the rows, Multi-leader copies every row to every Database. For reads only, place a Read Replica.',
-      )
-  }
+  // A new Database holds its own rows until a box puts it in a Data Group (07 "Data Groups").
   const node = blankNode(game, `n${game.nextId}`, type, x, y, region)
-  // A Database joins the topology the Design already picked (07 "Topologies").
-  const placed = type === 'database' ? { ...node, topology: pickedTopologyOf(game) } : node
   return spend(game, priceOf(game, type), def.name, (paid) => ({
     ...paid,
     nextId: paid.nextId + 1,
-    nodes: [...paid.nodes, { ...placed, life: placedLife(paid, placed) }],
+    nodes: [...paid.nodes, { ...node, life: placedLife(paid, node) }],
   }))
 }
 
-/** Draws a box around the chosen Nodes, labelled by the group they share: Data, Compute, or Box 3. A Node leaves the box it was in. */
-export const boxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
-  const chosen = ids.filter((id) => game.nodes.some((node) => node.id === id))
-  if (chosen.length < 2) return notAllowed('Select two or more Nodes to box.')
+/**
+ * The Game with a box around these Nodes: the box that makes a Data Group (07 "Data Groups"). A
+ * box with two or more Databases on Single primary turns them to Sharded, because one box holds
+ * one dataset. A box of one kind takes that group's name.
+ */
+export const placeBox = (game: Game, chosen: ReadonlyArray<string>, name?: string): Game => {
   const number =
     game.boxes.reduce((most, box) => Math.max(most, Number(box.id.slice(3)) || 0), 0) + 1
   const kept = game.boxes
     .map((box) => ({ ...box, nodes: box.nodes.filter((id) => !chosen.includes(id)) }))
     .filter((box) => box.nodes.length >= 2)
-  // A cluster of one kind takes its name: the future Data Group reuses this id and name.
   const docks = new Set(
     chosen.flatMap((id) => {
       const node = game.nodes.find((entry) => entry.id === id)
@@ -362,10 +354,33 @@ export const boxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
   )
   const dock = docks.size === 1 ? [...docks][0] : null
   const shared = dock ? DOCK_GROUPS.find((group) => group.key === dock)?.label : null
-  return ok({
+  const databases = game.nodes.filter(
+    (node) => node.type === 'database' && chosen.includes(node.id),
+  )
+  const sharded = databases.length > 1 && databases.every((node) => node.topology === 'single')
+  return {
     ...game,
-    boxes: [...kept, { id: `box${number}`, name: shared ?? `Box ${number}`, nodes: chosen }],
-  })
+    ...(sharded
+      ? {
+          nodes: game.nodes.map((node) =>
+            databases.some((database) => database.id === node.id)
+              ? { ...node, topology: 'sharded' as const }
+              : node,
+          ),
+        }
+      : {}),
+    boxes: [
+      ...kept,
+      { id: `box${number}`, name: name ?? shared ?? `Box ${number}`, nodes: chosen },
+    ],
+  }
+}
+
+/** Draws a box around the chosen Nodes, labelled by the group they share: Data, Compute, or Box 3. A Node leaves the box it was in. */
+export const boxNodes = (game: Game, ids: ReadonlyArray<string>): Action => {
+  const chosen = ids.filter((id) => game.nodes.some((node) => node.id === id))
+  if (chosen.length < 2) return notAllowed('Select two or more Nodes to box.')
+  return ok(placeBox(game, chosen))
 }
 
 /** Takes the box off a group of Nodes: the Nodes stay. */

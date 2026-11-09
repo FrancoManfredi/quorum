@@ -173,21 +173,6 @@ describe('copy, cut, paste, and select all', () => {
       Message.NodePlaced({ x: 400, y: 300 }),
     )
   }
-  // Duplicating a Database needs a topology first (07 "Topologies"), so paste tests set one up.
-  const sharded = (model: Model): Model => {
-    return {
-      ...model,
-      board: {
-        ...model.board,
-        game: {
-          ...model.board.game,
-          nodes: model.board.game.nodes.map((node) =>
-            node.type === 'database' ? { ...node, topology: 'sharded' as const } : node,
-          ),
-        },
-      },
-    }
-  }
   const movable = (model: Model) =>
     model.board.game.nodes.filter(
       (node) => !COMPONENTS[node.type].fixed && !SHARED.includes(node.type),
@@ -209,7 +194,7 @@ describe('copy, cut, paste, and select all', () => {
   })
 
   test('paste places a second copy where the click lands, and it costs Cash', () => {
-    const placed = sharded(start())
+    const placed = start()
     const copied = send(placed, key('Mod+a'), key('Mod+c'))
     expect(copied.board.clipboard?.nodes.length).toBe(movable(placed).length)
     const stamping = send(copied, key('Mod+v'))
@@ -239,7 +224,7 @@ describe('copy, cut, paste, and select all', () => {
   })
 
   test('duplicate places a copy beside the original in one undo step', () => {
-    const placed = sharded(start())
+    const placed = start()
     const dup = send(placed, key('Mod+a'), key('Mod+d'))
     expect(movable(dup).length).toBe(2 * movable(placed).length)
     expect(dup.board.game.cash).toBeLessThan(placed.board.game.cash)

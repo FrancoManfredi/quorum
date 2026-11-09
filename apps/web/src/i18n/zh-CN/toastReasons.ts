@@ -168,7 +168,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   reservedPricingNeedsResearchReservedInstances: '预留计费需要先研究：预留实例。',
   selectTwoOrMoreNodesToBox: '请选择两个或更多节点进行框选。',
   shipTheFeatureBeforeItHasA: '请先上线功能，再设置灰度发布。',
-  singlePrimaryHoldsOneDatabase: '单主只能有一个数据库。出售其他数据库，或选择分片或多主。',
+  singlePrimaryHoldsOneDatabase: '单主只能有一个数据库。拆分数据组，或选择分片或多主。',
   spotPricingNeedsResearchSpotInstances: '竞价计费需要先研究：竞价实例。',
   takeABackupBeforeDrillingARestore: '演练恢复之前请先做一次备份。',
   thatIsGone: '它已经不存在了。',

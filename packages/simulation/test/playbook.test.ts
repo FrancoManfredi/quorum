@@ -41,6 +41,23 @@ describe('Playbooks', () => {
     expect(placed.game.links).toHaveLength(source.links.length)
   })
 
+  test('a Data Group comes back as one box, under the same name', () => {
+    const database = source.nodes.find((node) => node.type === 'database')!
+    const second = { ...database, id: 'd2', x: database.x, y: database.y + 240 }
+    const grouped: Game = {
+      ...source,
+      nodes: [...source.nodes, second],
+      boxes: [{ id: 'box1', name: 'Data', nodes: [database.id, second.id] }],
+    }
+    const playbook = capture(grouped, [database.id, second.id], 'Data')
+    if (!playbook) throw new Error('no playbook')
+    expect(playbook.boxes).toEqual([{ name: 'Data', keys: [database.id, second.id] }])
+    const placed = Result.getOrThrow(placePlaybook(empty(), playbook, 400, 300))
+    expect(placed.game.boxes).toHaveLength(1)
+    expect(placed.game.boxes[0]?.name).toBe('Data')
+    expect(placed.game.boxes[0]?.nodes).toHaveLength(2)
+  })
+
   test('a Node whose research is missing comes back as a ghost, not a refusal', () => {
     const withCache: Game = {
       ...source,

@@ -179,7 +179,7 @@ export const reasons = {
   selectTwoOrMoreNodesToBox: 'Select two or more Nodes to box.',
   shipTheFeatureBeforeItHasA: 'Ship the Feature before it has a rollout.',
   singlePrimaryHoldsOneDatabase:
-    'Single primary holds one Database. Sell the others, or pick Sharded or Multi-leader.',
+    'Single primary holds one Database. Split the Data Group, or pick Sharded or Multi-leader.',
   spotPricingNeedsResearchSpotInstances: 'Spot pricing needs research: Spot instances.',
   takeABackupBeforeDrillingARestore: 'Take a backup before drilling a restore.',
   thatIsGone: 'That is gone.',

@@ -25,7 +25,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { POOL_ICONS } from '../game/pools.ts'
 import type { Ledger, NodeStatus } from '@quorum/simulation/ledger'
-import { has, leaderOf, replicasOf, zoned, zoneMs } from '@quorum/simulation/lookups'
+import { has, replicationPairsOf, zoned, zoneMs } from '@quorum/simulation/lookups'
 
 import type { Game, GameNode, Region } from '@quorum/simulation/state'
 import type { SeatActivity } from '@quorum/simulation/room'
@@ -2564,14 +2564,13 @@ class BoardController {
     return this.routed
   }
 
-  /** The dashed replication cables the router places with the other lanes. */
+  /** The dashed replication cables the router places with the other lanes, one set per Data Group. */
   private replicationLinks(game: Game): ReadonlyArray<RoutedLink> {
-    const primary = leaderOf(game)
     const region = this.state?.region
-    if (!primary || !region || primary.region !== region) return []
-    return replicasOf(game)
-      .filter((replica) => replica.region === region)
-      .map((replica) => ({ from: primary.id, to: replica.id }))
+    if (!region) return []
+    return replicationPairsOf(game)
+      .filter((pair) => pair.from.region === region && pair.to.region === region)
+      .map((pair) => ({ from: pair.from.id, to: pair.to.id }))
   }
 
   private askRoute(): void {
@@ -3294,21 +3293,22 @@ class BoardController {
     }
   }
 
-  /** Dashed lines from a single primary to its Read Replicas, on the same lanes as the Links. */
+  /** Dashed lines from each Data Group's primary to its Read Replicas, on the same lanes as the Links. */
   private drawReplication(state: BoardState, colors: Palette): void {
-    const primary = leaderOf(state.game)
-    const replicas =
-      primary && primary.region === state.region
-        ? replicasOf(state.game).filter((replica) => replica.region === state.region)
-        : []
-    if (!primary || replicas.length === 0) {
+    const pairs = replicationPairsOf(state.game).filter(
+      (pair) => pair.from.region === state.region && pair.to.region === state.region,
+    )
+    if (pairs.length === 0) {
       if (this.replicationKey !== '') {
         this.replicationKey = ''
         this.replication.clear()
       }
       return
     }
-    const wires = replicas.map((replica) => ({ replica, wire: this.wireOf(primary, replica) }))
+    const wires = pairs.map((pair) => ({
+      replica: pair.to,
+      wire: this.wireOf(pair.from, pair.to),
+    }))
     const key = wires
       .map(
         ({ replica, wire }) =>

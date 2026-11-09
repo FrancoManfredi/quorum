@@ -13,12 +13,14 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   topologyMulti:
     'Multi-leader : chaque base tient toutes les lignes et accepte des écritures. La certification écarte les écritures contradictoires, la première à valider gagne.',
   topologySingle:
-    'Primaire unique : une base prend les écritures, une réplique de lecture prend les lectures. Une seconde base demande d’abord une topologie.',
+    'Primaire unique : une base prend les écritures, une réplique de lecture prend les lectures. Un cadre réunit deux bases ou plus dans un groupe de données.',
   leader: 'Primaire',
+  dataGroup: 'Groupe de données',
   readReplicas: 'Répliques de lecture',
   noReadReplicas:
-    'Aucune. Une réplique de lecture retire des lectures au primaire sans le charger.',
-  secondDatabaseFollows: 'Placez une seconde base dans Données : elle suivra ce choix.',
+    'Aucune. Reliez une réplique de lecture à cette base pour lui retirer des lectures.',
+  secondDatabaseFollows:
+    'Encadrez cette base avec une autre pour former un groupe de données. Le groupe tient ses lignes d’une seule façon.',
   promote: 'Promouvoir primaire',
   promoteNote:
     'La réplique devient le primaire et l’ancien primaire sa réplique. Une réplique asynchrone retenait encore des écritures en vol : la promotion les perd ; une synchrone ne perd rien.',

@@ -548,15 +548,11 @@ describe('the free Sandbox', () => {
   })
 
   test('places every Component that is not fixed to the board', () => {
-    // Users and Payments come with every board, once.
-    // A second Database is refused until the Design picks Sharded or Multi-leader (07 "Topologies").
+    // Users and Payments come with every board, once. A second Database lands on its own and holds
+    // no rows until a box makes it a Data Group with another (07 "Data Groups").
     for (const type of COMPONENT_IDS.filter((id) => !COMPONENTS[id].fixed)) {
       const placed = Actions.place(freeSandbox(), type, 600, 500)
-      if (type === 'database') {
-        expect(R.isFailure(placed)).toBe(true)
-      } else {
-        expect(R.isSuccess(placed)).toBe(true)
-      }
+      expect(R.isSuccess(placed)).toBe(true)
     }
   })
 

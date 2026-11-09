@@ -1,6 +1,7 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import {
+  boxNodes,
   connect,
   describeRefusal,
   place,
@@ -22,11 +23,14 @@ import * as Work from '../src/work.ts'
 import { warmOf } from '../src/life.ts'
 import {
   burnOf,
+  dataGroupOf,
+  databasesOfGroup,
   dataOf,
-  leaderOf,
+  groupDataOf,
+  leaderOfGroup,
   shardingOf,
   syncWaitMs,
-  topologyOf,
+  topologyOfGroup,
 } from '../src/lookups.ts'
 import { sharesDatabase } from '../src/team.ts'
 import { freeSandbox } from '../src/sandbox.ts'
@@ -179,46 +183,111 @@ describe('synchronous replicas', () => {
     let replica: string
     ;[game, replica] = build(game, 'replica')
     expect(syncWaitMs(game, database)).toBe(0)
+    game = ok(connect(game, database.id, replica))
     game = ok(setSync(game, replica, true))
     expect(syncWaitMs(game, database)).toBeGreaterThan(0)
   })
 })
 
-describe('topologies', () => {
-  test('multi-leader Services share rows even on different leaders', () => {
+describe('Data Groups', () => {
+  /** The free Sandbox with a second Database in a box with the first: one Data Group (07 "Data Groups"). */
+  const grouped = (game: Game) => {
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    let next = ok(place(game, 'database', 300, 300))
+    const second = next.nodes.at(-1)!.id
+    next = ok(boxNodes(next, [first, second]))
+    const group = dataGroupOf(
+      next,
+      next.nodes.find((node) => node.id === first)!,
+    )
+    return { game: next, first, second, group }
+  }
+  const database = (game: Game, id: string) => game.nodes.find((node) => node.id === id)!
+
+  test('a box turns two Single Databases to Sharded and holds them as one group', () => {
+    const first = freeSandbox().nodes.find((node) => node.type === 'database')!.id
+    const before = freeSandbox()
+    expect(dataGroupOf(before, database(before, first))).toBe(first)
+    const { game, first: one, second, group } = grouped(freeSandbox())
+    expect(databasesOfGroup(game, group).map((node) => node.id)).toEqual([one, second])
+    expect(topologyOfGroup(game, group)).toBe('sharded')
+    expect(leaderOfGroup(game, group)).toBeNull()
+  })
+
+  test('Sharded splits the rows and Multi-leader copies them to every Database', () => {
+    const { game, first, second, group } = grouped(freeSandbox())
+    const rows = { ...game, data: 100 }
+    expect(dataOf(rows, database(rows, first))).toBe(50)
+    expect(dataOf(rows, database(rows, second))).toBe(50)
+    const multi = ok(setTopology(rows, first, 'multi'))
+    expect(topologyOfGroup(multi, group)).toBe('multi')
+    expect(dataOf(multi, database(multi, first))).toBe(100)
+    expect(dataOf(multi, database(multi, second))).toBe(100)
+  })
+
+  test('a Service carries its share of the rows into the group its Database sits in', () => {
     let game = freeSandbox()
     const first = game.nodes.find((node) => node.type === 'database')!.id
-    game = ok(setTopology(game, first, 'multi'))
     let second: string
     ;[game, second] = build(game, 'database')
-    const one = { ...game.services[0]!, datastore: first }
-    const two = { ...game.services[0]!, id: 'service-2', datastore: second }
-    const withTwo = { ...game, services: [one, two] }
-    expect(sharesDatabase(withTwo, one)).toBe(true)
-    // On sharded Boards the same two Services own different partitions and share nothing.
-    const shardedGame = ok(setTopology(withTwo, first, 'sharded'))
-    expect(sharesDatabase(shardedGame, shardedGame.services[0]!)).toBe(false)
+    let third: string
+    ;[game, third] = build(game, 'database')
+    game = {
+      ...game,
+      data: 100,
+      services: [
+        { ...game.services[0]!, id: 'a', datastore: first },
+        { ...game.services[0]!, id: 'b', datastore: second },
+      ],
+    }
+    // Each group holds the share of the Services that point into it, and a group with none holds nothing.
+    expect(groupDataOf(game, first)).toBe(50)
+    expect(groupDataOf(game, second)).toBe(50)
+    expect(groupDataOf(game, third)).toBe(0)
   })
-  test('one Database is the leader, and several leave no single leader', () => {
+
+  test('two Data Groups share no rows, so they take no shared-database penalty', () => {
     let game = freeSandbox()
     const first = game.nodes.find((node) => node.type === 'database')!.id
-    // One Database takes every write, whatever topology the card picks for the next one.
-    expect(leaderOf(game)?.id).toBe(first)
-    game = ok(setTopology(game, first, 'sharded'))
-    expect(leaderOf(game)?.id).toBe(first)
-    let _second: string
-    ;[game, _second] = build(game, 'database')
-    expect(leaderOf(game)).toBeNull()
+    let second: string
+    ;[game, second] = build(game, 'database')
+    const one = { ...game.services[0]!, id: 'a', datastore: first }
+    const two = { ...game.services[0]!, id: 'b', datastore: second }
+    const apart = { ...game, services: [one, two] }
+    expect(sharesDatabase(apart, one)).toBe(false)
+    // Boxed together under Multi-leader, they hold every row twice and share the dataset.
+    const together = ok(setTopology(ok(boxNodes(apart, [first, second])), first, 'multi'))
+    expect(sharesDatabase(together!, together!.services[0]!)).toBe(true)
   })
-  test('Single primary refuses a second Database', () => {
-    let company: Game = freeSandbox()
-    const first = company.nodes.find((node) => node.type === 'database')!.id
-    company = ok(setTopology(company, first, 'sharded'))
-    company = ok(place(company, 'database', 300, 300))
-    company = { ...company, sandbox: false, cash: 100_000 }
+
+  test('one Database is the leader of its group, and several leave no single leader', () => {
+    const game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    expect(leaderOfGroup(game, dataGroupOf(game, database(game, first)))?.id).toBe(first)
+    const { game: two, group } = grouped(freeSandbox())
+    expect(leaderOfGroup(two, group)).toBeNull()
+  })
+
+  test('a Read Replica joins the group of the Database linked into it', () => {
+    let game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    let replica: string
+    ;[game, replica] = build(game, 'replica')
+    // A replica copies nothing until a Database links into it, so it stands alone.
+    expect(dataGroupOf(game, database(game, replica))).toBe(replica)
+    const linked = ok(connect(game, first, replica))
+    expect(dataGroupOf(linked, database(linked, replica))).toBe(
+      dataGroupOf(linked, database(linked, first)),
+    )
+  })
+
+  test('Single primary refuses a second Database in its group', () => {
+    const { game, first } = grouped(freeSandbox())
+    const company: Game = { ...game, sandbox: false, cash: 100_000 }
     expect(Result.isFailure(Work.queueTopology(company, first, 'single'))).toBe(true)
   })
-  test('a topology pick on one Database lands at once, so a second can be placed', () => {
+
+  test('a topology pick on one Database lands at once, and a second Database lands on its own', () => {
     const company: Game = { ...freeSandbox(), sandbox: false, cash: 100_000 }
     const first = company.nodes.find((node) => node.type === 'database')!.id
     const picked = ok(Work.queueTopology(company, first, 'sharded'))
@@ -227,89 +296,53 @@ describe('topologies', () => {
     expect(picked.reshard).toBeNull()
     expect(picked.backlog.some((item) => item.ref === 'reshard')).toBe(false)
     const withTwo = ok(place(picked, 'database', 300, 300))
-    expect(withTwo.nodes.filter((node) => node.type === 'database')).toHaveLength(2)
-    // The new Database follows the topology the Design picked.
-    expect(withTwo.nodes.at(-1)?.topology).toBe('sharded')
+    const second = withTwo.nodes.at(-1)!
+    // The new Database holds its own rows until a box groups it with another.
+    expect(second.topology).toBe('single')
+    expect(dataGroupOf(withTwo, second)).toBe(second.id)
   })
-  test('a Company queues a topology switch with Dev Hours and a data copy', () => {
-    let company: Game = freeSandbox()
-    const first = company.nodes.find((node) => node.type === 'database')!.id
-    // A second Database makes the rows move, so the switch waits for a copy.
-    company = ok(setTopology(company, first, 'sharded'))
-    company = ok(place(company, 'database', 300, 300))
-    company = { ...company, sandbox: false, cash: 100_000 }
+
+  test('a Company queues a group topology switch with Dev Hours and a data copy', () => {
+    const { game, first, group } = grouped(freeSandbox())
+    const company: Game = { ...game, sandbox: false, cash: 100_000 }
     const result = Work.queueTopology(company, first, 'multi')
     if (Result.isFailure(result)) throw new Error('refused ' + JSON.stringify(result.failure))
     expect(result.success.reshard?.topology).toBe('multi')
+    expect(result.success.reshard?.group).toBe(group)
     expect(result.success.backlog.some((item) => item.ref === 'reshard')).toBe(true)
   })
-  test('a Database does not link to another Database or a Read Replica', () => {
+
+  test('a Database links into a Read Replica to copy it, and links to no other Database', () => {
     let game = freeSandbox()
     const first = game.nodes.find((node) => node.type === 'database')!.id
-    game = ok(setTopology(game, first, 'sharded'))
     let second: string
     ;[game, second] = build(game, 'database')
     const betweenDatabases = connect(game, first, second)
     expect(Result.isFailure(betweenDatabases)).toBe(true)
-    if (Result.isFailure(betweenDatabases))
-      expect(describeRefusal(betweenDatabases.failure)).toContain('do not link to each other')
     let replica: string
     ;[game, replica] = build(game, 'replica')
-    const toReplica = connect(game, first, replica)
-    expect(Result.isFailure(toReplica)).toBe(true)
-    if (Result.isFailure(toReplica))
-      expect(describeRefusal(toReplica.failure)).toContain('copies its primary automatically')
-  })
-  test('a second Database needs Sharded or Multi-leader first', () => {
-    let game = freeSandbox()
-    const first = game.nodes.find((node) => node.type === 'database')!.id
-    // Single primary: place is refused and points at a Read Replica.
-    expect(Result.isFailure(place(game, 'database', 300, 300))).toBe(true)
-    game = ok(setTopology(game, first, 'sharded'))
-    let second: string
-    ;[game, second] = build(game, 'database')
-    expect(topologyOf(game)).toBe('sharded')
-    // Sharded holds a partition; multi-leader holds every row.
-    game = { ...game, data: 100 }
-    expect(
-      dataOf(
-        game,
-        game.nodes.find((node) => node.id === first)!,
-      ),
-    ).toBe(50)
-    game = ok(setTopology(game, first, 'multi'))
-    expect(
-      dataOf(
-        game,
-        game.nodes.find((node) => node.id === first)!,
-      ),
-    ).toBe(100)
-    expect(
-      dataOf(
-        game,
-        game.nodes.find((node) => node.id === second)!,
-      ),
-    ).toBe(100)
+    // The write-log link is the only way a replica copies anything (07 "Read Replica").
+    game = ok(connect(game, first, replica))
+    const secondLink = connect(game, second, replica)
+    expect(Result.isFailure(secondLink)).toBe(true)
+    if (Result.isFailure(secondLink))
+      expect(describeRefusal(secondLink.failure)).toContain('copies one Database')
   })
 
   test('multi-leader writes cost more and some are refused', () => {
     let game = withResearch(freeSandbox(), 'sharding')
     const first = game.nodes.find((node) => node.type === 'database')!.id
-    const beforeGame = game
-    const before = solveFlow(beforeGame).nodes[first]!
+    const before = solveFlow(game).nodes[first]!
     game = ok(setTopology(game, first, 'multi'))
     let second: string
     ;[game, second] = build(game, 'database')
+    game = ok(boxNodes(game, [first, second]))
     game = ok(connect(game, 'server', second))
-    game = ok(setTopology(game, first, 'multi'))
     // Receipt for the second Database under multi-leader costs more than its single-leader rate.
     const after = solveFlow(game).nodes[second]!
     expect(after.receipts['q-write']!.total).toBeGreaterThan(
       before.receipts['q-write']!.total * 1.2,
     )
-    // Failures: solve against conflicting leaders shows refused writes.
-    const ledger = solveFlow(game)
-    expect(ledger.nodes[second]?.traffic['q-write'] ?? 0).toBeGreaterThanOrEqual(0)
   })
 
   test('promoting an asynchronous replica loses rows, a synchronous one loses none', () => {

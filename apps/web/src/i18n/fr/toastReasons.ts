@@ -200,7 +200,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   shipTheFeatureBeforeItHasA:
     'Livrez la fonctionnalité avant de lui donner un déploiement progressif.',
   singlePrimaryHoldsOneDatabase:
-    'Le primaire unique tient une seule base. Vendez les autres, ou choisissez Partitionné ou Multi-leader.',
+    'Le primaire unique tient une seule base. Séparez le groupe de données, ou choisissez Partitionné ou Multi-leader.',
   spotPricingNeedsResearchSpotInstances:
     'La tarification Spot exige une recherche : Instances Spot.',
   takeABackupBeforeDrillingARestore: 'Faites une sauvegarde avant de tester une restauration.',

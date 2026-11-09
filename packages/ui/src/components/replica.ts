@@ -2,6 +2,7 @@ import { DatabaseBackup } from 'lucide'
 import { ms } from '../game/format.ts'
 import { DB_ENGINES } from '@quorum/simulation/catalog'
 import { engineOf, primaryOf } from '@quorum/simulation/lookups'
+import { nodeLabel } from '@quorum/simulation/labels'
 import { type ComponentView } from './shared.ts'
 
 export const replica: ComponentView = {
@@ -9,6 +10,7 @@ export const replica: ComponentView = {
   layout: { rows: 7, inRow: 0, outRow: null, footer: true },
   rows: ({ game, node, own, inbound, capacity, latency }) => {
     const pool = own.connections
+    // A Read Replica copies the Database linked into it (07 "Read Replica").
     const primary = primaryOf(game, node)
     return [
       inbound,
@@ -22,7 +24,7 @@ export const replica: ComponentView = {
       {
         glyph: 'stack',
         name: 'Copies',
-        value: primary ? primary.id : 'Nothing: link a Database to it',
+        value: primary ? nodeLabel(game, primary) : 'Nothing: link a Database to it',
         tone: primary ? 'muted' : 'danger',
       },
       {

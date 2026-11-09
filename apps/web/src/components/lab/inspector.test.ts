@@ -587,7 +587,7 @@ test('a single Database labels itself the primary and lists its Read Replicas', 
     Scene.given(fixture()),
     Scene.expect(Scene.text('Primary')).toExist(),
     Scene.expect(
-      Scene.text('None. A Read Replica takes reads off the primary without loading it.'),
+      Scene.text('None. Link a Read Replica into this Database to take reads off it.'),
     ).toExist(),
   )
 })
@@ -603,7 +603,12 @@ const cardOfType = (
     ...preseedGame(),
     researched: [...preseedGame().researched, 'metrics', ...researched],
     nodes: [...preseedGame().nodes, node(type, type, 640, 320, extra)],
-    links: [...preseedGame().links, link('server', type)],
+    links: [
+      ...preseedGame().links,
+      link('server', type),
+      // A Read Replica copies a Database only through the link into it (07 "Read Replica").
+      ...(type === 'replica' ? [link('database', type)] : []),
+    ],
   }
   return { ...start, board: { ...start.board, game, selected: type } }
 }

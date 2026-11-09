@@ -85,8 +85,10 @@ import {
   pinnedOf,
   shardingOf,
   syncWaitMs,
-  databasesOf,
-  topologyOf,
+  dataGroupOf,
+  databasesOfGroup,
+  topologyOfGroup,
+  usersOfGroup,
   payloadOf,
   profileOf,
   ramOf,
@@ -1054,12 +1056,15 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   // A server connection holds its own memory: an 8 MB backend process on Postgres, a thread stack on
   // MySQL. A pooler cuts the count but not the price of each connection (07 "Connection Pooler").
   const connectionRam = ((context.connections ?? 0) * engine.connectionMB) / 1024
-  // How more than one Database holds the rows (07 "Topologies"): a shard holds its partition of
-  // the hot rows, while a multi-leader holds every row on every Database.
-  const topology = node.type === 'database' ? topologyOf(game) : 'single'
-  const databaseCount = node.type === 'database' ? databasesOf(game).length : 1
+  // How a Data Group holds the rows (07 "Topologies", "Data Groups"): a shard holds its partition
+  // of the hot rows, while a multi-leader holds every row on every Database. An independent group
+  // also holds only its own Services' share of the Company's rows.
+  const group = dataGroupOf(game, node)
+  const topology = node.type === 'database' ? topologyOfGroup(game, group) : 'single'
+  const databaseCount = node.type === 'database' ? databasesOfGroup(game, group).length : 1
   const shardShare = topology === 'sharded' && databaseCount > 1 ? 1 / databaseCount : 1
-  const workingSet = (LOCAL_DB_RAM + game.users * LOCAL_DB_RAM_PER_USER) * shardShare
+  const users = usersOfGroup(game, group)
+  const workingSet = (LOCAL_DB_RAM + users * LOCAL_DB_RAM_PER_USER) * shardShare
   const footprint = workingSet + connectionRam
   const disk = footprint > ram - OS_RAM
   const logical = shardingOf(node)
@@ -1092,7 +1097,7 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   const warmth = 0.5 + 0.5 * warmOf(node.life)
   // A Slow query incident: every read scans the table until someone adds the index.
   const scan =
-    game.incident?.kind === 'slow-query' ? game.users * ROWS_PER_USER * UNINDEXED_MS_PER_ROW : 0
+    game.incident?.kind === 'slow-query' ? users * ROWS_PER_USER * UNINDEXED_MS_PER_ROW : 0
   // Report scans fill the buffer cache with cold pages: a share of reads go to disk, and writes
   // wait on the scans' locks (07 "Data Warehouse"). A quarter-end report scans ten times as much.
   const scans = arriving['q-scan'] ?? 0

@@ -613,6 +613,8 @@ export const Resharding = Schema.Struct({
   node: Schema.String,
   shards: Schema.Finite,
   key: ShardKey,
+  /** The Data Group that lands on the new topology (07 "Topologies"). */
+  group: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed(''))),
   /** The topology to land on; `single` for a plain resharding (07 "Topologies"). */
   topology: DbTopology.pipe(Schema.withDecodingDefaultKey(Effect.succeed('single' as const))),
   phase: DataMovePhase,

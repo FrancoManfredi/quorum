@@ -61,7 +61,17 @@ import {
   type Tuning,
 } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
-import { eraOf, has, isDown, languageOf, perkLevel, topologyOf } from './lookups.ts'
+import {
+  dataGroupOfService,
+  databasesOfGroup,
+  eraOf,
+  groupServicesOf,
+  has,
+  isDown,
+  languageOf,
+  perkLevel,
+  topologyOfGroup,
+} from './lookups.ts'
 import { awaitingFeatures, liveFeatures } from './features.ts'
 import { rolloutOf as rolloutShareOf } from './feature-machine.ts'
 import { budgetVelocity } from './slo.ts'
@@ -160,14 +170,17 @@ const datastoreOf = (game: Game, service: Service): string =>
  * Whether a Service shares its Database with another Service (08 "Shared database penalty").
  * Services that name different Databases, or run with no Database, share nothing — unless the
  * Databases replicate to each other: a multi-leader holds every row on every leader, so Services
- * on different leaders still share one dataset (07 "Topologies").
+ * on different leaders still share one dataset (07 "Topologies"). Two Data Groups never share
+ * rows, however each one holds them (07 "Data Groups").
  */
 export const sharesDatabase = (game: Game, service: Service): boolean => {
+  const group = dataGroupOfService(game, service)
   if (
-    topologyOf(game) === 'multi' &&
-    game.nodes.filter((node) => node.type === 'database').length > 1
+    group !== null &&
+    topologyOfGroup(game, group) === 'multi' &&
+    databasesOfGroup(game, group).length > 1
   )
-    return game.services.length > 1
+    return groupServicesOf(game, group).length > 1
   const key = datastoreOf(game, service)
   return key !== '' && game.services.filter((entry) => datastoreOf(game, entry) === key).length > 1
 }

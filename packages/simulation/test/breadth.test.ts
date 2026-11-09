@@ -1,6 +1,6 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
-import { connect, place, setTopology } from '../src/actions.ts'
+import { connect, place } from '../src/actions.ts'
 import { COMPONENT_IDS, COMPONENTS, INCIDENT_IDS } from '../src/catalog.ts'
 import { forceIncident } from '../src/director.ts'
 import { hashGame } from '../src/hash.ts'
@@ -27,12 +27,6 @@ const run = (game: Game, seconds: number): Game => {
 const everything = (): Game => {
   let game = freeSandbox()
   COMPONENT_IDS.filter((id) => !COMPONENTS[id].fixed).forEach((type, index) => {
-    // The free Sandbox already holds a Database, and a second one needs a topology first.
-    if (type === 'database') {
-      const picked = setTopology(game, 'database', 'sharded')
-      if (Result.isFailure(picked)) throw new Error('topology could not be picked')
-      game = picked.success
-    }
     const placed = place(game, type, 100 + (index % 8) * 160, 500 + Math.floor(index / 8) * 120)
     if (Result.isFailure(placed)) throw new Error(`${type} could not be built`)
     game = placed.success

@@ -76,7 +76,17 @@ import {
 import { startIncident } from './director.ts'
 import { StepEvent } from './events.ts'
 import type { Ledger } from './ledger.ts'
-import { databasesOf, has, eraOf, isDown, restarted, sreStaffed } from './lookups.ts'
+import {
+  dataGroupOf,
+  databasesOfGroup,
+  groupDataOf,
+  has,
+  eraOf,
+  isDown,
+  restarted,
+  sreStaffed,
+  topologyOfGroup,
+} from './lookups.ts'
 import { step as hireStep } from './hire-machine.ts'
 import { step as moveStep } from './data-move-machine.ts'
 import { step as blockStep } from './work-item-machine.ts'
@@ -215,25 +225,27 @@ export const queueEngineChange = (game: Game, nodeId: string, to: DbEngine): Act
   })
 }
 
-/** Queues a Database's topology switch: the same Dev Hours and data copy as a resharding (07 "Topologies"). */
+/** Queues a Database's topology switch: the same Dev Hours and data copy as a resharding (07 "Topologies"). A Data Group changes together. */
 export const queueTopology = (game: Game, nodeId: string, topology: DbTopology): Action => {
   if (game.sandbox) return notAllowed(SANDBOX)
   const node = game.nodes.find((entry) => entry.id === nodeId)
   if (!node || node.type !== 'database') return notAllowed('Only a Database changes topology.')
-  if (node.topology === topology) return ok(game)
+  const group = dataGroupOf(game, node)
+  if (topologyOfGroup(game, group) === topology) return ok(game)
   // Single primary is one Database: a second one is not a follower, so it cannot join that choice.
-  if (topology === 'single' && databasesOf(game).length > 1)
+  if (topology === 'single' && databasesOfGroup(game, group).length > 1)
     return notAllowed(
-      'Single primary holds one Database. Sell the others, or pick Sharded or Multi-leader.',
+      'Single primary holds one Database. Split the Data Group, or pick Sharded or Multi-leader.',
     )
   if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
   // One Database already holds every row, so a topology pick moves nothing and lands at once. The
   // copy starts once a second Database exists and the rows have somewhere to go (07 "Topologies").
-  if (databasesOf(game).length <= 1) return setTopology(game, nodeId, topology)
+  if (databasesOfGroup(game, group).length <= 1) return setTopology(game, nodeId, topology)
   return ok({
     ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
     reshard: {
       node: nodeId,
+      group,
       shards: node.shards,
       key: node.shardKey,
       topology,
@@ -261,7 +273,14 @@ export const queueReshard = (
   if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
   return ok({
     ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
-    reshard: { node: nodeId, shards, key, topology: node.topology, phase: { _tag: 'Building' } },
+    reshard: {
+      node: nodeId,
+      group: dataGroupOf(game, node),
+      shards,
+      key,
+      topology: node.topology,
+      phase: { _tag: 'Building' },
+    },
   })
 }
 
@@ -299,7 +318,8 @@ const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
     const reshard = game.reshard
     if (!reshard) return game
     // The copy takes a calendar day at least, and a minute a GB of rows after that.
-    const copy = Math.max(1, (game.data * RESHARD_MINUTES_PER_GB * 60) / CALENDAR_DAY)
+    const rows = groupDataOf(game, reshardGroupOf(game, reshard))
+    const copy = Math.max(1, (rows * RESHARD_MINUTES_PER_GB * 60) / CALENDAR_DAY)
     return {
       ...game,
       reshard: {
@@ -320,10 +340,18 @@ const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   }
 }
 
-/** Ends a finished resharding copy: the Database runs the new shards and key from now on. */
+/** The Data Group a resharding lands on: the one it recorded, or the Node's own for an old save. */
+const reshardGroupOf = (game: Game, reshard: NonNullable<Game['reshard']>): string => {
+  if (reshard.group) return reshard.group
+  const node = game.nodes.find((entry) => entry.id === reshard.node)
+  return node ? dataGroupOf(game, node) : ''
+}
+
+/** Ends a finished resharding copy: the Data Group runs the new topology, and the Database runs the new shards and key from now on. */
 const finishReshard = (game: Game): Game => {
   const reshard = game.reshard
   if (!reshard || reshard.phase._tag !== 'Copying' || game.time < reshard.phase.until) return game
+  const group = reshardGroupOf(game, reshard)
   return {
     ...game,
     reshard: null,
@@ -331,11 +359,9 @@ const finishReshard = (game: Game): Game => {
       node.type === 'database'
         ? {
             ...node,
-            // A topology switch lands on every Database together; a plain resharding keeps each
+            // A topology switch lands on the whole Data Group; a plain resharding keeps each
             // Database's own shards and key unless it is the one being resharded.
-            ...(reshard.topology !== node.topology || node.id === reshard.node
-              ? { topology: reshard.topology }
-              : {}),
+            ...(dataGroupOf(game, node) === group ? { topology: reshard.topology } : {}),
             ...(node.id === reshard.node ? { shards: reshard.shards, shardKey: reshard.key } : {}),
           }
         : node,

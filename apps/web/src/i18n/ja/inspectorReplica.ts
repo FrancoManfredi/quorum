@@ -6,7 +6,7 @@ export const inspectorReplica: Messages['inspectorReplica'] = {
   primaryNote: (name) =>
     `${name}が書き込みを受けます。このノードはそのコピーから読み取りを返します。`,
   noSinglePrimary:
-    'この設計には複数のデータベースがあるため、このリードレプリカに単一のプライマリはありません。',
+    'このリードレプリカにデータベースをリンクすると、そのデータベースをコピーします。',
   asynchronous: '非同期',
   synchronous: '同期',
   runsThePrimaryEngine: 'プライマリと同じエンジンで動きます。',

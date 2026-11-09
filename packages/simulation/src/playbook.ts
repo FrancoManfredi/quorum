@@ -1,15 +1,15 @@
-import { Option, Result, Schema } from 'effect'
+import { Effect, Option, Result, Schema } from 'effect'
 import { COMPONENTS, HOME_REGION, RESEARCH } from './catalog.ts'
 import {
   Refusal,
   connect,
   place,
+  placeBox,
   resize,
   setFamily,
   rollRestore,
   setFramework,
   setRuntime,
-  setTopology,
   type Action,
 } from './actions.ts'
 import { decodeText, encodeText } from './codec.ts'
@@ -27,9 +27,19 @@ export const PlaybookNode = Schema.Struct({
 })
 export type PlaybookNode = typeof PlaybookNode.Type
 
+/** A box a Playbook keeps: its name, and the keys of the Nodes it holds (07 "Data Groups"). */
+export const PlaybookBox = Schema.Struct({
+  name: Schema.String,
+  keys: Schema.Array(Schema.String),
+})
+export type PlaybookBox = typeof PlaybookBox.Type
+
 export const Playbook = Schema.Struct({
   name: Schema.String,
   nodes: Schema.Array(PlaybookNode),
+  boxes: Schema.Array(PlaybookBox).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed([] as ReadonlyArray<PlaybookBox>)),
+  ),
   links: Schema.Array(
     Schema.Struct({
       from: Schema.String,
@@ -137,6 +147,7 @@ export const capture = (game: Game, ids: ReadonlyArray<string>, name: string): P
     const node = game.nodes.find((entry) => entry.id === id)
     return node && SHARED.includes(node.type) ? fixedKey(node) : null
   }
+  const contained = new Set(chosen.map((node) => node.id))
   return {
     name,
     nodes: chosen.map((node) => ({
@@ -146,6 +157,10 @@ export const capture = (game: Game, ids: ReadonlyArray<string>, name: string): P
       dy: node.y - top,
       settings: pick(node, [...STACK_SETTINGS, ...NODE_SETTINGS]),
     })),
+    // A box comes back with the Nodes it holds, under the same name.
+    boxes: game.boxes
+      .filter((box) => box.nodes.every((id) => contained.has(id)))
+      .map((box) => ({ name: box.name, keys: [...box.nodes] })),
     links: game.links.flatMap((link) => {
       const from = endOf(link.from)
       const to = endOf(link.to)
@@ -238,15 +253,6 @@ export const placePlaybook = (
   let next = game
   const ids = new Map<string, string>()
   const ghosts: Array<PlaybookNode> = []
-  // A Playbook that carries a topology picks it before its Databases land (07 "Topologies"),
-  // so a sharded or multi-leader paste is not refused by the second Database gate.
-  const wantedTopology = playbook.nodes.find((entry) => entry.type === 'database')?.settings
-    .topology
-  const firstDatabase = next.nodes.find((entry) => entry.type === 'database')
-  if (firstDatabase && (wantedTopology === 'sharded' || wantedTopology === 'multi')) {
-    const picked = setTopology(next, firstDatabase.id, wantedTopology)
-    if (Result.isSuccess(picked)) next = picked.success
-  }
   for (const entry of playbook.nodes) {
     if (ghostReason(next, entry, region)) {
       ghosts.push(entry)
@@ -279,6 +285,13 @@ export const placePlaybook = (
     const from = endOf(link.from)
     const to = endOf(link.to)
     if (from && to) next = linkWith(next, from, to, link.settings)
+  }
+  for (const box of playbook.boxes) {
+    const members = box.keys.flatMap((key) => {
+      const id = ids.get(key)
+      return id ? [id] : []
+    })
+    if (members.length >= 2) next = placeBox(next, members, box.name)
   }
   return Result.succeed({ game: next, placed: ids.size, ghosts, ids })
 }

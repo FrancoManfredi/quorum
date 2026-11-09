@@ -1,7 +1,7 @@
 import { copy, nodeTitle } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { SYNC_MS } from '@quorum/simulation/catalog'
-import { databasesOf, has, leaderOf } from '@quorum/simulation/lookups'
+import { databasesOf, has, primaryOf } from '@quorum/simulation/lookups'
 import type { Game, GameNode } from '@quorum/simulation/state'
 
 import { Message } from '@/game/message.ts'
@@ -11,7 +11,8 @@ import { type Panel, caption, nodeLink, picker, replicaEngine, section } from '.
 /** A Read Replica copies the single primary, whether every write waits for it, and promotion (07 "Read Replica", "Failover"). */
 const replica = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
-  const primary = leaderOf(game)
+  // A Read Replica copies the Database linked into it (07 "Read Replica").
+  const primary = primaryOf(game, node)
   const promotable = databasesOf(game).length === 1
   return [
     section(
