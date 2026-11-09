@@ -103,6 +103,7 @@ export const node = (
   clustering: false,
   zone: 'a',
   standby: false,
+  standbySync: true,
   pricing: 'on-demand',
   pricingUntil: null,
   replicas: 1,

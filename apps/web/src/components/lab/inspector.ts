@@ -1132,11 +1132,17 @@ const placement = (node: GameNode, h: HtmlBuilder<Message>): Html => {
             picker(
               'standby',
               [
-                [false, t.inspector.noStandby],
-                [true, t.inspector.standby],
+                ['off', t.inspector.noStandby],
+                ['async', t.inspector.standbyAsync],
+                ['sync', t.inspector.standbySync],
               ],
-              node.standby,
-              (standby) => Message.StandbyChosen({ nodeId: node.id, standby }),
+              !node.standby ? 'off' : node.standbySync ? 'sync' : 'async',
+              (mode) =>
+                Message.StandbyChosen({
+                  nodeId: node.id,
+                  standby: mode !== 'off',
+                  standbySync: mode === 'sync',
+                }),
               h,
             ),
           ]

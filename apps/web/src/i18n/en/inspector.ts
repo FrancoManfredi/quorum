@@ -81,6 +81,8 @@ export const inspector = {
   zone: 'Zone',
   noStandby: 'No standby',
   standby: 'Standby',
+  standbyAsync: 'Standby (async)',
+  standbySync: 'Standby (sync)',
   region: 'Region',
   region2: 'region',
   calls: 'Calls',

@@ -757,6 +757,8 @@ ms, US East to Sydney 200 ms.
 - **Multi-zone** (Series A) protects against a zone outage. It costs cross-zone traffic and
   redundancy. A data Node's standby takes over by itself after a share of the outage; the player's
   **Fail over** promotes it at once ([Mitigation toolbox](/design/11-incidents#mitigation-toolbox)).
+  A synchronous standby waits for every write and loses nothing on failover. An asynchronous one
+  adds no write latency, and failover loses the writes still in flight (RPO).
 - **Multi-region** (Series C) brings latency down for distant users and protects against a region
   outage. It forces a data decision: where does each write go? ([Data tier](/design/07-data-tier#multi-region-data)).
 - **Data residency** (Pre-IPO) requires European users' data to stay in Europe.

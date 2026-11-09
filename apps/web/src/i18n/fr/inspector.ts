@@ -83,6 +83,8 @@ export const inspector: Messages['inspector'] = {
   zone: 'Zone',
   noStandby: 'Sans secours',
   standby: 'Secours',
+  standbyAsync: 'Secours (async.)',
+  standbySync: 'Secours (sync.)',
   region: 'Région',
   region2: 'région',
   calls: 'Appels',

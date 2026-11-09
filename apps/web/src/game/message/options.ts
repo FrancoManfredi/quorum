@@ -32,7 +32,7 @@ import {
   Zone,
 } from '@quorum/simulation/state'
 import { FEATURE_IDS } from '@quorum/simulation/catalog'
-import { Schema } from 'effect'
+import { Effect, Schema } from 'effect'
 
 /** The options Messages, as cases for the root union. */
 export const optionsCases = {
@@ -169,7 +169,11 @@ export const optionsCases = {
     replicas: Schema.optional(Schema.Finite),
   },
   ZoneChosen: { nodeId: Schema.String, zone: Zone },
-  StandbyChosen: { nodeId: Schema.String, standby: Schema.Boolean },
+  StandbyChosen: {
+    nodeId: Schema.String,
+    standby: Schema.Boolean,
+    standbySync: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
+  },
   AutoscalerChosen: {
     nodeId: Schema.String,
     signal: Schema.optional(ScaleSignal),

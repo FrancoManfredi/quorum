@@ -818,8 +818,8 @@ export const syncReplicasOf = (game: Game): ReadonlyArray<GameNode> =>
  * slowest of them, 2 ms in the same zone, a zone hop more across zones, a region round trip more
  * across regions.
  */
-export const syncWaitMs = (game: Game, database: GameNode): number =>
-  syncReplicasOf(game).reduce(
+export const syncWaitMs = (game: Game, database: GameNode): number => {
+  const replicaWait = syncReplicasOf(game).reduce(
     (most, replica) =>
       Math.max(
         most,
@@ -832,6 +832,10 @@ export const syncWaitMs = (game: Game, database: GameNode): number =>
       ),
     0,
   )
+  const standbyWait =
+    database.standby && database.standbySync && database.type === 'database' ? SYNC_MS + CROSS_ZONE_MS : 0
+  return Math.max(replicaWait, standbyWait)
+}
 
 /** Whether a synchronous replica is down: every write on the primary stalls until it is back. */
 export const syncStalled = (game: Game): boolean =>

@@ -175,7 +175,10 @@ const SETTERS: ReadonlyArray<readonly [ReadonlyArray<keyof GameNode>, Setter]> =
       }),
   ],
   [['paranoia'], (game, id, node) => Actions.setParanoia(game, id, node.paranoia)],
-  [['standby'], (game, id, node) => Actions.setStandby(game, id, node.standby)],
+  [
+    ['standby', 'standbySync'],
+    (game, id, node) => Actions.setStandby(game, id, node.standby, node.standbySync),
+  ],
   [
     ['signal', 'target', 'minCopies', 'maxCopies'],
     (game, id, node) =>

@@ -1,4 +1,5 @@
 import { RUNNING, warming } from './life.ts'
+import { PROMOTE_DATA_LOSS } from './components/replica.ts'
 import { step as incidentStep } from './incident-machine.ts'
 import {
   type Action,
@@ -265,6 +266,7 @@ export const blankNode = (
     clustering: false,
     zone: 'a',
     standby: false,
+    standbySync: true,
     pricing: 'on-demand',
     pricingUntil: null,
     replicas: 1,
@@ -749,13 +751,14 @@ export const setZone = (game: Game, id: string, zone: Zone): Action =>
   })
 
 /** Gives a data Node a standby in another zone, at twice the Burn. Needs Multiple zones. */
-export const setStandby = (game: Game, id: string, standby: boolean): Action =>
+export const setStandby = (game: Game, id: string, standby: boolean, sync = true): Action =>
   withNode(game, id, (node) => {
     if (!STANDBY_TYPES.includes(node.type))
       return notAllowed('Only a Database, Pooler, Cache, Search Engine, or Queue keeps a standby.')
     if (standby && !has(game, 'multi-az'))
       return no(Refusal.Locked({ what: 'A standby', research: RESEARCH['multi-az'].name }))
-    return ok(node.standby === standby ? game : patch(game, id, { standby }))
+    if (node.standby === standby && node.standbySync === sync) return ok(game)
+    return ok(patch(game, id, { standby, standbySync: sync }))
   })
 
 /**
@@ -1147,11 +1150,16 @@ export const failOver = (game: Game, id: string): Action =>
     if (!isDown(node)) return notAllowed(`${name} is serving: there is nothing to fail over.`)
     const out = game.incident?.zone ?? null
     const zone = ZONES.find((entry) => entry !== node.zone && entry !== out) ?? node.zone
-    const promoted = patch(game, id, {
-      life: warming(warmAfterRestart(node)),
-      zone,
-      standby: false,
-    })
+    const loss = !node.standbySync && node.type === 'database' ? PROMOTE_DATA_LOSS : 0
+    const promoted = patch(
+      { ...game, data: game.data * (1 - loss) },
+      id,
+      {
+        life: warming(warmAfterRestart(node)),
+        zone,
+        standby: false,
+      },
+    )
     return ok(game.incident ? { ...promoted, incident: answering(game, game.incident) } : promoted)
   })
 

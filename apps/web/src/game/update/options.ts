@@ -1004,11 +1004,11 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
       { undoable: true },
     ),
 
-  StandbyChosen: ({ nodeId, standby }) =>
+  StandbyChosen: ({ nodeId, standby, standbySync }) =>
     act(
       model,
-      standby ? 'Standby on' : 'Standby off',
-      Actions.setStandby(model.board.game, nodeId, standby),
+      !standby ? 'Standby off' : standbySync ? 'Standby on (sync)' : 'Standby on (async)',
+      Actions.setStandby(model.board.game, nodeId, standby, standbySync),
       { undoable: true },
     ),
 

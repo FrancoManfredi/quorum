@@ -359,8 +359,10 @@ Node there at once.
 zone outage or a failed Node), it promotes the standby at once instead of after the usual failover
 time (a sixth of the zone outage). The standby becomes the primary, in a zone the outage did not
 take, and no copy stands behind it any more, so its Burn halves until the player gives it a new
-standby. A Node with no standby, or one that is serving, has nothing to promote. During a Zone
-outage the banner promotes every standby in the zone together. During a Region outage or a DR drill
+standby. A synchronous standby keeps every write; an asynchronous one can lose the writes still in
+flight when it takes over (RPO). A Node with no standby, or one that is serving, has nothing to
+promote. During a Zone outage the banner promotes every standby in the zone together. During a
+Region outage or a DR drill
 the banner starts again, cold, in the nearest other open region, every stateless Node the outage
 took down, and the Design pays a replacement for each. Data that lives in one region does not move:
 only a store spread across regions survives, which is what the drill tests. With no second region

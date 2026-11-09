@@ -182,6 +182,7 @@ const NODE_FIELD_ORDER = [
   'clustering',
   'zone',
   'standby',
+  'standbySync',
   'pricing',
   'pricingUntil',
   'replicas',
@@ -263,6 +264,8 @@ const NODE_FIELDS_UNORDERED = {
   zone: Zone.pipe(Schema.withDecodingDefaultKey(Effect.succeed('a' as const))),
   /** A data Node keeps a standby in another zone and fails over to it. */
   standby: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
+  /** A standby every write waits for; an asynchronous one can lose writes on failover. */
+  standbySync: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(true))),
   /** How a compute Node pays for its box (09 "Pricing models"). */
   pricing: Pricing.pipe(Schema.withDecodingDefaultKey(Effect.succeed('on-demand' as const))),
   /** Sim time a reserved term ends; null for every other model. */

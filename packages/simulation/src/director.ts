@@ -66,6 +66,7 @@ import { nodeLabel } from './labels.ts'
 export { zoned }
 import { Life, causeOf, down as takeDown, withWarm } from './life.ts'
 import { drillPassed } from './drill-machine.ts'
+import { PROMOTE_DATA_LOSS } from './components/replica.ts'
 import { nextRandom, pickWeighted } from './random.ts'
 import type { Game, GameLink, GameNode, Incident, Postmortem, Region, Zone } from './state.ts'
 import { isGlobal, survivesRegion } from './regions.ts'
@@ -916,8 +917,36 @@ export const startIncident = (
       : kind === 'page-leak'
         ? Math.floor(game.users * PAGE_LEAK_CHURN)
         : 0
+  const rpo = game.nodes.reduce(
+    (factor, node) =>
+      kind === 'zone' &&
+      zone !== null &&
+      zoned(node) &&
+      node.zone === zone &&
+      !isDown(node) &&
+      node.standby &&
+      !node.standbySync &&
+      node.type === 'database'
+        ? factor * (1 - PROMOTE_DATA_LOSS)
+        : kind === 'instance' &&
+            node.id === target?.id &&
+            node.standby &&
+            !node.standbySync &&
+            node.type === 'database'
+          ? factor * (1 - PROMOTE_DATA_LOSS)
+          : factor,
+    1,
+  )
   return {
-    game: { ...game, nodes, drill, incident, lastIncident: kind, users: game.users - lost },
+    game: {
+      ...game,
+      nodes,
+      drill,
+      incident,
+      lastIncident: kind,
+      users: game.users - lost,
+      data: game.data * rpo,
+    },
     incident,
   }
 }

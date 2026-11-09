@@ -81,6 +81,8 @@ export const inspector: Messages['inspector'] = {
   zone: 'ゾーン',
   noStandby: 'スタンバイなし',
   standby: 'スタンバイ',
+  standbyAsync: 'スタンバイ（非同期）',
+  standbySync: 'スタンバイ（同期）',
   region: 'リージョン',
   region2: 'リージョン',
   calls: '呼び出し',

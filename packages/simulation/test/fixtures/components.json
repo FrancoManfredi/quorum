@@ -193,7 +193,13 @@
     },
     "database": {
       "sends": [],
-      "fallback": ["q-search", "blob-put", "blob-get", "q-scan", "k-write"],
+      "fallback": [
+        "q-search",
+        "blob-put",
+        "blob-get",
+        "q-scan",
+        "k-write"
+      ],
       "stack": false,
       "limiting": true,
       "coldStart": true,
@@ -374,7 +380,13 @@
         "q-scan",
         "k-write"
       ],
-      "fallback": ["q-search", "blob-put", "blob-get", "q-scan", "k-write"],
+      "fallback": [
+        "q-search",
+        "blob-put",
+        "blob-get",
+        "q-scan",
+        "k-write"
+      ],
       "stack": false,
       "limiting": true,
       "coldStart": false,
@@ -417,7 +429,12 @@
         "q-scan",
         "k-write"
       ],
-      "fallback": ["q-search", "blob-put", "blob-get", "q-scan"],
+      "fallback": [
+        "q-search",
+        "blob-put",
+        "blob-get",
+        "q-scan"
+      ],
       "stack": false,
       "limiting": true,
       "coldStart": true,
@@ -472,7 +489,9 @@
       "blurb": "Answers reads from a copy. Lags behind writes, so some API reads come back stale.",
       "cost": 160,
       "latency": 2,
-      "accepts": ["q-read"]
+      "accepts": [
+        "q-read"
+      ]
     },
     "auth": {
       "sends": [],
@@ -497,7 +516,9 @@
       "blurb": "Hashes passwords for you. Charged per user.",
       "cost": 0,
       "latency": 120,
-      "accepts": ["auth"]
+      "accepts": [
+        "auth"
+      ]
     },
     "search": {
       "sends": [],
@@ -522,7 +543,9 @@
       "blurb": "Answers search queries. 400 per second per size step.",
       "cost": 300,
       "latency": 15,
-      "accepts": ["q-search"]
+      "accepts": [
+        "q-search"
+      ]
     },
     "storage": {
       "sends": [],
@@ -547,11 +570,16 @@
       "blurb": "Holds uploaded files. No limit. Pay for what it stores.",
       "cost": 280,
       "latency": 40,
-      "accepts": ["blob-put", "blob-get"]
+      "accepts": [
+        "blob-put",
+        "blob-get"
+      ]
     },
     "doc": {
       "sends": [],
-      "fallback": ["q-scan"],
+      "fallback": [
+        "q-scan"
+      ],
       "stack": false,
       "limiting": true,
       "coldStart": true,
@@ -572,10 +600,17 @@
       "blurb": "Holds documents instead of rows. No joins and no connections to pool: one flat rate of reads and writes, and each query needs its own index.",
       "cost": 260,
       "latency": 3,
-      "accepts": ["q-read", "q-write", "q-tx", "q-scan"]
+      "accepts": [
+        "q-read",
+        "q-write",
+        "q-tx",
+        "q-scan"
+      ]
     },
     "queue": {
-      "sends": ["task"],
+      "sends": [
+        "task"
+      ],
       "fallback": [],
       "stack": false,
       "limiting": true,
@@ -597,10 +632,17 @@
       "blurb": "Takes work now so Workers can do it later. Users wait only for the enqueue.",
       "cost": 360,
       "latency": 2,
-      "accepts": ["task"]
+      "accepts": [
+        "task"
+      ]
     },
     "worker": {
-      "sends": ["q-read", "q-write", "notify", "callout"],
+      "sends": [
+        "q-read",
+        "q-write",
+        "notify",
+        "callout"
+      ],
       "fallback": [],
       "stack": true,
       "limiting": true,
@@ -622,10 +664,14 @@
       "blurb": "Runs your code on tasks from a Queue. Users never wait for it. Link it to the data an export reads.",
       "cost": 60,
       "latency": 0,
-      "accepts": ["task"]
+      "accepts": [
+        "task"
+      ]
     },
     "log": {
-      "sends": ["task"],
+      "sends": [
+        "task"
+      ],
       "fallback": [],
       "stack": false,
       "limiting": true,
@@ -647,7 +693,9 @@
       "blurb": "A log, not a queue: events stay after they are read, so a consumer can replay them. Consumers read one partition each and fall behind at their own pace.",
       "cost": 900,
       "latency": 5,
-      "accepts": ["task"]
+      "accepts": [
+        "task"
+      ]
     },
     "fn": {
       "sends": [
@@ -913,7 +961,9 @@
       "blurb": "Holds a connection open for every realtime message. How many fit depends on the runtime.",
       "cost": 400,
       "latency": 1,
-      "accepts": ["rt"]
+      "accepts": [
+        "rt"
+      ]
     },
     "psp": {
       "sends": [],
@@ -938,7 +988,9 @@
       "blurb": "Charges cards for checkouts. 2.9% plus $0.30 per checkout.",
       "cost": 0,
       "latency": 400,
-      "accepts": ["charge"]
+      "accepts": [
+        "charge"
+      ]
     },
     "autoscaler": {
       "sends": [],
@@ -1038,7 +1090,9 @@
       "blurb": "Answers report scans in columns. 1.5 s each, no limit, paid per scan.",
       "cost": 800,
       "latency": 1500,
-      "accepts": ["q-scan"]
+      "accepts": [
+        "q-scan"
+      ]
     },
     "vec": {
       "sends": [],
@@ -1063,7 +1117,9 @@
       "blurb": "Answers nearest-neighbour lookups over your embeddings. It holds the index in memory, and a prompt that reaches it earns more.",
       "cost": 400,
       "latency": 20,
-      "accepts": ["q-search"]
+      "accepts": [
+        "q-search"
+      ]
     },
     "gpu": {
       "sends": [],
@@ -1088,7 +1144,9 @@
       "blurb": "Serves AI prompts in tokens per second. Each size step doubles the GPUs.",
       "cost": 900,
       "latency": 300,
-      "accepts": ["infer"]
+      "accepts": [
+        "infer"
+      ]
     },
     "edge": {
       "sends": [
@@ -1171,7 +1229,9 @@
       "blurb": "Serves AI prompts with no GPUs. Paid per token, and rate limited.",
       "cost": 0,
       "latency": 600,
-      "accepts": ["infer"]
+      "accepts": [
+        "infer"
+      ]
     },
     "msgp": {
       "sends": [],
@@ -1196,7 +1256,9 @@
       "blurb": "Sends push notifications and email. Paid per message, 10,000 a second.",
       "cost": 0,
       "latency": 100,
-      "accepts": ["notify"]
+      "accepts": [
+        "notify"
+      ]
     },
     "wide": {
       "sends": [],
@@ -1221,7 +1283,12 @@
       "blurb": "Replicates each key to N nodes. Reads ask R of them, writes wait for W.",
       "cost": 1200,
       "latency": 3,
-      "accepts": ["q-read", "q-write", "q-tx", "k-write"]
+      "accepts": [
+        "q-read",
+        "q-write",
+        "q-tx",
+        "k-write"
+      ]
     },
     "dsql": {
       "sends": [],
@@ -1246,10 +1313,16 @@
       "blurb": "SQL on Raft. Every write waits for a majority of its replicas.",
       "cost": 2500,
       "latency": 3,
-      "accepts": ["q-read", "q-write", "q-tx"]
+      "accepts": [
+        "q-read",
+        "q-write",
+        "q-tx"
+      ]
     },
     "cdc": {
-      "sends": ["task"],
+      "sends": [
+        "task"
+      ],
       "fallback": [],
       "stack": false,
       "limiting": true,
@@ -1505,6 +1578,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -1618,6 +1692,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -1731,6 +1806,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -1844,6 +1920,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -1957,6 +2034,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2070,6 +2148,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2183,6 +2262,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2296,6 +2376,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2409,6 +2490,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2522,6 +2604,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2635,6 +2718,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2748,6 +2832,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2861,6 +2946,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -2974,6 +3060,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3087,6 +3174,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3200,6 +3288,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3313,6 +3402,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3426,6 +3516,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3539,6 +3630,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3652,6 +3744,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3765,6 +3858,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3878,6 +3972,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -3991,6 +4086,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4104,6 +4200,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4217,6 +4314,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4330,6 +4428,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4443,6 +4542,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4556,6 +4656,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4669,6 +4770,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4782,6 +4884,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -4895,6 +4998,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5008,6 +5112,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5121,6 +5226,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5234,6 +5340,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5347,6 +5454,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5460,6 +5568,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5573,6 +5682,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",
@@ -5686,6 +5796,7 @@
       "clustering",
       "zone",
       "standby",
+      "standbySync",
       "pricing",
       "pricingUntil",
       "replicas",

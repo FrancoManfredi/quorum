@@ -331,6 +331,10 @@ the old primary becomes its replica, fenced so writes never split between two pr
 synchronous replica has no writes in flight, so nothing is lost. An asynchronous one still held
 writes the primary had not shipped, so promotion loses 2% of the rows. The new primary starts cold.
 
+A data Node's standby follows the same choice. A synchronous standby makes every write wait for it
+and survives a failover with no data loss. An asynchronous standby adds no write latency and can
+lose the writes still in flight when it takes over (RPO).
+
 ## Partitioning (sharding)
 
 Research "Sharding" splits one Database into N shards by a key.

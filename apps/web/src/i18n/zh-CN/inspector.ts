@@ -73,6 +73,8 @@ export const inspector: Messages['inspector'] = {
   zone: '可用区',
   noStandby: '无备用节点',
   standby: '备用节点',
+  standbyAsync: '备用节点（异步）',
+  standbySync: '备用节点（同步）',
   region: '区域',
   region2: '区域',
   calls: '调用',
