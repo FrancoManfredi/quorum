@@ -15,9 +15,9 @@ export const ROLLOUT_SHARE = 0.25
  * verifies it, so only that first fleet's slice sees the bug. Canary sends 5% of traffic first.
  *
  * The design's ceilings are Recreate's 100% and Canary's 5%; Rolling keeps 16's 40%. Blue-green is
- * the build's change from 05's 100%: a deploy never interrupts traffic here and rollback is instant
- * for every Company, so the design's "instant rollback" pays nothing, and its "the old fleet keeps
- * serving until the new one is up" is read as the shield instead.
+ * the build's change from 05's 100%: a deploy never interrupts traffic here, so the design's "the old
+ * fleet keeps serving until the new one is up" is read as the shield. A rollback takes the deploy
+ * time (11 "Mitigation toolbox").
  *
  * Deploy minutes and the Burn multiplier are  Burn multiplies the Pipeline's
  * own, since a second fleet and the canary's metrics would bill beside it.

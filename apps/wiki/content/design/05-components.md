@@ -605,8 +605,7 @@ ceiling on that share, so Recreate's 100% arrives with a batch of thirteen Featu
 
 Blue-green's ceiling is 10%: the old fleet keeps serving until the new one is up, so the new fleet is
 checked on a slice before the switch. A bad deploy breaks 10% of traffic. A deploy never
-interrupts traffic, and rollback ends a Bad deploy at once for every Company with the
-research, so neither is worth a number here.
+interrupts traffic, and a rollback returns the Service to its previous version in the deploy time.
 
 Each strategy has a deploy time and a Burn multiple. The multiple is of the Pipeline's own rate and
 stands for a second fleet or a canary's metrics.

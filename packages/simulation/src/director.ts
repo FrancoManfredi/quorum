@@ -61,6 +61,7 @@ import {
   ackAtOf,
   step as incidentStep,
 } from './incident-machine.ts'
+import { step as featureStep } from './feature-machine.ts'
 import { nodeLabel } from './labels.ts'
 
 export { zoned }
@@ -71,7 +72,14 @@ import { nextRandom, pickWeighted } from './random.ts'
 import type { Game, GameLink, GameNode, Incident, Postmortem, Region, Zone } from './state.ts'
 import { isGlobal, survivesRegion } from './regions.ts'
 import { collectorOf } from './capacity.ts'
-import { fixed, platformStaffed, quartersBehind, serviceOf } from './team.ts'
+import {
+  fixed,
+  platformStaffed,
+  quartersBehind,
+  serviceOf,
+  serviceOfId,
+  withServiceId,
+} from './team.ts'
 
 /**
  * Sim seconds an incident runs unmitigated. Once the error budget counts, it runs on
@@ -1078,11 +1086,29 @@ const resolve = (
 ): Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }> => {
   const incident = game.incident
   if (!incident) return { game, events: [] }
-  const postmortem = postmortemOf(game, incident, auto)
-  const killed = game.nodes.find(
+  // A completed rollback returns the batch to awaiting (11 "Mitigation toolbox").
+  const recovered =
+    incident.kind === 'bad-deploy' && incident.rollingBack
+      ? (() => {
+          const service = serviceOfId(game, incident.service ?? undefined)
+          const batch = service.lastDeploy
+          const rest = Object.entries(game.features).filter(([id]) => !batch.includes(id))
+          const waiting = batch.map((id) => {
+            const phase = game.features[id]
+            return [id, featureStep(phase ?? { _tag: 'Awaiting' }, { _tag: 'RolledBack' })] as const
+          })
+          return withServiceId(
+            { ...game, features: Object.fromEntries([...waiting, ...rest]) },
+            service.id,
+            { lastDeploy: [] },
+          )
+        })()
+      : game
+  const postmortem = postmortemOf(recovered, incident, auto)
+  const killed = recovered.nodes.find(
     (node) => node.id === incident.nodeId && incident.kind === 'leak' && node.leak > 0,
   )
-  const nodes = game.nodes.map((node) => {
+  const nodes = recovered.nodes.map((node) => {
     // A rolled-back config: the crashed servers restart on the old one.
     if (
       incident.kind === 'config' &&
@@ -1109,20 +1135,22 @@ const resolve = (
     return node
   })
   const cleared: Game = {
-    ...game,
+    ...recovered,
     nodes,
     incident: null,
-    postmortems: game.sandbox ? game.postmortems : [...game.postmortems, postmortem].slice(-4),
+    postmortems: recovered.sandbox
+      ? recovered.postmortems
+      : [...recovered.postmortems, postmortem].slice(-4),
     postmortemSeq: postmortem.id,
     openActions:
-      postmortem.action && !game.openActions.includes(postmortem.action)
-        ? [...game.openActions, postmortem.action]
-        : game.openActions,
+      postmortem.action && !recovered.openActions.includes(postmortem.action)
+        ? [...recovered.openActions, postmortem.action]
+        : recovered.openActions,
     // A run that a player ended is one the team has handled by hand, so it may get a runbook.
     handled:
-      auto || game.handled.includes(incident.kind)
-        ? game.handled
-        : [...game.handled, incident.kind],
+      auto || recovered.handled.includes(incident.kind)
+        ? recovered.handled
+        : [...recovered.handled, incident.kind],
   }
   const events: Array<StepEvent> = [
     ...(killed ? [StepEvent.OutOfMemory({ nodeId: killed.id })] : []),

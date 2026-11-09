@@ -104,6 +104,7 @@ import {
   dataStaffed,
   days,
   deployEvery,
+  deployMinutesOf,
   enqueue,
   fixed,
   hireSeconds,
@@ -1219,31 +1220,16 @@ const deployed = (
   return Object.fromEntries([...rest, ...live])
 }
 
-/** Rolls a batch back: each waits for the next deploy again, at the front of the queue. */
-const rolledBack = (
-  features: Game['features'],
-  batch: ReadonlyArray<FeatureId>,
-): Game['features'] => {
-  const rest = Object.entries(features).filter(([id]) => !batch.includes(id as FeatureId))
-  const waiting = batch.map((id) => {
-    const phase = features[id]
-    return [id, featureStep(phase ?? { _tag: 'Awaiting' }, { _tag: 'RolledBack' })] as const
-  })
-  return Object.fromEntries([...waiting, ...rest])
-}
-
-/** Rolls back a bad deploy: its Features wait for the next deploy again. Needs Continuous delivery. */
+/** Rolls back a bad deploy: returns the Service to its previous version in deploy time (11). */
 export const rollback = (game: Game): Action => {
   if (game.incident?.kind !== 'bad-deploy') return notAllowed('No deploy needs rolling back.')
+  if (game.incident.rollingBack) return notAllowed('That deploy is already rolling back.')
   if (!has(game, 'ci')) return no(Refusal.Locked({ what: 'Roll back', research: RESEARCH.ci.name }))
-  const service = serviceOfId(game, game.incident.service ?? undefined)
-  const batch = service.lastDeploy
-  const rolled: Game = {
+  const minutes = deployMinutesOf(game) * (platformStaffed(game) ? 0.5 : 1)
+  return ok({
     ...game,
-    features: rolledBack(game.features, batch),
-    incident: { ...game.incident, remaining: 0 },
-  }
-  return ok(withServiceId(rolled, service.id, { lastDeploy: [] }))
+    incident: { ...game.incident, rollingBack: true, remaining: minutes },
+  })
 }
 
 type Advance = Readonly<{ game: Game; events: ReadonlyArray<StepEvent> }>

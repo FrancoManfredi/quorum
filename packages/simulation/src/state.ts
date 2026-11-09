@@ -369,6 +369,8 @@ export const Incident = Schema.Struct({
   causedBy: Schema.NullOr(IncidentId).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
   /** The player throttled the connects of the Hub a Reconnect storm hit (11 "Reconnect storm"). */
   throttled: Schema.optionalKey(Schema.Boolean),
+  /** A rollback is in progress: the bad deploy ends when it completes (11 "Mitigation toolbox"). */
+  rollingBack: Schema.optionalKey(Schema.Boolean),
 })
 export type Incident = typeof Incident.Type
 

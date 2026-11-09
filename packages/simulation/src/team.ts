@@ -437,17 +437,21 @@ export const buildMinutesOf = (game: Game): number => {
   return LANGUAGES[languageOfService(game)].buildMinutes * native
 }
 
-export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number => {
-  const team = game.teams[0]
-  const policy = team ? policyNow(game, team, tuning) : POLICIES.balanced
+/** Minutes a deploy (or rollback) takes: the strategy's, or CI's, or the manual path (11, 05). */
+export const deployMinutesOf = (game: Game): number => {
   const strategy = deployStrategyOf(game)
-  const minutes = strategy
+  return strategy
     ? strategy.deployMinutes
     : has(game, 'ci')
       ? CI_DEPLOY_MINUTES
       : MANUAL_DEPLOY_MINUTES
+}
+
+export const deploysPerDay = (game: Game, tuning: Tuning = LIVE_TUNING): number => {
+  const team = game.teams[0]
+  const policy = team ? policyNow(game, team, tuning) : POLICIES.balanced
   // A Platform team halves deploy time (08 "Teams").
-  const deploy = minutes * (platformStaffed(game) ? 0.5 : 1)
+  const deploy = deployMinutesOf(game) * (platformStaffed(game) ? 0.5 : 1)
   const build = buildMinutesOf(game)
   const base = Math.min(policy.deploysPerDay, WORK_MINUTES / (build + deploy + VERIFY_MINUTES))
   // Trunk-based development ships 50% more often (10 "Track: Product and business").
