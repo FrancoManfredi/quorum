@@ -86,8 +86,8 @@ Cash. The drawer holds about a minute of revenue at the current rate, and bigger
 Revenue that arrives while the drawer is full is lost.
 
 The drawer gives the first minutes of the Garage something to do, and then it gets out of the way. The
-[Stripe Billing](/research/stripe) research collects automatically, and while you are away, revenue
-goes straight into Cash. Where Cash goes after that is in [Cash, Burn, and funding](/explanation/money).
+[Stripe Billing](/research/stripe) research collects automatically. The drawer never fills while the
+Company is closed, because the clock stops with it. Where Cash goes after that is in [Cash, Burn, and funding](/explanation/money).
 
 ## How to raise income
 

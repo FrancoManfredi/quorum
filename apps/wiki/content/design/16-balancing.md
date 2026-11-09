@@ -75,8 +75,6 @@ Formatting: SI suffixes only (k, M, B, T). No letter suffixes such as "aa".
 | Market gain cap           |                | +100% of the Era market                                                      | [Sizes](/design/08-team-and-velocity#sizes)                                |
 | Link timeout              |                | 30 s                                                                         | [Simulation](/design/04-simulation#capacity-utilization-and-queues)        |
 | Drawer size               |                | `max($25, 60 s of revenue)`                                                  | [Economy](/design/09-economy#the-payments-drawer)                          |
-| Offline cap               |                | 8 h; 12, 18, 24 h with Night shift                                           | [Simulation](/design/04-simulation#offline-progress)                       |
-| Offline churn cap         |                | 5%                                                                           | [Simulation](/design/04-simulation#offline-progress)                       |
 | SLA credit                |                | 10% of subscription revenue while the trailing week misses the signed target | [Incidents](/design/11-incidents#sla-credits)                              |
 | On-call ack               |                | 5 sim s after the page                                                       | [Incidents](/design/11-incidents#the-incident-loop)                        |
 | CDC change rate           |                | 20,000 changes/s (05)                                                        | [CDC Connector](/design/05-components#cdc-connector)                       |

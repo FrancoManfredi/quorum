@@ -437,7 +437,6 @@ Mail takes over some Board and panel messages and leaves others where they are.
 | Goal pill at the top of the Board  | Cloud, Monitoring, and Mentor Mail                                 |
 | Funding round modal and pager chip | Investor Mail with Raise and Decline                               |
 | Postmortem card                    | Teammate Mail with the file actions                                |
-| Away card                          | A Mail from Finance and Monitoring, "While you were away"          |
 | Team panel requests                | Teammate Mail, and the panel stays for the roster                  |
 | Era card                           | Nothing: an Era transition is a scene, not a message               |
 | Sandbox and Challenge objectives   | Nothing: they stay on the Board, because Mail belongs to a Company |
@@ -588,8 +587,6 @@ Teammates draw a name from a pool and keep it for life.
 - **Postmortems:** when an Incident resolves, a teammate writes with File postmortem and File and
   research the action item, which send the same Action the Dashboard's Incidents row sends. The
   Dashboard row also lists the Postmortems.
-- **Away Mail:** on a return from away, Finance writes "While you were away" with users, Cash, Studies
-  and Dev Hours, and the pager writes the peak load and what was lost. The Away panel also opens.
 - **The Credential leak:** a phishing trap starts it, the pager writes about it, and the trap's Thread
   records the click. A fake invoice and a domain notice cost the Cash printed on them. Reporting a
   phishing Mail as spam takes its button away.

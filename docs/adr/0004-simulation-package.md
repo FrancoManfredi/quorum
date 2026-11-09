@@ -2,11 +2,10 @@
 
 The Simulation lives in `packages/simulation` (`@quorum/simulation`), not inside the website.
 The browser plays it, and from M8 the API Worker replays Challenge submissions with it to compute
-the authoritative score ([ADR 0002](./0002-endless-incremental-game-in-the-browser.md),
+the authoritative score ([ADR 0022](./0022-the-company-pauses-when-the-player-leaves.md),
 [Challenges](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/14-challenges.md#rules)). Two runtimes execute the same code, so it is a real
 shared boundary, and [GDD 17](https://github.com/elianiva/quorum/blob/main/apps/wiki/content/design/17-scope-and-roadmap.md#scope-rules) already names it: the
-Simulation stays a pure module that runs in tests, offline progress, the Tradeoff preview, and
-server verification. CONTEXT.md defines the word, so the package is named for it.
+Simulation stays a pure module that runs in tests, the Tradeoff preview, and server verification. CONTEXT.md defines the word, so the package is named for it.
 
 Considered options:
 

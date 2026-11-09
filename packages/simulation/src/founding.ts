@@ -23,7 +23,6 @@ import {
   type IncidentId,
   type LanguageId,
   type MutatorId,
-  type PerkId,
   type ResearchId,
   type RuntimeId,
   type VentureDef,
@@ -31,13 +30,12 @@ import {
 import { nextRandom } from './random.ts'
 import { headStartGame, newGame } from './company.ts'
 import { restarting, type Life } from './life.ts'
-import { sreStaffed } from './lookups.ts'
+import { perkLevel, sreStaffed } from './lookups.ts'
 import { NEW_ENGINEER } from './state.ts'
 import type { Founding, Game, GameNode, Region, Retries } from './state.ts'
 
 /** The level of a perk the Company was founded with. 0 in a Sandbox. */
-export const perkLevel = (game: Game, id: PerkId): number =>
-  game.sandbox ? 0 : Math.min(PERKS[id].costs.length, game.founding.perks[id] ?? 0)
+export { perkLevel }
 
 export const ventureOf = (game: Game): VentureDef =>
   game.sandbox ? VENTURES['b2b-saas'] : VENTURES[game.founding.venture]

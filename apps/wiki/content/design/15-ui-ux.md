@@ -403,11 +403,6 @@ Advice and offers are Mail ([Mail](/design/18-mail)). The rules below cover what
 - Era transitions use a full-screen card with an illustration of that Era's machines (one more machine in each Era, joined by cables), the new kinds and the new problem in one sentence. One
   click to continue.
 
-## Offline return
-
-A single card: time away, users then and now, Cash and Dev Hours earned, the Studies that completed, the peak hour and
-its worst utilization, and one suggestion if users were lost at peak.
-
 ## Accessibility
 
 - Request kind colors pass contrast checks, and each kind's packets also carry one of four shapes

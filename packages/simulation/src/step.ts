@@ -191,27 +191,21 @@ export const growthOf = (game: Game, ledger: Ledger, pace = LIVE_TUNING.pace): n
   return REGIONS.reduce((total, region) => total + growth[region], 0)
 }
 
-/**
- * Users after `seconds`, never under 20. Offline, users grow only while the
- * errors stay inside the SLO; they still leave.
- */
+/** Users after `seconds`, never under 20. */
 const grow = (
   game: Game,
   ledger: Ledger,
   seconds: number,
   pace: number,
-  offline: boolean,
 ): Pick<Game, 'users' | 'userShares' | 'steady'> => {
   if (game.sandbox) return game
   const flows = flowsOf(game, ledger, pace)
-  const holds = !offline || ledger.errorShare <= 1 - eraOf(game).slo
-  const moved = (flow: number): number => (flow <= 0 || holds ? flow * seconds : 0)
   const users = regionUsers(game)
   const steady = perRegion((region) =>
-    Math.max(0, users[region] * steadyOf(game, region) + moved(flows[region].steady)),
+    Math.max(0, users[region] * steadyOf(game, region) + flows[region].steady * seconds),
   )
   const fickle = perRegion((region) =>
-    Math.max(0, users[region] * (1 - steadyOf(game, region)) + moved(flows[region].fickle)),
+    Math.max(0, users[region] * (1 - steadyOf(game, region)) + flows[region].fickle * seconds),
   )
   const grown = perRegion((region) => steady[region] + fickle[region])
   const shares = perRegion((region) =>
@@ -238,13 +232,7 @@ export const forecastUsers = (
 ): PerRegion => {
   let current = game
   for (let left = seconds; left > 0; left -= FORECAST_STEP) {
-    const grown = grow(
-      { ...current, sandbox: false },
-      ledger,
-      Math.min(FORECAST_STEP, left),
-      pace,
-      false,
-    )
+    const grown = grow({ ...current, sandbox: false }, ledger, Math.min(FORECAST_STEP, left), pace)
     current = { ...current, ...grown }
   }
   return regionUsers(current)
@@ -719,17 +707,8 @@ const advanceAlarms = (
   return { alarms: next, falseAlarms: { day, ...counts } }
 }
 
-/**
- * Advances the Company by `seconds`. `offline` is the return from time away
- * (04 "Offline progress"): revenue goes straight to Cash, no incident starts,
- * and users grow only while the Era's SLO holds.
- */
-export const step = (
-  game: Game,
-  seconds: number,
-  tuning: Tuning = LIVE_TUNING,
-  offline = false,
-): StepResult => {
+/** Advances the Company by `seconds`. The clock runs only while the player has the Company open. */
+export const step = (game: Game, seconds: number, tuning: Tuning = LIVE_TUNING): StepResult => {
   const ledger = solveFlow(game)
   const events: Array<StepEvent> = []
 
@@ -740,7 +719,7 @@ export const step = (
   let spilled = game.spilled
   if (game.sandbox) {
     // A Sandbox has no money: placing is free, and revenue and Burn are only figures.
-  } else if (has(game, 'stripe') || offline) {
+  } else if (has(game, 'stripe')) {
     cash += earned
   } else {
     const room = Math.max(0, drawerSize(game, ledger.revenue) - pending)
@@ -777,7 +756,7 @@ export const step = (
   const kept =
     keptDays > 0 ? ((rows * ROW_KB) / 1_000_000) * keptDays * 1_440 : Number.POSITIVE_INFINITY
   const data = Math.min(kept, game.data + added)
-  const { users, userShares, steady } = grow(game, ledger, seconds, tuning.pace, offline)
+  const { users, userShares, steady } = grow(game, ledger, seconds, tuning.pace)
   const apdex = game.apdex + (ledger.apdex - game.apdex) * Math.min(1, seconds / APDEX_WINDOW)
   // Sim time stays on a microsecond grid, so ten 0.1 s Steps make exactly one second.
   const time = Math.round((game.time + seconds) * 1e6) / 1e6
@@ -863,18 +842,16 @@ export const step = (
   // The Era's Milestone puts its round on the table once.
   if (canRaise(next) && next.round._tag !== 'Offered')
     next = { ...next, round: { _tag: 'Offered' } }
-  const team = advanceTeam(next, ledger, seconds, tuning, offline)
+  const team = advanceTeam(next, ledger, seconds, tuning)
   next = team.game
   events.push(...team.events)
-  if (!offline) next = advanceCves(next, ledger, seconds, events)
-  if (!offline) {
-    const certificates = advanceCertificate(next, ledger, tuning)
-    next = certificates.game
-    events.push(...certificates.events)
-    const directed = directIncidents(next, ledger, tuning.incidentGap)
-    next = directed.game
-    events.push(...directed.events)
-  }
+  next = advanceCves(next, ledger, seconds, events)
+  const certificates = advanceCertificate(next, ledger, tuning)
+  next = certificates.game
+  events.push(...certificates.events)
+  const directed = directIncidents(next, ledger, tuning.incidentGap)
+  next = directed.game
+  events.push(...directed.events)
   // Penetration testing reveals one weakness a calendar week: the first time a week's worth of
   // calendar minutes rolls over, its prevention research joins the open action items, the same
   // way a Postmortem's action item does (10 "Track: Security", `pen-testing`).
@@ -899,7 +876,7 @@ export const step = (
     }
 
   // The Autopilot perk's policies act on the Design and the Team (13 "The Legacy shop").
-  if (!offline) next = applyPolicies(next, ledger)
+  next = applyPolicies(next, ledger)
 
   // Money out: Burn keeps billing, and a shortfall brings the bridge or the shutdown.
   next = advanceRunway(next, ledger)

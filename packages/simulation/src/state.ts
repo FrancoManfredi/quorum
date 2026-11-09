@@ -1032,7 +1032,5 @@ export const Game = Schema.Struct({
   iac: Schema.optionalKey(Infra),
   /** Regions built from another region (05 "Mirror a region"). Absent until the first Mirror. */
   mirrors: Schema.optionalKey(Schema.Array(Mirror)),
-  /** Wall-clock milliseconds of the last save, written by the browser for offline progress. */
-  wall: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
 })
 export type Game = typeof Game.Type

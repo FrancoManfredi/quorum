@@ -52,7 +52,6 @@ type ExitTag =
   | 'RoundDeclined'
   | 'BridgeAccepted'
   | 'PostmortemFiled'
-  | 'AwayClosed'
   | 'SurveySubmitted'
   | 'SurveySkipped'
   | 'SurveySent'
@@ -274,14 +273,6 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
       note: () => (take && action ? [`Study queued: ${RESEARCH[action].name}.`, 'primary'] : null),
     })
   },
-
-  AwayClosed: () => ({
-    model: {
-      ...model,
-      panel: 'none',
-      companyPhase: step(model.companyPhase, { _tag: 'AwayClosed' }),
-    },
-  }),
 
   SurveySubmitted: () => submitSurvey(model),
   SurveySkipped: () => ({

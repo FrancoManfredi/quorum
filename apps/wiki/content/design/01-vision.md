@@ -26,7 +26,7 @@ player argues that PHP-FPM is fine, then proves it with numbers.
 | Working backend engineers        | To see their real knowledge pay off and to argue about runtimes. | Mechanics that behave like production. Their instincts work, and their biases are tested.    |
 | Junior engineers and students    | To learn system design without reading a book first.             | Fast feedback. Each concept arrives when the player first needs it, or earlier in a Sandbox. |
 | Factorio and Upload Labs players | A new optimization problem with depth.                           | Throughput chains, ratios, bottlenecks, and an end goal they can measure.                    |
-| Idle game players                | Numbers that grow, progress while away, and a prestige loop.     | Offline progress, automation as a reward, and Legacy that changes the next run.              |
+| Incremental game players         | Numbers that grow, deep systems, and a prestige loop.            | Nested loops, automation as a reward, and Legacy that changes the next run.                  |
 
 The primary audience is the first row. Every mechanic must survive review by a senior engineer.
 The other rows decide how the game teaches and paces.
@@ -87,7 +87,9 @@ Test: during normal play, the player can find the bottleneck without opening a p
 
 Quorum has no paid timers, no energy, no loot boxes, and no fear of missing out. Tedium is a
 design bug, so automation of repeated actions is a reward the player earns, and it arrives before
-the action becomes tiresome. The game stops nagging when the player stops.
+the action becomes tiresome. The game stops nagging when the player stops. Closing the Company stops
+the clock too, so the game never asks the player to come back and collect, defend, or catch up
+([Simulation](/design/04-simulation#the-clock-stops)).
 
 Test: no action needs more than five repeated clicks without a bulk alternative.
 
@@ -98,7 +100,7 @@ Test: no action needs more than five repeated clicks without a bulk alternative.
 - **Not a vendor catalog.** Products appear as examples of a category, such as "Cache (Redis)".
   The game does not rank vendors.
 - **Not a Kubernetes simulator.** Quorum models the behaviors that the player optimizes, and it
-  models them directly ([ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)).
+  models them directly ([ADR 0022](https://github.com/elianiva/quorum/blob/main/docs/adr/0022-the-company-pauses-when-the-player-leaves.md)).
 - **Not an infinite number treadmill.** The user count stops at the number of people online, about
   6 billion ([Reality check](/design/reality-check#scale)). After that, the game is about margin,
   latency, and reliability.
@@ -111,8 +113,8 @@ Test: no action needs more than five repeated clicks without a bulk alternative.
 | -------------------------------------------------------- | ------------------------- |
 | Time to first meaningful choice                          | Under 60 seconds          |
 | Time to first bottleneck the player fixes alone          | Under 3 minutes           |
-| First company to IPO                                     | 9 to 12 hours             |
-| Content to complete all Ventures and Legacy              | 80 to 150 hours           |
+| First company to IPO                                     | 9 to 12 hours of play     |
+| Content to complete all Ventures and Legacy              | 80 to 150 hours of play   |
 | Share of playtesters who can explain a p99 after 2 hours | More than 70%             |
 | Share of distinct winning stacks in Challenge histograms | No single stack above 40% |
 

@@ -227,7 +227,6 @@ export const company = (seed: number): Omit<Game, 'nodes' | 'links'> => ({
   founding: DEFAULT_FOUNDING,
   banked: 0,
   peak: 0,
-  wall: 0,
 })
 
 /**

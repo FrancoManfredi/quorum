@@ -1,5 +1,4 @@
 import { Schema } from 'effect'
-import { ResearchId } from '@quorum/simulation/state'
 
 /* ==========================================================================
    State schemas shared by the Model and the machines. They live here so a
@@ -72,19 +71,3 @@ export const Reveal = Schema.Literals([
   'glossary',
 ])
 export type Reveal = typeof Reveal.Type
-
-/** What happened while the player was away (15 "Offline return"). */
-export const Away = Schema.Struct({
-  seconds: Schema.Finite,
-  away: Schema.Finite,
-  usersBefore: Schema.Finite,
-  usersAfter: Schema.Finite,
-  cash: Schema.Finite,
-  studied: Schema.Array(ResearchId),
-  devHours: Schema.Finite,
-  peak: Schema.Finite,
-  peakHour: Schema.Finite,
-  peakNode: Schema.NullOr(Schema.String),
-  lost: Schema.Boolean,
-})
-export type Away = typeof Away.Type

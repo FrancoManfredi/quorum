@@ -13,7 +13,6 @@ export const companiesCases = {
     id: Schema.String,
     open: Schema.Boolean,
     json: Schema.NullOr(Schema.String),
-    now: Schema.Finite,
   },
   CompanyNameChanged: { name: Schema.String },
   LogoChosen: { logo: LogoId },

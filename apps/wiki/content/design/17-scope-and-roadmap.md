@@ -147,14 +147,13 @@ Code: `simulation/catalog/*.ts` (`catalog.ts` re-exports them)
 
 ### Prestige
 
-Code: `simulation/exit.ts`, `founder.ts`, `founding.ts`, `playbook.ts`, `offline.ts`, `catalog/legacy.ts`, `catalog/ventures.ts`, `components/lab/legacy.ts`, `game/title.ts`
+Code: `simulation/exit.ts`, `founder.ts`, `founding.ts`, `playbook.ts`, `catalog/legacy.ts`, `catalog/ventures.ts`, `components/lab/legacy.ts`, `game/title.ts`
 
 - Exits (Acqui-hire, Acquisition, IPO, Step down) paying Legacy
 - The Founder record (`quorum.founder.v1`) with company history
 - The Legacy shop (12 perks)
 - Playbooks with board multi-select and `QPB1:` text
 - 12 Ventures and 10 Mutators chosen on the title screen
-- Offline progress with a return summary
 
 ### Challenges
 
@@ -250,11 +249,12 @@ The [balancing document](/design/16-balancing) records the live tuning and what 
 
 ## Scope rules
 
-- The Simulation is a pure module with no UI imports, so it runs in tests, in the offline
-  simulation, in the Tradeoff card preview, and, once accounts exist, in Challenge verification on the server.
+- The Simulation is a pure module with no UI imports, so it runs in tests, in the Tradeoff card
+  preview, and, once accounts exist, in Challenge verification on the server.
 - Sandboxes run only in the browser. They need no server, no account, and no histogram, so they ship
   with the milestone that adds their mechanics, not with Challenges in M8.
-- The browser owns the company simulation ([ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)).
+- The browser owns the company simulation, which pauses when the player leaves
+  ([ADR 0022](https://github.com/elianiva/quorum/blob/main/docs/adr/0022-the-company-pauses-when-the-player-leaves.md)).
   The API Worker owns only what needs a server: today the Exit survey, and with accounts Challenge
   verification and histograms. Those contracts go in `packages/rpc` and their handlers in `apps/backend`, as the repository
   guide requires.
@@ -268,7 +268,7 @@ and the [dominance rule](/design/16-balancing#dominance) holding for the content
 
 | #   | Milestone                    | Contents                                                                                                                                                                                                                                 | Exit check                                                                                                                                                                          |
 | --- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0  | Design and vocabulary        | These documents, [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md), [ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)                                | Reviewed                                                                                                                                                                            |
+| M0  | Design and vocabulary        | These documents, [CONTEXT.md](https://github.com/elianiva/quorum/blob/main/CONTEXT.md), [ADR 0022](https://github.com/elianiva/quorum/blob/main/docs/adr/0022-the-company-pauses-when-the-player-leaves.md)                              | Reviewed                                                                                                                                                                            |
 | M1  | Real capacity model          | Instance types, concurrency models, memory limits, the latency coupling, Apdex revenue, logistic growth, connection limits, the bottleneck marker                                                                                        | Runtime balance targets pass ([Balancing](/design/16-balancing#runtime-balance-targets)). The margin bot passes ([Cost index](/design/16-balancing#cost-index)).                    |
 | M2  | Garage and Pre-seed complete | Kinds `page` to `login`; PHP, Ruby, Node.js, Python with their early variants; Cache, Pooler, Replica, DNS, Load Balancer; visibility steps 0–4; first incidents; the Garage and Pre-seed Sandbox tracks                                 | Balanced bot reaches Seed on every seed, at 26.8–35.7 sim minutes at the Challenge pace. Each guided Sandbox passes with its fix and fails with its wrong option.                   |
 | M3  | Tradeoff cards and preview   | The six-axis card, the ghost-simulation preview, Settling and Stable, delta toasts, undo; the free Sandbox                                                                                                                               | Playtest: players predict the effect of a Stack change                                                                                                                              |
@@ -289,7 +289,7 @@ fix the loop before adding Components.
 - Multiplayer and shared companies.
 - Accounts. Challenge histograms and server verification wait for them.
 - Paid currency of any kind.
-- A simulated Kubernetes cluster ([ADR 0002](https://github.com/elianiva/quorum/blob/main/docs/adr/0002-endless-incremental-game-in-the-browser.md)).
+- A simulated Kubernetes cluster ([ADR 0022](https://github.com/elianiva/quorum/blob/main/docs/adr/0022-the-company-pauses-when-the-player-leaves.md)).
 - A mobile design target. Below 640 px wide or 500 px tall the screen switches to a compact layout (the Inbox panes stack, and the toolbar folds rarely used controls into More), but the board needs space, so the game is tuned for larger screens.
 
 ## Open questions

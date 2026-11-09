@@ -560,8 +560,8 @@ The history is client state, in the same way as Mail
 ([ADR 0006](https://github.com/elianiva/quorum/blob/main/docs/adr/0006-mail-is-client-state.md)). It is not part of the Game schema, so it
 does not grow the Simulation's state or change replays
 ([ADR 0004](https://github.com/elianiva/quorum/blob/main/docs/adr/0004-simulation-package.md)). The save keeps it, and a save without it
-starts with empty Charts. Offline progress has no per-minute history: the Dashboard shows the time
-away as one band labelled "Away", with the values from the away card.
+starts with empty Charts. A Chart plots sim time, so a paused Company leaves no gap: the line resumes
+at the Step where it stopped.
 
 The error budget is the one exception: the Simulation keeps it per calendar hour
 (`BudgetHour`), so the SLO row reads it from the Game.

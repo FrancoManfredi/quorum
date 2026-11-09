@@ -15,7 +15,7 @@ import {
   savedInbox,
   updateInbox,
 } from './inbox.ts'
-import { eventMail, postmortemFact, senderOf } from './mail.ts'
+import { eventMail, postmortemFact } from './mail.ts'
 import type { Fact } from './mail.ts'
 import type { Inbox, Model } from './model.ts'
 import { AppRoute } from './route.ts'
@@ -234,29 +234,13 @@ test('a phishing trap leaks the credentials, and the Inbox keeps the record', ()
   expect(again.model.mail[0]?.actions).toEqual([])
 })
 
-test('a reload opens the Company with the Mail it had, and the return from away writes more', () => {
-  const wall = 1_000_000
+test('a reload opens the Company with the Mail it had', () => {
   const before = sent([fact('cloud:cpu:a', 'cloud', 'Capacity warning')], 'action')
-  const json = JSON.stringify({ ...game, wall, inbox: savedInbox(before) })
+  const json = JSON.stringify({ ...game, inbox: savedInbox(before) })
   // Continue names the file, and the file answers for it.
   const loading = { ...initialModel(), companyPhase: { _tag: 'Opening' as const, id: 'c' } }
-  const loaded = update(
-    loading,
-    Message.CompanyLoaded({ id: 'c', open: true, json, now: wall }),
-  ).model
+  const loaded = update(loading, Message.CompanyLoaded({ id: 'c', open: true, json })).model
   expect(loaded.board.inbox.mail.map((mail) => mail.subject)).toEqual(['Capacity warning'])
-
-  // An hour away: Finance and the pager both write "While you were away" (18 "What Mail replaces").
-  const back = update(
-    loading,
-    Message.CompanyLoaded({ id: 'c', open: true, json, now: wall + 3_600_000 }),
-  ).model
-  const kinds = back.board.inbox.mail.map((mail) => senderOf(mail.sender).kind)
-  expect(kinds).toContain('finance')
-  expect(kinds).toContain('monitoring')
-  expect(back.board.inbox.mail.some((mail) => mail.subject.includes('While you were away'))).toBe(
-    true,
-  )
 })
 
 test('paying a fake invoice costs the Cash printed on it', () => {

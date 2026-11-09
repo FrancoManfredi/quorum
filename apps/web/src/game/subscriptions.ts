@@ -18,10 +18,10 @@ import { onBoard } from './route.ts'
 import { TICK_MS, REPEAT_MS } from './update.ts'
 
 /* ==========================================================================
-   Time and keys. The company runs while the lab is open and not paused, even
-   with a panel up: Quorum is an idle game. Unless the player turns it off, it
-   pauses when the window loses focus and resumes when it gets focus back; time with the tab closed is offline
-   progress. Keys only matter in the lab.
+   Time and keys. The Company runs while the lab is open and not paused, even
+   with a panel up. Unless the player turns it off, it pauses when the window
+   loses focus and resumes when it gets focus back. Closing the page stops it:
+   no time passes while the player is gone. Keys only matter in the lab.
    ========================================================================== */
 
 type KeyMessage = ReturnType<typeof Message.KeyPressed>

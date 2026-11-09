@@ -38,8 +38,8 @@ Revenue first goes to the **Payments** drawer. The player clicks Collect to move
 
 - The drawer holds 60 seconds of revenue at the current rate, at size 1, and never less than $25.
   Each size step doubles it.
-- Revenue beyond the drawer's size is lost while the player is playing. While the player is away, the
-  offline simulation pays revenue straight into Cash ([Simulation](/design/04-simulation#offline-progress)).
+- Revenue beyond the drawer's size is lost. The drawer never fills while the clock is stopped, so
+  there is no amount to collect after a pause ([Simulation](/design/04-simulation#the-clock-stops)).
 - Research "Stripe Billing" (Garage, 30 ◇) collects automatically. After that, the drawer only shows
   the rate.
 

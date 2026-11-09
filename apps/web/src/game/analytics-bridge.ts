@@ -141,23 +141,6 @@ export const eventsOf = (
         break
       }
 
-      case 'OfflineReturned':
-        events.push({
-          event: 'company:offline_return',
-          properties: {
-            away_seconds: count(data.away),
-            sim_seconds: count(data.seconds),
-            users_before: count(data.usersBefore),
-            users_after: count(data.usersAfter),
-            cash_gained: count(data.cash),
-            research_completed: listOf(data.studied).length,
-            dev_hours: count(data.devHours),
-            peak_users: count(data.peak),
-            lost_users: bool(data.lost) ?? false,
-          },
-        })
-        break
-
       case 'NodePlaced':
       case 'NodesPasted':
         for (const node of addedOf(data)) {

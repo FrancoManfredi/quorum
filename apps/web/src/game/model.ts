@@ -13,7 +13,7 @@ import { Founder } from '@quorum/simulation/founder'
 import { Playbook } from '@quorum/simulation/playbook'
 import { Boot } from './boot-machine.ts'
 import { Reveal } from './machine-state.ts'
-export { Away, Change, Delta, Figures, PreviewFigures, Reveal } from './machine-state.ts'
+export { Change, Delta, Figures, PreviewFigures, Reveal } from './machine-state.ts'
 import { CompanyPhase, companyIdOf, isExited, isPlaying } from './company-machine.ts'
 import { SurveyPhase } from './survey-machine.ts'
 export { CompanyPhase } from './company-machine.ts'
@@ -53,7 +53,6 @@ export const Panel = Schema.Literals([
   'team',
   'exit',
   'exited',
-  'away',
   'playbooks',
   'help',
   'offer',
@@ -466,7 +465,7 @@ export const ledgerOf = (model: Model): Ledger => ({
 /** The Company file the phase names, or null when no Company is named. */
 export const currentFile = (model: Model) => fileOf(model.saves, companyIdOf(model.companyPhase))
 
-/** The Company the phase plays on the board: open, or away with its report over it. */
+/** The Company the phase plays on the board. */
 export const playingId = (model: Model): string | null =>
   isPlaying(model.companyPhase) ? model.companyPhase.id : null
 

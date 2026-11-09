@@ -72,6 +72,10 @@ Factorio is the reference for automation games, and software developers love it.
 | **Phase shifts.** Universal Paperclips changes what the game is about several times. "It's not merely the fact that the numbers go up but how they do so."                  | The New Yorker; How-To Geek.                              |
 | **A real ending.** Lantz wanted the game "to end in a way that let people pull back from it".                                                                               | hey.gg interview with Frank Lantz.                        |
 
+Quorum borrows prestige, phase shifts, and a real ending from idle games. It rejects their background
+clock. The Company advances only while the player has it open, as Factorio's single-player factory
+waits when the player quits, so leaving the game means leaving the Company alone.
+
 ## Research in factory games
 
 Research in factory games matters here because the live Insight rate runs far ahead of research
@@ -108,6 +112,8 @@ Each row turns one lesson into a Quorum rule and links the document that owns th
 | **Fix:** monetization pressure   | No paid currency. No timers that payment can skip.                                                                                                         | [Vision](/design/01-vision#pillar-5-respect-the-player)   |
 | **Fix:** confusing tutorial      | No tutorial screens. The Garage Era is the tutorial: one box, two request kinds, one choice at a time.                                                     | [Progression](/design/10-progression#era-0-garage)        |
 | **Fix:** learning needs a replay | Guided Sandboxes teach each later mechanic outside the Company, like Factorio tutorial levels. The free Sandbox is a test bench.                           | [Sandbox](/design/14-challenges#sandbox)                  |
+| **Reject:** background running   | The Company does not run in the background. Closing the page stops the Simulation, so the idle-game habit of checking on an away factory does not apply.   | [Game loops](/design/03-game-loops#session-shapes)        |
+| Playtime is the only clock       | A single-player Factorio factory waits when you quit. Quorum's Company does the same, and nothing accrues while the player is away.                        | [Simulation](/design/04-simulation#the-clock-stops)       |
 | Evenly spaced goals              | Pacing targets: a new goal every 2–5 minutes early, every 10–20 minutes late.                                                                              | [Game loops](/design/03-game-loops#pacing)                |
 | Problems caused by the player    | Incidents attack weaknesses in the player's design. Random bad luck is rare and always survivable with redundancy.                                         | [Incidents](/design/11-incidents#design-rules)            |
 | Lack of visibility               | Observability is a progression track. The player earns p99, traces, and profiles.                                                                          | [Observability](/design/12-observability)                 |

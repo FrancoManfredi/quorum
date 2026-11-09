@@ -20,7 +20,6 @@ export const exitCases = {
   /** Takes the investors' bridge while Cash is short (09 "Runway and running out of Cash"). */
   BridgeAccepted: {},
   PostmortemFiled: { id: Schema.Finite, take: Schema.Boolean },
-  AwayClosed: {},
 
   /** The Exit survey: Send, Skip, and the server's answer. */
   SurveySubmitted: {},

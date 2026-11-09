@@ -268,10 +268,9 @@ export const LoadCompany = Command.define('LoadCompany', {
           id,
           open,
           json: window.localStorage.getItem(saveKeyOf(id)),
-          now: Date.now(),
         })
       } catch {
-        return Message.CompanyLoaded({ id, open, json: null, now: Date.now() })
+        return Message.CompanyLoaded({ id, open, json: null })
       }
     }),
 })
@@ -291,15 +290,12 @@ export const WriteCompany = Command.define('WriteCompany', {
   execute: ({ id, index, game, revealed, pending, dashboard, inbox }) =>
     Effect.sync(() => {
       try {
-        // The wall clock goes in at the last moment: it is the only one, for offline progress.
         const now = Date.now()
         const file = index.companies.find((entry) => entry.id === id)
         if (file) {
           const stamped = refreshed(file, game, now)
           traced('save.write', {}, () => {
-            const json = JSON.stringify(
-              saveJson({ game, revealed, pending, dashboard, inbox }, now),
-            )
+            const json = JSON.stringify(saveJson({ game, revealed, pending, dashboard, inbox }))
             annotateSpan({ 'save.bytes': json.length })
             window.localStorage.setItem(saveKeyOf(id), json)
           })

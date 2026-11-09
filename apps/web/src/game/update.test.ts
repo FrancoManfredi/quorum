@@ -685,7 +685,7 @@ describe('Tradeoff cards', () => {
   )
 })
 
-describe('Exit and offline return', () => {
+describe('Exit', () => {
   const send = (model: Model, ...messages: ReadonlyArray<Message>): Model =>
     messages.reduce((current, message) => update(current, message).model, model)
 
@@ -710,8 +710,8 @@ describe('Exit and offline return', () => {
     expect(next.founder.history).toHaveLength(1)
   })
 
-  test('a save from an hour ago plays the hour out and shows the return', () => {
-    const game = { ...preseedGame(), wall: 1_000_000 }
+  test('a save from an hour ago resumes at the Step it was saved on', () => {
+    const game = { ...preseedGame() }
     const loaded = send(
       initialModel(),
       Message.SavesLoaded({
@@ -722,16 +722,12 @@ describe('Exit and offline return', () => {
     )
     expect(hasCompany(loaded)).toBe(true)
     expect(loaded.saves.current).not.toBeNull()
-    expect(loaded.board.game.time).toBeCloseTo(game.time + 3_600)
-    expect(loaded.companyPhase).toMatchObject({ _tag: 'Away', report: { seconds: 3_600 } })
-    expect(loaded.board.game.incident).toBeNull()
-    const away = send(loaded, Message.Continued())
-    expect(away.panel).toBe('away')
-    // Closing the report puts the Company back on its board.
-    const closed = send(away, Message.AwayClosed())
-    expect(closed.panel).toBe('none')
-    expect(closed.companyPhase).toEqual({ _tag: 'Open', id: away.saves.current })
-  }, 30_000)
+    // The clock held still while the page was closed.
+    expect(loaded.board.game.time).toBeCloseTo(game.time)
+    expect(loaded.board.game.users).toBe(game.users)
+    expect(loaded.companyPhase).toMatchObject({ _tag: 'Open' })
+    expect(loaded.panel).toBe('none')
+  })
 
   test('the Exit survey opens after an Exit and sends the row it describes', () => {
     const game = { ...preseedGame(), stage: 4, users: 200_000, cash: 1e8 }
@@ -1064,7 +1060,7 @@ describe('URL routing', () => {
       .map((command) => command.args)
   /** One stored Company, and the index that points at it. */
   const stored = () => {
-    const game = { ...preseedGame(), wall: 0 }
+    const game = { ...preseedGame() }
     const file = fileFor({
       id: 'c-one',
       name: 'Stored Co',
@@ -1093,7 +1089,7 @@ describe('URL routing', () => {
     expect(loads(waiting.commands)).toEqual([{ id: 'c-one', open: true }])
     const open = update(
       waiting.model,
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 2_000 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
     )
     expect(open.model.route).toEqual(AppRoute.Company())
     expect(open.model.board.game.seed).toBe(game.seed)
@@ -1112,7 +1108,7 @@ describe('URL routing', () => {
     )
     const missing = update(
       waiting.model,
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: null, now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: null }),
     )
     expect(missing.model.route).toEqual(AppRoute.Title())
     expect(pushed(missing.commands)).toEqual(['ReplaceUrl /'])
@@ -1145,7 +1141,7 @@ describe('URL routing', () => {
     ).model
     const after = update(
       waiting,
-      Message.CompanyLoaded({ id: 'c-one', open: false, json: JSON.stringify(game), now: 2_000 }),
+      Message.CompanyLoaded({ id: 'c-one', open: false, json: JSON.stringify(game) }),
     ).model
     expect(boardSandbox(after.board)?.id).toBeNull()
     expect(after.board.game.seed).toBe(99)
@@ -1715,7 +1711,7 @@ test('pointer-rate Messages stay out of the playtest log, and gestures go in', (
 
 test('a save this version cannot read is kept aside instead of dropped', () => {
   const game = newGame()
-  const saved = JSON.stringify({ ...game, wall: 0 })
+  const saved = JSON.stringify({ ...game })
   const loaded = update(initialModel(), Message.SavesLoaded({ index: null, legacy: saved, now: 0 }))
   expect(hasCompany(loaded.model)).toBe(true)
   expect(loaded.model.saves.current).not.toBeNull()
@@ -1723,7 +1719,6 @@ test('a save this version cannot read is kept aside instead of dropped', () => {
 
   const renamed = JSON.stringify({
     ...game,
-    wall: 0,
     nodes: game.nodes.map((node) => ({ ...node, type: 'retired-component' })),
   })
   for (const json of [renamed, '{not json']) {
@@ -1780,7 +1775,7 @@ test('a save travels as one line of text, and only a save of this build opens it
   // Anything that is not a save of this build is refused, and the open Company stays.
   const other = encodeText('QSV1:', {
     version: 'stale',
-    save: { ...playable.board.game, wall: 0 },
+    save: { ...playable.board.game },
   })
   for (const wrong of ['hello', other]) {
     const refused = update(playable, Message.SaveImported({ text: wrong }))

@@ -22,7 +22,6 @@ import {
   type ResearchId,
   type FeatureId,
 } from '@quorum/simulation/catalog'
-import type { AwayReport } from '@quorum/simulation/offline'
 import type { ChurnCause, RegionChurn } from '@quorum/simulation/churn'
 import { alertActions, cloudActions } from '@quorum/simulation/goals'
 import { has, securityStaffed } from '@quorum/simulation/lookups'
@@ -34,8 +33,6 @@ import { languageOfService, unhappy } from '@quorum/simulation/team'
 import { featureRefusal, itemName } from '@quorum/simulation/work'
 import {
   ADVICE,
-  AWAY_FINANCE,
-  AWAY_MONITORING,
   CHURN_LETTERS,
   CVE_LETTERS,
   CVES,
@@ -59,7 +56,6 @@ import {
   type Letters,
   type Pitch,
   type PostmortemVars,
-  type AwayVars,
   type SenderKind,
   type Written,
 } from './copy/index.ts'
@@ -848,43 +844,6 @@ export const postmortemFact = (
       ? [{ id: `postmortem-take:${postmortem.id}`, label: 'File and research the action item' }]
       : []),
   ])
-}
-
-/** "While you were away", from Finance and from the pager (18 "What Mail replaces"). */
-export const awayFacts = (report: AwayReport, game: Game): ReadonlyArray<Fact> => {
-  const hours = report.away / 3_600
-  const away = hours >= 1 ? `${hours.toFixed(1)} h` : `${Math.round(report.away / 60)} min`
-  const financeKey = `finance:away:${Math.round(game.time)}`
-  const finance = senderFor('finance', game, financeKey)
-  const vars: AwayVars = {
-    away,
-    users: `${compact(report.usersBefore)} → ${compact(report.usersAfter)}`,
-    cash: `${report.cash >= 0 ? '+' : ''}${money(report.cash)}`,
-    studied: String(report.studied.length),
-    devHours: `+${compact(report.devHours)}`,
-  }
-  const watchKey = `monitoring:away:${Math.round(game.time)}`
-  const watch = senderFor('monitoring', game, watchKey)
-  return [
-    fact(financeKey, finance, write('away.finance', AWAY_FINANCE, vars, finance, game, financeKey)),
-    fact(
-      watchKey,
-      watch,
-      write(
-        'away.monitoring',
-        AWAY_MONITORING,
-        {
-          away,
-          peak: `${Math.round(report.peak * 100)}%`,
-          peakNode: report.peakNode ?? 'the Design',
-          lost: report.lost,
-        },
-        watch,
-        game,
-        watchKey,
-      ),
-    ),
-  ]
 }
 
 const EVENT_FROM: Record<string, SenderKind> = {

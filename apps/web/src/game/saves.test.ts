@@ -85,9 +85,9 @@ const indexOf = (files: ReadonlyArray<CompanyFile>, current: string | null): Sav
   companies: [...files],
 })
 
-/** One stored Company, with no time away. */
+/** One stored Company. */
 const stored = (): Readonly<{ index: SaveIndex; game: ReturnType<typeof preseedGame> }> => {
-  const game = { ...preseedGame(), wall: 0 }
+  const game = { ...preseedGame() }
   const file = fileFor({
     id: 'c-one',
     name: 'Stored Co',
@@ -177,7 +177,7 @@ describe('the Companies page', () => {
 
   test('a file that answers for another Company does not land', () => {
     const { index, game } = stored()
-    const other = { ...preseedGame(4242), wall: 0 }
+    const other = { ...preseedGame(4242) }
     const two = indexOf(
       [
         ...index.companies,
@@ -195,17 +195,17 @@ describe('the Companies page', () => {
     const waiting = send(
       initialModel(),
       Message.SavesLoaded({ index: JSON.stringify(two), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
       Message.CompanyChosen({ id: 'c-two' }),
       Message.CompanyOpened({ id: 'c-two' }),
       // The first file answers late: it belongs to the Company the player left.
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
     )
     expect(waiting.companyPhase).toEqual({ _tag: 'Opening', id: 'c-two' })
     expect(waiting.saves.current).toBe('c-one')
     const landed = send(
       waiting,
-      Message.CompanyLoaded({ id: 'c-two', open: true, json: JSON.stringify(other), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-two', open: true, json: JSON.stringify(other) }),
     )
     expect(landed.companyPhase).toEqual({ _tag: 'Open', id: 'c-two' })
     expect(landed.saves.current).toBe('c-two')
@@ -222,7 +222,7 @@ describe('the Companies page', () => {
     const opened = send(
       initialModel(),
       Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json, now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json }),
     )
     expect(hasCompany(opened)).toBe(true)
     expect(opened.route).toEqual(AppRoute.Company())
@@ -236,7 +236,7 @@ describe('the Companies page', () => {
     const opened = send(
       initialModel(),
       Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
     )
     const asked = send(opened, Message.CompanyChosen({ id: 'c-one' }), Message.CompanyDeleteAsked())
     expect(asked.saveConfirm).toEqual({ _tag: 'Confirming', id: 'c-one' })
@@ -255,7 +255,7 @@ describe('the Companies page', () => {
   })
 
   test('deleting another Company keeps the current one open', () => {
-    const game = { ...preseedGame(), wall: 0 }
+    const game = { ...preseedGame() }
     const first = fileFor({
       id: 'c-one',
       name: 'One',
@@ -275,7 +275,7 @@ describe('the Companies page', () => {
     const opened = send(
       initialModel(),
       Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
       Message.CompanyChosen({ id: 'c-two' }),
       Message.CompanyDeleteAsked(),
       Message.CompanyDeleteConfirmed(),
@@ -332,7 +332,7 @@ describe('autosave and migration', () => {
   })
 
   test('the single save of the old build becomes the first recovered Company', () => {
-    const game = { ...preseedGame(), wall: 5_000 }
+    const game = { ...preseedGame() }
     const migrated = send(
       initialModel(),
       Message.SavesLoaded({ index: null, legacy: JSON.stringify(game), now: 8_000 }),
@@ -341,7 +341,7 @@ describe('autosave and migration', () => {
     expect(file).toMatchObject({
       name: 'Recovered company',
       venture: game.founding.venture,
-      createdAt: 5_000,
+      createdAt: 8_000,
       recovered: true,
     })
     expect(hasCompany(migrated)).toBe(true)
@@ -372,7 +372,7 @@ describe('autosave and migration', () => {
 
   test('recovering the previous save adds it to the list and opens it', () => {
     const { index } = stored()
-    const legacy = { ...preseedGame(4242), wall: 3_000 }
+    const legacy = { ...preseedGame(4242) }
     const asked = send(
       initialModel(),
       Message.SavesLoaded({
@@ -390,7 +390,7 @@ describe('autosave and migration', () => {
     expect(imported.saves.companies[0]).toMatchObject({
       name: 'Recovered company',
       recovered: true,
-      createdAt: 3_000,
+      createdAt: 4_000,
     })
     expect(hasCompany(imported)).toBe(true)
     expect(imported.route).toEqual(AppRoute.Company())
@@ -448,8 +448,7 @@ describe('autosave and migration', () => {
 
 describe('a playtest browser', () => {
   const playtestGame = () => {
-    // Five seconds ago, so the boot import does not replay years of offline progress.
-    const game = { ...preseedGame(20261031), wall: Date.now() - 5_000 }
+    const game = { ...preseedGame(20261031) }
     return {
       ...game,
       disclosure: { revealed: ['undo', 'team'], pending: ['research'] },

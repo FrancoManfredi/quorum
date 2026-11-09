@@ -28,7 +28,7 @@ The player glances at the board.
    ([Progression](/design/10-progression#track-product-and-business)).
 3. **React.** The player clicks Upgrade on a red card, or ignores it.
 
-The pulse gives an idle player a small, satisfying action at any moment. It becomes automatic by the
+The pulse gives the player a small, satisfying action at any moment. It becomes automatic by the
 end of the Garage Era, because a pulse that never changes turns into a chore
 ([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
 
@@ -175,11 +175,13 @@ the scripted players that check them.
 
 ## Session shapes
 
-| Session  | Length    | What happens                                                                                    |
-| -------- | --------- | ----------------------------------------------------------------------------------------------- |
-| Check-in | 2–5 min   | Collect offline earnings, buy research, queue a feature, leave.                                 |
-| Standard | 30–60 min | Several bottleneck loops, one Era milestone or one large redesign.                              |
-| Deep     | 2–4 h     | A full Era, a migration, or a Challenge set.                                                    |
-| Idle     | Hours     | The design runs. Users grow only while the design holds the SLO. Incidents do not fire offline. |
+| Session  | Length    | What happens                                                       |
+| -------- | --------- | ------------------------------------------------------------------ |
+| Short    | 2–10 min  | Fix one bottleneck, collect, queue a Study, leave.                 |
+| Standard | 30–60 min | Several bottleneck loops, one Era milestone or one large redesign. |
+| Deep     | 2–4 h     | A full Era, a migration, or a Challenge set.                       |
 
-Offline rules are in [Simulation](/design/04-simulation#offline-progress).
+The clock stops when the player closes the Company
+([Simulation](/design/04-simulation#the-clock-stops)). A short session therefore ends wherever the
+player stopped, and the next one starts there, with no catch-up and no report of what happened while
+they were gone. Pacing is measured in play time, so the calendar advances only while they watch.

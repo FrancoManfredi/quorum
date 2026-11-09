@@ -45,6 +45,7 @@ import {
   type FrameworkId,
   type RequestKind,
   type RequestProfile,
+  type PerkId,
   type ResearchId,
   type RuntimeId,
   BACKUPS,
@@ -63,6 +64,7 @@ import {
   LOG_REPLICAS,
   LOG_REPLICA_BURN,
   VEC_INDEXES,
+  PERKS,
   CALENDAR_DAY,
   CERT_DAYS,
   CERT_DAYS_SHORT,
@@ -85,6 +87,10 @@ import {
 } from './catalog.ts'
 import { restarting, type DownCause } from './life.ts'
 import type { DbEngine, DbTopology, Game, GameNode, Pricing, StorageClass } from './state.ts'
+
+/** A Legacy Perk's level in this Company: zero in a Sandbox, and at most the perk's top level. */
+export const perkLevel = (game: Game, id: PerkId): number =>
+  game.sandbox ? 0 : Math.min(PERKS[id].costs.length, game.founding.perks[id] ?? 0)
 
 /** The researched list as a set, built once per list: the solver asks on every hop. */
 const researchedSets = new WeakMap<ReadonlyArray<ResearchId>, ReadonlySet<ResearchId>>()

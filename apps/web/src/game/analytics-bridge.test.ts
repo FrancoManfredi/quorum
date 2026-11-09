@@ -110,23 +110,12 @@ describe('the analytics bridge', () => {
     ])
   })
 
-  test('maps a completed Research item, an Era, an Exit, and a return', () => {
+  test('maps a completed Research item, an Era, and an Exit', () => {
     const events = eventsOf(
       [
         line(0, 'ResearchCompleted', { ids: ['stripe'], era: 2 }),
         line(0, 'EraReached', { era: 2, era_name: 'Seed', users: 120 }),
         line(0, 'Exited', { exit: 'IPO', payout: 9_000, legacy: 12, era: 5 }),
-        line(0, 'OfflineReturned', {
-          away: 3_600,
-          seconds: 600,
-          usersBefore: 10,
-          usersAfter: 12,
-          cash: 30,
-          studied: ['stripe'],
-          devHours: 1,
-          peak: 20,
-          lost: false,
-        }),
       ],
       context(),
     )
@@ -134,11 +123,9 @@ describe('the analytics bridge', () => {
       'research:completed',
       'company:era_reached',
       'company:exited',
-      'company:offline_return',
     ])
     expect(events[0]?.properties).toMatchObject({ research_id: 'stripe', era: 2 })
     expect(events[2]?.properties).toMatchObject({ exit_type: 'IPO', era: 5 })
-    expect(events[3]?.properties).toMatchObject({ away_seconds: 3_600, users_after: 12 })
   })
 
   test('maps a sent Exit survey without its answers', () => {

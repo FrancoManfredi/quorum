@@ -18,8 +18,9 @@ checks whether the design survives a real failure mode that its Era makes likely
 3. **Real.** Every incident type is a real class of outage, and most cite a real event.
 4. **Survivable.** No incident ends a company. The worst case is lost users, lost Cash, and a lower
    valuation.
-5. **No incidents offline.** The game does not punish the player for leaving
-   ([Simulation](/design/04-simulation#offline-progress)).
+5. **Nothing runs while the Company is closed.** The clock stops, so an incident never runs
+   unattended and the player never returns to damage
+   ([Simulation](/design/04-simulation#the-clock-stops)).
 6. **One at a time, early.** Before Series A, at most one incident runs at a time. From Series A a
    cascade is possible, because cascades are what real large outages look like: an incident nobody
    answers starts a second one when it ends ([Cascades](#cascades)). Even then only one runs at a

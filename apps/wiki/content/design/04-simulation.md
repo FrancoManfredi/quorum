@@ -29,7 +29,9 @@ Two clocks drive the game.
 | Sim clock | 1 sim second = 1 real second at 1× speed | Rates ($/s, rps), queues, outages, deploys, warmup, incident durations, Dev Hour production.                   |
 | Calendar  | 1 sim second = 1 calendar minute         | The day and night cycle, weekdays, quarters, certificate expiry, reserved-instance terms, the date in the HUD. |
 
-So one calendar day lasts 24 real minutes, and one calendar week lasts 2 hours 48 minutes.
+So one calendar day lasts 24 real minutes, and one calendar week lasts 2 hours 48 minutes. Both
+clocks run only while the player has the Company open: closing it stops the Simulation, and the
+calendar stops with it ([The clock stops](#the-clock-stops)).
 
 Operational durations, such as a JVM warmup or a spot interruption notice, run on the sim clock and
 are stylized for play. [Reality check](/design/reality-check) lists their real values.
@@ -418,30 +420,24 @@ feeds the Ledger.
   Node's. The server score of a Challenge is the
   authoritative one ([Challenges](/design/14-challenges#rules)).
 
-## Offline progress
+## The clock stops
 
-When the player returns, the Simulation replays the time they were away:
+The Simulation runs only while the player has the Company open and the clock running. Closing the
+page or pausing stops it. No Step runs, so revenue, Burn, user growth, queues, Incidents, Studies,
+and the calendar all hold still. Opening the Company again resumes at the saved Step, with the same
+Ledger inputs and the same queues.
 
-- Steps are 10 sim seconds instead of 100 ms.
-- The day and night cycle and the weekly cycle apply, so a design that cannot hold the peak loses
-  users at peak.
-- Incidents do not fire offline ([pillar 5](/design/01-vision#pillar-5-respect-the-player)).
-- Studies keep running and take Insight as it is earned ([Progression](/design/10-progression#studies)).
-- Offline revenue goes straight to Cash. The Payments drawer limit applies only to live play
-  ([Economy](/design/09-economy#the-payments-drawer)).
-- Offline churn is capped at 5% of each region's users, so the player never returns to a ruined
-  company.
-- The cap is 8 hours. Legacy raises it to 24 hours.
-- A return screen shows what happened: users, Cash, the Studies that completed, Dev Hours, peak
-  utilization, and the worst calendar hour.
+This is a design rule, not a saving detail. A Company that runs while the player is away turns the
+game into a second job and punishes leaving. Factorio's single-player factory waits when the player
+quits, and so does Quorum. The player returns to the problem they left, not to a report about it
+([ADR 0022](https://github.com/elianiva/quorum/blob/main/docs/adr/0022-the-company-pauses-when-the-player-leaves.md)).
 
 ## Performance budget
 
-| Item                          | Budget                           |
-| ----------------------------- | -------------------------------- |
-| One step, 200 Nodes           | Under 2 ms on a mid-range laptop |
-| Offline simulation of 8 hours | Under 1 second                   |
-| Bottleneck analysis           | Under 3 ms, once per second      |
+| Item                | Budget                           |
+| ------------------- | -------------------------------- |
+| One step, 200 Nodes | Under 2 ms on a mid-range laptop |
+| Bottleneck analysis | Under 3 ms, once per second      |
 
 The Simulation is a pure function of the save and the step. It lives in the
 `packages/simulation` workspace package ([ADR 0004](https://github.com/elianiva/quorum/blob/main/docs/adr/0004-simulation-package.md)), imports only

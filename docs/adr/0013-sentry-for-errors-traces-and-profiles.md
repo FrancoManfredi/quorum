@@ -26,7 +26,7 @@ Considered options:
 - **A span per Message or Command.** Sentry bills spans, and nearly all of these run in under a
   millisecond. Foldkit's `slow` option reports only an update, view, or patch over its budget, and
   `sim.tick_ms` samples one tick in sixteen. Rejected: no Message gets a span, and only a Command that
-  calls the API does. Work worth a breakdown (compute, save, catch-up, replay) uses `traced`.
+  calls the API does. Work worth a breakdown (compute, save, replay) uses `traced`.
 - **Session Replay.** Company names and mail are player text, and the crash tags cover most needs.
   Rejected.
 

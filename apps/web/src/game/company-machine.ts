@@ -2,7 +2,6 @@ import { Machine } from '@typeonce/effect-machine'
 import { Schema } from 'effect'
 import { HistoryRow } from '@quorum/simulation/exit'
 import { ResearchId } from '@quorum/simulation/state'
-import { Away as AwayReport } from './machine-state.ts'
 import { planState } from './machine.ts'
 
 export const CompanyPhase = Schema.TaggedUnion({
@@ -12,10 +11,6 @@ export const CompanyPhase = Schema.TaggedUnion({
   },
   Open: {
     id: Schema.String,
-  },
-  Away: {
-    id: Schema.String,
-    report: AwayReport,
   },
   Exited: {
     id: Schema.String,
@@ -43,11 +38,6 @@ export const CompanyPhaseEvent = Schema.TaggedUnion({
     row: HistoryRow,
     researched: Schema.Array(ResearchId),
   },
-  AwayTaken: {
-    id: Schema.String,
-    report: AwayReport,
-  },
-  AwayClosed: {},
   Closed: {},
   Deleted: {
     id: Schema.String,
@@ -81,11 +71,6 @@ export const companyMachine = Machine.make({ root: States, events: Events }).han
           guard: ({ state, event }) => state.id === event.id,
           data: ({ event }) => ({ _tag: 'Open', id: event.id }),
         },
-        AwayTaken: {
-          target: 'Away',
-          guard: ({ state, event }) => state.id === event.id,
-          data: ({ event }) => ({ _tag: 'Away', id: event.id, report: event.report }),
-        },
         Failed: {
           target: 'None',
           guard: ({ state, event }) => state.id === event.id,
@@ -111,32 +96,11 @@ export const companyMachine = Machine.make({ root: States, events: Events }).han
             researched: event.researched,
           }),
         },
-        AwayTaken: {
-          target: 'Away',
-          guard: ({ state, event }) => state.id === event.id,
-          data: ({ event }) => ({ _tag: 'Away', id: event.id, report: event.report }),
-        },
         Open: {
           target: 'Opening',
           data: ({ event }) => ({ _tag: 'Opening', id: event.id }),
         },
         Closed: { target: 'None' },
-        Deleted: {
-          target: 'None',
-          guard: ({ state, event }) => state.id === event.id,
-        },
-      },
-    },
-    Away: {
-      on: {
-        AwayClosed: {
-          target: 'Open',
-          data: ({ state }) => ({ _tag: 'Open', id: state.id }),
-        },
-        Open: {
-          target: 'Opening',
-          data: ({ event }) => ({ _tag: 'Opening', id: event.id }),
-        },
         Deleted: {
           target: 'None',
           guard: ({ state, event }) => state.id === event.id,
@@ -163,7 +127,6 @@ export const companyIdOf = (phase: CompanyPhase): string | null =>
     None: () => null,
     Opening: ({ id }) => id,
     Open: ({ id }) => id,
-    Away: ({ id }) => id,
     Exited: ({ id }) => id,
   })
 
@@ -171,6 +134,4 @@ export const isOpen = CompanyPhase.guards.Open
 
 export const isExited = CompanyPhase.guards.Exited
 
-export const isAway = CompanyPhase.guards.Away
-
-export const isPlaying = CompanyPhase.isAnyOf(['Open', 'Away'])
+export const isPlaying = CompanyPhase.guards.Open

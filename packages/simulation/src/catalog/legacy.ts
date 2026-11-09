@@ -146,7 +146,7 @@ export const PERKS: Record<PerkId, PerkDef> = {
     id: 'night-shift',
     name: 'Night shift',
     costs: shopPrice(tripling(5, 3)),
-    effect: 'Offline cap 12 h, 18 h, 24 h',
+    effect: 'Dev Hours +10%',
   },
   'time-dilation': {
     id: 'time-dilation',
@@ -190,7 +190,5 @@ export const AUTOPILOT_LOAD = 0.7
 
 /** Playbook slots by perk level. Level 0 keeps one, so the first Company can try them. */
 export const PLAYBOOK_SLOTS: ReadonlyArray<number> = [1, 2, 5, 10, 25]
-/** Offline cap in sim seconds by Night shift level (04 "Offline progress"). */
-export const OFFLINE_CAP: ReadonlyArray<number> = [8 * 3_600, 12 * 3_600, 18 * 3_600, 24 * 3_600]
 /** Extra Company speeds by Time dilation level. */
 export const DILATION_SPEEDS: ReadonlyArray<ReadonlyArray<number>> = [[], [20], [20, 40]]

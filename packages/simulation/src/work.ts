@@ -1427,7 +1427,6 @@ const deployService = (
   ledger: Ledger,
   tuning: Tuning,
   events: Array<StepEvent>,
-  offline: boolean,
   service: Service,
   hotUpgrade: boolean,
 ): Game => {
@@ -1442,7 +1441,7 @@ const deployService = (
   const batch = awaitingFeatures(game).filter((id) => serviceOfFeature(game, id).id === service.id)
   if (batch.length === 0) return after
   // The chance counts the bad-deploy risk of every rushed Feature in this batch (08 "Rush").
-  const chance = offline ? 0 : nextBadDeployChance(after, tuning, service)
+  const chance = nextBadDeployChance(after, tuning, service)
   let next: Game = {
     ...after,
     features: deployed(after.features, batch),
@@ -1476,7 +1475,6 @@ const deployService = (
           : node,
     ),
   }
-  // No incident starts while the player is away (04 "Offline progress").
   let bad = false
   if (chance > 0) {
     const [roll, seed] = nextRandom(next.seed)
@@ -1494,13 +1492,7 @@ const deployService = (
 }
 
 /** Ships what every Service's own deploy slot has waiting, in Service order. */
-const deploy = (
-  game: Game,
-  ledger: Ledger,
-  tuning: Tuning,
-  events: Array<StepEvent>,
-  offline: boolean,
-): Game => {
+const deploy = (game: Game, ledger: Ledger, tuning: Tuning, events: Array<StepEvent>): Game => {
   // A hot upgrade costs Elixir Dev Hours per release (06 "Runtime behaviors"): the next slot is
   // that many Dev Hours later.
   const hotUpgrade = game.nodes.some(
@@ -1517,7 +1509,6 @@ const deploy = (
         ledger,
         tuning,
         events,
-        offline,
         current.services.find((entry) => entry.id === service.id) ?? service,
         hotUpgrade,
       ),
@@ -1570,7 +1561,6 @@ export const advanceTeam = (
   ledger: Ledger,
   seconds: number,
   tuning: Tuning = LIVE_TUNING,
-  offline = false,
 ): Advance => {
   if (game.sandbox) return { game, events: [] }
   const events: Array<StepEvent> = []
@@ -1690,6 +1680,6 @@ export const advanceTeam = (
 
   next = finishEngineChange(next)
   next = finishReshard(next)
-  next = deploy(next, ledger, tuning, events, offline)
+  next = deploy(next, ledger, tuning, events)
   return { game: next, events }
 }

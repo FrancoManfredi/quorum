@@ -78,7 +78,7 @@ Examples:
   level.
 - **Pattern recognition** adds 20% Insight per level. **Founder's reputation** adds 10% user growth.
 - **Better terms** takes 2 points off the dilution of each round.
-- **Night shift** raises the offline cap from 8 hours up to 24.
+- **Night shift** adds 10% Dev Hours per level, because the team works a second shift.
 - **Time dilation** unlocks faster Company speeds.
 - **War stories** halves the extra weight that open action items give incidents.
 - **Head start** founds the next Company in Pre-seed.

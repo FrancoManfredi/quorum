@@ -20,7 +20,7 @@ Dev Hours. Hiring unlocks in the Pre-seed Era.
 
 ```latex
 \begin{aligned}
-\text{DH per calendar day} &= \sum_{\text{teams}} \text{effective engineers} \left(\text{team}\right) \times 8 \times \text{velocity} \left(\text{team}\right) \\ &\quad \times \text{policy} \times \text{error budget factor} \times \left(1 - \text{upkeep share}\right)
+\text{DH per calendar day} &= \sum_{\text{teams}} \text{effective engineers} \left(\text{team}\right) \times 8 \times \text{velocity} \left(\text{team}\right) \\ &\quad \times \text{policy} \times \text{error budget factor} \times \left(1 - \text{upkeep share}\right) \times \text{Night shift}
 \end{aligned}
 ```
 
@@ -37,6 +37,7 @@ ramp-up, and deploys. The live game runs the Team's calendar 24× faster than th
 | `policy`              | The team policy ([Team policy](#team-policy)).                                                                          |
 | `error_budget_factor` | 1.1 with budget to spare, 1.0 normally, 0.5 during a freeze ([Incidents](/design/11-incidents#slos-and-error-budgets)). |
 | `upkeep_share`        | The share that keeps live Features running ([Upkeep](#upkeep)).                                                         |
+| `Night shift`         | 1 + 0.1 per Night shift Perk level ([Exit and Legacy](/design/13-prestige#the-legacy-shop)).                            |
 
 Dev Hours are spent on six kinds of work:
 

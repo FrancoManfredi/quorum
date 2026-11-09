@@ -196,8 +196,15 @@ One advance of the Simulation, 100 ms of sim time.
 _Avoid_: tick, frame, turn
 
 **Sim clock**:
-The clock for rates and operational events. One sim second is one real second at 1× speed.
+The clock for rates and operational events. One sim second is one real second at 1× speed. It runs
+only while the Company is open and unpaused.
 _Avoid_: game time, real time
+
+**Paused**:
+The state of a Company whose board is closed or whose clock is stopped. The Simulation does not
+advance, so no rate, queue, Incident, Study, or calendar minute moves. The Company resumes at the
+Step it stopped on.
+_Avoid_: offline, away, idle
 
 **Calendar**:
 The compressed clock for days, weeks, and quarters. One sim second is one calendar minute.

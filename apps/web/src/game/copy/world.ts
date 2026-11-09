@@ -277,51 +277,6 @@ export const POSTMORTEM: Letters<PostmortemVars> = [
   }),
 ]
 
-/** The return from time away, as Finance puts it (GDD 18 "What Mail replaces"). */
-export type AwayVars = Readonly<{
-  /** How long the player was away, compacted. */
-  away: string
-  users: string
-  cash: string
-  studied: string
-  devHours: string
-}>
-
-export const AWAY_FINANCE: Letters<AwayVars> = [
-  ({ from, away, users, cash, studied, devHours }) => ({
-    subject: `While you were away: ${away}`,
-    body: `Hello,\n\nYou were gone for ${away}. The books kept turning.\n\nUsers: ${users}\nCash: ${cash}\nStudies finished: ${studied}\nDev Hours: ${devHours}\n\nNothing needed a signature. That is the most we can say for most days.\n\n${from}`,
-  }),
-  ({ from, away, users, cash, studied, devHours }) => ({
-    subject: `Reconciled: ${away} of doing nothing`,
-    body: `Hi,\n\nSummary of the ${away} you were not here:\n\n- ${users} users\n- ${cash} cash\n- ${studied} studies completed\n- ${devHours} of Dev Hours banked\n\nAll reconciled to the nearest regret.\n\n${from}`,
-  }),
-  ({ from, away, users, cash, devHours }) => ({
-    subject: `You were out for ${away}`,
-    body: `Hello,\n\nQuick note for the record: the Company ran for ${away} without you.\n\n${users} users now. ${cash} in cash. ${devHours} of Dev Hours done by people who did not take the day off.\n\nNo invoices were harmed in your absence.\n\n${from}`,
-  }),
-]
-
-/** The same return, as the pager remembers it: what got close to its limit while nobody watched. */
-export type AwayWatchVars = Readonly<{
-  away: string
-  peak: string
-  /** The Node that came closest to its limit, or "the Design" when none stands out. */
-  peakNode: string
-  lost: boolean
-}>
-
-export const AWAY_MONITORING: Letters<AwayWatchVars> = [
-  ({ from, away, peak, peakNode, lost }) => ({
-    subject: `While you were away: peak ${peak} on ${peakNode}`,
-    body: `Hello,\n\nYou were away for ${away}. Here is what the dials did.\n\nHighest load: ${peak} on ${peakNode}\n\n${lost ? 'We lost users while you were out. Nobody paged you about it.' : 'The users stayed, and no dial reached its limit.'}\n\nWe did not page you. We considered it for a moment, then we looked at your calendar.\n\n${from}`,
-  }),
-  ({ from, away, peak, peakNode }) => ({
-    subject: `Your graphs missed you (draft, unsent)`,
-    body: `Hi,\n\nI drafted a few pages while you were away. This is the one I did not send.\n\n${away} away. Peak load ${peak} on ${peakNode}. Nothing caught fire, though one graph got warm enough to toast bread.\n\nRead this instead of a page and we'll call it even.\n\n${from}`,
-  }),
-]
-
 /** The Mentor offers Easy mode to a player whose pager will not stop. */
 export const EASY_MODE: Letters = [
   ({ from }) => ({

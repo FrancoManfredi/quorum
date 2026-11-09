@@ -27,8 +27,6 @@ import {
   SaveIndex,
   type CompanyFile,
 } from '../saves.ts'
-import { OFFLINE_MIN, simulateAway } from '@quorum/simulation/offline'
-import { awayFacts } from '../mail.ts'
 import { foundCompany } from '@quorum/simulation/founding'
 import {
   freshBoard,
@@ -40,7 +38,7 @@ import {
   type UpdateResult,
 } from './shared.ts'
 import { historyOfSave } from '../history.ts'
-import { inboxOfSave, mailed } from '../inbox.ts'
+import { inboxOfSave } from '../inbox.ts'
 import { migrateSaveFile } from '../save-migration.ts'
 import { ipoExit } from '@quorum/simulation/exit'
 import {
@@ -62,7 +60,6 @@ import { step as confirmDeleteStep } from '../confirm-delete-machine.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { disclosureOfSave, revealAtStart } from '../reveal.ts'
 import { solveFlow } from '@quorum/simulation/solve'
-import { traced } from '../../platform/sentry.ts'
 
 export const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))
 
@@ -124,36 +121,21 @@ const titleIfBoard = (model: Model): UpdateResult =>
       }
     : { model }
 
-/** A decoded Company Game goes onto the board. Time away plays out at 1×: a real
- *  second is a sim second (04 "Offline progress"). Opening it also leaves the title. */
+/** A decoded Company Game goes onto the board, where it resumes at its saved Step.
+ *  Opening it also leaves the title. */
 export const applyCompany = (
   model: Model,
   id: string,
   game: Game,
   file: unknown,
-  now: number,
   open: boolean,
 ): UpdateResult => {
   // A file that answers for another Company is stale: it does not land.
   const loaded = step(model.companyPhase, { _tag: 'Loaded', id })
   if (!isOpen(loaded) || loaded.id !== id) return { model }
-  const away = game.wall > 0 ? (now - game.wall) / 1_000 : 0
-  const back =
-    away >= OFFLINE_MIN && !game.sandbox
-      ? traced('sim.offline_catchup', { away_seconds: Math.round(away) }, () =>
-          simulateAway(game, away),
-        )
-      : null
-  const phase = back ? step(loaded, { _tag: 'AwayTaken', id, report: back.report }) : loaded
-  const played = normalizeOrdinals(back?.game ?? game)
-  // The Inbox survives the reload (18 "Open questions"), and the return from away writes to it.
-  const kept = inboxOfSave(file)
-  const inbox = back
-    ? awayFacts(back.report, played).reduce(
-        (next, fact) => mailed(next, fact, played.time, true),
-        kept,
-      )
-    : kept
+  const played = normalizeOrdinals(game)
+  // The Inbox survives the reload (18 "Open questions").
+  const inbox = inboxOfSave(file)
   // A Sandbox or Challenge on the board keeps the Company aside until the player comes back.
   const aside = offCompany(model)
   const held = aside ? (model.company ?? model.board) : model.board
@@ -168,21 +150,16 @@ export const applyCompany = (
   }
   const next: Model = {
     ...model,
-    companyPhase: phase,
+    companyPhase: loaded,
     saves: { ...model.saves, current: id },
     route: open && !aside ? AppRoute.Company() : model.route,
-    panel: open && !aside ? (back ? 'away' : 'none') : model.panel,
+    panel: open && !aside ? 'none' : model.panel,
     saveFocus: null,
     saveConfirm: { _tag: 'List' },
     board: aside ? model.board : companyBoard,
     company: aside ? companyBoard : model.company,
   }
-  return {
-    model: { ...next, saves: refreshedIndex(next.saves, played) },
-    commands: back
-      ? [AppendLog({ entries: [line(played.time, 'OfflineReturned', { ...back.report })] })]
-      : [],
-  }
+  return { model: { ...next, saves: refreshedIndex(next.saves, played) } }
 }
 
 /** The single save of the build before Company files becomes the first Company. */
@@ -202,7 +179,7 @@ export const adoptLegacy = (model: Model, json: string, now: number): UpdateResu
       KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
     ])
   const game = decoded.value
-  const createdAt = game.wall > 0 ? game.wall : now
+  const createdAt = now
   const file = fileFor({
     id: newSaveId(model.saves.companies, game.seed),
     name: say(model).toasts.recoveredCompany,
@@ -224,7 +201,6 @@ export const adoptLegacy = (model: Model, json: string, now: number): UpdateResu
     file.id,
     game,
     Option.getOrNull(raw),
-    now,
     model.route._tag === 'Company',
   )
   return {
@@ -258,7 +234,7 @@ export const importOldSave = (model: Model, json: string | null, now: number): U
     founding: game.founding,
     game,
     now,
-    createdAt: game.wall > 0 ? game.wall : now,
+    createdAt: now,
     recovered: true,
   })
   const saves: SaveIndex = { current: file.id, companies: withFile(model.saves, file).companies }
@@ -272,7 +248,6 @@ export const importOldSave = (model: Model, json: string | null, now: number): U
     file.id,
     game,
     Option.getOrNull(raw),
-    now,
     true,
   )
   return withToast(applied.model, say(model).toasts.recovered(file.name), 'ok', [
@@ -400,7 +375,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       ? result
       : { ...result, model: { ...result.model, savesReady: true } }
   },
-  CompanyLoaded: ({ id, open, json, now }) => {
+  CompanyLoaded: ({ id, open, json }) => {
     // A file that does not answer leaves nothing opening.
     const failed = (): Model => ({
       ...model,
@@ -430,7 +405,7 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
         ...(back.commands ?? []),
       ])
     }
-    return applyCompany(model, id, decoded.value, Option.getOrNull(file), now, open)
+    return applyCompany(model, id, decoded.value, Option.getOrNull(file), open)
   },
 
   CompanyNameChanged: ({ name }) => ({

@@ -436,7 +436,7 @@ export const catalog: Messages['catalog'] = {
     'pattern-recognition': { name: 'パターン認識', effect: 'インサイト +20%' },
     'founders-reputation': { name: '創業者の評判', effect: 'ユーザー成長 +10%' },
     'better-terms': { name: '有利な条件', effect: 'ラウンドごとの希薄化 −2ポイント' },
-    'night-shift': { name: '夜勤', effect: 'オフライン上限 12時間、18時間、24時間' },
+    'night-shift': { name: '夜勤', effect: '開発工数 +10%' },
     'time-dilation': { name: '時間の歪み', effect: '20倍、続いて40倍の速度を解放' },
     playbooks: { name: 'プレイブック', effect: 'プレイブックスロット 2、5、10、25' },
     'war-stories': {

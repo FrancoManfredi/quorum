@@ -38,7 +38,7 @@ debugging shape with completion and history metadata, and a `Game` is saved, has
 | Room              | `apps/web/src/game/room-machine.ts`               | `Idle`, `Connecting`, `Online`, `Reconnecting`, `Closed`        | `Model.room.phase`                                    |
 | Board session     | `apps/web/src/game/session-machine.ts`            | `Company`, `Sandbox`, `Challenge`                               | `Board.session`                                       |
 | Challenge run     | `apps/web/src/game/challenge-machine.ts`          | `Building`, `Running`, `Result`                                 | `Board.session.run`                                   |
-| Company           | `apps/web/src/game/company-machine.ts`            | `None`, `Opening`, `Open`, `Away`, `Exited`                     | `Model.companyPhase`                                  |
+| Company           | `apps/web/src/game/company-machine.ts`            | `None`, `Opening`, `Open`, `Exited`                             | `Model.companyPhase`                                  |
 | Exit survey       | `apps/web/src/game/survey-machine.ts`             | `Open`, `Sending`, `Sent`, `Failed`, `Skipped`                  | `Model.survey.phase`                                  |
 | Clock             | `apps/web/src/game/clock-machine.ts`              | `Running`, `PausedByPlayer`, `PausedByBlur`, `PausedByIncident` | `Board.clock.mode`                                    |
 | Board interaction | `apps/web/src/game/board-machine.ts`              | `Idle`, `Placing`, `Stamping`, `Linking`, `ConfirmingSell`      | `Board.flow`                                          |

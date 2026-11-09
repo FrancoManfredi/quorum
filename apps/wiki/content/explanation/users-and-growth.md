@@ -70,11 +70,11 @@ grow more loyal.
 - **Legacy.** The Founder’s reputation Perk raises growth in every later Company. See
   [Prestige](/prestige#perks).
 
-## While you are away
+## When the Company is closed
 
-When you come back, the Simulation replays the time you were away. Users grow only while errors stayed
-inside the Era's SLO, and they can still leave. Each region keeps at least 95% of its users, so you
-never return to a ruined Company.
+The clock stops when you close the Company, so users neither grow nor leave while you are gone. A
+save resumes at the Step it holds, and the growth curve continues from there. Nothing about your
+Company changes between sessions.
 
 ## Going global
 

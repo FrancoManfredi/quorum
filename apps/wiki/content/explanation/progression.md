@@ -87,7 +87,7 @@ night too.
 
 You can start a Study with no Insight saved, and you cannot hoard much anyway. Each pool holds only
 what your Analytics retention window collects at the current rate, and never less than one Study's
-share. Studies keep running while you are away.
+share. Studies run only while the Company is open; the clock stops when you close it.
 
 ## Making Studies faster
 

@@ -1,5 +1,4 @@
 import { copy } from '@/i18n/messages.ts'
-import { nameIn } from '@/i18n/refusal.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   BookCopy,
@@ -331,59 +330,6 @@ export const exitedPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       ),
     ],
     'max-w-[680px]',
-    h,
-  )
-}
-
-/** The return from time away (15 "Offline return"). */
-export const awayPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const t = copy(h)
-
-  const away = model.companyPhase._tag === 'Away' ? model.companyPhase.report : null
-  if (!away) return h.empty
-  const hours = away.away / 3_600
-  const capped = away.seconds < away.away
-  return shell(
-    t.legacy.away(
-      hours >= 1 ? t.legacy.h(hours.toFixed(1)) : t.legacy.min(Math.round(away.away / 60)),
-    ),
-    [],
-    [
-      h.div(
-        [h.Class('flex flex-col gap-3 px-5 pt-1 pb-5')],
-        [
-          stats(
-            'grid-cols-4 narrow:grid-cols-2',
-            [
-              stat(t.legacy.users, `${compact(away.usersBefore)} → ${compact(away.usersAfter)}`, h),
-              stat(t.legacy.cash, `${away.cash >= 0 ? '+' : ''}${money(away.cash)}`, h),
-              stat(t.legacy.studies, `${away.studied.length}`, h),
-              stat(t.legacy.devHours, `+${compact(away.devHours)}`, h),
-            ],
-            h,
-          ),
-          h.span(
-            [h.Class(cn(FIGURE, 'text-[calc(12.5px*var(--type-scale))] text-muted-foreground'))],
-            [
-              t.legacy.peakLoadAt00(
-                Math.round(away.peak * 100),
-                away.peakNode ? t.legacy.on(nameIn(t, away.peakNode)) : '',
-                String(away.peakHour).padStart(2, '0'),
-                capped ? t.legacy.cappedAtH(Math.round(away.seconds / 3_600)) : '',
-              ),
-            ],
-          ),
-          away.lost
-            ? h.span(
-                [h.Class('text-[calc(12.5px*var(--type-scale))] text-warn')],
-                [t.legacy.usersLeftAtPeakAddCapacity],
-              )
-            : h.empty,
-        ],
-      ),
-      footer([button({ onClick: Message.AwayClosed(), size: 'lg' }, t.legacy.continueText, h)], h),
-    ],
-    'max-w-[620px]',
     h,
   )
 }

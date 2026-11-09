@@ -54,7 +54,7 @@ import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { reasonIn } from '../../i18n/refusal.ts'
 import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
-import { isAway, isExited } from '../company-machine.ts'
+import { isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
 import { roomStep } from '../room-machine.ts'
 import { type Url } from 'foldkit/url'
@@ -405,7 +405,7 @@ export const continued = (model: Model): UpdateResult => {
   const next: Model = {
     ...model,
     route: AppRoute.Company(),
-    panel: isAway(model.companyPhase) ? 'away' : 'none',
+    panel: 'none',
     board: {
       ...model.board,
       clock: {

@@ -57,7 +57,7 @@ import {
   type Tuning,
 } from './catalog.ts'
 import type { Ledger } from './ledger.ts'
-import { eraOf, has, isDown, languageOf, topologyOf } from './lookups.ts'
+import { eraOf, has, isDown, languageOf, perkLevel, topologyOf } from './lookups.ts'
 import { awaitingFeatures, liveFeatures } from './features.ts'
 import { rolloutOf as rolloutShareOf } from './feature-machine.ts'
 import { budgetVelocity } from './slo.ts'
@@ -330,6 +330,9 @@ export const quartersBehind = (
 ): number =>
   Math.max(0, (game.time - cluster.upgradedAt) / quarterSeconds(tuning) - SUPPORTED_QUARTERS)
 
+/** Each Night shift level runs a second shift: 10% more Dev Hours from every team. */
+export const devHoursPerk = (game: Game): number => 1 + 0.1 * perkLevel(game, 'night-shift')
+
 /**
  * Engineers of Dev Hours the Clusters take from the product teams: 0.5 per
  * Cluster, and none with a Platform team, which does that work instead. A
@@ -388,7 +391,13 @@ export const teamOutputs = (
     // team owns. A team that runs the system, not the product, builds no backlog to tax.
     const upkeep = team.kind === 'product' ? 1 - upkeepShare(game, owned) : 1
     const rate =
-      (effective * velocity * upkeep * DEV_HOURS_PER_DAY * tuning.calendarPace) / CALENDAR_DAY
+      (effective *
+        velocity *
+        upkeep *
+        DEV_HOURS_PER_DAY *
+        tuning.calendarPace *
+        devHoursPerk(game)) /
+      CALENDAR_DAY
     return { team, headcount, effective, velocity, devHoursPerSecond: rate }
   })
   // Each Cluster takes engineers' worth of Dev Hours from the product teams, in proportion.

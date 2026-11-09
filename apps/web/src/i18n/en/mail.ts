@@ -1,7 +1,5 @@
 import {
   ADVICE,
-  AWAY_FINANCE,
-  AWAY_MONITORING,
   CHURN_LETTERS,
   CVE_LETTERS,
   EASY_MODE,
@@ -55,8 +53,6 @@ const letters: Readonly<Record<string, ReadonlyArray<Letter>>> = {
   request: REQUESTS as unknown as ReadonlyArray<Letter>,
   churn: CHURN_LETTERS as unknown as ReadonlyArray<Letter>,
   postmortem: POSTMORTEM as unknown as ReadonlyArray<Letter>,
-  'away.finance': AWAY_FINANCE as unknown as ReadonlyArray<Letter>,
-  'away.monitoring': AWAY_MONITORING as unknown as ReadonlyArray<Letter>,
   stall: STALL as unknown as ReadonlyArray<Letter>,
   easy: EASY_MODE as unknown as ReadonlyArray<Letter>,
 }

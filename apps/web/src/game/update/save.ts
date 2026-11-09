@@ -53,7 +53,7 @@ export const saveHandlers = (
       model,
       commands: [
         CopyText({
-          text: encodeSave(savePayloadOf(model), Date.now()),
+          text: encodeSave(savePayloadOf(model)),
           done: say(model).toasts.copiedSave,
           blocked: say(model).toasts.clipboardBlocked,
         }),
@@ -76,10 +76,7 @@ export const saveHandlers = (
       return withToast(model, reasonIn(say(model), decoded.failure), 'warn')
     // The save loads as it does when the Company opens, on a fresh board: the open Company's
     // undo stack and Inspector history belong to the Company the import replaces.
-    const loaded = route(
-      model,
-      Message.CompanyLoaded({ id, open: false, json: decoded.success, now: Date.now() }),
-    )
+    const loaded = route(model, Message.CompanyLoaded({ id, open: false, json: decoded.success }))
     const board = loaded.model.board
     const [next, clear] = toasted(
       {

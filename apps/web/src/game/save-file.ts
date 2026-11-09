@@ -16,10 +16,9 @@ export type SaveFile = Readonly<{
   inbox: SavedInbox
 }>
 
-/** The JSON the save slot holds: the Game, the wall clock for offline progress, and the rest. */
-export const saveJson = (save: SaveFile, wall: number): Record<string, unknown> => ({
+/** The JSON the save slot holds: the Game and the client state beside it. */
+export const saveJson = (save: SaveFile): Record<string, unknown> => ({
   ...save.game,
-  wall,
   disclosure: { revealed: save.revealed, pending: save.pending },
   dashboard: save.dashboard,
   inbox: save.inbox,
@@ -35,8 +34,8 @@ const decodeSaveText = Schema.decodeUnknownOption(SaveText)
 const decodeGame = Schema.decodeUnknownOption(Game)
 
 /** The save as one line of text the player can copy and paste. */
-export const encodeSave = (save: SaveFile, wall: number): string =>
-  encodeText(PREFIX, { version: SIM_VERSION, save: saveJson(save, wall) })
+export const encodeSave = (save: SaveFile): string =>
+  encodeText(PREFIX, { version: SIM_VERSION, save: saveJson(save) })
 
 /**
  * The save's JSON, or why the text is not a save this build can open: another

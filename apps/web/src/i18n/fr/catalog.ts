@@ -1587,7 +1587,7 @@ export const catalog: Messages['catalog'] = {
       effect: 'Croissance des utilisateurs +10%',
     },
     'better-terms': { name: 'De meilleures conditions', effect: 'Dilution par levée −2 points' },
-    'night-shift': { name: 'Quart de nuit', effect: 'Plafond hors ligne 12 h, 18 h, 24 h' },
+    'night-shift': { name: 'Quart de nuit', effect: 'Heures de développement +10 %' },
     'time-dilation': { name: 'Dilatation du temps', effect: 'Débloque une vitesse 20×, puis 40×' },
     playbooks: { name: 'Plans types', effect: 'Emplacements de plans types : 2, 5, 10, 25' },
     'war-stories': {

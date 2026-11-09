@@ -84,8 +84,8 @@ in game dollars, and the Valuation scales it to real-dollar ARR. See
 [Cash, Burn, and funding](/explanation/money).
 
 **A Company never dies.** No incident ends a Company, and running out of Cash is a setback, not a
-game over. Users never fall below a small floor. While you are away, no incident starts, and each
-region keeps at least 95% of its users. Real startups do die, and the game chooses not to model it.
+game over. Users never fall below a small floor. Nothing runs while the Company is closed: no incident starts,
+no users leave, and no cash moves. Real startups do die, and the game chooses not to model it.
 
 **Regions are tabs over one Design.** Each Node has a region, and a call between regions pays the
 round trip between them, based on the speed of light in fiber. The board shows one tab per region, but

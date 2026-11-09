@@ -1,5 +1,8 @@
 import { Result, Schema } from 'effect'
 import { describe, expect, test } from 'vitest'
+import { preseedGame } from '../src/company.ts'
+import { solveFlow } from '../src/solve.ts'
+import { devHoursPerk, devHoursRate } from '../src/team.ts'
 import { MUTATOR_IDS, VENTURE_IDS } from '../src/catalog.ts'
 import {
   buyPerk,
@@ -38,6 +41,19 @@ describe('the Founder picks any Venture or Mutator', () => {
 
   test('Perks still cost Legacy', () => {
     expect(Result.isFailure(buyPerk(emptyFounder(), 'angel-network'))).toBe(true)
+  })
+
+  test('Night shift adds 10% Dev Hours per level', () => {
+    const base = preseedGame()
+    const withLevel = (level: number) => ({
+      ...base,
+      founding: { ...base.founding, perks: { 'night-shift': level } },
+    })
+    expect(devHoursPerk(base)).toBe(1)
+    expect(devHoursPerk(withLevel(3))).toBeCloseTo(1.3)
+    const ledger = solveFlow(base)
+    expect(devHoursRate(base, ledger)).toBeGreaterThan(0)
+    expect(devHoursRate(withLevel(2), ledger) / devHoursRate(base, ledger)).toBeCloseTo(1.2)
   })
 
   test('a Founder file from before the change still loads', () => {

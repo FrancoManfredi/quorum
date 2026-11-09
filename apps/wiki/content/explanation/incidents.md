@@ -18,8 +18,8 @@ The Garage has no incidents. They begin in Pre-seed, shortly after you raise or 
 After that, the director waits a random time around the Era's interval before it starts the next one,
 and only one incident runs at a time.
 
-No incident starts while you are away. When you come back, the next one waits a short while, so
-nothing strikes the moment you return.
+The clock stops when the Company is closed, so no incident starts while you are away. When you open
+it again, the director continues from the same Step.
 
 ## The director aims at your weaknesses
 

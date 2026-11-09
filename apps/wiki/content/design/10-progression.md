@@ -332,8 +332,9 @@ Thread resolves when the Study moves again or leaves the queue.
   not running waits, and no Team takes it.
 - **Study-speed research.** `trace-search` and `notebooks` add +25% each.
 
-Studies run offline ([Simulation](/design/04-simulation#offline-progress)). A postmortem's action item
-puts its Study first in the queue ([Incidents](/design/11-incidents#postmortems)).
+Studies run only while the Company is open; the clock stops with it
+([Simulation](/design/04-simulation#the-clock-stops)). A postmortem's action item puts its Study first
+in the queue ([Incidents](/design/11-incidents#postmortems)).
 
 Queueing a locked item queues its missing prerequisites with it, each ahead of what needs it, as
 picking a distant technology in Civilization researches the path to it. In Seed with nothing

@@ -20,8 +20,8 @@ explains the weighting.
 **The Payments drawer.** Revenue first waits in the Payments drawer, and you click Collect to move it
 into Cash. The drawer holds 60 seconds of revenue at size 1, and never less than $25. Each size step
 doubles it, and revenue past the drawer's size is lost. [Stripe Billing](/research/stripe) collects
-for you, after which the drawer only shows the rate. While you are away, revenue goes straight to
-Cash.
+for you, after which the drawer only shows the rate. The drawer never fills while the Company is
+closed, because the clock stops with it.
 
 **Subscriptions.** When the Paid plans Feature ships, 5% of your users pay a plan worth $24 per
 calendar day. This income does not depend on requests, so it rewards keeping users more than serving

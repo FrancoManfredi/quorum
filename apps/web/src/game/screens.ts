@@ -21,7 +21,6 @@ import { dashboardPanel } from '@/components/lab/dashboard.ts'
 import { researchPanel } from '@/components/lab/research.ts'
 import { teamPanel } from '@/components/lab/team.ts'
 import {
-  awayPanel,
   exitPanel,
   exitedPanel,
   playbooksPanel,
@@ -139,7 +138,6 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
       model.panel === 'team' ? teamPanel(model, h) : h.empty,
       model.panel === 'exit' ? exitPanel(model, h) : h.empty,
       model.panel === 'exited' ? exitedPanel(model, h) : h.empty,
-      model.panel === 'away' ? awayPanel(model, h) : h.empty,
       model.panel === 'playbooks' ? playbooksPanel(model, h) : h.empty,
       model.panel === 'help' ? helpPanel(model, h) : h.empty,
       model.panel === 'menu' ? menuPanel(model, h) : h.empty,

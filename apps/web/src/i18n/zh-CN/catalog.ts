@@ -1321,7 +1321,7 @@ export const catalog: Messages['catalog'] = {
     'pattern-recognition': { name: '模式识别', effect: '洞察 +20%' },
     'founders-reputation': { name: '创始人声誉', effect: '用户增长 +10%' },
     'better-terms': { name: '更好的融资条款', effect: '每轮融资的股权稀释减少 2 个百分点' },
-    'night-shift': { name: '夜班', effect: '离线上限为 12、18、24 小时' },
+    'night-shift': { name: '夜班', effect: '开发工时 +10%' },
     'time-dilation': { name: '时间膨胀', effect: '依次解锁 20 倍、40 倍速度' },
     playbooks: { name: '运维手册', effect: '运维手册栏位数为 2、5、10、25' },
     'war-stories': { name: '实战经验', effect: '未完成行动项对故障概率的增幅减半' },
