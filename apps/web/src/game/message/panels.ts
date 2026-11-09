@@ -12,6 +12,10 @@ import { ResearchId } from '@quorum/simulation/state'
 /** The panels Messages, as cases for the root union. */
 export const panelsCases = {
   PanelOpened: { panel: Panel },
+  /** Opens the Dashboard where the alert rules live, so a page has somewhere to be answered. */
+  AlertsShown: {},
+  /** The player is done with the Research offer a locked click left behind. */
+  ResearchOfferDismissed: {},
   /** Opens the Research panel on one item, as a locked control's link to what it needs. */
   ResearchShown: { id: ResearchId },
   /** A fix in the Churn breakdown: open or show a region, a research item, or a Node. */

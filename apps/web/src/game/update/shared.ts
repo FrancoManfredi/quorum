@@ -32,11 +32,13 @@ import {
   PlaySound,
   SendRoom,
   SyncBoard,
+  TOAST_MS,
 } from '../commands.ts'
 import { beginChange, figuresOf, pushUndo, snapshotOf, type Reversal } from '../feedback.ts'
 import { copyIn, type Messages } from '../../i18n/messages.ts'
 import { countStats, detectAchievements } from '@quorum/simulation/achievements'
 import { cueNode } from '../reveal.ts'
+import { offerOf } from '../offer.ts'
 import { eraReachedOf, line } from '../telemetry.ts'
 import { fileOf, refreshedIndex } from '../saves.ts'
 import { ghostReason } from '@quorum/simulation/playbook'
@@ -109,6 +111,8 @@ export const freshBoard = (game: Game): Board => ({
   },
   lastGoal: '',
   lastBottleneck: '',
+  alertQuiet: [],
+  researchOffer: null,
 })
 
 /**
@@ -245,10 +249,17 @@ export const stampOf = (model: Model) => {
   }))
 }
 
-/** The Model with a toast raised, and the Command that clears it later. */
+/** The Model with a toast raised, and the Command that clears it later. The same message twice in
+ *  a row raises it once, with a count, so a burst of refusals reads as one instead of blinking. */
 export const toasted = (model: Model, message: string, tone: Tone): [Model, AnyCommand] => {
+  const previous = model.toast
+  const repeat = previous !== null && previous.message === message && previous.tone === tone
   const id = model.toastSeq + 1
-  return [{ ...model, toast: { id, message, tone }, toastSeq: id }, ClearToast({ id })]
+  const count = repeat && previous !== null ? previous.count + 1 : 1
+  return [
+    { ...model, toast: { id, message, tone, count }, toastSeq: id },
+    ClearToast({ id, after: TOAST_MS[tone] }),
+  ]
 }
 
 export const withToast = (
@@ -304,7 +315,13 @@ export const act = (
   const action =
     intents === null ? appliedOf(target as Action | Game) : applyIntents(model.board.game, intents)
   return Result.match(action, {
-    onFailure: (refusal) => withToast(model, refusalIn(say(model), refusal), 'warn'),
+    // A locked click leaves an offer the player can take later; anything else is a sentence and gone.
+    onFailure: (refusal) => {
+      const offer = offerOf(refusal)
+      return offer === null
+        ? withToast(model, refusalIn(say(model), refusal), 'warn')
+        : { model: { ...model, board: { ...model.board, researchOffer: offer } } }
+    },
     onSuccess: (applied) => {
       if (applied === model.board.game) return { model }
       // A run replays the Design it started with: only logged run actions may change it.

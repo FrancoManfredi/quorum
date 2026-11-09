@@ -29,6 +29,7 @@ import { SHARED } from '@quorum/simulation/playbook'
 import { queueFeature } from '@quorum/simulation/work'
 import { encodeText } from '@quorum/simulation/codec'
 import { JOBS } from '@quorum/ui/board/jobs'
+import { TOAST_MS } from './commands.ts'
 import { Message } from './message.ts'
 import { disclosureFact, eventFact, factOf, type Fact } from './mail.ts'
 import { titleIsOpen } from './boot-machine.ts'
@@ -976,7 +977,12 @@ describe('M9: sound, achievements, keys', () => {
 
   test('a warning the world raises keeps the alarm; a refused gesture answers quietly', () => {
     const before = inLab()
-    const raised = { id: 1, message: 'The Payments drawer is full.', tone: 'warn' as const }
+    const raised = {
+      id: 1,
+      message: 'The Payments drawer is full.',
+      tone: 'warn' as const,
+      count: 1,
+    }
     const toast = { ...before, toast: raised }
     // A world event moves the Game, so its warning still sounds.
     const worse: Model = {
@@ -1799,6 +1805,29 @@ test('the board redraws after any Message that changes what it shows, and fits a
   const fitted = update(entered.model, Message.BoardFitted())
   expect((fitted.commands ?? []).map((command) => command.name)).toContain('FitBoard')
   expect(syncs(fitted)).toEqual([])
+})
+
+test('the same refusal twice in a row is one toast with a count, and a warning stays longer', () => {
+  const once = update(
+    inLab(),
+    Message.ToastRaised({ message: 'Backoff needs Backoff.', tone: 'warn' }),
+  )
+  const twice = update(
+    once.model,
+    Message.ToastRaised({ message: 'Backoff needs Backoff.', tone: 'warn' }),
+  )
+  expect(twice.model.toast?.count).toBe(2)
+  const clear = (result: ReturnType<typeof update>) =>
+    (result.commands ?? []).find((command) => command.name === 'ClearToast')
+  // A refusal names a Research and a price, so it holds longer than a confirmation.
+  expect(clear(once)?.args).toMatchObject({ after: TOAST_MS.warn })
+  expect(TOAST_MS.warn).toBeGreaterThan(TOAST_MS.ok)
+  // A different sentence starts the count again.
+  const other = update(
+    twice.model,
+    Message.ToastRaised({ message: 'Nothing to undo.', tone: 'plain' }),
+  )
+  expect(other.model.toast?.count).toBe(1)
 })
 
 test("a toast from the last board cannot clear the next board's toast", () => {

@@ -1,7 +1,7 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { dock } from '@/components/lab/dock.ts'
 import { changeBar, hud, regionTabs, toolbar } from '@/components/lab/hud.ts'
-import { badDeploy, incidentBanner, pager, postmortems } from '@/components/lab/incidents.ts'
+import { alertsNotice, incidentNotice, researchOffer } from '@/components/lab/incidents.ts'
 import { inspector } from '@/components/lab/inspector.ts'
 import {
   devPanel,
@@ -58,8 +58,8 @@ const LANE = 'flex min-w-0 flex-1 flex-col items-center gap-2 compact:items-stre
 const BOTTOM =
   'pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 compact:right-[max(8px,env(safe-area-inset-right))] compact:bottom-[max(8px,env(safe-area-inset-bottom))] compact:left-[max(8px,env(safe-area-inset-left))] compact:translate-x-0 compact:items-stretch'
 
-/** On a phone the mail preview and postmortems share one stack above the bottom controls, so the
- *  Inbox button and dock never cover an alert. On a desktop they keep their own corners. */
+/** On a phone the mail preview and the Research offer share one stack above the bottom controls, so
+ *  the Inbox button and the dock never cover either. On a desktop they keep their own corners. */
 const bottomNotices = (model: Model, h: HtmlBuilder<Message>): Html =>
   h.div(
     [
@@ -67,7 +67,7 @@ const bottomNotices = (model: Model, h: HtmlBuilder<Message>): Html =>
         'contents compact:pointer-events-none compact:absolute compact:inset-x-2 compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+144px)] compact:z-20 compact:flex compact:flex-col compact:gap-2',
       ),
     ],
-    [peek(model, h), postmortems(model, h)],
+    [peek(model, h), researchOffer(model, h)],
   )
 
 export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
@@ -102,9 +102,8 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
                     : boardSandbox(model.board)
                       ? objectiveBar(model, h)
                       : h.empty,
-                  pager(model, h),
-                  badDeploy(model, h),
-                  incidentBanner(model, h),
+                  incidentNotice(model, h),
+                  alertsNotice(model, h),
                   changeBar(model, h, 'enter-down hidden compact:flex'),
                 ],
               ),

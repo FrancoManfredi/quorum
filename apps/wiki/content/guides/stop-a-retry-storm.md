@@ -28,7 +28,7 @@ The director picks this incident most often when a Link into the Database uses *
 
 - The Database Load row stays red after the first seconds of the incident.
 - The error share on the HUD stays high, mostly `timeout` in **Errors by cause** on the Users Node.
-- With [Alerting](/research/alerting), the pager banner fires on errors.
+- With [Alerting](/research/alerting), the pager fires on errors.
 
 ## Stop it now
 
@@ -64,8 +64,8 @@ sends the call again, which adds load. Use a short timeout only with Backoff or 
 - Set **Shed low value** on every App Server as a default.
 - Keep spare capacity on the Database. A storm grows only when the slowed Database cannot keep up
   with its retries.
-- Take the action item when a postmortem card opens. The Retry storm card offers Backoff with
-  jitter first, then Circuit breakers, then Priority load shedding.
+- Take the action item when the postmortem Mail arrives. The Retry storm message offers Backoff
+  with jitter first, then Circuit breakers, then Priority load shedding.
 
 :::Note{tone="tip"}
 Retries on the Payment Provider have their own risk. A charge that timed out and is sent again

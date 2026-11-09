@@ -83,11 +83,12 @@ lasts longer, and a spike gets bigger. A fast response keeps it small.
 
 ## Read the postmortem
 
-When the incident ends, a toast says it is over. A postmortem card appears at the bottom left.
+When the incident ends, a teammate sends you a postmortem. Press `I` to open the Inbox and look for
+the message titled "Postmortem for the …".
 
-1. Find the card. It shows a **SEV** badge and the incident's name.
-2. Click the card to open its details. Read the cause, the **MTTR** (the time to restore service),
-   the users you lost, and the revenue you lost.
+1. Select the message. The reader shows a **SEV** badge and the incident's name.
+2. Read the body. It gives the cause, the **MTTR** (the time to restore service), the users you lost,
+   and the revenue you lost.
 3. Read the last line. It names what prevents the incident.
 
 ## File the postmortem

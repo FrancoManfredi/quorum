@@ -20,7 +20,7 @@ users, because waiting time climbs fast as a Node nears full load. That curve is
 
 - A red line labelled **▲ SEV3 Traffic spike** appears on the Dashboard charts (D).
 - The **Requests** row on the Users Node jumps. Every Node card turns amber, then red.
-- With [Alerting](/research/alerting), the pager banner fires on errors, p99, or saturation.
+- With [Alerting](/research/alerting), the pager fires on errors, p99, or saturation.
 
 ## During the spike
 
@@ -49,9 +49,9 @@ copy takes 30 seconds.
 
 ## After the spike
 
-1. When the incident ends, a postmortem card opens, and if it shows an action item, click the
-   Research button on the card to put that Study first in the queue. Filing the card without it
-   leaves the item open, and the incident stays twice as likely.
+1. When the incident ends, a postmortem Mail arrives. If it offers an action item, press its button
+   to put that Study first in the queue. Filing the message without it leaves the item open, and the
+   incident stays twice as likely.
 2. Use **Smaller (free)** on the Nodes you resized, once Load falls, if Burn matters to you.
 
 ## Prepare for the next spike

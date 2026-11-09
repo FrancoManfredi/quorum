@@ -116,6 +116,8 @@ export const Toast = Schema.Struct({
   id: Schema.Finite,
   message: Schema.String,
   tone: Tone,
+  /** How many times this same message has arrived in a row: a repeat shows once, with a count. */
+  count: Schema.Finite,
 })
 export type Toast = typeof Toast.Type
 
@@ -354,6 +356,11 @@ export const Board = Schema.Struct({
   nodeSample: Schema.NullOr(Schema.Struct({ nodeId: Schema.String, time: Schema.Finite })),
   inbox: Inbox,
   dashboard: Dashboard,
+  /** The rules the player has acknowledged: they stay quiet until a rule clears. */
+  alertQuiet: Schema.Array(Schema.Literals(['errors', 'latency', 'saturation', 'queue', 'budget'])),
+  /** A Research a locked click reached for: the offer waits until the player takes it, dismisses it,
+   *  or studies it. `what` is the option's name as the refusal wrote it, so the sentence stays. */
+  researchOffer: Schema.NullOr(Schema.Struct({ id: ResearchId, what: Schema.String })),
   /** The last goal and bottleneck logged, so the log records changes only. */
   lastGoal: Schema.String,
   lastBottleneck: Schema.String,

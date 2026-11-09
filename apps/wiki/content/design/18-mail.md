@@ -41,7 +41,8 @@ arrives in an **Inbox** that works like an email app.
 8. **Urgent Mail still interrupts.** An outage page stays a Board banner, because waiting to open an
    email costs the player money. The Mail that follows is the record.
 9. **Gesture feedback stays a toast.** "Collected $16", refusals, and the change delta answer the
-   click that just happened. They are not Mail.
+   click that just happened. They are not Mail. A refusal about a Research is the exception: it
+   leaves a study slip above the dock, because spending Insight is a decision and decisions wait.
 10. **Mail never lies about the Simulation.** Spam and phishing lie about the world; they never change
     a number on the Board until the player acts on them.
 

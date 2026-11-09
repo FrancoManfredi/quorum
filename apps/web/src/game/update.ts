@@ -136,6 +136,7 @@ export const QUIET = new Set([
   'Navigated',
   'NodeSampleChosen',
   'ToastCleared',
+  'AlertsAcknowledged',
   'Saved',
   'SavesLoaded',
   'CompanyLoaded',

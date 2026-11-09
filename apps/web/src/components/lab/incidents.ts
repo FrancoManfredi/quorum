@@ -1,472 +1,346 @@
-import { formats } from '@/i18n/format.ts'
-import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
-  BellOff,
-  BellRing,
   Check,
   ChevronRight,
+  Crosshair,
   FileBadge,
+  FlaskConical,
   Lock,
-  Radar,
-  Timer,
-  Undo2,
-  Users,
-  Wallet,
-  X,
+  TriangleAlert,
 } from 'lucide'
-import { ALERT_RULES, ALERT_THRESHOLDS, INCIDENTS } from '@quorum/simulation/catalog'
+import { ALERT_RULES } from '@quorum/simulation/catalog'
 import type { AlertRule } from '@quorum/simulation/events'
 import { has } from '@quorum/simulation/lookups'
 import { ignored } from '@quorum/simulation/step'
-import type { Game, Postmortem } from '@quorum/simulation/state'
-import { compact, money } from '@quorum/ui/game/format'
+import type { Game } from '@quorum/simulation/state'
+import { formats } from '@/i18n/format.ts'
+import { copy, insightName, type Messages } from '@/i18n/messages.ts'
+import { nameIn } from '@/i18n/refusal.ts'
 import { Message } from '@/game/message.ts'
 import type { Model } from '@/game/model.ts'
-import { recipeOf } from '@quorum/ui/game/pools'
-import { icon } from '@quorum/ui/primitives/icon'
 import { badge } from '@quorum/ui/primitives/badge'
-import { button } from '@quorum/ui/primitives/button'
+import { button, closeButton } from '@quorum/ui/primitives/button'
+import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
-import { EYEBROW, FIGURE, PANEL, WELL, insightChip } from '@quorum/ui/game/bits'
+import { compact } from '@quorum/ui/game/format'
+import { recipeOf } from '@quorum/ui/game/pools'
+import { EYEBROW, FIGURE, insightChip } from '@quorum/ui/game/bits'
 
-/** Symptom-based pages, like real alerting: they name what users feel, not the cause. A rule
- * that cried wolf too often today is ignored until the player changes its threshold. */
 /**
- * The chain a cascade carries (11 "Cascades"): the pager names the incident that was left alone, so
- * the player sees that this is the second page, not the first.
+ * Notices, in two weights. The Alarm is the live incident: it is red because one click ends it, and
+ * there is never more than one. The State chip is a standing condition, such as a rule that fires
+ * or a team that has stopped trusting one, so it stays quiet and waits to be read.
+ *
+ * Everything the player may want to reread is Mail. Nothing here is a record.
  */
-const cause = (game: Game, h: HtmlBuilder<Message>): Html => {
+
+const ALARM =
+  'pointer-events-auto enter-down flex min-w-0 items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]'
+
+const STATE =
+  'pointer-events-auto enter-down flex min-w-0 items-center gap-2 rounded-xl bg-surface py-1 pr-1 pl-3 text-[calc(12.5px*var(--type-scale))] shadow-card'
+
+type IncidentAction = Readonly<{
+  label: (t: Messages) => string
+  on: (nodeId: string) => Message
+  /** The button presses a Node's own action, so it needs the Node the incident hit. */
+  node?: true
+  /** Why the action is not ready, or null when it is. */
+  locked?: (t: Messages, game: Game) => string | null
+}>
+
+/** What one click ends each incident, if a click ends it at all. */
+const ACTIONS: Readonly<Record<string, IncidentAction>> = {
+  'bad-deploy': {
+    label: (t) => t.incidents.rollBack,
+    on: () => Message.RolledBack(),
+    locked: (t, game) =>
+      has(game, 'ci') ? null : t.incidents.researchToRollBack(t.catalog.research.ci.name),
+  },
+  certificate: { label: (t) => t.incidents.renew, on: () => Message.CertificateRenewed() },
+  bgp: { label: (t) => t.incidents.rollBack, on: () => Message.RoutesRolledBack() },
+  config: { label: (t) => t.incidents.rollBack, on: () => Message.ConfigRolledBack() },
+  partition: { label: (t) => t.incidents.fenceLeader, on: () => Message.LeaderFenced() },
+  'migration-lock': {
+    label: (t) => t.incidents.cancelMigration,
+    on: () => Message.SchemaMigrationCancelled(),
+  },
+  'supply-chain': {
+    label: (t) => t.incidents.pinAndRedeploy,
+    on: () => Message.DependencyPinned(),
+  },
+  'accidental-delete': { label: (t) => t.incidents.restore, on: () => Message.TableRestored() },
+  'leap-second': { label: (t) => t.incidents.restartNodes, on: () => Message.ClocksRestarted() },
+  loop: { label: (t) => t.incidents.moveLogin, on: () => Message.KindMoved() },
+  zone: { label: (t) => t.incidents.failOver, on: () => Message.ZoneFailedOver() },
+  region: { label: (t) => t.incidents.failOver, on: () => Message.RegionFailedOver() },
+  'dr-drill': { label: (t) => t.incidents.failOver, on: () => Message.RegionFailedOver() },
+  'stale-opcache': {
+    label: (t) => t.incidents.restart,
+    node: true,
+    on: (nodeId) => Message.RestartChosen({ nodeId }),
+  },
+  'gevent-compat': {
+    label: (t) => t.incidents.restart,
+    node: true,
+    on: (nodeId) => Message.RestartChosen({ nodeId }),
+  },
+  'bun-compat': {
+    label: (t) => t.incidents.restart,
+    node: true,
+    on: (nodeId) => Message.RestartChosen({ nodeId }),
+  },
+  'split-brain': {
+    label: (t) => t.incidents.restartHub,
+    node: true,
+    on: (nodeId) => Message.RestartChosen({ nodeId }),
+  },
+  reconnect: {
+    label: (t) => t.incidents.throttleConnects,
+    node: true,
+    on: (nodeId) => Message.ConnectsThrottled({ nodeId }),
+  },
+}
+
+/** A severity reads the same whether or not the player can pick the colour out, so the bar carries it. */
+const severity = (value: number, t: Messages, h: HtmlBuilder<Message>): Html =>
+  h.span(
+    [
+      h.Class(
+        cn(
+          FIGURE,
+          'shrink-0 rounded-md px-1 text-[calc(10.5px*var(--type-scale))] font-medium shadow-[inset_0_0_0_1px_oklch(1_0_0/0.42)]',
+        ),
+      ),
+    ],
+    [t.incidents.sev(value)],
+  )
+
+/** The live incident, and the one click that ends it. Every incident shows, fix or no fix. */
+export const incidentNotice = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const kind = game.incident?.causedBy
-  if (!kind) return h.empty
+  const incident = model.board.game.incident
+  if (!incident) return h.empty
+  const action = ACTIONS[incident.kind]
+  const nodeId = incident.nodeId
+  const ready = action !== undefined && (action.node !== true || nodeId !== null)
+  const locked = ready && action?.locked ? action.locked(t, model.board.game) : null
   return h.div(
-    [h.Key('cascade'), h.Class(cn('flex items-center gap-1.5 py-1 pr-2.5 pl-2', PANEL))],
     [
-      icon(h, ChevronRight, 'size-3.5 text-warn'),
-      h.span(
-        [h.Class('text-[calc(12.5px*var(--type-scale))] text-muted-foreground')],
-        [t.incidents.after],
+      h.Key(`incident-${incident.kind}`),
+      h.DataAttribute('morph', 'notice'),
+      h.DataAttribute('exit', 'notice'),
+      h.Class(ALARM),
+    ],
+    [
+      icon(h, TriangleAlert, 'size-4 shrink-0'),
+      h.div(
+        [h.Class('flex min-w-0 flex-col')],
+        [
+          h.div(
+            [h.Class('flex min-w-0 items-center gap-2')],
+            [
+              h.span([h.Class('truncate')], [t.catalog.incidents[incident.kind].name]),
+              severity(incident.severity, t, h),
+            ],
+          ),
+          // A cascade carries the incident it followed (11 "Cascades"), so this reads as the second
+          // page and not the first.
+          incident.causedBy
+            ? h.span(
+                [h.Class('text-[calc(11.5px*var(--type-scale))] font-medium text-white/80')],
+                [t.incidents.followedLeftAlone(t.catalog.incidents[incident.causedBy].name)],
+              )
+            : h.empty,
+        ],
       ),
-      h.span(
-        [h.Class('text-[calc(12.5px*var(--type-scale))] font-semibold')],
-        [t.catalog.incidents[kind].name],
-      ),
-      h.span(
-        [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
-        [t.incidents.leftAlone],
-      ),
+      ready && action
+        ? button(
+            {
+              onClick: action.on(nodeId ?? ''),
+              isDisabled: locked !== null,
+              size: 'sm',
+              variant: 'outline',
+              attributes: [h.Title(locked ?? action.label(t))],
+            },
+            [icon(h, locked === null ? FileBadge : Lock, 'size-3.5'), action.label(t)],
+            h,
+          )
+        : h.empty,
+      nodeId
+        ? h.button(
+            [
+              h.Type('button'),
+              h.Title(t.incidents.showOnBoard),
+              h.AriaLabel(t.incidents.showOnBoard),
+              h.OnClick(Message.RevealNode({ nodeId })),
+              h.Class(
+                'grid size-7 shrink-0 place-items-center rounded-lg text-white/90 shadow-[inset_0_0_0_1px_oklch(1_0_0/0.4)] hover:bg-white/10',
+              ),
+            ],
+            [icon(h, Crosshair, 'size-3.5')],
+          )
+        : h.empty,
     ],
   )
 }
 
-export const pager = (model: Model, h: HtmlBuilder<Message>): Html => {
+/**
+ * The alert rules as one chip: what fires, what the team has stopped trusting, and the door to the
+ * Alerts row, where the thresholds live. Acknowledged rules fold to a count until one clears.
+ */
+export const alertsNotice = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
   const game = model.board.game
-  const chained = cause(game, h)
-  if (!has(game, 'alerting')) return chained
+  if (!has(game, 'alerting')) return h.empty
   const rules = Object.keys(ALERT_RULES) as Array<AlertRule>
   const firing = rules.filter(
     (rule) => !ignored(game, rule) && game.alarms[rule] >= ALERT_RULES[rule].seconds,
   )
   const muted = rules.filter((rule) => ignored(game, rule))
-  if (firing.length === 0 && muted.length === 0) return chained
+  if (firing.length === 0 && muted.length === 0) return h.empty
+  const quiet = new Set<AlertRule>(model.board.alertQuiet)
+  const loud = firing.filter((rule) => !quiet.has(rule))
+  const folded = firing.length > 0 && loud.length === 0
+  const shown = firing.length > 0 ? firing : muted
+  const named = loud[0] ?? shown[0]
+  if (named === undefined) return h.empty
+  const others = shown.length - 1
+  const detail = folded ? null : formats(t).alertText(named, game.alertRules[named])
   return h.div(
-    [h.Class('flex flex-col items-center gap-1.5')],
     [
-      chained,
-      firing.length > 0
-        ? h.div(
-            [
-              h.Key('pager'),
-              h.DataAttribute('morph', 'notice'),
-              h.DataAttribute('exit', 'notice'),
-              h.Class(
-                'enter-down flex items-center gap-2.5 rounded-xl bg-danger px-3.5 py-2 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
-              ),
-            ],
-            [
-              icon(h, BellRing, 'ring size-4 shrink-0'),
-              // A new page swaps in; the pill morphs to its length.
-              h.span(
-                [
-                  h.Key(firing.join()),
-                  h.DataAttribute('exit', 'notice'),
-                  h.Class('swap whitespace-nowrap'),
-                ],
-                [
-                  firing
-                    .map((rule) => formats(t).alertText(rule, game.alertRules[rule]))
-                    .join(' · '),
-                ],
-              ),
-            ],
+      h.Key(`alerts-${firing.join()}-${muted.join()}-${folded ? 'quiet' : 'loud'}`),
+      h.DataAttribute('morph', 'notice'),
+      h.DataAttribute('exit', 'notice'),
+      h.Class(STATE),
+    ],
+    [
+      h.span(
+        [
+          h.AriaHidden(true),
+          h.Class(
+            cn(
+              'size-[7px] shrink-0 rounded-full',
+              loud.length > 0 ? 'bg-warn' : 'bg-muted-foreground',
+            ),
+          ),
+        ],
+        [],
+      ),
+      h.span(
+        [h.Class('shrink-0 font-semibold')],
+        [
+          firing.length > 0
+            ? t.incidents.alertsFiring(firing.length)
+            : t.incidents.ruleIgnored(muted.length),
+        ],
+      ),
+      detail === null
+        ? h.empty
+        : h.span(
+            [h.Class('min-w-0 truncate text-muted-foreground')],
+            [others > 0 ? `${detail} ${t.incidents.andMore(others)}` : detail],
+          ),
+      muted.length > 0 ? badge({ variant: 'warn' }, [t.incidents.ignored], h) : h.empty,
+      loud.length > 0
+        ? button(
+            {
+              onClick: Message.AlertsAcknowledged({ rules: [...firing] }),
+              size: 'icon-sm',
+              variant: 'ghost',
+              attributes: [h.Title(t.incidents.acknowledge), h.AriaLabel(t.incidents.acknowledge)],
+            },
+            [icon(h, Check, 'size-3.5')],
+            h,
           )
         : h.empty,
-      ...muted.map((rule) =>
-        h.div(
-          [
-            h.Key(`ignored-${rule}`),
-            h.Class(
-              cn(
-                'flex items-center gap-2 py-1 pr-1 pl-3 text-[calc(12.5px*var(--type-scale))]',
-                PANEL,
-              ),
-            ),
-          ],
-          [
-            icon(h, BellOff, 'size-3.5 text-muted-foreground'),
-            h.span([h.Class('font-medium')], [formats(t).alertText(rule, game.alertRules[rule])]),
-            badge({ variant: 'warn' }, [t.incidents.ignored], h),
-            h.div(
-              [h.Class(cn('flex gap-[3px] rounded-lg p-[3px]', WELL))],
-              ALERT_THRESHOLDS[rule].map((threshold) =>
-                h.button(
-                  [
-                    h.Key(`${rule}-${threshold}`),
-                    h.Type('button'),
-                    h.AriaPressed(threshold === game.alertRules[rule] ? 'true' : 'false'),
-                    h.OnClick(Message.AlertRuleChosen({ rule, threshold })),
-                    h.Class(
-                      cn(
-                        FIGURE,
-                        'h-6 rounded-md px-2 text-[calc(11.5px*var(--type-scale))]',
-                        threshold === game.alertRules[rule]
-                          ? 'bg-raised text-foreground shadow-raised'
-                          : 'text-muted-foreground hover:text-foreground',
-                      ),
-                    ),
-                  ],
-                  [
-                    rule === 'latency' || rule === 'budget'
-                      ? `${threshold}×`
-                      : rule === 'queue'
-                        ? t.incidents.s(threshold)
-                        : `${Math.round(threshold * 1000) / 10}%`,
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  )
-}
-
-/** A bad deploy on screen: App Servers crash until it is rolled back or runs its course. */
-export const badDeploy = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const t = copy(h)
-
-  const game = model.board.game
-  if (game.incident?.kind !== 'bad-deploy') return h.empty
-  const ready = has(game, 'ci')
-  return h.div(
-    [
-      h.Key('bad-deploy'),
-      h.Class(
-        'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
-      ),
-    ],
-    [
-      h.span([], [t.catalog.incidents['bad-deploy'].name]),
       button(
         {
-          onClick: Message.RolledBack(),
-          isDisabled: !ready,
-          size: 'sm',
-          variant: 'outline',
-          attributes: [
-            h.Title(
-              ready
-                ? t.incidents.rollBack
-                : t.incidents.researchToRollBack(t.catalog.research.ci.name),
-            ),
-          ],
-        },
-        [icon(h, ready ? Undo2 : Lock, 'size-3.5'), t.incidents.rollBack],
-        h,
-      ),
-    ],
-  )
-}
-
-/** An expired certificate on screen: every request fails until it is renewed. */
-/** Incidents one action ends, with no Node to select: a banner with the fix. */
-const BANNERS = {
-  certificate: { label: (t: Messages) => t.incidents.renew, message: Message.CertificateRenewed() },
-  bgp: { label: (t: Messages) => t.incidents.rollBack, message: Message.RoutesRolledBack() },
-  config: { label: (t: Messages) => t.incidents.rollBack, message: Message.ConfigRolledBack() },
-  partition: { label: (t: Messages) => t.incidents.fenceLeader, message: Message.LeaderFenced() },
-  'migration-lock': {
-    label: (t: Messages) => t.incidents.cancelMigration,
-    message: Message.SchemaMigrationCancelled(),
-  },
-  'supply-chain': {
-    label: (t: Messages) => t.incidents.pinAndRedeploy,
-    message: Message.DependencyPinned(),
-  },
-  'accidental-delete': {
-    label: (t: Messages) => t.incidents.restore,
-    message: Message.TableRestored(),
-  },
-  'leap-second': {
-    label: (t: Messages) => t.incidents.restartNodes,
-    message: Message.ClocksRestarted(),
-  },
-  loop: { label: (t: Messages) => t.incidents.moveLogin, message: Message.KindMoved() },
-  zone: { label: (t: Messages) => t.incidents.failOver, message: Message.ZoneFailedOver() },
-  region: { label: (t: Messages) => t.incidents.failOver, message: Message.RegionFailedOver() },
-  'dr-drill': { label: (t: Messages) => t.incidents.failOver, message: Message.RegionFailedOver() },
-} as const
-
-/** Incidents one action on the Node they hit ends: the banner presses it for that Node. */
-const NODE_BANNERS = {
-  'stale-opcache': {
-    label: (t: Messages) => t.incidents.restart,
-    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
-  },
-  'gevent-compat': {
-    label: (t: Messages) => t.incidents.restart,
-    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
-  },
-  'bun-compat': {
-    label: (t: Messages) => t.incidents.restart,
-    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
-  },
-  'split-brain': {
-    label: (t: Messages) => t.incidents.restartHub,
-    message: (nodeId: string) => Message.RestartChosen({ nodeId }),
-  },
-  reconnect: {
-    label: (t: Messages) => t.incidents.throttleConnects,
-    message: (nodeId: string) => Message.ConnectsThrottled({ nodeId }),
-  },
-} as const
-
-type BannerKind = keyof typeof BANNERS
-
-export const incidentBanner = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const t = copy(h)
-
-  const incident = model.board.game.incident
-  const kind = incident?.kind as BannerKind | undefined
-  const onNode =
-    incident?.nodeId && incident.kind in NODE_BANNERS
-      ? NODE_BANNERS[incident.kind as keyof typeof NODE_BANNERS]
-      : undefined
-  if (onNode && incident?.nodeId) {
-    const nodeId = incident.nodeId
-    return h.div(
-      [
-        h.Key(incident.kind),
-        h.Class(
-          'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
-        ),
-      ],
-      [
-        h.span([], [t.catalog.incidents[incident.kind].name]),
-        button(
-          { onClick: onNode.message(nodeId), size: 'sm', variant: 'outline' },
-          [icon(h, FileBadge, 'size-3.5'), onNode.label(t)],
-          h,
-        ),
-      ],
-    )
-  }
-  if (kind === undefined || !(kind in BANNERS)) return h.empty
-  const banner = BANNERS[kind]
-  return h.div(
-    [
-      h.Key(kind),
-      h.Class(
-        'pointer-events-auto enter-down flex items-center gap-2.5 rounded-xl bg-danger py-1.5 pr-1.5 pl-3.5 text-[calc(13px*var(--type-scale))] font-semibold text-white shadow-[inset_0_1px_0_oklch(1_0_0/0.25),0_0_0_1px_color-mix(in_oklch,var(--danger),black_25%),0_10px_24px_-8px_color-mix(in_oklch,var(--danger)_60%,transparent)]',
-      ),
-    ],
-    [
-      h.span([], [t.catalog.incidents[kind].name]),
-      button(
-        { onClick: banner.message, size: 'sm', variant: 'outline' },
-        [icon(h, FileBadge, 'size-3.5'), banner.label(t)],
-        h,
-      ),
-    ],
-  )
-}
-
-/** The action item: research the prevention now, or file the postmortem and leave it open. */
-const actionButtons = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
-  const t = copy(h)
-
-  const action = postmortem.action && !has(game, postmortem.action) ? postmortem.action : null
-  if (!action)
-    return button(
-      {
-        onClick: Message.PostmortemFiled({ id: postmortem.id, take: false }),
-        size: 'sm',
-        variant: 'outline',
-      },
-      [t.incidents.file],
-      h,
-    )
-  return h.div(
-    [h.Class('flex items-center gap-1')],
-    [
-      button(
-        {
-          onClick: Message.PostmortemFiled({ id: postmortem.id, take: true }),
-          size: 'sm',
-          attributes: [h.Title(t.incidents.actionItem(t.catalog.research[action].blurb))],
-        },
-        [
-          icon(h, Check, 'size-3.5'),
-          t.catalog.research[action].name,
-          ...recipeOf(action).map(([pool, cost]) =>
-            insightChip(pool, compact(cost), h, false, 'plain', insightName(t, pool)),
-          ),
-        ],
-        h,
-      ),
-      button(
-        {
-          onClick: Message.PostmortemFiled({ id: postmortem.id, take: false }),
+          onClick: Message.AlertsShown(),
           size: 'sm',
           variant: 'ghost',
-          attributes: [
-            h.Title(t.incidents.fileAndLeaveTheActionItem),
-            h.AriaLabel(t.incidents.file),
-          ],
+          attributes: [h.Title(t.incidents.openAlerts)],
         },
-        [icon(h, X, 'size-3.5')],
+        [t.incidents.alerts, icon(h, ChevronRight, 'size-3.5')],
         h,
       ),
     ],
   )
 }
 
-/** A recorded time in calendar minutes, or a dash when the Game has none (an old save, no signal). */
-const minutesOf = (t: Messages, seconds: number | null | undefined): string =>
-  seconds === null || seconds === undefined
-    ? '—'
-    : t.units.minShort(Math.round(Math.max(0, seconds)))
-
-/** A postmortem: one compact row with its action item, the details folded away. */
-const card = (game: Game, postmortem: Postmortem, h: HtmlBuilder<Message>): Html => {
+/**
+ * The study slip a locked click leaves behind. It reads like a work order: what was blocked, the
+ * Research that unblocks it, and its price. The width never changes, so a late Era's name wraps
+ * inside the slip instead of stretching a sentence across the board. It waits, because a decision to
+ * spend Insight does not belong on a timer.
+ */
+export const researchOffer = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const def = localized(INCIDENTS[postmortem.kind], t.catalog.incidents[postmortem.kind])
-  return h.details(
+  const offer = model.board.researchOffer
+  if (offer === null || has(model.board.game, offer.id)) return h.empty
+  const research = t.catalog.research[offer.id]
+  return h.div(
     [
-      h.Key(`pm-${postmortem.id}`),
-      h.DataAttribute('exit', 'gesture'),
-      h.DataAttribute('exit-anchor', 'bottom'),
-      h.Class(`fold enter-left group w-[380px] compact:w-auto ${PANEL}`),
+      h.Key(`offer-${offer.id}`),
+      h.Role('status'),
+      h.AriaLabel(t.team.refusal.locked(nameIn(t, offer.what), research.name)),
+      h.DataAttribute('morph', 'notice'),
+      h.DataAttribute('exit', 'notice'),
+      h.Class(
+        'pointer-events-auto enter-left fixed bottom-[76px] left-3 z-20 w-[min(21rem,calc(100%-16px))] overflow-hidden rounded-xl bg-surface shadow-float compact:relative compact:w-auto',
+      ),
     ],
     [
-      h.summary(
+      h.div(
+        [h.Class('flex items-start gap-2 px-3 pt-2 pr-9 pb-1.5')],
         [
-          h.Class(
-            'flex cursor-pointer list-none items-center gap-2 p-1.5 pl-2.5 [&::-webkit-details-marker]:hidden',
-          ),
-          h.Title(t.incidents.showDetails),
-        ],
-        [
-          icon(
-            h,
-            ChevronRight,
-            'fold-chevron size-3.5 shrink-0 text-muted-foreground group-open:rotate-90',
-          ),
-          badge(
-            {
-              variant: postmortem.severity <= 2 ? 'destructive' : 'warn',
-              className: 'font-mono',
-            },
-            [`SEV${postmortem.severity}`],
-            h,
-          ),
-          h.span(
+          icon(h, FlaskConical, 'mt-0.5 size-4 shrink-0 text-muted-foreground'),
+          h.div(
+            [h.Class('flex min-w-0 flex-col gap-0.5')],
             [
-              h.Class(
-                'min-w-0 flex-1 truncate text-[calc(12.5px*var(--type-scale))] font-semibold',
+              // The option that was refused is context, so it gives way; the Research is the offer.
+              h.span(
+                [h.Class(cn(EYEBROW, 'truncate'))],
+                [t.research.locked, ' · ', nameIn(t, offer.what)],
+              ),
+              h.span(
+                [
+                  h.Class(
+                    'line-clamp-2 text-[calc(13px*var(--type-scale))] font-semibold leading-snug [text-wrap:pretty]',
+                  ),
+                ],
+                [research.name],
               ),
             ],
-            [def.name],
           ),
-          actionButtons(game, postmortem, h),
         ],
       ),
+      closeButton({ label: t.inbox.dismiss, onClick: Message.ResearchOfferDismissed() }, h),
       h.div(
-        [h.Class('flex flex-col gap-2.5 px-3 pt-1 pb-3')],
+        [h.Class('flex items-center gap-2 border-t border-dashed border-hairline px-3 py-1.5')],
         [
-          h.p(
-            [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-muted-foreground')],
-            [postmortem.target ? `${postmortem.target}: ${def.cause}` : def.cause],
-          ),
-          // The chain: what this one followed, and that nobody answered it (11 "Cascades").
-          postmortem.causedBy
-            ? h.p(
-                [h.Class('text-[calc(12px*var(--type-scale))] leading-snug text-warn')],
-                [t.incidents.followedLeftAlone(t.catalog.incidents[postmortem.causedBy].name)],
-              )
-            : h.empty,
-          h.div(
-            [h.Class(`grid grid-cols-3 divide-x divide-hairline ${WELL}`)],
-            (
-              [
-                ['MTTD', Radar, minutesOf(t, postmortem.mttd)],
-                ['MTTA', BellRing, minutesOf(t, postmortem.mtta)],
-                ['MTTR', Timer, minutesOf(t, postmortem.mttr)],
-              ] as const
-            ).map(([name, glyph, value]) =>
-              h.div(
-                [h.Key(name), h.Class('flex flex-col gap-1 px-2.5 py-1.5')],
-                [
-                  h.span(
-                    [h.Class(cn(EYEBROW, 'flex items-center gap-1'))],
-                    [icon(h, glyph, 'size-3 shrink-0'), name],
-                  ),
-                  h.span([h.Class(`${FIGURE} text-[calc(12.5px*var(--type-scale))]`)], [value]),
-                ],
-              ),
-            ),
+          ...recipeOf(offer.id).map(([pool, cost]) =>
+            insightChip(pool, compact(cost), h, false, 'plain', insightName(t, pool)),
           ),
           h.div(
-            [h.Class(`grid grid-cols-2 divide-x divide-hairline ${WELL}`)],
-            (
-              [
-                [t.incidents.users, Users, `−${compact(postmortem.lostUsers)}`],
-                [t.incidents.revenue, Wallet, `−${money(postmortem.lostRevenue)}`],
-              ] as const
-            ).map(([name, glyph, value]) =>
-              h.div(
-                [h.Key(name), h.Class('flex flex-col gap-1 px-2.5 py-1.5')],
-                [
-                  h.span(
-                    [h.Class(cn(EYEBROW, 'flex items-center gap-1'))],
-                    [icon(h, glyph, 'size-3 shrink-0'), name],
-                  ),
-                  h.span([h.Class(`${FIGURE} text-[calc(12.5px*var(--type-scale))]`)], [value]),
-                ],
+            [h.Class('ml-auto flex shrink-0 items-center gap-1')],
+            [
+              button(
+                {
+                  onClick: Message.ResearchShown({ id: offer.id }),
+                  size: 'sm',
+                  attributes: [h.Title(t.research.openResearch(research.name))],
+                },
+                [t.research.research],
+                h,
               ),
-            ),
+            ],
           ),
-          h.p([h.Class('text-[calc(12px*var(--type-scale))] leading-snug')], [def.prevention]),
         ],
       ),
     ],
   )
 }
-
-/** The column stays when it is empty, so the last card can still leave. */
-export const postmortems = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [
-      h.DataAttribute('flip', 'gesture'),
-      h.Class(
-        'absolute bottom-3 left-3 z-20 flex flex-col gap-2 compact:static compact:w-auto compact:pointer-events-auto short:[&>details:not(:last-child)]:hidden',
-      ),
-    ],
-    model.board.game.postmortems.slice(-3).map((entry) => card(model.board.game, entry, h)),
-  )

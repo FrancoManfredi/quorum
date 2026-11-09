@@ -78,7 +78,7 @@ import { payGapOf } from '@quorum/simulation/team'
 import { regionApdexOf, regionView } from '@quorum/simulation/regions'
 import { sessionStep } from '../session-machine.ts'
 import { solveFlow } from '@quorum/simulation/solve'
-import { step } from '@quorum/simulation/step'
+import { ignored, step } from '@quorum/simulation/step'
 import { studyStall } from '@quorum/simulation/studies'
 import { tidy } from '@quorum/ui/board/tidy'
 import { type EventMail } from '../copy/index.ts'
@@ -445,6 +445,10 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
         : model.board.session,
       bottleneck: null,
       bottleneckAt: search ? second : model.board.bottleneckAt,
+      // An acknowledgement lasts while its rule holds. A rule that clears starts loud again.
+      alertQuiet: model.board.alertQuiet.filter(
+        (rule) => !ignored(game, rule) && game.alarms[rule] >= ALERT_RULES[rule].seconds,
+      ),
       clock: {
         ...model.board.clock,
         mode: autoPaused

@@ -2006,7 +2006,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       'How well you can understand what a system is doing from the data it emits, usually logs, metrics, and traces. Good observability lets you answer new questions about a failure without shipping new code.',
     inGame:
-      'Observability research shows you more of the Ledger. Structured logs split errors by cause, Metrics adds history graphs to every Node, Percentiles shows p50, p95, and p99, and Alerting raises a pager banner when errors, p99, or saturation cross a threshold. The Analytics Node samples the traffic of the Nodes you link into it, from 1% to 100%, and turns it into Insight. Each sample teaches more as Apdex falls, up to twice as much. A higher sample rate costs more CPU and Burn. Metrics also opens the Dashboard (D), which charts your Design over time.',
+      'Observability research shows you more of the Ledger. Structured logs split errors by cause, Metrics adds history graphs to every Node, Percentiles shows p50, p95, and p99, and Alerting raises a pager when errors, p99, or saturation cross a threshold. The Analytics Node samples the traffic of the Nodes you link into it, from 1% to 100%, and turns it into Insight. Each sample teaches more as Apdex falls, up to twice as much. A higher sample rate costs more CPU and Burn. Metrics also opens the Dashboard (D), which charts your Design over time.',
     related: ['distributed-tracing', 'percentile-p50-p95-p99', 'slo-sla-sli', 'mttr'],
     links: [
       {

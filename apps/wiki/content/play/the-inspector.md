@@ -99,7 +99,7 @@ Each block starts with the target's name. The rows below are pickers. Pick one o
 | Bulkhead | **No bulkhead**, **Bulkhead**             | A **Bulkhead** gives up on a call after 1 s and frees the slot. Needs Bulkheads.                                                                                                                                                       |
 | Hedge    | **One copy**, **Hedge**                   | **Hedge** sends a second copy of a slow call and keeps the faster answer. The tail drops, and the callee sees more calls. Needs Hedged requests.                                                                                       |
 
-A row that its Research has not unlocked is missing, or its option is off. If you force an action that is locked, the toast names the Research, for example **Backoff needs Backoff with jitter.**
+A row that its Research has not unlocked is missing, or its option is off. If you force an action that is locked, a slip appears above the dock. It reads **Locked · Backoff**, then the Research that unlocks it and its Insight price, with a **Research** button that opens that item. The slip waits until you take it or dismiss it.
 
 A Load Balancer adds a policy section of its own, with the request kinds each Link carries.
 

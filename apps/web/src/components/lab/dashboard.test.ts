@@ -186,13 +186,19 @@ test('the Alerts row draws each rule’s threshold and state, and the pages the 
     { update, view },
     Scene.given(model),
     Scene.expect(row('Alerts')).toExist(),
+    // The alert chip's button lands on this panel, so it carries the name it looks for.
+    Scene.expect(Scene.selector('[data-panel="alert-rules"]')).toExist(),
     // Held seconds against each rule's own window.
     Scene.expect(board).toContainText('40s / 30s'),
     Scene.expect(board).toContainText('0s / 30s'),
     Scene.expect(board).toContainText('FIRING'),
     Scene.expect(board).toContainText('PENDING'),
-    Scene.expect(board).toContainText('4× T'),
-    Scene.expect(board).toContainText('90%'),
+    // Tuning lives here now: each rule offers its three thresholds, and what it reads now.
+    Scene.expect(Scene.role('button', { name: '2×' })).toExist(),
+    Scene.expect(Scene.role('button', { name: '4×' })).toExist(),
+    Scene.expect(Scene.role('button', { name: '8×' })).toExist(),
+    Scene.expect(Scene.role('button', { name: '90%' })).toExist(),
+    Scene.expect(board).toContainText('0.8× T'),
     // A page the Inbox kept, on a rule that is quiet now.
     Scene.expect(Scene.selector('[title="Latency: FIRING"]')).toExist(),
     Scene.expect(Scene.selector('[title="Latency: OK"]')).toExist(),

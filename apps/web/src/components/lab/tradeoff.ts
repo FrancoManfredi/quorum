@@ -1,6 +1,6 @@
 import { copy, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { Check, Sparkles, X } from 'lucide'
+import { Check, Sparkles } from 'lucide'
 import {
   AXES,
   FAMILIES,
@@ -20,7 +20,7 @@ import { glossaryUrl } from '@/platform/analytics.ts'
 import type { Model, PreviewFigures, TradeoffOption } from '@/game/model.ts'
 import type { TradeoffState } from '@/game/tradeoff-machine.ts'
 import { icon } from '@quorum/ui/primitives/icon'
-import { button } from '@quorum/ui/primitives/button'
+import { button, closeButton } from '@quorum/ui/primitives/button'
 import { cn } from '@/lib/utils'
 import { FIGURE, PANEL } from '@quorum/ui/game/bits'
 
@@ -316,31 +316,18 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
     ],
     [
       h.div(
-        [h.Class('flex items-center gap-2')],
+        [h.Class('flex items-center gap-2 pr-7')],
         [
           icon(h, Sparkles, 'size-4 shrink-0 text-group-compute'),
           h.span(
             [h.Class('min-w-0 flex-1 text-[calc(13.5px*var(--type-scale))] font-semibold')],
             [title],
           ),
-          card._tag === 'Pinned'
-            ? button(
-                {
-                  onClick: Message.TradeoffClosed(),
-                  variant: 'ghost',
-                  size: 'icon-sm',
-                  className: 'text-muted-foreground',
-                  attributes: [
-                    h.AriaLabel(t.tradeoff.cancelEscape),
-                    h.Title(t.tradeoff.cancelEscape),
-                  ],
-                },
-                icon(h, X, 'size-4'),
-                h,
-              )
-            : h.empty,
         ],
       ),
+      card._tag === 'Pinned'
+        ? closeButton({ label: t.tradeoff.cancelEscape, onClick: Message.TradeoffClosed() }, h)
+        : h.empty,
       radar(now.axes, stack.axes, h),
       effect(model, card, h),
       migration && card._tag !== 'Refused'

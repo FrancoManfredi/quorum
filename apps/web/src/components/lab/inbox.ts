@@ -25,7 +25,13 @@ import {
   Dices,
 } from 'lucide'
 import { badge as chip } from '@quorum/ui/primitives/badge'
-import { button, buttonBase, buttonSizes, buttonVariants } from '@quorum/ui/primitives/button'
+import {
+  button,
+  buttonBase,
+  buttonSizes,
+  buttonVariants,
+  closeButton,
+} from '@quorum/ui/primitives/button'
 import { clock } from '@quorum/ui/game/format'
 import { SAMPLES, needsAction, senderOf, type Sender, type SenderKind } from '@/game/mail.ts'
 import type { BuildGroup } from '@quorum/simulation/catalog'
@@ -152,12 +158,19 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.Role('status'),
       h.AriaLabel(t.inbox.newMailFrom(sender.name, subjectOf(h, mail))),
       h.Class(
-        `enter-pop absolute right-3 bottom-[68px] z-20 flex w-[min(380px,calc(100%-24px))] flex-col gap-2.5 p-3 ${FLOAT} compact:static compact:w-auto compact:pointer-events-auto`,
+        `enter-pop absolute right-3 bottom-[68px] z-20 flex w-[min(380px,calc(100%-24px))] flex-col gap-2.5 p-3 ${FLOAT} compact:relative compact:w-auto compact:pointer-events-auto`,
       ),
     ],
     [
+      closeButton(
+        {
+          label: t.inbox.dismiss,
+          onClick: Message.InboxChanged({ message: InboxMessage.PeekDismissed() }),
+        },
+        h,
+      ),
       h.div(
-        [h.Class('flex items-start gap-3')],
+        [h.Class('flex items-start gap-3 pr-6')],
         [
           badge(sender, 'size-8', h),
           h.div(
@@ -180,17 +193,6 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
                 [subjectOf(h, mail)],
               ),
             ],
-          ),
-          button(
-            {
-              onClick: Message.InboxChanged({ message: InboxMessage.PeekDismissed() }),
-              variant: 'ghost',
-              size: 'icon-sm',
-              className: '-mt-1 -mr-1.5 text-muted-foreground',
-              attributes: [h.AriaLabel(t.inbox.dismiss), h.Title(t.inbox.dismiss)],
-            },
-            icon(h, X, 'size-3.5'),
-            h,
           ),
         ],
       ),

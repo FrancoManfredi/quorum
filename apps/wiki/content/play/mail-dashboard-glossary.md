@@ -67,18 +67,22 @@ Each page says what the term means at work and what it does in Quorum, with rela
 
 ## The pager and the incident bar
 
-Alerts need the `alerting` Research. After that, a red bar on the top lane of the board pages you when a rule holds long enough, for example "Error rate above 1%". It names a symptom, not a cause. A cascade adds a second chip that says "After" and the earlier incident that was left alone.
+Alerts need the `alerting` Research. After that, the top lane of the board carries two notices, and only one of them is loud.
 
-![The red pager bar “Error rate above 1%” above a Reconnect storm incident banner on the top lane](/play/pager.png)
+The **incident bar** is red because one click ends the incident: it names the incident, its severity, and the click that stops it. It carries one incident at a time, and a crosshair button selects the Node the incident hit. A cascade adds a line inside the bar, such as "Followed Slow query, which was left alone", so the second page reads as a second page.
 
-The pager bar sits above the incident banner. When the alert first fires, a toast with **Acknowledge** and **Open** also arrives in the corner, and the same alert lands in Mail.
+Below it, the **alert chip** stays quiet while a rule fires. It counts the rules, names the first symptom, and holds two buttons. The check mark acknowledges every firing rule, which folds the chip to a count until one of them clears. **Alerts** opens the Alerts row of the Dashboard.
 
-The pager bar has no buttons of its own: fix the cause on the board and the bar clears. The buttons you can meet are:
+![The red incident bar and the quiet alert chip on the top lane](/play/pager.png)
 
-- **Threshold buttons** next to an **Ignored** badge. A rule that cried wolf too often goes quiet. Pick another threshold to switch it on again.
-- **Roll back**, on the Bad deploy banner. It is greyed until you research CI.
-- **Renew**, **Fence leader**, **Cancel migration**, **Pin and redeploy**, **Restore**, **Restart**, **Restart Nodes**, **Fail over**, **Throttle connects** and **Move login**. Each is the one-click fix for a matching incident, and the banner shows only the one that applies.
-- **File**, on a postmortem card at the bottom left after an incident. It saves the report. The action item button beside it researches the prevention. Use **File** with the small cross to leave the item open, which keeps that incident twice as likely.
+Tuning lives in the Dashboard. The Alerts row holds each rule's three thresholds, what the rule reads now, how long it has held, and its state. A rule that cried wolf too often shows **Ignored** on the chip and in that row; pick another threshold there to switch it on again.
+
+The incident bar holds one button, the one-click fix for the incident it shows:
+
+- **Roll back**, on Bad deploy. It is greyed until you research CI.
+- **Renew**, **Fence leader**, **Cancel migration**, **Pin and redeploy**, **Restore**, **Restart**, **Restart Nodes**, **Fail over**, **Throttle connects** and **Move login**. Each ends a matching incident.
+
+Postmortems are Mail. After the incident ends a teammate asks what happened, and that message holds **File** and the action item beside it. Leaving the action item open keeps that incident twice as likely.
 
 Read [Your first incident](/tutorials/first-incident) for a full walk-through.
 

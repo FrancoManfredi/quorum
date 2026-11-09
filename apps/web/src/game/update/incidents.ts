@@ -21,6 +21,7 @@ type IncidentsTag =
   | 'ConfigRolledBack'
   | 'NodeSold'
   | 'Collected'
+  | 'AlertsAcknowledged'
 
 export const incidentsHandlers = (model: Model): MessageCases<UpdateResult, IncidentsTag> => ({
   LeaderFenced: () =>
@@ -93,6 +94,11 @@ export const incidentsHandlers = (model: Model): MessageCases<UpdateResult, Inci
         patch: () => ({ selected: null, flow: { _tag: 'Idle' } }),
       },
     ),
+
+  // Acknowledging changes nothing in the Simulation: the rules still fire, they just stop shouting.
+  AlertsAcknowledged: ({ rules }) => ({
+    model: { ...model, board: { ...model.board, alertQuiet: [...rules] } },
+  }),
 
   Collected: () => {
     if (model.board.game.pending <= 0) return { model }

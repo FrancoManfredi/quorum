@@ -147,14 +147,14 @@ flowchart LR
   signal[Signal] --> triage[Triage] --> mitigate[Mitigate] --> resolve[Resolve] --> postmortem[Postmortem] --> actions[Action items]
 ```
 
-| Step         | Detail                                                                                                                                                             |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Signal       | Without alerting, the player notices red cards or a user drop. With alerting, a pager banner appears earlier ([Observability](/design/12-observability#alerting)). |
-| Triage       | The player finds the affected Node and the cause.                                                                                                                  |
-| Mitigate     | A fast, temporary action: roll back, shed load, block traffic, fail over, or scale up.                                                                             |
-| Resolve      | The incident ends, or the cause is removed.                                                                                                                        |
-| Postmortem   | The postmortem opens an action item. Until its research is owned, the incident is twice as likely ([Incidents](/design/11-incidents#postmortems)).                 |
-| Action items | Optional Dev Hour tasks that prevent the same class of incident, such as idempotency keys or a runbook.                                                            |
+| Step         | Detail                                                                                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signal       | Without alerting, the player notices red cards or a user drop. With alerting, a pager appears earlier ([Observability](/design/12-observability#alerting)). |
+| Triage       | The player finds the affected Node and the cause.                                                                                                           |
+| Mitigate     | A fast, temporary action: roll back, shed load, block traffic, fail over, or scale up.                                                                      |
+| Resolve      | The incident ends, or the cause is removed.                                                                                                                 |
+| Postmortem   | The postmortem opens an action item. Until its research is owned, the incident is twice as likely ([Incidents](/design/11-incidents#postmortems)).          |
+| Action items | Optional Dev Hour tasks that prevent the same class of incident, such as idempotency keys or a runbook.                                                     |
 
 ## Pacing
 

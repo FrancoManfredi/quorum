@@ -14,7 +14,6 @@ import {
   RotateCcw,
   ArrowRightLeft,
   Trash2,
-  X,
 } from 'lucide'
 import { clockOf } from '@quorum/simulation/calendar'
 import {
@@ -68,7 +67,7 @@ import {
 import { COMPONENT_ICONS } from '@quorum/ui/game/icons'
 import { icon } from '@quorum/ui/primitives/icon'
 import { badge } from '@quorum/ui/primitives/badge'
-import { button } from '@quorum/ui/primitives/button'
+import { button, closeButton } from '@quorum/ui/primitives/button'
 import { progress } from '@quorum/ui/primitives/progress'
 import { cn } from '@/lib/utils'
 import {
@@ -1609,8 +1608,9 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
       ),
     ],
     [
+      closeButton({ label: t.inspector.close, onClick: Message.EmptyTapped() }, h),
       h.div(
-        [h.Class('flex items-center gap-3 px-4 pt-4 pb-2')],
+        [h.Class('flex items-center gap-3 px-4 pt-4 pr-10 pb-2')],
         [
           groupBadge(def.group, COMPONENT_ICONS[node.type], 'size-10', h),
           h.div(
@@ -1633,17 +1633,6 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
           sizeLabel
             ? badge({ variant: 'secondary', className: 'font-mono' }, [sizeLabel], h)
             : h.empty,
-          button(
-            {
-              onClick: Message.EmptyTapped(),
-              variant: 'ghost',
-              size: 'icon-sm',
-              className: 'text-muted-foreground',
-              attributes: [h.AriaLabel(t.inspector.close)],
-            },
-            icon(h, X, 'size-4'),
-            h,
-          ),
         ],
       ),
       h.p(

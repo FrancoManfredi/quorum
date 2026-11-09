@@ -10,15 +10,17 @@ const TOAST_MARK: Record<Toast['tone'], string> = {
   primary: 'bg-primary-strong',
 }
 
-/** One toast surface. A new message replaces the text in place and the surface
- *  morphs to fit it, so a run of messages never blinks; it leaves when the
- *  last one expires. */
+/**
+ * One toast surface. A new message replaces the text in place and the surface morphs to fit it, so
+ * a run of messages never blinks; it leaves when the last one expires. The same message twice in a
+ * row keeps one line and a count, and a danger is announced at once rather than when it ends.
+ */
 export const toast = (value: Toast | null, overPanel: boolean, h: HtmlBuilder<Message>): Html =>
   value
     ? h.div(
         [
           h.Key('toast'),
-          h.Role('status'),
+          h.Role(value.tone === 'danger' ? 'alert' : 'status'),
           h.DataAttribute('morph', 'notice'),
           h.DataAttribute('exit', 'notice'),
           // A panel can fill a short screen, so the toast moves above it rather than over its actions.
@@ -40,6 +42,17 @@ export const toast = (value: Toast | null, overPanel: boolean, h: HtmlBuilder<Me
             [
               h.span([h.Class(`size-2 shrink-0 rounded-full ${TOAST_MARK[value.tone]}`)], []),
               value.message,
+              value.count > 1
+                ? h.span(
+                    [
+                      h.AriaLabel(String(value.count)),
+                      h.Class(
+                        'ml-0.5 shrink-0 font-mono text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                      ),
+                    ],
+                    [`×${value.count}`],
+                  )
+                : h.empty,
             ],
           ),
         ],

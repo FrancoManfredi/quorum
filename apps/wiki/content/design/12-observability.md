@@ -122,7 +122,7 @@ Chaos engineering schedules pays for the 10 seconds it runs
 | 1    | `logs`              | Garage   | The error breakdown by cause: `timeout`, `refused`, `oom`, and the rest ([Simulation](/design/04-simulation#errors)).                                                                                                                                                                      |
 | 2    | `metrics`           | Garage   | A history graph on each Node card for the last calendar day, and [the Dashboard](#the-dashboard). Before this, the player sees only "now".                                                                                                                                                 |
 | 3    | `percentiles`       | Pre-seed | p99 on cards and the HUD, next to the mean. The mean stays beside it, so the player sees how much it hides.                                                                                                                                                                                |
-| 4    | `alerting`          | Pre-seed | A pager banner when thresholds are crossed ([Alerting](#alerting)).                                                                                                                                                                                                                        |
+| 4    | `alerting`          | Pre-seed | A pager when thresholds are crossed ([Alerting](#alerting)).                                                                                                                                                                                                                               |
 | 5    | `tracing`           | Seed     | The Dashboard's Services and Resources rows, and a waterfall of a request kind's path. `NodeLedger` carries `hopByKind` and `waitByKind`, so each hop and each Queue wait splits by kind, and `Ledger.bottleneckByKind` names the busiest limiting Node on each kind's own path.           |
 | 6    | `slo-dashboards`    | Series A | The error budget panel and burn rate.                                                                                                                                                                                                                                                      |
 | 7    | `profiling`         | Series A | Its own Research, with the same breadth rule as `tracing` at 4 Component types, not 3. The Dashboard's Resources row names the resource that limits each Node ([Runtimes](/design/06-runtimes#the-capacity-model)). It is locked behind `profiling` rather than arriving with `tracing`.   |
@@ -161,7 +161,8 @@ budget over the SLO window. Each rule's threshold has three settings, and a rule
 others. Budget burn counts from Series A, when the budget starts.
 
 Alerts that fire too often lower their own value: after five false alarms in a calendar day, the
-banner shows "Ignored" and the player must tune the rule. That models alert fatigue.
+pager chip shows "Ignored" and stops naming the rule, and the Dashboard's Alerts row is where the
+player tunes it. That models alert fatigue.
 
 ## The Ledger and what is hidden
 

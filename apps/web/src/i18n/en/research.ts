@@ -45,5 +45,6 @@ export const research = {
   requires: 'Requires',
   leadsTo: 'Leads to',
   research: 'Research',
+  openResearch: (name: string) => `Open ${name} in the Research panel`,
   closeEsc: 'Close (Esc)',
 }

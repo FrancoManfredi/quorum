@@ -74,7 +74,7 @@ Each step of the [Observability track](/research) shows you more:
 | [Structured logs](/research/logs)          | Errors split by cause, such as `stranded`, `dropped`, `refused`, `down`, and `oom`. |
 | [Metrics](/research/metrics)               | History graphs on every Node, and the Dashboard.                                    |
 | [Percentiles](/research/percentiles)       | p50, p95, and p99 next to the mean.                                                 |
-| [Alerting](/research/alerting)             | A pager banner when errors, p99, or saturation cross a threshold.                   |
+| [Alerting](/research/alerting)             | A pager when errors, p99, or saturation cross a threshold.                          |
 | [SLO dashboards](/research/slo-dashboards) | The error budget on the HUD, and its burn rate on the Dashboard.                    |
 
 [Distributed tracing](/research/tracing) sits on the track, and other items require it. It adds the

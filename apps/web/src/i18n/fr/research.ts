@@ -45,5 +45,6 @@ export const research: Messages['research'] = {
   requires: 'Nécessite',
   leadsTo: 'Conduit à',
   research: 'Recherche',
+  openResearch: (name) => `Ouvre ${name} dans le panneau Recherche`,
   closeEsc: 'Fermer (Échap)',
 }

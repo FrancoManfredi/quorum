@@ -44,5 +44,6 @@ export const research: Messages['research'] = {
   requires: '需要',
   leadsTo: '后续研究',
   research: '研究',
+  openResearch: (name) => `在研究面板中打开${name}`,
   closeEsc: '关闭（Esc）',
 }

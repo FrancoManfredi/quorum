@@ -4,13 +4,12 @@ import type { HtmlBuilder } from 'foldkit/html'
 import { preseedGame } from '@quorum/simulation/company'
 import { NO_DEVICE_LATENCY, type ResearchId } from '@quorum/simulation/catalog'
 import { slaCreditsOf } from '@quorum/simulation/slo'
-import { DEFAULT_FOUNDING, type Game, type Postmortem, type Sample } from '@quorum/simulation/state'
+import { DEFAULT_FOUNDING, type Game, type Sample } from '@quorum/simulation/state'
 import { money } from '@quorum/ui/game/format'
 import { initialModel, update } from '@/game/update.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
 import { hud } from './hud.ts'
-import { postmortems } from './incidents.ts'
 
 /** One Sample, as the Simulation writes one per sim second. */
 const sampleOf = (): Sample => ({
@@ -40,45 +39,7 @@ const fixture = (game: Partial<Game> = {}): Model => {
   return { ...start, board: { ...start.board, game: built } }
 }
 
-const cards = (model: Model, h: HtmlBuilder<Message>) => postmortems(model, h)
 const topBar = (model: Model, h: HtmlBuilder<Message>) => hud(model, ledgerOf(model), h)
-
-const postmortem = (over: Partial<Postmortem>): Postmortem => ({
-  id: 1,
-  kind: 'instance',
-  target: 'App Server',
-  duration: 90,
-  mttr: 42,
-  mttd: 3,
-  mtta: 8,
-  lostUsers: 1_200,
-  lostRevenue: 5_000,
-  failed: 800,
-  action: null,
-  severity: 3,
-  endedAt: 940,
-  causedBy: null,
-  ...over,
-})
-
-test('a postmortem card names MTTD and MTTA beside MTTR, a dash when the Game has none', () => {
-  const model = fixture({
-    postmortems: [postmortem({ id: 1 }), postmortem({ id: 2, mttd: null, mtta: null })],
-  })
-  Scene.scene(
-    { update, view: cards },
-    Scene.given(model),
-    Scene.expect(Scene.text('MTTD')).toExist(),
-    Scene.expect(Scene.text('MTTA')).toExist(),
-    Scene.expect(Scene.text('MTTR')).toExist(),
-    // The run detected 3 minutes in and answered 8 later, and restored 42 minutes in.
-    Scene.expect(Scene.text('3m')).toExist(),
-    Scene.expect(Scene.text('8m')).toExist(),
-    Scene.expect(Scene.text('42m')).toExist(),
-    // The card from a save before the fields keeps its MTTR and dashes the other two.
-    Scene.expect(Scene.text('—')).toExist(),
-  )
-})
 
 test('the HUD names the SLA credit beside the runway while a week misses its SLO', () => {
   const base = preseedGame()

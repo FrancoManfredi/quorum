@@ -237,8 +237,8 @@ possibility, because the incident was handled.
 A cascade starts **after** its cause, never beside it: the director keeps one incident at a time, so the
 cause files its postmortem and the second incident begins the same Step. It holds the director's clock
 too, so the next incident waits for the cascade to end and the usual gap after it. The second one
-records its cause, and its postmortem does too, so the pager names the chain and the postmortem card
-says what it followed.
+records its cause, and its postmortem does too, so the incident bar names the chain and the
+postmortem Mail says what it followed.
 
 Each pair is a failure that the [flagship incidents](#flagship-incidents) already describe:
 
@@ -409,16 +409,18 @@ all end their incident with no player action. Those, too, are recorded as `auto`
 
 ## Postmortems
 
-When an incident resolves, a postmortem card appears. It names the incident, the timeline, and the
-cost (users lost, revenue lost). It is blameless, like the practice it models.
+When an incident resolves, a teammate writes a postmortem Mail. It names the incident, the timeline,
+and the cost (users lost, revenue lost), and it is blameless, like the practice it models. Mail holds
+the record, so the board shows nothing after the incident ends.
 
 A postmortem pays no Insight. A flat reward made incidents a source of income, so a weak design that
 failed often researched faster than a strong one. Instead, the postmortem opens one **action item**: the
 first research in the incident's prevention list that the player does not own and can study now.
-The card can put its Study first in the queue. Filing without it leaves the item open, and while any
-prevention of an incident is open and not owned, the director picks that incident twice as often. An
-unfixed root cause comes back. A player short on Insight is never blocked; the item stays open until
-its Study completes. When the design already has every prevention, the card opens no action item.
+The message can put its Study first in the queue. Filing without it leaves the item open, and while
+any prevention of an incident is open and not owned, the director picks that incident twice as often.
+An unfixed root cause comes back. A player short on Insight is never blocked; the item stays open
+until its Study completes. When the design already has every prevention, the message offers no action
+item.
 
 ## SLOs and error budgets
 

@@ -177,6 +177,8 @@ type PanelsTag =
   | 'FrameworkPickerChanged'
   | 'MoreMenuChanged'
   | 'ToastRaised'
+  | 'AlertsShown'
+  | 'ResearchOfferDismissed'
   | 'ToastCleared'
   | 'Synced'
 
@@ -217,8 +219,20 @@ export const panelsHandlers = (
     }
   },
 
+  ResearchOfferDismissed: () => ({
+    model: { ...model, board: { ...model.board, researchOffer: null } },
+  }),
+
+  AlertsShown: () => {
+    const opened = route(model, Message.PanelOpened({ panel: 'dashboard' }))
+    return { model: opened.model, commands: [FocusDashboard({ focus: 'alert-rules' })] }
+  },
+
   ResearchShown: ({ id }) => {
-    const opened = route(model, Message.PanelOpened({ panel: 'research' }))
+    const opened = route(
+      { ...model, board: { ...model.board, researchOffer: null } },
+      Message.PanelOpened({ panel: 'research' }),
+    )
     const focused = route(
       opened.model,
       Message.ResearchChanged({ message: ResearchMessage.Focused({ id }) }),

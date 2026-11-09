@@ -1704,8 +1704,7 @@ export const catalog: Messages['catalog'] = {
       name: 'Centiles',
     },
     alerting: {
-      blurb:
-        'Une bannière de pager lorsque des erreurs, p99 ou une saturation franchissent un seuil.',
+      blurb: 'Un pager lorsque des erreurs, p99 ou une saturation franchissent un seuil.',
       name: 'Alerte',
     },
     funnels: {

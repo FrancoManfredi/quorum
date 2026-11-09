@@ -9,6 +9,7 @@ import { clockOf } from '@quorum/simulation/calendar'
 import type { Limit } from '@quorum/simulation/capacity'
 import {
   ALERT_RULES,
+  ALERT_THRESHOLDS,
   DEVICES,
   ERAS,
   INCIDENTS,
@@ -1944,6 +1945,8 @@ type Cell = Readonly<{
   hint?: string | undefined
   /** A button in the cell, for a row that selects something. */
   onClick?: Message | undefined
+  /** A control in the cell, for a value the player sets here, as an alert threshold. */
+  content?: Html | undefined
 }>
 
 /** Grafana's table: hairline rows, figures to the right, coloured and filled cells. */
@@ -2032,36 +2035,43 @@ const tablePanel = (
                                   ]),
                               ...(cell.hint === undefined ? [] : [h.Title(cell.hint)]),
                             ],
-                            cell.bar === undefined
-                              ? [
-                                  cell.onClick === undefined
-                                    ? h.span(
-                                        cell.color === undefined
-                                          ? []
-                                          : [h.Style({ color: cell.color })],
-                                        [cell.text],
-                                      )
-                                    : h.button(
-                                        [
-                                          h.Type('button'),
-                                          h.OnClick(cell.onClick),
-                                          h.Class(
-                                            'text-left font-medium underline-offset-2 hover:underline',
-                                          ),
-                                          ...(cell.hint === undefined ? [] : [h.Title(cell.hint)]),
-                                        ],
-                                        [cell.text],
-                                      ),
-                                ]
-                              : [
-                                  h.div(
-                                    [h.Class('flex h-3.5 items-center gap-2')],
-                                    [
-                                      lcd(cell.bar.share, h, 24),
-                                      h.span([h.Class(cn(FIGURE, 'w-11 text-right'))], [cell.text]),
-                                    ],
-                                  ),
-                                ],
+                            cell.content !== undefined
+                              ? [cell.content]
+                              : cell.bar === undefined
+                                ? [
+                                    cell.onClick === undefined
+                                      ? h.span(
+                                          cell.color === undefined
+                                            ? []
+                                            : [h.Style({ color: cell.color })],
+                                          [cell.text],
+                                        )
+                                      : h.button(
+                                          [
+                                            h.Type('button'),
+                                            h.OnClick(cell.onClick),
+                                            h.Class(
+                                              'text-left font-medium underline-offset-2 hover:underline',
+                                            ),
+                                            ...(cell.hint === undefined
+                                              ? []
+                                              : [h.Title(cell.hint)]),
+                                          ],
+                                          [cell.text],
+                                        ),
+                                  ]
+                                : [
+                                    h.div(
+                                      [h.Class('flex h-3.5 items-center gap-2')],
+                                      [
+                                        lcd(cell.bar.share, h, 24),
+                                        h.span(
+                                          [h.Class(cn(FIGURE, 'w-11 text-right'))],
+                                          [cell.text],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                           ),
                         ),
                       ),
@@ -2834,6 +2844,41 @@ const alertTimeline = (model: Model, rows: ReadonlyArray<Row>, h: HtmlBuilder<Me
   )
 }
 
+/** The three thresholds a rule allows, set here rather than on the board: tuning is a config act. */
+const thresholdPicker = (rule: Rule, chosen: number, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const label = (threshold: number): string =>
+    rule === 'latency' || rule === 'budget'
+      ? `${threshold}×`
+      : rule === 'queue'
+        ? t.dashboard.s3(threshold)
+        : `${Math.round(threshold * 1000) / 10}%`
+  return h.div(
+    [h.Class(cn('inline-flex gap-[3px] rounded-lg p-[3px]', WELL))],
+    ALERT_THRESHOLDS[rule].map((threshold) =>
+      h.button(
+        [
+          h.Key(`${rule}-${threshold}`),
+          h.Type('button'),
+          h.AriaPressed(threshold === chosen ? 'true' : 'false'),
+          h.OnClick(Message.AlertRuleChosen({ rule, threshold })),
+          h.Class(
+            cn(
+              FIGURE,
+              'h-5 rounded-md px-1.5 text-[calc(11px*var(--type-scale))]',
+              threshold === chosen
+                ? 'bg-raised text-foreground shadow-raised'
+                : 'text-muted-foreground hover:text-foreground',
+            ),
+          ),
+        ],
+        [label(threshold)],
+      ),
+    ),
+  )
+}
+
 /** The alert rules and their thresholds, with what each watches now. */
 const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -2874,7 +2919,7 @@ const alertTable = (game: Game, ledger: Ledger, h: HtmlBuilder<Message>): Html =
             text: ruleNameOf(t)[rule],
             hint: formats(t).alertText(rule, game.alertRules[rule]),
           },
-          { text: limit(rule) },
+          { text: limit(rule), content: thresholdPicker(rule, game.alertRules[rule], h) },
           { text: seen(rule) },
           { text: t.dashboard.heldOf(Math.round(game.alarms[rule]), ALERT_RULES[rule].seconds) },
           { text: state.label, fill: state.color },

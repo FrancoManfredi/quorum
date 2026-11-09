@@ -53,7 +53,7 @@ A refusal appears as a toast, and the part stays in your hand. Click a clear spo
 | `Open that region first.`                                               | You tried to place in a region you have not opened.                     |
 | `<Mutator>: no <Component>.`                                            | A Mutator on your Company bans that Component.                          |
 
-Locked rows in the dock are not dead ends. Click one and the toast names the research. A row in red is the same warning one step early: the toast will repeat the price, so read it before you click the Board.
+Locked rows in the dock are not dead ends. Click one and a slip above the dock names the Research and its Insight price, with a **Research** button that opens it. The slip waits until you take it or dismiss it. A row in red is the same warning one step early: the toast will repeat the price, so read it before you click the Board.
 
 ## Try it
 

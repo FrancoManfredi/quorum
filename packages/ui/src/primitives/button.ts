@@ -1,7 +1,9 @@
 import { Button as FoldkitButton } from '@foldkit/ui'
 import type { Attribute, Html, HtmlBuilder } from 'foldkit/html'
+import { X } from 'lucide'
 
 import { cn } from 'cn'
+import { icon } from './icon.ts'
 
 /** Button variant keys. Sync with `buttonVariants` is compiler-enforced:
  *  `buttonVariants` is `Record<ButtonVariant, string>` (missing key = error)
@@ -103,4 +105,25 @@ export const button = <M>(config: ButtonConfig<M>, label: ButtonLabel, h: HtmlBu
         ),
     },
     h,
+  )
+
+/** The close control every card pins to its top-right corner, so one place closes anything. */
+export const closeButton = <M>(
+  config: Readonly<{ label: string; onClick: M; className?: string }>,
+  h: HtmlBuilder<M>,
+): Html =>
+  h.button(
+    [
+      h.Type('button'),
+      h.AriaLabel(config.label),
+      h.Title(config.label),
+      h.OnClick(config.onClick),
+      h.Class(
+        cn(
+          'absolute top-1.5 right-1.5 z-10 grid size-7 place-items-center rounded-lg text-muted-foreground/80 hover:bg-well hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+          config.className,
+        ),
+      ),
+    ],
+    [icon(h, X, 'size-3.5')],
   )

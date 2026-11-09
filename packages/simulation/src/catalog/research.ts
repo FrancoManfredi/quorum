@@ -386,7 +386,7 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     cost: 250,
     era: 1,
     requires: ['metrics'],
-    blurb: 'A pager banner when errors, p99 or saturation cross a threshold.',
+    blurb: 'A pager when errors, p99 or saturation cross a threshold.',
   }),
   research({
     id: 'funnels',

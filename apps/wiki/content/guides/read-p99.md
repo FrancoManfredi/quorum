@@ -70,7 +70,7 @@ earns half. A request four times slower than the target earns nothing.
   p99 lines. Look for the moment when the p99 left the others.
 - Select **Users** on the HUD to open **Why users leave**. A `slow` row shows the kind's p99
   against its target, and it names the share of Apdex that the kind costs you.
-- Research [Alerting](/research/alerting) to get a pager banner when the p99 stays high.
+- Research [Alerting](/research/alerting) to get a pager when the p99 stays high.
 
 The [Event Loop Stall](/sandboxes/event-loop-stall) Sandbox runs Node.js with logins on the same App
 Server, and you keep the p99 under its limit when password hashing gets slower. For garbage

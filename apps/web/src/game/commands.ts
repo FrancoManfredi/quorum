@@ -14,7 +14,16 @@ import { regionView } from '@quorum/simulation/regions'
 import { ComponentId, Game, Region } from '@quorum/simulation/state'
 import { Message } from './message.ts'
 import { Founder } from '@quorum/simulation/founder'
-import { Motion, Prefs, Reveal, SandboxStore, TextSize, Theme, TradeoffOption } from './model.ts'
+import {
+  Motion,
+  Prefs,
+  Reveal,
+  SandboxStore,
+  TextSize,
+  Theme,
+  Tone,
+  TradeoffOption,
+} from './model.ts'
 import { refreshed, SaveIndex } from './saves.ts'
 import { History } from './history.ts'
 import { SavedInbox } from './inbox.ts'
@@ -487,15 +496,20 @@ export const FocusInspector = Command.define('FocusInspector', {
     }),
 })
 
-/** Moves keyboard focus onto the Dashboard's scroll area, so Tab, arrows, and Page Down scroll it. */
+/** Moves keyboard focus onto the Dashboard's scroll area, so Tab, arrows, and Page Down scroll it,
+ *  and scrolls one of its panels into view when the caller names one. */
 export const FocusDashboard = Command.define('FocusDashboard', {
-  args: {},
+  args: { focus: Schema.optionalKey(Schema.String) },
   messages: [Message.Synced],
-  execute: () =>
+  execute: ({ focus }) =>
     Effect.promise(async () => {
       // The panel renders in the same update, so wait for its frame before focusing it.
       await new Promise((resolve) => requestAnimationFrame(resolve))
       document.querySelector<HTMLElement>('[data-scroll="dashboard"]')?.focus()
+      if (focus !== undefined)
+        document.querySelector<HTMLElement>(`[data-panel="${focus}"]`)?.scrollIntoView({
+          block: 'start',
+        })
       return Message.Synced()
     }),
 })
@@ -515,10 +529,23 @@ export const ToggleFullscreen = Command.define('ToggleFullscreen', {
     }),
 })
 
+/**
+ * How long a toast stays, by what it says. A refusal names a Research and its price, so it stays
+ * longer than a confirmation. Nothing here carries an action: an action would wait for the player.
+ */
+export const TOAST_MS: Record<Tone, number> = {
+  plain: 2600,
+  ok: 2600,
+  warn: 5200,
+  danger: 7000,
+  primary: 3400,
+}
+
 export const ClearToast = Command.define('ClearToast', {
-  args: { id: Schema.Finite },
+  args: { id: Schema.Finite, after: Schema.Finite },
   messages: [Message.ToastCleared],
-  execute: ({ id }) => Effect.sleep('3600 millis').pipe(Effect.as(Message.ToastCleared({ id }))),
+  execute: ({ id, after }) =>
+    Effect.sleep(`${Math.round(after)} millis`).pipe(Effect.as(Message.ToastCleared({ id }))),
 })
 
 /** Waits out the clock-in, then shows the title. */

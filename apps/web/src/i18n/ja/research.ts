@@ -45,5 +45,6 @@ export const research: Messages['research'] = {
   requires: '前提',
   leadsTo: 'つながる先',
   research: 'リサーチ',
+  openResearch: (name) => `${name}をリサーチパネルで開く`,
   closeEsc: '閉じる (Esc)',
 }
