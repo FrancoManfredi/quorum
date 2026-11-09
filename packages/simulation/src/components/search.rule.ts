@@ -11,6 +11,7 @@ import {
   SEARCH_VARIANTS,
 } from '../catalog.ts'
 
+import { warming, warmOf } from '../life.ts'
 import { flatModel } from '../capacity.ts'
 import { flatScale, has } from '../lookups.ts'
 import { queryFactor } from '../features.ts'
@@ -36,7 +37,8 @@ export const searchRule: ComponentRule = {
         variant.capacity *
         (shards / (1 + SEARCH_FANOUT * (shards - 1))) *
         (1 + (variant.jvm ? node.searchReplicas : 0)) *
-        heap.capacity) /
+        heap.capacity *
+        warmOf(node.life)) /
       queryFactor(solver.game, 'q-search')
     return {
       ...flatModel(
@@ -104,7 +106,14 @@ export const setSearchOptions = (
       (next.searchShards !== 1 || next.searchReplicas !== 0 || next.heap !== 'half')
     )
       return notAllowed('Meilisearch runs one node: no shards, replicas, or heap.')
-    return ok(patch(game, id, change))
+    const jvm = SEARCH_VARIANTS[next.searchVariant].jvm
+    const indexChange =
+      (change.searchVariant !== undefined && change.searchVariant !== node.searchVariant) ||
+      (jvm &&
+        ((change.searchShards !== undefined && change.searchShards !== node.searchShards) ||
+          (change.searchReplicas !== undefined && change.searchReplicas !== node.searchReplicas)))
+    const copy = !game.sandbox && indexChange && node.life._tag !== 'Stopped'
+    return ok(patch(game, id, { ...change, ...(copy ? { life: warming(0) } : {}) }))
   })
 
 /**

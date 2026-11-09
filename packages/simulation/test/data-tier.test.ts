@@ -17,10 +17,12 @@ import {
   setTopology,
 } from '../src/actions.ts'
 import * as Work from '../src/work.ts'
+import { warmOf } from '../src/life.ts'
 import { dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
 import { sharesDatabase } from '../src/team.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
+import { step } from '../src/step.ts'
 import type { Game } from '../src/state.ts'
 
 /* The options of the data tier and the edge (05, 07): each one changes what the Ledger reads. */
@@ -235,6 +237,27 @@ describe('Search Engine and Object Storage products', () => {
       ),
     ).toBe(true)
     expect(Result.isSuccess(setSearchOptions(game, search, { searchShards: 2 }))).toBe(true)
+  })
+
+  test('a Company copies the index when a Search Engine rebalances', () => {
+    let game: Game = { ...freeSandbox(), sandbox: false, cash: 100_000 }
+    let search: string
+    ;[game, search] = build(game, 'search')
+    game = ok(setSearchOptions(game, search, { searchShards: 2 }))
+    const node = game.nodes.find((entry) => entry.id === search)!
+    expect(node.searchShards).toBe(2)
+    expect(node.life._tag).toBe('Warming')
+    expect(warmOf(node.life)).toBe(0)
+  })
+
+  test('a Search Engine recovers capacity as its index copy finishes', () => {
+    let game: Game = { ...freeSandbox(), sandbox: false, cash: 100_000 }
+    let search: string
+    ;[game, search] = build(game, 'search')
+    game = ok(setSearchOptions(game, search, { searchReplicas: 1 }))
+    for (let i = 0; i < 600; i += 1) game = step(game, 1).game
+    const node = game.nodes.find((entry) => entry.id === search)!
+    expect(warmOf(node.life)).toBeGreaterThan(0.5)
   })
 
   test('Object Storage can be R2', () => {

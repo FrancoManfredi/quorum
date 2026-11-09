@@ -24,6 +24,8 @@ import {
   ROW_KB,
   DB_RETENTIONS,
   REPLICA_SYNC_MINUTES_PER_GB,
+  SEARCH_COPY_MINUTES_PER_GB,
+  SEARCH_INDEX_SHARE,
   SCALE_COOLDOWN,
   SCALE_QUEUE_DEPTH,
   SCALE_RPS_PER_VCPU,
@@ -352,7 +354,10 @@ const warmupOf = (game: Game, node: GameNode): number =>
     : // A new Read Replica copies the rows before it serves: a calendar half minute per GB (07 \"Data volume\").
       node.type === 'replica'
       ? Math.max(WARMUP_SECONDS, game.data * REPLICA_SYNC_MINUTES_PER_GB)
-      : WARMUP_SECONDS
+      : // A Search Engine copies and rebalances its index: a calendar half minute per GB of index (07 \"Search Engine\").
+        node.type === 'search'
+        ? Math.max(WARMUP_SECONDS, game.data * SEARCH_INDEX_SHARE * SEARCH_COPY_MINUTES_PER_GB)
+        : WARMUP_SECONDS
 
 /** The live Autoscaler a Node links into, if any. */
 const autoscalerOf = (game: Game, node: GameNode): GameNode | undefined => {

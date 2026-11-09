@@ -549,3 +549,4 @@ export {
 } from '../components/wide.ts'
 export { DSQL_TX, DSQL_READ_COST } from '../components/dsql.ts'
 export { SYNC_MS, REPLICA_SYNC_MINUTES_PER_GB } from '../components/replica.ts'
+export { SEARCH_COPY_MINUTES_PER_GB } from '../components/search.ts'

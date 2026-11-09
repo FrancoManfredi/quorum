@@ -66,6 +66,8 @@ export const SEARCH_VARIANTS = {
 } as const
 /** Share of a Search Engine's RAM and index the volume under it holds, per GB of rows. */
 export const SEARCH_INDEX_SHARE = 0.3
+/** Calendar minutes a Search Engine copies and rebuilds its index per GB of rows (07 "Search Engine"). */
+export const SEARCH_COPY_MINUTES_PER_GB = 0.5
 
 /** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const searchGlossary: ReadonlyArray<string> = ['inverted-index']

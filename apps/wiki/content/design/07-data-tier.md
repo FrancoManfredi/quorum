@@ -27,13 +27,14 @@ row costs 10 KB, its indexes and its share of the WAL included. Data never shrin
 Volume also sets how long the slow operations take, in calendar time (one sim second is a calendar
 minute):
 
-| Operation                       | Time                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| Restore of a backup             | 5 minutes plus half a minute per GB; point-in-time recovery reads twice the GB |
-| A new Read Replica's first copy | Half a minute per GB (at least the 15 s of any cold Node) before it serves     |
-| Schema migration lock           | 150 s plus 0.1 s per GB of rows, at most four times 150 s                      |
-| Database engine change          | One minute per GB of rows, after its Dev Hours                                 |
-| Resharding                      | One minute per GB of rows, at least a calendar day, after its Dev Hours        |
+| Operation                       | Time                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| Restore of a backup             | 5 minutes plus half a minute per GB; point-in-time recovery reads twice the GB        |
+| A new Read Replica's first copy | Half a minute per GB (at least the 15 s of any cold Node) before it serves            |
+| Search index copy or rebalance  | Half a minute per GB of the index (30% of the Company's rows) while the Node recovers |
+| Schema migration lock           | 150 s plus 0.1 s per GB of rows, at most four times 150 s                             |
+| Database engine change          | One minute per GB of rows, after its Dev Hours                                        |
+| Resharding                      | One minute per GB of rows, at least a calendar day, after its Dev Hours               |
 
 A large Company takes longer to back up, copy, and migrate than a small one. A Feature that reads
 history also loses part of its value when retention deletes that history
@@ -401,6 +402,11 @@ the first adds 20% of one shard's work. The capacity is `shards / (1 + 0.2 × (s
 shard's. Each replica adds a whole copy of the capacity, a box, and a copy of the index. The index is
 30% of the Company's rows on a gp3 volume, and each replica holds one more copy, so the volume bills
 on the Storage line at the Database's row price. Every shard and every replica is another box.
+
+Changing the shards rebalances the index across them, and adding a replica copies the index to it. The
+copy takes half a minute per GB of index, and the Node recovers its capacity as the copy finishes
+([Data volume](#data-volume)). Switching the product rebuilds the index the same way. A Sandbox sets
+it at once.
 
 The heap is 25%, 50%, or 75% of the RAM:
 

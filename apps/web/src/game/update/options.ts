@@ -693,17 +693,16 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
           Work.queueTopology(model.board.game, nodeId, topology),
         ),
 
-  SearchOptionsChosen: ({ nodeId, ...change }) =>
-    act(
-      model,
-      'Search Engine set',
-      Actions.setSearchOptions(
-        model.board.game,
-        nodeId,
-        Object.fromEntries(Object.entries(change).filter(([, value]) => value !== undefined)),
-      ),
-      { undoable: true },
-    ),
+  SearchOptionsChosen: ({ nodeId, ...change }) => {
+    const pick = Object.fromEntries(
+      Object.entries(change).filter(([, value]) => value !== undefined),
+    )
+    return model.board.game.sandbox
+      ? act(model, 'Search Engine set', Actions.setSearchOptions(model.board.game, nodeId, pick), {
+          undoable: true,
+        })
+      : act(model, 'Search Engine set', Actions.setSearchOptions(model.board.game, nodeId, pick))
+  },
 
   StoreVariantChosen: ({ nodeId, storeVariant }) =>
     act(
