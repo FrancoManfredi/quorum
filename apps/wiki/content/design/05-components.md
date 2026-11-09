@@ -101,7 +101,7 @@ family it belongs to: Edge, Compute, Data or Ops.
 | Database                 | 90        | Instance price            | CPU and connections                         | 2.5 ms                 | 9     |
 | Connection Pooler        | 80        | 0.03                      | 10,000 client connections                   | 0.3 ms                 | 4     |
 | Cache                    | 150       | 0.06                      | 50,000 ops/s per core                       | 0.5 ms                 | 8     |
-| Read Replica             | 160       | As Database               | As Database (reads only)                    | 2.5 ms                 | 9     |
+| Read Replica             | 60        | 0.7× Database             | As Database (reads and scans only)          | 2.5 ms                 | 9     |
 | Search Engine            | 300       | 0.25                      | 400 queries/s per node                      | 15 ms                  | 8     |
 | Object Storage           | 280       | 0.01 + $0.000032 per GB   | Unlimited                                   | 40 ms first byte       |       |
 | Document Store           | 260       | 0.20                      | 3,000 ops/s                                 | 3 ms                   | 8     |
@@ -416,7 +416,7 @@ The data tier has its own document: [Data tier](/design/07-data-tier). This tabl
 | Database          | `q-read`, `q-write`, `q-tx`, small `q-search`, slow `q-scan` | One source of truth with a hard vertical limit, a connection limit, and a volume's IOPS; shards and the Sharded topology scale the writes, retention trades storage for history. |
 | Connection Pooler | Database connections                                         | Fewer connections, and some session features stop working; statement mode also breaks transactions.                                                                              |
 | Cache             | `q-read`                                                     | Speed against staleness and stampedes; the write strategy trades freshness against write latency.                                                                                |
-| Read Replica      | `q-read`                                                     | Read capacity against replication lag.                                                                                                                                           |
+| Read Replica      | `q-read`, `q-scan`                                           | Read capacity, and reports off the primary, against replication lag. Cheaper than a bigger primary, and adding one restarts nothing.                                             |
 | Search Engine     | `q-search`                                                   | Fast search against indexing lag and heap memory; a longer refresh is cheaper and staler.                                                                                        |
 | Object Storage    | `blob-get`, `blob-put`                                       | Unlimited storage against egress cost, first-byte latency, the class's retrieval price, and a lifecycle that archives the oldest objects.                                        |
 | Document Store    | `q-read`, `q-write`; `q-tx` and `q-scan` at 3× the ops       | Developer velocity against joins and transactions.                                                                                                                               |

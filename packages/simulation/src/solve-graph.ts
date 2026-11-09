@@ -83,6 +83,8 @@ export const buildGraph = (game: Game): Graph => {
     if (!from || !to) continue
     // A link into an Autoscaler or a Cluster puts the Node under its control: no traffic.
     if (COMPONENTS[to.type].control) continue
+    // A Database's link into its Read Replica ships the write log: no traffic.
+    if (from.type === 'database' && to.type === 'replica') continue
     // A link into a CDC Connector copies the changes the caller writes: no traffic either.
     if (COMPONENTS[to.type].mirror) {
       mirroring.push([from, to])

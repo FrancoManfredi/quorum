@@ -270,13 +270,27 @@ and they count as stale hits.
 
 Real products: PostgreSQL streaming replication, MySQL replication, Aurora replicas.
 
-A Read Replica is a copy of the primary that serves `q-read`. Writes still go to the primary.
+A Read Replica is a copy of the primary that serves `q-read` and `q-scan`. Writes still go to the primary. The player links the Database into the replica to start replication; that link carries the write log and no queries, and a replica nothing links to serves nothing.
 
-| Option                              | Effect                                                                                                                                                                                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Asynchronous (start)                | No write cost. Replicas lag by `base_lag + write_rate × lag_factor`. Under heavy writes, lag reaches seconds. A read after a write on a lagging replica is `stale`. MySQL's replica falls behind at 0.8× the write rate; Postgres's at 1×. |
-| Synchronous                         | No lag on the synchronous replica. Every write waits for it: +2 ms in the same zone, more across zones. If the replica is down, writes stall.                                                                                              |
-| Read-your-writes routing (research) | Sends a user's reads to the primary for a few seconds after that user writes. Removes most `stale` errors and keeps some read load on the primary.                                                                                         |
+Each data Node has its own job:
+
+| Node         | Its job                                                                  | What it costs                                                                 |
+| ------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Database     | The only Node that takes writes; a bigger size is the one fix for writes | The most per vCPU, and a resize restarts it                                   |
+| Cache        | Repeated reads of hot rows, from memory                                  | The least; its hit ratio falls with writes and a hot set that outgrows memory |
+| Read Replica | Reads of any row, and reports, without a restart                         | 0.7× a Database's box; some reads come back stale                             |
+
+A report is a scan, so a Cache cannot answer it. A Database and a replica both accept `q-scan`, and the
+replica takes it: the primary's buffer cache stops filling with cold pages. A Read Replica's box bills
+0.7× a Database's of the same size, because it has no backups, no provisioned IOPS tier, and no write
+path to size for. A resize restarts a Database and it comes back cold; placing a replica restarts
+nothing.
+
+| Option                              | Effect                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Asynchronous (start)                | No write cost. Replicas lag by `base_lag + write_rate × lag_factor`. Under heavy writes, lag reaches seconds. A quarter of the reads in that window ask for a row a write just changed, and those are `stale`, up to 15% of the replica's reads. MySQL's replica falls behind at 0.8× the write rate; Postgres's at 1×. |
+| Synchronous                         | No lag on the synchronous replica. Every write waits for it: +2 ms in the same zone, more across zones. If the replica is down, writes stall.                                                                                                                                                                           |
+| Read-your-writes routing (research) | Sends a user's reads to the primary for a few seconds after that user writes. Removes most `stale` errors and keeps some read load on the primary.                                                                                                                                                                      |
 
 Synchronous replication is a switch on each Read Replica's card, behind research `sync-replication`.
 Every write and checkout on the primary waits for its synchronous replicas, for the slowest of them:

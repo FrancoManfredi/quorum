@@ -3,6 +3,7 @@ A Cache answers repeated reads from memory so the [Database](/components/databas
 ## When to place it
 
 - Place it when reads dominate and Database CPU is high. The [Read Mostly](/sandboxes/read-mostly) Sandbox shows the symptom.
+- Place it before a [Read Replica](/components/replica) when the same hot rows are read again and again: it costs the least of the three. When the hot data outgrows its memory, or reads are spread over many rows, add a replica.
 - Resize it when the hit ratio falls as users grow.
 - Switch to Memcached when a single Redis thread is the limit.
 

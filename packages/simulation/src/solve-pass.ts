@@ -17,7 +17,7 @@ import {
 } from './catalog.ts'
 import { FLAT_CAPACITY, type Calls } from './capacity.ts'
 import { taskAttempts, failSome, hop, through, type Outcome } from './distribution.ts'
-import { engineOf, has, isDown } from './lookups.ts'
+import { engineOf, has, isDown, primaryOf } from './lookups.ts'
 import {
   RULES,
   accepts,
@@ -45,6 +45,11 @@ import {
 /** Replication lag: a floor, plus milliseconds per write per second to replay (16 D12). */
 export const REPLICA_LAG_MS = 20
 export const REPLICA_LAG_PER_WRITE = 2
+/**
+ * Share of the reads in a lag window that ask for a row a write just changed. A replica serves a
+ * stale answer only to those; the rest read rows no recent write touched.
+ */
+export const REPLICA_STALE_REUSE = 0.25
 
 export type Inputs = Readonly<{
   game: Game
@@ -339,7 +344,9 @@ export const forward = (inputs: Inputs): Pass => {
     tasks,
     drained,
     lagMs: surge ? lag * LAG_SURGE : lag,
-    staleShare: surge ? Math.min(0.5, (lag * LAG_SURGE) / 1000) : Math.min(0.15, lag / 1000),
+    staleShare: surge
+      ? Math.min(0.5, (lag * LAG_SURGE) / 1000)
+      : Math.min(0.15, (lag * REPLICA_STALE_REUSE) / 1000),
   }
 }
 
@@ -413,7 +420,12 @@ export const splitFor = (inputs: Inputs, node: GameNode, kind: Kind): Split => {
   const { game, graph } = inputs
   // A drained Node is out of rotation at once: the router plans the drain, so it waits for no
   // health check. With nowhere left to send the request, it is stranded (11 "Drain a Node").
-  const takers = takersOf(graph, node, kind).filter((edge) => edge.to.service._tag !== 'Draining')
+  // A Read Replica that no Database ships its log to copies nothing, so it takes no query.
+  const takers = takersOf(graph, node, kind).filter(
+    (edge) =>
+      edge.to.service._tag !== 'Draining' &&
+      (edge.to.type !== 'replica' || primaryOf(game, edge.to)),
+  )
   if (takers.length === 0) return []
   const even = (live: ReadonlyArray<Edge>) => live.map((edge) => [edge, 1 / live.length] as const)
   if (node.type === 'dns') {

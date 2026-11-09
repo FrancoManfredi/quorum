@@ -174,7 +174,7 @@ A window caps the rows at what the Company writes inside it, so an old Company t
 
 ## Tips
 
-- Put a [Cache](/components/cache) and [Read Replicas](/components/replica) in front to take reads off it.
+- Put a [Cache](/components/cache) in front to take repeated reads off it, and [Read Replicas](/components/replica) beside it to take other reads and the reports. A resize restarts the Database, and the replica does not.
 - Use a Memory instance when the working set outgrows RAM, or provision the volume when reads go to disk.
 - Shard when the Database is out of CPU on writes. Each shard is another primary, and it costs like one.
 - Research [Point-in-time recovery](/research/pitr) to turn on backups, and [Restore drills](/research/restore-drills) so a backup is tested before you need it.

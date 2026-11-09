@@ -67,8 +67,20 @@ export const SHARD_COUNTS = [1, 2, 4, 8] as const
  */
 export const DB_RETENTIONS = {
   keep: { name: 'Keep everything', days: 0, price: 1, scanMs: 0, rebuild: 1 },
-  archive: { name: 'Archive after 30 d', days: 30, price: 0.1, scanMs: 200, rebuild: 1 },
-  delete: { name: 'Delete after 30 d', days: 30, price: 0, scanMs: 0, rebuild: 3 },
+  archive: {
+    name: 'Archive after 30 d',
+    days: 30,
+    price: 0.1,
+    scanMs: 200,
+    rebuild: 1,
+  },
+  delete: {
+    name: 'Delete after 30 d',
+    days: 30,
+    price: 0,
+    scanMs: 0,
+    rebuild: 3,
+  },
 } as const
 /** KB one row costs the Database: the row, its indexes, and its share of the WAL.  */
 export const ROW_KB = 10
@@ -190,7 +202,7 @@ export const databaseDef = def({
   product: 'PostgreSQL or MySQL',
   group: 'data',
   blurb:
-    'The source of truth. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.',
+    'The source of truth, and the only Node that takes writes. A bigger size restarts it. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.',
   cost: 90,
   sized: true,
   latency: 2,

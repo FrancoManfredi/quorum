@@ -564,7 +564,7 @@ export {
   WIDE_TX_DUPLICATE,
 } from '../components/wide.ts'
 export { DSQL_TX, DSQL_READ_COST } from '../components/dsql.ts'
-export { SYNC_MS, REPLICA_SYNC_MINUTES_PER_GB } from '../components/replica.ts'
+export { SYNC_MS, REPLICA_SYNC_MINUTES_PER_GB, REPLICA_BOX_PRICE } from '../components/replica.ts'
 export { SEARCH_COPY_MINUTES_PER_GB } from '../components/search.ts'
 
 /** Sim seconds a Feature Flag change takes to propagate to every server (05 "Feature Flags"). */

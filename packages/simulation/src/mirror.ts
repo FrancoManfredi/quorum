@@ -270,6 +270,12 @@ const wantLinksOf = (
     if (!start) continue
     for (const end of endsOf(game, mirror, ids, link.to)) keys.add(linkKey(start, end))
   }
+  // The home Database ships its log to the replica that copies it in this region.
+  for (const node of sourceNodes(game, mirror)) {
+    const copy = ids[node.id]
+    if (node.type === 'database' && mirror.data[node.id] === 'replica' && copy)
+      keys.add(linkKey(node.id, copy))
+  }
   return [...keys].toSorted()
 }
 
@@ -279,6 +285,8 @@ const managedFrom = (game: Game, mirror: Mirror): ReadonlySet<string> => {
     const id = mirror.nodes[source]
     if (id) from.add(id)
   }
+  for (const source of Object.keys(mirror.data))
+    if (mirror.data[source] === 'replica') from.add(source)
   const users = usersOf(game, mirror.region)
   if (users) from.add(users.id)
   return from

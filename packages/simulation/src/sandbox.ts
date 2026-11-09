@@ -771,6 +771,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
           ...seriesALinks(['server1', 'server2']),
           ['server1', 'replica'],
           ['server2', 'replica'],
+          ['database', 'replica'],
         ],
       ),
     objectives: [

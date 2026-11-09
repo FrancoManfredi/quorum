@@ -4,6 +4,7 @@ import {
   connect,
   place,
   promoteReplica,
+  resize,
   setCdnOptions,
   setDbEngine,
   setLbVariant,
@@ -18,7 +19,7 @@ import {
 } from '../src/actions.ts'
 import * as Work from '../src/work.ts'
 import { warmOf } from '../src/life.ts'
-import { dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
+import { burnOf, dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
 import { sharesDatabase } from '../src/team.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
@@ -117,6 +118,49 @@ describe('sharding', () => {
     expect(shardingOf(game.nodes.find((node) => node.id === database.id)!).cross).toBeLessThan(
       hash.cross,
     )
+  })
+})
+
+describe('a Read Replica has a job of its own', () => {
+  // Series B sends reports (`q-scan`); the Database is the one box that answers every kind.
+  const withReplica = (stage: number) => {
+    const base: Game = { ...freeSandbox(), stage, users: 3_000 }
+    const [placed, replica] = build(withResearch(base, 'replication'), 'replica')
+    const fed = ok(connect(placed, 'database', replica))
+    return { base, game: ok(connect(fed, 'server', replica)), replica }
+  }
+
+  test('linking one moves the reports and a share of the reads off the primary', () => {
+    const { base, game, replica } = withReplica(4)
+    const before = solveFlow(base).nodes.database!
+    const after = solveFlow(game)
+    expect(before.traffic['q-scan']).toBeGreaterThan(0)
+    expect(after.nodes.database!.traffic['q-scan'] ?? 0).toBe(0)
+    expect(after.nodes[replica]!.traffic['q-scan']).toBeGreaterThan(0)
+    expect(after.nodes.database!.utilization).toBeLessThan(before.utilization)
+  })
+
+  test('a replica no Database links to serves nothing, and copies one Database only', () => {
+    const { game, replica } = withReplica(4)
+    const cut = {
+      ...game,
+      links: game.links.filter((l) => !(l.from === 'database' && l.to === replica)),
+    }
+    const ledger = solveFlow(cut)
+    expect(ledger.nodes[replica]!.inbound).toBe(0)
+    expect(solveFlow(game).nodes[replica]!.inbound).toBeGreaterThan(0)
+    expect(Result.isFailure(connect(game, 'database', replica))).toBe(true)
+  })
+
+  test('its box bills less than a Database of the same size, and placing one restarts nothing', () => {
+    const { game, replica } = withReplica(1)
+    const node = (id: string) => game.nodes.find((entry) => entry.id === id)!
+    const database = node('database')
+    const twin = { ...node(replica), size: database.size, life: database.life }
+    expect(burnOf(game, twin)).toBeLessThan(burnOf(game, database) * 0.75)
+    expect(node('database').life).toEqual(database.life)
+    const grown = ok(resize(game, 'database', 1))
+    expect(grown.nodes.find((entry) => entry.id === 'database')!.life._tag).toBe('Restarting')
   })
 })
 
@@ -233,7 +277,10 @@ describe('Search Engine and Object Storage products', () => {
     ;[game, search] = build(game, 'search')
     expect(
       Result.isFailure(
-        setSearchOptions(game, search, { searchShards: 2, searchVariant: 'meilisearch' }),
+        setSearchOptions(game, search, {
+          searchShards: 2,
+          searchVariant: 'meilisearch',
+        }),
       ),
     ).toBe(true)
     expect(Result.isSuccess(setSearchOptions(game, search, { searchShards: 2 }))).toBe(true)
@@ -296,6 +343,7 @@ describe('a Connection Pooler', () => {
     game = ok(setLbVariant(game, lb, 'l4'))
     game = ok(connect(game, pooler, lb))
     expect(Result.isFailure(connect(game, pooler, database))).toBe(true)
+    for (const to of [first, second]) game = ok(connect(game, existing, to))
     for (const to of [database, first, second]) game = ok(connect(game, lb, to))
     const ledger = solveFlow(game)
     const reads = (id: string) => ledger.nodes[id]?.traffic['q-read'] ?? 0

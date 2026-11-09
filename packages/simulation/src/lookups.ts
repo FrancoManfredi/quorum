@@ -77,6 +77,7 @@ import {
   SCATTER_MS,
   DISTRIBUTED_TX_FAILURE,
   SYNC_MS,
+  REPLICA_BOX_PRICE,
   rttOf,
   INDEX_WRITE_COST,
   CACHE_KEYS,
@@ -555,13 +556,26 @@ export const dataOf = (game: Game, node: GameNode): number => {
 }
 
 /**
+ * The Database a Read Replica copies: the one whose link into it carries the write log. A replica
+ * with no such link replicates nothing and serves nothing (07 "Read Replica").
+ */
+export const primaryOf = (game: Game, node: GameNode): GameNode | undefined => {
+  if (node.type !== 'replica') return undefined
+  for (const link of game.links) {
+    if (link.to !== node.id) continue
+    const from = game.nodes.find((entry) => entry.id === link.from)
+    if (from?.type === 'database') return from
+  }
+  return undefined
+}
+
+/**
  * The engine a Node runs (07 "Variants"). A Read Replica copies its primary, so it runs the
  * primary's engine whatever its own saved field says.
  */
 export const engineOf = (game: Game, node: GameNode): DbEngine => {
   if (node.type !== 'replica') return node.dbEngine
-  const database = game.nodes.find((entry) => entry.type === 'database')
-  return database?.dbEngine ?? node.dbEngine
+  return primaryOf(game, node)?.dbEngine ?? node.dbEngine
 }
 
 /**
@@ -622,7 +636,9 @@ export const burnOf = (game: Game, node: GameNode): number => {
             STORAGE_IOPS[node.iops].burn *
             Math.max(1, Math.floor(node.shards)) +
           dataBurnOf(game, node)
-        : box
+        : node.type === 'replica'
+          ? box * REPLICA_BOX_PRICE
+          : box
     // A standby is a second box; pods pack onto shared nodes.
     if (node.standby) return one * 2
     if (copiesOf(node) === 1 && !inCluster(game, node)) return one

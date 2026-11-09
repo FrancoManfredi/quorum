@@ -427,6 +427,17 @@ export const connect = (game: Game, from: string, to: string): Action => {
       )
     return ok({ ...game, links: [...game.links, link(from, to)] })
   }
+  // A Database ships its write log to a Read Replica: the link carries no queries (07 "Read Replica").
+  if (target.type === 'replica' && source.type === 'database') {
+    if (
+      game.links.some(
+        (entry) =>
+          entry.to === to && game.nodes.some((n) => n.id === entry.from && n.type === 'database'),
+      )
+    )
+      return notAllowed('A Read Replica copies one Database.')
+    return ok({ ...game, links: [...game.links, link(from, to)] })
+  }
   // A CDC Connector reads one Database's write log: that Database keeps all of its traffic.
   if (targetDef.mirror) {
     if (source.type !== 'database')

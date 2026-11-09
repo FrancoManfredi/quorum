@@ -5,6 +5,11 @@ import { def } from './define.ts'
 export const SYNC_MS = 2
 /** Calendar minutes a new Read Replica copies per GB before it serves, and the least it takes. */
 export const REPLICA_SYNC_MINUTES_PER_GB = 0.5
+/**
+ * What a Read Replica's box bills against a Database's of the same size. It runs no write path, so
+ * it needs no backups, no provisioned IOPS tier, and no headroom for writes.
+ */
+export const REPLICA_BOX_PRICE = 0.7
 /** Share of rows an asynchronous promotion loses: writes still in flight never shipped (07 "Failover"). */
 export const PROMOTE_DATA_LOSS = 0.02
 
@@ -28,11 +33,12 @@ export const replicaDef = def({
   name: 'Read Replica',
   product: 'PostgreSQL or MySQL replica',
   group: 'data',
-  blurb: 'Answers reads from a copy. Lags behind writes, so some API reads come back stale.',
-  cost: 160,
+  blurb:
+    'Link a Database into it, and it copies that Database. Takes reads and reports off it, and adding one does not restart it. Lags behind writes, so some API reads come back stale.',
+  cost: 60,
   sized: true,
   latency: 2,
-  accepts: ['q-read'],
+  accepts: ['q-read', 'q-scan'],
   maxOut: 0,
   unlock: 'replication',
   limiting: true,

@@ -93,3 +93,29 @@ Open points from the calibration:
 - Series B's priority items (`hosted-models`, `data-warehouse`) need `ai` and `report`, which arrive
   with their Features. The bots stop at 130 minutes before they ship.
 - Postmortems: an action item goes first in the queue, so incidents slow other research.
+
+## Data tier
+
+Taken on 9 November 2026, before and after the Read Replica rebalance. A Design of one App Server
+and one Database, at the Pre-seed mix with every Node running, is given one fix. The table gives
+the most users it keeps at an Apdex of 0.95 or better and an error share of 2% or less, and what the
+fix adds to the Burn. The App Server is at its largest size, so the Database is the limit. "Small"
+is a Database one size above the smallest; "medium" is one size above that.
+
+| Database | Fix               | Users before | Users after | Burn added before | Burn added after |
+| -------- | ----------------- | ------------ | ----------- | ----------------- | ---------------- |
+| Small    | none              | 2,645        | 2,645       | 0                 | 0                |
+| Small    | One size up       | 5,571        | 5,571       | $0.20/s           | $0.20/s          |
+| Small    | Cache             | 5,181        | 5,181       | $0.24/s           | $0.24/s          |
+| Small    | One Read Replica  | 4,596        | 4,791       | $0.20/s           | $0.14/s          |
+| Small    | Two Read Replicas | 5,961        | 6,156       | $0.40/s           | $0.28/s          |
+| Medium   | none              | 5,571        | 5,571       | 0                 | 0                |
+| Medium   | One size up       | 11,033       | 11,033      | $0.40/s           | $0.40/s          |
+| Medium   | Cache             | 8,692        | 8,692       | $0.24/s           | $0.24/s          |
+| Medium   | One Read Replica  | 9,277        | 9,472       | $0.40/s           | $0.28/s          |
+| Medium   | Two Read Replicas | 8,107        | 11,423      | $0.80/s           | $0.56/s          |
+
+The stale reads a replica adds fell from 3.2 to 0.8 a second at the Medium row, and from 3.2 to 1.5
+with two replicas. Before, the second replica made the Design worse, because every replica added
+stale errors faster than it added capacity. The replicas now cost 0.7× the box, so one replica adds
+about 13,900 users for each dollar a second against 13,700 for a size step and 13,000 for the Cache.

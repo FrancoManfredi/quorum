@@ -211,7 +211,7 @@
       "name": "Database",
       "product": "PostgreSQL or MySQL",
       "group": "data",
-      "blurb": "The source of truth. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.",
+      "blurb": "The source of truth, and the only Node that takes writes. A bigger size restarts it. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.",
       "cost": 90,
       "latency": 2,
       "accepts": [
@@ -435,7 +435,7 @@
       "name": "Cache",
       "product": "Redis",
       "group": "data",
-      "blurb": "Answers read queries from memory while the hot data fits. Writes pass through and invalidate.",
+      "blurb": "The cheapest way to cut reads while the hot data fits in memory. Writes pass through and invalidate, and a restart starts cold.",
       "cost": 150,
       "latency": 0.5,
       "accepts": [
@@ -469,10 +469,10 @@
       "name": "Read Replica",
       "product": "PostgreSQL or MySQL replica",
       "group": "data",
-      "blurb": "Answers reads from a copy. Lags behind writes, so some API reads come back stale.",
-      "cost": 160,
+      "blurb": "Link a Database into it, and it copies that Database. Takes reads and reports off it, and adding one does not restart it. Lags behind writes, so some API reads come back stale.",
+      "cost": 60,
       "latency": 2,
-      "accepts": ["q-read"]
+      "accepts": ["q-read", "q-scan"]
     },
     "auth": {
       "sends": [],

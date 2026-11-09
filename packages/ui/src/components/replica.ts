@@ -1,14 +1,15 @@
 import { DatabaseBackup } from 'lucide'
 import { ms } from '../game/format.ts'
 import { DB_ENGINES } from '@quorum/simulation/catalog'
-import { engineOf } from '@quorum/simulation/lookups'
+import { engineOf, primaryOf } from '@quorum/simulation/lookups'
 import { type ComponentView } from './shared.ts'
 
 export const replica: ComponentView = {
   icon: DatabaseBackup,
-  layout: { rows: 6, inRow: 0, outRow: null, footer: true },
+  layout: { rows: 7, inRow: 0, outRow: null, footer: true },
   rows: ({ game, node, own, inbound, capacity, latency }) => {
     const pool = own.connections
+    const primary = primaryOf(game, node)
     return [
       inbound,
       capacity,
@@ -17,6 +18,12 @@ export const replica: ComponentView = {
         name: 'Engine',
         value: DB_ENGINES[engineOf(game, node)].name,
         tone: 'muted',
+      },
+      {
+        glyph: 'stack',
+        name: 'Copies',
+        value: primary ? primary.id : 'Nothing: link a Database to it',
+        tone: primary ? 'muted' : 'danger',
       },
       {
         glyph: 'connections',

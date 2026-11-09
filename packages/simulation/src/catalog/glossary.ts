@@ -2281,7 +2281,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       "A copy of a database that follows the primary's writes and answers read-only queries, which takes read load off the primary. Replication is usually asynchronous, so a replica can lag behind and return data that is a little old.",
     inGame:
-      'The Read replicas Research unlocks the Read Replica, which runs like a Database but answers only q-read. It lags 20 ms plus 2 ms for each write per second, and up to 15% of its reads come back stale. A Replication lag Incident makes the lag ten times larger. Read-your-writes routing sends reads that follow a write to the primary. A replica in another region also limits how much data you lose if the home region fails.',
+      "The Read replicas Research unlocks the Read Replica, which runs like a Database but answers only q-read and q-scan. A report that reaches a Database and a replica goes to the replica, so scans stop evicting the primary's buffer cache. Adding one does not restart the primary, and its box bills 30% less than a Database of the same size. It lags 20 ms plus 2 ms for each write per second, and one in four reads in that lag window is stale: up to 15% of its reads. A Replication lag Incident makes the lag ten times larger. Read-your-writes routing sends reads that follow a write to the primary. A replica in another region also limits how much data you lose if the home region fails.",
     related: [
       'replication-lag',
       'read-your-writes-consistency',
@@ -2369,7 +2369,7 @@ export const GLOSSARY: ReadonlyArray<GlossaryEntry> = [
     definition:
       "The delay between a write committing on the primary database and that write appearing on a replica. An asynchronous replica applies the primary's log after the fact, so the lag grows with write volume, long-running queries on the replica, and network delay. Reads from a lagging replica return old data.",
     inGame:
-      'A Read Replica lags 20 ms plus 2 ms for every write per second, and the share of its reads that come back stale equals the lag in seconds, up to 15%. The Replication lag Incident multiplies the lag by 10, up to 50% stale reads. Stale reads fail API reads and checkouts, while page views accept them. Read-your-writes routing sends the reads that care to the primary.',
+      'A Read Replica lags 20 ms plus 2 ms for every write per second, and a quarter of its reads in that window ask for a row a write just changed, so the share that come back stale is a quarter of the lag in seconds, up to 15%. The Replication lag Incident multiplies the lag by 10, up to 50% stale reads. Stale reads fail API reads and checkouts, while page views accept them. Read-your-writes routing sends the reads that care to the primary.',
     design: [{ label: 'Read Replica', url: '/design/07-data-tier#read-replica' }],
     related: [
       'read-your-writes-consistency',

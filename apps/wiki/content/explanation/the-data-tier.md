@@ -103,9 +103,18 @@ engines with different limits.
 
 ## Read Replicas: more reads, older data
 
-A [Read Replica](/components/replica) runs like a Database but answers only reads. Writes go to the
-primary and then stream to the replica, so the replica is always a little behind, and the lag grows
-with your write rate. See [replication lag](/glossary/replication-lag).
+A [Read Replica](/components/replica) runs like a Database but answers only reads and reports.
+Writes go to the primary and then stream to the replica, so the replica is always a little behind,
+and the lag grows with your write rate. See [replication lag](/glossary/replication-lag).
+
+Three Nodes take load off a busy Database, and each has its own job:
+
+- A bigger [Database](/components/database) is the only fix for writes. It costs the most, and a
+  resize restarts it.
+- A [Cache](/components/cache) is the cheapest fix for reads, while the same hot rows are read again
+  and again. It cannot answer a report, and its hit ratio falls as writes rise.
+- A Read Replica answers a read of any row and takes the reports, at 0.7× the box price of a
+  Database, and placing one restarts nothing. Some of its reads come back stale.
 
 A read from a lagging replica can return old data. Whether that matters depends on the kind:
 

@@ -223,9 +223,10 @@ describe('guided Sandboxes pass with their fix and stall without it', { timeout:
       if (passed > 0) return game
       const placed = ok(Actions.place(game, 'replica', 880, 520))
       const id = lastId(placed)
-      return placed.nodes
+      const fed = ok(Actions.connect(placed, 'database', id))
+      return fed.nodes
         .filter((node) => node.type === 'server')
-        .reduce((current, server) => ok(Actions.connect(current, server.id, id)), placed)
+        .reduce((current, server) => ok(Actions.connect(current, server.id, id)), fed)
     }
     const replicated = play('read-mostly', replica, LONG, true)
     expect(replicated.objective).toBe(1)

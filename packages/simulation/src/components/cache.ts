@@ -30,7 +30,14 @@ export const WRITE_BEHIND_SECONDS = 10
  * Cache holds the writes it has not flushed for `WRITE_BEHIND_SECONDS`, and a crash loses them.
  */
 export const CACHE_STRATEGIES = {
-  aside: { name: 'Cache-aside', stale: 1, write: 'bypass', writeMs: 0, flush: 1, loadMs: 0 },
+  aside: {
+    name: 'Cache-aside',
+    stale: 1,
+    write: 'bypass',
+    writeMs: 0,
+    flush: 1,
+    loadMs: 0,
+  },
   'read-through': {
     name: 'Read-through',
     stale: 0.75,
@@ -112,7 +119,7 @@ export const cacheDef = def({
   product: 'Redis',
   group: 'data',
   blurb:
-    'Answers read queries from memory while the hot data fits. Writes pass through and invalidate.',
+    'The cheapest way to cut reads while the hot data fits in memory. Writes pass through and invalidate, and a restart starts cold.',
   cost: 150,
   burn: 0.06,
   latency: 0.5,

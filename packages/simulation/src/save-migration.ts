@@ -61,6 +61,39 @@ const nodeOf = (raw: unknown): unknown => {
   return next
 }
 
+/**
+ * A Read Replica copies the Database its link says (07 "Read Replica"). An older save wired none, so
+ * each replica without one follows the first Database, the one it always copied.
+ */
+const replicationOf = (nodes: ReadonlyArray<unknown>, links: ReadonlyArray<unknown>) => {
+  const typeOf = (id: unknown) => text(record(nodes.find((n) => record(n)?.id === id))?.type)
+  const primary = nodes.find((n) => record(n)?.type === 'database')
+  const database = text(record(primary)?.id)
+  if (database === null) return links
+  const added = nodes.flatMap((n) => {
+    const id = text(record(n)?.id)
+    if (id === null || typeOf(id) !== 'replica') return []
+    const fed = links.some((l) => record(l)?.to === id && typeOf(record(l)?.from) === 'database')
+    return fed
+      ? []
+      : [
+          {
+            from: database,
+            to: id,
+            timeout: 30,
+            retries: 'none',
+            kinds: null,
+            breaker: false,
+            bulkhead: false,
+            hedge: false,
+            fuse: Breaker.cases.Closed.make({}),
+            failure: 0,
+          },
+        ]
+  })
+  return [...links, ...added]
+}
+
 const linkOf = (raw: unknown, time: number): unknown => {
   const link = record(raw)
   if (!link) return raw
@@ -280,6 +313,8 @@ export const migrateSave = (raw: Record<string, unknown>): Record<string, unknow
   delete save.lifts
   if (Array.isArray(save.nodes)) save.nodes = save.nodes.map(nodeOf)
   if (Array.isArray(save.links)) save.links = save.links.map((link) => linkOf(link, time))
+  if (Array.isArray(save.links) && Array.isArray(save.nodes))
+    save.links = replicationOf(save.nodes, save.links)
   if (Array.isArray(save.hires)) save.hires = save.hires.map(hireOf)
   if (Array.isArray(save.studies)) save.studies = save.studies.map(studyOf)
   if (Array.isArray(save.backlog)) save.backlog = save.backlog.map(workOf).map(sizeOf)

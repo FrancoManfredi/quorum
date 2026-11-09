@@ -680,6 +680,7 @@ const addReplica = (game: Game, ledger: Ledger, database: GameNode): Game => {
     next = grown
   }
   // A pooler takes one link and an L7 Load Balancer no queries, so the App Servers pick the replica.
+  next = tried(next, connect(next, database.id, replica[1]))
   for (const from of servers(next)) next = tried(next, connect(next, from.id, replica[1]))
   return next
 }
