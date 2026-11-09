@@ -21,6 +21,7 @@ There are four common shapes.
 
 - **Leader and followers, asynchronous.** The leader confirms at once and followers catch up. Writes are fast, a follower can lag, and a leader that dies can lose the last writes.
 - **Leader and followers, synchronous.** The leader waits for a follower. Nothing confirmed is lost, and every write pays the round trip.
+- **Multi-leader.** Every leader holds every row and takes writes. Local writes are fast, but certification must pick a winner when two leaders touch the same row at once.
 - **Leaderless.** A client writes to several replicas and reads from several, and the [quorum](/patterns/quorum-reads-and-writes) rule decides what a read sees.
 - **Consensus.** A majority must agree on each write, so the group survives a minority failing. See [consensus and leader election](/patterns/consensus-and-leader-election).
 
@@ -33,5 +34,9 @@ Each shape gives up something. Asynchronous copies serve stale reads and lose wr
 ::Design{id="sync-replica"}
 
 A [Read Replica](/components/replica) is asynchronous by default, so it lags and some reads come back stale. Turning on **Synchronous** makes every write wait for it, which removes stale reads and adds a round trip, and if the replica goes down, writes time out until it returns. It needs [Synchronous replication](/research/sync-replication) after [Read replicas](/research/replication).
+
+A Design can also run every Database as a leader: under Multi-leader each Database holds every row and takes writes, certification drops conflicting writes (first commit wins, the loser is refused), and every write costs 1.25× the CPU to replicate. Route related writes to one leader to avoid conflicts, since merging after the fact is the expensive alternative.
+
+When the primary is gone, promote a replica: it becomes the primary and the old primary becomes its replica, fenced so writes never split. A synchronous replica loses nothing; an asynchronous one loses writes still in flight.
 
 The [Wide-column Store](/components/wide) is leaderless, and [Distributed SQL](/components/dsql) is consensus. The [Replication lag](/incidents/repl-lag) incident shows the asynchronous cost. The glossary defines [synchronous replication](/glossary/synchronous-replication) and [replication lag](/glossary/replication-lag).

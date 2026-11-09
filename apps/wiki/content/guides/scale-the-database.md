@@ -107,6 +107,15 @@ In the [Analytics on Primary](/sandboxes/analytics-primary) Sandbox, a report sc
 
 ## When one Database is not enough
 
+A second Database is not a follower: the Design picks Sharded or Multi-leader first, or stays on
+Single primary and adds Read Replicas for reads. Placing a second Database while the Design is
+still on Single primary is refused.
+
+- **Sharded** splits the rows across the Databases, so writes scale. Keep transactions inside one
+  shard where you can; a cross-shard one costs up to 3× and can fail on either shard.
+- **Multi-leader** copies every row to every Database, so any of them takes writes. Certification
+  drops conflicting writes (first commit wins) and each write costs 1.25× the CPU.
+
 From the Series C Era, the leaderless and consensus stores take writes on more than one node:
 
 - [Wide-column Store](/components/wide) replicates each key to N nodes with tunable quorums.

@@ -57,7 +57,7 @@ Data:
 - Partitions, hot keys, and quorum reads and writes
 - Distributed SQL
 - Backups with their restore roll and drill
-- The Database's engine, volume, shards, retention window and rows
+- The Database's engine, topology, volume, shards, retention window and rows
 - Statement pooling
 - Denormalized reads and a Database's materialized view
 - The CDC Connector's change stream

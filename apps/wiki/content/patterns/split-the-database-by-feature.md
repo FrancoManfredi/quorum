@@ -19,7 +19,16 @@ Route each feature to its own servers and its own Database, so the browse load c
 
 ::Design{id="split-by-feature"}
 
-The game has no way to split one Database by table. This Design draws the idea with two Databases behind two App Servers. A Load Balancer sends each request kind down a different Link, which stands for routing by feature. The browse side takes pages and reads, and the orders side takes writes and checkouts. Each App Server calls its own Database, and only orders reaches the Payment Provider.
+A second Database means a topology decision: Sharded splits the rows, Multi-leader copies every row
+to every Database. Splitting by feature is the Sharded case, where each Service names its own
+Database: the Services card's Database picker owns the rows, so the orders Service and the browse
+Service hold different partitions. A Load Balancer sends each request kind down a different Link,
+which stands for routing by feature. The browse side takes pages and reads, and the orders side
+takes writes and checkouts. Each App Server calls its own Database, and only orders reaches the
+Payment Provider.
+
+Under Multi-leader the same two Databases would hold the same rows, so naming another leader would
+not lift the shared-database coordination penalty: every leader holds every row.
 
 ## Why it works
 

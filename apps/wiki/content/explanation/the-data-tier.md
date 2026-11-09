@@ -36,6 +36,33 @@ Four limits cap a Database:
 A bigger box lifts the first two limits. Sharding lifts the CPU limit on writes, because each shard
 takes its share of them, but each shard bills like a Database of its own.
 
+## Two engines, two shapes of work
+
+Postgres and MySQL are the same job with different costs. Postgres holds 100 connections at about
+8 MB each and answers reads, scans, and full-text search about 5–10% cheaper than MySQL. MySQL
+holds 500 connections at about 1 MB each and answers writes and checkouts about 30% cheaper,
+because InnoDB updates the row in place. It also changes schema online, while many Postgres
+`ALTER`s take the table lock, and only Postgres keeps dead rows for VACUUM, so only Postgres meets
+Table bloat. A read-heavy Company wants Postgres; a write-heavy one wants MySQL.
+
+Replicas always run their primary's engine, and one topology runs one engine, so a change lands on
+every Database at once. Replication only copies between matching engines.
+
+## More than one Database: pick a topology
+
+A second Database is not a follower; the Design picks one topology and every Database follows it.
+Single primary (the start) takes writes on one Database and reads on Read Replicas. Sharded gives
+each Database its partition of the rows, so writes scale but cross-shard transactions cost up to 3×
+and can fail on either shard. Multi-leader copies every row to every Database and lets each take
+writes, so local writes are fast but certification drops conflicting writes (first commit wins) and
+every write costs 1.25× the CPU to replicate. Switching the topology moves the rows: 24 Dev Hours
+and a minute a GB, like a resharding.
+
+Quorum stores ([Wide-column Store](/components/wide)) and consensus ([Distributed SQL](/components/dsql))
+are the other answers to "writes on more than one node": a quorum waits for R of N on a read and W
+of N on a write, while consensus waits for a majority on every write. See
+[Topologies](/design/07-data-tier#topologies).
+
 ## Slow queries hide until you grow
 
 Two code problems cost little at first and a lot later.

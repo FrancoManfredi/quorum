@@ -11,16 +11,19 @@ The [Stale Checkout](/sandboxes/stale-checkout) and [Missed Write](/sandboxes/mi
 
 ## How it works
 
-It uses the same capacity model as the [Database](/components/database), with an instance type and size, and it has its own connection limit. Only read queries reach it, and no Component sits downstream of it. Its engine is its own choice too: a MySQL replica gives each connection a thread, and holds more of them than a Postgres one. Writes still go to the primary.
+It uses the same capacity model as the [Database](/components/database), with an instance type and size, and it has its own connection limit. Only read queries reach it, and no Component sits downstream of it. It runs its primary's engine, so the connection limit follows the primary. Writes still go to the primary.
 
 Replicas lag behind the primary, and the lag grows with the write rate. A read that hits a lagging replica can come back stale. A stale answer fails an API read and a checkout that reads its own write, though page views accept it. See [replication lag](/glossary/replication-lag).
+
+When the primary is gone, promote one: the replica becomes the primary and the old primary becomes its replica, fenced so writes never split. A synchronous replica has no writes in flight, so nothing is lost; an asynchronous one still held writes the primary had not shipped, so promotion loses them. The new primary starts cold. See [Failover](/design/07-data-tier#failover).
 
 ## Options
 
 ::Options{id="replica"}
 
-- **Engine**: Postgres forks a process per connection, and MySQL gives it a thread and holds more of them on the same box. A MySQL replica fits more connections for the same RAM.
 - **Replication**: Synchronous makes every write on the primary wait for this replica. It then serves no stale read, and while it is down every write times out. Asynchronous is the default and can lag, which is what [read-your-writes routing](/patterns/read-your-writes) answers. See [Replication strategies](/patterns/replication-strategies).
+- **Engine**: the replica runs its primary's engine; there is nothing to pick here. Connection limits, query costs, and lag all follow the primary.
+- **Promote**: the replica becomes the primary and the old primary becomes its replica. A synchronous replica loses nothing; an asynchronous one loses writes still in flight.
 
 ## How it fails
 

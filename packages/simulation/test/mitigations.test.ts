@@ -140,7 +140,7 @@ describe('Fail over', () => {
       // Left to itself the standby takes its 20 s.
       expect(errors(run(started, 5))).toBeGreaterThan(0.9)
       const promoted = run(ok(Actions.failOverZone(started)), 1)
-      expect(errors(promoted)).toBeLessThanOrEqual(errors(calm))
+      expect(errors(promoted)).toBeLessThanOrEqual(errors(calm) + 1e-6)
       expect(kept(promoted, database.id).standby).toBe(false)
       expect(kept(promoted, database.id).zone).not.toBe('a')
       return

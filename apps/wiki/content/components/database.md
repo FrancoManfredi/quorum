@@ -19,9 +19,37 @@ Its CPU limits how many queries it answers. When the working set outgrows RAM, r
 
 ### Engine
 
-Postgres runs one process per connection, and the Database refuses connections past its limit. Every App Server and Worker process holds its own pool of connections, so more App Servers can take the Database down. [The data tier](/explanation/the-data-tier) explains why.
+Postgres runs one process per connection, and the Database refuses connections past its limit
+(100). Every App Server and Worker process holds its own pool of connections, so more App Servers
+can take the Database down. [The data tier](/explanation/the-data-tier) explains why. MySQL gives
+each connection a thread instead, and holds 500 of them, each about an eighth of a Postgres
+backend's memory.
 
-MySQL gives each connection a thread instead, and holds several times as many of them on the same box. A fleet that needs a [Connection Pooler](/components/pooler) on Postgres may fit without one on MySQL. Its built-in full-text search is the weaker of the two, so the searches and scans the Database answers itself cost it more CPU. The Inspector names the connection limit each engine carries. Either engine answers report scans badly, and a [Data Warehouse](/components/warehouse) is the fix for those.
+The engines also differ in what a query costs. Postgres reads and scans about 5–10% cheaper and its
+full-text search is the stronger one. MySQL writes and checkouts run about 30% cheaper, and its
+schema changes use online DDL instead of taking the table lock. Only Postgres meets Table bloat,
+because only Postgres keeps dead rows for VACUUM. Pick by the mix: read-heavy wants Postgres,
+write-heavy wants MySQL.
+
+One topology runs one engine. A Read Replica runs its primary's engine, and every Database in a
+Sharded or Multi-leader Design changes together: replication only copies between matching engines,
+so the copy is a minute per GB per Database. [Data tier](/design/07-data-tier#variants) holds
+the numbers.
+
+### Topology
+
+A second Database is not a follower. The Design picks one topology, and every Database follows it:
+
+- **Single primary** (start): one Database takes writes, Read Replicas take reads. Placing a
+  second Database is refused until you pick another topology.
+- **Sharded**: each Database holds its partition of the rows. Writes divide across them, a read
+  asks the one Database that holds its key, and a transaction that spans two Databases costs up to
+  3× and can fail on either. Reports and searches read every Database.
+- **Multi-leader**: every Database holds every row and takes writes. Certification drops
+  conflicting writes (first commit wins), and every write costs 1.25× the CPU to replicate.
+
+Switching the topology moves the rows: 24 Dev Hours and a copy at a minute per GB, like a
+resharding. [Data tier](/design/07-data-tier#topologies) holds the trade.
 
 ### Volume
 

@@ -19,7 +19,11 @@ Split one Database into several shards on a key, so each shard takes a share of 
 
 ::Design{id="sharded-database"}
 
-The App Server calls one Database Node. The Node now stands for several shards, each a copy of its size. A request goes to the shard that owns its key.
+The App Server calls one Database Node. The Node stands for several shards, each a copy of its
+size, or the Design picks the Sharded topology and each shard is its own Database Node. Either
+way a request goes to the shard that owns its key. Sharding the Nodes multiplies the per-shard
+costs below by the Node count: with N Nodes and M shards apiece the scatter, busiest-shard, and
+cross-shard costs grow with N × M.
 
 ## Why it works
 
