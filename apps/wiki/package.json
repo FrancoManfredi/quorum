@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node scripts/measure.ts --if-stale && vite build",
+    "measurements": "node scripts/measure.ts",
     "changelog:render": "node scripts/changelog.ts render",
     "changelog:write": "node scripts/changelog.ts write",
     "typecheck": "tsrs --noEmit -p tsconfig.json && effect-tsrs diagnostics --strict --project tsconfig.json",

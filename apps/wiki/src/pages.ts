@@ -1,9 +1,10 @@
 import { authoredPages } from './content.ts'
 import type { Section } from './frontmatter.ts'
+import { measurementsPage } from './measurements/page.ts'
 import type { Page } from './page.ts'
 import { referencePages } from './reference/index.ts'
 
-export const PAGES: ReadonlyArray<Page> = [...authoredPages, ...referencePages]
+export const PAGES: ReadonlyArray<Page> = [...authoredPages, measurementsPage, ...referencePages]
 
 const byPath = new Map(PAGES.map((page) => [page.path, page]))
 

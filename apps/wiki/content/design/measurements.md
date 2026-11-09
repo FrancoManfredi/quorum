@@ -1,134 +1,10 @@
----
-title: Measurements
-summary: Balance snapshots taken at a named simulation version.
-section: design
-order: 21
----
+## Recorded by hand
 
-These snapshots were recorded at Simulation version 17 (the old numbered scheme) on 4 November 2026.
-They make no claim about the current build. When the tuning changes, the numbers are measured again
-and the page gets the new version and date.
+These sections record what the bots cannot take: replay timings, the state of the interface, and the
+research calibration. They were taken at Simulation version 17 and describe that build. The pacing
+tables above come from the current one.
 
-Margins in that snapshot that distinguish "live prices" from "the design's cost index" refer to an
-older price split; the current build prices placement, Burn and salaries at the catalog's era cost
-and salary indexes (`EraDef.costIndex` / `salaryIndex`), so build margin is the normative baseline.
-
-The bots run the real Simulation through `packages/simulation/src/pacing.ts`. The seeds are the
-Simulation's seeds, which differ from the random seeds of a playtest.
-
-## Pacing
-
-### Challenge pace
-
-The Balanced bot at the Challenge pace (`CHALLENGE_TUNING`), seeds 1–5,
-until 90 sim minutes.
-
-| Milestone             | Measured (sim min)                                                |
-| --------------------- | ----------------------------------------------------------------- |
-| First research        | 0.7                                                               |
-| First upgrade         | 6.6                                                               |
-| Database split        | 6.6                                                               |
-| First Feature live    | 1.4                                                               |
-| Pre-seed              | 10.7                                                              |
-| First hire            | 18.1                                                              |
-| Second App Server     | never before Seed                                                 |
-| First incident        | 18.4–20.7                                                         |
-| Seed                  | 26.8–35.7, and 26.8–29.3 on seeds 1 and 3                         |
-| Engineers at Seed     | 2–4                                                               |
-| Features live at Seed | 4–6                                                               |
-| Margin at Seed entry  | 65–81% at the live prices; −55% to 20% at the design's cost index |
-
-### Live pace
-
-The Balanced bot at the live tuning (`LIVE_TUNING`), seeds 1 and 3.
-
-| Era      | Measured (sim min) |
-| -------- | ------------------ |
-| Pre-seed | 5.8                |
-| Seed     | 20.5–21.1          |
-| Series A | 65.5               |
-| Series B | 102–106            |
-
-The live pace doubles growth and shortens the incident gap to 200 sim seconds, so it reaches Seed
-sooner and recovers more often in the Eras after it.
-
-## Seed
-
-The Balanced bot at the Challenge pace, seeds 1 and 3.
-
-| Milestone            | Measured (sim min) |
-| -------------------- | ------------------ |
-| Seed                 | 26.8–29.3          |
-| Search Engine placed | 30.2–32.3          |
-| WAF placed           | 33.3–34.3          |
-| Second App Server    | 32.3–43.9          |
-| Series A             | 51.9–52.7          |
-| Seed length          | 23–25              |
-
-The M2 gate asks for Seed on every seed ([Scope and
-roadmap](/design/17-scope-and-roadmap#milestones)). The Challenge pace reaches it at 26.8–35.7 sim
-minutes. Nothing else in the table has a target.
-
-Seed lasts 23–25 minutes because the Team's Features raise growth and the market. Going from 5,000
-to 25,000 users against a 35,000 market at `g` = 0.0016 takes 28 minutes on its own. The bot's
-autopilot builds Features in catalog order, so Profile photos, which gates `upload`, has not shipped
-by Series A. Its Queue and Worker branch never runs in a Company, and the Seed Sandboxes play it
-instead.
-
-Margin at Series A entry is 84–85% at the live prices and −120% to −126% at the design's Series A cost
-index of 120, because at that index the build's Seed Designs cannot pay their way. The figure is
-recorded, not asserted, and no bot checks the 25% to 45% target.
-
-## Series A and Series B
-
-The Balanced bot at the Challenge pace, seeds 1 and 3, until 130 sim minutes. Series B has no content
-after its Features, so the run stops on the clock.
-
-| Milestone                | Measured (sim min) |
-| ------------------------ | ------------------ |
-| Series A                 | 51.9–52.7          |
-| Second zone and standbys | 56.0–56.8          |
-| Series B                 | 91.2–92.7          |
-| Users at 130 min         | 279,624–283,477    |
-| Availability at 130 min  | 95.46–95.75%       |
-
-Series A leaves at 150,000 users and Series B at 1,000,000 ([Progression](/design/10-progression#eras));
-the bot raises both on every seed it plays, and its SLO is 99.9%.
-
-The bot researches Multiple zones first, then spreads every other App Server and Worker to zone B and
-gives every data Node a standby. Its autopilot ships Video, Chat, and Checkout in Series A, so
-`media`, `rt`, and `buy` reach a bot Company; it ships none of the Series B Features, so `job`,
-`report`, and `ai` do not, and `sandbox.test.ts` plays them on the Series B Sandboxes.
-
-The bot spends its error budget many times over. A 99.9% week allows 10 seconds of full outage, and
-the bot's incidents are not spread as the design intends. Churn after a long incident (a slow query,
-a zone outage before Multiple zones) takes 30% to 50% of its users. These numbers are recorded, not
-tuned.
-
-## Series C to Public
-
-The Balanced bot does not reach Series C. On seed 3 it ends at 130 sim minutes in Series B with
-279,624 users, against the 10,000,000 that Series C needs; on seed 1 it holds 283,477.
-`sandbox.test.ts` plays the Series C to Public mechanics on built Designs.
-
-No bot plays to the IPO, so no IPO time is recorded. [What the checks cover](/design/16-balancing#what-the-checks-cover) lists the checks.
-
-## Exit and Legacy
-
-A second Company on the same seed, with Angel network 1, Pattern recognition 1, and Founder's
-reputation 1 (10 Legacy), against a first Company, both played by the Balanced bot
-(`legacy-pacing.test.ts`).
-
-| Seed | First: Pre-seed | First: Seed | Second: Pre-seed | Second: Seed |
-| ---- | --------------- | ----------- | ---------------- | ------------ |
-| 1    | 10.7            | 26.8        | 9.8              | 25.1         |
-| 2    | 10.7            | 35.7        | 9.8              | 26.3         |
-| 3    | 10.7            | 29.3        | 9.8              | 25.2         |
-
-Sim minutes. The M7 exit check, a second Company that reaches its Exit in 3 to 6 hours, is not
-measured: the Balanced bot does not reach Public.
-
-## Challenges
+### Challenges
 
 Verification time for each reference replay (wall clock). Each run replays a Challenge's reference
 solution from t = 0 at its own Step.
@@ -147,7 +23,7 @@ needs a paid plan; no `limits.cpu_ms` change is needed for these five. In Node, 
 replay takes under 2 s, and Five Nines (40,320 Steps of 60 sim seconds) takes about 6 s. workerd and
 browser times for the newer Challenges are not measured.
 
-## Polish
+### Polish
 
 Recorded state of the interface at this version.
 
@@ -176,7 +52,7 @@ axe-core 4.11 (WCAG 2.0/2.1 A and AA plus best practices), before and after the 
 | Lab, panel closed       | 1 violation                                               | 0       |
 | Daily drill (Challenge) | 1 serious `color-contrast` (`.text-ok`, 3.64\:1)          | 0       |
 
-## Insight by Era
+### Insight by Era
 
 Measured at Simulation version 17, before the catalog grew, on seed 1 at 130 minutes, with the
 Balanced bot's own Design and a larger Analytics tap. The first column is research available in each
@@ -192,7 +68,7 @@ not a measurement, so the time column does not describe it.
 | Series A | 59,000 ◇                                     | 161,800 ◇                             | ~4 min at size 8 and 50% (the 512 samples/s cap), the Era is ~38 min |
 | Series B | 78,000 ◇                                     | 409,000 ◇                             | ~5 min at the cap                                                    |
 
-### Calibration
+#### Calibration
 
 Measured at Simulation version 17, before the catalog grew. Two bots, five seeds each, 130 minutes. The Balanced bot follows its priority list with
 2 Studies queued and no Spikes. The Skilled probe (not committed) queues 8 Studies, spikes every
