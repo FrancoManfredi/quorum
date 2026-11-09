@@ -1092,7 +1092,8 @@ const resolve = (
       ? (() => {
           const service = serviceOfId(game, incident.service ?? undefined)
           const batch = service.lastDeploy
-          const rest = Object.entries(game.features).filter(([id]) => !batch.includes(id))
+          const gone = new Set<string>(batch)
+          const rest = Object.entries(game.features).filter(([id]) => !gone.has(id))
           const waiting = batch.map((id) => {
             const phase = game.features[id]
             return [id, featureStep(phase ?? { _tag: 'Awaiting' }, { _tag: 'RolledBack' })] as const
