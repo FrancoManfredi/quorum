@@ -20,6 +20,7 @@ import {
   researchList,
   type ResearchId,
 } from '@quorum/simulation/catalog'
+import type { Advice } from '@quorum/simulation/goals'
 import { researchReady, resizePrice } from '@quorum/simulation/lookups'
 import { solveFlow } from '@quorum/simulation/solve'
 import { NEW_ENGINEER, type Postmortem, type WorkItem } from '@quorum/simulation/state'
