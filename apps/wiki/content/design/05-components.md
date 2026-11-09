@@ -269,12 +269,12 @@ route table, so every kind goes on the same Links.
 | Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms to the Gateway's hop, and takes 0.02 ms of CPU off each authenticated request a service answers.                                                                                            |
 | Request coalescing | Merges identical in-flight reads: 30% of `page`, `read`, `feed` and `search` ask for popular objects, and λw / (1 + λw) of them find an identical read in flight (w = 50 ms). The busier the Gateway, the more it merges, so spikes send less on. |
 
-The cap is one limit for the whole Node. The game counts requests per second at the gateway, not per
-user or per API key, and a limit of 0 lets everything through. Research "Rate limiting" makes it a
-token bucket: the limit refills every Step and the bucket holds 200 more requests, so a burst that
-fits passes whole while the average holds. The bucket is one per Node because the game has no clients
-to count. Past the gateway's own 10,000 requests per second it drops requests like any other
-flat-capacity Component.
+The cap is shared across every API Gateway: adding gateways adds capacity to carry traffic, not a
+larger rate limit, so N gateways do not give N times the bucket. The game counts requests per second
+at the gateway tier, not per user or per API key, and a limit of 0 lets everything through. Research
+"Rate limiting" makes it a token bucket: the limit refills every Step and the bucket holds 200 more
+requests, so a burst that fits passes whole while the average holds. Past a gateway's own 10,000
+requests per second it drops requests like any other flat-capacity Component.
 
 Cost is per request, so the gateway is cheap at low volume and expensive at high volume. It is the
 one per-request line on the cloud bill ([Economy](/design/09-economy#the-cloud-bill)).

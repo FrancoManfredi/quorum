@@ -102,6 +102,7 @@ export const NO_CALLS: Calls = {}
 export const solverOf = (
   inputs: Inputs,
   tasks: ReadonlyArray<Partial<Record<RequestKind, number>> | undefined> = [],
+  arriving: ReadonlyArray<Rates> = [],
 ): Solver => {
   const { game, graph } = inputs
   return {
@@ -137,6 +138,7 @@ export const solverOf = (
       }
       return total
     },
+    arriving: (node) => arriving[graph.at.get(node.id) as number] ?? {},
   }
 }
 
@@ -167,9 +169,9 @@ export const CALLOUT: Outcome = failSome(
 export const forward = (inputs: Inputs): Pass => {
   const { game, graph, demand } = inputs
   const tasks: Array<Partial<Record<RequestKind, number>> | undefined> = []
-  const solver = solverOf(inputs, tasks)
   const at = graph.at
   const arriving: Array<Rates> = game.nodes.map(() => ({}))
+  const solver = solverOf(inputs, tasks, arriving)
   // The request kinds behind the tasks the Node now walking sends on.
   let composition: Partial<Record<RequestKind, number>> | null = null
   const models: Array<Model | undefined> = []

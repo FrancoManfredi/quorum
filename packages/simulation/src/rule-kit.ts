@@ -71,6 +71,8 @@ export type Solver = Readonly<{
   attempts: (node: GameNode) => number
   /** Tasks per second a Queue's live Workers could take, from the last pass; infinite before one. */
   drainable: (node: GameNode) => number
+  /** Requests arriving at a Node in this pass, once its upstream has routed. */
+  arriving: (node: GameNode) => Rates
 }>
 
 export type Model = NodeModel & { disk?: boolean }
@@ -282,19 +284,42 @@ export const staticPagesOf = (game: Game): number =>
 export const gatewayLimitOf = (node: GameNode): number =>
   node.rateLimit > 0 ? node.rateLimit : Number.POSITIVE_INFINITY
 
-/**
- * Share of its arrivals a Gateway's rate limit lets through; the rest fails as throttled. With
- * Rate limiting the cap becomes a token bucket: the limit refills over a Step and the bucket holds
- * `node.burst` more, so a burst that fits the bucket passes whole while the average still holds.
- */
-export const gatewayShare = (node: GameNode, arriving: Rates, dt = STEP_SECONDS): number => {
+/** Total requests per second in a rate record. */
+export const totalRates = (arriving: Rates): number => {
   let total = 0
   for (const kind of Object.keys(arriving) as Array<Kind>) total += arriving[kind] ?? 0
+  return total
+}
+
+/**
+ * Share of arrivals the shared Gateway rate limit lets through; the rest fails as throttled (05).
+ * Every API Gateway shares one token bucket: `arriving` is the total across all gateways, so N
+ * gateways do not multiply the limit. With Rate limiting the bucket holds `node.burst` more.
+ */
+export const gatewayShare = (node: GameNode, arriving: Rates, dt = STEP_SECONDS): number => {
+  const total = totalRates(arriving)
   const limit = gatewayLimitOf(node)
   if (total <= 0 || limit === Number.POSITIVE_INFINITY) return 1
   const allowed = limit * dt + Math.max(0, node.burst)
   const asked = total * dt
   return allowed < asked ? allowed / asked : 1
+}
+
+/** The combined arrivals across every API Gateway: the traffic their shared limit counts. */
+export const gatewayArrivals = (
+  game: Game,
+  arrivingOf: (node: GameNode) => Rates,
+): Readonly<{ node: GameNode | undefined; arriving: Rates }> => {
+  const arriving: Rates = {}
+  let ref: GameNode | undefined
+  for (const entry of game.nodes) {
+    if (entry.type !== 'gw') continue
+    ref ??= entry
+    const rates = arrivingOf(entry)
+    for (const kind of Object.keys(rates) as Array<Kind>)
+      arriving[kind] = (arriving[kind] ?? 0) + (rates[kind] ?? 0)
+  }
+  return { node: ref, arriving }
 }
 
 /**

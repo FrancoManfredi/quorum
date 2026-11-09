@@ -38,7 +38,14 @@ import {
   storageRequestBurnOf,
   zoneMs,
 } from './lookups.ts'
-import { slotOf, cdnHitOf, gatewayShare, type Pass, type Rates } from './rules.ts'
+import {
+  slotOf,
+  cdnHitOf,
+  gatewayArrivals,
+  gatewayShare,
+  type Pass,
+  type Rates,
+} from './rules.ts'
 import { isGlobal } from './regions.ts'
 import { type Game } from './state.ts'
 import { payrollOf } from './team.ts'
@@ -154,14 +161,13 @@ export const billOf = (
   // executions ran, so a slow call to a data tier shows up on it.
   let requests = 0
   const index = eraOf(game).costIndex
+  const gwAll = gatewayArrivals(game, (node) => pass.arriving[slotOf(pass, node)] ?? {})
+  const gwKept = gwAll.node ? gatewayShare(gwAll.node, gwAll.arriving) : 1
   for (const node of game.nodes) {
     if (isDown(node)) continue
     const done = (nodes[node.id]?.inbound ?? 0) - (nodes[node.id]?.dropped ?? 0)
     if (done <= 0) continue
-    if (node.type === 'gw') {
-      const arriving = pass.arriving[slotOf(pass, node)] ?? {}
-      requests += done * gatewayShare(node, arriving) * GATEWAY_PRICE * index
-    }
+    if (node.type === 'gw') requests += done * gwKept * GATEWAY_PRICE * index
     if (node.type === 'fn')
       requests += serverlessBurnOf(game, node, done, meanServiceOf(pass, node))
     if (node.type === 'edge') requests += edgeBurnOf(game, node, done)

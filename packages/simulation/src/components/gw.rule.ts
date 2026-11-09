@@ -19,6 +19,7 @@ import {
   type ComponentRule,
   each,
   flatCapacity,
+  gatewayArrivals,
   gatewayShare,
   noConnections,
   noProbe,
@@ -46,32 +47,39 @@ export const gwRule: ComponentRule = {
       solver.boost(node),
     ),
   serve: (serve, node, rates, share) => {
-    const kept = gatewayShare(node, rates)
+    const all = gatewayArrivals(serve.solver.game, (entry) => serve.solver.arriving(entry))
+    const kept = all.node ? gatewayShare(all.node, all.arriving) : 1
     each(rates, share, (kind, processed) =>
       serve.route(kind, processed * kept * (1 - merged(node, kind, processed * kept))),
     )
   },
-  outcome: (answer, node, kind) =>
-    failSome(
-      relay(answer, node, kind),
-      1 - gatewayShare(node, answer.pass.arriving[slotOf(answer.pass, node)] ?? {}),
-      'throttled',
-    ),
+  outcome: (answer, node, kind) => {
+    const all = gatewayArrivals(answer.game, (entry) => answer.pass.arriving[slotOf(answer.pass, entry)] ?? {})
+    const kept = all.node ? gatewayShare(all.node, all.arriving) : 1
+    return failSome(relay(answer, node, kind), 1 - kept, 'throttled')
+  },
   connections: noConnections,
   probe: noProbe,
 }
 
-/** Sets an API Gateway's rate limit in requests per second; 0 turns it off. */
+/** Sets the shared API Gateway rate limit in requests per second; 0 turns it off (05). */
 export const setRateLimit = (game: Game, id: string, rateLimit: number): Action =>
   withNode(game, id, (node) => {
     if (node.type !== 'gw') return notAllowed('Only an API Gateway rate-limits.')
     if (!(GATEWAY_LIMITS as ReadonlyArray<number>).includes(rateLimit))
       return notAllowed(`Rate limits are ${GATEWAY_LIMITS.join(', ')} requests per second.`)
-    return ok(node.rateLimit === rateLimit ? game : patch(game, id, { rateLimit }))
+    return ok(
+      node.rateLimit === rateLimit
+        ? game
+        : {
+            ...game,
+            nodes: game.nodes.map((entry) => (entry.type === 'gw' ? { ...entry, rateLimit } : entry)),
+          },
+    )
   })
 
 /**
- * Turns the Gateway's token bucket on or off (Rate limiting): a burst up to `GATEWAY_BURST`
+ * Turns the shared Gateway token bucket on or off (Rate limiting): a burst up to `GATEWAY_BURST`
  * requests passes whole, and the long-run average holds at the limit.
  */
 export const setGatewayBucket = (game: Game, id: string, bucket: boolean): Action =>
@@ -82,7 +90,14 @@ export const setGatewayBucket = (game: Game, id: string, bucket: boolean): Actio
         Refusal.Locked({ what: 'A token bucket', research: RESEARCH['rate-limiting'].name }),
       )
     const burst = bucket ? GATEWAY_BURST : 0
-    return ok(node.burst === burst ? game : patch(game, id, { burst }))
+    return ok(
+      node.burst === burst
+        ? game
+        : {
+            ...game,
+            nodes: game.nodes.map((entry) => (entry.type === 'gw' ? { ...entry, burst } : entry)),
+          },
+    )
   })
 
 /** Sets an API Gateway's Auth at the edge, or its Request coalescing (05 "API Gateway"). */
