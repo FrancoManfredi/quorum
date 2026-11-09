@@ -18,6 +18,8 @@ import {
   SIM_SECONDS_PER_DEV_HOUR,
   TIME_OFF_DAYS,
   UNHAPPY_MOOD,
+  DATASTORE_MOVE_DH,
+  SERVICE_HANDOFF_DH,
   type ComponentId,
   BACKGROUND_FEATURES,
   FEATURES,
@@ -159,7 +161,11 @@ export const itemName = (item: WorkItem): string => {
       ? 'Move auth in-house'
       : item.ref === 'reshard'
         ? 'Reshard the database'
-        : 'Change the database engine'
+        : item.ref === 'handoff'
+          ? 'Hand off a service'
+          : item.ref === 'datastore'
+            ? 'Move a service datastore'
+            : 'Change the database engine'
   return `Migration step ${item.ref.slice(5)}`
 }
 
@@ -237,7 +243,7 @@ export const queueReshard = (
   })
 }
 
-/** What a finished move does: auth leaves the Design, a resharding's or an engine's data copy starts. */
+/** What a finished move does: auth leaves the Design, a resharding's or an engine's data copy starts, and ownership/datastore handoffs land. */
 const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
   if (item.ref === 'auth') {
     const gone = new Set(game.nodes.filter((node) => node.type === 'auth').map((node) => node.id))
@@ -246,6 +252,26 @@ const moved = (game: Game, item: WorkItem, tuning: Tuning): Game => {
       nodes: game.nodes.filter((node) => !gone.has(node.id)),
       links: game.links.filter((link) => !gone.has(link.from) && !gone.has(link.to)),
     }
+  }
+  if (item.ref === 'handoff') {
+    const serviceId = item.service
+    const teamId = item.target
+    if (!serviceId || !teamId) return game
+    if (!game.teams.some((team) => team.id === teamId)) return game
+    if (!game.services.some((service) => service.id === serviceId)) return game
+    return withServiceId(game, serviceId, { owner: teamId })
+  }
+  if (item.ref === 'datastore') {
+    const serviceId = item.service
+    if (!serviceId) return game
+    const datastore = item.target && item.target !== '' ? item.target : null
+    if (
+      datastore !== null &&
+      !game.nodes.some((node) => node.id === datastore && node.type === 'database')
+    )
+      return game
+    if (!game.services.some((service) => service.id === serviceId)) return game
+    return withServiceId(game, serviceId, { datastore })
   }
   if (item.ref === 'reshard') {
     const reshard = game.reshard
@@ -631,9 +657,9 @@ export const splitService = (game: Game, request: SplitRequest): Action => {
 }
 
 /**
- * Moves a Service to another team (08 "Ownership"): the new owner's engineers take its backlog
- * first, and the next bad deploy on it pages them. Instant, with no Dev Hours of its own; what it
- * costs is implicit in the coordination and debt the new owner now carries.
+ * Hands a Service to another team (08 "Ownership"): the new owner's engineers take its backlog
+ * first, and the next bad deploy on it pages them. Knowledge transfer takes Dev Hours, so the
+ * handoff is queued and lands when the work finishes.
  */
 export const moveService = (game: Game, serviceId: string, teamId: string): Action => {
   if (game.sandbox) return notAllowed(SANDBOX)
@@ -641,13 +667,24 @@ export const moveService = (game: Game, serviceId: string, teamId: string): Acti
   if (!service) return no(Refusal.Missing())
   if (!game.teams.some((team) => team.id === teamId)) return no(Refusal.Missing())
   if (service.owner === teamId) return ok(game)
-  return ok(withServiceId(game, serviceId, { owner: teamId }))
+  if (
+    game.backlog.some(
+      (item) => item.kind === 'move' && item.ref === 'handoff' && item.service === serviceId,
+    )
+  )
+    return notAllowed('That Service is already being handed off.')
+  return ok(
+    enqueue(game, 'move', 'handoff', SERVICE_HANDOFF_DH, false, {
+      target: teamId,
+      service: serviceId,
+    }),
+  )
 }
 
 /**
  * Names the Database a Service reads and writes (08 "Shared database penalty"): null keeps the
- * Design's first Database, which is why split Services share it until they name their own. Instant
- * and free; the penalty follows from whether two Services name the same Database (07 "Topologies").
+ * Design's first Database, which is why split Services share it until they name their own. The
+ * code and connection changes take Dev Hours and land when the work finishes.
  */
 export const setDatastore = (game: Game, serviceId: string, datastore: string | null): Action => {
   if (game.sandbox) return notAllowed(SANDBOX)
@@ -659,14 +696,25 @@ export const setDatastore = (game: Game, serviceId: string, datastore: string | 
   )
     return notAllowed('That Database is not on the Board.')
   if ((service.datastore ?? null) === datastore) return ok(game)
-  return ok(withServiceId(game, serviceId, { datastore }))
+  if (
+    game.backlog.some(
+      (item) => item.kind === 'move' && item.ref === 'datastore' && item.service === serviceId,
+    )
+  )
+    return notAllowed('That Service is already changing its datastore.')
+  return ok(
+    enqueue(game, 'move', 'datastore', DATASTORE_MOVE_DH, false, {
+      target: datastore ?? '',
+      service: serviceId,
+    }),
+  )
 }
 
 /** The Service an App Server or Worker belongs to: its own, or the starting Service when none is set. */
 export const serviceOfNode = (game: Game, node: GameNode): Service =>
   game.services.find((entry) => entry.id === node.serviceId) ?? serviceOf(game)
 
-/** Moves an App Server or Worker to another Service (08 "Ownership"). Instant and free. */
+/** Moves an App Server or Worker to another Service (08 "Ownership"). The node reconfigures and redeploys, so it recovers capacity before it serves again. */
 export const assignService = (game: Game, nodeId: string, serviceId: string): Action => {
   if (game.sandbox) return notAllowed(SANDBOX)
   const node = game.nodes.find((entry) => entry.id === nodeId)
@@ -676,7 +724,11 @@ export const assignService = (game: Game, nodeId: string, serviceId: string): Ac
   if (serviceOfNode(game, node).id === serviceId) return ok(game)
   return ok({
     ...game,
-    nodes: game.nodes.map((entry) => (entry.id === nodeId ? { ...entry, serviceId } : entry)),
+    nodes: game.nodes.map((entry) =>
+      entry.id === nodeId
+        ? { ...entry, serviceId, ...(entry.life._tag === 'Stopped' ? {} : { life: warming(0) }) }
+        : entry,
+    ),
   })
 }
 

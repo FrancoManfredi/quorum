@@ -176,8 +176,9 @@ policy and its own tech debt, not the Design's. One shared CI/CD Pipeline still 
 strategy for every Service, so two Services on the same policy deploy about as often. The difference
 is that a bad deploy on one Service never waits behind another's and never pulls it down.
 
-Each App Server and Worker belongs to one Service: a new Node starts on the starting Service, a
-copy stays with its source, and the Node's Inspector moves it to another Service for free. The
+Each App Server and Worker belongs to one Service: a new Node starts on the starting Service, and a
+copy stays with its source. Moving a Node to another Service reconfigures and redeploys it, so it
+recovers capacity before it serves again. The
 Team panel lists each Service's Nodes and the Load Balancers that send traffic to them. Burn is
 still reported per Service in proportion to its share of the codebase (KLOC), not from its Nodes. A
 Stack change still migrates the whole Design, not one Service.
@@ -201,9 +202,12 @@ A Service has one owning team. The build ties the two together:
 - **What it costs.** A team's velocity uses the tech debt of the Service it owns, not the whole
   Design's.
 
-The SRE team takes the pager for every Service. A restructure action moves a Service from one team
-to another at once, with no Dev Hours of its own. The new owner's engineers take its backlog first
-from the next tick on, and the next bad deploy on it pages them.
+The SRE team takes the pager for every Service. Handing a Service to another team takes knowledge
+transfer: the handoff costs 8 Dev Hours on the backlog and lands when the work finishes. Until it
+lands the current owner keeps the pager and the backlog; after it lands the new owner's engineers
+take its backlog first, and the next bad deploy on it pages them. Moving a Service to another
+Database also costs Dev Hours (16), because the code and its connections change, and the move lands
+when the work finishes.
 
 ### Blast radius
 

@@ -203,6 +203,10 @@ export const LOAD_TEST_DAYS = 1
 
 /** Dev Hours to move auth in-house from an Auth Provider, whatever the codebase (08 "Migrations"). */
 export const AUTH_MOVE_DH = 120
+/** Dev Hours to hand a Service to another team: knowledge transfer and on-call handoff (08 "Ownership"). */
+export const SERVICE_HANDOFF_DH = 8
+/** Dev Hours to point a Service at another Database: code and connection changes (08 "Ownership"). */
+export const DATASTORE_MOVE_DH = 16
 /** A Database engine change costs this share of the codebase in Dev Hours (08 "Migrations"). */
 export const ENGINE_FACTOR = 0.8
 /** Calendar minutes the data copy of an engine change takes per GB the Databases hold.  */
