@@ -281,6 +281,10 @@ export const POOL_FLOOR = 100
 
 /** A spread store replicates to at most this many regions. */
 export const SPREAD_REGIONS = 3
+/** KB one replica write moves across regions to keep a spread store in sync. */
+export const SPREAD_REPLICATION_KB = 1
+/** Stale share from cross-region replication lag on a spread Wide-column Store (LOCAL_QUORUM). */
+export const WIDE_SPREAD_LAG_STALE = 0.015
 
 /** During a hot key, this share of reads asks for one key, which lives on one shard (07 "Fan-out"). */
 export const HOT_KEY_SHARE = 0.3

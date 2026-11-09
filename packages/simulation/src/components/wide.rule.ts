@@ -1,10 +1,17 @@
 import { type Action, notAllowed, ok, patch, withNode } from '../action-kit.ts'
 import type { Game, GameNode } from '../state.ts'
-import { QUORUM_N, WIDE_OPS, WIDE_STALE, WIDE_TX_DUPLICATE, WIDE_TX_STALE } from '../catalog.ts'
+import {
+  QUORUM_N,
+  WIDE_OPS,
+  WIDE_SPREAD_LAG_STALE,
+  WIDE_STALE,
+  WIDE_TX_DUPLICATE,
+  WIDE_TX_STALE,
+} from '../catalog.ts'
 import { failSome, failed, kthFastest, through } from '../distribution.ts'
 
 import { flatModel } from '../capacity.ts'
-import { flatScale } from '../lookups.ts'
+import { flatScale, spreadCount } from '../lookups.ts'
 import {
   type ComponentRule,
   type Rates,
@@ -67,10 +74,19 @@ export const wideRule: ComponentRule = {
     if (kind === 'q-tx')
       return failSome({ ...reply, stale: WIDE_TX_STALE }, WIDE_TX_DUPLICATE, 'duplicate')
     if (kind !== 'q-read') return reply
-    return {
-      ...reply,
-      stale: wideStale(answer.pass.arriving[slotOf(answer.pass, node)] ?? {}, node),
+    const arriving = answer.pass.arriving[slotOf(answer.pass, node)] ?? {}
+    const quorumStale = wideStale(arriving, node)
+    // LOCAL_QUORUM keeps client latency local, but cross-region replication lags (07 "Wide-column Store").
+    let spreadStale = 0
+    if (node.spread) {
+      const regions = spreadCount(answer.game)
+      if (regions > 1) {
+        const { reads, writes } = splitWork(arriving)
+        const writeShare = reads + writes > 0 ? writes / (reads + writes) : 0
+        spreadStale = WIDE_SPREAD_LAG_STALE * (1 - 1 / regions) * writeShare
+      }
     }
+    return { ...reply, stale: Math.min(1, quorumStale + spreadStale) }
   },
   ...terminal,
   probe: () => ({ 'q-read': 1 }),

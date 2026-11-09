@@ -575,8 +575,9 @@ each. A write costs N of them and a read costs R.
 - Writes scale linearly with nodes, until the partition key is skewed.
 - No joins and no ad hoc queries. Each query pattern needs its own table, designed for it: +Dev Hours
   per feature.
-- Across regions, `LOCAL_QUORUM` keeps latency local and gives up global consistency. A spread
-  Wide-column Store pays no cross-region latency.
+- Across regions, `LOCAL_QUORUM` keeps client latency local and gives up global consistency. A
+  spread Wide-column Store still replicates writes across regions, so replication pays cross-region
+  egress and lag makes local reads stale until copies converge.
 
 ## Distributed SQL
 

@@ -12,6 +12,7 @@ import {
   QUEUE_MESSAGE_PRICE,
   LLM_PRICE,
   SCAN_PRICE,
+  SPREAD_REPLICATION_KB,
   STORAGE_CLASSES,
   TOKENS_PER_PROMPT,
   KINDS,
@@ -30,6 +31,7 @@ import {
   burnSharesOf,
   edgeBurnOf,
   eraOf,
+  spreadCount,
   has,
   isDown,
   serverlessBurnOf,
@@ -99,6 +101,16 @@ export const billOf = (
           ? ((rate * kb) / 1_000_000) * EGRESS_CROSS_REGION
           : ((rate * kb) / 1_000_000) * EGRESS_CROSS_ZONE * 2
       }
+    }
+    // A spread Wide-column Store replicates every write across regions (07 "Multi-region data").
+    for (const node of game.nodes) {
+      if (node.type !== 'wide' || !node.spread || isDown(node)) continue
+      const regions = spreadCount(game)
+      if (regions <= 1) continue
+      const arriving = pass.arriving[slotOf(pass, node)] ?? {}
+      const writes =
+        (arriving['q-write'] ?? 0) + (arriving['q-tx'] ?? 0) + (arriving['k-write'] ?? 0)
+      egress += ((writes * (regions - 1) * SPREAD_REPLICATION_KB) / 1_000_000) * EGRESS_CROSS_REGION
     }
     egress *= eraOf(game).costIndex * ventureOf(game).constraint.egress
   }
