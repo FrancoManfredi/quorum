@@ -9,6 +9,10 @@ These snapshots were recorded at Simulation version 17 (the old numbered scheme)
 They make no claim about the current build. When the tuning changes, the numbers are measured again
 and the page gets the new version and date.
 
+Margins in that snapshot that distinguish "live prices" from "the design's cost index" refer to an
+older price split; the current build prices placement, Burn and salaries at the catalog's era cost
+and salary indexes (`EraDef.costIndex` / `salaryIndex`), so build margin is the normative baseline.
+
 The bots run the real Simulation through `packages/simulation/src/pacing.ts`. The seeds are the
 Simulation's seeds, which differ from the random seeds of a playtest.
 

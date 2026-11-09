@@ -155,10 +155,13 @@ it ([Runtimes](/design/06-runtimes#hiring-and-salaries)). The factors are:
 - Rust and Zig 1.25.
 - Haskell 1.4.
 
-[Live tuning](#live-tuning) records how far these values sit from the design's.
+The catalog's cost and salary indexes are the build's prices and the normative economy baseline:
+margin and Burn are measured at these indexes. [Live tuning](#live-tuning) covers pacing knobs
+(growth and incidents), not a separate price level.
 
 A Balanced design should land at a margin of 25% to 45%, which puts the Rule of 40 checklist item
-within reach but not free. `pacing.test.ts` records the margin at Seed and Series A entry.
+within reach but not free. `pacing.test.ts` asserts positive build margins at early Era milestones
+and records later margins; [Measurements](/design/measurements) holds the last measured snapshot.
 
 ### Valuation scale
 
