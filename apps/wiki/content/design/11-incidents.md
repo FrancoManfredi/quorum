@@ -311,8 +311,10 @@ which is also how an old save loads. The incident and its postmortem name the Se
 that owns it.
 
 Feature Flags set a ceiling of their own ([Components](/design/05-components#feature-flags)). A
-Feature only breaks the share of users its flag has reached, which means a batch of thirteen
-Features at 5% breaks 5.2% of requests under Recreate, Rolling, and Blue-green. Canary's 5% holds it
+Feature only breaks the effective share of users its flag has reached, and a flag change propagates to
+every server in seconds. A batch of thirteen
+Features at 5% breaks 5.2% of requests under Recreate, Rolling, and Blue-green once the change has
+propagated. Canary's 5% holds it
 to 5. A Feature with no flag is live for every user, as an old save opens. The rollout does not
 scale the Feature's load, and a Feature's code is never removed.
 

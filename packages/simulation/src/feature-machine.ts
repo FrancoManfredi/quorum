@@ -12,7 +12,10 @@ export type LiftSample = typeof LiftSample.Type
 export const FeaturePhase = Schema.TaggedUnion({
   Awaiting: {},
   Live: {
+    /** Effective share reaching users now; converges toward `target` as flag changes propagate. */
     rollout: Schema.Finite,
+    /** The share the flag is set to; propagation moves `rollout` toward it (05 "Feature Flags"). */
+    target: Schema.optional(Schema.Finite),
     adoption: Schema.Finite,
     lift: Schema.NullOr(LiftSample),
   },
@@ -41,7 +44,7 @@ export const featureMachine = Machine.make({ root: States, events: Events }).han
         Built: { target: 'Awaiting', data: () => ({ _tag: 'Awaiting' }) },
         Deployed: {
           target: 'Live',
-          data: () => ({ _tag: 'Live', rollout: 1, adoption: 0, lift: null }),
+          data: () => ({ _tag: 'Live', rollout: 1, target: 1, adoption: 0, lift: null }),
         },
         Removed: { target: 'Awaiting', data: () => ({ _tag: 'Awaiting' }) },
       },
@@ -50,7 +53,7 @@ export const featureMachine = Machine.make({ root: States, events: Events }).han
       on: {
         RolloutChanged: {
           target: 'Live',
-          data: ({ state, event }) => ({ ...state, rollout: event.share }),
+          data: ({ state, event }) => ({ ...state, target: event.share }),
         },
         Adopted: {
           target: 'Live',
@@ -72,6 +75,14 @@ export const step = (phase: FeaturePhase, event: FeatureEvent): FeaturePhase =>
 
 export const isLive = FeaturePhase.guards.Live
 
+/** The flag's set share; `-1` on old saves means the effective rollout (no pending propagation). */
+export const targetRolloutOf = (phase: FeaturePhase): number =>
+  FeaturePhase.match(phase, {
+    Awaiting: () => 0,
+    Live: ({ rollout, target }) => (target === undefined || target < 0 ? rollout : target),
+  })
+
+/** The share reaching users now (effective), which propagation moves toward the target. */
 export const rolloutOf = (phase: FeaturePhase): number =>
   FeaturePhase.match(phase, {
     Awaiting: () => 0,

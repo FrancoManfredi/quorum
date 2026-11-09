@@ -342,7 +342,8 @@ rollout times its adoption ([Adoption](#adoption)). A dark Feature earns nothing
 capacity, and a Feature at 50% reaches half its effect once its users have adopted it.
 
 **Shift** moves a live Feature's rollout, including to Off, through the Inspector's flag
-control above; a Feature turned off this way still pays its upkeep, because its code has not gone
+control above. The change propagates to every server in seconds, so the blast radius and exposure
+follow as it reaches them. A Feature turned off this way still pays its upkeep, because its code has not gone
 anywhere ([Upkeep](#upkeep)). **Remove** takes the code out for good: the Feature leaves `shipped`
 and the Service that carried it, every effect it had stops, and its upkeep ends with it. A Feature
 another live or planned Feature `requires` cannot be removed, so the dependency graph the backlog

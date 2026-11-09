@@ -3,6 +3,7 @@ import {
   CALENDAR_DAY,
   FEATURES,
   FEATURE_IDS,
+  FLAG_PROPAGATION_SECONDS,
   LIFT_CONFIDENCE,
   LIFT_MAX_ROLLOUT,
   LIFT_MIN_ROLLOUT,
@@ -27,6 +28,7 @@ import {
   liftOf as liftSampleOf,
   rolloutOf as rolloutShareOf,
   step,
+  targetRolloutOf,
 } from './feature-machine.ts'
 import { eraOf, has, isDown } from './lookups.ts'
 import { nextRandom } from './random.ts'
@@ -371,10 +373,31 @@ export const advanceLifts = (game: Game, demand: number, seconds: number): Game 
   return { ...game, features }
 }
 
-/** Adoption and the A/B counts, both driven by the calendar and the traffic a Step moves. */
+/** Flag changes propagate over time: the effective rollout moves toward the flag's target. */
+export const advancePropagation = (game: Game, seconds: number): Game => {
+  const live = liveFeatures(game)
+  if (game.sandbox || live.length === 0) return game
+  const rate = Math.min(1, seconds / FLAG_PROPAGATION_SECONDS)
+  let features = game.features
+  for (const id of live) {
+    const phase = features[id]
+    if (phase === undefined || !isLive(phase)) continue
+    const target = targetRolloutOf(phase)
+    if (phase.rollout === target) continue
+    const rollout = phase.rollout + (target - phase.rollout) * rate
+    const next = Math.abs(target - rollout) < 0.001 ? target : rollout
+    if (next === phase.rollout) continue
+    if (features === game.features) features = { ...features }
+    features[id] = { ...phase, rollout: next, target }
+  }
+  return features === game.features ? game : { ...game, features }
+}
+
+/** Adoption, flag propagation, and the A/B counts, driven by the calendar and traffic a Step moves. */
 export const advanceFeatures = (
   game: Game,
   demand: number,
   seconds: number,
   tuning: Tuning = LIVE_TUNING,
-): Game => advanceLifts(advanceAdoption(game, seconds, tuning), demand, seconds)
+): Game =>
+  advanceLifts(advancePropagation(advanceAdoption(game, seconds, tuning), seconds), demand, seconds)

@@ -17,7 +17,7 @@ export const ffDef = def({
   product: 'LaunchDarkly',
   group: 'ops',
   blurb:
-    'Rolls a Feature out to 5%, 25%, 50% or every user, and turns it off in one click. A bad deploy reaches only the share that has it.',
+    'Rolls a Feature out to 5%, 25%, 50% or every user, and turns it off. Changes propagate to every server in seconds. A bad deploy reaches only the share that has it.',
   cost: 150,
   burn: 0.01,
   latency: 0,

@@ -620,7 +620,8 @@ Real products: LaunchDarkly, Unleash.
 
 Ships features dark and turns them on gradually, in steps of 5%, 25%, 50%, and 100% of users
 ([Rollout](/design/08-team-and-velocity#rollout)). A feature behind a flag cannot cause a bad-deploy
-incident larger than its rollout percentage, and the player can turn it off in one click. Users who
+incident larger than its rollout percentage, and the player can turn it off. The change propagates
+to every server in seconds, so the blast radius shrinks as it reaches them. Users who
 do not have a feature yet form the holdout group that measures its lift
 ([Measured lift](/design/08-team-and-velocity#measured-lift)). Flags also
 enable graceful degradation: turning off expensive features during an incident
