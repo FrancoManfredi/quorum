@@ -159,6 +159,8 @@ export const quiet = (model: Model, message: Message, after: Model): boolean =>
   // Postmortem reads the Game without changing it, as the Inspector's sample does.
   (message._tag === 'DashboardChanged' &&
     (message.message._tag === 'Hovered' || message.message._tag === 'PostmortemChosen')) ||
+  // Resizing the pane is view state, sent on every pointer move.
+  (message._tag === 'ResearchChanged' && message.message._tag === 'SheetResized') ||
   ((message._tag === 'TeamChanged' || message._tag === 'ResearchChanged') &&
     message.message._tag === 'DragChanged' &&
     after.board.game === model.board.game)

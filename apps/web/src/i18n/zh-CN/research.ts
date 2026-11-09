@@ -46,4 +46,11 @@ export const research: Messages['research'] = {
   research: '研究',
   openResearch: (name) => `在研究面板中打开${name}`,
   closeEsc: '关闭（Esc）',
+  pools: '洞察池',
+  allPools: (count) => `全部 ${count} 个池`,
+  fewerPools: '收起',
+  showPools: '显示全部洞察池',
+  hidePools: '收起洞察池列表',
+  outOf: (held, cap) => `${held} / ${cap}`,
+  resizePane: '调整侧边栏宽度',
 }

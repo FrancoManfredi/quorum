@@ -19,6 +19,10 @@ export const ResearchMessage = defineMessageUnion({
   StudyMoved: { id: ResearchId, direction: Schema.Literals([1, -1]) },
   StudyPrioritized: { id: ResearchId },
   StudyCancelled: { id: ResearchId },
+  /** The pool deck shows every pool, or only the ones in reach. */
+  PoolsToggled: {},
+  /** The side pane's width, from dragging or stepping its edge. */
+  SheetResized: { width: Schema.Finite },
 })
 export type ResearchMessage = typeof ResearchMessage.Type
 
@@ -32,9 +36,19 @@ export const ResearchOutMessage = defineMessageUnion({
 })
 export type ResearchOutMessage = typeof ResearchOutMessage.Type
 
+/**
+ * The side pane's width: never so narrow that a cost row wraps, never so wide
+ * that the tree loses the screen. The view also keeps room for the tree.
+ */
+export const SHEET_MIN = 280
+export const SHEET_MAX = 640
+export const SHEET_DEFAULT = 320
+
 export const EMPTY_RESEARCH: Research = {
   focus: null,
   drag: DragAndDrop.init({ id: STUDY_QUEUE }),
+  poolsOpen: false,
+  sheetWidth: SHEET_DEFAULT,
 }
 
 type ResearchReturn = Update.ReturnWithOutMessage<Research, ResearchMessage, ResearchOutMessage>
@@ -89,4 +103,11 @@ export const updateResearch = (research: Research, message: ResearchMessage): Re
     StudyMoved: ({ id, direction }) => out(research, ResearchOutMessage.Move({ id, direction })),
     StudyPrioritized: ({ id }) => out(research, ResearchOutMessage.StudyNow({ id })),
     StudyCancelled: ({ id }) => out(research, ResearchOutMessage.Cancel({ id })),
+    PoolsToggled: () => ({ model: { ...research, poolsOpen: !research.poolsOpen } }),
+    SheetResized: ({ width }) => ({
+      model: {
+        ...research,
+        sheetWidth: Math.round(Math.max(SHEET_MIN, Math.min(SHEET_MAX, width))),
+      },
+    }),
   })

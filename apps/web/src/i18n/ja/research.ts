@@ -47,4 +47,11 @@ export const research: Messages['research'] = {
   research: 'リサーチ',
   openResearch: (name) => `${name}をリサーチパネルで開く`,
   closeEsc: '閉じる (Esc)',
+  pools: 'インサイトプール',
+  allPools: (count) => `全${count}プール`,
+  fewerPools: '折りたたむ',
+  showPools: 'インサイトプールをすべて表示',
+  hidePools: 'プール一覧を閉じる',
+  outOf: (held, cap) => `${held} / ${cap}`,
+  resizePane: 'サイドパネルの幅を変更',
 }

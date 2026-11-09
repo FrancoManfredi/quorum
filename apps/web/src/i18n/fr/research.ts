@@ -47,4 +47,11 @@ export const research: Messages['research'] = {
   research: 'Recherche',
   openResearch: (name) => `Ouvre ${name} dans le panneau Recherche`,
   closeEsc: 'Fermer (Échap)',
+  pools: 'Réserves de connaissances',
+  allPools: (count) => `Les ${count} réserves`,
+  fewerPools: 'Moins',
+  showPools: 'Afficher toutes les réserves de connaissances',
+  hidePools: 'Masquer la liste des réserves',
+  outOf: (held, cap) => `${held} sur ${cap}`,
+  resizePane: 'Redimensionner le panneau latéral',
 }

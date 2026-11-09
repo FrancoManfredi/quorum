@@ -281,6 +281,10 @@ export type Team = typeof Team.Type
 export const Research = Schema.Struct({
   focus: Schema.NullOr(ResearchId),
   drag: DragAndDrop.Model,
+  /** The pool deck lists every pool, not only the ones in reach. */
+  poolsOpen: Schema.Boolean,
+  /** The side pane's width in px; the tree takes the rest. */
+  sheetWidth: Schema.Finite,
 })
 export type Research = typeof Research.Type
 

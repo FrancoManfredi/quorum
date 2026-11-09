@@ -47,4 +47,11 @@ export const research = {
   research: 'Research',
   openResearch: (name: string) => `Open ${name} in the Research panel`,
   closeEsc: 'Close (Esc)',
+  pools: 'Insight pools',
+  allPools: (count: number) => `All ${count} pools`,
+  fewerPools: 'Fewer',
+  showPools: 'Show every Insight pool',
+  hidePools: 'Hide the pool list',
+  outOf: (held: string, cap: string) => `${held} of ${cap}`,
+  resizePane: 'Resize the side pane',
 }

@@ -1,7 +1,16 @@
 import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
-import { ResearchMessage, STUDY_QUEUE, queueIndex } from '@/game/research.ts'
+import {
+  ResearchMessage,
+  SHEET_DEFAULT,
+  SHEET_MAX,
+  SHEET_MIN,
+  STUDY_QUEUE,
+  queueIndex,
+} from '@/game/research.ts'
 import { Option } from 'effect'
 import * as Effect from 'effect/Effect'
+import * as Queue from 'effect/Queue'
+import * as Stream from 'effect/Stream'
 import { Mount } from 'foldkit'
 import { DragAndDrop } from '@foldkit/ui'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -9,6 +18,8 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  ChevronDown,
+  ChevronUp,
   X,
   type IconNode,
   Lock,
@@ -20,6 +31,7 @@ import {
   MAX_STUDIES,
   RESEARCH,
   researchList,
+  type InsightPool,
   type ResearchDef,
   type ResearchId,
   type ResearchTrack,
@@ -30,6 +42,7 @@ import type { Ledger } from '@quorum/simulation/ledger'
 import { has, missingPrerequisites, needs, researchReady } from '@quorum/simulation/lookups'
 import type { Game } from '@quorum/simulation/state'
 import {
+  capOf,
   limitingPool,
   studySeconds,
   studySpeed,
@@ -42,12 +55,12 @@ import { Message } from '@/game/message.ts'
 import { stallNeedIn, stallReasonIn } from '@/i18n/format.ts'
 import { unsampledOf } from '@quorum/simulation/solve-insight'
 import { ledgerOf, type Model } from '@/game/model.ts'
-import { POOL_ORDER, recipeOf } from '@quorum/ui/game/pools'
+import { POOL_ICONS, POOL_ORDER, poolColor, recipeOf } from '@quorum/ui/game/pools'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { badge, type BadgeVariant } from '@quorum/ui/primitives/badge'
 import { cn } from '@/lib/utils'
-import { EYEBROW, FIGURE, FLOAT, SCROLL, insightChip, meter } from '@quorum/ui/game/bits'
+import { EYEBROW, FIGURE, FLOAT, PANEL, SCROLL, insightChip, meter } from '@quorum/ui/game/bits'
 import { LOOKS, TRACK_ICONS, colorOf, researchMark } from '@quorum/ui/game/research-marks'
 import {
   eraName,
@@ -1032,6 +1045,103 @@ const queuePanel = (model: Model, focus: ResearchId, h: HtmlBuilder<Message>): H
   )
 }
 
+/** The tree keeps this much of the panel, so the pane cannot squeeze it to nothing. */
+const TREE_MIN = 420
+
+/** The pane's bounds for this window: the fixed range, less whatever the tree needs. */
+const sheetBounds = (panel: number): Readonly<{ min: number; max: number }> => ({
+  min: SHEET_MIN,
+  max: Math.max(SHEET_MIN, Math.min(SHEET_MAX, panel - TREE_MIN)),
+})
+
+const clampSheet = (width: number, panel: number): number => {
+  const { min, max } = sheetBounds(panel)
+  return Math.round(Math.max(min, Math.min(max, width)))
+}
+
+/** Drag or step the pane's edge. A drag sends a width per pointer move; update.ts keeps those out of the log. */
+const attachResize = (host: HTMLElement, offer: (width: number) => void): (() => void) => {
+  const sheet = host.parentElement
+  if (!sheet) return () => {}
+  const events = new AbortController()
+  let start: { id: number; x: number; width: number; panel: number } | null = null
+  const panelWidth = () => sheet.parentElement?.clientWidth ?? window.innerWidth
+  const down = (event: PointerEvent) => {
+    if (event.button !== 0) return
+    event.preventDefault()
+    host.setPointerCapture(event.pointerId)
+    start = {
+      id: event.pointerId,
+      x: event.clientX,
+      width: sheet.offsetWidth,
+      panel: panelWidth(),
+    }
+    host.dataset['resizing'] = ''
+  }
+  const move = (event: PointerEvent) => {
+    if (!start || start.id !== event.pointerId) return
+    offer(clampSheet(start.width - (event.clientX - start.x), start.panel))
+  }
+  const up = (event: PointerEvent) => {
+    if (!start || start.id !== event.pointerId) return
+    start = null
+    delete host.dataset['resizing']
+    if (host.hasPointerCapture(event.pointerId)) host.releasePointerCapture(event.pointerId)
+  }
+  const key = (event: KeyboardEvent) => {
+    const step = event.shiftKey ? 64 : 16
+    const panel = panelWidth()
+    const width = sheet.offsetWidth
+    switch (event.key) {
+      case 'ArrowLeft':
+        offer(clampSheet(width + step, panel))
+        break
+      case 'ArrowRight':
+        offer(clampSheet(width - step, panel))
+        break
+      case 'Home':
+        offer(sheetBounds(panel).max)
+        break
+      case 'End':
+        offer(sheetBounds(panel).min)
+        break
+      default:
+        return
+    }
+    event.preventDefault()
+  }
+  host.addEventListener('pointerdown', down, { signal: events.signal })
+  host.addEventListener('pointermove', move, { signal: events.signal })
+  host.addEventListener('pointerup', up, { signal: events.signal })
+  host.addEventListener('pointercancel', up, { signal: events.signal })
+  // A double click puts the pane back where it started.
+  host.addEventListener('dblclick', () => offer(clampSheet(SHEET_DEFAULT, panelWidth())), {
+    signal: events.signal,
+  })
+  host.addEventListener('keydown', key, { signal: events.signal })
+  return () => events.abort()
+}
+
+export const ResearchResize = Mount.defineStream('ResearchResize', {
+  args: {},
+  messages: [Message.ResearchChanged, Message.Synced],
+  execute: ({ element }) =>
+    Stream.callback<ReturnType<typeof Message.ResearchChanged>>((queue) =>
+      Effect.gen(function* () {
+        const offer = (width: number) =>
+          Queue.offerUnsafe(
+            queue,
+            Message.ResearchChanged({ message: ResearchMessage.SheetResized({ width }) }),
+          )
+        yield* Effect.acquireRelease(
+          Effect.sync(() => attachResize(element as HTMLElement, offer)),
+          (dispose) => Effect.sync(dispose),
+        )
+        return yield* Effect.never
+      }),
+    ),
+})
+
 const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -1097,10 +1207,38 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
       h.Key('detail'),
       h.DataAttribute('exit', 'gesture'),
       h.Class(
-        'absolute inset-y-0 right-0 z-20 flex w-[368px] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:border-t compact:border-l-0',
+        'absolute inset-y-0 right-0 z-20 flex w-[var(--sheet-w)] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:border-t compact:border-l-0',
       ),
     ],
     [
+      // The pane's edge: drag it, or step it with the arrow keys. Home and End go to the bounds.
+      h.div(
+        [
+          h.Key('resize'),
+          h.Role('separator'),
+          h.AriaOrientation('vertical'),
+          h.AriaLabel(t.research.resizePane),
+          h.Title(t.research.resizePane),
+          h.AriaValuemin(SHEET_MIN),
+          h.AriaValuemax(SHEET_MAX),
+          h.AriaValuenow(Math.round(model.board.research.sheetWidth)),
+          h.Tabindex(0),
+          h.OnMount(ResearchResize({})),
+          h.Class(
+            'group absolute inset-y-0 left-0 z-10 w-2 cursor-col-resize touch-none focus-visible:outline-2 focus-visible:outline-primary compact:hidden',
+          ),
+        ],
+        [
+          h.span(
+            [
+              h.Class(
+                'pointer-events-none absolute inset-y-0 left-0 w-0.5 bg-transparent transition-colors group-hover:bg-foreground/20 group-data-[resizing]:bg-primary-strong',
+              ),
+            ],
+            [],
+          ),
+        ],
+      ),
       h.div(
         [h.Class('flex shrink-0 items-start gap-3 border-b border-hairline px-5 py-4')],
         [
@@ -1222,6 +1360,205 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
   )
 }
 
+/**
+ * Pools in reach: the one the running Study waits on, then the busiest few.
+ * The deck answers two questions at a glance, so it stays four chips wide.
+ */
+const DECK_POOLS = 4
+
+/** One pool in the open deck: its mark, name, figure, and how full it is. */
+const poolCell = (
+  game: Game,
+  ledger: Ledger,
+  pool: InsightPool,
+  blocked: boolean,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const t = copy(h)
+  const held = game.pools[pool]
+  const cap = capOf(game, ledger, pool)
+  const share = cap > 0 ? Math.min(1, held / cap) : 0
+  return h.div(
+    [
+      h.Key(pool),
+      h.DataAttribute('deck-pool', pool),
+      h.Title(`${insightName(t, pool)} ${t.research.outOf(compact(held), compact(cap))}`),
+      h.Class(
+        cn(
+          'relative flex items-center gap-1.5 rounded-md px-1.5 pt-0.5 pb-1.5',
+          blocked &&
+            'bg-[var(--warn-soft)] shadow-[inset_0_0_0_1px_color-mix(in_oklch,var(--warn)_38%,transparent)]',
+        ),
+      ),
+    ],
+    [
+      h.span(
+        [h.Class('inline-flex'), h.Style({ color: poolColor(pool) })],
+        [icon(h, POOL_ICONS[pool], 'size-3 shrink-0')],
+      ),
+      h.span(
+        [
+          h.Class(
+            'min-w-0 flex-1 truncate text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+          ),
+        ],
+        [t.catalog.pools[pool].label],
+      ),
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'text-[calc(11px*var(--type-scale))]',
+              blocked && 'font-semibold text-danger',
+            ),
+          ),
+        ],
+        [compact(held)],
+      ),
+      h.span(
+        [
+          h.Class(
+            'absolute inset-x-1.5 bottom-1 h-[3px] overflow-hidden rounded-full bg-foreground/10',
+          ),
+        ],
+        [
+          h.span(
+            [
+              h.Class(cn('block h-full rounded-full', blocked ? 'bg-danger' : 'bg-foreground/40')),
+              h.Style({ width: `${share * 100}%` }),
+            ],
+            [],
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
+/** The pool the running Study waits on, shown as what it holds of what it needs. */
+const pinnedChip = (game: Game, pool: InsightPool, need: number, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const held = game.pools[pool]
+  // A pool with enough for the Study is one figure like the rest; a short one says what it lacks.
+  const blocked = held < need
+  const heldLabel = compact(held)
+  const needLabel = compact(need)
+  const figure = blocked ? `${heldLabel}/${needLabel}` : heldLabel
+  return h.span(
+    [
+      h.DataAttribute('deck-pin', pool),
+      h.Title(`${insightName(t, pool)} ${t.research.outOf(heldLabel, needLabel)}`),
+      h.AriaLabel(`${insightName(t, pool)} ${t.research.outOf(heldLabel, needLabel)}`),
+      h.Class(
+        cn(
+          FIGURE,
+          'inline-flex shrink-0 items-center gap-1.5 rounded-md py-0.5 pr-1.5 pl-1 text-[calc(12.5px*var(--type-scale))] whitespace-nowrap',
+          blocked && 'bg-[var(--warn-soft)]',
+        ),
+      ),
+    ],
+    [
+      h.span(
+        [h.Class('inline-flex'), h.Style({ color: poolColor(pool) })],
+        [icon(h, POOL_ICONS[pool], 'size-3 shrink-0')],
+      ),
+      h.span(
+        [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
+        [t.catalog.pools[pool].label],
+      ),
+      h.span([h.Class(blocked ? 'font-semibold text-danger' : '')], [figure]),
+    ],
+  )
+}
+
+/**
+ * The pools, off the top of the screen and onto the canvas: a deck in the
+ * tree's corner that names the pool the Study waits on, then the busiest few,
+ * and opens every pool in place. Its box morphs as the list comes and goes
+ * (src/game/motion.ts), so the deck grows out of the row instead of popping.
+ */
+const poolDeck = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const game = model.board.game
+  const ledger = ledgerOf(model)
+  const open = model.board.research.poolsOpen
+  const running = game.studies[0]
+  const limit = running ? limitingPool(game) : null
+  const need =
+    running && limit
+      ? (recipeOf(running.id, game.discounts).find(([pool]) => pool === limit)?.[1] ?? 0)
+      : 0
+  const rest = POOL_ORDER.filter((pool) => pool !== limit && game.pools[pool] >= 1)
+    .toSorted((a, b) => ledger.insight[b] - ledger.insight[a])
+    .slice(0, limit ? DECK_POOLS : DECK_POOLS + 1)
+  return h.div(
+    [
+      h.Key('deck'),
+      h.DataAttribute('morph', 'gesture'),
+      // Pinned to the corner and packed to the bottom, so the top edge moves as the list opens.
+      h.Class(
+        'pointer-events-auto absolute bottom-4 left-4 z-20 flex max-w-[calc(100%-2rem)] flex-col items-start justify-end compact:hidden',
+      ),
+    ],
+    [
+      h.div(
+        [h.Class(cn(PANEL, 'flex flex-col gap-1 p-2'))],
+        [
+          open
+            ? h.div(
+                [
+                  h.Key('deck-pools'),
+                  h.Role('group'),
+                  h.AriaLabel(t.research.pools),
+                  h.DataAttribute('exit', 'gesture'),
+                  h.DataAttribute('exit-anchor', 'bottom'),
+                  h.Class('swap grid grid-cols-3 gap-x-1.5 gap-y-0.5 pb-1'),
+                ],
+                POOL_ORDER.map((pool) =>
+                  poolCell(game, ledger, pool, pool === limit && need > game.pools[pool], h),
+                ),
+              )
+            : h.empty,
+          h.div(
+            [h.Class('flex flex-wrap items-center gap-x-3 gap-y-1')],
+            [
+              limit ? pinnedChip(game, limit, need, h) : h.empty,
+              ...rest.map((pool) =>
+                insightChip(
+                  pool,
+                  compact(game.pools[pool]),
+                  h,
+                  false,
+                  'plain',
+                  insightName(t, pool),
+                ),
+              ),
+              h.button(
+                [
+                  h.Type('button'),
+                  h.DataAttribute('deck-toggle', ''),
+                  h.Title(open ? t.research.hidePools : t.research.showPools),
+                  h.AriaExpanded(open),
+                  h.OnClick(Message.ResearchChanged({ message: ResearchMessage.PoolsToggled() })),
+                  h.Class(
+                    'press flex shrink-0 items-center gap-1 rounded-md bg-nested px-2 py-1 text-[calc(11.5px*var(--type-scale))] shadow-[inset_0_0_0_1px_var(--hairline-soft)] hover:bg-well',
+                  ),
+                ],
+                [
+                  open ? t.research.fewerPools : t.research.allPools(POOL_ORDER.length),
+                  icon(h, open ? ChevronUp : ChevronDown, 'size-3 text-muted-foreground'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
 export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -1231,19 +1568,18 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [
       h.Key('research'),
+      h.DataAttribute('research-panel', ''),
       h.DataAttribute('exit', 'gesture'),
+      h.Style({ '--sheet-w': `${model.board.research.sheetWidth}px` }),
       h.Class('absolute inset-0 z-30 bg-canvas enter-backdrop'),
     ],
     [
       h.div(
-        [h.Class('absolute inset-y-0 left-0 right-[368px] flex flex-col compact:right-0')],
+        [h.Class('absolute inset-y-0 left-0 right-[var(--sheet-w)] flex flex-col compact:right-0')],
         [
+          // A page heading, not a bar: no fill and no rule, so the tree keeps the height.
           h.div(
-            [
-              h.Class(
-                'flex h-[76px] shrink-0 items-center gap-4 border-b border-hairline bg-surface px-4 compact:h-14',
-              ),
-            ],
+            [h.Class('flex h-11 shrink-0 items-center gap-3 px-4')],
             [
               h.span(
                 [
@@ -1253,39 +1589,22 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 ],
                 [t.research.research],
               ),
-              h.div(
-                [
-                  h.Class(
-                    'flex min-w-0 flex-1 items-center gap-3 overflow-x-auto text-[calc(12.5px*var(--type-scale))] [scrollbar-width:none]',
-                  ),
-                ],
-                [
-                  ...POOL_ORDER.filter((pool) => model.board.game.pools[pool] >= 1).map((pool) =>
-                    insightChip(
-                      pool,
-                      compact(model.board.game.pools[pool]),
-                      h,
-                      false,
-                      'plain',
-                      insightName(t, pool),
-                    ),
-                  ),
-                  // Traffic no tap samples earns nothing and shows nothing: the first thing to fix
-                  // when research drags (12 "The cost of seeing").
-                  unsampled.share >= 0.01
-                    ? h.span(
-                        [
-                          h.Class('flex items-center gap-1 text-warn'),
-                          h.Title(t.hud.unsampledHint),
-                        ],
-                        [
-                          icon(h, TriangleAlert, 'size-3'),
-                          t.hud.unsampled(Math.round(unsampled.share * 100)),
-                        ],
-                      )
-                    : h.empty,
-                ],
-              ),
+              // Traffic no tap samples earns nothing and shows nothing: the first thing to fix
+              // when research drags (12 "The cost of seeing").
+              unsampled.share >= 0.01
+                ? h.span(
+                    [
+                      h.Class(
+                        'ml-auto flex items-center gap-1 text-[calc(11.5px*var(--type-scale))] text-warn',
+                      ),
+                      h.Title(t.hud.unsampledHint),
+                    ],
+                    [
+                      icon(h, TriangleAlert, 'size-3'),
+                      t.hud.unsampled(Math.round(unsampled.share * 100)),
+                    ],
+                  )
+                : h.empty,
             ],
           ),
           h.div(
@@ -1319,6 +1638,7 @@ export const researchPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ],
               ),
+              poolDeck(model, h),
             ],
           ),
         ],
