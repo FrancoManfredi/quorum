@@ -170,8 +170,8 @@ const limitAdvice = (game: Game, node: GameNode, limit: Limit): Advice => {
       return advice(
         key('cloud'),
         'cloud',
-        `${name}: working set left RAM`,
-        `The ${name} working set no longer fits in RAM, so reads hit disk. Resize it or pick the Memory family.`,
+        `${name}: no RAM left for its buffer cache`,
+        `${name} has no RAM left for its working set and its connections, so reads hit disk. Resize it, pick the Memory family, or hold fewer connections.`,
         'disk',
         { node: name },
         cloud,
@@ -246,6 +246,12 @@ export const alertActions = (nodeId: string | null = null): ReadonlyArray<Advice
   { id: 'ack', label: 'Acknowledge' },
   { id: 'mute', label: 'Mute for 1 h' },
 ]
+
+/** A Node that reached its limit, the fact that its Mail states: the work it carries fills the
+ *  resource that limits it, it has run out of RAM or CPU credits, or its working set has left RAM,
+ *  so every read that misses the buffer cache now waits on the volume. */
+const atLimit = (entry: Ledger['nodes'][string]): boolean =>
+  entry.utilization >= 1 || entry.swapping || entry.throttled || entry.disk
 
 export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
   const stripe = has(game, 'stripe')
@@ -353,14 +359,17 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       cloudActions(game, draining.id),
     )
   }
-  // A Node is under pressure: hint at its actual limiting resource, not the revenue-optimal answer.
-  const pressured = game.nodes
+  // A Node that reached its limit: hint at the resource it ran out of, not the revenue-optimal
+  // answer. Load short of the limit stays on the Board's gauges, because the Mail that names a
+  // limit says the Node is at it (18 "Mail", rule 10). A limit that is a state, such as a working
+  // set that outgrew RAM, holds at any load and counts as one.
+  const limited = game.nodes
     .filter((node) => COMPONENTS[node.type].limiting && !isDown(node))
     .map((node) => [node, ledger.nodes[node.id]] as const)
-    .filter(([, entry]) => entry !== undefined && entry.utilization > 0.6)
+    .filter(([, entry]) => entry !== undefined && atLimit(entry))
     .toSorted((a, b) => (b[1]?.utilization ?? 0) - (a[1]?.utilization ?? 0))[0]
-  if (pressured)
-    return limitAdvice(game, pressured[0], (pressured[1]?.limit as Limit | undefined) ?? 'none')
+  if (limited)
+    return limitAdvice(game, limited[0], (limited[1]?.limit as Limit | undefined) ?? 'none')
   if (game.cash < 0)
     return advice(
       'finance:negative',

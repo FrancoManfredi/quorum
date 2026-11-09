@@ -104,24 +104,24 @@ export const INFRA: Pick<
   ],
   disk: [
     ({ from, node }) => ({
-      subject: `${node}: working set no longer fits in RAM`,
-      body: `Dear valued customer,\n\nThe working set on ${node} has outgrown its RAM. Reads that used to come from memory now go to disk, which is slower by a lot.\n\nRecommended actions:\n- Resize ${node}\n- Or pick the Memory family\n\nThank you for your continued patience. Your disk is showing less.\n\n${from}`,
+      subject: `${node}: no RAM left for its buffer cache`,
+      body: `Dear valued customer,\n\n${node} has no RAM left for its buffer cache: its working set and the memory its app connections hold no longer fit. Reads that used to come from memory now go to disk, which is slower by a lot.\n\nRecommended actions:\n- Resize ${node}\n- Or pick the Memory family\n- Or hold fewer connections through a Connection Pooler\n\nThank you for your continued patience. Your disk is showing less.\n\n${from}`,
     }),
     ({ node }) => ({
       subject: `Your reads are taking the stairs`,
-      body: `Hi,\n\n${node} used to keep its hot data in RAM, where reads take the lift. The working set has grown past the RAM, so reads now take the stairs: they hit disk.\n\nResize it, or pick the Memory family, and the lift comes back.\n\nRegards,\nStorage team`,
+      body: `Hi,\n\n${node} used to keep its hot data in RAM, where reads take the lift. Its working set and the memory its connections hold have grown past the RAM, so reads now take the stairs: they hit disk.\n\nResize it, pick the Memory family, or put a Connection Pooler in front so it holds fewer connections, and the lift comes back.\n\nRegards,\nStorage team`,
     }),
     ({ from, node }) => ({
       subject: `Event: DISK_READS_ELEVATED on ${node}`,
-      body: `Event type: DISK_READS_ELEVATED\nAffected resource: ${node}\nCause: Working set exceeds available RAM.\nEffect: Reads go to disk.\n\nTo resolve, Resize the resource or select the Memory family.\n\nThis is an automated message from ${from}. Replies are routed to a folder that we sunset in a previous quarter.`,
+      body: `Event type: DISK_READS_ELEVATED\nAffected resource: ${node}\nCause: The working set, plus the memory its connections hold, exceeds available RAM.\nEffect: Reads go to disk.\n\nTo resolve, Resize the resource, select the Memory family, or hold fewer connections through a Connection Pooler.\n\nThis is an automated message from ${from}. Replies are routed to a folder that we sunset in a previous quarter.`,
     }),
     ({ from, node }) => ({
       subject: `Re: ${node} feels slow lately?`,
-      body: `Hello,\n\nIf ${node} has felt sluggish, here is why. Every node keeps the data it uses most, its working set, in RAM. ${node}'s working set has grown bigger than its RAM, so a share of every read now goes to disk.\n\nNothing is broken. It is just waiting on a spinning thing, figuratively.\n\nMore RAM fixes it: Resize the node, or pick the Memory family.\n\nKind regards,\nYour Technical Account Manager at ${from}`,
+      body: `Hello,\n\nIf ${node} has felt sluggish, here is why. Every node keeps the data it uses most, its working set, in RAM. ${node}'s working set and the memory its app connections hold no longer fit in its RAM, so a share of every read goes to disk.\n\nNothing is broken. It is just waiting on a spinning thing, figuratively.\n\nMore RAM fixes it: Resize the node, or pick the Memory family. Fewer connections fix it too: a Connection Pooler holds them for it.\n\nKind regards,\nYour Technical Account Manager at ${from}`,
     }),
     ({ node }) => ({
       subject: `Disk is the new RAM (it is not)`,
-      body: `Notice.\n\n${node}'s working set does not fit in RAM anymore, so reads hit disk.\n\nFix: Resize, or the Memory family.\n\nThat is the whole email. We are as surprised as you are.`,
+      body: `Notice.\n\n${node} no longer fits its working set and its connections in RAM, so reads hit disk.\n\nFix: Resize, the Memory family, or a Connection Pooler.\n\nThat is the whole email. We are as surprised as you are.`,
     }),
   ],
   cpu: [

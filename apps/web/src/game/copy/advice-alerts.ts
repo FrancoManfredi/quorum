@@ -87,7 +87,7 @@ export const ALERTS: Pick<
   throughput: [
     ({ from, node }) => ({
       subject: `[TRIGGERED] ${node}: past throughput`,
-      body: `ALERT TRIGGERED\n\nService: ${node}\nCondition: requests above its throughput\nStatus: this is the limit\n\nThere's no setting in this alert to make the limit go away. ${node} is doing all it can, and more is arriving.\n\n${from}\nYou are receiving this because you are awake.`,
+      body: `ALERT TRIGGERED\n\nService: ${node}\nCondition: requests above its throughput\nStatus: this is the limit\n\n${node} is doing all it can, and more is arriving. The ceiling moves with the box: Resize ${node} and it takes more.\n\n${from}\nYou are receiving this because you are awake.`,
     }),
     ({ from, node }) => ({
       subject: `${node} is doing its best. It isn't enough.`,
@@ -95,7 +95,7 @@ export const ALERTS: Pick<
     }),
     ({ from, node }) => ({
       subject: `Graph annotation: ${node} hit its limit`,
-      body: `We drew a red line on the ${node} panel. Your traffic line crossed it.\n\nAnnotation: "past throughput. This is the limit."\n\nA flat top on a graph usually means a ceiling, and this is one. ${node} can't go faster than this.\n\n- ${from}`,
+      body: `We drew a red line on the ${node} panel. Your traffic line crossed it.\n\nAnnotation: "past throughput. This is the limit."\n\nA flat top on a graph usually means a ceiling, and this is one. ${node} can't go faster at this size.\n\n- ${from}`,
     }),
     ({ from, node }) => ({
       subject: `Issue: ${node} over capacity`,

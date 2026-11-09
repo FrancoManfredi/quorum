@@ -260,14 +260,15 @@ Pour ne plus recevoir ces alertes, arrêtez d'envoyer des octets.`,
     ],
     'advice.disk': [
       (v) => ({
-        subject: `${v.node} : le kit de travail ne tient plus en RAM`,
+        subject: `${v.node} : plus de RAM pour son cache de lecture`,
         body: `Cher client,
 
-L'ensemble de travail de ${v.node} est devenu trop grand pour sa RAM. Les lectures qui provenaient auparavant de la mémoire sont désormais transférées sur le disque, ce qui est beaucoup plus lent.
+${v.node} n'a plus de RAM pour son cache de lecture : l'ensemble de travail et la mémoire que tiennent ses connexions ne rentrent plus. Les lectures qui provenaient auparavant de la mémoire sont désormais transférées sur le disque, ce qui est beaucoup plus lent.
 
 Actions recommandées :
 - Redimensionner ${v.node}
 - Ou choisissez la famille Mémoire
+- Ou tenez moins de connexions avec un pooler de connexions
 
 Merci pour votre patience continue. Votre disque en fait moins étalage.
 
@@ -277,9 +278,9 @@ ${v.from}`,
         subject: `Vos lectures prennent les escaliers`,
         body: `Salut,
 
-${v.node} conservait ses données chaudes en RAM, où les lectures prennent l'ascenseur. L'ensemble de travail a dépassé la RAM, les lectures prennent donc maintenant les escaliers : elles atteignent le disque.
+${v.node} conservait ses données chaudes en RAM, où les lectures prennent l'ascenseur. L'ensemble de travail et la mémoire de ses connexions ont dépassé la RAM, les lectures prennent donc maintenant les escaliers : elles atteignent le disque.
 
-Redimensionnez-le ou choisissez la famille Mémoire, et l'ascenseur revient.
+Redimensionnez-le, choisissez la famille Mémoire, ou placez un pooler de connexions devant pour qu'il tienne moins de connexions, et l'ascenseur revient.
 
 Cordialement,
 Équipe de stockage`,
@@ -288,10 +289,10 @@ Cordialement,
         subject: `Événement : DISK_READS_ELEVATED sur ${v.node}`,
         body: `Type d'événement : DISK_READS_ELEVATED
 Ressource concernée : ${v.node}
-Cause : L'ensemble de travail dépasse la RAM disponible.
+Cause : L'ensemble de travail, plus la mémoire de ses connexions, dépasse la RAM disponible.
 Effet : les lectures sont transférées sur le disque.
 
-Pour résoudre, redimensionnez la ressource ou sélectionnez la famille Mémoire.
+Pour résoudre, redimensionnez la ressource, sélectionnez la famille Mémoire, ou tenez moins de connexions avec un pooler de connexions.
 
 Il s'agit d'un message automatisé provenant de ${v.from}. Les réponses sont acheminées vers un dossier que nous avons supprimé au cours d'un trimestre précédent.`,
       }),
@@ -299,11 +300,11 @@ Il s'agit d'un message automatisé provenant de ${v.from}. Les réponses sont ac
         subject: `Re : ${v.node} semble lent ces derniers temps ?`,
         body: `Bonjour,
 
-Si ${v.node} s’est révélé lent, voici pourquoi. Chaque nœud conserve les données qu'il utilise le plus, son ensemble de travail, en RAM. L'ensemble de travail de ${v.node} est devenu plus grand que sa RAM, de sorte qu'une part de chaque lecture est désormais transférée sur le disque.
+Si ${v.node} s’est révélé lent, voici pourquoi. Chaque nœud conserve les données qu'il utilise le plus, son ensemble de travail, en RAM. L'ensemble de travail de ${v.node} et la mémoire que tiennent ses connexions applicatives ne rentrent plus dans sa RAM, de sorte qu'une part de chaque lecture est désormais transférée sur le disque.
 
 Rien n'est cassé. Il attend simplement un truc qui tourne, au sens figuré.
 
-Plus de RAM règle le problème : redimensionnez le nœud ou choisissez la famille Mémoire.
+Plus de RAM règle le problème : redimensionnez le nœud ou choisissez la famille Mémoire. Moins de connexions aussi : un pooler de connexions les tient à sa place.
 
 Cordialement,
 Votre responsable de compte technique chez ${v.from}`,
@@ -312,9 +313,9 @@ Votre responsable de compte technique chez ${v.from}`,
         subject: `Le disque est la nouvelle RAM (non)`,
         body: `Avis.
 
-L'ensemble de travail de ${v.node} ne tient plus en RAM, donc les lectures vont sur le disque.
+L'ensemble de travail de ${v.node} et ses connexions ne tiennent plus en RAM, donc les lectures vont sur le disque.
 
-Correctif : redimensionner, ou la famille Mémoire.
+Correctif : redimensionner, la famille Mémoire, ou un pooler de connexions.
 
 C'est tout l'e-mail. Nous sommes aussi surpris que vous.`,
       }),
@@ -916,7 +917,7 @@ Service : ${v.node}
 Condition : requêtes supérieures à son débit
 Statut : c'est la limite
 
-Il n'y a aucun paramètre dans cette alerte pour faire disparaître la limite. ${v.node} fait tout ce qu’il peut et d’autres arrivent.
+${v.node} fait tout ce qu’il peut, et d’autres requêtes arrivent. Le plafond suit la taille de la machine : redimensionnez ${v.node} et il en accepte davantage.
 
 ${v.from}
 Vous recevez cela parce que vous êtes éveillé.`,
@@ -936,9 +937,9 @@ L'équipe ${v.from}`,
         subject: `Annotation graphique : ${v.node} a atteint sa limite`,
         body: `Nous avons tracé une ligne rouge sur le panneau ${v.node}. Votre trafic l'a franchie.
 
-Annotation: "débit dédépassé. C'est la limite."
+Annotation: "débit dépassé. C'est la limite."
 
-Un sommet plat sur un graphique signifie généralement un plafond, et celui-ci en est un. ${v.node} ne peut pas aller plus vite que cela.
+Un sommet plat sur un graphique signifie généralement un plafond, et celui-ci en est un. ${v.node} ne peut pas aller plus vite à cette taille.
 
 - ${v.from}`,
       }),
