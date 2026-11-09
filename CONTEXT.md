@@ -322,6 +322,10 @@ _Avoid_: squad, department, crew
 A hired person who produces Dev Hours. The founder is the first Engineer.
 _Avoid_: worker, developer, employee
 
+**Training**:
+An Engineer's time spent learning another language, so a rewrite does not need a layoff. They work at half speed until it ends, then take the language and its pay.
+_Avoid_: upskilling, course, reskilling
+
 **Dev Hours**:
 The currency of engineering work, spent on Features, tasks, migrations, Spikes, and debt paydown.
 _Avoid_: DH points, effort, time

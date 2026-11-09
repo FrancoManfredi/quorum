@@ -74,7 +74,8 @@ The autopilot rushes the item at the top of the backlog, and Add index rushes it
 | Ramp-up      | A new hire produces 30% for the first calendar week, then 100%. Rails conventions halve the ramp.                                                                                |
 
 Layoffs refund nothing, end the salary Burn, and cost 10% velocity for a calendar week (morale).
-Morale is global: one team's layoff slows every team.
+Morale is global: one team's layoff slows every team. An engineer can learn a new language instead
+([Learning a Stack](#learning-a-stack)).
 
 ### Pay and mood
 
@@ -104,6 +105,42 @@ An engineer on time off produces nothing; the rest of the team carries the backl
 
 Mood, the page count, and the salary index each engineer is paid at are saved with the Company. A
 save from before them has every engineer content, on the Era's rate, with no pages.
+
+### Learning a Stack
+
+An engineer knows one language, the one they were hired for. On a Service that runs another, they
+keep 70% of their output: the language is unfamiliar, though they still ship. Rewriting the
+Service into a new language therefore leaves the whole team at 70% until each engineer moves to it.
+
+The player can **train** an engineer instead of laying them off and hiring again. Training sends one
+engineer to learn one language:
+
+```latex
+\begin{aligned}
+\text{training time} &= 7\ \text{calendar days} \times \text{time to hire} \left(\text{language}\right) \\
+\text{training cost} &= 0.25 \times \text{signing fee} \left(\text{language}\right)
+\end{aligned}
+```
+
+The Cash goes at once. While they learn, the engineer produces 50% of their output, whatever the
+Service runs. When the time is up they take the new language, with its salary factor, and produce
+fully on a Stack that runs it. A rare language takes longer to learn for the same reason it takes
+longer to hire for ([Runtimes](/design/06-runtimes#hiring-and-salaries)). Training toward the
+language of a running migration is the usual case, and the Team panel offers that language: the
+migration's target while one runs, else the Service's own.
+
+| Way to move a team to a new language | Cash                       | Output lost                                                       | Morale                     |
+| ------------------------------------ | -------------------------- | ----------------------------------------------------------------- | -------------------------- |
+| Keep them                            | None                       | 30% for as long as the Service runs the language they do not know | None                       |
+| Train them                           | A quarter of a signing fee | Half, for 7 days × time to hire                                   | None                       |
+| Lay off and hire                     | A signing fee, no refund   | Nothing while the offer is open, then 30% for a week              | Every team −10% for a week |
+
+An engineer who is already learning cannot start another training, and one cannot train for the
+language they already know. The Cash must be on hand, and a Sandbox has no team. Laying off an
+engineer in training, or accepting their resignation, ends it with no refund. Pay follows the new
+language, so moving an engineer to a cheaper language lowers their Burn, as a rehire would, and
+moving to a dearer one raises it. A training in progress is saved with the Company, and a save from
+before it has none.
 
 ## Teams
 
@@ -524,7 +561,8 @@ A migration changes a service's language, moves a capability between Components,
 | Database engine change                    | 0.8                   | Plus a data copy that takes one calendar minute per GB the Databases hold. The Database keeps serving on the old engine until the copy ends. |
 
 A Stack change moves a Service's runtime and framework, and a split makes a new Service
-([Services](#services)). Moving auth in-house is queued from the Auth Provider's card, and a
+([Services](#services)). A language change leaves the engineers who do not know the new language at
+70% of their output until they learn it ([Learning a Stack](#learning-a-stack)). Moving auth in-house is queued from the Auth Provider's card, and a
 Database engine change from the Database's engine picker. Each is one backlog item, and only the
 engine change adds a copy after the Dev Hours.
 

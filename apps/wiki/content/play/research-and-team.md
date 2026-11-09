@@ -63,8 +63,9 @@ The floor shows one card per Team. Each card lists its engineers, starting with 
 
 1. Select **Hire** on an empty seat. The seat's label names the language, for example "Hire Python engineer for $x". It reads **Locked** until Pre-seed, and it is greyed when you cannot pay the signing cost.
 2. To move an engineer, drag them to another Team, or use the move button on their card.
-3. To lay someone off, hover their card and use its **Lay off** button.
-4. Select **New team** to add a Team. A Team has a kind: Product, Platform, SRE, Data or Security.
+3. To teach an engineer the language your Service runs, or the one a migration is moving to, hover their card and use its **Learn** button. The button shows the language and the price. The engineer works at half speed until their ring fills, then takes the language. The button is greyed when you cannot pay.
+4. To lay someone off, hover their card and use its **Lay off** button.
+5. Select **New team** to add a Team. A Team has a kind: Product, Platform, SRE, Data or Security.
 
 A Product team has three policies: **Move fast**, **Balanced** and **Quality**. They trade speed against debt and bad deploys. The other kinds run the system and do not build Features: SRE holds the pager, Data runs the warehouse, Platform runs Clusters and deploys, and Security runs WAF rules, dependency scanning, and compliance. Hiring early to go faster backfires, because more engineers cost payroll every second and coordination slows a large Team, so read [Team and velocity](/explanation/team-and-velocity) before you hire a Team you do not need.
 

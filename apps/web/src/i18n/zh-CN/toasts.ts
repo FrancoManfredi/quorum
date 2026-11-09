@@ -98,6 +98,7 @@ export const toasts: Messages['toasts'] = {
   phishing: '那是钓鱼邮件。请先检查发件人地址。',
   offerAccepted: '已接受录用邀约，对方即将入职。',
   laidOff: '已解雇。团队士气将在一周内受到影响。',
+  training: '培训已开始。培训期间他们只能发挥一半效率。',
   featureGone: (name) => `${name} 已移除，其维护成本也随之消失。`,
   rushedDebt: (debt) => `加急工作：完成时技术债 +${debt}。`,
   rushedDebtBug: (debt, risk) => `加急工作：技术债 +${debt}，部署时错误部署风险 +${risk}。`,

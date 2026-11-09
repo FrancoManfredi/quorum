@@ -3,6 +3,8 @@ export const team = {
   s: (p0: string | number | null) => `${p0}/s`,
   moveTo: (p0: string | number | null) => `Move to ${p0}`,
   layOff: (p0: string | number | null) => `Lay off ${p0}`,
+  learn: (p0: string | number | null, p1: string | number | null) => `Learn ${p0} for ${p1}`,
+  learning: (p0: string | number | null) => `Learning ${p0}`,
   you: 'You',
   founder: 'Founder',
   hireEngineerFor: (p0: string | number | null, p1: string | number | null) =>

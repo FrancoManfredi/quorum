@@ -103,6 +103,7 @@ export const toasts: Messages['toasts'] = {
   phishing: 'フィッシングでした。まず送信元アドレスを確認してください。',
   offerAccepted: 'オファーを承諾しました。まもなく入社します。',
   laidOff: '解雇しました。チームは1週間動揺します。',
+  training: '研修を始めました。終わるまでは半分の速度で働きます。',
   featureGone: (name) => `${name}はなくなりました。維持費も一緒に終わります。`,
   rushedDebt: (debt) => `急いだ作業：完了時に技術的負債 +${debt}。`,
   rushedDebtBug: (debt, risk) =>

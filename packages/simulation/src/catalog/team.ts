@@ -69,6 +69,17 @@ export const RAMP_DAYS = 7
 export const LAYOFF_MORALE = 0.9
 export const MORALE_DAYS = 7
 
+/**
+ * Learning a language (08 "Learning a Stack"). It takes this many calendar days times the
+ * language's time-to-hire factor, so a rare language is slower to learn than to hire for. The
+ * engineer works at `LEARN_OUTPUT` meanwhile, and the training costs this share of a signing fee.
+ */
+export const LEARN_DAYS = 7
+export const LEARN_OUTPUT = 0.5
+export const LEARN_COST = 0.25
+/** An engineer works at this share of their output on a Stack whose language they have not learned. */
+export const FOREIGN_OUTPUT = 0.7
+
 /** Coordination (08): n / (1 + k(n − 1) + βn(n − 1)). */
 export const COORDINATION = 0.08
 export const RETROGRADE = 0.0004

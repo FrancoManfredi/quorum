@@ -15,6 +15,7 @@ import {
   Database,
   Crown,
   Gem,
+  GraduationCap,
   Hourglass,
   Lock,
   Plus,
@@ -69,6 +70,7 @@ import {
   devHoursRate,
   doraMetrics,
   languageOfService,
+  learnTargetOf,
   membersOf,
   nextBadDeployChance,
   ownerOf,
@@ -83,6 +85,9 @@ import {
   sharesDatabase,
   signingOf,
   teamOutputs,
+  trainCost,
+  trainSeconds,
+  trainingOf,
   upkeepShare,
 } from '@quorum/simulation/team'
 import { overdueBy } from '@quorum/simulation/cve'
@@ -487,17 +492,25 @@ const engineerSeat = (game: Game, engineer: Engineer, h: HtmlBuilder<Message>): 
   const ramp = (game.time - engineer.hiredAt) / rampSeconds(game)
   const ramping = ramp < 1
   const name = nameOf(engineer.id)
+  const training = trainingOf(game, engineer)
+  const learned = training
+    ? 1 - (training.readyAt - game.time) / trainSeconds(training.language)
+    : 0
   return seat(
     engineer.id,
     face(
       hueOf(engineer.id),
       h.span([], [name.slice(0, 1)]),
       languageMark(engineer.language, h),
-      ramping ? halo(ramp, 'text-ok', h) : h.empty,
+      training ? halo(learned, 'text-primary', h) : ramping ? halo(ramp, 'text-ok', h) : h.empty,
       h,
     ),
     name,
-    ramping ? t.team.ramping : t.team.s(money(salaryOf(game, engineer.language))),
+    training
+      ? t.team.learning(LANGUAGES[training.language].name)
+      : ramping
+        ? t.team.ramping
+        : t.team.s(money(salaryOf(game, engineer.language))),
     [],
     'bg-raised shadow-raised',
     h,
@@ -505,26 +518,51 @@ const engineerSeat = (game: Game, engineer: Engineer, h: HtmlBuilder<Message>): 
 }
 
 const engineerControls = (
+  game: Game,
   engineer: Engineer,
-  teams: ReadonlyArray<Team>,
   h: HtmlBuilder<Message>,
 ): ReadonlyArray<Html> => {
   const t = copy(h)
 
+  const teams = game.teams
   const index = teams.findIndex((team) => team.id === engineer.team)
   const next = teams[(index + 1) % teams.length]
+  const language = learnTargetOf(game)
+  const price = trainCost(game, language)
+  const learns = engineer.language !== language && !trainingOf(game, engineer)
   return [
-    teams.length > 1 && next
+    teams.length > 1 || learns
       ? corner(
           'left',
-          iconButton(
-            t.team.moveTo(teamName(t, next)),
-            ArrowLeftRight,
-            Message.TeamChanged({
-              message: TeamMessage.EngineerAssigned({ engineerId: engineer.id, teamId: next.id }),
-            }),
-            true,
-            h,
+          h.div(
+            [h.Class('flex')],
+            [
+              teams.length > 1 && next
+                ? iconButton(
+                    t.team.moveTo(teamName(t, next)),
+                    ArrowLeftRight,
+                    Message.TeamChanged({
+                      message: TeamMessage.EngineerAssigned({
+                        engineerId: engineer.id,
+                        teamId: next.id,
+                      }),
+                    }),
+                    true,
+                    h,
+                  )
+                : h.empty,
+              learns
+                ? iconButton(
+                    t.team.learn(LANGUAGES[language].name, money(price)),
+                    GraduationCap,
+                    Message.TeamChanged({
+                      message: TeamMessage.TrainChosen({ engineerId: engineer.id }),
+                    }),
+                    game.cash >= price,
+                    h,
+                  )
+                : h.empty,
+            ],
           ),
           h,
         )
@@ -839,7 +877,7 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
                   ],
                   [engineerSeat(game, engineer, h)],
                 ),
-                ...engineerControls(engineer, game.teams, h),
+                ...engineerControls(game, engineer, h),
               ],
             ),
           ),

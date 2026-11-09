@@ -107,6 +107,7 @@ export const toasts: Messages['toasts'] = {
   phishing: 'C’était du phishing. Vérifiez d’abord l’adresse de l’expéditeur.',
   offerAccepted: 'Offre acceptée. Ils commencent bientôt.',
   laidOff: 'Licencié. L’équipe est secouée pendant une semaine.',
+  training: 'Formation lancée. Ils travaillent à mi-vitesse jusqu’à la fin.',
   featureGone: (name) => `${name} a disparu. Son entretien prend fin avec elle.`,
   rushedDebt: (debt) => `Travail accéléré : +${debt} de dette technique à la fin.`,
   rushedDebtBug: (debt, risk) =>

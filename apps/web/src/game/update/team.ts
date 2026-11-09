@@ -19,7 +19,7 @@ import { ledgerOf, Model } from '../model.ts'
 import { recipeOf } from '@quorum/ui/game/pools'
 import { sharePercent } from '@quorum/ui/game/format'
 import { say, act, percent, type MessageCases, type UpdateResult } from './shared.ts'
-import { serviceOf } from '@quorum/simulation/team'
+import { learnTargetOf, serviceOf } from '@quorum/simulation/team'
 import { stallReasonIn } from '../../i18n/format.ts'
 import { stepOf } from '@quorum/simulation/migration'
 import { studyStall } from '@quorum/simulation/studies'
@@ -35,6 +35,10 @@ export const teamAction = (model: Model, out: TeamOutMessage): UpdateResult => {
     Layoff: ({ engineerId }) =>
       act(model, 'Laid off', Work.layoff(game, engineerId), {
         note: () => [say(model).toasts.laidOff, 'warn'],
+      }),
+    Train: ({ engineerId }) =>
+      act(model, 'Training', Work.train(game, engineerId, learnTargetOf(game)), {
+        note: () => [say(model).toasts.training, 'primary'],
       }),
     CreateTeam: () => act(model, 'New team', Work.createTeam(game)),
     RemoveTeam: ({ teamId }) => act(model, 'Removed a team', Work.removeTeam(game, teamId)),

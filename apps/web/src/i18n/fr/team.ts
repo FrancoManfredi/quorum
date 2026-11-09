@@ -6,6 +6,8 @@ export const team: Messages['team'] = {
   s: (p0) => `${p0}/s`,
   moveTo: (p0) => `Déplacer vers ${p0}`,
   layOff: (p0) => `Licencier ${p0}`,
+  learn: (p0, p1) => `Apprendre ${p0} pour ${p1}`,
+  learning: (p0) => `Apprend ${p0}`,
   you: 'Vous',
   founder: 'Fondateur',
   hireEngineerFor: (p0, p1) => `Recruter un ingénieur ${p0} pour ${p1}`,

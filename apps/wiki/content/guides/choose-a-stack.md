@@ -40,8 +40,9 @@ Fast-shipping frameworks cost CPU, and Laravel, Rails, and Django send
 4. A greyed option needs Research. Its tooltip names the Research that unlocks it.
 
 Also compare the language's salary and time to hire. You hire engineers for the language of your
-service, so a rare language makes the Team more expensive and slower to grow. See
-[Team and velocity](/explanation/team-and-velocity).
+service, so a rare language makes the Team more expensive and slower to grow. Engineers who do not
+know the new language work slower until you train them, which is cheaper than laying them off and
+hiring again. See [Team and velocity](/explanation/team-and-velocity).
 
 ## Start the migration
 

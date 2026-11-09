@@ -110,6 +110,7 @@ export const toasts = {
   phishing: 'That was phishing. Check the sender address first.',
   offerAccepted: 'Offer accepted. They start soon.',
   laidOff: 'Laid off. The team is shaken for a week.',
+  training: 'Training started. They work at half speed until they finish.',
   featureGone: (name: Value) => `${name} is gone. Its upkeep ends with it.`,
   rushedDebt: (debt: Value) => `Rushed work: +${debt} tech debt when it finishes.`,
   rushedDebtBug: (debt: Value, risk: Value) =>

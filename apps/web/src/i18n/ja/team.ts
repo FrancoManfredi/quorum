@@ -5,6 +5,8 @@ export const team: Messages['team'] = {
   s: (p0) => `${p0}/s`,
   moveTo: (p0) => `${p0}へ移動`,
   layOff: (p0) => `${p0}を解雇`,
+  learn: (p0, p1) => `${p0}を学ぶ（${p1}）`,
+  learning: (p0) => `${p0}を学習中`,
   you: 'あなた',
   founder: '創業者',
   hireEngineerFor: (p0, p1) => `${p0}エンジニアを${p1}で採用`,

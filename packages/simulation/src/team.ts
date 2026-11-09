@@ -12,6 +12,7 @@ import {
   DEV_HOURS_PER_DAY,
   ERAS,
   FEATURES,
+  FOREIGN_OUTPUT,
   FORMAL_VERIFICATION_FACTOR,
   FOUNDER_OUTPUT,
   FRAMEWORKS,
@@ -19,6 +20,9 @@ import {
   HIRING_PIPELINE,
   LANGUAGES,
   LAYOFF_MORALE,
+  LEARN_COST,
+  LEARN_DAYS,
+  LEARN_OUTPUT,
   LIVE_TUNING,
   MANUAL_DEPLOY_MINUTES,
   MESH_TAX,
@@ -69,6 +73,7 @@ import {
   type GameNode,
   type Service,
   type Team,
+  type Training,
   type WorkItem,
 } from './state.ts'
 
@@ -284,13 +289,67 @@ export const rampSeconds = (game: Game, tuning: Tuning = LIVE_TUNING): number =>
   )
 }
 
-export const outputOf = (game: Game, engineer: Engineer, tuning: Tuning = LIVE_TUNING): number =>
+/** The training an engineer is in, if any. */
+export const trainingOf = (game: Game, engineer: Engineer): Training | undefined =>
+  game.training.find((entry) => entry.engineer === engineer.id)
+
+/**
+ * The share of their output an engineer keeps on the Service's Stack (08 "Learning a Stack"): all
+ * of it in the language they know, `LEARN_OUTPUT` while they learn another, and `FOREIGN_OUTPUT`
+ * in a language they have not learned.
+ */
+export const fluencyOf = (
+  game: Game,
+  engineer: Engineer,
+  language: LanguageId = languageOfService(game),
+): number =>
+  trainingOf(game, engineer) ? LEARN_OUTPUT : engineer.language === language ? 1 : FOREIGN_OUTPUT
+
+export const outputOf = (
+  game: Game,
+  engineer: Engineer,
+  tuning: Tuning = LIVE_TUNING,
+  language: LanguageId = languageOfService(game),
+): number =>
   // On time off an engineer produces nothing at all (18 "Burnout and quitting").
   game.time < engineer.offUntil
     ? 0
-    : game.time - engineer.hiredAt < rampSeconds(game, tuning)
-      ? RAMP_OUTPUT
-      : 1
+    : (game.time - engineer.hiredAt < rampSeconds(game, tuning) ? RAMP_OUTPUT : 1) *
+      fluencyOf(game, engineer, language)
+
+/** The language an engineer learns by default: the one the Service is moving to, else its own. */
+export const learnTargetOf = (game: Game): LanguageId => {
+  const migration = serviceOf(game).migration
+  return migration ? RUNTIMES[migration.runtime].language : languageOfService(game)
+}
+
+/** Sim seconds to learn a language: a week, times how scarce its engineers are. */
+export const trainSeconds = (language: LanguageId, tuning: Tuning = LIVE_TUNING): number =>
+  days(LEARN_DAYS * LANGUAGES[language].hireTime, tuning)
+
+/** Cash to send an engineer to learn a language: a quarter of what signing one costs. */
+export const trainCost = (game: Game, language: LanguageId): number =>
+  Math.round(LEARN_COST * signingOf(game, language))
+
+/**
+ * Ends the trainings whose time has come: the engineer takes the new language, and with it that
+ * language's pay. A training whose engineer has left ends with nothing.
+ */
+export const finishTraining = (game: Game): Game => {
+  const done = game.training.filter((entry) => entry.readyAt <= game.time)
+  const gone = game.training.filter(
+    (entry) => !game.engineers.some((engineer) => engineer.id === entry.engineer),
+  )
+  if (done.length === 0 && gone.length === 0) return game
+  return {
+    ...game,
+    training: game.training.filter((entry) => !done.includes(entry) && !gone.includes(entry)),
+    engineers: game.engineers.map((engineer) => {
+      const finished = done.find((entry) => entry.engineer === engineer.id)
+      return finished ? { ...engineer, language: finished.language } : engineer
+    }),
+  }
+}
 
 /** Sim seconds to hire: the Era's days, less 30% with the Hiring pipeline. */
 export const hireSeconds = (
@@ -366,13 +425,14 @@ export const teamOutputs = (
 ): ReadonlyArray<TeamOutput> => {
   if (game.sandbox) return []
   const morale = game.time < game.moraleUntil ? LAYOFF_MORALE : 1
+  const language = languageOfService(game)
   const outputs = game.teams.map((team, index) => {
     const owned = serviceOwnedBy(game, team)
     const members = membersOf(game, team)
     const founder = index === 0 ? FOUNDER_OUTPUT : 0
     const headcount = members.length + (index === 0 ? 1 : 0)
     const output = members.reduce(
-      (sum, engineer) => sum + outputOf(game, engineer, tuning),
+      (sum, engineer) => sum + outputOf(game, engineer, tuning, language),
       founder,
     )
     const effective =

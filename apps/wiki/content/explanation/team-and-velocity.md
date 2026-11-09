@@ -4,7 +4,7 @@ summary: Where Dev Hours come from, why a bigger team is not a faster team, and 
 section: explanation
 order: 8
 era: 1
-aliases: team, dev hours, dh, velocity, engineers, hiring, layoff, coordination, team size, brooks's law, tech debt, policy, deploys, backlog, migration, platform team, autopilot
+aliases: team, dev hours, dh, velocity, engineers, hiring, layoff, training, learn a language, rewrite, coordination, team size, brooks's law, tech debt, policy, deploys, backlog, migration, platform team, autopilot
 gdd: /design/08-team-and-velocity
 ---
 
@@ -43,6 +43,25 @@ language your Service runs, and a rare language such as Elixir or Rust takes lon
 A new hire works at 30% for their first Team week. Rails conventions halve that ramp, and with no
 framework, tech debt stretches it. A layoff refunds nothing. It ends the salary, and the rest of the
 team works at 90% for a Team week.
+
+## Teaching the team a new language
+
+An engineer knows the language they were hired for. If you rewrite your Service into another one,
+the engineers who do not know it work slower on it until they learn it, so the rewrite has a cost in
+people as well as Dev Hours.
+
+You have two ways out. You can lay the team off and hire people who know the new language, which
+costs a signing fee per hire, an empty seat while each offer is open, a slow first week, and a
+morale hit for everyone who stays. Or you can **train** them: hover an engineer on the Team panel and
+select the graduation cap. Training costs a fraction of a signing fee and makes the engineer slower
+while they learn, but nobody leaves, and they keep their place on their team. A rare language takes
+longer to learn, as it does to hire for, and the engineer's pay moves to the new language's rate when
+they finish.
+
+Start the training while the migration runs and the team arrives at the new Stack already fluent.
+Training everyone at once slows the whole team at the same time, so a team that has to keep shipping
+trains in turns. See [Learning a Stack](/design/08-team-and-velocity#learning-a-stack) for the
+numbers.
 
 ## Why ten engineers are not ten times faster
 

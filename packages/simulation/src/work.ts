@@ -31,6 +31,7 @@ import {
   INCIDENT_IDS,
   HOTFIX_DEBT,
   KLOC_PER_DH,
+  LANGUAGES,
   LIVE_TUNING,
   MIGRATION_FACTORS,
   MIGRATION_FEATURE_SPEED,
@@ -58,6 +59,7 @@ import {
   type FrameworkId,
   type PolicyId,
   type IncidentId,
+  type LanguageId,
   type RequestKind,
   type RuntimeId,
   type TaskId,
@@ -107,6 +109,7 @@ import {
   deployMinutesOf,
   enqueue,
   fixed,
+  finishTraining,
   hireSeconds,
   languageOfService,
   memberOf,
@@ -123,6 +126,9 @@ import {
   serviceOfId,
   sharesDatabase,
   signingOf,
+  trainCost,
+  trainSeconds,
+  trainingOf,
   stackOf,
   debtGrowthOf,
   teamOutputs,
@@ -1019,6 +1025,38 @@ export const layoff = (game: Game, engineerId: string, tuning: Tuning = LIVE_TUN
   })
 }
 
+/**
+ * Sends an engineer to learn another language, for the Stack the Service is moving to (08 "Learning a
+ * Stack"). It costs Cash up front and the engineer's output while they learn, and it spares the
+ * layoff and the rehire. They take the language, and its pay, when the time is up.
+ */
+export const train = (
+  game: Game,
+  engineerId: string,
+  language: LanguageId,
+  tuning: Tuning = LIVE_TUNING,
+): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const engineer = game.engineers.find((entry) => entry.id === engineerId)
+  if (!engineer) return no(Refusal.Missing())
+  if (engineer.language === language)
+    return notAllowed(`They already know ${LANGUAGES[language].name}.`)
+  if (trainingOf(game, engineer)) return notAllowed('They are already learning a language.')
+  if (shortOfCash(game))
+    return notAllowed('Out of Cash: no placement, upgrade, or hire until Cash is above zero.')
+  const price = trainCost(game, language)
+  if (game.cash < price)
+    return no(Refusal.Unaffordable({ what: 'Training', price, currency: 'cash' }))
+  return ok({
+    ...game,
+    cash: game.cash - price,
+    training: [
+      ...game.training,
+      { engineer: engineerId, language, readyAt: game.time + trainSeconds(language, tuning) },
+    ],
+  })
+}
+
 /** Gives an engineer time off: they produce nothing for three calendar days, and come back content. */
 export const giveTimeOff = (
   game: Game,
@@ -1593,6 +1631,8 @@ export const advanceTeam = (
     }
     for (const entry of joined) events.push(StepEvent.Hired({ engineerId: entry.hire.id }))
   }
+
+  next = finishTraining(next)
 
   if (next.autopilot) next = autopilot(next, events)
 

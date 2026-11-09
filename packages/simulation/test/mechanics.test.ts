@@ -6,6 +6,9 @@ import {
   CALENDAR_START,
   CVE_EVERY,
   FEATURE_IDS,
+  FOREIGN_OUTPUT,
+  LANGUAGES,
+  LEARN_OUTPUT,
   RESEARCH_IDS,
   RUSH_BUG_CHANCE,
   RUSH_DEBT,
@@ -30,8 +33,17 @@ import {
   rushBugOf,
   rushItem,
   serviceOfItem,
+  train,
 } from '../src/work.ts'
-import { badDeployChance, nextBadDeployChance } from '../src/team.ts'
+import {
+  badDeployChance,
+  nextBadDeployChance,
+  languageOfService,
+  outputOf,
+  payOf,
+  trainCost,
+  trainSeconds,
+} from '../src/team.ts'
 import { spiked } from '../src/studies.ts'
 
 /* The Exit, Mail and Observability mechanics that change the Game: each runs in a Step or an Action. */
@@ -195,6 +207,74 @@ describe('Team assignments', () => {
 
     // Behind the Feature, the Spike would go to the second team, which has no engineers.
     expect(spiked({ ...game, backlog: [...game.backlog].reverse() })).toBe(false)
+  })
+})
+
+describe('Learning a Stack', () => {
+  const staffed = () => {
+    const game = founded({ 'head-start': 1 })
+    return {
+      ...game,
+      cash: 1_000_000,
+      engineers: [
+        {
+          ...NEW_ENGINEER,
+          id: 'e-test',
+          team: game.teams[0]?.id ?? 'core',
+          language: 'ruby' as const,
+          hiredAt: game.time - 3_600,
+        },
+      ],
+    }
+  }
+
+  test('an engineer in a language the Service does not run keeps FOREIGN_OUTPUT of their Dev Hours', () => {
+    const game = staffed()
+    const engineer = game.engineers[0]!
+    expect(languageOfService(game)).toBe('php')
+    expect(outputOf(game, engineer)).toBe(FOREIGN_OUTPUT)
+    expect(outputOf(game, { ...engineer, language: 'php' })).toBe(1)
+  })
+
+  test('training costs Cash and half their output, then moves their language and pay', () => {
+    const game = staffed()
+    const engineer = game.engineers[0]!
+    const started = Result.getOrThrow(train(game, engineer.id, 'php'))
+    expect(started.cash).toBe(game.cash - trainCost(game, 'php'))
+    expect(outputOf(started, engineer)).toBe(LEARN_OUTPUT)
+
+    const readyAt = started.training[0]!.readyAt
+    expect(readyAt - started.time).toBe(trainSeconds('php'))
+    const before = step({ ...started, time: readyAt - 10 }, 5).game
+    expect(before.training).toHaveLength(1)
+    expect(before.engineers[0]?.language).toBe('ruby')
+
+    const after = step({ ...started, time: readyAt - 5 }, 5).game
+    expect(after.training).toEqual([])
+    const learned = after.engineers[0]!
+    expect(learned.language).toBe('php')
+    expect(outputOf(after, learned)).toBe(1)
+    expect(payOf(after, learned) / payOf(after, engineer)).toBeCloseTo(
+      LANGUAGES.php.salary / LANGUAGES.ruby.salary,
+      9,
+    )
+  })
+
+  test('a rare language takes longer to learn, and training is refused when it makes no sense', () => {
+    const game = staffed()
+    const engineer = game.engineers[0]!
+    expect(trainSeconds('haskell')).toBeGreaterThan(trainSeconds('php'))
+    expect(Result.isFailure(train(game, engineer.id, 'ruby'))).toBe(true)
+    expect(Result.isFailure(train(game, 'nobody', 'php'))).toBe(true)
+    expect(Result.isFailure(train({ ...game, cash: 0 }, engineer.id, 'php'))).toBe(true)
+    const started = Result.getOrThrow(train(game, engineer.id, 'php'))
+    expect(Result.isFailure(train(started, engineer.id, 'python'))).toBe(true)
+  })
+
+  test('laying off an engineer in training ends the training', () => {
+    const started = Result.getOrThrow(train(staffed(), 'e-test', 'php'))
+    const gone = step({ ...started, engineers: [] }, 5).game
+    expect(gone.training).toEqual([])
   })
 })
 

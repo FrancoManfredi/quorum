@@ -12,6 +12,8 @@ export const TeamMessage = defineMessageUnion({
   DragChanged: { message: DragAndDrop.Message },
   HireChosen: {},
   LayoffChosen: { engineerId: Schema.String },
+  /** Sends an engineer to learn the Stack's language (08 "Learning a Stack"). */
+  TrainChosen: { engineerId: Schema.String },
   Created: {},
   Removed: { teamId: Schema.String },
   EngineerAssigned: { engineerId: Schema.String, teamId: Schema.String },
@@ -35,6 +37,7 @@ export type TeamMessage = typeof TeamMessage.Type
 export const TeamOutMessage = defineMessageUnion({
   Hire: {},
   Layoff: { engineerId: Schema.String },
+  Train: { engineerId: Schema.String },
   CreateTeam: {},
   RemoveTeam: { teamId: Schema.String },
   Assign: { engineerId: Schema.String, teamId: Schema.String },
@@ -82,6 +85,7 @@ export const updateTeam = (team: Team, message: TeamMessage): TeamReturn =>
     DragChanged: ({ message: child }) => dragged(team, child),
     HireChosen: () => out(team, TeamOutMessage.Hire()),
     LayoffChosen: ({ engineerId }) => out(team, TeamOutMessage.Layoff({ engineerId })),
+    TrainChosen: ({ engineerId }) => out(team, TeamOutMessage.Train({ engineerId })),
     Created: () => out(team, TeamOutMessage.CreateTeam()),
     Removed: ({ teamId }) => out(team, TeamOutMessage.RemoveTeam({ teamId })),
     EngineerAssigned: ({ engineerId, teamId }) =>

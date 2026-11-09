@@ -535,6 +535,17 @@ export const Hire = Schema.Struct({
 })
 export type Hire = typeof Hire.Type
 
+/**
+ * An engineer learning another language (08 "Learning a Stack"). It sits beside the engineer, not
+ * inside it: when `readyAt` comes the engineer's `language` becomes `language` and this ends.
+ */
+export const Training = Schema.Struct({
+  engineer: Schema.String,
+  language: LanguageId,
+  readyAt: Schema.Finite,
+})
+export type Training = typeof Training.Type
+
 /** A product team builds the backlog; a platform team runs the Clusters and the pipeline; a data team runs the warehouse and the pipelines' copies. */
 export const TeamKind = Schema.Literals(['product', 'platform', 'sre', 'data', 'security'])
 export type TeamKind = typeof TeamKind.Type
@@ -951,6 +962,7 @@ export const Game = Schema.Struct({
   devHours: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
   engineers: Schema.Array(Engineer).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   hires: Schema.Array(Hire).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+  training: Schema.Array(Training).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
   teams: Schema.Array(Team).pipe(Schema.withDecodingDefaultKey(Effect.succeed([CORE_TEAM]))),
   /** Sim time a layoff's hit to morale ends. */
   moraleUntil: Schema.Finite.pipe(Schema.withDecodingDefaultKey(Effect.succeed(0))),
