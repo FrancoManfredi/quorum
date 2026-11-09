@@ -142,6 +142,74 @@ The Components and Research the step needs, and a link to the next step.
 
 A foundation is an idea the other pages lean on, such as CAP or tail latency. It is Explanation: say what it is, show one worked example, and say what it changes about a decision. It has no fixed headings and no Design.
 
+### Case study page
+
+A case study shows one shape a real system ran at scale, then draws the same shape on the game's board. It is not a company history. The first sentence names who, when, and what changed. The prose keeps the 350-word limit, and the page links the pattern it demonstrates.
+
+```md
+One sentence: who, when, what they changed.
+
+## The system
+
+What the system looked like, the number that shows its scale, and the constraint that forced the change. Two short paragraphs.
+
+## The board
+
+::Design{id="..."}
+
+One paragraph: what each Node and Link stands for in the real system.
+
+## Why it works
+
+The mechanism, linked to the pattern the page demonstrates.
+
+## Where the game stops
+
+The parts the board cannot show, and the numbers it does not reproduce. Say that the caption is the game's result, not the company's.
+
+## Sources
+
+- [Title, company](url): what each source is good for.
+```
+
+The Sources list names at least three sources the author opened. A case study sits in the group "Ran in production", ordered 950 and up.
+
+### When it broke page
+
+A failure page shows the shape that broke, the dependency that turned a small change into an outage, and the guardrail the company added. It uses the case study's board, but the sections are about the failure.
+
+```md
+One sentence: when, what broke, how long.
+
+## The system
+
+What the system looked like, and the dependency that failed. Two short paragraphs.
+
+## The board
+
+::Design{id="..."}
+
+One paragraph: what each Node stands for, and which incident runs on it.
+
+## What broke
+
+The trigger, the blast radius, and why recovery was slow.
+
+## What changed
+
+The guardrail the company added, and the game mechanism that stands for it.
+
+## Where the game stops
+
+The parts the board cannot show, and the numbers it does not reproduce. Say that the caption is the game's incident.
+
+## Sources
+
+- [Title, company](url): what each source is good for.
+```
+
+The Sources list names at least three sources the author opened. A failure page sits in the group "When it broke", ordered 970 and up.
+
 ### Outside the game page
 
 A pattern the game cannot show is still worth knowing. The page says in its first sentence what the pattern is, then in two short paragraphs when to reach for it and what it costs, then names the nearest thing the game does teach. It ends with a "References" list of at least three sources the author opened, with one line on what each is good for. It has no Design.

@@ -29,6 +29,28 @@ import {
 
 export const incidentPath = (id: IncidentDef['id']): string => `/incidents/${id}`
 
+/** The failure page that shows this incident's shape in a real system. */
+const PRODUCTION: Partial<
+  Record<IncidentDef['id'], Readonly<{ path: string; label: string; sentence: string }>>
+> = {
+  config: {
+    path: '/patterns/one-control-plane-73-hours',
+    label: 'One control plane, 73 hours: Roblox',
+    sentence: 'Roblox lost 73 hours to a control-plane change in 2021.',
+  },
+  'disk-full': {
+    path: '/patterns/one-command-removed-the-index',
+    label: 'One command removed the index: AWS S3',
+    sentence:
+      'AWS lost S3 in us-east-1 for about four hours in 2017 when a command removed the index.',
+  },
+  regex: {
+    path: '/patterns/canary-the-edge-rules',
+    label: 'Canary the edge rules: Cloudflare',
+    sentence: 'Cloudflare lost its network for 27 minutes in 2019 when a WAF rule backtracked.',
+  },
+}
+
 const SEVERITY_CLASS: Record<1 | 2 | 3, string> = {
   1: 'bg-danger text-white',
   2: 'bg-warn text-white',
@@ -55,6 +77,7 @@ const entity = (def: IncidentDef): Page => {
   const text = authored(path)
   const hits = componentsHitBy(def.id)
   const practice = sandboxesFiring(def.id)
+  const production = PRODUCTION[def.id]
   return page({
     path,
     title: def.name,
@@ -68,13 +91,14 @@ const entity = (def: IncidentDef): Page => {
       ...text.headings,
       ...headingsFor([
         'What happens',
+        production ? 'Seen in production' : null,
         'How to prevent it',
         hits.length ? 'Components it hits' : null,
         practice.length ? 'Practice it' : null,
         BY_INCIDENT[def.id]?.length ? 'Engineering terms' : null,
       ]),
     ],
-    text: `${def.cause} ${def.prevention} ${text.text}`,
+    text: `${def.cause} ${def.prevention} ${text.text} ${production?.label ?? ''}`,
     aside: (_model, h) =>
       factsBox(
         def.name,
@@ -97,6 +121,25 @@ const entity = (def: IncidentDef): Page => {
         [
           section('What happens', [paragraph(def.cause, h)], h),
           ...(text.view ? [text.view(model, h)] : []),
+          ...(production
+            ? [
+                section(
+                  'Seen in production',
+                  [
+                    h.p(
+                      [],
+                      [
+                        production.sentence,
+                        ' ',
+                        link(production.path, production.label, h),
+                        ' shows the shape and says where the game stops.',
+                      ],
+                    ),
+                  ],
+                  h,
+                ),
+              ]
+            : []),
           section(
             'How to prevent it',
             [

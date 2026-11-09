@@ -4,6 +4,7 @@ import { step2 } from './step-2.ts'
 import { step3 } from './step-3.ts'
 import { patternsData } from './patterns-data.ts'
 import { patternsOps } from './patterns-ops.ts'
+import { patternsProduction } from './patterns-production.ts'
 import { patternsResilience } from './patterns-resilience.ts'
 import { patternsScale } from './patterns-scale.ts'
 
@@ -16,6 +17,7 @@ export const DESIGNS: Readonly<Record<string, Design>> = {
   ...patternsData,
   ...patternsResilience,
   ...patternsOps,
+  ...patternsProduction,
 }
 
 export const DESIGN_IDS: ReadonlyArray<string> = Object.keys(DESIGNS)

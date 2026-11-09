@@ -35,6 +35,14 @@ export const PATTERN_GROUPS: ReadonlyArray<Readonly<{ name: string; blurb: strin
   },
   { name: 'Cost', blurb: 'Pay for what you use and know what each user costs.' },
   {
+    name: 'Ran in production',
+    blurb: 'Shapes that real systems carried at scale, with the board that shows why.',
+  },
+  {
+    name: 'When it broke',
+    blurb: 'Outages that changed the design, and the board that shows the dependency.',
+  },
+  {
     name: 'Outside the game',
     blurb: 'Patterns Quorum cannot build, with references worth reading.',
   },
@@ -56,7 +64,7 @@ const hub = page({
       [h.Class('prose')],
       [
         paragraph(
-          'A cheatsheet for designing systems, in two halves that point at each other. The scaling steps add one piece at a time and say when to move. The patterns explain the idea behind each step, what it costs, and how to set it in the game.',
+          'A cheatsheet for designing systems, in four parts that point at each other. The scaling steps add one piece at a time and say when to move. The patterns explain the idea behind each step, what it costs, and how to set it in the game. The production pages show a shape a real company ran at scale, and the failure pages show one that broke, with the incident running on the board. Both name the parts Quorum cannot model.',
           h,
         ),
         h.p(
