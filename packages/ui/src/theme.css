@@ -460,7 +460,10 @@
   }
 }
 
-:root[data-input='keyboard'] :is(.enter-pop, .enter-modal, .enter-backdrop, .swap) {
+:root[data-input='keyboard'] :is(.enter-pop, .enter-modal, .enter-backdrop, .swap, .deck-pools) {
+  transition-duration: 0ms;
+}
+:root[data-input='keyboard'] .deck-pools-clip {
   transition-duration: 0ms;
 }
 
@@ -478,6 +481,47 @@
     opacity: 0;
     filter: blur(4px);
     transform: translateY(3px);
+  }
+}
+
+/* The Research deck's pool list: the row stays where it is and the list folds
+   out above it. A grid row collapses to nothing, so the card keeps its width
+   and the row never wraps or clips while the deck grows. */
+.deck-pools {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 320ms var(--ease-out),
+    opacity 160ms var(--ease-out);
+}
+.deck-pools[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 320ms var(--ease-out),
+    opacity 200ms var(--ease-out) 80ms;
+}
+.deck-pools-clip {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 0;
+  overflow: clip;
+  translate: 0 4px;
+  transition: translate 320ms var(--ease-out);
+}
+/* The list keeps its height and leaves through the top, so it pulls out of the row. */
+.deck-pools-clip > * {
+  flex: none;
+}
+.deck-pools[data-open='true'] .deck-pools-clip {
+  translate: 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .deck-pools,
+  .deck-pools-clip {
+    transition-duration: 0.01ms;
   }
 }
 

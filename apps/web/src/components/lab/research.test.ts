@@ -72,21 +72,27 @@ test('the pool deck names the pool the running Study waits on, even at zero', ()
 })
 
 test('the deck opens every pool, and closes again', () => {
+  // The list stays mounted to fold out of the row (theme.css), so state, not existence, says open.
+  const folded = Scene.selector('.deck-pools[data-open="false"]')
+  const open = Scene.selector('.deck-pools[data-open="true"]')
   Scene.scene(
     { update, view: researchPanel },
     Scene.given(waiting()),
     scrolled(),
     resizable(),
-    Scene.expect(Scene.selector('[data-deck-pool="bid"]')).toBeAbsent(),
+    Scene.expect(open).toBeAbsent(),
+    Scene.expect(folded).toExist(),
     Scene.click(Scene.role('button', { name: 'All 18 pools' })),
     Scene.expectHandled(),
     Scene.Command.resolveAll([AppendLog, Message.Synced()]),
-    Scene.expect(Scene.selector('[data-deck-pool="bid"]')).toExist(),
-    Scene.expect(Scene.selector('[data-deck-pool="bot"]')).toExist(),
+    Scene.expect(open).toExist(),
+    Scene.expect(Scene.within(open, Scene.selector('[data-deck-pool="bid"]'))).toExist(),
+    Scene.expect(Scene.within(open, Scene.selector('[data-deck-pool="bot"]'))).toExist(),
     Scene.click(Scene.role('button', { name: 'Fewer' })),
     Scene.expectHandled(),
     Scene.Command.resolveAll([AppendLog, Message.Synced()]),
-    Scene.expect(Scene.selector('[data-deck-pool="bid"]')).toBeAbsent(),
+    Scene.expect(open).toBeAbsent(),
+    Scene.expect(folded).toExist(),
   )
 })
 

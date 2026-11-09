@@ -1475,8 +1475,8 @@ const pinnedChip = (game: Game, pool: InsightPool, need: number, h: HtmlBuilder<
 /**
  * The pools, off the top of the screen and onto the canvas: a deck in the
  * tree's corner that names the pool the Study waits on, then the busiest few,
- * and opens every pool in place. Its box morphs as the list comes and goes
- * (src/game/motion.ts), so the deck grows out of the row instead of popping.
+ * and opens every pool in place. The list folds away under the row (theme.css),
+ * so the card keeps its width and the row never moves while it grows.
  */
 const poolDeck = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -1496,31 +1496,40 @@ const poolDeck = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [
       h.Key('deck'),
-      h.DataAttribute('morph', 'gesture'),
-      // Pinned to the corner and packed to the bottom, so the top edge moves as the list opens.
+      // Pinned to the corner, so the top edge moves as the list opens.
       h.Class(
-        'pointer-events-auto absolute bottom-4 left-4 z-20 flex max-w-[calc(100%-2rem)] flex-col items-start justify-end compact:hidden',
+        'pointer-events-auto absolute bottom-4 left-4 z-20 flex max-w-[calc(100%-2rem)] flex-col items-start compact:hidden',
       ),
     ],
     [
       h.div(
-        [h.Class(cn(PANEL, 'flex flex-col gap-1 p-2'))],
+        [h.Class(cn(PANEL, 'flex flex-col p-2'))],
         [
-          open
-            ? h.div(
+          // Always mounted, so the list can fold away instead of popping out of the row.
+          h.div(
+            [
+              h.Key('deck-pools'),
+              h.Role('group'),
+              h.AriaLabel(t.research.pools),
+              h.AriaHidden(!open),
+              h.Inert(!open),
+              h.DataAttribute('open', open ? 'true' : 'false'),
+              h.Class('deck-pools'),
+            ],
+            [
+              h.div(
+                [h.Class('deck-pools-clip')],
                 [
-                  h.Key('deck-pools'),
-                  h.Role('group'),
-                  h.AriaLabel(t.research.pools),
-                  h.DataAttribute('exit', 'gesture'),
-                  h.DataAttribute('exit-anchor', 'bottom'),
-                  h.Class('swap grid grid-cols-3 gap-x-1.5 gap-y-0.5 pb-1'),
+                  h.div(
+                    [h.Class('grid grid-cols-3 gap-x-1.5 gap-y-0.5 pb-2')],
+                    POOL_ORDER.map((pool) =>
+                      poolCell(game, ledger, pool, pool === limit && need > game.pools[pool], h),
+                    ),
+                  ),
                 ],
-                POOL_ORDER.map((pool) =>
-                  poolCell(game, ledger, pool, pool === limit && need > game.pools[pool], h),
-                ),
-              )
-            : h.empty,
+              ),
+            ],
+          ),
           h.div(
             [h.Class('flex flex-wrap items-center gap-x-3 gap-y-1')],
             [
@@ -1547,7 +1556,21 @@ const poolDeck = (model: Model, h: HtmlBuilder<Message>): Html => {
                   ),
                 ],
                 [
-                  open ? t.research.fewerPools : t.research.allPools(POOL_ORDER.length),
+                  // Both labels share one cell, so the longer one sets the width in either state
+                  // and the deck does not resize as the label changes.
+                  h.span(
+                    [h.Class('grid justify-items-center')],
+                    [
+                      h.span(
+                        [h.Class('col-start-1 row-start-1')],
+                        [open ? t.research.fewerPools : t.research.allPools(POOL_ORDER.length)],
+                      ),
+                      h.span(
+                        [h.AriaHidden(true), h.Class('invisible col-start-1 row-start-1')],
+                        [t.research.allPools(POOL_ORDER.length)],
+                      ),
+                    ],
+                  ),
                   icon(h, open ? ChevronUp : ChevronDown, 'size-3 text-muted-foreground'),
                 ],
               ),
