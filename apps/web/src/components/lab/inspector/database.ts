@@ -15,7 +15,6 @@ import {
   has,
   leaderOfGroup,
   primaryOf,
-  replicasOfGroup,
   shardingOf,
 } from '@quorum/simulation/lookups'
 import type {

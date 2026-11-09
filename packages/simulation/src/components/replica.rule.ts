@@ -37,6 +37,9 @@ export const setSync = (game: Game, id: string, sync: boolean): Action =>
           research: RESEARCH['sync-replication'].name,
         }),
       )
+    // A replica with no Database linked into it copies nothing, so no write could wait for it.
+    if (sync && primaryOf(game, node) === undefined)
+      return notAllowed('Link a Database into this Read Replica first.')
     return ok(node.sync === sync ? game : patch(game, id, { sync }))
   })
 

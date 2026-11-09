@@ -183,6 +183,8 @@ describe('synchronous replicas', () => {
     let replica: string
     ;[game, replica] = build(game, 'replica')
     expect(syncWaitMs(game, database)).toBe(0)
+    // A replica with no linked Database copies nothing, so it cannot join a write.
+    expect(Result.isFailure(setSync(game, replica, true))).toBe(true)
     game = ok(connect(game, database.id, replica))
     game = ok(setSync(game, replica, true))
     expect(syncWaitMs(game, database)).toBeGreaterThan(0)
@@ -356,7 +358,9 @@ describe('Data Groups', () => {
     expect(asyncPromoted.nodes.filter((node) => node.type === 'replica')).toHaveLength(1)
 
     game = withResearch(freeSandbox(), 'replication', 'sync-replication')
+    const database = game.nodes.find((node) => node.type === 'database')!.id
     ;[game, replica] = build(game, 'replica')
+    game = ok(connect(game, database, replica))
     game = ok(setSync(game, replica, true))
     game = { ...game, data: 100 }
     const syncPromoted = ok(promoteReplica(game, replica))

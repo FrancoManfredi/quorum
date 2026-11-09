@@ -56,8 +56,8 @@ In the [Connection Limit](/sandboxes/connection-limit) Sandbox, a deploy doubles
      Servers and the Database. It answers reads from memory while the hot data fits. Writes pass
      through.
    - Research [Read replicas](/research/replication) and place a
-     [Read Replica](/components/replica). Link the App Servers to it. It answers read queries
-     only.
+     [Read Replica](/components/replica). Link the Database into it so it joins its Data Group,
+     then link the App Servers to it. It answers read queries only.
 3. If you run Laravel, Rails, or Django, research [Eager loading](/research/eager-loading) and
    queue its task, because these ORM frameworks send several read queries where one would do. See
    [N+1 query](/glossary/n1-query).

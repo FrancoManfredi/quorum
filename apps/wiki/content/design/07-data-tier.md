@@ -318,9 +318,10 @@ Design's first Database, so the starting Design keeps every row there. A group w
 nothing, which is the figure a freshly placed Database shows.
 
 `dataGroupOf(game, node)` in `packages/simulation/src/lookups.ts` derives all of this: the box that
-holds the Node, or the Node's own id. A Read Replica outside a box follows the Design's only group,
-and stands alone when several groups could be its primary. Capacity, billing, multi-leader conflicts,
-cross-shard failures, and a synchronous replica's wait all read the group rather than the Design.
+holds the Node, or the Node's own id. A Read Replica belongs to the group of the Database linked into
+it, because that link is what it copies, and a replica with no such link stands alone and copies
+nothing. Capacity, billing, multi-leader conflicts, cross-shard failures, and a synchronous
+replica's wait all read the group rather than the Design.
 
 ## Topologies
 
