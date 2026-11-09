@@ -110,6 +110,9 @@ time the game state makes it useful.
   trunk; links out of one port keep separate lanes and leave through a splitter. Where belts
   cross, the vertical one goes underground. A belt under several crossings in a row stays in one
   tunnel. Belts that dive under the same crossing share one thin portal.
+- The pointer picks the nearest belt, not the first it finds. The belt under the pointer, and a
+  belt the player picked, lifts above the others while the rest fade back, so one lane reads out
+  of a crowded channel, and a dot marks each of its two ports.
 - A belt is a soft body tinted by what it carries. Requests ride on it as items, each in its kind's
   shape, and faint chevrons point the way it runs. A busier belt runs faster; an idle belt is a thin
   grey line. Its rails are a faint edge in its own tint, and stand out on the focused path and on

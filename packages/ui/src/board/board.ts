@@ -1595,6 +1595,8 @@ class NodeView {
  */
 /** How far a card or belt off the focused path fades. */
 const DIM = 0.3
+/** How far the belts other than the lit one fade, so one lane reads out of a crowded channel. */
+const QUIET = 0.12
 /** Below this zoom the belts' chevrons are left out: they are a few pixels apart. */
 const CHEVRON_SCALE = 0.5
 /** How far under a belt its region's round-trip plate sits. */
@@ -2423,13 +2425,19 @@ class BoardController {
   private linkAt(point: Pt): Readonly<{ from: string; to: string }> | null {
     const byId = new Map(this.nodes().map((node) => [node.id, node]))
     const reach = (this.coarse ? 14 : 7) / this.world.scale.x
+    // Lanes in one channel run a few pixels apart, so the nearest belt wins, not the first.
+    let nearest: Readonly<{ from: string; to: string }> | null = null
+    let closest = reach
     for (const link of this.state?.game.links ?? []) {
       const from = byId.get(link.from)
       const to = byId.get(link.to)
       if (!from || !to) continue
-      if (distanceTo(this.wireOf(from, to).path, point) <= reach) return link
+      const apart = distanceTo(this.wireOf(from, to).path, point)
+      if (apart > closest) continue
+      nearest = link
+      closest = apart
     }
-    return null
+    return nearest
   }
 
   /**
@@ -3234,16 +3242,29 @@ class BoardController {
     const picked = this.selectedLink
     if (picked && !state.game.links.some((l) => l.from === picked.from && l.to === picked.to))
       this.selectedLink = null
+    // One belt is under the pointer or picked: it carries the answer, so the rest quiet down.
+    const lit = this.hoverLink ?? this.selectedLink
+    const litKey =
+      lit && state.game.links.some((l) => l.from === lit.from && l.to === lit.to)
+        ? `${lit.from}>${lit.to}`
+        : null
     for (const link of state.game.links) {
-      const belt = this.belts.get(`${link.from}>${link.to}`)
+      const key = `${link.from}>${link.to}`
+      const belt = this.belts.get(key)
       const from = byId.get(link.from)
       const to = byId.get(link.to)
       if (belt && (!from || !to)) belt.show(false, 1)
       if (!belt || !from || !to) continue
+      const picked = this.selectedLink?.from === link.from && this.selectedLink.to === link.to
+      const hovered =
+        picked || (this.hoverLink?.from === link.from && this.hoverLink.to === link.to)
+      const quiet = litKey !== null && litKey !== key
       // Off the focused path, a belt fades back.
       const off = focus !== null && !(focus.has(link.from) && focus.has(link.to))
-      belt.show(true, off ? DIM : 1)
-      const age = this.fresh.get(`${link.from}>${link.to}`)
+      belt.show(true, quiet ? QUIET : hovered ? 1 : off ? DIM : 1)
+      // A lit belt rises above the channel it shares with the others, so nothing covers it.
+      if (litKey === key) this.bodies.setChildIndex(belt.body, this.bodies.children.length - 1)
+      const age = this.fresh.get(key)
       const wire = this.wireOf(from, to)
       // A new link draws out of its port before anything flows along it.
       const drawn = age === undefined ? 1 : easeOut(Math.min(1, age / DRAW_IN_S))
@@ -3251,21 +3272,17 @@ class BoardController {
       // Where other lanes cross, a vertical lane runs through a tunnel under them.
       const pieces = drawn < 1 ? [path] : wire.pieces
       const seen = belt.onScreen(pieces, view)
-      const flow = rates.get(`${link.from}>${link.to}`)
+      const flow = rates.get(key)
       const tap = COMPONENTS[to.type].tap
-      const picked = this.selectedLink?.from === link.from && this.selectedLink.to === link.to
-      const hovered =
-        picked || (this.hoverLink?.from === link.from && this.hoverLink.to === link.to)
       const busy = (flow?.rate ?? 0) > 0.01
       // The packets' colour; the pipe under them is a pale tint of it, with no outline.
-      const hue =
-        hovered || flow?.failing
-          ? colors.danger
-          : tap
-            ? colors.muted
-            : flow && busy
-              ? KINDS[flow.kind].color
-              : colors.edge
+      const hue = flow?.failing
+        ? colors.danger
+        : tap
+          ? colors.muted
+          : flow && busy
+            ? KINDS[flow.kind].color
+            : colors.edge
       // A dark board sinks its wires toward the canvas, so saturated packets do not glare.
       const packet = mix(hue, colors.canvas, colors.wireMute)
       const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
@@ -3278,7 +3295,7 @@ class BoardController {
       const zonal = zoneMs(from, to) > 0
       const focused = focus !== null && !off
       const rail = hovered
-        ? colors.danger
+        ? colors.accent
         : zonal && focused
           ? colors.warn
           : focused || flow?.failing
@@ -3292,9 +3309,18 @@ class BoardController {
       const body =
         zones && !crossing && !hovered
           ? mix(zoneHue[from.zone], colors.canvas, busy ? 0.75 : 0.85)
-          : mix(packet, colors.canvas, hovered ? 0.6 : busy ? 0.8 : 0.92)
-      belt.draw(pieces, rail, body, busy ? BELT : 3, zonal ? colors.warn : null)
-      if (drawn >= 1) mouthsOf(pieces, busy ? BELT : 3, off, mouths)
+          : mix(packet, colors.canvas, hovered ? 0.55 : busy ? 0.8 : 0.92)
+      const width = hovered ? BELT + 1 : busy ? BELT : 3
+      belt.draw(pieces, rail, body, width, zonal ? colors.warn : null)
+      if (drawn >= 1) mouthsOf(pieces, width, off || quiet, mouths)
+      // A lit belt marks both of its ports, so the lane shows which cards it joins.
+      if (hovered && drawn >= 1) {
+        for (const port of [outPort(from), inPort(to)])
+          this.overlay
+            .circle(port.x, port.y, 4.5)
+            .fill(colors.accent)
+            .stroke({ color: colors.card, width: 2 })
+      }
       // A still, busy belt shows its arrows and rate instead of chevrons: one read, not two.
       // The items carry the flow; the chevrons are faint unless the belt is in focus.
       if (detailed && seen && busy && !still)
@@ -3302,12 +3328,12 @@ class BoardController {
           pieces,
           belt.travel,
           mix(packet, colors.canvas, 0.4),
-          focus !== null && !off ? 0.75 : off ? DIM * 0.4 : 0.3,
+          hovered ? 0.9 : quiet ? 0.05 : focus !== null && !off ? 0.75 : off ? DIM * 0.4 : 0.3,
           view,
         )
       // A link between regions says what its round trip costs, under the belt.
       const place = placeLabel(state.game, from, to)
-      if (place && detailed && seen && drawn >= 1) {
+      if (place && detailed && seen && drawn >= 1 && !quiet) {
         const mid = midOf(path)
         this.places.add(mid.x, mid.y, place, colors.ink, colors.warn, -PLACE_LIFT)
       }
@@ -3336,7 +3362,7 @@ class BoardController {
           continue
         }
       }
-      if (!flow || !busy || off || !seen) continue
+      if (!flow || !busy || off || quiet || !seen) continue
       const length = lengthOf(path)
       const marks = flowMarks(still, flow.rate, length)
       const shape = packetShapeOf(flow.kind)
