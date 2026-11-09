@@ -7,6 +7,7 @@ import type { Model } from '@/game/model.ts'
 import { AppRoute } from '@/game/route.ts'
 import { initialModel, update } from '@/game/update.ts'
 import { exitedPanel } from './legacy.ts'
+import { PanelFocus } from './panels.ts'
 
 /* The Exit survey on the Exit summary: the two questions, then thanks or the reason it did not send. */
 
@@ -25,11 +26,14 @@ const exited = (survey: Partial<Model['survey']> = {}): Model => {
 }
 
 const send = () => Scene.role('button', { name: en.survey.send })
+/** The panel opens with focus inside it, which a scene resolves by hand. */
+const focused = () => Scene.Mount.resolve(PanelFocus, Message.Synced())
 
 test('the survey asks both questions, and Send waits for an answer', () => {
   Scene.scene(
     { update, view: exitedPanel },
     Scene.given(exited()),
+    focused(),
     Scene.expect(Scene.text(en.survey.title)).toExist(),
     Scene.expect(Scene.text(en.survey.issues)).toExist(),
     Scene.expect(Scene.text(en.survey.likes)).toExist(),
@@ -41,11 +45,13 @@ test('an answer enables Send, and a skipped survey leaves the summary', () => {
   Scene.scene(
     { update, view: exitedPanel },
     Scene.given(exited({ issues: 'The Bottleneck took ten minutes to find.' })),
+    focused(),
     Scene.expect(send()).toBeEnabled(),
   )
   Scene.scene(
     { update, view: exitedPanel },
     Scene.given(exited({ phase: { _tag: 'Skipped' } })),
+    focused(),
     Scene.expect(Scene.text(en.survey.title)).toBeAbsent(),
   )
 })
@@ -54,6 +60,7 @@ test('a sent survey thanks the player instead of asking again', () => {
   Scene.scene(
     { update, view: exitedPanel },
     Scene.given(exited({ phase: { _tag: 'Sent' } })),
+    focused(),
     Scene.expect(Scene.text(en.survey.sent)).toExist(),
     Scene.expect(Scene.selector('#survey-issues')).toBeAbsent(),
     Scene.expect(send()).toBeAbsent(),
@@ -65,6 +72,7 @@ test('a failed send keeps the answers and says why', () => {
   Scene.scene(
     { update, view: exitedPanel },
     Scene.given(exited({ phase: { _tag: 'Failed', note }, likes: 'The settling delta.' })),
+    focused(),
     Scene.expect(Scene.text(en.survey.failed(note))).toExist(),
     Scene.expect(Scene.selector('#survey-likes')).toHaveValue('The settling delta.'),
     Scene.expect(send()).toBeEnabled(),

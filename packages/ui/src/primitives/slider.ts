@@ -408,6 +408,8 @@ export type StyledViewInputs = Readonly<{
   orientation?: Orientation
   label?: string
   formatValue?: (value: number) => string
+  /** A control that sits after the value in the header, such as a mute button. */
+  headerTrailing?: Html
   ariaLabel?: string
   ariaLabelledBy?: string
   isDisabled?: boolean
@@ -454,12 +456,18 @@ export const styledViewInputs = <M>(
                   [...attributes.label, h.Class(cn(sliderLabelClass, viewInputs.labelClass))],
                   [viewInputs.label],
                 ),
-                h.span(
-                  [h.Class(cn(sliderValueClass, viewInputs.valueClass))],
+                h.div(
+                  [h.Class('flex items-center gap-1.5')],
                   [
-                    viewInputs.formatValue === undefined
-                      ? String(viewInputs.value)
-                      : viewInputs.formatValue(viewInputs.value),
+                    h.span(
+                      [h.Class(cn(sliderValueClass, viewInputs.valueClass))],
+                      [
+                        viewInputs.formatValue === undefined
+                          ? String(viewInputs.value)
+                          : viewInputs.formatValue(viewInputs.value),
+                      ],
+                    ),
+                    ...(viewInputs.headerTrailing === undefined ? [] : [viewInputs.headerTrailing]),
                   ],
                 ),
               ],

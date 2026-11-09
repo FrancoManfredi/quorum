@@ -1,4 +1,5 @@
-import { Option } from 'effect'
+import { Effect, Option } from 'effect'
+import { Mount } from 'foldkit'
 import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
 import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -14,6 +15,8 @@ import {
   Trash2,
   Upload,
   Users,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide'
 import { UrlRequest } from 'foldkit/navigation'
@@ -42,7 +45,49 @@ import { switch_ } from '@quorum/ui/primitives/switch'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { cn } from '@/lib/utils'
 import { languagePicker } from '@/i18n/picker.ts'
-import { EYEBROW, FIGURE, FLOAT, SCROLL, WELL } from '@quorum/ui/game/bits'
+import { EYEBROW, FIGURE, FLOAT, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
+
+const focusable =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/** Opens with focus inside the panel, keeps Tab in it, and hands focus back on close. A Scene test
+ *  resolves it by hand. */
+export const PanelFocus = Mount.define('PanelFocus', {
+  messages: [Message.Synced],
+  execute: ({ element }) =>
+    Effect.acquireRelease(
+      Effect.sync(() => {
+        const panel = element as HTMLElement
+        const before = document.activeElement instanceof HTMLElement ? document.activeElement : null
+        panel.focus()
+        const onKeyDown = (event: KeyboardEvent) => {
+          if (event.key !== 'Tab') return
+          const items = [...panel.querySelectorAll<HTMLElement>(focusable)]
+          const first = items[0]
+          const last = items[items.length - 1]
+          if (first === undefined || last === undefined) return
+          if (
+            event.shiftKey &&
+            (document.activeElement === first || document.activeElement === panel)
+          ) {
+            event.preventDefault()
+            last.focus()
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault()
+            first.focus()
+          }
+        }
+        panel.addEventListener('keydown', onKeyDown)
+        return () => {
+          panel.removeEventListener('keydown', onKeyDown)
+          // A panel that opens another one leaves focus where the new panel put it.
+          if (panel.contains(document.activeElement) || document.activeElement === document.body)
+            before?.focus()
+        }
+      }),
+      (cleanup) => Effect.sync(cleanup),
+    ).pipe(Effect.as(Message.Synced())),
+})
 
 export const shell = (
   title: string,
@@ -61,7 +106,17 @@ export const shell = (
     ],
     [
       h.div(
-        [h.Class(`flex max-h-full w-full flex-col overflow-hidden ${width} ${FLOAT} enter-modal`)],
+        [
+          h.Key(title),
+          h.Role('dialog'),
+          h.AriaModal(true),
+          h.AriaLabel(title),
+          h.Tabindex(-1),
+          h.OnMount(PanelFocus()),
+          h.Class(
+            `flex max-h-full w-full flex-col overflow-hidden outline-none ${width} ${FLOAT} enter-modal`,
+          ),
+        ],
         [
           h.div(
             [h.Class('flex items-center justify-between gap-4 px-5 pt-4 pb-3')],
@@ -117,7 +172,7 @@ const agentRoomRow = (model: Model, h: HtmlBuilder<Message>) => {
   const id = company === null ? null : agentRoomId(company)
   if (id === null) return h.empty
   return h.div(
-    [h.Class('flex flex-col gap-2')],
+    [h.Class('flex flex-col gap-2 px-4 py-2.5')],
     [
       h.span([h.Class(EYEBROW)], [t.panels.agentRoom]),
       h.div(
@@ -349,17 +404,22 @@ const menuItem = (
   glyph: Parameters<typeof icon>[1],
   message: Message,
   h: HtmlBuilder<Message>,
-  isPrimary = false,
+  variant: 'default' | 'outline' | 'ghost' = 'outline',
+  trailing?: Html,
 ) =>
   button(
     {
       onClick: message,
-      variant: isPrimary ? 'default' : 'outline',
+      variant,
       size: 'lg',
-      className: 'h-11 w-full justify-start gap-2.5 px-3.5',
+      className: cn('h-10 w-full justify-start gap-2.5 px-3', trailing === undefined ? '' : 'pr-2'),
       attributes: [h.Key(label)],
     },
-    [icon(h, glyph, 'size-[18px]'), label],
+    [
+      icon(h, glyph, 'size-[18px] shrink-0'),
+      h.span([h.Class('min-w-0 flex-1 truncate text-left')], [label]),
+      ...(trailing === undefined ? [] : [trailing]),
+    ],
     h,
   )
 
@@ -368,6 +428,7 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
   const file = currentFile(model)
+  const rule = h.div([h.Class('my-1 border-t border-hairline')], [])
   return shell(
     t.panels.menu,
     [],
@@ -375,13 +436,16 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       ...(file
         ? [
             h.div(
-              [h.Class('flex items-center gap-2.5 px-5 pb-4')],
+              [h.Class('flex items-center gap-3 px-5 pb-4')],
               [
-                companyMark(file.logo, 'size-6 shrink-0', h),
+                companyMark(file.logo, 'size-8 shrink-0', h),
                 h.div(
-                  [h.Class('flex min-w-0 flex-col')],
+                  [h.Class('flex min-w-0 flex-col gap-0.5')],
                   [
-                    h.span([h.Class('truncate text-sm font-medium')], [file.name]),
+                    h.span(
+                      [h.Class('truncate text-[calc(15px*var(--type-scale))] font-semibold')],
+                      [file.name],
+                    ),
                     h.span(
                       [h.Class('truncate text-xs text-muted-foreground')],
                       [
@@ -395,25 +459,34 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ]
         : []),
       h.div(
-        [h.Class('flex flex-col gap-2 px-5 pt-1 pb-5')],
+        [h.Class('flex flex-col gap-2 border-t border-hairline px-5 pt-4 pb-5')],
         [
-          menuItem(t.panels.resume, Play, Message.PanelClosed(), h, true),
+          menuItem(
+            t.panels.resume,
+            Play,
+            Message.PanelClosed(),
+            h,
+            'default',
+            Kbd({ className: 'shrink-0' }, [t.panels.esc], h),
+          ),
+          rule,
+          menuItem(t.panels.settings, Settings, Message.PanelOpened({ panel: 'settings' }), h),
           menuItem(
             roomCode(model) === null ? t.room.title : `${t.room.title} · ${roomCode(model)}`,
             Users,
             Message.PanelOpened({ panel: 'room' }),
             h,
           ),
-          menuItem(t.panels.settings, Settings, Message.PanelOpened({ panel: 'settings' }), h),
+          rule,
           menuItem(t.panels.exportPlaytestLog, Download, Message.LogExported(), h),
           exitLegacy(model) === null
             ? h.empty
             : menuItem(t.panels.exitCompany, DoorOpen, Message.PanelOpened({ panel: 'exit' }), h),
-          menuItem(t.panels.titleScreen, House, Message.TitleOpened(), h),
+          menuItem(t.panels.titleScreen, House, Message.TitleOpened(), h, 'ghost'),
         ],
       ),
     ],
-    'max-w-[calc(320px*var(--type-scale))]',
+    'max-w-[calc(340px*var(--type-scale))]',
     h,
   )
 }
@@ -728,26 +801,230 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** The sound level, as a slider: its value lives in `prefs.volume`. */
-const volumeRow = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.submodel({
-    slotId: 'volume',
-    model: model.volumeSlider,
-    view: VolumeSlider.view,
-    toParentMessage: (message) => Message.VolumeSliderChanged({ message }),
-    viewInputs: VolumeSlider.styledViewInputs(
-      {
-        value: model.prefs.volume,
-        label: copy(h).panels.volume,
-        formatValue: (value) => `${value}%`,
-        rowClass: 'gap-1.5',
-      },
-      h,
-    ),
-  })
+/** One labeled group of settings: the label, then a card whose rows divide. */
+const settingSection = (label: string, rows: ReadonlyArray<Html>, h: HtmlBuilder<Message>): Html =>
+  h.div(
+    [h.Class('flex flex-col gap-2')],
+    [
+      h.span([h.Class(EYEBROW)], [label]),
+      h.div([h.Class(cn(NESTED, 'flex flex-col divide-y divide-hairline overflow-hidden'))], rows),
+    ],
+  )
+
+/** A setting's name on the left, its control on the right. */
+const settingLabelClass = 'text-[calc(13px*var(--type-scale))] font-medium leading-snug'
+const settingRowClass = 'w-full flex-row-reverse items-center justify-between gap-4 px-4 py-2.5'
+
+const settingSwitch = (
+  config: Readonly<{ id: string; label: string; isChecked: boolean; onToggle: () => Message }>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  switch_(
+    {
+      ...config,
+      wrapperClass: settingRowClass,
+      textClass: 'min-w-0 flex-1',
+      labelClass: settingLabelClass,
+    },
+    h,
+  )
+
+/** The sound level, with the mute control beside its value. The slider rests while muted. */
+const volumeRow = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const muted = model.prefs.muted
+  return h.div(
+    [h.Class('px-4 py-2.5')],
+    [
+      h.submodel({
+        slotId: 'volume',
+        model: model.volumeSlider,
+        view: VolumeSlider.view,
+        toParentMessage: (message) => Message.VolumeSliderChanged({ message }),
+        viewInputs: VolumeSlider.styledViewInputs(
+          {
+            value: model.prefs.volume,
+            label: t.panels.volume,
+            formatValue: (value) => `${value}%`,
+            isDisabled: muted,
+            rowClass: 'gap-2',
+            headerTrailing: button(
+              {
+                onClick: Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
+                variant: 'ghost',
+                size: 'icon-xs',
+                className: 'text-muted-foreground',
+                attributes: [
+                  h.Title(t.panels.muteSoundM),
+                  h.AriaLabel(t.panels.muteSoundM),
+                  h.AriaPressed(muted ? 'true' : 'false'),
+                ],
+              },
+              icon(h, muted ? VolumeX : Volume2, 'size-3.5'),
+              h,
+            ),
+          },
+          h,
+        ),
+      }),
+    ],
+  )
+}
+
+const languageRow = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
+    [h.Class('flex items-center justify-between gap-4 px-4 py-2.5')],
+    [
+      h.span([h.Class(settingLabelClass)], [t.panels.language]),
+      languagePicker(model.prefs.locale, model.languagePicker, h),
+    ],
+  )
+}
+
+/** A row that leaves the panel: a link out, or an action that runs at once. */
+const settingAction = (
+  label: string,
+  message: Message,
+  glyph: Parameters<typeof icon>[1],
+  h: HtmlBuilder<Message>,
+  glyphSide: 'start' | 'end',
+): Html =>
+  button(
+    {
+      onClick: message,
+      variant: 'ghost',
+      size: 'lg',
+      className: cn(
+        'h-auto w-full gap-2.5 rounded-none px-4 py-2.5',
+        glyphSide === 'end' ? 'justify-between' : 'justify-start',
+      ),
+    },
+    [
+      ...(glyphSide === 'start' ? [icon(h, glyph, 'size-4 shrink-0 text-muted-foreground')] : []),
+      h.span([h.Class(settingLabelClass)], [label]),
+      ...(glyphSide === 'end' ? [icon(h, glyph, 'size-4 shrink-0 text-muted-foreground')] : []),
+    ],
+    h,
+  )
 
 export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+
+  const sound = settingSection(t.panels.sound, [volumeRow(model, h)], h)
+  const play = settingSection(
+    t.panels.play,
+    [
+      settingSwitch(
+        {
+          id: 'setting-easy-mode',
+          label: t.panels.easyMode,
+          isChecked: model.prefs.easyMode,
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }),
+        },
+        h,
+      ),
+      ...(model.prefs.easyMode
+        ? [
+            settingSwitch(
+              {
+                id: 'setting-auto-pause',
+                label: t.panels.pauseOnSEV1AndSEV2,
+                isChecked: model.prefs.autoPause,
+                onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
+              },
+              h,
+            ),
+          ]
+        : []),
+      settingSwitch(
+        {
+          id: 'setting-blur-pause',
+          label: t.panels.pauseOnBlur,
+          isChecked: model.prefs.blurPause,
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
+        },
+        h,
+      ),
+    ],
+    h,
+  )
+  const display = settingSection(
+    t.panels.display,
+    [
+      settingSwitch(
+        {
+          id: 'setting-motion',
+          label: t.panels.reduceMotion,
+          isChecked: model.prefs.motion === 'reduce',
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
+        },
+        h,
+      ),
+      settingSwitch(
+        {
+          id: 'setting-text',
+          label: t.panels.textAt150,
+          isChecked: model.prefs.text === 'large',
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
+        },
+        h,
+      ),
+      settingSwitch(
+        {
+          id: 'setting-theme',
+          label: t.panels.darkMode,
+          isChecked: model.prefs.theme === 'dark',
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
+        },
+        h,
+      ),
+      languageRow(model, h),
+    ],
+    h,
+  )
+  const privacy = settingSection(
+    t.panels.privacy,
+    [
+      settingSwitch(
+        {
+          id: 'setting-agent-access',
+          label: t.panels.agentAccess,
+          isChecked: model.prefs.agentAccess,
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AgentAccessToggled() }),
+        },
+        h,
+      ),
+      ...(model.prefs.agentAccess ? [agentRoomRow(model, h)] : []),
+      settingSwitch(
+        {
+          id: 'setting-analytics',
+          label: t.panels.shareAnonymousUsageData,
+          isChecked: model.prefs.analytics,
+          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AnalyticsToggled() }),
+        },
+        h,
+      ),
+      settingAction(
+        t.panels.privacyPolicy,
+        Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
+        ArrowUpRight,
+        h,
+        'end',
+      ),
+    ],
+    h,
+  )
+  const save = settingSection(
+    t.panels.save,
+    [
+      settingAction(t.panels.copySaveAsText, Message.SaveExported(), Copy, h, 'start'),
+      settingAction(t.panels.importASave, Message.SaveImportAsked(), Upload, h, 'start'),
+      settingAction(t.panels.copyStateAsJSON, Message.StateCopied(), Copy, h, 'start'),
+    ],
+    h,
+  )
+
   return shell(
     t.panels.settings,
     [],
@@ -755,117 +1032,20 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class(`flex min-h-0 flex-col gap-4 px-5 pt-1 pb-5 ${SCROLL}`)],
         [
-          switch_(
-            {
-              id: 'setting-muted',
-              label: t.panels.muteSoundM,
-              isChecked: model.prefs.muted,
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
-            },
-            h,
-          ),
-          volumeRow(model, h),
-          switch_(
-            {
-              id: 'setting-easy-mode',
-              label: t.panels.easyMode,
-              isChecked: model.prefs.easyMode,
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }),
-            },
-            h,
-          ),
-          model.prefs.easyMode
-            ? switch_(
-                {
-                  id: 'setting-auto-pause',
-                  label: t.panels.pauseOnSEV1AndSEV2,
-                  isChecked: model.prefs.autoPause,
-                  onToggle: () =>
-                    Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
-                },
-                h,
-              )
-            : h.empty,
-          switch_(
-            {
-              id: 'setting-blur-pause',
-              label: t.panels.pauseOnBlur,
-              isChecked: model.prefs.blurPause,
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
-            },
-            h,
-          ),
-          switch_(
-            {
-              id: 'setting-motion',
-              label: t.panels.reduceMotion,
-              isChecked: model.prefs.motion === 'reduce',
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
-            },
-            h,
-          ),
-          switch_(
-            {
-              id: 'setting-text',
-              label: t.panels.textAt150,
-              isChecked: model.prefs.text === 'large',
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
-            },
-            h,
-          ),
-          switch_(
-            {
-              id: 'setting-theme',
-              label: t.panels.darkMode,
-              isChecked: model.prefs.theme === 'dark',
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
-            },
-            h,
-          ),
-          switch_(
-            {
-              id: 'setting-agent-access',
-              label: t.panels.agentAccess,
-              isChecked: model.prefs.agentAccess,
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AgentAccessToggled() }),
-            },
-            h,
-          ),
-          model.prefs.agentAccess ? agentRoomRow(model, h) : h.empty,
-          switch_(
-            {
-              id: 'setting-analytics',
-              label: t.panels.shareAnonymousUsageData,
-              isChecked: model.prefs.analytics,
-              onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AnalyticsToggled() }),
-            },
-            h,
-          ),
+          // The slider takes the full width; the rows below split into two balanced columns.
+          // A phone folds both columns back into one.
+          sound,
           h.div(
-            [h.Class('flex items-center justify-between gap-3')],
+            [h.Class('grid grid-cols-2 items-start gap-x-5 gap-y-4 compact:grid-cols-1')],
             [
-              h.span([h.Class('text-sm font-medium')], [t.panels.language]),
-              languagePicker(model.prefs.locale, model.languagePicker, h),
+              h.div([h.Class('flex flex-col gap-4 compact:contents')], [play, display]),
+              h.div([h.Class('flex flex-col gap-4 compact:contents')], [privacy, save]),
             ],
           ),
-          secondaryButton(
-            t.panels.privacyPolicy,
-            Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
-            h,
-            ArrowUpRight,
-          ),
-          h.div(
-            [h.Class('flex flex-wrap gap-2')],
-            [
-              secondaryButton(t.panels.copySaveAsText, Message.SaveExported(), h, Copy),
-              secondaryButton(t.panels.importASave, Message.SaveImportAsked(), h, Upload),
-            ],
-          ),
-          secondaryButton(t.panels.copyStateAsJSON, Message.StateCopied(), h, Copy),
         ],
       ),
     ],
-    'max-w-[calc(360px*var(--type-scale))]',
+    'max-w-[calc(760px*var(--type-scale))]',
     h,
   )
 }

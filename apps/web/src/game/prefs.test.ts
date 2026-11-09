@@ -9,9 +9,12 @@ import { Message } from './message.ts'
 import { AppRoute } from './route.ts'
 import { Message as SliderMessage } from '@quorum/ui/primitives/slider'
 import { parsePrefs } from './update/panels.ts'
-import { settingsPanel } from '../components/lab/panels.ts'
+import { PanelFocus, settingsPanel } from '../components/lab/panels.ts'
 
 type Named = Readonly<{ name: string; args: Record<string, unknown> }>
+
+/** The panel opens with focus inside it, which a scene resolves by hand. */
+const focused = () => Scene.Mount.resolve(PanelFocus, Message.Synced())
 
 const named = (model: Model, message: Message): ReadonlyArray<Named> =>
   ((update(model, message) as { commands?: ReadonlyArray<unknown> }).commands ??
@@ -91,6 +94,7 @@ describe('text at 150%', () => {
     Scene.scene(
       { update, view: settingsPanel },
       Scene.given(model),
+      focused(),
       Scene.expect(Scene.role('switch', { name: 'Text at 150%' })).toBeChecked(),
       Scene.expect(Scene.text('Text at 150%')).toExist(),
     )
@@ -187,6 +191,7 @@ describe('volume', () => {
     Scene.scene(
       { update, view: settingsPanel },
       Scene.given(initialModel()),
+      focused(),
       Scene.expect(Scene.role('slider', { name: 'Volume' })).toExist(),
       Scene.expect(Scene.text('100%')).toExist(),
     )

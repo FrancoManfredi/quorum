@@ -51,6 +51,7 @@ export type SwitchConfig<M> = Readonly<{
   thumbClass?: string
   labelClass?: string
   descriptionClass?: string
+  textClass?: string
   wrapperClass?: string
 }>
 
@@ -92,7 +93,7 @@ export const switch_ = <M>(config: SwitchConfig<M>, h: HtmlBuilder<M>): Html =>
             ),
             ...(attributes.hiddenInput.length > 0 ? [h.input([...attributes.hiddenInput])] : []),
             h.div(
-              [h.Class(switchTextWrapperClass)],
+              [h.Class(cn(switchTextWrapperClass, config.textClass))],
               [
                 h.label(
                   [...attributes.label, h.Class(cn(switchLabelClass, config.labelClass))],

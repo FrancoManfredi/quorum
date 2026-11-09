@@ -7,7 +7,7 @@ aliases: settings, keys, keyboard, shortcuts, hotkeys, key reference, reduce mot
 gdd: /design/15-ui-ux
 ---
 
-Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the title screen, **Settings** is in the taskbar. The panel is a list of switches and buttons, and each change applies at once.
+Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the title screen, **Settings** is in the taskbar. The panel groups its rows into Sound, Play, Display, Privacy, and Save, and each change applies at once.
 
 ![The Settings panel](/play/settings.png)
 
@@ -15,14 +15,17 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 
 | Setting                               | Effect                                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Mute sound** (`M`)                  | Turns all sound off.                                                                  |
+| **Volume**                            | Sets the level of the effect mix. The speaker beside it mutes everything.             |
+| **Mute sound** (`M`)                  | Turns all sound off. The slider rests until you turn sound back on.                   |
+| **Easy mode**                         | Adds Pause and the speed control, and reveals **Pause on SEV1 and SEV2**.             |
 | **Pause on SEV1 and SEV2**            | Pauses the clock when a severe incident starts. Off by default.                       |
 | **Pause when the window loses focus** | Pauses when you switch tabs or windows. On by default.                                |
 | **Reduce motion**                     | Cuts animation. When off, the game follows your system setting.                       |
 | **Text at 150%**                      | Makes interface text larger. Cards on the board scale with zoom instead.              |
+| **Dark mode**                         | Uses the dark interface.                                                              |
+| **Language**                          | Picks the interface language.                                                         |
 | **Agent access**                      | Lets a local agent read the game through the relay. It can only read. Off by default. |
 | **Share anonymous usage data**        | Sends anonymous usage data. Off stops capture. On by default.                         |
-| **Language**                          | Picks the interface language.                                                         |
 | **Privacy policy**                    | Opens the policy in a new page.                                                       |
 | **Copy save as text**                 | Copies this Company as text that starts with `QSV1:`.                                 |
 | **Import a save**                     | Asks you to paste that text and loads it.                                             |
@@ -30,7 +33,7 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 
 Settings belong to the browser, not to a Company. Read [Import your playtest save](/guides/import-your-playtest-save) before you use **Import a save**, and the [privacy page](/about/privacy) for what the usage data holds.
 
-The Menu also holds **Resume**, **Export playtest log**, **Exit company** when you can exit, and **Title screen**.
+The Menu also holds **Resume**, **Settings**, **Room**, **Export playtest log**, **Exit company** when you can exit, and **Title screen**. **Resume** and `Esc` return to the board.
 
 ## Keys
 
