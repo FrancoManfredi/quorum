@@ -38,14 +38,7 @@ import {
   storageRequestBurnOf,
   zoneMs,
 } from './lookups.ts'
-import {
-  slotOf,
-  cdnHitOf,
-  gatewayArrivals,
-  gatewayShare,
-  type Pass,
-  type Rates,
-} from './rules.ts'
+import { slotOf, cdnHitOf, gatewayArrivals, gatewayShare, type Pass, type Rates } from './rules.ts'
 import { isGlobal } from './regions.ts'
 import { type Game } from './state.ts'
 import { payrollOf } from './team.ts'

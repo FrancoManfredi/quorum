@@ -732,7 +732,10 @@ export const setTtl = (game: Game, id: string, ttl: number): Action =>
               ? game
               : patch(game, id, {
                   ttl,
-                  life: withWarm(node.life, node.warming && has(game, 'cache-warming') ? WARMED : 0),
+                  life: withWarm(
+                    node.life,
+                    node.warming && has(game, 'cache-warming') ? WARMED : 0,
+                  ),
                 }),
           )
         : notAllowed('A cache TTL is 10 seconds, 1 minute, or 1 hour.')

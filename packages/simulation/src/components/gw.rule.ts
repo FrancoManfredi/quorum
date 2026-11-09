@@ -54,7 +54,10 @@ export const gwRule: ComponentRule = {
     )
   },
   outcome: (answer, node, kind) => {
-    const all = gatewayArrivals(answer.game, (entry) => answer.pass.arriving[slotOf(answer.pass, entry)] ?? {})
+    const all = gatewayArrivals(
+      answer.game,
+      (entry) => answer.pass.arriving[slotOf(answer.pass, entry)] ?? {},
+    )
     const kept = all.node ? gatewayShare(all.node, all.arriving) : 1
     return failSome(relay(answer, node, kind), 1 - kept, 'throttled')
   },
@@ -73,7 +76,9 @@ export const setRateLimit = (game: Game, id: string, rateLimit: number): Action 
         ? game
         : {
             ...game,
-            nodes: game.nodes.map((entry) => (entry.type === 'gw' ? { ...entry, rateLimit } : entry)),
+            nodes: game.nodes.map((entry) =>
+              entry.type === 'gw' ? { ...entry, rateLimit } : entry,
+            ),
           },
     )
   })
