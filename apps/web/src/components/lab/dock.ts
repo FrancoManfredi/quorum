@@ -1,6 +1,6 @@
 import { copy, localized } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { ChartLine, Lock, MessagesSquare, Plug, Wrench, X, type IconNode } from 'lucide'
+import { ChartLine, Lock, Mail, MessagesSquare, Plug, Wrench, X, type IconNode } from 'lucide'
 import {
   DOCK_GROUPS,
   COMPONENTS,
@@ -17,6 +17,7 @@ import { icon } from '@quorum/ui/primitives/icon'
 import { Kbd } from '@quorum/ui/primitives/kbd'
 import { cn } from '@/lib/utils'
 import { FIGURE, GROUP_TEXT, PANEL, groupBadge, tool } from '@quorum/ui/game/bits'
+import { unreadCount, waitingMail } from './inbox.ts'
 
 /** The highlight's offset under the open tab, by the tab's place in the dock. */
 const TAB_OFFSET = [
@@ -91,13 +92,20 @@ const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Mess
           )
         : h.span(
             [
+              h.Title(t.catalog.research[def.unlock ?? 'stripe'].name),
               h.Class(
-                'flex items-center gap-1 text-[calc(11px*var(--type-scale))] text-muted-foreground',
+                'flex shrink-0 items-center gap-1 text-[calc(11px*var(--type-scale))] text-muted-foreground',
               ),
             ],
-            [icon(h, Lock, 'size-3'), t.catalog.research[def.unlock ?? 'stripe'].name],
+            [
+              icon(h, Lock, 'size-3.5'),
+              h.span(
+                [h.Class('compact:hidden')],
+                [t.catalog.research[def.unlock ?? 'stripe'].name],
+              ),
+            ],
           ),
-      Kbd({}, [String(index + 1)], h),
+      h.span([h.Class('compact:hidden')], [Kbd({}, [String(index + 1)], h)]),
     ],
   )
 }
@@ -140,10 +148,55 @@ const list = (model: Model, group: DockGroup, h: HtmlBuilder<Message>): Html =>
       h.Key(`list-${group}`),
       h.DataAttribute('exit', 'gesture'),
       h.DataAttribute('exit-anchor', 'bottom'),
-      h.Class('swap flex w-[420px] max-w-full flex-col gap-0.5 pb-1 compact:w-auto'),
+      h.Class(
+        'swap flex w-[420px] max-w-full flex-col gap-0.5 pb-1 compact:max-h-[46dvh] compact:w-auto compact:overflow-y-auto compact:[scrollbar-width:none]',
+      ),
     ],
     dockItems(model.board.game, group).map((type, index) => row(model, type, index, h)),
   )
+
+/** The Inbox beside the build groups: one badge, one sheet, no separate action bar. */
+const inboxTab = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const unread = unreadCount(model)
+  const waiting = waitingMail(model)
+  const active = model.panel === 'inbox'
+  return h.button(
+    [
+      h.Key('inbox-tab'),
+      h.Type('button'),
+      h.Title(t.inbox.inboxI),
+      h.AriaLabel(unread > 0 ? t.inbox.inboxUnread(unread) : t.inbox.inbox),
+      h.AriaPressed(active ? 'true' : 'false'),
+      h.OnClick(Message.PanelOpened({ panel: active ? 'none' : 'inbox' })),
+      h.Class(
+        cn(
+          'press relative hidden size-10 shrink-0 place-items-center rounded-xl compact:grid',
+          active ? 'bg-well shadow-well' : 'hover:bg-well',
+        ),
+      ),
+    ],
+    [
+      icon(h, Mail, 'size-5 text-muted-foreground'),
+      unread > 0
+        ? h.span(
+            [
+              h.Key(`unread-${unread}`),
+              h.Class(
+                cn(
+                  FIGURE,
+                  'enter-badge absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[calc(9.5px*var(--type-scale))] leading-none font-medium text-white shadow-raised',
+                  waiting ? 'bg-danger' : 'bg-primary-fill',
+                ),
+              ),
+            ],
+            [String(unread)],
+          )
+        : h.empty,
+    ],
+  )
+}
 
 /** One surface. Its top slot holds the open group's parts or the part in hand,
  *  and the dock morphs between them instead of snapping (src/game/motion.ts).
@@ -167,13 +220,13 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
       open ? list(model, open, h) : placing ? armed(placing, h) : h.empty,
       h.div(
         [
-          h.Class('flex items-center justify-center gap-1'),
-          h.Role('group'),
-          h.AriaLabel(t.dock.build),
+          h.Class(
+            'flex max-w-full items-center justify-center gap-1 compact:justify-start compact:overflow-x-auto compact:[scrollbar-width:none]',
+          ),
         ],
         [
           h.div(
-            [h.Class('relative flex gap-1')],
+            [h.Class('relative flex gap-1'), h.Role('group'), h.AriaLabel(t.dock.build)],
             [
               // One highlight slides between the tabs. It is a fresh element each time the
               // list opens, so it fades in on the tab you clicked instead of sliding from another.
@@ -229,6 +282,8 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
             ],
           ),
+          h.span([h.Class('mx-0.5 hidden h-6 w-px shrink-0 bg-hairline compact:block')], []),
+          inboxTab(model, h),
         ],
       ),
     ],

@@ -218,6 +218,13 @@ export const openingFolder = (inbox: Inbox): Folder =>
     : 'action'
 
 /** The Inbox on one Mail, or the newest in its folder, which counts as read. */
+/** The Inbox as a list: no open thread, nothing marked read. A phone lands here. */
+export const listing = (inbox: Inbox, focus: number | null = null): Inbox => ({
+  ...inbox,
+  focus,
+  peek: null,
+})
+
 export const reading = (inbox: Inbox, focus: number | null = null): Inbox => {
   const shown = folderList(inbox)
   const id =
@@ -411,7 +418,7 @@ export const updateInbox = (
   context: InboxContext,
 ): Update.ReturnWithOutMessage<Inbox, InboxMessage, InboxOutMessage> =>
   InboxMessage.match<Update.ReturnWithOutMessage<Inbox, InboxMessage, InboxOutMessage>>(message, {
-    Opened: ({ id }) => ({ model: reading(inbox, id) }),
+    Opened: ({ id }) => ({ model: id === null ? listing(inbox) : reading(inbox, id) }),
     PeekOpened: ({ id }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
       const folder = mail?.spam ? 'spam' : mail && needsAction(mail) ? 'action' : 'fyi'
@@ -421,8 +428,8 @@ export const updateInbox = (
       }
     },
     PeekDismissed: () => ({ model: { ...inbox, peek: null } }),
-    Trashed: ({ id }) => ({ model: reading(withMail(inbox, id, { trashed: true })) }),
-    Restored: ({ id }) => ({ model: reading(withMail(inbox, id, { trashed: false })) }),
+    Trashed: ({ id }) => ({ model: listing(withMail(inbox, id, { trashed: true })) }),
+    Restored: ({ id }) => ({ model: listing(withMail(inbox, id, { trashed: false })) }),
     FilterToggled: () => ({ model: { ...inbox, filter: !inbox.filter } }),
     MarkedSpam: ({ id }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
@@ -432,11 +439,11 @@ export const updateInbox = (
       const disarms =
         spam && (mail?.actions.some((action) => action.id.startsWith('trap:')) ?? false)
       return {
-        model: reading(withMail(inbox, id, { spam, ...(disarms ? { actions: [] } : {}) })),
+        model: listing(withMail(inbox, id, { spam, ...(disarms ? { actions: [] } : {}) })),
       }
     },
-    FolderChosen: ({ folder }) => ({ model: reading({ ...inbox, folder, label: null }) }),
-    LabelChosen: ({ label }) => ({ model: reading({ ...inbox, label }) }),
+    FolderChosen: ({ folder }) => ({ model: listing({ ...inbox, folder, label: null }) }),
+    LabelChosen: ({ label }) => ({ model: listing({ ...inbox, label }) }),
     Acted: ({ id, action }) => {
       const mail = inbox.mail.find((entry) => entry.id === id)
       if (!mail) return { model: inbox }

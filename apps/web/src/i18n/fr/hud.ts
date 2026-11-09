@@ -6,6 +6,7 @@ export const hud: Messages['hud'] = {
   closeEsc: 'Fermer (Échap)',
   s: (p0) => `+${p0}/s`,
   insight: 'Connaissances',
+  vitals: 'Indicateurs',
   researchR: (p0) => `Recherche (R). ${p0}`,
   researchR2: 'Recherche (R)',
   idle: 'Inactif',

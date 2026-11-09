@@ -1207,7 +1207,7 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
       h.Key('detail'),
       h.DataAttribute('exit', 'gesture'),
       h.Class(
-        'absolute inset-y-0 right-0 z-20 flex w-[var(--sheet-w)] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:border-t compact:border-l-0',
+        'absolute inset-y-0 right-0 z-20 flex w-[var(--sheet-w)] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:border-t compact:border-l-0 compact:pb-[env(safe-area-inset-bottom)]',
       ),
     ],
     [

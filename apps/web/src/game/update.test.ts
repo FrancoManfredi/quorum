@@ -1876,11 +1876,13 @@ test('the Inbox opens on Needs action while something needs the player, and on F
       { ...start, board: { ...start.board, inbox: { ...start.board.inbox, mail } } },
       Message.PanelOpened({ panel: 'inbox' }),
     ).model.board.inbox
-  expect(opened([letter])).toMatchObject({ folder: 'fyi', focus: 1 })
+  // The list is what a phone lands on: opening the Inbox reads nothing and opens no thread.
+  expect(opened([letter])).toMatchObject({ folder: 'fyi', focus: null })
+  expect(opened([letter]).mail[0]?.read).toBe(false)
   // Read letters still beat an empty "Nothing needs you." pane.
-  expect(opened([{ ...letter, read: true }])).toMatchObject({ folder: 'fyi', focus: 1 })
+  expect(opened([{ ...letter, read: true }])).toMatchObject({ folder: 'fyi', focus: null })
   expect(opened([]).folder).toBe('action')
-  expect(opened([letter, offer])).toMatchObject({ folder: 'action', focus: 2 })
+  expect(opened([letter, offer])).toMatchObject({ folder: 'action', focus: null })
 })
 
 test('a stalled running Study raises a teammate alert that opens Research and closes when it moves', () => {

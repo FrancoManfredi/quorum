@@ -87,8 +87,8 @@ test('a label chip filters the list to one kind of Sender', () => {
     open: true,
   })
   expect(folderList(security.model).map((mail) => mail.subject)).toEqual(['CVE-2024-1'])
-  // The chip picks the newest Mail with that label, and choosing All restores the folder.
-  expect(security.model.focus).toBe(security.model.mail[1]?.id)
+  // The chip filters the list and clears the open thread, so a phone stays on the list.
+  expect(security.model.focus).toBe(null)
   const all = updateInbox(security.model, InboxMessage.LabelChosen({ label: null }), {
     game,
     open: true,

@@ -2116,6 +2116,8 @@ class BoardController {
   private phase = 0
   private started = false
   private fitted = false
+  /** The host width the view was fitted to: a wider or narrower screen refits, a taller one does not. */
+  private fittedWidth: number | null = null
   private destroyed = false
 
   constructor(
@@ -2261,7 +2263,9 @@ class BoardController {
     const { clientWidth: w, clientHeight: h } = this.host
     if (w === 0 || h === 0) return
     this.app.renderer.resize(w, h)
-    if (!this.fitted) this.fit()
+    // A rotation or a window resize fits the Design again; a phone's URL bar changing the height
+    // does not, so a panned view stays where the player left it.
+    if (!this.fitted || this.fittedWidth === null || Math.abs(w - this.fittedWidth) > 32) this.fit()
   }
 
   fit(): void {
@@ -2297,6 +2301,7 @@ class BoardController {
         : left + across / 2 - ((minX + maxX) / 2) * scale
     this.world.position.set(x, top + room / 2 - ((minY + maxY) / 2) * scale)
     this.fitted = true
+    this.fittedWidth = w
   }
 
   /** Centers a Node in the room the HUD, dock, and Inspector leave free. */
@@ -2319,6 +2324,7 @@ class BoardController {
       top + roomH / 2 - (node.y + heightOf(node.type) / 2) * scale,
     )
     this.fitted = true
+    this.fittedWidth = w
   }
 
   private toWorld(event: PointerEvent | WheelEvent): Pt {

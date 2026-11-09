@@ -93,6 +93,7 @@ import {
   FLOAT,
   FIGURE,
   PANEL,
+  SCROLL,
   WELL,
   type Tone,
   meter,
@@ -100,6 +101,7 @@ import {
   tool,
   toneText,
 } from '@quorum/ui/game/bits'
+import { shell } from './panels.ts'
 
 /** A phone shows Apdex before Errors and Latency, which scroll off the edge. */
 const CHIP_ORDER: Record<string, string> = {
@@ -595,6 +597,367 @@ const building = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html =
   )
 }
 
+/** One figure in the phone's status row: an icon and its value, tappable when it has more to show. */
+const phoneFigure = (
+  label: string,
+  glyph: IconNode,
+  value: string,
+  tone: Tone,
+  onClick: Message | null,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.button(
+    [
+      h.Type('button'),
+      h.AriaLabel(label),
+      h.Title(label),
+      ...(onClick ? [h.OnClick(onClick)] : [h.Disabled(true)]),
+      h.Class(
+        'flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 px-1 disabled:opacity-100',
+      ),
+    ],
+    [
+      icon(h, glyph, 'size-4 shrink-0 text-muted-foreground'),
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'text-[calc(13.5px*var(--type-scale))] leading-none whitespace-nowrap',
+              tone === 'plain' ? '' : toneText(tone),
+            ),
+          ),
+        ],
+        [value],
+      ),
+    ],
+  )
+
+/**
+ * The phone's status card: the Era and its Milestone, then the three figures that decide the next
+ * move. Everything else the desktop HUD shows waits in Vitals, one tap away.
+ */
+const phoneHud = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const game = model.board.game
+  const era = localized(eraOf(game), eraWords(t, game))
+  const nextWords = t.catalog.eras[game.stage + 1]
+  const next = nextEra(game) && nextWords ? localized(nextEra(game)!, nextWords) : undefined
+  const share = next ? Math.min(1, game.users / era.raiseAt) : 1
+  const ready = canRaise(game)
+  const target = eraOf(game).apdexTarget
+  return h.header(
+    [
+      h.Key('phone-hud'),
+      h.Title(next ? t.hud.roundAtUsers(next.name, compact(era.raiseAt)) : era.name),
+      h.Class(
+        'pointer-events-auto hidden flex-col gap-1.5 rounded-2xl bg-surface p-1.5 shadow-card compact:flex',
+      ),
+    ],
+    [
+      h.div(
+        [h.Class('flex h-11 items-center gap-1 pr-[var(--toolbar-w)]')],
+        [
+          h.button(
+            [
+              h.Type('button'),
+              h.AriaLabel(t.hud.menuEsc),
+              h.Title(t.hud.menuEsc),
+              h.OnClick(Message.PanelOpened({ panel: 'menu' })),
+              h.Class(
+                'grid size-11 shrink-0 place-items-center rounded-xl text-muted-foreground hover:bg-well hover:text-foreground',
+              ),
+            ],
+            [icon(h, Menu, 'size-5')],
+          ),
+          h.span(
+            [h.Class('min-w-0 truncate text-[calc(15px*var(--type-scale))] font-semibold')],
+            [era.name],
+          ),
+        ],
+      ),
+      h.div([h.Class('px-0.5')], [meter(share, ready ? 'bg-ok' : 'bg-primary-fill', h)]),
+      h.div(
+        [h.Class(`flex divide-x divide-hairline ${WELL}`)],
+        [
+          phoneFigure(
+            t.hud.cash,
+            Wallet,
+            money(game.cash),
+            game.cash < 0 ? 'danger' : 'plain',
+            Message.PanelOpened({ panel: 'vitals' }),
+            h,
+          ),
+          phoneFigure(
+            t.hud.users,
+            Users,
+            compact(game.users),
+            'plain',
+            Message.PanelOpened({ panel: model.panel === 'churn' ? 'none' : 'churn' }),
+            h,
+          ),
+          phoneFigure(
+            'Apdex',
+            Smile,
+            game.apdex.toFixed(2),
+            game.apdex >= target ? 'ok' : 'danger',
+            Message.PanelOpened({ panel: 'vitals' }),
+            h,
+          ),
+        ],
+      ),
+    ],
+  )
+}
+
+/** One line of Vitals: a name, its figure and a note, with the whole row as the tap target. */
+const vitalRow = (
+  name: string,
+  glyph: IconNode,
+  value: string,
+  note: string,
+  tone: Tone,
+  onClick: Message | null,
+  h: HtmlBuilder<Message>,
+  title = name,
+): Html =>
+  h.button(
+    [
+      h.Type('button'),
+      h.Title(title),
+      h.AriaLabel(title),
+      ...(onClick ? [h.OnClick(onClick)] : [h.Disabled(true)]),
+      h.Class(
+        'flex min-h-12 w-full items-center gap-3 px-3.5 text-left disabled:opacity-100 enabled:hover:bg-well',
+      ),
+    ],
+    [
+      icon(h, glyph, 'size-4 shrink-0 text-muted-foreground'),
+      h.span([h.Class('min-w-0 flex-1 truncate text-[calc(13px*var(--type-scale))]')], [name]),
+      h.span(
+        [
+          h.Class(
+            cn(
+              FIGURE,
+              'shrink-0 text-[calc(14px*var(--type-scale))] leading-none',
+              tone === 'plain' ? '' : toneText(tone),
+            ),
+          ),
+        ],
+        [value],
+      ),
+      note
+        ? h.span(
+            [
+              h.Title(note),
+              h.Class(
+                cn(
+                  FIGURE,
+                  'shrink-0 text-[calc(11px*var(--type-scale))] leading-none',
+                  tone === 'plain' ? 'text-muted-foreground' : toneText(tone),
+                ),
+              ),
+            ],
+            [note],
+          )
+        : h.empty,
+    ],
+  )
+
+/**
+ * Everything the desktop HUD keeps in view, on one scrolling phone page: the Era, every figure,
+ * the Insight pools, and the Pre-IPO or quarter work. The board stays the first screen.
+ */
+export const vitalsPanel = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const game = model.board.game
+  const era = localized(eraOf(game), eraWords(t, game))
+  const nextWords = t.catalog.eras[game.stage + 1]
+  const next = nextEra(game) && nextWords ? localized(nextEra(game)!, nextWords) : undefined
+  const share = next ? Math.min(1, game.users / era.raiseAt) : 1
+  const ready = canRaise(game)
+  const target = eraOf(game).apdexTarget
+  const income = has(game, 'stripe') ? ledger.revenue : 0
+  const net = income - ledger.burn
+  const then = game.history.at(-30)
+  const trend = then ? game.users - then.users : 0
+  const errors = ledger.errorShare * 100
+  const percentiles = has(game, 'percentiles')
+  const runway = runwayOf(game, ledger)
+  const short = game.cash <= 0
+  const bridging = game.bridge._tag === 'Offered'
+  const credit = slaCreditsOf(game, ledger)
+  const cashNote = bridging
+    ? t.hud.bridgeOffered
+    : short
+      ? t.hud.outOfCash
+      : `${t.units.perSecond(`${net >= 0 ? '+' : ''}${money(net)}`)}${runway === null ? '' : ` · ${t.hud.runwayMonths((runway / RUNWAY_MONTH).toFixed(1))}`}`
+  return shell(
+    t.hud.vitals,
+    [],
+    [
+      h.div(
+        [h.Class(cn('flex flex-col gap-5 px-4 pt-1 pb-6', SCROLL))],
+        [
+          h.div(
+            [h.Class('flex flex-col gap-2')],
+            [
+              h.div(
+                [h.Class('flex items-baseline justify-between gap-3')],
+                [
+                  h.span(
+                    [h.Class('text-[calc(15px*var(--type-scale))] font-semibold')],
+                    [era.name],
+                  ),
+                  next
+                    ? h.span(
+                        [
+                          h.Class(
+                            FIGURE + ' text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                          ),
+                        ],
+                        [t.hud.roundAtUsers(next.name, compact(era.raiseAt))],
+                      )
+                    : h.empty,
+                ],
+              ),
+              meter(share, ready ? 'bg-ok' : 'bg-primary-fill', h),
+              ready && next
+                ? button(
+                    {
+                      onClick: Message.PanelOpened({ panel: 'offer' }),
+                      size: 'lg',
+                      className: 'mt-1 w-full',
+                    },
+                    [icon(h, Rocket, 'size-4'), t.hud.offer(next.name)],
+                    h,
+                  )
+                : h.empty,
+            ],
+          ),
+          h.div(
+            [h.Class('flex flex-col divide-y divide-hairline rounded-xl bg-well shadow-well')],
+            [
+              vitalRow(
+                t.hud.cash,
+                Wallet,
+                money(game.cash),
+                cashNote,
+                short || bridging ? 'danger' : net >= 0 && income > 0 ? 'ok' : 'plain',
+                short || bridging ? Message.PanelOpened({ panel: 'dashboard' }) : null,
+                h,
+                t.hud.cashAndNet,
+              ),
+              vitalRow(
+                t.hud.users,
+                Users,
+                compact(game.users),
+                trend === 0 ? '' : `${trend > 0 ? '▲' : '▼'} ${compact(Math.abs(trend))}`,
+                trend >= 0 ? 'ok' : 'danger',
+                Message.PanelOpened({ panel: model.panel === 'churn' ? 'none' : 'churn' }),
+                h,
+                t.hud.whyUsersLeave,
+              ),
+              vitalRow(
+                'Apdex',
+                Smile,
+                game.apdex.toFixed(2),
+                `/ ${target.toFixed(2)}`,
+                game.apdex >= target ? 'ok' : 'danger',
+                null,
+                h,
+                t.hud.apdexOverTheLastHourUsers(target.toFixed(2)),
+              ),
+              shown(model, 'errors')
+                ? vitalRow(
+                    t.hud.errors,
+                    TriangleAlert,
+                    `${errors.toFixed(errors >= 10 ? 0 : 1)}%`,
+                    '',
+                    errors < 1 ? 'ok' : errors < 5 ? 'warn' : 'danger',
+                    null,
+                    h,
+                  )
+                : h.empty,
+              budgeted(game)
+                ? vitalRow(
+                    'SLO',
+                    ShieldCheck,
+                    percent(budgetOf(game).availability),
+                    has(game, 'slo-dashboards')
+                      ? budgetOf(game).left > 0
+                        ? t.hud.left(Math.round(Math.max(0, budgetOf(game).left) * 100))
+                        : t.hud.spent
+                      : `/ ${Number((budgetOf(game).slo * 100).toFixed(2))}%`,
+                    budgetOf(game).left > 0.5 ? 'ok' : budgetOf(game).left > 0 ? 'warn' : 'danger',
+                    null,
+                    h,
+                  )
+                : h.empty,
+              credit > 0
+                ? vitalRow(
+                    'SLA',
+                    Wallet,
+                    `−${t.units.perSecond(money(credit))}`,
+                    '',
+                    'danger',
+                    null,
+                    h,
+                    t.hud.slaCredits(t.units.perSecond(money(credit)), percent(budgetOf(game).slo)),
+                  )
+                : h.empty,
+              vitalRow(
+                percentiles ? 'p99' : t.hud.latency,
+                Timer,
+                formats(t).ms(percentiles ? ledger.p99 : ledger.latency),
+                percentiles ? `μ ${formats(t).ms(ledger.latency)}` : '',
+                'plain',
+                null,
+                h,
+              ),
+            ],
+          ),
+          shown(model, 'research') ? insightCard(model, ledger, h) : h.empty,
+          game.stage === PRE_IPO_STAGE && !offCompany(model)
+            ? checklist(model, ledger, h)
+            : h.empty,
+          game.quarter && !offCompany(model) ? quarterly(model, ledger, h) : h.empty,
+          shown(model, 'team') ? building(model, ledger, h) : h.empty,
+        ],
+      ),
+    ],
+    'max-w-[560px] h-full',
+    h,
+  )
+}
+
+/** The raise offer, as the phone action bar's primary button, when one is on the table. */
+export const phoneOffer = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const game = model.board.game
+  const nextWords = t.catalog.eras[game.stage + 1]
+  const next = nextEra(game) && nextWords ? localized(nextEra(game)!, nextWords) : undefined
+  if (!canRaise(game) || !next) return h.empty
+  return button(
+    {
+      onClick: Message.PanelOpened({ panel: 'offer' }),
+      size: 'lg',
+      className: 'h-12! min-w-0 w-full px-3 compact:text-[calc(13px*var(--type-scale))]',
+    },
+    [
+      icon(h, Rocket, 'size-4'),
+      h.span(
+        [h.Class('truncate')],
+        [game.stage === PRE_IPO_STAGE ? t.hud.iPO : t.hud.offer(next.name)],
+      ),
+    ],
+    h,
+  )
+}
+
 export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
@@ -722,7 +1085,13 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
             : 'calc(46px*var(--type-scale))',
       }),
     ],
-    [header, shown(model, 'research') ? insightCard(model, ledger, h) : h.empty],
+    [
+      phoneHud(model, h),
+      h.div(
+        [h.Class('flex flex-col gap-2 compact:hidden')],
+        [header, shown(model, 'research') ? insightCard(model, ledger, h) : h.empty],
+      ),
+    ],
   )
 }
 
@@ -1071,7 +1440,7 @@ const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
       items: moreItems(model),
       className: 'hidden compact:block',
       ariaLabel: t.hud.more,
-      buttonClassName: cn(tool(model.moreMenu.isOpen), 'relative size-9'),
+      buttonClassName: cn(tool(model.moreMenu.isOpen), 'relative size-11'),
       buttonContent: h.span(
         [h.Class('contents')],
         [
@@ -1130,7 +1499,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.nav(
     [
       h.Class(
-        `pointer-events-auto relative z-20 flex shrink-0 items-center gap-1 p-1.5 ${PANEL} compact:absolute compact:top-[calc(max(8px,env(safe-area-inset-top))+10px)] compact:right-[calc(max(8px,env(safe-area-inset-right))+10px)] compact:gap-0.5 compact:bg-none compact:p-0 compact:shadow-none`,
+        `pointer-events-auto relative z-20 flex shrink-0 items-center gap-1 p-1.5 ${PANEL} compact:absolute compact:top-[calc(max(8px,env(safe-area-inset-top))+10px)] compact:right-[calc(max(8px,env(safe-area-inset-right))+10px)] compact:gap-3 compact:bg-none compact:p-0 compact:shadow-none`,
       ),
     ],
     [
@@ -1152,7 +1521,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
                   tool(model.panel === 'research'),
                   'enter-pop',
                   glowing(model, 'research') && 'cue-glow',
-                  'flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
+                  'flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-11 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
                 ),
               ),
             ],
@@ -1191,7 +1560,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
                   tool(model.panel === 'team'),
                   'enter-pop',
                   glowing(model, 'team') && 'cue-glow',
-                  'flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-9 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
+                  'flex w-auto gap-2 px-3 text-[calc(13px*var(--type-scale))] font-medium compact:size-11 compact:px-0 max-2xl:w-9 max-2xl:px-0 max-2xl:justify-center',
                 ),
               ),
             ],

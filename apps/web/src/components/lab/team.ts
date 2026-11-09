@@ -1360,7 +1360,7 @@ const floor = (model: Model, h: HtmlBuilder<Message>): Html => {
   const game = model.board.game
   return h.div(
     [
-      h.Class(`flex min-h-0 flex-col gap-3 p-4 ${SCROLL}`),
+      h.Class(`flex min-h-0 flex-col gap-3 p-4 ${SCROLL} compact:overflow-visible`),
       h.DataAttribute('team-drag-floor', ''),
       ...(DragAndDrop.isDragging(model.board.team.drag)
         ? [h.DataAttribute('team-drag-active', '')]
@@ -2616,7 +2616,7 @@ const work = (model: Model, h: HtmlBuilder<Message>): Html => {
   const review = has(game, 'code-review')
   const engineering = tasks.length > 0 && shown(model, 'engineering')
   return h.div(
-    [h.Class(`flex min-h-0 flex-col gap-3 p-4 ${SCROLL}`)],
+    [h.Class(`flex min-h-0 flex-col gap-3 p-4 ${SCROLL} compact:overflow-visible`)],
     [
       migrationCard(game, h),
       heading(
@@ -2703,7 +2703,7 @@ export const teamPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [
           h.Class(
-            'grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)] border-t border-hairline narrow:grid-cols-1',
+            `grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)] border-t border-hairline narrow:grid-cols-1 compact:block compact:overflow-y-auto compact:pb-[env(safe-area-inset-bottom)]`,
           ),
         ],
         [

@@ -101,7 +101,7 @@ export const shell = (
     [
       h.DataAttribute('exit', 'gesture'),
       h.Class(
-        'absolute inset-0 z-30 grid place-items-center bg-foreground/10 p-6 backdrop-blur-[3px] enter-backdrop compact:p-3 compact:pt-[max(12px,env(safe-area-inset-top))] compact:pb-[max(12px,env(safe-area-inset-bottom))] short:[[data-toast=on]_&]:pt-12!',
+        'absolute inset-0 z-30 grid place-items-center bg-foreground/10 p-6 backdrop-blur-[3px] enter-backdrop compact:p-0 short:[[data-toast=on]_&]:pt-12!',
       ),
     ],
     [
@@ -114,12 +114,16 @@ export const shell = (
           h.Tabindex(-1),
           h.OnMount(PanelFocus()),
           h.Class(
-            `flex max-h-full w-full flex-col overflow-hidden outline-none ${width} ${FLOAT} enter-modal`,
+            `flex max-h-full w-full flex-col overflow-hidden outline-none compact:h-full compact:max-h-none compact:max-w-none compact:rounded-none compact:pb-[env(safe-area-inset-bottom)] compact:shadow-none ${width} ${FLOAT} enter-modal`,
           ),
         ],
         [
           h.div(
-            [h.Class('flex items-center justify-between gap-4 px-5 pt-4 pb-3')],
+            [
+              h.Class(
+                'flex items-center justify-between gap-4 px-5 pt-4 pb-3 compact:px-4 compact:pt-[max(12px,env(safe-area-inset-top))]',
+              ),
+            ],
             [
               h.span(
                 [h.Class('text-[calc(17px*var(--type-scale))] font-semibold tracking-[-0.025em]')],
@@ -134,7 +138,7 @@ export const shell = (
                       onClick: Message.PanelClosed(),
                       variant: 'ghost',
                       size: 'icon',
-                      className: 'text-muted-foreground',
+                      className: 'text-muted-foreground compact:size-11',
                       attributes: [h.AriaLabel(t.panels.closeEsc)],
                     },
                     icon(h, X, 'size-4'),

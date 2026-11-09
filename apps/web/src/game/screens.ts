@@ -1,6 +1,13 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { dock } from '@/components/lab/dock.ts'
-import { changeBar, hud, regionTabs, toolbar } from '@/components/lab/hud.ts'
+import {
+  changeBar,
+  hud,
+  phoneOffer,
+  regionTabs,
+  toolbar,
+  vitalsPanel,
+} from '@/components/lab/hud.ts'
 import { alertsNotice, incidentNotice, researchOffer } from '@/components/lab/incidents.ts'
 import { inspector } from '@/components/lab/inspector.ts'
 import {
@@ -13,7 +20,7 @@ import {
   offerPanel,
   settingsPanel,
 } from '@/components/lab/panels.ts'
-import { inboxButton, inboxPanel, peek } from '@/components/lab/inbox.ts'
+import { inboxButton, inboxPanel, mailQueueRow, peek } from '@/components/lab/inbox.ts'
 import { churnPanel } from '@/components/lab/churn.ts'
 import { costPanel } from '@/components/lab/cost.ts'
 import { mirrorPanel } from '@/components/lab/mirror.ts'
@@ -33,7 +40,7 @@ import { challengeBar, challengeHud, challengePanel } from '@/components/lab/cha
 import { nodeList } from '@/components/lab/node-list.ts'
 import { tradeoffCard } from '@/components/lab/tradeoff.ts'
 import { boardHost } from './board-mount.ts'
-import type { Message } from './message.ts'
+import { Message } from './message.ts'
 import {
   boardChallenge,
   ledgerOf,
@@ -46,7 +53,7 @@ import {
 
 /** Display-contents on a desktop, so the HUD, toolbar and goals keep their own corners. */
 const TOP =
-  'contents compact:pointer-events-none compact:absolute compact:inset-x-0 compact:top-0 compact:z-20 compact:flex compact:flex-col compact:gap-1.5 compact:[--toolbar-w:calc(196px*var(--type-scale))] compact:pt-[max(8px,env(safe-area-inset-top))] compact:pr-[max(8px,env(safe-area-inset-right))] compact:pb-0 compact:pl-[max(8px,env(safe-area-inset-left))]'
+  'contents compact:pointer-events-none compact:absolute compact:inset-x-0 compact:top-0 compact:z-20 compact:flex compact:flex-col compact:gap-1.5 compact:[--toolbar-w:calc(184px*var(--type-scale))] compact:pt-[max(8px,env(safe-area-inset-top))] compact:pr-[max(8px,env(safe-area-inset-right))] compact:pb-0 compact:pl-[max(8px,env(safe-area-inset-left))]'
 
 /** The desktop's top row, right of the HUD; its left is set from the HUD's width. */
 const TOP_ROW =
@@ -58,17 +65,10 @@ const LANE = 'flex min-w-0 flex-1 flex-col items-center gap-2 compact:items-stre
 const BOTTOM =
   'pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 compact:right-[max(8px,env(safe-area-inset-right))] compact:bottom-[max(8px,env(safe-area-inset-bottom))] compact:left-[max(8px,env(safe-area-inset-left))] compact:translate-x-0 compact:items-stretch'
 
-/** On a phone the mail preview and the Research offer share one stack above the bottom controls, so
- *  the Inbox button and the dock never cover either. On a desktop they keep their own corners. */
+/** The desktop's mail preview and Research offer keep their own corners. A phone shows one queue
+ *  row in the top lane instead, so neither can cover the board or the action bar. */
 const bottomNotices = (model: Model, h: HtmlBuilder<Message>): Html =>
-  h.div(
-    [
-      h.Class(
-        'contents compact:pointer-events-none compact:absolute compact:inset-x-2 compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+144px)] compact:z-20 compact:flex compact:flex-col compact:gap-2',
-      ),
-    ],
-    [peek(model, h), researchOffer(model, h)],
-  )
+  h.div([h.Class('contents compact:hidden')], [peek(model, h), researchOffer(model, h)])
 
 export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
   const ledger = ledgerOf(model)
@@ -103,8 +103,8 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
                       ? objectiveBar(model, h)
                       : h.empty,
                   incidentNotice(model, h),
+                  model.board.game.incident ? h.empty : mailQueueRow(model, h),
                   alertsNotice(model, h),
-                  changeBar(model, h, 'enter-down hidden compact:flex'),
                 ],
               ),
               toolbar(model, h),
@@ -116,6 +116,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
         [h.DataAttribute('flip', 'gesture'), h.Class(BOTTOM)],
         [
           changeBar(model, h, 'enter-pop compact:hidden'),
+          h.div([h.Class('hidden compact:contents')], [phoneOffer(model, h)]),
           confirmSellOf(model.board)
             ? sellBar(model, h)
             : !offCompany(model) && model.board.selection.length > 0
@@ -147,6 +148,7 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
       model.panel === 'churn' ? churnPanel(model, h) : h.empty,
       model.panel === 'cost' ? costPanel(model, h) : h.empty,
       model.panel === 'mirror' ? mirrorPanel(model, h) : h.empty,
+      model.panel === 'vitals' ? vitalsPanel(model, ledger, h) : h.empty,
       model.panel === 'offer' ? offerPanel(model, h) : h.empty,
       model.panel === 'era' ? eraPanel(model, h) : h.empty,
       model.panel === 'end' ? endPanel(model, h) : h.empty,

@@ -25,7 +25,7 @@ export const toast = (value: Toast | null, overPanel: boolean, h: HtmlBuilder<Me
           h.DataAttribute('exit', 'notice'),
           // A panel can fill a short screen, so the toast moves above it rather than over its actions.
           h.Class(
-            `pointer-events-none fixed bottom-[176px] left-1/2 z-50 flex max-w-[calc(100%-16px)] -translate-x-1/2 justify-center rounded-xl bg-surface px-3.5 py-2.5 text-[calc(13px*var(--type-scale))] shadow-float enter-toast compact:right-[calc(max(8px,env(safe-area-inset-right))+52px)] compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+84px)] compact:left-[max(8px,env(safe-area-inset-left))] compact:max-w-none compact:translate-x-0 compact:justify-start ${
+            `pointer-events-none fixed bottom-[176px] left-1/2 z-50 flex max-w-[calc(100%-16px)] -translate-x-1/2 justify-center rounded-xl bg-surface px-3.5 py-2.5 text-[calc(13px*var(--type-scale))] shadow-float enter-toast compact:right-[max(8px,env(safe-area-inset-right))] compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+72px)] compact:left-[max(8px,env(safe-area-inset-left))] compact:max-w-none compact:translate-x-0 compact:justify-start ${
               overPanel
                 ? 'short:top-[max(2px,env(safe-area-inset-top))]! short:right-auto! short:bottom-auto! short:left-1/2! short:max-w-[calc(100%-16px)]! short:translate-x-[-50%]! short:justify-center!'
                 : ''

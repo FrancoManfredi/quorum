@@ -266,8 +266,15 @@ const effect = (model: Model, card: TradeoffState, h: HtmlBuilder<Message>): Htm
       ? h.span([h.Class('text-[calc(12px*var(--type-scale))] text-warn')], [card.reason])
       : h.empty
 
-const PLACE =
-  'absolute top-[76px] right-[372px] z-20 w-[320px] compact:inset-x-2 compact:top-auto compact:right-2 compact:bottom-[calc(62%+16px)] compact:w-auto short:right-[340px]'
+const PLACE = 'absolute top-[76px] right-[372px] z-20 w-[320px] short:right-[340px]'
+
+/** A phone shows the effect of an option as a strip above the safe area, not a floating card. */
+const PLACE_PHONE =
+  'compact:inset-x-2 compact:top-auto compact:right-2 compact:bottom-[max(8px,env(safe-area-inset-bottom))] compact:z-40 compact:w-auto'
+
+/** An unpinned option takes the whole screen on a phone, like every other action. */
+const PLACE_SCREEN =
+  'compact:inset-0 compact:z-40 compact:max-h-none compact:w-auto compact:overflow-y-auto compact:rounded-none compact:p-5 compact:shadow-none'
 
 export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -284,7 +291,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
     return h.div(
       [
         h.Key('tradeoff-line'),
-        h.Class(cn(PLACE, PANEL, 'enter-panel flex flex-col gap-1 px-3.5 py-2.5')),
+        h.Class(cn(PLACE, PLACE_PHONE, PANEL, 'enter-panel flex flex-col gap-1 px-3.5 py-2.5')),
       ],
       [
         h.span(
@@ -311,7 +318,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [
       h.Key('tradeoff'),
-      h.Class(cn(PLACE, PANEL, 'enter-panel flex flex-col gap-3 p-4')),
+      h.Class(cn(PLACE, PLACE_SCREEN, PANEL, 'enter-panel flex flex-col gap-3 p-4')),
       h.AriaLabel(title),
     ],
     [

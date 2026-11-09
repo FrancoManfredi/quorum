@@ -1604,13 +1604,20 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
       h.DataAttribute('inspector', ''),
       h.AriaLabel(nodeTitle(t, game, node)),
       h.Class(
-        `absolute top-[76px] right-3 bottom-3 z-20 flex w-[348px] flex-col overflow-hidden ${PANEL} enter-panel compact:inset-x-2 compact:top-auto compact:bottom-[max(8px,env(safe-area-inset-bottom))] compact:z-30 compact:max-h-[62%] compact:w-auto short:inset-x-auto short:top-[132px] short:right-[max(8px,env(safe-area-inset-right))] short:w-[320px] short:max-h-none`,
+        `absolute top-[76px] right-3 bottom-3 z-20 flex w-[348px] flex-col overflow-hidden ${PANEL} enter-panel compact:inset-0 compact:max-h-none compact:w-auto compact:rounded-none compact:pt-[env(safe-area-inset-top)] compact:pb-[env(safe-area-inset-bottom)] compact:shadow-none short:inset-x-auto short:top-[132px] short:right-[max(8px,env(safe-area-inset-right))] short:w-[320px] short:max-h-none`,
       ),
     ],
     [
-      closeButton({ label: t.inspector.close, onClick: Message.EmptyTapped() }, h),
+      closeButton(
+        {
+          label: t.inspector.close,
+          onClick: Message.EmptyTapped(),
+          className: 'compact:top-[max(6px,env(safe-area-inset-top))] compact:size-11',
+        },
+        h,
+      ),
       h.div(
-        [h.Class('flex items-center gap-3 px-4 pt-4 pr-10 pb-2')],
+        [h.Class('flex items-center gap-3 px-4 pt-4 pr-10 pb-2 compact:pr-14')],
         [
           groupBadge(def.group, COMPONENT_ICONS[node.type], 'size-10', h),
           h.div(

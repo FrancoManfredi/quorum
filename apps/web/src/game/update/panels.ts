@@ -25,7 +25,7 @@ import { updateStackPicker } from '../stack-picker.ts'
 import { moreMenu, type MoreItem } from '../more.ts'
 import { onBoard } from '../route.ts'
 import { openRegions } from '@quorum/simulation/regions'
-import { openingFolder, reading } from '../inbox.ts'
+import { listing, openingFolder } from '../inbox.ts'
 import { type RegionId as Region, type ResearchId } from '@quorum/simulation/catalog'
 import { updateDashboard } from '../dashboard.ts'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
@@ -196,6 +196,8 @@ export const panelsHandlers = (
         flow: { _tag: 'Idle' },
         research: EMPTY_RESEARCH,
         dashboard: { ...model.board.dashboard, hover: null },
+        // A panel covers the board, so the build list it was opened from is done.
+        buildGroup: null,
       },
     }
     const next =
@@ -204,11 +206,15 @@ export const panelsHandlers = (
             ...opened,
             board: {
               ...opened.board,
-              inbox: reading({
-                ...opened.board.inbox,
-                folder: openingFolder(opened.board.inbox),
-                label: null,
-              }),
+              // A Mail the queue opened keeps its thread; opening from the dock starts on the list.
+              inbox: listing(
+                {
+                  ...opened.board.inbox,
+                  folder: openingFolder(opened.board.inbox),
+                  label: null,
+                },
+                opened.board.inbox.focus,
+              ),
             },
           }
         : opened

@@ -4,6 +4,7 @@ export const hud = {
   closeEsc: 'Close (Esc)',
   s: (p0: string | number | null) => `+${p0}/s`,
   insight: 'Insight',
+  vitals: 'Vitals',
   researchR: (p0: string | number | null) => `Research (R). ${p0}`,
   researchR2: 'Research (R)',
   idle: 'Idle',

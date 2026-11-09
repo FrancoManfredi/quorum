@@ -3,7 +3,9 @@
    the `compact` variant in styles.css; keep the two in step.
    ========================================================================== */
 
-export const isPhone = (): boolean => matchMedia('(max-width: 639px), (max-height: 499px)').matches
+export const isPhone = (): boolean =>
+  typeof globalThis.matchMedia === 'function' &&
+  globalThis.matchMedia('(max-width: 639px), (max-height: 499px)').matches
 
 export type Direction = 'up' | 'down' | 'left' | 'right'
 

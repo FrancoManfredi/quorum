@@ -6,6 +6,7 @@ import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   Activity,
   ArchiveRestore,
+  ArrowLeft,
   Ban,
   ChevronRight,
   CircleCheck,
@@ -47,6 +48,7 @@ import { advisoryTell } from '@/game/advisories.ts'
 import { glossaryUrl } from '@/platform/analytics.ts'
 import { Message } from '@/game/message.ts'
 import { boardSandbox, type Folder, type Mail, type MailLabel, type Model } from '@/game/model.ts'
+import { isPhone } from '@/game/viewport.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, FLOAT, PANEL, SCROLL, WELL, groupBadge } from '@quorum/ui/game/bits'
@@ -244,12 +246,57 @@ export const peek = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
-export const inboxButton = (model: Model, h: HtmlBuilder<Message>): Html => {
-  const unread = unreadIn(model, 'action') + unreadIn(model, 'fyi')
-  // A decision waiting turns the badge red and rings the button; FYI mail keeps the quiet badge.
-  const waiting = model.board.inbox.mail.some((mail) => folderHolds(mail, 'action') && !mail.read)
-  return inboxToggle(model, unread, waiting, h)
+/** The unread count the corners and the phone's action bar show. */
+export const unreadCount = (model: Model): number =>
+  unreadIn(model, 'action') + unreadIn(model, 'fyi')
+
+/** A decision is waiting: the badge turns red and the Inbox rings. */
+export const waitingMail = (model: Model): boolean =>
+  model.board.inbox.mail.some((mail) => folderHolds(mail, 'action') && !mail.read)
+
+/**
+ * The newest Mail that wants the player, as one line in the phone's notice stack. It replaces the
+ * desktop's peek card: the phone gets the sender and the subject, and the whole line opens the
+ * Inbox on that Mail.
+ */
+export const mailQueueRow = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+
+  const mail = model.board.inbox.mail.find(
+    (entry) => entry.id === model.board.inbox.peek && !entry.trashed,
+  )
+  if (!mail || model.panel === 'inbox') return h.empty
+  const sender = senderOf(mail.sender)
+  return h.button(
+    [
+      h.Key(`queue-${mail.id}-${mail.entries.length}`),
+      h.Type('button'),
+      h.AriaLabel(t.inbox.newMailFrom(sender.name, subjectOf(h, mail))),
+      h.OnClick(Message.InboxChanged({ message: InboxMessage.PeekOpened({ id: mail.id }) })),
+      h.Class(
+        'pointer-events-auto flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-surface px-3 py-2 text-left shadow-card',
+      ),
+    ],
+    [
+      badge(sender, 'size-7', h),
+      h.div(
+        [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
+        [
+          h.span([h.Class(cn(EYEBROW, 'truncate'))], [sender.name]),
+          h.span(
+            [h.Class('truncate text-[calc(13px*var(--type-scale))] font-medium')],
+            [subjectOf(h, mail)],
+          ),
+        ],
+      ),
+      needsAction(mail) ? h.span([h.Class('size-2 shrink-0 rounded-full bg-danger')], []) : h.empty,
+      icon(h, ChevronRight, 'size-4 shrink-0 text-muted-foreground'),
+    ],
+  )
 }
+
+export const inboxButton = (model: Model, h: HtmlBuilder<Message>): Html =>
+  inboxToggle(model, unreadCount(model), waitingMail(model), h)
 
 const inboxToggle = (
   model: Model,
@@ -267,7 +314,7 @@ const inboxToggle = (
       h.AriaLabel(unread > 0 ? t.inbox.inboxUnread(unread) : t.inbox.inbox),
       h.OnClick(Message.PanelOpened({ panel: 'inbox' })),
       h.Class(
-        `${waiting ? 'mail-ping text-foreground ' : 'text-muted-foreground '}absolute right-3 bottom-3 z-20 grid size-11 place-items-center ${PANEL} hover:text-foreground compact:right-[max(8px,env(safe-area-inset-right))] compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+84px)]`,
+        `${waiting ? 'mail-ping text-foreground ' : 'text-muted-foreground '}absolute right-3 bottom-3 z-20 grid size-11 place-items-center ${PANEL} hover:text-foreground compact:hidden`,
       ),
     ],
     [
@@ -314,7 +361,7 @@ const row = (
           h.OnClick(Message.InboxChanged({ message: InboxMessage.Opened({ id: mail.id }) })),
           h.Class(
             cn(
-              'relative flex w-full items-start gap-2.5 px-3.5 py-2 text-left',
+              'relative flex w-full items-start gap-2.5 px-3.5 py-2 text-left compact:gap-3 compact:px-4 compact:py-3',
               open ? 'bg-well' : 'hover:bg-well/50',
             ),
           ),
@@ -334,13 +381,15 @@ const row = (
             ? h.empty
             : h.span(
                 [
-                  h.Class('absolute top-[17px] left-1.5 size-1.5 rounded-full bg-primary-strong'),
+                  h.Class(
+                    'absolute top-[17px] left-1.5 size-1.5 rounded-full bg-primary-strong compact:top-[26px] compact:left-2',
+                  ),
                   h.Role('img'),
                   h.AriaLabel(t.inbox.unread),
                 ],
                 [],
               ),
-          badge(sender, 'mt-px size-6', h),
+          badge(sender, 'mt-px size-6 compact:size-9', h),
           h.span(
             [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
             [
@@ -351,7 +400,7 @@ const row = (
                     [
                       h.Class(
                         cn(
-                          'flex-1 truncate text-[calc(12.5px*var(--type-scale))]',
+                          'flex-1 truncate text-[calc(12.5px*var(--type-scale))] compact:text-[calc(13.5px*var(--type-scale))]',
                           mail.read ? '' : 'font-semibold',
                         ),
                       ),
@@ -360,7 +409,10 @@ const row = (
                   ),
                   // The kind label repeats the badge's shape and colour in words
                   // (18 "Colour code").
-                  h.span([h.Class(cn(EYEBROW, 'shrink-0'))], [t.inbox.kinds[kindOf(mail)]]),
+                  h.span(
+                    [h.Class(cn(EYEBROW, 'shrink-0 compact:hidden'))],
+                    [t.inbox.kinds[kindOf(mail)]],
+                  ),
                   mail.entries.length > 1
                     ? h.span(
                         [
@@ -388,12 +440,20 @@ const row = (
                 [
                   h.Class(
                     cn(
-                      'truncate text-[calc(12px*var(--type-scale))]',
+                      'truncate text-[calc(12px*var(--type-scale))] compact:text-[calc(13.5px*var(--type-scale))]',
                       mail.read ? 'text-muted-foreground' : 'text-foreground/85',
                     ),
                   ),
                 ],
                 [subjectOf(h, mail)],
+              ),
+              h.span(
+                [
+                  h.Class(
+                    'hidden truncate text-[calc(11.5px*var(--type-scale))] text-muted-foreground compact:block',
+                  ),
+                ],
+                [gist(h, mail)],
               ),
             ],
           ),
@@ -465,7 +525,7 @@ const digestRow = (
           h.OnClick(Message.InboxChanged({ message: InboxMessage.Opened({ id: DIGEST_ID }) })),
           h.Class(
             cn(
-              'relative flex w-full items-start gap-2.5 px-3.5 py-2 text-left',
+              'relative flex w-full items-start gap-2.5 px-3.5 py-2 text-left compact:gap-3 compact:px-4 compact:py-3',
               open ? 'bg-well' : 'hover:bg-well/50',
             ),
           ),
@@ -485,7 +545,7 @@ const digestRow = (
                     [
                       h.Class(
                         cn(
-                          'flex-1 truncate text-[calc(12.5px*var(--type-scale))]',
+                          'flex-1 truncate text-[calc(12.5px*var(--type-scale))] compact:text-[calc(13.5px*var(--type-scale))]',
                           mail.read ? '' : 'font-semibold',
                         ),
                       ),
@@ -514,7 +574,7 @@ const digestRow = (
                 [
                   h.Class(
                     cn(
-                      'truncate text-[calc(12px*var(--type-scale))]',
+                      'truncate text-[calc(12px*var(--type-scale))] compact:text-[calc(13.5px*var(--type-scale))]',
                       mail.read ? 'text-muted-foreground' : 'text-foreground/85',
                     ),
                   ),
@@ -575,7 +635,7 @@ const folderTab = (
       h.OnClick(Message.InboxChanged({ message: InboxMessage.FolderChosen({ folder }) })),
       h.Class(
         cn(
-          'press flex h-6 items-center gap-1.5 rounded-lg px-2.5 text-[calc(12px*var(--type-scale))]',
+          'press flex h-6 items-center gap-1.5 rounded-lg px-2.5 text-[calc(12px*var(--type-scale))] compact:h-9 compact:px-3',
           active
             ? 'bg-raised font-medium text-foreground shadow-raised'
             : 'text-muted-foreground hover:text-foreground',
@@ -596,7 +656,7 @@ const tool = (label: string, glyph: IconNode, message: Message, h: HtmlBuilder<M
       onClick: message,
       variant: 'ghost',
       size: 'icon-sm',
-      className: 'text-muted-foreground',
+      className: 'text-muted-foreground compact:size-11',
       attributes: [h.AriaLabel(label), h.Title(label)],
     },
     icon(h, glyph, 'size-4'),
@@ -619,7 +679,7 @@ const digestLetter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Me
           h.h2(
             [
               h.Class(
-                'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
+                'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em] compact:text-[calc(18px*var(--type-scale))]',
               ),
             ],
             [subjectOf(h, mail)],
@@ -680,12 +740,16 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
                 }),
                 variant: action.id.startsWith('show') ? 'outline' : 'default',
                 size: 'sm',
+                className: 'compact:h-11 compact:px-3',
                 // The hover names where the button really goes: a trap names an off-site address.
                 attributes: [h.Key(action.id), h.Title(destinationIn(t, h, action))],
               },
               [
                 actionLabelIn(t, action),
-                Kbd({ className: 'ml-1 opacity-80' }, [String(index + 1)], h),
+                h.span(
+                  [h.Class('compact:hidden')],
+                  [Kbd({ className: 'ml-1 opacity-80' }, [String(index + 1)], h)],
+                ),
               ],
               h,
             ),
@@ -737,7 +801,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           h.h2(
             [
               h.Class(
-                'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em]',
+                'text-[calc(16px*var(--type-scale))] leading-snug font-semibold tracking-[-0.02em] compact:text-[calc(18px*var(--type-scale))]',
               ),
             ],
             [subjectOf(h, mail)],
@@ -745,7 +809,7 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
           h.div(
             [h.Class('flex items-center gap-2.5')],
             [
-              badge(sender, 'size-7', h),
+              badge(sender, 'size-7 compact:size-9', h),
               h.div(
                 [h.Class('flex min-w-0 flex-col')],
                 [
@@ -769,7 +833,11 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
             ],
           ),
           h.div(
-            [h.Class('flex flex-col gap-3 text-[calc(13px*var(--type-scale))] leading-relaxed')],
+            [
+              h.Class(
+                'flex flex-col gap-3 text-[calc(13px*var(--type-scale))] leading-relaxed compact:text-[calc(15px*var(--type-scale))] compact:leading-relaxed',
+              ),
+            ],
             [
               // The newest line is what the player opened the thread for, so the rest waits behind
               // one row (18 "The Inbox"). A repeat folds the old lines again, and the reader stays
@@ -810,7 +878,11 @@ const letter = (mail: Mail, folded: ReadonlyArray<Mail>, h: HtmlBuilder<Message>
         ],
       ),
       h.div(
-        [h.Class('flex flex-wrap items-center gap-2 border-t border-hairline bg-nested px-3 py-2')],
+        [
+          h.Class(
+            'flex shrink-0 flex-wrap items-center gap-2 border-t border-hairline bg-nested px-3 py-2 compact:pb-2',
+          ),
+        ],
         [
           ...buttons,
           h.span([h.Class('flex-1')], []),
@@ -928,7 +1000,13 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 
   const newest = folderList(model.board.inbox)
   const folded = digestOf(model.board.inbox)
-  const open = newest.find((mail) => mail.id === model.board.inbox.focus) ?? newest[0]
+  const phone = isPhone()
+  const focused =
+    model.board.inbox.focus === null
+      ? undefined
+      : newest.find((mail) => mail.id === model.board.inbox.focus)
+  // A phone is one screen at a time: the list until a Mail is tapped, then the Mail.
+  const open = phone ? focused : (focused ?? newest[0])
   const labels = labelsIn(model.board.inbox)
   return h.section(
     [
@@ -936,15 +1014,39 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.DataAttribute('exit', 'gesture'),
       h.AriaLabel(t.inbox.inbox),
       h.Class(
-        `absolute right-3 bottom-[68px] z-30 flex h-[min(520px,calc(100%-96px))] w-[min(720px,calc(100%-24px))] flex-col overflow-hidden ${FLOAT} enter-panel compact:inset-x-2 compact:right-2 compact:bottom-[calc(max(8px,env(safe-area-inset-bottom))+136px)] compact:w-auto`,
+        `absolute right-3 bottom-[68px] z-30 flex h-[min(520px,calc(100%-96px))] w-[min(720px,calc(100%-24px))] flex-col overflow-hidden ${FLOAT} enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:h-[min(680px,78dvh)] compact:max-h-none compact:w-auto compact:rounded-t-2xl compact:rounded-b-none compact:border-t compact:border-hairline compact:pb-[env(safe-area-inset-bottom)]`,
       ),
     ],
     [
       h.div(
-        [h.Class('flex items-center gap-2 px-3 py-2.5')],
+        [h.Class('hidden shrink-0 justify-center pt-2 compact:flex')],
+        [h.span([h.Class('h-1 w-10 rounded-full bg-foreground/15')], [])],
+      ),
+      h.div(
+        [h.Class('flex items-center gap-2 px-3 py-2.5 compact:pt-1')],
         [
+          phone && open
+            ? button(
+                {
+                  onClick: Message.InboxChanged({ message: InboxMessage.Opened({ id: null }) }),
+                  variant: 'ghost',
+                  size: 'sm',
+                  className: '-ml-1 h-11! gap-1.5 px-2 text-muted-foreground',
+                  attributes: [h.AriaLabel(t.inbox.inbox)],
+                },
+                [icon(h, ArrowLeft, 'size-4'), t.inbox.inbox],
+                h,
+              )
+            : h.empty,
           h.div(
-            [h.Class('flex gap-0.5 rounded-xl bg-well p-0.5 shadow-well')],
+            [
+              h.Class(
+                cn(
+                  'flex max-w-full gap-0.5 overflow-x-auto rounded-xl bg-well p-0.5 shadow-well [scrollbar-width:none]',
+                  phone && open && 'compact:hidden',
+                ),
+              ),
+            ],
             [
               folderTab(
                 'action',
@@ -980,7 +1082,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                   h.OnClick(Message.InboxChanged({ message: InboxMessage.FilterToggled() })),
                   h.Class(
                     cn(
-                      'press flex h-6 items-center rounded-lg px-2.5 text-[calc(12px*var(--type-scale))]',
+                      'press flex h-6 items-center rounded-lg px-2.5 text-[calc(12px*var(--type-scale))] compact:hidden',
                       model.board.inbox.filter
                         ? 'bg-raised text-foreground shadow-raised'
                         : 'text-muted-foreground',
@@ -990,14 +1092,17 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                 [model.board.inbox.filter ? 'Spam filter on' : 'Spam filter off'],
               )
             : h.empty,
-          Kbd.group({}, [Kbd({}, ['J'], h), Kbd({}, ['K'], h)], h),
-          Kbd({}, [t.inbox.esc], h),
+          h.span(
+            [h.Class('compact:hidden')],
+            [Kbd.group({}, [Kbd({}, ['J'], h), Kbd({}, ['K'], h)], h)],
+          ),
+          h.span([h.Class('compact:hidden')], [Kbd({}, [t.inbox.esc], h)]),
           button(
             {
               onClick: Message.PanelClosed(),
               variant: 'ghost',
               size: 'icon-sm',
-              className: 'text-muted-foreground',
+              className: 'text-muted-foreground compact:size-11',
               attributes: [h.AriaLabel(t.inbox.closeEsc)],
             },
             icon(h, X, 'size-3.5'),
@@ -1010,7 +1115,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
         [
           h.Class(
             cn(
-              'grid min-h-0 flex-1 grid-cols-[264px_minmax(0,1fr)] border-t border-hairline compact:grid-cols-1 compact:grid-rows-[minmax(0,1fr)_minmax(0,1.3fr)]',
+              'grid min-h-0 flex-1 grid-cols-[264px_minmax(0,1fr)] border-t border-hairline compact:grid-cols-1 compact:grid-rows-1',
             ),
           ),
         ],
@@ -1018,7 +1123,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           h.div(
             [
               h.Class(
-                'flex min-h-0 flex-col border-r border-hairline compact:border-r-0 compact:border-b',
+                `flex min-h-0 flex-col border-r border-hairline compact:border-r-0 compact:border-b ${phone && open ? 'compact:hidden' : ''}`,
               ),
             ],
             [
@@ -1069,7 +1174,10 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
             ],
           ),
-          h.div([h.Class('flex min-h-0 min-w-0 flex-col')], open ? [letter(open, folded, h)] : []),
+          h.div(
+            [h.Class(`flex min-h-0 min-w-0 flex-col ${phone && !open ? 'compact:hidden' : ''}`)],
+            open ? [letter(open, folded, h)] : [],
+          ),
         ],
       ),
     ],
