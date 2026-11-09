@@ -302,9 +302,29 @@ waits for it.
 A misconfigured route is a common bug: sending `q-write` to a replica fails every write. The card
 shows a red "Read-only" row.
 
+## Data groups
+
+A second Database is not a follower. The Databases that hold one dataset sit in one box, and the box
+makes a **Data Group**. Its topology says how those Databases share the group's rows, and a Database
+outside every box is a group of one.
+
+Grouping is the player's action: Shift-select the Databases and press **Box the Nodes**. Two or more
+Databases on Single primary turn Sharded when they are boxed, because one box holds one dataset and
+Single primary holds one Database. That rule keeps a group out of a state its topology cannot hold.
+
+Rows split by Services. Each Service owns `data / services.length` GB, and a group holds the shares
+of the Services whose `datastore` resolves into it. A Service that names no datastore reads the
+Design's first Database, so the starting Design keeps every row there. A group with no Service holds
+nothing, which is the figure a freshly placed Database shows.
+
+`dataGroupOf(game, node)` in `packages/simulation/src/lookups.ts` derives all of this: the box that
+holds the Node, or the Node's own id. A Read Replica outside a box follows the Design's only group,
+and stands alone when several groups could be its primary. Capacity, billing, multi-leader conflicts,
+cross-shard failures, and a synchronous replica's wait all read the group rather than the Design.
+
 ## Topologies
 
-A second Database is not a follower. The Design picks one topology, and every Database follows it.
+A Data Group picks one topology, and every Database in it follows that choice.
 
 | Topology       | Rows per Database  | Writes go to | What costs                                                                  |
 | -------------- | ------------------ | ------------ | --------------------------------------------------------------------------- |
@@ -312,17 +332,17 @@ A second Database is not a follower. The Design picks one topology, and every Da
 | Sharded        | Its partition      | Each shard   | Cross-shard transactions and scatter-gather reports                         |
 | Multi-leader   | All of them, twice | Any leader   | Write replication and certification conflicts                               |
 
-Placing a second Database while the Design is still on Single primary is refused: pick Sharded or
-Multi-leader first, or place a Read Replica for single-leader reads. The card sets one topology for
-every Database. Single primary holds one Database, so the card refuses a switch back to it while
-another Database runs.
+The card sets the topology of its group. Single primary holds one Database, so the card refuses a
+switch back to it while another Database sits in the box, and asks the player to split the group or
+pick Sharded or Multi-leader.
 
-Switching the topology moves the rows, so it costs like a resharding. The card queues 24 Dev Hours,
-then copies the data at a minute a GB for at least a calendar day, and the volume runs at half its
-IOPS while it copies. The Databases keep the old topology until the copy ends.
+Switching the topology moves the group's rows, so it costs like a resharding. The card queues 24 Dev
+Hours, then copies the group's GB at a minute a GB for at least a calendar day, and the volume runs
+at half its IOPS while it copies. The Databases keep the old topology until the copy ends, and
+`Resharding` records the group so the copy lands on every Database in it.
 
-One Database has nowhere to move its rows, so its card sets the topology at once. The copy and its
-Dev Hours start with the second Database, when the rows really move.
+A group with one Database has nowhere to move its rows, so its card sets the topology at once. The
+copy and its Dev Hours start with the second Database in the box, when the rows really move.
 
 ### Single primary
 

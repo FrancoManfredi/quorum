@@ -45,19 +45,25 @@ because InnoDB updates the row in place. It also changes schema online, while ma
 `ALTER`s take the table lock, and only Postgres keeps dead rows for VACUUM, so only Postgres meets
 Table bloat. A read-heavy Company wants Postgres; a write-heavy one wants MySQL.
 
-Replicas always run their primary's engine, and one topology runs one engine, so a change lands on
-every Database at once. Replication only copies between matching engines.
+Replicas always run their primary's engine, and an engine change lands on every Database at once.
+Replication only copies between matching engines.
 
-## More than one Database: pick a topology
+## More than one Database: group them
 
-A second Database is not a follower; the Design picks one topology and every Database follows it.
-Single primary (the start) takes writes on one Database and reads on Read Replicas. Sharded gives
-each Database its partition of the rows, so writes scale but cross-shard transactions cost up to 3×
-and can fail on either shard. Multi-leader copies every row to every Database and lets each take
-writes, so local writes are fast but certification drops conflicting writes (first commit wins) and
-every write costs 1.25× the CPU to replicate. Switching the topology moves the rows: 24 Dev Hours
-and a minute a GB, like a resharding. One Database has nowhere to move them, so it takes the pick at
-once and the copy starts with the second Database.
+A second Database is not a follower. Box the Databases that hold one dataset together: the box makes
+one **Data Group**, and its topology says how those Databases share the group's rows. Single primary
+(the start) takes writes on one Database and reads on Read Replicas. Sharded gives each Database its
+partition of the group's rows, so writes scale but cross-shard transactions cost up to 3× and can
+fail on either shard. Multi-leader copies every row to every Database and lets each take writes, so
+local writes are fast but certification drops conflicting writes (first commit wins) and every write
+costs 1.25× the CPU to replicate. Switching a group's topology moves its rows: 24 Dev Hours and a
+minute a GB, like a resharding. A group with one Database has nowhere to move them, so it takes the
+pick at once and the copy starts with the second Database in the box.
+
+Rows follow the Services. Each Service owns an equal share of the Company's data, so a group holds
+the shares of the Services whose datastores sit in it. Two groups never touch each other's rows, and
+neither takes the shared-database penalty for the other, which is what lets one Board hold two
+independent products. A Database outside a box holds its own share and stands alone.
 
 Quorum stores ([Wide-column Store](/components/wide)) and consensus ([Distributed SQL](/components/dsql))
 are the other answers to "writes on more than one node": a quorum waits for R of N on a read and W

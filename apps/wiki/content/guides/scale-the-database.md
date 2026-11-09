@@ -107,18 +107,25 @@ In the [Analytics on Primary](/sandboxes/analytics-primary) Sandbox, a report sc
 
 ## When one Database is not enough
 
-A second Database is not a follower: the Design picks Sharded or Multi-leader first, or stays on
-Single primary and adds Read Replicas for reads. Placing a second Database while the Design is
-still on Single primary is refused.
+A second Database is not a follower. Box the Databases that hold one dataset together to make a
+**Data Group**, and pick its topology.
 
-Open the first Database and pick **Sharded** or **Multi-leader** under **Topology**. One Database
-has nowhere to copy its rows, so the pick lands at once. Once two Databases run, a further topology
-switch takes 24 Dev Hours and a copy of the data, like a resharding.
+1. Place the second Database.
+2. Shift-select both Databases and press **Box the Nodes**. A box of two or more Single Databases
+   turns them to Sharded, because one box holds one dataset.
+3. Open either Database and pick **Sharded** or **Multi-leader** under **Topology**.
+
+A group with one Database has nowhere to copy its rows, so the pick lands at once. Once two Databases
+run in the group, a further switch takes 24 Dev Hours and a copy of the group's rows, like a
+resharding.
 
 - **Sharded** splits the rows across the Databases, so writes scale. Keep transactions inside one
   shard where you can; a cross-shard one costs up to 3× and can fail on either shard.
 - **Multi-leader** copies every row to every Database, so any of them takes writes. Certification
   drops conflicting writes (first commit wins) and each write costs 1.25× the CPU.
+
+Each group holds a share of the rows, split by Service, so a second group is how one Board runs two
+independent products. A box with no Database in it only draws an area.
 
 From the Series C Era, the leaderless and consensus stores take writes on more than one node:
 

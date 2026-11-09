@@ -31,27 +31,35 @@ schema changes use online DDL instead of taking the table lock. Only Postgres me
 because only Postgres keeps dead rows for VACUUM. Pick by the mix: read-heavy wants Postgres,
 write-heavy wants MySQL.
 
-One topology runs one engine. A Read Replica runs its primary's engine, and every Database in a
-Sharded or Multi-leader Design changes together: replication only copies between matching engines,
-so the copy is a minute per GB per Database. [Data tier](/design/07-data-tier#variants) holds
-the numbers.
+A Read Replica runs its primary's engine, and an engine change lands on every Database at once,
+because replication only copies between matching engines. The copy is a minute per GB per Database.
+[Data tier](/design/07-data-tier#variants) holds the numbers.
 
 ### Topology
 
-A second Database is not a follower. The Design picks one topology, and every Database follows it:
+A second Database is not a follower. Box the Databases that hold one dataset together: the box makes
+one **Data Group**, and its topology says how those Databases share the group's rows. A Database
+outside a box stands alone, with its own share of the rows.
 
 - **Single primary** (start): one Database takes writes, Read Replicas take reads. The card marks
-  that Database as the **Primary**, and its Inspector links the Read Replicas that copy it. Placing
-  a second Database is refused until you pick another topology.
-- **Sharded**: each Database holds its partition of the rows. Writes divide across them, a read
-  asks the one Database that holds its key, and a transaction that spans two Databases costs up to
-  3× and can fail on either. Reports and searches read every Database.
+  that Database as the **Primary**, and its Inspector links the Read Replicas that copy it and the
+  other Databases in its group. Box a second Database with it and the group turns to Sharded.
+- **Sharded**: each Database holds its partition of the group's rows. Writes divide across them, a
+  read asks the one Database that holds its key, and a transaction that spans two Databases costs up
+  to 3× and can fail on either. Reports and searches read every Database.
 - **Multi-leader**: every Database holds every row and takes writes. Certification drops
   conflicting writes (first commit wins), and every write costs 1.25× the CPU to replicate.
 
-Switching the topology moves the rows: 24 Dev Hours and a copy at a minute per GB, like a
-resharding. One Database has nowhere to move them, so its card sets the topology at once; the copy
-starts with the second Database. [Data tier](/design/07-data-tier#topologies) holds the trade.
+Each group holds its own share of the rows. A Service carries an equal share of the Company's data
+into the group its datastore sits in, so two groups never touch each other's rows and neither takes
+the shared-database penalty for the other. [Data tier](/design/07-data-tier#data-groups) holds the
+rules.
+
+Switching the topology moves the rows of that group: 24 Dev Hours and a copy at a minute per GB, like
+a resharding. A group with one Database has nowhere to move them, so its card sets the topology at
+once; the copy starts with the second Database in the box. Single primary holds one Database, so the
+card refuses a switch back to it while another Database sits in the box. [Data
+tier](/design/07-data-tier#topologies) holds the trade.
 
 Links carry requests, not replication. A Database has no out port to another Database or to a Read
 Replica. Link App Servers to each Database, and link reads to the replica.

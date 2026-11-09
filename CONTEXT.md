@@ -115,6 +115,10 @@ _Avoid_: consensus (that is Distributed SQL), majority
 How more than one Database holds the rows: single primary, sharded, or multi-leader.
 _Avoid_: peer, layout (that is a Design)
 
+**Data Group**:
+The Databases and Read Replicas inside one box. A group holds one dataset, and its topology says how its Databases share the rows, so two groups hold different rows.
+_Avoid_: cluster (that is a Component), shard group
+
 **Failover**:
 Promoting a Read Replica to the primary when the primary is gone. An asynchronous replica loses writes still in flight; a synchronous one loses none.
 _Avoid_: promotion (alone in UI copy)

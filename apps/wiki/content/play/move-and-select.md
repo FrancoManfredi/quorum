@@ -7,7 +7,7 @@ aliases: drag, snap, select, multi-select, box select, copy, paste, duplicate, n
 gdd: /design/15-ui-ux
 ---
 
-Drag a card to move it, click it to select it, and hold `Shift` to select many. Everything on this page changes the Design only by position or by selling, so it costs nothing except a sale.
+Drag a card to move it, click it to select it, and hold `Shift` to select many. Moving and selecting cost nothing, and a sale pays Cash back. Boxing is the one action here that changes what the Design does: it makes a Data Group, and two or more Single Databases boxed together turn to Sharded.
 
 ## Drag a Node
 
@@ -34,20 +34,20 @@ A frame marks the selected group. Drag any selected card, or anywhere inside the
 
 ## The selection bar
 
-The bar replaces the build dock at the bottom of the screen while a `Shift` selection exists. It shows in a Company, not in a Sandbox. It reads **N selected**, then six icon buttons.
+The bar replaces the build dock at the bottom of the screen while a `Shift` selection exists, in a Company and in a Sandbox. It reads **N selected**, then six icon buttons.
 
 ![The selection bar at the bottom of the board with three Nodes selected.](/play/selection-bar.png)
 
 Look at the row of icons: each button shows its name and key when you hover it.
 
-| Button               | Key      | What it does                                                                                                              |
-| -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Copy**             | `Ctrl+C` | Puts the Nodes and the Links between them on the clipboard. Toast: **Copied 3 Nodes.**                                    |
-| **Duplicate**        | `Ctrl+D` | Places a copy of the selection 48 pixels down and right, in the nearest free spot. Each copy is paid for like a new Node. |
-| **Box the Nodes**    | none     | Draws one frame around the selection. Press it again on the same Nodes to take the frame off.                             |
-| **Sell**             | `Delete` | Asks first, then sells. See below.                                                                                        |
-| **Save as Playbook** | none     | Saves the selection as a Playbook that survives Exits. Toast: **Saved Playbook 1: 3 Nodes.**                              |
-| **Clear selection**  | `Esc`    | Empties the selection.                                                                                                    |
+| Button               | Key      | What it does                                                                                                                                     |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Copy**             | `Ctrl+C` | Puts the Nodes and the Links between them on the clipboard. Toast: **Copied 3 Nodes.**                                                           |
+| **Duplicate**        | `Ctrl+D` | Places a copy of the selection 48 pixels down and right, in the nearest free spot. Each copy is paid for like a new Node.                        |
+| **Box the Nodes**    | none     | Draws one dashed frame around the selection, which makes those Databases one Data Group. Press it again on the same Nodes to take the frame off. |
+| **Sell**             | `Delete` | Asks first, then sells. See below.                                                                                                               |
+| **Save as Playbook** | none     | Saves the selection as a Playbook that survives Exits. Toast: **Saved Playbook 1: 3 Nodes.**                                                     |
+| **Clear selection**  | `Esc`    | Empties the selection.                                                                                                                           |
 
 `Ctrl+C`, `Ctrl+X` and `Ctrl+D` also work on the one Node that a plain click opened, with no bar. The bar itself needs a `Shift` selection, because a plain click opens the Inspector instead, so to copy one Node press `Ctrl+C` straight after the click.
 

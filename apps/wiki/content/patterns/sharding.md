@@ -8,8 +8,8 @@ aliases: shard, partition, horizontal partitioning, shard key, scatter-gather, r
 ---
 
 Sharding gives each shard a slice of the data, chosen by a key in every row. One Database can split
-into shards inside its Node, or the Design can pick the Sharded topology and put each shard on its
-own Database Node; both split by the same key, and the costs below are the same either way.
+into shards inside its Node, or a Data Group can run the Sharded topology and put each shard on its
+own Database Node. Both split by the same key, and the costs below are the same either way.
 
 ## Use it when
 
@@ -30,7 +30,7 @@ Queries that span shards, like a report across all users, become slow scatter-ga
 
 ::Design{id="sharded-hash-key"}
 
-The Database card has a shard count and a shard key on one Database, or the Design picks the
-Sharded topology and each Database is another shard. A hash key spreads users evenly, a range key piles new users onto the last shard, a tenant key keeps a tenant together but lets a big one run hot, and a region key keeps users near their data at the price of a far round trip for the rest. [Hot keys and hot shards](/patterns/hot-keys-and-hot-shards) puts the range key on a Board.
+The Database card has a shard count and a shard key on one Database. Box two or more Databases as
+a Data Group and pick Sharded, and each Database is another shard. A hash key spreads users evenly, a range key piles new users onto the last shard, a tenant key keeps a tenant together but lets a big one run hot, and a region key keeps users near their data at the price of a far round trip for the rest. [Hot keys and hot shards](/patterns/hot-keys-and-hot-shards) puts the range key on a Board.
 
 Research [Sharding](/research/sharding) to unlock it. The [Hot shard](/incidents/hot-shard) incident lands the biggest tenant on one shard. [The data tier](/explanation/the-data-tier) shows where it fits, and the glossary defines [sharding](/glossary/sharding).
