@@ -14,6 +14,7 @@ import {
   Text,
   Texture,
   type Renderer,
+  type RendererPreference,
 } from 'pixi.js'
 import {
   COMPONENTS,
@@ -46,6 +47,7 @@ import {
   rowMid,
   rowTop,
   type Box,
+  type Placed,
   type Pt,
   type Route,
 } from './geometry.ts'
@@ -57,6 +59,8 @@ import { FOOT_ICONS, ROW_ICONS, footerOf, levelOf, rowsOf, sizePips, type RowTon
 import { COMPONENT_ICONS, GROUP_SHAPES, STACK_LOGOS, type StackLogoId } from '../game/icons.ts'
 import { packetShapeOf, type PacketShape } from '../game/packets.ts'
 import { CursorOverlay, type SeatCursor } from './cursors.ts'
+
+type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 
 /** The sounds a gesture on the board makes. The host decides how to play them. */
 export type BoardSound = 'pull' | 'lift' | 'detent' | 'snap' | 'release'
@@ -529,27 +533,39 @@ const holds = (game: Game, node: GameNode): boolean => {
   return !!footer && footer.enabled && (footer.glyph === 'resize' || footer.glyph === 'more')
 }
 
-const lengthOf = (path: Route): number =>
-  path.reduce((sum, point, index) => {
-    const previous = path[index - 1]
-    return previous ? sum + gap(previous, point) : sum
-  }, 0)
+const arcs = new WeakMap<Route, { along: Array<number>; total: number }>()
+
+const arcOf = (path: Route): { along: Array<number>; total: number } => {
+  const cached = arcs.get(path)
+  if (cached) return cached
+  const along = [0]
+  for (let index = 1; index < path.length; index += 1)
+    along.push((along[index - 1] as number) + gap(path[index - 1] as Pt, path[index] as Pt))
+  const arc = { along, total: along.at(-1) ?? 0 }
+  arcs.set(path, arc)
+  return arc
+}
+
+const lengthOf = (path: Route): number => arcOf(path).total
 
 /** The point `t` of the way along a path, by length. */
 const pointOn = (path: Route, t: number, length = lengthOf(path)): Pt => {
-  let left = length * t
-  for (let index = 1; index < path.length; index += 1) {
-    const a = path[index - 1]
-    const b = path[index]
-    if (!a || !b) continue
-    const span = gap(a, b)
-    if (left <= span && span > 0) {
-      const k = left / span
-      return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }
-    }
-    left -= span
+  const arc = arcOf(path)
+  const left = length * t
+  let low = 1
+  let high = Math.max(1, path.length - 1)
+  while (low < high) {
+    const mid = (low + high) >> 1
+    if ((arc.along[mid] as number) < left) low = mid + 1
+    else high = mid
   }
-  return path[path.length - 1] ?? { x: 0, y: 0 }
+  const a = path[low - 1]
+  const b = path[low]
+  if (!a || !b) return path[0] ?? { x: 0, y: 0 }
+  const start = arc.along[low - 1] as number
+  const span = (arc.along[low] as number) - start
+  const k = span > 0 ? Math.max(0, Math.min(1, (left - start) / span)) : 0
+  return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k }
 }
 
 const distanceTo = (path: Route, point: Pt): number => {
@@ -572,10 +588,10 @@ const distanceTo = (path: Route, point: Pt): number => {
 }
 
 /** The lane a backward link runs along, under both cards. */
-const laneUnder = (from: GameNode, toBottom: number): number =>
+const laneUnder = (from: Placed, toBottom: number): number =>
   Math.max(from.y + heightOf(from.type), toBottom) + 18
 
-const routeOf = (from: GameNode, to: GameNode): Route =>
+const routeOf = (from: Placed, to: Placed): Route =>
   route(outPort(from), inPort(to), laneUnder(from, to.y + heightOf(to.type)))
 
 /** How far a card may be from where its links were routed before they take the quick route. */
@@ -906,7 +922,8 @@ const label = (size: number, family: string, weight: '400' | '500' | '600' | '70
   const view = new Text({
     text: '',
     style: { fontFamily: family, fontSize: size, fontWeight: weight, fill: 0x16233d },
-    resolution: 3,
+    // The board never renders above 2×, so a third copy of every glyph costs memory, not sharpness.
+    resolution: 2,
   })
   fontOf.set(view, `${weight} ${size}px ${family}`)
   return view
@@ -981,7 +998,7 @@ class NodeView {
   private leaving = -1
 
   private readonly group: BuildGroup
-  private readonly height: number
+  readonly height: number
   /** Where the card is drawn. It follows its Node, so a move, a drop on the grid
    *  and an undo glide instead of jumping. */
   at: Pt | null = null
@@ -1927,7 +1944,8 @@ class NoteLayer {
 
   begin(): void {
     this.used = 0
-    this.backs.clear()
+    // An empty plate layer is left alone, so an idle belt does not rebuild its Graphics.
+    if (this.backs.context.instructions.length > 0) this.backs.clear()
   }
 
   /** A label whose bottom edge sits `lift` pixels above (x, y). */
@@ -1942,7 +1960,7 @@ class NoteLayer {
           fontWeight: '600',
           fill: 0xffffff,
         },
-        resolution: 3,
+        resolution: 2,
       })
       view.anchor.set(0.5, 1)
       this.pool.push(view)
@@ -2014,7 +2032,9 @@ class BoardController {
   private splittersKey = ''
   /** The tunnel portals, redrawn only when a mouth moves or the focus changes. */
   private readonly portals = new Graphics()
-  private portalsKey = ''
+  /** The mouths the portals were last drawn for, and the colour they were drawn in. */
+  private mouthsDrawn: ReadonlyArray<Mouth> = []
+  private portalInk = -1
   private readonly packets = new PacketLayer()
   /** The still arrows reduced motion shows in place of the packets. */
   private readonly arrows = new Graphics()
@@ -2031,6 +2051,9 @@ class BoardController {
   private readonly overlay = new Graphics()
   private readonly ghost = new Container()
   private readonly views = new Map<string, NodeView>()
+  /** The Nodes as they are drawn this frame, and the views that follow their cards. */
+  private readonly shownCards = new Map<string, GameNode>()
+  private readonly drawnCards = new Map<string, { source: GameNode; drawn: Mutable<GameNode> }>()
   /** Cards fading out after their Node left the Design. */
   private leaving: Array<NodeView> = []
   /** False until the first sync, so a loaded board does not animate in. */
@@ -2141,6 +2164,7 @@ class BoardController {
 
   async start(initial: BoardState | undefined): Promise<void> {
     this.state = initial ?? null
+    const preferred: Array<RendererPreference> = ['webgpu', 'webgl']
     await this.app.init({
       autoStart: false,
       backgroundAlpha: 0,
@@ -2149,7 +2173,7 @@ class BoardController {
       autoDensity: true,
       width: Math.max(1, this.host.clientWidth),
       height: Math.max(1, this.host.clientHeight),
-      preference: 'webgl',
+      preference: preferred,
     })
     await Promise.all([
       document.fonts.load('600 13px "Geist"'),
@@ -2183,6 +2207,10 @@ class BoardController {
     // groups of their own, a frame does not repack every card.
     this.wires.isRenderGroup = true
     this.cards.isRenderGroup = true
+    // These sit outside the card batch. Batching each layer by hand stops a
+    // multi-shape layer from costing one draw per shape.
+    for (const part of [this.overlay, this.arrows, this.splitters, this.portals, this.boxes])
+      part.context.batchMode = 'batch'
     this.ghost.alpha = 0.55
     this.ghost.visible = false
     this.bindPointer()
@@ -2375,12 +2403,27 @@ class BoardController {
 
   /** The Nodes where their cards are drawn, so wires stay attached while cards glide. */
   private shown(): Map<string, GameNode> {
-    return new Map(
-      this.nodes().map((node) => {
-        const at = this.views.get(node.id)?.at
-        return [node.id, at ? { ...node, x: at.x, y: at.y } : node]
-      }),
-    )
+    // A GameNode carries a hundred fields, so spreading one per card per frame costs
+    // more than the joins it feeds. A view of the node inherits every field and owns
+    // only the two that follow the card.
+    const out = this.shownCards
+    out.clear()
+    for (const node of this.nodes()) {
+      const at = this.views.get(node.id)?.at
+      if (!at) {
+        out.set(node.id, node)
+        continue
+      }
+      let drawn = this.drawnCards.get(node.id)
+      if (!drawn || drawn.source !== node) {
+        drawn = { source: node, drawn: Object.create(node) as Mutable<GameNode> }
+        this.drawnCards.set(node.id, drawn)
+      }
+      drawn.drawn.x = at.x
+      drawn.drawn.y = at.y
+      out.set(node.id, drawn.drawn)
+    }
+    return out
   }
 
   private nodeAt(point: Pt): GameNode | null {
@@ -2507,11 +2550,16 @@ class BoardController {
    * links drawn to its landing spot instead (see heldLanding).
    */
   private wireOf(drawnFrom: GameNode, drawnTo: GameNode): Wire {
-    const from = { ...drawnFrom, ...this.heldLanding?.get(drawnFrom.id) }
-    const to = { ...drawnTo, ...this.heldLanding?.get(drawnTo.id) }
-    const wire = this.routes().get(`${from.id}>${to.id}`)
-    const a = this.routedNodes.get(from.id)
-    const b = this.routedNodes.get(to.id)
+    // A GameNode carries a hundred fields. Spreading one per link per frame costs more
+    // than everything else the board draws, so a held card makes only the three fields
+    // that a route reads.
+    const fromAt = this.heldLanding?.get(drawnFrom.id)
+    const toAt = this.heldLanding?.get(drawnTo.id)
+    const from = fromAt ? { type: drawnFrom.type, x: fromAt.x, y: fromAt.y } : drawnFrom
+    const to = toAt ? { type: drawnTo.type, x: toAt.x, y: toAt.y } : drawnTo
+    const wire = this.routes().get(`${drawnFrom.id}>${drawnTo.id}`)
+    const a = this.routedNodes.get(drawnFrom.id)
+    const b = this.routedNodes.get(drawnTo.id)
     if (wire && a && b) {
       const da = { x: from.x - a.x, y: from.y - a.y }
       const db = { x: to.x - b.x, y: to.y - b.y }
@@ -3059,6 +3107,7 @@ class BoardController {
       view.leave()
       this.leaving.push(view)
       this.views.delete(id)
+      this.drawnCards.delete(id)
     }
     this.seeded = true
   }
@@ -3200,9 +3249,29 @@ class BoardController {
     const detailed = zoom >= CHEVRON_SCALE
     const rows = rowsAt(zoom)
     const chip = chipAt(zoom)
-    for (const view of this.views.values()) {
-      view.tick(seconds, still)
-      view.detail(rows, chip, colors)
+    // The chevrons and packets draw only for belts on screen. A card off screen is
+    // hidden too, so the cards' render group does not draw a world the view cannot see.
+    const scale = zoom
+    const margin = 40 / scale
+    const view: Box = {
+      x: -this.world.position.x / scale - margin,
+      y: -this.world.position.y / scale - margin,
+      w: this.host.clientWidth / scale + 2 * margin,
+      h: this.host.clientHeight / scale + 2 * margin,
+    }
+    for (const card of this.views.values()) {
+      const at = card.at
+      const shown =
+        !at ||
+        (at.x + CARD_W >= view.x &&
+          at.x <= view.x + view.w &&
+          at.y + card.height >= view.y &&
+          at.y <= view.y + view.h)
+      card.root.visible = shown
+      // The card keeps following its Node while hidden, so it is already in place when
+      // the view returns. Only its level of detail waits for the screen.
+      card.tick(seconds, still)
+      if (shown) card.detail(rows, chip, colors)
     }
     this.advanceHold()
     this.leaving = this.leaving.filter((view) => {
@@ -3227,14 +3296,6 @@ class BoardController {
     const rates = new Map(state.ledger.links.map((link) => [`${link.from}>${link.to}`, link]))
 
     // Chevrons and packets draw only for belts on screen.
-    const scale = this.world.scale.x
-    const margin = 40 / scale
-    const view: Box = {
-      x: -this.world.position.x / scale - margin,
-      y: -this.world.position.y / scale - margin,
-      w: this.host.clientWidth / scale + 2 * margin,
-      h: this.host.clientHeight / scale + 2 * margin,
-    }
     this.chevrons.begin()
     const focus = this.pathOf(state)
     this.packets.begin()
@@ -3242,7 +3303,8 @@ class BoardController {
     if (this.arrows.context.instructions.length > 0) this.arrows.clear()
     this.notes.begin()
     this.places.begin()
-    this.overlay.clear()
+    // Clearing marks the Graphics changed, so an empty one is left alone.
+    if (this.overlay.context.instructions.length > 0) this.overlay.clear()
     const mouths: Array<Mouth> = []
     this.syncBelts(state.game.links)
     const picked = this.selectedLink
@@ -3267,7 +3329,6 @@ class BoardController {
       const quiet = litKey !== null && litKey !== key
       // Off the focused path, a belt fades back.
       const off = focus !== null && !(focus.has(link.from) && focus.has(link.to))
-      belt.show(true, quiet ? QUIET : hovered ? 1 : off ? DIM : 1)
       // A lit belt rises above the channel it shares with the others, so nothing covers it.
       if (litKey === key) this.bodies.setChildIndex(belt.body, this.bodies.children.length - 1)
       const age = this.fresh.get(key)
@@ -3279,8 +3340,15 @@ class BoardController {
       const pieces = drawn < 1 ? [path] : wire.pieces
       const seen = belt.onScreen(pieces, view)
       const flow = rates.get(key)
-      const tap = COMPONENTS[to.type].tap
       const busy = (flow?.rate ?? 0) > 0.01
+      const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
+      // Advance this belt by the distance it covered: sim seconds at its own speed.
+      // A flow rate that changes under it then alters only the next frame's speed.
+      if (!state.paused) belt.travel += seconds * state.speed * speed
+      belt.show(seen, quiet ? QUIET : hovered ? 1 : off ? DIM : 1)
+      // A belt the view cannot see draws nothing: not its body, its mouths or its items.
+      if (!seen) continue
+      const tap = COMPONENTS[to.type].tap
       // The packets' colour; the pipe under them is a pale tint of it, with no outline.
       const hue = flow?.failing
         ? colors.danger
@@ -3291,10 +3359,6 @@ class BoardController {
             : colors.edge
       // A dark board sinks its wires toward the canvas, so saturated packets do not glare.
       const packet = mix(hue, colors.canvas, colors.wireMute)
-      const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
-      // Advance this belt by the distance it covered: sim seconds at its own speed.
-      // A flow rate that changes under it then alters only the next frame's speed.
-      if (!state.paused) belt.travel += seconds * state.speed * speed
       // Rails stand out only where they say something: on the focused path and on errors. A call
       // between zones pays cross-zone latency and Egress: its rails are orange in focus,
       // and at rest an orange tick marks the port it arrives on.
@@ -3407,13 +3471,24 @@ class BoardController {
     this.chevrons.end()
     this.drawBoxes(state.game, colors)
 
-    const portals = portalsOf(mouths)
     const portalColor = colors.edge
-    const portalsKey = `${portalColor}|${portals.map((p) => `${p.x0}:${p.y0}:${p.x1}:${p.y1}:${p.off}`).join('|')}`
-    if (portalsKey !== this.portalsKey) {
-      this.portalsKey = portalsKey
+    const sameMouths =
+      mouths.length === this.mouthsDrawn.length &&
+      mouths.every((mouth, index) => {
+        const before = this.mouthsDrawn[index] as Mouth
+        return (
+          mouth.x === before.x &&
+          mouth.y === before.y &&
+          mouth.across === before.across &&
+          mouth.width === before.width &&
+          mouth.off === before.off
+        )
+      })
+    this.mouthsDrawn = mouths
+    if (!sameMouths || portalColor !== this.portalInk) {
+      this.portalInk = portalColor
       this.portals.clear()
-      for (const portal of portals)
+      for (const portal of portalsOf(mouths))
         this.portals
           .roundRect(portal.x0, portal.y0, portal.x1 - portal.x0, portal.y1 - portal.y0, 1.25)
           .fill({ color: portalColor, alpha: portal.off ? DIM : 0.7 })
