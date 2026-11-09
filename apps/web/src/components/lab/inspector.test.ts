@@ -365,6 +365,19 @@ test('an API Gateway shows its rate limit, and choosing a limit sets it', () => 
   expect(after.board.game.nodes.find((node) => node.id === 'n9')?.rateLimit).toBe(1_000)
 })
 
+test('an API Gateway card routes by request kind, and a Load Balancer card does not', () => {
+  Scene.scene(
+    { update, view },
+    Scene.given(gatewayBoard()),
+    Scene.expect(Scene.text('Routes')).toExist(),
+  )
+  Scene.scene(
+    { update, view },
+    Scene.given(cardOfType('lb', ['load-balancing'])),
+    Scene.expect(Scene.text('Routes')).not.toExist(),
+  )
+})
+
 /** A board whose Users reach a Realtime Hub on the BEAM instead of the PHP App Server. */
 const hubBoard = (): Model => {
   const start = initialModel()

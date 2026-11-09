@@ -132,7 +132,7 @@ export const reasons = {
   onlyALoadBalancerHasAVariant: 'Only a Load Balancer has a variant.',
   onlyALoadBalancerKeepsUsersOn: 'Only a Load Balancer keeps users on a target.',
   onlyALoadBalancerRampsANew: 'Only a Load Balancer ramps a new copy up.',
-  onlyALoadBalancerRoutesByRequest: 'Only a Load Balancer routes by request kind.',
+  onlyAnApiGatewayRoutesByRequest: 'Only an API Gateway routes by request kind.',
   onlyALoadBalancerRunsHealthChecks: 'Only a Load Balancer runs health checks.',
   onlyAQueueHasADeadLetter: 'Only a Queue has a dead-letter queue.',
   onlyAQueueHasAMaxLength: 'Only a Queue has a max length.',

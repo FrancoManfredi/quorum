@@ -2,20 +2,22 @@ The API Gateway is one front door that every API call comes through before it re
 
 ## When to place it
 
+- Place it when one App Server type cannot serve every kind, and you want page views and API calls to reach different server groups.
 - Place it when you want to protect your services from a burst or from abusive clients without turning them away at the WAF. It unlocks with [API gateway](/research/api-gateway).
 - Place it when you want one place to see and cap API traffic.
 - Skip it as a bot filter. A rate limit caps volume and does not tell a bot from a shopper, so a [WAF](/components/waf) still belongs in front of it if bots are the problem.
 
 ## How it works
 
-Its rate limit caps the Node at a number of requests a second, and the requests past that limit fail as `throttled` rather than reach your services. A limit of Off lets everything through. It sits after [Users](/components/users) and passes every request kind through to the App Servers you link, adding a hop of its own. See [rate limiting](/glossary/rate-limiting) and the [token bucket](/glossary/token-bucket) it still wants.
+Its rate limit caps the Node at a number of requests a second, and the requests past that limit fail as `throttled` rather than reach your services. A limit of Off lets everything through. It sits after [Users](/components/users) and sends each request kind on the Links its route table gives it, adding a hop of its own. That route table is how a Design splits by kind: send `page` to a server group built for rendering, `login` to one that will not stall, and `media` to a CDN. See [rate limiting](/glossary/rate-limiting) and the [token bucket](/glossary/token-bucket) it still wants.
 
-Unlike every other Component, which bills per second of uptime, the gateway bills per request. It is cheap at low volume and expensive at high volume, and it is the Requests line of the bill. It has one size and a flat capacity of its own, so a Design past that capacity drops requests at the gateway like any other flat-capacity Node.
+Unlike every other Component, which bills per second of uptime, the gateway bills per request. It is cheap at low volume and expensive at high volume, and it is the Requests line of the bill. Its price is a managed service's real-dollar fee, so the Era cost index does not multiply it. It has one size and a flat capacity of its own, so a Design past that capacity drops requests at the gateway like any other flat-capacity Node.
 
 ## Options
 
 ::Options{id="gw"}
 
+- **Routes**: which request kinds each Link carries. Every kind goes on every Link until you turn one off, so a Link set to `login` only carries logins and nothing else.
 - **Rate limit**: the requests a second the gateway lets through. Past it, requests fail as `throttled` instead of reaching your services. Off lets everything through.
 - **Burst**: Flat cap refuses every request over the limit. Token bucket holds a small reserve, so a short burst passes whole while the long-run average still holds. It needs [Rate limiting](/research/rate-limiting).
 - **Auth**: Auth at the edge validates each token once, at the gateway, and the services behind it skip the check. Services check leaves the validation to every service.

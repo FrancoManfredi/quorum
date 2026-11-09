@@ -1,4 +1,5 @@
 export const inspectorGw = {
+  routes: 'Routes',
   rateLimit: 'Rate limit',
   off: 'Off',
   s: (p0: string | number | null) => `${p0}/s`,

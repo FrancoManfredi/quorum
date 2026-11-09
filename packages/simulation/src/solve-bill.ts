@@ -151,7 +151,9 @@ export const billOf = (
 
   // An API Gateway, a Serverless Function and an Edge Function bill each request on the Requests
   // line (09 "The cloud bill"), × cost index. A function's uses also bill the GB-seconds its
-  // executions ran, so a slow call to a data tier shows up on it.
+  // executions ran, so a slow call to a data tier shows up on it. An API Gateway is a managed
+  // service, so its per-request fee is a real-dollar price and takes no cost index (09
+  // "Third-party fees"), unlike the functions beside it.
   let requests = 0
   const index = eraOf(game).costIndex
   const gwAll = gatewayArrivals(game, (node) => pass.arriving[slotOf(pass, node)] ?? {})
@@ -160,7 +162,7 @@ export const billOf = (
     if (isDown(node)) continue
     const done = (nodes[node.id]?.inbound ?? 0) - (nodes[node.id]?.dropped ?? 0)
     if (done <= 0) continue
-    if (node.type === 'gw') requests += done * gwKept * GATEWAY_PRICE * index
+    if (node.type === 'gw') requests += done * gwKept * GATEWAY_PRICE
     if (node.type === 'fn')
       requests += serverlessBurnOf(game, node, done, meanServiceOf(pass, node))
     if (node.type === 'edge') requests += edgeBurnOf(game, node, done)

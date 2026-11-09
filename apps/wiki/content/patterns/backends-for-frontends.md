@@ -15,7 +15,7 @@ The cost is more code to run. Each BFF needs deploys, monitoring and an owner, a
 
 ## Nearest in Quorum
 
-The game has the front door, not one per client. The [API Gateway](/components/gw) is one entry point that rate-limits and passes every request kind through to your App Servers, and a Load Balancer can send chosen request kinds to different App Servers, which splits traffic by request kind, not by client. Read [API gateway patterns](/patterns/api-gateway-patterns) for where the BFF fits, and Research [API gateway](/research/api-gateway) to unlock the Component.
+The game has the front door, not one per client. The [API Gateway](/components/gw) is one entry point that rate-limits and routes each request kind to the App Server group you choose, which splits traffic by request kind, not by client. Read [API gateway patterns](/patterns/api-gateway-patterns) for where the BFF fits, and Research [API gateway](/research/api-gateway) to unlock the Component.
 
 ## References
 

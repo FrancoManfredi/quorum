@@ -437,7 +437,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
       board(
         1,
         6_000,
-        ['lang-node', 'node-cluster', 'php-fpm', 'load-balancing', 'percentiles'],
+        ['lang-node', 'node-cluster', 'php-fpm', 'load-balancing', 'api-gateway', 'percentiles'],
         [
           node('server', 'server', 440, 280, { size: 3, runtime: 'node' }),
           node('database', 'database', 760, 280, { size: 3 }),

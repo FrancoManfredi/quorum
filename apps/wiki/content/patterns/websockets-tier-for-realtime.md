@@ -19,7 +19,7 @@ Give realtime traffic its own Hub, because a connection that stays open for minu
 
 ::Design{id="realtime-hub"}
 
-The Load Balancer splits traffic by request kind. Realtime goes to the Hub and every other kind goes to the App Server. The Hub takes realtime and sends nothing on.
+The API Gateway splits traffic by request kind. Realtime goes to the Hub and every other kind goes to the App Server. The Hub takes realtime and sends nothing on.
 
 ## Why it works
 
@@ -33,4 +33,4 @@ A Hub is a stateful Node. A restart drops every connection and invites a reconne
 
 ## In Quorum
 
-Place a [Realtime Hub](/components/ws) and link it from a [Load Balancer](/components/lb). Set the Link's kinds so only realtime reaches it. Research [WebSockets](/research/websockets), and a runtime such as [Node.js](/research/lang-node). The next step, [sharding the database](/patterns/shard-the-database), splits the data tier once one primary cannot take the writes.
+Place a [Realtime Hub](/components/ws) and link it from an [API Gateway](/components/gw). Set the Link's kinds so only realtime reaches it. Research [WebSockets](/research/websockets), and a runtime such as [Node.js](/research/lang-node). The next step, [sharding the database](/patterns/shard-the-database), splits the data tier once one primary cannot take the writes.

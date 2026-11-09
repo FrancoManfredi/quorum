@@ -160,9 +160,9 @@ export const step2 = {
     {
       users: 4000,
       stage: 3,
-      researched: [],
+      researched: ['api-gateway'],
       nodes: [
-        at('lb', 'lb', 1, 1, []),
+        at('gateway', 'gw', 1, 1, []),
         at('browse', 'server', 2, 0, [
           set(
             'size',
@@ -188,16 +188,16 @@ export const step2 = {
         ]),
       ],
       links: [
-        wire('users', 'lb'),
-        wire('lb', 'browse', [
+        wire('users', 'gateway'),
+        wire('gateway', 'browse', [
           setLink(
             'kinds',
             ['page', 'read'],
             'Kinds sent to Browse',
-            'The Load Balancer routes by request kind, which stands for routing by feature.',
+            'The Gateway routes by request kind, which stands for routing by feature.',
           ),
         ]),
-        wire('lb', 'orders', [
+        wire('gateway', 'orders', [
           setLink(
             'kinds',
             ['write', 'buy'],

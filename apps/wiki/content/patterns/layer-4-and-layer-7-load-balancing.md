@@ -11,7 +11,7 @@ A layer 4 balancer forwards connections without looking inside, and a layer 7 ba
 
 ## Use it when
 
-- L7: you want to route by path, header, or kind of request, or retry a failed call on another server.
+- L7: you want to retry a failed call on another server, or check a target's health over HTTP.
 - L4: raw throughput and low latency matter more than routing, or the traffic is not HTTP.
 - Either: a single balancer is the busiest node on the board.
 
@@ -19,7 +19,7 @@ A layer 4 balancer forwards connections without looking inside, and a layer 7 ba
 
 An L4 balancer works on IP addresses and ports. It picks a backend and passes the bytes along, so it does little work per request and handles very large volumes. An L7 balancer terminates the connection, parses HTTP, and can send `/api` to one pool and `/images` to another, add headers, and retry. Real examples are AWS's Network Load Balancer for L4 and its Application Load Balancer for L7.
 
-Splitting pools by kind also isolates them: a flood of page views cannot starve the API servers.
+Splitting pools by kind also isolates them: a flood of page views cannot starve the API servers. Quorum gives that split to the [API Gateway](/components/gw) and leaves the balancer to spread what reaches it.
 
 ## What it costs
 
@@ -27,7 +27,7 @@ L7 does more work per request, so it has a lower ceiling, costs more per request
 
 ## In Quorum
 
-A [Load Balancer](/components/lb) has a variant. L7 is the default, and L4 needs [L4 load balancing](/research/l4-lb). L4 forwards every kind of request on every Link, so per-kind routing is gone. On an L7 balancer, each Link can carry only some kinds of request.
+A [Load Balancer](/components/lb) has a variant. L7 is the default, and L4 needs [L4 load balancing](/research/l4-lb). L4 forwards every kind of request on every Link. Neither variant routes by kind: putting `page` on one server group and `read` on another is the [API Gateway](/components/gw)'s job.
 
 ::Design{id="lb-layer-7"}
 

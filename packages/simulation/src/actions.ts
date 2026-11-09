@@ -523,7 +523,7 @@ export const setLinkPolicy = (
   return ok({ ...game, links: game.links.map((entry, at) => (at === index ? next : entry)) })
 }
 
-/** Sets the request kinds a Load Balancer Link carries, or null for all of them. */
+/** Sets the request kinds each Link out of an API Gateway carries, or null for all of them. */
 export const setLinkKinds = (
   game: Game,
   from: string,
@@ -534,7 +534,7 @@ export const setLinkKinds = (
   const current = game.links[index]
   const source = game.nodes.find((node) => node.id === from)
   if (!current || !source) return no(Refusal.Missing())
-  if (source.type !== 'lb') return notAllowed('Only a Load Balancer routes by request kind.')
+  if (source.type !== 'gw') return notAllowed('Only an API Gateway routes by request kind.')
   const next = { ...current, kinds: kinds && REQUEST_KINDS.filter((kind) => kinds.includes(kind)) }
   return ok({ ...game, links: game.links.map((entry, at) => (at === index ? next : entry)) })
 }
@@ -1243,57 +1243,75 @@ export const throttleConnects = (game: Game, id: string): Action =>
 const onLoop = (node: GameNode): boolean =>
   node.type === 'server' && RUNTIMES[node.runtime].blocking === 'loop'
 
+/** Every Node a Node's routing Links reach, itself included. */
+const reachable = (game: Game, from: GameNode): ReadonlyArray<GameNode> => {
+  const seen = new Set<string>([from.id])
+  const found: Array<GameNode> = [from]
+  const stack = game.links.filter((link) => link.from === from.id).map((link) => link.to)
+  while (stack.length > 0) {
+    const id = stack.pop() as string
+    if (seen.has(id)) continue
+    seen.add(id)
+    const node = game.nodes.find((entry) => entry.id === id)
+    if (!node) continue
+    found.push(node)
+    for (const link of game.links) if (link.from === id && !seen.has(link.to)) stack.push(link.to)
+  }
+  return found
+}
+
 /**
- * Moves login off the blocked event loop (11 "Event loop block", 08 "Services", 05 "Load
- * Balancer"): each L7 Load Balancer in front of an App Server on an event loop stops sending it
- * `login` and sends it to a Service behind the same Load Balancer on a runtime with no event
- * loop. The incident ends once no login reaches a loop.
+ * Moves login off the blocked event loop (11 "Event loop block", 08 "Services", 05 "API
+ * Gateway"): each API Gateway in front of an App Server on an event loop stops sending `login`
+ * to a Link that reaches that loop, and sends it to a Link that reaches a Service on a runtime
+ * without one. The incident ends once no login reaches a loop.
  */
 export const moveKind = (game: Game): Action => {
   const incident = game.incident
   if (incident?.kind !== 'loop') return notAllowed('No event loop is blocked.')
-  const behind = (lb: GameNode): ReadonlyArray<GameNode> =>
-    game.links
-      .filter((entry) => entry.from === lb.id)
-      .map((entry) => game.nodes.find((candidate) => candidate.id === entry.to))
-      .filter(
-        (to): to is GameNode =>
-          to !== undefined && (to.type === 'server' || to.type === 'fn') && !isDown(to),
-      )
-  const fronts = game.nodes.filter(
-    (lb) => lb.type === 'lb' && behind(lb).some((child) => onLoop(child)),
+  const gateways = game.nodes.filter(
+    (node) => node.type === 'gw' && !isDown(node) && reachable(game, node).some(onLoop),
   )
-  if (fronts.length === 0)
-    return notAllowed('Put a Load Balancer in front of the App Servers to route login elsewhere.')
-  const l7 = fronts.filter((lb) => lb.variant === 'l7')
-  if (l7.length === 0)
-    return notAllowed(
-      'An L4 Load Balancer carries every kind. Make it L7 to route login elsewhere.',
-    )
-  const moving = l7.filter((lb) => behind(lb).some((child) => !onLoop(child)))
-  if (moving.length === 0)
-    return notAllowed(
-      'No other Service takes login off an event loop: add one on a runtime without it.',
-    )
-  const routed = new Set(moving.map((lb) => lb.id))
-  const links = game.links.map((entry) => {
-    if (!routed.has(entry.from)) return entry
-    const child = game.nodes.find((candidate) => candidate.id === entry.to)
-    if (!child) return entry
-    if (onLoop(child))
-      return {
-        ...entry,
-        kinds: REQUEST_KINDS.filter(
-          (kind) => kind !== 'login' && (entry.kinds === null || entry.kinds.includes(kind)),
-        ),
-      }
-    return entry.kinds === null || entry.kinds.includes('login')
-      ? entry
-      : {
-          ...entry,
-          kinds: REQUEST_KINDS.filter((kind) => kind === 'login' || entry.kinds?.includes(kind)),
+  if (gateways.length === 0)
+    return notAllowed('Put an API Gateway in front of the App Servers to route login elsewhere.')
+  let links = game.links
+  let routed = false
+  for (const gateway of gateways) {
+    // What each Link out of the Gateway reaches: a loop, a Service without one, or neither.
+    const routes = links
+      .filter((entry) => entry.from === gateway.id)
+      .map((entry) => {
+        const target = game.nodes.find((node) => node.id === entry.to)
+        const below = target ? reachable(game, target) : []
+        return {
+          entry,
+          loops: below.some(onLoop),
+          answers: below.some((node) => node.type === 'server' || node.type === 'fn'),
         }
-  })
+      })
+    if (!routes.some((route) => route.loops)) continue
+    if (!routes.some((route) => !route.loops && route.answers))
+      return notAllowed(
+        'Link the Gateway to a Service on a runtime without an event loop to route login there.',
+      )
+    routed = true
+    const carried = (entry: GameLink, kind: RequestKind): boolean =>
+      entry.kinds === null || entry.kinds.includes(kind)
+    const keeps = new Map(
+      routes.map((route) => [
+        route.entry.to,
+        route.loops
+          ? REQUEST_KINDS.filter((kind) => kind !== 'login' && carried(route.entry, kind))
+          : route.answers
+            ? REQUEST_KINDS.filter((kind) => kind === 'login' || carried(route.entry, kind))
+            : route.entry.kinds,
+      ]),
+    )
+    links = links.map((entry) =>
+      entry.from === gateway.id ? { ...entry, kinds: keeps.get(entry.to) ?? entry.kinds } : entry,
+    )
+  }
+  if (!routed) return notAllowed('No event loop is behind an API Gateway.')
   return ok({ ...game, links, incident: answering(game, incident) })
 }
 

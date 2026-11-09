@@ -392,7 +392,7 @@ multiplier would make an Era's research unpayable.
 | `containers`          | Container orchestration   | Series A | 5,000   | `autoscaling`     | Kubernetes Cluster                                                                            |
 | `serverless`          | Serverless                | Series A | 3,500   | None              | Serverless Function                                                                           |
 | `websockets`          | WebSockets                | Series A | 2,500   | None              | Realtime Hub                                                                                  |
-| `api-gateway`         | API gateway               | Series A | 2,000   | `load-balancing`  | API Gateway                                                                                   |
+| `api-gateway`         | API gateway               | Series A | 2,000   | `load-balancing`  | API Gateway, the front door that routes by kind                                               |
 | `rate-limiting`       | Rate limiting             | Series A | 1,800   | `api-gateway`     | Token bucket limits on the gateway                                                            |
 | `tiered-caching`      | Tiered caching            | Series A | 2,000   | `cdn`             | CDN `media` hit ratio 92%                                                                     |
 | `esi`                 | Edge-side includes        | Series A | 3,000   | `cdn`             | +20% `page` hit ratio for logged-in users                                                     |

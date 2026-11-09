@@ -143,7 +143,6 @@ export const OPTION_CONTROLS: Partial<Record<ComponentId, ReadonlyArray<OptionCo
       shown: 'Always',
     },
     { name: 'Deep check', settings: 'Shallow / Deep', shown: 'Always' },
-    { name: 'Routes', settings: 'Every kind, or a subset for each Link', shown: 'Always' },
   ],
   autoscaler: [
     { name: 'Signal', settings: 'CPU / Load / Requests / Queue depth', shown: 'Always' },
@@ -183,6 +182,7 @@ export const OPTION_CONTROLS: Partial<Record<ComponentId, ReadonlyArray<OptionCo
     },
     { name: 'Auth', settings: 'Services check / Auth at the edge', shown: 'Always' },
     { name: 'Coalescing', settings: 'Every read goes on / Request coalescing', shown: 'Always' },
+    { name: 'Routes', settings: 'Every kind, or a subset for each Link', shown: 'Always' },
   ],
   cache: [
     {

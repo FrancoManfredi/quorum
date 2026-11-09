@@ -191,13 +191,19 @@ describe('guided Sandboxes pass with their fix and stall without it', { timeout:
     // One event loop of logins alone does not survive 4× hashing: the hasher needs every core.
     const routeLogin: Plan = (game, passed) => {
       if (passed > 0) return game
-      const fronted = addServer(behindLoadBalancer(game), 'database')
-      const lb = fronted.nodes.find((node) => node.type === 'lb')?.id ?? ''
-      const hasher = lastId(fronted)
-      const sized = ok(Actions.resize(ok(Actions.resize(fronted, hasher, 1)), hasher, 1))
-      const node = ok(Actions.setRuntime(sized, hasher, 'node_cluster'))
-      const apart = ok(Actions.setLinkKinds(node, lb, hasher, ['login']))
-      return ok(Actions.setLinkKinds(apart, lb, 'server', ['page', 'read', 'write']))
+      const placed = ok(Actions.place(game, 'gw', 300, 280))
+      const gw = lastId(placed)
+      const fronted = ok(
+        Actions.connect(Actions.disconnect(placed, 'users', 'server'), 'users', gw),
+      )
+      const linked = ok(Actions.connect(fronted, gw, 'server'))
+      const added = ok(Actions.place(linked, 'server', 600, 560))
+      const hasher = lastId(added)
+      const wired = ok(Actions.connect(ok(Actions.connect(added, gw, hasher)), hasher, 'database'))
+      const sized = ok(Actions.resize(ok(Actions.resize(wired, hasher, 1)), hasher, 1))
+      const runtime = ok(Actions.setRuntime(sized, hasher, 'node_cluster'))
+      const apart = ok(Actions.setLinkKinds(runtime, gw, hasher, ['login']))
+      return ok(Actions.setLinkKinds(apart, gw, 'server', ['page', 'read', 'write']))
     }
     passesInTime(play('event-loop-stall', routeLogin, LONG), 2)
   })

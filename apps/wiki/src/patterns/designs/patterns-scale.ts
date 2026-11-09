@@ -1,4 +1,4 @@
-import { at, design, set, setLink, wire } from '../design.ts'
+import { at, design, set, wire } from '../design.ts'
 import type { Design } from '../design.ts'
 
 /* Patterns in "Scaling reads and compute". */
@@ -403,33 +403,19 @@ const layer7 = design({
         'variant',
         'l7',
         'Variant',
-        'An L7 balancer reads the HTTP request, so it can send a kind of request to the servers built for it.',
+        'An L7 balancer reads each HTTP request, so it can retry a failed call on another server and check a target’s health.',
       ),
     ]),
-    at('pages', 'server', 2, -1, [appSize]),
-    at('api', 'server', 2, 1, [appSize]),
+    at('server-a', 'server', 2, -1, [appSize]),
+    at('server-b', 'server', 2, 1, [appSize]),
     at('database', 'database', 3, 0, [dbSize]),
   ],
   links: [
     wire('users', 'lb'),
-    wire('lb', 'pages', [
-      setLink(
-        'kinds',
-        ['page'],
-        'Kinds on this Link',
-        'Only page views go to this server, so its CPU and memory serve one workload.',
-      ),
-    ]),
-    wire('lb', 'api', [
-      setLink(
-        'kinds',
-        ['read', 'write', 'login'],
-        'Kinds on this Link',
-        'API calls go here, so a burst of page views cannot starve them.',
-      ),
-    ]),
-    wire('pages', 'database'),
-    wire('api', 'database'),
+    wire('lb', 'server-a'),
+    wire('lb', 'server-b'),
+    wire('server-a', 'database'),
+    wire('server-b', 'database'),
   ],
 })
 
@@ -443,7 +429,7 @@ const layer4 = design({
         'variant',
         'l4',
         'Variant',
-        'An L4 balancer forwards TCP without reading HTTP, so it handles far more traffic for less money. It cannot route by kind or retry.',
+        'An L4 balancer forwards TCP without reading HTTP, so it handles far more traffic for less money. It cannot retry.',
       ),
     ]),
     at('server-a', 'server', 2, -1, [appSize]),

@@ -3,9 +3,9 @@ import type { Messages } from '../messages.ts'
 export const inspectorLb: Messages['inspectorLb'] = {
   variant: 'Variante',
   forwardsTCPTenTimesTheThroughput:
-    'Transmet le TCP : dix fois le débit, 0,2 ms et moins cher. Il ne lit pas le HTTP, donc il ne peut ni router par type ni réessayer.',
-  readsHTTPRoutesByKindRetries:
-    'Lit le HTTP : route par type, réessaie et vérifie l’état. Débit plus faible et saut plus long.',
+    'Transmet le TCP : dix fois le débit, 0,2 ms et moins cher. Il ne lit pas le HTTP, donc il ne peut pas réessayer un appel.',
+  readsHTTPRetriesAndChecksHealth:
+    'Lit le HTTP : réessaie et vérifie l’état. Débit plus faible et saut plus long.',
   policy: 'Politique',
   sessions: 'Sessions',
   balanced: 'Équilibrée',
@@ -17,7 +17,6 @@ export const inspectorLb: Messages['inspectorLb'] = {
   s: (p0) => `${p0} s`,
   shallow: 'Superficielles',
   deep: 'Approfondies',
-  routes: 'Routes',
   stickyHolds:
     'Un utilisateur reste sur la cible qu’il a atteinte en premier. La plus ancienne copie porte le plus d’utilisateurs, une cible qui tombe emporte ses sessions, et les caches en processus et les clients temps réel restent chauds.',
   slowStart: 'Démarrage progressif',

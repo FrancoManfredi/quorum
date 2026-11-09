@@ -143,7 +143,9 @@ Each step, the solve walks the graph from the sources (**Users**) in topological
 4. **Transform.** The Node turns some kinds into others, for example an app server turns `read` into
    `q-read`.
 5. **Split.** The rest goes to outbound links. The split policy depends on the Node: a load balancer
-   uses its algorithm ([Components](/design/05-components#load-balancer)), and other Nodes route by kind.
+   uses its algorithm ([Components](/design/05-components#load-balancer)), an API Gateway uses its
+   route table ([Components](/design/05-components#api-gateway)), and every Node sends a kind only to a
+   Link that accepts it.
 6. **Capacity.** The Node's capacity limits what it can process
    ([Runtimes](/design/06-runtimes#the-capacity-model)). Excess arrivals are dropped.
 

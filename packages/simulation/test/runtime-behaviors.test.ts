@@ -1,7 +1,7 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import * as Actions from '../src/actions.ts'
-import { GPU_MODELS, type ResearchId } from '../src/catalog.ts'
+import { GATEWAY_PRICE, GPU_MODELS, type ResearchId } from '../src/catalog.ts'
 import { gpuFits } from '../src/rules.ts'
 import { requestCpuMs } from '../src/capacity.ts'
 import {
@@ -163,5 +163,59 @@ describe('certificates, evictions and boxes', () => {
     expect(loose.boxes).toHaveLength(0)
     expect(loose.nodes).toHaveLength(game.nodes.length)
     expect(Result.isFailure(Actions.boxNodes(game, ids.slice(0, 1)))).toBe(true)
+  })
+})
+
+describe('routing and the Gateway fee', () => {
+  /** Users -> Gateway -> two App Servers -> Database, at Pre-seed, where login exists. */
+  const routed = (): Readonly<{ game: Game; gateway: string; login: string }> => {
+    let game: Game = { ...freeSandbox(), stage: 1, seed: 3 }
+    const first = game.nodes.find((node) => node.type === 'server') as GameNode
+    game = ok(Actions.place(game, 'gw', 200, 280))
+    const gateway = game.nodes.at(-1)?.id as string
+    game = Actions.disconnect(game, 'users', first.id)
+    game = ok(Actions.connect(game, 'users', gateway))
+    game = ok(Actions.connect(game, gateway, first.id))
+    game = ok(Actions.place(game, 'server', 440, 120))
+    const login = game.nodes.at(-1)?.id as string
+    const database = game.nodes.find((node) => node.type === 'database') as GameNode
+    game = ok(Actions.connect(game, gateway, login))
+    game = ok(Actions.connect(game, login, database.id))
+    return { game, gateway, login }
+  }
+
+  test('an API Gateway routes each request kind on the Links that carry it', () => {
+    const { game, gateway, login } = routed()
+    const server = game.nodes.find(
+      (node) => node.type === 'server' && node.id !== login,
+    ) as GameNode
+    const at = ok(Actions.setLinkKinds(game, gateway, login, ['login']))
+    const parted = ok(Actions.setLinkKinds(at, gateway, server.id, ['page', 'read', 'write']))
+    const ledger = solveFlow(parted)
+    expect(ledger.nodes[login]?.traffic.login ?? 0).toBeGreaterThan(0)
+    expect(ledger.nodes[login]?.traffic.page ?? 0).toBe(0)
+    expect(ledger.nodes[server.id]?.traffic.login ?? 0).toBe(0)
+    expect(ledger.nodes[server.id]?.traffic.page ?? 0).toBeGreaterThan(0)
+  })
+
+  test('only an API Gateway routes by request kind', () => {
+    const { game, login } = routed()
+    const placed = ok(Actions.place(game, 'lb', 200, 520))
+    const loadBalancer = placed.nodes.find((node) => node.type === 'lb') as GameNode
+    const linked = ok(Actions.connect(placed, loadBalancer.id, login))
+    const refused = Actions.setLinkKinds(linked, loadBalancer.id, login, ['page'])
+    expect(Result.isFailure(refused)).toBe(true)
+    if (Result.isFailure(refused))
+      expect(Actions.describeRefusal(refused.failure)).toBe(
+        'Only an API Gateway routes by request kind.',
+      )
+  })
+
+  test('a Gateway bills each request at its own price, without the Era cost index', () => {
+    const { game, gateway } = routed()
+    const ledger = solveFlow(game)
+    const inbound = ledger.nodes[gateway]?.inbound ?? 0
+    expect(inbound).toBeGreaterThan(0)
+    expect(ledger.burnLines.requests).toBeCloseTo(inbound * GATEWAY_PRICE, 6)
   })
 })

@@ -70,7 +70,7 @@ At each Node it does six things:
 3. **Serve.** The Node answers what it can itself. A Cache answers its hits.
 4. **Transform.** An App Server turns requests into backend kinds.
 5. **Split.** The rest goes out on Links. A [Load Balancer](/components/lb) splits by its algorithm,
-   and other Nodes route by kind.
+   and an [API Gateway](/components/gw) splits by its route table.
 6. **Limit.** Capacity caps what the Node processes. See
    [Capacity, utilization, and queues](/explanation/queues).
 

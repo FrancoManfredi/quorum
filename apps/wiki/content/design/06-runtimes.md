@@ -98,7 +98,7 @@ The fixes, each with its own cost:
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Async crypto      | Research "libuv thread pool" takes the `login` hash off the event loop, so logins stop stalling the requests behind them. | Dev Hours for the Research, and 8 MB of RAM a process.                        |
 | Worker threads    | Moves CPU-heavy kinds to a pool of worker threads.                                                                        | Dev Hours to adopt. Each worker thread is a separate V8 isolate, about 10 MB. |
-| Separate service  | Routes `login` or `upload` to a separate App Server group.                                                                | Another service: more Nodes, a load balancer route, a team boundary.          |
+| Separate service  | Routes `login` or `upload` to a separate App Server group.                                                                | Another service: more Nodes, a Gateway route, a team boundary.                |
 | Auth Provider     | Takes `login` off your servers.                                                                                           | Per-user price ([Components](/design/05-components#auth-provider)).           |
 | Different runtime | Go, Java, and Elixir do not stall other requests on one heavy request.                                                    | A migration ([Team](/design/08-team-and-velocity#migrations)).                |
 

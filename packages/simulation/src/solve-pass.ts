@@ -347,9 +347,12 @@ export const forward = (inputs: Inputs): Pass => {
 export const noticed = (graph: Graph, child: GameNode, after: number): boolean =>
   isDown(child) && (causeOf(child.life) === 'restart' || graph.time - child.downAt >= after)
 
-/** The kinds a Link carries: an L7 Load Balancer Link can carry only some. An L4 carries every kind. */
+/**
+ * The kinds a Link carries: an API Gateway's route table sends each kind on chosen Links, and every
+ * other Node sends every kind on every Link (05 "API Gateway").
+ */
 export const carries = (node: GameNode, edge: Edge, kind: Kind): boolean => {
-  if (node.type !== 'lb' || node.variant === 'l4') return true
+  if (node.type !== 'gw') return true
   const kinds = edge.link.kinds
   return !kinds || (kinds as ReadonlyArray<Kind>).includes(kind)
 }

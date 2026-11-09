@@ -162,9 +162,9 @@ export const patternsData = {
   'federated-by-kind': design({
     users: 3_000,
     stage: 2,
-    researched: ['load-balancing'],
+    researched: ['load-balancing', 'api-gateway'],
     nodes: [
-      at('lb', 'lb', 1, 0),
+      at('gateway', 'gw', 1, 0),
       at('orders', 'server', 2, -1, [
         set('size', 2, 'Instance size', 'Small. The orders service carries checkouts and writes.'),
       ]),
@@ -189,16 +189,16 @@ export const patternsData = {
       ]),
     ],
     links: [
-      wire('users', 'lb'),
-      wire('lb', 'orders', [
+      wire('users', 'gateway'),
+      wire('gateway', 'orders', [
         setLink(
           'kinds',
           ['write', 'buy', 'login'],
           'Request kinds',
-          'The Load Balancer sends writes, checkouts, and logins to the orders service.',
+          'The Gateway sends writes, checkouts, and logins to the orders service.',
         ),
       ]),
-      wire('lb', 'catalog', [
+      wire('gateway', 'catalog', [
         setLink(
           'kinds',
           ['page', 'read', 'search', 'upload', 'media', 'rt', 'bot', 'job', 'report', 'ai'],

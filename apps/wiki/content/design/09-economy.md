@@ -68,16 +68,16 @@ beside them. A data Node's standby is a second box and doubles that Node's Burn;
 makes the standby the primary and halves the Burn again until the player adds a new standby
 ([Incidents](/design/11-incidents#mitigation-toolbox)). The table is the bill:
 
-| Line          | Formula                                                                                                                                                                                                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                                                                                                                                                                                    |
-| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                                                                                                                                                                              |
-| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage))                                                                                                                                                         |
-| Egress        | GB out × egress price ([Egress](#egress))                                                                                                                                                                                                                                            |
-| Requests      | API Gateway requests × $0.002 × cost index; Serverless Function requests × ($0.00024 + $0.02 per GB-second) × cost index; Edge Function requests × $0.00036 × cost index; Queue tasks × $0.00144 × cost index; Object Storage reads and writes at their product's price × cost index |
-| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                                                                                                                                                                                      |
-| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                                                                                                                                                                                      |
-| Salaries      | Σ engineers × salary × language factor                                                                                                                                                                                                                                               |
+| Line          | Formula                                                                                                                                                                                                                                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Compute       | Σ instances `vCPU × $0.05 × family price × pricing model` × cost index; RAM comes with the family                                                                                                                                                                                                                     |
+| Managed data  | Σ data Nodes at their size price; a Database adds its provisioned volume and each shard                                                                                                                                                                                                                               |
+| Storage       | Object storage: GB stored × price × storage class, plus its retrieval fee ([Data tier](/design/07-data-tier#object-storage))                                                                                                                                                                                          |
+| Egress        | GB out × egress price ([Egress](#egress))                                                                                                                                                                                                                                                                             |
+| Requests      | API Gateway requests × $0.002, a managed service's price and so not indexed; Serverless Function requests × ($0.00024 + $0.02 per GB-second) × cost index; Edge Function requests × $0.00036 × cost index; Queue tasks × $0.00144 × cost index; Object Storage reads and writes at their product's price × cost index |
+| Third parties | Payment fees, Auth Provider per user, LLM tokens, push messages                                                                                                                                                                                                                                                       |
+| Observability | Analytics sampling and retention ([Observability](/design/12-observability#the-cost-of-seeing))                                                                                                                                                                                                                       |
+| Salaries      | Σ engineers × salary × language factor                                                                                                                                                                                                                                                                                |
 
 Egress, observability, and third-party fees are the lines real teams tend to miss until the invoice
 arrives. The Cost panel shows each one on purpose.
@@ -104,9 +104,10 @@ arrives. The Cost panel shows each one on purpose.
 | Engineer salary (base)            | $0.40/s                                                                                                                                |
 
 These are Garage prices. Every price in this document, including placement, Burn, egress, and
-third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee and the
-Auth Provider's per-user price. The index keeps Burn a real share of revenue at every size of
-company. [Balancing](/design/16-balancing#cost-index) holds the index and the salary scale, and
+third-party fees, is multiplied by the Era's cost index, except the Payment Provider's fee, the Auth
+Provider's per-user price, and the API Gateway's per-request price. Those three are real-dollar fees
+from a managed service, so they stay put while the compute around them rises. The index keeps Burn a
+real share of revenue at every size of company. [Balancing](/design/16-balancing#cost-index) holds the index and the salary scale, and
 [Balancing](/design/16-balancing#prices) holds the full table.
 
 ### How prices map to real prices
@@ -187,7 +188,7 @@ server's own traffic mix, not a per-byte trace, and only an Object Storage Node 
 | Auth Provider    | $0.00006/s per user, $0.0864 per calendar day, not indexed |
 | LLM API          | $2.50 per 1,000 tokens                                     |
 | Push and email   | $0.0001 per message                                        |
-| API Gateway      | $0.002 per request, on the Requests line                   |
+| API Gateway      | $0.002 per request, on the Requests line, not indexed      |
 
 ## Funding
 

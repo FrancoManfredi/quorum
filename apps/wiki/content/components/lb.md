@@ -11,18 +11,17 @@ The Load Balancer spreads requests across your App Servers, or queries across a 
 
 It spans every zone, so a zone outage does not take it down. Every request kind comes in and goes on, and an L4 one also passes on every query kind, so it can sit in front of a [Database](/components/database) and its [Read Replicas](/components/replica). An L7 one reads HTTP and refuses queries. It adds a little latency, and each size step doubles its throughput limit.
 
-By default it splits traffic by each target's capacity, so a large App Server gets a larger share. It drops a dead host at its next [health check](/glossary/health-check). It can also route by request kind: set which kinds each of its links carries, and send slow kinds such as exports to their own App Servers.
+By default it splits traffic by each target's capacity, so a large App Server gets a larger share. It drops a dead host at its next [health check](/glossary/health-check). It sends every kind it receives to every target, so an [API Gateway](/components/gw) in front is what sends page views and API calls to different server groups.
 
 ## Options
 
 ::Options{id="lb"}
 
-- **Variant**: L7 terminates HTTP, so it can route by request kind, retry a failed call, and check health. L4 forwards TCP and passes queries too, so it can sit in front of a [Database](/components/database) and its [Read Replicas](/components/replica). L4 carries far more traffic, adds less latency, and bills less, and it gives up routing, retries, and HTTP awareness. See [Layer 4 and layer 7 load balancing](/patterns/layer-4-and-layer-7-load-balancing).
+- **Variant**: L7 terminates HTTP, so it can retry a failed call and check health. L4 forwards TCP and passes queries too, so it can sit in front of a [Database](/components/database) and its [Read Replicas](/components/replica). L4 carries far more traffic, adds less latency, and bills less, and it gives up retries and HTTP awareness. See [Layer 4 and layer 7 load balancing](/patterns/layer-4-and-layer-7-load-balancing).
 - **Policy**: how it picks a target. Weighted, the default, shares by each target's capacity, so a larger App Server gets a larger share. Round robin gives every target an equal turn. Least connections suits mixed sizes or runtimes. Two choices handles more traffic with a little imbalance. Consistent hash keeps a key on its target, and a target that leaves moves only its own keys. See [Load balancing algorithms](/patterns/load-balancing-algorithms).
 - **Sessions**: Sticky keeps a user on the target it first reached, so an in-process cache or a realtime client finds its memory. It also unbalances the load, because pinned users do not move when you add a copy, and a target that dies takes its sessions with it. See [Sticky sessions](/patterns/sticky-sessions).
 - **Slow start**: a target that just joined takes a growing share of traffic instead of its full share. A new JVM copy then never answers at its cold speed, and the [JVM warmup under load](/incidents/jvm-warmup) incident is much less likely. See [Cold start](/glossary/cold-start).
 - **Health checks**: how often the Load Balancer asks each target whether it is alive. A shorter interval drops a dead target sooner and adds checks. A **Deep** check also asks about the Database behind the target, so a slow Database can remove every target at once. An interval other than the default and a deep check both need [Health checks](/research/health-checks). See [Drop dead nodes with health checks](/patterns/drop-dead-nodes-with-health-checks).
-- **Routes**: which request kinds each Link carries. Every kind goes through until you turn one off. Send slow kinds such as exports to their own App Servers, or send realtime to its own Hub. An L4 cannot route this way.
 
 ## How it fails
 

@@ -677,7 +677,8 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     cost: 2_000,
     era: 3,
     requires: ['load-balancing'],
-    blurb: 'Unlocks the API Gateway: one front door that rate-limits every API call.',
+    blurb:
+      'Unlocks the API Gateway: the front door that routes each request kind and rate-limits every call.',
   }),
   research({
     id: 'websockets',
@@ -1797,7 +1798,7 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     era: 2,
     requires: ['lb-algorithms'],
     blurb:
-      'A Load Balancer forwards TCP instead of reading HTTP: ten times the throughput, a fifth of the hop, and cheaper, with no per-kind routing and no retries.',
+      'A Load Balancer forwards TCP instead of reading HTTP: ten times the throughput, a fifth of the hop, and cheaper, with no retries.',
   }),
   research({
     id: 'rate-limiting',

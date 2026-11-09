@@ -139,8 +139,8 @@ export const reasons: Messages['toasts']['reasons'] = {
   onlyALoadBalancerHasAVariant: 'バリアントを持つのはロードバランサーだけです。',
   onlyALoadBalancerKeepsUsersOn: 'ユーザーを同じターゲットに留めるのはロードバランサーだけです。',
   onlyALoadBalancerRampsANew: '新しいコピーを段階的に立ち上げるのはロードバランサーだけです。',
-  onlyALoadBalancerRoutesByRequest:
-    'リクエスト種別でルーティングするのはロードバランサーだけです。',
+  onlyAnApiGatewayRoutesByRequest:
+    'リクエスト種別でルーティングするのは API ゲートウェイだけです。',
   onlyALoadBalancerRunsHealthChecks: 'ヘルスチェックを実行するのはロードバランサーだけです。',
   onlyAQueueHasADeadLetter: 'デッドレターキューを持つのはキューだけです。',
   onlyAQueueHasAMaxLength: '最大長を持つのはキューだけです。',

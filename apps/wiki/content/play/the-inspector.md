@@ -101,7 +101,7 @@ Each block starts with the target's name. The rows below are pickers. Pick one o
 
 A row that its Research has not unlocked is missing, or its option is off. If you force an action that is locked, a slip appears above the dock. It reads **Locked · Backoff**, then the Research that unlocks it and its Insight price, with a **Research** button that opens that item. The slip waits until you take it or dismiss it.
 
-A Load Balancer adds a policy section of its own, with the request kinds each Link carries.
+An API Gateway adds a section of its own, with the request kinds each Link carries.
 
 Pick **Backoff** plus **Breaker** on the Link into a Database to stop a retry storm, and avoid **Retry 3×** there, because it multiplies load on the callee that is already failing. [Stop a retry storm](/guides/stop-a-retry-storm) walks through the case.
 

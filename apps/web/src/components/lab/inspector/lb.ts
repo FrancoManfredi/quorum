@@ -4,23 +4,12 @@ import {
   CHECK_INTERVALS,
   LB_POLICIES,
   LB_VARIANTS,
-  REQUEST_KINDS,
-  type RequestKind,
   type LbVariant,
 } from '@quorum/simulation/catalog'
 import { has } from '@quorum/simulation/lookups'
 import type { Game, GameNode, LbPolicy } from '@quorum/simulation/state'
 import { Message } from '@/game/message.ts'
-import {
-  type Panel,
-  caption,
-  choice,
-  nodeLink,
-  outbound,
-  picker,
-  section,
-  segmented,
-} from './shared.ts'
+import { type Panel, caption, picker, section } from './shared.ts'
 
 const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
@@ -47,7 +36,7 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
         caption(
           node.variant === 'l4'
             ? t.inspectorLb.forwardsTCPTenTimesTheThroughput
-            : t.inspectorLb.readsHTTPRoutesByKindRetries,
+            : t.inspectorLb.readsHTTPRetriesAndChecksHealth,
           h,
         ),
       ],
@@ -131,46 +120,6 @@ const loadBalancer = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Read
           (deep) => checked || !deep,
         ),
       ],
-      h,
-    ),
-    section(
-      t.inspectorLb.routes,
-      outbound(game, node).map(([link, target]) => {
-        const carried = link.kinds ?? REQUEST_KINDS
-        const toggled = (kind: RequestKind) => {
-          const next = carried.includes(kind)
-            ? carried.filter((entry) => entry !== kind)
-            : REQUEST_KINDS.filter((entry) => entry === kind || carried.includes(entry))
-          return next.length === REQUEST_KINDS.length ? null : next
-        }
-        return h.div(
-          [h.Key(link.to), h.Class('flex flex-col gap-1.5')],
-          [
-            nodeLink(game, target, h),
-            segmented(
-              'grid-cols-4',
-              REQUEST_KINDS.map((kind) => {
-                const next = toggled(kind)
-                return choice(
-                  `${link.to}-${kind}`,
-                  carried.includes(kind),
-                  next === null || next.length > 0,
-                  Message.LinkKindsChosen({ from: node.id, to: link.to, kinds: next }),
-                  [
-                    h.span(
-                      [h.Class('w-full truncate text-center')],
-                      [t.inspectorShared.kindShort[kind]],
-                    ),
-                  ],
-                  t.catalog.kinds[kind].label,
-                  h,
-                )
-              }),
-              h,
-            ),
-          ],
-        )
-      }),
       h,
     ),
   ]

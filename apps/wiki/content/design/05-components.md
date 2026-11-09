@@ -156,10 +156,10 @@ Teaches: DNS is a slow, coarse load balancer. Real clients cache answers.
 
 Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 
-| Variant | Profile                                                                                                                                                        |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| L7      | Understands HTTP. Routes by path and kind, terminates TLS, retries failed requests. Lower capacity and 1 ms latency.                                           |
-| L4      | Forwards TCP. Ten times the capacity, 0.2 ms latency, and cheaper. Cannot route by kind, cannot retry, and treats a long-lived connection as one unit of load. |
+| Variant | Profile                                                                                                                                  |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| L7      | Understands HTTP. Terminates TLS, retries failed requests, and checks health. Lower capacity and 1 ms latency.                           |
+| L4      | Forwards TCP. Ten times the capacity, 0.2 ms latency, and cheaper. Cannot retry, and treats a long-lived connection as one unit of load. |
 
 | Algorithm            | Behavior                                                                                                                                                                                           |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -179,10 +179,13 @@ Real products: NGINX, HAProxy, Envoy, AWS ALB and NLB.
 Teaches: load balancing is a policy choice, and health checks can cause outages as well as prevent them.
 
 L7 is the default: 2,000 requests a second at size 1, with a 1 ms hop. It is the only variant that can
-carry a chosen set of kinds on a Link, and the only one that can retry. L4 carries 20,000 at size 1 in
-a 0.2 ms hop for 0.6× the Burn. It sends every kind whatever a Link asks for and never retries, even
-with Timeouts and retries. It counts a realtime message as one message. L4 is unlocked by research
-`l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
+retry. L4 carries 20,000 at size 1 in a 0.2 ms hop for 0.6× the Burn. It sends every kind and never
+retries, even with Timeouts and retries. It counts a realtime message as one message. L4 is unlocked
+by research `l4-lb` ([Progression](/design/10-progression#track-infrastructure)).
+
+A Load Balancer does not choose by kind. Every kind it receives goes on to its targets, so splitting a
+Design by kind is the [API Gateway](#api-gateway)'s job, and the Load Balancer spreads what reaches it
+across the copies behind it.
 
 Sticky sessions are a switch on the card. With it on, 40% of the Load Balancer's traffic belongs to
 users already pinned to a target, whatever the algorithm would send now. The other 60% follows the
@@ -260,12 +263,14 @@ which takes the edge down ([Incidents](/design/11-incidents#catalog)).
 
 Real products: Kong, AWS API Gateway, Apigee.
 
-Routes requests to services by path, checks authentication, and applies rate limits. It takes every
-request kind and sends on what it lets through, adding its own hop. It is one front door with no
-route table, so every kind goes on the same Links.
+Routes requests to services by path and kind, checks authentication, and applies rate limits. It
+takes every request kind and sends each one on the Links its route table gives it, adding its own hop.
+This is what makes a split by kind possible: page views can go to a Service built for them, and API
+calls to another, while one Gateway stays the public front door.
 
 | Option             | Effect                                                                                                                                                                                                                                            |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routes             | The request kinds each Link carries. Every kind goes on every Link until the player takes one out, and a Link with no kinds carries nothing.                                                                                                      |
 | Rate limit         | A cap in requests per second. Rejected requests fail as `throttled` and cost no downstream capacity. Protects against bursts and abusive clients.                                                                                                 |
 | Auth at the edge   | Validates tokens once, so services skip it. Adds 2 ms to the Gateway's hop, and takes 0.02 ms of CPU off each authenticated request a service answers.                                                                                            |
 | Request coalescing | Merges identical in-flight reads: 30% of `page`, `read`, `feed` and `search` ask for popular objects, and λw / (1 + λw) of them find an identical read in flight (w = 50 ms). The busier the Gateway, the more it merges, so spikes send less on. |
@@ -278,7 +283,10 @@ requests, so a burst that fits passes whole while the average holds. Past a gate
 requests per second it drops requests like any other flat-capacity Component.
 
 Cost is per request, so the gateway is cheap at low volume and expensive at high volume. It is the
-one per-request line on the cloud bill ([Economy](/design/09-economy#the-cloud-bill)).
+one per-request line on the cloud bill ([Economy](/design/09-economy#the-cloud-bill)). Its fee is a
+managed service's real-dollar price, like a Payment Provider's, so the Era's cost index does not
+multiply it: routing a request at Series C costs the same as at Series A, while the compute behind it
+does not.
 
 ## Compute
 
@@ -305,7 +313,10 @@ It runs at 0.95× a General box's CPU speed, so the 20% it saves costs 5% of the
 Node can take it, not just the App Server.
 
 The App Server answers `page` and `bot` itself and turns other kinds into backend kinds
-([Simulation](/design/04-simulation#backend-kinds)).
+([Simulation](/design/04-simulation#backend-kinds)). It answers whatever kind reaches it, so one
+Stack serves the whole mix. A Design that wants rendering on one Stack and API calls on another
+splits the kinds at an [API Gateway](#api-gateway): page views to a Next.js fleet behind a CDN, and
+`read` to a fleet on Fastify. That split is what the Seed Era's question asks for.
 
 ### Worker
 

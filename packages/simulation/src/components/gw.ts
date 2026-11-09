@@ -4,8 +4,9 @@ import { REQUEST_KINDS } from '../catalog/kinds.ts'
 import type { RequestKind } from '../catalog/kinds.ts'
 
 /**
- * API Gateway (05 "API Gateway"): dollars per request served, × cost index. Its Burn is on the
- * Cost panel's Requests line, beside the functions'.
+ * API Gateway (05 "API Gateway"): dollars per request served. A managed gateway's fee is a
+ * real-dollar price, so the Era cost index does not multiply it (09 "Third-party fees"). Its Burn
+ * is on the Cost panel's Requests line, beside the functions'.
  */
 export const GATEWAY_PRICE = 0.002
 /** Rate limits a Gateway offers, in requests per second; 0 is no limit at all. */

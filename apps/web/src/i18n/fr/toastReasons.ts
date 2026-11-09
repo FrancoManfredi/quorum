@@ -147,7 +147,7 @@ export const reasons: Messages['toasts']['reasons'] = {
     'Seul un répartiteur de charge garde les utilisateurs sur une cible.',
   onlyALoadBalancerRampsANew:
     'Seul un répartiteur de charge fait monter progressivement une nouvelle copie.',
-  onlyALoadBalancerRoutesByRequest: 'Seul un répartiteur de charge achemine par type de demande.',
+  onlyAnApiGatewayRoutesByRequest: 'Seule une passerelle API achemine par type de demande.',
   onlyALoadBalancerRunsHealthChecks:
     "Seul un répartiteur de charge exécute des vérifications de l'état.",
   onlyAQueueHasADeadLetter:

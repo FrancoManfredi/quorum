@@ -74,9 +74,9 @@ export const step3 = {
     users: 2000,
     stage: 3,
     mix: { page: 0.3, read: 0.3, write: 0.1, login: 0.05, rt: 0.25 },
-    researched: ['lang-node'],
+    researched: ['lang-node', 'api-gateway'],
     nodes: [
-      at('lb', 'lb', 1, 0),
+      at('gateway', 'gw', 1, 0),
       at('server', 'server', 2, 0, [
         set(
           'size',
@@ -116,8 +116,8 @@ export const step3 = {
       ]),
     ],
     links: [
-      wire('users', 'lb'),
-      wire('lb', 'server', [
+      wire('users', 'gateway'),
+      wire('gateway', 'server', [
         setLink(
           'kinds',
           ['page', 'read', 'write', 'login'],
@@ -125,7 +125,7 @@ export const step3 = {
           'Every kind this Design sends except realtime. A Hub is the only Node here that can hold a realtime connection open.',
         ),
       ]),
-      wire('lb', 'hub', [
+      wire('gateway', 'hub', [
         setLink(
           'kinds',
           ['rt'],
@@ -283,9 +283,9 @@ export const step3 = {
   'mesh-services': design({
     users: 2000,
     stage: 2,
-    researched: ['autoscaling', 'containers'],
+    researched: ['autoscaling', 'containers', 'api-gateway'],
     nodes: [
-      at('lb', 'lb', 1, 0),
+      at('gateway', 'gw', 1, 0),
       at('catalog', 'server', 2, 0, [
         set('size', 2, 'Instance size', 'Small, since this service takes only the cheap kinds.'),
       ]),
@@ -299,16 +299,16 @@ export const step3 = {
       at('mesh', 'mesh', 3, 3),
     ],
     links: [
-      wire('users', 'lb'),
-      wire('lb', 'catalog', [
+      wire('users', 'gateway'),
+      wire('gateway', 'catalog', [
         setLink(
           'kinds',
           ['page', 'read', 'login', 'search', 'bot'],
           'Kinds carried',
-          'The load balancer sends reads and pages to one service.',
+          'The Gateway sends reads and pages to one service.',
         ),
       ]),
-      wire('lb', 'uploads', [
+      wire('gateway', 'uploads', [
         setLink(
           'kinds',
           ['write', 'upload'],
@@ -392,9 +392,9 @@ export const step3 = {
   'edge-handlers': design({
     users: 2000,
     stage: 2,
-    researched: ['lang-node', 'cdn'],
+    researched: ['lang-node', 'cdn', 'api-gateway'],
     nodes: [
-      at('lb', 'lb', 1, 0),
+      at('gateway', 'gw', 1, 0),
       at('edge', 'edge', 2, 0, [
         set(
           'runtime',
@@ -416,8 +416,8 @@ export const step3 = {
       ]),
     ],
     links: [
-      wire('users', 'lb'),
-      wire('lb', 'edge', [
+      wire('users', 'gateway'),
+      wire('gateway', 'edge', [
         setLink(
           'kinds',
           ['page', 'read'],
@@ -425,7 +425,7 @@ export const step3 = {
           'Pages and reads fit the edge CPU ceiling. Anything heavier is killed there.',
         ),
       ]),
-      wire('lb', 'server', [
+      wire('gateway', 'server', [
         setLink(
           'kinds',
           ['write', 'login', 'search', 'upload', 'bot'],

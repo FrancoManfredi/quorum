@@ -219,7 +219,7 @@ describe('Throttle connects', () => {
 })
 
 describe('Move login', () => {
-  /** Node and Go App Servers behind an L7 Load Balancer, which a heavy login hash blocks. */
+  /** Node and Go App Servers behind an API Gateway, which a heavy login hash blocks. */
   const loopGame = (go: boolean): Game => {
     let game: Game = { ...freeSandbox(), stage: 2, seed: 3 }
     const first = of(game, 'server')
@@ -229,12 +229,12 @@ describe('Move login', () => {
     const second = game.nodes.at(-1)?.id as string
     game = ok(Actions.setRuntime(game, second, go ? 'go' : 'node'))
     game = ok(Actions.connect(game, second, database.id))
-    game = ok(Actions.place(game, 'lb', 200, 280))
-    const lb = game.nodes.at(-1)?.id as string
+    game = ok(Actions.place(game, 'gw', 200, 280))
+    const gw = game.nodes.at(-1)?.id as string
     game = Actions.disconnect(game, 'users', first.id)
-    game = ok(Actions.connect(game, 'users', lb))
-    game = ok(Actions.connect(game, lb, first.id))
-    game = ok(Actions.connect(game, lb, second))
+    game = ok(Actions.connect(game, 'users', gw))
+    game = ok(Actions.connect(game, gw, first.id))
+    game = ok(Actions.connect(game, gw, second))
     return run(game, 30, 5)
   }
 
@@ -250,7 +250,7 @@ describe('Move login', () => {
 
   test('it is refused when no Service can take login off a loop', () => {
     const blocked = strike(loopGame(false), 'loop')
-    expect(refusal(Actions.moveKind(blocked))).toContain('No other Service')
+    expect(refusal(Actions.moveKind(blocked))).toContain('Link the Gateway to a Service')
     expect(refusal(Actions.moveKind(loopGame(true)))).toBe('No event loop is blocked.')
   })
 })

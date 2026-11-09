@@ -19,7 +19,7 @@ Answer the cheap, common requests at the edge and send everything else to the or
 
 ::Design{id="edge-handlers"}
 
-The Load Balancer sends pages and reads to the Edge Function and the heavier kinds to the App Server. Both call the Database. This picture runs in one region, so it shows the split of kinds and the CPU ceiling, not the saved distance.
+The API Gateway sends pages and reads to the Edge Function and the heavier kinds to the App Server. Both call the Database. This picture runs in one region, so it shows the split of kinds and the CPU ceiling, not the saved distance.
 
 ## Why it works
 

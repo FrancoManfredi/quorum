@@ -1,6 +1,7 @@
 import type { Messages } from '../messages.ts'
 
 export const inspectorGw: Messages['inspectorGw'] = {
+  routes: 'ルート',
   rateLimit: 'レート制限',
   off: 'オフ',
   s: (p0) => `${p0}/s`,

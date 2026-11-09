@@ -126,7 +126,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   onlyALoadBalancerHasAVariant: '只有负载均衡器有变体。',
   onlyALoadBalancerKeepsUsersOn: '只有负载均衡器能让用户保持在同一目标上。',
   onlyALoadBalancerRampsANew: '只有负载均衡器能让新副本逐步加量。',
-  onlyALoadBalancerRoutesByRequest: '只有负载均衡器能按请求类型路由。',
+  onlyAnApiGatewayRoutesByRequest: '只有 API 网关能按请求类型路由。',
   onlyALoadBalancerRunsHealthChecks: '只有负载均衡器执行健康检查。',
   onlyAQueueHasADeadLetter: '只有队列拥有死信队列。',
   onlyAQueueHasAMaxLength: '只有队列能设置最大长度。',

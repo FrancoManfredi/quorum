@@ -19,7 +19,7 @@ Split the monolith into Services that deploy alone, and run them in a Cluster wi
 
 ::Design{id="mesh-services"}
 
-A Load Balancer sends each request kind to one of two App Servers. Both call the Database and link into the Cluster and the Mesh. Those two Nodes carry no traffic.
+An API Gateway sends each request kind to one of two App Servers. Both call the Database and link into the Cluster and the Mesh. Those two Nodes carry no traffic.
 
 ## Why it works
 

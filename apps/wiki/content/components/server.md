@@ -77,7 +77,7 @@ The Stack is the language, its runtime, and the framework. It sets how the box s
 ### [Event loop block](/incidents/loop)
 
 - **Signs:** p99 rises on every kind that service answers, because a CPU-heavy kind such as `login` holds the event loop.
-- **Do now:** Press **Move login** on the banner. It needs an L7 [Load Balancer](/components/lb) in front of an App Server on an event loop, and another App Server behind it on a runtime without one: the Load Balancer then sends `login` there only, and the incident ends once no login reaches a loop. Without that, it ends on its own after at most 35 s.
+- **Do now:** Press **Move login** on the banner. It needs an [API Gateway](/components/gw) in front of an App Server on an event loop, and a Link from the Gateway to another App Server on a runtime without one: the Gateway then sends `login` there only, and the incident ends once no login reaches a loop. Without that, it ends on its own after at most 35 s.
 - **Prevent:** Research [libuv thread pool](/research/libuv-pool) and [Managed identity](/research/auth-provider), which move the heavy work off the loop.
 
 ### [GC pause storm](/incidents/gc-storm)
