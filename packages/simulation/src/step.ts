@@ -833,8 +833,13 @@ export const step = (
         (game.time < game.loadTestUntil ? LOAD_TEST_INSIGHT * seconds : 0) +
         (game.drill?._tag === 'Running' ? DRILL_INSIGHT * seconds : 0),
     },
-    // The Node the next experiment hits: the Design's weakest right now (10 "Chaos engineering").
-    weakest: game.chaos ? (ledger.bottleneck ?? game.weakest) : null,
+    // The Node the next experiment hits: the most pressured limiting Node (10 "Chaos engineering").
+    weakest: game.chaos
+      ? (game.nodes
+          .filter((node) => COMPONENTS[node.type].limiting && !isDown(node))
+          .map((node) => [node.id, ledger.nodes[node.id]?.utilization ?? 0] as const)
+          .toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? game.weakest)
+      : null,
     servedKinds: firsts.length > 0 ? [...game.servedKinds, ...firsts] : game.servedKinds,
     stored: puts > 0 ? game.stored + (puts * UPLOAD_MB * seconds) / 1_000 : game.stored,
     data,

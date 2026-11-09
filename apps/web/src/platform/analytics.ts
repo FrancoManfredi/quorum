@@ -138,7 +138,7 @@ const heartbeat = (): void => {
     burn: round(ledger.burn),
     apdex: round(ledger.apdex, 3),
     error_share: round(ledger.errorShare, 4),
-    bottleneck_component: game.nodes.find((node) => node.id === ledger.bottleneck)?.type ?? null,
+    bottleneck_component: null,
     node_count: game.nodes.length,
     link_count: game.links.length,
     speed: model.board.clock.speed,

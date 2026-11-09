@@ -93,13 +93,11 @@ const farFix = (game: Game, region: RegionId): ChurnFix => {
   return { _tag: 'region', region }
 }
 
-/** The Node that adds the most milliseconds to a kind's requests, when `tracing` shows hops. */
-const slowestHop = (
-  game: Game,
+/** The Node that adds the most milliseconds to a kind's requests. */
+const slowestHopOf = (
   ledger: Ledger,
   kind: RequestKind,
 ): Readonly<{ nodeId: string; ms: number }> | null => {
-  if (!has(game, 'tracing')) return null
   let best: Readonly<{ nodeId: string; ms: number }> | null = null
   for (const [nodeId, entry] of Object.entries(ledger.nodes)) {
     const ms = entry.hopByKind[kind] ?? 0
@@ -107,6 +105,14 @@ const slowestHop = (
   }
   return best
 }
+
+/** The same hop, shown only when `tracing` is researched (12 "The visibility ladder"). */
+const slowestHop = (
+  game: Game,
+  ledger: Ledger,
+  kind: RequestKind,
+): Readonly<{ nodeId: string; ms: number }> | null =>
+  has(game, 'tracing') ? slowestHopOf(ledger, kind) : null
 
 /** The device with the longest radio round trip, when `rum` splits Users by device. */
 const slowestDevice = (game: Game): Readonly<{ device: DeviceId; ms: number }> | null => {
@@ -135,17 +141,22 @@ const rowsOf = (game: Game, ledger: Ledger, region: RegionId, gap: number): Arra
     const slow = share * entry.success * (1 - Math.max(entry.near, entry.apdex))
     if (far >= MIN_POINTS)
       rows.push({ kind, cause: 'far', points: far, p99, target, fix: farFix(game, region) })
-    if (slow >= MIN_POINTS)
+    if (slow >= MIN_POINTS) {
+      const hop = slowestHopOf(ledger, kind)
       rows.push({
         kind,
         cause: 'slow',
         points: slow,
         p99,
         target,
-        fix: ledger.bottleneck
-          ? { _tag: 'node', nodeId: ledger.bottleneck }
-          : { _tag: 'advice', text: 'Add capacity on the busiest Node.' },
+        fix: hop
+          ? { _tag: 'node', nodeId: hop.nodeId }
+          : {
+              _tag: 'advice',
+              text: 'Check the heaviest hop on this kind for its limiting resource.',
+            },
       })
+    }
     if (logs) {
       for (const cause of ERROR_CAUSES) {
         const points = share * (entry.fail[cause] ?? 0)

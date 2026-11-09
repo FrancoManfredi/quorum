@@ -50,7 +50,7 @@ export const dashboard: Messages['dashboard'] = {
   service: 'Service',
   errors: 'Erreurs',
   mean: 'Moyenne',
-  bottleneck: "Goulot d'étranglement",
+  bottleneck: 'Limite',
   resources: 'Ressources',
   region: 'Région',
   market: 'Marché',

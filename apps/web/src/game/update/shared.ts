@@ -130,9 +130,9 @@ export const milestones = (
       before: before.board.game,
       after: after.board.game,
       ledger,
+      previousLedger: solveFlow(before.board.game),
       events,
       stats,
-      previousBottleneck: before.board.bottleneck,
     },
     after.founder.achievements,
   )

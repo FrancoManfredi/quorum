@@ -77,7 +77,7 @@ export const panels = {
     'Analytics samples linked Nodes. Each request kind it samples fills its own Insight pool.',
   findTheLimit: 'Find the limit',
   thePulsingOutlineMarksTheBottleneck:
-    'The pulsing outline marks the bottleneck. Its card says if it is out of CPU, credits, RAM, workers or connections.',
+    'Cards and diagnostics show which Nodes are under pressure and which resource limits them: CPU, credits, RAM, workers, or connections. Fix the limiting resource, not just the busiest Node.',
   grow: 'Grow',
   usersGrowWhileApdexBeatsThe:
     'Users grow while Apdex beats the Era target, and leave fast when it does not.',

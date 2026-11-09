@@ -27,7 +27,7 @@ const snapshot = (overrides: Partial<AgentSnapshot> = {}): AgentSnapshot => ({
   screen: { route: 'Board', panel: 'none', region: 'na', selectedNode: 'database' },
   paused: false,
   speed: 1,
-  bottleneck: 'database',
+  bottleneck: null,
   whatIfs: null,
   samples: game.history,
   nodeSamples: {},
@@ -68,9 +68,9 @@ describe('an upload becomes a tool answer', () => {
     const company = JSON.parse(readTool(stored, 'get_company')) as {
       mode: string
       simSeconds: number
-      bottleneck: string
+      bottleneck: string | null
     }
-    expect(company).toMatchObject({ mode: 'company', simSeconds: 30, bottleneck: 'database' })
+    expect(company).toMatchObject({ mode: 'company', simSeconds: 30, bottleneck: null })
 
     const design = JSON.parse(readTool(stored, 'get_design')) as { nodes: unknown[] }
     expect(design.nodes.length).toBeGreaterThan(0)

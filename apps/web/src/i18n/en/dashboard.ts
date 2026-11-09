@@ -53,7 +53,7 @@ export const dashboard = {
   service: 'Service',
   errors: 'Errors',
   mean: 'Mean',
-  bottleneck: 'Bottleneck',
+  bottleneck: 'Limit',
   resources: 'Resources',
   region: 'Region',
   market: 'Market',

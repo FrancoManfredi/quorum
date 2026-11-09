@@ -3425,20 +3425,7 @@ class BoardController {
           .stroke({ color: colors.edge, width: 1.5 })
     }
 
-    // The bottleneck: a pulsing outline on the one Node that costs the most revenue.
-    const bottleneck = state.ledger.bottleneck ? byId.get(state.ledger.bottleneck) : undefined
-    if (bottleneck) {
-      const pulse = still ? 0.85 : 0.45 + 0.4 * Math.abs(Math.sin(this.phase * 2.4))
-      silhouette(
-        this.overlay,
-        COMPONENTS[bottleneck.type].group,
-        bottleneck.x,
-        bottleneck.y,
-        CARD_W,
-        heightOf(bottleneck.type),
-        5,
-      ).stroke({ color: colors.warn, width: 2.5, alpha: pulse })
-    }
+    // No global bottleneck marker: players read limiting-resource pressure from cards and diagnostics.
 
     // A disclosure cue: a ring around the one footer button to press next.
     const cue = state.cue ? byId.get(state.cue) : undefined

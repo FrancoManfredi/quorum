@@ -43,7 +43,6 @@ import { StepEvent } from '@quorum/simulation/events'
 import {
   WriteFounder,
   AppendLog,
-  ComputeBottleneck,
   ComputeWhatIfs,
   FitBoard,
   ToggleFullscreen,
@@ -423,13 +422,11 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
     run = { ...run, progress: advance.progress }
     advanced = advance.advanced
   }
-  // The Bottleneck search re-solves three times, so it runs once per sim second (04).
+  // Hints come from the ledger's actual limits and path diagnostics, not a revenue-bottleneck answer.
   const second = Math.floor(game.time)
   const search = model.board.bottleneckAt < 0 || second !== model.board.bottleneckAt
   const flow = solveFlow(game)
-  // The search runs on the compute worker; until it answers, the last Bottleneck stands.
-  const bottleneck = model.board.bottleneck
-  const ledger: Ledger = { ...flow, bottleneck }
+  const ledger: Ledger = { ...flow, bottleneck: null }
   // An incident drops the clock to 1×, so the player has time to respond.
   const incident = events.some((event) => event._tag === 'IncidentStarted')
   // With auto-pause on, a SEV1 or SEV2 stops the clock until the player resumes it.
@@ -446,7 +443,7 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
       session: run
         ? sessionStep(model.board.session, { _tag: 'SandboxUpdated', run })
         : model.board.session,
-      bottleneck,
+      bottleneck: null,
       bottleneckAt: search ? second : model.board.bottleneckAt,
       clock: {
         ...model.board.clock,
@@ -460,7 +457,6 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
   }
   next = advanceReveals(next, ledger)
   const commands: Array<AnyCommand> = []
-  if (search) commands.push(ComputeBottleneck({ game, at: second }))
   // What-if rows (12 "Load diagnosis") run ghost Simulations, so they refresh every few sim
   // seconds, and only for a busy selected Node once `profiling` shows them.
   const watched = model.board.selected
@@ -725,11 +721,6 @@ export const tick = (model: Model, elapsedMs: number): UpdateResult => {
     const event = eventMail(game, bucket, next.board.inbox.mail)
     next = { ...next, board: { ...next.board, inbox: { ...next.board.inbox, bucket } } }
     if (event) next = mailedTo(next, event, game.time)
-  }
-  const marker = bottleneck ? `${bottleneck}:${ledger.nodes[bottleneck]?.limit ?? 'none'}` : ''
-  if (marker !== next.board.lastBottleneck) {
-    logs.push(line(game.time, 'BottleneckChanged', { bottleneck: marker || null }))
-    next = { ...next, board: { ...next.board, lastBottleneck: marker } }
   }
   if (game.time - next.board.clock.sampledAt >= SAMPLE_EVERY) {
     logs.push(line(game.time, 'Sample', sampleOf(next, ledger)))

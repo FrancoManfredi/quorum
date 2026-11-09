@@ -47,7 +47,7 @@ export const snapshotOfModel = (model: Model): AgentSnapshot => {
     },
     paused: clockPaused(model),
     speed: model.board.clock.speed,
-    bottleneck: model.board.bottleneck,
+    bottleneck: null,
     whatIfs: model.board.whatIfs,
     samples: challenge ? [] : model.board.game.history,
     nodeSamples: challenge ? {} : model.board.nodeHistory,

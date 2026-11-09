@@ -1,9 +1,17 @@
 import { canRaise } from './actions.ts'
 import type { Limit } from './capacity.ts'
-import { KINDS, PRICING_FROM_STAGE, RUNTIMES, type RequestKind } from './catalog.ts'
+import { COMPONENTS, KINDS, PRICING_FROM_STAGE, RUNTIMES, type RequestKind } from './catalog.ts'
 import { nodeLabel } from './labels.ts'
 import type { Ledger } from './ledger.ts'
-import { drawerSize, eraOf, has, hasPricing, nextEra, researchAffordable } from './lookups.ts'
+import {
+  drawerSize,
+  eraOf,
+  has,
+  hasPricing,
+  isDown,
+  nextEra,
+  researchAffordable,
+} from './lookups.ts'
 import type { Game, GameNode } from './state.ts'
 
 /** Warn this many sim seconds before a Burstable box runs out of CPU credits. */
@@ -345,8 +353,14 @@ export const nextAdvice = (game: Game, ledger: Ledger): Advice => {
       cloudActions(game, draining.id),
     )
   }
-  const bottleneck = game.nodes.find((node) => node.id === ledger.bottleneck)
-  if (bottleneck) return limitAdvice(game, bottleneck, ledger.nodes[bottleneck.id]?.limit ?? 'none')
+  // A Node is under pressure: hint at its actual limiting resource, not the revenue-optimal answer.
+  const pressured = game.nodes
+    .filter((node) => COMPONENTS[node.type].limiting && !isDown(node))
+    .map((node) => [node, ledger.nodes[node.id]] as const)
+    .filter(([, entry]) => entry !== undefined && entry.utilization > 0.6)
+    .toSorted((a, b) => (b[1]?.utilization ?? 0) - (a[1]?.utilization ?? 0))[0]
+  if (pressured)
+    return limitAdvice(game, pressured[0], (pressured[1]?.limit as Limit | undefined) ?? 'none')
   if (game.cash < 0)
     return advice(
       'finance:negative',

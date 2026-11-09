@@ -79,7 +79,7 @@ export const SyncBoard = Command.define('SyncBoard', {
   execute: ({
     game,
     locale,
-    bottleneck,
+    bottleneck: _bottleneck,
     selected,
     selection,
     placing,
@@ -100,7 +100,7 @@ export const SyncBoard = Command.define('SyncBoard', {
         translateActivity: (activity) => activityIn(locale, activity),
         game: regionView(game, region),
         ordinals: nodeOrdinals(game),
-        ledger: { ...solveFlow(game), bottleneck },
+        ledger: { ...solveFlow(game), bottleneck: null },
         selected,
         selection,
         placing,

@@ -49,7 +49,7 @@ export const dashboard: Messages['dashboard'] = {
   service: '服务',
   errors: '错误',
   mean: '平均',
-  bottleneck: '瓶颈',
+  bottleneck: '限制',
   resources: '资源',
   region: '区域',
   market: '市场',

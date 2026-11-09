@@ -77,9 +77,9 @@ export const panels: Messages['panels'] = {
   learn: 'Apprendre',
   analyticsSamplesLinkedNodesEachRequest:
     "Des échantillons d'analyse ont lié des nœuds. Chaque type de requête échantillonné remplit son propre réserve connaissances.",
-  findTheLimit: 'Trouver le goulot',
+  findTheLimit: 'Trouver la limite',
   thePulsingOutlineMarksTheBottleneck:
-    'Le contour animé signale le goulot d’étranglement. Sa carte indique la ressource saturée : CPU, crédits, RAM, processus ou connexions.',
+    'Les cartes et les diagnostics indiquent quels nœuds sont sous pression et quelle ressource les limite : CPU, crédits, RAM, workers ou connexions. Corrigez la ressource limitante, pas seulement le nœud le plus occupé.',
   grow: 'Se développer',
   usersGrowWhileApdexBeatsThe:
     'Le nombre d’utilisateurs augmente lorsque l’Apdex dépasse la cible de l’étape. Dans le cas contraire, ils partent rapidement.',

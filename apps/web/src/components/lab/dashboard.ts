@@ -2982,7 +2982,7 @@ const serviceTable = (
 /**
  * One request kind's waterfall: every Node its traffic touches, in link order from the Users
  * Node out, with the hop time and the queue wait this Node adds to that kind alone (12 "The
- * visibility ladder", `tracing`). A Node the bottleneck-by-kind marker names is flagged.
+ * visibility ladder", `tracing`). The hottest limiting hop is hinted by its actual resource.
  */
 const waterfallTable = (
   game: Game,
@@ -2994,7 +2994,19 @@ const waterfallTable = (
 
   const names = namesOf(t, game)
   const byId = new Map(game.nodes.map((node) => [node.id, node] as const))
-  const bottleneck = ledger.bottleneckByKind[kind] ?? null
+  const pressured = ledger.bottleneckByKind[kind] ?? null
+  const limitName = (limit: Limit): string =>
+    ({
+      cpu: 'CPU',
+      credits: t.dashboard.cPUCredits,
+      memory: t.dashboard.memory,
+      workers: t.dashboard.workers,
+      connections: t.dashboard.connections,
+      network: t.dashboard.network,
+      disk: t.dashboard.disk,
+      throughput: t.dashboard.throughput,
+      none: t.dashboard.noLimit,
+    })[limit]
   // Walk the Links that carry this kind, from any Node nothing else sends it into.
   const carriesKind = (id: string): boolean => (ledger.nodes[id]?.traffic[kind] ?? 0) > 0
   const incoming = new Set(
@@ -3033,8 +3045,8 @@ const waterfallTable = (
             { text: formats(t).ms(hop) },
             { text: wait > 0 ? formats(t).queueWait(wait) : '—' },
             {
-              text: id === bottleneck ? t.dashboard.bottleneck : '',
-              color: id === bottleneck ? RED : undefined,
+              text: id === pressured ? limitName(own.limit) : '',
+              color: id === pressured ? RED : undefined,
             },
           ],
         },

@@ -77,9 +77,9 @@ export const panels: Messages['panels'] = {
   learn: '积累知识',
   analyticsSamplesLinkedNodesEachRequest:
     '分析节点会对已连接的节点采样。每类请求的样本会填充各自的洞察池。',
-  findTheLimit: '找到瓶颈',
+  findTheLimit: '找到限制',
   thePulsingOutlineMarksTheBottleneck:
-    '闪动的轮廓标记当前瓶颈。节点卡片会显示 CPU、积分、内存、工作进程或连接是否耗尽。',
+    '节点卡片和诊断会显示哪些节点承压，以及是哪种资源在限制它：CPU、积分、内存、工作进程或连接。先解决限制资源，而不只是最忙的节点。',
   grow: '增长',
   usersGrowWhileApdexBeatsThe:
     'Apdex 超过当前阶段的目标时，用户会增长；达不到目标时，用户会迅速流失。',

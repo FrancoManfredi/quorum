@@ -119,11 +119,8 @@ export const tradeoffHandlers = (
       : { model: { ...model, board: { ...model.board, tradeoff: next } } }
   },
 
-  BottleneckFound: ({ bottleneck, at }) => {
-    if (at !== model.board.bottleneckAt || bottleneck === model.board.bottleneck) return { model }
-    const next: Model = { ...model, board: { ...model.board, bottleneck } }
-    return { model: next }
-  },
+  // The revenue-bottleneck marker is no longer shown; keep the message harmless.
+  BottleneckFound: () => ({ model }),
 
   WhatIfsFound: ({ nodeId, at, rows }) => ({
     model: { ...model, board: { ...model.board, whatIfs: { nodeId, at, rows } } },

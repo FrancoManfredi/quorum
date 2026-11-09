@@ -11,6 +11,7 @@ import {
   resizePrice,
 } from '@quorum/simulation/lookups'
 import { awaitingFeatures, liveFeatures } from '@quorum/simulation/features'
+import { solveFlow } from '@quorum/simulation/solve'
 import type { Game } from '@quorum/simulation/state'
 import type { Message } from './message.ts'
 import { Reveal, offCompany, type Model } from './model.ts'
@@ -34,16 +35,18 @@ export const glowing = (model: Model, key: Reveal): boolean => {
 export const playbooksShown = (model: Model): boolean =>
   !offCompany(model) && model.founder.history.length > 0
 
-/** The Node whose footer the resize cue points at: the bottleneck, when it can grow. */
-const resizable = (game: Game, bottleneck: string | null): string | null => {
-  const node = game.nodes.find((entry) => entry.id === bottleneck)
-  return node &&
-    node.type !== 'payments' &&
-    node.life._tag !== 'Stopped' &&
-    resizePrice(game, node) !== null
-    ? node.id
-    : null
-}
+/** A resizable Node under pressure: a hint, not the revenue-optimal answer. */
+const pressuredResizable = (game: Game, ledger: Ledger): string | null =>
+  game.nodes
+    .filter(
+      (node) =>
+        node.type !== 'payments' &&
+        node.life._tag !== 'Stopped' &&
+        resizePrice(game, node) !== null,
+    )
+    .map((node) => [node.id, ledger.nodes[node.id]?.utilization ?? 0] as const)
+    .filter(([, utilization]) => utilization > 0.6)
+    .toSorted((a, b) => b[1] - a[1])[0]?.[0] ?? null
 
 const triggered = (key: Reveal, model: Model, ledger: Ledger): boolean => {
   const game = model.board.game
@@ -53,7 +56,7 @@ const triggered = (key: Reveal, model: Model, ledger: Ledger): boolean => {
     case 'collect':
       return !has(game, 'stripe') && game.pending >= drawerSize(game, ledger.revenue) / 2
     case 'resize':
-      return resizable(game, ledger.bottleneck) !== null
+      return pressuredResizable(game, ledger) !== null
     case 'research':
       return researchAffordable(game)
     case 'errors':
@@ -137,7 +140,8 @@ export const cueNode = (model: Model): string | null => {
   if (flow._tag !== 'Cueing' || !glowing(model, flow.key)) return null
   if (flow.key === 'collect')
     return model.board.game.nodes.find((node) => node.type === 'payments')?.id ?? null
-  if (flow.key === 'resize') return resizable(model.board.game, model.board.bottleneck)
+  if (flow.key === 'resize')
+    return pressuredResizable(model.board.game, solveFlow(model.board.game))
   return null
 }
 

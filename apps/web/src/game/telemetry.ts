@@ -86,7 +86,7 @@ export const contextOf = (model: Model, ledger: Ledger): Record<string, unknown>
   revenue: round(ledger.revenue),
   apdex: round(ledger.apdex, 3),
   errors: round(ledger.errorShare, 4),
-  bottleneck: ledger.bottleneck,
+  bottleneck: null,
   panel: model.panel,
   speed: model.board.clock.speed,
   selected: model.board.game.nodes.find((node) => node.id === model.board.selected)?.type ?? null,
@@ -124,7 +124,6 @@ export const eraReachedOf = (model: Model, ledger: Ledger): Record<string, unkno
 /** A full sample of the company, every 10 sim seconds. */
 export const sampleOf = (model: Model, ledger: Ledger): Record<string, unknown> => {
   const clock = clockOf(model.board.game.time)
-  const bottleneck = model.board.game.nodes.find((node) => node.id === ledger.bottleneck)
   return {
     clock: `${clock.day} ${String(clock.hour).padStart(2, '0')}:${String(clock.minute).padStart(2, '0')}`,
     stage: model.board.game.stage,
@@ -149,9 +148,7 @@ export const sampleOf = (model: Model, ledger: Ledger): Record<string, unknown> 
     p99: round(ledger.p99, 1),
     insight: round(insightTotal(model.board.game.pools), 1),
     insightRate: round(insightTotal(ledger.insight), 2),
-    bottleneck: bottleneck
-      ? { id: bottleneck.id, type: bottleneck.type, limit: ledger.nodes[bottleneck.id]?.limit }
-      : null,
+    bottleneck: null,
     incident: model.board.game.incident?.kind ?? null,
     nodes: model.board.game.nodes
       .filter((node) => !COMPONENTS[node.type].fixed)

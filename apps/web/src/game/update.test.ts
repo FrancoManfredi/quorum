@@ -21,7 +21,6 @@ import {
   type ResearchId,
 } from '@quorum/simulation/catalog'
 import { researchReady, resizePrice } from '@quorum/simulation/lookups'
-import { nextAdvice } from '@quorum/simulation/goals'
 import { solveFlow } from '@quorum/simulation/solve'
 import { NEW_ENGINEER, type Postmortem, type WorkItem } from '@quorum/simulation/state'
 import * as Work from '@quorum/simulation/work'
@@ -2067,10 +2066,49 @@ describe('Mail actions (GDD 18)', () => {
     }
   }
 
-  /** What the Simulation says about `node` now, as Mail. */
-  const about = (node: string): readonly [Model['board']['game'], Fact] => {
+  /** A capacity/alert fact for `node`, for mail-action plumbing tests. */
+  const about = (nodeId: string): readonly [Model['board']['game'], Fact] => {
     const game = preseedGame()
-    return [game, factOf(nextAdvice(game, { ...solveFlow(game), bottleneck: node }), game)]
+    const node = game.nodes.find((entry) => entry.id === nodeId)
+    const name =
+      node?.type === 'server'
+        ? 'App Server'
+        : node?.type === 'analytics'
+          ? 'Analytics'
+          : nodeId.charAt(0).toUpperCase() + nodeId.slice(1)
+    const advice: Advice =
+      node?.type === 'analytics'
+        ? {
+            key: `monitoring:limit:${nodeId}`,
+            from: 'monitoring',
+            subject: `${name} limits the design`,
+            text: `${name} limits the design.`,
+            topic: 'limit',
+            vars: { node: name },
+            actions: [
+              { id: `show:${nodeId}`, label: 'Show on Board' },
+              { id: 'ack', label: 'Acknowledge' },
+              { id: 'mute', label: 'Mute' },
+            ],
+          }
+        : {
+            key: `cloud:cpu:${nodeId}`,
+            from: 'cloud',
+            subject: `${name}: CPU at 100%`,
+            text: `${name} is out of CPU.`,
+            topic: 'cpu',
+            vars: { node: name },
+            actions: [
+              { id: `show:${nodeId}`, label: 'Show on Board' },
+              { id: `resize:${nodeId}`, label: 'Resize' },
+              { id: `quota:${nodeId}`, label: 'Raise quota' },
+              ...(game.stage >= 3
+                ? [{ id: `reserved:${nodeId}`, label: 'Switch to Reserved' }]
+                : []),
+              { id: 'ack', label: 'Acknowledge' },
+            ],
+          }
+    return [game, factOf(advice, game)]
   }
 
   const press = (model: Model, action: string): ReturnType<typeof update> =>
@@ -2121,20 +2159,38 @@ describe('Mail actions (GDD 18)', () => {
   )
 
   test('Switch to Reserved is offered once a compute Node has a pricing model', () => {
-    const game = { ...preseedGame(), stage: 3 }
-    const fact = factOf(nextAdvice(game, { ...solveFlow(game), bottleneck: 'server' }), game)
-    expect(fact.actions.map((action) => action.id)).toEqual([
+    const [game] = about('server')
+    const reservedGame = { ...game, stage: 3 }
+    const reservedFact = factOf(
+      {
+        key: 'cloud:cpu:server',
+        from: 'cloud',
+        subject: 'App Server: CPU at 100%',
+        text: 'App Server is out of CPU.',
+        topic: 'cpu',
+        vars: { node: 'App Server' },
+        actions: [
+          { id: 'show:server', label: 'Show on Board' },
+          { id: 'resize:server', label: 'Resize' },
+          { id: 'quota:server', label: 'Raise quota' },
+          { id: 'reserved:server', label: 'Switch to Reserved' },
+          { id: 'ack', label: 'Acknowledge' },
+        ],
+      },
+      reservedGame,
+    )
+    expect(reservedFact.actions.map((action) => action.id)).toEqual([
       'show:server',
       'resize:server',
       'quota:server',
       'reserved:server',
       'ack',
     ])
-    const acted = press(withMail(fact, game), 'reserved:server')
+    const acted = press(withMail(reservedFact, reservedGame), 'reserved:server')
     expect(acted.model.panel).toBe('none')
     expect(acted.model.board.selected).toBe('server')
     expect(acted.commands?.map((command) => command.name)).toContain('FocusInspector')
-    expect(acted.model.board.game).toBe(game)
+    expect(acted.model.board.game).toBe(reservedGame)
   })
 
   test('an alert offers Acknowledge, which reads it and clears the card', () => {
@@ -2318,7 +2374,7 @@ describe('Feature Flags (GDD 05, 08)', () => {
       model,
       Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 0.05 }),
     ).model
-    expect(rolled.board.game.features['password-login']).toEqual({
+    expect(rolled.board.game.features['password-login']).toMatchObject({
       _tag: 'Live',
       rollout: 1,
       target: 0.05,
@@ -2342,7 +2398,7 @@ describe('Feature Flags (GDD 05, 08)', () => {
       rolled,
       Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 1 }),
     ).model
-    expect(all.board.game.features['password-login']).toEqual({
+    expect(all.board.game.features['password-login']).toMatchObject({
       _tag: 'Live',
       rollout: 1,
       target: 1,

@@ -79,7 +79,7 @@ export const panels: Messages['panels'] = {
     'アナリティクスはリンクされたノードをサンプリングします。サンプリングしたリクエスト種別ごとに、それぞれのインサイトプールが満ちます。',
   findTheLimit: '限界を見つける',
   thePulsingOutlineMarksTheBottleneck:
-    '脈打つ枠線がボトルネックを示します。カードには、CPU、クレジット、RAM、ワーカー、接続のどれが足りないかが出ます。',
+    'カードと診断で、どのノードに負荷がかかり、どの資源が限界か（CPU、クレジット、RAM、ワーカー、接続）がわかります。いちばん忙しいノードだけでなく、限界の資源を直しましょう。',
   grow: '育てる',
   usersGrowWhileApdexBeatsThe:
     'Apdexが時代の目標を上回っている間はユーザーが増え、下回るとすぐに離れます。',

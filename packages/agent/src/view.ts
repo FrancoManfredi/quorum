@@ -17,7 +17,7 @@ const round = (n: number): number => Math.round(n * 1000) / 1000
 
 const ledgerOf = (snapshot: AgentSnapshot) => ({
   ...solveFlow(snapshot.game!),
-  bottleneck: snapshot.bottleneck,
+  bottleneck: null,
 })
 
 const runs: Record<ToolName, (snapshot: AgentSnapshot, input: Input) => unknown> = {

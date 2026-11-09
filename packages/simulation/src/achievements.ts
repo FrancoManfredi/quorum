@@ -36,12 +36,13 @@ export type AchievementStats = Readonly<{
 export type Moment = Readonly<{
   before: Game
   after: Game
+  /** The Ledger after the moment, for the Design that resulted. */
   ledger: Ledger
+  /** The Ledger before the moment, when pressure/limits matter. */
+  previousLedger: Ledger | null
   events: ReadonlyArray<StepEvent>
   /** The Founder's counts, with this moment's events already added. */
   stats: AchievementStats
-  /** The Node the Bottleneck search named before this moment, so a check can see it move. */
-  previousBottleneck: string | null
 }>
 
 const SERIES_A = ERAS.findIndex((era) => era.name === 'Series A')
@@ -169,18 +170,21 @@ const CHECKS: Partial<Record<AchievementId, (moment: Moment) => boolean>> = {
           entry !== undefined && entry.rate > 0 && entry.success > 0 && entry.hopMs > FAR_MS,
       ),
     ),
-  // An App Server was the bottleneck, the database tier took more capacity and nothing grew the
-  // App Servers, and the App Server is no longer what limits the Design.
-  'littles-law': ({ before, after, ledger, previousBottleneck }) => {
-    const was = before.nodes.find((node) => node.id === previousBottleneck)
-    if (was === undefined || was.type !== 'server') return false
+  // An App Server's workers were saturated while the Design waited on the data tier; the data tier
+  // gained capacity, no App Server grew, and that App Server's worker pressure eased (Little's Law).
+  'littles-law': ({ before, after, ledger, previousLedger }) => {
+    const was = previousLedger
+      ? before.nodes.find((node) => {
+          if (node.type !== 'server') return false
+          const prev = previousLedger.nodes[node.id]
+          return prev !== undefined && prev.utilization >= BUSY && prev.limit === 'workers'
+        })
+      : undefined
+    if (was === undefined) return false
     if (!anyGrew(before, after, (node) => DATA_TIER.has(node.type))) return false
     if (anyGrew(before, after, (node) => node.type === 'server')) return false
-    const now = after.nodes.find((node) => node.id === ledger.bottleneck)
-    return (
-      ledger.bottleneck !== was.id &&
-      (now === undefined || COMPONENTS[now.type].group !== 'compute')
-    )
+    const now = ledger.nodes[was.id]
+    return now === undefined || now.limit !== 'workers' || now.utilization < BUSY
   },
   metastable: ({ events }) =>
     events.some(
