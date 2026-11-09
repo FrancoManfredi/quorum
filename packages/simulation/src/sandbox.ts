@@ -3,7 +3,13 @@ import type { ComponentId, IncidentId, RequestKind, ResearchId } from './catalog
 import { company, link, node } from './company.ts'
 import { forceIncident } from './director.ts'
 import type { Ledger } from './ledger.ts'
-import { RESEARCH_IDS, SIZES, TUNED_SEED_MIX, TUNED_SERIES_A_MIX } from './catalog.ts'
+import {
+  RESEARCH_IDS,
+  SIZES,
+  TUNED_PRE_SEED_MIX,
+  TUNED_SEED_MIX,
+  TUNED_SERIES_A_MIX,
+} from './catalog.ts'
 import { normalizeOrdinals } from './labels.ts'
 import type { Game, GameLink, GameNode } from './state.ts'
 
@@ -412,6 +418,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
             [`server${index}`, 'database'],
           ]),
         ],
+        TUNED_PRE_SEED_MIX,
       ),
     objectives: [
       { goal: 'Serve every request for 90 seconds.', hold: 90, ...serving(0.85) },
@@ -446,6 +453,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
           ['users', 'server'],
           ['server', 'database'],
         ],
+        TUNED_PRE_SEED_MIX,
       ),
     objectives: [
       { goal: 'Keep p99 under 300 ms for 2 minutes.', hold: 120, ...fast(300) },
@@ -492,6 +500,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
             [`server${index}`, 'database'],
           ]),
         ],
+        TUNED_PRE_SEED_MIX,
       ),
     objectives: [
       { goal: 'Keep Apdex above 0.9 for 90 seconds.', hold: 90, ...serving(0.9) },
@@ -648,6 +657,7 @@ export const GUIDED: Record<SandboxId, GuidedSandbox> = {
             [`server${index}`, 'storage'],
           ]),
         ],
+        TUNED_SEED_MIX,
       ),
     objectives: [
       { goal: 'Keep Apdex above 0.9 for 90 seconds.', hold: 90, ...serving(0.9) },

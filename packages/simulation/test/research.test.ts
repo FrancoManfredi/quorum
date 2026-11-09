@@ -7,6 +7,7 @@ import {
   RPS_PER_USER,
   STUDY_SECONDS,
   researchList,
+  type FeatureId,
   type InsightPool,
   type RequestKind,
   type ResearchId,
@@ -87,6 +88,36 @@ describe('an Era pays for its research in its own packs', () => {
       expect(medianOf(defaults)).toBeLessThanOrEqual(SLOWEST)
       expect(medianOf(items)).toBeLessThanOrEqual(LOOSEST)
     }
+  })
+})
+
+/** The share of an Era's demand a kind takes once every Feature it needs is live. */
+const shareOf = (
+  stage: number,
+  kind: 'login' | 'upload',
+  ...ids: ReadonlyArray<FeatureId>
+): number => {
+  const game: Game = {
+    ...newGame(1),
+    stage,
+    users: 25_000,
+    features: Object.fromEntries(ids.map((id) => [id, live])),
+  }
+  const demand = demandOf(game)
+  const total = Object.values(demand).reduce((sum, rate) => sum + (rate ?? 0), 0)
+  return (demand[kind] ?? 0) / total
+}
+
+describe('login and upload traffic', () => {
+  /*
+   * Login is the Pre-seed CPU-heavy kind and upload the Seed payload kind. A rebalance that
+   * starves either one leaves its Insight pool, and every Study that draws on it, dry.
+   */
+  test('the Era that introduces a kind keeps a real share of its demand', () => {
+    expect(shareOf(1, 'login', 'signup-flow', 'password-login')).toBeGreaterThanOrEqual(0.05)
+    expect(
+      shareOf(2, 'upload', 'signup-flow', 'password-login', 'profile-photos'),
+    ).toBeGreaterThanOrEqual(0.05)
   })
 })
 

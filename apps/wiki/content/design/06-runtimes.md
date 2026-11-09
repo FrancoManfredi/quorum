@@ -88,7 +88,7 @@ loop runs one piece of JavaScript at a time per process. The Simulation models t
 \end{aligned}
 ```
 
-The squared term means rare heavy requests dominate. With 2% `login` at 80 ms of bcrypt and 98%
+The squared term means rare heavy requests dominate. With 3% `login` at 80 ms of bcrypt and 97%
 `read` at 1.5 ms, the p99 of every `read` on that process rises by tens of milliseconds. This is the
 real "don't block the event loop" rule ([Reality check](/design/reality-check#runtimes)).
 

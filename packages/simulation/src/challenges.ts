@@ -6,6 +6,7 @@ import {
   KINDS,
   REQUEST_KINDS,
   TASKS,
+  TUNED_PRE_SEED_MIX,
   TUNED_SEED_MIX,
   TUNED_SERIES_A_MIX,
 } from './catalog.ts'
@@ -587,13 +588,16 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     legacy: 2,
     start: () => {
       const { nodes, links } = fleet(2, { runtime: 'php_fpm', workers: 16 }, 'database')
-      return board(
-        1,
-        1_500,
-        PRESEED_PALETTE,
-        [...nodes, node('database', 'database', 880, 280, { size: 2 })],
-        links,
-      )
+      return {
+        ...board(
+          1,
+          1_500,
+          PRESEED_PALETTE,
+          [...nodes, node('database', 'database', 880, 280, { size: 2 })],
+          links,
+        ),
+        scenario: { mix: TUNED_PRE_SEED_MIX },
+      }
     },
     duration: 300,
     stepSeconds: 1,
@@ -648,8 +652,8 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     brief: 'Node.js only. 5% login. p99 under 300 ms.',
     inspiredBy: 'Node.js “Don’t block the event loop”',
     legacy: 2,
-    start: () =>
-      board(
+    start: () => ({
+      ...board(
         1,
         6_000,
         PRESEED_PALETTE,
@@ -662,6 +666,8 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
           ['server', 'database'],
         ],
       ),
+      scenario: { mix: TUNED_PRE_SEED_MIX },
+    }),
     duration: 240,
     stepSeconds: 1,
     demand: [{ at: 0, users: 6_000 }],
@@ -686,13 +692,16 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     legacy: 3,
     start: () => {
       const { nodes, links } = fleet(40, { runtime: 'php_fpm', workers: 40 }, 'database')
-      return board(
-        1,
-        20_000,
-        PRESEED_PALETTE,
-        [...nodes, node('database', 'database', 1_000, 280, { size: 4 })],
-        links,
-      )
+      return {
+        ...board(
+          1,
+          20_000,
+          PRESEED_PALETTE,
+          [...nodes, node('database', 'database', 1_000, 280, { size: 4 })],
+          links,
+        ),
+        scenario: { mix: TUNED_PRE_SEED_MIX },
+      }
     },
     duration: 240,
     stepSeconds: 1,

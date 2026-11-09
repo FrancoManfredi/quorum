@@ -42,12 +42,12 @@ export type EraDef = Readonly<{
 
 /** Series B's mix (10 "Request mix by Era"). */
 const SERIES_B_MIX: Partial<Record<RequestKind, number>> = {
-  page: 0.17,
+  page: 0.15,
   read: 0.22,
   write: 0.09,
-  login: 0.03,
+  login: 0.04,
   search: 0.07,
-  upload: 0.03,
+  upload: 0.04,
   bot: 0.07,
   media: 0.1,
   rt: 0.08,
@@ -60,12 +60,12 @@ const SERIES_B_MIX: Partial<Record<RequestKind, number>> = {
 
 /** The mix from Series C on (10 "Request mix by Era": Series C+). */
 const SERIES_C_MIX: Partial<Record<RequestKind, number>> = {
-  page: 0.13,
+  page: 0.11,
   read: 0.18,
   write: 0.08,
-  login: 0.02,
+  login: 0.03,
   search: 0.06,
-  upload: 0.02,
+  upload: 0.03,
   bot: 0.07,
   media: 0.1,
   rt: 0.08,
@@ -110,7 +110,7 @@ export const ERAS: ReadonlyArray<EraDef> = [
     apdexTarget: 0.86,
     costIndex: 4,
     salaryIndex: 4,
-    mix: { page: 0.45, read: 0.35, write: 0.15, login: 0.05 },
+    mix: { page: 0.44, read: 0.35, write: 0.15, login: 0.06 },
     question: 'What happens when the database is the bottleneck?',
     arrivals: 'Writes contend for the database. Hiring opens. Incidents begin.',
   },
@@ -128,12 +128,12 @@ export const ERAS: ReadonlyArray<EraDef> = [
     costIndex: 8,
     salaryIndex: 8,
     mix: {
-      page: 0.28,
-      read: 0.3,
+      page: 0.26,
+      read: 0.29,
       write: 0.12,
-      login: 0.04,
+      login: 0.06,
       search: 0.1,
-      upload: 0.06,
+      upload: 0.07,
       bot: 0.1,
     },
     question: 'What happens when one App Server type cannot serve every kind?',
@@ -153,12 +153,12 @@ export const ERAS: ReadonlyArray<EraDef> = [
     costIndex: 12,
     salaryIndex: 12,
     mix: {
-      page: 0.17,
+      page: 0.15,
       read: 0.25,
       write: 0.1,
-      login: 0.03,
+      login: 0.04,
       search: 0.1,
-      upload: 0.05,
+      upload: 0.06,
       bot: 0.08,
       media: 0.1,
       rt: 0.08,
@@ -266,10 +266,17 @@ export const DECLINED_GROWTH = 0.7
 export const APDEX_WINDOW = 60
 
 /**
- * The Seed and Series A request mixes that puzzles were tuned on. A live Era rebalance must not
- * move a puzzle's demand, so a Sandbox or a Challenge whose targets depend on the shares pins its
- * mix as its scenario (14 "Challenges").
+ * The Pre-seed, Seed and Series A request mixes that puzzles were tuned on. A live Era rebalance
+ * must not move a puzzle's demand, so a Sandbox or a Challenge whose targets depend on the shares
+ * pins its mix as its scenario (14 "Challenges").
  */
+export const TUNED_PRE_SEED_MIX: Partial<Record<RequestKind, number>> = {
+  page: 0.45,
+  read: 0.35,
+  write: 0.15,
+  login: 0.05,
+}
+
 export const TUNED_SEED_MIX: Partial<Record<RequestKind, number>> = {
   page: 0.3,
   read: 0.3,

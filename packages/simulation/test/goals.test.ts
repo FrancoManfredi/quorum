@@ -45,9 +45,11 @@ describe('Capacity Mail', () => {
   test('stays quiet while the Node is short of its limit', () => {
     const game = serverAt(8_000, 'node')
     const ledger = solveFlow(game)
-    // Two thirds of its core, which is not the 100% the letters name.
+    // Two thirds of its core, which is not the 100% the letters name. The Era's mix sets the exact
+    // figure, so the test asks for the band rather than a number a rebalance moves.
     expect(ledger.nodes.server?.limit).toBe('cpu')
-    expect(ledger.nodes.server?.utilization).toBeCloseTo(0.651, 3)
+    expect(ledger.nodes.server?.utilization).toBeGreaterThan(0.55)
+    expect(ledger.nodes.server?.utilization).toBeLessThan(0.8)
     expect(nextAdvice(game, ledger).topic).not.toBe('cpu')
   })
 

@@ -37,12 +37,12 @@ Shares of demand, in percent. Features and Ventures shift these shares.
 
 | Kind     | Garage | Pre-seed | Seed | Series A | Series B | Series C+ |
 | -------- | ------ | -------- | ---- | -------- | -------- | --------- |
-| `page`   | 60     | 45       | 28   | 17       | 17       | 13        |
-| `read`   | 40     | 35       | 30   | 25       | 22       | 18        |
+| `page`   | 60     | 44       | 26   | 15       | 15       | 11        |
+| `read`   | 40     | 35       | 29   | 25       | 22       | 18        |
 | `write`  |        | 15       | 12   | 10       | 9        | 8         |
-| `login`  |        | 5        | 4    | 3        | 3        | 2         |
+| `login`  |        | 6        | 6    | 4        | 4        | 3         |
 | `search` |        |          | 10   | 10       | 7        | 6         |
-| `upload` |        |          | 6    | 5        | 3        | 2         |
+| `upload` |        |          | 7    | 6        | 4        | 3         |
 | `bot`    |        |          | 10   | 8        | 7        | 7         |
 | `media`  |        |          |      | 10       | 10       | 10        |
 | `rt`     |        |          |      | 8        | 8        | 8         |

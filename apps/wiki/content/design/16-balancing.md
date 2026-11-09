@@ -314,7 +314,7 @@ number.
 | Rails against Go, Dev Hours for the same feature set | 35% to 50% lower              |
 
 Under a PHP-FPM Design with OPcache, Node.js cluster mode answers `read` at 1.5× to 2.5× the throughput per
-dollar, and 3× to 6× with a database at 100 ms. A single Node.js process with 5% `login` adds 40 to
+dollar, and 3× to 6× with a database at 100 ms. A single Node.js process with 6% `login` adds 40 to
 120 ms to p99.
 
 ## Prestige curve
@@ -370,11 +370,12 @@ Both share the calendar pace, so a calendar day lasts 60 sim seconds. The `tunin
 The cost index, the salary index, and the speeds are one value each, set per Era or per perk rather
 than per tuning:
 
-| Knob           | Value                                                      | Why                                                                               | Constant                    |
-| -------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------- |
-| Cost index     | 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24                         | Rises with the Era so Burn stays a real share of revenue at every size of company | `EraDef.costIndex`          |
-| Salary index   | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24 | Payroll has to stay a real share of Burn at the prices the player pays            | `EraDef.salaryIndex`        |
-| Company speeds | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation          | A slower speed for watching a Design settle, faster ones for the late Eras        | `SPEEDS`, `DILATION_SPEEDS` |
+| Knob           | Value                                                           | Why                                                                                                                                               | Constant                    |
+| -------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Cost index     | 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24                              | Rises with the Era so Burn stays a real share of revenue at every size of company                                                                 | `EraDef.costIndex`          |
+| Salary index   | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24      | Payroll has to stay a real share of Burn at the prices the player pays                                                                            | `EraDef.salaryIndex`        |
+| Company speeds | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation               | A slower speed for watching a Design settle, faster ones for the late Eras                                                                        | `SPEEDS`, `DILATION_SPEEDS` |
+| Request mix    | [Request mix by Era](/design/10-progression#request-mix-by-era) | `login` and `upload` cost 80 and 120 ms of CPU, so an Era that keeps under 5% of either starves its Insight pool and every Study that draws on it | `EraDef.mix`                |
 
 ## What the checks cover
 
@@ -383,5 +384,7 @@ than per tuning:
 - `balance.test.ts` asserts the runtime targets above and runs in `pnpm test`.
 - `digests.test.ts` and `breadth.test.ts` assert determinism, finite numbers and save round trips
   across the whole catalog.
+- `research.test.ts` asserts each Era's mix sums to one, and that the Era introducing `login` and
+  `upload` keeps a real share of each, so their Insight pools do not dry up.
 - The bridge and the shutdown fire at the numbers in [Economy](/design/09-economy); no bot plays a
   Company into a shortfall.
