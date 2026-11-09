@@ -917,7 +917,8 @@ export const CHALLENGES: ReadonlyArray<Challenge> = [
     targets: { errors: 0.01, kinds: { buy: 0.02 } },
     edges: {
       cost: [17, 18, 19, 20, 21, 22, 24, 26],
-      tail: [225, 250, 275, 300, 350, 400, 500, 750],
+      // The provider is deliberately slow for two 2 s windows, so the reference tail sits near 1.7 s.
+      tail: [225, 250, 275, 300, 350, 400, 500, 750, 1_500, 2_000],
       complexity: [14, 16, 18, 20, 22, 24, 28],
     },
   },
