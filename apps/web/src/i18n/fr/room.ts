@@ -14,6 +14,7 @@ export const room = {
   speed: 'Vitesse',
   vote: 'Vote',
   voteFund: 'Lever un tour',
+  voteDecline: 'Refuser le tour',
   voteExit: 'Terminer la session',
   voteStarted: (name: string) => `${name} a lancé un vote.`,
   voteOpen: 'Un vote est ouvert.',

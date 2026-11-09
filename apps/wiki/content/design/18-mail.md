@@ -214,8 +214,11 @@ Matching on the key, not on the text, lets Mail tell a repeat from a new problem
 ## Teammates
 
 Teammates write the most varied Mail. Each hired engineer is a named sender ([Team and
-velocity](/design/08-team-and-velocity)). They write in a few fixed shapes, and the body draws on
-their language, their seniority, and the state of the Design.
+velocity](/design/08-team-and-velocity)). An engineer's name comes from their id and is the same
+on the Team roster and in every Mail they send; the first sixteen hires all have different names. They
+write in a few fixed shapes, and the body draws on their language, their seniority, and the state
+of the Design. Before the first hire nobody is on the payroll, so the Mentor writes the postmortem
+and stalled-Study Mail that a teammate would write later.
 
 | Mail                 | Triggers on                                                                                        | Actions                                            |
 | -------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------- |

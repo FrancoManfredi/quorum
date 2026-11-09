@@ -127,6 +127,7 @@ import { money, sharePercent } from '@quorum/ui/game/format'
 import { STACK_LOGOS } from '@quorum/ui/game/icons'
 import { Message } from '@/game/message.ts'
 import { ledgerOf, type Model } from '@/game/model.ts'
+import { identityOf } from '@/game/mail.ts'
 import { glowing, shown } from '@/game/reveal.ts'
 import { icon } from '@quorum/ui/primitives/icon'
 import { badge } from '@quorum/ui/primitives/badge'
@@ -135,26 +136,7 @@ import { cn } from '@/lib/utils'
 import { EYEBROW, FIGURE, PANEL, SCROLL, WELL, ring, stackLogo } from '@quorum/ui/game/bits'
 import { shell } from './panels.ts'
 
-const NAMES = [
-  'Ada',
-  'Linus',
-  'Grace',
-  'Ken',
-  'Barbara',
-  'Dennis',
-  'Margaret',
-  'Guido',
-  'Frances',
-  'Bjarne',
-  'Radia',
-  'Yukihiro',
-  'Sophie',
-  'Rasmus',
-  'Hedy',
-  'Ryan',
-]
-
-const nameOf = (id: string): string => NAMES[Number(id.slice(1)) % NAMES.length] ?? id
+const nameOf = (id: string): string => identityOf(id).name
 
 const HUES = [28, 62, 150, 195, 240, 285, 330]
 const hueOf = (id: string): number => HUES[Number(id.slice(1)) % HUES.length] ?? 240

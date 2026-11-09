@@ -2,7 +2,7 @@ import { Effect, Option, Schema } from 'effect'
 import type { Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import type { Game } from '@quorum/simulation/state'
-import { SAMPLES, needsAction, randomSample, senderOf, type Fact } from './mail.ts'
+import { EASY_MODE_KEY, SAMPLES, needsAction, randomSample, senderOf, type Fact } from './mail.ts'
 import { Folder, MailLabel, Mail as MailSchema, MailMute, type Inbox, type Mail } from './model.ts'
 import { SENDER_KINDS } from './copy/senders.ts'
 import type { Snippet } from './mail-text.ts'
@@ -19,7 +19,9 @@ export const FOLD_AFTER = 8
 /** The Digest is not a Mail the Inbox stores: it is the fold of threads it hides, shown as one row. */
 export const DIGEST_ID = -1
 
-/** Senders whose Mail is about the Design now: a Thread resolves when its cause is gone. */
+/** Kinds of Sender whose Mail is about the Design now: a Thread resolves when its cause is gone.
+ *  A kind, not a Sender id: a Thread draws its Sender from the kind's pool, and every one of them
+ *  resolves alike. */
 const ADVISING = new Set(['cloud', 'monitoring', 'vendor', 'investor', 'finance', 'mentor'])
 
 export const EMPTY_INBOX: Inbox = {
@@ -181,7 +183,15 @@ export const mailed = (
 export const resolvedExcept = (inbox: Inbox, key: string, time: number): Inbox => ({
   ...inbox,
   mail: inbox.mail.map((mail) =>
-    ADVISING.has(mail.sender) && mail.key !== key && mail.phase._tag !== 'Resolved'
+    ADVISING.has(senderOf(mail.sender).kind) &&
+    mail.key !== key &&
+    // The Easy mode offer is a standing question, not advice about the Design. A postmortem and a
+    // stalled Study are work still owed: the Mentor writes them before the first hire.
+    mail.key !== EASY_MODE_KEY &&
+    !/^(team|research):/.test(mail.key) &&
+    // A decision stays as the record of what the player chose; a warning they only read resolves.
+    (mail.phase._tag === 'Active' ||
+      (mail.phase._tag === 'Answered' && QUIET.has(mail.phase.answerId)))
       ? { ...mail, phase: { _tag: 'Resolved', at: time } }
       : mail,
   ),

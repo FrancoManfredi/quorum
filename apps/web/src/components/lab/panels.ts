@@ -495,6 +495,8 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   )
 }
 
+const VOTE_TITLE = { fund: 'voteFund', decline: 'voteDecline', exit: 'voteExit' } as const
+
 /** One open vote: the count, a dot per Seat, and the two ballots. */
 const voteCard = (model: Model, open: Vote, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
@@ -506,10 +508,7 @@ const voteCard = (model: Model, open: Vote, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('flex items-baseline justify-between gap-3')],
         [
-          h.span(
-            [h.Class('text-sm font-medium')],
-            [open.kind === 'fund' ? t.room.voteFund : t.room.voteExit],
-          ),
+          h.span([h.Class('text-sm font-medium')], [t.room[VOTE_TITLE[open.kind]]]),
           h.span(
             [h.Class(cn(FIGURE, 'text-xs text-muted-foreground'))],
             [`${open.yes.length} / ${model.room.seats.length}`],
@@ -1064,7 +1063,10 @@ export const offerPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     ? t.panels.iPO
     : t.panels.round(t.catalog.eras[model.board.game.stage + 1]?.name ?? deal.era.name)
   // A Room decides the round by vote, so the offer shows that vote while it is open.
-  const vote = roomLive(model) && model.room.vote?.kind === 'fund' ? model.room.vote : null
+  const vote =
+    roomLive(model) && model.room.vote !== null && model.room.vote.kind !== 'exit'
+      ? model.room.vote
+      : null
   if (vote !== null)
     return shell(
       title,

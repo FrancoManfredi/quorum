@@ -135,5 +135,13 @@ export const mailWords: Messages['mailWords'] = {
     'Core dumped.',
     'Envoyé en tenant le verrou. Répondez vite, s’il vous plaît.',
     'Envoyé depuis un point d’arrêt.',
+    'Envoyé en O(n log n). Un jour.',
+    'A trouvé votre adresse. Et toutes les autres.',
+    'Délai d’attente dépassé. Réessayez plus tard.',
+    'Envoyé parce qu’un autre message a été envoyé.',
+    'Envoyé. Impossible de dire si cela finira un jour.',
+    'JSON valide, à la virgule finale près.',
+    'Servi depuis le cache. Je suis peut-être périmé.',
+    'Merci de respecter mon robots.txt.',
   ],
 }

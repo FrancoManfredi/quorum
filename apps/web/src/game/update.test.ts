@@ -2334,6 +2334,28 @@ describe('Mail actions (GDD 18)', () => {
     expect(JSON.stringify(game)).toBe(before)
   })
 
+  test('an exhausted credit balance joins the capacity advice Thread, from the same Sender', () => {
+    const advice = {
+      key: 'cloud:credits:server',
+      from: 'cloud',
+      subject: 'App Server: CPU credits exhausted',
+      text: 'App Server ran out of CPU credits.',
+      topic: 'credits',
+      vars: { node: 'App Server' },
+      actions: [],
+    } as const
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const game = { ...preseedGame(), seed }
+      const event = eventFact(
+        { _tag: 'CreditsExhausted', nodeId: 'server' },
+        { topic: 'credits', vars: { node: 'App Server' } },
+        game,
+      )
+      const advised = factOf(advice, game)
+      expect([event.key, event.sender]).toEqual([advised.key, advised.sender])
+    }
+  })
+
   test('the fourth button on an advisory is reachable with its own key', () => {
     // Dependency scanning names the Node, so the advisory carries all four of its buttons.
     const game = {
@@ -2556,6 +2578,24 @@ test('a funding round in a live Room starts the fund vote', () => {
   const asked = update(model, Message.RoundRaised())
   const sent = (asked.commands ?? []).find((command) => command.name === 'SendRoom')
   expect(sent?.args?.['message']).toEqual({ _tag: 'StartVote', kind: 'fund' })
+  expect(asked.model.board.game).toBe(model.board.game)
+  expect(asked.model.panel).toBe('offer')
+})
+
+/* Declining is a vote too: one Seat's Decline must not move the Room's Era on its own. */
+test('declining a funding round in a live Room starts the decline vote', () => {
+  const model: Model = {
+    ...inLab(),
+    room: {
+      ...EMPTY_ROOM,
+      phase: { _tag: 'Online', code: 'ABC234', seat: 'tab-1', owner: false },
+    },
+  }
+  const asked = update(model, Message.RoundDeclined())
+  const sent = (asked.commands ?? []).filter((command) => command.name === 'SendRoom')
+  expect(sent.map((command) => command.args?.['message'])).toEqual([
+    { _tag: 'StartVote', kind: 'decline' },
+  ])
   expect(asked.model.board.game).toBe(model.board.game)
   expect(asked.model.panel).toBe('offer')
 })

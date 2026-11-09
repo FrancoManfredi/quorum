@@ -15,6 +15,7 @@ import {
   workIntent,
   type Vote,
 } from '../src/room.ts'
+import { ERAS } from '../src/catalog.ts'
 import { Game } from '../src/state.ts'
 
 const game = newGame()
@@ -32,6 +33,7 @@ describe('plans', () => {
 
   test('an action only a vote may take has no plan', () => {
     expect(planOf('raise', [])).toBeNull()
+    expect(planOf('decline', [])).toBeNull()
     expect(planOf('acknowledge', [])).toBeNull()
   })
 
@@ -90,6 +92,12 @@ describe('intents', () => {
 
   test('a name outside the registry is refused', () => {
     const applied = applyIntent(game, { ns: 'actions', name: 'raise', args: [] })
+    expect(Result.isFailure(applied)).toBe(true)
+  })
+
+  test('a Seat cannot decline a round on its own', () => {
+    const offered = { ...game, users: ERAS[0]!.raiseAt, round: { _tag: 'Offered' } as const }
+    const applied = applyIntent(offered, { ns: 'actions', name: 'decline', args: [] })
     expect(Result.isFailure(applied)).toBe(true)
   })
 

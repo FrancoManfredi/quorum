@@ -6,6 +6,7 @@ import {
   ROOM_SPEEDS,
   ServerMessage,
   type SeatActivity,
+  type VoteKind,
 } from '@quorum/simulation/room'
 import type { Region } from '@quorum/simulation/state'
 import type { PublishInput, RoomStub } from '../contexts/room/directory.ts'
@@ -241,7 +242,7 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
     }
   }
 
-  private async startVote(ws: WebSocket, kind: 'fund' | 'exit'): Promise<void> {
+  private async startVote(ws: WebSocket, kind: VoteKind): Promise<void> {
     if (this.state === null) return this.end(ws, 'removed')
     const started = startVote(this.state, this.seatOf(ws), kind)
     if (Result.isFailure(started)) {

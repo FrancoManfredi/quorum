@@ -13,6 +13,7 @@ export const room = {
   speed: '速度',
   vote: '投票',
   voteFund: 'ラウンドを調達',
+  voteDecline: 'ラウンドを辞退',
   voteExit: 'セッションを終える',
   voteStarted: (name: string) => `${name} が投票を始めました。`,
   voteOpen: '投票中です。',

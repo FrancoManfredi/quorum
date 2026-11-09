@@ -252,7 +252,13 @@ export const exitHandlers = (model: Model): MessageCases<UpdateResult, ExitTag> 
   },
 
   RoundDeclined: () =>
-    act(model, 'Declined a round', Actions.decline(model.board.game), { panel: afterRound }),
+    // Declining is a vote in a Room, as raising is: one Seat's answer is not the Room's.
+    roomLive(model)
+      ? {
+          model: { ...model, panel: 'offer' },
+          commands: [SendRoom({ message: { _tag: 'StartVote', kind: 'decline' } })],
+        }
+      : act(model, 'Declined a round', Actions.decline(model.board.game), { panel: afterRound }),
 
   BridgeAccepted: () => {
     const bridge = model.board.game.bridge

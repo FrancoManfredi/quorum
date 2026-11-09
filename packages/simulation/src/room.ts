@@ -34,7 +34,7 @@ export const Seat = Schema.Struct({
 })
 export type Seat = typeof Seat.Type
 
-export const VoteKind = Schema.Literals(['fund', 'exit'])
+export const VoteKind = Schema.Literals(['fund', 'decline', 'exit'])
 export type VoteKind = typeof VoteKind.Type
 
 /**
@@ -77,8 +77,8 @@ export const Vote = Schema.Struct({
 })
 export type Vote = typeof Vote.Type
 
-/** What a vote does when it passes: raise a round, or end the session. */
-export const VOTE_ACTIONS = { fund: 'raise', exit: 'exit' } as const
+/** What a vote does when it passes: raise a round, decline it, or end the session. */
+export const VOTE_ACTIONS = { fund: 'raise', decline: 'decline', exit: 'exit' } as const
 
 /** A vote passes when yes is more than half of the connected Seats. A tie fails. */
 export const votePasses = (vote: Vote, connected: ReadonlyArray<string>): boolean =>
@@ -126,6 +126,7 @@ const NOT_A_MOVE = [
   'acknowledge', // The board acknowledges an Incident as the next move.
   'blankNode', // Placement's private constructor.
   'canRaise', // Reads the Game.
+  'decline', // Declining a funding round is a vote, as raising it is.
   'describeRefusal', // Formats a refusal's prose.
   'offer', // Reads the Game.
   'raise', // A funding round is a vote.

@@ -105,11 +105,25 @@ const hashOf = (...parts: ReadonlyArray<number | string>): number => {
 const pick = <A>(items: ReadonlyArray<A>, ...parts: ReadonlyArray<number | string>): A =>
   items[hashOf(...parts) % items.length] as A
 
+/**
+ * Who an engineer is, from their id alone: the Team panel and every Mail they write read this, so
+ * the name on the roster is the name in the Inbox. Ids count up as people are hired, so each of
+ * the first few engineers gets a different identity; a larger payroll wraps around the pool.
+ */
+export const identityOf = (
+  engineerId: string,
+): Readonly<{ index: number; name: string; sign: string }> => {
+  const hired = Number(engineerId.slice(1))
+  const index =
+    (Number.isInteger(hired) && hired >= 0 ? hired : hashOf(engineerId)) % TEAMMATES.length
+  const mate = TEAMMATES[index]!
+  return { index, ...mate }
+}
+
 export const senderOf = (id: string): Sender => {
   const known = SENDERS[id]
   if (known) return { ...known, looks: known.looks ?? known.kind }
-  const mateKey = id.replace('mate:', '')
-  const mate = pick(TEAMMATES, mateKey)
+  const mate = identityOf(id.replace('mate:', ''))
   return {
     kind: 'teammate',
     name: mate.name,
@@ -118,7 +132,7 @@ export const senderOf = (id: string): Sender => {
     color: `oklch(0.52 0.12 ${150 + (hashOf(id) % 5) * 9 - 18})`,
     looks: 'teammate',
     sign: mate.sign,
-    signIndex: TEAMMATES.indexOf(mate),
+    signIndex: mate.index,
   }
 }
 
@@ -322,6 +336,13 @@ const sampleTicket = (cve: Cve, game: Game, id: number): WorkItem => {
 const mateOf = (game: Game, at: number): string =>
   `mate:${game.engineers[at % Math.max(1, game.engineers.length)]?.id ?? `e${at % 8}`}`
 
+/**
+ * Who writes about the Company's own work. With no engineer on the payroll nobody on the team could
+ * have written it, so the Mentor does; a made-up teammate would not be on the roster.
+ */
+const writerOf = (game: Game, at: number, key: string): string =>
+  game.engineers.length > 0 ? mateOf(game, at) : senderFor('mentor', game, key)
+
 const hireFact = (game: Game, mate: string, salt: number): Fact => {
   const key = `team:hire:${game.engineers.length}`
   const backlog = String(Math.max(3, game.backlog.length))
@@ -400,7 +421,7 @@ export const stallFact = (game: Game, id: ResearchId, stall: StudyStall): Fact =
   const written = STALL[0]!({ ...vars, from: '' })
   return {
     key: `research:stalled:${id}`,
-    sender: mateOf(game, hashOf(id)),
+    sender: writerOf(game, hashOf(id), `research:stalled:${id}`),
     subject: written.subject,
     text: written.body,
     actions: [{ id: `research:${id}`, label: 'Open Research' }],
@@ -827,7 +848,7 @@ export const postmortemFact = (
 ): Fact => {
   const incident = INCIDENTS[postmortem.kind].name
   const key = `team:postmortem:${postmortem.id}`
-  const mate = mateOf(game, postmortem.id)
+  const mate = writerOf(game, postmortem.id, key)
   const vars: PostmortemVars = {
     incident,
     severity: `SEV${postmortem.severity}`,
@@ -929,8 +950,10 @@ export const eventFact = (
       : null
   const about =
     itemKey ?? [event.nodeId, event.rule, event.engineerId].find((v) => typeof v === 'string') ?? ''
-  // Each kind of news keeps its own Thread: a zone outage does not join a cache stampede.
-  const key = `event:${mail.topic}:${about}`
+  // Each kind of news keeps its own Thread: a zone outage does not join a cache stampede. An
+  // exhausted credit balance is one fact however the Cloud learns it, so the event and the
+  // capacity advice about that Node share a Thread instead of writing the same Mail twice.
+  const key = mail.topic === 'credits' ? `cloud:credits:${about}` : `event:${mail.topic}:${about}`
   const from = EVENT_FROM[event._tag]
   const sender =
     PINNED[mail.topic] ??
@@ -938,7 +961,9 @@ export const eventFact = (
       ? senderFor('security', game, key)
       : from
         ? senderFor(from, game, key)
-        : `mate:${typeof event.engineerId === 'string' ? event.engineerId : (game.engineers[0]?.id ?? 'e0')}`)
+        : typeof event.engineerId === 'string'
+          ? `mate:${event.engineerId}`
+          : writerOf(game, 0, key))
   // Each topic carries its own vars; the record type cannot say so.
   const letters = EVENTS[mail.topic] as unknown as Letters<EventMail['vars']>
   return fact(

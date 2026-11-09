@@ -12,10 +12,11 @@ import {
   inboxOfSave,
   mailed,
   reading,
+  resolvedExcept,
   savedInbox,
   updateInbox,
 } from './inbox.ts'
-import { eventMail, postmortemFact } from './mail.ts'
+import { eventMail, identityOf, postmortemFact, senderOf } from './mail.ts'
 import type { Fact } from './mail.ts'
 import type { Inbox, Model } from './model.ts'
 import { AppRoute } from './route.ts'
@@ -49,6 +50,57 @@ const sent = (facts: ReadonlyArray<Fact>, folder: 'action' | 'fyi' | 'spam' | 't
 
 const act = (inbox: Inbox, id: number, action: string) =>
   updateInbox(inbox, InboxMessage.Acted({ id, action }), { game, open: true })
+
+/* The roster and the Inbox read one identity per engineer: the name on a Mail is the name in Team. */
+test('an engineer keeps one name, and the first hires have different ones', () => {
+  const ids = Array.from({ length: 8 }, (_, index) => `e${index + 1}`)
+  for (const id of ids) expect(senderOf(`mate:${id}`).name).toBe(identityOf(id).name)
+  expect(new Set(ids.map((id) => identityOf(id).name)).size).toBe(ids.length)
+  expect(senderOf('mate:e3').signIndex).toBe(identityOf('e3').index)
+  // A payroll of sixteen still has sixteen different names.
+  expect(
+    new Set(Array.from({ length: 16 }, (_, index) => identityOf(`e${index + 1}`).name)).size,
+  ).toBe(16)
+})
+
+/* A Thread draws its Sender from its kind's pool, and every Sender of the kind resolves alike. A
+   pooled Sender that kept a stale warning open put the same CPU alarm in the Inbox twice. */
+test('advice that moved on resolves for every Sender of its kind', () => {
+  const inbox = sent(
+    [
+      fact('cloud:cpu:a', 'cloud-gooble', 'CPU at 100%'),
+      fact('cloud:cpu:b', 'cloud', 'CPU at 100%'),
+      fact('monitoring:workers:a', 'monitoring-centry', 'All workers busy'),
+      fact('team:hire:1', 'mate:e1', 'Can we hire?'),
+    ],
+    'action',
+  )
+  const moved = resolvedExcept(inbox, 'cloud:cpu:c', 9)
+  expect(moved.mail.map((mail) => [mail.key, mail.phase._tag])).toEqual([
+    ['cloud:cpu:a', 'Resolved'],
+    ['cloud:cpu:b', 'Resolved'],
+    ['monitoring:workers:a', 'Resolved'],
+    ['team:hire:1', 'Active'],
+  ])
+  // The advice that still holds keeps its Thread open.
+  expect(resolvedExcept(inbox, 'cloud:cpu:a', 9).mail[0]?.phase._tag).toBe('Active')
+})
+
+test('advice that moved on keeps a decision the player made and resolves a warning they read', () => {
+  const inbox = sent(
+    [
+      fact('investor:round:0', 'investor-sequel', 'Seed round'),
+      fact('cloud:cpu:a', 'cloud-gooble', 'CPU at 100%'),
+    ],
+    'action',
+  )
+  const answered = act(act(inbox, 1, 'decline').model, 2, 'ack').model
+  const moved = resolvedExcept(answered, 'mentor:grow:1', 9)
+  expect(moved.mail.map((mail) => [mail.key, mail.phase._tag])).toEqual([
+    ['investor:round:0', 'Answered'],
+    ['cloud:cpu:a', 'Resolved'],
+  ])
+})
 
 test('the save keeps the Mail and the mutes, and a reload reads it back', () => {
   const inbox = sent(
@@ -148,6 +200,11 @@ test('past eight unread threads the oldest low-priority ones fold into one Diges
   expect(digestOf(withActions)).toEqual([])
 })
 
+const withEngineers: Game = {
+  ...game,
+  engineers: [{ ...NEW_ENGINEER, id: 'e1', team: 'core', language: 'go', hiredAt: 0 }],
+}
+
 test('a resolved incident asks a teammate to file the postmortem', () => {
   const postmortem: Postmortem = {
     id: 3,
@@ -165,9 +222,18 @@ test('a resolved incident asks a teammate to file the postmortem', () => {
     endedAt: 600,
     causedBy: null,
   }
-  const mail = postmortemFact(postmortem, game)
+  const mail = postmortemFact(postmortem, withEngineers)
   // The sender is a person: the design gives the postmortem to a teammate, not the pager.
   expect(mail.sender.startsWith('mate:')).toBe(true)
+  expect(mail.sender).toBe(`mate:${withEngineers.engineers[0]?.id}`)
+  // With nobody on the payroll the Mentor writes it, and a later advice change leaves it open.
+  const lone = postmortemFact(postmortem, game)
+  expect(senderOf(lone.sender).kind).toBe('mentor')
+  expect(
+    resolvedExcept(sent([lone], 'action'), 'mentor:grow:1', 9).mail.map(
+      (entry) => entry.phase._tag,
+    ),
+  ).toEqual(['Active'])
   expect(mail.actions.map((action) => action.label)).toEqual([
     'File postmortem',
     'File and research the action item',

@@ -13,6 +13,7 @@ export const room = {
   speed: '速度',
   vote: '投票',
   voteFund: '融资',
+  voteDecline: '拒绝融资',
   voteExit: '结束会话',
   voteStarted: (name: string) => `${name} 发起了投票。`,
   voteOpen: '投票进行中。',

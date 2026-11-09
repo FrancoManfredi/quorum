@@ -283,7 +283,7 @@ export type BallotOutcome = Readonly<{
 
 /**
  * Records a ballot. A vote passes when yes is more than half the connected
- * Seats. `fund` raises a round; `exit` ends the session and keeps the Company
+ * Seats. `fund` raises a round and `decline` declines it; `exit` ends the session and keeps the Company
  * for the owner, who takes the Exit offline.
  */
 export const ballot = (state: RoomState, seat: string, yes: boolean): BallotOutcome => {
@@ -305,16 +305,16 @@ export const ballot = (state: RoomState, seat: string, yes: boolean): BallotOutc
       passed: 'exit',
     }
 
-  const raised = Actions.raise(state.game)
-  if (Result.isFailure(raised)) return { state: { ...state, vote: null }, passed: null }
+  const answered = next.kind === 'fund' ? Actions.raise(state.game) : Actions.decline(state.game)
+  if (Result.isFailure(answered)) return { state: { ...state, vote: null }, passed: null }
   return {
     state: {
       ...state,
-      game: { ...raised.success, history: [] },
+      game: { ...answered.success, history: [] },
       revision: state.revision + 1,
       vote: null,
     },
-    passed: 'fund',
+    passed: next.kind,
   }
 }
 

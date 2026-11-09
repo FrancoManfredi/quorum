@@ -257,7 +257,8 @@ export const SENDERS: Record<string, SenderCopy> = {
   ),
 }
 
-/** Teammates draw a pun name from their id and keep it for life. Each signs in their own way. */
+/** Teammates take a pun name from their id and keep it for life. Each signs in their own way.
+ *  New signs go at the end, in every language, so nobody already hired changes name. */
 export const TEAMMATES: ReadonlyArray<{ readonly name: string; readonly sign: string }> = [
   { name: 'Bobby Tables', sign: "'); DROP TABLE signatures;--" },
   { name: 'Rae Condition', sign: 'Sent twice, or not at all.' },
@@ -267,4 +268,12 @@ export const TEAMMATES: ReadonlyArray<{ readonly name: string; readonly sign: st
   { name: 'Seb Fault', sign: 'Core dumped.' },
   { name: 'Pat Mutex', sign: 'Sent while holding the lock. Please reply quickly.' },
   { name: 'Dee Bugger', sign: 'Sent from a breakpoint.' },
+  { name: 'Al Gorithm', sign: 'Sent in O(n log n). Eventually.' },
+  { name: 'Reg Ex', sign: 'Matched your address. Also everyone else’s.' },
+  { name: 'Tim Out', sign: 'Request timed out. Please try again later.' },
+  { name: 'Cass Cade', sign: 'Sent because another message was sent.' },
+  { name: 'Hal Ting', sign: 'Sent. I cannot tell you whether I will ever finish.' },
+  { name: 'Jay Son', sign: 'Valid JSON, apart from the trailing comma.' },
+  { name: 'Cash Ing', sign: 'Served from cache. I may be out of date.' },
+  { name: 'Rob Ots', sign: 'Please respect my robots.txt.' },
 ]

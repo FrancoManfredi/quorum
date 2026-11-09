@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { ServerMessage } from '@quorum/simulation/room'
+import { ServerMessage, VoteKind } from '@quorum/simulation/room'
 
 /** The Room Messages, as cases for the root union. */
 export const roomCases = {
@@ -12,7 +12,7 @@ export const roomCases = {
   RoomPublishFailed: { message: Schema.String },
   RoomTakeOfflineAsked: {},
   RoomLeaveAsked: {},
-  RoomVoteAsked: { kind: Schema.Literals(['fund', 'exit']) },
+  RoomVoteAsked: { kind: VoteKind },
   RoomBallot: { vote: Schema.Finite, yes: Schema.Boolean },
   RoomSpeedChosen: { value: Schema.Finite },
   RoomKickAsked: { seat: Schema.String },

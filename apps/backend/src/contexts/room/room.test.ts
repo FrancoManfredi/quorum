@@ -1,5 +1,6 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
+import { ERAS } from '@quorum/simulation/catalog'
 import { newGame } from '@quorum/simulation/company'
 import { intent } from '@quorum/simulation/room'
 import {
@@ -190,6 +191,24 @@ describe('votes', () => {
     expect(left.vote?.yes).toContain(owner)
     const after = ballot(left, owner, true)
     expect(after.passed).toBe('exit')
+  })
+
+  test('a round is declined only when the vote to decline passes', () => {
+    const { state, owner, guest } = withSeats()
+    const offered: RoomState = {
+      ...state,
+      game: { ...game, users: ERAS[0]!.raiseAt, round: { _tag: 'Offered' } },
+    }
+    const started = startVote(offered, owner, 'decline')
+    if (Result.isFailure(started)) throw new Error('no vote')
+    // The starter's own yes is half of two Seats, so the round still waits.
+    expect(started.success.game.round._tag).toBe('Offered')
+    const passed = ballot(started.success, guest, true)
+    expect(passed.passed).toBe('decline')
+    expect(passed.state.game.round._tag).toBe('Declined')
+    expect(passed.state.game.stage).toBe(1)
+    expect(passed.state.game.cash).toBe(offered.game.cash)
+    expect(passed.state.game.equity).toBe(offered.game.equity)
   })
 
   test('one vote is open at a time', () => {
