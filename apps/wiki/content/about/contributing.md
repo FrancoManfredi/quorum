@@ -3,7 +3,7 @@ title: Help improve the wiki
 summary: How the wiki is made, where its numbers come from, and how to send a fix.
 section: about
 order: 1
-aliases: edit, contribute, github
+aliases: edit, contribute, github, bug, report a bug, issue, feedback, open source
 ---
 
 ## Where the facts come from

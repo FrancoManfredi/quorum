@@ -4,7 +4,7 @@ summary: Serve users on other continents from Series C, with a second region, Ge
 section: guides
 order: 9
 era: 5
-aliases: regions, multi-region, geodns, latency abroad, europe, apac, region outage, mirror, anycast
+aliases: second region, regions, multi-region, geodns, latency abroad, europe, apac, region outage, mirror, anycast
 gdd: /design/10-progression
 ---
 

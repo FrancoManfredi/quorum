@@ -4,7 +4,7 @@ summary: Why each Company ends in an Exit, how an Exit becomes Legacy, and how P
 section: explanation
 order: 13
 era: 3
-aliases: exit, legacy, prestige, acqui-hire, acquisition, ipo, step down, perks, legacy shop, ventures, mutators, founder, reset, new company, playbooks
+aliases: win, goal, end game, exit, legacy, prestige, acqui-hire, acquisition, ipo, step down, perks, legacy shop, ventures, mutators, founder, reset, new company, playbooks
 gdd: /design/13-prestige
 ---
 

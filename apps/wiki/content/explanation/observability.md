@@ -3,7 +3,7 @@ title: Insight and observability
 summary: How the Analytics Node turns sampled traffic into Insight, what sampling costs, and how observability Research changes what you can see.
 section: explanation
 order: 12
-aliases: insight, observability, analytics, sample rate, sampling, retention, visibility, logs, metrics, percentiles, alerting, alert fatigue, dashboard, tracing, failure insight
+aliases: insight, observability, monitor, monitoring, analytics, sample rate, sampling, retention, visibility, logs, metrics, percentiles, alerting, alert fatigue, dashboard, tracing, failure insight
 gdd: /design/12-observability
 ---
 

@@ -89,6 +89,11 @@ test('search ranks a title match first, finds aliases, and survives a typo', () 
   expect(search(index, 'lb')[0]?.path).toBe('/components/lb')
   expect(search(index, 'kubernets')[0]?.path).toBe('/components/cluster')
   expect(search(index, 'zzzz')).toEqual([])
+  // stemming, a name over a long body, and a Component over its guides
+  expect(search(index, 'caching')[0]?.path).toBe('/components/cache')
+  expect(search(index, 'pooler')[0]?.path).toBe('/components/pooler')
+  expect(search(index, 'contributing')[0]?.path).toBe('/about/contributing')
+  expect(search(index, 'k8s').map((hit) => hit.path)).toEqual(['/components/cluster'])
 })
 
 test('the built search index loads the way the browser loads it', () => {
