@@ -67,13 +67,24 @@ const ScrollTo = Command.define('ScrollTo', {
     }),
 })
 
+/** The nearest ancestor that scrolls on its own. Without one, `scrollIntoView` moves the page. */
+const scroller = (element: Element): Element | null => {
+  for (let node = element.parentElement; node; node = node.parentElement) {
+    const style = getComputedStyle(node)
+    const scrollsX = /auto|scroll/.test(style.overflowX) && node.scrollWidth > node.clientWidth
+    const scrollsY = /auto|scroll/.test(style.overflowY) && node.scrollHeight > node.clientHeight
+    if (scrollsX || scrollsY) return node
+  }
+  return null
+}
+
 /** The current tab and the current sidebar row come into view once the page has drawn. */
 const RevealCurrent = Command.define('RevealCurrent', {
   messages: [Message.Navigated],
   execute: Effect.sync(() => {
     setTimeout(() => {
       for (const current of document.querySelectorAll('nav [aria-current]'))
-        current.scrollIntoView({ block: 'nearest', inline: 'center' })
+        if (scroller(current)) current.scrollIntoView({ block: 'nearest', inline: 'center' })
     }, 60)
     return Message.Navigated()
   }),
@@ -144,14 +155,16 @@ export const update = (model: Model, message: Message): Return =>
         onNone: () => '',
         onSome: (value) => value.replace(/^#/, ''),
       })
-      const scroll = path === model.path && !hash ? [] : [ScrollTo({ hash })]
+      // A hash on the page you are reading moves to that heading and changes nothing else: the
+      // search, the drawer and the open hubs belong to the page, not to the scroll position.
+      if (path === model.path) return hash ? { model, commands: [ScrollTo({ hash })] } : { model }
       const visited = foldProgress(
         { ...model, path, menu: false, navToggled: [], search: Search.init },
         Progress.Message.Visited({ path }),
       )
       return {
         model: visited.model,
-        commands: [...scroll, RevealCurrent(), ...(visited.commands ?? [])],
+        commands: [ScrollTo({ hash }), RevealCurrent(), ...(visited.commands ?? [])],
       }
     },
     Navigated: () => ({ model }),

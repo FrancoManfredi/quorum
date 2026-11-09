@@ -1,4 +1,6 @@
 import { expect, test } from 'vitest'
+import { Option } from 'effect'
+import type { Url } from 'foldkit/url'
 import {
   COMPONENT_IDS,
   CVE_TERMS,
@@ -11,7 +13,7 @@ import {
 } from '@quorum/simulation/catalog'
 import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
 import { prosePaths } from './content.ts'
-import { normalize } from './main.ts'
+import { Message, init, normalize, update } from './main.ts'
 import { renderPage, prerenderPaths } from './entry.server.ts'
 import { PAGES, SECTION_ORDER, navOf, pageAt } from './pages.ts'
 import { componentsHitBy, sandboxesFiring } from './reference/graph.ts'
@@ -133,4 +135,39 @@ test('the changelog groups commits by UTC day, cuts the short page, and keeps ev
   expect(recent).not.toContain(`Busy day change ${PER_DAY}`)
   expect(recent).toContain('(/about/changelog/all#sunday-8-november-2026)')
   expect(renderAll(commits)).toContain(`Busy day change ${PER_DAY + 1}`)
+})
+
+const urlOf = (pathname: string, hash = ''): Url => ({
+  protocol: 'https:',
+  host: 'wiki.playquorum.dev',
+  port: Option.none(),
+  pathname,
+  search: Option.none(),
+  hash: hash === '' ? Option.none() : Option.some(hash),
+})
+
+test('a heading link keeps the drawer, the hubs and the search; a page link resets them', () => {
+  const model = {
+    ...init(urlOf('/play/move-and-select')).model,
+    menu: true,
+    navToggled: ['/eras'],
+    search: { ...Search.init, query: 'retry', open: true },
+  }
+  const scrolled = update(
+    model,
+    Message.ChangedUrl({ url: urlOf('/play/move-and-select', 'sell') }),
+  )
+  expect(scrolled.model).toMatchObject({
+    path: '/play/move-and-select',
+    menu: true,
+    navToggled: ['/eras'],
+    search: { query: 'retry', open: true },
+  })
+  const moved = update(model, Message.ChangedUrl({ url: urlOf('/play/wire-nodes') }))
+  expect(moved.model).toMatchObject({
+    path: '/play/wire-nodes',
+    menu: false,
+    navToggled: [],
+    search: { query: '', open: false },
+  })
 })
