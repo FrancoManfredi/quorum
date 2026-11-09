@@ -27,6 +27,8 @@ export const TeamMessage = defineMessageUnion({
   SplitChosen: {},
   /** Moves a live Service to another team (08 "Ownership"). */
   ServiceMoved: { serviceId: Schema.String, teamId: Schema.String },
+  /** Names the Database a Service reads and writes (08 "Shared database penalty"). */
+  DatastoreChosen: { serviceId: Schema.String, datastore: Schema.NullOr(Schema.String) },
 })
 export type TeamMessage = typeof TeamMessage.Type
 
@@ -42,6 +44,7 @@ export const TeamOutMessage = defineMessageUnion({
   RemoveFeature: { id: FeatureId },
   SplitService: { name: Schema.String, owner: Schema.String, features: Schema.Array(FeatureId) },
   MoveService: { serviceId: Schema.String, teamId: Schema.String },
+  DatastoreService: { serviceId: Schema.String, datastore: Schema.NullOr(Schema.String) },
 })
 export type TeamOutMessage = typeof TeamOutMessage.Type
 
@@ -115,4 +118,6 @@ export const updateTeam = (team: Team, message: TeamMessage): TeamReturn =>
       ),
     ServiceMoved: ({ serviceId, teamId }) =>
       out(team, TeamOutMessage.MoveService({ serviceId, teamId })),
+    DatastoreChosen: ({ serviceId, datastore }) =>
+      out(team, TeamOutMessage.DatastoreService({ serviceId, datastore })),
   })

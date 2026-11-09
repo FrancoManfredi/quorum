@@ -106,6 +106,8 @@ export const team: Messages['team'] = {
   carriesEveryFeature: '承载其他服务未指定的所有功能',
   carries: (features) => `承载 ${features}`,
   moveServiceTo: '迁移到',
+  datastore: '数据库',
+  firstDatabase: '第一个数据库',
   teamThatOwns: (service) => `负责 ${service} 的团队`,
   nameNewService: '为新服务命名',
   newServiceName: '新服务的名称',

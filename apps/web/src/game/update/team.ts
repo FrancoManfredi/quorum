@@ -68,6 +68,12 @@ export const teamAction = (model: Model, out: TeamOutMessage): UpdateResult => {
         `Moved a Service to ${game.teams.find((team) => team.id === teamId)?.name ?? 'a team'}`,
         Work.moveService(game, serviceId, teamId),
       ),
+    DatastoreService: ({ serviceId, datastore }) =>
+      act(
+        model,
+        datastore === null ? 'Datastore: first Database' : 'Datastore set',
+        Work.setDatastore(game, serviceId, datastore),
+      ),
     SplitService: ({ name, owner, features }) =>
       act(
         model,

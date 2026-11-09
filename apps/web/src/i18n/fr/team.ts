@@ -111,6 +111,8 @@ export const team: Messages['team'] = {
   carriesEveryFeature: 'Porte toutes les fonctionnalités qu’aucun autre Service ne nomme',
   carries: (features) => `Porte ${features}`,
   moveServiceTo: 'Déplacer vers',
+  datastore: 'Base de données',
+  firstDatabase: 'Première base de données',
   teamThatOwns: (service) => `L’équipe qui possède ${service}`,
   nameNewService: 'Nommez le nouveau Service',
   newServiceName: 'Le nom du nouveau Service',

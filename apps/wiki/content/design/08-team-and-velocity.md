@@ -221,6 +221,12 @@ Database Node, such as a second one the player placed, pays nothing. Giving each
 data store removes the penalty and creates the problems in
 [keeping copies in sync](/design/07-data-tier#keeping-copies-in-sync).
 
+A Service's Database is the Node it reads and writes. It defaults to the Design's first Database,
+and the Services card names another one when more than one is on the Board. The topology decides what
+naming means: on a Sharded Board different names are different partitions, so the penalty lifts; on
+a Multi-leader Board every leader holds every row, so naming another leader lifts nothing. Splitting
+a Service to a Database that is not on the Board is refused.
+
 Conway's law works in both directions in the game: the team structure the player builds shapes the
 service graph, and the service graph decides how well the teams work.
 

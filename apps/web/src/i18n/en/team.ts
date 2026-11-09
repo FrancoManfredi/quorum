@@ -110,6 +110,8 @@ export const team = {
   carriesEveryFeature: 'Carries every Feature no other Service names',
   carries: (features: string | number) => `Carries ${features}`,
   moveServiceTo: 'Move to',
+  datastore: 'Database',
+  firstDatabase: 'First Database',
   teamThatOwns: (service: string | number) => `The team that owns ${service}`,
   nameNewService: 'Name the new Service',
   newServiceName: 'The new Service’s name',

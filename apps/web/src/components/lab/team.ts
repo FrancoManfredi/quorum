@@ -1114,6 +1114,52 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
               game,
               h,
             ),
+            game.nodes.filter((node) => node.type === 'database').length > 1
+              ? h.div(
+                  [h.Class('flex items-center gap-1.5 pt-0.5')],
+                  [
+                    h.span(
+                      [h.Class('text-[calc(11px*var(--type-scale))] text-muted-foreground')],
+                      [t.team.datastore],
+                    ),
+                    h.select(
+                      [
+                        h.OnChange((datastore) =>
+                          Message.TeamChanged({
+                            message: TeamMessage.DatastoreChosen({
+                              serviceId: service.id,
+                              datastore: datastore === '' ? null : datastore,
+                            }),
+                          }),
+                        ),
+                        h.Class(
+                          cn(WELL, 'h-6 rounded-lg px-1.5 text-[calc(11px*var(--type-scale))]'),
+                        ),
+                      ],
+                      [
+                        h.option(
+                          [
+                            h.Value(''),
+                            ...((service.datastore ?? '') === '' ? [h.Selected(true)] : []),
+                          ],
+                          [t.team.firstDatabase],
+                        ),
+                        ...game.nodes
+                          .filter((node) => node.type === 'database')
+                          .map((node) =>
+                            h.option(
+                              [
+                                h.Value(node.id),
+                                ...(service.datastore === node.id ? [h.Selected(true)] : []),
+                              ],
+                              [nodeTitle(t, game, node)],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                )
+              : h.empty,
             game.teams.length > 1
               ? h.div(
                   [h.Class('flex items-center gap-1.5 pt-0.5')],

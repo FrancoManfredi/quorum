@@ -18,6 +18,7 @@ import {
 } from '../src/actions.ts'
 import * as Work from '../src/work.ts'
 import { dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
+import { sharesDatabase } from '../src/team.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
 import type { Game } from '../src/state.ts'
@@ -130,6 +131,20 @@ describe('synchronous replicas', () => {
 })
 
 describe('topologies', () => {
+  test('multi-leader Services share rows even on different leaders', () => {
+    let game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    game = ok(setTopology(game, first, 'multi'))
+    let second: string
+    ;[game, second] = build(game, 'database')
+    const one = { ...game.services[0]!, datastore: first }
+    const two = { ...game.services[0]!, id: 'service-2', datastore: second }
+    const withTwo = { ...game, services: [one, two] }
+    expect(sharesDatabase(withTwo, one)).toBe(true)
+    // On sharded Boards the same two Services own different partitions and share nothing.
+    const shardedGame = ok(setTopology(withTwo, first, 'sharded'))
+    expect(sharesDatabase(shardedGame, shardedGame.services[0]!)).toBe(false)
+  })
   test('a Company queues a topology switch with Dev Hours and a data copy', () => {
     const company: Game = { ...freeSandbox(), sandbox: false, cash: 100_000 }
     const first = company.nodes.find((node) => node.type === 'database')!.id

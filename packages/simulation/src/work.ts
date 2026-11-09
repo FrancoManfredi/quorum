@@ -559,6 +559,11 @@ export const splitRefusal = (game: Game, request: SplitRequest): Refusal | null 
     return Refusal.NotAllowed({ reason: 'Choose at least one Feature to move.' })
   if (!game.teams.some((team) => team.id === request.owner))
     return Refusal.NotAllowed({ reason: 'That team is gone.' })
+  if (
+    request.datastore != null &&
+    !game.nodes.some((node) => node.id === request.datastore && node.type === 'database')
+  )
+    return Refusal.NotAllowed({ reason: 'That Database is not on the Board.' })
   const name = request.name.trim()
   if (
     name !== '' &&
@@ -637,6 +642,24 @@ export const moveService = (game: Game, serviceId: string, teamId: string): Acti
   if (!game.teams.some((team) => team.id === teamId)) return no(Refusal.Missing())
   if (service.owner === teamId) return ok(game)
   return ok(withServiceId(game, serviceId, { owner: teamId }))
+}
+
+/**
+ * Names the Database a Service reads and writes (08 "Shared database penalty"): null keeps the
+ * Design's first Database, which is why split Services share it until they name their own. Instant
+ * and free; the penalty follows from whether two Services name the same Database (07 "Topologies").
+ */
+export const setDatastore = (game: Game, serviceId: string, datastore: string | null): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const service = game.services.find((entry) => entry.id === serviceId)
+  if (!service) return no(Refusal.Missing())
+  if (
+    datastore !== null &&
+    !game.nodes.some((node) => node.id === datastore && node.type === 'database')
+  )
+    return notAllowed('That Database is not on the Board.')
+  if ((service.datastore ?? null) === datastore) return ok(game)
+  return ok(withServiceId(game, serviceId, { datastore }))
 }
 
 /** The Service an App Server or Worker belongs to: its own, or the starting Service when none is set. */

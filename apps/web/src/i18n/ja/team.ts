@@ -107,6 +107,8 @@ export const team: Messages['team'] = {
   carriesEveryFeature: 'ほかのどのサービスも名指ししない機能をすべて抱えています',
   carries: (features) => `${features}を抱えています`,
   moveServiceTo: '移動先',
+  datastore: 'データベース',
+  firstDatabase: '最初のデータベース',
   teamThatOwns: (service) => `${service}を所有するチーム`,
   nameNewService: '新しいサービスの名前を入力',
   newServiceName: '新しいサービスの名前',
