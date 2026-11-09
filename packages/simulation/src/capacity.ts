@@ -1041,6 +1041,8 @@ export type DatabaseContext = Readonly<{
   boost: number
   /** Server connections the App Servers and poolers hold open, from the previous pass. */
   connections?: number
+  /** A CDC Connector reads this Database's write log, so the log adds read IOPS (05 "CDC Connector"). */
+  cdcMirrored?: boolean
 }>
 
 export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boolean } => {
@@ -1168,8 +1170,10 @@ export const databaseModel = (context: DatabaseContext): NodeModel & { disk: boo
   }
   // IOPS (07 "Capacity"): a read that misses the buffer cache and every write wait on the volume.
   // Past its IOPS the volume queues them, and a general purpose volume is the first limit a busy
-  // Database meets; a provisioned one answers twenty times as many.
-  const diskOps = writes + txs + puts + gets + scans + (disk ? reads : 0)
+  // Database meets; a provisioned one answers twenty times as many. A CDC Connector reads the
+  // write log, so every change it copies is one more read on the volume.
+  const cdcOps = context.cdcMirrored ? writes + txs : 0
+  const diskOps = writes + txs + puts + gets + scans + (disk ? reads : 0) + cdcOps
   const ioUtilization = iops > 0 ? diskOps / iops : 0
   const ioWait = waitFor(diskMs(node.iops), Math.min(ioUtilization, 0.98), 1)
   const cpuUtilization = cores > 0 ? work / (cores * 1000) : rate > 0 ? 99 : 0

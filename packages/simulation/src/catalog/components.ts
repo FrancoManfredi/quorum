@@ -243,11 +243,17 @@ export const HEDGE_LOAD = 0.1
  */
 export const SERIALIZE_MS = 0.02
 /**
- * Share of search answers that are stale because a dual write lost its publish, until a
- * Transactional outbox or a CDC Connector carries the change (07 "Keeping copies in sync").
- *
+ * Share of search answers that are stale because a dual write lost its publish (07 "Keeping
+ * copies in sync"). A Transactional outbox shrinks it to a relay's lag window; a CDC Connector
+ * shrinks it to its own lag, and drops push it back up when the connector is overloaded.
  */
 export const DUAL_WRITE_STALE = 0.005
+/** Stale share a Transactional outbox leaves: the change lands, after a relay's lag. */
+export const OUTBOX_STALE = 0.0005
+/** Base stale share a healthy CDC Connector leaves: its processing lag. */
+export const CDC_LAG_STALE = 0.0002
+/** Extra stale share when a CDC Connector drops every change it cannot keep up with. */
+export const CDC_DROP_STALE = 0.005
 /**
  * A chaos experiment (10 "Track: Reliability"): every CHAOS_EVERY sim seconds the weakest Node fails
  * CHAOS_FAILURE of its calls for CHAOS_SECONDS, and the experiment earns CHAOS_INSIGHT Failure

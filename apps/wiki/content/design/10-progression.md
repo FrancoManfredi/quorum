@@ -418,37 +418,37 @@ peak, the ARM family at 0.8× the price, and the GPU's INT8/INT4 and batch sizes
 
 ### Track: Data
 
-| ID                    | Name                       | Era      | ◇       | Requires                            | Effect                                               |
-| --------------------- | -------------------------- | -------- | ------- | ----------------------------------- | ---------------------------------------------------- |
-| `query-analysis`      | Query analysis (`EXPLAIN`) | Garage   | 40      | None                                | Shows unindexed query shapes; enables "Add index"    |
-| `caching`             | Caching                    | Pre-seed | 80      | None                                | Cache (Redis, Memcached), cache-aside                |
-| `pooling`             | Connection pooling         | Pre-seed | 120     | None                                | Connection Pooler                                    |
-| `replication`         | Read replicas              | Pre-seed | 220     | None                                | Read Replica (asynchronous)                          |
-| `cache-strategies`    | Cache strategies           | Seed     | 600     | `caching`                           | Read-through, write-through, write-behind            |
-| `stampede-protection` | Stampede protection        | Seed     | 900     | `caching`                           | Coalescing, early expiration, stale-while-revalidate |
-| `full-text-search`    | Full-text search           | Seed     | 450     | None                                | Search Engine                                        |
-| `object-storage`      | Object storage             | Seed     | 500     | None                                | Object Storage                                       |
-| `pitr`                | Point-in-time recovery     | Seed     | 700     | None                                | Backup options                                       |
-| `cache-warming`       | Cache warming              | Series A | 2,000   | `stampede-protection`               | Warm before traffic                                  |
-| `sync-replication`    | Synchronous replication    | Series A | 2,500   | `replication`                       | Synchronous replica option                           |
-| `ryw-routing`         | Read-your-writes routing   | Series A | 3,000   | `replication`                       | Removes most `stale` after writes                    |
-| `lifecycle-rules`     | Storage lifecycle rules    | Series A | 1,500   | `object-storage`                    | Automatic storage classes                            |
-| `document-db`         | Document databases         | Series A | 3,500   | None                                | Document Store                                       |
-| `online-migrations`   | Online schema migrations   | Series A | 4,000   | `query-analysis`                    | Migrations without table locks                       |
-| `event-streaming`     | Event streaming            | Series B | 15,000  | `queues`                            | Event Stream                                         |
-| `data-warehouse`      | Data warehousing           | Series B | 12,000  | None                                | Data Warehouse                                       |
-| `cdc`                 | Change data capture        | Series B | 18,000  | `event-streaming`, `data-warehouse` | CDC Connector                                        |
-| `outbox`              | Transactional outbox       | Series B | 14,000  | `queues`                            | Removes dual-write divergence                        |
-| `sharding`            | Sharding                   | Series B | 25,000  | `replication`                       | Database partitioning                                |
-| `expand-contract`     | Expand and contract        | Series B | 10,000  | `online-migrations`                 | Zero-lock schema changes                             |
-| `embeddings`          | Embeddings                 | Series B | 16,000  | None                                | Vector Index                                         |
-| `hybrid-fanout`       | Hybrid fan-out             | Series C | 90,000  | `caching`                           | Push for normal accounts, pull for celebrities       |
-| `leaderless`          | Leaderless replication     | Series C | 70,000  | `sharding`                          | Wide-column Store with tunable quorums               |
-| `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                      |
-| `retention`           | Retention policies         | Pre-IPO  | 250,000 | None                                | Archive or delete old data                           |
+| ID                    | Name                       | Era      | ◇       | Requires                            | Effect                                                |
+| --------------------- | -------------------------- | -------- | ------- | ----------------------------------- | ----------------------------------------------------- |
+| `query-analysis`      | Query analysis (`EXPLAIN`) | Garage   | 40      | None                                | Shows unindexed query shapes; enables "Add index"     |
+| `caching`             | Caching                    | Pre-seed | 80      | None                                | Cache (Redis, Memcached), cache-aside                 |
+| `pooling`             | Connection pooling         | Pre-seed | 120     | None                                | Connection Pooler                                     |
+| `replication`         | Read replicas              | Pre-seed | 220     | None                                | Read Replica (asynchronous)                           |
+| `cache-strategies`    | Cache strategies           | Seed     | 600     | `caching`                           | Read-through, write-through, write-behind             |
+| `stampede-protection` | Stampede protection        | Seed     | 900     | `caching`                           | Coalescing, early expiration, stale-while-revalidate  |
+| `full-text-search`    | Full-text search           | Seed     | 450     | None                                | Search Engine                                         |
+| `object-storage`      | Object storage             | Seed     | 500     | None                                | Object Storage                                        |
+| `pitr`                | Point-in-time recovery     | Seed     | 700     | None                                | Backup options                                        |
+| `cache-warming`       | Cache warming              | Series A | 2,000   | `stampede-protection`               | Warm before traffic                                   |
+| `sync-replication`    | Synchronous replication    | Series A | 2,500   | `replication`                       | Synchronous replica option                            |
+| `ryw-routing`         | Read-your-writes routing   | Series A | 3,000   | `replication`                       | Removes most `stale` after writes                     |
+| `lifecycle-rules`     | Storage lifecycle rules    | Series A | 1,500   | `object-storage`                    | Automatic storage classes                             |
+| `document-db`         | Document databases         | Series A | 3,500   | None                                | Document Store                                        |
+| `online-migrations`   | Online schema migrations   | Series A | 4,000   | `query-analysis`                    | Migrations without table locks                        |
+| `event-streaming`     | Event streaming            | Series B | 15,000  | `queues`                            | Event Stream                                          |
+| `data-warehouse`      | Data warehousing           | Series B | 12,000  | None                                | Data Warehouse                                        |
+| `cdc`                 | Change data capture        | Series B | 18,000  | `event-streaming`, `data-warehouse` | CDC Connector                                         |
+| `outbox`              | Transactional outbox       | Series B | 14,000  | `queues`                            | Shrinks dual-write divergence to a relay's lag window |
+| `sharding`            | Sharding                   | Series B | 25,000  | `replication`                       | Database partitioning                                 |
+| `expand-contract`     | Expand and contract        | Series B | 10,000  | `online-migrations`                 | Zero-lock schema changes                              |
+| `embeddings`          | Embeddings                 | Series B | 16,000  | None                                | Vector Index                                          |
+| `hybrid-fanout`       | Hybrid fan-out             | Series C | 90,000  | `caching`                           | Push for normal accounts, pull for celebrities        |
+| `leaderless`          | Leaderless replication     | Series C | 70,000  | `sharding`                          | Wide-column Store with tunable quorums                |
+| `consensus`           | Consensus databases        | Series C | 150,000 | `sync-replication`                  | Distributed SQL                                       |
+| `retention`           | Retention policies         | Pre-IPO  | 250,000 | None                                | Archive or delete old data                            |
 
 With `online-migrations`, a migration does not hold a big table's lock ([Incidents](/design/11-incidents#the-six-kinds)). `expand-contract` removes what is left of it,
-and `outbox` takes dual-write divergence out of the Search Engine's answers
+and `outbox` shrinks dual-write divergence in the Search Engine's answers to a relay's lag window
 ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
 
 ### Track: Reliability

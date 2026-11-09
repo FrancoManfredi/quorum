@@ -509,17 +509,19 @@ Search Engine, the Data Warehouse, and caches without dual writes from the app.
 
 - Removes the "dual write" inconsistency risk: writing to the database and the index separately can
   leave them out of sync ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
-- Adds lag. Search results and reports are seconds behind.
+- Adds lag. Search results and reports are behind, and a connector that cannot keep up drops changes.
 
 The `cdc` Component is unlocked by Change data capture in Series B. Link a Database into it and it
 into an Event Stream. It copies the writes that Database processed, one change each, and publishes
 them as `task` at 20,000 changes a second. It takes none of the Database's traffic and adds no latency
-to a write. Its own hop is 2 ms, and the lag it adds is the Stream's, which is the game stat its card
-shows. A Stream's key decides order, so a change reaches a consumer in order only inside a partition.
-Past its rate it drops changes, as any flat-capacity Component does.
+to a write, but it reads the Database's write log and adds read IOPS to its volume. Its own hop is 2 ms,
+and the lag it adds is the Stream's, which is the game stat its card shows. A Stream's key decides
+order, so a change reaches a consumer in order only inside a partition. Past its rate it drops
+changes, so the copies it feeds fall behind until the lag clears.
 
-The "dual write" it removes does not exist in the game, because App Servers write to the Database only
-and no path writes to a second copy. A `cdc` Node keeps no backlog of its own.
+The "dual write" it removes is the publish that can miss a copy. With a CDC Connector, the change comes
+from the log, so no answer waits on a repair job; the copies still lag by the connector's processing,
+and a dropped change leaves them stale until the connector catches up.
 
 ## Platform
 

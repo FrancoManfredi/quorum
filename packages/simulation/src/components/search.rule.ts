@@ -4,6 +4,9 @@ import {
   SEARCH_REPLICAS,
   SEARCH_SHARDS,
   DUAL_WRITE_STALE,
+  OUTBOX_STALE,
+  CDC_LAG_STALE,
+  CDC_DROP_STALE,
   SEARCH_REFRESH,
   SEARCH_QPS,
   SEARCH_FANOUT,
@@ -13,7 +16,7 @@ import {
 
 import { warming, warmOf } from '../life.ts'
 import { flatModel } from '../capacity.ts'
-import { flatScale, has } from '../lookups.ts'
+import { flatScale, has, isDown } from '../lookups.ts'
 import { queryFactor } from '../features.ts'
 import { through } from '../distribution.ts'
 import { type ComponentRule, terminal } from '../rule-kit.ts'
@@ -52,16 +55,31 @@ export const searchRule: ComponentRule = {
     }
   },
   // A slower refresh saves indexing CPU and answers staler: a new document waits to be seen. On
-  // top of that, the app's dual write loses now and then: without a Transactional outbox or a CDC
-  // Connector, a write's publish can fail and the index keeps the old document (07 "Keeping
-  // copies in sync"). The design counts that divergence as stale search results.
+  // top of that, the app's dual write loses now and then; an outbox carries the change with a
+  // relay's lag, and a CDC Connector carries it with its own lag and drops what it cannot keep up
+  // with (07 "Keeping copies in sync"). The design counts that divergence as stale search results.
   outcome: (answer, node, kind) => {
     const own = through(answer.ownHop(kind))
     if (kind !== 'q-search') return own
-    const carried =
-      has(answer.game, 'outbox') || answer.game.nodes.some((entry) => entry.type === 'cdc')
     // The copies can only diverge once the app writes to several of them: Series B (07).
-    const diverged = carried || answer.game.stage < 4 ? 0 : DUAL_WRITE_STALE
+    let diverged = 0
+    if (answer.game.stage >= 4) {
+      const outbox = has(answer.game, 'outbox')
+      const cdcs = answer.game.nodes.filter((entry) => entry.type === 'cdc' && !isDown(entry))
+      if (cdcs.length > 0) {
+        // A CDC Connector removes the dual write, but it lags and drops changes when overloaded.
+        let share = 1
+        for (const cdc of cdcs) {
+          const model = answer.pass.models[answer.pass.at.get(cdc.id) as number]
+          share = Math.min(share, model?.share ?? 0)
+        }
+        diverged = CDC_LAG_STALE + (1 - share) * CDC_DROP_STALE
+      } else if (outbox) {
+        diverged = OUTBOX_STALE
+      } else {
+        diverged = DUAL_WRITE_STALE
+      }
+    }
     // Meilisearch's relevance falls as the index grows: its answers drift from what was asked.
     const variant = SEARCH_VARIANTS[node.searchVariant]
     const relevance = Math.min(variant.cap, answer.game.users * variant.relevance)

@@ -61,6 +61,8 @@ export type Solver = Readonly<{
   sampling: (node: GameNode) => number
   /** This App Server can hand async work to a Queue. */
   offloads: (node: GameNode) => boolean
+  /** A CDC Connector reads this Node's write log. */
+  cdcMirrored: (node: GameNode) => boolean
   /** This Worker pulls from a Queue a poison message is stuck in. */
   poisoned: (node: GameNode) => boolean
   /** Share of the tasks a Queue or Worker gets that come from each request kind, in this pass. */

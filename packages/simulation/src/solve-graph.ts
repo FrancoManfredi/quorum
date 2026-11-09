@@ -243,6 +243,10 @@ export const amplification = (policy: Policy, failure: number): number =>
 export const delegates = (graph: Graph, node: GameNode): boolean =>
   (graph.routes.get(node.id) ?? []).some((child) => accepts(child, 'auth'))
 
+/** A CDC Connector reads this Node's write log (05 "CDC Connector"). */
+export const cdcMirrored = (graph: Graph, node: GameNode): boolean =>
+  (graph.mirrors.get(node.id)?.length ?? 0) > 0
+
 /** An App Server with a Link to a Queue hands its async work to Workers. */
 export const offloads = (graph: Graph, node: GameNode): boolean =>
   node.type === 'server' &&

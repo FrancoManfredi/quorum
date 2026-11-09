@@ -34,6 +34,7 @@ export const databaseRule: ComponentRule = {
       arriving,
       boost: solver.boost(node),
       connections: solver.connections(node),
+      cdcMirrored: solver.cdcMirrored(node),
     }),
   outcome: (answer, node, kind) => {
     // A full disk: Postgres cannot extend a file, so every write fails.

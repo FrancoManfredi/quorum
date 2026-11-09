@@ -596,16 +596,17 @@ Distributed SQL gives SQL transactions across shards and regions, built on conse
 Data that lives in more than one place (database, cache, search index, warehouse) can disagree with
 itself. Each approach below trades correctness against lag and Dev Hours.
 
-| Approach                        | Risk                                                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Dual writes from the app        | If one write fails, the copies diverge until a repair job runs. The game counts divergence as `stale` on search results.        |
-| Transactional outbox (research) | The app writes the change and an outbox row in one transaction. A relay publishes it. Correct, with a little lag and Dev Hours. |
-| CDC Connector                   | Reads the database log. Correct, with lag, and no app changes.                                                                  |
+| Approach                        | Risk                                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dual writes from the app        | If one write fails, the copies diverge until a repair job runs. The game counts divergence as `stale` on search results.                                                 |
+| Transactional outbox (research) | The app writes the change and an outbox row in one transaction. A relay publishes it. Correct, with a small lag window and Dev Hours.                                    |
+| CDC Connector                   | Reads the database log and publishes each change. Correct at its own lag, with no app changes, but a connector that cannot keep up drops changes and the copies diverge. |
 
 From Series B, 0.5% of a Search Engine's answers are stale from a lost publish. The problem starts
-in the Era that offers the outbox, so the fix arrives with it. The research `outbox`, or a CDC
-Connector on the Board, takes that share to zero: the write and its event land together, and no
-answer waits on a repair job.
+in the Era that offers the outbox, so the fix arrives with it. The research `outbox` shrinks that
+share to a relay's lag window, and a CDC Connector shrinks it to its own processing lag. Neither is
+zero: a CDC Connector also reads the Database's write log, so it adds read IOPS to the source, and a
+connector past its capacity drops changes until the lag clears.
 
 ## Delivery semantics
 

@@ -35,6 +35,7 @@ import {
   type Edge,
   type Graph,
   amplification,
+  cdcMirrored,
   delegates,
   offloads,
   runsLocalDb,
@@ -113,6 +114,7 @@ export const solverOf = (
     runsLocalDb: (node) => runsLocalDb(graph, node),
     sampling: (node) => samplingOf(game, graph, node),
     offloads: (node) => offloads(graph, node),
+    cdcMirrored: (node) => cdcMirrored(graph, node),
     poisoned: (node) => {
       const incident = game.incident
       if (incident?.kind !== 'poison') return false
