@@ -23,8 +23,16 @@ import type { Game, Sample } from '@quorum/simulation/state'
 export const STEP_SECONDS = 0.1
 export const ALARM_MS = 500
 
-/** The most Steps one wake may run, so a stalled Room catches up without spiralling. */
-export const MAX_CATCH_UP = 600
+/**
+ * The most Steps one wake may run: one alarm's worth at the fastest speed, plus a
+ * little jitter. A Room that fell further behind drops the rest of its debt instead
+ * of replaying it, so a wake costs a tick's work whatever the gap since the last
+ * one. Replaying hours is what spends a Durable Object's whole CPU budget on a wake.
+ */
+export const MAX_CATCH_UP = 60
+
+/** The sim time one wake may owe, in milliseconds: the debt a wake may carry is one wake's work. */
+export const MAX_OWE_MS = MAX_CATCH_UP * STEP_SECONDS * 1_000
 
 /** How long an empty Room keeps the Company before the owner has to reclaim it. */
 export const ROOM_IDLE_MS = 24 * 60 * 60 * 1000
@@ -108,6 +116,17 @@ export const expired = (state: RoomState, now: number): boolean =>
 
 const sameSeat = (seat: Seat, id: string): boolean => seat.id === id
 
+/**
+ * A Seat is watching again, so the Room owes nothing for the time it held nobody:
+ * it froze while it was empty, and the Step clock starts from now.
+ */
+const watching = (state: RoomState, now: number): RoomState => ({
+  ...state,
+  idleAt: null,
+  lastStepAt: now,
+  owe: 0,
+})
+
 /** The Seats a vote counts: every Seat is connected while it holds one. */
 export const connected = (state: RoomState): ReadonlyArray<string> =>
   state.seats.map((seat) => seat.id)
@@ -137,7 +156,7 @@ export const join = (
       ? state.seats.map((entry) => (sameSeat(entry, seat.id) ? seat : entry))
       : [...state.seats, seat]
     return Result.succeed({
-      state: { ...state, seats, ownerSeat: seat.id, idleAt: null },
+      state: watching({ ...state, seats, ownerSeat: seat.id }, now),
       seat,
       newSeat: existing === undefined,
     })
@@ -147,11 +166,10 @@ export const join = (
   if (existing) {
     const seat: Seat = { ...existing, name: trim(entering.name) }
     return Result.succeed({
-      state: {
-        ...state,
-        seats: state.seats.map((entry) => (sameSeat(entry, seat.id) ? seat : entry)),
-        idleAt: null,
-      },
+      state: watching(
+        { ...state, seats: state.seats.map((entry) => (sameSeat(entry, seat.id) ? seat : entry)) },
+        now,
+      ),
       seat,
       newSeat: false,
     })
@@ -164,7 +182,7 @@ export const join = (
     owner: false,
   }
   return Result.succeed({
-    state: { ...state, seats: [...state.seats, seat], idleAt: null },
+    state: watching({ ...state, seats: [...state.seats, seat] }, now),
     seat,
     newSeat: true,
   })
@@ -180,12 +198,15 @@ export const leave = (state: RoomState, id: string, now: number): RoomState => {
     no: state.vote.no.filter((entry) => entry !== id),
   }
   // A departure drops a ballot but never decides a vote on its own; the next
-  // ballot or the lapse does that, so an action always has an actor.
+  // ballot or the lapse does that, so an action always has an actor. A Room left
+  // with no Seat stops owing Steps until one returns.
   return {
     ...state,
     seats,
     vote: dropped,
     idleAt: seats.length === 0 ? now : null,
+    lastStepAt: seats.length === 0 ? now : state.lastStepAt,
+    owe: seats.length === 0 ? 0 : state.owe,
   }
 }
 
@@ -196,7 +217,10 @@ export const advance = (
   wall: number = now,
 ): Readonly<{ state: RoomState; steps: number }> => {
   if (!state.open || state.ended !== null) return { state, steps: 0 }
-  const owed = state.owe + Math.max(0, now - state.lastStepAt) * state.speed
+  // The time a Room owes is capped, so a stale clock or a stall costs one wake's
+  // work. Without the cap, the leftover debt rides in the saved state and every
+  // later wake replays it, until the object spends its CPU budget on Steps alone.
+  const owed = Math.min(MAX_OWE_MS, state.owe + Math.max(0, now - state.lastStepAt) * state.speed)
   const steps = Math.min(MAX_CATCH_UP, Math.floor(owed / (STEP_SECONDS * 1_000)))
   const base: RoomState = {
     ...state,

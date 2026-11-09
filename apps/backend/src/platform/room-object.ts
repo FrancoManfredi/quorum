@@ -65,7 +65,10 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
 
   async publish(input: PublishInput): Promise<void> {
     const { token, ...rest } = input
-    this.state = openRoom({ ...rest, token })
+    // The Room's clock is the object's, not the browser's: a browser clock that is
+    // behind would read as minutes of owed Steps, a whole CPU budget of catch-up on
+    // the first wake. The later `wall` wins over the one the browser uploaded.
+    this.state = openRoom({ ...rest, token, wall: Date.now() })
     await this.save()
   }
 
@@ -133,14 +136,12 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
   /* ---------- The clock ---------- */
 
   async alarm(): Promise<void> {
-    if (this.state === null) return
-    this.advanceNow()
     const state = this.state
-    if (!state.open || state.ended !== null || state.seats.length === 0) {
-      await this.save()
-      await this.ctx.storage.deleteAlarm()
-      return
-    }
+    if (state === null) return
+    // Nobody is in the Room: no Step runs and no alarm stays set, so an empty Room
+    // costs nothing until a connection comes back.
+    if (!state.open || state.ended !== null || this.nobody()) return this.stop()
+    this.advanceNow()
     this.broadcast()
     if (Date.now() - this.savedAt > 4_000) await this.save()
     await this.ctx.storage.setAlarm(Date.now() + ALARM_MS)
@@ -374,17 +375,55 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
   private async part(ws: WebSocket): Promise<void> {
     if (this.state === null) return
     const seat = this.seatOf(ws)
-    if (seat === '') return
+    if (seat === '') return this.rest()
     ws.serializeAttachment(NO_SEAT)
     this.state = leave(this.state, seat, Date.now())
-    await this.save()
     this.everyone({ _tag: 'CursorGone', seat }, ws)
     this.seats()
     this.broadcast()
+    // The Room holds nobody now: it saves once, dates itself, and stops the clock.
+    if (this.state.seats.length === 0) {
+      this.rest()
+      await this.stop()
+      return
+    }
+    await this.save()
     await this.schedule()
   }
 
   /* ---------- Plumbing ---------- */
+
+  /** No connection is attached: nobody is in the Room, whatever the Seats say. */
+  private nobody(): boolean {
+    return this.ctx.getWebSockets().length === 0
+  }
+
+  /**
+   * The Room holds nobody: stop the clock, delete the alarm, and date the Room so
+   * the twenty-four hours it keeps the Company start now. With no connection and no
+   * alarm the runtime evicts the object, and the Company waits in storage for the
+   * next Seat. `ctx.abort` would stop it at once, but it discards the write this
+   * departure made, which leaves the Room holding a Seat nobody sits in.
+   */
+  private async stop(): Promise<void> {
+    const state = this.state
+    if (state === null) return
+    if (state.idleAt === null) this.state = { ...state, idleAt: Date.now() }
+    await this.save()
+    await this.ctx.storage.deleteAlarm()
+  }
+
+  /** The Room holds no Seat: close the connections that never took one. */
+  private rest(): void {
+    if (this.state === null || this.state.seats.length > 0) return
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.close(1000, 'Room empty')
+      } catch {
+        // Already closing.
+      }
+    }
+  }
 
   private seatOf(ws: WebSocket): string {
     const attachment = ws.deserializeAttachment() as Attachment | null
@@ -400,7 +439,9 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
     try {
       ws.send(JSON.stringify(encode(message)))
     } catch {
-      ws.close(1011, 'Send failed')
+      // The runtime closes a socket it can no longer write to. Closing it here would
+      // re-enter `webSocketClose`, which leaves the Seat and broadcasts, from inside
+      // the broadcast that just failed.
     }
   }
 
@@ -450,7 +491,7 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
 
   private async schedule(): Promise<void> {
     const state = this.state
-    if (state !== null && state.open && state.ended === null && state.seats.length > 0) {
+    if (state !== null && state.open && state.ended === null && !this.nobody()) {
       await this.ctx.storage.setAlarm(Date.now() + ALARM_MS)
       return
     }

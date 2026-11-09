@@ -4,11 +4,13 @@ import { newGame } from '@quorum/simulation/company'
 import { intent } from '@quorum/simulation/room'
 import {
   advance,
+  ALARM_MS,
   apply,
   ballot,
   finalOf,
   join,
   leave,
+  MAX_CATCH_UP,
   openRoom,
   startVote,
   type RoomState,
@@ -120,6 +122,32 @@ describe('the clock', () => {
   test('a paused Room does not step', () => {
     const room = { ...open(), open: false }
     expect(advance(room, 10_000).steps).toBe(0)
+  })
+
+  // A wake that replays an hour of Steps is what spends a Durable Object's whole CPU
+  // budget, so the debt one wake may run is one wake's work.
+  test('an hour away runs one wake of Steps, not an hour', () => {
+    const { state } = withSeats()
+    const { state: next, steps } = advance(state, 60 * 60 * 1_000)
+    expect(steps).toBe(MAX_CATCH_UP)
+    expect(next.game.time - state.game.time).toBeCloseTo(MAX_CATCH_UP * 0.1, 6)
+  })
+
+  test('the Steps a wake drops do not come back on the next one', () => {
+    const { state } = withSeats()
+    const long = advance(state, 60 * 60 * 1_000)
+    const next = advance(long.state, 60 * 60 * 1_000 + ALARM_MS)
+    expect(next.steps).toBe(ALARM_MS / 100)
+  })
+
+  test('the time a Room spent empty is not owed', () => {
+    const { state, owner, guest } = withSeats()
+    const empty = leave(leave(state, guest, 10), owner, 20)
+    expect(empty.owe).toBe(0)
+    const back = join(empty, { id: 'tab-9', name: 'Back' }, 3_600_000)
+    if (Result.isFailure(back)) throw new Error('seat did not join')
+    const { steps } = advance(back.success.state, 3_600_000)
+    expect(steps).toBe(0)
   })
 })
 
