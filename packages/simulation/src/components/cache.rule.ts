@@ -11,6 +11,7 @@ import {
   HOT_KB_PER_USER,
   EARLY_LIFT,
   EARLY_REFRESH,
+  WARMED,
 } from '../catalog.ts'
 import { RUNNING, warmOf, withWarm } from '../life.ts'
 import { answered, blend, through } from '../distribution.ts'
@@ -175,5 +176,12 @@ export const setCacheStrategy = (game: Game, id: string, cacheStrategy: CacheStr
       return no(
         Refusal.Locked({ what: 'Cache strategies', research: RESEARCH['cache-strategies'].name }),
       )
-    return ok(node.cacheStrategy === cacheStrategy ? game : patch(game, id, { cacheStrategy }))
+    return ok(
+      node.cacheStrategy === cacheStrategy
+        ? game
+        : patch(game, id, {
+            cacheStrategy,
+            life: withWarm(node.life, node.warming && has(game, 'cache-warming') ? WARMED : 0),
+          }),
+    )
   })

@@ -208,7 +208,7 @@ egress from a CDN is cheaper than egress from the origin ([Economy](/design/09-e
 
 | Option          | Effect                                                                                                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| TTL             | Longer TTL, higher hit ratio, staler content.                                                                                               |
+| TTL             | Longer TTL, higher hit ratio, staler content. Changing it empties the edge cache, so the origin takes a burst of misses while it refills.   |
 | Purge on deploy | Clears the cache. The origin takes a burst of misses: a small [stampede](/glossary/cache-stampede).                                         |
 | Cache key       | Including query strings or cookies lowers the hit ratio. Ignoring them can serve one user's page to another, which is a data leak incident. |
 
@@ -217,11 +217,12 @@ origin as it warms, so the origin takes the misses. With it off, the edge keeps 
 deploy's pages, and 30% of `page` answers are stale until the TTL passes.
 
 The cache key is Path, query and cookies (the default), Path and query, or Path only. A smaller key
-multiplies the hit ratio by 1.1× or 1.2×. With Edge-side includes a logged-in page is cached, so a
-key that leaves out the cookie can serve one user's page to another. That is the Cached page leak
-incident (weight 1 for Path and query, 2.5 for Path only), and it drives 5% of the Users away at
-once. The research adds 20 points to the `page` base (70% to 90%), because the edge assembles the
-personal parts of a logged-in page around a cached shell.
+multiplies the hit ratio by 1.1× or 1.2×. Changing the cache key empties the edge cache, so the
+origin takes a burst of misses while it refills. With Edge-side includes a logged-in page is
+cached, so a key that leaves out the cookie can serve one user's page to another. That is the
+Cached page leak incident (weight 1 for Path and query, 2.5 for Path only), and it drives 5% of the
+Users away at once. The research adds 20 points to the `page` base (70% to 90%), because the edge
+assembles the personal parts of a logged-in page around a cached shell.
 
 The TTL multiplies the hit ratio:
 

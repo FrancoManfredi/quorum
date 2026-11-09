@@ -1,4 +1,4 @@
-import { RUNNING, warming } from './life.ts'
+import { RUNNING, warming, withWarm } from './life.ts'
 import { PROMOTE_DATA_LOSS } from './components/replica.ts'
 import { step as incidentStep } from './incident-machine.ts'
 import {
@@ -42,6 +42,7 @@ import {
   MAX_STUDIES,
   RESERVED_SECONDS,
   SIZES,
+  WARMED,
   type ComponentId,
   type FamilyId,
   type FrameworkId,
@@ -726,11 +727,18 @@ export const setTtl = (game: Game, id: string, ttl: number): Action =>
   withNode(game, id, (node) => {
     if (node.type === 'cache')
       return CACHE_TTLS.some((entry) => entry.ttl === ttl)
-        ? ok(patch(game, id, { ttl }))
+        ? ok(
+            node.ttl === ttl
+              ? game
+              : patch(game, id, {
+                  ttl,
+                  life: withWarm(node.life, node.warming && has(game, 'cache-warming') ? WARMED : 0),
+                }),
+          )
         : notAllowed('A cache TTL is 10 seconds, 1 minute, or 1 hour.')
     if (node.type === 'cdn')
       return CDN_TTLS.some((entry) => entry.ttl === ttl)
-        ? ok(patch(game, id, { ttl }))
+        ? ok(node.ttl === ttl ? game : patch(game, id, { ttl, life: withWarm(node.life, 0) }))
         : notAllowed('A CDN TTL is 1 minute, 5 minutes, or 1 hour.')
     if (node.type !== 'dns') return notAllowed('Only DNS, CDNs and Caches have a TTL.')
     if (!(DNS_TTLS as ReadonlyArray<number>).includes(ttl))

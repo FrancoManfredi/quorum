@@ -2,6 +2,7 @@ import { type Action, notAllowed, ok, patch, withNode } from '../action-kit.ts'
 import type { CacheKey, Game } from '../state.ts'
 import { CACHE_KEYS, STALE_AFTER_DEPLOY } from '../catalog.ts'
 import { answered, blend, through } from '../distribution.ts'
+import { withWarm } from '../life.ts'
 import {
   type ComponentRule,
   cdnHitOf,
@@ -37,7 +38,7 @@ export const cdnRule: ComponentRule = {
   probe: noProbe,
 }
 
-/** Sets a CDN's purge on deploy and its cache key (05 "CDN"). */
+/** Sets a CDN's purge on deploy and its cache key (05 "CDN"). A key change empties the cache. */
 export const setCdnOptions = (
   game: Game,
   id: string,
@@ -47,5 +48,6 @@ export const setCdnOptions = (
     if (node.type !== 'cdn') return notAllowed('Only a CDN has a purge or a cache key.')
     if (change.cacheKey !== undefined && CACHE_KEYS[change.cacheKey] === undefined)
       return notAllowed(`Cache keys are ${Object.keys(CACHE_KEYS).join(', ')}.`)
-    return ok(patch(game, id, change))
+    const clears = change.cacheKey !== undefined && change.cacheKey !== node.cacheKey
+    return ok(patch(game, id, clears ? { ...change, life: withWarm(node.life, 0) } : change))
   })

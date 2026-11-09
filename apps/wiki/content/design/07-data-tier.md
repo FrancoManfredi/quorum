@@ -218,7 +218,8 @@ first GB of cache is worth more than the tenth. `ttl_factor` is the Cache's row 
 | Write-behind  | Hit fast            | Fast (cache only) | Half the TTL's stale share; the database lags | A cache crash loses writes not yet flushed.                    |
 
 All four strategies sit on the Cache's card, behind research "Cache strategies" (Seed, 600 ◇).
-Cache-aside is the default and keeps the TTL's own stale share of hits. The others change that share
+Changing the strategy empties the cache and refills it, a cold path like a stampede; Cache warming
+refills it faster. Cache-aside is the default and keeps the TTL's own stale share of hits. The others change that share
 and the write path:
 
 - Read-through removes the aside race, so it serves three quarters of that share. Its library adds 1
@@ -237,6 +238,9 @@ crash loses what it holds, and the lost writes spend the error budget like faile
 | 10 s   | 0.6×             | 0.5% of hits per unit of write share |
 | 60 s   | 0.85×            | 2% of hits per unit of write share   |
 | 1 hour | 0.97×            | 10% of hits per unit of write share  |
+
+Changing the TTL empties the cache and refills it, a cold path like a stampede; Cache warming
+refills it faster.
 
 A stale read counts as a `stale` error only for kinds that need fresh data, such as a `write`
 followed by a `read` of the same record (read-your-writes) and `buy`. For `page` and `feed`,
