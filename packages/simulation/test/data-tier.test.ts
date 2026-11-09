@@ -83,6 +83,20 @@ describe('database engines', () => {
     const mysql = solveFlow(mysqlGame).nodes[database.id]!
     expect(mysql.resources.ramGb!.used).toBeLessThan(postgres.resources.ramGb!.used)
   })
+
+  test('an engine change lands on every Database at once', () => {
+    let game = freeSandbox()
+    const first = game.nodes.find((node) => node.type === 'database')!.id
+    game = ok(setTopology(game, first, 'sharded'))
+    let _second: string
+    ;[game, _second] = build(game, 'database')
+    game = ok(setDbEngine(game, first, 'mysql'))
+    expect(
+      game.nodes
+        .filter((node) => node.type === 'database')
+        .every((node) => node.dbEngine === 'mysql'),
+    ).toBe(true)
+  })
 })
 
 describe('sharding', () => {

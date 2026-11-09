@@ -868,13 +868,21 @@ export const setSpread = (game: Game, id: string, spread: boolean): Action =>
     return ok(node.spread === spread ? game : patch(game, id, { spread }))
   })
 
-/** Picks the engine a Database or Read Replica runs (07 "Variants"): Postgres forks a process per
- * connection, MySQL gives each a thread and holds more of them. */
+/**
+ * Picks the engine every Database runs (07 "Variants"): Postgres forks a process per connection,
+ * MySQL gives each a thread and holds more of them. Replicas run their primary's engine, so only
+ * a Database picks one — and replication needs every Database on the same engine, so the pick
+ * applies to all of them at once.
+ */
 export const setDbEngine = (game: Game, id: string, dbEngine: DbEngine): Action =>
   withNode(game, id, (node) => {
-    if (node.type !== 'database' && node.type !== 'replica')
-      return notAllowed('Only a Database or Read Replica has an engine.')
-    return ok(node.dbEngine === dbEngine ? game : patch(game, id, { dbEngine }))
+    if (node.type !== 'database') return notAllowed('Only a Database picks an engine.')
+    return ok({
+      ...game,
+      nodes: game.nodes.map((entry) =>
+        entry.type === 'database' ? { ...entry, dbEngine } : entry,
+      ),
+    })
   })
 
 /** Splits hot keys across a Cache's or Wide-column Store's shards. Needs Hybrid fan-out. */

@@ -81,9 +81,13 @@ and per scan, and its full-text search is the stronger one. MySQL costs less per
 checkout, because InnoDB's write path updates the row in place. A read-heavy Company wants Postgres; a
 write-heavy one wants MySQL.
 
-The player picks the engine on the Database's card and on a Read Replica's. A replica runs its
+The player picks the engine on the Database's card. A replica runs its
 primary's engine; MySQL's row-based replication applies writes faster than Postgres's streaming
 replication, so its replicas lag less under the same write load.
+
+One topology runs one engine. Replication only copies between matching engines, so a change lands on
+every Database at once: the copy is one minute a GB of rows per Database, and every Database serves on
+its old engine until it ends.
 
 Only PostgreSQL meets the **Table bloat** incident (Series A, sev 2, 120 s). Heavy updates outrun
 `VACUUM`, the table fills with dead rows, and every read and write on the busiest Database costs 2×
@@ -97,7 +101,8 @@ incident weighs and grows 1.25×. Online migrations and expand and contract stil
 they do on either engine.
 
 Changing a Database's engine is a migration. The card queues 0.8 of the codebase in Dev Hours, then
-copies the data at one minute a GB, and the Database serves on its old engine until the copy ends
+copies the data at one minute a GB, and the Database serves on its old engine until the copy ends.
+With more than one Database it copies every copy at once
 ([Migrations](/design/08-team-and-velocity#migrations)).
 
 ### Indexes

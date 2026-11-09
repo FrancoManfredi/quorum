@@ -180,7 +180,7 @@ export const queueAuthMove = (game: Game): Action => {
   return ok(enqueue(game, 'move', 'auth', AUTH_MOVE_DH))
 }
 
-/** Queues a Database engine change: 0.8 of the codebase in Dev Hours, then a data copy. */
+/** Queues a Database engine change: 0.8 of the codebase in Dev Hours, then a data copy. Every Database changes together: replication needs one engine (07 "Variants"). */
 export const queueEngineChange = (game: Game, nodeId: string, to: DbEngine): Action => {
   if (game.sandbox) return notAllowed(SANDBOX)
   const node = game.nodes.find((entry) => entry.id === nodeId)
@@ -267,7 +267,7 @@ const finishReshard = (game: Game): Game => {
   }
 }
 
-/** Ends a finished data copy: the Database runs the new engine from now on. */
+/** Ends a finished data copy: every Database runs the new engine from now on (07 "Variants"). */
 const finishEngineChange = (game: Game): Game => {
   const change = game.engineChange
   if (!change || change.phase._tag !== 'Copying' || game.time < change.phase.until) return game
@@ -275,7 +275,7 @@ const finishEngineChange = (game: Game): Game => {
     ...game,
     engineChange: null,
     nodes: game.nodes.map((node) =>
-      node.id === change.node && node.type === 'database' ? { ...node, dbEngine: change.to } : node,
+      node.type === 'database' ? { ...node, dbEngine: change.to } : node,
     ),
   }
 }
