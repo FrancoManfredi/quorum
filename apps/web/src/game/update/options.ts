@@ -680,12 +680,18 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
     }),
 
   DbTopologyChosen: ({ nodeId, topology }) =>
-    act(
-      model,
-      `Topology: ${topology === 'single' ? 'Single primary' : topology === 'sharded' ? 'Sharded' : 'Multi-leader'}`,
-      Actions.setTopology(model.board.game, nodeId, topology),
-      { undoable: true },
-    ),
+    model.board.game.sandbox
+      ? act(
+          model,
+          `Topology: ${topology === 'single' ? 'Single primary' : topology === 'sharded' ? 'Sharded' : 'Multi-leader'}`,
+          Actions.setTopology(model.board.game, nodeId, topology),
+          { undoable: true },
+        )
+      : act(
+          model,
+          `Move to ${topology === 'single' ? 'single primary' : topology === 'sharded' ? 'sharded' : 'multi-leader'}`,
+          Work.queueTopology(model.board.game, nodeId, topology),
+        ),
 
   SearchOptionsChosen: ({ nodeId, ...change }) =>
     act(

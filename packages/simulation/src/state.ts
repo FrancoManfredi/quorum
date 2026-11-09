@@ -92,7 +92,7 @@ export { LbPolicy } from './components/lb.ts'
 export { PmMode, Collector, Fanout } from './components/server.ts'
 export { CacheEngine, CacheStrategy } from './components/cache.ts'
 export { IopsClass, DbRetention, ShardKey, DbTopology } from './components/database.ts'
-import { ShardKey } from './components/database.ts'
+import { DbTopology, ShardKey } from './components/database.ts'
 export { VecIndexType } from './components/vec.ts'
 export { Acks } from './components/log.ts'
 export { SearchRefresh, SearchVariant, SearchHeap } from './components/search.ts'
@@ -597,6 +597,8 @@ export const Resharding = Schema.Struct({
   node: Schema.String,
   shards: Schema.Finite,
   key: ShardKey,
+  /** The topology to land on; `single` for a plain resharding (07 "Topologies"). */
+  topology: DbTopology.pipe(Schema.withDecodingDefaultKey(Effect.succeed('single' as const))),
   phase: DataMovePhase,
 })
 export type Resharding = typeof Resharding.Type

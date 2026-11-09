@@ -16,6 +16,7 @@ import {
   setSync,
   setTopology,
 } from '../src/actions.ts'
+import * as Work from '../src/work.ts'
 import { dataOf, shardingOf, syncWaitMs, topologyOf } from '../src/lookups.ts'
 import { freeSandbox } from '../src/sandbox.ts'
 import { solveFlow } from '../src/solve.ts'
@@ -129,6 +130,14 @@ describe('synchronous replicas', () => {
 })
 
 describe('topologies', () => {
+  test('a Company queues a topology switch with Dev Hours and a data copy', () => {
+    const company: Game = { ...freeSandbox(), sandbox: false, cash: 100_000 }
+    const first = company.nodes.find((node) => node.type === 'database')!.id
+    const result = Work.queueTopology(company, first, 'sharded')
+    if (Result.isFailure(result)) throw new Error('refused ' + JSON.stringify(result.failure))
+    expect(result.success.reshard?.topology).toBe('sharded')
+    expect(result.success.backlog.some((item) => item.ref === 'reshard')).toBe(true)
+  })
   test('a second Database needs Sharded or Multi-leader first', () => {
     let game = freeSandbox()
     const first = game.nodes.find((node) => node.type === 'database')!.id

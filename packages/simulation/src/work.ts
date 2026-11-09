@@ -89,6 +89,7 @@ import type {
   GameNode,
   BlockKind,
   DbEngine,
+  DbTopology,
   ShardKey,
   Game,
   Service,
@@ -194,6 +195,25 @@ export const queueEngineChange = (game: Game, nodeId: string, to: DbEngine): Act
   })
 }
 
+/** Queues a Database's topology switch: the same Dev Hours and data copy as a resharding (07 "Topologies"). */
+export const queueTopology = (game: Game, nodeId: string, topology: DbTopology): Action => {
+  if (game.sandbox) return notAllowed(SANDBOX)
+  const node = game.nodes.find((entry) => entry.id === nodeId)
+  if (!node || node.type !== 'database') return notAllowed('Only a Database changes topology.')
+  if (node.topology === topology) return ok(game)
+  if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
+  return ok({
+    ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
+    reshard: {
+      node: nodeId,
+      shards: node.shards,
+      key: node.shardKey,
+      topology,
+      phase: { _tag: 'Building' },
+    },
+  })
+}
+
 /** Queues a Database's resharding: Dev Hours first, then a data copy that halves its IOPS (07 "Partitioning"). */
 export const queueReshard = (
   game: Game,
@@ -213,7 +233,7 @@ export const queueReshard = (
   if (game.reshard || queued(game, 'reshard')) return notAllowed('A resharding is already running.')
   return ok({
     ...enqueue(game, 'move', 'reshard', RESHARD_DH, false, { target: nodeId }),
-    reshard: { node: nodeId, shards, key, phase: { _tag: 'Building' } },
+    reshard: { node: nodeId, shards, key, topology: node.topology, phase: { _tag: 'Building' } },
   })
 }
 
@@ -260,8 +280,16 @@ const finishReshard = (game: Game): Game => {
     ...game,
     reshard: null,
     nodes: game.nodes.map((node) =>
-      node.id === reshard.node && node.type === 'database'
-        ? { ...node, shards: reshard.shards, shardKey: reshard.key }
+      node.type === 'database'
+        ? {
+            ...node,
+            // A topology switch lands on every Database together; a plain resharding keeps each
+            // Database's own shards and key unless it is the one being resharded.
+            ...(reshard.topology !== node.topology || node.id === reshard.node
+              ? { topology: reshard.topology }
+              : {}),
+            ...(node.id === reshard.node ? { shards: reshard.shards, shardKey: reshard.key } : {}),
+          }
         : node,
     ),
   }

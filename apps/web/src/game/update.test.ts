@@ -173,8 +173,18 @@ describe('copy, cut, paste, and select all', () => {
   }
   // Duplicating a Database needs a topology first (07 "Topologies"), so paste tests set one up.
   const sharded = (model: Model): Model => {
-    const database = model.board.game.nodes.find((node) => node.type === 'database')!
-    return send(model, Message.DbTopologyChosen({ nodeId: database.id, topology: 'sharded' }))
+    return {
+      ...model,
+      board: {
+        ...model.board,
+        game: {
+          ...model.board.game,
+          nodes: model.board.game.nodes.map((node) =>
+            node.type === 'database' ? { ...node, topology: 'sharded' as const } : node,
+          ),
+        },
+      },
+    }
   }
   const movable = (model: Model) =>
     model.board.game.nodes.filter(

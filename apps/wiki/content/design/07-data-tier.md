@@ -295,6 +295,10 @@ Placing a second Database while the Design is still on Single primary is refused
 Multi-leader first, or place a Read Replica for single-leader reads. The card sets one topology for
 every Database.
 
+Switching the topology moves the rows, so it costs like a resharding. The card queues 24 Dev Hours,
+then copies the data at a minute a GB for at least a calendar day, and the volume runs at half its
+IOPS while it copies. The Databases keep the old topology until the copy ends.
+
 ### Single primary
 
 One Database takes writes. Reads split between it and its Read Replicas. This is the starting point,
