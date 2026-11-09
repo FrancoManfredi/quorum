@@ -489,16 +489,17 @@ partition. Round robin with more than one partition loses order, which the game 
 result. The 20,000, the three windows of 10 hours, 2.5 days and a week, the acknowledgement latencies
 and the half-broker Burn a replica adds are the Event Stream's own numbers.
 
-Durability follows the replication factor and `acks`. A broker that fails takes the events its
-replicas did not have:
+Durability follows the replication factor and `acks`. When a broker fails, it takes the events its
+replicas did not have in that failure window:
 
-- **One replica:** it holds the only copy, so the broker loses all of the events.
-- **More replicas with `acks=all`:** the write waits for every replica, so none are lost.
-- **`acks=1`:** the write is acknowledged after the leader alone, and 5% are lost.
-- **`acks=0`:** the write does not wait, and 10% are lost.
+- **One replica:** it holds the only copy, so the failed broker loses all of the events it held.
+- **More replicas with `acks=all`:** the write waited for every replica, so none are lost.
+- **`acks=1`:** the write was acknowledged after the leader alone, and 5% of the held events are lost.
+- **`acks=0`:** the write did not wait, and 10% of the held events are lost.
 
-The replication factor is chosen on the card. Partition key skew is the Hot key incident, not a model
-of the key's distribution.
+The replication factor is chosen on the card. Changing it copies partition data, so the stream
+recovers capacity while the copy runs. Partition key skew is the Hot key incident, not a model of the
+key's distribution.
 
 ### CDC Connector
 

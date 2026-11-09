@@ -27,14 +27,16 @@ row costs 10 KB, its indexes and its share of the WAL included. Data never shrin
 Volume also sets how long the slow operations take, in calendar time (one sim second is a calendar
 minute):
 
-| Operation                       | Time                                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------------------- |
-| Restore of a backup             | 5 minutes plus half a minute per GB; point-in-time recovery reads twice the GB        |
-| A new Read Replica's first copy | Half a minute per GB (at least the 15 s of any cold Node) before it serves            |
-| Search index copy or rebalance  | Half a minute per GB of the index (30% of the Company's rows) while the Node recovers |
-| Schema migration lock           | 150 s plus 0.1 s per GB of rows, at most four times 150 s                             |
-| Database engine change          | One minute per GB of rows, after its Dev Hours                                        |
-| Resharding                      | One minute per GB of rows, at least a calendar day, after its Dev Hours               |
+| Operation                                                        | Time                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Restore of a backup                                              | 5 minutes plus half a minute per GB; point-in-time recovery reads twice the GB        |
+| A new Read Replica's first copy                                  | Half a minute per GB (at least the 15 s of any cold Node) before it serves            |
+| Search index copy or rebalance                                   | Half a minute per GB of the index (30% of the Company's rows) while the Node recovers |
+| Schema migration lock                                            | 150 s plus 0.1 s per GB of rows, at most four times 150 s                             |
+| Database engine change                                           | One minute per GB of rows, after its Dev Hours                                        |
+| Resharding                                                       | One minute per GB of rows, at least a calendar day, after its Dev Hours               |
+| Wide-column or Document resize or Wide-column replication change | 0.4 minutes per GB of rows while the Node rebalances                                  |
+| Event Stream replication change                                  | 0.25 minutes per GB of retained data while partitions copy                            |
 
 A large Company takes longer to back up, copy, and migrate than a small one. A Feature that reads
 history also loses part of its value when retention deletes that history
@@ -501,6 +503,7 @@ Without multi-document transactions, 2% of checkouts land half-applied and bill 
 them, every write waits half again its latency. A Feature costs 10% more Dev Hours for the access
 pattern it adds, and 25% less when it changes the data shape, because there is no migration to run.
 The Hot key incident never picks a `doc` Node: it targets only a Cache or a Wide-column Store.
+Resizing it rebalances the data, so the Node recovers capacity while the copy runs.
 
 ## Data Warehouse
 
@@ -578,6 +581,8 @@ each. A write costs N of them and a read costs R.
 - Across regions, `LOCAL_QUORUM` keeps client latency local and gives up global consistency. A
   spread Wide-column Store still replicates writes across regions, so replication pays cross-region
   egress and lag makes local reads stale until copies converge.
+- Resizing it or changing the replication factor rebalances data, so the Node recovers capacity while
+  the copy runs.
 
 ## Distributed SQL
 

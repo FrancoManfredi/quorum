@@ -543,13 +543,22 @@ export const disconnect = (game: Game, from: string, to: string): Game => ({
   links: game.links.filter((link) => !(link.from === from && link.to === to)),
 })
 
+const REBALANCE_TYPES: ReadonlyArray<ComponentId> = ['doc', 'wide', 'log']
+
 export const resize = (game: Game, id: string, direction: 1 | -1): Action =>
   withNode(game, id, (node) => {
     const def = COMPONENTS[node.type]
     const lowest = def.sized ? 0 : 1
+    const rebalances =
+      !game.sandbox && REBALANCE_TYPES.includes(node.type) && node.life._tag !== 'Stopped'
     if (direction === -1) {
       if (node.size <= lowest) return notAllowed(`${def.name} is at its smallest size.`)
-      return ok(patch(game, id, { size: node.size - 1, ...(def.sized ? restarted(node) : {}) }))
+      return ok(
+        patch(game, id, {
+          size: node.size - 1,
+          ...(rebalances ? { life: warming(0) } : def.sized ? restarted(node) : {}),
+        }),
+      )
     }
     const price = resizePrice(game, node)
     if (price === null || node.size >= maxSize(node))
@@ -559,7 +568,10 @@ export const resize = (game: Game, id: string, direction: 1 | -1): Action =>
       ? `${SIZES[node.size + 1]?.name ?? 'Next size'}`
       : `Size ${node.size + 1}`
     return spend(game, price, label, (paid) =>
-      patch(paid, id, { size: node.size + 1, ...(def.sized ? restarted(node) : {}) }),
+      patch(paid, id, {
+        size: node.size + 1,
+        ...(rebalances ? { life: warming(0) } : def.sized ? restarted(node) : {}),
+      }),
     )
   })
 

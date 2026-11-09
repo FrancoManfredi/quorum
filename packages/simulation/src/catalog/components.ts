@@ -285,6 +285,12 @@ export const SPREAD_REGIONS = 3
 export const SPREAD_REPLICATION_KB = 1
 /** Stale share from cross-region replication lag on a spread Wide-column Store (LOCAL_QUORUM). */
 export const WIDE_SPREAD_LAG_STALE = 0.015
+/** Calendar minutes a Wide-column Store spends rebalancing one GB when its size or replication changes. */
+export const WIDE_REBALANCE_MINUTES_PER_GB = 0.4
+/** Calendar minutes a Document Store spends rebalancing one GB when its size changes. */
+export const DOC_REBALANCE_MINUTES_PER_GB = 0.4
+/** Calendar minutes an Event Stream spends copying one GB when its replication factor changes. */
+export const LOG_REPLICATE_MINUTES_PER_GB = 0.25
 
 /** During a hot key, this share of reads asks for one key, which lives on one shard (07 "Fan-out"). */
 export const HOT_KEY_SHARE = 0.3

@@ -26,6 +26,9 @@ import {
   REPLICA_SYNC_MINUTES_PER_GB,
   SEARCH_COPY_MINUTES_PER_GB,
   SEARCH_INDEX_SHARE,
+  WIDE_REBALANCE_MINUTES_PER_GB,
+  DOC_REBALANCE_MINUTES_PER_GB,
+  LOG_REPLICATE_MINUTES_PER_GB,
   SCALE_COOLDOWN,
   SCALE_QUEUE_DEPTH,
   SCALE_RPS_PER_VCPU,
@@ -351,13 +354,21 @@ const lostOnBroker = (game: Game, from: number, seconds: number): number =>
 const warmupOf = (game: Game, node: GameNode): number =>
   node.type === 'server' || node.type === 'worker'
     ? RUNTIMES[node.runtime].warmup
-    : // A new Read Replica copies the rows before it serves: a calendar half minute per GB (07 \"Data volume\").
+    : // A new Read Replica copies the rows before it serves: a calendar half minute per GB (07 "Data volume").
       node.type === 'replica'
       ? Math.max(WARMUP_SECONDS, game.data * REPLICA_SYNC_MINUTES_PER_GB)
-      : // A Search Engine copies and rebalances its index: a calendar half minute per GB of index (07 \"Search Engine\").
+      : // A Search Engine copies and rebalances its index: a calendar half minute per GB of index (07 "Search Engine").
         node.type === 'search'
         ? Math.max(WARMUP_SECONDS, game.data * SEARCH_INDEX_SHARE * SEARCH_COPY_MINUTES_PER_GB)
-        : WARMUP_SECONDS
+        : // A Wide-column or Document Store rebalances its data when it resizes or changes replication.
+          node.type === 'wide'
+          ? Math.max(WARMUP_SECONDS, game.data * WIDE_REBALANCE_MINUTES_PER_GB)
+          : node.type === 'doc'
+            ? Math.max(WARMUP_SECONDS, game.data * DOC_REBALANCE_MINUTES_PER_GB)
+            : // An Event Stream copies partitions when its replication factor changes.
+              node.type === 'log'
+              ? Math.max(WARMUP_SECONDS, game.data * LOG_REPLICATE_MINUTES_PER_GB)
+              : WARMUP_SECONDS
 
 /** The live Autoscaler a Node links into, if any. */
 const autoscalerOf = (game: Game, node: GameNode): GameNode | undefined => {

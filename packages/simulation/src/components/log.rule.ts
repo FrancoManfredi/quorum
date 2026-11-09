@@ -11,6 +11,7 @@ import {
   LOG_RETENTION,
 } from '../catalog.ts'
 import { failSome, failed, through } from '../distribution.ts'
+import { warming } from '../life.ts'
 
 import { flatModel } from '../capacity.ts'
 import { flatScale } from '../lookups.ts'
@@ -95,5 +96,12 @@ export const setLogOptions = (
     )
       return notAllowed(`Replication factors are ${LOG_REPLICAS.join(', ')}.`)
     const { replicas, ...rest } = change
-    return ok(patch(game, id, replicas === undefined ? rest : { ...rest, n: replicas }))
+    const nextN = replicas === undefined ? node.n : replicas
+    const rebalances = !game.sandbox && nextN !== node.n && node.life._tag !== 'Stopped'
+    return ok(
+      patch(game, id, {
+        ...(replicas === undefined ? rest : { ...rest, n: replicas }),
+        ...(rebalances ? { life: warming(0) } : {}),
+      }),
+    )
   })

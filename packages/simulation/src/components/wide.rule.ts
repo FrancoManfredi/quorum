@@ -9,6 +9,7 @@ import {
   WIDE_TX_STALE,
 } from '../catalog.ts'
 import { failSome, failed, kthFastest, through } from '../distribution.ts'
+import { warming } from '../life.ts'
 
 import { flatModel } from '../capacity.ts'
 import { flatScale, spreadCount } from '../lookups.ts'
@@ -98,5 +99,6 @@ export const setQuorum = (game: Game, id: string, n: number, r: number, w: numbe
     if (node.type !== 'wide') return notAllowed('Only a Wide-column Store has quorums.')
     if (!QUORUM_N.some((entry) => entry === n) || r < 1 || w < 1 || r > n || w > n)
       return notAllowed('R and W are between 1 and N; N is 1 to 5.')
-    return ok(patch(game, id, { n, r, w }))
+    const rebalances = !game.sandbox && n !== node.n && node.life._tag !== 'Stopped'
+    return ok(patch(game, id, { n, r, w, ...(rebalances ? { life: warming(0) } : {}) }))
   })
