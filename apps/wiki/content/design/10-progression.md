@@ -170,7 +170,7 @@ track. The next Era's items show their price and requirements, so the player can
 silhouettes: a name and one line of effect, with no price and no click, so the player can want them
 before the game makes them a choice ([Interface](/design/15-ui-ux#research-screen)).
 
-The track tables below list every item the game offers: 195 items across 10 tracks.
+The track tables below list every item the game offers: 203 items across 10 tracks.
 
 ### Recipes
 
@@ -579,34 +579,38 @@ language ([Runtimes](/design/06-runtimes#variants-by-language)).
 
 ### Track: Frameworks
 
-| Framework    | Era      | ◇      | Requires      |
-| ------------ | -------- | ------ | ------------- |
-| Laravel      | Garage   | 20     | None          |
-| Rails        | Garage   | 30     | `lang-ruby`   |
-| Express      | Garage   | 30     | `lang-node`   |
-| Symfony      | Pre-seed | 80     | None          |
-| Sinatra      | Pre-seed | 60     | `lang-ruby`   |
-| CodeIgniter  | Pre-seed | 60     | None          |
-| Django       | Pre-seed | 150    | `lang-python` |
-| Flask        | Pre-seed | 100    | `lang-python` |
-| Sanic        | Seed     | 500    | `lang-python` |
-| FastAPI      | Seed     | 500    | `asgi`        |
-| Fastify      | Seed     | 400    | `lang-node`   |
-| Koa          | Seed     | 300    | `lang-node`   |
-| Hono         | Seed     | 400    | `lang-node`   |
-| Next.js      | Seed     | 600    | `lang-node`   |
-| Spring Boot  | Seed     | 900    | `lang-java`   |
-| ASP.NET Core | Seed     | 900    | `lang-csharp` |
-| Gin          | Seed     | 700    | `lang-go`     |
-| NestJS       | Series A | 2,000  | `lang-node`   |
-| AdonisJS     | Series A | 1,500  | `lang-node`   |
-| Fiber        | Series A | 2,000  | `fasthttp`    |
-| Elysia       | Series A | 2,000  | `bun`         |
-| Phoenix      | Series A | 2,500  | `lang-elixir` |
-| Axum         | Series A | 3,000  | `lang-rust`   |
-| Actix Web    | Series A | 3,000  | `lang-rust`   |
-| Rocket       | Series A | 3,000  | `lang-rust`   |
-| Quarkus      | Series B | 10,000 | `lang-java`   |
+| Framework    | Era      | ◇      | Requires       |
+| ------------ | -------- | ------ | -------------- |
+| Laravel      | Garage   | 20     | None           |
+| Rails        | Garage   | 30     | `lang-ruby`    |
+| Express      | Garage   | 30     | `lang-node`    |
+| Symfony      | Pre-seed | 80     | None           |
+| Sinatra      | Pre-seed | 60     | `lang-ruby`    |
+| CodeIgniter  | Pre-seed | 60     | None           |
+| Django       | Pre-seed | 150    | `lang-python`  |
+| Flask        | Pre-seed | 100    | `lang-python`  |
+| Sanic        | Seed     | 500    | `lang-python`  |
+| FastAPI      | Seed     | 500    | `asgi`         |
+| Fastify      | Seed     | 400    | `lang-node`    |
+| Koa          | Seed     | 300    | `lang-node`    |
+| Hono         | Seed     | 400    | `lang-node`    |
+| Next.js      | Seed     | 600    | `lang-node`    |
+| Spring Boot  | Seed     | 900    | `lang-java`    |
+| ASP.NET Core | Seed     | 900    | `lang-csharp`  |
+| Gin          | Seed     | 700    | `lang-go`      |
+| NestJS       | Series A | 2,000  | `lang-node`    |
+| AdonisJS     | Series A | 1,500  | `lang-node`    |
+| Fiber        | Series A | 2,000  | `fasthttp`     |
+| Elysia       | Series A | 2,000  | `bun`          |
+| Phoenix      | Series A | 2,500  | `lang-elixir`  |
+| Axum         | Series A | 3,000  | `lang-rust`    |
+| Actix Web    | Series A | 3,000  | `lang-rust`    |
+| Rocket       | Series A | 3,000  | `lang-rust`    |
+| Jetzig       | Series A | 3,000  | `lang-zig`     |
+| Tokamak      | Series A | 2,000  | `lang-zig`     |
+| Servant      | Series A | 3,000  | `lang-haskell` |
+| IHP          | Series A | 3,500  | `lang-haskell` |
+| Quarkus      | Series B | 10,000 | `lang-java`    |
 
 ### Track: Security
 
@@ -653,23 +657,27 @@ it already runs, with no per-Node commitment. These five numbers are the game's 
 
 ### Track: Product and business
 
-| ID                   | Name                    | Era      | ◇         | Requires                   | Effect                                               |
-| -------------------- | ----------------------- | -------- | --------- | -------------------------- | ---------------------------------------------------- |
-| `stripe`             | Stripe Billing          | Garage   | 30        | None                       | Payments collect automatically                       |
-| `funnels`            | Funnel analytics        | Pre-seed | 150       | None                       | Growth +10%                                          |
-| `code-review`        | Code review             | Pre-seed | 120       | None                       | Shows hidden costs of features before they ship      |
-| `testing-culture`    | Automated tests         | Pre-seed | 150       | `ci`                       | Bad-deploy chance −30%                               |
-| `ab-testing`         | A/B testing             | Seed     | 700       | `funnels`, `feature-flags` | Measures each Feature's lift against a holdout group |
-| `hiring-pipeline`    | Hiring pipeline         | Seed     | 600       | None                       | Time to hire −30%                                    |
-| `trunk-based`        | Trunk-based development | Seed     | 800       | `ci`                       | Deploy frequency +50%                                |
-| `platform-team`      | Platform team           | Series A | 3,000     | `containers`               | Team type                                            |
-| `sre-team`           | SRE team                | Series A | 4,000     | `on-call`                  | Team type                                            |
-| `checkout`           | Checkout                | Series A | 1,500     | None                       | Payment Provider and the Checkout Feature            |
-| `service-boundaries` | Service boundaries      | Series B | 15,000    | None                       | Split a Service                                      |
-| `data-team`          | Data team               | Series B | 10,000    | `data-warehouse`           | Team type                                            |
-| `enterprise-sales`   | Enterprise sales        | Series B | 20,000    | None                       | Signs the SLA: a missed week costs SLA credits       |
-| `investor-relations` | Investor relations      | Pre-IPO  | 300,000   | None                       | Valuation multiple +2                                |
-| `guidance-modeling`  | Guidance modeling       | Public   | 1,000,000 | None                       | Shows the probability of beating each guidance level |
+| ID                    | Name                    | Era      | ◇         | Requires                   | Effect                                               |
+| --------------------- | ----------------------- | -------- | --------- | -------------------------- | ---------------------------------------------------- |
+| `stripe`              | Stripe Billing          | Garage   | 30        | None                       | Payments collect automatically                       |
+| `funnels`             | Funnel analytics        | Pre-seed | 150       | None                       | Growth +10%                                          |
+| `code-review`         | Code review             | Pre-seed | 120       | None                       | Shows hidden costs of features before they ship      |
+| `testing-culture`     | Automated tests         | Pre-seed | 150       | `ci`                       | Bad-deploy chance −30%                               |
+| `dev-environment`     | Reproducible dev env    | Pre-seed | 300       | `ci`                       | Ramp-up −50%                                         |
+| `static-analysis`     | Static analysis         | Pre-seed | 180       | `ci`                       | Bad-deploy chance −20%                               |
+| `ab-testing`          | A/B testing             | Seed     | 700       | `funnels`, `feature-flags` | Measures each Feature's lift against a holdout group |
+| `hiring-pipeline`     | Hiring pipeline         | Seed     | 600       | None                       | Time to hire −30%                                    |
+| `trunk-based`         | Trunk-based development | Seed     | 800       | `ci`                       | Deploy frequency +50%                                |
+| `build-cache`         | Build cache             | Seed     | 600       | `ci`                       | Build minutes −25%                                   |
+| `platform-team`       | Platform team           | Series A | 3,000     | `containers`               | Team type                                            |
+| `sre-team`            | SRE team                | Series A | 4,000     | `on-call`                  | Team type                                            |
+| `formal-verification` | Formal verification     | Series A | 5,000     | `testing-culture`          | Velocity −15%, bad-deploy chance −50%                |
+| `checkout`            | Checkout                | Series A | 1,500     | None                       | Payment Provider and the Checkout Feature            |
+| `service-boundaries`  | Service boundaries      | Series B | 15,000    | None                       | Split a Service                                      |
+| `data-team`           | Data team               | Series B | 10,000    | `data-warehouse`           | Team type                                            |
+| `enterprise-sales`    | Enterprise sales        | Series B | 20,000    | None                       | Signs the SLA: a missed week costs SLA credits       |
+| `investor-relations`  | Investor relations      | Pre-IPO  | 300,000   | None                       | Valuation multiple +2                                |
+| `guidance-modeling`   | Guidance modeling       | Public   | 1,000,000 | None                       | Shows the probability of beating each guidance level |
 
 Each item does what its Effect column says:
 

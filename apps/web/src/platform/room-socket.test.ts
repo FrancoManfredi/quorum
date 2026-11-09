@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import * as roomSocket from './room-socket.ts'
 
 /* ==========================================================================
    A tab holds one socket. A rename or a token arms a new one, and the socket it
@@ -58,14 +59,13 @@ class FakeSocket {
   }
 }
 
-const load = async () => {
-  vi.resetModules()
-  FakeSocket.all = []
-  const socket = await import('./room-socket.ts')
-  return socket
-}
+const load = async () => roomSocket
 
 beforeEach(() => {
+  // Reuse one module instance: a fresh dynamic import under load can exceed the test timeout,
+  // and a timed-out first test leaves a retry behind for the next one.
+  roomSocket.stop()
+  FakeSocket.all = []
   vi.useFakeTimers()
   vi.stubGlobal('window', { location: { protocol: 'http:', host: 'room.test' } })
   vi.stubGlobal('WebSocket', FakeSocket)

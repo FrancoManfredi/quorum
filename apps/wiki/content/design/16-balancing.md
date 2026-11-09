@@ -289,6 +289,10 @@ reference score:
 - A self-sized pool.
 - One of the six axes of its profile.
 
+Each language's frameworks follow the same rule: no framework is at least as good as a sibling on
+every score (CPU, memory, velocity, coordination, debt, background hours, per-kind CPU and value,
+startup, ORM, cacheability, native build, and the six axes) and better on one.
+
 Across languages, BEAM holds the most realtime connections per GB, beating Go and Kestrel. The
 option sets are the 28 runtimes, each language's frameworks, the instance families (Burstable,
 General, Compute, Memory), and the PHP-FPM pool modes. Axum and Actix are within about 5% of each

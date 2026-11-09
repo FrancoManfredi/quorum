@@ -2,14 +2,17 @@ import {
   BAD_DEPLOY_BASE,
   BAD_DEPLOY_ERRORS,
   BAD_DEPLOY_MAX,
+  BUILD_CACHE,
   CALENDAR_DAY,
   CI_DEPLOY_MINUTES,
   CODE_REVIEW_FACTOR,
   COORDINATION,
   DEPLOY_STRATEGIES,
+  DEV_ENVIRONMENT_RAMP,
   DEV_HOURS_PER_DAY,
   ERAS,
   FEATURES,
+  FORMAL_VERIFICATION_FACTOR,
   FOUNDER_OUTPUT,
   FRAMEWORKS,
   HIRE_DAYS,
@@ -33,6 +36,7 @@ import {
   SALARY_BASE,
   SHARED_DB_COORDINATION,
   SIGNING_BASE,
+  STATIC_ANALYSIS_FACTOR,
   SUPPORTED_QUARTERS,
   TESTS_FACTOR,
   TRUNK_FREQUENCY,
@@ -271,11 +275,13 @@ export const policyNow = (game: Game, team: Team, tuning: Tuning = LIVE_TUNING):
     ? POLICIES[team.previous]
     : POLICIES[team.policy]
 
-/** Sim seconds a new hire runs at 30%. Rails halves it; no framework stretches it with debt. */
+/** Sim seconds a new hire runs at 30%. Rails halves it; a reproducible dev environment halves it again. */
 export const rampSeconds = (game: Game, tuning: Tuning = LIVE_TUNING): number => {
   const framework = stackOf(game).framework
   const factor = framework === 'rails' ? 0.5 : framework === 'none' ? 1 + serviceOf(game).debt : 1
-  return days(RAMP_DAYS, tuning) * factor
+  return (
+    days(RAMP_DAYS, tuning) * factor * (has(game, 'dev-environment') ? DEV_ENVIRONMENT_RAMP : 1)
+  )
 }
 
 export const outputOf = (game: Game, engineer: Engineer, tuning: Tuning = LIVE_TUNING): number =>
@@ -427,14 +433,15 @@ export const deployStrategyOf = (game: Game): DeployStrategyDef | null => {
 
 /**
  * Minutes one build takes: the language's, times what the runtime adds. A GraalVM native image
- * compiles the whole program ahead of time and takes three times as long, and Quarkus halves that
- * (06 "Frameworks").
+ * compiles the whole program ahead of time and takes three times as long, Quarkus halves that,
+ * and a shared build cache takes a quarter off every Stack (06 "Frameworks", 10).
  */
 export const buildMinutesOf = (game: Game): number => {
   const { runtime, framework } = stackOf(game)
   const extra = RUNTIMES[runtime].build ?? 1
   const native = extra > 1 ? extra * (FRAMEWORKS[framework].nativeBuild ?? 1) : extra
-  return LANGUAGES[languageOfService(game)].buildMinutes * native
+  const cached = has(game, 'build-cache') ? BUILD_CACHE : 1
+  return LANGUAGES[languageOfService(game)].buildMinutes * native * cached
 }
 
 /** Minutes a deploy (or rollback) takes: the strategy's, or CI's, or the manual path (11, 05). */
@@ -479,7 +486,9 @@ export const badDeployChance = (
     policy.badDeploy *
     (1 + 2 * service.debt) *
     (has(game, 'testing-culture') ? 1 - TESTS_FACTOR : 1) *
-    (has(game, 'code-review') ? 1 - CODE_REVIEW_FACTOR : 1)
+    (has(game, 'code-review') ? 1 - CODE_REVIEW_FACTOR : 1) *
+    (has(game, 'static-analysis') ? 1 - STATIC_ANALYSIS_FACTOR : 1) *
+    (has(game, 'formal-verification') ? 1 - FORMAL_VERIFICATION_FACTOR : 1)
   )
 }
 

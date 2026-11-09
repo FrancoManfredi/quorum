@@ -607,6 +607,26 @@ export const catalog: Messages['catalog'] = {
       name: 'Sans framework',
       blurb: 'Rapide à l’exécution, lent pour développer des fonctionnalités.',
     },
+    jetzig: {
+      name: 'Jetzig',
+      blurb:
+        'Routage par fichiers, templates, requêtes de base de données et tâches de fond dans une seule boîte : les fonctionnalités sortent vite. 1,3× le CPU et 25 Mo par processus, sur une chaîne d’outils jeune.',
+    },
+    tokamak: {
+      name: 'Tokamak',
+      blurb:
+        'Un conteneur d’injection de dépendances au-dessus de http.zig : le câblage explicite réduit la coordination et la dette technique. 1,05× le CPU et 5 Mo par processus, avec un petit écosystème.',
+    },
+    servant: {
+      name: 'Servant',
+      blurb:
+        'Le type de l’API est le contrat : le routage, les clients et la documentation en découlent, donc les équipes se coordonnent moins et dérivent moins. 1,0× le CPU et 2 Mo par processus, avec une courbe d’apprentissage au niveau des types.',
+    },
+    ihp: {
+      name: 'IHP',
+      blurb:
+        'Tout est inclus : génération de code, constructeur de requêtes typé et file de tâches intégrée. Les fonctionnalités sortent vite à 1,3× le CPU et 40 Mo par processus, sur une chaîne d’outils basée sur Nix.',
+    },
     laravel: {
       name: 'Laravel',
       blurb:
@@ -2272,6 +2292,46 @@ export const catalog: Messages['catalog'] = {
       blurb:
         'Un routage typé avec peu de code répétitif : le plus rapide à écrire en Rust. 1,05× le CPU. 3 Mo par processus.',
       name: 'Rocket',
+    },
+    'fw-jetzig': {
+      name: 'Jetzig',
+      blurb:
+        'Routage par fichiers, templates, requêtes de base de données et tâches de fond dans une seule boîte : les fonctionnalités sortent vite. 1,3× le CPU et 25 Mo par processus, sur une chaîne d’outils jeune.',
+    },
+    'fw-tokamak': {
+      name: 'Tokamak',
+      blurb:
+        'Un conteneur d’injection de dépendances au-dessus de http.zig : le câblage explicite réduit la coordination et la dette technique. 1,05× le CPU et 5 Mo par processus, avec un petit écosystème.',
+    },
+    'fw-servant': {
+      name: 'Servant',
+      blurb:
+        'Le type de l’API est le contrat : le routage, les clients et la documentation en découlent, donc les équipes se coordonnent moins et dérivent moins. 1,0× le CPU et 2 Mo par processus, avec une courbe d’apprentissage au niveau des types.',
+    },
+    'fw-ihp': {
+      name: 'IHP',
+      blurb:
+        'Tout est inclus : génération de code, constructeur de requêtes typé et file de tâches intégrée. Les fonctionnalités sortent vite à 1,3× le CPU et 40 Mo par processus, sur une chaîne d’outils basée sur Nix.',
+    },
+    'build-cache': {
+      name: 'Cache de build',
+      blurb:
+        'Un cache partagé pour les artefacts et les dépendances : chaque Stack compile 25 % plus vite.',
+    },
+    'dev-environment': {
+      name: 'Environnement de dev reproductible',
+      blurb:
+        'Un conteneur fige chaque compilateur et chaque outil : une nouvelle recrue atteint sa pleine vitesse en moitié moins de temps de montée en puissance.',
+    },
+    'static-analysis': {
+      name: 'Analyse statique',
+      blurb:
+        'Un linter et un vérificateur de types passent sur chaque changement avant qu’il ne part : −20 % de mauvais déploiements.',
+    },
+    'formal-verification': {
+      name: 'Vérification formelle',
+      blurb:
+        'Les preuves et les tests basés sur les propriétés attrapent les bugs que les tests ratent : −50 % de mauvais déploiements, mais chaque fonctionnalité coûte 15 % d’heures de dev en plus.',
     },
     cdc: {
       blurb:

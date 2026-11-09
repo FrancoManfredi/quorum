@@ -1,9 +1,13 @@
 import { describe, expect, test } from 'vitest'
 import {
   AXES,
+  FRAMEWORK_IDS,
+  FRAMEWORKS,
   LANGUAGE_IDS,
+  REQUEST_KINDS,
   RUNTIME_IDS,
   RUNTIMES,
+  type FrameworkId,
   type LanguageId,
   type RuntimeId,
 } from '../src/catalog.ts'
@@ -73,5 +77,59 @@ describe('dominance', () => {
 
   test('every language has a runtime', () => {
     for (const language of LANGUAGE_IDS) expect(siblings(language).length).toBeGreaterThan(0)
+  })
+})
+
+const FRAMEWORK_SCORES: Readonly<Record<string, (id: FrameworkId) => number>> = {
+  cpu: (id) => 1 / FRAMEWORKS[id].overhead,
+  memory: (id) => 1 / (1 + FRAMEWORKS[id].memoryMb),
+  velocity: (id) => FRAMEWORKS[id].velocity,
+  coordination: (id) => 1 / (FRAMEWORKS[id].coordination ?? 1),
+  debt: (id) => 1 / (FRAMEWORKS[id].debt ?? 1),
+  workerHours: (id) => 1 / (FRAMEWORKS[id].workerHours ?? 1),
+  workerOverhead: (id) => 1 / (FRAMEWORKS[id].workerOverhead ?? 1),
+  noOrm: (id) => (FRAMEWORKS[id].orm ? 0 : 1),
+  cacheable: (id) => FRAMEWORKS[id].cacheable ?? 0,
+  internalTools: (id) => 1 / (FRAMEWORKS[id].internalTools ?? 1),
+  nativeBuild: (id) => 1 / (FRAMEWORKS[id].nativeBuild ?? 1),
+  startup: (id) => 1 / (1 + FRAMEWORKS[id].startupSeconds),
+  ...Object.fromEntries(
+    REQUEST_KINDS.map(
+      (kind) =>
+        [
+          `cpu-${kind}`,
+          (id: FrameworkId) => 1 / (FRAMEWORKS[id].overhead * (FRAMEWORKS[id].cpu?.[kind] ?? 1)),
+        ] as const,
+    ),
+  ),
+  ...Object.fromEntries(
+    REQUEST_KINDS.map(
+      (kind) => [`value-${kind}`, (id: FrameworkId) => FRAMEWORKS[id].value[kind] ?? 1] as const,
+    ),
+  ),
+  ...Object.fromEntries(
+    AXES.map((axis) => [`axis-${axis}`, (id: FrameworkId) => FRAMEWORKS[id].axes[axis]] as const),
+  ),
+}
+
+const frameworkSiblings = (language: LanguageId): ReadonlyArray<FrameworkId> => [
+  'none',
+  ...FRAMEWORK_IDS.filter((id) => FRAMEWORKS[id].language === language),
+]
+
+/** Whether one framework is at least as good on every score and better on one by 10%. */
+const dominates = (a: FrameworkId, b: FrameworkId): boolean => {
+  const scores = Object.values(FRAMEWORK_SCORES)
+  return (
+    scores.every((score) => score(a) >= score(b)) &&
+    scores.some((score) => score(a) > score(b) * 1.1)
+  )
+}
+
+describe('framework dominance', () => {
+  test.each(LANGUAGE_IDS)('%s frameworks never strictly dominate a sibling', (language) => {
+    const peers = frameworkSiblings(language)
+    for (const a of peers)
+      for (const b of peers) if (a !== b) expect(dominates(a, b), `${a} over ${b}`).toBe(false)
   })
 })

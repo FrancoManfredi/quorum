@@ -438,6 +438,26 @@ export const catalog: Messages['catalog'] = {
   },
   frameworks: {
     none: { name: '无框架', blurb: '运行快，功能开发慢。' },
+    jetzig: {
+      name: 'Jetzig',
+      blurb:
+        '文件路由、模板、数据库查询和后台任务一应俱全：功能交付快。CPU 1.3×，每个进程 25 MB，工具链较年轻。',
+    },
+    tokamak: {
+      name: 'Tokamak',
+      blurb:
+        '基于 http.zig 的依赖注入容器：显式接线减少协调和技术债。CPU 1.05×，每个进程 5 MB，生态较小。',
+    },
+    servant: {
+      name: 'Servant',
+      blurb:
+        'API 类型就是契约：路由、客户端和文档都由它推导，团队协调更少、偏移更少。CPU 1.0×，每个进程 2 MB，但有类型层面的学习曲线。',
+    },
+    ihp: {
+      name: 'IHP',
+      blurb:
+        '开箱即用：代码生成、类型安全查询构建器和内置任务队列。CPU 1.3×，每个进程 40 MB，功能交付快，但基于 Nix 工具链。',
+    },
     laravel: {
       name: 'Laravel',
       blurb:
@@ -1754,6 +1774,43 @@ export const catalog: Messages['catalog'] = {
     'fw-rocket': {
       blurb: '类型安全的路由，样板代码少：Rust 中写起来最快。CPU 1.05×。每个进程 3 MB。',
       name: 'Rocket',
+    },
+    'fw-jetzig': {
+      blurb:
+        '文件路由、模板、数据库查询和后台任务一应俱全：功能交付快。CPU 1.3×，每个进程 25 MB，工具链较年轻。',
+      name: 'Jetzig',
+    },
+    'fw-tokamak': {
+      blurb:
+        '基于 http.zig 的依赖注入容器：显式接线减少协调和技术债。CPU 1.05×，每个进程 5 MB，生态较小。',
+      name: 'Tokamak',
+    },
+    'fw-servant': {
+      blurb:
+        'API 类型就是契约：路由、客户端和文档都由它推导，团队协调更少、偏移更少。CPU 1.0×，每个进程 2 MB，但有类型层面的学习曲线。',
+      name: 'Servant',
+    },
+    'fw-ihp': {
+      blurb:
+        '开箱即用：代码生成、类型安全查询构建器和内置任务队列。CPU 1.3×，每个进程 40 MB，功能交付快，但基于 Nix 工具链。',
+      name: 'IHP',
+    },
+    'build-cache': {
+      blurb: '共享构建产物和依赖缓存：每个 Stack 的构建快 25%。',
+      name: '构建缓存',
+    },
+    'dev-environment': {
+      blurb: '一个容器固定所有编译器和工具：新员工用一半的上手时间达到全速。',
+      name: '可复现开发环境',
+    },
+    'static-analysis': {
+      blurb: '每次变更在发布前都经过 linter 和类型检查：坏部署减少 20%。',
+      name: '静态分析',
+    },
+    'formal-verification': {
+      blurb:
+        '证明和基于属性的测试能抓住测试遗漏的 bug：坏部署减少 50%，但每个功能的开发工时增加 15%。',
+      name: '形式化验证',
     },
     cdc: { blurb: '解锁 CDC 连接器：副本跟随写入日志，无需第二次写入。', name: '变更数据捕获' },
     'service-boundaries': {

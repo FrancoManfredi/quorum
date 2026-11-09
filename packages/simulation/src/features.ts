@@ -23,6 +23,7 @@ import {
 import { ventureOf } from './founding.ts'
 import {
   LiftSample,
+  type FeaturePhase,
   adoptionOf,
   isLive,
   liftOf as liftSampleOf,
@@ -378,7 +379,8 @@ export const advancePropagation = (game: Game, seconds: number): Game => {
   const live = liveFeatures(game)
   if (game.sandbox || live.length === 0) return game
   const rate = Math.min(1, seconds / FLAG_PROPAGATION_SECONDS)
-  let features = game.features
+  // A local mutable copy: the first change replaces the readonly record, and an unchanged run keeps it.
+  let features = game.features as Record<string, FeaturePhase>
   for (const id of live) {
     const phase = features[id]
     if (phase === undefined || !isLive(phase)) continue

@@ -252,6 +252,15 @@ export const LOOKS: Record<ResearchId, Look> = {
   'fw-codeigniter': { group: 'compute', logo: 'codeigniter' },
   'fw-sanic': { group: 'compute', logo: 'sanic' },
   'fw-rocket': { group: 'compute', logo: 'rocket' },
+  'fw-jetzig': { group: 'compute', logo: 'jetzig' },
+  'fw-tokamak': { group: 'compute', logo: 'tokamak' },
+  'fw-servant': { group: 'compute', logo: 'servant' },
+  'fw-ihp': { group: 'compute', logo: 'ihp' },
+  // The global developer tools (10 "Track: Product and business").
+  'build-cache': { group: 'ops', glyph: FileArchive, hue: 180 },
+  'dev-environment': { group: 'ops', glyph: Container, hue: 200 },
+  'static-analysis': { group: 'ops', glyph: ScanSearch, hue: 150 },
+  'formal-verification': { group: 'ops', glyph: BadgeCheck, hue: 140 },
   // The last four Components: each wears its own badge, but secrets management is no Component.
   cdc: { component: 'cdc' },
   'service-mesh': { component: 'mesh' },

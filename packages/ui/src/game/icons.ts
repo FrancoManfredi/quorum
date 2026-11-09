@@ -118,4 +118,12 @@ export const STACK_LOGOS: Record<StackLogoId, Readonly<{ path: string; color: st
   codeigniter: { path: siCodeigniter.path, color: `#${siCodeigniter.hex}` },
   sanic: { path: siSanic.path, color: `#${siSanic.hex}` },
   rocket: { path: siRocket.path, color: `#${siRocket.hex}` },
+  // Simple Icons has no Jetzig or Tokamak mark: both wear Zig's. Jetzig keeps Zig's yellow, and
+  // Tokamak takes the foreground ink so the two read apart in the picker.
+  jetzig: { path: siZig.path, color: `#${siZig.hex}` },
+  tokamak: { path: siZig.path, color: null },
+  // Simple Icons has no Servant or IHP mark: both wear Haskell's path. Servant takes Haskell's
+  // purple and IHP its teal.
+  servant: { path: siHaskell.path, color: `#${siHaskell.hex}` },
+  ihp: { path: siHaskell.path, color: '#026B86' },
 }

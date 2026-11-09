@@ -1,10 +1,17 @@
 import { Result } from 'effect'
 import { describe, expect, test } from 'vitest'
 import * as Actions from '../src/actions.ts'
-import { GPU_MODELS } from '../src/catalog.ts'
+import { GPU_MODELS, type ResearchId } from '../src/catalog.ts'
 import { gpuFits } from '../src/rules.ts'
 import { requestCpuMs } from '../src/capacity.ts'
-import { buildMinutesOf, coordinationOf, debtGrowthOf, effectiveEngineers } from '../src/team.ts'
+import {
+  badDeployChance,
+  buildMinutesOf,
+  coordinationOf,
+  debtGrowthOf,
+  effectiveEngineers,
+  rampSeconds,
+} from '../src/team.ts'
 import { certExpired, logLoss } from '../src/lookups.ts'
 import { evictionShareOf } from '../src/rules.ts'
 import { solveFlow } from '../src/solve.ts'
@@ -45,6 +52,42 @@ describe('frameworks', () => {
     const quarkus = buildMinutesOf(withStack('quarkus', 'graal'))
     expect(plain).toBe(buildMinutesOf(withStack('none', 'tomcat')) * 3)
     expect(quarkus).toBeLessThan(plain)
+  })
+})
+
+describe('developer tools', () => {
+  const base = freeSandbox()
+  const without = (...ids: ReadonlyArray<ResearchId>): Game => ({
+    ...base,
+    researched: base.researched.filter((id) => !ids.includes(id)),
+  })
+  const withResearch = (game: Game, ...ids: ReadonlyArray<ResearchId>): Game => ({
+    ...game,
+    researched: [...game.researched, ...ids],
+  })
+
+  test('a shared build cache cuts every build', () => {
+    expect(buildMinutesOf(without('build-cache'))).toBeGreaterThan(buildMinutesOf(base))
+  })
+
+  test('a reproducible dev environment halves the ramp', () => {
+    expect(rampSeconds(without('dev-environment'))).toBeGreaterThan(rampSeconds(base))
+  })
+
+  test('static analysis and formal verification lower the bad-deploy chance', () => {
+    const none = without('static-analysis', 'formal-verification')
+    const staticOnly = withResearch(none, 'static-analysis')
+    const formalOnly = withResearch(none, 'formal-verification')
+    const both = withResearch(none, 'static-analysis', 'formal-verification')
+    expect(badDeployChance(staticOnly)).toBeLessThan(badDeployChance(none))
+    expect(badDeployChance(formalOnly)).toBeLessThan(badDeployChance(none))
+    expect(badDeployChance(both)).toBeLessThan(badDeployChance(formalOnly))
+  })
+
+  test('formal verification slows feature work', () => {
+    expect(solveFlow(without('formal-verification')).velocity).toBeGreaterThan(
+      solveFlow(base).velocity,
+    )
   })
 })
 

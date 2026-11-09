@@ -11,6 +11,7 @@ import { Option, Result } from 'effect'
 import { DragAndDrop } from '@foldkit/ui'
 import { fromString } from 'foldkit/url'
 import { newGame, preseedGame } from '@quorum/simulation/company'
+import { advancePropagation } from '@quorum/simulation/features'
 import { SIZES } from '@quorum/simulation/catalog'
 import {
   COMPONENTS,
@@ -2311,7 +2312,7 @@ describe('Feature Flags (GDD 05, 08)', () => {
     }
   }
 
-  test('a rollout changes the Feature and says so, and every user takes it off the list', () => {
+  test('a rollout sets the flag target and says so, and propagation reaches every user', () => {
     const model = start()
     const rolled = update(
       model,
@@ -2319,13 +2320,23 @@ describe('Feature Flags (GDD 05, 08)', () => {
     ).model
     expect(rolled.board.game.features['password-login']).toEqual({
       _tag: 'Live',
-      rollout: 0.05,
+      rollout: 1,
+      target: 0.05,
       adoption: 1,
       lift: null,
     })
     expect(rolled.board.change).toMatchObject({
       _tag: 'Settling',
       change: { label: expect.stringContaining('5%') },
+    })
+    // The flag propagates over its short window: the effective rollout reaches the target.
+    const settled = advancePropagation(rolled.board.game, 2)
+    expect(settled.features['password-login']).toEqual({
+      _tag: 'Live',
+      rollout: 0.05,
+      target: 0.05,
+      adoption: 1,
+      lift: null,
     })
     const all = update(
       rolled,
@@ -2334,6 +2345,7 @@ describe('Feature Flags (GDD 05, 08)', () => {
     expect(all.board.game.features['password-login']).toEqual({
       _tag: 'Live',
       rollout: 1,
+      target: 1,
       adoption: 1,
       lift: null,
     })

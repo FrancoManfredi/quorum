@@ -174,6 +174,15 @@ export const BAD_DEPLOY_MAX = 0.4
 /** Automated tests and code review lower the bad-deploy chance. */
 export const TESTS_FACTOR = 0.3
 export const CODE_REVIEW_FACTOR = 0.2
+/** A shared build cache cuts every Stack's build time (10 "Track: Product and business"). */
+export const BUILD_CACHE = 0.75
+/** A reproducible dev environment halves a new hire's ramp-up (08 "Ramp-up"). */
+export const DEV_ENVIRONMENT_RAMP = 0.5
+/** Static analysis and formal verification lower the bad-deploy chance further (11 "Bad deploy"). */
+export const STATIC_ANALYSIS_FACTOR = 0.2
+export const FORMAL_VERIFICATION_FACTOR = 0.5
+/** Formal verification trades 15% of feature velocity for correctness (10 "Track: Product and business"). */
+export const FORMAL_VERIFICATION_VELOCITY = 0.85
 
 /** The strangler steps: the share of traffic on the new Stack. */
 export const MIGRATION_STEPS: ReadonlyArray<number> = [0.05, 0.25, 0.5, 1]

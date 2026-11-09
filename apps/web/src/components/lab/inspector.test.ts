@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { Scene } from 'foldkit/test'
 import type { HtmlBuilder } from 'foldkit/html'
 import { link, node, preseedGame } from '@quorum/simulation/company'
+import { advancePropagation } from '@quorum/simulation/features'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
 import type { Game } from '@quorum/simulation/state'
 import { solveFlow } from '@quorum/simulation/solve'
@@ -535,14 +536,18 @@ test('Feature Flags offer each Feature’s rollout and the blast radius the flag
     // One Feature with no flag: a bad deploy of it breaks 8% of requests.
     Scene.expect(Scene.selector('[data-inspector]')).toContainText('up to 8%'),
   )
-  // Turning it Off leaves no user with the Feature, so a bad deploy of it breaks nobody.
+  // Turning it Off leaves no user with the Feature once the flag propagates, so a bad deploy of it breaks nobody.
   const off = update(
     model,
     Message.RolloutChosen({ nodeId: 'n9', feature: 'password-login', share: 0 }),
   ).model
+  const settled: Model = {
+    ...off,
+    board: { ...off.board, game: advancePropagation(off.board.game, 2) },
+  }
   Scene.scene(
     { update, view },
-    Scene.given(off),
+    Scene.given(settled),
     Scene.expect(Scene.selector('[data-inspector]')).toContainText('up to 0%'),
     Scene.expect(Scene.selector('[data-inspector]')).toContainText('Behind a flag'),
   )

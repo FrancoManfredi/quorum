@@ -3,6 +3,7 @@ import {
   LATENCY_REGRESSION_MS,
   COMPONENTS,
   DIURNAL_AMPLITUDE,
+  FORMAL_VERIFICATION_VELOCITY,
   FRAMEWORKS,
   KINDS,
   LANGUAGES,
@@ -396,9 +397,11 @@ export const ledgerOf = (
     }
   })
 
-  // Velocity: how fast the Stack ships, which sets the Team's Dev Hours.
+  // Velocity: how fast the Stack ships, which sets the Team's Dev Hours. Formal verification
+  // trades 15% of that speed for correctness (10 "Track: Product and business").
   const servers = game.nodes.filter((node) => node.type === 'server')
   const traffic = servers.reduce((total, node) => total + (nodes[node.id]?.inbound ?? 0), 0)
+  const verification = has(game, 'formal-verification') ? FORMAL_VERIFICATION_VELOCITY : 1
   const velocity =
     servers.length === 0
       ? 1
@@ -408,6 +411,7 @@ export const ledgerOf = (
             total +
             weight *
               LANGUAGES[languageOf(node)].velocity *
+              verification *
               FRAMEWORKS[node.framework].velocity *
               (RUNTIMES[node.runtime].velocity ?? 1)
           )

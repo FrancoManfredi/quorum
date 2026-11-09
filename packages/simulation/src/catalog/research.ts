@@ -156,6 +156,16 @@ export const RESEARCH_IDS = [
   'fw-codeigniter',
   'fw-sanic',
   'fw-rocket',
+  // Zig and Haskell frameworks (06 "Zig and Haskell profiles").
+  'fw-jetzig',
+  'fw-tokamak',
+  'fw-servant',
+  'fw-ihp',
+  // Global developer tools (10 "Track: Product and business").
+  'build-cache',
+  'dev-environment',
+  'static-analysis',
+  'formal-verification',
   // Splitting a Service (08 "Services", 10 "Research").
   'service-boundaries',
   // The last four Components (05 "Catalog overview", 10 "Research").
@@ -2052,6 +2062,80 @@ const RESEARCH_LIST: ReadonlyArray<ResearchDef> = [
     requires: ['reserved-instances'],
     blurb: '20% off every compute Node’s Burn, on-demand or not, with no per-Node commitment.',
   }),
+  research({
+    id: 'fw-jetzig',
+    name: 'Jetzig',
+    track: 'frameworks',
+    cost: 3_000,
+    era: 3,
+    requires: ['lang-zig'],
+    blurb: FRAMEWORKS.jetzig.blurb,
+  }),
+  research({
+    id: 'fw-tokamak',
+    name: 'Tokamak',
+    track: 'frameworks',
+    cost: 2_000,
+    era: 3,
+    requires: ['lang-zig'],
+    blurb: FRAMEWORKS.tokamak.blurb,
+  }),
+  research({
+    id: 'fw-servant',
+    name: 'Servant',
+    track: 'frameworks',
+    cost: 3_000,
+    era: 3,
+    requires: ['lang-haskell'],
+    blurb: FRAMEWORKS.servant.blurb,
+  }),
+  research({
+    id: 'fw-ihp',
+    name: 'IHP',
+    track: 'frameworks',
+    cost: 3_500,
+    era: 3,
+    requires: ['lang-haskell'],
+    blurb: FRAMEWORKS.ihp.blurb,
+  }),
+  research({
+    id: 'build-cache',
+    name: 'Build cache',
+    track: 'product',
+    cost: 600,
+    era: 2,
+    requires: ['ci'],
+    blurb: 'A shared cache for build artifacts and dependencies: every Stack builds 25% faster.',
+  }),
+  research({
+    id: 'dev-environment',
+    name: 'Reproducible dev environment',
+    track: 'product',
+    cost: 300,
+    era: 1,
+    requires: ['ci'],
+    blurb:
+      'One container pins every compiler and tool: a new hire reaches full speed in half the ramp time.',
+  }),
+  research({
+    id: 'static-analysis',
+    name: 'Static analysis',
+    track: 'product',
+    cost: 180,
+    era: 1,
+    requires: ['ci'],
+    blurb: 'A linter and type checker run on every change before it ships: bad deploys −20%.',
+  }),
+  research({
+    id: 'formal-verification',
+    name: 'Formal verification',
+    track: 'product',
+    cost: 5_000,
+    era: 3,
+    requires: ['testing-culture'],
+    blurb:
+      'Proofs and property-based tests catch the bugs tests miss: bad deploys −50%, but every Feature costs 15% more Dev Hours.',
+  }),
 ]
 
 export const RESEARCH: Record<ResearchId, ResearchDef> = Object.fromEntries(
@@ -2062,6 +2146,10 @@ export const researchList = RESEARCH_LIST
 
 export const FRAMEWORK_RESEARCH: Record<FrameworkId, ResearchId | null> = {
   none: null,
+  jetzig: 'fw-jetzig',
+  tokamak: 'fw-tokamak',
+  servant: 'fw-servant',
+  ihp: 'fw-ihp',
   laravel: 'fw-laravel',
   rails: 'fw-rails',
   express: 'fw-express',

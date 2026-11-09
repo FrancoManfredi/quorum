@@ -60,7 +60,8 @@ Suggested blurbs:
 Zig trades cheap native CPU and no GC for bounded I/O concurrency, manual lifetime management,
 and slower hiring. It is not a cheaper copy of Tokio's unbounded-task model. Haskell trades
 multicore, lightweight concurrency for shared-heap GC and more memory than Go. Neither profile
-claims a language-wide speed ordering. Both start with the existing `none` framework.
+claims a language-wide speed ordering. Both start with the existing `none` framework. The catalog
+now also offers Jetzig and Tokamak for Zig, and Servant and IHP for Haskell.
 
 The initial proposal used Haskell velocity 0.8. The implemented value is 1.15 with a 1.4 salary
 factor. Specialists ship features faster once hired, at a higher cost than Go's developers.
