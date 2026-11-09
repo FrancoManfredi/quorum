@@ -16,7 +16,7 @@ import {
   type RegionId,
 } from './catalog.ts'
 import { Refusal, blankNode, openRegion, type Action } from './actions.ts'
-import { has, priceOf, refundOf, resizePrice, restarted } from './lookups.ts'
+import { has, priceOf, primaryOf, refundOf, resizePrice, restarted } from './lookups.ts'
 import { isGlobal, openRegions, userSharesOf, usersOf } from './regions.ts'
 import { ComponentId as ComponentIdSchema } from './state.ts'
 import type {
@@ -266,6 +266,11 @@ const wantLinksOf = (
     const from = game.nodes.find((node) => node.id === link.from)
     if (!from || from.region !== mirror.source) continue
     if (from.type !== 'users' && !copied.has(from.id)) continue
+    // A replication link stays as it is; the copies' own are written below.
+    if (from.type === 'database' && game.nodes.find((n) => n.id === link.to)?.type === 'replica') {
+      keys.add(linkKey(from.id, link.to))
+      continue
+    }
     const start = ids[from.id]
     if (!start) continue
     for (const end of endsOf(game, mirror, ids, link.to)) keys.add(linkKey(start, end))
@@ -275,6 +280,8 @@ const wantLinksOf = (
     const copy = ids[node.id]
     if (node.type === 'database' && mirror.data[node.id] === 'replica' && copy)
       keys.add(linkKey(node.id, copy))
+    const primary = primaryOf(game, node)
+    if (primary && copy && node.type === 'replica') keys.add(linkKey(primary.id, copy))
   }
   return [...keys].toSorted()
 }

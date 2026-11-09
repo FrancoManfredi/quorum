@@ -679,9 +679,16 @@ const addReplica = (game: Game, ledger: Ledger, database: GameNode): Game => {
     if (grown === next) break
     next = grown
   }
-  // A pooler takes one link and an L7 Load Balancer no queries, so the App Servers pick the replica.
+  // The Database ships its log to the replica. Each replica gets its own Connection Pooler, as in
+  // production: a pooler takes one link, so one pooler cannot front the Database and its replicas, and
+  // App Servers linked straight to a replica would each hold their whole pools on it.
   next = tried(next, connect(next, database.id, replica[1]))
-  for (const from of servers(next)) next = tried(next, connect(next, from.id, replica[1]))
+  const pooler = has(next, 'pooling')
+    ? placed(next, ledger, 'pooler', database.x + 160, database.y - 160 - 140 * count)
+    : null
+  const front = pooler ? pooler[1] : null
+  if (pooler && front) next = tried(pooler[0], connect(pooler[0], front, replica[1]))
+  for (const from of servers(next)) next = tried(next, connect(next, from.id, front ?? replica[1]))
   return next
 }
 
