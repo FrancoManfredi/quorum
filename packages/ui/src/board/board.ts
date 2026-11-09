@@ -2167,7 +2167,10 @@ class BoardController {
     const preferred: Array<RendererPreference> = ['webgpu', 'webgl']
     await this.app.init({
       autoStart: false,
-      backgroundAlpha: 0,
+      // Opaque, in the colour the host shows behind it. A transparent WebGPU canvas is composited
+      // as premultiplied alpha, and on Android Chrome that tinted the whole board yellow.
+      backgroundAlpha: 1,
+      backgroundColor: palette().canvas,
       antialias: true,
       resolution: Math.min(window.devicePixelRatio || 1, 2),
       autoDensity: true,
@@ -2271,6 +2274,7 @@ class BoardController {
     for (const view of this.views.values()) view.root.destroy({ children: true })
     this.views.clear()
     this.ghostType = null
+    this.app.renderer.background.color = palette().canvas
     if (this.state) this.draw(this.state)
   }
 
@@ -2416,7 +2420,15 @@ class BoardController {
       }
       let drawn = this.drawnCards.get(node.id)
       if (!drawn || drawn.source !== node) {
-        drawn = { source: node, drawn: Object.create(node) as Mutable<GameNode> }
+        // Own, writable x and y: assigning through the prototype throws when the node is frozen.
+        const own = { writable: true, enumerable: true, configurable: true }
+        drawn = {
+          source: node,
+          drawn: Object.create(node, {
+            x: { ...own, value: at.x },
+            y: { ...own, value: at.y },
+          }) as Mutable<GameNode>,
+        }
         this.drawnCards.set(node.id, drawn)
       }
       drawn.drawn.x = at.x
