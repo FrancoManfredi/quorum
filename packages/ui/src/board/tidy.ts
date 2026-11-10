@@ -1,4 +1,4 @@
-import { COMPONENTS, type ComponentId } from '@quorum/simulation/catalog'
+import type { ComponentId } from '@quorum/simulation/catalog'
 import { CARD_W, CLEARANCE, heightOf, type Placed, type Pt } from './geometry.ts'
 
 /*
@@ -14,7 +14,8 @@ import { CARD_W, CLEARANCE, heightOf, type Placed, type Pt } from './geometry.ts
  *
  * A Node's column comes from its role. Entry follows the inbound path, top to
  * bottom: Users, DNS, CDN, WAF, API Gateway, Load Balancer. External providers
- * follow in name order. A Replica fills the shortest data column. An Autoscaler
+ * follow in name order. A Load Balancer or API Gateway fed by compute or data
+ * is not entry: it gets its own column just left of the Nodes it fronts. A Replica fills the shortest data column. An Autoscaler
  * sits with the Node it scales. An external provider stays in column 0 even when
  * compute calls it, which is why some of its links run backward.
  *
@@ -84,8 +85,8 @@ const ROLE: Record<ComponentId, Role> = {
 
 const COLUMN: Record<Role, number> = {
   entry: 0,
-  external: 0,
-  observability: 1,
+  external: 5,
+  observability: 6,
   control: 1,
   compute: 1,
   queue: 2,
@@ -99,11 +100,13 @@ const COLUMN: Record<Role, number> = {
 
 /** The vertical order inside each column. */
 const RANK: ReadonlyArray<Partial<Record<Role, number>>> = [
-  { entry: 0, external: 1 },
-  { observability: 0, control: 1, compute: 2 },
+  { entry: 0 },
+  { control: 0, compute: 1 },
   { queue: 0, replica: 1, middle: 2 },
   { control: 0, worker: 1, replica: 2, cache: 3 },
   { replica: 0, database: 1, warehouse: 2 },
+  { external: 0 },
+  { observability: 0 },
 ]
 
 /** The inbound path, top to bottom. External providers follow it in name order. */
@@ -266,6 +269,7 @@ export const tidy = <K extends string | number>(
   }
 
   // An Autoscaler sits with the Node it scales.
+  const attached = new Set<number>()
   for (const [at, node] of byId.entries()) {
     if (ROLE[node.type] !== 'control' || node.type !== 'autoscaler') continue
     const near = [...parents[at]!, ...children[at]!]
@@ -273,35 +277,87 @@ export const tidy = <K extends string | number>(
       .find((entry) => ['server', 'worker', 'cluster', 'gpu'].includes(entry.type))
     if (near) {
       columnOf[at] = COLUMN[ROLE[near.type]]
-      roleOf[at] = 'control'
+      attached.add(at)
     }
   }
 
+  // A Load Balancer or API Gateway takes its column from the traffic, not its
+  // role. Fed only by the entry path, it stays with the entry. Fed by compute or
+  // data, it gets a column of its own just left of the Nodes it fronts, so the
+  // wires run left to right between what feeds it and what it serves.
+  const placeable = new Set<ComponentId>(['lb', 'gw'])
+  for (const [at, node] of byId.entries()) {
+    if (!placeable.has(node.type)) continue
+    const fed = Math.max(0, ...parents[at]!.map((from) => columnOf[from]!))
+    if (fed === 0) continue
+    const served = Math.min(...children[at]!.map((to) => columnOf[to]!), Infinity)
+    columnOf[at] = Math.max(served - 0.5, fed + 0.5)
+  }
+
+  // The rest of the control plane (CI/CD, Feature Flags, Secrets, Mesh, a free
+  // Autoscaler) has few links and no place in the flow. It gets a strip below.
+  const strip = byId.flatMap((node, at) =>
+    ROLE[node.type] === 'control' && !attached.has(at) ? [at] : [],
+  )
   const columns = new Map<number, Array<number>>()
   for (const [at] of byId.entries()) {
+    if (strip.includes(at)) continue
     const column = columnOf[at]!
     const members = columns.get(column) ?? []
     members.push(at)
     columns.set(column, members)
   }
 
-  let columnX = left
-  for (const [column, members] of [...columns].sort((p, q) => p[0] - q[0])) {
-    members.sort((p, q) => {
-      const rankP = RANK[column]?.[roleOf[p]!] ?? 5
-      const rankQ = RANK[column]?.[roleOf[q]!] ?? 5
-      if (rankP !== rankQ) return rankP - rankQ
-      if (column === 0 && roleOf[p] === 'entry' && roleOf[q] === 'entry')
-        return ENTRY_ORDER.indexOf(byId[p]!.type) - ENTRY_ORDER.indexOf(byId[q]!.type)
-      if (column === 0 && roleOf[p] === 'external' && roleOf[q] === 'external')
-        return COMPONENTS[byId[p]!.type].name.localeCompare(COMPONENTS[byId[q]!.type].name)
-      return (
-        byId[p]!.y - byId[q]!.y ||
-        byId[p]!.x - byId[q]!.x ||
-        (zoneRank.get(byId[p]!.group) ?? order.length) -
-          (zoneRank.get(byId[q]!.group) ?? order.length)
+  const compare = (column: number) => (p: number, q: number) => {
+    const rankP = RANK[column]?.[roleOf[p]!] ?? 5
+    const rankQ = RANK[column]?.[roleOf[q]!] ?? 5
+    if (rankP !== rankQ) return rankP - rankQ
+    if (column === 0 && roleOf[p] === 'entry' && roleOf[q] === 'entry')
+      return ENTRY_ORDER.indexOf(byId[p]!.type) - ENTRY_ORDER.indexOf(byId[q]!.type)
+    return (
+      byId[p]!.y - byId[q]!.y ||
+      byId[p]!.x - byId[q]!.x ||
+      (zoneRank.get(byId[p]!.group) ?? order.length) -
+        (zoneRank.get(byId[q]!.group) ?? order.length)
+    )
+  }
+  const sorted = [...columns].sort((p, q) => p[0] - q[0])
+  for (const [column, members] of sorted) members.sort(compare(column))
+
+  // Order the cards of one role by the mean place of their neighbours, so wires
+  // run level instead of crossing. Sweep left to right, then right to left. The
+  // role blocks and the entry path keep their order.
+  const place = new Map<number, number>()
+  const mark = () => {
+    for (const [, members] of sorted)
+      members.forEach((at, index) => place.set(at, (index + 0.5) / members.length))
+  }
+  mark()
+  const sweep = (list: typeof sorted) => {
+    for (const [column, members] of list) {
+      if (column === 0) continue
+      const key = (at: number) => {
+        const near = [...parents[at]!, ...children[at]!].filter(
+          (other) => columnOf[other] !== column,
+        )
+        return near.length === 0
+          ? place.get(at)!
+          : near.reduce((sum, other) => sum + place.get(other)!, 0) / near.length
+      }
+      const keys = new Map(members.map((at) => [at, key(at)]))
+      members.sort(
+        (p, q) =>
+          (RANK[column]?.[roleOf[p]!] ?? 5) - (RANK[column]?.[roleOf[q]!] ?? 5) ||
+          keys.get(p)! - keys.get(q)! ||
+          compare(column)(p, q),
       )
-    })
+      members.forEach((at, index) => place.set(at, (index + 0.5) / members.length))
+    }
+  }
+  for (let pass = 0; pass < 4; pass += 1) sweep(pass % 2 === 0 ? sorted : sorted.toReversed())
+
+  let columnX = left
+  for (const [, members] of sorted) {
     // A column taller than the cap wraps into sub-columns, so a late board with
     // many App Servers or Databases stays compact instead of running off screen.
     const subColumns: Array<Array<number>> = []
@@ -329,7 +385,27 @@ export const tidy = <K extends string | number>(
     })
     columnX += subColumns.length * pitch
   }
-  const aligned = alignColumns(nodes, links, spots, clearance)
+  const aligned = new Map(
+    alignColumns(
+      nodes.filter((node) => spots.has(node.id)),
+      links,
+      spots,
+      clearance,
+    ),
+  )
+  if (strip.length > 0) {
+    const bottom = Math.max(
+      ...[...aligned].map(([id, point]) => point.y + heightOf(byId[index.get(id)!]!.type)),
+    )
+    const across = Math.max(1, Math.floor((columnX - left) / pitch))
+    strip.forEach((at, slot) => {
+      const row = Math.floor(slot / across)
+      aligned.set(byId[at]!.id, {
+        x: left + (slot % across) * pitch,
+        y: bottom + clearance * 4 + row * (heightOf(byId[at]!.type) + clearance),
+      })
+    })
+  }
   return new Map(
     [...aligned].map(([id, point]) => [id, { x: Math.round(point.x), y: Math.round(point.y) }]),
   )

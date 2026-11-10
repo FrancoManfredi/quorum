@@ -41,6 +41,7 @@ export const animate = (c: BoardController, seconds: number): void => {
   const state = c.state
   if (!state) return
   const now = performance.now()
+  c.settleHover(now)
   c.flushCursor(now)
   c.cursorLayer.tick(
     now,

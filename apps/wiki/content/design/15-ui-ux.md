@@ -128,23 +128,25 @@ time the game state makes it useful.
 
 ### Tidy by role column
 
-Tidy reads the board as five columns, left to right:
+Tidy reads the board as seven columns, left to right:
 
-| Column | Holds                                                                                 |
-| ------ | ------------------------------------------------------------------------------------- |
-| 1      | Users, the edge Components, and the external providers: LLM, Payment Provider, Search |
-| 2      | App Servers, Autoscalers, Analytics, Payments                                         |
-| 3      | Queue, Connection Pooler, Object Storage, Replicas                                    |
-| 4      | Workers, Cache, Replicas, the Worker's Autoscaler                                     |
-| 5      | Database, Replicas, Data Warehouse                                                    |
+| Column | Holds                                                                     |
+| ------ | ------------------------------------------------------------------------- |
+| 1      | Users and the entry Components: DNS, CDN, WAF, API Gateway, Load Balancer |
+| 2      | App Servers and the Autoscalers that scale them                           |
+| 3      | Queue, Connection Pooler, Object Storage, Replicas                        |
+| 4      | Workers, Cache, Replicas, the Worker's Autoscaler                         |
+| 5      | Database, Replicas, Data Warehouse                                        |
+| 6      | External providers: LLM, Payment Provider, Search, Auth Provider          |
+| 7      | Analytics and Payments                                                    |
 
-A Node's column comes from its role. Entry follows the inbound path, top to bottom: Users, DNS, CDN, WAF, API Gateway, Load Balancer. External providers follow in name order. A Replica fills the shortest data column, which is how four Replicas spread across columns 3, 4 and 5. An Autoscaler sits with the Node it scales. An external provider stays in the first column even when compute calls it, which is why some of those links run backward. A Node's zone stays on its card and link tint. Tidy no longer stacks a band per zone.
+A Node's column comes from its role. Entry follows the inbound path, top to bottom: Users, DNS, CDN, WAF, API Gateway, Load Balancer. A Load Balancer or API Gateway fed by compute or data is not entry: it gets a column of its own just left of the Nodes it fronts, so a Load Balancer between App Servers and Connection Poolers sits between them. A Replica fills the shortest data column, which is how four Replicas spread across columns 3, 4 and 5. An Autoscaler sits with the Node it scales. External providers and Analytics sit right of the data, because compute calls them and every link then runs left to right. The rest of the control plane (CI/CD, Feature Flags, Secrets, Mesh, an Autoscaler with no Node) has no place in the flow and sits in a strip below the board. A Node's zone stays on its card and link tint. Tidy no longer stacks a band per zone.
 
-Inside a column, cards stack by role. Entry sits above external. Analytics and Payments sit above Autoscalers, and Autoscalers above App Servers. Queue sits above Pooler and Object Storage. Autoscalers sit above Workers, and Workers above Cache. Replicas sit above the Database, and the Data Warehouse sits below it.
+Inside a column, cards stack by role, and cards of one role are ordered by the mean place of their neighbours, so wires run level. Autoscalers sit above App Servers. Queue sits above Pooler and Object Storage. Autoscalers sit above Workers, and Workers above Cache. Replicas sit above the Database, and the Data Warehouse sits below it.
 
 After placing the columns, Tidy pulls each card toward the Nodes it talks to, without changing the column order. A hub counts once per neighbour, so Analytics does not drag the whole board. This is what aligns the Queue with its Workers and the Pooler with its Database.
 
-The 26-Node bot board lands at 1656×1414, close to square, with 355 crossings. A column taller than 3000 board units wraps into sub-columns, so the 61-Node board lands at 2016×3071 instead of a 3536-high stack. The cost is backward links: an external provider on the left and a Replica placed to balance a column can run their links right to left, and the router draws them as backward belts.
+The 26-Node bot board lands at 2376×1103 with 9 backward links. A column taller than 3000 board units wraps into sub-columns, so the 61-Node board lands at 2376×2890 instead of a 3536-high stack. The cost is width and longer wires: providers and Analytics sit at the far right, so every App Server wire to them crosses the data columns. A Replica placed to balance a column can still run its link right to left.
 
 ## Node cards
 

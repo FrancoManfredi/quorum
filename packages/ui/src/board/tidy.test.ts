@@ -9,7 +9,7 @@ import { tidy } from './tidy.ts'
 const ORDER = ['all', 'a', 'b', 'c'] as const
 const card = (
   id: string,
-  type: 'cdn' | 'lb' | 'server' | 'queue' | 'worker',
+  type: 'cdn' | 'lb' | 'server' | 'queue' | 'worker' | 'pooler' | 'database' | 'ci',
   y: number,
   group = 'all',
 ) => ({ id, type, x: 0, y, group }) as const
@@ -27,6 +27,33 @@ test('tidy puts entry left of compute and keeps one role in one column', () => {
   expect(at('lb').x).toBeLessThan(at('a').x)
   expect(at('a').x).toBe(at('b').x)
   expect(at('a').y).toBeLessThan(at('b').y)
+})
+
+test('tidy puts a Load Balancer by where its traffic goes', () => {
+  const nodes = [
+    card('front', 'lb', 0),
+    card('s', 'server', 0),
+    card('back', 'lb', 0),
+    card('p', 'pooler', 0),
+    card('d', 'database', 0),
+  ]
+  const links = [
+    { from: 'front', to: 's' },
+    { from: 's', to: 'back' },
+    { from: 'back', to: 'p' },
+    { from: 'p', to: 'd' },
+  ]
+  const spots = tidy(nodes, links, ['all'])
+  const x = (id: string) => spots.get(id)!.x
+  expect(x('front')).toBeLessThan(x('s'))
+  expect(x('s')).toBeLessThan(x('back'))
+  expect(x('back')).toBeLessThan(x('p'))
+})
+
+test('tidy puts a Node with no place in the flow in a strip below', () => {
+  const nodes = [card('s', 'server', 0), card('w', 'worker', 0), card('ci', 'ci', 0)]
+  const spots = tidy(nodes, [{ from: 's', to: 'w' }], ['all'])
+  expect(spots.get('ci')!.y).toBeGreaterThan(spots.get('s')!.y + heightOf('server'))
 })
 
 test('tidy keeps Nodes from different zones in the same role column', () => {
@@ -77,7 +104,9 @@ test('tidy lays the stress board out in role columns', () => {
   expect(at.get('n2')!.x).toBeLessThan(at.get('n12')!.x)
   expect(at.get('n12')!.x).toBeLessThan(at.get('n1')!.x)
   expect(at.get('n5')!.x).toBe(at.get('users')!.x)
-  expect(at.get('n21')!.x).toBe(at.get('users')!.x)
+  // Providers and Analytics sit right of the data, so no call runs backward.
+  expect(at.get('n21')!.x).toBeGreaterThan(at.get('n1')!.x)
+  expect(at.get('analytics')!.x).toBeGreaterThan(at.get('n21')!.x)
 })
 
 test('tidy keeps every card of the big board clear of the others', () => {

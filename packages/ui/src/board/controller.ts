@@ -29,7 +29,7 @@ import { bindPointer } from './pointer.ts'
 import { type BoardEvents, type BoardState } from './types.ts'
 import { type Palette, palette } from './palette.ts'
 import { silhouette, badgeGlyph } from './shapes.ts'
-import { DRAW_IN_S, CURSOR_MS } from './motion.ts'
+import { DRAW_IN_S, CURSOR_MS, HOVER_SETTLE_MS } from './motion.ts'
 import { glyph, paint } from './glyphs.ts'
 import { BADGE_X, BADGE_Y, BADGE_R, TITLE_X, medallion, headerBand } from './card-parts.ts'
 import { pointOn, distanceTo, laneUnder, routeOf, SLACK, bent, dashed } from './paths.ts'
@@ -129,6 +129,12 @@ export class BoardController {
   state: BoardState | null = null
   gesture: Gesture = null
   hoverLink: Readonly<{ from: string; to: string }> | null = null
+  /** What the pointer just entered, and when: it lights after a rest, so a pass lights nothing. */
+  hoverAim: Readonly<{
+    node: string | null
+    link: Readonly<{ from: string; to: string }> | null
+    since: number
+  }> | null = null
   /** The link a click picked: Delete or its × badge cuts it. A click never cuts by itself. */
   selectedLink: Readonly<{ from: string; to: string }> | null = null
   /** The Node under the pointer: with the selected one, it lights its whole path. */
@@ -514,6 +520,38 @@ export class BoardController {
       out.set(node.id, drawn.drawn)
     }
     return out
+  }
+
+  /**
+   * The pointer entered a Node or a belt. Its light goes out at once, and the new one waits:
+   * a pass across the Board lights nothing, and moving off clears without a delay.
+   */
+  aimHover(node: string | null, link: Readonly<{ from: string; to: string }> | null): void {
+    const aim = this.hoverAim
+    if (
+      aim !== null &&
+      aim.node === node &&
+      aim.link?.from === link?.from &&
+      aim.link?.to === link?.to
+    )
+      return
+    const shown =
+      node === this.hoverNode &&
+      link?.from === this.hoverLink?.from &&
+      link?.to === this.hoverLink?.to
+    if (shown && aim === null) return
+    this.hoverNode = null
+    this.hoverLink = null
+    this.hoverAim = node === null && link === null ? null : { node, link, since: performance.now() }
+  }
+
+  /** Lights the hover the pointer rested on. Called each frame, so it needs no timer. */
+  settleHover(now: number): void {
+    const aim = this.hoverAim
+    if (aim === null || now - aim.since < HOVER_SETTLE_MS) return
+    this.hoverNode = aim.node
+    this.hoverLink = aim.link
+    this.hoverAim = null
   }
 
   nodeAt(point: Pt): GameNode | null {

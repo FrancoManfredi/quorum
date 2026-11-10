@@ -1,5 +1,4 @@
 import { holds } from './card-parts.ts'
-import { type GameNode } from '@quorum/simulation/state'
 import { CARD_W, heightOf, outPort } from './geometry.ts'
 import type { BoardController } from './controller.ts'
 
@@ -37,6 +36,8 @@ export const bindPointer = (c: BoardController): void => {
       c.pointerKnown = true
       // A press on the Board is board work, not the panel the cursor last announced.
       c.activity = null
+      // A press takes over from any hover still waiting to light.
+      c.hoverAim = null
       if (event.button === 2) {
         const link = c.linkAt(point)
         if (link) c.selectLink(link)
@@ -125,8 +126,10 @@ export const bindPointer = (c: BoardController): void => {
         }
         return
       }
-      if (c.hoverLink) {
-        c.selectLink(c.hoverLink)
+      // The pointer's own hit test, not the lit hover: a press selects at once.
+      const link = c.linkAt(point)
+      if (link) {
+        c.selectLink(link)
         return
       }
       c.gesture = {
@@ -215,15 +218,17 @@ export const bindPointer = (c: BoardController): void => {
         return
       }
       // A port wins over the link leaving it: pulling a wire is not a cut.
-      c.hoverLink = c.nodeAt(point) || c.outPortAt(point) ? null : c.linkAt(point)
-      c.hoverNode = c.nodeAt(point)?.id ?? null
-      canvas.style.cursor = c.outPortAt(point)
+      const node = c.nodeAt(point)
+      const port = c.outPortAt(point)
+      const link = node || port ? null : c.linkAt(point)
+      c.aimHover(node?.id ?? null, link)
+      canvas.style.cursor = port
         ? 'crosshair'
-        : c.nodeAt(point)
-          ? c.footerAt(c.nodeAt(point) as GameNode, point)
+        : node
+          ? c.footerAt(node, point)
             ? 'pointer'
             : 'move'
-          : c.hoverLink
+          : link
             ? 'pointer'
             : 'grab'
     },
@@ -321,6 +326,7 @@ export const bindPointer = (c: BoardController): void => {
       c.over = false
       c.hoverLink = null
       c.hoverNode = null
+      c.hoverAim = null
       // A panel is open: the pointer stays on the Board and says what this Seat is doing.
       if (c.activity !== null) {
         c.emitCursor()
@@ -338,6 +344,8 @@ export const bindPointer = (c: BoardController): void => {
     () => {
       c.over = false
       c.cursorWaiting = false
+      // A hover still waiting must not light after the window has gone.
+      c.hoverAim = null
       c.events.onCursorGone?.()
     },
     { signal },

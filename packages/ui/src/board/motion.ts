@@ -25,6 +25,9 @@ export const CUT_S = 0.18
 export const RETRACT_S = 0.18
 /** How often the board tells the Room where the pointer is: 25 times a second. */
 export const CURSOR_MS = 40
+/** How long the pointer rests on a Node or a belt before its hover shows. A pass across the
+ *  Board is faster than this, so it lights nothing, and a deliberate hover still answers. */
+export const HOVER_SETTLE_MS = 150
 
 let reduceQuery: MediaQueryList | null = null
 

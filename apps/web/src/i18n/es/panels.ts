@@ -90,7 +90,7 @@ export const panels: Messages['panels'] = {
   enter: 'Enter',
   inspectorPlaceConfirm: 'Inspector · colocar · confirmar',
   linkTheSelectedNode: 'Enlazar el nodo seleccionado',
-  tidyByZone: 'Ordenar por zona',
+  tidyByRole: 'Ordenar por rol',
   fitTheBoard: 'Ajustar el tablero',
   research: 'Investigación',
   team: 'Equipo',

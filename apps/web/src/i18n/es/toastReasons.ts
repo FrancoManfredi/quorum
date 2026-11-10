@@ -1,6 +1,12 @@
 import type { Messages } from '../messages.ts'
 
 export const reasons: Messages['toasts']['reasons'] = {
+  aReadReplicaCopiesItsPrimaryAutomatically:
+    'Una réplica de lectura copia su primario automáticamente. Enlaza servidores de aplicación a la réplica para enviarle lecturas.',
+  databasesDoNotLinkToEachOther:
+    'Las bases de datos no se enlazan entre sí. La topología decide cómo comparten filas. Enlaza servidores de aplicación a cada base de datos.',
+  singlePrimaryHoldsOneDatabase:
+    'Un primario único tiene una sola base de datos. Divide el grupo de datos, o elige Sharding o Multi-leader.',
   aCDNTTLIs1Minute5: 'Un TTL de CDN es 1 minuto, 5 minutos o 1 hora.',
   aChallengeIsOpenChallengesAreScored:
     'Hay un desafío abierto. Los desafíos puntúan, así que los agentes no pueden leerlos.',
