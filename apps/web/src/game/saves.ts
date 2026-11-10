@@ -26,8 +26,6 @@ export const CompanyFile = Schema.Struct({
   stage: Schema.Finite,
   users: Schema.Finite,
   time: Schema.Finite,
-  /** This Company came from the single save of the build before Company files. */
-  recovered: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
   /** The Room this Company is online in, or null. */
   online: Schema.NullOr(RoomLink).pipe(Schema.withDecodingDefaultKey(Effect.succeed(null))),
 })
@@ -67,7 +65,6 @@ export const fileFor = (args: {
   game: Game
   now: number
   createdAt?: number
-  recovered?: boolean
 }): CompanyFile => ({
   id: args.id,
   name: args.name,
@@ -79,7 +76,6 @@ export const fileFor = (args: {
   stage: args.game.stage,
   users: args.game.users,
   time: args.game.time,
-  recovered: args.recovered ?? false,
   online: null,
 })
 
@@ -128,7 +124,3 @@ export const refreshedIndex = (index: SaveIndex, game: Game): SaveIndex => {
 
 export const recent = (files: ReadonlyArray<CompanyFile>): ReadonlyArray<CompanyFile> =>
   [...files].sort((a, b) => b.updatedAt - a.updatedAt)
-
-/** A Company from the build before Company files is already in the list. */
-export const hasRecovered = (files: ReadonlyArray<CompanyFile>): boolean =>
-  files.some((file) => file.recovered)

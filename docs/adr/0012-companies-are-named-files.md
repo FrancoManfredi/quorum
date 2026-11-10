@@ -21,11 +21,8 @@ index has no cap.
 4. `apps/web` owns the index, the logos, and the founding draft. `packages/simulation` keeps the
    Game, the Founding, and the Venture and Mutator rules; a Company's name reaches the history row
    at Exit, because that row records the Company ([Exit and Legacy](https://wiki.playquorum.dev/design/13-prestige#company-history)).
-5. The old `quorum.save.v2` is read once. If it decodes, it becomes the first Company file named
-   "Recovered company", and the old key is left in place. If the player already has a Company list,
-   the old save is not imported automatically: Settings offers "Recover previous save", a hidden,
-   transitional action that adds it to the list. If the old save does not decode, it is kept aside as
-   before and the recovery action says so.
+5. The pre-public single save `quorum.save.v2` is gone. Public saves carry their own `format`
+   ([A Company save carries a format version](0023-a-company-save-has-a-format.md)).
 6. Exiting a Company deletes its file: an exited Company cannot be continued. Its history row and
    Legacy stay with the Founder.
 
@@ -36,8 +33,4 @@ index has no cap.
   board when its file says otherwise.
 - The index duplicates the Venture and Mutators so the Companies page never decodes every Game.
   `founding` in the Game stays the source of truth; the index is a cache for the list.
-- The old single save is never deleted. A player can open an older build and continue that save, and
-  the hidden recovery action reads the same key. The action is transitional: after the migration
-  window, it can be removed with no change to the index or the Game.
-- Export and import of a Company as text ([Interface and game feel](https://wiki.playquorum.dev/design/15-ui-ux#save)) is not
-  built. The file boundary makes it a serialization of one Game plus its metadata, not a new format.
+- Export and import as text ([Interface and game feel](https://wiki.playquorum.dev/design/15-ui-ux#save)) serializes one Company file with its metadata and replaces the open Company's Game. The file boundary made it a serialization, not a new format.

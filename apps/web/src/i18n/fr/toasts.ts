@@ -74,7 +74,7 @@ export const toasts: Messages['toasts'] = {
     slotsFull: (slots) =>
       `Tous les emplacements de plans types sont pleins (${slots}). Supprimez-en un, ou achetez-en d’autres dans la boutique d’héritage.`,
     otherBuild: (version, current) =>
-      `Cette sauvegarde vient d’une autre version (${version} ; cette version est ${current}).`,
+      `Cette sauvegarde vient d’une autre version (${version} ; cette version lit ${current}).`,
     devHours: (spent, budget) =>
       `L’architecture demande ${spent} heures de dev ; le budget est de ${budget}.`,
     needsFirst: (name, needed) => `${name} nécessite d’abord ${needed}.`,
@@ -134,13 +134,6 @@ export const toasts: Messages['toasts'] = {
   nodeShut: 'Trésorerie épuisée : un nœud s’éteint pour stopper les dépenses.',
   nodesShut: (count) =>
     `Trésorerie épuisée : ${count} nœuds s’éteignent pour stopper les dépenses.`,
-  unreadableSave: 'Votre sauvegarde n’a pas pu être lue. Une copie a été conservée.',
-  noPreviousSave: 'Il n’y a aucune sauvegarde précédente à récupérer.',
-  previousSaveKnown: 'La sauvegarde précédente figure déjà parmi vos entreprises.',
-  previousSaveUnreadable:
-    'La sauvegarde précédente n’a pas pu être lue. Elle n’a pas été modifiée.',
-  recoveredCompany: 'Entreprise récupérée',
-  recovered: (name) => `Récupéré : ${name}.`,
   unreadableList: 'Votre liste d’entreprises n’a pas pu être lue. Une copie a été conservée.',
   companyMissing: 'Ce fichier d’entreprise est introuvable.',
   unreadableCompany: 'Cette entreprise n’a pas pu être lue. Une copie a été conservée.',
@@ -197,6 +190,8 @@ export const toasts: Messages['toasts'] = {
   noSaveHere: 'Un bac à sable ou un défi n’a pas de sauvegarde.',
   noCompanyToExport: 'Il n’y a aucune entreprise à exporter.',
   copiedSave: 'Sauvegarde copiée au format texte.',
+  saveFailed:
+    'Le stockage est plein. L’entreprise n’a pas été enregistrée. Copiez une sauvegarde dans Paramètres.',
   noCompanyToImport: 'Il n’y a aucune entreprise dans laquelle importer.',
   saveImported: 'Sauvegarde importée.',
   legacyCheat: '+20 points d’héritage.',
@@ -206,7 +201,7 @@ export const toasts: Messages['toasts'] = {
   copiedState: 'État du jeu copié au format JSON.',
   copiedAgentRoom: 'Identifiant de salle d’agent copié.',
   agentRoomMissing: 'Activez d’abord l’accès des agents.',
-  logCleared: 'Journal de playtest effacé.',
+  logCleared: 'Journal effacé.',
   clipboardBlocked: 'Le presse-papiers est bloqué.',
 
   event: {

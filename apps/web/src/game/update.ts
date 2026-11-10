@@ -67,7 +67,6 @@ export const initialModel = (): Model => {
     companyPhase: { _tag: 'None' },
     saves: EMPTY_SAVE_INDEX,
     savesReady: false,
-    oldSave: false,
     draft: { name: '', logo: DEFAULT_LOGO },
     saveFocus: null,
     saveConfirm: { _tag: 'List' },

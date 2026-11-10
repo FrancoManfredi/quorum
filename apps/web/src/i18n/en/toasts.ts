@@ -79,7 +79,7 @@ export const toasts = {
     slotsFull: (slots: Value) =>
       `Every Playbook slot is full (${slots}). Delete one, or buy more in the Legacy shop.`,
     otherBuild: (version: Value, current: Value) =>
-      `That save is from another build (${version}; this build is ${current}).`,
+      `That save is from another version (${version}; this build reads ${current}).`,
     devHours: (spent: Value, budget: Value) =>
       `The Design needs ${spent} Dev Hours; the budget is ${budget}.`,
     needsFirst: (name: Value, needed: Value) => `${name} needs ${needed} first.`,
@@ -137,12 +137,6 @@ export const toasts = {
     `Out of Cash. Investors offer a bridge: ${grant} for ${share}% of Equity.`,
   nodeShut: 'Out of Cash: a Node shut down to stop the Burn.',
   nodesShut: (count: Value) => `Out of Cash: ${count} Nodes shut down to stop the Burn.`,
-  unreadableSave: 'Your save could not be read. A copy was kept.',
-  noPreviousSave: 'There is no previous save to recover.',
-  previousSaveKnown: 'The previous save is already in your companies.',
-  previousSaveUnreadable: 'The previous save could not be read. It was left untouched.',
-  recoveredCompany: 'Recovered company',
-  recovered: (name: Value) => `Recovered ${name}.`,
   unreadableList: 'Your company list could not be read. A copy was kept.',
   companyMissing: 'That company file is missing.',
   unreadableCompany: 'That company could not be read. A copy was kept.',
@@ -195,6 +189,7 @@ export const toasts = {
   noSaveHere: 'A Sandbox or Challenge has no save.',
   noCompanyToExport: 'There is no Company to export.',
   copiedSave: 'Copied the save as text.',
+  saveFailed: 'Storage is full. Your company was not saved. Copy a backup from Settings.',
   noCompanyToImport: 'There is no Company to import into.',
   saveImported: 'Save imported.',
   legacyCheat: '+20 Legacy.',
@@ -204,7 +199,7 @@ export const toasts = {
   copiedState: 'Copied the game state as JSON.',
   copiedAgentRoom: 'Copied the agent room id.',
   agentRoomMissing: 'Turn on Agent access first.',
-  logCleared: 'Playtest log cleared.',
+  logCleared: 'Log cleared.',
   clipboardBlocked: 'The clipboard is blocked.',
 
   /** What happens in a Challenge's Design, as a Toast: a Challenge has no Inbox. */

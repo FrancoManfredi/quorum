@@ -465,11 +465,11 @@ Advice and offers are Mail ([Mail](/design/18-mail)). The rules below cover what
 - Autosave to local storage every 5 sim seconds and on every Era change, per Company.
 - The player names each Company and picks its logo before founding it.
 - Any number of Companies are kept; the Companies page lists them and opens, or deletes, one.
-- The single save from before Company files is never deleted. Settings offers a hidden
-  "Recover previous save" action that imports it into the Companies list. This action is temporary.
+- Each Company file carries `format`, the save format version. A file without this build's format
+  is set aside and reported, not decoded. There is no migration from pre-public saves.
 - Export and import as text: Settings › Copy save as text puts the save on the clipboard as one line
   (`QSV1:` and base64url JSON). Settings › Import a save asks for one and opens it. The title
-  screen's settings carry the same two rows. The line carries the Simulation's version in front, so
-  a string from another build is refused with the two versions named instead of being read as this
-  build's. An import replaces the open Company's game, and is refused in a Sandbox or a Challenge, which
-  have no save.
+  screen's settings carry the same two rows. The line carries the save format in front, so a string
+  from another format is refused with the formats named instead of being read as this build's. An
+  import replaces the open Company's game, and is refused in a Sandbox or a Challenge, which have no
+  save.

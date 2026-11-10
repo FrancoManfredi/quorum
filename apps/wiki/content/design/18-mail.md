@@ -474,17 +474,17 @@ The Simulation emits **facts**: typed, deterministic records of things that happ
 
 ## Open questions
 
-| Question                                   | Current answer                                                                                                           |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| Does the Inbox survive a reload?           | Yes: the save keeps the Mail, the mutes, and the last event tick, and an older save opens with an empty Inbox.           |
-| Does new Mail raise a sound or a toast?    | Offers, CVEs with a clock, and outages do: one short mutable chime. The rest only change the badge.                      |
-| Should each Mail have a written subject?   | Yes. Every letter in `apps/web/src/game/copy/` writes its own subject; the Simulation supplies the topic and its values. |
-| Does an unanswered offer cost the player?  | No. An Era that begins without a raise already runs at 0.7 × `g` ([Economy](/design/09-economy#funding)).                |
-| Can the player reply?                      | No. No free text and no threads with replies.                                                                            |
-| Are teammates procedurally named?          | Yes, from the seed, with a pool of names and a short bio each. A teammate keeps their name for life.                     |
-| Is Spam only flavour in the first release? | Yes: spam and phishing ship with the CVE system, not before.                                                             |
-| How many CVEs per hour of play?            | One every 420 sim seconds from Pre-seed, whatever the size of the stack. A balancing item.                               |
-| Does the Mentor stay?                      | Yes, but rarely after Pre-seed. The Mentor's voice is the only one that is not about a fact.                             |
+| Question                                   | Current answer                                                                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Does the Inbox survive a reload?           | Yes: the save keeps the Mail, the mutes, and the last event tick. A save from another format is refused before it reaches the Inbox. |
+| Does new Mail raise a sound or a toast?    | Offers, CVEs with a clock, and outages do: one short mutable chime. The rest only change the badge.                                  |
+| Should each Mail have a written subject?   | Yes. Every letter in `apps/web/src/game/copy/` writes its own subject; the Simulation supplies the topic and its values.             |
+| Does an unanswered offer cost the player?  | No. An Era that begins without a raise already runs at 0.7 × `g` ([Economy](/design/09-economy#funding)).                            |
+| Can the player reply?                      | No. No free text and no threads with replies.                                                                                        |
+| Are teammates procedurally named?          | Yes, from the seed, with a pool of names and a short bio each. A teammate keeps their name for life.                                 |
+| Is Spam only flavour in the first release? | Yes: spam and phishing ship with the CVE system, not before.                                                                         |
+| How many CVEs per hour of play?            | One every 420 sim seconds from Pre-seed, whatever the size of the stack. A balancing item.                                           |
+| Does the Mentor stay?                      | Yes, but rarely after Pre-seed. The Mentor's voice is the only one that is not about a fact.                                         |
 
 ## Names
 
@@ -585,7 +585,7 @@ Teammates draw a name from a pool and keep it for life.
   names the off-site address it leaves for. The wiki glossary lists the CVEs the Simulation can
   disclose, so a real advisory's id opens a page and a fake one has nothing to open.
 - **Saving the Inbox:** the Company save keeps the Mail, the mutes, and the last event tick the world
-  wrote for. An older save opens with an empty Inbox rather than failing.
+  wrote for. The Inbox is part of the Company file, and a save from another format never reaches it.
 - **The Digest:** when more than eight threads in a folder are unread, the oldest low-priority ones
   fold into one row, whose reader lists them.
 - **Postmortems:** when an Incident resolves, a teammate writes with File postmortem and File and

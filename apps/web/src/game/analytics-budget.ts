@@ -27,6 +27,21 @@ type Store = Readonly<{
 
 let memory: Store | null = null
 
+const isStore = (value: unknown): value is Store => {
+  if (typeof value !== 'object' || value === null) return false
+  const store = value as Record<string, unknown>
+  return (
+    typeof store['month'] === 'string' &&
+    typeof store['events'] === 'number' &&
+    Number.isFinite(store['events']) &&
+    store['events'] >= 0 &&
+    typeof store['session'] === 'string' &&
+    typeof store['sessionEvents'] === 'number' &&
+    Number.isFinite(store['sessionEvents']) &&
+    store['sessionEvents'] >= 0
+  )
+}
+
 const session = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
 const monthOf = (now: number): string => new Date(now).toISOString().slice(0, 7)
@@ -37,8 +52,8 @@ const read = (now: number): Store => {
   if (typeof window === 'undefined') return memory ?? (memory = fresh)
   try {
     const raw = window.localStorage.getItem(KEY)
-    const stored = raw === null ? null : (JSON.parse(raw) as Store)
-    if (stored === null || stored.month !== month) return fresh
+    const stored: unknown = raw === null ? null : JSON.parse(raw)
+    if (!isStore(stored) || stored.month !== month) return fresh
     return stored.session === session ? stored : { ...stored, session, sessionEvents: 0 }
   } catch {
     return memory ?? (memory = fresh)

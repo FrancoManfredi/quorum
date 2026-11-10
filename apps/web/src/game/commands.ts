@@ -25,11 +25,12 @@ import {
   TradeoffOption,
 } from './model.ts'
 import { refreshed, SaveIndex } from './saves.ts'
+import { pruneCompanyFiles, SAVE_PREFIX } from './storage.ts'
 import { History } from './history.ts'
 import { SavedInbox } from './inbox.ts'
 import { saveJson } from './save-file.ts'
 import { play, setMuted, setVolume, SOUND_NAMES } from './sound.ts'
-import { setAgentAccess } from './agent-room.ts'
+import { pruneAgentRooms, setAgentAccess } from './agent-room.ts'
 import { appendLog, clearLog, downloadLog, LogEntry } from './playlog.ts'
 import { forward, setAnalyticsEnabled } from '../platform/analytics.ts'
 import { SurveySubmission } from '@quorum/rpc'
@@ -41,10 +42,6 @@ import { send as sendRoom } from '../platform/room-socket.ts'
 
 /** The list of Companies: their names, logos, and the figures the title lists. */
 export const SAVE_INDEX_KEY = 'quorum.saves.v1'
-/** One Company's Game per file, so an autosave writes one Company only. */
-export const SAVE_PREFIX = 'quorum.save.v3.'
-/** The single save of the build before Company files. Read once, then left in place. */
-export const LEGACY_SAVE_KEY = 'quorum.save.v2'
 export const SANDBOX_KEY = 'quorum.sandbox.v1'
 export const PREFS_KEY = 'quorum.prefs.v1'
 export const FOUNDER_KEY = 'quorum.founder.v1'
@@ -257,13 +254,23 @@ export const LoadSaves = Command.define('LoadSaves', {
       try {
         return Message.SavesLoaded({
           index: window.localStorage.getItem(SAVE_INDEX_KEY),
-          legacy: window.localStorage.getItem(LEGACY_SAVE_KEY),
           now: Date.now(),
         })
       } catch {
-        return Message.SavesLoaded({ index: null, legacy: null, now: Date.now() })
+        return Message.SavesLoaded({ index: null, now: Date.now() })
       }
     }),
+})
+
+/** Removes Company files the list does not name, after a failed index write or a crashed save. */
+export const PruneSaves = Command.define('PruneSaves', {
+  args: { index: SaveIndex },
+  messages: [Message.Synced],
+  execute: ({ index }) =>
+    Effect.sync(() => {
+      pruneCompanyFiles(index)
+      pruneAgentRooms(new Set(index.companies.map((file) => file.id)))
+    }).pipe(Effect.as(Message.Synced())),
 })
 
 /** Reads one Company's Game, to continue it or to open it from the Companies page. */
@@ -295,9 +302,10 @@ export const WriteCompany = Command.define('WriteCompany', {
     /** The Inbox the Company keeps (18 "Open questions"): its Mail and its mutes. */
     inbox: SavedInbox,
   },
-  messages: [Message.Saved],
+  messages: [Message.Saved, Message.SaveFailed],
   execute: ({ id, index, game, revealed, pending, dashboard, inbox }) =>
     Effect.sync(() => {
+      let saved = false
       try {
         const now = Date.now()
         const file = index.companies.find((entry) => entry.id === id)
@@ -315,11 +323,12 @@ export const WriteCompany = Command.define('WriteCompany', {
               companies: index.companies.map((entry) => (entry.id === id ? stamped : entry)),
             }),
           )
+          saved = true
         }
       } catch {
-        // A full or blocked storage loses the save, not the game.
+        // A full or blocked storage loses the save, not the game. The player hears about it.
       }
-      return Message.Saved()
+      return saved ? Message.Saved() : Message.SaveFailed()
     }),
 })
 
@@ -339,24 +348,7 @@ export const DeleteCompany = Command.define('DeleteCompany', {
     }),
 })
 
-/** Reads the single save of the build before Company files, for the hidden recovery action. */
-export const ReadOldSave = Command.define('ReadOldSave', {
-  args: {},
-  messages: [Message.OldSaveLoaded],
-  execute: () =>
-    Effect.sync(() => {
-      try {
-        return Message.OldSaveLoaded({
-          json: window.localStorage.getItem(LEGACY_SAVE_KEY),
-          now: Date.now(),
-        })
-      } catch {
-        return Message.OldSaveLoaded({ json: null, now: Date.now() })
-      }
-    }),
-})
-
-export const BROKEN_SAVE_KEY = 'quorum.save.v2.broken'
+export const BROKEN_SAVE_KEY = 'quorum.save.broken.v1'
 
 /** Sets a save this version cannot read aside, so the next Company does not overwrite it. */
 export const KeepBrokenSave = Command.define('KeepBrokenSave', {

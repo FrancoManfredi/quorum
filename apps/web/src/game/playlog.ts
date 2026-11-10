@@ -1,7 +1,8 @@
 import { Schema } from 'effect'
 
 export const LOG_KEY = 'quorum.playlog.v1'
-const LIMIT = 50_000
+/** The log is a support aid. Keep the recent lines only: the storage quota belongs to saves. */
+const LIMIT = 2_000
 
 /** One line of the log. `data` is the event's payload as JSON. */
 export const LogEntry = Schema.Struct({
@@ -24,11 +25,26 @@ let cache: Array<Stored> | null = null
 let seq = 0
 const session = `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`
 
+const isStored = (value: unknown): value is Stored => {
+  if (typeof value !== 'object' || value === null) return false
+  const entry = value as Record<string, unknown>
+  return (
+    typeof entry['session'] === 'string' &&
+    typeof entry['seq'] === 'number' &&
+    Number.isFinite(entry['seq']) &&
+    typeof entry['wall'] === 'number' &&
+    typeof entry['t'] === 'number' &&
+    typeof entry['type'] === 'string' &&
+    'data' in entry
+  )
+}
+
 const load = (): Array<Stored> => {
   if (cache) return cache
   try {
     const raw = window.localStorage.getItem(LOG_KEY)
-    cache = raw ? (JSON.parse(raw) as Array<Stored>) : []
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    cache = Array.isArray(parsed) ? parsed.filter(isStored).slice(-LIMIT) : []
   } catch {
     cache = []
   }
@@ -93,7 +109,7 @@ export const downloadLog = (): void => {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url
-  anchor.download = `quorum-playtest-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`
+  anchor.download = `quorum-log-${new Date().toISOString().replace(/[:.]/g, '-')}.jsonl`
   document.body.append(anchor)
   anchor.click()
   anchor.remove()
@@ -108,7 +124,7 @@ export const clearLog = (): void => {
 
 declare global {
   interface Window {
-    /** The playtest log, for the browser console. */
+    /** The game log, for the browser console. */
     quorumLog?: () => ReadonlyArray<unknown>
   }
 }

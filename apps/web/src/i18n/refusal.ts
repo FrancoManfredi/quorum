@@ -53,7 +53,7 @@ const patterns: ReadonlyArray<
   [/^(.+) is not Postgres\.$/, (t, [a]) => t.toasts.reason.notPostgres(nameIn(t, a!))],
   [/^Every Playbook slot is full \((\d+)\)\. .*$/, (t, [a]) => t.toasts.reason.slotsFull(a!)],
   [
-    /^That save is from another build \((.+); this build is (.+)\)\.$/,
+    /^That save is from another version \((.+); this build reads (.+)\)\.$/,
     (t, [a, b]) => t.toasts.reason.otherBuild(a!, b!),
   ],
   [

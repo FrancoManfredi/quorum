@@ -5,7 +5,6 @@ import { Schema } from 'effect'
 export const companiesCases = {
   SavesLoaded: {
     index: Schema.NullOr(Schema.String),
-    legacy: Schema.NullOr(Schema.String),
     now: Schema.Finite,
   },
   /** One Company's Game, read to continue it or to open it from the Companies page. */
@@ -24,15 +23,13 @@ export const companiesCases = {
   CompanyDeleteCancelled: {},
   CompanyDeleteConfirmed: {},
   CompanyDeleted: { id: Schema.String },
-  /** The hidden recovery action: read the single save of the build before Company files. */
-  OldSaveImportAsked: {},
-  OldSaveLoaded: { json: Schema.NullOr(Schema.String), now: Schema.Finite },
   FounderLoaded: {
     json: Schema.NullOr(Schema.String),
     deviceId: Schema.String,
     today: Schema.String,
   },
   Saved: {},
+  SaveFailed: {},
   /** The title screen's connect sequence ended: the board it was opening shows. */
   CompanyFounded: {},
   PreseedStarted: {},

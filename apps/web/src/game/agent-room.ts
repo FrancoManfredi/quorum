@@ -1,3 +1,4 @@
+import { Option, Schema } from 'effect'
 import { AGENT_ROOM_PATH } from '@quorum/rpc'
 import type { Ack } from '@quorum/agent/snapshot'
 import { newWriteKey, roomIdOf } from '@quorum/agent/room-id'
@@ -17,6 +18,15 @@ const INTERVAL_MS = 5_000
 
 type RoomRecord = Readonly<{ writeKey: string; roomId: string; epoch: string }>
 
+/** A Room record written by this build. A bad entry falls back to the in-memory copy. */
+const RoomRecord = Schema.Struct({
+  writeKey: Schema.String,
+  roomId: Schema.String,
+  epoch: Schema.String,
+})
+const Rooms = Schema.Record(Schema.String, RoomRecord)
+const decodeRooms = Schema.decodeUnknownOption(Schema.fromJsonString(Rooms))
+
 let memory: Record<string, RoomRecord> = {}
 const pending = new Map<string, Promise<RoomRecord>>()
 let wanted = false
@@ -30,10 +40,7 @@ const readRooms = (): Record<string, RoomRecord> => {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     if (stored === null) return memory
-    const parsed: unknown = JSON.parse(stored)
-    return typeof parsed === 'object' && parsed !== null
-      ? (parsed as Record<string, RoomRecord>)
-      : memory
+    return Option.getOrElse(decodeRooms(stored), () => memory)
   } catch {
     return memory
   }
@@ -51,6 +58,13 @@ const writeRooms = (rooms: Record<string, RoomRecord>): void => {
 /** The id shown in Settings, or null before this Company has one. */
 export const agentRoomId = (companyId: string): string | null =>
   readRooms()[companyId]?.roomId ?? null
+
+/** Drops Room records for Companies the list no longer names. The remote Room expires on its own. */
+export const pruneAgentRooms = (companyIds: ReadonlySet<string>): void => {
+  const rooms = readRooms()
+  const kept = Object.fromEntries(Object.entries(rooms).filter(([id]) => companyIds.has(id)))
+  if (Object.keys(kept).length !== Object.keys(rooms).length) writeRooms(kept)
+}
 
 /** Finds or makes the Room for this Company. A new Company gets a new key and id. */
 const ensureRoom = (companyId: string): Promise<RoomRecord> => {
@@ -135,6 +149,9 @@ const clearAll = async (): Promise<void> => {
 /** The update loop hands every Model to this, so the timer always sends the newest one. */
 export const syncAgent = (model: Model): void => {
   latest = model
+  // A Room and its write key are made only when the player turns Agent access on, not for every
+  // Company. `send` makes the first one before its first upload.
+  if (!model.prefs.agentAccess) return
   const companyId = playingId(model)
   if (companyId !== null && agentRoomId(companyId) === null) void ensureRoom(companyId)
 }

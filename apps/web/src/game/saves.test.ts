@@ -2,10 +2,12 @@ import { savedInbox } from './inbox.ts'
 import { describe, expect, test } from 'vitest'
 import { Effect } from 'effect'
 import { newGame, preseedGame } from '@quorum/simulation/company'
-import { DeleteCompany, LoadSaves, ReadOldSave, WriteCompany } from './commands.ts'
+import { LoadSaves, PruneSaves, WriteCompany } from './commands.ts'
 import { Message } from './message.ts'
 import { currentFile, hasCompany, type Model } from './model.ts'
 import { AppRoute } from './route.ts'
+import { SAVE_FORMAT } from './save-file.ts'
+import { SAVE_PREFIX, pruneCompanyFiles, sweepLegacyStorage } from './storage.ts'
 import { TICK_MS, initialModel, update } from './update.ts'
 import {
   EMPTY_SAVE_INDEX,
@@ -86,7 +88,11 @@ const indexOf = (files: ReadonlyArray<CompanyFile>, current: string | null): Sav
 })
 
 /** One stored Company. */
-const stored = (): Readonly<{ index: SaveIndex; game: ReturnType<typeof preseedGame> }> => {
+const stored = (): Readonly<{
+  index: SaveIndex
+  game: ReturnType<typeof preseedGame>
+  save: string
+}> => {
   const game = { ...preseedGame() }
   const file = fileFor({
     id: 'c-one',
@@ -96,8 +102,12 @@ const stored = (): Readonly<{ index: SaveIndex; game: ReturnType<typeof preseedG
     game,
     now: 1_000,
   })
-  return { index: indexOf([file], file.id), game }
+  return { index: indexOf([file], file.id), game, save: saveOf(game) }
 }
+
+/** A stored Company file, as this build writes it. */
+const saveOf = (game: object, extra: Record<string, unknown> = {}): string =>
+  JSON.stringify({ format: SAVE_FORMAT, ...game, ...extra })
 
 describe('naming a Company', () => {
   test('a typed name is trimmed and cut to the field length; an empty one gets a fallback', () => {
@@ -161,7 +171,7 @@ describe('the Companies page', () => {
     const { index } = stored()
     const loaded = update(
       initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 2_000 }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 2_000 }),
     )
     expect(loaded.model.saves).toEqual(index)
     expect(loaded.model.companyPhase).toEqual({ _tag: 'Opening', id: 'c-one' })
@@ -194,18 +204,18 @@ describe('the Companies page', () => {
     )
     const waiting = send(
       initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(two), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
+      Message.SavesLoaded({ index: JSON.stringify(two), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: saveOf(game) }),
       Message.CompanyChosen({ id: 'c-two' }),
       Message.CompanyOpened({ id: 'c-two' }),
       // The first file answers late: it belongs to the Company the player left.
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: saveOf(game) }),
     )
     expect(waiting.companyPhase).toEqual({ _tag: 'Opening', id: 'c-two' })
     expect(waiting.saves.current).toBe('c-one')
     const landed = send(
       waiting,
-      Message.CompanyLoaded({ id: 'c-two', open: true, json: JSON.stringify(other) }),
+      Message.CompanyLoaded({ id: 'c-two', open: true, json: saveOf(other) }),
     )
     expect(landed.companyPhase).toEqual({ _tag: 'Open', id: 'c-two' })
     expect(landed.saves.current).toBe('c-two')
@@ -215,13 +225,14 @@ describe('the Companies page', () => {
   test('opening a file reads its Game, its disclosure, and its dashboard', () => {
     const { index, game } = stored()
     const json = JSON.stringify({
+      format: SAVE_FORMAT,
       ...game,
       disclosure: { revealed: ['undo'], pending: [] },
       dashboard: { blocks: {} },
     })
     const opened = send(
       initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
       Message.CompanyLoaded({ id: 'c-one', open: true, json }),
     )
     expect(hasCompany(opened)).toBe(true)
@@ -235,8 +246,8 @@ describe('the Companies page', () => {
     const { index, game } = stored()
     const opened = send(
       initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: saveOf(game) }),
     )
     const asked = send(opened, Message.CompanyChosen({ id: 'c-one' }), Message.CompanyDeleteAsked())
     expect(asked.saveConfirm).toEqual({ _tag: 'Confirming', id: 'c-one' })
@@ -274,8 +285,8 @@ describe('the Companies page', () => {
     const index = indexOf([first, second], 'c-one')
     const opened = send(
       initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: saveOf(game) }),
       Message.CompanyChosen({ id: 'c-two' }),
       Message.CompanyDeleteAsked(),
       Message.CompanyDeleteConfirmed(),
@@ -285,11 +296,8 @@ describe('the Companies page', () => {
     expect(hasCompany(opened)).toBe(true)
   })
 
-  test('a broken save is kept aside, and no Company opens', () => {
-    const result = update(
-      initialModel(),
-      Message.SavesLoaded({ index: null, legacy: '{not json', now: 0 }),
-    )
+  test('a broken list is kept aside, and no Company opens', () => {
+    const result = update(initialModel(), Message.SavesLoaded({ index: '{not json', now: 0 }))
     expect(result.model.companyPhase).toEqual({ _tag: 'None' })
     expect(result.commands).toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'KeepBrokenSave' })]),
@@ -331,97 +339,53 @@ describe('autosave and migration', () => {
     expect(commandsOf(played, Message.TitleOpened())).toContain('WriteCompany')
   })
 
-  test('the single save of the old build becomes the first recovered Company', () => {
-    const game = { ...preseedGame() }
-    const migrated = send(
-      initialModel(),
-      Message.SavesLoaded({ index: null, legacy: JSON.stringify(game), now: 8_000 }),
-    )
-    const file = currentFile(migrated)
-    expect(file).toMatchObject({
-      name: 'Recovered company',
-      venture: game.founding.venture,
-      createdAt: 8_000,
-      recovered: true,
+  test('the autosave writes the save format beside the Game', () => {
+    const storage = fakeStorage({})
+    withStorage(storage, () => {
+      const founded = send(initialModel(), Message.CompanyFounded())
+      const id = founded.saves.current
+      expect(id).not.toBeNull()
+      const board = founded.board
+      runCommand(
+        WriteCompany({
+          id: id!,
+          index: refreshedIndex(founded.saves, board.game),
+          game: board.game,
+          revealed: board.disclosure.revealed,
+          pending:
+            board.disclosure._tag === 'Queued' || board.disclosure._tag === 'Cueing'
+              ? board.disclosure.pending
+              : [],
+          dashboard: board.dashboard.history,
+          inbox: savedInbox(board.inbox),
+        }),
+      )
+      const saved = JSON.parse(storage.getItem(`${SAVE_PREFIX}${id}`) ?? '{}') as Record<
+        string,
+        unknown
+      >
+      expect(saved['format']).toBe(SAVE_FORMAT)
+      expect(saved['seed']).toBe(board.game.seed)
     })
-    expect(hasCompany(migrated)).toBe(true)
-    expect(migrated.oldSave).toBe(true)
-    const commands = commandsOf(
-      initialModel(),
-      Message.SavesLoaded({ index: null, legacy: JSON.stringify(game), now: 8_000 }),
-    )
-    expect(commands).toContain('WriteCompany')
-    // The old key stays where it is, so a player can still go back to the old build.
-    expect(commands).not.toContain('DropLegacySave')
   })
 
-  test('an index and the previous save both stay, and the previous save stays recoverable', () => {
+  test('a Company file without this format is kept aside', () => {
     const { index, game } = stored()
-    const result = update(
-      initialModel(),
-      Message.SavesLoaded({
-        index: JSON.stringify(index),
-        legacy: JSON.stringify(game),
-        now: 2_000,
-      }),
-    )
-    expect(result.model.saves).toEqual(index)
-    expect(result.model.oldSave).toBe(true)
-    expect(result.model.saves.companies).toHaveLength(1)
-  })
-
-  test('recovering the previous save adds it to the list and opens it', () => {
-    const { index } = stored()
-    const legacy = { ...preseedGame(4242) }
-    const asked = send(
-      initialModel(),
-      Message.SavesLoaded({
-        index: JSON.stringify(index),
-        legacy: JSON.stringify(legacy),
-        now: 4_000,
-      }),
-    )
-    expect(commandsOf(asked, Message.OldSaveImportAsked())).toContain('ReadOldSave')
-    const imported = send(
-      asked,
-      Message.OldSaveLoaded({ json: JSON.stringify(legacy), now: 4_000 }),
-    )
-    expect(imported.saves.companies).toHaveLength(2)
-    expect(imported.saves.companies[0]).toMatchObject({
-      name: 'Recovered company',
-      recovered: true,
-      createdAt: 4_000,
-    })
-    expect(hasCompany(imported)).toBe(true)
-    expect(imported.route).toEqual(AppRoute.Company())
-    expect(
-      commandsOf(asked, Message.OldSaveLoaded({ json: JSON.stringify(legacy), now: 4_000 })),
-    ).toContain('WriteCompany')
-  })
-
-  test('recovering the previous save twice never duplicates it', () => {
-    const { index } = stored()
-    const legacy = JSON.stringify(preseedGame(4242))
-    const imported = send(
-      initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy, now: 4_000 }),
-      Message.OldSaveLoaded({ json: legacy, now: 4_000 }),
-      Message.OldSaveLoaded({ json: legacy, now: 4_000 }),
-    )
-    expect(imported.saves.companies.filter((file) => file.recovered)).toHaveLength(1)
-    expect(imported.toast?.message).toContain('already')
-  })
-
-  test('a previous save this version cannot read is left untouched', () => {
-    const { index } = stored()
+    const json = JSON.stringify(game)
     const broken = send(
       initialModel(),
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: '{not json', now: 4_000 }),
-      Message.OldSaveLoaded({ json: '{not json', now: 4_000 }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json }),
     )
-    expect(broken.saves.companies).toHaveLength(1)
+    expect(broken.companyPhase).toEqual({ _tag: 'None' })
     expect(broken.toast?.tone).toBe('warn')
-    expect(broken.oldSave).toBe(true)
+    expect(
+      commandsOf(
+        initialModel(),
+        Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
+        Message.CompanyLoaded({ id: 'c-one', open: true, json }),
+      ),
+    ).toContain('KeepBrokenSave')
   })
 
   test('the index figures follow the Company they name', () => {
@@ -446,161 +410,75 @@ describe('autosave and migration', () => {
   })
 })
 
-describe('a playtest browser', () => {
-  const playtestGame = () => {
-    const game = { ...preseedGame(20261031) }
-    return {
-      ...game,
-      disclosure: { revealed: ['undo', 'team'], pending: ['research'] },
-      dashboard: { blocks: {} },
-    }
-  }
-
-  const playtestStorage = () => {
-    const legacy = JSON.stringify(playtestGame())
-    const founder = JSON.stringify({
-      legacy: 12,
-      earned: 20,
-      perks: { 'angel-network': 1 },
-      history: [],
-      playbooks: [],
-      achievements: ['first-exit'],
+describe('browser storage', () => {
+  test('the boot sweep removes the pre-public single saves and leaves settings alone', () => {
+    const storage = fakeStorage({
+      'quorum.save.v1': '{}',
+      'quorum.save.v2': '{}',
+      'quorum.saves.v1': '{}',
+      'quorum.prefs.v1': '{"locale":"fr"}',
     })
-    const playlog = JSON.stringify([
-      {
-        session: 'playtest',
-        seq: 42,
-        wall: 1_700_000_005_000,
-        t: 120,
-        type: 'CompanyStarted',
-        data: { stage: 0, seed: 20261031 },
-      },
-      {
-        session: 'playtest',
-        seq: 43,
-        wall: 1_700_000_006_000,
-        t: 130,
-        type: 'Sample',
-        data: { users: 400 },
-      },
-    ])
-    const prefs = JSON.stringify({ locale: 'fr', muted: true, motion: 'reduce' })
-    const sandbox = JSON.stringify({ passed: ['first-server'], free: null })
-    return {
-      legacy,
-      keys: {
-        'quorum.save.v2': legacy,
-        'quorum.founder.v1': founder,
-        'quorum.playlog.v1': playlog,
-        'quorum.prefs.v1': prefs,
-        'quorum.sandbox.v1': sandbox,
-      },
-    }
-  }
+    withStorage(storage, () => sweepLegacyStorage())
+    expect(storage.getItem('quorum.save.v1')).toBeNull()
+    expect(storage.getItem('quorum.save.v2')).toBeNull()
+    expect(storage.getItem('quorum.saves.v1')).toBe('{}')
+    expect(storage.getItem('quorum.prefs.v1')).toBe('{"locale":"fr"}')
+  })
 
-  test('the boot import reads the old save and leaves the other playtest data alone', () => {
-    const { legacy, keys } = playtestStorage()
-    const storage = fakeStorage(keys)
+  test('pruning removes Company files the list does not name', () => {
+    const { index } = stored()
+    const storage = fakeStorage({
+      [`${SAVE_PREFIX}c-one`]: '{}',
+      [`${SAVE_PREFIX}orphan`]: '{}',
+      'quorum.saves.v1': JSON.stringify(index),
+    })
+    withStorage(storage, () => pruneCompanyFiles(index))
+    expect(storage.getItem(`${SAVE_PREFIX}c-one`)).toBe('{}')
+    expect(storage.getItem(`${SAVE_PREFIX}orphan`)).toBeNull()
+    expect(storage.getItem('quorum.saves.v1')).not.toBeNull()
+  })
+
+  test('pruning also drops Agent Room records for Companies the list does not name', () => {
+    const { index } = stored()
+    const kept = { writeKey: 'w', roomId: 'r', epoch: 'e' }
+    const storage = fakeStorage({
+      'quorum.agent.rooms': JSON.stringify({
+        'c-one': kept,
+        orphan: { writeKey: 'w2', roomId: 'r2', epoch: 'e2' },
+      }),
+    })
+    withStorage(storage, () => runCommand(PruneSaves({ index })))
+    expect(JSON.parse(storage.getItem('quorum.agent.rooms') ?? '{}')).toEqual({ 'c-one': kept })
+  })
+
+  test('the boot load returns the list only, and the page prunes it', () => {
+    const { index } = stored()
+    const storage = fakeStorage({ 'quorum.saves.v1': JSON.stringify(index) })
     withStorage(storage, () => {
       const loaded = runCommand(LoadSaves({}))
-      expect(loaded).toMatchObject({ index: null, legacy })
-      const read = runCommand(ReadOldSave({}))
-      expect(read).toMatchObject({ json: legacy })
-
-      const migrated = update(initialModel(), loaded)
-      const file = currentFile(migrated.model)
-      expect(file).toMatchObject({ name: 'Recovered company', recovered: true })
-      expect(file).not.toBeNull()
-
-      expect(migrated.commands).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'WriteCompany',
-            args: expect.objectContaining({ id: file?.id }),
-          }),
-        ]),
+      expect(loaded).toMatchObject({ index: JSON.stringify(index) })
+      const result = update(initialModel(), loaded)
+      expect(result.commands).toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'PruneSaves' })]),
       )
-      const board = migrated.model.board
-      runCommand(
-        WriteCompany({
-          id: file!.id,
-          index: refreshedIndex(migrated.model.saves, board.game),
-          game: board.game,
-          revealed: board.disclosure.revealed,
-          pending:
-            board.disclosure._tag === 'Queued' || board.disclosure._tag === 'Cueing'
-              ? board.disclosure.pending
-              : [],
-          dashboard: board.dashboard.history,
-          inbox: savedInbox(board.inbox),
-        }),
-      )
-
-      // The old single save, the Founder, the playtest log, and the settings are untouched.
-      for (const [key, value] of Object.entries(keys)) expect(storage.getItem(key)).toBe(value)
-
-      const index = JSON.parse(storage.getItem('quorum.saves.v1') ?? '{}') as SaveIndex
-      expect(index.current).toBe(file?.id)
-      expect(index.companies[0]).toMatchObject({ name: 'Recovered company', recovered: true })
-      const saved = storage.getItem(`quorum.save.v3.${file?.id}`)
-      expect(saved).not.toBeNull()
-      const game = JSON.parse(saved ?? '{}') as ReturnType<typeof playtestGame>
-      expect(game.seed).toBe(20261031)
-      expect(game.nodes).toHaveLength(playtestGame().nodes.length)
-      expect(game.disclosure.revealed).toEqual(['undo', 'team'])
-
-      // Deleting the imported Company removes only its new file.
-      const chosen = update(migrated.model, Message.CompanyChosen({ id: file!.id }))
-      const asked = update(chosen.model, Message.CompanyDeleteAsked())
-      const deleted = update(asked.model, Message.CompanyDeleteConfirmed())
-      expect(deleted.commands).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: 'DeleteCompany',
-            args: expect.objectContaining({ id: file?.id }),
-          }),
-        ]),
-      )
-      runCommand(DeleteCompany({ id: file!.id, index: deleted.model.saves }))
-      expect(storage.getItem(`quorum.save.v3.${file!.id}`)).toBeNull()
-      for (const [key, value] of Object.entries(keys)) expect(storage.getItem(key)).toBe(value)
     })
   })
 
-  test('the hidden recovery writes only its own Company and leaves every old key in place', () => {
-    const { legacy, keys } = playtestStorage()
-    const storage = fakeStorage(keys)
+  test('a broken list is kept aside and no file is pruned', () => {
+    const storage = fakeStorage({
+      'quorum.saves.v1': '{not json',
+      [`${SAVE_PREFIX}orphan`]: '{}',
+    })
     withStorage(storage, () => {
-      const index = JSON.stringify({ current: null, companies: [] })
-      storage.setItem('quorum.saves.v1', index)
-      const loaded = runCommand(LoadSaves({}))
-      const booted = update(initialModel(), loaded)
-      const result = update(booted.model, Message.OldSaveLoaded({ json: legacy, now: 4_000 }))
-      const model = result.model
-      expect(model.saves.companies).toHaveLength(1)
-      expect(model.saves.companies[0]).toMatchObject({ name: 'Recovered company', recovered: true })
-
+      const result = update(initialModel(), runCommand(LoadSaves({})))
+      expect(result.model.toast?.tone).toBe('warn')
       expect(result.commands).toEqual(
-        expect.arrayContaining([expect.objectContaining({ name: 'WriteCompany' })]),
+        expect.arrayContaining([expect.objectContaining({ name: 'KeepBrokenSave' })]),
       )
-      const board = model.board
-      runCommand(
-        WriteCompany({
-          id: model.saves.companies[0]!.id,
-          index: refreshedIndex(model.saves, board.game),
-          game: board.game,
-          revealed: board.disclosure.revealed,
-          pending:
-            board.disclosure._tag === 'Queued' || board.disclosure._tag === 'Cueing'
-              ? board.disclosure.pending
-              : [],
-          dashboard: board.dashboard.history,
-          inbox: savedInbox(board.inbox),
-        }),
+      expect(result.commands ?? []).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ name: 'PruneSaves' })]),
       )
-      for (const [key, value] of Object.entries(keys)) expect(storage.getItem(key)).toBe(value)
-      const imported = model.saves.companies[0]!
-      expect(storage.getItem(`quorum.save.v3.${imported.id}`)).not.toBeNull()
+      expect(storage.getItem(`${SAVE_PREFIX}orphan`)).toBe('{}')
     })
   })
 })

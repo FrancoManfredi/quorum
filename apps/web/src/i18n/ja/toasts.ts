@@ -74,7 +74,7 @@ export const toasts: Messages['toasts'] = {
     slotsFull: (slots) =>
       `プレイブックのスロットはすべて埋まっています（${slots}）。1つ削除するか、レガシーショップで増やしてください。`,
     otherBuild: (version, current) =>
-      `そのセーブは別のビルドのものです（${version}、このビルドは${current}）。`,
+      `そのセーブは別のバージョンのものです（${version}、このビルドは${current}を読み込みます）。`,
     devHours: (spent, budget) => `設計には${spent} DH必要です。予算は${budget}です。`,
     needsFirst: (name, needed) => `${name}には先に${needed}が必要です。`,
     queueTooShort: (limit, name, count) =>
@@ -128,12 +128,6 @@ export const toasts: Messages['toasts'] = {
     `資金が尽きました。投資家がブリッジを提案しています: ${grant}で株式${share}%。`,
   nodeShut: '資金切れ: 支出を止めるためノードを1台停止しました。',
   nodesShut: (count) => `資金切れ: 支出を止めるため${count}台のノードを停止しました。`,
-  unreadableSave: 'セーブを読み込めませんでした。コピーは残してあります。',
-  noPreviousSave: '復元できる以前のセーブはありません。',
-  previousSaveKnown: '以前のセーブはすでに会社一覧にあります。',
-  previousSaveUnreadable: '以前のセーブを読み込めませんでした。そのまま残してあります。',
-  recoveredCompany: '復元した会社',
-  recovered: (name) => `${name}を復元しました。`,
   unreadableList: '会社一覧を読み込めませんでした。コピーは残してあります。',
   companyMissing: 'その会社データが見つかりません。',
   unreadableCompany: 'その会社を読み込めませんでした。コピーは残してあります。',
@@ -187,6 +181,8 @@ export const toasts: Messages['toasts'] = {
   noSaveHere: 'サンドボックスとチャレンジにはセーブがありません。',
   noCompanyToExport: '書き出す会社がありません。',
   copiedSave: 'セーブをテキストとしてコピーしました。',
+  saveFailed:
+    'ストレージがいっぱいです。会社は保存されませんでした。設定からバックアップをコピーしてください。',
   noCompanyToImport: '読み込み先の会社がありません。',
   saveImported: 'セーブを読み込みました。',
   legacyCheat: '+20レガシー。',
@@ -196,7 +192,7 @@ export const toasts: Messages['toasts'] = {
   copiedState: 'ゲームの状態をJSONとしてコピーしました。',
   copiedAgentRoom: 'エージェントルームIDをコピーしました。',
   agentRoomMissing: '先にエージェントアクセスをオンにしてください。',
-  logCleared: 'プレイテストログを消去しました。',
+  logCleared: 'ログを消去しました。',
   clipboardBlocked: 'クリップボードがブロックされています。',
 
   event: {

@@ -72,7 +72,8 @@ export const toasts: Messages['toasts'] = {
     onTheBoard: (name) => `${name} 已在画布上。`,
     notPostgres: (name) => `${name} 不是 Postgres。`,
     slotsFull: (slots) => `运维手册栏位已满（${slots}）。请删除一个，或在传承商店购买更多。`,
-    otherBuild: (version, current) => `该存档来自另一个版本（${version}；当前版本为 ${current}）。`,
+    otherBuild: (version, current) =>
+      `该存档来自另一个版本（${version}；当前版本读取 ${current}）。`,
     devHours: (spent, budget) => `该设计需要 ${spent} 开发工时；预算为 ${budget}。`,
     needsFirst: (name, needed) => `${name}需要先完成${needed}。`,
     queueTooShort: (limit, name, count) =>
@@ -120,12 +121,6 @@ export const toasts: Messages['toasts'] = {
   bridgeOffer: (grant, share) => `现金耗尽。投资人提供过桥融资：${grant}，换取 ${share}% 的股权。`,
   nodeShut: '现金耗尽：一个节点已关闭，以止住支出。',
   nodesShut: (count) => `现金耗尽：${count} 个节点已关闭，以止住支出。`,
-  unreadableSave: '无法读取你的存档，已保留一份副本。',
-  noPreviousSave: '没有可恢复的旧存档。',
-  previousSaveKnown: '旧存档已在你的公司列表中。',
-  previousSaveUnreadable: '无法读取旧存档，已保持原样。',
-  recoveredCompany: '已恢复的公司',
-  recovered: (name) => `已恢复：${name}。`,
   unreadableList: '无法读取你的公司列表，已保留一份副本。',
   companyMissing: '找不到该公司文件。',
   unreadableCompany: '无法读取该公司，已保留一份副本。',
@@ -176,6 +171,7 @@ export const toasts: Messages['toasts'] = {
   noSaveHere: '沙盒或挑战没有存档。',
   noCompanyToExport: '没有可导出的公司。',
   copiedSave: '已将存档复制为文本。',
+  saveFailed: '存储空间已满。公司未能保存。请在设置中复制备份。',
   noCompanyToImport: '没有可导入的公司。',
   saveImported: '存档已导入。',
   legacyCheat: '+20 传承。',
@@ -185,7 +181,7 @@ export const toasts: Messages['toasts'] = {
   copiedState: '已将游戏状态复制为 JSON。',
   copiedAgentRoom: '已复制智能体房间 ID。',
   agentRoomMissing: '请先开启智能体访问。',
-  logCleared: '试玩日志已清空。',
+  logCleared: '日志已清除。',
   clipboardBlocked: '剪贴板访问被阻止。',
 
   event: {

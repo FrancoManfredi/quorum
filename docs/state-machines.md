@@ -69,18 +69,15 @@ debugging shape with completion and history metadata, and a `Game` is saved, has
 modules. They predate the machine library and already have a closed state set, so they keep their
 shape.
 
-## Saving and migration
+## Saving
 
 The tagged state is what the save stores. The live schemas describe that state only; there is no
 stored schema with a `decodeTo` transform.
 
-`packages/simulation/src/save-migration.ts` upgrades the raw JSON before the live `Game` schema
-decodes it. It turns the old flags and dates into the tagged phases: `down` and `warm` into `life`,
-`pending` and `readyIn` into `scaler`, `shut` and `draining` into `service`, `blockedBy` into
-`block`, `signalAt` and `ackAt` into `phase`, `readyAt` and `driftAt` into `sync`, and the old
-`shipped`, `awaiting`, `adoption`, and `lifts` maps into `features`. `apps/web/src/game/save-file.ts`
-does the same for the Mail in a saved Inbox. A save from an older build opens through the migration,
-and the next write stores the tagged shape.
+A Company file carries `format`, the save format version, beside the Game. This build reads format
+1 only. A file without that format is kept aside and the board says the Company could not be read.
+The format changes only with one migration, and the build's git hash is not the format
+([ADR 0023](../adr/0023-a-company-save-has-a-format.md)).
 
 A field that only the solver integrates stays a number inside its phase. The phase is the only
 place a caller can read it, so a phase that does not have the field cannot answer for it.

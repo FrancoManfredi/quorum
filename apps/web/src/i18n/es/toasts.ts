@@ -76,7 +76,7 @@ export const toasts: Messages['toasts'] = {
     slotsFull: (slots: Value) =>
       `Todos los huecos de Playbook están llenos (${slots}). Borra uno o compra más en la tienda de legado.`,
     otherBuild: (version: Value, current: Value) =>
-      `Esa partida guardada es de otra versión (${version}; esta versión es ${current}).`,
+      `Esa partida guardada es de otra versión (${version}; esta versión lee ${current}).`,
     devHours: (spent: Value, budget: Value) =>
       `El diseño necesita ${spent} horas de desarrollo; el presupuesto es ${budget}.`,
     needsFirst: (name: Value, needed: Value) => `${name} necesita ${needed} primero.`,
@@ -134,12 +134,6 @@ export const toasts: Messages['toasts'] = {
     `Sin caja. Los inversores ofrecen un puente: ${grant} por el ${share}% de la participación.`,
   nodeShut: 'Sin caja: un nodo se apagó para frenar el gasto.',
   nodesShut: (count: Value) => `Sin caja: ${count} nodos se apagaron para frenar el gasto.`,
-  unreadableSave: 'No se pudo leer tu partida guardada. Se conservó una copia.',
-  noPreviousSave: 'No hay una partida anterior que recuperar.',
-  previousSaveKnown: 'La partida anterior ya está entre tus empresas.',
-  previousSaveUnreadable: 'No se pudo leer la partida anterior. Se dejó intacta.',
-  recoveredCompany: 'Empresa recuperada',
-  recovered: (name: Value) => `Se recuperó ${name}.`,
   unreadableList: 'No se pudo leer tu lista de empresas. Se conservó una copia.',
   companyMissing: 'Falta ese archivo de empresa.',
   unreadableCompany: 'No se pudo leer esa empresa. Se conservó una copia.',
@@ -197,6 +191,8 @@ export const toasts: Messages['toasts'] = {
   noSaveHere: 'Un Sandbox o un desafío no tiene partida guardada.',
   noCompanyToExport: 'No hay ninguna empresa que exportar.',
   copiedSave: 'Se copió la partida guardada como texto.',
+  saveFailed:
+    'El almacenamiento está lleno. La empresa no se guardó. Copia una copia de seguridad en Ajustes.',
   noCompanyToImport: 'No hay ninguna empresa en la que importar.',
   saveImported: 'Partida guardada importada.',
   legacyCheat: '+20 de legado.',
@@ -206,7 +202,7 @@ export const toasts: Messages['toasts'] = {
   copiedState: 'Se copió el estado de la partida como JSON.',
   copiedAgentRoom: 'Se copió el id de la sala de agentes.',
   agentRoomMissing: 'Activa primero el acceso para agentes.',
-  logCleared: 'Registro de playtest borrado.',
+  logCleared: 'Registro borrado.',
   clipboardBlocked: 'El portapapeles está bloqueado.',
 
   event: {

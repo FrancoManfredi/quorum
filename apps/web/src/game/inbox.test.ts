@@ -18,6 +18,7 @@ import {
 } from './inbox.ts'
 import { eventMail, identityOf, postmortemFact, senderOf } from './mail.ts'
 import type { Fact } from './mail.ts'
+import { SAVE_FORMAT } from './save-file.ts'
 import type { Inbox, Model } from './model.ts'
 import { AppRoute } from './route.ts'
 import { Message } from './message.ts'
@@ -302,7 +303,7 @@ test('a phishing trap leaks the credentials, and the Inbox keeps the record', ()
 
 test('a reload opens the Company with the Mail it had', () => {
   const before = sent([fact('cloud:cpu:a', 'cloud', 'Capacity warning')], 'action')
-  const json = JSON.stringify({ ...game, inbox: savedInbox(before) })
+  const json = JSON.stringify({ format: SAVE_FORMAT, ...game, inbox: savedInbox(before) })
   // Continue names the file, and the file answers for it.
   const loading = { ...initialModel(), companyPhase: { _tag: 'Opening' as const, id: 'c' } }
   const loaded = update(loading, Message.CompanyLoaded({ id: 'c', open: true, json })).model

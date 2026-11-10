@@ -1,15 +1,14 @@
 import type { Refusal } from '@quorum/simulation/action-kit'
 import { AppRoute, routeOfMenu, urlOf } from '../route.ts'
-import { Cause, Exit, Option, Result, Schema } from 'effect'
-import { DEFAULT_LOGO } from '../logos.ts'
+import { Option, Result, Schema } from 'effect'
 import {
   DeleteCompany,
   LoadCompany,
   KeepBrokenSave,
-  ReadOldSave,
   WriteFounder,
   AppendLog,
   FitBoard,
+  PruneSaves,
   ReplaceUrl,
 } from '../commands.ts'
 import { Founder, founded, foundingOf, recordExit } from '@quorum/simulation/founder'
@@ -18,7 +17,6 @@ import {
   MAX_COMPANY_NAME,
   fileFor,
   fileOf,
-  hasRecovered,
   nameOr,
   newSaveId,
   refreshedIndex,
@@ -39,7 +37,7 @@ import {
 } from './shared.ts'
 import { historyOfSave } from '../history.ts'
 import { inboxOfSave } from '../inbox.ts'
-import { migrateSaveFile } from '../save-migration.ts'
+import { readSaveFile } from '../save-file.ts'
 import { ipoExit } from '@quorum/simulation/exit'
 import {
   ledgerOf,
@@ -60,10 +58,6 @@ import { step as confirmDeleteStep } from '../confirm-delete-machine.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { disclosureOfSave, revealAtStart } from '../reveal.ts'
 import { solveFlow } from '@quorum/simulation/solve'
-
-export const parseJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))
-
-export const decodeGame = Schema.decodeUnknownExit(Game)
 
 export const startCompany = (
   model: Model,
@@ -162,100 +156,6 @@ export const applyCompany = (
   return { model: { ...next, saves: refreshedIndex(next.saves, played) } }
 }
 
-/** The single save of the build before Company files becomes the first Company. */
-export const adoptLegacy = (model: Model, json: string, now: number): UpdateResult => {
-  const raw = parseJson(json)
-  const migrated = Option.map(raw, (value) =>
-    typeof value === 'object' && value !== null && !Array.isArray(value)
-      ? migrateSaveFile(value as Record<string, unknown>)
-      : value,
-  )
-  const decoded = Option.match(migrated, {
-    onNone: () => Exit.fail('The save is not JSON.'),
-    onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
-  })
-  if (Exit.isFailure(decoded))
-    return withToast(model, say(model).toasts.unreadableSave, 'warn', [
-      KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
-    ])
-  const game = decoded.value
-  const createdAt = now
-  const file = fileFor({
-    id: newSaveId(model.saves.companies, game.seed),
-    name: say(model).toasts.recoveredCompany,
-    logo: DEFAULT_LOGO,
-    founding: game.founding,
-    game,
-    now,
-    createdAt,
-    recovered: true,
-  })
-  const saves: SaveIndex = { current: file.id, companies: withFile(model.saves, file).companies }
-  const applied = applyCompany(
-    {
-      ...model,
-      saves,
-      oldSave: true,
-      companyPhase: step(model.companyPhase, { _tag: 'Open', id: file.id }),
-    },
-    file.id,
-    game,
-    Option.getOrNull(raw),
-    model.route._tag === 'Company',
-  )
-  return {
-    ...applied,
-    commands: [...(applied.commands ?? []), ...saveCommands(applied.model)],
-  }
-}
-
-/** Imports the single save of the build before Company files, leaving the old key in place. */
-export const importOldSave = (model: Model, json: string | null, now: number): UpdateResult => {
-  if (json === null) return withToast(model, say(model).toasts.noPreviousSave, 'plain')
-  if (hasRecovered(model.saves.companies))
-    return withToast(model, say(model).toasts.previousSaveKnown, 'plain')
-  const raw = parseJson(json)
-  const migrated = Option.map(raw, (value) =>
-    typeof value === 'object' && value !== null && !Array.isArray(value)
-      ? migrateSaveFile(value as Record<string, unknown>)
-      : value,
-  )
-  const decoded = Option.match(migrated, {
-    onNone: () => Exit.fail('The save is not JSON.'),
-    onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
-  })
-  if (Exit.isFailure(decoded))
-    return withToast(model, say(model).toasts.previousSaveUnreadable, 'warn')
-  const game = decoded.value
-  const file = fileFor({
-    id: newSaveId(model.saves.companies, game.seed),
-    name: say(model).toasts.recoveredCompany,
-    logo: DEFAULT_LOGO,
-    founding: game.founding,
-    game,
-    now,
-    createdAt: now,
-    recovered: true,
-  })
-  const saves: SaveIndex = { current: file.id, companies: withFile(model.saves, file).companies }
-  const applied = applyCompany(
-    {
-      ...model,
-      saves,
-      oldSave: true,
-      companyPhase: step(model.companyPhase, { _tag: 'Open', id: file.id }),
-    },
-    file.id,
-    game,
-    Option.getOrNull(raw),
-    true,
-  )
-  return withToast(applied.model, say(model).toasts.recovered(file.name), 'ok', [
-    ...(applied.commands ?? []),
-    ...saveCommands(applied.model),
-  ])
-}
-
 /** Applies a change to the Founder record, saves it, or says why not. */
 export const changeFounder = (
   model: Model,
@@ -325,52 +225,49 @@ type CompaniesTag =
   | 'CompanyDeleteCancelled'
   | 'CompanyDeleteConfirmed'
   | 'CompanyDeleted'
-  | 'OldSaveImportAsked'
-  | 'OldSaveLoaded'
   | 'FounderLoaded'
   | 'Saved'
+  | 'SaveFailed'
   | 'CompanyFounded'
   | 'PreseedStarted'
 
 /** Reads the Company list into the Model: the files, the one Continue opens, and the token. */
-const loadedSaves = (
-  model: Model,
-  index: string | null,
-  legacy: string | null,
-  now: number,
-): UpdateResult => {
-  if (index !== null) {
-    const parsed = Option.getOrNull(parseIndex(index))
-    if (!parsed) {
-      const back = titleIfBoard(model)
-      return withToast(back.model, say(model).toasts.unreadableList, 'warn', [
-        KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
-        ...(back.commands ?? []),
-      ])
-    }
-    const loaded: Model = {
-      ...model,
-      saves: parsed,
-      oldSave: legacy !== null,
-      companyPhase: step(model.companyPhase, {
-        _tag: 'SavesLoaded',
-        current: parsed.current,
-      }),
-    }
-    if (parsed.current === null) return titleIfBoard(loaded)
-    return {
-      model: loaded,
-      // A reload on the Company's board opens it; anywhere else it waits for Continue.
-      commands: [LoadCompany({ id: parsed.current, open: model.route._tag === 'Company' })],
-    }
+const loadedSaves = (model: Model, index: string | null): UpdateResult => {
+  if (index === null) return titleIfBoard(model)
+  const parsed = Option.getOrNull(parseIndex(index))
+  if (!parsed) {
+    const back = titleIfBoard(model)
+    return withToast(back.model, say(model).toasts.unreadableList, 'warn', [
+      KeepBrokenSave({ json: index, reason: 'The company list is not a save index.' }),
+      ...(back.commands ?? []),
+    ])
   }
-  return legacy === null ? titleIfBoard(model) : adoptLegacy(model, legacy, now)
+  const loaded: Model = {
+    ...model,
+    saves: parsed,
+    companyPhase: step(model.companyPhase, {
+      _tag: 'SavesLoaded',
+      current: parsed.current,
+    }),
+  }
+  if (parsed.current === null) {
+    const back = titleIfBoard(loaded)
+    return { ...back, commands: [PruneSaves({ index: parsed }), ...(back.commands ?? [])] }
+  }
+  return {
+    model: loaded,
+    // A reload on the Company's board opens it; anywhere else it waits for Continue.
+    commands: [
+      PruneSaves({ index: parsed }),
+      LoadCompany({ id: parsed.current, open: model.route._tag === 'Company' }),
+    ],
+  }
 }
 
 export const companiesHandlers = (model: Model): MessageCases<UpdateResult, CompaniesTag> => ({
   // Whatever the list holds, the app now knows where the owner token is not.
-  SavesLoaded: ({ index, legacy, now }) => {
-    const result = loadedSaves(model, index, legacy, now)
+  SavesLoaded: ({ index }) => {
+    const result = loadedSaves(model, index)
     return result.model.savesReady
       ? result
       : { ...result, model: { ...result.model, savesReady: true } }
@@ -387,25 +284,16 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
         ? withToast(back.model, say(model).toasts.companyMissing, 'warn', back.commands)
         : { model: back.model }
     }
-    const raw = parseJson(json)
-    const file = Option.map(raw, (value) =>
-      typeof value === 'object' && value !== null && !Array.isArray(value)
-        ? migrateSaveFile(value as Record<string, unknown>)
-        : value,
-    )
-    const decoded = Option.match(file, {
-      onNone: () => Exit.fail('The save is not JSON.'),
-      onSome: (value) => Exit.mapError(decodeGame(value), (error) => error.message),
-    })
+    const read = readSaveFile(json)
     // A save this version cannot read is set aside, not overwritten by the next autosave.
-    if (Exit.isFailure(decoded)) {
+    if (Result.isFailure(read)) {
       const back = titleIfBoard(failed())
       return withToast(back.model, say(model).toasts.unreadableCompany, 'warn', [
-        KeepBrokenSave({ json, reason: String(Cause.squash(decoded.cause)) }),
+        KeepBrokenSave({ json, reason: read.failure }),
         ...(back.commands ?? []),
       ])
     }
-    return applyCompany(model, id, decoded.value, Option.getOrNull(file), open)
+    return applyCompany(model, id, read.success.game, read.success.file, open)
   },
 
   CompanyNameChanged: ({ name }) => ({
@@ -487,13 +375,6 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
 
   CompanyDeleted: () => ({ model }),
 
-  OldSaveImportAsked: () =>
-    model.oldSave
-      ? { model, commands: [ReadOldSave({})] }
-      : withToast(model, say(model).toasts.noPreviousSave, 'plain'),
-
-  OldSaveLoaded: ({ json, now }) => importOldSave(model, json, now),
-
   FounderLoaded: ({ json, deviceId, today }) => {
     const loaded = Option.getOrElse(
       json === null ? Option.none() : parseFounder(json),
@@ -517,6 +398,8 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
   },
 
   Saved: () => ({ model }),
+
+  SaveFailed: () => withToast(model, say(model).toasts.saveFailed, 'warn'),
 
   CompanyFounded: () => found(model),
 

@@ -1,4 +1,5 @@
 import { EMPTY_SAVE_INDEX, fileFor, withFile } from './saves.ts'
+import { SAVE_FORMAT } from './save-file.ts'
 import { ResearchMessage, STUDY_QUEUE } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
@@ -43,12 +44,32 @@ import {
 } from './model.ts'
 import { TICK_MS, init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
+import { loadLocale } from '../i18n/messages.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
 import { boxOf, crowds } from '@quorum/ui/board/geometry'
 import { act } from './update/shared.ts'
 import { Actions } from './board-actions.ts'
 
 /* The clock: 100 ms Steps under a 250 ms UI tick, and the Bottleneck search once per sim second. */
+
+/** A stored Company file, as this build writes it. */
+const saveOf = (game: object, extra: Record<string, unknown> = {}): string =>
+  JSON.stringify({ format: SAVE_FORMAT, ...game, ...extra })
+
+/** An index with one Company, and the save that Company's file holds. */
+const storedWith = (
+  game: ReturnType<typeof preseedGame>,
+): Readonly<{ index: string; id: string }> => {
+  const file = fileFor({
+    id: 'c-one',
+    name: 'Stored Co',
+    logo: 'signal',
+    founding: game.founding,
+    game,
+    now: 1_000,
+  })
+  return { index: JSON.stringify({ current: file.id, companies: [file] }), id: file.id }
+}
 
 const tick = (model: Model, times = 1): Model => {
   let current = model
@@ -712,16 +733,14 @@ describe('Exit', () => {
 
   test('a save from an hour ago resumes at the Step it was saved on', () => {
     const game = { ...preseedGame() }
+    const { index, id } = storedWith(game)
     const loaded = send(
       initialModel(),
-      Message.SavesLoaded({
-        index: null,
-        legacy: JSON.stringify(game),
-        now: 1_000_000 + 3_600_000,
-      }),
+      Message.SavesLoaded({ index, now: 1_000_000 + 3_600_000 }),
+      Message.CompanyLoaded({ id, open: true, json: saveOf(game) }),
     )
     expect(hasCompany(loaded)).toBe(true)
-    expect(loaded.saves.current).not.toBeNull()
+    expect(loaded.saves.current).toBe(id)
     // The clock held still while the page was closed.
     expect(loaded.board.game.time).toBeCloseTo(game.time)
     expect(loaded.board.game.users).toBe(game.users)
@@ -1089,12 +1108,12 @@ describe('URL routing', () => {
     const { index, game } = stored()
     const waiting = update(
       fresh.model,
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 2_000 }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 2_000 }),
     )
     expect(loads(waiting.commands)).toEqual([{ id: 'c-one', open: true }])
     const open = update(
       waiting.model,
-      Message.CompanyLoaded({ id: 'c-one', open: true, json: JSON.stringify(game) }),
+      Message.CompanyLoaded({ id: 'c-one', open: true, json: saveOf(game) }),
     )
     expect(open.model.route).toEqual(AppRoute.Company())
     expect(open.model.board.game.seed).toBe(game.seed)
@@ -1103,13 +1122,13 @@ describe('URL routing', () => {
 
   test('a Company URL with nothing to open goes back to the title', () => {
     const fresh = init(at('/company'))
-    const none = update(fresh.model, Message.SavesLoaded({ index: null, legacy: null, now: 0 }))
+    const none = update(fresh.model, Message.SavesLoaded({ index: null, now: 0 }))
     expect(none.model.route).toEqual(AppRoute.Title())
     expect(pushed(none.commands)).toEqual(['ReplaceUrl /'])
     const { index } = stored()
     const waiting = update(
       fresh.model,
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 0 }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
     )
     const missing = update(
       waiting.model,
@@ -1142,11 +1161,11 @@ describe('URL routing', () => {
     ).model
     const waiting = update(
       sandbox,
-      Message.SavesLoaded({ index: JSON.stringify(index), legacy: null, now: 2_000 }),
+      Message.SavesLoaded({ index: JSON.stringify(index), now: 2_000 }),
     ).model
     const after = update(
       waiting,
-      Message.CompanyLoaded({ id: 'c-one', open: false, json: JSON.stringify(game) }),
+      Message.CompanyLoaded({ id: 'c-one', open: false, json: saveOf(game) }),
     ).model
     expect(boardSandbox(after.board)?.id).toBeNull()
     expect(after.board.game.seed).toBe(99)
@@ -1270,20 +1289,17 @@ describe('progressive disclosure', () => {
 
   test('a save from before disclosure shows everything; a save with it keeps its set', () => {
     const game = preseedGame()
-    const old = send(
-      initialModel(),
-      Message.SavesLoaded({ index: null, legacy: JSON.stringify(game), now: 0 }),
-    )
+    const { index, id } = storedWith(game)
+    const opened = (json: string) =>
+      send(
+        initialModel(),
+        Message.SavesLoaded({ index, now: 0 }),
+        Message.CompanyLoaded({ id, open: true, json }),
+      )
+    const old = opened(saveOf(game))
     expect(old.board.disclosure.revealed).toContain('team')
     expect(old.board.disclosure.revealed).toContain('glossary')
-    const kept = send(
-      initialModel(),
-      Message.SavesLoaded({
-        index: null,
-        legacy: JSON.stringify({ ...game, disclosure: { revealed: ['undo'], pending: ['team'] } }),
-        now: 0,
-      }),
-    )
+    const kept = opened(saveOf(game, { disclosure: { revealed: ['undo'], pending: ['team'] } }))
     expect(kept.board.disclosure.revealed).toEqual(['undo'])
     expect(kept.board.disclosure).toMatchObject({ _tag: 'Queued', pending: ['team'] })
   })
@@ -1636,7 +1652,8 @@ test('Study now brings the chain to the front, and queued members keep their pro
   expect(now.toast?.message).toBe('Studying now: PHP-FPM, then OPcache.')
 })
 
-test('no move puts a Study above a queued prerequisite, by drag or by arrow', () => {
+test('no move puts a Study above a queued prerequisite, by drag or by arrow', async () => {
+  await loadLocale('fr')
   const start = withStudies([queuedStudy('php-fpm'), queuedStudy('gzip'), queuedStudy('opcache')])
   const drag = (model: Model, id: ResearchId, from: number, to: number) => {
     const send = (current: Model, message: DragAndDrop.Message) =>
@@ -1715,37 +1732,35 @@ test('pointer-rate Messages stay out of the playtest log, and gestures go in', (
   expect(names(opened)).toContain('AppendLog')
 })
 
-test('a save this version cannot read is kept aside instead of dropped', () => {
+test('a save this build cannot read is kept aside instead of dropped', () => {
   const game = newGame()
-  const saved = JSON.stringify({ ...game })
-  const loaded = update(initialModel(), Message.SavesLoaded({ index: null, legacy: saved, now: 0 }))
+  const { index, id } = storedWith(game)
+  const opened = (json: string) => {
+    const waiting = update(initialModel(), Message.SavesLoaded({ index, now: 0 }))
+    return update(waiting.model, Message.CompanyLoaded({ id, open: true, json }))
+  }
+  const loaded = opened(saveOf(game))
   expect(hasCompany(loaded.model)).toBe(true)
-  expect(loaded.model.saves.current).not.toBeNull()
+  expect(loaded.model.saves.current).toBe(id)
   expect(loaded.model.board.game.nodes).toEqual(game.nodes)
 
-  const renamed = JSON.stringify({
+  const renamed = saveOf({
     ...game,
     nodes: game.nodes.map((node) => ({ ...node, type: 'retired-component' })),
   })
-  for (const json of [renamed, '{not json']) {
-    const broken = update(
-      initialModel(),
-      Message.SavesLoaded({ index: null, legacy: json, now: 0 }),
-    )
+  // The last one is a pre-public save: it carries no format, so this build sets it aside.
+  for (const json of [renamed, '{not json', JSON.stringify(game)]) {
+    const broken = opened(json)
     expect(broken.model.companyPhase).toEqual({ _tag: 'None' })
     expect(broken.model.toast?.tone).toBe('warn')
+    expect(hasCompany(broken.model)).toBe(false)
     expect(broken.commands).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'KeepBrokenSave',
-          args: expect.objectContaining({ json }),
-        }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ name: 'KeepBrokenSave' })]),
     )
   }
 })
 
-test('a save travels as one line of text, and only a save of this build opens it', () => {
+test('a save travels as one line of text, and only a save of this format opens it', () => {
   const start = inLab()
   const file = fileFor({
     id: 'c',
@@ -1778,12 +1793,16 @@ test('a save travels as one line of text, and only a save of this build opens it
   expect(opened.model.board.game.nodes).toEqual(playable.board.game.nodes)
   expect(opened.model.board.undo).toEqual([])
 
-  // Anything that is not a save of this build is refused, and the open Company stays.
+  // Anything that is not a save of this format is refused, and the open Company stays.
   const other = encodeText('QSV1:', {
-    version: 'stale',
+    format: SAVE_FORMAT + 1,
+    save: { format: SAVE_FORMAT, ...playable.board.game },
+  })
+  const unformatted = encodeText('QSV1:', {
+    format: SAVE_FORMAT,
     save: { ...playable.board.game },
   })
-  for (const wrong of ['hello', other]) {
+  for (const wrong of ['hello', other, unformatted]) {
     const refused = update(playable, Message.SaveImported({ text: wrong }))
     expect(refused.model.toast?.tone).toBe('warn')
     expect(refused.model.board.game).toBe(playable.board.game)
