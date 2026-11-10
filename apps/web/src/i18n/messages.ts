@@ -1,8 +1,5 @@
 import { en } from './en/index.ts'
-import { es } from './es/index.ts'
-import { fr } from './fr/index.ts'
-import { ja } from './ja/index.ts'
-import { zhCN } from './zh-CN/index.ts'
+import { supportedLocales } from './index.ts'
 import { nodeLabelOf } from '@quorum/simulation/labels'
 import type { Game, GameNode } from '@quorum/simulation/state'
 import type { Locale } from './index.ts'
@@ -19,7 +16,38 @@ type Widen<T> = T extends string
 /** The shape every language must have: English is the source, so a missing or extra key fails typecheck. */
 export type Messages = Widen<typeof en>
 
-const messages: Readonly<Record<Locale, Messages>> = { en, fr, 'zh-CN': zhCN, ja, es }
+/**
+ * English ships in the main chunk. The other four catalogs are large, so they
+ * load in the background after the title is interactive, or before boot when
+ * the player's saved language is not English.
+ */
+const messages: Partial<Record<Locale, Messages>> = { en }
+
+/** Loads one language's catalog into the map. Calling it twice is free. */
+export const loadLocale = async (locale: Locale): Promise<void> => {
+  if (messages[locale] !== undefined) return
+  switch (locale) {
+    case 'en':
+      return
+    case 'es':
+      messages.es = (await import('./es/index.ts')).es
+      return
+    case 'fr':
+      messages.fr = (await import('./fr/index.ts')).fr
+      return
+    case 'ja':
+      messages.ja = (await import('./ja/index.ts')).ja
+      return
+    case 'zh-CN':
+      messages['zh-CN'] = (await import('./zh-CN/index.ts')).zhCN
+      return
+  }
+}
+
+/** Fetches every other language once the browser is idle, so the picker switches at once. */
+export const preloadLocales = (): void => {
+  for (const { value } of supportedLocales) void loadLocale(value)
+}
 
 const languageOf = new WeakMap<object, Locale>()
 
@@ -31,11 +59,12 @@ export const speak = <H extends object>(locale: Locale, h: H): H => {
 
 export const localeOf = (h: object): Locale => languageOf.get(h) ?? 'en'
 
-/** The copy in a language, for code that has the locale but no builder. */
-export const copyIn = (locale: Locale): Messages => messages[locale]
+/** The copy in a language, for code that has the locale but no builder. English covers a catalog
+ *  that has not finished loading, so a view never waits on the network to render. */
+export const copyIn = (locale: Locale): Messages => messages[locale] ?? en
 
 /** The copy in the language of this view's builder. A builder nobody tagged speaks English. */
-export const copy = (h: object): Messages => messages[languageOf.get(h) ?? 'en']
+export const copy = (h: object): Messages => copyIn(languageOf.get(h) ?? 'en')
 
 /** The entry with its words in the builder's language laid over it, for views that read `entry.name`. */
 export const localized = <Entry extends object, Words extends object>(

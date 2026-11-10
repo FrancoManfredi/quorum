@@ -11,6 +11,70 @@
       html {
         background: #141517;
       }
+      /* The game is one large module. Show this until it mounts, then Foldkit replaces #root. */
+      .boot {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 18px;
+        background: #141517;
+        color: #eaebec;
+        font-family: 'Geist', system-ui, sans-serif;
+        animation: boot-in 160ms 250ms both;
+      }
+      .boot-word {
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.04em;
+      }
+      .boot-bar {
+        width: 84px;
+        height: 2px;
+        overflow: hidden;
+        border-radius: 1px;
+        background: #2c2f34;
+      }
+      .boot-bar::after {
+        content: '';
+        display: block;
+        width: 36%;
+        height: 100%;
+        background: #58cef8;
+        animation: boot-slide 1s ease-in-out infinite;
+      }
+      .boot-note {
+        color: #9aa0a6;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      @keyframes boot-in {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes boot-slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(280%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot {
+          animation: none;
+        }
+        .boot-bar::after {
+          width: 100%;
+          opacity: 0.5;
+          animation: none;
+        }
+      }
       noscript {
         display: block;
         padding: 24px;
@@ -21,7 +85,7 @@
         color: #58cef8;
       }
     </style>
-    <title>Quorum — a systems design game for software engineers</title>
+    <title>Quorum — an incremental systems design game for software engineers</title>
     <meta
       name="description"
       content="Grow a startup from one server in a garage to a public company. Wire components, pick stacks, and fix one real bottleneck after another in an incremental systems design game."
@@ -31,7 +95,10 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Quorum" />
     <meta property="og:url" content="https://playquorum.dev/" />
-    <meta property="og:title" content="Quorum — a systems design game for software engineers" />
+    <meta
+      property="og:title"
+      content="Quorum — an incremental systems design game for software engineers"
+    />
     <meta
       property="og:description"
       content="Grow a startup from one server in a garage to a public company, one real bottleneck at a time."
@@ -47,7 +114,10 @@
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Quorum — a systems design game for software engineers" />
+    <meta
+      name="twitter:title"
+      content="Quorum — an incremental systems design game for software engineers"
+    />
     <meta
       name="twitter:description"
       content="Grow a startup from one server in a garage to a public company, one real bottleneck at a time."
@@ -131,7 +201,13 @@
         <li><a href="https://ko-fi.com/elianiva">Support on Ko-fi</a></li>
       </ul>
     </noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot">
+        <span class="boot-word">quorum</span>
+        <span class="boot-bar" aria-hidden="true"></span>
+        <span class="boot-note" role="status">Loading</span>
+      </div>
+    </div>
     <script type="module" src="/src/entry.ts"></script>
   </body>
 </html>

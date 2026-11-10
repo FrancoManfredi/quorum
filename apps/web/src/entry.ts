@@ -4,6 +4,9 @@ import { setSeatActivity } from '@quorum/ui/board/board'
 import { init, Message, Model, subscriptions, update, view } from './app/main.ts'
 import { startMotion } from './game/motion.ts'
 import { PREFS_KEY } from './game/commands.ts'
+import { loadLocale, preloadLocales } from './i18n/messages.ts'
+import { supportedLocales, type Locale } from './i18n/index.ts'
+import { sweepLegacyStorage } from './game/storage.ts'
 import { activityChange } from './game/presence.ts'
 import { publish } from './game/agent-tools.ts'
 import { syncAgent } from './game/agent-room.ts'
@@ -57,4 +60,30 @@ addEventListener('pointerdown', () => (root.dataset['input'] = 'pointer'), true)
 // Foldkit replaces the container it renders into, so motion watches the body.
 startMotion(document.body)
 
+// Ask the browser to keep the Company files when storage runs low. A refusal is fine.
+if (navigator.storage?.persist) void navigator.storage.persist().catch(() => undefined)
+
+/** The saved interface language, so a player who picked one does not see English first. */
+const savedLocale = (): Locale => {
+  try {
+    const raw = window.localStorage.getItem(PREFS_KEY)
+    if (raw === null) return 'en'
+    const value = (JSON.parse(raw) as { locale?: unknown }).locale
+    return supportedLocales.some((entry) => entry.value === value) ? (value as Locale) : 'en'
+  } catch {
+    return 'en'
+  }
+}
+
+const locale = savedLocale()
+if (locale !== 'en') await loadLocale(locale).catch(() => undefined)
+
+// The pre-public single save has no reader. Remove it, so the browser's quota holds live Companies.
+sweepLegacyStorage()
+
 Runtime.run(application)
+
+// The other catalogs are large. Fetch them once the title is idle, so a language change is instant.
+if (typeof window.requestIdleCallback === 'function')
+  window.requestIdleCallback(() => preloadLocales(), { timeout: 3000 })
+else window.setTimeout(() => preloadLocales(), 2000)

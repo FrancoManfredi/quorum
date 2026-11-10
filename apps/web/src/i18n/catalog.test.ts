@@ -1,10 +1,16 @@
-import { describe, expect, test } from 'vitest'
+import { beforeAll, describe, expect, test } from 'vitest'
 import { inertHtml } from 'foldkit/html'
 import { CHALLENGES } from '@quorum/simulation/challenges'
 import { GLOSSARY, RESEARCH } from '@quorum/simulation/catalog'
 import { localizeBuilder } from './builder.ts'
-import { copy, copyIn } from './messages.ts'
+import { copy, copyIn, loadLocale } from './messages.ts'
 import { supportedLocales } from './index.ts'
+
+// English ships in the main chunk; the other catalogs are dynamic imports. Load them like a player
+// who picked one of those languages would, before the tests read their copy.
+beforeAll(async () => {
+  await Promise.all(supportedLocales.map(({ value }) => loadLocale(value)))
+})
 
 describe('typed copy', () => {
   test('a builder speaks its language, and an untagged builder speaks English', () => {
