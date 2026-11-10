@@ -1,6 +1,8 @@
 import { Graphics } from 'pixi.js'
 import { type BuildGroup, type ComponentId } from '@quorum/simulation/catalog'
-import { CARD_W, FOOT, HEAD, layoutOf, rowTop } from './geometry.ts'
+import { type Game, type GameNode } from '@quorum/simulation/state'
+import { CARD_W, FOOT, HEAD, layoutOf, rowTop, type Pt } from './geometry.ts'
+import { footerOf } from './card.ts'
 import { GROUP_SHAPES } from '../game/icons.ts'
 import { type Palette, mix, gradient, gradientX } from './palette.ts'
 import { silhouette, badgeShape } from './shapes.ts'
@@ -70,4 +72,21 @@ export const pips = (
     const at = x + index * step
     g.poly([at + 2, y, at + w + 2, y, at + w, y + 9, at, y + 9]).fill(index < filled ? on : off)
   }
+}
+
+/** Buying a size is held, not clicked: the fill crosses the button, and the buy lands at the end. */
+export const HOLD_S = 0.6
+
+export const inFooter = (node: GameNode, point: Pt): boolean => {
+  if (!layoutOf(node.type).footer) return false
+  const rect = footerRect(node.type)
+  const x = point.x - node.x
+  const y = point.y - node.y
+  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h
+}
+
+export /** The footer buys a size, so it asks to be held. */
+const holds = (game: Game, node: GameNode): boolean => {
+  const footer = footerOf(game, node)
+  return !!footer && footer.enabled && (footer.glyph === 'resize' || footer.glyph === 'more')
 }

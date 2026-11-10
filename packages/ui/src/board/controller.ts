@@ -1,6 +1,7 @@
+import { HOLD_S, inFooter } from './card-parts.ts'
 import { Application, Container, Graphics, Point, type RendererPreference } from 'pixi.js'
-import { COMPONENTS, KINDS, type ComponentId } from '@quorum/simulation/catalog'
-import { has, replicationPairsOf, zoned, zoneMs } from '@quorum/simulation/lookups'
+import { COMPONENTS, type ComponentId } from '@quorum/simulation/catalog'
+import { replicationPairsOf } from '@quorum/simulation/lookups'
 import { type Game, type GameNode } from '@quorum/simulation/state'
 import { type SeatActivity } from '@quorum/simulation/room'
 import {
@@ -10,93 +11,37 @@ import {
   boxOf,
   freeSpot,
   heightOf,
-  inPort,
   layoutOf,
   outPort,
   route,
-  type Box,
   type Pt,
   type Route,
 } from './geometry.ts'
 import { compute } from './compute.ts'
-import { flowMarks, placeLabel } from './flows.ts'
-import { CHIP_NONE, chipAt, rowsAt } from './lod.ts'
+import { CHIP_NONE } from './lod.ts'
 import { type RoutedLink, type RoutedNode, type Wire } from './routing.ts'
-import { footerOf } from './card.ts'
 import { COMPONENT_ICONS } from '../game/icons.ts'
-import { packetShapeOf } from '../game/packets.ts'
 import { CursorOverlay, type SeatCursor } from './cursors.ts'
+import { animate } from './frame.ts'
+import { bindPointer } from './pointer.ts'
 import { type BoardEvents, type BoardState } from './types.ts'
-import { type Palette, palette, mix } from './palette.ts'
+import { type Palette, palette } from './palette.ts'
 import { silhouette, badgeGlyph } from './shapes.ts'
-import {
-  easeOut,
-  DRAW_IN_S,
-  GLOW_S,
-  CUT_S,
-  RETRACT_S,
-  CURSOR_MS,
-  reducedMotion,
-  follow,
-} from './motion.ts'
+import { DRAW_IN_S, CURSOR_MS } from './motion.ts'
 import { glyph, paint } from './glyphs.ts'
-import {
-  footerRect,
-  BADGE_X,
-  BADGE_Y,
-  BADGE_R,
-  TITLE_X,
-  medallion,
-  headerBand,
-} from './card-parts.ts'
-import {
-  lengthOf,
-  pointOn,
-  distanceTo,
-  laneUnder,
-  routeOf,
-  SLACK,
-  bent,
-  midOf,
-  partOf,
-  traceOf,
-  dashed,
-} from './paths.ts'
-import { BELT, SPLITTER_W, beltSpeed, arrowAt, pointAndDirection } from './marks.ts'
+import { BADGE_X, BADGE_Y, BADGE_R, TITLE_X, medallion, headerBand } from './card-parts.ts'
+import { pointOn, distanceTo, laneUnder, routeOf, SLACK, bent, dashed } from './paths.ts'
 import { SANS, label } from './text.ts'
 import { MIN_FIT_SCALE, MIN_FIT_SCALE_PHONE, NodeView } from './node-view.ts'
-import {
-  DIM,
-  QUIET,
-  CHEVRON_SCALE,
-  PLACE_LIFT,
-  BeltView,
-  type Mouth,
-  mouthsOf,
-  portalsOf,
-} from './belt-view.ts'
-import { ChevronLayer, PacketLayer, particleColor, NoteLayer } from './layers.ts'
+import { BeltView, type Mouth } from './belt-view.ts'
+import { ChevronLayer, PacketLayer, NoteLayer } from './layers.ts'
 
 type Mutable<T> = { -readonly [K in keyof T]: T[K] }
 
 /** The phone: narrow in portrait, short in landscape (the `compact` variant in theme.css). */
 const isPhone = (): boolean => matchMedia('(max-width: 639px), (max-height: 499px)').matches
 
-const inFooter = (node: GameNode, point: Pt): boolean => {
-  if (!layoutOf(node.type).footer) return false
-  const rect = footerRect(node.type)
-  const x = point.x - node.x
-  const y = point.y - node.y
-  return x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h
-}
-
 /** Buying a size is held, not clicked: the fill crosses the button, and the buy lands at the end. */
-
-/** The footer buys a size, so it asks to be held. */
-const holds = (game: Game, node: GameNode): boolean => {
-  const footer = footerOf(game, node)
-  return !!footer && footer.enabled && (footer.glyph === 'resize' || footer.glyph === 'more')
-}
 
 type Gesture =
   /** `cut` is the link under a finger that went down on it: a tap cuts it, a drag only pans. */
@@ -123,142 +68,142 @@ type Gesture =
   | null
 
 export class BoardController {
-  private readonly app = new Application()
-  private readonly world = new Container()
+  readonly app = new Application()
+  readonly world = new Container()
   /**
    * The belts, one BeltView per link in the Model's order, under the splitters. Each
    * belt draws in three shared layers, so a busy Design draws in a few batches, not
    * a few per link: bodies, then the moving chevrons in a render group of their own
    * (they change every frame, the rest does not), then the mouths.
    */
-  private readonly wires = new Container()
-  private readonly bodies = new Container()
-  private readonly chevrons = new ChevronLayer()
-  private readonly mouths = new Container()
-  private readonly belts = new Map<string, BeltView>()
-  private beltLinks: ReadonlyArray<unknown> = []
-  private beltOrder = ''
-  private readonly splitters = new Graphics()
-  private splittersKey = ''
+  readonly wires = new Container()
+  readonly bodies = new Container()
+  readonly chevrons = new ChevronLayer()
+  readonly mouths = new Container()
+  readonly belts = new Map<string, BeltView>()
+  beltLinks: ReadonlyArray<unknown> = []
+  beltOrder = ''
+  readonly splitters = new Graphics()
+  splittersKey = ''
   /** The tunnel portals, redrawn only when a mouth moves or the focus changes. */
-  private readonly portals = new Graphics()
+  readonly portals = new Graphics()
   /** The mouths the portals were last drawn for, and the colour they were drawn in. */
-  private mouthsDrawn: ReadonlyArray<Mouth> = []
-  private portalInk = -1
-  private readonly packets = new PacketLayer()
+  mouthsDrawn: ReadonlyArray<Mouth> = []
+  portalInk = -1
+  readonly packets = new PacketLayer()
   /** The still arrows reduced motion shows in place of the packets. */
-  private readonly arrows = new Graphics()
+  readonly arrows = new Graphics()
   /** The rate labels on still belts: reduced motion's stand-in for moving packets. */
-  private readonly notes = new NoteLayer()
+  readonly notes = new NoteLayer()
   /** The round trip a link between regions pays, under its belt. */
-  private readonly places = new NoteLayer()
-  private readonly cards = new Container()
+  readonly places = new NoteLayer()
+  readonly cards = new Container()
   /** The boxes drawn around Nodes, under the belts, and their names. */
-  private readonly boxLayer = new Container()
-  private readonly boxes = new Graphics()
+  readonly boxLayer = new Container()
+  readonly boxes = new Graphics()
   /** Replication copies, drawn as dashed lines and never as Links. */
-  private readonly replication = new Graphics()
-  private readonly boxNames = new Container()
-  private boxesKey = ''
-  private replicationKey = ''
-  private readonly overlay = new Graphics()
-  private readonly ghost = new Container()
-  private readonly views = new Map<string, NodeView>()
+  readonly replication = new Graphics()
+  readonly boxNames = new Container()
+  boxesKey = ''
+  replicationKey = ''
+  readonly overlay = new Graphics()
+  readonly ghost = new Container()
+  readonly views = new Map<string, NodeView>()
   /** The Nodes as they are drawn this frame, and the views that follow their cards. */
-  private readonly shownCards = new Map<string, GameNode>()
-  private readonly drawnCards = new Map<string, { source: GameNode; drawn: Mutable<GameNode> }>()
+  readonly shownCards = new Map<string, GameNode>()
+  readonly drawnCards = new Map<string, { source: GameNode; drawn: Mutable<GameNode> }>()
   /** Cards fading out after their Node left the Design. */
-  private leaving: Array<NodeView> = []
+  leaving: Array<NodeView> = []
   /** False until the first sync, so a loaded board does not animate in. */
-  private seeded = false
+  seeded = false
   /** The Node whose card button is held down. */
-  private pressed: string | null = null
+  pressed: string | null = null
   /** When the held footer button went down, in ms. */
-  private holdSince = 0
+  holdSince = 0
   /** The Node whose footer bought once and stays down, so the host repeats it. */
-  private holding: string | null = null
-  private state: BoardState | null = null
-  private gesture: Gesture = null
-  private hoverLink: Readonly<{ from: string; to: string }> | null = null
+  holding: string | null = null
+  state: BoardState | null = null
+  gesture: Gesture = null
+  hoverLink: Readonly<{ from: string; to: string }> | null = null
   /** The link a click picked: Delete or its × badge cuts it. A click never cuts by itself. */
-  private selectedLink: Readonly<{ from: string; to: string }> | null = null
+  selectedLink: Readonly<{ from: string; to: string }> | null = null
   /** The Node under the pointer: with the selected one, it lights its whole path. */
-  private hoverNode: string | null = null
-  private pointer: Pt = { x: 0, y: 0 }
+  hoverNode: string | null = null
+  pointer: Pt = { x: 0, y: 0 }
   /** Fingers and pens on the board, in client coordinates. Two of them pinch. */
-  private readonly touches = new Map<number, Pt>()
-  private pinch: Readonly<{ distance: number; center: Pt }> | null = null
+  readonly touches = new Map<number, Pt>()
+  pinch: Readonly<{ distance: number; center: Pt }> | null = null
   /** The last pointer to move was a finger or a pen, which has no hover and a wide tip. */
-  private coarse = false
+  coarse = false
   /** Local positions while a node is dragged, ahead of the Model. */
-  private dragged: Readonly<{ id: string; x: number; y: number }> | null = null
-  private droppedAt = 0
+  dragged: Readonly<{ id: string; x: number; y: number }> | null = null
+  droppedAt = 0
   /** Where the held card, new Node or Playbook lands: the nearest spot that keeps clear. */
-  private landing: Pt | null = null
-  private landingKey = ''
+  landing: Pt | null = null
+  landingKey = ''
   /** Routed links, the Nodes where they were routed, and the layout key asked for last. */
-  private routed = new Map<string, Wire>()
-  private routedNodes = new Map<string, Pt>()
-  private routedFor = ''
+  routed = new Map<string, Wire>()
+  routedNodes = new Map<string, Pt>()
+  routedFor = ''
   /** The Game and drag the routes were last checked against. */
-  private routedGame: Game | null = null
-  private routedDrag: BoardController['dragged'] = null
+  routedGame: Game | null = null
+  routedDrag: BoardController['dragged'] = null
   /** The layout to route next, the one routed last, and whether the worker has one. */
-  private routeWanted: Readonly<{
+  routeWanted: Readonly<{
     key: string
     nodes: Array<RoutedNode>
     links: Array<RoutedLink>
   }> | null = null
-  private routeDone = ''
-  private routing = false
+  routeDone = ''
+  routing = false
   /**
    * While a held card sits on another card, its links run to the spot where it
    * will land, and they stay there while the dropped card glides into it.
    */
-  private heldLanding: Map<string, Pt> | null = null
-  private ghostType: ComponentId | null = null
-  private ghostLocale = 'en'
+  heldLanding: Map<string, Pt> | null = null
+  ghostType: ComponentId | null = null
+  ghostLocale = 'en'
   /** The drawn end of a wire being pulled. It eases onto a port it snaps to. */
-  private wireEnd: Pt | null = null
+  wireEnd: Pt | null = null
   /** The Node a pulled wire is snapped to, and how far its highlight has come in. */
-  private snapTo: string | null = null
-  private snapGlow = 0
+  snapTo: string | null = null
+  snapGlow = 0
   /** A wire let go over nothing, drawing back into its port. */
-  private retract: { path: Route; t: number } | null = null
+  retract: { path: Route; t: number } | null = null
   /** Links that just arrived, by key, with their age in seconds. */
-  private readonly fresh = new Map<string, number>()
+  readonly fresh = new Map<string, number>()
   /** The link the last wire drag asked for: it is already drawn, so it does not draw in. */
-  private wired: string | null = null
+  wired: string | null = null
   /** Links that just left, fading where they were. */
-  private cuts: Array<{ path: Route; t: number }> = []
-  private readonly abort = new AbortController()
+  cuts: Array<{ path: Route; t: number }> = []
+  readonly abort = new AbortController()
   /** The other Seats' pointers, drawn over the Board. */
-  private readonly cursorLayer = new CursorOverlay()
+  readonly cursorLayer = new CursorOverlay()
   /** A pointer position waiting to go out, and when the last one went. */
-  private cursorWaiting = false
-  private cursorSentAt = 0
+  cursorWaiting = false
+  cursorSentAt = 0
   /** The panel this Seat is in, sent with its last position so the pointer stays put. */
-  private activity: SeatActivity | null = null
+  activity: SeatActivity | null = null
   /** Whether the pointer has been on the Board, so there is a spot to keep. */
-  private pointerKnown = false
+  pointerKnown = false
   /** Whether the pointer is over the Board now. */
-  private over = false
+  over = false
   /** Writes an activity key in this Board's language. */
-  private activityOf: (activity: SeatActivity) => string = (activity) => activity
-  private readonly resize: ResizeObserver
+  activityOf: (activity: SeatActivity) => string = (activity) => activity
+  readonly resize: ResizeObserver
   /** Watches whether the board is on screen: a board scrolled out of view draws nothing. */
-  private readonly sight: IntersectionObserver
-  private onScreen = true
-  private phase = 0
-  private started = false
-  private fitted = false
+  readonly sight: IntersectionObserver
+  onScreen = true
+  phase = 0
+  started = false
+  fitted = false
   /** The host width the view was fitted to: a wider or narrower screen refits, a taller one does not. */
-  private fittedWidth: number | null = null
-  private destroyed = false
+  fittedWidth: number | null = null
+  destroyed = false
 
   constructor(
-    private readonly host: HTMLElement,
-    private readonly events: BoardEvents,
+    readonly host: HTMLElement,
+    readonly events: BoardEvents,
   ) {
     this.resize = new ResizeObserver(() => this.onResize())
     this.sight = new IntersectionObserver((entries) => {
@@ -270,7 +215,7 @@ export class BoardController {
   }
 
   /** Draws while the board is on screen and not suspended. */
-  private run(): void {
+  run(): void {
     if (this.onScreen && !this.state?.suspended) this.app.start()
     else this.app.stop()
   }
@@ -361,7 +306,7 @@ export class BoardController {
   }
 
   /** New links draw in from their port; removed ones fade where they were. */
-  private diffLinks(next: BoardState): void {
+  diffLinks(next: BoardState): void {
     const keyOf = (link: Readonly<{ from: string; to: string }>) => `${link.from}>${link.to}`
     const before = this.state?.game.links ?? []
     const was = new Set(before.map(keyOf))
@@ -404,7 +349,7 @@ export class BoardController {
     if (this.started) this.app.destroy(true, { children: true })
   }
 
-  private onResize(): void {
+  onResize(): void {
     const { clientWidth: w, clientHeight: h } = this.host
     if (w === 0 || h === 0) return
     this.app.renderer.resize(w, h)
@@ -472,13 +417,13 @@ export class BoardController {
     this.fittedWidth = w
   }
 
-  private toWorld(event: PointerEvent | WheelEvent): Pt {
+  toWorld(event: PointerEvent | WheelEvent): Pt {
     const rect = this.host.getBoundingClientRect()
     const local = this.world.toLocal(new Point(event.clientX - rect.left, event.clientY - rect.top))
     return { x: local.x, y: local.y }
   }
 
-  private nodes(dragged = this.dragged): ReadonlyArray<GameNode> {
+  nodes(dragged = this.dragged): ReadonlyArray<GameNode> {
     const nodes = this.state?.game.nodes ?? []
     if (!dragged) return nodes
     const lead = nodes.find((node) => node.id === dragged.id)
@@ -495,7 +440,7 @@ export class BoardController {
   }
 
   /** The frame around a multi-selection, with room around the cards. */
-  private selectionFrame(): Readonly<{ x: number; y: number; w: number; h: number }> | null {
+  selectionFrame(): Readonly<{ x: number; y: number; w: number; h: number }> | null {
     const selection = this.state?.selection ?? []
     if (selection.length < 2) return null
     const cards = this.shown()
@@ -513,13 +458,13 @@ export class BoardController {
   }
 
   /** The Nodes that move with this one: the whole selection when it is part of it. */
-  private groupOf(id: string): ReadonlyArray<string> {
+  groupOf(id: string): ReadonlyArray<string> {
     const selection = this.state?.selection ?? []
     return selection.length > 1 && selection.includes(id) ? selection : [id]
   }
 
   /** The Nodes where their cards are drawn, so wires stay attached while cards glide. */
-  private shown(): Map<string, GameNode> {
+  shown(): Map<string, GameNode> {
     // A GameNode carries a hundred fields, so spreading one per card per frame costs
     // more than the joins it feeds. A view of the node inherits every field and owns
     // only the two that follow the card.
@@ -551,7 +496,7 @@ export class BoardController {
     return out
   }
 
-  private nodeAt(point: Pt): GameNode | null {
+  nodeAt(point: Pt): GameNode | null {
     return (
       this.nodes().findLast(
         (node) =>
@@ -564,11 +509,11 @@ export class BoardController {
   }
 
   /** Whether a point is on a card's footer button. A chip has no footer, so a tap on it selects. */
-  private footerAt(node: GameNode, point: Pt): boolean {
+  footerAt(node: GameNode, point: Pt): boolean {
     return this.world.scale.x >= CHIP_NONE && inFooter(node, point)
   }
 
-  private outPortAt(point: Pt): GameNode | null {
+  outPortAt(point: Pt): GameNode | null {
     const reach = PORT_R + (this.coarse ? 16 : 6) / this.world.scale.x
     return (
       this.nodes().findLast((node) => {
@@ -579,13 +524,13 @@ export class BoardController {
     )
   }
 
-  private selectLink(link: Readonly<{ from: string; to: string }>): void {
+  selectLink(link: Readonly<{ from: string; to: string }>): void {
     this.selectedLink = link
     this.events.onEmptyTap()
   }
 
   /** Whether the point is on the × badge in the middle of the selected link. */
-  private onBadge(point: Pt): boolean {
+  onBadge(point: Pt): boolean {
     const link = this.selectedLink
     const from = link && this.shown().get(link.from)
     const to = link && this.shown().get(link.to)
@@ -596,7 +541,7 @@ export class BoardController {
     )
   }
 
-  private linkAt(point: Pt): Readonly<{ from: string; to: string }> | null {
+  linkAt(point: Pt): Readonly<{ from: string; to: string }> | null {
     const byId = new Map(this.nodes().map((node) => [node.id, node]))
     const reach = (this.coarse ? 14 : 7) / this.world.scale.x
     // Lanes in one channel run a few pixels apart, so the nearest belt wins, not the first.
@@ -620,7 +565,7 @@ export class BoardController {
    * time: when it answers, the newest layout asked for since goes next, so a long
    * drag on a big board still gets routes as fast as the worker makes them.
    */
-  private routes(): Map<string, Wire> {
+  routes(): Map<string, Wire> {
     const game = this.state?.game
     if (!game || (game === this.routedGame && this.dragged === this.routedDrag)) return this.routed
     this.routedGame = game
@@ -656,7 +601,7 @@ export class BoardController {
   }
 
   /** The dashed replication cables the router places with the other lanes, one set per Data Group. */
-  private replicationLinks(game: Game): ReadonlyArray<RoutedLink> {
+  replicationLinks(game: Game): ReadonlyArray<RoutedLink> {
     const region = this.state?.region
     if (!region) return []
     return replicationPairsOf(game)
@@ -664,7 +609,7 @@ export class BoardController {
       .map((pair) => ({ from: pair.from.id, to: pair.to.id }))
   }
 
-  private askRoute(): void {
+  askRoute(): void {
     const wanted = this.routeWanted
     if (this.routing || !wanted || wanted.key === this.routeDone) return
     this.routing = true
@@ -687,7 +632,7 @@ export class BoardController {
    * quick route until its routes arrive. A held card on another card has its
    * links drawn to its landing spot instead (see heldLanding).
    */
-  private wireOf(drawnFrom: GameNode, drawnTo: GameNode): Wire {
+  wireOf(drawnFrom: GameNode, drawnTo: GameNode): Wire {
     // A GameNode carries a hundred fields. Spreading one per link per frame costs more
     // than everything else the board draws, so a held card makes only the three fields
     // that a route reads.
@@ -712,7 +657,7 @@ export class BoardController {
     return { path, pieces: [path], tunnels: [] }
   }
 
-  private landingOf(dragged = this.gesture?.kind === 'node' ? this.dragged : null): Pt | null {
+  landingOf(dragged = this.gesture?.kind === 'node' ? this.dragged : null): Pt | null {
     const state = this.state
     if (!state) return null
     const pointer = { x: Math.round(this.pointer.x), y: Math.round(this.pointer.y) }
@@ -756,7 +701,7 @@ export class BoardController {
   }
 
   /** The two fingers on the board: how far apart, and where between them. */
-  private pinchOf(): Readonly<{ distance: number; center: Pt }> {
+  pinchOf(): Readonly<{ distance: number; center: Pt }> {
     const [a, b] = [...this.touches.values()]
     if (!a || !b) return this.pinch ?? { distance: 1, center: { x: 0, y: 0 } }
     return {
@@ -766,7 +711,7 @@ export class BoardController {
   }
 
   /** Zoom by how the fingers spread and pan by how their midpoint moved. */
-  private zoomTo(next: Readonly<{ distance: number; center: Pt }>): void {
+  zoomTo(next: Readonly<{ distance: number; center: Pt }>): void {
     const last = this.pinch
     this.pinch = next
     if (!last) return
@@ -783,385 +728,13 @@ export class BoardController {
     )
   }
 
-  private bindPointer(): void {
-    const canvas = this.app.canvas
-    const { signal } = this.abort
-    canvas.style.touchAction = 'none'
-    canvas.addEventListener('contextmenu', (event) => event.preventDefault(), { signal })
-
-    canvas.addEventListener(
-      'pointerdown',
-      (event) => {
-        this.coarse = event.pointerType !== 'mouse'
-        if (this.coarse) {
-          this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
-          canvas.setPointerCapture(event.pointerId)
-          if (this.touches.size === 2) {
-            // A second finger turns the gesture into a pinch.
-            this.letGo()
-            this.gesture = null
-            this.dragged = null
-            if (this.pressed) {
-              this.pressed = null
-              this.syncCards()
-            }
-            this.pinch = this.pinchOf()
-            return
-          }
-          if (this.touches.size > 2) return
-        }
-        const point = this.toWorld(event)
-        this.pointer = point
-        this.over = true
-        this.pointerKnown = true
-        // A press on the Board is board work, not the panel the cursor last announced.
-        this.activity = null
-        if (event.button === 2) {
-          const link = this.linkAt(point)
-          if (link) this.selectLink(link)
-          return
-        }
-        if (event.button !== 0) return
-        canvas.setPointerCapture(event.pointerId)
-        if (this.state?.readOnly) {
-          this.gesture = {
-            kind: 'pan',
-            x: event.clientX,
-            y: event.clientY,
-            moved: false,
-            cut: null,
-          }
-          return
-        }
-        if (this.state?.stamp) {
-          this.events.onPlace(Math.round(point.x / 8) * 8, Math.round(point.y / 8) * 8)
-          return
-        }
-        if (this.state?.placing) {
-          this.events.onPlace(point.x - CARD_W / 2, point.y - heightOf(this.state.placing) / 2)
-          return
-        }
-        const port = this.outPortAt(point)
-        if (port) {
-          this.hoverLink = null
-          this.gesture = { kind: 'link', from: port.id, at: point }
-          this.wireEnd = outPort(this.shown().get(port.id) ?? port)
-          this.snapTo = null
-          this.snapGlow = 0
-          this.events.onSound?.('pull', 1, true)
-          return
-        }
-        const node = this.nodeAt(point)
-        if (node) {
-          if (this.footerAt(node, point)) {
-            this.pressed = node.id
-            this.holdSince = this.state && holds(this.state.game, node) ? performance.now() : 0
-            this.syncCards()
-          } else {
-            const view = this.views.get(node.id)
-            if (view) view.held = true
-          }
-          this.gesture = {
-            kind: 'node',
-            id: node.id,
-            dx: point.x - node.x,
-            dy: point.y - node.y,
-            x: event.clientX,
-            y: event.clientY,
-            moved: false,
-          }
-          return
-        }
-        if (event.shiftKey) {
-          this.gesture = { kind: 'box', from: point, at: point }
-          return
-        }
-        if (this.selectedLink && this.onBadge(point)) {
-          this.events.onUnlink(this.selectedLink.from, this.selectedLink.to)
-          this.selectedLink = null
-          return
-        }
-        // Inside the frame of a multi-selection, a drag takes the whole group.
-        const frame = this.selectionFrame()
-        const lead = this.nodes().find((entry) => this.state?.selection[0] === entry.id)
-        if (
-          frame &&
-          lead &&
-          point.x >= frame.x &&
-          point.x <= frame.x + frame.w &&
-          point.y >= frame.y &&
-          point.y <= frame.y + frame.h
-        ) {
-          this.gesture = {
-            kind: 'node',
-            id: lead.id,
-            dx: point.x - lead.x,
-            dy: point.y - lead.y,
-            x: event.clientX,
-            y: event.clientY,
-            moved: false,
-            frame: true,
-          }
-          return
-        }
-        if (this.hoverLink) {
-          this.selectLink(this.hoverLink)
-          return
-        }
-        this.gesture = {
-          kind: 'pan',
-          x: event.clientX,
-          y: event.clientY,
-          moved: false,
-          cut: this.coarse ? this.linkAt(point) : null,
-        }
-      },
-      { signal },
-    )
-
-    canvas.addEventListener(
-      'pointermove',
-      (event) => {
-        if (this.touches.has(event.pointerId)) {
-          this.touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
-          if (this.pinch) {
-            this.zoomTo(this.pinchOf())
-            return
-          }
-        }
-        const point = this.toWorld(event)
-        this.pointer = point
-        // Back on the Board: the pointer moves again, so it stops saying what the panel was.
-        this.over = true
-        this.pointerKnown = true
-        this.activity = null
-        this.cursorWaiting = true
-        const gesture = this.gesture
-        if (gesture?.kind === 'pan') {
-          const dx = event.clientX - gesture.x
-          const dy = event.clientY - gesture.y
-          if (!gesture.moved && Math.hypot(dx, dy) < 4) return
-          gesture.moved = true
-          this.world.position.x += dx
-          this.world.position.y += dy
-          gesture.x = event.clientX
-          gesture.y = event.clientY
-          canvas.style.cursor = 'grabbing'
-          return
-        }
-        if (gesture?.kind === 'node') {
-          if (
-            !gesture.moved &&
-            Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) < 4
-          )
-            return
-          const view = this.views.get(gesture.id)
-          if (!gesture.moved && view) {
-            // Picked up: it rises above the other cards.
-            view.held = false
-            view.lifted = true
-            this.cards.addChild(view.root)
-            this.events.onSound?.('lift', 1, true)
-          }
-          gesture.moved = true
-          const last = this.dragged
-          this.dragged = {
-            id: gesture.id,
-            x: Math.round((point.x - gesture.dx) / 8) * 8,
-            y: Math.round((point.y - gesture.dy) / 8) * 8,
-          }
-          // Each grid line it crosses is a faint detent.
-          if (last && (last.x !== this.dragged.x || last.y !== this.dragged.y))
-            this.events.onSound?.('detent')
-          this.syncCards()
-          canvas.style.cursor = 'grabbing'
-          return
-        }
-        if (gesture?.kind === 'link' || gesture?.kind === 'box') {
-          gesture.at = point
-          const target = this.nodeAt(point)
-          const next = target && target.id !== gesture.from ? target.id : null
-          if (next !== this.snapTo) {
-            if (next) this.events.onSound?.('snap')
-            else this.events.onSound?.('detent', 0.7)
-            this.snapTo = next
-          }
-          canvas.style.cursor = 'crosshair'
-          return
-        }
-        if (this.state?.stamp) {
-          canvas.style.cursor = 'copy'
-          return
-        }
-        if (this.state?.placing) {
-          canvas.style.cursor = 'copy'
-          return
-        }
-        // A port wins over the link leaving it: pulling a wire is not a cut.
-        this.hoverLink = this.nodeAt(point) || this.outPortAt(point) ? null : this.linkAt(point)
-        this.hoverNode = this.nodeAt(point)?.id ?? null
-        canvas.style.cursor = this.outPortAt(point)
-          ? 'crosshair'
-          : this.nodeAt(point)
-            ? this.footerAt(this.nodeAt(point) as GameNode, point)
-              ? 'pointer'
-              : 'move'
-            : this.hoverLink
-              ? 'pointer'
-              : 'grab'
-      },
-      { signal },
-    )
-
-    const finish = (event: PointerEvent, cancelled: boolean) => {
-      this.endHold()
-      this.touches.delete(event.pointerId)
-      if (this.pinch) {
-        // The pinch ends with its first finger; the other one does nothing until it lifts.
-        if (this.touches.size < 2) this.pinch = null
-        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId)
-        return
-      }
-      const gesture = this.gesture
-      this.gesture = null
-      this.letGo()
-      this.holdSince = 0
-      if (this.pressed) {
-        this.pressed = null
-        this.syncCards()
-      }
-      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId)
-      canvas.style.cursor = 'grab'
-      if (!gesture || cancelled) {
-        if (gesture?.kind === 'link') this.springBack(gesture.from)
-        this.dragged = null
-        return
-      }
-      const point = this.toWorld(event)
-      if (gesture.kind === 'pan' && !gesture.moved) {
-        if (gesture.cut) this.selectLink(gesture.cut)
-        else {
-          this.selectedLink = null
-          this.events.onEmptyTap()
-        }
-      }
-      if (gesture.kind === 'node') {
-        const node = this.nodes().find((entry) => entry.id === gesture.id)
-        // A dropped card keeps its place until the Model has it (see draw), so it
-        // does not glide back toward where it was for a frame.
-        if (gesture.moved && this.dragged) {
-          this.droppedAt = performance.now()
-          // The card settles where the Model will put it, clear of the others.
-          const landing = this.landingOf(this.dragged) ?? this.dragged
-          this.dragged = { id: gesture.id, x: landing.x, y: landing.y }
-          this.syncCards()
-          this.events.onNodeMove(gesture.id, landing.x, landing.y)
-        } else if (gesture.frame) {
-          this.dragged = null
-        } else {
-          this.dragged = null
-          if (event.shiftKey) this.events.onNodeToggle(gesture.id)
-          // A size is bought by holding (see animate), so letting go early buys nothing.
-          else if (node && this.footerAt(node, point)) {
-            if (!this.state || !holds(this.state.game, node)) this.events.onFooter(gesture.id)
-          } else this.events.onNodeTap(gesture.id)
-        }
-      }
-      if (gesture.kind === 'link') {
-        const target = this.nodeAt(point)
-        if (target && target.id !== gesture.from) {
-          this.wired = `${gesture.from}>${target.id}`
-          this.wireEnd = null
-          this.snapTo = null
-          this.events.onLink(gesture.from, target.id)
-        } else this.springBack(gesture.from)
-      }
-      if (gesture.kind === 'box') {
-        const left = Math.min(gesture.from.x, point.x)
-        const right = Math.max(gesture.from.x, point.x)
-        const top = Math.min(gesture.from.y, point.y)
-        const bottom = Math.max(gesture.from.y, point.y)
-        this.events.onBox(
-          this.nodes()
-            .filter(
-              (node) =>
-                node.x < right &&
-                node.x + CARD_W > left &&
-                node.y < bottom &&
-                node.y + heightOf(node.type) > top,
-            )
-            .map((node) => node.id),
-          event.altKey ? 'subtract' : event.ctrlKey || event.metaKey ? 'add' : 'replace',
-        )
-      }
-    }
-    canvas.addEventListener('pointerup', (event) => finish(event, false), { signal })
-    canvas.addEventListener('pointercancel', (event) => finish(event, true), { signal })
-    canvas.addEventListener(
-      'pointerleave',
-      () => {
-        this.over = false
-        this.hoverLink = null
-        this.hoverNode = null
-        // A panel is open: the pointer stays on the Board and says what this Seat is doing.
-        if (this.activity !== null) {
-          this.emitCursor()
-          return
-        }
-        this.cursorWaiting = false
-        this.events.onCursorGone?.()
-      },
-      { signal },
-    )
-    // A hidden window takes the pointer with it, and a cursor left on the
-    // Board would keep pointing at a spot nobody is looking at.
-    window.addEventListener(
-      'blur',
-      () => {
-        this.over = false
-        this.cursorWaiting = false
-        this.events.onCursorGone?.()
-      },
-      { signal },
-    )
-    window.addEventListener(
-      'keydown',
-      (event) => {
-        const link = this.selectedLink
-        if (!link) return
-        if (event.key === 'Escape') this.selectedLink = null
-        if (event.key !== 'Delete' && event.key !== 'Backspace') return
-        const target = event.target as HTMLElement | null
-        if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
-        this.selectedLink = null
-        this.events.onUnlink(link.from, link.to)
-      },
-      { signal },
-    )
-
-    canvas.addEventListener(
-      'wheel',
-      (event) => {
-        // A board on a page lets the page scroll; Ctrl or Cmd zooms it.
-        if (this.state?.readOnly && !event.ctrlKey && !event.metaKey) return
-        event.preventDefault()
-        const rect = this.host.getBoundingClientRect()
-        const screen = { x: event.clientX - rect.left, y: event.clientY - rect.top }
-        const before = this.toWorld(event)
-        const scale = Math.min(
-          1.6,
-          Math.max(0.25, this.world.scale.x * Math.exp(-event.deltaY * 0.0015)),
-        )
-        this.world.scale.set(scale)
-        this.world.position.set(screen.x - before.x * scale, screen.y - before.y * scale)
-      },
-      { signal, passive: false },
-    )
+  bindPointer(): void {
+    bindPointer(this)
   }
 
   /** Puts down whatever card is held or lifted. */
   /** Fills the held footer button and fires it at the end; dragging off it cancels. */
-  private advanceHold(): void {
+  advanceHold(): void {
     const id = this.pressed
     const gesture = this.gesture
     if (this.holdSince && (gesture?.kind !== 'node' || gesture.moved || gesture.id !== id))
@@ -1184,14 +757,14 @@ export class BoardController {
   }
 
   /** The pointer lifted: the host stops repeating the held footer button. */
-  private endHold(): void {
+  endHold(): void {
     const id = this.holding
     if (!id) return
     this.holding = null
     this.events.onHoldEnd?.(id)
   }
 
-  private letGo(): void {
+  letGo(): void {
     for (const view of this.views.values()) {
       view.held = false
       view.lifted = false
@@ -1199,7 +772,7 @@ export class BoardController {
   }
 
   /** A wire let go over nothing draws back into its port. */
-  private springBack(fromId: string): void {
+  springBack(fromId: string): void {
     const from = this.shown().get(fromId)
     const end = this.wireEnd
     this.wireEnd = null
@@ -1210,7 +783,7 @@ export class BoardController {
     this.events.onSound?.('release', 1, true)
   }
 
-  private syncCards(): void {
+  syncCards(): void {
     const state = this.state
     if (!state) return
     const colors = palette()
@@ -1252,7 +825,7 @@ export class BoardController {
 
   /** The Nodes upstream and downstream of the hovered or selected Node, itself included;
    *  null when none is in focus, so nothing is dimmed. */
-  private pathOf(state: BoardState): ReadonlySet<string> | null {
+  pathOf(state: BoardState): ReadonlySet<string> | null {
     const focus = this.hoverNode ?? state.selected
     if (!focus || !state.game.nodes.some((node) => node.id === focus)) return null
     const reach = (next: (link: { from: string; to: string }) => readonly [string, string]) => {
@@ -1274,7 +847,7 @@ export class BoardController {
   }
 
   /** One belt per link, stacked in the Model's link order, with the splitters on top. */
-  private syncBelts(links: ReadonlyArray<Readonly<{ from: string; to: string }>>): void {
+  syncBelts(links: ReadonlyArray<Readonly<{ from: string; to: string }>>): void {
     if (links === this.beltLinks) return
     this.beltLinks = links
     const keys = links.map((link) => `${link.from}>${link.to}`)
@@ -1300,7 +873,7 @@ export class BoardController {
     }
   }
 
-  private syncGhost(): void {
+  syncGhost(): void {
     const type = this.state?.placing ?? null
     const locale = this.state?.locale ?? 'en'
     if (type === this.ghostType && locale === this.ghostLocale) return
@@ -1331,7 +904,7 @@ export class BoardController {
   }
 
   /** Draws a dashed box and a name around each group of Nodes, when one moved, came or went. */
-  private drawBoxes(game: Game, colors: Palette): void {
+  drawBoxes(game: Game, colors: Palette): void {
     const pad = 18
     const found: Array<
       Readonly<{ name: string; x: number; y: number; w: number; h: number; hue: number }>
@@ -1385,7 +958,7 @@ export class BoardController {
   }
 
   /** Dashed lines from each Data Group's primary to its Read Replicas, on the same lanes as the Links. */
-  private drawReplication(state: BoardState, colors: Palette): void {
+  drawReplication(state: BoardState, colors: Palette): void {
     const pairs = replicationPairsOf(state.game).filter(
       (pair) => pair.from.region === state.region && pair.to.region === state.region,
     )
@@ -1414,488 +987,12 @@ export class BoardController {
     this.replication.stroke({ color: colors.accent, width: 1.25, alpha: 0.45 })
   }
 
-  private animate(seconds: number): void {
-    const state = this.state
-    if (!state) return
-    const now = performance.now()
-    this.flushCursor(now)
-    this.cursorLayer.tick(
-      now,
-      { x: this.world.position.x, y: this.world.position.y, scale: this.world.scale.x },
-      state.region,
-      this.activityOf,
-    )
-    const colors = palette()
-    // The phase is sim time: at 10× the belts carry ten times as many items per real second.
-    if (!state.paused) this.phase += seconds * state.speed
-    // Reduced motion: packets hold still along the pipe, and the bottleneck does not pulse.
-    const still = reducedMotion()
-    const zoom = this.world.scale.x
-    const detailed = zoom >= CHEVRON_SCALE
-    const rows = rowsAt(zoom)
-    const chip = chipAt(zoom)
-    // The chevrons and packets draw only for belts on screen. A card off screen is
-    // hidden too, so the cards' render group does not draw a world the view cannot see.
-    const scale = zoom
-    const margin = 40 / scale
-    const view: Box = {
-      x: -this.world.position.x / scale - margin,
-      y: -this.world.position.y / scale - margin,
-      w: this.host.clientWidth / scale + 2 * margin,
-      h: this.host.clientHeight / scale + 2 * margin,
-    }
-    for (const card of this.views.values()) {
-      const at = card.at
-      const shown =
-        !at ||
-        (at.x + CARD_W >= view.x &&
-          at.x <= view.x + view.w &&
-          at.y + card.height >= view.y &&
-          at.y <= view.y + view.h)
-      card.root.visible = shown
-      // The card keeps following its Node while hidden, so it is already in place when
-      // the view returns. Only its level of detail waits for the screen.
-      card.tick(seconds, still)
-      if (shown) card.detail(rows, chip, colors)
-    }
-    this.advanceHold()
-    this.leaving = this.leaving.filter((view) => {
-      if (view.tick(seconds, still)) return true
-      view.root.destroy({ children: true })
-      return false
-    })
-    const byId = this.shown()
-    // Once the dropped cards are in their spots, their links follow them again.
-    if (
-      this.heldLanding &&
-      this.gesture?.kind !== 'node' &&
-      (performance.now() - this.droppedAt > 1000 ||
-        [...this.heldLanding].every(
-          ([id, spot]) => byId.get(id)?.x === spot.x && byId.get(id)?.y === spot.y,
-        ))
-    )
-      this.heldLanding = null
-    for (const [key, age] of this.fresh)
-      if (age >= GLOW_S) this.fresh.delete(key)
-      else this.fresh.set(key, age + seconds)
-    const rates = new Map(state.ledger.links.map((link) => [`${link.from}>${link.to}`, link]))
-
-    // Chevrons and packets draw only for belts on screen.
-    this.chevrons.begin()
-    const focus = this.pathOf(state)
-    this.packets.begin()
-    // Clearing marks the Graphics changed, so an empty one is left alone.
-    if (this.arrows.context.instructions.length > 0) this.arrows.clear()
-    this.notes.begin()
-    this.places.begin()
-    // Clearing marks the Graphics changed, so an empty one is left alone.
-    if (this.overlay.context.instructions.length > 0) this.overlay.clear()
-    const mouths: Array<Mouth> = []
-    this.syncBelts(state.game.links)
-    const picked = this.selectedLink
-    if (picked && !state.game.links.some((l) => l.from === picked.from && l.to === picked.to))
-      this.selectedLink = null
-    // One belt is under the pointer or picked: it carries the answer, so the rest quiet down.
-    const lit = this.hoverLink ?? this.selectedLink
-    const litKey =
-      lit && state.game.links.some((l) => l.from === lit.from && l.to === lit.to)
-        ? `${lit.from}>${lit.to}`
-        : null
-    for (const link of state.game.links) {
-      const key = `${link.from}>${link.to}`
-      const belt = this.belts.get(key)
-      const from = byId.get(link.from)
-      const to = byId.get(link.to)
-      if (belt && (!from || !to)) belt.show(false, 1)
-      if (!belt || !from || !to) continue
-      const picked = this.selectedLink?.from === link.from && this.selectedLink.to === link.to
-      const hovered =
-        picked || (this.hoverLink?.from === link.from && this.hoverLink.to === link.to)
-      const quiet = litKey !== null && litKey !== key
-      // Off the focused path, a belt fades back.
-      const off = focus !== null && !(focus.has(link.from) && focus.has(link.to))
-      // A lit belt rises above the channel it shares with the others, so nothing covers it.
-      if (litKey === key) this.bodies.setChildIndex(belt.body, this.bodies.children.length - 1)
-      const age = this.fresh.get(key)
-      const wire = this.wireOf(from, to)
-      // A new link draws out of its port before anything flows along it.
-      const drawn = age === undefined ? 1 : easeOut(Math.min(1, age / DRAW_IN_S))
-      const path = drawn < 1 ? partOf(wire.path, drawn) : wire.path
-      // Where other lanes cross, a vertical lane runs through a tunnel under them.
-      const pieces = drawn < 1 ? [path] : wire.pieces
-      const seen = belt.onScreen(pieces, view)
-      const flow = rates.get(key)
-      const busy = (flow?.rate ?? 0) > 0.01
-      const speed = busy && !still ? beltSpeed(flow?.rate ?? 0) : 0
-      // Advance this belt by the distance it covered: sim seconds at its own speed.
-      // A flow rate that changes under it then alters only the next frame's speed.
-      if (!state.paused) belt.travel += seconds * state.speed * speed
-      belt.show(seen, quiet ? QUIET : hovered ? 1 : off ? DIM : 1)
-      // A belt the view cannot see draws nothing: not its body, its mouths or its items.
-      if (!seen) continue
-      const tap = COMPONENTS[to.type].tap
-      // The packets' colour; the pipe under them is a pale tint of it, with no outline.
-      const hue = flow?.failing
-        ? colors.danger
-        : tap
-          ? colors.muted
-          : flow && busy
-            ? KINDS[flow.kind].color
-            : colors.edge
-      // A dark board sinks its wires toward the canvas, so saturated packets do not glare.
-      const packet = mix(hue, colors.canvas, colors.wireMute)
-      // Rails stand out only where they say something: on the focused path and on errors. A call
-      // between zones pays cross-zone latency and Egress: its rails are orange in focus,
-      // and at rest an orange tick marks the port it arrives on.
-      const zonal = zoneMs(from, to) > 0
-      const focused = focus !== null && !off
-      const rail = hovered
-        ? colors.accent
-        : zonal && focused
-          ? colors.warn
-          : focused || flow?.failing
-            ? mix(packet, colors.shade, 0.3)
-            : // At rest a faint edge in the belt's own tint keeps the path's boundary.
-              mix(packet, colors.canvas, busy ? 0.55 : 0.4)
-      // Once zones are researched a link inside one zone takes that zone's tint.
-      const zones = has(state.game, 'multi-az') && zoned(from) && zoned(to)
-      const crossing = zones && from.zone !== to.zone
-      const zoneHue = { a: colors.groups.edge, b: colors.groups.ops, c: colors.groups.data }
-      const body =
-        zones && !crossing && !hovered
-          ? mix(zoneHue[from.zone], colors.canvas, busy ? 0.75 : 0.85)
-          : mix(packet, colors.canvas, hovered ? 0.55 : busy ? 0.8 : 0.92)
-      const width = hovered ? BELT + 1 : busy ? BELT : 3
-      belt.draw(pieces, rail, body, width, zonal ? colors.warn : null)
-      if (drawn >= 1) mouthsOf(pieces, width, off || quiet, mouths)
-      // A lit belt marks both of its ports, so the lane shows which cards it joins.
-      if (hovered && drawn >= 1) {
-        for (const port of [outPort(from), inPort(to)])
-          this.overlay
-            .circle(port.x, port.y, 4.5)
-            .fill(colors.accent)
-            .stroke({ color: colors.card, width: 2 })
-      }
-      // A still, busy belt shows its arrows and rate instead of chevrons: one read, not two.
-      // The items carry the flow; the chevrons are faint unless the belt is in focus.
-      if (detailed && seen && busy && !still)
-        this.chevrons.add(
-          pieces,
-          belt.travel,
-          mix(packet, colors.canvas, 0.4),
-          hovered ? 0.9 : quiet ? 0.05 : focus !== null && !off ? 0.75 : off ? DIM * 0.4 : 0.3,
-          view,
-        )
-      // A link between regions says what its round trip costs, under the belt.
-      const place = placeLabel(state.game, from, to)
-      if (place && detailed && seen && drawn >= 1 && !quiet) {
-        const mid = midOf(path)
-        this.places.add(mid.x, mid.y, place, colors.ink, colors.warn, -PLACE_LIFT)
-      }
-      if (picked) {
-        const mid = pointOn(path, 0.5)
-        this.overlay.circle(mid.x, mid.y, 9).fill(colors.danger)
-        this.overlay
-          .moveTo(mid.x - 3.5, mid.y - 3.5)
-          .lineTo(mid.x + 3.5, mid.y + 3.5)
-          .moveTo(mid.x + 3.5, mid.y - 3.5)
-          .lineTo(mid.x - 3.5, mid.y + 3.5)
-        this.overlay.stroke({ color: colors.card, width: 2 })
-      }
-      if (age !== undefined) {
-        const glow = 1 - easeOut(Math.min(1, age / GLOW_S))
-        traceOf(this.overlay, path).stroke({
-          color: colors.accent,
-          width: 2 + 6 * glow,
-          alpha: 0.35 * glow,
-          cap: 'round',
-          join: 'round',
-        })
-        if (drawn < 1) {
-          const tip = path[path.length - 1]
-          if (tip) this.overlay.circle(tip.x, tip.y, 4).fill(colors.accent)
-          continue
-        }
-      }
-      if (!flow || !busy || off || quiet || !seen) continue
-      const length = lengthOf(path)
-      const marks = flowMarks(still, flow.rate, length)
-      const shape = packetShapeOf(flow.kind)
-      const alpha = tap ? 0.6 : 0.95
-      // Nothing shows on the belt while it runs through a tunnel.
-      const underground = (t: number): boolean =>
-        wire.tunnels.some(([start, end]) => t * length > start && t * length < end)
-      if (marks.label === null) {
-        // Items ride on the distance this belt has travelled, each in its kind's shape.
-        const along = 1 / Math.max(1, length)
-        const color = particleColor(packet, alpha)
-        for (let index = 0; index < marks.packets; index += 1) {
-          const t = (belt.travel * along + (index + 0.5) / marks.packets) % 1
-          if (underground(t)) continue
-          const at = pointOn(path, t, length)
-          if (at.x < view.x || at.x > view.x + view.w || at.y < view.y || at.y > view.y + view.h)
-            continue
-          this.packets.add(shape, at.x, at.y, color)
-        }
-      } else {
-        // Reduced motion: still arrows along the belt, under the rate they stand for.
-        for (const t of marks.arrows) {
-          if (underground(t)) continue
-          const at = pointAndDirection(path, t)
-          arrowAt(this.arrows, at.x, at.y, at.ux, at.uy, 4.2)
-        }
-        this.arrows.fill({ color: packet, alpha })
-        const mid = midOf(path)
-        this.notes.add(mid.x, mid.y, marks.label, hue, colors.card, tap ? 12 : 11)
-      }
-    }
-
-    this.packets.end()
-    this.notes.end()
-    this.places.end()
-    this.chevrons.end()
-    this.drawBoxes(state.game, colors)
-    this.drawReplication(state, colors)
-
-    const portalColor = colors.edge
-    const sameMouths =
-      mouths.length === this.mouthsDrawn.length &&
-      mouths.every((mouth, index) => {
-        const before = this.mouthsDrawn[index] as Mouth
-        return (
-          mouth.x === before.x &&
-          mouth.y === before.y &&
-          mouth.across === before.across &&
-          mouth.width === before.width &&
-          mouth.off === before.off
-        )
-      })
-    this.mouthsDrawn = mouths
-    if (!sameMouths || portalColor !== this.portalInk) {
-      this.portalInk = portalColor
-      this.portals.clear()
-      for (const portal of portalsOf(mouths))
-        this.portals
-          .roundRect(portal.x0, portal.y0, portal.x1 - portal.x0, portal.y1 - portal.y0, 1.25)
-          .fill({ color: portalColor, alpha: portal.off ? DIM : 0.7 })
-    }
-
-    // A port that feeds several belts has a splitter over the point where they part.
-    const fans = new Map<string, { x: number; top: number; bottom: number; belts: number }>()
-    for (const link of state.game.links) {
-      const from = byId.get(link.from)
-      const to = byId.get(link.to)
-      if (!from || !to || this.fresh.has(`${link.from}>${link.to}`)) continue
-      const port = outPort(from)
-      const fan = fans.get(link.from) ?? {
-        x: port.x,
-        top: port.y,
-        bottom: port.y,
-        belts: 0,
-      }
-      fan.belts += 1
-      // The fan is the stretch out of the port before the belt runs straight up or down.
-      const path = this.wireOf(from, to).path
-      for (let index = 1; index < path.length; index += 1) {
-        const point = path[index] as Pt
-        const before = path[index - 1] as Pt
-        if (point.x > port.x + SPLITTER_W || Math.abs(point.x - before.x) < 0.01) break
-        fan.top = Math.min(fan.top, point.y)
-        fan.bottom = Math.max(fan.bottom, point.y)
-      }
-      fans.set(link.from, fan)
-    }
-    const splitters = [...fans.values()].filter((fan) => fan.belts >= 2)
-    const splittersKey = splitters.map((fan) => `${fan.x}:${fan.top}:${fan.bottom}`).join('|')
-    if (splittersKey !== this.splittersKey) {
-      this.splittersKey = splittersKey
-      this.splitters.clear()
-      const pad = BELT / 2 + 1.5
-      for (const fan of splitters)
-        this.splitters
-          .roundRect(fan.x, fan.top - pad, SPLITTER_W, fan.bottom - fan.top + pad * 2, 3)
-          .fill(colors.card)
-          .stroke({ color: colors.edge, width: 1.5 })
-    }
-
-    // No global bottleneck marker: players read limiting-resource pressure from cards and diagnostics.
-
-    // A disclosure cue: a ring around the one footer button to press next.
-    const cue = state.cue ? byId.get(state.cue) : undefined
-    if (cue) {
-      const rect = footerRect(cue.type)
-      const pulse = still ? 0.9 : 0.35 + 0.55 * Math.abs(Math.sin(this.phase * 2.4))
-      this.overlay
-        .roundRect(cue.x + rect.x - 3, cue.y + rect.y - 3, rect.w + 6, rect.h + 6, 10)
-        .stroke({ color: colors.ok, width: 2.5, alpha: pulse })
-    }
-
-    // Cut links fade where they were, in the colour that warned before the cut.
-    this.cuts = this.cuts.filter((cut) => {
-      cut.t += seconds
-      const fade = 1 - easeOut(Math.min(1, cut.t / CUT_S))
-      traceOf(this.overlay, cut.path).stroke({
-        color: colors.danger,
-        width: 2.5,
-        alpha: 0.9 * fade,
-        cap: 'round',
-        join: 'round',
-      })
-      return cut.t < CUT_S
-    })
-
-    // A wire let go over nothing draws back into its port.
-    const retract = this.retract
-    if (retract) {
-      retract.t += seconds
-      const left = 1 - easeOut(Math.min(1, retract.t / RETRACT_S))
-      const path = partOf(retract.path, left)
-      traceOf(this.overlay, path).stroke({
-        color: colors.accent,
-        width: 2.5,
-        cap: 'round',
-        join: 'round',
-      })
-      const tip = path[path.length - 1]
-      if (tip) this.overlay.circle(tip.x, tip.y, 5 * Math.max(0.4, left)).fill(colors.accent)
-      if (retract.t >= RETRACT_S) this.retract = null
-    }
-
-    const gesture = this.gesture
-    const snapped = gesture?.kind === 'link' && this.snapTo ? byId.get(this.snapTo) : undefined
-    this.snapGlow += ((snapped ? 1 : 0) - this.snapGlow) * follow(seconds, 26, still)
-    if (gesture?.kind === 'link') {
-      const from = byId.get(gesture.from)
-      if (from) {
-        // Free, the end rides the pointer; near a port it is pulled onto it.
-        const aim = snapped ? inPort(snapped) : gesture.at
-        const end = this.wireEnd ?? aim
-        const k = follow(seconds, snapped ? 30 : 60, still)
-        this.wireEnd = { x: end.x + (aim.x - end.x) * k, y: end.y + (aim.y - end.y) * k }
-        const lane = laneUnder(from, snapped ? snapped.y + heightOf(snapped.type) : this.wireEnd.y)
-        traceOf(this.overlay, route(outPort(from), this.wireEnd, lane)).stroke({
-          color: colors.accent,
-          width: 2.5,
-          cap: 'round',
-          join: 'round',
-        })
-        this.overlay
-          .circle(this.wireEnd.x, this.wireEnd.y, 5 + 1.5 * this.snapGlow)
-          .fill(colors.accent)
-        if (snapped) {
-          silhouette(
-            this.overlay,
-            COMPONENTS[snapped.type].group,
-            snapped.x,
-            snapped.y,
-            CARD_W,
-            heightOf(snapped.type),
-            3 + 5 * (1 - this.snapGlow),
-          ).stroke({ color: colors.accent, width: 2, alpha: this.snapGlow })
-        }
-      }
-    }
-
-    const frame = this.selectionFrame()
-    if (frame) {
-      this.overlay
-        .roundRect(frame.x, frame.y, frame.w, frame.h, 6)
-        .fill({ color: colors.accent, alpha: 0.04 })
-        .stroke({ color: colors.accent, width: 1.5, alpha: 0.85 })
-      // Square handles on the corners, as in a design tool.
-      const size = 8
-      for (const [cx, cy] of [
-        [frame.x, frame.y],
-        [frame.x + frame.w, frame.y],
-        [frame.x, frame.y + frame.h],
-        [frame.x + frame.w, frame.y + frame.h],
-      ] as const)
-        this.overlay
-          .rect(cx - size / 2, cy - size / 2, size, size)
-          .fill({ color: 0xffffff })
-          .stroke({ color: colors.accent, width: 1.5 })
-    }
-
-    if (gesture?.kind === 'box') {
-      const left = Math.min(gesture.from.x, gesture.at.x)
-      const top = Math.min(gesture.from.y, gesture.at.y)
-      this.overlay
-        .rect(
-          left,
-          top,
-          Math.abs(gesture.at.x - gesture.from.x),
-          Math.abs(gesture.at.y - gesture.from.y),
-        )
-        .fill({ color: colors.accent, alpha: 0.08 })
-        .stroke({ color: colors.accent, width: 1.5, alpha: 0.8 })
-    }
-    const landing = this.landingOf()
-    if (state.stamp) {
-      // The Playbook shows where it will land, clear of the cards already there.
-      const x = landing?.x ?? Math.round(this.pointer.x / 8) * 8
-      const y = landing?.y ?? Math.round(this.pointer.y / 8) * 8
-      for (const entry of state.stamp) {
-        silhouette(
-          this.overlay,
-          COMPONENTS[entry.type].group,
-          x + entry.dx,
-          y + entry.dy,
-          CARD_W,
-          heightOf(entry.type),
-          0,
-        )
-          .fill({ color: entry.ghost ? colors.danger : colors.accent, alpha: 0.1 })
-          .stroke({ color: entry.ghost ? colors.danger : colors.accent, width: 2, alpha: 0.85 })
-      }
-    }
-
-    // A held card or new Node over others: an outline shows the free spot it will take.
-    const held =
-      gesture?.kind === 'node' && this.dragged
-        ? byId.get(this.dragged.id)
-        : state.placing && this.ghost.visible
-          ? {
-              type: state.placing,
-              x: Math.round((this.pointer.x - CARD_W / 2) / 8) * 8,
-              y: Math.round((this.pointer.y - heightOf(state.placing) / 2) / 8) * 8,
-            }
-          : undefined
-    if (held && landing && (landing.x !== held.x || landing.y !== held.y)) {
-      const group = gesture?.kind === 'node' && this.dragged ? this.groupOf(this.dragged.id) : []
-      const from = state.game.nodes.find((node) => node.id === this.dragged?.id)
-      const outlines =
-        group.length > 1 && from
-          ? state.game.nodes
-              .filter((node) => group.includes(node.id))
-              .map((node) => ({
-                type: node.type,
-                x: node.x + landing.x - from.x,
-                y: node.y + landing.y - from.y,
-              }))
-          : [{ type: held.type, x: landing.x, y: landing.y }]
-      for (const outline of outlines)
-        silhouette(
-          this.overlay,
-          COMPONENTS[outline.type].group,
-          outline.x,
-          outline.y,
-          CARD_W,
-          heightOf(outline.type),
-          0,
-        )
-          .fill({ color: colors.accent, alpha: 0.08 })
-          .stroke({ color: colors.accent, width: 2, alpha: 0.7 })
-    }
-
-    if (this.ghost.visible)
-      this.ghost.position.set(
-        this.pointer.x - CARD_W / 2,
-        this.pointer.y - heightOf(this.ghostType ?? 'server') / 2,
-      )
+  animate(seconds: number): void {
+    animate(this, seconds)
   }
 
   /** Sends the pointer to the other Seats: the latest spot, 25 times a second. */
-  private flushCursor(now: number): void {
+  flushCursor(now: number): void {
     if (!this.cursorWaiting) return
     const state = this.state
     if (state === null || now - this.cursorSentAt < CURSOR_MS) return
@@ -1903,7 +1000,7 @@ export class BoardController {
   }
 
   /** Sends the pointer now, with what this Seat is doing: a position and its activity. */
-  private emitCursor(): void {
+  emitCursor(): void {
     const state = this.state
     if (state === null || !this.pointerKnown) return
     this.cursorWaiting = false
@@ -1947,5 +1044,3 @@ export class BoardController {
     this.cursorLayer.clear()
   }
 }
-
-const HOLD_S = 0.6
