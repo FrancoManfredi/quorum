@@ -1078,9 +1078,9 @@ export const hud = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>): Html
         'absolute top-3 left-3 z-20 flex w-[calc(276px*var(--type-scale))] flex-col gap-2 compact:contents',
       ),
       h.Style({
-        // French words and Japanese full-width labels need more columns than English does.
+        // French, Spanish and Japanese labels need more columns than English does.
         '--hud-label-width':
-          model.prefs.locale === 'fr' || model.prefs.locale === 'ja'
+          model.prefs.locale === 'fr' || model.prefs.locale === 'ja' || model.prefs.locale === 'es'
             ? 'calc(64px*var(--type-scale))'
             : 'calc(46px*var(--type-scale))',
       }),

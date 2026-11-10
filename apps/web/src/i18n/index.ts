@@ -5,6 +5,7 @@ export const supportedLocales = [
   { value: 'fr', label: 'Français' },
   { value: 'zh-CN', label: '简体中文' },
   { value: 'ja', label: '日本語' },
+  { value: 'es', label: 'Español' },
 ] as const
 
 export const Locale = Schema.Literals(supportedLocales.map(({ value }) => value))
