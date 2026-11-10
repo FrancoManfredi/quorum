@@ -143,11 +143,17 @@ export default Alchemy.Stack(
       observability,
     })
 
-    // The wiki: every page prerendered at build time. Foldkit's generated Worker answers the
-    // rest (404s). Pages are folders, so serve them without a trailing slash.
-    const Wiki = Cloudflare.Website.Foldkit('Wiki', {
-      rootDir: 'apps/wiki',
-      assets: { htmlHandling: 'drop-trailing-slash' },
+    // The wiki: every page is prerendered at build time, so it deploys as assets only. A script
+    // would evaluate the whole app, every page included, at startup, and that exceeds the Workers
+    // startup CPU limit. Pages are folders, so serve them without a trailing slash, and an unknown
+    // path loads the app shell, which renders its own not-found page.
+    const Wiki = Cloudflare.Website.StaticSite('Wiki', {
+      command: 'pnpm --filter @quorum/wiki build',
+      outdir: 'apps/wiki/dist/client',
+      assets: {
+        htmlHandling: 'drop-trailing-slash',
+        notFoundHandling: 'single-page-application',
+      },
       ...(stage === 'prod' && { domain: WIKI_DOMAIN }),
       compatibility,
       observability,
