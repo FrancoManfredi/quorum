@@ -390,6 +390,9 @@ const CUT_S = 0.18
 const RETRACT_S = 0.18
 /** How often the board tells the Room where the pointer is: 25 times a second. */
 const CURSOR_MS = 40
+/** How long the pointer rests on a Node or a belt before its hover shows. A pass across the
+ *  Board is faster than this, so it lights nothing, and a deliberate hover still answers. */
+const HOVER_SETTLE_MS = 150
 
 let reduceQuery: MediaQueryList | null = null
 
@@ -2093,6 +2096,12 @@ class BoardController {
   private selectedLink: Readonly<{ from: string; to: string }> | null = null
   /** The Node under the pointer: with the selected one, it lights its whole path. */
   private hoverNode: string | null = null
+  /** What the pointer just entered, and when: it lights after a rest, so a pass lights nothing. */
+  private hoverAim: Readonly<{
+    node: string | null
+    link: Readonly<{ from: string; to: string }> | null
+    since: number
+  }> | null = null
   private pointer: Pt = { x: 0, y: 0 }
   /** Fingers and pens on the board, in client coordinates. Two of them pinch. */
   private readonly touches = new Map<number, Pt>()
@@ -2460,6 +2469,38 @@ class BoardController {
     return out
   }
 
+  /**
+   * The pointer entered a Node or a belt. Its light goes out at once, and the new one waits:
+   * a pass across the Board lights nothing, and moving off clears without a delay.
+   */
+  private aimHover(node: string | null, link: Readonly<{ from: string; to: string }> | null): void {
+    const aim = this.hoverAim
+    if (
+      aim !== null &&
+      aim.node === node &&
+      aim.link?.from === link?.from &&
+      aim.link?.to === link?.to
+    )
+      return
+    const shown =
+      node === this.hoverNode &&
+      link?.from === this.hoverLink?.from &&
+      link?.to === this.hoverLink?.to
+    if (shown && aim === null) return
+    this.hoverNode = null
+    this.hoverLink = null
+    this.hoverAim = node === null && link === null ? null : { node, link, since: performance.now() }
+  }
+
+  /** Lights the hover the pointer rested on. Called each frame, so it needs no timer. */
+  private settleHover(now: number): void {
+    const aim = this.hoverAim
+    if (aim === null || now - aim.since < HOVER_SETTLE_MS) return
+    this.hoverNode = aim.node
+    this.hoverLink = aim.link
+    this.hoverAim = null
+  }
+
   private nodeAt(point: Pt): GameNode | null {
     return (
       this.nodes().findLast(
@@ -2725,6 +2766,8 @@ class BoardController {
         this.pointerKnown = true
         // A press on the Board is board work, not the panel the cursor last announced.
         this.activity = null
+        // A press takes over from any hover still waiting to light.
+        this.hoverAim = null
         if (event.button === 2) {
           const link = this.linkAt(point)
           if (link) this.selectLink(link)
@@ -2813,8 +2856,10 @@ class BoardController {
           }
           return
         }
-        if (this.hoverLink) {
-          this.selectLink(this.hoverLink)
+        // The pointer's own hit test, not the lit hover: a press selects at once.
+        const link = this.linkAt(point)
+        if (link) {
+          this.selectLink(link)
           return
         }
         this.gesture = {
@@ -2907,15 +2952,17 @@ class BoardController {
           return
         }
         // A port wins over the link leaving it: pulling a wire is not a cut.
-        this.hoverLink = this.nodeAt(point) || this.outPortAt(point) ? null : this.linkAt(point)
-        this.hoverNode = this.nodeAt(point)?.id ?? null
-        canvas.style.cursor = this.outPortAt(point)
+        const node = this.nodeAt(point)
+        const port = this.outPortAt(point)
+        const link = node || port ? null : this.linkAt(point)
+        this.aimHover(node?.id ?? null, link)
+        canvas.style.cursor = port
           ? 'crosshair'
-          : this.nodeAt(point)
-            ? this.footerAt(this.nodeAt(point) as GameNode, point)
+          : node
+            ? this.footerAt(node, point)
               ? 'pointer'
               : 'move'
-            : this.hoverLink
+            : link
               ? 'pointer'
               : 'grab'
       },
@@ -3012,6 +3059,7 @@ class BoardController {
         this.over = false
         this.hoverLink = null
         this.hoverNode = null
+        this.hoverAim = null
         // A panel is open: the pointer stays on the Board and says what this Seat is doing.
         if (this.activity !== null) {
           this.emitCursor()
@@ -3029,6 +3077,8 @@ class BoardController {
       () => {
         this.over = false
         this.cursorWaiting = false
+        // A hover still waiting must not light after the window has gone.
+        this.hoverAim = null
         this.events.onCursorGone?.()
       },
       { signal },
@@ -3327,6 +3377,7 @@ class BoardController {
     const state = this.state
     if (!state) return
     const now = performance.now()
+    this.settleHover(now)
     this.flushCursor(now)
     this.cursorLayer.tick(
       now,
