@@ -1,12 +1,20 @@
 import * as Sentry from '@sentry/cloudflare'
-import { INGEST_PREFIX } from '@quorum/rpc'
+import { API_PREFIX, INGEST_PREFIX, MCP_PATH } from '@quorum/rpc'
 
 interface ApiBinding {
   fetch(request: Request): Promise<Response>
 }
 
+/** The part of Cloudflare's Rate Limit binding this Worker uses. */
+interface RateLimitBinding {
+  limit(options: { key: string }): Promise<{ success: boolean }>
+}
+
 interface Environment {
   readonly API: ApiBinding
+  /** Per-IP limits declared in `alchemy.run.ts`. Local dev without them allows everything. */
+  readonly RATE_LIMIT_API?: RateLimitBinding
+  readonly RATE_LIMIT_INGEST?: RateLimitBinding
   /** Without it the Sentry SDK stays off. */
   readonly SENTRY_DSN?: string
   readonly SENTRY_RELEASE?: string
@@ -18,6 +26,28 @@ const POSTHOG_ASSETS = 'us-assets.i.posthog.com'
 
 const isIngest = (pathname: string): boolean =>
   pathname === INGEST_PREFIX || pathname.startsWith(`${INGEST_PREFIX}/`)
+
+const isApi = (pathname: string): boolean =>
+  pathname === API_PREFIX ||
+  pathname.startsWith(`${API_PREFIX}/`) ||
+  pathname === MCP_PATH ||
+  pathname.startsWith(`${MCP_PATH}/`)
+
+/** A limiter that fails open: an outage in the rate limiter must not stop the game. */
+const allowed = async (binding: RateLimitBinding | undefined, key: string): Promise<boolean> => {
+  if (binding === undefined) return true
+  try {
+    return (await binding.limit({ key })).success
+  } catch {
+    return true
+  }
+}
+
+const tooMany = (): Response =>
+  new Response('Too many requests. Try again in a minute.', {
+    status: 429,
+    headers: { 'Retry-After': '60', 'Content-Type': 'text/plain; charset=utf-8' },
+  })
 
 /**
  * Forwards one analytics request to PostHog. Assets go to the asset host;
@@ -58,9 +88,15 @@ export default Sentry.withSentry(
   {
     // The incoming request carries the browser's trace headers. Sentry continues that trace, and
     // the service binding passes the same headers on, so the API Worker joins it.
-    fetch(request: Request, env: Environment): Promise<Response> {
+    async fetch(request: Request, env: Environment): Promise<Response> {
       const url = new URL(request.url)
-      return isIngest(url.pathname) ? ingest(request, url) : env.API.fetch(request)
+      const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+      if (isIngest(url.pathname)) {
+        if (!(await allowed(env.RATE_LIMIT_INGEST, ip))) return tooMany()
+        return ingest(request, url)
+      }
+      if (isApi(url.pathname) && !(await allowed(env.RATE_LIMIT_API, ip))) return tooMany()
+      return env.API.fetch(request)
     },
   },
 )

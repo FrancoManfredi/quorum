@@ -66,7 +66,10 @@ const apiBuild = {
  * The public hostnames of the `prod` stage. The old hostname 301s to the new one, path and query
  * kept. Both zones must exist in the Cloudflare account.
  */
-const PRODUCTION_DOMAIN = { name: 'playquorum.dev', redirects: ['quorum.elianiva.com'] }
+const PRODUCTION_DOMAIN = {
+  name: 'playquorum.dev',
+  redirects: ['quorum.elianiva.com', 'www.playquorum.dev'],
+}
 
 /** The wiki's public hostname in the `prod` stage, in the same zone (ADR 0009). */
 const WIKI_DOMAIN = 'wiki.playquorum.dev'
@@ -75,13 +78,30 @@ const WIKI_DOMAIN = 'wiki.playquorum.dev'
  * Cloudflare Workers Observability, configured on the host resources only. It keeps the logs.
  * Sentry owns traces, so Cloudflare's are off: they would record every request a second time,
  * with the URLs and SQL text of its automatic spans.
- * Sampling at 1 records every request: lower the rate before real traffic.
+ * Sampling at 0.1 keeps one request in ten, which is enough for a launch spike.
  */
 const observability = {
   enabled: true,
-  headSamplingRate: 1,
-  logs: { enabled: true, invocationLogs: true, headSamplingRate: 1, persist: true },
+  headSamplingRate: 0.1,
+  logs: { enabled: true, invocationLogs: true, headSamplingRate: 0.1, persist: true },
   traces: { enabled: false },
+}
+
+/**
+ * Per-IP limits at the website Worker, before a request reaches the API or the
+ * analytics proxy. A single player rarely makes more than a handful of API
+ * calls a minute, so these leave room for a shared office while they stop an
+ * anonymous script from creating Rooms without end.
+ */
+const rateLimits = {
+  RATE_LIMIT_API: Cloudflare.RateLimit('RateLimitApi', {
+    namespaceId: 7301,
+    simple: { limit: 60, period: 60 },
+  }),
+  RATE_LIMIT_INGEST: Cloudflare.RateLimit('RateLimitIngest', {
+    namespaceId: 7302,
+    simple: { limit: 120, period: 60 },
+  }),
 }
 
 const state = Layer.unwrap(
@@ -133,7 +153,7 @@ export default Alchemy.Stack(
     const Website = Cloudflare.Website.Foldkit('Website', {
       rootDir: stage === 'reference' ? 'examples/reference' : 'apps/web',
       main: 'src/worker.ts',
-      env: { API: ApiWorker, ...sentryEnv },
+      env: { API: ApiWorker, ...sentryEnv, ...rateLimits },
       assets: {
         runWorkerFirst: [MCP_PATH, `${MCP_PATH}/*`, `${API_PREFIX}/*`, `${INGEST_PREFIX}/*`],
         notFoundHandling: 'single-page-application',

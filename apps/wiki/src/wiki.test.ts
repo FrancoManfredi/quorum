@@ -23,6 +23,7 @@ import {
   MAX_WORDS,
   RECENT_ENTRIES,
   dayOf,
+  fallbackEntry,
   problemsIn,
   renderAll,
   renderRecent,
@@ -184,6 +185,16 @@ test('a changelog entry keeps to the Keep a Changelog sections and the day’s c
   )
   expect(problemsIn(`### Added\n\n${'word '.repeat(MAX_WORDS + 1)}`, day)).toContainEqual(
     expect.stringContaining(`the limit is ${MAX_WORDS}`),
+  )
+})
+
+test('the fallback entry links the day’s commits', () => {
+  const hash = 'a'.repeat(40)
+  const entry = fallbackEntry([
+    { hash, date: '2026-11-08T10:00:00Z', subject: 'A change', body: '' },
+  ])
+  expect(entry).toBe(
+    `### Changed\n\n- A change ([aaaaaaa](https://github.com/elianiva/quorum/commit/${hash}))`,
   )
 })
 

@@ -382,6 +382,19 @@ ${briefOf(day)}`
   return reply
 }
 
+/** The entry to ship when the model cannot write one: the day's player-facing commits. */
+export const fallbackEntry = (commits: ReadonlyArray<Commit>): string =>
+  [
+    '### Changed',
+    '',
+    ...commits
+      .slice(0, 20)
+      .map(
+        (commit) =>
+          `- ${commit.subject.trim()} ([${commit.hash.slice(0, 7)}](${COMMIT_PREFIX}${commit.hash}))`,
+      ),
+  ].join('\n')
+
 /** Writes one day's entry, or returns null when the day has nothing to say. */
 export const writeEntry = async (day: string, force = false): Promise<string | null> => {
   const target = new URL(entryName(day), ENTRY_DIR)
@@ -390,7 +403,14 @@ export const writeEntry = async (day: string, force = false): Promise<string | n
   if (playerCommits(day).length === 0) return null
   mkdirSync(BRIEF_DIR, { recursive: true })
   writeFileSync(new URL(`${day}.txt`, BRIEF_DIR), `${briefOf(day)}\n`)
-  const entry = await entryFor(day, commits)
+  let entry: string | null
+  try {
+    entry = await entryFor(day, commits)
+  } catch (error) {
+    // A missing model key must not stop the changelog. The commit list is plain, but it ships.
+    console.error(`The model could not write ${day}; using the commit list.`, error)
+    entry = fallbackEntry(playerCommits(day))
+  }
   if (entry === null) return null
   mkdirSync(ENTRY_DIR, { recursive: true })
   writeFileSync(target, `${entry}\n`)
