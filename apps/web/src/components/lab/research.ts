@@ -1207,10 +1207,14 @@ const detail = (model: Model, entry: ResearchDef, h: HtmlBuilder<Message>): Html
       h.Key('detail'),
       h.DataAttribute('exit', 'gesture'),
       h.Class(
-        'absolute inset-y-0 right-0 z-20 flex w-[var(--sheet-w)] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:border-t compact:border-l-0 compact:pb-[env(safe-area-inset-bottom)]',
+        'absolute inset-y-0 right-0 z-20 flex w-[var(--sheet-w)] flex-col overflow-hidden border-l border-hairline bg-surface enter-panel sheet compact:inset-x-0 compact:top-auto compact:bottom-0 compact:max-h-[66%] compact:w-auto compact:rounded-t-2xl compact:border-t compact:border-l-0 compact:pb-[env(safe-area-inset-bottom)] compact:shadow-float',
       ),
     ],
     [
+      h.div(
+        [h.Class('hidden shrink-0 justify-center pt-2 pb-0.5 compact:flex')],
+        [h.span([h.Class('h-1 w-10 rounded-full bg-foreground/15')], [])],
+      ),
       // The pane's edge: drag it, or step it with the arrow keys. Home and End go to the bounds.
       h.div(
         [

@@ -208,12 +208,18 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
   const open = model.board.buildGroup
   const placing = placingOf(model)
   const groups = DOCK_GROUPS.filter((group) => dockGroups(model.board.game).includes(group.key))
+  // A phone docks the tabs as a pill around their content. The pill only takes the full width when
+  // every group is unlocked, or while a group's list is open and its rows need the room.
+  const allGroups = groups.length === DOCK_GROUPS.length
+  const wide = open !== null || allGroups
   return h.div(
     [
       h.Key('dock'),
       h.DataAttribute('morph', 'gesture'),
       h.Class(
-        `pointer-events-auto flex flex-col items-center justify-end p-1.5 ${PANEL} compact:items-stretch`,
+        `pointer-events-auto flex flex-col items-center justify-end p-1.5 ${PANEL} compact:items-stretch ${
+          wide ? 'compact:w-full' : 'compact:w-fit compact:self-center'
+        }`,
       ),
     ],
     [
@@ -221,7 +227,9 @@ export const dock = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [
           h.Class(
-            'flex max-w-full items-center justify-center gap-1 compact:justify-start compact:overflow-x-auto compact:[scrollbar-width:none]',
+            `flex max-w-full items-center justify-center gap-1 ${
+              allGroups ? 'compact:justify-start' : 'compact:justify-center'
+            } compact:overflow-x-auto compact:[scrollbar-width:none]`,
           ),
         ],
         [

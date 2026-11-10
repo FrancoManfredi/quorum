@@ -1603,7 +1603,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
       h.DataAttribute('inspector', ''),
       h.AriaLabel(nodeTitle(t, game, node)),
       h.Class(
-        `absolute top-[76px] right-3 bottom-3 z-20 flex w-[348px] flex-col overflow-hidden ${PANEL} enter-panel compact:inset-0 compact:max-h-none compact:w-auto compact:rounded-none compact:pt-[env(safe-area-inset-top)] compact:pb-[env(safe-area-inset-bottom)] compact:shadow-none short:inset-x-auto short:top-[132px] short:right-[max(8px,env(safe-area-inset-right))] short:w-[320px] short:max-h-none`,
+        `absolute top-[76px] right-3 bottom-3 z-20 flex w-[348px] flex-col overflow-hidden ${PANEL} enter-panel sheet-screen compact:inset-0 compact:max-h-none compact:w-auto compact:rounded-none compact:pt-[env(safe-area-inset-top)] compact:pb-[env(safe-area-inset-bottom)] compact:shadow-none short:inset-x-auto short:top-[132px] short:right-[max(8px,env(safe-area-inset-right))] short:w-[320px] short:max-h-none`,
       ),
     ],
     [

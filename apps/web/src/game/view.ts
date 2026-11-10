@@ -10,6 +10,7 @@ import { isPlaying } from './company-machine.ts'
 import { connecting } from './boot-machine.ts'
 import { AppRoute, onBoard } from './route.ts'
 import { RoomPhase } from './room-machine.ts'
+import { dockItems } from './reveal.ts'
 
 /** The board for the route has its data: the Company file, or the board its Session names. */
 const boardFilled = (model: Model): boolean =>
@@ -53,7 +54,14 @@ export const view = (model: Model, builder: HtmlBuilder<Message>): Document => {
         AppRoute.guards.Room(model.route) && model.panel === 'room' && !boardFilled(model)
           ? roomPanel(model, h)
           : h.empty,
-        toast(model.toast, model.panel !== 'none' && !model.board.screenshot, h),
+        toast(
+          model.toast,
+          model.panel !== 'none' && !model.board.screenshot,
+          model.board.buildGroup === null
+            ? 0
+            : dockItems(model.board.game, model.board.buildGroup).length,
+          h,
+        ),
       ],
     ),
   }
