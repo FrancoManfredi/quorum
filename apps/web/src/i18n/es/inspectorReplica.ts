@@ -2,6 +2,10 @@ import type { Messages } from '../messages.ts'
 
 export const inspectorReplica: Messages['inspectorReplica'] = {
   replication: 'Replicación',
+  primary: 'Primario',
+  primaryNote: (name) =>
+    `${name} recibe las escrituras. Este nodo responde las lecturas desde su copia.`,
+  noSinglePrimary: 'Enlaza una base de datos a esta réplica de lectura para copiarla.',
   asynchronous: 'Asíncrona',
   synchronous: 'Síncrona',
   runsThePrimaryEngine: 'Ejecuta el motor del primario.',

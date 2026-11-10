@@ -15,7 +15,14 @@ export const inspectorDatabase: Messages['inspectorDatabase'] = {
   topologyMulti:
     'Multi-leader: cada base de datos guarda todas las filas y acepta escrituras. La certificación descarta las escrituras en conflicto y gana el primer commit.',
   topologySingle:
-    'Primario único: una base de datos acepta escrituras y una réplica de lectura acepta lecturas. Una segunda base de datos necesita primero una topología.',
+    'Primario único: una base de datos acepta escrituras y una réplica de lectura acepta lecturas. Una caja une dos o más bases de datos en un grupo de datos.',
+  leader: 'Primario',
+  dataGroup: 'Grupo de datos',
+  readReplicas: 'Réplicas de lectura',
+  noReadReplicas:
+    'Ninguna. Enlaza una réplica de lectura a esta base de datos para quitarle lecturas.',
+  secondDatabaseFollows:
+    'Encierra esta base de datos en una caja con otra para formar un grupo de datos. El grupo guarda sus filas de una sola manera.',
   promote: 'Promover a primario',
   promoteNote:
     'La réplica pasa a ser el primario y el antiguo primario, su réplica. Una réplica asíncrona aún tenía escrituras en vuelo, así que la promoción las pierde; una síncrona no pierde ninguna.',
