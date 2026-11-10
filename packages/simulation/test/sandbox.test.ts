@@ -271,7 +271,13 @@ describe('guided Sandboxes pass with their fix and stall without it', { timeout:
           (current, server) => ok(Actions.connect(current, server, id)),
           ok(Actions.connect(worked, id, worker)),
         )
-        return ok(Actions.setDlq(linked, id, dlq))
+        return ok(
+          Actions.setDlq(
+            ok(Actions.connect(ok(Actions.connect(linked, worker, 'storage')), worker, 'database')),
+            id,
+            dlq,
+          ),
+        )
       }
     passesInTime(play('slow-uploads', queue(true), LONG), 3)
     expect(play('slow-uploads', idle, LONG).objective).toBe(1)
@@ -404,7 +410,8 @@ describe('the Series A track, continued', () => {
       if (passed > 0) return game
       const placed = ok(Actions.place(game, 'replica', 1120, 400))
       const id = lastId(placed)
-      return ok(Actions.connect(ok(Actions.connect(placed, 'server1', id)), 'server2', id))
+      const fed = ok(Actions.connect(placed, 'database', id))
+      return ok(Actions.connect(ok(Actions.connect(fed, 'server1', id)), 'server2', id))
     }
     expect(play('stale-checkout', replicas, LONG).objective).toBe(1)
   }, 60_000)

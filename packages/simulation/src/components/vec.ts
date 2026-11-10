@@ -46,7 +46,7 @@ export const vecDef = def({
   cost: 400,
   burn: 0.3,
   latency: 20,
-  accepts: ['q-search'],
+  accepts: ['q-vector'],
   maxOut: 0,
   unlock: 'embeddings',
   steps: 6,

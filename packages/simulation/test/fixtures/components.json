@@ -139,6 +139,7 @@
         "q-write",
         "auth",
         "q-search",
+        "q-vector",
         "blob-put",
         "task",
         "blob-get",
@@ -211,7 +212,7 @@
       "name": "Database",
       "product": "PostgreSQL or MySQL",
       "group": "data",
-      "blurb": "The source of truth, and the only Node that takes writes. A bigger size restarts it. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.",
+      "blurb": "The relational source of truth. A Read Replica copies it and takes no writes. A bigger size restarts it. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.",
       "cost": 90,
       "latency": 2,
       "accepts": [
@@ -308,6 +309,7 @@
         "q-read",
         "q-write",
         "q-search",
+        "q-vector",
         "blob-put",
         "q-tx",
         "blob-get",
@@ -356,6 +358,7 @@
         "q-read",
         "q-write",
         "q-search",
+        "q-vector",
         "blob-put",
         "q-tx",
         "blob-get",
@@ -364,17 +367,8 @@
       ]
     },
     "pooler": {
-      "sends": [
-        "q-read",
-        "q-write",
-        "q-search",
-        "blob-put",
-        "q-tx",
-        "blob-get",
-        "q-scan",
-        "k-write"
-      ],
-      "fallback": ["q-search", "blob-put", "blob-get", "q-scan", "k-write"],
+      "sends": ["q-read", "q-write", "q-tx"],
+      "fallback": [],
       "stack": false,
       "limiting": true,
       "coldStart": false,
@@ -395,16 +389,7 @@
       "blurb": "Many app connections share 20 database connections. It pools to one host.",
       "cost": 80,
       "latency": 0.3,
-      "accepts": [
-        "q-read",
-        "q-write",
-        "q-search",
-        "blob-put",
-        "q-tx",
-        "blob-get",
-        "q-scan",
-        "k-write"
-      ]
+      "accepts": ["q-read", "q-write", "q-tx"]
     },
     "cache": {
       "sends": [
@@ -417,7 +402,7 @@
         "q-scan",
         "k-write"
       ],
-      "fallback": ["q-search", "blob-put", "blob-get", "q-scan"],
+      "fallback": ["q-search", "blob-put", "blob-get", "q-scan", "q-tx", "k-write"],
       "stack": false,
       "limiting": true,
       "coldStart": true,
@@ -446,7 +431,8 @@
         "q-tx",
         "blob-get",
         "q-scan",
-        "k-write"
+        "k-write",
+        "change"
       ]
     },
     "replica": {
@@ -522,7 +508,7 @@
       "blurb": "Answers search queries. 400 per second per size step.",
       "cost": 300,
       "latency": 15,
-      "accepts": ["q-search"]
+      "accepts": ["q-search", "change"]
     },
     "storage": {
       "sends": [],
@@ -600,7 +586,7 @@
       "accepts": ["task"]
     },
     "worker": {
-      "sends": ["q-read", "q-write", "notify", "callout"],
+      "sends": ["q-read", "q-write", "blob-put", "notify", "callout"],
       "fallback": [],
       "stack": true,
       "limiting": true,
@@ -619,13 +605,13 @@
       "name": "Worker",
       "product": "Sidekiq",
       "group": "compute",
-      "blurb": "Runs your code on tasks from a Queue. Users never wait for it. Link it to the data an export reads.",
+      "blurb": "Runs your code on tasks from a Queue. Users never wait for it. Link it to the data its tasks read and write.",
       "cost": 60,
       "latency": 0,
       "accepts": ["task"]
     },
     "log": {
-      "sends": ["task"],
+      "sends": ["task", "change"],
       "fallback": [],
       "stack": false,
       "limiting": true,
@@ -647,7 +633,7 @@
       "blurb": "A log, not a queue: events stay after they are read, so a consumer can replay them. Consumers read one partition each and fall behind at their own pace.",
       "cost": 900,
       "latency": 5,
-      "accepts": ["task"]
+      "accepts": ["task", "change"]
     },
     "fn": {
       "sends": [
@@ -655,8 +641,8 @@
         "q-write",
         "auth",
         "q-search",
+        "q-vector",
         "blob-put",
-        "task",
         "blob-get",
         "q-tx",
         "charge",
@@ -696,7 +682,6 @@
         "upload",
         "bot",
         "media",
-        "rt",
         "buy",
         "job",
         "report",
@@ -1038,7 +1023,7 @@
       "blurb": "Answers report scans in columns. 1.5 s each, no limit, paid per scan.",
       "cost": 800,
       "latency": 1500,
-      "accepts": ["q-scan"]
+      "accepts": ["q-scan", "change"]
     },
     "vec": {
       "sends": [],
@@ -1063,7 +1048,7 @@
       "blurb": "Answers nearest-neighbour lookups over your embeddings. It holds the index in memory, and a prompt that reaches it earns more.",
       "cost": 400,
       "latency": 20,
-      "accepts": ["q-search"]
+      "accepts": ["q-vector"]
     },
     "gpu": {
       "sends": [],
@@ -1096,8 +1081,8 @@
         "q-write",
         "auth",
         "q-search",
+        "q-vector",
         "blob-put",
-        "task",
         "blob-get",
         "q-tx",
         "charge",
@@ -1137,7 +1122,6 @@
         "upload",
         "bot",
         "media",
-        "rt",
         "buy",
         "job",
         "report",
@@ -1249,7 +1233,7 @@
       "accepts": ["q-read", "q-write", "q-tx"]
     },
     "cdc": {
-      "sends": ["task"],
+      "sends": ["change"],
       "fallback": [],
       "stack": false,
       "limiting": true,

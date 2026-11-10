@@ -28,6 +28,7 @@ export const BACKEND_KINDS = [
   'q-write',
   'auth',
   'q-search',
+  'q-vector',
   'blob-put',
   'task',
   'blob-get',
@@ -38,6 +39,7 @@ export const BACKEND_KINDS = [
   'notify',
   'callout',
   'k-write',
+  'change',
 ] as const
 export type BackendKind = (typeof BACKEND_KINDS)[number]
 
@@ -46,6 +48,7 @@ export const DATA_KINDS = [
   'q-read',
   'q-write',
   'q-search',
+  'q-vector',
   'blob-put',
   'q-tx',
   'blob-get',
@@ -83,6 +86,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   'q-write': { label: 'Write query', value: 0, color: 0x7152b5 },
   auth: { label: 'Auth call', value: 0, color: 0xd0438b },
   'q-search': { label: 'Search query', value: 0, color: 0x2f9e8f },
+  'q-vector': { label: 'Vector lookup', value: 0, color: 0x7a6fae },
   'blob-put': { label: 'Object put', value: 0, color: 0xd9822b },
   task: { label: 'Task', value: 0, color: 0xb8a03a },
   'blob-get': { label: 'Object get', value: 0, color: 0xe0564f },
@@ -98,6 +102,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   notify: { label: 'Push message', value: 0, color: 0xd96b9a },
   callout: { label: 'Customer call', value: 0, color: 0x6d8f3a },
   'k-write': { label: 'Timeline write', value: 0, color: 0xc9a227 },
+  change: { label: 'Change', value: 0, color: 0x8a6f4d },
 }
 
 /**
@@ -127,7 +132,9 @@ export type RequestProfile = Readonly<{
    * Backend calls the async part makes: a Worker sends them once the kind goes
    * through a Queue; without one, the App Server makes them inline.
    */
-  asyncCalls: Readonly<Partial<Record<'q-read' | 'q-write' | 'notify' | 'callout', number>>>
+  asyncCalls: Readonly<
+    Partial<Record<'q-read' | 'q-write' | 'blob-put' | 'notify' | 'callout', number>>
+  >
   /** An ORM turns this kind's reads into N+1 queries. */
   orm: boolean
   /** KB the response sends over the network. */
@@ -231,8 +238,8 @@ export const PROFILES: Record<RequestKind, RequestProfile> = {
     cpu: 120,
     native: true,
     apdex: 1_500,
-    calls: { 'blob-put': 1, 'q-write': 1 },
-    asyncCalls: {},
+    calls: {},
+    asyncCalls: { 'blob-put': 1, 'q-write': 1 },
     orm: false,
     payloadKB: 2,
     asyncKB: 2,

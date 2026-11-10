@@ -7,9 +7,9 @@ The Worker stands for a background job runner such as Sidekiq: your code, off th
 
 ## How it works
 
-It pulls tasks from a [Queue](/components/queue) and runs the async part of each kind. It sends read and write queries, push messages, and calls to customer servers. It runs the same [runtimes and frameworks](/runtimes) as an App Server, with an instance type and size. Users never wait for it, and its throughput decides whether the Queue drains or grows.
+It pulls tasks from a [Queue](/components/queue) and runs the async part of each kind. It sends read and write queries, object puts, push messages, and calls to customer servers. It runs the same [runtimes and frameworks](/runtimes) as an App Server, with an instance type and size. Users never wait for it, and its throughput decides whether the Queue drains or grows.
 
-An export runs many read queries in its task, so link the Worker to the data it reads: the [Database](/components/database), a [Cache](/components/cache), or a [Read Replica](/components/replica). Link it to the [Push Provider](/components/msgp) for notifications.
+An export runs many read queries in its task, and an upload stores its file, so link the Worker to the data it reads and writes: the [Database](/components/database), a [Cache](/components/cache), a [Read Replica](/components/replica), and [Object Storage](/components/storage). Link it to the [Push Provider](/components/msgp) for notifications.
 
 ## Options
 

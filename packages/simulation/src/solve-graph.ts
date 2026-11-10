@@ -249,10 +249,10 @@ export const delegates = (graph: Graph, node: GameNode): boolean =>
 export const cdcMirrored = (graph: Graph, node: GameNode): boolean =>
   (graph.mirrors.get(node.id)?.length ?? 0) > 0
 
-/** An App Server with a Link to a Queue hands its async work to Workers. */
+/** An App Server with a Link to a Queue or an Event Stream hands its async work to Workers. */
 export const offloads = (graph: Graph, node: GameNode): boolean =>
   node.type === 'server' &&
-  (graph.routes.get(node.id) ?? []).some((child) => accepts(child, 'task'))
+  (graph.routes.get(node.id) ?? []).some((child) => child.type === 'queue' || child.type === 'log')
 
 export const runsLocalDb = (graph: Graph, node: GameNode): boolean =>
   node.localDb &&

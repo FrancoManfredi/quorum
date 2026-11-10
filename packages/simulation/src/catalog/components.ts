@@ -428,6 +428,7 @@ export {
 } from '../components/cache.ts'
 export {
   CDN_HIT,
+  ANONYMOUS_PAGE,
   TIERED_MEDIA_HIT,
   CDN_TTLS,
   ESI_PAGE_HIT,

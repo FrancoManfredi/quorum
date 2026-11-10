@@ -12,7 +12,7 @@ export const queueRule: ComponentRule = {
   serve: (serve, node, rates, share) => {
     if (share <= 0) return
     const arrived = (rates.task ?? 0) * share
-    const room = Math.max(0, serve.solver.drainable(node) - arrived)
+    const room = Math.max(0, serve.solver.drainable(node, 'task') - arrived)
     serve.route('task', arrived + Math.min(node.depth / DRAIN_SECONDS, room))
   },
   // The caller waits for the enqueue only. A long backlog slows the broker.

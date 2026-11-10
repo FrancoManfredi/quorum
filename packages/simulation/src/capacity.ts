@@ -330,7 +330,7 @@ export const callsOf = (
       calls[backend] = (calls[backend] ?? 0) + count
   // Retrieval-augmented generation (07 "Vector Index"): a prompt on a Node that reaches a Vector
   // Index pays one nearest-neighbour lookup for the documents it quotes.
-  if (kind === 'ai' && vecOf(game, node)) calls['q-search'] = (calls['q-search'] ?? 0) + 1
+  if (kind === 'ai' && vecOf(game, node)) calls['q-vector'] = (calls['q-vector'] ?? 0) + 1
   return calls
 }
 
@@ -1370,6 +1370,7 @@ export const FLAT_CAPACITY: Readonly<Record<string, number>> = {
   pooler: 10_000,
   search: 400,
   queue: 20_000,
+  log: 100_000,
   waf: 5_000,
   gw: 10_000,
   // An Edge Function answers as many requests as reach it: nothing caps it but its CPU ceiling.

@@ -27,7 +27,7 @@ export const cdcDef = def({
   burn: 0.05,
   latency: CDC_MS,
   accepts: [],
-  sends: ['task'],
+  sends: ['change'],
   maxOut: 1,
   mirror: true,
   unlock: 'cdc',

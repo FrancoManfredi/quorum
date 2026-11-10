@@ -1272,6 +1272,7 @@ export const catalog: Messages['catalog'] = {
     'q-write': { label: '写入查询' },
     auth: { label: '认证调用' },
     'q-search': { label: '搜索查询' },
+    'q-vector': { label: '向量查询' },
     'blob-put': { label: '对象上传' },
     task: { label: '任务' },
     'blob-get': { label: '对象获取' },
@@ -1286,6 +1287,7 @@ export const catalog: Messages['catalog'] = {
     notify: { label: '推送消息' },
     callout: { label: '客户调用' },
     'k-write': { label: '时间线写入' },
+    change: { label: '变更' },
   },
   lbPolicies: {
     weighted: { label: '加权' },

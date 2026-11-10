@@ -3,8 +3,13 @@ import { def } from './define.ts'
 import { REQUEST_KINDS } from '../catalog/kinds.ts'
 import type { Kind } from '../catalog/kinds.ts'
 
-/** A CDN's hit ratio per kind at the default TTL (05 "CDN"): 70% of pages, 75% of video. */
+/**
+ * A CDN's hit ratio per kind at the default TTL (05 "CDN"): 70% of anonymous pages, 75% of
+ * video. A logged-in page is not cacheable without Edge-side includes.
+ */
 export const CDN_HIT: Partial<Record<Kind, number>> = { page: 0.7, media: 0.75 }
+/** Share of page views that come from anonymous visitors: proposed, and the rest are logged in. */
+export const ANONYMOUS_PAGE = 0.6
 /** With Tiered caching, a CDN answers this share of video. */
 export const TIERED_MEDIA_HIT = 0.92
 /** CDN TTLs in seconds, and what each does to the hit ratio.  */

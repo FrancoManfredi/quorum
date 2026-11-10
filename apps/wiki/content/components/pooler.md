@@ -10,7 +10,7 @@ The [Connection Limit](/sandboxes/connection-limit) Sandbox shows it.
 
 ## How it works
 
-Place it between your App Servers or Workers and the [Database](/components/database). It takes the same queries the Database takes and passes them on, with almost no added latency. It has a throughput limit, and each size step doubles it.
+Place it between your App Servers or Workers and the [Database](/components/database). It carries the point reads, writes, and transactions that use a database connection, and passes them on with almost no added latency. It does not carry search, object storage, or scans. It has a throughput limit of **10,000 queries a second** at its first size, and each size step doubles it.
 
 It takes **one** link out. A real PgBouncer reads no SQL and sends every connection to one host, so it cannot send reads to a replica and writes to the primary. To reach a [Read Replica](/components/replica) as well, link the pooler into an L4 [Load Balancer](/components/lb) (an L7 one reads HTTP and refuses queries), and the Load Balancer into the Database and each replica. The Load Balancer then splits reads by its algorithm, while writes go to the Database only.
 

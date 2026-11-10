@@ -9,7 +9,7 @@ The Event Stream stands for Apache Kafka, Redpanda and Amazon Kinesis: a partiti
 
 Producers append, consumers read at their own pace, and the messages stay after they are read. That separates it from a [Queue](/components/queue). A Queue hands a task to one Worker and forgets it. A log keeps it for the retention window, so a consumer can read it twice, a second consumer can read it at all, and a new index or a rebuilt Worker can replay it without touching the [Database](/components/database).
 
-It takes `task` from the Nodes that produce async work and sends `task` on to the Workers that consume it. One broker appends **100,000 messages a second** at its first size, and the rate doubles at each of its six sizes. Each append waits five milliseconds times its acknowledgement setting.
+It takes `task` from the Nodes that produce async work and sends it to the Workers that consume it. It also takes `change` from a [CDC Connector](/components/cdc) and sends it to a [Search Engine](/components/search), a [Data Warehouse](/components/warehouse), or a [Cache](/components/cache). Every linked change consumer sees every change; Workers share the tasks. One broker appends **100,000 messages a second** at its first size, and the rate doubles at each of its six sizes. Each append waits five milliseconds times its acknowledgement setting.
 
 **Consumer lag** is the stat to watch: the events a stream holds that its consumers have not read. It is the log's version of queue depth. A producer never waits for its consumers, so the first harm of a slow Worker is a growing log, not a slow request.
 
@@ -30,7 +30,7 @@ It takes `task` from the Nodes that produce async work and sends `task` on to th
 - **Ordering.** Round robin with more than one partition loses order, so a superseded write can land after the one that replaced it. The value a consumer writes is the older one, and the game counts it as a stale result.
 - **Partitions.** One partition means one consumer, so a slow consumer holds everyone behind it. More partitions read faster and split the order more finely.
 - **A hot key.** One key's traffic fills one partition, whatever the partition count, and that partition sets the whole stream's speed. Incident [Hot key](/incidents/hot-key) shows it.
-- **No Worker linked.** Nothing consumes the stream, and every task that reaches it is stranded.
+- **No consumer linked.** Nothing consumes the stream, and every task or change that reaches it is stranded.
 
 ### [Instance failure](/incidents/instance)
 

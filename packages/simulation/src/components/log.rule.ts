@@ -15,7 +15,14 @@ import { warming } from '../life.ts'
 
 import { flatModel } from '../capacity.ts'
 import { flatScale } from '../lookups.ts'
-import { type ComponentRule, hotKeyFactor, noConnections, noProbe, slotOf } from '../rule-kit.ts'
+import {
+  type ComponentRule,
+  accepts,
+  hotKeyFactor,
+  noConnections,
+  noProbe,
+  slotOf,
+} from '../rule-kit.ts'
 
 // A log, not a queue (07 "Event Stream"): it appends what producers send, and its consumers
 // read one partition each at their own pace, so they lag behind and the messages stay.
@@ -32,20 +39,46 @@ export const logRule: ComponentRule = {
   // consumer per partition").
   serve: (serve, node, rates, share) => {
     if (share <= 0) return
-    const arrived = (rates.task ?? 0) * share
-    const room = Math.max(0, serve.solver.drainable(node) - arrived)
+    const task = (rates.task ?? 0) * share
+    const change = (rates.change ?? 0) * share
+    const arrived = task + change
+    const room = Math.max(
+      0,
+      serve.solver.drainable(node, 'task') + serve.solver.drainable(node, 'change') - arrived,
+    )
     const read = LOG_READ_RATE * Math.max(1, Math.floor(node.partitions))
-    serve.route('task', Math.min(arrived + Math.min(node.depth / DRAIN_SECONDS, room), read))
+    const backlog = Math.min(node.depth / DRAIN_SECONDS, room, read)
+    const offered = Math.min(arrived + backlog, read)
+    if (arrived > 0) {
+      const ratio = offered / arrived
+      if (task > 0) serve.route('task', task * ratio)
+      if (change > 0) serve.route('change', change * ratio)
+      return
+    }
+    if (backlog <= 0) return
+    // No producer is sending: drain what the Stream holds to the consumers it feeds. A Stream
+    // can carry both kinds, so split a backlog only when both kinds have a consumer.
+    const consumers = serve.solver.game.links
+      .filter((link) => link.from === node.id)
+      .flatMap((link) => serve.solver.game.nodes.filter((entry) => entry.id === link.to))
+    const taskConsumer = consumers.some((entry) => accepts(entry, 'task'))
+    const changeConsumer = consumers.some((entry) => accepts(entry, 'change'))
+    if (taskConsumer && changeConsumer) {
+      serve.route('task', backlog / 2)
+      serve.route('change', backlog / 2)
+    } else if (taskConsumer) serve.route('task', backlog)
+    else if (changeConsumer) serve.route('change', backlog)
   },
   // The producer waits for its append only. A consumer further behind than the retention window
   // loses the oldest events, and one that reads unkeyed events sees them out of order.
   outcome: (answer, node, kind) => {
     const own = answer.ownHop(kind)
-    // With no Worker linked, nothing consumes the stream.
+    // With no consumer linked, nothing reads the stream.
     if (answer.downstream(kind).failStranded >= 1) return failed('stranded')
     const appended = through({ ...own, fixedMs: own.fixedMs + BACKLOG_MS * node.depth })
     const slot = slotOf(answer.pass, node)
-    const inflow = answer.pass.arriving[slot]?.task ?? 0
+    const inflow =
+      (answer.pass.arriving[slot]?.task ?? 0) + (answer.pass.arriving[slot]?.change ?? 0)
     // How far behind the producer its consumers are, in seconds of arriving work.
     const lag = inflow > 0 ? node.depth / inflow : 0
     const expired = lag > node.retain && lag > 0 ? 1 - node.retain / lag : 0

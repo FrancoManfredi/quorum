@@ -6,7 +6,7 @@ import { type ComponentRule, noConnections, noProbe, relay } from '../rule-kit.t
 
 // It reads a Database's write log and publishes every change to an Event Stream (05 "CDC
 // Connector"). The changes come in as a copy of the Database's writes, so it never takes the
-// app's traffic; it hands them on as `task`, one change each.
+// app's traffic; it hands them on as `change`, one change each.
 export const cdcRule: ComponentRule = {
   model: (solver, node, arriving) =>
     flatModel(
@@ -19,7 +19,7 @@ export const cdcRule: ComponentRule = {
   serve: (serve, node, rates, share) => {
     let changes = 0
     for (const kind of CDC_CHANGES) changes += (rates[kind] ?? 0) * share
-    if (changes > 0) serve.route('task', changes)
+    if (changes > 0) serve.route('change', changes)
   },
   // The change waits for the connector's own hop and then for the stream: a consumer further
   // behind than the retention window loses the oldest changes, as a stale copy.

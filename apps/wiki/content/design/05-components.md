@@ -99,7 +99,7 @@ family it belongs to: Edge, Compute, Data or Ops.
 | GPU Node                 | 900       | 0.53 (T4) to 3.30 (H100)  | Tokens per second                           | Model-based            | 8     |
 | Edge Function            | 0         | Per request               | Unlimited                                   | 5 ms                   |       |
 | Database                 | 90        | Instance price            | CPU and connections                         | 2.5 ms                 | 9     |
-| Connection Pooler        | 80        | 0.03                      | 10,000 client connections                   | 0.3 ms                 | 4     |
+| Connection Pooler        | 80        | 0.03                      | 10,000 queries/s                            | 0.3 ms                 | 4     |
 | Cache                    | 150       | 0.06                      | 50,000 ops/s per core                       | 0.5 ms                 | 8     |
 | Read Replica             | 60        | 0.7× Database             | As Database (reads and scans only)          | 2.5 ms                 | 9     |
 | Search Engine            | 300       | 0.25                      | 400 queries/s per node                      | 15 ms                  | 8     |
@@ -224,8 +224,9 @@ multiplies the hit ratio by 1.1× or 1.2×. Changing the cache key empties the e
 origin takes a burst of misses while it refills. With Edge-side includes a logged-in page is
 cached, so a key that leaves out the cookie can serve one user's page to another. That is the
 Cached page leak incident (weight 1 for Path and query, 2.5 for Path only), and it drives 5% of the
-Users away at once. The research adds 20 points to the `page` base (70% to 90%), because the edge
-assembles the personal parts of a logged-in page around a cached shell.
+Users away at once. The research adds 20 points to the logged-in share of the `page` base (70% to 90%), because the edge
+assembles the personal parts of a logged-in page around a cached shell. The game treats 60% of page
+views as anonymous, so the default page hit is 42% and ESI lifts it to 78%.
 
 The TTL multiplies the hit ratio:
 
@@ -421,7 +422,7 @@ The data tier has its own document: [Data tier](/design/07-data-tier). This tabl
 | Object Storage    | `blob-get`, `blob-put`                                       | Unlimited storage against egress cost, first-byte latency, the class's retrieval price, and a lifecycle that archives the oldest objects.                                        |
 | Document Store    | `q-read`, `q-write`; `q-tx` and `q-scan` at 3× the ops       | Developer velocity against joins and transactions.                                                                                                                               |
 | Data Warehouse    | `q-scan`                                                     | Cheap scans against freshness.                                                                                                                                                   |
-| Vector Index      | `q-search`, with the lookups an `ai` prompt retrieves from   | Better AI answers against memory and recall.                                                                                                                                     |
+| Vector Index      | `q-vector`, the lookups an `ai` prompt retrieves from        | Better AI answers against memory and recall.                                                                                                                                     |
 | Wide-column Store | `q-read`, `q-write` at very high volume                      | Linear write scaling against partition design and eventual consistency. The game's namesake: quorums.                                                                            |
 | Distributed SQL   | `q-tx` across regions                                        | Global consistency against write latency.                                                                                                                                        |
 
@@ -462,9 +463,9 @@ measured in concurrent connections and depends on the runtime: a thread per conn
   30,000 connections. Its capacity is those connections: an 8 GB box given to connections, divided
   by the runtime's memory per connection. Each size step doubles the RAM, and a larger Hub needs
   Clustering to use it.
-- **It takes `rt` and nothing else, and sends nothing on.** Put it behind the Load Balancer next to
-  the App Servers and give its Link only `rt` ([Links](#links)), so each runtime takes the traffic it
-  is good at. A runtime that holds a worker per connection still refuses `rt` on the App Server, so a
+- **It takes `rt` and nothing else, and sends nothing on.** Put an API Gateway in front, route only
+  `rt` to the Hub, and put the Hub behind the Load Balancer next to the App Servers. A Load Balancer
+  spreads every kind it receives, so the Gateway is what keeps the other kinds away. A runtime that holds a worker per connection still refuses `rt` on the App Server, so a
   PHP or Gunicorn design places a Hub on a runtime that can hold them.
 - **Its limit is memory, so the runtime is the upgrade.** Request handling, CPU, and the data tier
   stay on the App Servers. Only `rt` reaches it.
@@ -517,16 +518,17 @@ key's distribution.
 
 Real products: Debezium.
 
-Reads the database's write-ahead log and publishes every change to an Event Stream. Feeds the
-Search Engine, the Data Warehouse, and caches without dual writes from the app.
+Reads the database's write-ahead log and publishes every change to an Event Stream, a Search
+Engine, a Data Warehouse, or a Cache. Feeds the copies without dual writes from the app.
 
 - Removes the "dual write" inconsistency risk: writing to the database and the index separately can
   leave them out of sync ([Data tier](/design/07-data-tier#keeping-copies-in-sync)).
 - Adds lag. Search results and reports are behind, and a connector that cannot keep up drops changes.
 
 The `cdc` Component is unlocked by Change data capture in Series B. Link a Database into it and it
-into an Event Stream. It copies the writes that Database processed, one change each, and publishes
-them as `task` at 20,000 changes a second. It takes none of the Database's traffic and adds no latency
+into an Event Stream, or straight into the Search Engine, Data Warehouse, or Cache that should
+follow. It copies the writes that Database processed, one change each, and publishes
+them as `change` at 20,000 changes a second. It takes none of the Database's traffic and adds no latency
 to a write, but it reads the Database's write log and adds read IOPS to its volume. Its own hop is 2 ms,
 and the lag it adds is the Stream's, which is the game stat its card shows. A Stream's key decides
 order, so a change reaches a consumer in order only inside a partition. Past its rate it drops

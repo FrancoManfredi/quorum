@@ -1,5 +1,6 @@
 import {
   BACKEND_KINDS,
+  ANONYMOUS_PAGE,
   CDN_HIT,
   CDN_TTLS,
   ESI_PAGE_HIT,
@@ -70,7 +71,7 @@ export type Solver = Readonly<{
   /** Attempts per task this Worker runs: failed tasks come back until the Queue parks them. */
   attempts: (node: GameNode) => number
   /** Tasks per second a Queue's live Workers could take, from the last pass; infinite before one. */
-  drainable: (node: GameNode) => number
+  drainable: (node: GameNode, kind: Kind) => number
   /** Requests arriving at a Node in this pass, once its upstream has routed. */
   arriving: (node: GameNode) => Rates
 }>
@@ -252,14 +253,16 @@ export const evictionShareOf = (game: Game, node: GameNode): number => {
  * key-value cache lifts `read` (05 "CDN": 0% to 30% with Edge compute). */
 export const cdnHitOf = (node: GameNode, kind: Kind, game?: Game): number => {
   const ttl = CDN_TTLS.find((entry) => entry.ttl === node.ttl) ?? CDN_TTLS[1]
+  const esi = kind === 'page' && game && has(game, 'esi') ? ESI_PAGE_HIT : 0
   const base =
-    kind === 'media' && game && has(game, 'tiered-caching')
-      ? TIERED_MEDIA_HIT
-      : kind === 'read' && game && hasEdge(game)
-        ? EDGE_READ_HIT
-        : // Edge-side includes cache the shell of a logged-in page, which the base rate leaves out.
-          kind === 'page' && game && has(game, 'esi')
-          ? (CDN_HIT.page ?? 0) + ESI_PAGE_HIT
+    kind === 'page'
+      ? // The base is the anonymous share. Edge-side includes cache the shell of a logged-in
+        // page, so that share gains the extra points.
+        (CDN_HIT.page ?? 0) * ANONYMOUS_PAGE + ((CDN_HIT.page ?? 0) + esi) * (1 - ANONYMOUS_PAGE)
+      : kind === 'media' && game && has(game, 'tiered-caching')
+        ? TIERED_MEDIA_HIT
+        : kind === 'read' && game && hasEdge(game)
+          ? EDGE_READ_HIT
           : (CDN_HIT[kind] ?? 0)
   // A key that leaves out the query string or the cookie shares more pages, and a cache that a
   // purge emptied fills again as it warms (05 "CDN").

@@ -208,6 +208,7 @@ export const seriesBLinks = (
   ['users', 'lb'],
   ['queue', 'worker'],
   ['worker', 'database'],
+  ['worker', 'storage'],
   ...servers.flatMap((server): ReadonlyArray<readonly [string, string]> => [
     ['lb', server],
     [server, 'database'],
@@ -255,6 +256,7 @@ export const seriesCLinks = (
   ['users', 'lb'],
   ['queue', 'worker'],
   ['worker', store],
+  ['worker', 'storage'],
   ['worker', 'msgp'],
   ...servers.flatMap((server): ReadonlyArray<readonly [string, string]> => [
     ['lb', server],

@@ -202,7 +202,7 @@ export const databaseDef = def({
   product: 'PostgreSQL or MySQL',
   group: 'data',
   blurb:
-    'The source of truth, and the only Node that takes writes. A bigger size restarts it. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.',
+    'The relational source of truth. A Read Replica copies it and takes no writes. A bigger size restarts it. Postgres reads and scans cheaper; MySQL writes cheaper and changes schema online.',
   cost: 90,
   sized: true,
   latency: 2,

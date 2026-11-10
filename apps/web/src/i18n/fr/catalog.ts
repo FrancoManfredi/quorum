@@ -1517,6 +1517,7 @@ export const catalog: Messages['catalog'] = {
     'q-write': { label: 'Requête d’écriture' },
     auth: { label: 'Appel d’authentification' },
     'q-search': { label: 'Requête de recherche' },
+    'q-vector': { label: 'Recherche vectorielle' },
     'blob-put': { label: 'Écriture d’objet' },
     task: { label: 'Tâche' },
     'blob-get': { label: 'Lecture d’objet' },
@@ -1531,6 +1532,7 @@ export const catalog: Messages['catalog'] = {
     notify: { label: 'Notification push' },
     callout: { label: 'Appel client' },
     'k-write': { label: 'Écriture dans le fil' },
+    change: { label: 'Changement' },
   },
   lbPolicies: {
     weighted: { label: 'Pondéré' },

@@ -1,24 +1,24 @@
-The CDC Connector publishes every change a Database makes as an event on a stream, as Debezium does.
+The CDC Connector publishes every change a Database makes as an event, as Debezium does.
 
 ## When to place it
 
-- Place it when a second copy of the data has to follow the [Database](/components/database): a search index, a warehouse, or a feed for another service. It unlocks with [Change data capture](/research/cdc) in Series B, for 18,000 ◇, after [Event streaming](/research/event-streaming) and [Data warehousing](/research/data-warehouse). It sits in Series B because it needs both things it feeds: a stream to publish into and a consumer worth feeding.
+- Place it when a second copy of the data has to follow the [Database](/components/database): a search index, a warehouse, or a feed for another service. It unlocks with [Change data capture](/research/cdc) in Series B, for 18,000 ◇, after [Event streaming](/research/event-streaming) and [Data warehousing](/research/data-warehouse). It sits in Series B because it needs a consumer worth feeding, and usually a stream to fan the changes out to more than one.
 - Copy it when you add a second Database, since each Database needs its own connector.
 
 ## How it works
 
-Debezium is a **change data capture** tool that reads a database's write-ahead log and publishes every insert, update and delete as an event. Drag from the Database's out port to the connector, and drag from the connector's out port to an [Event Stream](/components/log). It takes a copy of the writes the Database processed, one change each, and publishes them to the stream as tasks, at **20,000 changes a second**. Nothing else in the Design sees the copy, so the App Servers' writes still go to the Database and are still answered by it.
+Debezium is a **change data capture** tool that reads a database's write-ahead log and publishes every insert, update and delete as an event. Drag from the Database's out port to the connector, then drag from the connector's out port to an [Event Stream](/components/log), a [Search Engine](/components/search), a [Data Warehouse](/components/warehouse), or a [Cache](/components/cache). It takes a copy of the writes the Database processed, one change each, and publishes them as changes at **20,000 changes a second**. Nothing else in the Design sees the copy, so the App Servers' writes still go to the Database and are still answered by it.
 
-That is what makes it useful. The [Search Engine](/components/search), the [Data Warehouse](/components/warehouse) and a cache can each read the stream and follow the Database, and the app never writes the same fact twice. The alternative is a **dual write**: the app writes to the Database and to the index in one request, and a crash between the two leaves them disagreeing forever.
+That is what makes it useful. The [Search Engine](/components/search), the [Data Warehouse](/components/warehouse) and a [Cache](/components/cache) can each follow the Database, and the app never writes the same fact twice. A stream can feed all three at once; a direct link feeds one. The alternative is a **dual write**: the app writes to the Database and to the index in one request, and a crash between the two leaves them disagreeing forever.
 
-It carries no traffic of its own and has no options. Its settings are the Database it reads and the stream it publishes to. It never slows a write.
+It carries no traffic of its own and has no options. Its settings are the Database it reads and the one Node it publishes to. It never slows a write.
 
 ## How it fails
 
-- **Lag.** The changes reach the stream, and a consumer reads the stream at its own pace. A search result or a report is behind by the stream's lag, and a consumer further behind than the retention window loses the oldest changes. The connector's card shows that lag, because the connector buffers nothing: the stream holds what has not been read.
+- **Lag.** The changes reach the stream or the consumer directly, and a consumer reads them at its own pace. A search result or a report is behind by that lag, and a consumer further behind than the retention window loses the oldest changes. The connector's card shows that lag, because the connector buffers nothing: the stream holds what has not been read.
 - **Order.** A change is a copy, so it carries no ordering beyond the order the writes committed in. A stream with several partitions keeps order only inside a partition, so an unkeyed stream lets a superseded write land after the one that replaced it. Key the stream by the row's primary key.
 - **Its own rate.** Past 20,000 changes a second it drops what it cannot publish, like any flat-capacity Component. A busy Database outruns one connector.
-- **No consumer.** With nothing reading the stream, the changes it publishes are stranded.
+- **No consumer.** With nothing linked to read the changes, they are stranded.
 - **A loop.** A consumer that writes back to the Database, with the stream reading that Database, closes a loop the board refuses: a change that causes a write that causes a change.
 
 ### [Instance failure](/incidents/instance)

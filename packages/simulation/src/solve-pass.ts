@@ -3,6 +3,7 @@ import {
   CALLOUT_MS,
   LAG_SURGE,
   COMPONENTS,
+  DATA_KINDS,
   DB_ENGINES,
   P2C_IMBALANCE,
   STICKY_DECAY,
@@ -135,12 +136,28 @@ export const solverOf = (
       const failure = Math.min(0.99, inputs.taskFailure[graph.at.get(node.id) as number] ?? 0)
       return taskAttempts(failure, attemptsAllowed(queue))
     },
-    drainable: (node) => {
+    drainable: (node, kind) => {
       let total = 0
+      let slowest = Number.POSITIVE_INFINITY
+      let found = false
       for (const edge of graph.out.get(node.id) ?? []) {
-        if (edge.to.type !== 'worker' || isDown(edge.to)) continue
-        total += inputs.taskCapacity[edge.toAt] ?? Number.POSITIVE_INFINITY
+        if (isDown(edge.to) || !accepts(edge.to, kind)) continue
+        // A Worker takes tasks at the rate its last pass could; a buffer takes either kind at
+        // its own rate, and a Warehouse takes every change.
+        let capacity = 0
+        if (edge.to.type === 'worker')
+          capacity = inputs.taskCapacity[edge.toAt] ?? Number.POSITIVE_INFINITY
+        else if (edge.to.type === 'warehouse') capacity = Number.POSITIVE_INFINITY
+        else if (edge.to.type === 'queue' || edge.to.type === 'log')
+          capacity = flatCapacity(edge.to)
+        else if (kind === 'change') capacity = flatCapacity(edge.to) || 1_000
+        found = true
+        // A Stream broadcasts a change to every consumer, so its slowest consumer sets the rate.
+        // Tasks are a consumer group: their Workers share the rate.
+        if (kind === 'change') slowest = Math.min(slowest, capacity)
+        else total += capacity
       }
+      if (kind === 'change') return found ? slowest : 0
       return total
     },
     arriving: (node) => arriving[graph.at.get(node.id) as number] ?? {},
@@ -407,9 +424,23 @@ export const takersOf = (graph: Graph, node: GameNode, kind: Kind): ReadonlyArra
     const linked = (graph.out.get(node.id) ?? []).filter(
       (edge) => accepts(edge.to, kind) && carries(node, edge, kind),
     )
+    // A Cache, Pooler, or Load Balancer with no way on would strand the work it takes, so a
+    // sibling that can finish the call takes it instead. A lone one still takes it, so the
+    // stranded row shows the broken wire.
+    const live = linked.filter((edge) => {
+      if (!['cache', 'pooler', 'lb'].includes(edge.to.type)) return true
+      if (!(DATA_KINDS as ReadonlyArray<Kind>).includes(kind)) return true
+      return (graph.out.get(edge.to.id) ?? []).some((out) => accepts(out.to, kind))
+    })
+    const usable = live.length > 0 ? live : linked
     // A Node built for the kind takes it from one that only falls back to it.
-    const own = linked.filter((edge) => !COMPONENTS[edge.to.type].fallback.includes(kind))
-    takers = own.length > 0 ? own : linked
+    const own = usable.filter((edge) => !COMPONENTS[edge.to.type].fallback.includes(kind))
+    // A Warehouse is the analytical target, so it takes the scan from a Replica or a Database.
+    const warehouse =
+      kind === 'q-scan'
+        ? own.filter((edge) => edge.to.type === 'warehouse' && !isDown(edge.to))
+        : []
+    takers = warehouse.length > 0 ? warehouse : own.length > 0 ? own : usable
     byKind.set(kind, takers)
   }
   return takers
@@ -427,6 +458,9 @@ export const splitFor = (inputs: Inputs, node: GameNode, kind: Kind): Split => {
       (edge.to.type !== 'replica' || primaryOf(game, edge.to)),
   )
   if (takers.length === 0) return []
+  // A Stream broadcasts a change to every consumer: each copy must see every change. A task is
+  // a consumer group, so its Workers share the rate.
+  if (node.type === 'log' && kind === 'change') return takers.map((edge) => [edge, 1] as const)
   const even = (live: ReadonlyArray<Edge>) => live.map((edge) => [edge, 1 / live.length] as const)
   if (node.type === 'dns') {
     // DNS round robin splits evenly. With health checks, a dead host leaves once its TTL runs out.

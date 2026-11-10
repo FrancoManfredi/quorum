@@ -433,6 +433,7 @@ describe('a Connection Pooler', () => {
     const existing = game.nodes.find((node) => node.type === 'database')!.id
     game = ok(setTopology(game, existing, 'sharded'))
     ;[game, database] = build(game, 'database')
+    game = ok(boxNodes(game, [existing, database]))
     ;[game, first] = build(game, 'replica')
     ;[game, second] = build(game, 'replica')
     game = ok(connect(game, 'server', pooler))
@@ -454,5 +455,77 @@ describe('a Connection Pooler', () => {
     expect(held(database)).toBeGreaterThan(0)
     expect(held(first)).toBeCloseTo(held(database))
     expect(held(second)).toBeCloseTo(held(database))
+  })
+})
+
+describe('one Data Group per caller', () => {
+  test('a second terminal store is refused, and boxing the Databases lets it in', () => {
+    let game = freeSandbox()
+    const database = game.nodes.find((node) => node.type === 'database')!.id
+    let document: string
+    ;[game, document] = build(game, 'doc')
+    expect(Result.isFailure(connect(game, 'server', document))).toBe(true)
+    let second: string
+    ;[game, second] = build(game, 'database')
+    expect(Result.isFailure(connect(game, 'server', second))).toBe(true)
+    const boxed = ok(boxNodes(game, [database, second]))
+    expect(Result.isSuccess(connect(boxed, 'server', second))).toBe(true)
+  })
+
+  test('a Cache beside a Database leaves checkouts to the Database', () => {
+    let game = { ...freeSandbox(), stage: 4, users: 3_000 }
+    const database = game.nodes.find((node) => node.type === 'database')!.id
+    let cache: string
+    ;[game, cache] = build(game, 'cache')
+    game = ok(connect(game, 'server', cache))
+    const warm = {
+      ...game,
+      nodes: game.nodes.map((node) => ({ ...node, life: { _tag: 'Running' as const } })),
+    }
+    const ledger = solveFlow(warm)
+    expect(ledger.nodes[cache]!.traffic['q-tx'] ?? 0).toBe(0)
+    expect(ledger.nodes[database]!.traffic['q-tx'] ?? 0).toBeGreaterThan(0)
+    expect(ledger.nodes[cache]!.stranded).toBe(0)
+  })
+
+  test('a Worker takes uploads from a Queue, and stores the file', () => {
+    let game = { ...freeSandbox(), stage: 4, users: 3_000 }
+    let worker: string
+    ;[game, worker] = build(game, 'worker')
+    expect(Result.isFailure(connect(game, 'server', worker))).toBe(true)
+    let queue: string
+    ;[game, queue] = build(game, 'queue')
+    game = ok(connect(game, 'server', queue))
+    game = ok(connect(game, queue, worker))
+    let storage: string
+    ;[game, storage] = build(game, 'storage')
+    game = ok(connect(game, worker, storage))
+    game = ok(connect(game, worker, 'database'))
+    const warm = {
+      ...game,
+      nodes: game.nodes.map((node) => ({ ...node, life: { _tag: 'Running' as const } })),
+    }
+    const ledger = solveFlow(warm)
+    expect(ledger.nodes[worker]!.out['blob-put'] ?? 0).toBeGreaterThan(0)
+    expect(ledger.nodes[worker]!.out['q-write'] ?? 0).toBeGreaterThan(0)
+  })
+
+  test('a Warehouse takes the reports from a Replica', () => {
+    let game = { ...freeSandbox(), stage: 4 }
+    const database = game.nodes.find((node) => node.type === 'database')!.id
+    let warehouse: string
+    ;[game, warehouse] = build(game, 'warehouse')
+    game = ok(connect(game, 'server', warehouse))
+    let replica: string
+    ;[game, replica] = build(game, 'replica')
+    game = ok(connect(game, database, replica))
+    game = ok(connect(game, 'server', replica))
+    const warm = {
+      ...game,
+      nodes: game.nodes.map((node) => ({ ...node, life: { _tag: 'Running' as const } })),
+    }
+    const ledger = solveFlow(warm)
+    expect(ledger.nodes[warehouse]!.traffic['q-scan'] ?? 0).toBeGreaterThan(0)
+    expect(ledger.nodes[replica]!.traffic['q-scan'] ?? 0).toBe(0)
   })
 })

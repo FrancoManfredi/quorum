@@ -1775,6 +1775,7 @@ export const catalog: Messages['catalog'] = {
     'q-write': { label: 'Consulta de escritura' },
     auth: { label: 'Llamada de autenticación' },
     'q-search': { label: 'Consulta de búsqueda' },
+    'q-vector': { label: 'Consulta vectorial' },
     'blob-put': { label: 'Escritura de objeto' },
     task: { label: 'Tarea' },
     'blob-get': { label: 'Lectura de objeto' },
@@ -1789,6 +1790,7 @@ export const catalog: Messages['catalog'] = {
     notify: { label: 'Mensaje push' },
     callout: { label: 'Llamada a cliente' },
     'k-write': { label: 'Escritura de timeline' },
+    change: { label: 'Cambio' },
   },
   pools: {
     page: { label: 'Vista de página' },

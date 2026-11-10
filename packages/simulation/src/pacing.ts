@@ -154,8 +154,8 @@ const PRIORITY: ReadonlyArray<ResearchId> = [
   'eager-loading',
   'alerting',
   'health-checks',
-  'funnels',
   'full-text-search',
+  'funnels',
   'waf',
   'object-storage',
   'background-jobs',
@@ -287,6 +287,20 @@ const placed = (
   return next === game ? null : [next, last(next)]
 }
 
+/**
+ * Places a Component the Design cannot run without, such as the Search Engine that answers a
+ * stranded query. It still has to be paid for, but it does not wait for the Burn reserve.
+ */
+const placedNow = (
+  game: Game,
+  type: ComponentId,
+  x: number,
+  y: number,
+): readonly [Game, string] | null => {
+  const next = tried(game, place(game, type, x, y))
+  return next === game ? null : [next, last(next)]
+}
+
 /** Moves Postgres off the first box onto its own Database. */
 const splitDatabase = (game: Game, ledger: Ledger, server: GameNode): Game => {
   const db = placed(game, ledger, 'database', server.x + 320, server.y)
@@ -369,6 +383,28 @@ const linkServers = (game: Game, to: string): Game =>
   servers(game).reduce((current, server) => tried(current, connect(current, server.id, to)), game)
 
 /**
+ * Links every Worker to the data its tasks read and write: the target the App Servers read,
+ * and Object Storage for the files an upload task stores.
+ */
+const linkWorkers = (game: Game): Game => {
+  let next = game
+  const anchor = servers(next)[0]
+  if (!anchor) return next
+  const reads = next.links.find((link) => {
+    const to = byId(next, link.to)
+    return link.from === anchor.id && to && COMPONENTS[to.type].accepts.includes('q-read')
+  })
+  const storage = next.nodes.find((node) => node.type === 'storage')
+  for (const worker of next.nodes.filter((node) => node.type === 'worker')) {
+    if (reads && !next.links.some((link) => link.from === worker.id && link.to === reads.to))
+      next = tried(next, connect(next, worker.id, reads.to))
+    if (storage && !next.links.some((link) => link.from === worker.id && link.to === storage.id))
+      next = tried(next, connect(next, worker.id, storage.id))
+  }
+  return next
+}
+
+/**
  * The Seed playbook: a Search Engine once search loads the Database, Object
  * Storage once uploads arrive, a WAF for the bots, a Queue and a Worker for
  * the uploads, and stampede protection on every Cache.
@@ -378,19 +414,25 @@ const seedBuild = (game: Game, ledger: Ledger): Game => {
   const missing = (type: ComponentId) => !next.nodes.some((node) => node.type === type)
   const anchor = servers(next)[0]
   if (!anchor) return next
+  // A stranded call means a consumer is missing. Pay for it before the Burn reserve, because
+  // every request it strands costs more than the reserve protects.
+  const put = (current: Game, type: ComponentId, x: number, y: number) =>
+    ledger.errors.stranded > 0
+      ? placedNow(current, type, x, y)
+      : placed(current, ledger, type, x, y)
   if (has(next, 'waf') && missing('waf') && (ledger.kinds.bot?.rate ?? 0) > 0)
     next = inFrontOfUsers(next, ledger, 'waf')
   if (has(next, 'full-text-search') && missing('search') && (ledger.kinds.search?.rate ?? 0) > 0) {
-    const search = placed(next, ledger, 'search', anchor.x + 320, anchor.y + 200)
+    const search = put(next, 'search', anchor.x + 320, anchor.y + 200)
     if (search) next = linkServers(search[0], search[1])
   }
   if (has(next, 'object-storage') && missing('storage') && (ledger.kinds.upload?.rate ?? 0) > 0) {
-    const storage = placed(next, ledger, 'storage', anchor.x + 320, anchor.y + 340)
+    const storage = put(next, 'storage', anchor.x + 320, anchor.y + 340)
     if (storage) next = linkServers(storage[0], storage[1])
   }
   if (has(next, 'queues') && missing('queue') && (ledger.kinds.upload?.rate ?? 0) > 0) {
-    const queue = placed(next, ledger, 'queue', anchor.x + 320, anchor.y - 240)
-    const worker = queue && placed(queue[0], ledger, 'worker', anchor.x + 600, anchor.y - 240)
+    const queue = put(next, 'queue', anchor.x + 320, anchor.y - 240)
+    const worker = queue && put(queue[0], 'worker', anchor.x + 600, anchor.y - 240)
     if (queue && worker) {
       next = tried(worker[0], setDlq(worker[0], queue[1], true))
       next = tried(next, connect(next, queue[1], worker[1]))
@@ -400,7 +442,7 @@ const seedBuild = (game: Game, ledger: Ledger): Game => {
   if (has(next, 'stampede-protection'))
     for (const cache of next.nodes.filter((node) => node.type === 'cache' && !node.coalesce))
       next = tried(next, setCacheGuard(next, cache.id, { coalesce: true }))
-  return next
+  return linkWorkers(next)
 }
 
 /** Whether `node` is an Autoscaler that a Node of `type` links into. */
@@ -466,7 +508,7 @@ const seriesABuild = (game: Game, ledger: Ledger): Game => {
           if (!next.links.some((link) => link.from === node.id && link.to === scaler.id))
             next = tried(next, connect(next, node.id, scaler.id))
     }
-  return next
+  return linkWorkers(next)
 }
 
 /**
@@ -518,14 +560,7 @@ const seriesBBuild = (game: Game, ledger: Ledger): Game => {
   const missing = (type: ComponentId) => !next.nodes.some((node) => node.type === type)
   const anchor = servers(next)[0]
   if (!anchor) return next
-  const reads = next.links.find((link) => {
-    const to = byId(next, link.to)
-    return link.from === anchor.id && to && COMPONENTS[to.type].accepts.includes('q-read')
-  })
-  if (reads)
-    for (const worker of next.nodes.filter((node) => node.type === 'worker'))
-      if (!next.links.some((link) => link.from === worker.id && link.to === reads.to))
-        next = tried(next, connect(next, worker.id, reads.to))
+  next = linkWorkers(next)
   if (
     has(next, 'hosted-models') &&
     missing('llm') &&

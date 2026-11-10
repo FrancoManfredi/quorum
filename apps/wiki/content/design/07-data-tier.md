@@ -274,11 +274,11 @@ A Read Replica is a copy of the primary that serves `q-read` and `q-scan`. Write
 
 Each data Node has its own job:
 
-| Node         | Its job                                                                  | What it costs                                                                 |
-| ------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| Database     | The only Node that takes writes; a bigger size is the one fix for writes | The most per vCPU, and a resize restarts it                                   |
-| Cache        | Repeated reads of hot rows, from memory                                  | The least; its hit ratio falls with writes and a hot set that outgrows memory |
-| Read Replica | Reads of any row, and reports, without a restart                         | 0.7× a Database's box; some reads come back stale                             |
+| Node         | Its job                                                                 | What it costs                                                                 |
+| ------------ | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Database     | The relational source of truth; a bigger size is the one fix for writes | The most per vCPU, and a resize restarts it                                   |
+| Cache        | Repeated reads of hot rows, from memory                                 | The least; its hit ratio falls with writes and a hot set that outgrows memory |
+| Read Replica | Reads of any row, and reports, without a restart                        | 0.7× a Database's box; some reads come back stale                             |
 
 A report is a scan, so a Cache cannot answer it. A Database and a replica both accept `q-scan`, and the
 replica takes it: the primary's buffer cache stops filling with cold pages. A Read Replica's box bills
@@ -575,12 +575,12 @@ value rises, because answers use the company's own data.
 | ---------- | ------------------------------------------------------------------------------------------- |
 | Index type | Exact (perfect recall, slow at scale) or approximate HNSW (fast, memory-heavy, 95% recall). |
 
-The index answers nearest-neighbour lookups (`q-search`) at 500 a second per size step. Exact gives
+The index answers nearest-neighbour lookups (`q-vector`) at 500 a second per size step. Exact gives
 every lookup its true neighbour. HNSW answers twice as many and bills twice the Burn for the graph it
 holds in memory, but it reaches 95% recall, so one search in twenty comes back stale.
 
-A Node that answers `ai` and links into a live index pays one lookup per prompt and earns 35% more
-for it, times the index's recall. Python's ML ecosystem bonus ([Runtimes](/design/06-runtimes)) needs
+A Node that answers `ai` and links into a live index pays one `q-vector` lookup per prompt and earns
+35% more for it, times the index's recall. A text search uses `q-search` and never reaches the index. Python's ML ecosystem bonus ([Runtimes](/design/06-runtimes)) needs
 an index in the path, which is the condition the Runtimes page describes. The index is always its own
 Node.
 

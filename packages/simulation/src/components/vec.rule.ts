@@ -23,10 +23,10 @@ export const vecRule: ComponentRule = {
   // back without the document it wanted, which is a stale result.
   outcome: (answer, node, kind) => {
     const miss = 1 - VEC_INDEXES[node.indexType].recall
-    return { ...through(answer.ownHop(kind)), stale: kind === 'q-search' ? miss : 0 }
+    return { ...through(answer.ownHop(kind)), stale: kind === 'q-vector' ? miss : 0 }
   },
   ...terminal,
-  probe: () => ({ 'q-search': 1 }),
+  probe: () => ({ 'q-vector': 1 }),
 }
 
 /** Picks a Vector Index's type (07 "Vector Index"): exact, or approximate HNSW. */

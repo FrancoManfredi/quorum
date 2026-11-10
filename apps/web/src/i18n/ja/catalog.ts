@@ -1580,6 +1580,7 @@ export const catalog: Messages['catalog'] = {
     'q-write': { label: '書き込みクエリ' },
     auth: { label: '認証呼び出し' },
     'q-search': { label: '検索クエリ' },
+    'q-vector': { label: 'ベクトル検索' },
     'blob-put': { label: 'オブジェクト書き込み' },
     task: { label: 'タスク' },
     'blob-get': { label: 'オブジェクト読み取り' },
@@ -1594,6 +1595,7 @@ export const catalog: Messages['catalog'] = {
     notify: { label: 'プッシュ通知' },
     callout: { label: '顧客通話' },
     'k-write': { label: 'タイムライン書き込み' },
+    change: { label: '変更' },
   },
   pools: {
     page: { label: 'ページビュー' },

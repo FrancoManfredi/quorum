@@ -5,7 +5,7 @@ import { pct, type ComponentView } from './shared.ts'
 
 export const ci: ComponentView = {
   icon: GitBranch,
-  layout: { rows: 3, inRow: 0, outRow: null, footer: false },
+  layout: { rows: 3, inRow: null, outRow: null, footer: false },
   rows: ({ game, node }) => {
     const strategy = DEPLOY_STRATEGIES[node.strategy]
     return [

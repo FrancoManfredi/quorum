@@ -97,6 +97,8 @@ export const cacheRule: ComponentRule = {
         ? 1 - warmHit + (warmHit - hit) * COALESCED
         : 1 - hit) + early
     each(rates, share, (kind, processed) => {
+      // A change invalidates the Cache's copy. It has no answer to send on.
+      if (kind === 'change') return
       if (kind === 'q-read') return serve.route(kind, processed * sent)
       // Write-behind answers the write here and flushes only its share to the Database.
       if (kind === 'q-write' && strategy.write === 'ahead')
@@ -105,6 +107,7 @@ export const cacheRule: ComponentRule = {
     })
   },
   outcome: (answer, node, kind) => {
+    if (kind === 'change') return through(answer.ownHop(kind))
     const strategy = cacheStrategyOf(answer.game, node)
     // Write-through pays one more cache write; write-behind answers before the Database sees it.
     if (kind === 'q-write' && strategy.write === 'through') {

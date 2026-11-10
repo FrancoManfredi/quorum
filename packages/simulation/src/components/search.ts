@@ -107,7 +107,7 @@ export const searchDef = def({
   cost: 300,
   burn: 0.25,
   latency: 15,
-  accepts: ['q-search'],
+  accepts: ['q-search', 'change'],
   maxOut: 0,
   unlock: 'full-text-search',
   steps: 8,

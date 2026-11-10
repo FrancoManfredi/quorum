@@ -17,7 +17,7 @@ DocDB is a self-managed MongoDB fleet. The Data Movement Platform reads each sha
 
 ::Design{id="stripe-online-shards"}
 
-The Database has four shards on a hash key, standing for DocDB's shards. The CDC Connector is the oplog reader, the Event Stream is Kafka, and the Worker is the mover that replays the changes. The app keeps writing to the old shard while the change stream catches the new one up. The chunk copy and the dual-write cutover are outside the board.
+The Database has four shards on a hash key, standing for DocDB's shards. The CDC Connector is the oplog reader, the Event Stream is Kafka, and the Data Warehouse stands in for the target shard that replays the changes. The app keeps writing to the old shard while the change stream catches the new one up. The chunk copy and the dual-write cutover are outside the board.
 
 ## Why it works
 

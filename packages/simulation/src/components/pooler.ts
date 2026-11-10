@@ -1,6 +1,5 @@
 import { Effect, Schema } from 'effect'
 import { def } from './define.ts'
-import { DATA_KINDS } from '../catalog/kinds.ts'
 
 /** The glossary entries this Component teaches; the wiki Component page links to them. */
 export const poolerGlossary: ReadonlyArray<string> = ['connection-pooling']
@@ -24,11 +23,11 @@ export const poolerDef = def({
   cost: 80,
   burn: 0.03,
   latency: 0.3,
-  accepts: DATA_KINDS,
-  fallback: ['q-search', 'blob-put', 'blob-get', 'q-scan', 'k-write'],
+  accepts: ['q-read', 'q-write', 'q-tx'],
+  fallback: [],
   unlock: 'pooling',
   steps: 4,
-  sends: DATA_KINDS,
+  sends: ['q-read', 'q-write', 'q-tx'],
   // It pools to one host and reads no SQL: a Load Balancer after it spreads the reads.
   maxOut: 1,
   limiting: true,

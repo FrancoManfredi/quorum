@@ -19,7 +19,7 @@ import { flatModel } from '../capacity.ts'
 import { flatScale, has, isDown } from '../lookups.ts'
 import { queryFactor } from '../features.ts'
 import { through } from '../distribution.ts'
-import { type ComponentRule, terminal } from '../rule-kit.ts'
+import { type ComponentRule, slotOf, terminal } from '../rule-kit.ts'
 
 /** A Search Engine's refresh interval: how fresh its answers are and what indexing costs. */
 const refreshOf = (node: GameNode) =>
@@ -63,9 +63,13 @@ export const searchRule: ComponentRule = {
     if (kind !== 'q-search') return own
     // The copies can only diverge once the app writes to several of them: Series B (07).
     let diverged = 0
+    // A CDC Connector only helps a Search Engine it can reach: the engine must take a change.
+    const fed = (answer.pass.arriving[slotOf(answer.pass, node)]?.change ?? 0) > 0
     if (answer.game.stage >= 4) {
       const outbox = has(answer.game, 'outbox')
-      const cdcs = answer.game.nodes.filter((entry) => entry.type === 'cdc' && !isDown(entry))
+      const cdcs = fed
+        ? answer.game.nodes.filter((entry) => entry.type === 'cdc' && !isDown(entry))
+        : []
       if (cdcs.length > 0) {
         // A CDC Connector removes the dual write, but it lags and drops changes when overloaded.
         let share = 1

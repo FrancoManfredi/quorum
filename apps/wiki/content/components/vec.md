@@ -7,13 +7,13 @@ The Vector Index stands for pgvector, Pinecone and Qdrant: the place a company's
 
 ## How it works
 
-It answers nearest-neighbour lookups, `q-search`, at **500 a second** at its first size and twice that at each of its six sizes. Each lookup takes twenty milliseconds, and the index it searches lives in memory.
+It answers nearest-neighbour lookups, `q-vector`, at **500 a second** at its first size and twice that at each of its six sizes. Each lookup takes twenty milliseconds, and the index it searches lives in memory.
 
-A prompt that reaches an index retrieves from it. Link the App Server, Worker or [Serverless Function](/components/fn) that answers `ai` into the Vector Index, and each prompt pays one lookup for the documents it quotes. Those answers earn **35% more**, because they use the company's own data instead of only the model's. An approximate index takes its recall's share of that lift, so HNSW earns a little less per prompt than Exact and answers twice as many.
+A prompt that reaches an index retrieves from it. Link the App Server or [Serverless Function](/components/fn) that answers `ai` into the Vector Index, and each prompt pays one lookup for the documents it quotes. Those answers earn **35% more**, because they use the company's own data instead of only the model's. An approximate index takes its recall's share of that lift, so HNSW earns a little less per prompt than Exact and answers twice as many.
 
 It also unlocks Python's ML ecosystem bonus, as the [Runtimes](/runtimes) page describes. A Python Stack's `+20%` on `ai` needs an index in the path, because a small model in process is only worth having when it has something to embed and something to quote.
 
-Search requests route to it too, because a similarity search is a search. A Design with both a Vector Index and a [Search Engine](/components/search) splits its searches between them. The Search Engine matches keywords, and the Vector Index matches meaning.
+A text search does not reach it. The Search Engine answers `q-search`, and a prompt's retrieval is its own `q-vector` lookup, so a Design with both keeps keyword search and meaning search apart.
 
 ## Options
 
@@ -48,6 +48,6 @@ Search requests route to it too, because a similarity search is a search. A Desi
 
 ## Tips
 
-- Link it to every Node that answers `ai`, not just the App Servers. A Worker that answers a batch of prompts retrieves too.
+- Link every App Server and [Serverless Function](/components/fn) that answers `ai` into it. A Worker runs tasks, not prompts, so it does not retrieve from the index.
 - Start with Exact: it is the honest index for a small collection, and it costs half the memory.
 - Pair it with a [Cache](/components/cache): the same prompt asked twice retrieves the same documents twice.

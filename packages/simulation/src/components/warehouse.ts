@@ -16,7 +16,7 @@ export const warehouseDef = def({
   cost: 800,
   burn: 0.05,
   latency: 1_500,
-  accepts: ['q-scan'],
+  accepts: ['q-scan', 'change'],
   maxOut: 0,
   unlock: 'data-warehouse',
 })

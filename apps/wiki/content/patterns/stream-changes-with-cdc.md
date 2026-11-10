@@ -19,7 +19,7 @@ Publish every change from the write log to an Event Stream, and let consumers bu
 
 ::Design{id="cdc-feed"}
 
-The App Server writes once, to the Database. The CDC Connector reads the Database's log and publishes each change to the Event Stream. A Worker reads the stream, which in a real system is where the search index gets updated. The Search Engine here only answers the App Server's queries, because a Worker in the game cannot link to it. The stream is **Keyed by entity**, so a row's changes stay in one partition and arrive in order.
+The App Server writes once, to the Database. The CDC Connector reads the Database's log and publishes each change to the Event Stream. The stream feeds the Search Engine, which applies each change to its index while it keeps answering the App Server's queries. The stream is **Keyed by entity**, so a row's changes stay in one partition and arrive in order.
 
 ## Why it works
 
@@ -29,7 +29,7 @@ Watch consumer lag, not the connector. A slow index shows up as growing lag, and
 
 ## What it costs
 
-You add a connector, a stream, and a Worker, and each has its own Burn and failure modes. The copy is eventually consistent, so a search can miss the newest row for a moment. A consumer further behind than the retention window loses the oldest changes. An unkeyed stream with several partitions can apply an old change after a newer one.
+You add a connector and a stream, and each has its own Burn and failure modes. The copy is eventually consistent, so a search can miss the newest row for a moment. A consumer further behind than the retention window loses the oldest changes. An unkeyed stream with several partitions can apply an old change after a newer one.
 
 ## In Quorum
 

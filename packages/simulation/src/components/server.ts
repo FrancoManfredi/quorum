@@ -54,6 +54,7 @@ export const serverDef = def({
     'q-write',
     'auth',
     'q-search',
+    'q-vector',
     'blob-put',
     'task',
     'blob-get',

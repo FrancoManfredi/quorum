@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { expect, test } from 'vitest'
-import { COMPONENT_IDS } from '../src/catalog.ts'
+import { COMPONENT_IDS, COMPONENTS } from '../src/catalog.ts'
 
 /*
  * The layout of "one file per Component": each id has a data file, `components/<id>.ts`, and a
@@ -52,4 +52,18 @@ test('no Component imports another, except a Read Replica reusing the Database r
       }
     }
   }
+})
+
+test('every outbound kind has a Component that can take it, except a customer callout', () => {
+  const sent = new Set(COMPONENT_IDS.flatMap((id) => COMPONENTS[id].sends))
+  const accepted = new Set(COMPONENT_IDS.flatMap((id) => COMPONENTS[id].accepts))
+  for (const kind of sent)
+    if (kind !== 'callout') expect(accepted.has(kind), `${kind} has no taker`).toBe(true)
+})
+
+test('every accepted kind has a Component that sends it', () => {
+  const sent = new Set(COMPONENT_IDS.flatMap((id) => COMPONENTS[id].sends))
+  for (const id of COMPONENT_IDS)
+    for (const kind of COMPONENTS[id].accepts)
+      expect(sent.has(kind), `${id} takes ${kind}, which no Component sends`).toBe(true)
 })

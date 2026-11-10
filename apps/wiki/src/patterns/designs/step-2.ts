@@ -458,14 +458,6 @@ export const step2 = {
             'One row keeps its changes in one partition, so the index never applies an old change after a newer one.',
           ),
         ]),
-        at('indexer', 'worker', 5, 0, [
-          set(
-            'size',
-            2,
-            'Instance size',
-            'It reads every change, so it needs room for the write rate.',
-          ),
-        ]),
       ],
       links: [
         wire('users', 'server'),
@@ -473,7 +465,7 @@ export const step2 = {
         wire('server', 'search'),
         wire('database', 'cdc'),
         wire('cdc', 'log'),
-        wire('log', 'indexer'),
+        wire('log', 'search'),
       ],
     },
     { page: 0.4, read: 0.35, write: 0.1, search: 0.15 },

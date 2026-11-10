@@ -63,6 +63,7 @@ import {
   frameworkReady,
   has,
   eraOf,
+  dataGroupOf,
   certLifeOf,
   inCluster,
   isDown,
@@ -431,6 +432,10 @@ const reaches = (links: ReadonlyArray<GameLink>, from: string, to: string): bool
 const kindList = (kinds: ReadonlyArray<Kind>): string =>
   kinds.map((kind) => KINDS[kind].label.toLowerCase()).join(', ')
 
+/** The kinds a terminal data store holds for one dataset, and the stores that hold one. */
+const DATASET_KINDS: ReadonlyArray<Kind> = ['q-read', 'q-write', 'q-tx']
+const DATASET_STORES: ReadonlyArray<ComponentId> = ['database', 'doc', 'wide', 'dsql', 'replica']
+
 export const connect = (game: Game, from: string, to: string): Action => {
   const source = game.nodes.find((node) => node.id === from)
   const target = game.nodes.find((node) => node.id === to)
@@ -439,6 +444,16 @@ export const connect = (game: Game, from: string, to: string): Action => {
   const targetDef = COMPONENTS[target.type]
   if (game.links.some((link) => link.from === from && link.to === to))
     return notAllowed('Already linked.')
+  // A Worker is not a queue: it takes work from a Queue or an Event Stream, never a user.
+  if (source.type === 'server' && target.type === 'worker')
+    return notAllowed(
+      'A Worker takes tasks from a Queue or an Event Stream. Link the App Server into one first.',
+    )
+  // A Function or Edge Function runs its work inline; only an App Server hands it to a Queue.
+  if ((source.type === 'fn' || source.type === 'edge') && targetDef.accepts.includes('task'))
+    return notAllowed(
+      'Only an App Server hands work to a Queue. A Function or Edge Function runs its work inline.',
+    )
   // App Servers and Workers link into an Autoscaler or a Cluster to come under it: one of each.
   if (targetDef.control) {
     if (source.type !== 'server' && source.type !== 'worker')
@@ -499,6 +514,27 @@ export const connect = (game: Game, from: string, to: string): Action => {
     return notAllowed(
       `${targetDef.name} takes ${kindList(targetDef.accepts)}. ${sourceDef.name} sends ${kindList(emitsOf(source))}.`,
     )
+  // One caller reads one Data Group. A second terminal store would split every query, and a
+  // checkout could land in a store that never held the cart.
+  if (
+    DATASET_STORES.includes(target.type) &&
+    carried.some((kind) => DATASET_KINDS.includes(kind))
+  ) {
+    const group = dataGroupOf(game, target)
+    const other = game.links
+      .filter((link) => link.from === from && link.to !== to)
+      .map((link) => game.nodes.find((node) => node.id === link.to))
+      .find(
+        (node) =>
+          node !== undefined &&
+          DATASET_STORES.includes(node.type) &&
+          dataGroupOf(game, node) !== group,
+      )
+    if (other)
+      return notAllowed(
+        'One caller reads one Data Group. Box the Databases into one group, or route a second store through an API Gateway and its own App Server.',
+      )
+  }
   const routing = game.links.filter((link) => {
     const end = game.nodes.find((node) => node.id === link.to)
     return link.from === from && end && !COMPONENTS[end.type].tap

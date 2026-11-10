@@ -8,7 +8,7 @@ The CDN answers cacheable content at the edge, near the user, as Cloudflare does
 
 ## How it works
 
-Place it right after [Users](/components/users). It takes every request kind, answers most page views and video at the edge, and sends the misses and every other kind on to your origin. It has no capacity limit and serves every region.
+Place it right after [Users](/components/users). It takes every request kind, answers the anonymous share of page views and most video at the edge, and sends the misses and every other kind on to your origin. A logged-in page is not cacheable until Edge-side includes. It has no capacity limit and serves every region.
 
 Egress from the edge costs less than egress from your App Servers, so a CDN also cuts the cloud bill once egress is billed. A longer TTL raises the hit ratio, and the [Tiered caching](/research/tiered-caching) Research lifts how much video the edge answers. See [CDN](/glossary/cdn-content-delivery-network) and [egress](/glossary/egress).
 

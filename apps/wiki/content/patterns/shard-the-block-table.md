@@ -17,7 +17,7 @@ A logical shard is a Postgres schema, and a physical database holds several of t
 
 ::Design{id="notion-block-shards"}
 
-The Database has four shards on a hash key, standing for the 480 logical shards. The CDC Connector is Debezium, the Event Stream is Kafka, and the Worker is the indexer that writes the changes on. The app never writes twice: it writes the block, and the connector reads the change.
+The Database has four shards on a hash key, standing for the 480 logical shards. The CDC Connector is Debezium, the Event Stream is Kafka, and the Data Warehouse is the lake that the changes land in. The app never writes twice: it writes the block, and the connector reads the change.
 
 ## Why it works
 
@@ -25,7 +25,7 @@ The shard keeps the online table small enough for `VACUUM` and for one machine's
 
 ## Where the game stops
 
-The board has four shards, not 480, and no schemas inside a physical database. It does not show Hudi, the 480 Fivetran connectors the team replaced, the S3 layer the worker writes to, or the dark reads that made the cutover safe. The caption is Quorum's result, not Notion's change rate.
+The board has four shards, not 480, and no schemas inside a physical database. It does not show Hudi, the 480 Fivetran connectors the team replaced, the S3 layer the lake writes to, or the dark reads that made the cutover safe. The caption is Quorum's result, not Notion's change rate.
 
 ## Sources
 

@@ -12,7 +12,7 @@ Realtime differs from every other kind. A message does not make a request and wa
 
 How many connections fit is the runtime's business. An 8 GB box holds about 1.6 million BEAM connections, 800,000 Go ones, 400,000 Node.js ones and 8,000 Java platform threads ([Runtimes](/design/06-runtimes#realtime-connections)). Each size step doubles the RAM it gives them.
 
-It takes `rt` and nothing else, and sends nothing on: it answers the message itself. Put it behind the [Load Balancer](/components/lb) next to your [App Servers](/components/server), and set the Link that reaches it to carry only Realtime. Each runtime then takes the traffic it is good at.
+It takes `rt` and nothing else, and sends nothing on: it answers the message itself. Put an [API Gateway](/components/gw) in front, route only Realtime to the Hub, and put the Hub behind the [Load Balancer](/components/lb) next to your [App Servers](/components/server). A Load Balancer spreads every kind it receives; the Gateway is what routes by kind.
 
 ## Options
 

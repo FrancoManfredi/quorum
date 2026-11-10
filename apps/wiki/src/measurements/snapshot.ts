@@ -3,14 +3,14 @@
  * `packages/simulation/src/pacing.ts`. Do not edit: change the Simulation or the measurement and
  * run the script again.
  *
- * Taken at Simulation version 5a3a622e on 2026-11-09.
+ * Taken at Simulation version 1c4ec3eb on 2026-11-10.
  */
 
 import type { Measurements } from './measure.ts'
 
 export const SNAPSHOT: Measurements = {
-  version: '5a3a622e',
-  takenOn: '2026-11-09',
+  version: '1c4ec3eb',
+  takenOn: '2026-11-10',
   pacing: [
     {
       label: 'First research',
@@ -38,7 +38,7 @@ export const SNAPSHOT: Measurements = {
     },
     {
       label: 'Second App Server',
-      value: '36.4–49.3',
+      value: '36.4–54.3',
     },
     {
       label: 'First incident',
@@ -72,11 +72,11 @@ export const SNAPSHOT: Measurements = {
     },
     {
       label: 'Series A',
-      value: '61.2–63.6',
+      value: '63.6–65.9',
     },
     {
       label: 'Series B',
-      value: '106.7–113.5',
+      value: '117.1–117.2',
     },
   ],
   seed: [
@@ -86,45 +86,45 @@ export const SNAPSHOT: Measurements = {
     },
     {
       label: 'Search Engine placed',
-      value: '44.6–48.6',
+      value: '36.9–44.8',
     },
     {
       label: 'WAF placed',
-      value: '46.1–46.6',
+      value: '46.8–53.3',
     },
     {
       label: 'Second App Server',
-      value: '36.4–49.3',
+      value: '36.4–54.3',
     },
     {
       label: 'Series A',
-      value: '74.0, never on some seeds',
+      value: '83.2–83.8',
     },
     {
       label: 'Seed length',
-      value: '31.6, never on some seeds',
+      value: '40.8–49.1',
     },
   ],
   series: [
     {
       label: 'Series A',
-      value: '74.0–91.1',
+      value: '83.2–83.8',
     },
     {
       label: 'Second zone and standbys',
-      value: '82.1–95.2',
+      value: '88.3–91.8',
     },
     {
       label: 'Series B',
-      value: 'never',
+      value: '124.8–127.7',
     },
     {
       label: 'Users at 130 min',
-      value: '19,680–28,973',
+      value: '165,683–194,035',
     },
     {
       label: 'Availability at 130 min',
-      value: '94.20%–97.91%',
+      value: '98.05%–99.55%',
     },
   ],
   legacy: [
@@ -162,5 +162,5 @@ export const SNAPSHOT: Measurements = {
       },
     },
   ],
-  reach: '19,680–28,973',
+  reach: '165,683–194,035',
 }
