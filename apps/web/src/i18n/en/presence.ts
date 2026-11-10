@@ -6,7 +6,7 @@ export const presence = {
   dashboard: 'dashboard',
   playbooks: 'playbooks',
   help: 'help',
-  dev: 'playtest panel',
+  dev: 'developer panel',
   inbox: 'inbox',
   cost: 'cost',
   churn: 'churn breakdown',

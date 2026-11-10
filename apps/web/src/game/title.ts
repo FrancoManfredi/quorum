@@ -10,7 +10,7 @@ import {
   BookOpen,
   Check,
   Coffee,
-  Download,
+  Hash,
   Trash2,
   Lock,
   ScrollText,
@@ -44,7 +44,7 @@ import { Message } from './message.ts'
 import { PrefsMessage } from './prefs.ts'
 import { boardChallenge, boardSandbox, currentFile, hasCompany, type Model } from './model.ts'
 import { LOGOS } from './logos.ts'
-import { MAX_COMPANY_NAME, hasRecovered, nameOr, recent, type CompanyFile } from './saves.ts'
+import { MAX_COMPANY_NAME, nameOr, recent, type CompanyFile } from './saves.ts'
 import { menuOf, type MenuPage } from './route.ts'
 import { supportedLocales } from '../i18n/index.ts'
 import { play } from './sound.ts'
@@ -55,9 +55,9 @@ type Page = typeof MenuPage.Type | 'main' | 'save'
 let lastPage: Page = 'main'
 
 const rowsOf = (root: ParentNode) =>
-  [...root.querySelectorAll<HTMLElement>('.booth-list [data-row]')].filter(
-    (row) => !(row instanceof HTMLButtonElement && row.disabled),
-  )
+  [
+    ...root.querySelectorAll<HTMLElement>('.booth-list [data-row], .booth-footer [data-row]'),
+  ].filter((row) => !(row instanceof HTMLButtonElement && row.disabled))
 
 /** The title's Mounts. A Scene test resolves them by hand. */
 export const BoothDriver = Mount.define('BoothDriver', {
@@ -231,8 +231,6 @@ type Row = Readonly<{
   pressed?: boolean
   record?: boolean
   danger?: boolean
-  /** Holds at the bottom of a scrolling page: the founding screen's Found action. */
-  sticky?: boolean
 }>
 
 const row = (r: Row, h: HtmlBuilder<Message>): Html => {
@@ -249,7 +247,7 @@ const row = (r: Row, h: HtmlBuilder<Message>): Html => {
         ? h.span([h.Class('booth-side')], [r.side])
         : h.span([h.Class('booth-side')], [r.side]),
   ]
-  const className = `booth-row ${r.big ? 'is-big' : ''} ${r.back ? 'is-back' : ''} ${r.danger ? 'is-danger' : ''} ${r.sticky ? 'is-sticky' : ''}`
+  const className = `booth-row ${r.big ? 'is-big' : ''} ${r.back ? 'is-back' : ''} ${r.danger ? 'is-danger' : ''}`
   if (r.record)
     return h.div(
       [h.Key(r.key), h.Tabindex(-1), h.DataAttribute('row', ''), h.Class(`${className} is-record`)],
@@ -332,7 +330,15 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
           ),
         ]
       : []),
-    row({ key: 'preseed', label: t.title.startInPreSeed, message: Message.PreseedStarted() }, h),
+    row(
+      {
+        key: 'preseed',
+        label: t.title.startInPreSeed,
+        detail: t.title.skipsGarage,
+        message: Message.PreseedStarted(),
+      },
+      h,
+    ),
     row(
       {
         key: 'sandbox',
@@ -438,6 +444,7 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
   return [
     backRow(h),
     identity(model, h),
+    h.p([h.Class('booth-note')], [t.title.saveInBrowser]),
     group(t.title.logo, h),
     logoPicker(model, h),
     group(t.title.venture, h),
@@ -471,20 +478,29 @@ const foundRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =
         h,
       ),
     ),
-    group('', h),
-    row(
-      {
-        key: 'found',
-        mark: companyMark(model.draft.logo, 'booth-logo-mini', h),
-        label: t.title.found(nameOr(model.draft.name)),
-        detail: t.title.legacy2(startEra(founding), legacyMultiplier(founding).toFixed(2)),
-        message: Message.CompanyFounded(),
-        big: true,
-        sticky: true,
-      },
-      h,
-    ),
   ]
+}
+
+/** The founding screen's Found action, below the list so it never covers a row. */
+const foundFooter = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const founding = foundingOf(model.founder)
+  return h.div(
+    [h.Class('booth-footer')],
+    [
+      row(
+        {
+          key: 'found',
+          mark: companyMark(model.draft.logo, 'booth-logo-mini', h),
+          label: t.title.found(nameOr(model.draft.name)),
+          detail: t.title.legacy2(startEra(founding), legacyMultiplier(founding).toFixed(2)),
+          message: Message.CompanyFounded(),
+          big: true,
+        },
+        h,
+      ),
+    ],
+  )
 }
 
 /** The Companies page: every file, newest first, with the one Continue opens marked. */
@@ -808,19 +824,6 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
     row({ key: 'save-export', label: t.title.copySaveAsText, message: Message.SaveExported() }, h),
     row({ key: 'save-import', label: t.title.importASave, message: Message.SaveImportAsked() }, h),
     row({ key: 'copy', label: t.title.copyStateAsJSON, message: Message.StateCopied() }, h),
-    ...(model.oldSave && !hasRecovered(model.saves.companies)
-      ? [
-          row(
-            {
-              key: 'old-save',
-              label: t.title.recoverPreviousSave,
-              detail: t.title.recoverPreviousSaveDetail,
-              message: Message.OldSaveImportAsked(),
-            },
-            h,
-          ),
-        ]
-      : []),
   ]
 }
 
@@ -1073,6 +1076,7 @@ const screen = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.section(
         [h.Class('booth-home')],
         [
+          h.h1([h.Class('sr-only')], ['Quorum']),
           wordmark(h),
           crumb(model, page, h),
           h.nav(
@@ -1085,6 +1089,7 @@ const screen = (model: Model, h: HtmlBuilder<Message>): Html => {
             ],
             pagesOf(t)[page].rows(model, h),
           ),
+          page === 'found' ? foundFooter(model, h) : h.empty,
           hint(h),
         ],
       ),
@@ -1150,17 +1155,25 @@ const disclaimer = (h: HtmlBuilder<Message>): Html => {
   )
 }
 
-/** The edge of the screen: the playtest tools, the source, and the way to support it. */
+/** The edge of the screen: the build, the source, and the way to support it. */
 const strip = (h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
+  const release = import.meta.env.VITE_SENTRY_RELEASE
+  const build = release === undefined || release === '' ? 'dev' : release.slice(0, 7)
   return h.header(
     [h.Class('booth-strip')],
     [
-      h.button(
-        [h.Type('button'), h.OnClick(Message.LogExported())],
+      h.a(
         [
-          icon(h, Download, 'size-3.5'),
-          h.span([h.Class('booth-strip-label')], [t.title.exportPlaytestLog]),
+          h.Href(build === 'dev' ? SOURCE_URL : `${SOURCE_URL}/commit/${release}`),
+          h.Target('_blank'),
+          h.Rel('noreferrer noopener'),
+          h.Title(`${t.title.build} ${build}`),
+          h.AriaLabel(`${t.title.build} ${build}`),
+        ],
+        [
+          icon(h, Hash, 'size-3.5'),
+          h.span([h.Class('booth-strip-label')], [`${t.title.build} ${build}`]),
         ],
       ),
       h.a(
@@ -1171,9 +1184,6 @@ const strip = (h: HtmlBuilder<Message>): Html => {
         ],
         [
           h.span([h.Class('booth-strip-dot')], []),
-          h.span([h.Class('booth-strip-label')], [t.title.playtestBuild]),
-          h.span([], [t.title.savesCanReset]),
-          ' · ',
           h.span([], [t.title.feedback]),
           icon(h, ArrowUpRight, 'size-3.5'),
         ],
@@ -1241,6 +1251,7 @@ const reader = (model: Model, h: HtmlBuilder<Message>): Html => {
   return h.div(
     [h.Key('reader'), h.Class(`reader ${model.boot._tag === 'Clocking' ? 'is-in' : ''}`)],
     [
+      h.h1([h.Class('sr-only')], ['Quorum']),
       h.div(
         [h.Class('reader-body')],
         [
@@ -1301,5 +1312,15 @@ export const titleScreen = (model: Model, h: HtmlBuilder<Message>): Html =>
         'title-screen dark relative grid h-full place-items-center overflow-hidden bg-page text-foreground',
       ),
     ],
-    [titleIsOpen(model.boot) ? booth(model, h) : reader(model, h)],
+    [
+      titleIsOpen(model.boot)
+        ? booth(model, h)
+        : h.div(
+            [h.Class('reader-splash')],
+            [
+              reader(model, h),
+              h.p([h.Class('reader-hint'), h.AriaHidden(true)], [copy(h).title.clockInHint]),
+            ],
+          ),
+    ],
   )

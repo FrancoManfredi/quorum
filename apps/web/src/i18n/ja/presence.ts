@@ -8,7 +8,7 @@ export const presence: Messages['presence'] = {
   dashboard: 'ダッシュボード',
   playbooks: 'プレイブック',
   help: 'ヘルプ',
-  dev: 'プレイテストパネル',
+  dev: '開発者パネル',
   inbox: '受信箱',
   cost: 'コスト',
   churn: 'チャーン内訳',

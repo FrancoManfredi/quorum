@@ -8,7 +8,7 @@ export const presence: Messages['presence'] = {
   dashboard: 'cuadro de mando',
   playbooks: 'playbooks',
   help: 'ayuda',
-  dev: 'panel de pruebas',
+  dev: 'panel de desarrollo',
   inbox: 'bandeja de entrada',
   cost: 'coste',
   churn: 'desglose de bajas',

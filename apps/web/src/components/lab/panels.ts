@@ -101,7 +101,7 @@ export const shell = (
     [
       h.DataAttribute('exit', 'gesture'),
       h.Class(
-        'absolute inset-0 z-30 grid place-items-center bg-foreground/10 p-6 backdrop-blur-[3px] enter-backdrop compact:p-0 short:[[data-toast=on]_&]:pt-12!',
+        'modal-overlay absolute inset-0 z-30 grid place-items-center p-6 compact:p-0 short:[[data-toast=on]_&]:pt-12!',
       ),
     ],
     [
@@ -263,7 +263,7 @@ const keyGroupsOf = (t: Messages, easyMode: boolean): ReadonlyArray<KeyGroup> =>
       ['D', t.panels.dashboard],
       ['I', t.panels.inbox],
       ['$', t.panels.cost],
-      ['`', t.panels.playtestPanel],
+      ['`', t.panels.developerPanel],
       [t.panels.esc, t.panels.backOutThenMenu],
     ],
   ],
@@ -482,7 +482,6 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             h,
           ),
           rule,
-          menuItem(t.panels.exportPlaytestLog, Download, Message.LogExported(), h),
           exitLegacy(model) === null
             ? h.empty
             : menuItem(t.panels.exitCompany, DoorOpen, Message.PanelOpened({ panel: 'exit' }), h),
@@ -1232,10 +1231,7 @@ export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
           h.div(
             [h.Class('flex gap-2')],
-            [
-              primaryButton(t.panels.keepPlaying, Message.PanelClosed(), h),
-              secondaryButton(t.panels.exportPlaytestLog, Message.LogExported(), h, Download),
-            ],
+            [primaryButton(t.panels.keepPlaying, Message.PanelClosed(), h)],
           ),
         ],
       ),
@@ -1248,7 +1244,7 @@ export const endPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
 export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
   return shell(
-    t.panels.playtest,
+    t.panels.developer,
     [],
     [
       h.div(
@@ -1324,7 +1320,7 @@ export const devPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.div(
                 [h.Class('flex flex-wrap gap-2')],
                 [
-                  secondaryButton(t.panels.exportPlaytestLog, Message.LogExported(), h, Download),
+                  secondaryButton(t.panels.exportLog, Message.LogExported(), h, Download),
                   secondaryButton(t.panels.clearLog, Message.LogCleared(), h, Trash2),
                 ],
               ),

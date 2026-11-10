@@ -8,7 +8,7 @@ export const presence: Messages['presence'] = {
   dashboard: '仪表盘',
   playbooks: '运维手册',
   help: '帮助',
-  dev: '试玩面板',
+  dev: '开发者面板',
   inbox: '收件箱',
   cost: '成本',
   churn: '流失明细',
