@@ -37,8 +37,9 @@ import { DIM } from './belt-view.ts'
 
 /** The smallest zoom Fit uses, so card text stays readable. */
 export const MIN_FIT_SCALE = 0.85
-/** A phone has pinch-zoom, so fit may go smaller to show the whole Design. */
-export const MIN_FIT_SCALE_PHONE = 0.7
+/** A phone has pinch-zoom, so fit may go smaller to show the whole Design. At this zoom the
+ *  cards give way to their chips, which is what makes the whole board reachable at once. */
+export const MIN_FIT_SCALE_PHONE = 0.42
 
 export class NodeView {
   readonly root = new Container()

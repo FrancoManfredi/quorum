@@ -328,7 +328,7 @@
   text-transform: none;
 }
 .booth-list {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-height: 0;
   width: calc(100% + var(--s) * 2.8);
   max-width: calc(var(--s) * 64.8);
@@ -385,21 +385,29 @@
   color: oklch(0.86 0.14 25);
   background: oklch(0.45 0.16 25 / 0.22);
 }
-.booth-row.is-sticky {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  margin-top: calc(var(--s) * 0.8);
+.booth-footer {
+  flex: none;
+  margin-top: auto;
+  padding: calc(var(--s) * 0.8) 0 calc(var(--s) * 0.4);
+}
+.booth-footer .booth-row {
   background: oklch(0.14 0.022 230);
   box-shadow:
     inset 0 0 0 1px oklch(1 0 0 / 0.09),
     0 -1px 0 oklch(0 0 0 / 0.4);
 }
-.booth-row.is-sticky:focus {
+.booth-footer .booth-row:focus {
   background: oklch(0.2 0.028 228);
   box-shadow:
     inset 0 0 0 1px var(--signal),
     0 -1px 0 oklch(0 0 0 / 0.4);
+}
+.booth-note {
+  margin: calc(var(--s) * 0.4) 0 calc(var(--s) * 0.6);
+  padding: 0 calc(var(--s) * 1.4);
+  color: var(--muted-foreground);
+  font-size: max(calc(10px * var(--type-scale)), calc(var(--s) * 1.3 * var(--type-scale)));
+  line-height: 1.4;
 }
 .booth-logo-mini {
   flex: none;
@@ -824,6 +832,20 @@
   height: 440px;
   animation: reader-in 500ms var(--ease-out) both;
 }
+.reader-splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.reader-hint {
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: max(calc(11px * var(--type-scale)), calc(var(--s) * 1.2 * var(--type-scale)));
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  animation: reader-in 500ms var(--ease-out) 200ms both;
+}
 .reader.is-in {
   animation: reader-out 300ms ease-in 750ms both;
 }
@@ -1199,4 +1221,32 @@
   to {
     box-shadow: 0 0 0 12px transparent;
   }
+}
+
+/* A browser without WebGL gets a readable message instead of an empty canvas. */
+.board-unavailable {
+  display: none;
+  position: absolute;
+  inset: 0;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted-foreground);
+  background: var(--canvas);
+}
+[data-board-unavailable] .board-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.board-unavailable p {
+  max-width: 380px;
+  line-height: 1.5;
+}
+.board-unavailable a {
+  color: var(--signal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

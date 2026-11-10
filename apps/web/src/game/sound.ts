@@ -854,18 +854,30 @@ export const setVolume = (percent: number): void => {
   if (live) live.master.gain.setTargetAtTime(MASTER * volume, live.context.currentTime, 0.02)
 }
 
+/** A browser without the full Web Audio graph stays silent; it must not crash the screen. */
+const canPlay = (): boolean =>
+  typeof AudioContext !== 'undefined' &&
+  typeof GainNode !== 'undefined' &&
+  typeof WaveShaperNode !== 'undefined' &&
+  typeof ConvolverNode !== 'undefined'
+
 /** Plays a sound, `pitch` times its usual frequency. With `spatial`, it pans
  *  a little toward where the pointer last went down. */
 export const play = (sound: Sound, pitch = 1, spatial = false): void => {
-  if (muted || !navigator.userActivation.hasBeenActive) return
+  if (muted || !canPlay()) return
+  if (!(navigator.userActivation?.hasBeenActive ?? true)) return
   const now = performance.now()
   if (now - (lastPlayed.get(sound) ?? -Infinity) < GAP) return
   lastPlayed.set(sound, now)
   if (!live) {
-    const context = new AudioContext({ latencyHint: 'interactive' })
-    const master = new GainNode(context, { gain: MASTER * volume })
-    master.connect(context.destination)
-    live = { context, master, bus: busOf(context, master) }
+    try {
+      const context = new AudioContext({ latencyHint: 'interactive' })
+      const master = new GainNode(context, { gain: MASTER * volume })
+      master.connect(context.destination)
+      live = { context, master, bus: busOf(context, master) }
+    } catch {
+      return
+    }
   }
   if (live.context.state === 'suspended') void live.context.resume()
   render(live.context, live.bus, sound, { pitch, pan: spatial ? pointerPan * 0.35 : 0 })

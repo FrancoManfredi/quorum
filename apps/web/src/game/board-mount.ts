@@ -4,6 +4,7 @@ import * as Stream from 'effect/Stream'
 import { Mount } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { attachBoard } from '@quorum/ui/board/board'
+import { copy } from '@/i18n/messages.ts'
 import { Message } from './message.ts'
 import { play } from './sound.ts'
 import { hideCursor, sendCursor } from '@/platform/room-socket.ts'
@@ -67,5 +68,21 @@ const BoardMounted = Mount.defineStream('BoardMounted', {
     ),
 })
 
-export const boardHost = (h: HtmlBuilder<Message>): Html =>
-  h.div([h.Key('board'), h.Class('absolute inset-0 bg-canvas'), h.OnMount(BoardMounted({}))])
+export const boardHost = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
+    [h.Key('board'), h.Class('absolute inset-0 bg-canvas'), h.OnMount(BoardMounted({}))],
+    [
+      h.div(
+        [h.Class('board-unavailable'), h.Role('status')],
+        [
+          h.p([], [t.panels.webglUnavailable]),
+          h.a(
+            [h.Href('https://get.webgl.org'), h.Target('_blank'), h.Rel('noreferrer noopener')],
+            [t.panels.webglHelp],
+          ),
+        ],
+      ),
+    ],
+  )
+}

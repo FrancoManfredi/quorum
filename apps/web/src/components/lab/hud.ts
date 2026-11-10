@@ -1692,6 +1692,10 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
         ],
         h,
       ),
+      h.div(
+        [h.Class('hidden compact:block')],
+        [toolButton(t.hud.fitTheBoardShiftF, Scan, Message.BoardFitted(), false, h)],
+      ),
       moreButton(model, h),
     ],
   )

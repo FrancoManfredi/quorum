@@ -26,11 +26,25 @@ export const repaintBoards = (): void => {
   for (const controller of controllers.values()) controller.repaint()
 }
 
+const hasWebgl = (): boolean => {
+  try {
+    const canvas = document.createElement('canvas')
+    return Boolean(canvas.getContext('webgl2') ?? canvas.getContext('webgl'))
+  } catch {
+    return false
+  }
+}
+
 export const attachBoard = (key: string, host: HTMLElement, events: BoardEvents): (() => void) => {
+  if (!hasWebgl()) {
+    host.dataset['boardUnavailable'] = 'true'
+    return () => undefined
+  }
   const controller = new BoardController(host, events)
   controllers.set(key, controller)
   controller.start(desired.get(key)).catch((error: unknown) => {
     console.error(`Quorum: the "${key}" board failed to start`, error)
+    host.dataset['boardUnavailable'] = 'true'
   })
   return () => {
     controller.destroy()
