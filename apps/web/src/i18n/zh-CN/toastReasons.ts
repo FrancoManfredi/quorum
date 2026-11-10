@@ -1,6 +1,7 @@
 import type { Messages } from '../messages.ts'
 
 export const reasons: Messages['toasts']['reasons'] = {
+  aNameIsNeeded: '需要名称。',
   aCDNTTLIs1Minute5: 'CDN 的 TTL 只能为 1 分钟、5 分钟或 1 小时。',
   aChallengeIsOpenChallengesAreScored: '正在进行挑战。挑战会计分，所以不能读取。',
   aDatabaseEngineChangeIsAlreadyRunning: '数据库引擎变更已在进行中。',
@@ -176,6 +177,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   thatIsNotASave: '这不是存档。',
   thatLinkWouldMakeALoop: '这条连线会形成环路。',
   thatMaxLengthIsNotOnOffer: '无法选择这个最大长度。',
+  thatNameIsTaken: '该名称已被使用。',
   thatRegionIsNotAMirror: '该区域不是镜像。',
   thatRegionIsOpen: '那个地域已经开放。',
   thatSaveCouldNotBeRead: '无法读取该存档。',

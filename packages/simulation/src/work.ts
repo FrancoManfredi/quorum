@@ -162,6 +162,8 @@ const notAllowed = (reason: string): Action => no(Refusal.NotAllowed({ reason })
 const SANDBOX = 'A Sandbox has no Team.'
 /** Teams the player can run in the slice. */
 export const MAX_TEAMS = 4
+/** Characters a renamed team or Service keeps. */
+export const MAX_NAME = 32
 /** A Platform team opens at Series A (08 "Teams"). */
 export const PLATFORM_STAGE = 3
 /** The autopilot refactors once debt reaches this. */
@@ -1188,6 +1190,55 @@ export const assign = (game: Game, engineerId: string, teamId: string): Action =
     ...game,
     engineers: game.engineers.map((engineer) =>
       engineer.id === engineerId ? { ...engineer, team: teamId } : engineer,
+    ),
+  })
+}
+
+/** A typed name: trimmed, with runs of spaces collapsed, and cut to the field's length. */
+const cleanedName = (name: string): string => name.trim().replace(/\s+/g, ' ').slice(0, MAX_NAME)
+
+/**
+ * Renames a team (08 "Teams"). A name is the player's own label: it changes no rule, so it costs
+ * nothing and needs no research. Two teams cannot share a name.
+ */
+export const renameTeam = (game: Game, teamId: string, name: string): Action => {
+  const team = game.teams.find((entry) => entry.id === teamId)
+  if (!team) return no(Refusal.Missing())
+  const clean = cleanedName(name)
+  if (clean === '') return notAllowed('A name is needed.')
+  if (clean === team.name) return ok(game)
+  if (
+    game.teams.some(
+      (entry) => entry.id !== teamId && entry.name.toLowerCase() === clean.toLowerCase(),
+    )
+  )
+    return notAllowed('That name is taken.')
+  return ok({
+    ...game,
+    teams: game.teams.map((entry) => (entry.id === teamId ? { ...entry, name: clean } : entry)),
+  })
+}
+
+/**
+ * Renames a Service (08 "Services"). Like a team name, it is a label: no Dev Hours, no research.
+ * Two Services cannot share a name.
+ */
+export const renameService = (game: Game, serviceId: string, name: string): Action => {
+  const service = game.services.find((entry) => entry.id === serviceId)
+  if (!service) return no(Refusal.Missing())
+  const clean = cleanedName(name)
+  if (clean === '') return notAllowed('A name is needed.')
+  if (clean === service.name) return ok(game)
+  if (
+    game.services.some(
+      (entry) => entry.id !== serviceId && entry.name.toLowerCase() === clean.toLowerCase(),
+    )
+  )
+    return notAllowed('That name is taken.')
+  return ok({
+    ...game,
+    services: game.services.map((entry) =>
+      entry.id === serviceId ? { ...entry, name: clean } : entry,
     ),
   })
 }

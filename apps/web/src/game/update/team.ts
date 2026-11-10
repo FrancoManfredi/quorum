@@ -9,16 +9,17 @@ import {
   TASKS,
 } from '@quorum/simulation/catalog'
 import { Message } from '../message.ts'
-import { Option } from 'effect'
+import { Option, Result } from 'effect'
 import { ResearchMessage, ResearchOutMessage, updateResearch } from '../research.ts'
 import { TeamOutMessage, updateTeam, type TeamMessage } from '../team.ts'
 import { Update } from 'foldkit'
 import { insightName } from '../../i18n/messages.ts'
 import { isOne } from '../../i18n/plural.ts'
-import { ledgerOf, Model } from '../model.ts'
+import { boardChallenge, ledgerOf, Model, roomLive } from '../model.ts'
 import { recipeOf } from '@quorum/ui/game/pools'
 import { sharePercent } from '@quorum/ui/game/format'
-import { say, act, percent, type MessageCases, type UpdateResult } from './shared.ts'
+import { say, act, percent, withToast, type MessageCases, type UpdateResult } from './shared.ts'
+import { refusalIn } from '../../i18n/refusal.ts'
 import { learnTargetOf, serviceOf } from '@quorum/simulation/team'
 import { stallReasonIn } from '../../i18n/format.ts'
 import { stepOf } from '@quorum/simulation/migration'
@@ -101,6 +102,21 @@ export const teamAction = (model: Model, out: TeamOutMessage): UpdateResult => {
           }),
         },
       ),
+    Rename: ({ target, id, name }) => {
+      if (roomLive(model)) return withToast(model, say(model).room.notAvailable, 'warn')
+      const challenge = boardChallenge(model.board)
+      if (challenge && challenge._tag !== 'Building')
+        return withToast(model, say(model).toasts.rebuildToChange, 'warn')
+      const result =
+        target === 'team' ? Work.renameTeam(game, id, name) : Work.renameService(game, id, name)
+      return Result.match(result, {
+        onFailure: (refusal) => withToast(model, refusalIn(say(model), refusal), 'warn'),
+        onSuccess: (next) =>
+          next === game
+            ? { model }
+            : { model: { ...model, board: { ...model.board, game: next } } },
+      })
+    },
   })
 }
 

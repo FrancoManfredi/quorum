@@ -105,6 +105,20 @@ test('dropping an engineer on another team moves them', () => {
   expect(dropped.board.game.engineers.find((engineer) => engineer.id === 'e1')?.team).toBe('t2')
 })
 
+test('screenshot mode hides the chrome, blocks other shortcuts, and Escape returns', () => {
+  const start: Model = {
+    ...inLab(),
+    panel: 'team',
+    board: { ...inLab().board, selected: 'server' },
+  }
+  const shot = update(start, Message.KeyPressed({ key: 'Shift+s' })).model
+  expect(shot.board.screenshot).toBe(true)
+  expect(shot.panel).toBe('none')
+  expect(shot.board.selected).toBe(null)
+  expect(update(shot, Message.KeyPressed({ key: 'r' })).model.panel).toBe('none')
+  expect(update(shot, Message.KeyPressed({ key: 'Escape' })).model.board.screenshot).toBe(false)
+})
+
 test('the menu button opens a menu over the board that holds the clock, and Escape walks back out', () => {
   const key = Message.KeyPressed({ key: 'Escape' })
   const opened = update(inLab(), Message.PanelOpened({ panel: 'menu' }))

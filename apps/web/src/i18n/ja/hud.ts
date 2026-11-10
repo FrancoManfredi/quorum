@@ -62,6 +62,7 @@ export const hud: Messages['hud'] = {
   tidyByRoleShiftT: '役割ごとに整える (Shift+T)',
   fitTheBoardShiftF: 'ボードに合わせる (Shift+F)',
   fullscreenF: '全画面 (F)',
+  screenshotS: 'スクリーンショットモード (Shift+S)',
   undo: '元に戻す',
   changes: (p0) => `${p0}件の変更`,
   stable: '安定',
@@ -91,6 +92,8 @@ export const hud: Messages['hud'] = {
   tidyByRole: '役割ごとに整える',
   fitTheBoard: 'ボードに合わせる',
   fullscreen: '全画面',
+  screenshot: 'スクリーンショットモード',
+  exitScreenshot: 'スクリーンショットモードを終了 (Esc)',
   spent: '使い切り',
   studyBlocked: (need) => `${need}まで進みません。`,
   needBreadth: (types) =>

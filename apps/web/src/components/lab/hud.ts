@@ -7,6 +7,8 @@ import {
   CircleCheck,
   BookCopy,
   BookOpen,
+  Camera,
+  CameraOff,
   ChartLine,
   CircleHelp,
   DatabaseZap,
@@ -1412,6 +1414,7 @@ const moreOf = (t: Messages): Record<MoreItem, Readonly<{ label: string; glyph: 
   tidy: { label: t.hud.tidyByRole, glyph: LayoutGrid },
   fit: { label: t.hud.fitTheBoard, glyph: Scan },
   fullscreen: { label: t.hud.fullscreen, glyph: Expand },
+  screenshot: { label: t.hud.screenshot, glyph: Camera },
 })
 
 const moreItems = (model: Model): ReadonlyArray<MoreItem> => [
@@ -1423,6 +1426,7 @@ const moreItems = (model: Model): ReadonlyArray<MoreItem> => [
   'tidy',
   'fit',
   'fullscreen',
+  'screenshot',
 ]
 
 const moreButton = (model: Model, h: HtmlBuilder<Message>): Html => {
@@ -1684,11 +1688,30 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
           toolButton(t.hud.tidyByRoleShiftT, LayoutGrid, Message.BoardTidied(), false, h),
           toolButton(t.hud.fitTheBoardShiftF, Scan, Message.BoardFitted(), false, h),
           toolButton(t.hud.fullscreenF, Expand, Message.FullscreenToggled(), false, h),
+          toolButton(t.hud.screenshotS, Camera, Message.ScreenshotToggled(), false, h),
         ],
         h,
       ),
       moreButton(model, h),
     ],
+  )
+}
+
+/** A quiet way out of screenshot mode: it sits in the corner and steps aside on hover. */
+export const screenshotExit = (h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.button(
+    [
+      h.Key('screenshot-exit'),
+      h.Type('button'),
+      h.Title(t.hud.exitScreenshot),
+      h.AriaLabel(t.hud.exitScreenshot),
+      h.OnClick(Message.ScreenshotToggled()),
+      h.Class(
+        'pointer-events-auto absolute top-3 right-3 z-40 grid size-8 place-items-center rounded-full bg-surface/40 text-muted-foreground opacity-30 shadow-card backdrop-blur-sm transition-opacity hover:opacity-100 focus-visible:opacity-100',
+      ),
+    ],
+    [icon(h, CameraOff, 'size-4')],
   )
 }
 

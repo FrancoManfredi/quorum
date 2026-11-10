@@ -3,7 +3,7 @@ import { Schema } from 'effect'
 import { Command, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { FeatureId, PolicyId, TeamKind } from '@quorum/simulation/state'
-import type { Team } from './model.ts'
+import { RenameTarget, type Team } from './model.ts'
 
 /* The Team panel: it owns the engineer drag gesture and turns each button and
    each drop between teams into a Game action, which the parent runs. */
@@ -31,6 +31,11 @@ export const TeamMessage = defineMessageUnion({
   ServiceMoved: { serviceId: Schema.String, teamId: Schema.String },
   /** Names the Database a Service reads and writes (08 "Shared database penalty"). */
   DatastoreChosen: { serviceId: Schema.String, datastore: Schema.NullOr(Schema.String) },
+  /** Opens the name field on one team or Service. */
+  RenameStarted: { target: RenameTarget, id: Schema.String },
+  RenameChanged: { name: Schema.String },
+  RenameCommitted: {},
+  RenameCancelled: {},
 })
 export type TeamMessage = typeof TeamMessage.Type
 
@@ -48,12 +53,14 @@ export const TeamOutMessage = defineMessageUnion({
   SplitService: { name: Schema.String, owner: Schema.String, features: Schema.Array(FeatureId) },
   MoveService: { serviceId: Schema.String, teamId: Schema.String },
   DatastoreService: { serviceId: Schema.String, datastore: Schema.NullOr(Schema.String) },
+  Rename: { target: RenameTarget, id: Schema.String, name: Schema.String },
 })
 export type TeamOutMessage = typeof TeamOutMessage.Type
 
 export const initTeam = (): Team => ({
   drag: DragAndDrop.init({ id: 'team-drag' }),
   service: { name: '', owner: 'core', features: [] },
+  rename: null,
 })
 
 type TeamReturn = Update.ReturnWithOutMessage<Team, TeamMessage, TeamOutMessage>
@@ -124,4 +131,23 @@ export const updateTeam = (team: Team, message: TeamMessage): TeamReturn =>
       out(team, TeamOutMessage.MoveService({ serviceId, teamId })),
     DatastoreChosen: ({ serviceId, datastore }) =>
       out(team, TeamOutMessage.DatastoreService({ serviceId, datastore })),
+    RenameStarted: ({ target, id }) => ({
+      model: { ...team, rename: { target, id, draft: '' } },
+    }),
+    RenameChanged: ({ name }) =>
+      team.rename === null
+        ? { model: team }
+        : { model: { ...team, rename: { ...team.rename, draft: name } } },
+    RenameCancelled: () => ({ model: { ...team, rename: null } }),
+    RenameCommitted: () =>
+      team.rename === null
+        ? { model: team }
+        : {
+            model: { ...team, rename: null },
+            outMessage: TeamOutMessage.Rename({
+              target: team.rename.target,
+              id: team.rename.id,
+              name: team.rename.draft,
+            }),
+          },
   })

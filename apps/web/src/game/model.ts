@@ -275,7 +275,23 @@ export const ServiceDraft = Schema.Struct({
 })
 export type ServiceDraft = typeof ServiceDraft.Type
 
-export const Team = Schema.Struct({ drag: DragAndDrop.Model, service: ServiceDraft })
+/** The one name the Team panel is editing: a team, or a Service. */
+export const RenameTarget = Schema.Literals(['team', 'service'])
+export type RenameTarget = typeof RenameTarget.Type
+
+export const RenameDraft = Schema.Struct({
+  target: RenameTarget,
+  id: Schema.String,
+  draft: Schema.String,
+})
+export type RenameDraft = typeof RenameDraft.Type
+
+export const Team = Schema.Struct({
+  drag: DragAndDrop.Model,
+  service: ServiceDraft,
+  /** The name being edited, or null when no field is open. */
+  rename: Schema.NullOr(RenameDraft),
+})
 export type Team = typeof Team.Type
 
 /** The research item the Research panel shows in its side pane; null picks one. */
@@ -348,6 +364,8 @@ export const Board = Schema.Struct({
   bottleneck: Schema.NullOr(Schema.String),
   /** The sim second of the last search; minus one searches again on the next tick. */
   bottleneckAt: Schema.Finite,
+  /** The Board outside the game's chrome: the player is framing a screenshot. */
+  screenshot: Schema.Boolean,
   /** The Inspector's what-if rows for the Node `nodeId`, from the sim second `at`. */
   whatIfs: Schema.NullOr(
     Schema.Struct({

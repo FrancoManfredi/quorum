@@ -776,6 +776,7 @@ type ClockTag =
   | 'SpeedChosen'
   | 'PauseToggled'
   | 'FullscreenToggled'
+  | 'ScreenshotToggled'
   | 'BoardFitted'
   | 'BoardTidied'
 
@@ -817,6 +818,28 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
   },
 
   FullscreenToggled: () => ({ model, commands: [ToggleFullscreen({})] }),
+
+  ScreenshotToggled: () => {
+    if (model.board.screenshot)
+      return { model: { ...model, board: { ...model.board, screenshot: false } } }
+    return {
+      model: {
+        ...model,
+        panel: 'none',
+        board: {
+          ...model.board,
+          screenshot: true,
+          selected: null,
+          selection: [],
+          buildGroup: null,
+          flow: { _tag: 'Idle' },
+          hold: { _tag: 'Idle' },
+          tradeoff: { _tag: 'Closed' },
+          insightHelp: false,
+        },
+      },
+    }
+  },
 
   BoardFitted: () => ({ model, commands: [FitBoard({})] }),
 

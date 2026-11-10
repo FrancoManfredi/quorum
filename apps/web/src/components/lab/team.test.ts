@@ -9,6 +9,7 @@ import { queueFeature } from '@quorum/simulation/work'
 import { initialModel, update } from '@/game/update.ts'
 import type { Model } from '@/game/model.ts'
 import { Message } from '@/game/message.ts'
+import { AppendLog, SyncBoard } from '@/game/commands.ts'
 import { teamPanel } from './team.ts'
 import { PanelFocus } from './panels.ts'
 
@@ -38,6 +39,36 @@ test('a Rush names the Dev Hours, tech debt, and bad-deploy risk it adds', () =>
         name: 'Rush with 100 DH · +2.0% tech debt · +10.0% bad-deploy risk',
       }),
     ).toExist(),
+  )
+})
+
+test('a team can be renamed from its card', () => {
+  Scene.scene(
+    { update, view: (model: Model, h: HtmlBuilder<Message>) => teamPanel(model, h) },
+    Scene.given(fixture()),
+    focused(),
+    Scene.click(Scene.role('button', { name: 'Rename team' })),
+    Scene.Command.resolveAll([AppendLog, Message.Synced()], [SyncBoard, Message.Synced()]),
+    Scene.type(Scene.role('textbox', { name: 'Team name' }), 'Payments'),
+    Scene.Command.resolveAll([AppendLog, Message.Synced()], [SyncBoard, Message.Synced()]),
+    Scene.click(Scene.role('button', { name: 'Save name' })),
+    Scene.Command.resolveAll([AppendLog, Message.Synced()], [SyncBoard, Message.Synced()]),
+    Scene.expect(Scene.text('Payments')).toExist(),
+  )
+})
+
+test('a Service can be renamed from its card', () => {
+  Scene.scene(
+    { update, view: (model: Model, h: HtmlBuilder<Message>) => teamPanel(model, h) },
+    Scene.given(fixture()),
+    focused(),
+    Scene.click(Scene.role('button', { name: 'Rename Service' })),
+    Scene.Command.resolveAll([AppendLog, Message.Synced()], [SyncBoard, Message.Synced()]),
+    Scene.type(Scene.role('textbox', { name: 'Service name' }), 'Checkout'),
+    Scene.Command.resolveAll([AppendLog, Message.Synced()], [SyncBoard, Message.Synced()]),
+    Scene.click(Scene.role('button', { name: 'Save name' })),
+    Scene.Command.resolveAll([AppendLog, Message.Synced()], [SyncBoard, Message.Synced()]),
+    Scene.expect(Scene.text('Checkout')).toExist(),
   )
 })
 

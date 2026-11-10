@@ -18,6 +18,9 @@ export const team: Messages['team'] = {
   inText: (p0: string | number | null) => `en ${p0}`,
   dHMin: 'DH / min',
   removeTeam: 'Quitar equipo',
+  renameTeam: 'Renombrar equipo',
+  teamName: 'Nombre del equipo',
+  saveName: 'Guardar nombre',
   untilTomorrow: (p0: string | number | null) => `${p0} hasta mañana`,
   moveFrom: (p0: string | number | null, p1: string | number | null) => `Mover ${p0} desde ${p1}`,
   runsTheWarehouseReportAndAI:
@@ -108,6 +111,8 @@ export const team: Messages['team'] = {
   loadBalancers: 'Balanceadores de carga',
   labelColon: (label: string | number) => `${label}:`,
   services: 'Servicios',
+  renameService: 'Renombrar Servicio',
+  serviceNameLabel: 'Nombre del Servicio',
   codebases: (n: number) => `${n} ${isOne('es', n) ? 'base de código' : 'bases de código'}`,
   codebasesOneDatabase: (n: number) =>
     `${n} ${isOne('es', n) ? 'base de código' : 'bases de código'} · una sola base de datos`,

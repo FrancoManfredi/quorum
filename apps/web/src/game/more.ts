@@ -11,5 +11,6 @@ export type MoreItem =
   | 'tidy'
   | 'fit'
   | 'fullscreen'
+  | 'screenshot'
 
 export const moreMenu = Menu.create<MoreItem>()

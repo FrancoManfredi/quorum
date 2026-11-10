@@ -62,6 +62,7 @@ export const hud = {
   tidyByRoleShiftT: 'Tidy by role (Shift+T)',
   fitTheBoardShiftF: 'Fit the board (Shift+F)',
   fullscreenF: 'Fullscreen (F)',
+  screenshotS: 'Screenshot mode (Shift+S)',
   undo: 'Undo',
   changes: (p0: string | number | null) => `${p0} changes`,
   stable: 'Stable',
@@ -91,6 +92,8 @@ export const hud = {
   tidyByRole: 'Tidy by role',
   fitTheBoard: 'Fit the board',
   fullscreen: 'Fullscreen',
+  screenshot: 'Screenshot mode',
+  exitScreenshot: 'Exit screenshot mode (Esc)',
   spent: 'spent',
   studyBlocked: (need: string | number) => `It can’t run unless ${need}.`,
   needBreadth: (types: string | number) =>

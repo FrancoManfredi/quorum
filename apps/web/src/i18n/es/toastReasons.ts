@@ -7,6 +7,7 @@ export const reasons: Messages['toasts']['reasons'] = {
     'Las bases de datos no se enlazan entre sí. La topología decide cómo comparten filas. Enlaza servidores de aplicación a cada base de datos.',
   singlePrimaryHoldsOneDatabase:
     'Un primario único tiene una sola base de datos. Divide el grupo de datos, o elige Sharding o Multi-leader.',
+  aNameIsNeeded: 'Hace falta un nombre.',
   aCDNTTLIs1Minute5: 'Un TTL de CDN es 1 minuto, 5 minutos o 1 hora.',
   aChallengeIsOpenChallengesAreScored:
     'Hay un desafío abierto. Los desafíos puntúan, así que los agentes no pueden leerlos.',
@@ -202,6 +203,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   thatIsNotASave: 'Eso no es una partida guardada.',
   thatLinkWouldMakeALoop: 'Ese enlace crearía un bucle.',
   thatMaxLengthIsNotOnOffer: 'Esa longitud máxima no está disponible.',
+  thatNameIsTaken: 'Ese nombre ya está en uso.',
   thatRegionIsNotAMirror: 'Esa región no es un espejo.',
   thatRegionIsOpen: 'Esa región ya está abierta.',
   thatSaveCouldNotBeRead: 'No se pudo leer esa partida guardada.',

@@ -62,6 +62,7 @@ export const hud: Messages['hud'] = {
   tidyByRoleShiftT: 'Ranger par rôle (Maj+T)',
   fitTheBoardShiftF: 'Cadrer le plan (Maj+F)',
   fullscreenF: 'Plein écran (F)',
+  screenshotS: 'Mode capture (Maj+S)',
   undo: 'Annuler',
   changes: (p0) => `${p0} modifications`,
   stable: 'Stable',
@@ -91,6 +92,8 @@ export const hud: Messages['hud'] = {
   tidyByRole: 'Ranger par rôle',
   fitTheBoard: 'Cadrer le plan',
   fullscreen: 'Plein écran',
+  screenshot: 'Mode capture',
+  exitScreenshot: 'Quitter le mode capture (Échap)',
   spent: 'épuisé',
   studyBlocked: (need) => `Elle ne peut pas avancer : ${need}.`,
   needBreadth: (types) =>

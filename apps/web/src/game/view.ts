@@ -53,7 +53,7 @@ export const view = (model: Model, builder: HtmlBuilder<Message>): Document => {
         AppRoute.guards.Room(model.route) && model.panel === 'room' && !boardFilled(model)
           ? roomPanel(model, h)
           : h.empty,
-        toast(model.toast, model.panel !== 'none', h),
+        toast(model.toast, model.panel !== 'none' && !model.board.screenshot, h),
       ],
     ),
   }

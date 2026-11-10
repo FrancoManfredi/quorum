@@ -144,6 +144,7 @@ export const MORE_ACTIONS: Record<MoreItem, Message> = {
   tidy: Message.BoardTidied(),
   fit: Message.BoardFitted(),
   fullscreen: Message.FullscreenToggled(),
+  screenshot: Message.ScreenshotToggled(),
 }
 
 export const foldMoreMenu = (route: Dispatch) =>

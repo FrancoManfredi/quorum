@@ -1,5 +1,6 @@
 /** Reasons the Simulation and the game give in English, by id. A refusal shows them in the player's language. */
 export const reasons = {
+  aNameIsNeeded: 'A name is needed.',
   aCDNTTLIs1Minute5: 'A CDN TTL is 1 minute, 5 minutes, or 1 hour.',
   aChallengeIsOpenChallengesAreScored:
     'A Challenge is open. Challenges are scored, so agents cannot read them.',
@@ -187,6 +188,7 @@ export const reasons = {
   thatIsNotASave: 'That is not a save.',
   thatLinkWouldMakeALoop: 'That link would make a loop.',
   thatMaxLengthIsNotOnOffer: 'That max length is not on offer.',
+  thatNameIsTaken: 'That name is taken.',
   thatRegionIsNotAMirror: 'That region is not a Mirror.',
   thatRegionIsOpen: 'That region is open.',
   thatSaveCouldNotBeRead: 'That save could not be read.',

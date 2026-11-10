@@ -18,6 +18,7 @@ import {
   GraduationCap,
   Hourglass,
   Lock,
+  Pencil,
   Plus,
   Rabbit,
   Rocket,
@@ -51,6 +52,7 @@ import {
   PATCH_GRACE,
 } from '@quorum/simulation/catalog'
 import { POLICY_LEVEL } from '@quorum/simulation/catalog'
+import { MAX_NAME } from '@quorum/simulation/work'
 import { perkLevel } from '@quorum/simulation/founding'
 import { has, sreStaffed } from '@quorum/simulation/lookups'
 import { openRegions } from '@quorum/simulation/regions'
@@ -340,6 +342,59 @@ const iconButton = (
     icon(h, glyph, 'size-3.5'),
     h,
   )
+
+/** The one name field the Team panel opens, for a team or a Service. */
+const renameField = (
+  draft: string,
+  label: string,
+  placeholder: string,
+  h: HtmlBuilder<Message>,
+): Html => {
+  const t = copy(h)
+  return h.div(
+    [h.Class('flex min-w-0 flex-1 items-center gap-1')],
+    [
+      h.input([
+        h.Type('text'),
+        h.Value(draft),
+        h.Placeholder(placeholder),
+        h.Maxlength(MAX_NAME),
+        h.Autocomplete('off'),
+        h.Spellcheck(false),
+        h.Autofocus(true),
+        h.AriaLabel(label),
+        h.OnInput((name) => Message.TeamChanged({ message: TeamMessage.RenameChanged({ name }) })),
+        h.OnKeyDownPreventDefault((key) =>
+          key === 'Enter'
+            ? Option.some(Message.TeamChanged({ message: TeamMessage.RenameCommitted() }))
+            : key === 'Escape'
+              ? Option.some(Message.TeamChanged({ message: TeamMessage.RenameCancelled() }))
+              : Option.none(),
+        ),
+        h.Class(
+          cn(
+            WELL,
+            'h-7 min-w-0 flex-1 rounded-lg px-2 text-[calc(12px*var(--type-scale))] outline-none',
+          ),
+        ),
+      ]),
+      iconButton(
+        t.team.saveName,
+        Check,
+        Message.TeamChanged({ message: TeamMessage.RenameCommitted() }),
+        draft.trim() !== '',
+        h,
+      ),
+      iconButton(
+        t.team.cancel,
+        X,
+        Message.TeamChanged({ message: TeamMessage.RenameCancelled() }),
+        true,
+        h,
+      ),
+    ],
+  )
+}
 
 /** A circle drawn around an avatar: ramp-up for a new hire, the wait for an offer. */
 const halo = (share: number, className: string, h: HtmlBuilder<Message>): Html => {
@@ -755,6 +810,9 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
   const dropTarget =
     DragAndDrop.isDragging(model.board.team.drag) &&
     Option.exists(target, (entry) => entry.containerId === team.id)
+  const renaming = model.board.team.rename
+  const editTeam =
+    renaming !== null && renaming.target === 'team' && renaming.id === team.id ? renaming : null
   return h.section(
     [
       h.Key(team.id),
@@ -774,13 +832,34 @@ const pod = (model: Model, team: Team, index: number, h: HtmlBuilder<Message>): 
           h.div(
             [h.Class('flex min-w-0 flex-1 flex-col')],
             [
-              h.span(
+              h.div(
+                [h.Class('flex min-w-0 items-center gap-1')],
                 [
-                  h.Class(
-                    'truncate text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]',
-                  ),
+                  editTeam
+                    ? renameField(editTeam.draft, t.team.teamName, team.name, h)
+                    : h.span(
+                        [
+                          h.Class(
+                            'min-w-0 truncate text-[calc(15px*var(--type-scale))] font-semibold tracking-[-0.02em]',
+                          ),
+                        ],
+                        [teamName(t, team)],
+                      ),
+                  editTeam
+                    ? h.empty
+                    : iconButton(
+                        t.team.renameTeam,
+                        Pencil,
+                        Message.TeamChanged({
+                          message: TeamMessage.RenameStarted({
+                            target: 'team',
+                            id: team.id,
+                          }),
+                        }),
+                        true,
+                        h,
+                      ),
                 ],
-                [teamName(t, team)],
               ),
               h.span(
                 [h.Class('text-[calc(11.5px*var(--type-scale))] text-muted-foreground')],
@@ -1050,6 +1129,7 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
     features: draft.features,
   })
   const shared = game.services.filter((service) => sharesDatabase(game, service)).length
+  const renaming = model.board.team.rename
   return h.section(
     [h.Key('services'), h.Class(cn(PANEL, 'flex shrink-0 flex-col gap-2.5 px-4 pt-3.5 pb-3'))],
     [
@@ -1068,6 +1148,10 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
       ...game.services.map((service) => {
         const owner = ownerOf(game, service)
         const paged = game.incident?.service === service.id
+        const editService =
+          renaming !== null && renaming.target === 'service' && renaming.id === service.id
+            ? renaming
+            : null
         return h.div(
           [
             h.Class(
@@ -1082,19 +1166,37 @@ const servicesCard = (model: Model, h: HtmlBuilder<Message>): Html => {
             h.div(
               [h.Class('flex flex-wrap items-center gap-x-2 gap-y-1')],
               [
-                h.span(
-                  [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
-                  [serviceName(t, service)],
-                ),
-                badge(
-                  {
-                    variant: 'outline',
-                    className: 'text-[calc(10.5px*var(--type-scale))]',
-                  },
-                  [t.team.ownedBy(teamName(t, owner))],
-                  h,
-                ),
-                paged
+                editService
+                  ? renameField(editService.draft, t.team.serviceNameLabel, service.name, h)
+                  : h.span(
+                      [h.Class('text-[calc(12.5px*var(--type-scale))] font-medium')],
+                      [serviceName(t, service)],
+                    ),
+                editService
+                  ? h.empty
+                  : iconButton(
+                      t.team.renameService,
+                      Pencil,
+                      Message.TeamChanged({
+                        message: TeamMessage.RenameStarted({
+                          target: 'service',
+                          id: service.id,
+                        }),
+                      }),
+                      true,
+                      h,
+                    ),
+                editService
+                  ? h.empty
+                  : badge(
+                      {
+                        variant: 'outline',
+                        className: 'text-[calc(10.5px*var(--type-scale))]',
+                      },
+                      [t.team.ownedBy(teamName(t, owner))],
+                      h,
+                    ),
+                paged && !editService
                   ? badge({ variant: 'outline', className: 'text-danger' }, [t.team.paged], h)
                   : h.empty,
               ],

@@ -17,6 +17,9 @@ export const team: Messages['team'] = {
   inText: (p0) => `dans ${p0}`,
   dHMin: 'DH/min',
   removeTeam: 'Supprimer l’équipe',
+  renameTeam: 'Renommer l’équipe',
+  teamName: 'Nom de l’équipe',
+  saveName: 'Enregistrer le nom',
   untilTomorrow: (p0) => `${p0} jusqu’à demain`,
   moveFrom: (p0, p1) => `Déplacer ${p0} de ${p1}`,
   runsTheWarehouseReportAndAI:
@@ -104,6 +107,8 @@ export const team: Messages['team'] = {
   loadBalancers: 'Répartiteurs de charge',
   labelColon: (label) => `${label} :`,
   services: 'Services',
+  renameService: 'Renommer le Service',
+  serviceNameLabel: 'Nom du Service',
   codebases: (n) => `${n} base${isOne('fr', n) ? '' : 's'} de code`,
   codebasesOneDatabase: (n) =>
     `${n} base${isOne('fr', n) ? '' : 's'} de code · une seule base de données`,

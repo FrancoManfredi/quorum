@@ -8,6 +8,7 @@ export const clockCases = {
   SpeedChosen: { speed: Schema.Finite },
   PauseToggled: {},
   FullscreenToggled: {},
+  ScreenshotToggled: {},
   BoardFitted: {},
   BoardTidied: {},
 }

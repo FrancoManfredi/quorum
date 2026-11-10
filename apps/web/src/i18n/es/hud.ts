@@ -64,6 +64,7 @@ export const hud: Messages['hud'] = {
   tidyByRoleShiftT: 'Ordenar por rol (Mayús+T)',
   fitTheBoardShiftF: 'Ajustar el tablero (Mayús+F)',
   fullscreenF: 'Pantalla completa (F)',
+  screenshotS: 'Modo captura (Mayús+S)',
   undo: 'Deshacer',
   changes: (p0: string | number | null) => `${p0} cambios`,
   stable: 'Estable',
@@ -93,6 +94,8 @@ export const hud: Messages['hud'] = {
   tidyByRole: 'Ordenar por rol',
   fitTheBoard: 'Ajustar el tablero',
   fullscreen: 'Pantalla completa',
+  screenshot: 'Modo captura',
+  exitScreenshot: 'Salir del modo captura (Esc)',
   spent: 'Agotado',
   studyBlocked: (need: string | number) => `No puede avanzar si no se cumple que ${need}.`,
   needBreadth: (types: string | number) =>

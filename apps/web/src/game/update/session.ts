@@ -431,7 +431,7 @@ export const leaveBoard = (model: Model): UpdateResult => {
         route: AppRoute.Title(),
         panel: 'none',
         saves: savedIndex(model.saves, model.board.game, Date.now()),
-        board: { ...model.board, flow: { _tag: 'Idle' } },
+        board: { ...model.board, flow: { _tag: 'Idle' }, screenshot: false },
       },
       commands: saveCommands(model),
     }
@@ -443,6 +443,7 @@ export const leaveBoard = (model: Model): UpdateResult => {
     panel: 'none',
     board: {
       ...companyBoard(model),
+      screenshot: false,
       session: sessionStep(model.board.session, { _tag: 'Closed' }),
     },
     company: null,

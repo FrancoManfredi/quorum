@@ -1,6 +1,7 @@
 import type { Messages } from '../messages.ts'
 
 export const reasons: Messages['toasts']['reasons'] = {
+  aNameIsNeeded: 'Un nom est nécessaire.',
   aCDNTTLIs1Minute5: 'Un CDN TTL dure 1 minute, 5 minutes ou 1 heure.',
   aChallengeIsOpenChallengesAreScored:
     'Un Challenge est ouvert. Les défis sont notés, les agents ne peuvent donc pas les lire.',
@@ -209,6 +210,7 @@ export const reasons: Messages['toasts']['reasons'] = {
   thatIsNotASave: 'Ce n’est pas une sauvegarde.',
   thatLinkWouldMakeALoop: 'Ce lien ferait une boucle.',
   thatMaxLengthIsNotOnOffer: 'Cette longueur max. n’est pas proposée.',
+  thatNameIsTaken: 'Ce nom est déjà pris.',
   thatRegionIsNotAMirror: 'Cette région n’est pas un miroir.',
   thatRegionIsOpen: 'Cette région est ouverte.',
   thatSaveCouldNotBeRead: 'Cette sauvegarde n’a pas pu être lue.',

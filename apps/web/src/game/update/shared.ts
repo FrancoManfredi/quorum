@@ -93,6 +93,7 @@ export const freshBoard = (game: Game): Board => ({
   redo: [],
   bottleneck: null,
   bottleneckAt: -1,
+  screenshot: false,
   whatIfs: null,
   nodeHistory: {},
   nodeSample: null,

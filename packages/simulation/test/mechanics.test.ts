@@ -34,6 +34,8 @@ import {
   rushItem,
   serviceOfItem,
   train,
+  renameService,
+  renameTeam,
 } from '../src/work.ts'
 import {
   badDeployChance,
@@ -365,5 +367,30 @@ describe('Rush quality', () => {
     const cancelled = Result.getOrThrow(cancelItem(rushed, item.id))
     const advanced = step(cancelled, 0.1).game
     expect(serviceOfItem(advanced, item).debt).toBe(before)
+  })
+})
+
+describe('Renaming teams and Services', () => {
+  test('a team name is trimmed, collapsed, and checked against the other teams', () => {
+    let game = founded({ 'head-start': 1 })
+    game = Result.getOrThrow(createTeam(game))
+    const second = game.teams[1]!
+    game = Result.getOrThrow(renameTeam(game, second.id, '  Platform   Ops  '))
+    expect(game.teams[1]?.name).toBe('Platform Ops')
+    expect(Result.isFailure(renameTeam(game, second.id, '   '))).toBe(true)
+    expect(Result.isFailure(renameTeam(game, second.id, 'Core'))).toBe(true)
+  })
+
+  test('a Service name is trimmed and checked against the other Services', () => {
+    let game = preseedGame(1)
+    const service = game.services[0]!
+    game = Result.getOrThrow(renameService(game, service.id, ' Payments '))
+    expect(game.services[0]?.name).toBe('Payments')
+    game = {
+      ...game,
+      services: [...game.services, { ...service, id: 'service-2', name: 'Checkout' }],
+    }
+    expect(Result.isFailure(renameService(game, service.id, 'Checkout'))).toBe(true)
+    expect(Result.isFailure(renameService(game, service.id, '  '))).toBe(true)
   })
 })

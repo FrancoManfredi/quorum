@@ -62,6 +62,12 @@ export const keysHandlers = (
 ): MessageCases<UpdateResult, KeysTag> => ({
   KeyPressed: ({ key }) => {
     if (!onBoard(model.route)) return key === 'Escape' ? { model } : clockIn(model)
+    // A screenshot holds the board still: Escape or the same keys leave it, and no other key
+    // opens a panel over the image.
+    if (model.board.screenshot)
+      return key === 'Escape' || key === 'Shift+s'
+        ? route(model, Message.ScreenshotToggled())
+        : { model }
     if (model.panel === 'inbox') {
       const mail = mailKey(model, key, route)
       if (mail) return mail
@@ -181,6 +187,8 @@ export const keysHandlers = (
         return route(model, Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }))
       case 'Shift+t':
         return route(model, Message.BoardTidied())
+      case 'Shift+s':
+        return route(model, Message.ScreenshotToggled())
       case 'Shift+f':
         return route(model, Message.BoardFitted())
       case 'l': {

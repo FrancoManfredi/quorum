@@ -5,6 +5,7 @@ import {
   hud,
   phoneOffer,
   regionTabs,
+  screenshotExit,
   toolbar,
   vitalsPanel,
 } from '@/components/lab/hud.ts'
@@ -71,6 +72,12 @@ const bottomNotices = (model: Model, h: HtmlBuilder<Message>): Html =>
 
 export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
   const ledger = ledgerOf(model)
+  // A screenshot is the board and nothing else: no HUD, dock, notices, or panels.
+  if (model.board.screenshot)
+    return h.main(
+      [h.Class('relative h-full overflow-hidden bg-canvas')],
+      [nodeList(model, ledger, h), boardHost(h), screenshotExit(h)],
+    )
   const hudWidth: 248 | 276 = boardChallenge(model.board) || boardSandbox(model.board) ? 248 : 276
   return h.main(
     [h.Class('relative h-full overflow-hidden bg-canvas')],
