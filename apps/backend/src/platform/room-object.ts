@@ -20,12 +20,14 @@ import {
   kick,
   leave,
   openRoom,
+  restoreRoom,
   setSpeed,
   snapshotOf,
   startVote,
   ALARM_MS,
   type RoomState,
 } from '../contexts/room/room.ts'
+import { SIM_VERSION } from '@quorum/simulation/version'
 
 /* ==========================================================================
    The Room Durable Object: storage, the alarm that steps the Company, and the
@@ -58,7 +60,14 @@ class RoomObjectBase extends DurableObject<RoomEnv> implements RoomStub {
     super(ctx, env)
     // Storage is async and the constructor is not, so the runtime waits here.
     ctx.blockConcurrencyWhile(async () => {
-      this.state = (await ctx.storage.get<RoomState>('room')) ?? null
+      const stored = await ctx.storage.get<RoomState>('room')
+      if (stored === null || stored === undefined) return
+      const restored = restoreRoom(stored, SIM_VERSION)
+      if (restored === null) {
+        await ctx.storage.deleteAll()
+        return
+      }
+      this.state = restored
     })
   }
 

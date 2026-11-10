@@ -1,4 +1,4 @@
-import { Result } from 'effect'
+import { Option, Result, Schema } from 'effect'
 import { Refusal } from '@quorum/simulation/action-kit'
 import * as Actions from '@quorum/simulation/actions'
 import {
@@ -12,7 +12,7 @@ import {
   type VoteKind,
 } from '@quorum/simulation/room'
 import { step } from '@quorum/simulation/step'
-import type { Game, Sample } from '@quorum/simulation/state'
+import { Game, type Sample } from '@quorum/simulation/state'
 
 /* ==========================================================================
    A Room's state and the rules that move it. Nothing here knows Cloudflare:
@@ -109,6 +109,19 @@ export const openRoom = (input: {
   lastStepAt: input.wall,
   owe: 0,
 })
+
+const decodeGame = Schema.decodeUnknownOption(Game)
+
+/**
+ * A stored Room is usable only when this build wrote it and its Game still
+ * decodes. A deploy can leave an older Room's alarm running; without this
+ * check its Game reaches the Simulation without the fields this build added.
+ */
+export const restoreRoom = (state: RoomState, version: string): RoomState | null => {
+  if (state.simVersion !== version) return null
+  const game = decodeGame(state.game)
+  return Option.isSome(game) ? { ...state, game: game.value } : null
+}
 
 /** Whether an empty Room has outlived the Company it holds. */
 export const expired = (state: RoomState, now: number): boolean =>

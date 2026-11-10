@@ -13,9 +13,11 @@ import {
   leave,
   MAX_CATCH_UP,
   openRoom,
+  restoreRoom,
   startVote,
   type RoomState,
 } from './room.ts'
+import type { Game } from '@quorum/simulation/state'
 
 const game = newGame()
 const node = game.nodes[0]!
@@ -38,6 +40,20 @@ const withSeats = (): Readonly<{ state: RoomState; owner: string; guest: string 
   if (Result.isFailure(guest)) throw new Error('guest did not join')
   return { state: guest.success.state, owner: owner.success.seat.id, guest: guest.success.seat.id }
 }
+
+describe('restore', () => {
+  test('a Room from another build is dropped', () => {
+    expect(restoreRoom(open(), 'another-build')).toBeNull()
+  })
+
+  test('a Game missing a field added since the Room opened gets its default', () => {
+    const room = open()
+    const old = { ...room.game } as unknown as Record<string, unknown>
+    delete old['training']
+    const restored = restoreRoom({ ...room, game: old as unknown as Game }, 'test')
+    expect(restored?.game.training).toEqual([])
+  })
+})
 
 describe('seats', () => {
   test('the token claims the owner seat', () => {
