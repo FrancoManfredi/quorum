@@ -74,8 +74,8 @@ export class NodeView {
    * whole render group when a Graphics in it is redrawn or a Text gets new words, so
    * these sit in groups of their own: a new figure rebuilds one card's rows, not every card.
    */
-  private readonly live = new Container({ isRenderGroup: true })
-  private readonly chipLayer = new Container({ isRenderGroup: true })
+  private readonly live = new Container()
+  private readonly chipLayer = new Container()
   private readonly foot = label(12, SANS, '600')
   private readonly footMark = glyph(14)
   /** Whether the card has a footer button, so the level of detail shows its icon only then. */

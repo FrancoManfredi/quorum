@@ -18,7 +18,7 @@ import {
   CHEVRON_SCALE,
   PLACE_LIFT,
   type Mouth,
-  mouthsOf,
+  linkKey,
   portalsOf,
 } from './belt-view.ts'
 import { particleColor } from './layers.ts'
@@ -102,7 +102,7 @@ export const animate = (c: BoardController, seconds: number): void => {
     if (age >= GLOW_S) c.fresh.delete(key)
     else c.fresh.set(key, age + seconds)
   const f: Frame = { c, state, colors, seconds, still, detailed, view, byId }
-  const mouths = drawBelts(f)
+  const { mouths, moved } = drawBelts(f)
   c.packets.end()
   c.notes.end()
   c.places.end()
@@ -111,14 +111,18 @@ export const animate = (c: BoardController, seconds: number): void => {
   c.drawReplication(state, colors)
 
   drawPortals(c, mouths, colors)
-  drawSplitters(f)
+  drawSplitters(f, moved)
   drawOverlay(f)
 }
 
 /** Draws every belt on screen and collects the tunnel mouths it leaves. */
-const drawBelts = (f: Frame): Array<Mouth> => {
+const aboveGround = (): boolean => false
+
+const drawBelts = (f: Frame): Readonly<{ mouths: Array<Mouth>; moved: boolean }> => {
   const { c, state, colors, seconds, still, detailed, view, byId } = f
-  const rates = new Map(state.ledger.links.map((link) => [`${link.from}>${link.to}`, link]))
+  const rates = c.ratesFor(state.ledger.links)
+  const zoneHue = { a: colors.groups.edge, b: colors.groups.ops, c: colors.groups.data }
+  let moved = false
 
   // Chevrons and packets draw only for belts on screen.
   c.chevrons.begin()
@@ -142,7 +146,7 @@ const drawBelts = (f: Frame): Array<Mouth> => {
       ? `${lit.from}>${lit.to}`
       : null
   for (const link of state.game.links) {
-    const key = `${link.from}>${link.to}`
+    const key = linkKey(link)
     const belt = c.belts.get(key)
     const from = byId.get(link.from)
     const to = byId.get(link.to)
@@ -156,7 +160,11 @@ const drawBelts = (f: Frame): Array<Mouth> => {
     // A lit belt rises above the channel it shares with the others, so nothing covers it.
     if (litKey === key) c.bodies.setChildIndex(belt.body, c.bodies.children.length - 1)
     const age = c.fresh.get(key)
-    const wire = c.wireOf(from, to)
+    const wire = c.wireOf(from, to, key)
+    if (belt.wire !== wire) {
+      belt.wire = wire
+      moved = true
+    }
     // A new link draws out of its port before anything flows along it.
     const drawn = age === undefined ? 1 : easeOut(Math.min(1, age / DRAW_IN_S))
     const path = drawn < 1 ? partOf(wire.path, drawn) : wire.path
@@ -199,14 +207,14 @@ const drawBelts = (f: Frame): Array<Mouth> => {
     // Once zones are researched a link inside one zone takes that zone's tint.
     const zones = has(state.game, 'multi-az') && zoned(from) && zoned(to)
     const crossing = zones && from.zone !== to.zone
-    const zoneHue = { a: colors.groups.edge, b: colors.groups.ops, c: colors.groups.data }
     const body =
       zones && !crossing && !hovered
         ? mix(zoneHue[from.zone], colors.canvas, busy ? 0.75 : 0.85)
         : mix(packet, colors.canvas, hovered ? 0.55 : busy ? 0.8 : 0.92)
     const width = hovered ? BELT + 1 : busy ? BELT : 3
     belt.draw(pieces, rail, body, width, zonal ? colors.warn : null)
-    if (drawn >= 1) mouthsOf(pieces, width, off || quiet, mouths)
+    if (drawn >= 1)
+      for (const mouth of belt.mouthsFor(pieces, width, off || quiet)) mouths.push(mouth)
     // A lit belt marks both of its ports, so the lane shows which cards it joins.
     if (hovered && drawn >= 1) {
       for (const port of [outPort(from), inPort(to)])
@@ -262,8 +270,11 @@ const drawBelts = (f: Frame): Array<Mouth> => {
     const shape = packetShapeOf(flow.kind)
     const alpha = tap ? 0.6 : 0.95
     // Nothing shows on the belt while it runs through a tunnel.
-    const underground = (t: number): boolean =>
-      wire.tunnels.some(([start, end]) => t * length > start && t * length < end)
+    const underground =
+      wire.tunnels.length === 0
+        ? aboveGround
+        : (t: number): boolean =>
+            wire.tunnels.some(([start, end]) => t * length > start && t * length < end)
     if (marks.label === null) {
       // Items ride on the distance this belt has travelled, each in its kind's shape.
       const along = 1 / Math.max(1, length)
@@ -289,7 +300,7 @@ const drawBelts = (f: Frame): Array<Mouth> => {
     }
   }
 
-  return mouths
+  return { mouths, moved }
 }
 
 /** Redraws the tunnel portals when a mouth or the colour changed. */
@@ -319,14 +330,19 @@ const drawPortals = (c: BoardController, mouths: Array<Mouth>, colors: Palette):
 }
 
 /** A port that feeds several belts has a splitter over the point where they part. */
-const drawSplitters = (f: Frame): void => {
+const drawSplitters = (f: Frame, moved: boolean): void => {
   const { c, state, colors, byId } = f
+  // The fans follow the wires: with none moved and no belt drawing in, they stand.
+  if (!moved && state.game.links === c.splitLinks && c.fresh.size === 0 && c.splitFresh === 0)
+    return
+  c.splitLinks = state.game.links
+  c.splitFresh = c.fresh.size
   // A port that feeds several belts has a splitter over the point where they part.
   const fans = new Map<string, { x: number; top: number; bottom: number; belts: number }>()
   for (const link of state.game.links) {
     const from = byId.get(link.from)
     const to = byId.get(link.to)
-    if (!from || !to || c.fresh.has(`${link.from}>${link.to}`)) continue
+    if (!from || !to || c.fresh.has(linkKey(link))) continue
     const port = outPort(from)
     const fan = fans.get(link.from) ?? {
       x: port.x,
@@ -336,7 +352,7 @@ const drawSplitters = (f: Frame): void => {
     }
     fan.belts += 1
     // The fan is the stretch out of the port before the belt runs straight up or down.
-    const path = c.wireOf(from, to).path
+    const path = c.wireOf(from, to, linkKey(link)).path
     for (let index = 1; index < path.length; index += 1) {
       const point = path[index] as Pt
       const before = path[index - 1] as Pt

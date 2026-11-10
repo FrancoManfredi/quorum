@@ -10,15 +10,32 @@ import {
   type Route,
 } from './geometry.ts'
 
-const arcs = new WeakMap<Route, { along: Array<number>; total: number }>()
+/** A path's lengths and headings, measured once: `along[i]` is the length up to point i,
+ *  and `ux[i]`, `uy[i]` the unit heading of the segment that ends there. */
+type Arc = Readonly<{
+  along: ReadonlyArray<number>
+  ux: ReadonlyArray<number>
+  uy: ReadonlyArray<number>
+  total: number
+}>
 
-const arcOf = (path: Route): { along: Array<number>; total: number } => {
+const arcs = new WeakMap<Route, Arc>()
+
+export const arcOf = (path: Route): Arc => {
   const cached = arcs.get(path)
   if (cached) return cached
   const along = [0]
-  for (let index = 1; index < path.length; index += 1)
-    along.push((along[index - 1] as number) + gap(path[index - 1] as Pt, path[index] as Pt))
-  const arc = { along, total: along.at(-1) ?? 0 }
+  const ux = [0]
+  const uy = [0]
+  for (let index = 1; index < path.length; index += 1) {
+    const a = path[index - 1] as Pt
+    const b = path[index] as Pt
+    const span = gap(a, b)
+    along.push((along[index - 1] as number) + span)
+    ux.push(span > 0 ? (b.x - a.x) / span : 0)
+    uy.push(span > 0 ? (b.y - a.y) / span : 0)
+  }
+  const arc = { along, ux, uy, total: along.at(-1) ?? 0 }
   arcs.set(path, arc)
   return arc
 }

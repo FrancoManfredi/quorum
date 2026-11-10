@@ -1,3 +1,4 @@
+import type { Ledger } from '@quorum/simulation/ledger'
 import { HOLD_S, inFooter } from './card-parts.ts'
 import { Application, Container, Graphics, Point, type RendererPreference } from 'pixi.js'
 import { COMPONENTS, type ComponentId } from '@quorum/simulation/catalog'
@@ -14,6 +15,7 @@ import {
   layoutOf,
   outPort,
   route,
+  type Placed,
   type Pt,
   type Route,
 } from './geometry.ts'
@@ -33,7 +35,7 @@ import { BADGE_X, BADGE_Y, BADGE_R, TITLE_X, medallion, headerBand } from './car
 import { pointOn, distanceTo, laneUnder, routeOf, SLACK, bent, dashed } from './paths.ts'
 import { SANS, label } from './text.ts'
 import { MIN_FIT_SCALE, MIN_FIT_SCALE_PHONE, NodeView } from './node-view.ts'
-import { BeltView, type Mouth } from './belt-view.ts'
+import { BeltView, linkKey, type Mouth } from './belt-view.ts'
 import { ChevronLayer, PacketLayer, NoteLayer } from './layers.ts'
 
 type Mutable<T> = { -readonly [K in keyof T]: T[K] }
@@ -85,6 +87,8 @@ export class BoardController {
   beltOrder = ''
   readonly splitters = new Graphics()
   splittersKey = ''
+  splitLinks: Game['links'] | null = null
+  splitFresh = 0
   /** The tunnel portals, redrawn only when a mouth moves or the focus changes. */
   readonly portals = new Graphics()
   /** The mouths the portals were last drawn for, and the colour they were drawn in. */
@@ -144,6 +148,22 @@ export class BoardController {
   /** Routed links, the Nodes where they were routed, and the layout key asked for last. */
   routed = new Map<string, Wire>()
   routedNodes = new Map<string, Pt>()
+  private readonly wireMemo = new Map<
+    string,
+    {
+      from: GameNode
+      to: GameNode
+      fx: number
+      fy: number
+      tx: number
+      ty: number
+      table: Map<string, Wire>
+      held: Map<string, Pt> | null
+      wire: Wire
+    }
+  >()
+  private ratesFrom: Ledger['links'] | null = null
+  private readonly rates = new Map<string, Ledger['links'][number]>()
   routedFor = ''
   /** The Game and drag the routes were last checked against. */
   routedGame: Game | null = null
@@ -632,17 +652,55 @@ export class BoardController {
    * quick route until its routes arrive. A held card on another card has its
    * links drawn to its landing spot instead (see heldLanding).
    */
-  wireOf(drawnFrom: GameNode, drawnTo: GameNode): Wire {
+  wireOf(drawnFrom: GameNode, drawnTo: GameNode, key = `${drawnFrom.id}>${drawnTo.id}`): Wire {
+    const table = this.routes()
+    const held = this.heldLanding
+    // A card's view is one object whose x and y change, so the memo compares them. The wire
+    // stays the same object while nothing moved, which keeps its caches and its belt's body.
+    let memo = this.wireMemo.get(key)
+    if (
+      memo &&
+      memo.from === drawnFrom &&
+      memo.to === drawnTo &&
+      memo.fx === drawnFrom.x &&
+      memo.fy === drawnFrom.y &&
+      memo.tx === drawnTo.x &&
+      memo.ty === drawnTo.y &&
+      memo.table === table &&
+      memo.held === held
+    )
+      return memo.wire
     // A GameNode carries a hundred fields. Spreading one per link per frame costs more
     // than everything else the board draws, so a held card makes only the three fields
     // that a route reads.
-    const fromAt = this.heldLanding?.get(drawnFrom.id)
-    const toAt = this.heldLanding?.get(drawnTo.id)
+    const fromAt = held?.get(drawnFrom.id)
+    const toAt = held?.get(drawnTo.id)
     const from = fromAt ? { type: drawnFrom.type, x: fromAt.x, y: fromAt.y } : drawnFrom
     const to = toAt ? { type: drawnTo.type, x: toAt.x, y: toAt.y } : drawnTo
-    const wire = this.routes().get(`${drawnFrom.id}>${drawnTo.id}`)
-    const a = this.routedNodes.get(drawnFrom.id)
-    const b = this.routedNodes.get(drawnTo.id)
+    const wire = this.freshWire(table.get(key), drawnFrom.id, drawnTo.id, from, to)
+    memo ??= { from: drawnFrom, to: drawnTo, fx: 0, fy: 0, tx: 0, ty: 0, table, held, wire }
+    memo.from = drawnFrom
+    memo.to = drawnTo
+    memo.fx = drawnFrom.x
+    memo.fy = drawnFrom.y
+    memo.tx = drawnTo.x
+    memo.ty = drawnTo.y
+    memo.table = table
+    memo.held = held
+    memo.wire = wire
+    this.wireMemo.set(key, memo)
+    return wire
+  }
+
+  private freshWire(
+    wire: Wire | undefined,
+    fromId: string,
+    toId: string,
+    from: Placed,
+    to: Placed,
+  ): Wire {
+    const a = this.routedNodes.get(fromId)
+    const b = this.routedNodes.get(toId)
     if (wire && a && b) {
       const da = { x: from.x - a.x, y: from.y - a.y }
       const db = { x: to.x - b.x, y: to.y - b.y }
@@ -655,6 +713,16 @@ export class BoardController {
     }
     const path = routeOf(from, to)
     return { path, pieces: [path], tunnels: [] }
+  }
+
+  /** The Ledger's rate per link key, rebuilt only when the Ledger hands over new links. */
+  ratesFor(links: Ledger['links']): ReadonlyMap<string, Ledger['links'][number]> {
+    if (links !== this.ratesFrom) {
+      this.ratesFrom = links
+      this.rates.clear()
+      for (const link of links) this.rates.set(linkKey(link), link)
+    }
+    return this.rates
   }
 
   landingOf(dragged = this.gesture?.kind === 'node' ? this.dragged : null): Pt | null {

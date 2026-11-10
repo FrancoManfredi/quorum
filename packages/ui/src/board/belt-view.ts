@@ -1,5 +1,6 @@
 import { Graphics } from 'pixi.js'
 import { type Box, type Pt, type Route } from './geometry.ts'
+import type { Wire } from './routing.ts'
 import { traceOf } from './paths.ts'
 
 /**
@@ -16,6 +17,18 @@ export const CHEVRON_SCALE = 0.5
 /** How far under a belt its region's round-trip plate sits. */
 export const PLACE_LIFT = 24
 
+const keys = new WeakMap<object, string>()
+
+/** A link's `from>to` key, built once per link object instead of once per frame. */
+export const linkKey = (link: Readonly<{ from: string; to: string }>): string => {
+  let key = keys.get(link)
+  if (key === undefined) {
+    key = `${link.from}>${link.to}`
+    keys.set(link, key)
+  }
+  return key
+}
+
 export class BeltView {
   readonly body = new Graphics()
   readonly mouths = new Graphics()
@@ -24,8 +37,17 @@ export class BeltView {
    * own total, so a change in its flow rate never moves items already on it.
    */
   travel = 0
+  /** The wire this belt was last drawn along; a new object means the belt moved or bent. */
+  wire: Wire | null = null
   private bodyFor: unknown = null
-  private bodyKey = ''
+  private bodyRail = -1
+  private bodyFill = -1
+  private bodyWidth = -1
+  private bodyZone: number | null | undefined = undefined
+  private mouthPieces: unknown = null
+  private mouthWidth = -1
+  private mouthOff = false
+  private mouthList: ReadonlyArray<Mouth> = []
   /** The box round the belt's pieces, for culling its chevrons and packets off screen. */
   private boxFor: unknown = null
   private box = { x0: 0, y0: 0, x1: 0, y1: 0 }
@@ -39,10 +61,10 @@ export class BeltView {
 
   /** Shows or hides the belt and dims it. */
   show(visible: boolean, alpha: number): void {
-    for (const part of [this.body, this.mouths]) {
-      part.visible = visible
-      part.alpha = alpha
-    }
+    this.body.visible = visible
+    this.body.alpha = alpha
+    this.mouths.visible = visible
+    this.mouths.alpha = alpha
   }
 
   destroy(): void {
@@ -70,6 +92,19 @@ export class BeltView {
     )
   }
 
+  /** Where the belt's pieces dive and surface, found again only when they or its look change. */
+  mouthsFor(pieces: ReadonlyArray<Route>, width: number, off: boolean): ReadonlyArray<Mouth> {
+    if (pieces !== this.mouthPieces || width !== this.mouthWidth || off !== this.mouthOff) {
+      const list: Array<Mouth> = []
+      mouthsOf(pieces, width, off, list)
+      this.mouthPieces = pieces
+      this.mouthWidth = width
+      this.mouthOff = off
+      this.mouthList = list
+    }
+    return this.mouthList
+  }
+
   /** The body between its rails. The board draws the tunnel portals. */
   draw(
     pieces: ReadonlyArray<Route>,
@@ -78,10 +113,19 @@ export class BeltView {
     width: number,
     zone: number | null,
   ): void {
-    const key = `${rail}:${body}:${width}:${zone}`
-    if (pieces === this.bodyFor && key === this.bodyKey) return
+    if (
+      pieces === this.bodyFor &&
+      rail === this.bodyRail &&
+      body === this.bodyFill &&
+      width === this.bodyWidth &&
+      zone === this.bodyZone
+    )
+      return
     this.bodyFor = pieces
-    this.bodyKey = key
+    this.bodyRail = rail
+    this.bodyFill = body
+    this.bodyWidth = width
+    this.bodyZone = zone
     this.body.clear()
     for (const piece of pieces) traceOf(this.body, piece)
     this.body.stroke({ color: rail, width: width + 2, join: 'round', alpha: 0.9 })

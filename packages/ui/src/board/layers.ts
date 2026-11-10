@@ -8,9 +8,10 @@ import {
   Texture,
   type Renderer,
 } from 'pixi.js'
-import { type Box, type Route } from './geometry.ts'
+import { type Box, type Pt, type Route } from './geometry.ts'
 import { type PacketShape } from '../game/packets.ts'
-import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_DEPTH, packetAt, walk } from './marks.ts'
+import { CHEVRON_GAP, CHEVRON_HALF, CHEVRON_DEPTH, packetAt } from './marks.ts'
+import { arcOf } from './paths.ts'
 import { MONO } from './text.ts'
 
 /**
@@ -60,29 +61,49 @@ export class ChevronLayer {
     const color = particleColor(tint, alpha)
     const x1 = view.x + view.w
     const y1 = view.y + view.h
-    let ux = Number.NaN
-    let uy = Number.NaN
-    let rotation = 0
-    for (const piece of pieces)
-      walk(piece, CHEVRON_GAP, offset, (point, dx, dy) => {
-        if (point.x < view.x || point.x > x1 || point.y < view.y || point.y > y1) return
-        if (dx !== ux || dy !== uy) {
-          ux = dx
-          uy = dy
-          rotation = Math.atan2(dy, dx)
+    const first = ((offset % CHEVRON_GAP) + CHEVRON_GAP) % CHEVRON_GAP
+    for (const piece of pieces) {
+      const arc = arcOf(piece)
+      let next = first
+      for (let index = 1; index < piece.length; index += 1) {
+        const start = arc.along[index - 1] as number
+        const end = arc.along[index] as number
+        if (end === start) continue
+        const a = piece[index - 1] as Pt
+        const b = piece[index] as Pt
+        const hidden =
+          Math.max(a.x, b.x) < view.x ||
+          Math.min(a.x, b.x) > x1 ||
+          Math.max(a.y, b.y) < view.y ||
+          Math.min(a.y, b.y) > y1
+        // A segment off screen only moves the next chevron past its end.
+        if (hidden) {
+          if (next <= end) next += (Math.floor((end - next) / CHEVRON_GAP) + 1) * CHEVRON_GAP
+          continue
         }
-        let particle = pool[this.used]
-        if (!particle) {
-          particle = new Particle({ texture, anchorX: this.anchor.x, anchorY: this.anchor.y })
-          pool.push(particle)
-          this.grown = true
+        const dx = arc.ux[index] as number
+        const dy = arc.uy[index] as number
+        const rotation = Math.atan2(dy, dx)
+        while (next <= end) {
+          const k = next - start
+          const x = a.x + dx * k
+          const y = a.y + dy * k
+          next += CHEVRON_GAP
+          if (x < view.x || x > x1 || y < view.y || y > y1) continue
+          let particle = pool[this.used]
+          if (!particle) {
+            particle = new Particle({ texture, anchorX: this.anchor.x, anchorY: this.anchor.y })
+            pool.push(particle)
+            this.grown = true
+          }
+          particle.x = x
+          particle.y = y
+          particle.rotation = rotation
+          particle.color = color
+          this.used += 1
         }
-        particle.x = point.x
-        particle.y = point.y
-        particle.rotation = rotation
-        particle.color = color
-        this.used += 1
-      })
+      }
+    }
   }
 
   end(): void {

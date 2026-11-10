@@ -1,5 +1,5 @@
 import { Graphics } from 'pixi.js'
-import { gap, type Pt, type Route } from './geometry.ts'
+import { gap, type Route } from './geometry.ts'
 import { type PacketShape } from '../game/packets.ts'
 import { lengthOf } from './paths.ts'
 
@@ -91,30 +91,4 @@ export const pointAndDirection = (
   const before = path[path.length - 2] ?? last
   const span = gap(before, last) || 1
   return { x: last.x, y: last.y, ux: (last.x - before.x) / span, uy: (last.y - before.y) / span }
-}
-
-/** Calls `visit` every `step` pixels along a path, starting `offset` in. */
-export const walk = (
-  path: Route,
-  step: number,
-  offset: number,
-  visit: (point: Pt, ux: number, uy: number) => void,
-): void => {
-  let next = ((offset % step) + step) % step
-  let travelled = 0
-  for (let index = 1; index < path.length; index += 1) {
-    const a = path[index - 1]
-    const b = path[index]
-    if (!a || !b) continue
-    const span = gap(a, b)
-    if (span === 0) continue
-    const ux = (b.x - a.x) / span
-    const uy = (b.y - a.y) / span
-    while (next <= travelled + span) {
-      const k = next - travelled
-      visit({ x: a.x + ux * k, y: a.y + uy * k }, ux, uy)
-      next += step
-    }
-    travelled += span
-  }
 }
