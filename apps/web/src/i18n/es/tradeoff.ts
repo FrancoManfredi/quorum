@@ -1,0 +1,31 @@
+import type { Messages } from '../messages.ts'
+
+export const tradeoff: Messages['tradeoff'] = {
+  sixAxesNowAndWithThis: 'Seis ejes: ahora y con esta opción',
+  cancelEscape: 'Cancelar (Esc)',
+  migrationDHAcrossAllAppServers: (p0: string | number | null) =>
+    `Migración: ${p0} DH repartidos entre todos los Servidores de aplicaciones. El trabajo de funcionalidades se ralentiza y el despliegue puede sacar errores a la luz. Gestiona el trabajo y mueve el tráfico en Equipo después de empezar.`,
+  confirmEnter: 'Confirmar (Enter)',
+  startMigration: 'Iniciar migración',
+  confirm: 'Confirmar',
+  cancel: 'Cancelar',
+  runtime: 'Runtime',
+  framework: 'Framework',
+  instance: 'Instancia',
+  throughput: 'Rendimiento',
+  tail: 'Latencia p99',
+  memory: 'Memoria',
+  velocity: 'Velocidad',
+  resilience: 'Resiliencia',
+  operability: 'Operabilidad',
+  processPerRequest: 'proceso por petición',
+  sharedNothing: 'sin estado compartido',
+  coldStart: 'arranque en frío',
+  eventLoop: 'bucle de eventos',
+  blastRadius: 'radio de impacto',
+  horizontalScaling: 'escalado horizontal',
+  techDebt: 'deuda técnica',
+  n1Query: 'consulta N+1',
+  burnChange: (change: string | number) => `Gasto ${change}`,
+  restartsCold: (time: string | number) => `se reinicia en frío durante ${time}`,
+}
