@@ -111,5 +111,5 @@ place a caller can read it, so a phase that does not have the field cannot answe
 | Deterministic                              | no clock, no randomness, no runtime      |
 
 The integration tests exercise these through the app: `update.test.ts`, `inbox.test.ts`,
-`dashboard.test.ts`, `saves.test.ts`, and `feedback.test.ts` for the web flows, and the Simulation's
+`saves.test.ts`, and `feedback.test.ts` for the web flows, and the Simulation's
 Step and replay tests for the Game flows.

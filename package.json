@@ -14,6 +14,7 @@
     "lint": "vp lint",
     "typecheck": "tsrs --noEmit -p tsconfig.json && effect-tsrs diagnostics --strict --project tsconfig.json && turbo run typecheck",
     "test": "turbo run test",
+    "test:full": "FULL_TESTS=1 turbo run test",
     "test:engines": "pnpm --filter @quorum/simulation test:engines",
     "measurements": "node apps/wiki/scripts/measure.ts",
     "deploy": "alchemy deploy --stage prod"

@@ -35,13 +35,14 @@ Unstable Effect APIs fail typecheck unless a tsconfig override allows them for n
 pnpm check
 pnpm typecheck
 pnpm test
+pnpm test:full
 pnpm build
 pnpm test:engines
 pnpm dev
 pnpm dev:reference
 ```
 
-`pnpm test` runs the dominance test and skips the multi-minute simulation checks (the Balanced bot through Series B) and plays the guided Sandboxes in 10-second Steps. Run `SLOW_TESTS=1 pnpm test` to include those checks and play the Sandboxes in 1-second Steps. CI does not run the slow ones: run them by hand when you tune balance.
+`pnpm test` runs the fast suite: every package's rule and model tests, the wiki and the Workers, and plays the guided Sandboxes in 10-second Steps. `pnpm test:full` (`FULL_TESTS=1 pnpm test`) adds the whole-game runs: every Component and incident end to end, the Challenge reference solutions, and the Balanced bot through Series B. `SLOW_TESTS=1` plays the Sandboxes in 1-second Steps. CI runs `pnpm test` only; run the full suite by hand when you tune balance.
 
 `pnpm test:engines` replays one fixed Company and every Challenge's reference solution in Chromium, Firefox, and WebKit (Vitest browser mode with Playwright) and in workerd, and compares the hashes with Node's. It is not part of `pnpm test` because it needs browser binaries: install them with `pnpm --filter @quorum/simulation exec playwright install chromium firefox webkit`, plus `playwright install-deps webkit` on Linux (`.agents/setup` does both in an orb).
 

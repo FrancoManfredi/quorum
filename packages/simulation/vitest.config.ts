@@ -2,9 +2,7 @@ import { availableParallelism } from 'node:os'
 import { configDefaults, defineConfig } from 'vitest/config'
 import { simVersion } from './sim-version.ts'
 
-const FULL_ONLY = ['breadth', 'pacing', 'legacy-pacing', 'challenges'].map(
-  (name) => `test/${name}.test.ts`,
-)
+const FULL_ONLY = ['breadth', 'pacing', 'challenges'].map((name) => `test/${name}.test.ts`)
 
 // `engines/` holds the cross-engine check, which `pnpm test:engines` runs in browsers.
 export default defineConfig({

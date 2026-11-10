@@ -1,4 +1,4 @@
-/* The engineering glossary: the one source for the Glossary panel and the wiki's /glossary pages. `glossary.test.ts` checks its references. */
+/* The engineering glossary: the one source for the Glossary panel and the wiki's /glossary pages. */
 
 export const GLOSSARY_CATEGORIES = [
   'performance',

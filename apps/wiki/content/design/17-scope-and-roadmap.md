@@ -225,7 +225,7 @@ Code: `simulation/sandbox.ts`, `components/lab/sandbox.ts`
 
 ### Balance tools
 
-Code: `simulation/pacing.ts`, `solve.bench.ts`, and in `packages/simulation/test/`: `balance.test.ts`, `dominance.test.ts`, `pacing.test.ts`, `bots.test.ts`
+Code: `simulation/pacing.ts`, `solve.bench.ts`, and `packages/simulation/test/pacing.test.ts`
 
 - Runtime balance targets
 - The Balanced, Greedy, Stubborn, Decliner, Polyglot, and Idle pacing bots (which hire and ship Features) with margins

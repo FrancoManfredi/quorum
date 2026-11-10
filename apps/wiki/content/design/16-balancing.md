@@ -267,17 +267,16 @@ Team's autopilot on, and every bot but Greedy hires while payroll, the new hire 
 | Stubborn | Never changes the starting Stack                                                             | Reach IPO within 1.6× the target time              | Seeds 1–3: Seed within 1.6× Balanced on the same seed                                                                        |
 | Polyglot | Migrates to every language it researches                                                     | Not beat Balanced by more than 30%                 | Seeds 1–3: Seed no faster than 0.7× Balanced                                                                                 |
 | Decliner | Plays Balanced and declines every funding round                                              | Legacy per hour not beat Balanced by more than 15% | Seeds 1–3: reaches Seed with Equity at 100%                                                                                  |
-| Idle     | Plays Balanced, but logs in every 2 hours, spends everything, and leaves                     | Reach Pre-seed within 24 hours of game time        | `bots.test.ts` (`SLOW_TESTS=1`)                                                                                              |
+| Idle     | Plays Balanced, but logs in every 2 hours, spends everything, and leaves                     | Reach Pre-seed within 24 hours of game time        | Not asserted; run it by hand when tuning                                                                                     |
 | Margin   | Plays like Balanced and records margin at each Era milestone                                 | Margin in 25% to 45% from Seed on                  | `pacing.test.ts` records the margin at Seed and Series A entry                                                               |
 
-A balance change passes when the bots meet their limits on seeds 1–5: Balanced runs on all five
-seeds, the others on seeds 1–3 (`pacing.test.ts` and `bots.test.ts`, both under `SLOW_TESTS=1`).
+A balance change passes when the Balanced bot meets its limits on seeds 1–5 (`pacing.test.ts`, under
+`FULL_TESTS=1`). The other bots run by hand through `runBot` when a change touches their limit.
 
 ## Dominance
 
-Pillar 2 says no option strictly dominates another. `dominance.test.ts` runs in every `pnpm test` and in
-CI. Within each language, every runtime must beat each of its siblings by at least 10% on one
-reference score:
+Pillar 2 says no option strictly dominates another. Within each language, every runtime must beat
+each of its siblings by at least 10% on one reference score:
 
 - Throughput on the real Ledger of a Pre-seed Design.
 - RAM per process.
@@ -303,7 +302,7 @@ number.
 
 ## Runtime balance targets
 
-`balance.test.ts` asserts these comparisons on the real Ledger of a Pre-seed Design:
+These comparisons hold on the real Ledger of a Pre-seed Design:
 
 | Check                                                | Target                        |
 | ---------------------------------------------------- | ----------------------------- |
@@ -379,11 +378,10 @@ than per tuning:
 
 ## What the checks cover
 
-- `pacing.test.ts`, `bots.test.ts` and `legacy-pacing.test.ts` play the bots against the real
-  Simulation; the slower ones run under `SLOW_TESTS=1` and CI does not set it.
-- `balance.test.ts` asserts the runtime targets above and runs in `pnpm test`.
-- `digests.test.ts` and `breadth.test.ts` assert determinism, finite numbers and save round trips
-  across the whole catalog.
+- `pacing.test.ts` plays the Balanced bot against the real Simulation on seeds 1–5; it runs under
+  `FULL_TESTS=1`, which CI does not set.
+- `breadth.test.ts` asserts determinism, finite numbers and save round trips across the whole
+  catalog; it also runs under `FULL_TESTS=1`.
 - `research.test.ts` asserts each Era's mix sums to one, and that the Era introducing `login` and
   `upload` keeps a real share of each, so their Insight pools do not dry up.
 - The bridge and the shutdown fire at the numbers in [Economy](/design/09-economy); no bot plays a

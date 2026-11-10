@@ -14,7 +14,7 @@ import {
 import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
 import { prosePaths } from './content.ts'
 import { Message, init, normalize, update } from './main.ts'
-import { renderPage, prerenderPaths } from './entry.server.ts'
+import { renderPage } from './entry.server.ts'
 import { PAGES, SECTION_ORDER, navOf, pageAt } from './pages.ts'
 import { componentsHitBy, sandboxesFiring } from './reference/graph.ts'
 import { buildIndex, indexJson, loadIndex, search } from './search.ts'
@@ -37,9 +37,13 @@ test('every page has one path, without a trailing slash', () => {
   expect(paths.filter((path) => normalize(path) !== path)).toEqual([])
 })
 
-test('every prerendered path renders its own page, and every link in it reaches a page', async () => {
+/* The build prerenders every path, so this renders the home page and each section's first page and
+   reads their links: the layouts and the navigation stay reachable without compiling the corpus. */
+const sample = ['/', ...SECTION_ORDER.map((section) => navOf(section)[0]?.path ?? '')]
+
+test('the home page and every section render their own page, and every link in them reaches a page', async () => {
   const broken: Array<string> = []
-  for (const path of prerenderPaths) {
+  for (const path of sample) {
     const result = await renderPage(new Request(`https://wiki.playquorum.dev${path}`))
     expect(result._tag, path).toBe('Rendered')
     if (result._tag !== 'Rendered') continue

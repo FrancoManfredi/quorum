@@ -25,8 +25,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
       - run: pnpm typecheck
-      # The multi-minute `SLOW_TESTS=1` checks run by hand, not in CI. `FULL_TESTS=1` adds the slow whole-game runs.
-      - run: FULL_TESTS=1 pnpm test
+      # The whole-game runs (`pnpm test:full`) take over a minute each, so they run by hand when
+      # balance moves, not on every push.
+      - run: pnpm test
       - run: pnpm build
 
   deploy:

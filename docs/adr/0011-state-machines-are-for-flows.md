@@ -29,7 +29,7 @@ both answered and resolved, and a Company could be loading while another was ope
    same for Mail. There is no stored schema with a `decodeTo` transform.
 6. Machine-only tests are deleted. A test that steps the table duplicates the table. Behaviour is
    covered through the integration tests that call the flow: `update.test.ts`, `inbox.test.ts`,
-   `dashboard.test.ts`, `saves.test.ts`, and the Simulation's Step and replay tests.
+   `saves.test.ts`, and the Simulation's Step and replay tests.
 
 ## Applications
 

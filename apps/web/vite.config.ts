@@ -1,5 +1,7 @@
+/// <reference types="vitest/config" />
 import { foldkit } from '@foldkit/vite-plugin'
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { availableParallelism } from 'node:os'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
@@ -95,5 +97,10 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     dedupe: ['effect', 'foldkit'],
+  },
+  test: {
+    // Every file imports the whole app, and the tests are CPU-bound while the main process idles,
+    // so use every core rather than Vitest's default of one fewer.
+    maxWorkers: availableParallelism(),
   },
 })
