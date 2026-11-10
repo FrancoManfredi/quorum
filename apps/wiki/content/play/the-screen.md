@@ -69,7 +69,7 @@ The toolbar is the strip at the top right. Hover a button to read its name and k
 | **Undo** and **Redo**   | `Z`, `Shift+Z` | Appear after your first action on the Board.                                     |
 | **Pause** or **Resume** | `Space`        | Stops and restarts the clock.                                                    |
 | **Speed**               | `S`            | Shows the speed, such as `1×`. Each press moves to the next one.                 |
-| **Tidy by zone**        | `Shift+T`      | Arranges the Nodes by zone.                                                      |
+| **Tidy by role**        | `Shift+T`      | Arranges the Nodes into role columns.                                            |
 | **Fit the board**       | `Shift+F`      | Zooms and pans so every Node is in view.                                         |
 | **Fullscreen**          | `F`            | Toggles fullscreen.                                                              |
 

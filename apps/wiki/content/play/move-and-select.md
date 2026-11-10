@@ -69,7 +69,7 @@ Arrow keys without `Shift` do something else: they select the nearest Node in th
 
 ## Tidy and Fit
 
-- **Tidy by zone** (`Shift+T`) lays out every Node on the region's Board in columns, then fits the view. It moves cards only, and `Z` undoes it. A plain drag or nudge is not an undo step.
+- **Tidy by role** (`Shift+T`) lays out every Node on the region's Board in role columns, then fits the view. It moves cards only, and `Z` undoes it. A plain drag or nudge is not an undo step. [How Tidy arranges the board](/explanation/tidy) gives the rules.
 - **Fit the board** (`Shift+F`) zooms and pans so every Node is on screen. It moves no card.
 
 Both buttons are in the toolbar at the top right. On a phone they live in the **More** menu.

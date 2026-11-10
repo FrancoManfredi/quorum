@@ -62,7 +62,7 @@ Keys work when you are on the board and not typing in a field. They do not work 
 | `S`            | Next speed: 0.5×, 1×, 3×, 10×, then back |
 | `Z`            | Undo                                     |
 | `Shift+Z`, `Y` | Redo                                     |
-| `Shift+T`      | Tidy by zone                             |
+| `Shift+T`      | Tidy by role                             |
 | `Shift+F`      | Fit the board                            |
 | `F`            | Fullscreen                               |
 | `M`            | Mute                                     |
