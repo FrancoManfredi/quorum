@@ -44,7 +44,7 @@ import {
 import { TICK_MS, init, initialModel, update } from './update.ts'
 import { AppRoute } from './route.ts'
 import { CHALLENGES } from '@quorum/simulation/challenges'
-import { boxOf, crowds, inPort, outPort } from '@quorum/ui/board/geometry'
+import { boxOf, crowds } from '@quorum/ui/board/geometry'
 import { act } from './update/shared.ts'
 import { Actions } from './board-actions.ts'
 
@@ -1275,7 +1275,7 @@ describe('progressive disclosure', () => {
   })
 })
 
-test('tidying the board groups nodes into a band per zone, in flow order', () => {
+test('tidying the board groups nodes into role columns, left to right', () => {
   const game = newGame()
   const [first, second, third] = game.nodes
   const model: Model = {
@@ -1298,12 +1298,13 @@ test('tidying the board groups nodes into a band per zone, in flow order', () =>
     },
   }
   const [q, p, r, u] = update(model, Message.BoardTidied()).model.board.game.nodes
-  expect(p!.x).toBeLessThan(q!.x)
-  // The link from p to q runs straight: its two ports share a row.
-  expect(outPort(p!).y).toBe(inPort(q!).y)
-  expect(r!.y).toBeGreaterThan(q!.y)
-  // The zone-b card sits right of the Load Balancer that feeds it from another band.
-  expect(r!.x).toBeGreaterThan(u!.x)
+  // Entry sits left of compute, and every server shares the compute column.
+  expect(u!.x).toBeLessThan(p!.x)
+  expect(p!.x).toBe(q!.x)
+  expect(p!.x).toBe(r!.x)
+  // The player's order inside the column stays, so r sits above p and p above q.
+  expect(r!.y).toBeLessThan(p!.y)
+  expect(p!.y).toBeLessThan(q!.y)
 })
 
 test('Enter places the part in hand in the next free spot', () => {
@@ -1370,7 +1371,7 @@ test('Shift+T tidies by zone and Shift+F fits the board, as their buttons do', (
       expect.objectContaining({ name: 'SyncBoard', args: expect.objectContaining({ fit: true }) }),
     ]),
   )
-  expect(tidied.model.board.undo.at(-1)?.label).toBe('Tidied the board by zone')
+  expect(tidied.model.board.undo.at(-1)?.label).toBe('Tidied the board by role')
   const fitted = update(model, Message.KeyPressed({ key: 'Shift+f' }))
   expect((fitted.commands ?? []).map((command) => command.name)).toContain('FitBoard')
   expect(fitted.model.board.game).toBe(model.board.game)

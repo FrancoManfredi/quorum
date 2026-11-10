@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { CARD_W, CLEARANCE, heightOf, type Pt, type Route } from './geometry.ts'
+import { CARD_W, CLEARANCE, heightOf, layoutOf, type Pt, type Route } from './geometry.ts'
 import { SURFACE_MIN, routeLinks, type RoutedNode } from './routing.ts'
 import { BIG_LINKS, STRESS_LINKS as LINKS, bigNodes, stressNodes as placed } from './stress.ts'
 
@@ -81,16 +81,26 @@ describe('the stress board', () => {
       }
   })
 
-  test('a free drop stays where it was dropped, and a crowded one moves down its column', () => {
+  test('a free drop stays where it was dropped', () => {
     const at = (id: string) => nodes.find((node) => node.id === id) as RoutedNode
-    expect(at('app1')).toMatchObject({ x: 712, y: -160 })
-    // Payments was dropped under the WAF; it stays in its column.
-    expect(at('payments').x).toBe(328)
-    expect(at('wide').x).toBe(776)
+    expect(at('users')).toMatchObject({ x: 240, y: 560 })
+    expect(at('server')).toMatchObject({ x: 880, y: 560 })
   })
 
-  test('every link is routed, none runs under a card, and only trunks share a lane', () => {
-    expect([...wires.keys()].sort()).toEqual(LINKS.map((link) => `${link.from}>${link.to}`).sort())
+  test('every link with ports is routed, none runs under a card, and only trunks share a lane', () => {
+    const routeable = LINKS.filter((link) => {
+      const from = nodes.find((node) => node.id === link.from)
+      const to = nodes.find((node) => node.id === link.to)
+      return (
+        from !== undefined &&
+        to !== undefined &&
+        layoutOf(from.type).outRow !== null &&
+        layoutOf(to.type).inRow !== null
+      )
+    })
+    expect([...wires.keys()].sort()).toEqual(
+      routeable.map((link) => `${link.from}>${link.to}`).sort(),
+    )
     for (const [key, wire] of wires) expect(underCards(nodes, wire.path), key).toBe(0)
     for (const [aKey, a] of wires)
       for (const [bKey, b] of wires) {

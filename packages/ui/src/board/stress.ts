@@ -7,57 +7,151 @@ import { CARD_W, boxOf, freeSpot, heightOf } from './geometry.ts'
 import type { RoutedLink, RoutedNode } from './routing.ts'
 
 /*
- * The stress board: a Public-era NA board from a player's screenshot. Four App
- * Servers fan out to six data Nodes through one channel, and the cards were
- * dropped where they overlap (Payments under the WAF, Wide-column on an App Server).
- * The routing test checks it, and the free Sandbox can load it to look at.
+ * The stress board: a late-stage bot game, not a hand-drawn screenshot. The bot
+ * played seed 1 for 8 hours and reached Series B with 26 Nodes and 81 Links.
+ * Four App Servers fan out to the data tier, every App Server taps Analytics,
+ * and two zones are in use. The positions are the bot's, moved to the nearest
+ * free spot so no card overlaps.
  */
-const DROPS: ReadonlyArray<readonly [string, ComponentId, number, number]> = [
-  ['users', 'users', 0, 80],
-  ['cdn', 'cdn', 184, 0],
-  ['waf', 'waf', 184, 224],
-  ['lb', 'lb', 448, 224],
-  ['payments', 'payments', 328, 264],
-  ['app1', 'server', 712, -160],
-  ['app2', 'server', 712, 32],
-  ['app3', 'server', 712, 224],
-  ['app4', 'server', 712, 416],
-  ['wide', 'wide', 776, 384],
-  ['cache', 'cache', 1016, -160],
-  ['storage', 'storage', 1016, 64],
-  ['warehouse', 'warehouse', 1016, 288],
-  ['gpu', 'gpu', 1016, 488],
-  ['database', 'database', 1280, -80],
-  ['psp', 'psp', 1280, 288],
-]
+type StressZone = 'a' | 'b' | 'c'
 
-const APPS = ['app1', 'app2', 'app3', 'app4']
+const DROPS: ReadonlyArray<readonly [string, ComponentId, number, number, StressZone]> = [
+  ['users', 'users', 120, 280, 'a'],
+  ['server', 'server', 440, 280, 'a'],
+  ['analytics', 'analytics', 760, 520, 'a'],
+  ['payments', 'payments', 440, 540, 'a'],
+  ['n1', 'database', 760, 280, 'a'],
+  ['n2', 'pooler', 600, 400, 'a'],
+  ['n3', 'cache', 600, 160, 'a'],
+  ['n4', 'search', 760, 480, 'a'],
+  ['n5', 'waf', 180, 420, 'a'],
+  ['n6', 'lb', 280, 280, 'a'],
+  ['n7', 'server', 440, 140, 'b'],
+  ['n8', 'storage', 760, 620, 'a'],
+  ['n9', 'server', 440, 0, 'a'],
+  ['n10', 'server', 440, -140, 'b'],
+  ['n11', 'queue', 760, 40, 'a'],
+  ['n12', 'worker', 1040, 40, 'a'],
+  ['n13', 'autoscaler', 440, 80, 'a'],
+  ['n14', 'autoscaler', 720, 80, 'a'],
+  ['n15', 'psp', 760, 760, 'a'],
+  ['n16', 'cdn', 180, 140, 'a'],
+  ['n17', 'replica', 1080, 120, 'a'],
+  ['n18', 'replica', 1080, -20, 'a'],
+  ['n19', 'replica', 1080, -160, 'a'],
+  ['n20', 'replica', 1080, -300, 'a'],
+  ['n21', 'llm', 760, 900, 'a'],
+  ['n22', 'warehouse', 1040, 620, 'a'],
+]
 
 export const STRESS_LINKS: ReadonlyArray<RoutedLink> = [
-  { from: 'users', to: 'cdn' },
-  { from: 'users', to: 'waf' },
-  { from: 'cdn', to: 'lb' },
-  { from: 'waf', to: 'lb' },
-  ...APPS.map((app) => ({ from: 'lb', to: app })),
-  ...APPS.flatMap((app) =>
-    ['cache', 'wide', 'storage', 'warehouse', 'gpu', 'psp'].map((to) => ({ from: app, to })),
-  ),
-  { from: 'cache', to: 'database' },
+  { from: 'server', to: 'analytics' },
+  { from: 'n1', to: 'analytics' },
+  { from: 'server', to: 'n2' },
+  { from: 'n2', to: 'analytics' },
+  { from: 'n2', to: 'n3' },
+  { from: 'n3', to: 'n1' },
+  { from: 'n3', to: 'analytics' },
+  { from: 'server', to: 'n4' },
+  { from: 'n4', to: 'analytics' },
+  { from: 'n5', to: 'analytics' },
+  { from: 'n5', to: 'n6' },
+  { from: 'n6', to: 'server' },
+  { from: 'n6', to: 'n7' },
+  { from: 'n7', to: 'analytics' },
+  { from: 'n7', to: 'n2' },
+  { from: 'n7', to: 'n4' },
+  { from: 'n6', to: 'analytics' },
+  { from: 'server', to: 'n8' },
+  { from: 'n7', to: 'n8' },
+  { from: 'n8', to: 'analytics' },
+  { from: 'n6', to: 'n9' },
+  { from: 'n9', to: 'analytics' },
+  { from: 'n9', to: 'n2' },
+  { from: 'n9', to: 'n4' },
+  { from: 'n9', to: 'n8' },
+  { from: 'n6', to: 'n10' },
+  { from: 'n10', to: 'analytics' },
+  { from: 'n10', to: 'n2' },
+  { from: 'n10', to: 'n4' },
+  { from: 'n10', to: 'n8' },
+  { from: 'n11', to: 'n12' },
+  { from: 'server', to: 'n11' },
+  { from: 'n7', to: 'n11' },
+  { from: 'n9', to: 'n11' },
+  { from: 'n10', to: 'n11' },
+  { from: 'n11', to: 'analytics' },
+  { from: 'n12', to: 'analytics' },
+  { from: 'server', to: 'n13' },
+  { from: 'n7', to: 'n13' },
+  { from: 'n9', to: 'n13' },
+  { from: 'n10', to: 'n13' },
+  { from: 'n12', to: 'n14' },
+  { from: 'server', to: 'n15' },
+  { from: 'n7', to: 'n15' },
+  { from: 'n9', to: 'n15' },
+  { from: 'n10', to: 'n15' },
+  { from: 'n15', to: 'analytics' },
+  { from: 'n12', to: 'n2' },
+  { from: 'users', to: 'n16' },
+  { from: 'n16', to: 'n5' },
+  { from: 'n16', to: 'analytics' },
+  { from: 'server', to: 'n17' },
+  { from: 'n7', to: 'n17' },
+  { from: 'n9', to: 'n17' },
+  { from: 'n10', to: 'n17' },
+  { from: 'server', to: 'n18' },
+  { from: 'n7', to: 'n18' },
+  { from: 'n9', to: 'n18' },
+  { from: 'n10', to: 'n18' },
+  { from: 'server', to: 'n19' },
+  { from: 'n7', to: 'n19' },
+  { from: 'n9', to: 'n19' },
+  { from: 'n10', to: 'n19' },
+  { from: 'server', to: 'n20' },
+  { from: 'n7', to: 'n20' },
+  { from: 'n9', to: 'n20' },
+  { from: 'n10', to: 'n20' },
+  { from: 'n17', to: 'analytics' },
+  { from: 'n18', to: 'analytics' },
+  { from: 'n19', to: 'analytics' },
+  { from: 'n20', to: 'analytics' },
+  { from: 'server', to: 'n21' },
+  { from: 'n7', to: 'n21' },
+  { from: 'n9', to: 'n21' },
+  { from: 'n10', to: 'n21' },
+  { from: 'n21', to: 'analytics' },
+  { from: 'server', to: 'n22' },
+  { from: 'n7', to: 'n22' },
+  { from: 'n9', to: 'n22' },
+  { from: 'n10', to: 'n22' },
+  { from: 'n22', to: 'analytics' },
 ]
 
-/** Drops each card in order, as a player would, moved to the nearest free spot. */
-export const stressNodes = (): ReadonlyArray<RoutedNode> =>
-  DROPS.reduce<ReadonlyArray<RoutedNode>>((nodes, [id, type, x, y]) => {
-    const spot = freeSpot(nodes.map(boxOf), { x, y, w: CARD_W, h: heightOf(type) })
-    return [...nodes, { id, type, ...spot }]
+export type StressNode = RoutedNode & Readonly<{ zone: StressZone }>
+
+/** The bot's own coordinates are tight; spread them like the big board's screenshot. */
+const SCALE = 2
+
+/** Drops each card in order, as the bot placed it, moved to the nearest free spot. */
+export const stressNodes = (): ReadonlyArray<StressNode> =>
+  DROPS.reduce<ReadonlyArray<StressNode>>((nodes, [id, type, x, y, zone]) => {
+    const spot = freeSpot(nodes.map(boxOf), {
+      x: Math.round(x * SCALE),
+      y: Math.round(y * SCALE),
+      w: CARD_W,
+      h: heightOf(type),
+    })
+    return [...nodes, { id, type, ...spot, zone }]
   }, [])
 
-/** The free Sandbox with the stress board on it. */
+/** The free Sandbox with the late-stage bot board on it. */
 export const stressBoard = (): Game =>
   normalizeOrdinals({
     ...freeSandbox(),
+    users: 789_222,
     nodes: stressNodes().map((entry) =>
-      node(entry.id, entry.type, entry.x, entry.y, entry.id === 'app2' ? { zone: 'b' } : {}),
+      node(entry.id, entry.type, entry.x, entry.y, { zone: entry.zone }),
     ),
     links: STRESS_LINKS.map((entry) => link(entry.from, entry.to)),
   })

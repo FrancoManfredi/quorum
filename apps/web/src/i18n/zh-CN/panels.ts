@@ -88,7 +88,7 @@ export const panels: Messages['panels'] = {
   enter: 'Enter',
   inspectorPlaceConfirm: '检查器 · 放置 · 确认',
   linkTheSelectedNode: '连接选中的节点',
-  tidyByZone: '按区域整理',
+  tidyByRole: '按角色整理',
   fitTheBoard: '适应画布',
   research: '研究',
   team: '团队',

@@ -89,7 +89,7 @@ export const panels: Messages['panels'] = {
   enter: 'Entrée',
   inspectorPlaceConfirm: 'Inspecteur · placer · confirmer',
   linkTheSelectedNode: 'Relier le nœud sélectionné',
-  tidyByZone: 'Ranger par zone',
+  tidyByRole: 'Ranger par rôle',
   fitTheBoard: 'Cadrer le plan',
   research: 'Recherche',
   team: 'Équipe',

@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tidy layout harness</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #cbd5e1;
+        --card: #ffffff;
+        --edge: #64748b;
+        --compute: #3b82f6;
+        --data: #10b981;
+        --ops: #f59e0b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          13px/1.4 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        overflow: hidden;
+      }
+      #board {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background-image:
+          linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+        background-size: 40px 40px;
+        cursor: grab;
+      }
+      #board.panning {
+        cursor: grabbing;
+      }
+      #world {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform-origin: 0 0;
+      }
+      #links {
+        position: absolute;
+        left: -2000px;
+        top: -2000px;
+        width: 8000px;
+        height: 8000px;
+        overflow: visible;
+        pointer-events: none;
+      }
+      #links line {
+        stroke: rgba(15, 23, 42, 0.18);
+        stroke-width: 1.5;
+      }
+      #links line.back {
+        stroke: rgba(220, 38, 38, 0.5);
+      }
+      .card {
+        position: absolute;
+        width: 216px;
+        border-radius: 10px;
+        background: var(--card);
+        box-shadow:
+          0 1px 2px rgba(15, 23, 42, 0.08),
+          0 0 0 1px rgba(15, 23, 42, 0.08);
+        border-top: 4px solid var(--tone);
+        padding: 8px 10px 9px;
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+        overflow: hidden;
+      }
+      .card:active {
+        cursor: grabbing;
+      }
+      .card.dragging {
+        box-shadow:
+          0 8px 24px rgba(15, 23, 42, 0.18),
+          0 0 0 1px rgba(15, 23, 42, 0.12);
+      }
+      .card .name {
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: -0.01em;
+      }
+      .card .meta {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 3px;
+      }
+      .card .zone {
+        display: inline-block;
+        margin-left: 4px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: rgba(100, 116, 139, 0.12);
+      }
+      .toolbar {
+        position: fixed;
+        z-index: 20;
+        top: 14px;
+        left: 14px;
+        right: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow:
+          0 1px 2px rgba(15, 23, 42, 0.08),
+          0 0 0 1px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(8px);
+        flex-wrap: wrap;
+      }
+      .toolbar .title {
+        font-weight: 600;
+        font-size: 13px;
+        margin-right: 4px;
+      }
+      .toolbar .hint {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .toolbar .spacer {
+        flex: 1;
+      }
+      button,
+      select {
+        font: inherit;
+        color: var(--ink);
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      button:hover,
+      select:hover {
+        background: #f1f5f9;
+      }
+      button.primary {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+      button.primary:hover {
+        background: #1e293b;
+      }
+      #status {
+        color: var(--muted);
+        font-size: 12px;
+        min-width: 180px;
+      }
+      #status.good {
+        color: #047857;
+      }
+      #status.bad {
+        color: #b91c1c;
+      }
+      .legend {
+        display: flex;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        align-items: center;
+      }
+      .legend i {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+        margin-right: 4px;
+      }
+      @media (max-width: 760px) {
+        .toolbar .hint {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <span class="title">Tidy layout harness</span>
+      <span class="hint"
+        >Drag cards. Drag the background to pan. Scroll to zoom. Save when it looks right.</span
+      >
+      <span class="spacer"></span>
+      <select id="layout" aria-label="Starting layout">
+        <option value="bot">Bot board</option>
+        <option value="current">Current Tidy</option>
+        <option value="grouped">Grouped</option>
+        <option value="roles" selected>Roles (learned)</option>
+        <option value="user">Your saved layout</option>
+      </select>
+      <button id="fit">Fit</button>
+      <button id="copy">Copy JSON</button>
+      <button id="save" class="primary">Save my layout</button>
+      <span id="status"></span>
+    </div>
+    <div class="toolbar" style="top: auto; bottom: 14px; right: auto; gap: 14px">
+      <span class="legend"
+        ><span><i style="background: var(--edge)"></i>edge</span
+        ><span><i style="background: var(--compute)"></i>compute</span
+        ><span><i style="background: var(--data)"></i>data</span
+        ><span><i style="background: var(--ops)"></i>ops</span></span
+      >
+      <span class="hint">Red links run backward. 8 px snap.</span>
+    </div>
+    <div id="board">
+      <div id="world">
+        <svg id="links" viewBox="-2000 -2000 8000 8000" aria-hidden="true"></svg>
+      </div>
+    </div>
+    <script type="module">
+      const tones = { edge: '#64748b', compute: '#3b82f6', data: '#10b981', ops: '#f59e0b' }
+      const board = document.querySelector('#board')
+      const world = document.querySelector('#world')
+      const links = document.querySelector('#links')
+      const status = document.querySelector('#status')
+      const layoutSelect = document.querySelector('#layout')
+
+      const data = await fetch('/harness/board.json').then((response) => response.json())
+      const byId = new Map(data.nodes.map((node) => [node.id, node]))
+      let positions = structuredClone(data.layouts[layoutSelect.value] ?? data.layouts.bot)
+      let zoom = 1
+      let panX = 0
+      let panY = 0
+      let drag = null
+      let pan = null
+
+      const lineOf = (link) => {
+        const from = positions[link.from]
+        const to = positions[link.to]
+        const a = byId.get(link.from)
+        const b = byId.get(link.to)
+        if (!from || !to || !a || !b) return null
+        const outY = a.outY ?? a.height / 2
+        const inY = b.inY ?? b.height / 2
+        return {
+          x1: from.x + a.width,
+          y1: from.y + outY,
+          x2: to.x,
+          y2: to.y + inY,
+          back: to.x <= from.x,
+        }
+      }
+
+      const linkNodes = data.links.map((link) => {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+        links.append(line)
+        return { link, line }
+      })
+
+      const cardNodes = new Map()
+      for (const node of data.nodes) {
+        const card = document.createElement('div')
+        card.className = 'card'
+        card.dataset.id = node.id
+        card.style.setProperty('--tone', tones[node.group] ?? '#94a3b8')
+        card.style.height = `${node.height}px`
+        card.innerHTML = `<div class="name">${node.name}</div><div class="meta">${node.id}<span class="zone">${node.zone}</span></div>`
+        card.addEventListener('pointerdown', (event) => {
+          if (event.button !== 0) return
+          event.stopPropagation()
+          card.setPointerCapture(event.pointerId)
+          card.classList.add('dragging')
+          const spot = positions[node.id]
+          drag = { id: node.id, startX: event.clientX, startY: event.clientY, x: spot.x, y: spot.y }
+        })
+        card.addEventListener('pointermove', (event) => {
+          if (!drag || drag.id !== node.id) return
+          const x = Math.round((drag.x + (event.clientX - drag.startX) / zoom) / 8) * 8
+          const y = Math.round((drag.y + (event.clientY - drag.startY) / zoom) / 8) * 8
+          positions[node.id] = { x, y }
+          paint()
+        })
+        const end = () => {
+          if (!drag || drag.id !== node.id) return
+          drag = null
+          card.classList.remove('dragging')
+        }
+        card.addEventListener('pointerup', end)
+        card.addEventListener('pointercancel', end)
+        world.append(card)
+        cardNodes.set(node.id, card)
+      }
+
+      const paint = () => {
+        world.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`
+        for (const [id, card] of cardNodes) {
+          const spot = positions[id]
+          card.style.left = `${spot.x}px`
+          card.style.top = `${spot.y}px`
+        }
+        for (const { link, line } of linkNodes) {
+          const at = lineOf(link)
+          if (!at) {
+            line.setAttribute('visibility', 'hidden')
+            continue
+          }
+          line.setAttribute('visibility', 'visible')
+          line.setAttribute('x1', at.x1)
+          line.setAttribute('y1', at.y1)
+          line.setAttribute('x2', at.x2)
+          line.setAttribute('y2', at.y2)
+          line.classList.toggle('back', at.back)
+        }
+      }
+
+      const fit = () => {
+        const xs = data.nodes.flatMap((node) => [
+          positions[node.id].x,
+          positions[node.id].x + node.width,
+        ])
+        const ys = data.nodes.flatMap((node) => [
+          positions[node.id].y,
+          positions[node.id].y + node.height,
+        ])
+        const minX = Math.min(...xs)
+        const minY = Math.min(...ys)
+        const maxX = Math.max(...xs)
+        const maxY = Math.max(...ys)
+        const width = Math.max(1, maxX - minX)
+        const height = Math.max(1, maxY - minY)
+        const roomW = window.innerWidth - 40
+        const roomH = window.innerHeight - 170
+        zoom = Math.min(roomW / width, roomH / height, 1)
+        panX = (window.innerWidth - width * zoom) / 2 - minX * zoom
+        panY = 90 + (roomH - height * zoom) / 2 - minY * zoom
+        paint()
+      }
+
+      board.addEventListener('pointerdown', (event) => {
+        if (event.target !== board && event.target !== world && event.target !== links) return
+        board.classList.add('panning')
+        pan = { startX: event.clientX, startY: event.clientY, x: panX, y: panY }
+        board.setPointerCapture(event.pointerId)
+      })
+      board.addEventListener('pointermove', (event) => {
+        if (!pan) return
+        panX = pan.x + event.clientX - pan.startX
+        panY = pan.y + event.clientY - pan.startY
+        paint()
+      })
+      const endPan = () => {
+        pan = null
+        board.classList.remove('panning')
+      }
+      board.addEventListener('pointerup', endPan)
+      board.addEventListener('pointercancel', endPan)
+
+      board.addEventListener(
+        'wheel',
+        (event) => {
+          event.preventDefault()
+          const rect = board.getBoundingClientRect()
+          const x = event.clientX - rect.left
+          const y = event.clientY - rect.top
+          const beforeX = (x - panX) / zoom
+          const beforeY = (y - panY) / zoom
+          zoom = Math.min(1.5, Math.max(0.2, zoom * Math.exp(-event.deltaY * 0.0015)))
+          panX = x - beforeX * zoom
+          panY = y - beforeY * zoom
+          paint()
+        },
+        { passive: false },
+      )
+
+      const setLayout = () => {
+        positions = structuredClone(data.layouts[layoutSelect.value] ?? data.layouts.bot)
+        fit()
+      }
+
+      layoutSelect.addEventListener('change', setLayout)
+      document.querySelector('#fit').addEventListener('click', fit)
+
+      const payload = () => ({
+        savedAt: new Date().toISOString(),
+        layout: layoutSelect.value,
+        zoom: Math.round(zoom * 1000) / 1000,
+        positions: Object.fromEntries(data.nodes.map((node) => [node.id, positions[node.id]])),
+      })
+
+      document.querySelector('#save').addEventListener('click', async () => {
+        status.className = ''
+        status.textContent = 'Saving...'
+        try {
+          const response = await fetch('/harness/save', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload()),
+          })
+          if (!response.ok) throw new Error(await response.text())
+          status.className = 'good'
+          status.textContent = 'Saved. Tell Amp when you are done.'
+        } catch (error) {
+          status.className = 'bad'
+          status.textContent = 'Save failed. Use Copy JSON.'
+        }
+      })
+
+      document.querySelector('#copy').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(JSON.stringify(payload(), null, 2))
+          status.className = 'good'
+          status.textContent = 'Copied JSON.'
+        } catch {
+          status.className = 'bad'
+          status.textContent = 'Copy failed.'
+        }
+      })
+
+      window.addEventListener('resize', fit)
+      setLayout()
+    </script>
+  </body>
+</html>

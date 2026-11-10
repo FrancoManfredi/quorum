@@ -87,7 +87,7 @@ export const panels = {
   enter: 'Enter',
   inspectorPlaceConfirm: 'Inspector · place · confirm',
   linkTheSelectedNode: 'Link the selected Node',
-  tidyByZone: 'Tidy by zone',
+  tidyByRole: 'Tidy by role',
   fitTheBoard: 'Fit the board',
   research: 'Research',
   team: 'Team',

@@ -235,7 +235,7 @@ const keyGroupsOf = (t: Messages, easyMode: boolean): ReadonlyArray<KeyGroup> =>
         : []),
       ['M', t.panels.mute],
       ['F', t.panels.fullscreen],
-      [t.panels.shiftT, t.panels.tidyByZone],
+      [t.panels.shiftT, t.panels.tidyByRole],
       [t.panels.shiftF, t.panels.fitTheBoard],
     ],
   ],

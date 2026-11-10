@@ -828,7 +828,7 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
     }))
     const spots = tidy(nodes, view.links, ['all', 'a', 'b', 'c'])
     const moved = [...spots].map(([id, spot]) => Actions.move(model.board.game, id, spot.x, spot.y))
-    const tidied = act(model, 'Tidied the board by zone', moved, {
+    const tidied = act(model, 'Tidied the board by role', moved, {
       undoable: true,
     })
     return { ...tidied, commands: [...(tidied.commands ?? []), FitBoard({})] }

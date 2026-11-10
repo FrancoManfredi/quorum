@@ -89,7 +89,7 @@ export const panels: Messages['panels'] = {
   enter: 'Enter',
   inspectorPlaceConfirm: 'インスペクタ · 配置 · 確定',
   linkTheSelectedNode: '選択中のノードをリンク',
-  tidyByZone: 'ゾーンごとに整える',
+  tidyByRole: '役割ごとに整える',
   fitTheBoard: 'ボードに合わせる',
   research: 'リサーチ',
   team: 'チーム',

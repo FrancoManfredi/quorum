@@ -1409,7 +1409,7 @@ const moreOf = (t: Messages): Record<MoreItem, Readonly<{ label: string; glyph: 
   help: { label: t.hud.howToPlay, glyph: CircleHelp },
   undo: { label: t.hud.undo, glyph: Undo2 },
   redo: { label: t.hud.redo, glyph: Redo2 },
-  tidy: { label: t.hud.tidyByZone, glyph: LayoutGrid },
+  tidy: { label: t.hud.tidyByRole, glyph: LayoutGrid },
   fit: { label: t.hud.fitTheBoard, glyph: Scan },
   fullscreen: { label: t.hud.fullscreen, glyph: Expand },
 })
@@ -1681,7 +1681,7 @@ export const toolbar = (model: Model, h: HtmlBuilder<Message>): Html => {
       desktopOnly(
         [
           divider(h),
-          toolButton(t.hud.tidyByZoneShiftT, LayoutGrid, Message.BoardTidied(), false, h),
+          toolButton(t.hud.tidyByRoleShiftT, LayoutGrid, Message.BoardTidied(), false, h),
           toolButton(t.hud.fitTheBoardShiftF, Scan, Message.BoardFitted(), false, h),
           toolButton(t.hud.fullscreenF, Expand, Message.FullscreenToggled(), false, h),
         ],
