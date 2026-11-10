@@ -168,6 +168,7 @@ const view = (model: Model, h: HtmlBuilder<Message>) => dashboardPanel(model, h)
 
 const board = Scene.selector('[data-dashboard]')
 const row = (label: string) => Scene.selector(`[data-row="${label}"]`)
+const panel = (key: string) => Scene.selector(`[data-panel="${key}"]`)
 
 test('the Alerts row draws each rule’s threshold and state, and the pages the Inbox kept', () => {
   const model = fixture({
@@ -231,7 +232,7 @@ test('the Services row draws each kind’s rate, errors and duration from the Le
   )
 })
 
-test('the Resources row colours each Node by the resource that limited it', () => {
+test('the Resources panel colours each Node by the resource that limited it', () => {
   const model = fixture()
   const game = model.board.game
   const ledger = ledgerOf(model)
@@ -251,14 +252,15 @@ test('the Resources row colours each Node by the resource that limited it', () =
   Scene.scene(
     { update, view },
     Scene.given(withHistory),
-    Scene.expect(row('Resources (USE)')).toExist(),
+    Scene.expect(row('Saturation')).toExist(),
+    Scene.expect(panel('resources')).toExist(),
     Scene.expect(Scene.selector('[title="App Server: CPU"]')).toExist(),
     Scene.expect(Scene.selector('[title="App Server: Workers"]')).toExist(),
     Scene.expect(Scene.selector('[title="Database: Connections"]')).toExist(),
   )
 })
 
-test('the Resources row is locked behind profiling, not tracing alone', () => {
+test('the Resources panel is locked behind profiling, not tracing alone', () => {
   const withoutProfiling = fixture({
     game: { researched: RESEARCHED.filter((id) => id !== 'profiling') },
   })
@@ -266,7 +268,8 @@ test('the Resources row is locked behind profiling, not tracing alone', () => {
     { update, view },
     Scene.given(withoutProfiling),
     Scene.expect(row('Services (RED)')).toExist(),
-    Scene.expect(row('Resources (USE)')).toExist(),
+    Scene.expect(row('Saturation')).toExist(),
+    Scene.expect(panel('resources')).toExist(),
     Scene.expect(Scene.text('No data · research profiling')).toExist(),
   )
 })
@@ -282,7 +285,7 @@ test('the Users row draws each region’s users against its market, and its chur
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('Users')).toExist(),
+    Scene.expect(panel('users-region')).toExist(),
     Scene.expect(board).toContainText(REGION_INFO[first.region].name),
     Scene.expect(board).toContainText(compact(regionUsers(game)[first.region])),
     Scene.expect(board).toContainText(compact(market)),
@@ -299,7 +302,7 @@ test('the Load Balancer row draws its traffic per backend', () => {
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('Load Balancer')).toExist(),
+    Scene.expect(panel('load-balancer')).toExist(),
     Scene.expect(board).toContainText('App Server'),
     Scene.expect(board).toContainText(`${rateText(backend.rate)}/s`),
   )
@@ -326,7 +329,7 @@ test('the App Server row draws its copies and the workers busy against the pool'
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('App Server')).toExist(),
+    Scene.expect(panel('app-server')).toExist(),
     Scene.expect(board).toContainText('Copies'),
     Scene.expect(board).toContainText('2 (+1 booting)'),
     Scene.expect(board).toContainText(
@@ -342,7 +345,7 @@ test('the Database row draws connections used against the limit, and the lag col
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('Database')).toExist(),
+    Scene.expect(panel('database')).toExist(),
     Scene.expect(board).toContainText('Lag'),
     Scene.expect(board).toContainText(
       `${Math.round(connections.used)}/${Math.round(connections.max)}`,
@@ -357,7 +360,7 @@ test('the Cache row draws its hit ratio', () => {
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('Cache')).toExist(),
+    Scene.expect(panel('cache')).toExist(),
     Scene.expect(board).toContainText(`${(hit * 100).toFixed(1)}%`),
   )
 })
@@ -368,7 +371,7 @@ test('the Queue row draws its depth and the age of its oldest task', () => {
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('Queue')).toExist(),
+    Scene.expect(panel('queue')).toExist(),
     Scene.expect(board).toContainText('42'),
     Scene.expect(board).toContainText(queueWait(age)),
   )
@@ -381,7 +384,7 @@ test('the CDN row draws its hit ratio beside the Design’s egress', () => {
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('CDN')).toExist(),
+    Scene.expect(panel('cdn')).toExist(),
     Scene.expect(board).toContainText(`${(hit * 100).toFixed(1)}%`),
     Scene.expect(board).toContainText('Design egress'),
   )
@@ -393,7 +396,7 @@ test('the Managed Components row draws each provider’s calls and outage state'
   Scene.scene(
     { update, view },
     Scene.given(model),
-    Scene.expect(row('Managed Components')).toExist(),
+    Scene.expect(panel('managed')).toExist(),
     Scene.expect(board).toContainText('Payment Provider'),
     Scene.expect(board).toContainText(`${compact(psp?.inbound ?? 0)}/s`),
     Scene.expect(board).toContainText('UP'),
@@ -476,11 +479,11 @@ test('each row waits for its research, and a Component row for its Component', (
     // The preseeding Board is researched only up to metrics.
     Scene.expect(row('Alerts')).toBeAbsent(),
     Scene.expect(row('Services (RED)')).toBeAbsent(),
-    Scene.expect(row('Resources (USE)')).toBeAbsent(),
-    Scene.expect(row('Users')).toBeAbsent(),
-    // It holds a Database, so that row is there; it holds no Load Balancer.
-    Scene.expect(row('Database')).toExist(),
-    Scene.expect(row('Load Balancer')).toBeAbsent(),
+    Scene.expect(panel('resources')).toBeAbsent(),
+    Scene.expect(panel('users-region')).toBeAbsent(),
+    // It holds a Database, so that panel is there; it holds no Load Balancer.
+    Scene.expect(panel('database')).toExist(),
+    Scene.expect(panel('load-balancer')).toBeAbsent(),
   )
 })
 
@@ -1248,12 +1251,12 @@ test('a Region narrows the Users row and the Apdex the gauge reads', () => {
     { update, view },
     Scene.given(model),
     Scene.tap((simulation) => {
-      expect(Scene.findAll(simulation.html, '[data-panel="users"] tbody tr')).toHaveLength(4)
+      expect(Scene.findAll(simulation.html, '[data-panel="users-region"] tbody tr')).toHaveLength(4)
     }),
     Scene.change('[data-variable="region"] select', 'eu'),
     Scene.Command.resolve(AppendLog, Message.Synced()),
     Scene.tap((simulation) => {
-      const rows = Scene.findAll(simulation.html, '[data-panel="users"] tbody tr')
+      const rows = Scene.findAll(simulation.html, '[data-panel="users-region"] tbody tr')
       expect(rows).toHaveLength(1)
       expect(Scene.textContent(rows[0]!)).toContain(REGION_INFO.eu.name)
       expect(Scene.textContent(rows[0]!)).toContain(compact(regionUsers(game).eu))
