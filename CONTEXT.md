@@ -1,7 +1,7 @@
 # Quorum
 
-An incremental systems game. A player grows a startup by building and tuning the system that serves
-its users, one bottleneck at a time. The full design is in [the design document](https://wiki.playquorum.dev/design).
+An incremental systems design game. A player grows a startup by building and tuning the system that
+serves its users, one bottleneck at a time. The full design is in [the design document](https://wiki.playquorum.dev/design).
 
 This file is the game vocabulary. Code, UI copy, and the design documents use these words. Real
 engineering terms that the game teaches are in the

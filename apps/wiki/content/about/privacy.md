@@ -39,8 +39,8 @@ When you play, the game sends events to PostHog, our analytics processor:
 - While a Company is online, a nickname you choose, shown to the other players in the Room. It is
   stored by Cloudflare only while the Room lives, deleted with it, and never sent to PostHog.
 
-PostHog derives an approximate country from your IP address. The game does not send your IP address
-itself.
+PostHog derives an approximate country from your IP address and discards the address. The game does
+not send your IP address itself.
 
 ## What is not recorded
 
@@ -93,4 +93,4 @@ Open an issue at [github.com/elianiva/quorum](https://github.com/elianiva/quorum
 
 This page changes when the data changes. The date below is the last change.
 
-Last updated: 6 November 2026.
+Last updated: 10 November 2026.

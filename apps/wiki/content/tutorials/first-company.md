@@ -110,6 +110,6 @@ Press **H** at any time to open **How to play**. It lists the keys and the six c
 **Esc** with nothing open to reach the **Menu**.
 
 Quorum saves this Company every 5 sim seconds, and it stays in **Companies** when you start another
-from the title screen. If you played the playtest build, [Import your playtest save](/guides/import-your-playtest-save)
-moves it into the same list. [Your first bottleneck](/tutorials/first-bottleneck) picks up where this
-one stops, when the box runs out of something.
+from the title screen. [Move a Company to another browser](/guides/move-a-company) copies it as text
+for a backup or another browser. [Your first bottleneck](/tutorials/first-bottleneck) picks up where
+this one stops, when the box runs out of something.

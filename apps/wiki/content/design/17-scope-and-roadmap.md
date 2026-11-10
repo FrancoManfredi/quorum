@@ -155,6 +155,16 @@ Code: `simulation/exit.ts`, `founder.ts`, `founding.ts`, `playbook.ts`, `catalog
 - Playbooks with board multi-select and `QPB1:` text
 - 12 Ventures and 10 Mutators chosen on the title screen
 
+### Rooms
+
+Code: `game/room-machine.ts`, `platform/room-socket.ts`, `apps/backend/src/platform/room-object.ts`, `simulation/room.ts`
+
+- A Company goes online in a Room: a Durable Object that owns the Game and steps it while a Seat is connected.
+- Seats join with a six-character code. The owner's token claims the owner Seat; guests keep nothing.
+- A funding round and the end of a session are votes. The owner sets the speed and can remove a Seat.
+- The Room keeps the Company for 24 hours after the last Seat leaves. A deploy ends a Room whose rules are older.
+- The browser keeps the Company file. Taking the Company offline returns it to single-player with the progress from the last snapshot.
+
 ### Challenges
 
 Code: `simulation/challenges.ts`, `replay.ts`, and `components/lab/challenge.ts`
@@ -286,7 +296,6 @@ fix the loop before adding Components.
 
 ## Out of scope
 
-- Multiplayer and shared companies.
 - Accounts. Challenge histograms and server verification wait for them.
 - Paid currency of any kind.
 - A simulated Kubernetes cluster ([ADR 0022](https://github.com/elianiva/quorum/blob/main/docs/adr/0022-the-company-pauses-when-the-player-leaves.md)).

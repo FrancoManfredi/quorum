@@ -123,8 +123,8 @@ Each one forces a different Design.
 See the [Prestige](/prestige#mutators) reference for every Mutator and its share.
 
 :::Note{tone="tip"}
-Played Quorum during the playtest? [Import your playtest save](/guides/import-your-playtest-save)
-moves the old single save into the Companies list. That import is temporary.
+A Company file stays in this browser. [Move a Company to another browser](/guides/move-a-company)
+copies it as text before you clear site data.
 :::
 
 ## When to take an Exit

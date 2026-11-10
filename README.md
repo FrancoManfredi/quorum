@@ -3,8 +3,10 @@
 </p>
 
 <p align="center">
-  <b>An incremental systems game for software engineers.</b><br />
-  Play it at <a href="https://playquorum.dev">playquorum.dev</a>.
+  <b>An incremental systems design game for software engineers.</b><br />
+  <a href="https://playquorum.dev">Play</a> ·
+  <a href="https://wiki.playquorum.dev">Wiki</a> ·
+  <a href="https://github.com/elianiva/quorum">Source</a>
 </p>
 
 ---
@@ -13,10 +15,22 @@ You found a startup with one virtual machine in a garage. Users send requests. Y
 Components on a board, choose the language and runtime each server runs, and fix one bottleneck
 after another, until the company serves billions of people and goes public.
 
-Every mechanic models real behavior. PHP-FPM workers wait on the database. A Node.js event loop
-stalls on bcrypt. A JVM is slow until it warms up. A cache stampedes when it restarts. An average
-hides the p99. If you have been paged at 3 AM, you know the problems. The game asks you to fix
-them with numbers.
+Every mechanic is based on real system behavior. PHP-FPM workers wait on the database. A Node.js
+event loop stalls on bcrypt. A JVM is slow until it warms up. A cache stampedes when it restarts.
+An average hides the p99. If you have been paged at 3 AM, you know the problems. The game asks you
+to fix them with numbers.
+
+Quorum has no accounts. A Company lives in your browser, and you can copy it as text from
+Settings to move it or keep a backup. It runs in Chrome, Firefox, and Safari, and the Board needs
+WebGL. A larger screen gives the Board more room.
+
+## Wiki
+
+The [Quorum Wiki](https://wiki.playquorum.dev) is the manual and a free systems design reference.
+It explains every Component, every Incident, and the real behavior behind each rule. Start with
+[Play your first Company](https://wiki.playquorum.dev/tutorials/first-company), read
+[the design document](https://wiki.playquorum.dev/design), or check
+[the reality check](https://wiki.playquorum.dev/design/reality-check) before you trust a number.
 
 ![A Series A board: CDN and WAF in front of a load balancer, three Go App Servers, and a Database marked as the bottleneck](docs/images/board.png)
 
@@ -100,12 +114,12 @@ Mutators that make a Company harder for more Legacy.
 
 - **Sandbox.** Guided Sandboxes teach one mechanic each from a fixed Design, such as Connection
   Limit, Stampede, GC Pauses, or Hot Key. The free Sandbox has everything unlocked.
-- **Challenges.** Fixed puzzles scored on cost, tail latency, and complexity. The server re-runs
-  each Replay and places your result on a histogram of every player's best. You see a
-  percentile, never a rank.
+- **Challenges.** Fixed puzzles scored on cost, tail latency, and complexity. Your best result
+  stays in this browser. Server verification and percentiles wait for accounts.
 
 ## Learn more
 
+- [Wiki home](https://wiki.playquorum.dev) — the manual, the guides, and the reference.
 - [Game design document](https://wiki.playquorum.dev/design) — the full design, from simulation to balancing.
 - [Reality check](https://wiki.playquorum.dev/design/reality-check) — the real behavior behind each rule.
 - [Engineering glossary](https://wiki.playquorum.dev/glossary) — the engineering terms the game teaches.

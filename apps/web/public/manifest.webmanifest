@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Quorum",
   "short_name": "Quorum",
-  "description": "A systems design game for software engineers.",
+  "description": "An incremental systems design game for software engineers.",
   "lang": "en",
   "categories": ["games", "education"],
   "start_url": "/",

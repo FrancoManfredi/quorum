@@ -31,9 +31,9 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 | **Import a save**                     | Asks you to paste that text and loads it.                                             |
 | **Copy state as JSON**                | Copies the whole game state, for bug reports.                                         |
 
-Settings belong to the browser, not to a Company. Read [Import your playtest save](/guides/import-your-playtest-save) before you use **Import a save**, and the [privacy page](/about/privacy) for what the usage data holds.
+Settings belong to the browser, not to a Company. Read [Move a Company to another browser](/guides/move-a-company) before you use **Import a save**, and the [privacy page](/about/privacy) for what the usage data holds.
 
-The Menu also holds **Resume**, **Settings**, **Room**, **Export playtest log**, **Exit company** when you can exit, and **Title screen**. **Resume** and `Esc` return to the board.
+The Menu also holds **Resume**, **Settings**, **Room**, **Exit company** when you can exit, and **Title screen**. **Resume** and `Esc` return to the board. Read [Play in a Room](/play/rooms) before you take a Company online.
 
 ## Keys
 
