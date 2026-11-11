@@ -3,6 +3,7 @@
 - Read `docs/guardrails.md` for the enforced rules, and `CONTEXT.md` for the vocabulary code and copy use.
 - Follow `docs/writing.md` for any prose in the wiki, README, and ADRs.
 - Verify with `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm build`.
+- Write commit subjects as plain sentences, with no `feat:` or `chore:` prefix.
 - Never run `pnpm deploy` without explicit approval.
 - Use only `tsrs` and `effect-tsrs` for diagnostics. Never run `tsc`, `tsgo`, or `vp lint --type-check`; do not add `typescript` or turn on `typeCheck` in `vite.config.ts`.
 - If `vp lint` fails after an install that skipped scripts, run `pnpm exec effect-tsrs patch --oxlint`.
