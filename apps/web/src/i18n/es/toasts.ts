@@ -193,7 +193,6 @@ export const toasts: Messages['toasts'] = {
   copiedSave: 'Se copió la partida guardada como texto.',
   saveFailed:
     'El almacenamiento está lleno. La empresa no se guardó. Copia una copia de seguridad en Ajustes.',
-  noCompanyToImport: 'No hay ninguna empresa en la que importar.',
   saveImported: 'Partida guardada importada.',
   legacyCheat: '+20 de legado.',
   noRoundToSkip: 'No hay ninguna ronda a la que saltar.',

@@ -1850,13 +1850,52 @@ test('a save travels as one line of text, and only a save of this format opens i
 
   // The file picker is one command, and the picker answers with nothing when it closes.
   expect(update(playable, Message.SaveFileAsked()).commands).toEqual(
-    expect.arrayContaining([expect.objectContaining({ name: 'PickSaveFile' })]),
+    expect.arrayContaining([
+      expect.objectContaining({ name: 'PickSaveFile', args: { as: 'save' } }),
+    ]),
+  )
+  expect(update(playable, Message.CompanyFileAsked()).commands).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: 'PickSaveFile', args: { as: 'company' } }),
+    ]),
   )
   expect(update(playable, Message.SaveImported({ text: null })).model).toBe(playable)
 
   // There is nothing to export before a Company exists.
   expect(update(initialModel(), Message.SaveExported()).model.toast?.tone).toBe('warn')
   expect(update(initialModel(), Message.SaveDownloaded()).model.toast?.tone).toBe('warn')
+})
+
+test('a save imported with no Company open becomes a new Company', () => {
+  const game = { ...preseedGame(), cash: 777 }
+  const text = JSON.stringify({ format: SAVE_FORMAT, ...game })
+  const imported = update(initialModel(), Message.SaveImported({ text }))
+  expect(hasCompany(imported.model)).toBe(true)
+  expect(imported.model.toast?.tone).toBe('ok')
+  expect(imported.model.saves.companies).toHaveLength(1)
+  expect(imported.model.saves.companies[0]).toMatchObject({
+    name: 'Imported company',
+    venture: game.founding.venture,
+    stage: game.stage,
+    users: game.users,
+  })
+  expect(imported.model.saves.current).toBe(imported.model.saves.companies[0]?.id)
+  expect(imported.model.board.game.cash).toBe(777)
+  expect(imported.model.route).toEqual(AppRoute.Company())
+  // The new file reaches storage at once, so closing the tab keeps it.
+  expect((imported.commands ?? []).map((command) => command.name)).toContain('WriteCompany')
+})
+
+test('Import a company adds a Company beside the open one', () => {
+  const founded = update(initialModel(), Message.CompanyFounded()).model
+  const game = { ...preseedGame(), cash: 555 }
+  const text = JSON.stringify({ format: SAVE_FORMAT, ...game })
+  const imported = update(founded, Message.CompanyImported({ text }))
+  expect(imported.model.saves.companies).toHaveLength(2)
+  expect(imported.model.saves.current).not.toBe(founded.saves.current)
+  expect(imported.model.board.game.cash).toBe(555)
+  expect(hasCompany(imported.model)).toBe(true)
+  expect(imported.model.toast?.tone).toBe('ok')
 })
 
 test('a downloaded save takes the Company name, safe for a file system', () => {

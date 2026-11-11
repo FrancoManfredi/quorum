@@ -47,7 +47,7 @@ same JSON in `QSV1:` with base64url encoding, and carries the same format. **Dow
 writes that line to a file, and **Import a save file** reads one back. Import also takes a stored
 Company file as it is, so a player can move one by hand. It checks the format before decoding the
 Game; a mismatch leaves the open Company untouched, and a successful import clears the copy under
-`quorum.save.broken.v1`.
+`quorum.save.broken.v1`. With no Company open, an import adds one to the list and opens its Board.
 
 A later format change bumps `SAVE_FORMAT` and adds one migration from the previous format. No other
 module learns about an old shape ([ADR 0023](adr/0023-a-company-save-has-a-format.md)).

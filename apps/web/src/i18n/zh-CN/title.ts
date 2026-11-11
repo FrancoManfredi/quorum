@@ -4,6 +4,8 @@ export const title: Messages['title'] = {
   back: '返回',
   continueText: '继续',
   newCompany: '创办公司',
+  importACompany: '导入公司',
+  importedCompany: '导入的公司',
   startACompany: '创办公司',
   companies: '公司列表',
   startInPreSeed: '从天使轮起步',

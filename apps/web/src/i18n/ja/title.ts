@@ -4,6 +4,8 @@ export const title: Messages['title'] = {
   back: '戻る',
   continueText: '続ける',
   newCompany: '新しい会社',
+  importACompany: '会社を読み込む',
+  importedCompany: '読み込んだ会社',
   startACompany: '会社を始める',
   companies: '会社一覧',
   startInPreSeed: 'プレシードで開始',

@@ -192,7 +192,6 @@ export const toasts: Messages['toasts'] = {
   copiedSave: 'Sauvegarde copiée au format texte.',
   saveFailed:
     'Le stockage est plein. L’entreprise n’a pas été enregistrée. Copiez une sauvegarde dans Paramètres.',
-  noCompanyToImport: 'Il n’y a aucune entreprise dans laquelle importer.',
   saveImported: 'Sauvegarde importée.',
   legacyCheat: '+20 points d’héritage.',
   noRoundToSkip: 'Aucune levée disponible.',

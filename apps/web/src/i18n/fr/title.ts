@@ -5,6 +5,8 @@ export const title: Messages['title'] = {
   back: 'Retour',
   continueText: 'Continuer',
   newCompany: 'Nouvelle entreprise',
+  importACompany: 'Importer une entreprise',
+  importedCompany: 'Entreprise importée',
   startACompany: 'Créer une entreprise',
   companies: 'Entreprises',
   startInPreSeed: 'Commencer en pré-amorçage',

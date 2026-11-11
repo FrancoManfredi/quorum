@@ -316,6 +316,7 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
       },
       h,
     ),
+    row({ key: 'import', label: t.title.importACompany, message: Message.CompanyFileAsked() }, h),
     ...(count > 0
       ? [
           row(

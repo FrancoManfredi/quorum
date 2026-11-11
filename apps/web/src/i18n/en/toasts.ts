@@ -190,7 +190,6 @@ export const toasts = {
   noCompanyToExport: 'There is no Company to export.',
   copiedSave: 'Copied the save as text.',
   saveFailed: 'Storage is full. Your company was not saved. Copy a backup from Settings.',
-  noCompanyToImport: 'There is no Company to import into.',
   saveImported: 'Save imported.',
   legacyCheat: '+20 Legacy.',
   noRoundToSkip: 'No round to skip to.',

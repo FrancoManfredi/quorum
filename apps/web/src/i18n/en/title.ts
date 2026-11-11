@@ -2,6 +2,8 @@ export const title = {
   back: 'Back',
   continueText: 'Continue',
   newCompany: 'New company',
+  importACompany: 'Import a company',
+  importedCompany: 'Imported company',
   startACompany: 'Start a company',
   companies: 'Companies',
   startInPreSeed: 'Start in Pre-seed',

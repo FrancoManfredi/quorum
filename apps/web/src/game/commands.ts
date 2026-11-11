@@ -630,11 +630,18 @@ const pickSaveText = (): Promise<string | null> =>
     input.click()
   })
 
-/** Opens the browser's file picker and hands back the save file it reads. */
+/**
+ * Opens the browser's file picker and hands back the save file it reads. `as` says what the file
+ * becomes: the save of the open Company, or a Company of its own on the list.
+ */
 export const PickSaveFile = Command.define('PickSaveFile', {
-  args: {},
-  messages: [Message.SaveImported],
-  execute: () => Effect.promise(async () => Message.SaveImported({ text: await pickSaveText() })),
+  args: { as: Schema.Literals(['save', 'company']) },
+  messages: [Message.SaveImported, Message.CompanyImported],
+  execute: ({ as }) =>
+    Effect.promise(async () => {
+      const text = await pickSaveText()
+      return as === 'company' ? Message.CompanyImported({ text }) : Message.SaveImported({ text })
+    }),
 })
 
 export const AskPlaybook = Command.define('AskPlaybook', {

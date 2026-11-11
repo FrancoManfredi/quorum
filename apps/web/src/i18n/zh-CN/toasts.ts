@@ -172,7 +172,6 @@ export const toasts: Messages['toasts'] = {
   noCompanyToExport: '没有可导出的公司。',
   copiedSave: '已将存档复制为文本。',
   saveFailed: '存储空间已满。公司未能保存。请在设置中复制备份。',
-  noCompanyToImport: '没有可导入的公司。',
   saveImported: '存档已导入。',
   legacyCheat: '+20 传承。',
   noRoundToSkip: '没有可跳转的融资轮次。',

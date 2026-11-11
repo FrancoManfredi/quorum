@@ -15,13 +15,16 @@ import { Message } from '../message.ts'
 import { Model, currentFile, hasCompany, offCompany, playingId } from '../model.ts'
 import { Result } from 'effect'
 import { cheatCash, cheatInsight } from '../cheats.ts'
-import { decodeSave, encodeSave, saveFileName } from '../save-file.ts'
+import { decodeSave, encodeSave, readSaveFile, saveFileName } from '../save-file.ts'
+import { fileFor, newSaveId, withFile } from '../saves.ts'
+import { step } from '../company-machine.ts'
 import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { firstQuarter } from '@quorum/simulation/quarters'
 import { forceIncident } from '@quorum/simulation/director'
 import {
   freshBoard,
   say,
+  saveCommands,
   savePayloadOf,
   toasted,
   withToast,
@@ -43,6 +46,8 @@ type SaveTag =
   | 'SaveImportAsked'
   | 'SaveFileAsked'
   | 'SaveImported'
+  | 'CompanyFileAsked'
+  | 'CompanyImported'
   | 'CheatCash'
   | 'CheatInsight'
   | 'CheatLegacy'
@@ -52,6 +57,71 @@ type SaveTag =
   | 'StateCopied'
   | 'AgentRoomCopied'
   | 'LogCleared'
+
+/** A save with no Company open becomes one: a file on the list, opening under its seed's id. */
+const adopt = (model: Model, json: string): Model => {
+  const read = readSaveFile(json)
+  if (Result.isFailure(read)) return model
+  const game = read.success.game
+  const file = fileFor({
+    id: newSaveId(model.saves.companies, game.seed),
+    name: say(model).title.importedCompany,
+    logo: model.draft.logo,
+    founding: game.founding,
+    game,
+    now: Date.now(),
+  })
+  return {
+    ...model,
+    saves: { ...withFile(model.saves, file), current: file.id },
+    companyPhase: step(model.companyPhase, { _tag: 'Open', id: file.id }),
+  }
+}
+
+/**
+ * Puts an imported save on the board. `asNew` adds it to the list as a Company of its own; without
+ * it the save replaces the open Company, or becomes one when no Company is open.
+ */
+const applyImport = (
+  model: Model,
+  route: Dispatch,
+  text: string | null,
+  asNew: boolean,
+): UpdateResult => {
+  if (text === null) return { model }
+  if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
+  const decoded = decodeSave(text)
+  if (Result.isFailure(decoded))
+    return withToast(model, reasonIn(say(model), decoded.failure), 'warn')
+  const fresh = asNew || playingId(model) === null
+  const started = fresh ? adopt(model, decoded.success) : model
+  const id = fresh ? started.saves.current : playingId(model)
+  if (id === null) return { model: started }
+  // The save loads as it does when the Company opens, on a fresh board: the open Company's
+  // undo stack and Inspector history belong to the Company the import replaces.
+  const loaded = route(started, Message.CompanyLoaded({ id, open: fresh, json: decoded.success }))
+  const board = loaded.model.board
+  const [next, clear] = toasted(
+    {
+      ...loaded.model,
+      board: {
+        ...freshBoard(board.game),
+        disclosure: board.disclosure,
+        dashboard: board.dashboard,
+        inbox: board.inbox,
+        clock: board.clock,
+      },
+    },
+    say(model).toasts.saveImported,
+    'ok',
+  )
+  // The import is the save now, so the copy kept for the last unreadable file is dead weight.
+  return {
+    ...loaded,
+    model: next,
+    commands: [...(loaded.commands ?? []), ...saveCommands(next), ClearBrokenSave({}), clear],
+  }
+}
 
 export const saveHandlers = (
   model: Model,
@@ -94,41 +164,16 @@ export const saveHandlers = (
   SaveFileAsked: () =>
     offCompany(model)
       ? withToast(model, say(model).toasts.noSaveHere, 'warn')
-      : { model, commands: [PickSaveFile({})] },
+      : { model, commands: [PickSaveFile({ as: 'save' })] },
 
-  SaveImported: ({ text }) => {
-    if (text === null) return { model }
-    if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
-    const id = playingId(model)
-    if (id === null) return withToast(model, say(model).toasts.noCompanyToImport, 'warn')
-    const decoded = decodeSave(text)
-    if (Result.isFailure(decoded))
-      return withToast(model, reasonIn(say(model), decoded.failure), 'warn')
-    // The save loads as it does when the Company opens, on a fresh board: the open Company's
-    // undo stack and Inspector history belong to the Company the import replaces.
-    const loaded = route(model, Message.CompanyLoaded({ id, open: false, json: decoded.success }))
-    const board = loaded.model.board
-    const [next, clear] = toasted(
-      {
-        ...loaded.model,
-        board: {
-          ...freshBoard(board.game),
-          disclosure: board.disclosure,
-          dashboard: board.dashboard,
-          inbox: board.inbox,
-          clock: board.clock,
-        },
-      },
-      say(model).toasts.saveImported,
-      'ok',
-    )
-    // The import is the save now, so the copy kept for the last unreadable file is dead weight.
-    return {
-      ...loaded,
-      model: next,
-      commands: [...(loaded.commands ?? []), ClearBrokenSave({}), clear],
-    }
-  },
+  SaveImported: ({ text }) => applyImport(model, route, text, false),
+
+  CompanyFileAsked: () =>
+    offCompany(model)
+      ? withToast(model, say(model).toasts.noSaveHere, 'warn')
+      : { model, commands: [PickSaveFile({ as: 'company' })] },
+
+  CompanyImported: ({ text }) => applyImport(model, route, text, true),
 
   CheatCash: () => {
     const next: Model = {

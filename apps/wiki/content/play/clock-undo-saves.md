@@ -73,6 +73,8 @@ The browser keeps any number of Companies. Open the title screen with **Menu (Es
 2. Press **Download save file**. The browser saves one text file, named after the Company, and the game stays open.
 3. To load it, open **Settings**, press **Import a save file**, and pick the file.
 
+On a browser with no Company, choose **Import a company** on the title screen instead. The game adds the file as a new Company and opens its Board.
+
 **Copy save as text** puts the same line on the clipboard, and **Paste a save** takes a line back from the clipboard. The text pair suits a chat message. The file pair suits a move between browsers or devices, because the file outlives the browser that wrote it.
 
 A good import ends with **Save imported.** and replaces the open Company with the file. The old state is gone, so export a Company before you import over it. Failures say why:

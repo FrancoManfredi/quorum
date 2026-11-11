@@ -8,6 +8,8 @@ export const saveCases = {
   SaveImportAsked: {},
   SaveFileAsked: {},
   SaveImported: { text: Schema.NullOr(Schema.String) },
+  CompanyFileAsked: {},
+  CompanyImported: { text: Schema.NullOr(Schema.String) },
 
   CheatCash: {},
   CheatInsight: {},

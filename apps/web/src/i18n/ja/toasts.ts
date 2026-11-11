@@ -183,7 +183,6 @@ export const toasts: Messages['toasts'] = {
   copiedSave: 'セーブをテキストとしてコピーしました。',
   saveFailed:
     'ストレージがいっぱいです。会社は保存されませんでした。設定からバックアップをコピーしてください。',
-  noCompanyToImport: '読み込み先の会社がありません。',
   saveImported: 'セーブを読み込みました。',
   legacyCheat: '+20レガシー。',
   noRoundToSkip: 'スキップできるラウンドがありません。',
