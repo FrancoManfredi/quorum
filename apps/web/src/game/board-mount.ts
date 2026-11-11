@@ -7,6 +7,7 @@ import { attachBoard } from '@quorum/ui/board/board'
 import { copy } from '@/i18n/messages.ts'
 import { Message } from './message.ts'
 import { play } from './sound.ts'
+import { reportBoardFailure } from '@/platform/sentry.ts'
 import { hideCursor, sendCursor } from '@/platform/room-socket.ts'
 
 type BoardMessage =
@@ -53,6 +54,7 @@ const BoardMounted = Mount.defineStream('BoardMounted', {
               onCursor: sendCursor,
               onCursorGone: hideCursor,
               onSound: play,
+              onStartFailed: reportBoardFailure,
             }),
           ),
           (detach) => Effect.sync(detach),

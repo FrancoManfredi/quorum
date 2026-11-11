@@ -45,6 +45,7 @@ export const attachBoard = (key: string, host: HTMLElement, events: BoardEvents)
   controller.start(desired.get(key)).catch((error: unknown) => {
     console.error(`Quorum: the "${key}" board failed to start`, error)
     host.dataset['boardUnavailable'] = 'error'
+    events.onStartFailed?.(error)
   })
   return () => {
     controller.destroy()

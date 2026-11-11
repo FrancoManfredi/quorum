@@ -29,6 +29,8 @@ export type BoardEvents = Readonly<{
   ) => void
   /** The pointer left the Board or the window, so the other Seats stop drawing it. */
   onCursorGone?: () => void
+  /** The renderer failed to start, so the host can report why. */
+  onStartFailed?: (error: unknown) => void
   onSound?: (sound: BoardSound, pitch?: number, spatial?: boolean) => void
 }>
 

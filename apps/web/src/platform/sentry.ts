@@ -95,6 +95,15 @@ export const reportSlow = (context: Runtime.SlowContext<Model, Message>): void =
   })
 }
 
+/** The Board's renderer failed to start, such as under a CSP that forbids eval. */
+export const reportBoardFailure = (error: unknown): void => {
+  if (!DSN) return
+  Sentry.captureException(error, {
+    level: 'error',
+    tags: { board: 'start-failed' },
+  })
+}
+
 /**
  * A failed survey submission. The report carries the Exit's labels and one sentence, never the
  * answers or the RPC error: a transport error can hold the request body.
