@@ -26,6 +26,10 @@ pool. Research costs Insight from named pools ([Progression](/design/10-progress
 new Era's research needs that Era's traffic. This is the Factorio science pack pattern, with request
 kinds as the packs ([Influences](/design/02-influences#research-in-factory-games)).
 
+The mix sets how much of each kind the Company serves. A kind at 6% of the mix earns 6% of its
+samples, so a Study that names it runs slowly. A **Product lever** raises that share
+([Progression](/design/10-progression#product-levers)).
+
 ```latex
 \begin{aligned}
 \text{sampled} \left(c ,\  \text{kind}\right) &= \sum_{\text{tapped Nodes of c}} \lambda \left(\text{node} ,\  \text{kind}\right) \times \text{sample rate} \\
@@ -67,7 +71,8 @@ The rules behind the formula:
 kind. The Design carries load the player cannot explain, and a new path or region starts that way
 until a tap watches it. The Analytics card and the Research screen show that share as unclassified,
 with the fix: link a tap to the path. It is the first thing to check when research drags, because a
-rate of zero there can hide a kind the next Study asks for.
+rate of zero there can hide a kind the next Study asks for. A pool that is sampled but still earns
+too little shows the Product lever that raises it.
 
 ### The cost of seeing
 
@@ -113,6 +118,26 @@ minute. Both push the Design past its limits on purpose, so both pay Failure Ins
 they run, on top of whatever the failures they cause earn through Analytics. An experiment that
 Chaos engineering schedules pays for the 10 seconds it runs
 ([Progression](/design/10-progression#track-reliability)).
+
+## The Insight bottleneck
+
+A Study runs at the pace of its scarcest pool. The pool whose earning rate costs the Study the most
+time is its **Insight bottleneck**. For each pool in the recipe:
+
+```latex
+\text{pace} \left(\text{pool}\right) = \operatorname{min} \left(1{,}\ \frac{\text{earn} \left(\text{pool}\right)}{\text{draw} \left(\text{pool}\right)}\right)
+```
+
+The Study's pace is the lowest of those, and the screen marks that pool. It names the rate the Study
+draws, the rate the pool earns, and the Product lever that raises it
+([Progression](/design/10-progression#product-levers)). This is the research version of the Bottleneck
+marker: the Board names the Node that costs the most revenue, and Research names the pool that costs
+the most time.
+
+The player has three fixes: build a lever, buy more samples with a higher sample rate or another
+Component type, or study a different item while the kind grows. A pool that earns nothing is a stall
+or an untapped path, not a bottleneck: either the kind is not served yet, or no tap samples it. No
+lever can raise a kind the Company does not serve.
 
 ## The visibility ladder
 

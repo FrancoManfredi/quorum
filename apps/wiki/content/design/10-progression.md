@@ -1,17 +1,19 @@
 ---
 title: 10. Progression
-summary: Eras, the research tree, product features, and pacing targets.
+summary: Eras, the research tree, product features, product levers, and pacing targets.
 section: design
 order: 10
 ---
 
-Progression has three layers inside a company:
+Progression has four layers inside a company:
 
 1. **Eras** gate content by company stage. They decide which request kinds arrive and which research
    is available.
 2. **Research** spends Insight to unlock Components, variants, techniques, and visibility.
 3. **Features** spend Dev Hours to grow the market and change the request mix
    ([Team and velocity](/design/08-team-and-velocity#features)).
+4. **Product levers** spend Dev Hours to raise one request kind's share of the mix
+   ([Product levers](#product-levers)).
 
 Above the company, [Exit and Legacy](/design/13-prestige) carries progress between companies.
 
@@ -33,7 +35,7 @@ Market size is multiplied by features, regions, and Venture rules. It caps user 
 
 ### Request mix by Era
 
-Shares of demand, in percent. Features and Ventures shift these shares.
+Shares of demand, in percent. Features, Product levers, and Ventures shift these shares.
 
 | Kind     | Garage | Pre-seed | Seed | Series A | Series B | Series C+ |
 | -------- | ------ | -------- | ---- | -------- | -------- | --------- |
@@ -55,6 +57,59 @@ Shares of demand, in percent. Features and Ventures shift these shares.
 | `hook`   |        |          |      |          |          | 2         |
 | `push`   |        |          |      |          |          | 2         |
 
+### Product levers
+
+A **Product lever** is a product change that raises one request kind's share of the mix. It answers a
+small pack. A default recipe paid by `login` at 6% runs at √6 while the other pool runs at √15, so
+every Pre-seed Study is slow. A lever is how the player makes more `login`.
+
+A lever never creates a kind. A kind still arrives with its Era and the Feature that brings it
+([Features](/design/08-team-and-velocity#features)). Twelve kinds have a lever: every kind except
+`page`, `read`, `write`, `bot`, and `bid`. The first three are 8% of the mix or more and are never
+the scarcest pool in a default recipe, so a lever there would be a growth lever in disguise. No
+recipe pays for `bot` or `bid`.
+
+| Kind     | Owner              | The product change                                     | Base share |
+| -------- | ------------------ | ------------------------------------------------------ | ---------- |
+| `login`  | Password login     | Short sessions, re-auth on a new device, step-up auth  | 6%         |
+| `search` | Search filters     | A search box on every page, then search-as-you-type    | 10%        |
+| `upload` | Profile photos     | Avatars, covers, galleries, several variants per image | 7%         |
+| `media`  | Video              | Autoplay and recommendations                           | 10%        |
+| `rt`     | Chat               | Presence, typing indicators, online dots               | 8%         |
+| `buy`    | Checkout           | An upsell, one-click checkout, cart recovery           | 3%         |
+| `job`    | Data export        | Nightly exports, digests, backfills                    | 2%         |
+| `report` | Dashboards         | Auto-refresh and scheduled reports                     | 3%         |
+| `ai`     | AI assistant       | A suggestion in every editor, summaries                | 5%         |
+| `feed`   | Activity feed      | The feed opens on every visit                          | 8%         |
+| `hook`   | Webhooks           | A webhook for every event                              | 2%         |
+| `push`   | Push notifications | A push for every event                                 | 2%         |
+
+The base share is the Era's share when the kind arrives.
+
+The rules:
+
+1. A lever has three steps. Each step multiplies the kind's share by 2, 3, then 4, and the card shows
+   the resulting share.
+2. The shares renormalize. The added share comes from the other kinds in proportion to their shares,
+   so the lever does not change total requests. A user's attention is fixed at `R_user`, and the mix
+   says where it goes.
+3. The added requests are marginal. They earn the value of the traffic they displace, so revenue per
+   user stays flat. Their load is the kind's own cost profile, so a `login` or `upload` lever lands
+   on the App Servers.
+4. A step costs 24, 80, or 240 Dev Hours and lowers user growth by 1%, 2%, or 4%. It lands on the
+   next deploy for every user, not over adoption. Removing a step refunds half its Dev Hours and
+   ends its growth cost.
+5. Era gates the steps: the first in the kind's Era, the second one Era later, and the third two Eras
+   later.
+6. A Venture can cap a lever at its first step when the product change contradicts the Venture
+   ([Ventures](/design/13-prestige#ventures)).
+7. A lever is not a Feature. Its effect is certain, it pays no upkeep, and the Service that carries
+   the kind's Feature carries its code.
+
+The Research screen shows each pool's earning rate against the Study's draw and the lever that raises
+it ([The Insight bottleneck](/design/12-observability#the-insight-bottleneck)). A recipe splits its
+cost equally, so it wants equal supply from each pool. A lever is how the player reaches that ratio.
+
 ### Era 0: Garage
 
 Garage is the tutorial, without tutorial screens. A player who wants to learn a later Era's mechanics first
@@ -70,6 +125,8 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
      own Node. It is the classic first scaling step.
   5. Research "DNS round robin" or "Load balancing" and add a second App Server.
 - **The lesson.** Vertical scaling first, then the first horizontal step. Measure income per second.
+- **New levers.** None. `page` and `read` are the whole mix, so a lever would only move share between
+  them.
 - **Unlocks available.** Stack: PHP-FPM, OPcache, Laravel, Ruby with Rails, Node.js with Express.
   Components: DNS, Load Balancer.
 
@@ -82,6 +139,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
   database.
 - **New systems.** Hiring and Dev Hours ([Team](/design/08-team-and-velocity)). Incidents begin, with
   types up to SEV2 only ([Incidents](/design/11-incidents#catalog)).
+- **New levers.** `login` gets the first one: sessions can expire.
 - **Unlocks available.** Cache, Connection Pooler, Read Replica, CI/CD Pipeline, Auth Provider,
   percentiles, alerting, Python, Node.js cluster mode.
 
@@ -91,6 +149,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
   `upload` is CPU-heavy and large. `bot` earns nothing and costs capacity.
 - **New problems.** One App Server type cannot serve all kinds well. Work must be separated: CPU work
   to Workers through a Queue, bots blocked at the edge, payloads moved to Object Storage.
+- **New levers.** `search` and `upload`.
 - **Unlocks available.** WAF, CDN, Search Engine, Object Storage, Queue, Worker, distributed tracing,
   Go, Java, C#.
 
@@ -106,6 +165,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
 - **New systems.** Zones ([Components](/design/05-components#zones-and-regions)), pricing models
   ([Economy](/design/09-economy#pricing-models)), SLOs and error budgets
   ([Incidents](/design/11-incidents#slos-and-error-budgets)), team types.
+- **New levers.** `media`, `rt`, and `buy`.
 - **Unlocks available.** Multi-zone, Kubernetes, Autoscaler, Serverless Functions, Realtime Hub,
   Document Store, Payment Provider, Feature Flags, canary deploys, Elixir, Rust.
 
@@ -116,6 +176,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
 - **New problems.** Analytics and transactions must separate. GPU cost per prompt decides whether
   `ai` makes money. The team passes 15 people and coordination drops velocity.
 - **New systems.** Service splits ([Team](/design/08-team-and-velocity#services)), data pipelines.
+- **New levers.** `job`, `report`, and `ai`.
 - **Unlocks available.** Data Warehouse, Event Stream, CDC Connector, GPU Node, LLM API, Vector Index,
   Service Mesh, sharding, ARM instances.
 
@@ -127,6 +188,7 @@ plays its [Sandbox track](/design/14-challenges#sandbox-tracks).
   outages begin.
 - **New systems.** Regions as separate boards, Users per region
   ([Simulation](/design/04-simulation#going-global)), GeoDNS, regional demand peaks (follow the sun).
+- **New levers.** `feed`, `hook`, and `push`.
 - **Unlocks available.** Multi-region, GeoDNS, Infrastructure as code (Mirror a region), Anycast,
   Wide-column Store, Distributed SQL, Edge Functions, HTTP/3, hedged requests.
 
@@ -176,7 +238,8 @@ The track tables below list every item the game offers: 203 items across 10 trac
 
 The ◇ column in the track tables is an item's total cost. Its **recipe** says which Insight pools
 pay it ([Observability](/design/12-observability#earning-insight)). The cost is split equally across
-the pools in the recipe.
+the pools in the recipe. The equal split is also the mix the item wants: a Study runs at the rate of
+its scarcest pool, so equal supply from each pool is the target ([Product levers](#product-levers)).
 
 Until Seed, the default recipe is the request kinds that the item's Era brings. From Series A, it is
 the kinds of the Era before. A Series A kind such as `buy` arrives only when its Feature ships, and
@@ -195,15 +258,18 @@ the Checkout Feature itself needs research, so a Series A default of `buy` could
 
 A player cannot study Series B research before Series A's Features bring their traffic, and more
 `page` traffic never buys it. Items that teach a new kind's problem ask for that kind, so the player
-ships the Feature first. The Feature is the production line for that kind's Insight, and no item a
-Feature needs costs the kind that Feature brings.
+ships the Feature first. A kind arrives with its Era or its Feature, and its Product lever sets how
+much of it the product makes. No item a Feature needs costs the kind that Feature brings. A lever
+raises a kind the Company already serves; it never unlocks one.
 
 A Venture's request mix changes which recipes are cheap. Fintech serves 4× `buy`, so its Series A
 research is fast. Every Venture serves every request kind, so every recipe can be paid.
 
 **Every Era's packs stay payable.** An Era's default recipe kinds keep enough of its demand that a
 median Study of that Era takes about a base duration at the Era's top traffic. A pack with a small
-share of the mix slows every Study of its Era; a pack with none stalls the queue.
+share of the mix slows every Study of its Era; a pack with none stalls the queue. Every scarce kind a
+default recipe names has a Product lever, so a pack with a small share is a development target rather
+than a permanent tax.
 
 **Reliability track rule.** Half of every Reliability item's cost is Failure Insight. The other half
 uses the item's recipe.
@@ -324,6 +390,11 @@ the requirement, such as 47% of 60% of a Database's work on reads, and **Queue S
 in the queue to start when the Design clears it. Queueing a stalled item says the same. While the
 running Study is stalled, a teammate's Mail waits in Needs action with an Open Research button; its
 Thread resolves when the Study moves again or leaves the queue.
+
+A Study that runs but runs slowly has an **Insight bottleneck**: the pool whose earning rate costs it
+the most time ([Observability](/design/12-observability#the-insight-bottleneck)). The item's sidebar
+names that pool, the rate the Study draws, the rate the pool earns, and the lever that raises it. The
+player can queue the lever while the Study runs. The pace follows when the lever's deploy lands.
 
 `speed` is 1, and two things raise it:
 
