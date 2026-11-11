@@ -269,7 +269,9 @@ The [balancing document](/design/16-balancing) records the live tuning and what 
   verification and histograms. Those contracts go in `packages/rpc` and their handlers in `apps/backend`, as the repository
   guide requires.
 - Content is data. A new Component, runtime, kind, incident, or research item is a catalog entry plus,
-  at most, one new rule in the solver.
+  at most, one new rule in the solver. A Product lever is a catalog entry per kind: its steps, its
+  Dev Hours, and its growth cost. The solver applies the mix after the Era and the Venture, before
+  the Features' unlocks and load.
 
 ## Milestones
 
@@ -288,6 +290,7 @@ and the [dominance rule](/design/16-balancing#dominance) holding for the content
 | M7  | Exit and Legacy              | Exits, the Legacy shop, Playbooks, Ventures, Mutators, company history                                                                                                                                                                   | Second company 3–6 hours                                                                                                                                                            |
 | M8  | Challenges                   | Challenge mode and the daily drill, scored in the browser                                                                                                                                                                                | Golden-hash replays match in Chromium, Firefox, WebKit, and the API Worker runtime ([Determinism](/design/04-simulation#determinism-and-randomness))                                |
 | M9  | Polish                       | Accessibility, sound, achievements, the glossary catalog                                                                                                                                                                                 | Accessibility checklist passes                                                                                                                                                      |
+| M10 | Product levers               | The twelve levers, their backlog items, the Insight bottleneck and its Build button in the Research screen                                                                                                                               | The Balanced bot raises the lever of the pool that limits its Study. `research.test.ts` asserts every default recipe pool has one                                                   |
 
 **Vertical slice gate.** The catalog is large, so no content for M5 or later is written until M2 is
 playable and a playtest shows that players meet a new bottleneck every few minutes
@@ -316,3 +319,4 @@ fix the loop before adding Components.
 | Does the free Sandbox spoil discovery?                                          | It unlocks everything from the start. Fallback: unlock each Component in the free Sandbox when the player meets it in a Company or a guided Sandbox.                                                                                                                                                                       |
 | Does the Dashboard pull players off the Board?                                  | The Dashboard shows only history ([Observability](/design/12-observability#the-dashboard)). Playtest: count how often players find the bottleneck from the Dashboard instead of the Board. If it is more than one time in five, remove the per-Node Charts from the Overview row.                                          |
 | Should the Public Era have an end?                                              | No end, but the Step down Exit gives a natural stopping point with a score.                                                                                                                                                                                                                                                |
+| Does the mix become too controllable?                                           | Zero-sum shares, Dev Hours, and the growth cost are the brakes. Playtest: do players plan a mix for the Era's recipes, or flip a lever for every Study? If they flip, give each step an adoption ramp.                                                                                                                     |

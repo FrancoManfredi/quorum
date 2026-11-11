@@ -8,9 +8,10 @@ order: 16
 Every formula and tunable constant is here, with the checks that hold balance in place.
 
 **Source of truth.** The build is normative: every number below is checked against the catalog in
-`packages/simulation/src/catalog` at the build this page ships with. [Live tuning](#live-tuning)
-names the knobs and why they sit where they do, and [What the checks cover](#what-the-checks-cover)
-says what each automated check asserts. Numbers measured from the build are in
+`packages/simulation/src/catalog` at the build this page ships with, apart from the Product lever
+rows, which are design targets until the mechanic ships. [Live tuning](#live-tuning) names the knobs
+and why they sit where they do, and [What the checks cover](#what-the-checks-cover) says what each
+automated check asserts. Numbers measured from the build are in
 [Measurements](/design/measurements).
 
 ## Number ranges
@@ -47,6 +48,10 @@ Formatting: SI suffixes only (k, M, B, T). No letter suffixes such as "aa".
 | Default retention         |                | 15 min; pool cap at least 100                                                | [Observability](/design/12-observability#retention)                        |
 | Study duration            |                | 20 s (Garage) to 60 min (Public)                                             | [Progression](/design/10-progression#studies)                              |
 | Spike speed               |                | 2×                                                                           | [Team](/design/08-team-and-velocity#spikes)                                |
+| Lever steps               |                | ×2, ×3, ×4 of the kind's share                                               | [Product levers](#product-levers)                                          |
+| Lever Dev Hours           |                | 24, 80, 240                                                                  | [Product levers](#product-levers)                                          |
+| Lever growth              |                | 0.99, 0.98, 0.96                                                             | [Product levers](#product-levers)                                          |
+| Lever refund              |                | half its Dev Hours                                                           | [Product levers](#product-levers)                                          |
 | Growth rate               | `g`            | See [User growth](#user-growth)                                              |                                                                            |
 | Churn rate                | `c`            | 0.004/s                                                                      | [User growth](#user-growth)                                                |
 | Declined-round growth     |                | 0.7 × `g`                                                                    | [Funding](/design/09-economy#funding)                                      |
@@ -106,6 +111,50 @@ Four rows describe the Features lifecycle: adoption time, lift spread, the upkee
 market gain cap. Adoption time is exact arithmetic, stepped a Step at a time, so the 63% after a
 week is the continuous curve's figure rather than a closed form. The market gain cap holds the
 Features' market gains together at +100% of the Era's market.
+
+## Product levers
+
+A Product lever moves one Request kind's share of the mix. The three steps multiply the kind's share
+by 2, 3, and 4, and the other kinds give up the difference in proportion to their shares
+([Simulation](/design/04-simulation#the-request-mix)). The shares below are the target at the kind's
+arrival Era with no other lever active.
+
+| Kind     | Base | Step 1 | Step 2 | Step 3 | App CPU per request |
+| -------- | ---- | ------ | ------ | ------ | ------------------- |
+| `login`  | 6%   | 12%    | 18%    | 24%    | 80 ms               |
+| `search` | 10%  | 20%    | 30%    | 40%    | 3 ms                |
+| `upload` | 7%   | 14%    | 21%    | 28%    | 120 ms              |
+| `media`  | 10%  | 20%    | 30%    | 40%    | 1 ms                |
+| `rt`     | 8%   | 16%    | 24%    | 32%    | 0.3 ms              |
+| `buy`    | 3%   | 6%     | 9%     | 12%    | 5 ms                |
+| `job`    | 2%   | 4%     | 6%     | 8%     | 400 ms              |
+| `report` | 3%   | 6%     | 9%     | 12%    | 20 ms               |
+| `ai`     | 5%   | 10%    | 15%    | 20%    | 5 ms                |
+| `feed`   | 8%   | 16%    | 24%    | 32%    | 6 ms                |
+| `hook`   | 2%   | 4%     | 6%     | 8%     | 2 ms                |
+| `push`   | 2%   | 4%     | 6%     | 8%     | 0.5 ms              |
+
+The Dev Hours and the growth cost are the same for every kind: 24, 80, or 240 Dev Hours, and 1%, 2%,
+or 4% off growth. The load is the kind's own profile, so the last column is the price of a step.
+
+**The Pre-seed check.** At 7,000 users and the 20\:00 peak, demand is 203 rps. `login` is 6%, 12 rps at
+80 ms, just under one core, a quarter of a 4-vCPU App Server. The default recipe is `write` (15%) and
+`login`, so the Study runs at √6 against √15. Step 1 takes `login` to 12%, 24 rps, about 1.95 cores.
+The pool earns √12, so the Study runs 1.41× faster, and the App Server spends half its box on
+password hashes. Step 2 takes `login` to 18%. The other kinds give up the difference, so `write` falls
+to about 13% and becomes the limit.
+
+**The Seed check.** At 35,000 users and the peak, demand is 1,015 rps. `upload` is 7%, 71 rps at
+120 ms, about 8.5 cores. Step 1 takes it to 14%, 17 cores, and the pool earns 41% more. The board
+needs two more medium App Servers, or a Worker behind a Queue, because 120 ms of resize on the request
+path is the wrong shape by Seed.
+
+**The revenue check.** A lever's added traffic earns the value of the traffic it displaces. Without
+that rule, a `buy` lever at Series A would take revenue per user to 3.05 times its current level,
+because a checkout is worth $25 and the traffic it displaces is worth about $1. The rule keeps the
+lever a research investment, not a growth exploit.
+
+The levers are design targets. The catalog does not carry them until the mechanic ships.
 
 ## Prices
 
@@ -369,12 +418,12 @@ Both share the calendar pace, so a calendar day lasts 60 sim seconds. The `tunin
 The cost index, the salary index, and the speeds are one value each, set per Era or per perk rather
 than per tuning:
 
-| Knob           | Value                                                           | Why                                                                                                                                               | Constant                    |
-| -------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Cost index     | 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24                              | Rises with the Era so Burn stays a real share of revenue at every size of company                                                                 | `EraDef.costIndex`          |
-| Salary index   | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24      | Payroll has to stay a real share of Burn at the prices the player pays                                                                            | `EraDef.salaryIndex`        |
-| Company speeds | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation               | A slower speed for watching a Design settle, faster ones for the late Eras                                                                        | `SPEEDS`, `DILATION_SPEEDS` |
-| Request mix    | [Request mix by Era](/design/10-progression#request-mix-by-era) | `login` and `upload` cost 80 and 120 ms of CPU, so an Era that keeps under 5% of either starves its Insight pool and every Study that draws on it | `EraDef.mix`                |
+| Knob           | Value                                                           | Why                                                                                                                                                                                 | Constant                    |
+| -------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Cost index     | 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24                              | Rises with the Era so Burn stays a real share of revenue at every size of company                                                                                                   | `EraDef.costIndex`          |
+| Salary index   | follows the cost index: 1 / 4 / 8 / 12 / 16 / 20 / 24 / 24      | Payroll has to stay a real share of Burn at the prices the player pays                                                                                                              | `EraDef.salaryIndex`        |
+| Company speeds | 0.5×, 1×, 3×, 10×; 20× and 40× with Time dilation               | A slower speed for watching a Design settle, faster ones for the late Eras                                                                                                          | `SPEEDS`, `DILATION_SPEEDS` |
+| Request mix    | [Request mix by Era](/design/10-progression#request-mix-by-era) | `login` and `upload` cost 80 and 120 ms of CPU, so an Era that keeps under 5% of either starves its Insight pool and every Study that draws on it. The Product lever is the way out | `EraDef.mix`                |
 
 ## What the checks cover
 
@@ -383,6 +432,8 @@ than per tuning:
 - `breadth.test.ts` asserts determinism, finite numbers and save round trips across the whole
   catalog; it also runs under `FULL_TESTS=1`.
 - `research.test.ts` asserts each Era's mix sums to one, and that the Era introducing `login` and
-  `upload` keeps a real share of each, so their Insight pools do not dry up.
+  `upload` keeps a real share of each, so their Insight pools do not dry up. When Product levers
+  ship, it also asserts every pool a default recipe names has one, and every step keeps the mix at
+  one.
 - The bridge and the shutdown fire at the numbers in [Economy](/design/09-economy); no bot plays a
   Company into a shortfall.
