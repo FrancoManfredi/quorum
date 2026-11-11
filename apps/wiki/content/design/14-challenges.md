@@ -31,7 +31,8 @@ tutorial level.
 - **Palette.** The research the Sandbox grants. It holds the fix, plus at least one wrong option that
   a reasonable player would try. The wrong option plays out, so the player sees why it fails.
 - **Demand and seed.** Fixed and flat, with no daily cycle. Users do not grow or leave. The request
-  mix is the Era's, unless the puzzle pins the mix it was tuned on.
+  mix is the Era's, unless the puzzle pins the mix it was tuned on. No Product lever is available, so
+  the puzzle's mix cannot move.
 - **Visibility.** The Sandbox grants the [visibility step](/design/12-observability#the-visibility-ladder)
   that the mechanic needs. A player cannot learn tail latency without seeing the p99.
 - **Money.** None. Placing and resizing are free; Burn shows, because some objectives set a budget.
@@ -80,10 +81,10 @@ Sandboxes in all, and a test plays each one with its fix and with a wrong option
 
 The free Sandbox is a test bench.
 
-- Every Component, Stack, research item, and visibility step is unlocked.
+- Every Component, Stack, research item, visibility step, and Product lever step is unlocked.
 - Cash is unlimited. Burn still shows, so the player sees what a Design costs.
-- The player sets the users and an Era's Request kind mix, sets the speed, and triggers any Incident
-  in the [catalog](/design/11-incidents#catalog).
+- The player sets the users, an Era's Request kind mix, each kind's Product lever, the speed, and any
+  Incident in the [catalog](/design/11-incidents#catalog).
 - There are no Users to grow, no Funding rounds, no Team, no Dev Hours, and no Insight. A free
   Sandbox is Design and traffic only.
 - The player can copy the current Company's Design into a free Sandbox, like a staging environment,
@@ -124,7 +125,8 @@ picks a direction, and each player's best results usually come from different de
   open for replay, and the daily drill is always open.
 - A Challenge's palette is fixed. Legacy perks do not apply. Every player has the same tools.
 - The seed is fixed. Incidents in a Challenge are scripted and the same for everyone.
-- A Challenge pins the request mix it was tuned on, so a live Era rebalance cannot move its targets.
+- A Challenge pins the request mix it was tuned on and turns every Product lever off, so a live Era
+  rebalance cannot move its targets.
 - The browser scores the run and sends nothing. A device ID is a random string the player can reset, so
   a server score per device would prove little. With accounts, the result goes up as a design plus a
   seed, and the server re-runs it and keeps its own score. That works because the simulation is

@@ -42,7 +42,8 @@ The square root is the common prestige curve. Each Exit is worth more than the l
 exponentially more, so the player keeps a reason to improve rather than repeat
 ([Balancing](/design/16-balancing#prestige-curve)).
 
-**What resets.** Cash, Insight, Dev Hours, users, research, the board, the team, and Equity.
+**What resets.** Cash, Insight, Dev Hours, users, research, the board, the team, the product levers,
+and Equity.
 
 **What stays.** Legacy, Legacy shop purchases, Playbooks, achievements, Challenge results, and the
 engineering glossary entries the player has discovered.
@@ -70,7 +71,8 @@ the target for 80 to 150 hours.
 ## Playbooks
 
 A **Playbook** is a saved sub-design: Nodes, links, Stacks, and settings. It plays the role of a
-Factorio blueprint ([Influences](/design/02-influences#factorio)).
+Factorio blueprint ([Influences](/design/02-influences#factorio)). A Playbook does not carry Product
+levers, because a lever is product state rather than hardware.
 
 - The player saves a selection on the board as a Playbook.
 - Placing a Playbook places all its Nodes in one action, if the player has the Cash and the research.
@@ -85,7 +87,10 @@ Playbooks remove the post-prestige tedium that Upload Labs players report
 ## Ventures
 
 A **Venture** is the kind of company the player founds. Each Venture changes the request mix, demand
-shape, constraints, and incidents. B2B SaaS is the default, and every Venture is open at founding.
+shape, constraints, and incidents. B2B SaaS is the default, and every Venture is open at founding. A
+Venture sets the base mix, and it can cap a Product lever at its first step when the product change
+would erase the Venture's constraint
+([Progression](/design/10-progression#product-levers)).
 
 | Venture             | Demand shape                                           | Mix changes                        | Constraint                                                                                                     | Signature incident          |
 | ------------------- | ------------------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
@@ -101,6 +106,12 @@ shape, constraints, and incidents. B2B SaaS is the default, and every Venture is
 | Ad tech             | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
 | Bootstrapped indie  | Any                                                    | Default                            | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
 | Government contract | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
+
+Four Ventures cap a lever. Fintech caps `buy` at the first step, because a regulated checkout cannot
+become an upsell. AI startup caps `ai`, because GPUs are scarce. Healthcare caps `upload`, because
+patient data stays minimal. Government contract caps `push`, because a public service does not send
+marketing. A capped lever still has its first step, so the pool is not stuck; it just cannot become
+the product's main surface.
 
 Every Venture has its demand shape and its rule. Developer platform, Healthcare, Ad tech, and
 Government contract also have their signature incident. So do the other Ventures, with one exception:
