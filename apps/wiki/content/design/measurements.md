@@ -60,6 +60,9 @@ Era then, and the last column is how long the tap took to buy all of it. The sec
 current catalog's total for the Era, summed from `packages/simulation/src/catalog/research.ts`. It is
 not a measurement, so the time column does not describe it.
 
+These figures assume no Product lever. A lever raises a pool's share and shortens its Era's Studies,
+so the table is the no-lever baseline ([Progression](/design/10-progression#product-levers)).
+
 | Era      | Research in the Era (measured at version 17) | Research in the Era (current catalog) | Time to buy all of it (measured at version 17)                       |
 | -------- | -------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------- |
 | Garage   | 455 ◇                                        | 455 ◇                                 | ~8 min at size 1, the Era is ~11 min                                 |
@@ -93,6 +96,8 @@ Open points from the calibration:
 - Series B's priority items (`hosted-models`, `data-warehouse`) need `ai` and `report`, which arrive
   with their Features. The bots stop at 130 minutes before they ship.
 - Postmortems: an action item goes first in the queue, so incidents slow other research.
+- The Seed figure is the no-lever baseline. `upload` limits the default recipe, so its first lever
+  step should shorten the Era's Studies. The measurement waits for the mechanic.
 
 ## Data tier
 

@@ -13,10 +13,11 @@ every number, and these pages describe what it does.
 
 You are the first engineer of a startup. Users send requests, and you wire Components on a board,
 pick the runtime and framework that each server runs, and watch requests flow through your design
-as particles. Served requests earn Cash. Sampled traffic earns Insight, which buys research. Each
-fix moves the bottleneck somewhere else, and funding rounds bring new kinds of requests that break
-your design in new ways. At the end of a company you Exit, earn Legacy, and found a new company with
-different rules.
+as particles. Served requests earn Cash. Sampled traffic earns Insight, which buys research. A
+product lever raises one kind of request, so the mix is a choice and each Insight pool is a
+production line. Each fix moves the bottleneck somewhere else, and funding rounds bring new kinds of
+requests that break your design in new ways. At the end of a company you Exit, earn Legacy, and
+found a new company with different rules.
 
 Every number comes from a real behavior. PHP-FPM workers run out of memory, a Node.js event loop
 stalls on bcrypt, a JVM is slow until it warms up, and an average latency hides the p99.
@@ -34,7 +35,7 @@ stalls on bcrypt, a JVM is slow until it warms up, and an average latency hides 
 | 7   | [Data tier](/design/07-data-tier)                              | Databases, caches, replicas, quorums, consistency, and storage.                                 |
 | 8   | [Team and velocity](/design/08-team-and-velocity)              | Engineers, Dev Hours, features, tech debt, services, and Conway's law.                          |
 | 9   | [Economy](/design/09-economy)                                  | Currencies, sources and sinks, the cloud bill, pricing models, and funding.                     |
-| 10  | [Progression](/design/10-progression)                          | Eras, the research tree, product features, and pacing targets.                                  |
+| 10  | [Progression](/design/10-progression)                          | Eras, the research tree, product features, product levers, and pacing targets.                  |
 | 11  | [Incidents and reliability](/design/11-incidents)              | The incident catalog, the incident loop, SLOs, and error budgets.                               |
 | 12  | [Observability and Insight](/design/12-observability)          | Fog of war for systems: what the player can see and how they earn the right to see more.        |
 | 13  | [Exit and Legacy](/design/13-prestige)                         | The prestige layer: Exits, Legacy, Ventures, and Mutators.                                      |
