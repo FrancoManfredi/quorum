@@ -65,6 +65,35 @@ the same design with science packs, where each stage's production line pays for 
 No item opens before its Era, and none runs before the items it requires. Locked items of the next
 Era stay visible, so you can plan.
 
+## Making a kind with a Product lever
+
+A Study runs at the pace of its scarcest pool, so equal supply from every pool in its recipe is the
+target. The Era's mix works against you. Pre-seed gives writes several times the share of logins, and
+the default Pre-seed recipe pays for both, so every item on that recipe runs slowly on login. More
+samples raise every pool together. A **Product lever** changes the mix itself.
+
+Each lever is a product change, such as a search box on every page or a nightly data export. It has
+three steps, and each step raises that kind's share of traffic. The other kinds give up the
+difference in proportion, so a lever moves demand from one kind to another instead of adding it. A
+step costs Dev Hours on your backlog and slows user growth. When you remove a step, half of its Dev
+Hours come back.
+
+::Lever{kind="login"}
+
+The added requests earn what the traffic they displaced earned. They are marginal users of the same
+product, not new ones, so revenue per user stays where it was. What the lever buys is Research speed
+and a load you did not choose. Raising the login lever puts more password hashes on your App
+Servers, for example. That trade is why a lever on a kind you do not serve does nothing. A kind
+arrives with its Era and the Feature that brings it, and a lever only moves a share that already
+exists.
+
+Find a lever in the Research panel. Open an item and read its **Cost** rows. The pool that limits
+the Study carries a **Limits the Study** badge and a **Build** button, and the row shows the step,
+the share the kind now takes, and what the built steps take off growth. When the Era is early, when
+a Venture caps the kind, or when a step already waits on the backlog, the button is greyed and its
+title says why. The free Sandbox lists every lever in its current mix and sets a step at once,
+because it has no Team to build one.
+
 ## Studies run one at a time
 
 A Research item runs as a **Study**, and one Study runs at a time. You can queue up to 8, reorder

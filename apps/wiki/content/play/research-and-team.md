@@ -21,7 +21,7 @@ Look at the header chips. Each chip is one Insight pool and the amount you hold.
 
 Click an item to focus it. The detail sidebar on the right shows:
 
-- **Cost**: one row per pool in the item's recipe. Each row shows the cost, how much you **held**, and the rate the pool earns per second. A held amount in amber means you cannot pay yet.
+- **Cost**: one row per pool in the item's recipe. Each row shows the cost, how much you **held**, and the rate the pool earns per second. A held amount in amber means you cannot pay yet. A kind with a Product lever also shows that lever on its row: the step, the share of traffic the kind takes, and a **Build** button.
 - **Requires**: the items you must own first. Click one to jump to it.
 - **Leads to**: what the item opens.
 
@@ -48,6 +48,17 @@ A locked item is not an error. It tells you what to do next: wait for the Era, o
 To queue more, pick another item and select its button, or double-click it in the tree. The queue holds eight Studies, a chain counts every Study in it, and an unaffordable Study at the front holds every Study behind it, which the sidebar tells you. Each queue row has **Move up**, **Move down** and **Cancel** buttons, and you can drag a row to a new place. **Cancel** loses its progress.
 
 A Study never moves above a prerequisite it needs. Its **Move up** button turns off, and a drag that would pass the prerequisite is refused with a toast that names it. Cancelling a prerequisite also cancels the queued Studies that need it.
+
+### Raise a pool's supply
+
+A pool that cannot keep up with a Study slows it down, and the fix can be a product change rather than more samples. Each Cost row for a kind with a **Product lever** shows the lever's line under the pool row.
+
+1. Read the line before you build. It shows the step, **No lever** until you build one, the share of traffic that kind takes now, and the growth the built steps take off user growth.
+2. Select **Build**. The step joins the Team backlog with the Dev Hours of that step, and a Team spends them on it.
+3. Watch the Team panel until the item reaches **Shipping**. The next deploy lands the step, the kind's share changes, and the row offers the next step. A **Limits the Study** badge on the row marks the pool the running Study waits on.
+4. To take a step back, select the **−** button on the row. It removes the last step and returns half its Dev Hours, and the share comes back to the other kinds.
+
+The button is greyed when the Era has not opened that step, when a Venture caps the lever, or when a step already waits on the backlog. Hover it for the reason. A locked mix, such as a Challenge's, shows no lever line at all.
 
 ## The Team panel
 

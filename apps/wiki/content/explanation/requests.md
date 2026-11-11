@@ -26,6 +26,10 @@ Series A, users also stream video, chat, and buy things:
 
 ::Mix{era="3"}
 
+Features, Ventures, and Product levers change that mix. A lever raises one kind's share and takes the
+difference from the other kinds, so total demand holds
+([Eras and Research](/explanation/progression#making-a-kind-with-a-product-lever)).
+
 The [Eras](/eras) reference pages list each Era's kinds and shares. Bots are a kind too. They earn
 nothing and do not count toward Apdex, but they still use your capacity.
 

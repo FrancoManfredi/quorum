@@ -8,6 +8,7 @@ import { documentOf } from './content.ts'
 import type { Section } from './frontmatter.ts'
 import { islandAttributes } from './islands.ts'
 import { init, type Message, type Model } from './main.ts'
+import { leverOf, leverRows } from './reference/levers.ts'
 import type { Page } from './page.ts'
 import { PAGES, SECTION_ORDER, childrenOf, navOf, pageAt } from './pages.ts'
 import { OPTION_CONTROLS } from './reference/options.ts'
@@ -76,6 +77,7 @@ const decode = {
   Component: Schema.decodeUnknownSync(islandAttributes.Component),
   Options: Schema.decodeUnknownSync(islandAttributes.Options),
   Mix: Schema.decodeUnknownSync(islandAttributes.Mix),
+  Lever: Schema.decodeUnknownSync(islandAttributes.Lever),
   Track: Schema.decodeUnknownSync(islandAttributes.Track),
   Quiz: Schema.decodeUnknownSync(islandAttributes.Quiz),
 }
@@ -127,6 +129,23 @@ const island = (block: Extract<Block, { _tag: 'Island' }>): string => {
         .filter((entry) => entry.track === track)
         .map((entry) => `[${entry.name}](${markdownUrl(`/research/${entry.id}`)})`)
       return `Research track ${label}: ${items.join(', ')}.`
+    }
+    case 'Lever': {
+      const { kind } = decode.Lever(block.attributes)
+      const def = leverOf(kind)
+      const rows = leverRows(kind)
+      return [
+        `The ${def.name} lever arrives at ${percent(def.base)} of the mix in the ${def.era} Era.`,
+        '',
+        '| Step | Share of traffic | Dev Hours | Growth |',
+        '| --- | --- | --- | --- |',
+        ...rows.map(
+          (row) =>
+            `| ${row.step} | ${percent(row.share)} | ${row.dh} | −${Math.round(row.growth * 100)}% |`,
+        ),
+        '',
+        'The other kinds give up the difference, so total traffic holds.',
+      ].join('\n')
     }
     case 'Quiz': {
       const quiz = decode.Quiz(block.attributes)

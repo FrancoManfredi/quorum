@@ -1,5 +1,5 @@
 import { Schema } from 'effect'
-import { COMPONENT_IDS, ERAS, RESEARCH_TRACKS } from '@quorum/simulation/catalog'
+import { COMPONENT_IDS, ERAS, LEVER_KINDS, RESEARCH_TRACKS } from '@quorum/simulation/catalog'
 import { SANDBOX_IDS } from '@quorum/simulation/sandbox'
 import { DESIGN_IDS } from './patterns/designs/index.ts'
 
@@ -21,6 +21,8 @@ export const islandAttributes = {
   Mix: Schema.Struct({
     era: Schema.Literals(ERAS.map((_, index) => String(index)) as ReadonlyArray<string>),
   }),
+  /** One kind's Product lever and its three steps: `::Lever{kind="login"}`. */
+  Lever: Schema.Struct({ kind: Schema.Literals(LEVER_KINDS) }),
   /**
    * A question with instant feedback, to check a reader followed:
    * `::Quiz{question="Which Node is the bottleneck?" options="Users|Load Balancer|Database" answer="3" explain="…"}`.

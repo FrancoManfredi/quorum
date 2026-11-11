@@ -97,6 +97,21 @@ the cost of every Reliability item is Failure Insight, so an incident helps pay 
 that prevents the next one.
 :::
 
+## When a pool runs short
+
+In Pre-seed, some items cost write and login Insight, and login arrives at a small share of the mix.
+A Study on one of those runs at login's pace.
+
+1. Press **R** and click the item that runs now.
+2. Find the **Limits the Study** badge in the **Cost** rows. The same row carries that pool's
+   **Product lever**: its step, the share of traffic the kind takes, and a **Build** button.
+3. Select **Build**. The step joins the Team backlog, and a Team spends the Dev Hours on it.
+4. Press **Esc**, then **T**, and watch the item reach **Shipping**. When its deploy lands, the
+   kind's share rises and its pool earns faster. The running Study picks up speed.
+
+A step also takes a little off user growth and loads the Nodes that serve the kind, so a login lever
+shows up on the App Servers. Start with the pool the badge names, not the busiest pool on the board.
+
 ## Earn Insight faster
 
 - Link more Nodes into Analytics. Drag from a Node's blue output port to the Analytics card. The

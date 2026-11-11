@@ -11,6 +11,7 @@ import { icon } from '@quorum/ui/primitives/icon'
 import { islandAttributes } from '../islands.ts'
 import { Message, type Model } from '../main.ts'
 import { mixBar } from './mix.ts'
+import { leverView } from './lever.ts'
 import * as Quiz from '../submodels/quiz.ts'
 import { practiceView } from './practice-card.ts'
 import { sandboxView } from './sandbox-card.ts'
@@ -151,6 +152,7 @@ export const islandViews = (model: Model, h: HtmlBuilder<Message>): Markdown.Isl
         : h.empty
     },
     Practice: ({ id }) => practiceView(id, h),
+    Lever: ({ kind }) => leverView(kind, h),
     Track: ({ track }) =>
       h.ol(
         [h.Class('not-prose my-5 flex flex-wrap gap-2')],
