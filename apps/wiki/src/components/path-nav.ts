@@ -58,9 +58,9 @@ export const pathBar = (page: Page, model: Model, h: H): Html => {
       h.div(
         [h.Class('mb-2 flex items-baseline justify-between gap-3')],
         [
-          h.span([h.Class('text-[12.5px] text-muted-foreground')], [`Path: ${place.path.title}`]),
+          h.span([h.Class('text-[12px] text-muted-foreground')], [`Path: ${place.path.title}`]),
           h.span(
-            [h.Class(cn(FIGURE, 'text-[11.5px] text-muted-foreground'))],
+            [h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
             [`${place.index + 1} of ${steps.length}`],
           ),
         ],
@@ -83,7 +83,7 @@ const nextCard = (label: string, target: Page, h: H): Html =>
           ),
         ],
         [
-          h.span([h.Class('text-[12.5px] text-muted-foreground')], [label]),
+          h.span([h.Class('text-[12px] text-muted-foreground')], [label]),
           h.span(
             [h.Class('flex items-center gap-1.5 text-[15px] font-medium')],
             [
@@ -133,17 +133,14 @@ export const pathCard = (path: Path, model: Model, h: H): Html => {
               ),
         ],
       ),
-      h.p(
-        [h.Class('text-[13.5px] leading-snug text-pretty text-muted-foreground')],
-        [path.summary],
-      ),
+      h.p([h.Class('text-[14px] leading-snug text-pretty text-muted-foreground')], [path.summary]),
       segments(steps, null, model, h),
       target
         ? h.a(
             [
               h.Href(target.path),
               h.Class(
-                'group mt-auto flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-[13.5px] transition-colors hover:border-foreground/30 hover:bg-well',
+                'group mt-auto flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-[14px] transition-colors hover:border-foreground/30 hover:bg-well',
               ),
             ],
             [

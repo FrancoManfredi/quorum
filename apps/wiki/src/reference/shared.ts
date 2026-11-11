@@ -74,7 +74,7 @@ export const factsBox = (
             [
               h.dt([h.Class('shrink-0 text-[13px] text-muted-foreground')], [fact.name]),
               h.dd(
-                [h.Class(cn(FIGURE, 'min-w-0 text-right text-[12.5px] [overflow-wrap:anywhere]'))],
+                [h.Class(cn(FIGURE, 'min-w-0 text-right text-[12px] [overflow-wrap:anywhere]'))],
                 [fact.value],
               ),
             ],
@@ -178,7 +178,7 @@ export const table = (
     [h.Class('not-prose my-6 overflow-x-auto rounded-lg border border-border')],
     [
       h.table(
-        [h.Class('w-full border-collapse text-[13.5px] leading-snug')],
+        [h.Class('w-full border-collapse text-[14px] leading-snug')],
         [
           h.thead(
             [],
@@ -191,7 +191,7 @@ export const table = (
                       h.Key(header),
                       h.Class(
                         cn(
-                          'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12.5px] font-medium whitespace-nowrap text-muted-foreground',
+                          'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12px] font-medium whitespace-nowrap text-muted-foreground',
                           figures.includes(index) && 'text-right',
                         ),
                       ),
@@ -214,7 +214,7 @@ export const table = (
                         cn(
                           'px-3 py-2 align-top',
                           figures.includes(index) &&
-                            cn(FIGURE, 'text-right text-[12.5px] whitespace-nowrap'),
+                            cn(FIGURE, 'text-right text-[12px] whitespace-nowrap'),
                         ),
                       ),
                     ],

@@ -106,7 +106,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
         ['Drag to pan. Hold Ctrl or Cmd and scroll to zoom.'],
       ),
       h.figcaption(
-        [h.Class('mt-2 text-[12.5px] text-muted-foreground')],
+        [h.Class('mt-2 text-[12px] text-muted-foreground')],
         [
           `At ${compact(design.users)} Users${design.incident ? ` and a running ${INCIDENTS[design.incident.kind].name} incident` : ''} the Simulation solves this Design to Apdex ${ledger.apdex.toFixed(2)}, p99 ${ms(ledger.p99)}, ${(ledger.errorShare * 100).toFixed(1)}% errors and ${money(ledger.burn)}/s Burn${ledger.egress >= 0.005 ? `, of which ${money(ledger.egress)}/s is egress` : ''}.${design.note ? ` ${design.note}` : ''}`,
         ],
@@ -116,7 +116,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
             [h.Class('mt-4 overflow-x-auto rounded-lg border border-border')],
             [
               h.table(
-                [h.Class('w-full border-collapse text-[13.5px] leading-snug')],
+                [h.Class('w-full border-collapse text-[14px] leading-snug')],
                 [
                   h.thead(
                     [],
@@ -127,7 +127,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
                           h.th(
                             [
                               h.Class(
-                                'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12.5px] font-medium text-muted-foreground',
+                                'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12px] font-medium text-muted-foreground',
                               ),
                             ],
                             [name],
@@ -163,7 +163,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
         : h.empty,
       needs.length > 0
         ? h.p(
-            [h.Class('mt-2 text-[12.5px] text-muted-foreground')],
+            [h.Class('mt-2 text-[12px] text-muted-foreground')],
             [
               'Research this Design needs: ',
               ...needs.flatMap((research, index) => [

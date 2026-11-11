@@ -26,7 +26,7 @@ export const sandboxView = (
       h.span(
         [h.Class('min-w-0 flex-1')],
         [
-          h.span([h.Class('text-[12.5px] text-muted-foreground')], ['Sandbox']),
+          h.span([h.Class('text-[12px] text-muted-foreground')], ['Sandbox']),
           h.span([h.Class('mt-1 block text-[16px] font-semibold tracking-tight')], [def.name]),
           h.span(
             [h.Class('block text-[13px] text-muted-foreground')],

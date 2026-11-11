@@ -43,7 +43,7 @@ const spoiler = (page: Page, model: Model, body: Html, h: H): Html => {
       h.summary(
         [
           h.Class(
-            'cursor-pointer list-none rounded-md border border-dashed border-border px-4 py-3 text-[13.5px]',
+            'cursor-pointer list-none rounded-md border border-dashed border-border px-4 py-3 text-[14px]',
           ),
         ],
         [
@@ -104,7 +104,7 @@ const footer = (page: Page, h: H): Html => {
       h.div(
         [
           h.Class(
-            'flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-5 text-[12.5px] text-muted-foreground',
+            'flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-border pt-5 text-[12px] text-muted-foreground',
           ),
         ],
         [
@@ -157,7 +157,11 @@ const footer = (page: Page, h: H): Html => {
 
 export const article = (page: Page, model: Model, h: H): Html =>
   h.article(
-    [h.Class('min-w-0 py-8 lg:px-10'), h.DataAttribute('kind', page.section)],
+    [
+      // Every page holds the reading measure; a wide page spans the frame instead.
+      h.Class(cn('min-w-0 py-8', page.wide ? 'col-span-full' : 'max-w-[var(--measure)]')),
+      h.DataAttribute('kind', page.section),
+    ],
     [
       h.header(
         [h.Class('border-b border-border pb-8')],
@@ -188,11 +192,7 @@ export const article = (page: Page, model: Model, h: H): Html =>
             [page.title],
           ),
           h.p(
-            [
-              h.Class(
-                'mt-2 max-w-[65ch] text-[16px] leading-relaxed text-pretty text-muted-foreground',
-              ),
-            ],
+            [h.Class('mt-2 text-[16px] leading-relaxed text-pretty text-muted-foreground')],
             [page.summary],
           ),
           pathBar(page, model, h),
@@ -200,31 +200,14 @@ export const article = (page: Page, model: Model, h: H): Html =>
       ),
       h.div(
         [h.Class('pt-8')],
-        [
-          spoiler(
-            page,
-            model,
-            page.aside
-              ? h.div(
-                  [h.Class('grid gap-10 lg:grid-cols-[minmax(0,1fr)_272px]')],
-                  [
-                    h.div([h.Class('order-1 min-w-0')], [page.body(model, h)]),
-                    h.div([h.Class('order-2')], [page.aside(model, h)]),
-                  ],
-                )
-              : page.body(model, h),
-            h,
-          ),
-          pathNext(page, h),
-          footer(page, h),
-        ],
+        [spoiler(page, model, page.body(model, h), h), pathNext(page, h), footer(page, h)],
       ),
     ],
   )
 
 export const notFound = (model: Model, h: H): Html =>
   h.article(
-    [h.Class('py-16 lg:px-10')],
+    [h.Class('max-w-[var(--measure)] py-16')],
     [
       h.div([h.Class(cn(FIGURE, 'text-[13px] text-muted-foreground'))], ['404']),
       h.h1([h.Class('mt-2 text-[32px] font-semibold tracking-tight')], ['No page here']),

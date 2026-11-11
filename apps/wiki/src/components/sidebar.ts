@@ -32,7 +32,7 @@ const navLink = (
       ...(active ? [h.AriaCurrent('page')] : []),
       h.Class(
         cn(
-          'relative block rounded-md py-1.5 text-[13.5px] leading-snug transition-colors',
+          'relative block rounded-md py-1.5 text-[14px] leading-snug transition-colors',
           nested ? 'pr-2 pl-3' : room ? 'pr-14 pl-2.5' : 'px-2.5',
           active
             ? 'bg-muted font-medium text-foreground'
@@ -186,9 +186,9 @@ export const sidebar = (model: Model, h: H): Html => {
         cn(
           SCROLL,
           // A phone opens the menu over the page; a desktop keeps it as a sticky rail.
-          'border-border lg:sticky lg:top-[100px] lg:flex lg:h-[calc(100dvh-100px)] lg:flex-col lg:self-start lg:border-r lg:pr-4',
+          'border-border lg:sticky lg:top-[var(--header-height)] lg:flex lg:h-[calc(100dvh-var(--header-height))] lg:flex-col lg:self-start lg:border-r lg:pr-4',
           model.menu
-            ? 'fixed inset-x-0 top-[100px] bottom-0 z-30 flex flex-col bg-background px-4 lg:static lg:bg-transparent lg:px-0'
+            ? 'fixed inset-x-0 top-[var(--header-height)] bottom-0 z-30 flex flex-col bg-background px-4 lg:static lg:bg-transparent lg:px-0'
             : 'hidden',
         ),
       ),

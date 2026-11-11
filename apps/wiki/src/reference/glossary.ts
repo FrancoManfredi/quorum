@@ -152,7 +152,7 @@ const hub = page({
             CATEGORY_LABELS[category],
             [
               h.ul(
-                [h.Class('not-prose grid gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3')],
+                [h.Class('not-prose grid gap-x-6 gap-y-1.5 sm:grid-cols-2')],
                 sorted
                   .filter((entry) => entry.category === category)
                   .map((entry) =>

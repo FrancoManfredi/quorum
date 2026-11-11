@@ -57,7 +57,7 @@ export const islandViews = (model: Model, h: HtmlBuilder<Message>): Markdown.Isl
         [h.Class('not-prose my-6 overflow-x-auto rounded-lg border border-border')],
         [
           h.table(
-            [h.Class('w-full border-collapse text-[13.5px] leading-snug')],
+            [h.Class('w-full border-collapse text-[14px] leading-snug')],
             [
               h.thead(
                 [],
@@ -69,7 +69,7 @@ export const islandViews = (model: Model, h: HtmlBuilder<Message>): Markdown.Isl
                         [
                           h.Key(header),
                           h.Class(
-                            'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12.5px] font-medium whitespace-nowrap text-muted-foreground',
+                            'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12px] font-medium whitespace-nowrap text-muted-foreground',
                           ),
                         ],
                         [header],
@@ -144,7 +144,7 @@ export const islandViews = (model: Model, h: HtmlBuilder<Message>): Markdown.Isl
             [
               mixBar(def.mix, h),
               h.figcaption(
-                [h.Class('text-[12.5px] text-muted-foreground')],
+                [h.Class('text-[12px] text-muted-foreground')],
                 [`${def.name} request mix`],
               ),
             ],

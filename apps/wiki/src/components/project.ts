@@ -21,8 +21,8 @@ const cell = (value: string, label: string, h: H): Html =>
   h.div(
     [h.Key(label), h.Class('flex flex-col gap-1 bg-background px-4 py-3.5')],
     [
-      h.span([h.Class(cn(FIGURE, 'text-[22px] leading-none font-medium tabular-nums'))], [value]),
-      h.span([h.Class('text-[12.5px] text-muted-foreground')], [label]),
+      h.span([h.Class(cn(FIGURE, 'text-[20px] leading-none font-medium tabular-nums'))], [value]),
+      h.span([h.Class('text-[12px] text-muted-foreground')], [label]),
     ],
   )
 

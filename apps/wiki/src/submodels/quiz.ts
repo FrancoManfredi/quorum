@@ -46,9 +46,9 @@ export const view = defineView<Model, Message, Question>((model, quiz, h) => {
   return h.section(
     [h.Class('not-prose my-8 border-y border-border py-5')],
     [
-      h.div([h.Class('text-[12.5px] font-medium text-muted-foreground')], ['Check yourself']),
+      h.div([h.Class('text-[12px] font-medium text-muted-foreground')], ['Check yourself']),
       h.p(
-        [h.Id(id), h.Class('mt-1 text-[15.5px] leading-snug font-medium text-balance')],
+        [h.Id(id), h.Class('mt-1 text-[16px] leading-snug font-medium text-balance')],
         [quiz.question],
       ),
       h.div(
@@ -80,7 +80,7 @@ export const view = defineView<Model, Message, Question>((model, quiz, h) => {
                 [
                   h.Class(
                     cn(
-                      'grid size-5 shrink-0 place-items-center rounded-full font-mono text-[10.5px]',
+                      'grid size-5 shrink-0 place-items-center rounded-full font-mono text-[11px]',
                       state === 'right'
                         ? 'bg-ok text-white'
                         : state === 'wrong'
@@ -124,7 +124,7 @@ export const view = defineView<Model, Message, Question>((model, quiz, h) => {
                       h.Type('button'),
                       h.OnClick(Message.Reset({ key: quiz.key })),
                       h.Class(
-                        'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12.5px] font-medium hover:bg-muted',
+                        'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-medium hover:bg-muted',
                       ),
                     ],
                     [icon(h, RotateCcw, 'size-3.5'), 'Try again'],

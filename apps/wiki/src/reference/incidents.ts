@@ -64,7 +64,7 @@ export const severityChip = (severity: 1 | 2 | 3, h: H): Html =>
       h.Class(
         cn(
           FIGURE,
-          'inline-flex rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold',
+          'inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-semibold',
           SEVERITY_CLASS[severity],
         ),
       ),
@@ -213,7 +213,8 @@ const hub = page({
                     key: id,
                     cells: [
                       link(incidentPath(id), def.name, h),
-                      eraName(def.era),
+                      // "Pre-seed" must not break at its hyphen in the narrow table.
+                      h.span([h.Class('whitespace-nowrap')], [eraName(def.era)]),
                       severityChip(def.severity, h),
                       def.actions[0] ? researchLink(def.actions[0], h) : '—',
                     ],

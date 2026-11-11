@@ -84,12 +84,12 @@ const counts = (h: H): Html =>
           h.Key(entry.path),
           h.Href(entry.path),
           h.Class(
-            'group flex flex-col gap-1 bg-background px-4 py-4 transition-colors hover:bg-muted/60',
+            'group flex flex-col gap-1 bg-background p-5 transition-colors hover:bg-muted/60',
           ),
         ],
         [
           h.dd(
-            [h.Class(cn(FIGURE, 'text-[26px] leading-none font-medium'))],
+            [h.Class(cn(FIGURE, 'text-[32px] leading-none font-medium'))],
             [String(entry.value)],
           ),
           h.dt(
@@ -119,18 +119,13 @@ const grid = (columns: string, items: ReadonlyArray<Html>, h: H): Html =>
     items,
   )
 
-/** A heading with the sentence that says what the block is for. */
+/** A heading with the sentence that says what the block is for, under it. */
 const block = (title: string, lead: string, content: Html, h: H): Html =>
   h.section(
-    [h.Class('mt-14')],
+    [h.Class('mt-12')],
     [
-      h.div(
-        [h.Class('flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1')],
-        [
-          h.h2([h.Class('text-[20px] font-semibold tracking-tight')], [title]),
-          h.p([h.Class('text-[13.5px] text-muted-foreground')], [lead]),
-        ],
-      ),
+      h.h2([h.Class('text-[20px] font-semibold tracking-tight')], [title]),
+      h.p([h.Class('mt-1 text-[14px] text-muted-foreground')], [lead]),
       h.div([h.Class('mt-4')], [content]),
     ],
   )
@@ -140,11 +135,11 @@ const troubleLink = (target: Page, h: H): Html =>
     [
       h.Key(target.path),
       h.Href(target.path),
-      h.Class('group flex flex-col gap-1 bg-background p-4 transition-colors hover:bg-muted/60'),
+      h.Class('group flex flex-col gap-1 bg-background p-5 transition-colors hover:bg-muted/60'),
     ],
     [
       h.span(
-        [h.Class('flex items-center justify-between gap-2 text-[14.5px] font-medium')],
+        [h.Class('flex items-center justify-between gap-2 text-[15px] font-medium')],
         [
           target.title,
           icon(
@@ -209,7 +204,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
         ],
         [
           h.div(
-            [h.Class('max-w-[62ch]')],
+            [h.Class('min-w-0')],
             [
               h.h1(
                 [
@@ -220,7 +215,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                 ['Quorum Wiki'],
               ),
               h.p(
-                [h.Class('mt-4 text-[17px] leading-relaxed text-pretty text-muted-foreground')],
+                [h.Class('mt-4 text-[16px] leading-relaxed text-pretty text-muted-foreground')],
                 [page.summary],
               ),
               h.div(
@@ -249,11 +244,12 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                   h.a(
                     [
                       h.Href(REPOSITORY),
+                      // The third action is a link, not a button, so the row does not wrap.
                       h.Class(
-                        'inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-4 text-[14px] font-medium hover:border-foreground/30',
+                        'inline-flex items-center gap-1.5 text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground',
                       ),
                     ],
-                    [githubMark(h, 'size-4'), 'Open source on GitHub'],
+                    [githubMark(h, 'size-3.5'), 'Open source on GitHub'],
                   ),
                 ],
               ),
@@ -302,7 +298,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
         h,
       ),
       h.p(
-        [h.Class('mt-8 max-w-[75ch] text-[13px] leading-relaxed text-muted-foreground')],
+        [h.Class('mt-8 max-w-[var(--measure)] text-[13px] leading-relaxed text-muted-foreground')],
         [
           'Want the rules, formulas, and open questions behind the game? Read the ',
           h.a(

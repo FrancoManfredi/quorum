@@ -224,11 +224,11 @@ const timeline = (h: H): Html =>
               h.a(
                 [
                   h.Href(eraPath(index)),
-                  h.Class('text-[18px] font-semibold tracking-tight hover:underline'),
+                  h.Class('text-[16px] font-semibold tracking-tight hover:underline'),
                 ],
                 [def.name],
               ),
-              h.span([h.Class('text-[14.5px] text-muted-foreground')], [def.question]),
+              h.span([h.Class('text-[15px] text-muted-foreground')], [def.question]),
             ],
           ),
           h.dl(
@@ -238,7 +238,7 @@ const timeline = (h: H): Html =>
                 [h.Key(name), h.Class('flex items-baseline gap-1.5')],
                 [
                   h.dt([h.Class('text-muted-foreground')], [name]),
-                  h.dd([h.Class(cn(FIGURE, 'text-[12.5px]'))], [value]),
+                  h.dd([h.Class(cn(FIGURE, 'text-[12px]'))], [value]),
                 ],
               ),
             ),

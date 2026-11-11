@@ -42,7 +42,7 @@ export const header = (model: Model, h: H): Html =>
     [h.Class('sticky top-0 z-40 border-b border-border bg-background')],
     [
       h.div(
-        [h.Class('mx-auto flex h-14 max-w-[1400px] items-center gap-3 px-4 sm:px-6')],
+        [h.Class('mx-auto flex h-14 max-w-[1152px] items-center gap-3 px-4 sm:px-6')],
         [
           h.button(
             [
@@ -61,10 +61,10 @@ export const header = (model: Model, h: H): Html =>
             [
               mark(h),
               h.span(
-                [h.Class('hidden text-[14.5px] font-semibold tracking-tight min-[430px]:inline')],
+                [h.Class('hidden text-[15px] font-semibold tracking-tight min-[430px]:inline')],
                 ['Quorum'],
               ),
-              h.span([h.Class('hidden text-[14.5px] text-muted-foreground sm:inline')], ['Wiki']),
+              h.span([h.Class('hidden text-[15px] text-muted-foreground sm:inline')], ['Wiki']),
             ],
           ),
           h.submodel({
@@ -109,7 +109,7 @@ const sections = (model: Model, h: H): Html => {
       h.div(
         [
           h.Class(
-            'mx-auto flex h-11 max-w-[1400px] items-stretch gap-6 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none]',
+            'mx-auto flex h-11 max-w-[1152px] items-stretch gap-6 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none] max-lg:[mask-image:linear-gradient(to_right,#000_85%,transparent)]',
           ),
         ],
         SECTION_ORDER.flatMap((section) => {
@@ -123,7 +123,7 @@ const sections = (model: Model, h: H): Html => {
                 ...(section === current ? [h.AriaCurrent('true')] : []),
                 h.Class(
                   cn(
-                    'flex shrink-0 items-center gap-2 border-b-2 text-[13.5px] transition-colors',
+                    'flex shrink-0 items-center gap-2 border-b-2 text-[14px] transition-colors',
                     section === current
                       ? 'border-foreground font-medium text-foreground'
                       : 'border-transparent text-muted-foreground hover:text-foreground',

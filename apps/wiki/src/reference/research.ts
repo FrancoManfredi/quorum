@@ -307,7 +307,7 @@ const tree = (h: H, full = false): Html => {
                   [h.Class('flex min-w-0 flex-1 flex-col gap-1')],
                   [
                     h.span(
-                      [h.Class('line-clamp-2 text-[12.5px] leading-tight font-semibold')],
+                      [h.Class('line-clamp-2 text-[12px] leading-tight font-semibold')],
                       [entry.name],
                     ),
                     h.span(
@@ -330,7 +330,7 @@ const byTrack = (h: H): Html =>
   h.div(
     [
       h.Class(
-        'not-prose my-6 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2 xl:grid-cols-3 md:max-xl:[&>:last-child:nth-child(odd)]:col-span-2',
+        'not-prose my-6 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2 md:[&>:last-child:nth-child(odd)]:col-span-2',
       ),
     ],
     RESEARCH_TRACKS.map((track) => {
@@ -340,7 +340,7 @@ const byTrack = (h: H): Html =>
         [h.Key(track.key), h.Class('bg-background p-4')],
         [
           h.h3(
-            [h.Class('mt-0! flex items-center gap-2 text-[14.5px] font-semibold')],
+            [h.Class('mt-0! flex items-center gap-2 text-[15px] font-semibold')],
             [
               icon(h, TRACK_ICONS[track.key], 'size-4 text-muted-foreground'),
               track.label,
@@ -356,9 +356,7 @@ const byTrack = (h: H): Html =>
               h.dt(
                 [
                   h.Key(`${era}-t`),
-                  h.Class(
-                    'text-[11.5px] font-medium tracking-wide text-muted-foreground uppercase',
-                  ),
+                  h.Class('text-[12px] font-medium tracking-wide text-muted-foreground uppercase'),
                 ],
                 [h.a([h.Href(eraPath(era)), h.Class('hover:text-foreground')], [eraName(era)])],
               ),
@@ -371,9 +369,7 @@ const byTrack = (h: H): Html =>
                       [
                         h.Key(entry.id),
                         h.Href(researchPath(entry.id)),
-                        h.Class(
-                          'flex items-center gap-2 text-[13.5px] leading-snug hover:underline',
-                        ),
+                        h.Class('flex items-center gap-2 text-[14px] leading-snug hover:underline'),
                       ],
                       [researchMark(entry, 'sm', false, h), entry.name],
                     ),
@@ -432,7 +428,7 @@ const costLegend = (h: H): Html =>
       h.ul(
         [
           h.Class(
-            'grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3',
+            'grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2',
           ),
         ],
         [
@@ -451,7 +447,7 @@ const costLegend = (h: H): Html =>
                 h.span(
                   [h.Class('min-w-0')],
                   [
-                    h.span([h.Class('block text-[13.5px] font-medium')], [poolName(pool)]),
+                    h.span([h.Class('block text-[14px] font-medium')], [poolName(pool)]),
                     h.span(
                       [h.Class('block text-[12px] leading-snug text-muted-foreground')],
                       [

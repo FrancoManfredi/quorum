@@ -11,10 +11,10 @@ export const toc = (page: Page, h: HtmlBuilder<Message>): Html =>
     : h.nav(
         [
           h.AriaLabel('On this page'),
-          h.Class('sticky top-[100px] hidden self-start py-8 xl:block'),
+          h.Class('sticky top-[var(--header-height)] hidden self-start xl:block'),
         ],
         [
-          h.div([h.Class('mb-2 text-[12.5px] font-semibold')], ['On this page']),
+          h.div([h.Class('mb-2 text-[12px] font-semibold')], ['On this page']),
           h.ul(
             [h.Class('border-l border-border')],
             page.headings.map((heading) =>

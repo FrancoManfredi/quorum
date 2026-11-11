@@ -154,7 +154,7 @@ export const view = defineView<Model, Message>((model, h) => {
           h.kbd(
             [
               h.Class(
-                'hidden rounded border border-border px-1.5 font-mono text-[10.5px] leading-4 sm:block',
+                'hidden rounded border border-border px-1.5 font-mono text-[11px] leading-4 sm:block',
               ),
             ],
             ['/'],
@@ -193,18 +193,15 @@ export const view = defineView<Model, Message>((model, h) => {
                       h.div(
                         [h.Class('flex items-baseline justify-between gap-3')],
                         [
+                          h.span([h.Class('text-[14px] font-medium text-foreground')], [hit.title]),
                           h.span(
-                            [h.Class('text-[13.5px] font-medium text-foreground')],
-                            [hit.title],
-                          ),
-                          h.span(
-                            [h.Class('text-[11.5px] text-muted-foreground')],
+                            [h.Class('text-[12px] text-muted-foreground')],
                             [QUADRANTS[hit.section].label],
                           ),
                         ],
                       ),
                       h.p(
-                        [h.Class('mt-0.5 line-clamp-1 text-[12.5px] text-muted-foreground')],
+                        [h.Class('mt-0.5 line-clamp-1 text-[12px] text-muted-foreground')],
                         [hit.summary],
                       ),
                     ],

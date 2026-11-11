@@ -145,10 +145,10 @@ export const prose = (
           ),
         Table: (_table, header, rows) =>
           h.div(
-            [h.Class('overflow-x-auto rounded-lg border border-border')],
+            [h.Class('not-prose my-6 overflow-x-auto rounded-lg border border-border')],
             [
               h.table(
-                [h.Class('w-full border-collapse text-[13.5px] leading-snug')],
+                [h.Class('w-full border-collapse text-[14px] leading-snug')],
                 [h.thead([], [header]), h.tbody([h.Class('divide-y divide-border')], rows)],
               ),
             ],
@@ -158,7 +158,7 @@ export const prose = (
             ? h.th(
                 [
                   h.Class(
-                    'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12.5px] font-medium text-muted-foreground',
+                    'border-b border-border bg-muted/50 px-3 py-2 text-left text-[12px] font-medium text-muted-foreground',
                   ),
                   ...(alignment === 'Right' ? [h.Style({ textAlign: 'right' })] : []),
                 ],

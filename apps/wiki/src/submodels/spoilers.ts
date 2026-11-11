@@ -58,14 +58,14 @@ export const hides = (model: Model, era: number | null): boolean =>
 export const view = defineView<Model, Message>((model, h) => {
   const all = model.era === ALL_ERAS
   const reached = all ? 'All Eras show' : `Hiding after ${ERAS[model.era]?.name ?? ''}`
-  const step = 'h-7 min-w-0 flex-1 cursor-pointer rounded-md text-[11.5px] transition-colors'
+  const step = 'h-7 min-w-0 flex-1 cursor-pointer rounded-md text-[12px] transition-colors'
   return h.div(
     [h.Class('border-t border-border pt-3')],
     [
       h.div(
         [h.Class('flex items-baseline justify-between gap-2')],
         [
-          h.span([h.Class('text-[12.5px] font-semibold text-foreground')], ['Spoilers']),
+          h.span([h.Class('text-[12px] font-semibold text-foreground')], ['Spoilers']),
           h.span([h.Class('truncate text-[12px] text-muted-foreground')], [reached]),
         ],
       ),

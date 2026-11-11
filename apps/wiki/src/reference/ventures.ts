@@ -181,7 +181,7 @@ const ventureBlock = (id: VentureId, h: H): Html => {
       paragraph(def.summary, h),
       mixBar(trafficOf(def), h),
       h.dl(
-        [h.Class('not-prose my-4 grid gap-x-6 gap-y-2 text-[13.5px] sm:grid-cols-[9rem_1fr]')],
+        [h.Class('not-prose my-4 grid gap-x-6 gap-y-2 text-[14px] sm:grid-cols-[9rem_1fr]')],
         [
           ...(def.signature === null
             ? []

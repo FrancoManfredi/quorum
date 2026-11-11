@@ -58,7 +58,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
     'flex items-center justify-between gap-3 border-b border-border px-4 py-2.5',
     [title, reset],
   )
-  const intro = el('p', 'm-0 px-4 pt-3 text-[13.5px] leading-snug text-muted-foreground', [
+  const intro = el('p', 'm-0 px-4 pt-3 text-[14px] leading-snug text-muted-foreground', [
     GOAL_TEXT[id],
   ])
   const host = el(
@@ -79,7 +79,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
     { capture: true, signal: events.signal },
   )
   const dockHost = el('div', 'px-4 pt-3 empty:hidden')
-  const cash = el('span', 'text-[12.5px] text-muted-foreground tabular-nums')
+  const cash = el('span', 'text-[12px] text-muted-foreground tabular-nums')
   const checklist = el('ul', 'm-0 flex list-none flex-col gap-1 p-0', [], {
     'aria-live': 'polite',
     'aria-label': 'Goals',
@@ -87,7 +87,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
   const note = el('p', 'm-0 min-h-5 text-[13px]', [], { role: 'status', 'aria-live': 'polite' })
   const foot = el('div', 'flex flex-col gap-2 px-4 pt-3 pb-4', [
     el('div', 'flex items-center justify-between', [
-      el('span', 'text-[12.5px] font-medium', ['Goals']),
+      el('span', 'text-[12px] font-medium', ['Goals']),
       cash,
     ]),
     checklist,
@@ -150,7 +150,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
         ...rows,
         ...(armed
           ? [
-              el('span', 'text-[12.5px] text-muted-foreground', [
+              el('span', 'text-[12px] text-muted-foreground', [
                 `Click the board to place the ${COMPONENTS[armed].name}, or press Enter.`,
               ]),
               ...(stop ? [stop] : []),
@@ -168,7 +168,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
       ...goals(state).map((goal) =>
         el(
           'li',
-          `flex items-center gap-2 text-[13.5px] ${goal.done ? 'text-ok' : 'text-foreground'}`,
+          `flex items-center gap-2 text-[14px] ${goal.done ? 'text-ok' : 'text-foreground'}`,
           [
             svg(goal.done ? Check : Circle, 14),
             goal.label,

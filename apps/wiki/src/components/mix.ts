@@ -42,7 +42,7 @@ export const mixBar = <M>(mix: EraDef['mix'], h: HtmlBuilder<M>, legend = true):
       ),
       legend
         ? h.ul(
-            [h.Class('flex flex-wrap gap-x-4 gap-y-1.5 text-[12.5px]')],
+            [h.Class('flex flex-wrap gap-x-4 gap-y-1.5 text-[12px]')],
             entries.map(([kind, share]) =>
               h.li(
                 [h.Key(kind), h.Class('inline-flex items-center gap-1.5')],
