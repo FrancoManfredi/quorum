@@ -31,8 +31,13 @@ import {
   INCIDENT_IDS,
   HOTFIX_DEBT,
   KLOC_PER_DH,
+  KINDS,
   LANGUAGES,
+  LEVER_CAPS,
+  LEVER_OWNER,
+  LEVER_REFUND,
   LIVE_TUNING,
+  MAX_LEVER_STEP,
   MIGRATION_FACTORS,
   MIGRATION_FEATURE_SPEED,
   MOOD_START,
@@ -54,9 +59,13 @@ import {
   RESHARD_MINUTES_PER_GB,
   SHARD_COUNTS,
   UNSTRUCTURED_DEBT,
+  isLeverKind,
+  leverDh,
+  leverStepEra,
   type FeatureId,
   type FixId,
   type FrameworkId,
+  type LeverKind,
   type PolicyId,
   type IncidentId,
   type LanguageId,
@@ -91,7 +100,8 @@ import { step as hireStep } from './hire-machine.ts'
 import { step as moveStep } from './data-move-machine.ts'
 import { step as blockStep } from './work-item-machine.ts'
 import { step as featureStep } from './feature-machine.ts'
-import { awaitingFeatures, isBuilt, isFeatureLive } from './features.ts'
+import { awaitingFeatures, isBuilt, isFeatureLive, mixOf } from './features.ts'
+import { ventureOf } from './founding.ts'
 import {
   bugsFixed,
   cancelMigration,
@@ -158,6 +168,7 @@ import { budgetVelocity } from './slo.ts'
 const ok = (game: Game): Action => Result.succeed(game)
 const no = (refusal: Refusal): Action => Result.fail(refusal)
 const notAllowed = (reason: string): Action => no(Refusal.NotAllowed({ reason }))
+const refuse = (reason: string): Refusal => Refusal.NotAllowed({ reason })
 
 const SANDBOX = 'A Sandbox has no Team.'
 /** Teams the player can run in the slice. */
@@ -182,6 +193,7 @@ export const itemName = (item: WorkItem): string => {
     return `Patch ${COMPONENTS[item.target as ComponentId]?.name ?? 'Design'}`
   if (item.kind === 'spike') return `Spike: ${RESEARCH[item.ref as ResearchId]?.name ?? item.ref}`
   if (item.kind === 'split') return 'Split a service'
+  if (item.kind === 'lever') return `${KINDS[item.ref as RequestKind]?.label ?? item.ref} lever`
   if (item.kind === 'move')
     return item.ref === 'auth'
       ? 'Move auth in-house'
@@ -549,6 +561,82 @@ export const queueFeature = (game: Game, id: FeatureId): Action =>
 
 export const queueTask = (game: Game, id: TaskId): Action =>
   refused(taskRefusal(game, id), () => enqueue(game, 'task', id, TASKS[id].dh))
+
+/** A Venture's cap on a lever, or null when it has none for this kind (13 "Ventures"). */
+const leverCapOf = (game: Game, kind: LeverKind): number | null => {
+  const cap = LEVER_CAPS[ventureOf(game).id]
+  return cap !== undefined && cap.kind === kind ? cap.step : null
+}
+
+/**
+ * Why the next step of a kind's Product lever cannot be built, or null (10
+ * "Product levers"). A Challenge and a guided Sandbox pin their mix, so they
+ * carry no lever; a free Sandbox unlocks every step.
+ */
+export const leverRefusal = (game: Game, kind: string): Refusal | null => {
+  if (!isLeverKind(kind))
+    return refuse(`${KINDS[kind as RequestKind]?.label ?? kind} has no Product lever.`)
+  const step = game.levers[kind] ?? 0
+  const name = KINDS[kind].label
+  if (game.sandbox) {
+    if (game.fixedMix) return refuse('A Challenge pins its mix.')
+    return step >= MAX_LEVER_STEP ? refuse(`The ${name} lever is at its last step.`) : null
+  }
+  if (step >= MAX_LEVER_STEP) return refuse(`The ${name} lever is at its last step.`)
+  if ((mixOf(game)[kind] ?? 0) <= 0) return refuse(`The Company does not serve ${name}.`)
+  if (game.backlog.some((item) => item.kind === 'lever' && item.ref === kind))
+    return refuse(`A ${name} lever step is already on the backlog.`)
+  const next = step + 1
+  const opens = leverStepEra(kind, next)
+  if (game.stage < opens)
+    return refuse(`The ${name} lever step ${next} opens in ${ERAS[opens]?.name ?? 'a later Era'}.`)
+  const cap = leverCapOf(game, kind)
+  if (cap !== null && next > cap)
+    return refuse(`${ventureOf(game).name} caps the ${name} lever at its first step.`)
+  return null
+}
+
+/** Why a built lever step cannot be removed, or null. */
+export const leverRemoveRefusal = (game: Game, kind: string): Refusal | null => {
+  if (!isLeverKind(kind))
+    return refuse(`${KINDS[kind as RequestKind]?.label ?? kind} has no Product lever.`)
+  const step = game.levers[kind] ?? 0
+  const name = KINDS[kind].label
+  if (step <= 0) return refuse(`The ${name} lever is already off.`)
+  if (game.sandbox && game.fixedMix) return refuse('A Challenge pins its mix.')
+  if (game.backlog.some((item) => item.kind === 'lever' && item.ref === kind))
+    return refuse(`A ${name} lever step is on the backlog.`)
+  return null
+}
+
+/**
+ * Builds the next step of a kind's Product lever. A Company pays Dev Hours and
+ * waits for the deploy; a free Sandbox sets it at once, because it has no Team.
+ */
+export const queueLever = (game: Game, kind: LeverKind): Action => {
+  const refusal = leverRefusal(game, kind)
+  if (refusal) return no(refusal)
+  const step = (game.levers[kind] ?? 0) + 1
+  if (game.sandbox) return ok({ ...game, levers: { ...game.levers, [kind]: step } })
+  const service = serviceOfFeature(game, LEVER_OWNER[kind])
+  return ok(enqueue(game, 'lever', kind, leverDh(step), false, { service: service.id, step }))
+}
+
+/**
+ * Removes the last step of a lever: the share comes back, the growth cost ends,
+ * and a Company gets half the step's Dev Hours back.
+ */
+export const removeLever = (game: Game, kind: LeverKind): Action => {
+  const refusal = leverRemoveRefusal(game, kind)
+  if (refusal) return no(refusal)
+  const step = game.levers[kind] ?? 0
+  const levers = { ...game.levers, [kind]: step - 1 }
+  return ok(
+    game.sandbox
+      ? { ...game, levers }
+      : { ...game, levers, devHours: game.devHours + leverDh(step) * LEVER_REFUND },
+  )
+}
 
 /**
  * Why a live Feature cannot be removed, or null. A turned-off Feature still pays its upkeep
@@ -1452,8 +1540,16 @@ const complete = (game: Game, item: WorkItem, tuning: Tuning): Game => {
 }
 
 const completed = (game: Game, item: WorkItem, tuning: Tuning): Game => {
-  // A patch, a split, and a spike have no effect to apply: finishing them is the effect.
+  // A patch, a split, a spike, and a lever have no service code of their own: finishing them is
+  // the effect.
   if (item.kind === 'spike' || item.kind === 'patch' || item.kind === 'split') return game
+  if (item.kind === 'lever') {
+    const step = item.step ?? (game.levers[item.ref] ?? 0) + 1
+    return {
+      ...game,
+      levers: { ...game.levers, [item.ref]: Math.max(game.levers[item.ref] ?? 0, step) },
+    }
+  }
   if (item.kind === 'move') return moved(game, item, tuning)
   const service = serviceOfItem(game, item)
   if (item.kind === 'migration') {

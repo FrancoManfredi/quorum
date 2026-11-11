@@ -135,10 +135,12 @@ const board = (
   nodes: ReadonlyArray<GameNode>,
   links: ReadonlyArray<readonly [string, string]>,
   mix?: Partial<Record<RequestKind, number>>,
+  fixed = true,
 ): Game =>
   normalizeOrdinals({
     ...company(SEED),
     sandbox: true,
+    fixedMix: fixed,
     cash: 0,
     stage,
     users,
@@ -1062,6 +1064,8 @@ export const freeSandbox = (): Game =>
       ['users', 'server'],
       ['server', 'database'],
     ],
+    undefined,
+    false,
   )
 
 /** A copy of a Company's Design on the free Sandbox, at its current demand and mix. */

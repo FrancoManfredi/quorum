@@ -12,6 +12,7 @@ import {
   INCIDENT_IDS,
   INSIGHT_POOLS,
   LANGUAGE_IDS,
+  LEVER_KINDS,
   POLICY_IDS,
   PRICING_IDS,
   REQUEST_KINDS,
@@ -55,6 +56,7 @@ export const ResearchId = Schema.Literals(RESEARCH_IDS)
 export const IncidentId = Schema.Literals(INCIDENT_IDS)
 
 export const RequestKindId = Schema.Literals(REQUEST_KINDS)
+export const LeverKindId = Schema.Literals(LEVER_KINDS)
 export const LanguageId = Schema.Literals(LANGUAGE_IDS)
 export const PolicyId = Schema.Literals(POLICY_IDS)
 export const FeatureId = Schema.Literals(FEATURE_IDS)
@@ -660,6 +662,7 @@ export const WorkKind = Schema.Literals([
   'patch',
   'split',
   'move',
+  'lever',
 ])
 export type WorkKind = typeof WorkKind.Type
 
@@ -694,6 +697,8 @@ export const WorkItem = Schema.Struct({
   answered: Schema.NullOr(Schema.Literals(['now', 'queued'])).pipe(
     Schema.withDecodingDefaultKey(Effect.succeed(null)),
   ),
+  /** A Product lever item's step: 1, 2, or 3 (10 "Product levers"). */
+  step: Schema.optionalKey(Schema.Finite),
 })
 export type WorkItem = typeof WorkItem.Type
 
@@ -1046,5 +1051,17 @@ export const Game = Schema.Struct({
   iac: Schema.optionalKey(Infra),
   /** Regions built from another region (05 "Mirror a region"). Absent until the first Mirror. */
   mirrors: Schema.optionalKey(Schema.Array(Mirror)),
+  /**
+   * The Product lever step built for each request kind (10 "Product levers"). A
+   * kind with no entry is at step 0, the Era's mix.
+   */
+  levers: Schema.Record(Schema.String, Schema.Finite).pipe(
+    Schema.withDecodingDefaultKey(Effect.succeed({})),
+  ),
+  /**
+   * The mix is pinned by the scenario: a Challenge or a guided Sandbox turns
+   * Product levers off, so its targets cannot move (14 "Challenges").
+   */
+  fixedMix: Schema.Boolean.pipe(Schema.withDecodingDefaultKey(Effect.succeed(false))),
 })
 export type Game = typeof Game.Type

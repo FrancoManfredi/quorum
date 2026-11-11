@@ -63,7 +63,13 @@ import {
 } from './director.ts'
 import { advanceMirrors } from './mirror.ts'
 import { StepEvent, type AlertRule } from './events.ts'
-import { advanceFeatures, churnFactor, growthFactor, isFeatureLive } from './features.ts'
+import {
+  advanceFeatures,
+  churnFactor,
+  growthFactor,
+  isFeatureLive,
+  leverGrowthFactor,
+} from './features.ts'
 import { growthPerk, ventureOf } from './founding.ts'
 import type { Ledger } from './ledger.ts'
 import {
@@ -146,6 +152,7 @@ const flowsOf = (game: Game, ledger: Ledger, pace: number): Readonly<Record<Regi
     era.growth *
     pace *
     growthFactor(game) *
+    leverGrowthFactor(game) *
     growthPerk(game) *
     (game.round._tag === 'Declined' ? DECLINED_GROWTH : 1) *
     (has(game, 'funnels') ? FUNNEL_GROWTH : 1)

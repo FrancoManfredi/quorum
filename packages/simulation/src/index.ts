@@ -43,6 +43,7 @@ export {
   GameNode,
   Incident,
   LbPolicy,
+  LeverKindId,
   NO_FALSE_ALARMS,
   PmMode,
   Postmortem,

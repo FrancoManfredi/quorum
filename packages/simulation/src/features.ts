@@ -4,16 +4,20 @@ import {
   FEATURES,
   FEATURE_IDS,
   FLAG_PROPAGATION_SECONDS,
+  KINDS,
   LIFT_CONFIDENCE,
   LIFT_MAX_ROLLOUT,
   LIFT_MIN_ROLLOUT,
   LIFT_SPREAD,
+  LEVER_KINDS,
   LIVE_TUNING,
   MARKET_GAIN_CAP,
   OUTCOME_BANDS,
   PAYING_SHARE,
   PLAN_PER_DAY,
   ROLLOUT_ALL,
+  leverGrowthTotal,
+  leverMultiplier,
   type BackendKind,
   type FeatureDef,
   type FeatureId,
@@ -148,13 +152,12 @@ const rolledProduct = (
   )
 
 /**
- * The share of demand each kind gets. A gated kind sends nothing until its
- * Feature ships, and the other shares grow to fill its place. An early kind
- * takes its share from the others. Load effects then add demand on top.
+ * The mix before Product levers: the Era, less the kinds a gated Feature has not
+ * shipped, then the Venture's changes. A Sandbox uses its pinned mix instead.
  */
-export const mixOf = (game: Game): Partial<Record<RequestKind, number>> => {
+const baseMixOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const era = eraOf(game).mix
-  if (game.sandbox) return (game.scenario?.mix as Partial<Record<RequestKind, number>>) ?? era
+  if (game.sandbox) return { ...(game.scenario?.mix ?? era) }
   const shares: Partial<Record<RequestKind, number>> = { ...era }
   for (const id of FEATURE_IDS) {
     const unlocks = FEATURES[id].unlocks
@@ -163,6 +166,62 @@ export const mixOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const total = Object.values(shares).reduce((sum, share) => sum + (share ?? 0), 0)
   for (const kind of Object.keys(shares) as Array<RequestKind>)
     shares[kind] = total > 0 ? (shares[kind] ?? 0) / total : 0
+  return ventureMix(game, shares)
+}
+
+/**
+ * The mix after the player's Product levers: each step moves the kind's share up
+ * and the other kinds give up the difference in proportion (10 "Product levers").
+ * A Challenge or guided Sandbox pins its mix, so a lever cannot move it.
+ */
+const withLevers = (
+  game: Game,
+  shares: Partial<Record<RequestKind, number>>,
+): Partial<Record<RequestKind, number>> => {
+  if (game.fixedMix) return shares
+  const next = { ...shares }
+  for (const kind of LEVER_KINDS) {
+    const step = game.levers[kind] ?? 0
+    if (step <= 0) continue
+    const share = next[kind] ?? 0
+    if (share <= 0) continue
+    const target = share * leverMultiplier(step)
+    if (target <= share || target > 1) continue
+    const others = Object.entries(next).reduce(
+      (sum, [other, value]) => (other === kind ? sum : sum + (value ?? 0)),
+      0,
+    )
+    if (others <= 0) continue
+    for (const other of Object.keys(next) as Array<RequestKind>)
+      if (other !== kind) next[other] = ((next[other] ?? 0) * (1 - target)) / others
+    next[kind] = target
+  }
+  return next
+}
+
+/**
+ * The pre-Feature mix with and without the levers. The value of a step's added
+ * requests is what it displaced, so revenue stays flat (10 "Product levers").
+ */
+export const leverMixOf = (
+  game: Game,
+): Readonly<{
+  base: Partial<Record<RequestKind, number>>
+  levered: Partial<Record<RequestKind, number>>
+}> => {
+  const base = baseMixOf(game)
+  return { base, levered: withLevers(game, base) }
+}
+
+/**
+ * The share of demand each kind gets. A gated kind sends nothing until its
+ * Feature ships, and the other shares grow to fill its place. An early kind
+ * takes its share from the others. Load effects then add demand on top.
+ */
+export const mixOf = (game: Game): Partial<Record<RequestKind, number>> => {
+  const levered = leverMixOf(game).levered
+  if (game.sandbox) return levered
+  const shares = { ...levered }
   for (const feature of shipped(game)) {
     const unlocks = feature.unlocks
     if (!unlocks) continue
@@ -188,7 +247,7 @@ export const mixOf = (game: Game): Partial<Record<RequestKind, number>> => {
       if (shares[kind] !== undefined)
         shares[kind] = (shares[kind] ?? 0) * atExposure(factor, exposure)
   }
-  return ventureMix(game, shares)
+  return shares
 }
 
 /** The Venture's mix changes, on the kinds the Era has, with the total kept. */
@@ -230,13 +289,52 @@ export const growthFactor = (game: Game): number =>
 export const churnFactor = (game: Game): number =>
   rolledProduct(game, (feature, exposure, outcome) => atExposure(feature.churn, exposure, outcome))
 
-/** What a request of `kind` earns relative to its catalog value. */
-export const valueFactor = (game: Game, kind: RequestKind): number =>
+/**
+ * User growth multiplier from the Product levers (10 "Product levers"): each step
+ * takes 1%, 2%, or 4% off. A Company with no lever grows as it did.
+ */
+export const leverGrowthFactor = (game: Game): number =>
+  LEVER_KINDS.reduce((factor, kind) => factor * leverGrowthTotal(game.levers[kind] ?? 0), 1)
+
+/** What a request of `kind` earns relative to its catalog value, before the levers. */
+const baseValueFactor = (game: Game, kind: RequestKind): number =>
   rolledProduct(game, (feature, exposure, outcome) =>
     atExposure(feature.value[kind] ?? 1, exposure, outcome),
   ) *
   ventureOf(game).value *
   (game.scenario?.value?.[kind] ?? 1)
+
+/**
+ * The value multiplier a Product lever leaves on its kind. The requests its step
+ * adds are marginal: they earn the value of the traffic they displaced, so the
+ * Company's revenue per user stays flat (10 "Product levers").
+ */
+const leverValueFactor = (game: Game, kind: RequestKind): number => {
+  const step = game.levers[kind] ?? 0
+  if (step <= 0) return 1
+  const { base, levered } = leverMixOf(game)
+  const before = base[kind] ?? 0
+  const after = levered[kind] ?? 0
+  const added = after - before
+  // Earnings per request, so the blend compares dollars and not bare catalog values.
+  const own = KINDS[kind].value * baseValueFactor(game, kind)
+  if (added <= 0 || own <= 0) return 1
+  let displaced = 0
+  let displacedShare = 0
+  for (const other of Object.keys(base) as Array<RequestKind>) {
+    if (other === kind) continue
+    const lost = (base[other] ?? 0) - (levered[other] ?? 0)
+    if (lost <= 0) continue
+    displaced += lost * KINDS[other].value * baseValueFactor(game, other)
+    displacedShare += lost
+  }
+  if (displacedShare <= 0) return 1
+  return (before * own + added * (displaced / displacedShare)) / (after * own)
+}
+
+/** What a request of `kind` earns relative to its catalog value. */
+export const valueFactor = (game: Game, kind: RequestKind): number =>
+  baseValueFactor(game, kind) * leverValueFactor(game, kind)
 
 /** How big a response of `kind` is relative to its profile. */
 export const payloadFactor = (game: Game, kind: RequestKind): number =>

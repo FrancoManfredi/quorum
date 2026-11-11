@@ -109,6 +109,7 @@ const board = (
   normalizeOrdinals({
     ...company(seed),
     sandbox: true,
+    fixedMix: true,
     cash: 0,
     stage: era,
     users,
