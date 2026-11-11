@@ -42,7 +42,7 @@ export const header = (model: Model, h: H): Html =>
     [h.Class('sticky top-0 z-40 border-b border-border bg-background')],
     [
       h.div(
-        [h.Class('mx-auto flex h-14 max-w-[1152px] items-center gap-3 px-4 sm:px-6')],
+        [h.Class('mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 sm:px-6')],
         [
           h.button(
             [
@@ -109,7 +109,7 @@ const sections = (model: Model, h: H): Html => {
       h.div(
         [
           h.Class(
-            'mx-auto flex h-11 max-w-[1152px] items-stretch gap-6 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none] max-lg:[mask-image:linear-gradient(to_right,#000_85%,transparent)]',
+            'mx-auto flex h-11 max-w-7xl items-stretch gap-6 overflow-x-auto px-4 sm:px-6 [scrollbar-width:none] max-lg:[mask-image:linear-gradient(to_right,#000_85%,transparent)]',
           ),
         ],
         SECTION_ORDER.flatMap((section) => {

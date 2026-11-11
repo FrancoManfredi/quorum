@@ -158,8 +158,8 @@ const footer = (page: Page, h: H): Html => {
 export const article = (page: Page, model: Model, h: H): Html =>
   h.article(
     [
-      // Every page holds the reading measure; a wide page spans the frame instead.
-      h.Class(cn('min-w-0 py-8', page.wide ? 'col-span-full' : 'max-w-[var(--measure)]')),
+      // A wide page spans the frame; every other page fills its column.
+      h.Class(cn('min-w-0 py-8', page.wide && 'col-span-full')),
       h.DataAttribute('kind', page.section),
     ],
     [
@@ -207,7 +207,7 @@ export const article = (page: Page, model: Model, h: H): Html =>
 
 export const notFound = (model: Model, h: H): Html =>
   h.article(
-    [h.Class('max-w-[var(--measure)] py-16')],
+    [h.Class('py-16')],
     [
       h.div([h.Class(cn(FIGURE, 'text-[13px] text-muted-foreground'))], ['404']),
       h.h1([h.Class('mt-2 text-[32px] font-semibold tracking-tight')], ['No page here']),

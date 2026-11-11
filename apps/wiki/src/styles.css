@@ -12,8 +12,6 @@
   :root {
     /* The sticky header: the bar and the section bar. */
     --header-height: 100px;
-    /* The reading measure. The page header, the prose column, and the facts rail agree on it. */
-    --measure: 32rem;
   }
 
   html {

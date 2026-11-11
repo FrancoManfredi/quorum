@@ -9,14 +9,14 @@ import type { Message, Model } from './main.ts'
 import { pageAt } from './pages.ts'
 import { WIKI_ORIGIN } from './site.ts'
 
-/* The page frame: the header, the navigation rail, the page, and the facts rail. The reading
-   measure lives in styles.css (--measure), and the article column holds it at xl. */
+/* The page frame: the header, the navigation rail, the page, and the facts rail. Each rail takes
+   one step of Tailwind's width scale, and the page fills what the frame has left. */
 
 /** The frame the header, the section bar, and the page share. */
-export const FRAME = 'mx-auto max-w-[1152px] px-4 sm:px-6'
+export const FRAME = 'mx-auto max-w-7xl px-4 sm:px-6'
 
 const GRID =
-  'grid gap-x-8 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_var(--measure)_minmax(0,1fr)]'
+  'grid gap-x-8 lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)_16rem]'
 
 export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
   const page = pageAt(model.path)
@@ -60,7 +60,7 @@ export const view = (model: Model, h: HtmlBuilder<Message>): Document => {
                   ],
                   [
                     railPage.aside
-                      ? h.div([h.Class('lg:max-w-[320px]')], [railPage.aside(model, h)])
+                      ? h.div([h.Class('lg:max-w-xs')], [railPage.aside(model, h)])
                       : h.empty,
                     toc(railPage, h),
                   ],

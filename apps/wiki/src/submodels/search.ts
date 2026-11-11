@@ -113,7 +113,7 @@ export const view = defineView<Model, Message>((model, h) => {
         ? 'Search is unavailable.'
         : 'No page matches.'
   return h.div(
-    [h.Class('relative min-w-0 flex-1 sm:max-w-[360px]')],
+    [h.Class('relative min-w-0 flex-1 sm:max-w-sm')],
     [
       h.label(
         [

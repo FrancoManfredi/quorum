@@ -62,7 +62,7 @@ export const projectCard = (project: Project.Model, h: H): Html => {
                     [REPO_NAME],
                   ),
                   h.p(
-                    [h.Class('mt-1 max-w-[44ch] text-[13px] leading-snug text-muted-foreground')],
+                    [h.Class('mt-1 max-w-sm text-[13px] leading-snug text-muted-foreground')],
                     ['Read the code, report a bug, or send a fix.'],
                   ),
                 ],

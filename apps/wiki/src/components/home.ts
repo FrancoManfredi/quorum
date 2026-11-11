@@ -298,7 +298,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
         h,
       ),
       h.p(
-        [h.Class('mt-8 max-w-[var(--measure)] text-[13px] leading-relaxed text-muted-foreground')],
+        [h.Class('mt-8 max-w-3xl text-[13px] leading-relaxed text-muted-foreground')],
         [
           'Want the rules, formulas, and open questions behind the game? Read the ',
           h.a(

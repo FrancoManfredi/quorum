@@ -53,7 +53,7 @@ export const pathBar = (page: Page, model: Model, h: H): Html => {
   if (!place) return h.empty
   const steps = stepsOf(place.path)
   return h.nav(
-    [h.AriaLabel(`Guided path: ${place.path.title}`), h.Class('mt-6 max-w-md')],
+    [h.AriaLabel(`Guided path: ${place.path.title}`), h.Class('mt-6')],
     [
       h.div(
         [h.Class('mb-2 flex items-baseline justify-between gap-3')],
