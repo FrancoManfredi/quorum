@@ -23,7 +23,6 @@ import {
   X,
   type IconNode,
   Lock,
-  Minus,
   TriangleAlert,
   CircleHelp,
 } from 'lucide'
@@ -147,14 +146,38 @@ const duration = (t: Messages, game: Game, entry: ResearchDef): string => {
   return seconds < 90 ? t.units.s(Math.round(seconds)) : t.units.min(Math.round(seconds / 60))
 }
 
+/** The three lever steps as a meter, so the step reads at a glance. */
+const stepMeter = (step: number, h: HtmlBuilder<Message>): Html =>
+  h.span(
+    [
+      h.Class('inline-flex items-center gap-[3px]'),
+      h.AriaHidden(true),
+      h.Title(`${step} of ${MAX_LEVER_STEP}`),
+    ],
+    Array.from({ length: MAX_LEVER_STEP }, (_, index) =>
+      h.span(
+        [
+          h.Key(String(index)),
+          h.Class(
+            cn('h-1.5 w-3 rounded-full', index < step ? 'bg-foreground/70' : 'bg-foreground/15'),
+          ),
+        ],
+        [],
+      ),
+    ),
+  )
+
 /**
- * A pool's Product lever, under its cost row: the step it stands at, the share
- * it gives the kind, and what the step takes off user growth. A Challenge and a
- * guided Sandbox pin their mix, so they show no lever (10 "Product levers").
+ * A pool's Product lever, under its cost row: what the kind takes today, what the
+ * next step would take, what that costs, and the two things the player can do
+ * (10 "Product levers"). A Challenge and a guided Sandbox pin their mix, so they
+ * show no lever.
  */
 const leverRow = (
   game: Game,
+  ledger: Ledger,
   pool: InsightPool,
+  draw: number,
   blocked: boolean,
   h: HtmlBuilder<Message>,
 ): Html => {
@@ -164,33 +187,82 @@ const leverRow = (
   const step = game.levers[kind] ?? 0
   const share = mixOf(game)[kind] ?? 0
   const next = step + 1
+  const last = step >= MAX_LEVER_STEP
   const buildRefusal = leverRefusal(game, kind)
   const removeRefusal = leverRemoveRefusal(game, kind)
   // A pool that limits the Study, or one the player can raise or has raised, keeps the row.
   // Any other hint of a ladder the player cannot climb only crowds the recipe.
   if (!blocked && step <= 0 && buildRefusal !== null) return h.empty
+  const nextShare = last
+    ? share
+    : (mixOf({ ...game, levers: { ...game.levers, [kind]: next } })[kind] ?? 0)
   const growth = Math.round((1 - leverGrowthTotal(step)) * 100)
+  const nextGrowth = Math.round((1 - leverGrowthTotal(next)) * 100)
+  const name = t.catalog.pools[kind].label
+  const title = blocked
+    ? t.levers.titleLow(name)
+    : step <= 0
+      ? t.levers.titleRaise(name)
+      : t.levers.titleFaster(name)
+  const reason = blocked
+    ? t.levers.low(name, compact(ledger.insight[pool]), compact(draw))
+    : step <= 0
+      ? t.levers.raise(name)
+      : t.levers.faster(name, sharePercent(share))
+  const buildable = !last && buildRefusal === null
+  const note = last
+    ? t.levers.cost(growth)
+    : buildRefusal !== null
+      ? refusalIn(t, buildRefusal)
+      : t.levers.reaches(sharePercent(nextShare), nextGrowth)
   return h.div(
+    [h.Key(`${pool}-lever`), h.Class('my-1.5 rounded-lg bg-well px-2.5 py-2 shadow-well')],
     [
-      h.Key(`${pool}-lever`),
-      h.Class(
-        'flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5 pb-1.5 pl-7 text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
-      ),
-    ],
-    [
-      h.span([h.Class('font-medium text-foreground/70')], [t.levers.step(step, MAX_LEVER_STEP)]),
-      h.span([], [t.levers.share(sharePercent(share))]),
-      step > 0 ? h.span([], [t.levers.growth(`−${growth}%`)]) : h.empty,
-      blocked
-        ? h.span(
-            [h.Class('rounded-full bg-[var(--warn-soft)] px-1.5 font-medium text-warn')],
-            [t.levers.bottleneck],
-          )
-        : h.empty,
       h.div(
-        [h.Class('ml-auto flex items-center gap-1')],
+        [h.Class('flex items-start gap-2')],
         [
-          step >= MAX_LEVER_STEP
+          h.p(
+            [
+              h.Class(
+                cn(
+                  'min-w-0 flex-1 text-[calc(12.5px*var(--type-scale))] leading-snug font-semibold',
+                  blocked ? 'text-warn' : 'text-foreground',
+                ),
+              ),
+            ],
+            [title],
+          ),
+          h.div(
+            [h.Class('flex shrink-0 items-center gap-1.5 whitespace-nowrap')],
+            [
+              stepMeter(step, h),
+              h.span(
+                [h.Class('text-[calc(10.5px*var(--type-scale))] text-muted-foreground')],
+                [t.levers.count(step, MAX_LEVER_STEP)],
+              ),
+            ],
+          ),
+        ],
+      ),
+      h.p(
+        [h.Class('mt-1.5 text-[calc(12px*var(--type-scale))] leading-snug text-foreground/85')],
+        [reason],
+      ),
+      h.p(
+        [
+          h.Class(
+            cn(
+              'mt-1 text-[calc(11px*var(--type-scale))] leading-snug',
+              buildable || last ? 'text-muted-foreground' : 'text-warn',
+            ),
+          ),
+        ],
+        [note],
+      ),
+      h.div(
+        [h.Class('mt-2 flex items-center gap-1.5')],
+        [
+          last
             ? h.empty
             : button(
                 {
@@ -198,19 +270,20 @@ const leverRow = (
                     message: ResearchMessage.LeverBuilt({ kind }),
                   }),
                   isDisabled: buildRefusal !== null,
-                  size: 'xs',
+                  size: 'sm',
                   variant: 'outline',
+                  className: 'min-w-0 flex-1 text-[calc(12px*var(--type-scale))]',
                   attributes: [
                     h.Title(
                       buildRefusal === null
-                        ? game.sandbox
-                          ? t.levers.set
-                          : t.levers.build(compact(leverDh(next)))
+                        ? t.levers.buildStep(next, compact(leverDh(next)))
                         : refusalIn(t, buildRefusal),
                     ),
                   ],
                 },
-                game.sandbox ? t.levers.set : t.levers.build(compact(leverDh(next))),
+                game.sandbox
+                  ? t.levers.setStep(next)
+                  : t.levers.buildStep(next, compact(leverDh(next))),
                 h,
               ),
           step <= 0
@@ -221,9 +294,9 @@ const leverRow = (
                     message: ResearchMessage.LeverRemoved({ kind }),
                   }),
                   isDisabled: removeRefusal !== null,
-                  size: 'icon-xs',
+                  size: 'sm',
                   variant: 'ghost',
-                  className: 'text-muted-foreground',
+                  className: 'shrink-0 text-muted-foreground',
                   attributes: [
                     h.AriaLabel(t.levers.takeOff),
                     h.Title(
@@ -233,7 +306,7 @@ const leverRow = (
                     ),
                   ],
                 },
-                icon(h, Minus, 'size-3'),
+                t.levers.removeStep,
                 h,
               ),
         ],
@@ -298,7 +371,14 @@ const costRows = (
               ),
             ],
           ),
-          leverRow(game, pool, pool === limit, h),
+          leverRow(
+            game,
+            ledger,
+            pool,
+            cost / (studySeconds(entry.id) / studySpeed(game)),
+            pool === limit,
+            h,
+          ),
         ]),
       ),
     ],
