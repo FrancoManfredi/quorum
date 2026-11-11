@@ -7,7 +7,7 @@ aliases: settings, keys, keyboard, shortcuts, hotkeys, key reference, reduce mot
 gdd: /design/15-ui-ux
 ---
 
-Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the title screen, **Settings** is in the taskbar. The panel groups its rows into Sound, Play, Display, Privacy, and Save, and each change applies at once.
+Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the title screen, **Settings** is in the taskbar. Settings comes in five sections: **Sound**, **Play**, **Display**, **Privacy**, and **Save**. The panel lays all five out at once; the title screen shows one section at a time, and `←` and `→` step between them. Each change applies at once.
 
 ![The Settings panel](/play/settings.png)
 
@@ -15,7 +15,7 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 
 | Setting                               | Effect                                                                                |
 | ------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Volume**                            | Sets the level of the effect mix. The speaker beside it mutes everything.             |
+| **Volume**                            | Sets the level of the effect mix. On the title screen, `←` and `→` set it.            |
 | **Mute sound** (`M`)                  | Turns all sound off. The slider rests until you turn sound back on.                   |
 | **Easy mode**                         | Adds Pause and the speed control, and reveals **Pause on SEV1 and SEV2**.             |
 | **Pause on SEV1 and SEV2**            | Pauses the clock when a severe incident starts. Off by default.                       |
@@ -28,10 +28,12 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 | **Share anonymous usage data**        | Sends anonymous usage data. Off stops capture. On by default.                         |
 | **Privacy policy**                    | Opens the policy in a new page.                                                       |
 | **Copy save as text**                 | Copies this Company as text that starts with `QSV1:`.                                 |
-| **Import a save**                     | Asks you to paste that text and loads it.                                             |
+| **Download save file**                | Saves this Company as a file named after it, such as `quorum-acme-cloud.txt`.         |
+| **Import a save file**                | Loads a Company from a save file.                                                     |
+| **Paste a save**                      | Asks you to paste that `QSV1:` text and loads it.                                     |
 | **Copy state as JSON**                | Copies the whole game state, for bug reports.                                         |
 
-Settings belong to the browser, not to a Company. Read [Move a Company to another browser](/guides/move-a-company) before you use **Import a save**, and the [privacy page](/about/privacy) for what the usage data holds.
+Settings belong to the browser, not to a Company. Read [Move a Company to another browser](/guides/move-a-company) before you use **Import a save file**, and the [privacy page](/about/privacy) for what the usage data holds.
 
 The Menu also holds **Resume**, **Settings**, **Room**, **Exit company** when you can exit, and **Title screen**. **Resume** and `Esc` return to the board. Read [Play in a Room](/play/rooms) before you take a Company online.
 

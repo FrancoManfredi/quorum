@@ -8,9 +8,9 @@ aliases: start, new game, new company, found a company, clock in, title screen, 
 
 To start playing, click the **Founder** badge on the title screen, choose **Start a company**, name it, and select **Found**. The Board opens in the Garage, the first [Era](/eras/garage), and the clock runs.
 
-![The title screen: a badge reader with the Founder badge.](/play/title.png)
+![The Main menu: the Company rows, then the Practice rows.](/play/title.png)
 
-_Look at the Founder badge. Clicking it is the only way past this screen._
+_Continue stays at the top while a Company is open. The Practice rows never touch it._
 
 ## Found a Company
 
@@ -30,7 +30,7 @@ On the title screens, `↑` and `↓` move the selection, `Enter` opens the sele
 
 ## Other ways to start
 
-The **Main menu** has more rows than **Start a company**:
+The **Main menu** groups its rows under **Company** and **Practice**. **Company** holds **Continue**, **New company**, **Start in Pre-seed**, **Import a company**, and **Companies**. **Practice** holds **Sandbox** and **Challenges**, which need no Company:
 
 - **Start in Pre-seed** skips the Garage. The Design already has its own Database Node, so you start with the lessons of the first Era learned.
 - **Sandbox** opens a Board that changes nothing in a Company. The guided Sandboxes each teach one mechanic. The free Sandbox has every Component unlocked and no Cash.
