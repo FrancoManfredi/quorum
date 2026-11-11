@@ -169,6 +169,18 @@ _Avoid_: blueprint, template, preset
 A class of work that Users send, such as `page`, `write`, or `ai`, with a value, a cost profile, and an Apdex target.
 _Avoid_: request type, traffic type, file type
 
+**Request mix**:
+The share of demand that each Request kind takes. An Era sets a base mix, a Venture changes it, Features move it, and a Product lever raises one kind. The shares add up to one, so the mix says where a user's attention goes, not how much attention they have.
+_Avoid_: traffic split, ratio, distribution, allocation
+
+**Product lever**:
+A product change, built with Dev Hours, that raises one Request kind's share of the Request mix. It has three steps, and it never creates a kind.
+_Avoid_: surface, demand lever, traffic lever, dial, slider
+
+**Product lever step**:
+One of the three builds of a Product lever. Each step raises the kind's share further, costs Dev Hours, and lowers user growth.
+_Avoid_: level, tier, upgrade
+
 **Backend kind**:
 A class of work that a Node sends to the data tier or to a Managed Component, such as `q-read` or `infer`. It earns nothing by itself.
 _Avoid_: query type, internal request
@@ -335,7 +347,7 @@ The currency of engineering work, spent on Features, tasks, migrations, Spikes, 
 _Avoid_: DH points, effort, time
 
 **Feature**:
-A product change built with Dev Hours that grows the market or revenue and changes load.
+A product change built with Dev Hours that grows the market or revenue and changes load. A Feature that brings a Request kind owns that kind's Product lever.
 _Avoid_: upgrade, perk, improvement
 
 **Rollout**:
@@ -415,12 +427,16 @@ One graph or number on the Dashboard, such as p99 latency or error budget left.
 _Avoid_: panel (that is a side panel such as the Inspector), widget, tile
 
 **Recipe**:
-The Insight pools that pay a Research item's cost, split equally.
+The Insight pools that pay a Research item's cost, split equally. The split is also the mix the item wants: equal supply from each pool.
 _Avoid_: price list, ingredients, requirements
 
 **Study**:
 The run of one Research item. It takes its Insight over its duration, and its effect starts when it completes. One runs at a time.
 _Avoid_: research job, project, timer
+
+**Insight bottleneck**:
+The Insight pool whose earning rate costs the running Study the most time. The Research screen marks it with the Product lever that raises it.
+_Avoid_: research bottleneck, slow pool, bottleneck Node
 
 **Tradeoff card**:
 The forced choice shown when the player picks an option, with its six-axis profile and a preview on the player's own Design.
