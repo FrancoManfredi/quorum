@@ -51,14 +51,14 @@ A Study never moves above a prerequisite it needs. Its **Move up** button turns 
 
 ### Raise a pool's supply
 
-A pool that cannot keep up with a Study slows it down, and the fix can be a product change rather than more samples. Each Cost row for a kind with a **Product lever** shows the lever's line under the pool row.
+A pool that cannot keep up with a Study slows it down, and the fix can be a product change rather than more samples. Open the item that runs, and every kind with a **Product lever** shows one under its Cost row.
 
-1. Read the line before you build. It shows the step, **No lever** until you build one, the share of traffic that kind takes now, and the growth the built steps take off user growth.
+1. Read the card under the pool row. When the pool limits the Study, the title says the kind's Insight is too low, and the line below it gives both rates: what the pool earns a second and what the Study needs. The last line names what the next step reaches in share of traffic and what it costs in user growth.
 2. Select **Build**. The step joins the Team backlog with the Dev Hours of that step, and a Team spends them on it.
-3. Watch the Team panel until the item reaches **Shipping**. The next deploy lands the step, the kind's share changes, and the row offers the next step. A **Limits the Study** badge on the row marks the pool the running Study waits on.
-4. To take a step back, select the **−** button on the row. It removes the last step and returns half its Dev Hours, and the share comes back to the other kinds.
+3. Watch the Team panel until the item reaches **Shipping**. When the deploy lands, the kind's share rises, its pool earns faster, and the card offers the next step. A step the Era has not opened stays greyed, and the card says which Era opens it.
+4. To take a step back, select **Remove**. It removes the last step and returns half its Dev Hours, and the share goes back to the other kinds.
 
-The button is greyed when the Era has not opened that step, when a Venture caps the lever, or when a step already waits on the backlog. Hover it for the reason. A locked mix, such as a Challenge's, shows no lever line at all.
+A step already on the backlog, a Venture's cap, and a locked mix each leave the button greyed with the reason under it. A Challenge pins its mix, so it shows no lever card at all.
 
 ## The Team panel
 

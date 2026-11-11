@@ -421,10 +421,12 @@ glance instead of reading labels.
 - The same icon appears everywhere a pool appears: recipe chips, the HUD, the Analytics card, and
   Mail.
 
-A pool's row also carries its Product lever, when its kind has one. The row shows the step the
-Company has built, the share the kind takes, the load the step adds, and the growth it costs.
-**Build** queues the next step on the backlog, and the Team panel shows it as a product item. A step
-that is still shipping reads "Shipping". A step whose Era has not arrived reads "Opens in [Era]".
+A pool's row also carries its Product lever, when its kind has one. The card names the kind's
+Insight, gives the rate the pool earns against the rate the Study needs, and says what the next step
+reaches in share of traffic and what it costs in user growth. **Build** queues the next step on the
+backlog, and the Team panel shows it as a product item. A step that is still shipping reads
+"Shipping". A step whose Era has not arrived is greyed, and the card names the Era that opens it.
+**Remove** takes the last step off and returns half its Dev Hours.
 
 ## Notifications
 

@@ -88,11 +88,12 @@ arrives with its Era and the Feature that brings it, and a lever only moves a sh
 exists.
 
 Find a lever in the Research panel. Open an item and read its **Cost** rows. The pool that limits
-the Study carries a **Limits the Study** badge and a **Build** button, and the row shows the step,
-the share the kind now takes, and what the built steps take off growth. When the Era is early, when
-a Venture caps the kind, or when a step already waits on the backlog, the button is greyed and its
-title says why. The free Sandbox lists every lever in its current mix and sets a step at once,
-because it has no Team to build one.
+the Study shows a card: its title says that kind's Insight is too low, it gives what the pool earns
+against what the Study needs, and its button names the step and its Dev Hours. Under the title, the
+card says what the step reaches in share of traffic and what it costs in user growth. When the Era
+is early, when a Venture caps the kind, or when a step already waits on the backlog, the button is
+greyed and the card gives the reason. The free Sandbox lists every lever in its current mix and sets
+a step at once, because it has no Team to build one.
 
 ## Studies run one at a time
 

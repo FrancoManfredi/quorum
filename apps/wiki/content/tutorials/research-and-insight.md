@@ -103,14 +103,15 @@ In Pre-seed, some items cost write and login Insight, and login arrives at a sma
 A Study on one of those runs at login's pace.
 
 1. Press **R** and click the item that runs now.
-2. Find the **Limits the Study** badge in the **Cost** rows. The same row carries that pool's
-   **Product lever**: its step, the share of traffic the kind takes, and a **Build** button.
+2. Look under the login cost row. The card says your Login Insight is too low, and it gives both
+   rates: what login earns a second and what the Study needs. Its button names the step and its Dev
+   Hours, and under the title it shows what that step reaches and what it costs in user growth.
 3. Select **Build**. The step joins the Team backlog, and a Team spends the Dev Hours on it.
 4. Press **Esc**, then **T**, and watch the item reach **Shipping**. When its deploy lands, the
    kind's share rises and its pool earns faster. The running Study picks up speed.
 
 A step also takes a little off user growth and loads the Nodes that serve the kind, so a login lever
-shows up on the App Servers. Start with the pool the badge names, not the busiest pool on the board.
+shows up on the App Servers. Start with the pool the card names, not the busiest pool on the board.
 
 ## Earn Insight faster
 
