@@ -74,6 +74,7 @@ time the game state makes it useful.
 | Collect glow on Payments           | The drawer is half full for the first time                        |
 | Resize glow on a Node card         | The Node is the bottleneck for the first time                     |
 | Insight HUD row and Research (`R`) | Any pool reaches the cost of the cheapest available Research item |
+| Product lever row                  | A running Study is limited by a pool that a lever can raise       |
 | Errors HUD row                     | The first request fails                                           |
 | Team (`T`) and the Feature HUD row | The first Feature is built                                        |
 | Hiring in the Team panel           | The Pre-seed Era starts                                           |
@@ -205,7 +206,8 @@ shows its delta anyway.
 ## Tradeoff cards
 
 A Tradeoff card appears when the player chooses an option: a runtime, a variant, a cache strategy, a
-replication mode, a deploy strategy, a pricing model.
+replication mode, a deploy strategy, a pricing model. A Product lever step uses one too, with the
+share it adds, the load it adds to the kind's Node, the growth it costs, and the Dev Hours.
 
 ```text
 ┌ Runtime: PHP-FPM → Node.js (cluster) ─────────────────────────────────┐
@@ -260,9 +262,9 @@ Rule: no action needs more than five repeated clicks without a bulk alternative.
 | Panel     | Opens with   | Contents                                                                                                                             |
 | --------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | Inspector | Click a Node | All numbers for the Node, its options, its history, and its Tradeoff cards                                                           |
-| Research  | `R`          | The tree by track ([Research screen](#research-screen))                                                                              |
+| Research  | `R`          | The tree by track, the Insight bottleneck, and its lever ([Research screen](#research-screen))                                       |
 | Dashboard | `D`          | Charts over time, with its template variables, compare line and table view ([Observability](/design/12-observability#the-dashboard)) |
-| Team      | `T`          | Teams, engineers, the Services and the split, the backlog, policies, DORA metrics                                                    |
+| Team      | `T`          | Teams, engineers, the Services and the split, the backlog, policies, DORA metrics, and the levers its Features own                   |
 | Cost      | `$` only     | Burn by line, Revenue, and the margin ([Economy](/design/09-economy#the-cloud-bill))                                                 |
 | Inbox     | `I`          | Mail: advice, offers, and reports ([Mail](/design/18-mail))                                                                          |
 | Incidents | `D`          | The running Incident and its Postmortems with their three times, as a Dashboard row ([below](#company-and-incidents-panels)).        |
@@ -294,7 +296,8 @@ and nothing before a Pipeline, because the one shared pipeline has nothing to me
 
 ### The Live column
 
-A live Feature's card shows what its users have and what Analytics reads from it. It carries up to
+A live Feature's card shows what its users have and what Analytics reads from it. A Feature that owns
+a Product lever also shows the lever's step and the share its kind takes. The card carries up to
 three readings:
 
 - Adoption, such as `63% adopted` ([Adoption](/design/08-team-and-velocity#adoption)).
@@ -400,7 +403,11 @@ leading spans all read the same fields, so they agree.
   and they do not open. The screen opens scrolled to the focused item.
 - Each item shows its cost as one chip per recipe pool, with the pool's icon and amount, its
   duration, its effect in one line, and what it unlocks. A silhouette shows only its effect line.
-- A queue of up to 8 Studies. The running Study shows its progress, and the pool that limits it.
+- A queue of up to 8 Studies. The running Study shows its progress, the pool that limits it, and the
+  lever that raises that pool.
+- Each recipe pool shows the rate the Study draws and the rate the pool earns. A pool that limits the
+  Study is marked, and its row carries the lever's steps and **Build**, which queues the next step on
+  the backlog with its Dev Hours and growth cost.
 
 ### Insight pools
 
@@ -413,6 +420,11 @@ glance instead of reading labels.
   pool's name, such as "Checkout Insight".
 - The same icon appears everywhere a pool appears: recipe chips, the HUD, the Analytics card, and
   Mail.
+
+A pool's row also carries its Product lever, when its kind has one. The row shows the step the
+Company has built, the share the kind takes, the load the step adds, and the growth it costs.
+**Build** queues the next step on the backlog, and the Team panel shows it as a product item. A step
+that is still shipping reads "Shipping". A step whose Era has not arrived reads "Opens in [Era]".
 
 ## Notifications
 

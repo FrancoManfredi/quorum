@@ -276,7 +276,8 @@ service graph, and the service graph decides how well the teams work.
 
 A **Feature** is a product change built with Dev Hours. Features are the main way to raise revenue
 per user and market size. Every feature also changes load, which feeds the
-[bottleneck loop](/design/03-game-loops#l1-bottleneck-30-seconds-to-3-minutes).
+[bottleneck loop](/design/03-game-loops#l1-bottleneck-30-seconds-to-3-minutes). A Feature that brings
+a Request kind owns that kind's Product lever ([Levers](#levers)).
 
 Four rules make Features behave like real product work:
 
@@ -362,6 +363,21 @@ does that. Its roll applies only to the other effects it has.
 
 The player does not see the roll. The Feature card shows the win effect as "Expected". The player
 learns the realized effect only by measuring it ([Measured lift](#measured-lift)).
+
+### Levers
+
+A **Product lever** is a product change that raises one Request kind's share of the mix. It is not a
+Feature: it brings no kind, grows no market, and its effect is certain, so nothing is rolled
+([Progression](/design/10-progression#product-levers)).
+
+A lever step joins the backlog as a product item for the team that owns the kind's Feature, and it
+costs 24, 80, or 240 Dev Hours. It ships on the next deploy for every user, with no rollout and no
+adoption, because it is a policy rather than a new Feature. Removing a step refunds half its Dev
+Hours and ends its growth cost. Building it again starts from zero.
+
+The code belongs to the Service that carries the Feature, so a split moves the lever with it. The
+lever pays no upkeep, because its growth cost is the recurring price. The Team panel's Live column
+shows the lever a Feature owns, its step, and the share it produces.
 
 ### Rollout
 
