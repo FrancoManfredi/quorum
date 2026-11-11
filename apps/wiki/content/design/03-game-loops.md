@@ -77,13 +77,26 @@ flowchart LR
 
 - **Users** grow while the design keeps [Apdex](/glossary/apdex) above the Era target, and they
   leave when it drops ([Simulation](/design/04-simulation#users-and-growth)).
-- **Cash** buys capacity. **Insight** buys research. **Dev Hours** buy features, migrations, and
-  fixes ([Economy](/design/09-economy)).
+- **Cash** buys capacity. **Insight** buys research. **Dev Hours** buy features, product levers,
+  migrations, and fixes ([Economy](/design/09-economy)).
 - **Features** raise revenue and change the request mix. A successful feature creates load, so it
   feeds the L1 loop again ([Team and velocity](/design/08-team-and-velocity#features)).
 - Growth follows an S-curve toward the Era's market size, so growth slows near the cap. The player
   needs a new Era, a new feature, or a new region to grow further
   ([Balancing](/design/16-balancing#user-growth)).
+
+### The Insight bottleneck
+
+Research has a bottleneck of its own, and it is the L1 loop applied to a Study. A Study runs at the
+pace of its scarcest Insight pool, so the player reads the pool that costs the most time, raises the
+[Product lever](/design/10-progression#product-levers) for that kind, and pays for it with capacity
+and growth. This is the "build more miners" move of the request graph.
+
+```mermaid
+flowchart LR
+  slow["A Study drags"] --> pool["Find the limiting pool"] --> lever["Build or raise the lever"] --> mix["More of that kind"] --> load["Capacity and growth pay"] --> study["The Study speeds up"]
+  study -->|the bottleneck moves| pool
+```
 
 ## L3: Era (30 to 120 minutes)
 

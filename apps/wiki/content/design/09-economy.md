@@ -10,13 +10,13 @@ order: 9
 Each currency has one main source and one main sink, so the player always knows what each number
 is for.
 
-| Currency  | Symbol | Main source                          | Main sink                   | Resets on Exit |
-| --------- | ------ | ------------------------------------ | --------------------------- | -------------- |
-| Cash      | $      | Served requests                      | Nodes, Burn, salaries       | Yes            |
-| Insight   | ◇      | Sampled traffic                      | Research                    | Yes            |
-| Dev Hours | DH     | Engineers                            | Features, tasks, migrations | Yes            |
-| Equity    | %      | Starts at 100%; falls when you raise | Determines the Exit payout  | Yes            |
-| Legacy    | ★      | Exits                                | The Legacy shop             | No             |
+| Currency  | Symbol | Main source                          | Main sink                                   | Resets on Exit |
+| --------- | ------ | ------------------------------------ | ------------------------------------------- | -------------- |
+| Cash      | $      | Served requests                      | Nodes, Burn, salaries                       | Yes            |
+| Insight   | ◇      | Sampled traffic                      | Research                                    | Yes            |
+| Dev Hours | DH     | Engineers                            | Features, product levers, tasks, migrations | Yes            |
+| Equity    | %      | Starts at 100%; falls when you raise | Determines the Exit payout                  | Yes            |
+| Legacy    | ★      | Exits                                | The Legacy shop                             | No             |
 
 Users are not a currency. They are the state that every currency depends on.
 
@@ -125,7 +125,9 @@ busy, as in real self-hosting ([Reality check](/design/reality-check#prices)).
 
 Request values set what a user is worth. A user sends about 0.02 requests a second, which on the
 time-billed rule is 0.02 an hour in real time, at about $0.25 each, so revenue is about $4 per user
-per real month. Meta's 2025 worldwide ARPU was $57 a year, about $4.75 a month.
+per real month. Meta's 2025 worldwide ARPU was $57 a year, about $4.75 a month. A Product lever's
+added requests are marginal: they earn the value of the traffic they displace, so a lever changes the
+work, not the revenue per user ([Progression](/design/10-progression#product-levers)).
 
 The two rules disagree, and the gap is deliberate. Per-use prices are about 3,600 times cheaper,
 relative to compute, than in a real bill, because at the time-billed rate every page view would pay
@@ -313,7 +315,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  sampled["Sampled traffic"] --> insight[Insight] --> research[Research] --> unlocks["Components, variants, techniques, visibility"]
+  levers["Product levers"] --> mix["Request mix"] --> sampled["Sampled traffic"] --> insight[Insight] --> research[Research] --> unlocks["Components, variants, techniques, visibility"]
   postmortems[Postmortems] --> actions["Action items (open until researched)"] --> research
 ```
 
@@ -321,6 +323,7 @@ flowchart LR
 flowchart LR
   engineers[Engineers] --> dev["Dev hours"]
   dev --> features["Features (more users, revenue, load)"]
+  dev --> levers["Product levers (a kind's share of the mix)"]
   dev --> tasks["Tasks, migrations, debt paydown<br/>(cheaper and safer system)"]
 ```
 
@@ -330,5 +333,6 @@ flowchart LR
 ```
 
 The three main currencies (Cash, Insight, Dev Hours) compete for the player's attention, not for
-each other. Nothing converts one into another, except that Cash hires engineers and pays for
-Analytics. That keeps each choice legible.
+each other. Nothing converts one into another directly. Dev Hours build a Product lever, the lever
+changes the mix, the mix changes sampled traffic, and traffic earns Insight, so the only bridge is a
+production chain with a capacity bill. That keeps each choice legible.

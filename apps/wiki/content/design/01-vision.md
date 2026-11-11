@@ -9,7 +9,9 @@ order: 1
 
 Quorum is an incremental systems game for software engineers. You grow a startup from one
 virtual machine in a garage to a public company that serves billions of people. You do it by
-building and tuning the system that serves your users, one bottleneck at a time.
+building and tuning the system that serves your users, one bottleneck at a time. You also decide what
+users do: a product change that raises one kind of request is how you feed the research that unlocks
+the next tool.
 
 The genre is a node-graph automation game like Upload Labs, with the long-term pull of Factorio and
 the replay layer of an idle game. The subject is real backend engineering.
@@ -25,7 +27,7 @@ player argues that PHP-FPM is fine, then proves it with numbers.
 | -------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Working backend engineers        | To see their real knowledge pay off and to argue about runtimes. | Mechanics that behave like production. Their instincts work, and their biases are tested.    |
 | Junior engineers and students    | To learn system design without reading a book first.             | Fast feedback. Each concept arrives when the player first needs it, or earlier in a Sandbox. |
-| Factorio and Upload Labs players | A new optimization problem with depth.                           | Throughput chains, ratios, bottlenecks, and an end goal they can measure.                    |
+| Factorio and Upload Labs players | A new optimization problem with depth.                           | Throughput chains, ratios of request kinds, bottlenecks, and an end goal they can measure.   |
 | Incremental game players         | Numbers that grow, deep systems, and a prestige loop.            | Nested loops, automation as a reward, and Legacy that changes the next run.                  |
 
 The primary audience is the first row. Every mechanic must survive review by a senior engineer.
@@ -62,7 +64,8 @@ Test: every rule has a row in [Reality check](/design/reality-check).
 No upgrade strictly dominates another. Each choice moves the player along a cost profile with at
 least two axes: throughput, tail latency, memory, money, Dev Hours, reliability, and operational
 risk. Rust is fast but slow to write. Node.js handles many idle connections but stalls on CPU work.
-PHP-FPM is slow per request, but it cannot leak memory between requests.
+PHP-FPM is slow per request, but it cannot leak memory between requests. The request mix follows the
+same rule: a Product lever buys one kind's Insight with capacity, growth, and Dev Hours.
 
 Test: for each runtime, framework, and Component variant, at least one realistic design exists in
 which it is the best choice. [Balancing](/design/16-balancing#the-dominance-test) defines the check.
