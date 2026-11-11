@@ -12,6 +12,9 @@ concurrency:
 permissions:
   contents: read
 
+# Every check runs as its own job, so the four start together and the run ends when the slowest one
+# does instead of adding them up. `typecheck`, `test`, and `build` keep Turbo's cache between runs: a
+# package whose inputs did not change replays its last result instead of doing the work again.
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -24,14 +27,70 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      # Same cache as the other jobs, kept apart so no job evicts another's entries.
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-typecheck-${{ hashFiles('apps/**', 'packages/**', 'examples/**', 'pnpm-lock.yaml', 'turbo.json', 'tsconfig*.json', 'vite.config.ts') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-typecheck-
+      - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      # Turbo keeps each task's outputs and logs under .turbo/cache, keyed by the task's inputs.
+      # The key hashes the sources, so an unchanged checkout restores the exact cache; a near miss
+      # restores the last run, and Turbo still checks every task's own hash before it reuses it.
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-test-${{ hashFiles('apps/**', 'packages/**', 'examples/**', 'pnpm-lock.yaml', 'turbo.json', 'tsconfig*.json', 'vite.config.ts') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-test-
+      - run: pnpm install --frozen-lockfile
       # The whole-game runs (`pnpm test:full`) take over a minute each, so they run by hand when
       # balance moves, not on every push.
       - run: pnpm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      # Same cache as the other jobs, kept apart so no job evicts another's entries.
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-build-${{ hashFiles('apps/**', 'packages/**', 'examples/**', 'pnpm-lock.yaml', 'turbo.json', 'tsconfig*.json', 'vite.config.ts') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-build-
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
   deploy:
-    needs: check
+    needs: [check, typecheck, test, build]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
