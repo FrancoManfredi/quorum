@@ -26,7 +26,7 @@ export const leverView = <M>(kind: LeverKind, h: HtmlBuilder<M>): Html => {
           h.span([h.Class('text-[13px] font-medium')], [`${def.name} lever`]),
           h.span(
             [h.Class('text-[12px] text-muted-foreground')],
-            [`Arrives at ${percent(def.base)} in ${def.era}`],
+            [`Default Venture: ${percent(def.base)} from ${def.era}`],
           ),
         ],
       ),

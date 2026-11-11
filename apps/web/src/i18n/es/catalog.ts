@@ -687,52 +687,53 @@ export const catalog: Messages['catalog'] = {
     hnsw: { name: 'HNSW' },
   },
   ventures: {
-    'b2b-saas': { name: 'B2B SaaS', summary: 'Pico por la tarde' },
+    'b2b-saas': { name: 'B2B SaaS', summary: 'Pico por la tarde; la mezcla por defecto' },
     'consumer-social': {
       name: 'Red social de consumo',
-      summary:
-        'El doble de usuarios, la mitad de valor cada uno; contenido +50%; los picos virales llegan el doble de a menudo',
+      summary: 'Feeds y vídeo dominan; el doble de usuarios con la mitad de valor',
     },
     fintech: {
       name: 'Fintech',
       summary:
-        'Horario laboral; compras ×4, escrituras +50%; una lectura obsoleta de dinero se multa',
+        'Horario laboral; compras y escrituras dominan; una lectura obsoleta de dinero se multa',
     },
     streaming: {
       name: 'Contenido en streaming',
-      summary: 'Pico entrada la noche; contenido ×4; el egress cuesta el triple',
+      summary: 'Pico de noche; el vídeo domina; el egress cuesta el triple',
     },
     'game-backend': {
       name: 'Backend de videojuegos',
-      summary: 'Pico por la tarde; tiempo real ×4',
+      summary: 'Pico por la tarde; el tiempo real es la mayor parte del tráfico',
     },
-    'ai-startup': { name: 'Startup de IA', summary: 'Demanda constante; IA ×3' },
+    'ai-startup': {
+      name: 'Startup de IA',
+      summary: 'Demanda constante; prompts y subidas dominan; las GPU escasean',
+    },
     'e-commerce': {
       name: 'Comercio electrónico',
-      summary: 'Compras ×2, búsquedas ×2; una oferta mensual programada',
+      summary: 'Páginas y búsquedas dominan; una oferta mensual programada',
     },
     'developer-platform': {
       name: 'Plataforma para desarrolladores',
       summary:
-        'Demanda plana y a ráfagas; lecturas ×2; webhooks ×3 desde la Serie C; sin reintentos ingenuos',
+        'Demanda plana y a ráfagas; lecturas de API y webhooks dominan; sin reintentos ingenuos',
     },
     healthcare: {
       name: 'Salud',
-      summary:
-        'Horario laboral; escrituras +50%; los datos se quedan en la región de origen a partir de la Serie A',
+      summary: 'Horario laboral; escrituras y búsquedas dominan; datos en la región',
     },
     'ad-tech': {
       name: 'Adtech',
-      summary: 'Demanda plana y enorme; pujas ×10; una petición de más de 100 ms no gana nada',
+      summary: 'Plana y enorme; pujas dominan; más de 100 ms no gana nada',
     },
     government: {
       name: 'Contrato público',
-      summary:
-        'Horario laboral con picos en las fechas límite; solo Java o C#; colocar un componente tarda un día',
+      summary: 'Horario laboral; páginas y expedientes; Java o C#; un día por compra',
     },
     bootstrapped: {
       name: 'Indie autofinanciado',
-      summary: 'Sin rondas de financiación; la participación se queda al 100%',
+      summary:
+        'Sin rondas de financiación; la mezcla por defecto; la participación se queda al 100%',
     },
   },
   challenges: {

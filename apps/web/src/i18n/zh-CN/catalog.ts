@@ -2165,30 +2165,33 @@ export const catalog: Messages['catalog'] = {
     hnsw: { name: 'HNSW' },
   },
   ventures: {
-    'b2b-saas': { name: '企业 SaaS', summary: '晚间高峰' },
+    'b2b-saas': { name: '企业 SaaS', summary: '晚间高峰；默认流量构成' },
     'consumer-social': {
       name: '大众社交',
-      summary: '用户翻倍，每人价值减半；媒体 +50%；病毒式流量高峰出现频率翻倍',
+      summary: '信息流与视频为主；用户翻倍，每人价值减半',
     },
     fintech: {
       name: '金融科技',
-      summary: '工作时间；购买 ×4，写入 +50%；读到过期的资金数据会被罚款',
+      summary: '工作时间；结账与写入为主；读到过期的资金数据会被罚款',
     },
-    streaming: { name: '流媒体', summary: '深夜高峰；媒体 ×4；出口流量成本为三倍' },
-    'game-backend': { name: '游戏后端', summary: '晚间高峰；实时流量 ×4' },
-    'ai-startup': { name: 'AI 创业公司', summary: '需求平稳；AI 流量 ×3' },
-    'e-commerce': { name: '电子商务', summary: '购买 ×2，搜索 ×2；每月定期促销' },
+    streaming: { name: '流媒体', summary: '深夜高峰；视频为主；出口流量成本为三倍' },
+    'game-backend': { name: '游戏后端', summary: '晚间高峰；实时流量占大部分' },
+    'ai-startup': { name: 'AI 创业公司', summary: '需求平稳；提示词与上传为主；GPU 稀缺' },
+    'e-commerce': { name: '电子商务', summary: '页面与搜索为主；每月定期促销' },
     'developer-platform': {
       name: '开发者平台',
-      summary: '需求平稳但有突发；读取 ×2；C 轮起 Webhook ×3；不得使用朴素重试',
+      summary: '需求平稳但有突发；API 读取与 Webhook 为主；不得使用朴素重试',
     },
-    healthcare: { name: '医疗健康', summary: '工作时间高峰；写入 +50%；A 轮起数据留在主区域' },
-    'ad-tech': { name: '广告科技', summary: '需求平稳且巨大；竞价 ×10；超过 100 毫秒的请求不赚钱' },
+    healthcare: { name: '医疗健康', summary: '工作时间；写入与搜索为主；数据留在本区域' },
+    'ad-tech': {
+      name: '广告科技',
+      summary: '平稳且巨大；竞价为主；超过 100 毫秒不赚钱',
+    },
     government: {
       name: '政府合同',
-      summary: '工作时间高峰与截止日峰值；只能用 Java 或 C#；部署需等待一天',
+      summary: '工作时间；页面与记录为主；只能用 Java 或 C#；采购需一天',
     },
-    bootstrapped: { name: '自筹资金独立开发', summary: '无融资轮次；保留 100% 股权' },
+    bootstrapped: { name: '自筹资金独立开发', summary: '无融资轮次；默认流量构成；保留 100% 股权' },
   },
   guided: {
     'out-of-credits': {

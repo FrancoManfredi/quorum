@@ -88,24 +88,38 @@ Playbooks remove the post-prestige tedium that Upload Labs players report
 
 A **Venture** is the kind of company the player founds. Each Venture changes the request mix, demand
 shape, constraints, and incidents. B2B SaaS is the default, and every Venture is open at founding. A
-Venture sets the base mix, and it can cap a Product lever at its first step when the product change
+Venture sets the mix, and it can cap a Product lever at its first step when the product change
 would erase the Venture's constraint
 ([Progression](/design/10-progression#product-levers)).
 
-| Venture             | Demand shape                                           | Mix changes                        | Constraint                                                                                                     | Signature incident          |
-| ------------------- | ------------------------------------------------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| B2B SaaS (default)  | Evening peak (20\:00), weekend 1×                      | None: the default mix              | SLA credits from Series B                                                                                      | Big tenant hot shard        |
-| Consumer social     | Evening peak, weekend 1.15×, viral spikes              | `media` +50% from Series A         | Very low value per request; huge volume                                                                        | Celebrity post              |
-| Fintech             | Business hours, month-end peaks                        | `buy` ×4, `write` +50%             | Any `stale` on money kinds is a compliance fine                                                                | Double charge               |
-| Streaming media     | Evening peak, premieres                                | `media` ×4                         | Egress dominates the bill                                                                                      | Premiere spike              |
-| Game backend        | Evening peak by region                                 | `rt` ×4                            | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
-| AI startup          | Flat, with launch spikes                               | `ai` ×3 from Series B              | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
-| E-commerce          | Daily, with a yearly event                             | `buy` ×2, `search` ×2              | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
-| Developer platform  | Flat, bursty clients (peak 20\:00, ±10%)               | `read` ×2; `hook` ×3 from Series C | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
-| Healthcare          | Business hours (14\:00), weekend 0.4×                  | `write` ×1.5                       | Data Components stay in the home region from Series A                                                          | Audit finding               |
-| Ad tech             | Flat, enormous (peak 20\:00, ±5%)                      | `bid` ×10                          | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
-| Bootstrapped indie  | Any                                                    | Default                            | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
-| Government contract | Business hours (14\:00), weekend 0.2×, deadline spikes | Default                            | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
+The mix is the Venture's own traffic, not a multiplier on the Era's. A profile gives every request
+kind a share and sums to one, and each Era masks it to the kinds that Era serves: the Garage opens on
+pages and reads for every Venture, and a Series A company carries video only once the Video Feature
+ships. The profile is in `catalog/ventures.ts` and its shares, kind by kind, are on
+[Ventures](/ventures).
+
+| Venture             | Demand shape                                           | Traffic                                                      | Constraint                                                                                                     | Signature incident          |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| B2B SaaS (default)  | Evening peak (20\:00), weekend 1×                      | The Era's mix                                                | SLA credits from Series B                                                                                      | Big tenant hot shard        |
+| Consumer social     | Evening peak, weekend 1.15×, viral spikes              | Feeds and video; reads far outnumber writes                  | Very low value per request; huge volume                                                                        | Celebrity post              |
+| Fintech             | Business hours, month-end peaks                        | Checkouts and writes; a webhook per settled charge           | Any `stale` on money kinds is a compliance fine                                                                | Double charge               |
+| Streaming media     | Evening peak, premieres                                | Video is most requests; egress decides the margin            | Egress dominates the bill                                                                                      | Premiere spike              |
+| Game backend        | Evening peak by region                                 | Realtime messages; a state write for each session            | `rt` Apdex T 50 ms; regions matter from Series A                                                               | Launch day                  |
+| AI startup          | Flat, with launch spikes                               | Prompts and uploads; batch jobs and reports                  | GPUs are scarce; inference cost decides margin                                                                 | GPU shortage                |
+| E-commerce          | Daily, with a yearly event                             | Catalogue pages and site search; checkouts are a small share | One scheduled sale event per calendar month at ×20 demand                                                      | Flash sale                  |
+| Developer platform  | Flat, bursty clients (peak 20\:00, ±10%)               | API reads and webhooks; the dashboard is a small share       | No naive retries on any Link: customers write their own retry loops                                            | Retry storm from a customer |
+| Healthcare          | Business hours (14\:00), weekend 0.4×                  | Reads and writes; patient lookups and charts                 | Data Components stay in the home region from Series A                                                          | Audit finding               |
+| Ad tech             | Flat, enormous (peak 20\:00, ±5%)                      | Bid requests; crawlers and verification follow               | A request whose mean passes 100 ms earns nothing (real-time bidding deadlines)                                 | Latency regression          |
+| Bootstrapped indie  | Any                                                    | The Era's mix                                                | No funding rounds. Equity stays 100%. Salaries from revenue only.                                              | Runway                      |
+| Government contract | Business hours (14\:00), weekend 0.2×, deadline spikes | Pages and records; forms that arrive as uploads              | Must use Java or C# for the core service; long procurement for new Components (placement takes 1 calendar day) | Deadline day                |
+
+Every profile gives every kind a share, because a kind with none would dry up its Insight pool and
+stall a default recipe ([Progression](/design/10-progression#recipes)). The shares follow the shape
+each kind of company runs in production: an OLTP system is usually half reads and under a third
+writes, a social feed reads tens of times for every post, a checkout is a fraction of the requests
+that lead to it, and a bid is answered inside 100 ms or not at all. The value multiplier keeps each
+profile earning what the slice tuned for that Venture, so the shapes change the Design the Venture
+needs rather than the money it makes.
 
 Four Ventures cap a lever. Fintech caps `buy` at the first step, because a regulated checkout cannot
 become an upsell. AI startup caps `ai`, because GPUs are scarce. Healthcare caps `upload`, because
@@ -139,8 +153,8 @@ What each Venture starts with:
 
 All twelve Ventures start in the Garage, and the Head start perk still opens Pre-seed.
 
-The game owns Cash, Equity, the demand curves and amplitudes, the market and value multipliers, the
-mix boosts, and the Legacy multipliers. This document sets the rest: the 100 ms bid deadline, the
+The game owns Cash, Equity, the demand curves and amplitudes, the traffic profiles, the market and
+value multipliers, and the Legacy multipliers. This document sets the rest: the 100 ms bid deadline, the
 Java-or-C# rule, calendar-day procurement, Series A residency, the no-naive-retry rule, the Series B
 SLA, realtime regions from Series A, scarce GPUs, and the signature incidents. The SLA's one SLO level
 and the AI startup's two GPU Nodes are the game's own.
@@ -170,12 +184,12 @@ GPU Nodes, whatever their size, and resizes them rather than buying more
 
 The other four rows name a rule that is not a refusal or a target. Each runs in the Simulation:
 
-- Consumer social's constraint is its market shape: half the value per request and twice the market
-  (`value` 0.5 and `market` 2 in `catalog/ventures.ts`, read by `features.ts`), and viral spikes come
-  twice as often (`spikeWeight`).
-- Streaming media's egress dominates the bill: four times the video is four times the egress, and
-  every byte leaving the Design bills three times the price (`egress`). The Egress Shock achievement
-  asks for the bill.
+- Consumer social's constraint is its market shape: a little over half the value per request and
+  twice the market (`value` 0.55 and `market` 2 in `catalog/ventures.ts`, read by `features.ts`), and
+  viral spikes come twice as often (`spikeWeight`).
+- Streaming media's egress dominates the bill: video is more than a third of its requests, and every
+  byte leaving the Design bills three times the price (`egress`). The Egress Shock achievement asks
+  for the bill.
 - Fintech's compliance fine charges 20 times the value of a request for each stale answer to a money
   kind (`read`, `write`, `buy`), as `fines` on the Ledger, taken from Cash beside Burn.
 - E-commerce's sale is on the calendar: every 30 calendar days, at noon, for two calendar hours,
@@ -189,8 +203,8 @@ Flash sale. No other Venture's weakness can start them. Retry storm, Audit findi
 charge and GPU shortage stay general incidents, so Developer platform, Healthcare, Consumer social,
 Fintech and AI startup meet theirs four times as often.
 
-Ad tech serves the bid request kind the design names (value $0.001, Apdex T 100 ms, ×10 volume). The
-kind arrives with the Series A mix at a 1% share and Ad tech multiplies it tenfold, so its Earn per
+Ad tech serves the bid request kind the design names (value $0.001, Apdex T 100 ms). The kind arrives
+with the Series A mix, and three of every ten requests Ad tech serves are bids, so its Earn per
 request follows from the kind rather than from a `page`/`read` stand-in. Its 100 ms deadline is still
 checked against the mean latency of every kind it serves, and the bid kind's own Apdex target is that
 same 100 ms.

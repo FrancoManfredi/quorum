@@ -113,6 +113,13 @@ export const NO_CONSTRAINT: VentureConstraint = {
   sale: null,
 }
 
+/**
+ * A Venture's traffic profile (13 "Ventures"): the share of each request kind its users send, over
+ * every kind, summing to 1. The Era masks it to the kinds it serves and scales the rest back to 1,
+ * so a profile set here is the mix the Company runs at Series C+.
+ */
+export type VentureShares = Readonly<Partial<Record<RequestKind, number>>>
+
 export type VentureDef = Readonly<{
   id: VentureId
   name: string
@@ -120,9 +127,16 @@ export type VentureDef = Readonly<{
   peak: number
   amplitude: number
   weekend: number
-  /** Multiplies a kind's share of the mix, where the Era has it. */
-  mix: Partial<Record<RequestKind, number>>
-  /** Multiplies what every request earns, and the market. */
+  /**
+   * Its traffic profile, or null for the Era's own mix. B2B SaaS is the default Venture, so the
+   * Era's mix is its profile; Bootstrapped indie is the same company without funding rounds.
+   */
+  shares: VentureShares | null
+  /**
+   * Multiplies what every request earns. Each Venture's value keeps its profile earning what the
+   * slice tuned for it: a request of an ad-tech Company earns a third of a B2B SaaS one, and a
+   * government contract's earns one and a half times as much.
+   */
   value: number
   market: number
   /** No funding rounds: Equity stays 100%, and declining costs no growth. */
@@ -144,7 +158,7 @@ const venture = (
   peak: 20,
   amplitude: 0.45,
   weekend: 1,
-  mix: {},
+  shares: null,
   value: 1,
   market: 1,
   bootstrapped: false,
@@ -154,141 +168,359 @@ const venture = (
   ...entry,
 })
 
+/*
+ * The traffic profiles. A retail, social, or advertising product leans on the reads a cache can
+ * answer; a payments product writes; a media product moves bytes. The shares below follow the
+ * shape each kind of company runs in production: an OLTP system is usually half reads and under a
+ * third writes, a social feed reads tens of times for every post, a checkout is a fraction of the
+ * requests that lead to it, and a bid is answered inside 100 ms or not at all. The slice's own
+ * Eras set how much traffic there is; the Venture sets what it is made of.
+ *
+ * Every profile sums to 1 and gives every kind a share, because a kind with none would dry up its
+ * Insight pool and stall a default recipe. The Eras mask a profile to the kinds they serve, so the
+ * Garage still opens on pages and reads for every Venture.
+ */
 export const VENTURES: Record<VentureId, VentureDef> = {
-  // The slice's balance was tuned on this curve; the GDD's office hours wait for a re-tune.
-  // The SLA from Series B is the design's; the target one level up is the build's reading of it.
+  // The slice's balance was tuned on this curve and the Era's own mix; the GDD's office hours wait
+  // for a re-tune. The SLA from Series B is the design's; the target one level up is the build's
+  // reading of it.
   'b2b-saas': venture({
     id: 'b2b-saas',
     name: 'B2B SaaS',
     legacy: 1,
     constraint: { ...NO_CONSTRAINT, sla: 4 },
     signature: 'hot-shard',
-    summary: 'Evening peak',
+    summary: 'Evening peak; the default mix',
   }),
+  // A feed reads far more than it writes, and a timeline is one read per follower's feed. Video and
+  // images carry the bytes; push tells the users to come back.
   'consumer-social': venture({
     id: 'consumer-social',
     name: 'Consumer social',
     weekend: 1.15,
-    mix: { media: 1.5 },
-    value: 0.5,
+    shares: {
+      page: 0.08,
+      read: 0.13,
+      write: 0.05,
+      login: 0.05,
+      search: 0.03,
+      upload: 0.06,
+      bot: 0.05,
+      media: 0.14,
+      rt: 0.06,
+      buy: 0.025,
+      job: 0.025,
+      report: 0.025,
+      ai: 0.025,
+      feed: 0.18,
+      hook: 0.025,
+      push: 0.035,
+      bid: 0.01,
+    },
+    value: 0.55,
     market: 2,
     legacy: 1.1,
     signature: 'hot-key',
     constraint: { ...NO_CONSTRAINT, spikeWeight: 2 },
-    summary: 'Twice the users, half the value each; media +50%; viral spikes twice as often',
+    summary: 'Feeds and video dominate; twice the users at half the value',
   }),
+  // A payments product is checkouts and writes, with a webhook per settled charge. Everything else
+  // is the console around it.
   fintech: venture({
     id: 'fintech',
     name: 'Fintech',
     peak: 14,
     amplitude: 0.6,
     weekend: 0.4,
-    mix: { buy: 4, write: 1.5 },
+    shares: {
+      page: 0.14,
+      read: 0.155,
+      write: 0.12,
+      login: 0.06,
+      search: 0.04,
+      upload: 0.03,
+      bot: 0.03,
+      media: 0.025,
+      rt: 0.025,
+      buy: 0.17,
+      job: 0.025,
+      report: 0.025,
+      ai: 0.025,
+      feed: 0.025,
+      hook: 0.07,
+      push: 0.025,
+      bid: 0.01,
+    },
+    value: 0.72,
     legacy: 1.3,
     signature: 'double-charge',
     constraint: { ...NO_CONSTRAINT, staleFine: 20 },
-    summary: 'Business hours; buy ×4, write +50%; a stale money read is fined',
+    summary: 'Business hours; checkouts and writes dominate; a stale money read is fined',
   }),
+  // The product is the stream: most requests are segments, and every byte bills. Pages and logins
+  // are the small remainder, which is why egress decides the margin.
   streaming: venture({
     id: 'streaming',
     name: 'Streaming media',
     peak: 21,
     amplitude: 0.55,
-    mix: { media: 4 },
+    shares: {
+      page: 0.08,
+      read: 0.1,
+      write: 0.04,
+      login: 0.05,
+      search: 0.04,
+      upload: 0.03,
+      bot: 0.03,
+      media: 0.36,
+      rt: 0.03,
+      buy: 0.04,
+      job: 0.025,
+      report: 0.025,
+      ai: 0.025,
+      feed: 0.04,
+      hook: 0.025,
+      push: 0.05,
+      bid: 0.01,
+    },
+    value: 0.77,
     legacy: 1.2,
     signature: 'premiere-spike',
     constraint: { ...NO_CONSTRAINT, egress: 3 },
-    summary: 'Late evening peak; media ×4; egress costs three times as much',
+    summary: 'Late evening peak; video dominates; egress costs three times',
   }),
-  // Realtime is served where the players are: one Hub per region from Series A (the design's
-  // "regions matter from Series A"). Its `rt` Apdex T 50 ms is not built: the Apdex target is
-  // per Request kind in solve.ts, which this slice does not own.
+  // A game backend is mostly realtime messages on connections that stay open, plus the state writes
+  // a session makes and the login that starts it. Realtime is served where the players are: one Hub
+  // per region from Series A (the design's "regions matter from Series A"). Its `rt` Apdex T 50 ms
+  // is not built: the Apdex target is per Request kind in solve.ts, which this slice does not own.
   'game-backend': venture({
     id: 'game-backend',
     name: 'Game backend',
     peak: 21,
-    mix: { rt: 4 },
+    shares: {
+      page: 0.08,
+      read: 0.1,
+      write: 0.08,
+      login: 0.08,
+      search: 0.03,
+      upload: 0.03,
+      bot: 0.03,
+      media: 0.04,
+      rt: 0.305,
+      buy: 0.04,
+      job: 0.025,
+      report: 0.025,
+      ai: 0.025,
+      feed: 0.025,
+      hook: 0.025,
+      push: 0.04,
+      bid: 0.02,
+    },
+    value: 0.83,
     legacy: 1.3,
     constraint: { ...NO_CONSTRAINT, hubsPerRegion: 3 },
     signature: 'launch-day',
-    summary: 'Evening peak; realtime ×4',
+    summary: 'Evening peak; realtime is most of the traffic',
   }),
-  // GPUs are scarce: the Company holds two GPU Nodes, whatever their size, and resizes them.
-  // The two and the scarcity are the Venture's own. The inference cost that decides margin
-  // is the GPU Node's own Burn (09), not a rule of this Venture.
+  // Prompts are the product, so a quarter of the requests reach a GPU, and the documents users send
+  // with them arrive as uploads. Batch jobs and reports are the rest of the bill. GPUs are scarce:
+  // the Company holds two GPU Nodes, whatever their size, and resizes them. The two and the
+  // scarcity are the Venture's own, and the inference cost that decides margin is the GPU Node's
+  // own Burn (09), not a rule of this Venture.
   'ai-startup': venture({
     id: 'ai-startup',
     name: 'AI startup',
     amplitude: 0.1,
-    mix: { ai: 3 },
+    shares: {
+      page: 0.1,
+      read: 0.11,
+      write: 0.05,
+      login: 0.04,
+      search: 0.06,
+      upload: 0.1,
+      bot: 0.03,
+      media: 0.03,
+      rt: 0.025,
+      buy: 0.03,
+      job: 0.06,
+      report: 0.04,
+      ai: 0.23,
+      feed: 0.025,
+      hook: 0.03,
+      push: 0.03,
+      bid: 0.01,
+    },
+    value: 0.74,
     legacy: 1.3,
     constraint: { ...NO_CONSTRAINT, gpus: 2 },
     signature: 'gpu-shortage',
-    summary: 'Flat demand; AI ×3',
+    summary: 'Flat demand; prompts and uploads dominate; GPUs are scarce',
   }),
+  // Catalogue pages and site search carry a store; a checkout is a small share of the requests that
+  // lead to it, and a confirmation webhook follows it.
   'e-commerce': venture({
     id: 'e-commerce',
     name: 'E-commerce',
-    mix: { buy: 2, search: 2 },
+    shares: {
+      page: 0.18,
+      read: 0.12,
+      write: 0.05,
+      login: 0.05,
+      search: 0.2,
+      upload: 0.025,
+      bot: 0.06,
+      media: 0.04,
+      rt: 0.025,
+      buy: 0.07,
+      job: 0.025,
+      report: 0.025,
+      ai: 0.025,
+      feed: 0.025,
+      hook: 0.04,
+      push: 0.03,
+      bid: 0.01,
+    },
+    value: 0.88,
     legacy: 1.2,
     signature: 'flash-sale',
     constraint: {
       ...NO_CONSTRAINT,
       sale: { everyDays: 30, startMinute: 720, minutes: 120, kind: 'buy', lift: 20 },
     },
-    summary: 'Buy ×2, search ×2; a scheduled monthly sale',
+    summary: 'Pages and searches dominate; a scheduled monthly sale',
   }),
-  // Flat, bursty API clients. The no-naive-retries rule and the Series C
-  // webhooks are the design's; the curve, the mix boosts, the market, the start
-  // and the Legacy multiplier are proposed.
+  // API clients read far more than they write, and every event fans out as a webhook to a customer's
+  // server. The dashboard in front of it is a small share of the traffic. The no-naive-retries rule
+  // and the Series C webhooks are the design's; the curve, the profile, the market, the start and
+  // the Legacy multiplier are proposed.
   'developer-platform': venture({
     id: 'developer-platform',
     name: 'Developer platform',
     amplitude: 0.1,
-    mix: { read: 2, hook: 3 },
+    shares: {
+      page: 0.13,
+      read: 0.22,
+      write: 0.06,
+      login: 0.06,
+      search: 0.03,
+      upload: 0.04,
+      bot: 0.04,
+      media: 0.025,
+      rt: 0.025,
+      buy: 0.03,
+      job: 0.03,
+      report: 0.025,
+      ai: 0.04,
+      feed: 0.025,
+      hook: 0.16,
+      push: 0.04,
+      bid: 0.02,
+    },
+    value: 0.83,
     market: 1.5,
     legacy: 1.35,
     constraint: { ...NO_CONSTRAINT, noNaiveRetries: true },
     signature: 'retry-storm',
-    summary: 'Flat, bursty; reads ×2; webhooks ×3 from Series C; no naive retries',
+    summary: 'Flat, bursty; API reads and webhooks dominate; no naive retries',
   }),
-  // Business hours, writes and records. The residency rule, from Series A, is
-  // the design's; the curve, the ×1.5 writes and the Legacy multiplier are proposed.
+  // Clinicians read and write records all day, look patients up by name, and open charts. Every read
+  // is audited, so the writes outnumber what a consumer product would send. Business hours and the
+  // Series A residency rule are the design's; the curve, the profile and the Legacy multiplier are
+  // proposed.
   healthcare: venture({
     id: 'healthcare',
     name: 'Healthcare',
     peak: 14,
     weekend: 0.4,
-    mix: { write: 1.5 },
+    shares: {
+      page: 0.11,
+      read: 0.19,
+      write: 0.165,
+      login: 0.08,
+      search: 0.1,
+      upload: 0.04,
+      bot: 0.02,
+      media: 0.025,
+      rt: 0.025,
+      buy: 0.04,
+      job: 0.03,
+      report: 0.06,
+      ai: 0.03,
+      feed: 0.025,
+      hook: 0.025,
+      push: 0.025,
+      bid: 0.01,
+    },
+    value: 0.87,
     legacy: 1.4,
     constraint: { ...NO_CONSTRAINT, residency: 3 },
     signature: 'audit',
-    summary: 'Business hours; writes +50%; data stays in the home region from Series A',
+    summary: 'Business hours; writes and searches dominate; data stays in region',
   }),
-  // Flat, enormous, and cheap per request. The 100 ms deadline, the bid kind's value, its 100 ms
-  // Apdex target and its ×10 volume are the design's; the market and the value are proposed.
+  // An exchange answers a bid for every impression, so bids are most of the traffic and almost none
+  // of its value; crawlers and verification traffic follow. The 100 ms deadline, the bid kind's
+  // value and its 100 ms Apdex target are the design's; the profile, the market and the value are
+  // proposed.
   'ad-tech': venture({
     id: 'ad-tech',
     name: 'Ad tech',
     amplitude: 0.05,
-    mix: { bid: 10 },
-    value: 0.4,
+    shares: {
+      page: 0.12,
+      read: 0.11,
+      write: 0.05,
+      login: 0.03,
+      search: 0.03,
+      upload: 0.025,
+      bot: 0.06,
+      media: 0.06,
+      rt: 0.025,
+      buy: 0.025,
+      job: 0.025,
+      report: 0.025,
+      ai: 0.04,
+      feed: 0.025,
+      hook: 0.025,
+      push: 0.025,
+      bid: 0.3,
+    },
+    value: 0.44,
     market: 3,
     start: { ...GARAGE_START, cash: 400 },
     legacy: 1.3,
     constraint: { ...NO_CONSTRAINT, deadline: 100 },
     signature: 'latency-regression',
-    summary: 'Flat and enormous; bids ×10; a request over 100 ms earns nothing',
+    summary: 'Flat and enormous; bids dominate; a request over 100 ms earns nothing',
   }),
-  // Business hours and deadline spikes, on a Java or C# service bought through a
-  // procurement cycle. The rule is the design's; the curve, the contract cash
-  // and the Java starter are proposed.
+  // A public service is pages and records, with forms that arrive as uploads and casework that runs
+  // as reports. It is the busiest Venture with the smallest market. Business hours, deadline spikes,
+  // the Java-or-C# rule and day-long procurement are the design's; the curve, the profile, the
+  // contract cash and the Java starter are proposed.
   government: venture({
     id: 'government',
     name: 'Government contract',
     peak: 14,
     weekend: 0.2,
-    value: 2,
+    shares: {
+      page: 0.195,
+      read: 0.15,
+      write: 0.12,
+      login: 0.08,
+      search: 0.06,
+      upload: 0.07,
+      bot: 0.02,
+      media: 0.025,
+      rt: 0.025,
+      buy: 0.05,
+      job: 0.03,
+      report: 0.05,
+      ai: 0.04,
+      feed: 0.025,
+      hook: 0.025,
+      push: 0.025,
+      bid: 0.01,
+    },
+    value: 1.51,
     market: 0.8,
     start: {
       ...GARAGE_START,
@@ -299,8 +531,9 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     legacy: 1.5,
     constraint: { ...NO_CONSTRAINT, procurement: true, languages: ['java', 'csharp'] },
     signature: 'deadline-day',
-    summary: 'Business hours, deadline spikes; Java or C# only; a placement takes a day',
+    summary: 'Business hours; pages and records; Java or C#; a day to buy',
   }),
+  // The same default mix as B2B SaaS, run without funding rounds.
   bootstrapped: venture({
     id: 'bootstrapped',
     name: 'Bootstrapped indie',
@@ -308,7 +541,7 @@ export const VENTURES: Record<VentureId, VentureDef> = {
     legacy: 1.4,
     // The design's row names Runway, which is a figure rather than an incident: no Cash-versus-Burn
     // rule and no incident is built for it (16 "Open gaps").
-    summary: 'No funding rounds; Equity stays 100%',
+    summary: 'No funding rounds; the default mix; Equity stays 100%',
   }),
 }
 

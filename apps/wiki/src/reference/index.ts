@@ -7,6 +7,7 @@ import { patternsPages } from './patterns.ts'
 import { researchPages } from './research.ts'
 import { stackPages } from './stacks.ts'
 import { systemPages } from './systems.ts'
+import { venturePages } from './ventures.ts'
 
 /* Reference pages, generated from the catalog. */
 
@@ -19,4 +20,5 @@ export const referencePages: ReadonlyArray<Page> = [
   ...glossaryPages,
   ...patternsPages,
   ...systemPages,
+  ...venturePages,
 ]

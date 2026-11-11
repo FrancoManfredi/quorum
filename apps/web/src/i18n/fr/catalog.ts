@@ -2788,50 +2788,53 @@ export const catalog: Messages['catalog'] = {
     hnsw: { name: 'HNSW' },
   },
   ventures: {
-    'b2b-saas': { name: 'SaaS B2B', summary: 'Pic du soir' },
+    'b2b-saas': { name: 'SaaS B2B', summary: 'Pic du soir ; le mélange par défaut' },
     'consumer-social': {
       name: 'Social de consommation',
-      summary:
-        'Deux fois plus d’utilisateurs, moitié moins de valeur chacun ; médias +50 % ; pics viraux deux fois plus fréquents',
+      summary: 'Fils et vidéo dominent ; deux fois plus d’utilisateurs, moitié de valeur',
     },
     fintech: {
       name: 'Technologie financière',
       summary:
-        'Heures de bureau ; achat ×4, écriture +50 % ; une lecture d’argent périmée est sanctionnée',
+        'Heures de bureau ; achats et écritures dominent ; une lecture d’argent périmée est sanctionnée',
     },
     streaming: {
       name: 'Médias en streaming',
-      summary: 'Pic tard le soir ; médias ×4 ; la sortie réseau coûte trois fois plus',
+      summary: 'Pic tard le soir ; la vidéo domine ; la sortie réseau coûte triple',
     },
-    'game-backend': { name: 'Back-end du jeu', summary: 'Pointe du soir ; en temps réel ×4' },
-    'ai-startup': { name: "Démarrage de l'IA", summary: 'Demande stable ; IA ×3' },
+    'game-backend': {
+      name: 'Back-end du jeu',
+      summary: 'Pointe du soir ; le temps réel fait l’essentiel du trafic',
+    },
+    'ai-startup': {
+      name: "Démarrage de l'IA",
+      summary: 'Demande stable ; prompts et envois de fichiers dominent ; les GPU sont rares',
+    },
     'e-commerce': {
       name: 'Commerce électronique',
-      summary: 'Achat ×2, recherche ×2 ; une vente mensuelle planifiée',
+      summary: 'Pages et recherches dominent ; une vente mensuelle planifiée',
     },
     'developer-platform': {
       name: 'Plateforme pour développeurs',
       summary:
-        'Demande stable et en rafales ; lectures ×2 ; webhooks ×3 à partir de la série C ; aucune tentative naïve',
+        'Demande stable et en rafales ; lectures d’API et webhooks dominent ; aucune tentative naïve',
     },
     healthcare: {
       name: 'Santé',
-      summary:
-        "Heures d'ouverture ; écritures +50 % ; les données restent dans la région d'origine à partir de la série A",
+      summary: "Heures d'ouverture ; écritures et recherches dominent ; données locales",
     },
     'ad-tech': {
       name: 'Publicité en ligne',
-      summary:
-        'Demande stable et énorme ; enchères ×10 ; une requête de plus de 100 ms ne rapporte rien',
+      summary: 'Stable et énorme ; enchères dominantes ; au-delà de 100 ms, rien',
     },
     government: {
       name: 'Marché public',
-      summary:
-        "Heures d'ouverture, pics d'échéance ; Java ou C# uniquement ; un placement prend un jour",
+      summary: "Heures d'ouverture ; pages et dossiers ; Java ou C# ; un jour d'achat",
     },
     bootstrapped: {
       name: 'Indépendant bootstrapé',
-      summary: 'Pas de ronde de financement ; Les capitaux propres restent à 100 %',
+      summary:
+        'Pas de ronde de financement ; le mélange par défaut ; les capitaux propres restent à 100 %',
     },
   },
   guided: {

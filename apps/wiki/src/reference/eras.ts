@@ -96,7 +96,26 @@ const entity = (def: EraDef, index: number): Page => {
         [h.Class('prose')],
         [
           ...(text.view ? [text.view(model, h)] : []),
-          section('Traffic', [paragraph(def.arrivals, h), mixBar(def.mix, h)], h),
+          section(
+            'Traffic',
+            [
+              paragraph(def.arrivals, h),
+              paragraph(
+                'These are the default Venture’s shares. Each Venture sets its own, so the same Era sends different traffic.',
+                h,
+              ),
+              mixBar(def.mix, h),
+              h.p(
+                [],
+                [
+                  'The profile of every Venture is on the ',
+                  link('/ventures', 'Ventures', h),
+                  ' page.',
+                ],
+              ),
+            ],
+            h,
+          ),
           next
             ? section(
                 'Raising the next round',

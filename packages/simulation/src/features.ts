@@ -153,7 +153,7 @@ const rolledProduct = (
 
 /**
  * The mix before Product levers: the Era, less the kinds a gated Feature has not
- * shipped, then the Venture's changes. A Sandbox uses its pinned mix instead.
+ * shipped, then the Venture's own traffic profile. A Sandbox uses its pinned mix instead.
  */
 const baseMixOf = (game: Game): Partial<Record<RequestKind, number>> => {
   const era = eraOf(game).mix
@@ -250,20 +250,30 @@ export const mixOf = (game: Game): Partial<Record<RequestKind, number>> => {
   return shares
 }
 
-/** The Venture's mix changes, on the kinds the Era has, with the total kept. */
+/**
+ * The Venture's traffic profile, masked to the kinds the Era serves and scaled back to one
+ * (13 "Ventures"). A Venture with no profile keeps the Era's mix, which is the default Venture's.
+ * The masked result is the Venture's own mix: an Era decides which kinds a Company serves, and the
+ * Venture decides how much of each.
+ */
 const ventureMix = (
   game: Game,
   shares: Partial<Record<RequestKind, number>>,
 ): Partial<Record<RequestKind, number>> => {
-  const changes = Object.entries(ventureOf(game).mix) as Array<[RequestKind, number]>
-  if (!changes.some(([kind]) => (shares[kind] ?? 0) > 0)) return shares
-  const before = Object.values(shares).reduce((sum, share) => sum + (share ?? 0), 0)
-  const next = { ...shares }
-  for (const [kind, factor] of changes)
-    if (next[kind] !== undefined) next[kind] = (next[kind] ?? 0) * factor
-  const after = Object.values(next).reduce((sum, share) => sum + (share ?? 0), 0)
-  for (const kind of Object.keys(next) as Array<RequestKind>)
-    next[kind] = after > 0 ? ((next[kind] ?? 0) * before) / after : 0
+  const profile = ventureOf(game).shares
+  if (profile === null) return shares
+  const next: Partial<Record<RequestKind, number>> = {}
+  let total = 0
+  for (const kind of Object.keys(shares) as Array<RequestKind>) {
+    const share = profile[kind] ?? 0
+    if (share <= 0) continue
+    next[kind] = share
+    total += share
+  }
+  // No kind in common means the Era serves nothing the profile carries: keep the Era's mix rather
+  // than leave the Company with no demand.
+  if (total <= 0) return shares
+  for (const kind of Object.keys(next) as Array<RequestKind>) next[kind] = (next[kind] ?? 0) / total
   return next
 }
 

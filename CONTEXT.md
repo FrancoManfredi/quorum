@@ -22,7 +22,7 @@ lists them.
 _Avoid_: save, save slot, savegame
 
 **Venture**:
-The kind of Company the player founds. It sets the request mix, demand shape, constraints, and signature incidents.
+The kind of Company the player founds. It sets the traffic profile, demand shape, constraints, and signature incidents.
 _Avoid_: scenario, mode, industry, class
 
 **Mutator**:
@@ -170,7 +170,7 @@ A class of work that Users send, such as `page`, `write`, or `ai`, with a value,
 _Avoid_: request type, traffic type, file type
 
 **Request mix**:
-The share of demand that each Request kind takes. An Era sets a base mix, a Venture changes it, Features move it, and a Product lever raises one kind. The shares add up to one, so the mix says where a user's attention goes, not how much attention they have.
+The share of demand that each Request kind takes. An Era sets a base mix for the default Venture, another Venture replaces it with its own profile, Features move it, and a Product lever raises one kind. The shares add up to one, so the mix says where a user's attention goes, not how much attention they have.
 _Avoid_: traffic split, ratio, distribution, allocation
 
 **Product lever**:

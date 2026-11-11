@@ -325,13 +325,21 @@ const prestige = page({
         section(
           'Ventures',
           [
+            h.p(
+              [],
+              [
+                'Each Venture runs its own traffic, not a nudge to the Era’s. Every profile, kind by kind, is on the ',
+                link('/ventures', 'Ventures', h),
+                ' page.',
+              ],
+            ),
             table(
-              ['Venture', 'Traffic', 'Legacy ×'],
+              ['Venture', 'Traffic and rule', 'Legacy ×'],
               VENTURE_IDS.map((id) => {
                 const def = VENTURES[id]
                 return {
                   key: id,
-                  cells: [def.name, def.summary, `×${def.legacy}`],
+                  cells: [link(`/ventures#${id}`, def.name, h), def.summary, `×${def.legacy}`],
                 }
               }),
               h,
@@ -469,7 +477,7 @@ const sandboxHub = page({
   title: 'Sandboxes',
   summary:
     'Short guided boards that each teach one failure, and how to fix it, outside any Company.',
-  order: 10,
+  order: 11,
   aliases: ['challenges', 'tutorials', 'lessons', 'puzzles'],
   headings: headingsFor(
     ERAS.map((era, index) => (sandboxes.some((entry) => entry.era === index) ? era.name : null)),

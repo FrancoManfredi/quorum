@@ -35,7 +35,9 @@ Market size is multiplied by features, regions, and Venture rules. It caps user 
 
 ### Request mix by Era
 
-Shares of demand, in percent. Features, Product levers, and Ventures shift these shares.
+Shares of demand, in percent, for the default Venture. Features and Product levers shift these
+shares, and another Venture replaces them with its own profile
+([Ventures](/design/13-prestige#ventures)).
 
 | Kind     | Garage | Pre-seed | Seed | Series A | Series B | Series C+ |
 | -------- | ------ | -------- | ---- | -------- | -------- | --------- |
@@ -262,8 +264,9 @@ ships the Feature first. A kind arrives with its Era or its Feature, and its Pro
 much of it the product makes. No item a Feature needs costs the kind that Feature brings. A lever
 raises a kind the Company already serves; it never unlocks one.
 
-A Venture's request mix changes which recipes are cheap. Fintech serves 4× `buy`, so its Series A
-research is fast. Every Venture serves every request kind, so every recipe can be paid.
+A Venture's traffic changes which recipes are cheap. Fintech sends checkouts for over a sixth of its
+requests, so its Series A research is fast. Every Venture's profile gives every kind a share, and each
+Era masks it to the kinds it serves, so every recipe can be paid.
 
 **Every Era's packs stay payable.** An Era's default recipe kinds keep enough of its demand that a
 median Study of that Era takes about a base duration at the Era's top traffic. A pack with a small

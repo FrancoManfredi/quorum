@@ -558,45 +558,50 @@ export const catalog: Messages['catalog'] = {
     hnsw: { name: 'HNSW' },
   },
   ventures: {
-    'b2b-saas': { name: 'B2B SaaS', summary: '夕方のピーク' },
+    'b2b-saas': { name: 'B2B SaaS', summary: '夕方のピーク。既定のミックス' },
     'consumer-social': {
       name: 'コンシューマーSNS',
-      summary: 'ユーザーは2倍、1人あたりの価値は半分。動画 +50%、バイラルのスパイクは2倍の頻度',
+      summary: 'フィードと動画が中心。ユーザー2倍、1人あたりの価値は半分',
     },
     fintech: {
       name: 'フィンテック',
-      summary: '営業時間。チェックアウト ×4、API書き込み +50%。金銭を扱う読み取りが古いと罰金',
+      summary: '営業時間。チェックアウトと書き込みが中心。金銭を扱う読み取りが古いと罰金',
     },
     streaming: {
       name: '動画配信',
-      summary: '深夜のピーク。動画 ×4。エグレスは3倍の費用',
+      summary: '深夜のピーク。動画が中心。エグレスは3倍の費用',
     },
-    'game-backend': { name: 'ゲームバックエンド', summary: '夜のピーク。リアルタイム ×4' },
-    'ai-startup': { name: 'AIスタートアップ', summary: '平坦な需要。AIプロンプト ×3' },
+    'game-backend': {
+      name: 'ゲームバックエンド',
+      summary: '夜のピーク。リアルタイムがトラフィックの大半',
+    },
+    'ai-startup': {
+      name: 'AIスタートアップ',
+      summary: '平坦な需要。プロンプトとアップロードが中心。GPUは希少',
+    },
     'e-commerce': {
       name: 'EC',
-      summary: 'チェックアウト ×2、検索 ×2。毎月決まった日にセール',
+      summary: 'ページと検索が中心。毎月決まった日にセール',
     },
     'developer-platform': {
       name: '開発者プラットフォーム',
-      summary:
-        '平坦だがバースト的。API読み取り ×2、Webhook ×3（シリーズC以降）。素朴なリトライは禁止',
+      summary: '平坦だがバースト的。API読み取りとWebhookが中心。素朴なリトライは禁止',
     },
     healthcare: {
       name: 'ヘルスケア',
-      summary: '営業時間。API書き込み +50%。シリーズA以降、データはホームリージョンに留まる',
+      summary: '営業時間。書き込みと検索が中心。データは地域内に留まる',
     },
     'ad-tech': {
       name: 'アドテク',
-      summary: '平坦で巨大。入札リクエスト ×10。100 msを超えたリクエストは何も稼がない',
+      summary: '平坦で巨大。入札が中心。100 msを超えると稼げない',
     },
     government: {
       name: '公共調達',
-      summary: '営業時間で締め切りスパイクあり。JavaかC#のみ。発注から納品まで1日',
+      summary: '営業時間。ページと記録。JavaかC#のみ。発注に1日',
     },
     bootstrapped: {
       name: '自己資金',
-      summary: 'ラウンドなし。株式は100%のまま',
+      summary: 'ラウンドなし。既定のミックス。株式は100%のまま',
     },
   },
   challenges: {

@@ -117,15 +117,15 @@ carries load to the data tier.
 \end{aligned}
 ```
 
-| Term           | Meaning                                                                                                                                                                                   |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Users_r`      | The user count of region `r` ([Users and growth](#users-and-growth)). Before Series C, only North America.                                                                                |
-| `diurnal_r(t)` | `diurnal(t)` at region `r`'s local hour, so each region peaks at its own 20\:00.                                                                                                          |
-| `R_user`       | Requests per user per second, 0.02 by default.                                                                                                                                            |
-| `diurnal(t)`   | `1 + A × cos(2π × (hour − 20) / 24)`. Peak at 20\:00, trough at 08\:00. `A` is 0.45 for the default Venture.                                                                              |
-| `weekly(t)`    | 1.0 on weekdays. Each Venture defines its weekend factor (B2B 1 with an evening peak, consumer 1.15).                                                                                     |
-| `mix(kind)`    | The share of each unlocked kind. An Era sets a base, a Venture changes it, Features move it, and a Product lever raises one kind ([Progression](/design/10-progression#product-levers)).  |
-| `feature_mult` | Product features that raise usage of a kind ([Team and velocity](/design/08-team-and-velocity#features)). A Feature's load multiplier adds requests; a Product lever moves share instead. |
+| Term           | Meaning                                                                                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Users_r`      | The user count of region `r` ([Users and growth](#users-and-growth)). Before Series C, only North America.                                                                                                              |
+| `diurnal_r(t)` | `diurnal(t)` at region `r`'s local hour, so each region peaks at its own 20\:00.                                                                                                                                        |
+| `R_user`       | Requests per user per second, 0.02 by default.                                                                                                                                                                          |
+| `diurnal(t)`   | `1 + A × cos(2π × (hour − 20) / 24)`. Peak at 20\:00, trough at 08\:00. `A` is 0.45 for the default Venture.                                                                                                            |
+| `weekly(t)`    | 1.0 on weekdays. Each Venture defines its weekend factor (B2B 1 with an evening peak, consumer 1.15).                                                                                                                   |
+| `mix(kind)`    | The share of each unlocked kind. An Era sets a base for the default Venture, another Venture replaces it, Features move it, and a Product lever raises one kind ([Progression](/design/10-progression#product-levers)). |
+| `feature_mult` | Product features that raise usage of a kind ([Team and velocity](/design/08-team-and-velocity#features)). A Feature's load multiplier adds requests; a Product lever moves share instead.                               |
 
 Real traffic follows a daily cycle, so the player chooses: provision for the peak and pay for idle
 capacity at night, or scale with demand ([Components: Autoscaler](/design/05-components#autoscaler)).
@@ -146,8 +146,8 @@ never adds total requests. For kind k at step f, where f is 1, 2, 3, or 4, and e
 ```
 
 A step of 1 leaves the mix as it is. The Simulation applies the levers to the Era's base mix, after
-the Venture's changes and before the Features' unlocks and load. The shares then sum to one, and every
-catalog case keeps `mix(k) × f` below 1.
+the Venture's profile has replaced the shares and before the Features' unlocks and load. The shares
+then sum to one, and every catalog case keeps `mix(k) × f` below 1.
 
 The added requests are marginal. They earn the value of the traffic they displaced, so revenue per
 user stays flat ([Economy](/design/09-economy#cash)). Their cost per request is the kind's
