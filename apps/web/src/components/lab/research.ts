@@ -23,6 +23,7 @@ import {
   X,
   type IconNode,
   Lock,
+  Minus,
   TriangleAlert,
   CircleHelp,
 } from 'lucide'
@@ -30,8 +31,14 @@ import {
   GLOSSARY,
   MAX_STUDIES,
   RESEARCH,
+  isLeverKind,
+  leverDh,
+  leverGrowthTotal,
+  LEVER_REFUND,
+  MAX_LEVER_STEP,
   researchList,
   type InsightPool,
+  type LeverKind,
   type ResearchDef,
   type ResearchId,
   type ResearchTrack,
@@ -40,6 +47,8 @@ import { BY_RESEARCH } from '@quorum/simulation/term-links'
 import { glossaryUrl } from '@/platform/analytics.ts'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { has, missingPrerequisites, needs, researchReady } from '@quorum/simulation/lookups'
+import { mixOf } from '@quorum/simulation/features'
+import { leverRefusal, leverRemoveRefusal } from '@quorum/simulation/work'
 import type { Game } from '@quorum/simulation/state'
 import {
   capOf,
@@ -50,9 +59,10 @@ import {
   progressOf as studyProgressOf,
   type StudyStall,
 } from '@quorum/simulation/studies'
-import { compact } from '@quorum/ui/game/format'
+import { compact, sharePercent } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { stallNeedIn, stallReasonIn } from '@/i18n/format.ts'
+import { refusalIn } from '@/i18n/refusal.ts'
 import { unsampledOf } from '@quorum/simulation/solve-insight'
 import { ledgerOf, type Model } from '@/game/model.ts'
 import { POOL_ICONS, POOL_ORDER, poolColor, recipeOf } from '@quorum/ui/game/pools'
@@ -137,6 +147,101 @@ const duration = (t: Messages, game: Game, entry: ResearchDef): string => {
   return seconds < 90 ? t.units.s(Math.round(seconds)) : t.units.min(Math.round(seconds / 60))
 }
 
+/**
+ * A pool's Product lever, under its cost row: the step it stands at, the share
+ * it gives the kind, and what the step takes off user growth. A Challenge and a
+ * guided Sandbox pin their mix, so they show no lever (10 "Product levers").
+ */
+const leverRow = (
+  game: Game,
+  pool: InsightPool,
+  blocked: boolean,
+  h: HtmlBuilder<Message>,
+): Html => {
+  if (game.fixedMix || !isLeverKind(pool)) return h.empty
+  const t = copy(h)
+  const kind = pool as LeverKind
+  const step = game.levers[kind] ?? 0
+  const share = mixOf(game)[kind] ?? 0
+  const next = step + 1
+  const buildRefusal = leverRefusal(game, kind)
+  const removeRefusal = leverRemoveRefusal(game, kind)
+  // A pool that limits the Study, or one the player can raise or has raised, keeps the row.
+  // Any other hint of a ladder the player cannot climb only crowds the recipe.
+  if (!blocked && step <= 0 && buildRefusal !== null) return h.empty
+  const growth = Math.round((1 - leverGrowthTotal(step)) * 100)
+  return h.div(
+    [
+      h.Key(`${pool}-lever`),
+      h.Class(
+        'flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5 pb-1.5 pl-7 text-[calc(10.5px*var(--type-scale))] text-muted-foreground',
+      ),
+    ],
+    [
+      h.span([h.Class('font-medium text-foreground/70')], [t.levers.step(step, MAX_LEVER_STEP)]),
+      h.span([], [t.levers.share(sharePercent(share))]),
+      step > 0 ? h.span([], [t.levers.growth(`−${growth}%`)]) : h.empty,
+      blocked
+        ? h.span(
+            [h.Class('rounded-full bg-[var(--warn-soft)] px-1.5 font-medium text-warn')],
+            [t.levers.bottleneck],
+          )
+        : h.empty,
+      h.div(
+        [h.Class('ml-auto flex items-center gap-1')],
+        [
+          step >= MAX_LEVER_STEP
+            ? h.empty
+            : button(
+                {
+                  onClick: Message.ResearchChanged({
+                    message: ResearchMessage.LeverBuilt({ kind }),
+                  }),
+                  isDisabled: buildRefusal !== null,
+                  size: 'xs',
+                  variant: 'outline',
+                  attributes: [
+                    h.Title(
+                      buildRefusal === null
+                        ? game.sandbox
+                          ? t.levers.set
+                          : t.levers.build(compact(leverDh(next)))
+                        : refusalIn(t, buildRefusal),
+                    ),
+                  ],
+                },
+                game.sandbox ? t.levers.set : t.levers.build(compact(leverDh(next))),
+                h,
+              ),
+          step <= 0
+            ? h.empty
+            : button(
+                {
+                  onClick: Message.ResearchChanged({
+                    message: ResearchMessage.LeverRemoved({ kind }),
+                  }),
+                  isDisabled: removeRefusal !== null,
+                  size: 'icon-xs',
+                  variant: 'ghost',
+                  className: 'text-muted-foreground',
+                  attributes: [
+                    h.AriaLabel(t.levers.takeOff),
+                    h.Title(
+                      removeRefusal === null
+                        ? t.levers.remove(compact(leverDh(step) * LEVER_REFUND))
+                        : refusalIn(t, removeRefusal),
+                    ),
+                  ],
+                },
+                icon(h, Minus, 'size-3'),
+                h,
+              ),
+        ],
+      ),
+    ],
+  )
+}
+
 /** The item's recipe: each pool's cost, what it holds, and what it earns. */
 const costRows = (
   game: Game,
@@ -163,7 +268,7 @@ const costRows = (
       ),
       h.div(
         [h.Class(cn(FIGURE, 'mt-2 flex flex-col divide-y divide-hairline'))],
-        recipeOf(entry.id, game.discounts).map(([pool, cost]) =>
+        recipeOf(entry.id, game.discounts).flatMap(([pool, cost]) => [
           h.div(
             [
               h.Key(pool),
@@ -193,7 +298,8 @@ const costRows = (
               ),
             ],
           ),
-        ),
+          leverRow(game, pool, pool === limit, h),
+        ]),
       ),
     ],
   )

@@ -35,6 +35,7 @@ import {
   FEATURES,
   FEATURE_IDS,
   LANGUAGES,
+  LEVER_KINDS,
   MIGRATION_STEPS,
   POLICY_IDS,
   RESEARCH,
@@ -45,6 +46,8 @@ import {
   type FeatureId,
   type FrameworkId,
   type IncidentId,
+  type LeverKind,
+  type RequestKind,
   type ResearchId,
   type PolicyId,
   type RuntimeId,
@@ -189,6 +192,8 @@ export const workItemName = (t: Messages, item: WorkItem): string => {
   }
   if (item.kind === 'spike')
     return t.team.spikeOf(t.catalog.research[item.ref as ResearchId]?.name ?? item.ref)
+  if (item.kind === 'lever')
+    return t.levers.item(t.catalog.pools[item.ref as RequestKind]?.label ?? item.ref)
   if (item.kind === 'split') return t.team.splitAService
   if (item.kind === 'move')
     return item.ref === 'auth'
@@ -306,6 +311,7 @@ const POLICY_ICONS: Record<PolicyId, Parameters<typeof icon>[1]> = {
 /** Work kinds keep the build-group colours, so a kind reads the same everywhere. */
 const kindOf = (t: Messages): Record<WorkKind, Readonly<{ label: string; fill: string }>> => ({
   feature: { label: t.team.feature, fill: 'bg-group-edge' },
+  lever: { label: t.levers.label, fill: 'bg-group-edge' },
   task: { label: t.team.engineering, fill: 'bg-group-data' },
   migration: { label: t.team.migration, fill: 'bg-group-compute' },
   spike: { label: t.team.spike, fill: 'bg-group-ops' },
@@ -1750,6 +1756,7 @@ const codeOf = (kind: WorkKind, ref: string): string => {
   if (kind === 'patch') return `SEC-${ref.slice(-4)}`
   if (kind === 'move') return ref === 'auth' ? 'MOV-1' : 'MOV-2'
   if (kind === 'split') return `SVC-${ref.replace(/\D/g, '') || '2'}`
+  if (kind === 'lever') return `LVG-${LEVER_KINDS.indexOf(ref as LeverKind) + 1}`
   return `MIG-${ref.replace(/\D/g, '') || '1'}`
 }
 

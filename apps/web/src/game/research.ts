@@ -2,7 +2,7 @@ import { Schema } from 'effect'
 import { Command, type Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { DragAndDrop } from '@foldkit/ui'
-import { ResearchId } from '@quorum/simulation/state'
+import { LeverKindId, ResearchId } from '@quorum/simulation/state'
 import type { Research } from './model.ts'
 
 /* The Research panel's side-pane focus, folded into the parent with foldChild.
@@ -23,6 +23,10 @@ export const ResearchMessage = defineMessageUnion({
   PoolsToggled: {},
   /** The side pane's width, from dragging or stepping its edge. */
   SheetResized: { width: Schema.Finite },
+  /** One more step on a pool's lever. */
+  LeverBuilt: { kind: LeverKindId },
+  /** Take a pool's lever back down one step. */
+  LeverRemoved: { kind: LeverKindId },
 })
 export type ResearchMessage = typeof ResearchMessage.Type
 
@@ -33,6 +37,8 @@ export const ResearchOutMessage = defineMessageUnion({
   Move: { id: ResearchId, direction: Schema.Literals([1, -1]) },
   StudyNow: { id: ResearchId },
   Cancel: { id: ResearchId },
+  LeverUp: { kind: LeverKindId },
+  LeverDown: { kind: LeverKindId },
 })
 export type ResearchOutMessage = typeof ResearchOutMessage.Type
 
@@ -104,6 +110,8 @@ export const updateResearch = (research: Research, message: ResearchMessage): Re
     StudyPrioritized: ({ id }) => out(research, ResearchOutMessage.StudyNow({ id })),
     StudyCancelled: ({ id }) => out(research, ResearchOutMessage.Cancel({ id })),
     PoolsToggled: () => ({ model: { ...research, poolsOpen: !research.poolsOpen } }),
+    LeverBuilt: ({ kind }) => out(research, ResearchOutMessage.LeverUp({ kind })),
+    LeverRemoved: ({ kind }) => out(research, ResearchOutMessage.LeverDown({ kind })),
     SheetResized: ({ width }) => ({
       model: {
         ...research,

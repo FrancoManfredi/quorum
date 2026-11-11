@@ -1,0 +1,25 @@
+import type { Messages } from '../messages.ts'
+
+export const levers: Messages['levers'] = {
+  label: 'プロダクトレバー',
+  step: (step, max) => (step <= 0 ? 'レバーなし' : `ステップ ${step}/${max}`),
+  share: (share) => `トラフィックの ${share}`,
+  growth: (percent) => `成長 ${percent}`,
+  build: (dh) => `構築 · ${dh} DH`,
+  remove: (dh) => `削除 · ${dh} DH 返還`,
+  takeOff: 'ステップを外す',
+  set: 'レバーを設定',
+  bottleneck: '研究を制限中',
+  item: (kind) => `${kind}レバー`,
+  queued: (kind) => `${kind}レバーのステップをキューに追加`,
+  removed: (kind) => `${kind}レバーのステップを削除`,
+  pinned: 'チャレンジはミックスを固定します。',
+  noLever: (kind) => `${kind} にプロダクトレバーはありません。`,
+  opens: (kind, step, era) => `${kind}レバーのステップ ${step} は ${era} で開きます。`,
+  onBacklog: (kind) => `${kind}レバーのステップはすでにキューにあります。`,
+  capped: (venture, kind) => `${venture} は ${kind} レバーを最初のステップに制限します。`,
+  lastStep: (kind) => `${kind}レバーは最後のステップです。`,
+  notServed: (kind) => `会社は ${kind} を提供していません。`,
+  alreadyOff: (kind) => `${kind}レバーはすでにオフです。`,
+  onBacklogRemove: (kind) => `${kind}レバーのステップがキューにあります。`,
+}

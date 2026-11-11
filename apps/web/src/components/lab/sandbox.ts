@@ -19,12 +19,14 @@ import {
   Wallet,
   Zap,
 } from 'lucide'
-import { ERAS, INCIDENT_IDS } from '@quorum/simulation/catalog'
+import { ERAS, INCIDENT_IDS, LEVER_KINDS, MAX_LEVER_STEP } from '@quorum/simulation/catalog'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { has } from '@quorum/simulation/lookups'
+import { mixOf } from '@quorum/simulation/features'
+import { leverRefusal } from '@quorum/simulation/work'
 import { IncidentId } from '@quorum/simulation/state'
 import { GUIDED, TRACKS, type SandboxId } from '@quorum/simulation/sandbox'
-import { clock, money, rate } from '@quorum/ui/game/format'
+import { clock, money, rate, sharePercent } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
 import { isPhone } from '@/game/viewport.ts'
 import { boardSandbox, hasCompany, type Model, type SandboxRun } from '@/game/model.ts'
@@ -255,6 +257,75 @@ const tiny = (label: string, message: Message, h: HtmlBuilder<Message>, active =
   )
 
 /**
+ * A free Sandbox sets each Product lever at once, because it has no Team to build one
+ * (10 "Product levers"). Only the kinds the Era's mix carries can move, so the list follows
+ * the Mix buttons above it.
+ */
+const leverList = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const game = model.board.game
+  const kinds = LEVER_KINDS.filter((kind) => (mixOf(game)[kind] ?? 0) > 0)
+  if (kinds.length === 0) return h.empty
+  return h.div(
+    [h.Class('flex flex-col gap-1.5')],
+    [
+      h.span([h.Class(EYEBROW)], [t.sandbox.levers]),
+      h.div(
+        [h.Class('flex max-h-44 flex-col gap-1 overflow-auto [scrollbar-width:thin]')],
+        kinds.map((kind) => {
+          const step = game.levers[kind] ?? 0
+          return h.div(
+            [
+              h.Key(kind),
+              h.Class('flex items-center gap-1.5'),
+              h.Title(
+                `${t.levers.step(step, MAX_LEVER_STEP)} · ${t.levers.share(sharePercent(mixOf(game)[kind] ?? 0))}`,
+              ),
+            ],
+            [
+              h.span(
+                [
+                  h.Class(
+                    'min-w-0 flex-1 truncate text-[calc(11.5px*var(--type-scale))] text-muted-foreground',
+                  ),
+                ],
+                [t.catalog.pools[kind].label],
+              ),
+              button(
+                {
+                  onClick: Message.LeverStepped({ kind, direction: -1 }),
+                  isDisabled: step <= 0,
+                  variant: 'outline',
+                  size: 'icon-xs',
+                  attributes: [h.AriaLabel(t.levers.takeOff)],
+                },
+                icon(h, Minus, 'size-3'),
+                h,
+              ),
+              h.span(
+                [h.Class(cn(FIGURE, 'w-6 text-center text-[calc(11px*var(--type-scale))]'))],
+                [`${step}/${MAX_LEVER_STEP}`],
+              ),
+              button(
+                {
+                  onClick: Message.LeverStepped({ kind, direction: 1 }),
+                  isDisabled: leverRefusal(game, kind) !== null,
+                  variant: 'outline',
+                  size: 'icon-xs',
+                  attributes: [h.AriaLabel(t.levers.set)],
+                },
+                icon(h, Plus, 'size-3'),
+                h,
+              ),
+            ],
+          )
+        }),
+      ),
+    ],
+  )
+}
+
+/**
  * On a phone the controls fold away under their name; on a desktop they stay
  * open, and there is no summary to fold them by. On a phone the fold belongs to
  * the player once they touch it, so the open state is not written on every Step.
@@ -336,6 +407,7 @@ const controlsBody = (model: Model, h: HtmlBuilder<Message>): Html => {
           ),
         ],
       ),
+      leverList(model, h),
       nativeSelect(
         {
           id: 'sandbox-incident',

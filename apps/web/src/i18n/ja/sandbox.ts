@@ -13,6 +13,7 @@ export const sandbox: Messages['sandbox'] = {
   lessDemand: '需要を減らす',
   moreDemand: '需要を増やす',
   mix: '構成',
+  levers: 'レバー',
   incident: 'インシデント',
   none: 'なし',
   loadACrowdedDesignToTest: '混み合った設計を読み込み、カードの配置とリンクの経路を試す',

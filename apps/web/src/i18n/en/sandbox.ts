@@ -12,6 +12,7 @@ export const sandbox = {
   lessDemand: 'Less demand',
   moreDemand: 'More demand',
   mix: 'Mix',
+  levers: 'Levers',
   incident: 'Incident',
   none: 'None',
   loadACrowdedDesignToTest: 'Load a crowded Design to test card placement and link lanes',

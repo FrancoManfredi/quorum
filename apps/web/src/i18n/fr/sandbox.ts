@@ -13,6 +13,7 @@ export const sandbox: Messages['sandbox'] = {
   lessDemand: 'Réduire la demande',
   moreDemand: 'Augmenter la demande',
   mix: 'Répartition',
+  levers: 'Leviers',
   incident: 'Incident',
   none: 'Aucun',
   loadACrowdedDesignToTest:

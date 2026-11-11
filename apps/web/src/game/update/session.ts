@@ -1,7 +1,7 @@
 import { Actions } from '../board-actions.ts'
 import { Work } from '../board-actions.ts'
 import { AppRoute, onBoard, urlOf, urlToAppRoute } from '../route.ts'
-import { COMPONENTS, STEP_SECONDS, TASKS } from '@quorum/simulation/catalog'
+import { COMPONENTS, KINDS, STEP_SECONDS, TASKS } from '@quorum/simulation/catalog'
 import { EMPTY_HISTORY } from '../history.ts'
 import { completeChallenge } from '@quorum/simulation/founder'
 import { Game } from '@quorum/simulation/state'
@@ -466,6 +466,7 @@ type SessionTag =
   | 'CompanyCopied'
   | 'DemandStepped'
   | 'MixChosen'
+  | 'LeverStepped'
 
 export const sessionHandlers = (model: Model): MessageCases<UpdateResult, SessionTag> => ({
   SandboxStoreLoaded: ({ json }) =>
@@ -541,4 +542,13 @@ export const sessionHandlers = (model: Model): MessageCases<UpdateResult, Sessio
   },
 
   MixChosen: ({ stage }) => tuneFree(model, { ...model.board.game, stage }),
+
+  LeverStepped: ({ kind, direction }) =>
+    act(
+      model,
+      `${direction > 0 ? 'Raised' : 'Lowered'} the ${KINDS[kind].label} lever`,
+      direction > 0
+        ? Work.queueLever(model.board.game, kind)
+        : Work.removeLever(model.board.game, kind),
+    ),
 })

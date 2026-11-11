@@ -49,6 +49,7 @@ import { mirror } from './mirror.ts'
 import { nodeList } from './nodeList.ts'
 import { panels } from './panels.ts'
 import { presence } from './presence.ts'
+import { levers } from './levers.ts'
 import { pools } from './pools.ts'
 import { research } from './research.ts'
 import { sandbox } from './sandbox.ts'
@@ -105,6 +106,7 @@ export const es = {
   nodeList,
   panels,
   presence,
+  levers,
   pools,
   research,
   sandbox,

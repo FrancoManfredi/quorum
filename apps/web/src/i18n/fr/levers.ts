@@ -1,0 +1,25 @@
+import type { Messages } from '../messages.ts'
+
+export const levers: Messages['levers'] = {
+  label: 'Levier produit',
+  step: (step, max) => (step <= 0 ? 'Aucun levier' : `Étape ${step} sur ${max}`),
+  share: (share) => `${share} du trafic`,
+  growth: (percent) => `Croissance ${percent}`,
+  build: (dh) => `Construire · ${dh} DH`,
+  remove: (dh) => `Retirer · ${dh} DH rendus`,
+  takeOff: "Retirer l'étape",
+  set: 'Régler le levier',
+  bottleneck: "Limite l'étude",
+  item: (kind) => `Levier ${kind}`,
+  queued: (kind) => `Étape du levier ${kind} en file`,
+  removed: (kind) => `Étape du levier ${kind} retirée`,
+  pinned: 'Un défi fixe son mix.',
+  noLever: (kind) => `${kind} n'a pas de levier produit.`,
+  opens: (kind, step, era) => `L'étape ${step} du levier ${kind} ouvre en ${era}.`,
+  onBacklog: (kind) => `Une étape du levier ${kind} est déjà en file.`,
+  capped: (venture, kind) => `${venture} plafonne le levier ${kind} à la première étape.`,
+  lastStep: (kind) => `Le levier ${kind} est à sa dernière étape.`,
+  notServed: (kind) => `L'entreprise ne sert pas ${kind}.`,
+  alreadyOff: (kind) => `Le levier ${kind} est déjà désactivé.`,
+  onBacklogRemove: (kind) => `Une étape du levier ${kind} est en file.`,
+}

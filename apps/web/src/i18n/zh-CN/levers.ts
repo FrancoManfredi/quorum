@@ -1,0 +1,25 @@
+import type { Messages } from '../messages.ts'
+
+export const levers: Messages['levers'] = {
+  label: '产品杠杆',
+  step: (step, max) => (step <= 0 ? '无杠杆' : `第 ${step}/${max} 步`),
+  share: (share) => `占流量 ${share}`,
+  growth: (percent) => `增长 ${percent}`,
+  build: (dh) => `构建 · ${dh} DH`,
+  remove: (dh) => `移除 · 返还 ${dh} DH`,
+  takeOff: '移除步骤',
+  set: '设置杠杆',
+  bottleneck: '限制研究',
+  item: (kind) => `${kind}杠杆`,
+  queued: (kind) => `${kind}杠杆步骤已入队`,
+  removed: (kind) => `${kind}杠杆步骤已移除`,
+  pinned: '挑战固定其流量组合。',
+  noLever: (kind) => `${kind} 没有产品杠杆。`,
+  opens: (kind, step, era) => `${kind}杠杆第 ${step} 步在 ${era} 开放。`,
+  onBacklog: (kind) => `${kind}杠杆步骤已在队列中。`,
+  capped: (venture, kind) => `${venture} 将 ${kind} 杠杆限制在第一步。`,
+  lastStep: (kind) => `${kind}杠杆已是最后一步。`,
+  notServed: (kind) => `公司不提供 ${kind}。`,
+  alreadyOff: (kind) => `${kind}杠杆已关闭。`,
+  onBacklogRemove: (kind) => `${kind}杠杆步骤在队列中。`,
+}

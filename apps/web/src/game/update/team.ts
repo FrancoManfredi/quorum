@@ -3,6 +3,7 @@ import { Work } from '../board-actions.ts'
 import {
   FEATURES,
   INCIDENTS,
+  KINDS,
   MIGRATION_STEPS,
   POLICIES,
   RESEARCH,
@@ -222,6 +223,32 @@ export const foldResearch = (model: Model, message: ResearchMessage): UpdateResu
                   'plain',
                 ]
               },
+            },
+          ),
+        LeverUp: ({ kind }) =>
+          act(
+            parent,
+            `Built the ${KINDS[kind].label} lever`,
+            Work.queueLever(parent.board.game, kind),
+            {
+              undoable: true,
+              note: () => [
+                say(parent).levers.queued(say(parent).catalog.pools[kind].label),
+                'primary',
+              ],
+            },
+          ),
+        LeverDown: ({ kind }) =>
+          act(
+            parent,
+            `Removed the ${KINDS[kind].label} lever`,
+            Work.removeLever(parent.board.game, kind),
+            {
+              undoable: true,
+              note: () => [
+                say(parent).levers.removed(say(parent).catalog.pools[kind].label),
+                'plain',
+              ],
             },
           ),
       }),

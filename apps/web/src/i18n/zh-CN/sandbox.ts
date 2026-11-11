@@ -13,6 +13,7 @@ export const sandbox: Messages['sandbox'] = {
   lessDemand: '减少需求',
   moreDemand: '增加需求',
   mix: '流量构成',
+  levers: '杠杆',
   incident: '故障',
   none: '无',
   loadACrowdedDesignToTest: '载入拥挤的设计，测试卡片布局与连线路径',

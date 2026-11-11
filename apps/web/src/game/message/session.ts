@@ -1,4 +1,5 @@
 import { FIXES } from '@quorum/simulation/catalog'
+import { LeverKindId } from '@quorum/simulation/state'
 import { SandboxId } from '../model.ts'
 import { Schema } from 'effect'
 
@@ -22,4 +23,6 @@ export const sessionCases = {
   CompanyCopied: {},
   DemandStepped: { direction: Schema.Literals([1, -1]) },
   MixChosen: { stage: Schema.Finite },
+  /** A free Sandbox sets a kind's Product lever at once, with no Team to build it. */
+  LeverStepped: { kind: LeverKindId, direction: Schema.Literals([1, -1]) },
 }

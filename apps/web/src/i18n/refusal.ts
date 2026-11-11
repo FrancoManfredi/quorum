@@ -68,6 +68,24 @@ const patterns: ReadonlyArray<
     /^The queue holds (\d+) Studies, and (.+) needs (\d+) of them\.$/,
     (t, [a, b, c]) => t.toasts.reason.queueTooShort(a!, nameIn(t, b!), c!),
   ],
+  [/^(.+) has no Product lever\.$/, (t, [a]) => t.levers.noLever(nameIn(t, a!))],
+  [/^A Challenge pins its mix\.$/, (t) => t.levers.pinned],
+  [/^The (.+) lever is at its last step\.$/, (t, [a]) => t.levers.lastStep(nameIn(t, a!))],
+  [/^The Company does not serve (.+)\.$/, (t, [a]) => t.levers.notServed(nameIn(t, a!))],
+  [
+    /^A (.+) lever step is already on the backlog\.$/,
+    (t, [a]) => t.levers.onBacklog(nameIn(t, a!)),
+  ],
+  [
+    /^The (.+) lever step (\d+) opens in (.+)\.$/,
+    (t, [a, b, c]) => t.levers.opens(nameIn(t, a!), Number(b), nameIn(t, c!)),
+  ],
+  [
+    /^(.+) caps the (.+) lever at its first step\.$/,
+    (t, [a, b]) => t.levers.capped(nameIn(t, a!), nameIn(t, b!)),
+  ],
+  [/^The (.+) lever is already off\.$/, (t, [a]) => t.levers.alreadyOff(nameIn(t, a!))],
+  [/^A (.+) lever step is on the backlog\.$/, (t, [a]) => t.levers.onBacklogRemove(nameIn(t, a!))],
 ]
 
 /** A sentence the Simulation or the game wrote in English, in the language of `t`; unknown text stays. */
