@@ -9,6 +9,30 @@ toc: top
 
 Quorum has no versions. It changes all the time, and this page lists the latest days, newest first, so you can see what moved since you last played. A page on this wiki can lag behind the game by a few days. Older days are in the [full changelog](/about/changelog/all).
 
+## Tuesday, 10 November 2026
+
+### Changed
+
+- Limit launch traffic and cache assets ([e2b39a0](https://github.com/elianiva/quorum/commit/e2b39a0269d6e8803f3c68683dded5116a5f7b73))
+- Animate phone sheets from the bottom ([cb92063](https://github.com/elianiva/quorum/commit/cb92063ce8aa1e2eafa846795457e73146d78dd1))
+- Give Company saves a stable format ([43d9f2c](https://github.com/elianiva/quorum/commit/43d9f2c6ea9ae76b5289cbd0dcda6c6c67a2c852))
+- Load languages on demand ([399b1f1](https://github.com/elianiva/quorum/commit/399b1f12e677b282734575bc34b1f783ad8ce5e3))
+- Fit the Board to a phone ([e6f8ac8](https://github.com/elianiva/quorum/commit/e6f8ac883547961a6149dface0cf3638fc8f7f97))
+- Prepare the title screen for launch ([ad41761](https://github.com/elianiva/quorum/commit/ad417617d118309e3f6efc6dcfd16a1701b3feb5))
+- Cut the test suite down to what guards behaviour ([7fca78f](https://github.com/elianiva/quorum/commit/7fca78f9d47f235290f2e70220064f08d37fdacb))
+- Add screenshot mode and rename teams and services ([4869421](https://github.com/elianiva/quorum/commit/4869421eca3c8777667115b463a0d0abc106b5fb))
+- Fix component inbound and outbound contracts ([f3a3ca4](https://github.com/elianiva/quorum/commit/f3a3ca43e5c715a2936f2dad8cb790d821c21594))
+- Explain how Tidy arranges the board ([9669b3b](https://github.com/elianiva/quorum/commit/9669b3b3eeffb6fff36dfb44f9172779bdc0f583))
+- Cut the board's per-frame work and its per-card render groups ([d67dd79](https://github.com/elianiva/quorum/commit/d67dd790901efe836679e3eb69d10764db9fddba))
+- Delay Board hovers until the pointer rests ([e37adad](https://github.com/elianiva/quorum/commit/e37adad917ab7409927bc5108cd5c4d545f44dc4))
+- Move the board's frame and pointer code out of its controller ([0d02ad0](https://github.com/elianiva/quorum/commit/0d02ad067f8f2d15fd2a10c30a951275324b1871))
+- Bring the Spanish messages up to date ([e0bd024](https://github.com/elianiva/quorum/commit/e0bd024c949048ba9fdbe8b88c4c65c171de4838))
+- Split the board into one module per layer ([9d601e0](https://github.com/elianiva/quorum/commit/9d601e096200bcaa9aa28e59f2f12c775550ced2))
+- Tidy by traffic: Load Balancer mid-board, providers and Analytics at the right ([64c8cf6](https://github.com/elianiva/quorum/commit/64c8cf6b283e176ada2e96ea9375a6555855d010))
+- Measure Dashboard charts by their panel and pack its rows ([b1c9916](https://github.com/elianiva/quorum/commit/b1c9916a3a8ce1b0b12b18001f454134240a151f))
+- Add Spanish as an interface language (#46) ([2baa808](https://github.com/elianiva/quorum/commit/2baa808854e74fd49097f2d3f6789801f46d2c40))
+- Refresh the layout harness fixture ([13ef92e](https://github.com/elianiva/quorum/commit/13ef92e18959c1dd04cdc8fd65d8da139dc7a904))
+
 ## Sunday, 8 November 2026
 
 ### Added
@@ -112,19 +136,3 @@ Quorum has no versions. It changes all the time, and this page lists the latest 
 - The Sandbox HUD displays Apdex and Burn targets with coloured bars and adds a row showing the measured metric; the Inspector lists mean latency alongside percentiles. ([2760ec4](https://github.com/elianiva/quorum/commit/2760ec47881c8d235683b98ff9e3774e3f6a8c08))
 - The Dashboard panel keeps its history and board state when you enter a Sandbox or Challenge, so your Company’s charts stay intact across board switches. ([c2fd5ea](https://github.com/elianiva/quorum/commit/c2fd5ea75da2349ac93655f3be563ac05347c55a))
 - After any action that changes the board view, the board automatically fits to the new design once drawn, so zoom and layout remain correct after opening panels like the Glossary. ([5cb0161](https://github.com/elianiva/quorum/commit/5cb01617fbcfa8a514747d48d1b177efbaf6a4d2))
-
-## Monday, 2 November 2026
-
-### Added
-
-- Swipe the Founder’s badge into the reader, hear a beep, and watch the title screen appear with its music. ([eab7072](https://github.com/elianiva/quorum/commit/eab7072bba6690da4a2d27b278da7d369bb57621))
-- Open Company, Sandbox, or Challenge screens via their own URLs; use the browser’s back and forward buttons to move between them, and each navigation adds a history entry. ([856c3e0](https://github.com/elianiva/quorum/commit/856c3e04f2f24d8ded0e6145e2b8917f5ac80e94))
-
-### Changed
-
-- View the Team panel as a board with columns Up next, In progress, Shipping, Live; each card shows an ID, a kind label, Dev Hours, avatars, and the Shipping column displays the next deploy countdown and bad-deploy chance. ([a055a55](https://github.com/elianiva/quorum/commit/a055a55300ce327b4ea3d37d68a9095735c4bdb5))
-- Open Research as a fullscreen tree for each track; the tree grows upward through one band per Era, scrolls like a page, and centers on the selected item. ([c6734fa](https://github.com/elianiva/quorum/commit/c6734fac3daca7e43cba7bb092bc6bdd59851243))
-- See the build dock display controls only when the first Company needs them; the dock lists placeable items and the next unlock, the Research tree shows the next Era, and the “How to play” guide no longer opens automatically. ([87f7131](https://github.com/elianiva/quorum/commit/87f7131788a0b80d8f483bba3f1cc0848d6a929e))
-- Notice node cards with a higher header that includes a medallion extending from the top-left corner; the medallion shows the group badge shape and a status mark, while the title sits beside it. ([471503a](https://github.com/elianiva/quorum/commit/471503ab8ae3f674805bf2c9af2b002b37f03cb4))
-- Browse the Inbox panel to see mail for every topic, with badges coloured in the sender’s brand hue, and a taller window that keeps cards clear of each other. ([989a1d2](https://github.com/elianiva/quorum/commit/989a1d256dbc971aaf7a960197bbcb4ee96598bb))
-- Pause the Company to stop link animations, keeping belts and chevrons still while you inspect or plan. ([7be2109](https://github.com/elianiva/quorum/commit/7be2109f03e5ad6efdd8c336f7b5a625d5a9df0b))
