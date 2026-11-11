@@ -1234,6 +1234,10 @@
   color: var(--muted-foreground);
   background: var(--canvas);
 }
+[data-board-unavailable='webgl'] .board-unavailable-error,
+[data-board-unavailable='error'] .board-unavailable-webgl {
+  display: none;
+}
 [data-board-unavailable] .board-unavailable {
   display: flex;
   flex-direction: column;

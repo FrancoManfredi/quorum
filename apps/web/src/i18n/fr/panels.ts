@@ -12,6 +12,7 @@ export const panels: Messages['panels'] = {
   webglUnavailable:
     'Le plateau a besoin de WebGL. Activez-le dans les paramètres du navigateur, puis rechargez la page.',
   webglHelp: 'Vérifier la prise en charge de WebGL',
+  boardFailed: 'Le plateau n’a pas pu démarrer. Rechargez la page.',
   menu: 'Menu',
   resume: 'Reprendre',
   settings: 'Paramètres',

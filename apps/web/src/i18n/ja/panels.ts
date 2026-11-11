@@ -12,6 +12,7 @@ export const panels: Messages['panels'] = {
   webglUnavailable:
     'ボードにはWebGLが必要です。ブラウザの設定で有効にしてから再読み込みしてください。',
   webglHelp: 'WebGLの対応を確認',
+  boardFailed: 'ボードを起動できませんでした。ページを再読み込みしてください。',
   menu: 'メニュー',
   resume: '再開',
   settings: '設定',

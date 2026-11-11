@@ -11,6 +11,7 @@ export const panels: Messages['panels'] = {
   startBuilding: '开始搭建',
   webglUnavailable: '棋盘需要 WebGL。请在浏览器设置中开启，然后重新加载页面。',
   webglHelp: '检查 WebGL 支持',
+  boardFailed: '棋盘启动失败。请重新加载页面。',
   menu: '菜单',
   resume: '继续运行',
   settings: '设置',

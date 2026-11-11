@@ -37,14 +37,14 @@ const hasWebgl = (): boolean => {
 
 export const attachBoard = (key: string, host: HTMLElement, events: BoardEvents): (() => void) => {
   if (!hasWebgl()) {
-    host.dataset['boardUnavailable'] = 'true'
+    host.dataset['boardUnavailable'] = 'webgl'
     return () => undefined
   }
   const controller = new BoardController(host, events)
   controllers.set(key, controller)
   controller.start(desired.get(key)).catch((error: unknown) => {
     console.error(`Quorum: the "${key}" board failed to start`, error)
-    host.dataset['boardUnavailable'] = 'true'
+    host.dataset['boardUnavailable'] = 'error'
   })
   return () => {
     controller.destroy()

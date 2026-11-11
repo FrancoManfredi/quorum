@@ -12,6 +12,7 @@ export const panels: Messages['panels'] = {
   webglUnavailable:
     'El tablero necesita WebGL. Actívalo en los ajustes del navegador y recarga la página.',
   webglHelp: 'Comprobar la compatibilidad con WebGL',
+  boardFailed: 'El tablero no pudo iniciarse. Recarga la página.',
   menu: 'Menú',
   resume: 'Reanudar',
   settings: 'Ajustes',

@@ -70,11 +70,17 @@ export const boardHost = (h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class('board-unavailable'), h.Role('status')],
         [
-          h.p([], [t.panels.webglUnavailable]),
+          h.p([h.Class('board-unavailable-webgl')], [t.panels.webglUnavailable]),
           h.a(
-            [h.Href('https://get.webgl.org'), h.Target('_blank'), h.Rel('noreferrer noopener')],
+            [
+              h.Class('board-unavailable-webgl'),
+              h.Href('https://get.webgl.org'),
+              h.Target('_blank'),
+              h.Rel('noreferrer noopener'),
+            ],
             [t.panels.webglHelp],
           ),
+          h.p([h.Class('board-unavailable-error')], [t.panels.boardFailed]),
         ],
       ),
     ],

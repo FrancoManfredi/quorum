@@ -9,6 +9,7 @@ export const panels = {
   startBuilding: 'Start building',
   webglUnavailable: 'The board needs WebGL. Turn it on in your browser settings, then reload.',
   webglHelp: 'Check WebGL support',
+  boardFailed: 'The board failed to start. Reload the page.',
   menu: 'Menu',
   resume: 'Resume',
   settings: 'Settings',

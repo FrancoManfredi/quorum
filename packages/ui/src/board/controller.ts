@@ -1,3 +1,4 @@
+import 'pixi.js/unsafe-eval'
 import type { Ledger } from '@quorum/simulation/ledger'
 import { HOLD_S, inFooter } from './card-parts.ts'
 import { Application, Container, Graphics, Point, type RendererPreference } from 'pixi.js'
