@@ -8,3 +8,10 @@ services:
     portal:
       title: Quorum
       description: The Quorum client — title, rooms, run, report.
+  wiki:
+    command: pnpm exec vite --host 0.0.0.0 --port "$PORT" --strictPort
+    cwd: apps/wiki
+    health: /
+    portal:
+      title: Quorum Wiki
+      description: The wiki — how every Component works, and why your Design breaks.
