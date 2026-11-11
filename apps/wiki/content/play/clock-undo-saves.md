@@ -70,13 +70,15 @@ The browser keeps any number of Companies. Open the title screen with **Menu (Es
 ## Export and import
 
 1. On the Board, press `Esc`, choose **Settings**.
-2. Press **Copy save as text**. The toast reads **Copied the save as text.** The clipboard holds one line that starts with `QSV1:`. Paste it into a file or a note.
-3. To load it, open **Settings** and press **Import a save**. The browser asks **Paste a save (QSV1:…)**. Paste the line and confirm.
+2. Press **Download save file**. The browser saves one text file, named after the Company, and the game stays open.
+3. To load it, open **Settings**, press **Import a save file**, and pick the file.
+
+**Copy save as text** puts the same line on the clipboard, and **Paste a save** takes a line back from the clipboard. The text pair suits a chat message. The file pair suits a move between browsers or devices, because the file outlives the browser that wrote it.
 
 A good import ends with **Save imported.** and replaces the open Company with the file. The old state is gone, so export a Company before you import over it. Failures say why:
 
-- **That is not a save.** The text is not a Quorum save.
-- **That save is from another build (x; this build is y).** The game version differs.
-- **That save could not be read.** The text is damaged.
+- **That is not a save.** The file or text is not a Quorum save.
+- **That save is from another version (x; this build reads y).** The save format differs.
+- **That save could not be read.** The file is damaged.
 
 A Sandbox or Challenge answers **A Sandbox or Challenge has no save.** to both buttons. **Copy state as JSON** in the same list copies the raw game state, for bug reports.

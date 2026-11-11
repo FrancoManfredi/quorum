@@ -2,12 +2,19 @@ import { savedInbox } from './inbox.ts'
 import { describe, expect, test } from 'vitest'
 import { Effect } from 'effect'
 import { newGame, preseedGame } from '@quorum/simulation/company'
-import { LoadSaves, PruneSaves, WriteCompany } from './commands.ts'
+import {
+  ClearBrokenSave,
+  DeleteCompany,
+  KeepBrokenSave,
+  LoadSaves,
+  PruneSaves,
+  WriteCompany,
+} from './commands.ts'
 import { Message } from './message.ts'
 import { currentFile, hasCompany, type Model } from './model.ts'
 import { AppRoute } from './route.ts'
 import { SAVE_FORMAT } from './save-file.ts'
-import { SAVE_PREFIX, pruneCompanyFiles, sweepLegacyStorage } from './storage.ts'
+import { BROKEN_SAVE_KEY, SAVE_PREFIX, pruneCompanyFiles, sweepLegacyStorage } from './storage.ts'
 import { TICK_MS, initialModel, update } from './update.ts'
 import {
   EMPTY_SAVE_INDEX,
@@ -369,23 +376,39 @@ describe('autosave and migration', () => {
     })
   })
 
-  test('a Company file without this format is kept aside', () => {
+  test('a Company file without this format keeps a copy and leaves the list', () => {
     const { index, game } = stored()
     const json = JSON.stringify(game)
-    const broken = send(
+    const loaded = update(
       initialModel(),
       Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
-      Message.CompanyLoaded({ id: 'c-one', open: true, json }),
     )
-    expect(broken.companyPhase).toEqual({ _tag: 'None' })
-    expect(broken.toast?.tone).toBe('warn')
-    expect(
-      commandsOf(
-        initialModel(),
-        Message.SavesLoaded({ index: JSON.stringify(index), now: 0 }),
-        Message.CompanyLoaded({ id: 'c-one', open: true, json }),
-      ),
-    ).toContain('KeepBrokenSave')
+    const broken = update(loaded.model, Message.CompanyLoaded({ id: 'c-one', open: true, json }))
+    expect(broken.model.companyPhase).toEqual({ _tag: 'None' })
+    expect(broken.model.toast?.tone).toBe('warn')
+    // A row that can never open does not stay, or it would warn on every load.
+    expect(broken.model.saves).toEqual({ current: null, companies: [] })
+    expect((broken.commands ?? []).map((command) => command.name)).toEqual(
+      expect.arrayContaining(['KeepBrokenSave', 'DeleteCompany']),
+    )
+  })
+
+  test('the kept copy is written and the Company file it came from is removed', () => {
+    const json = '{"nodes":[]}'
+    const storage = fakeStorage({ [`${SAVE_PREFIX}c-one`]: json })
+    withStorage(storage, () => {
+      runCommand(KeepBrokenSave({ json, reason: 'The save is not JSON.' }))
+      runCommand(DeleteCompany({ id: 'c-one', index: EMPTY_SAVE_INDEX }))
+    })
+    expect(storage.getItem(BROKEN_SAVE_KEY)).toBe(json)
+    expect(storage.getItem(`${SAVE_PREFIX}c-one`)).toBeNull()
+    expect(JSON.parse(storage.getItem('quorum.saves.v1') ?? '{}')).toEqual(EMPTY_SAVE_INDEX)
+  })
+
+  test('the kept copy leaves once an import puts a save in the Company', () => {
+    const storage = fakeStorage({ [BROKEN_SAVE_KEY]: '{"nodes":[]}' })
+    withStorage(storage, () => runCommand(ClearBrokenSave({})))
+    expect(storage.getItem(BROKEN_SAVE_KEY)).toBeNull()
   })
 
   test('the index figures follow the Company they name', () => {

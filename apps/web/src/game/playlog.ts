@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
+import { LOG_KEY, readStored, writeStored } from './storage.ts'
 
-export const LOG_KEY = 'quorum.playlog.v1'
 /** The log is a support aid. Keep the recent lines only: the storage quota belongs to saves. */
 const LIMIT = 2_000
 
@@ -41,8 +41,8 @@ const isStored = (value: unknown): value is Stored => {
 
 const load = (): Array<Stored> => {
   if (cache) return cache
+  const raw = readStored(LOG_KEY)
   try {
-    const raw = window.localStorage.getItem(LOG_KEY)
     const parsed: unknown = raw ? JSON.parse(raw) : []
     cache = Array.isArray(parsed) ? parsed.filter(isStored).slice(-LIMIT) : []
   } catch {
@@ -53,17 +53,10 @@ const load = (): Array<Stored> => {
 }
 
 const persist = (entries: Array<Stored>): void => {
-  try {
-    window.localStorage.setItem(LOG_KEY, JSON.stringify(entries))
-  } catch {
-    // Storage is full: keep the newest half and try once more.
-    entries.splice(0, Math.floor(entries.length / 2))
-    try {
-      window.localStorage.setItem(LOG_KEY, JSON.stringify(entries))
-    } catch {
-      // The log lives in memory until export.
-    }
-  }
+  if (writeStored(LOG_KEY, JSON.stringify(entries))) return
+  // Storage is full: keep the newest half and try once more.
+  entries.splice(0, Math.floor(entries.length / 2))
+  writeStored(LOG_KEY, JSON.stringify(entries))
 }
 
 export const appendLog = (lines: ReadonlyArray<LogEntry>): void => {

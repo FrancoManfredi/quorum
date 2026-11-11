@@ -25,7 +25,18 @@ import {
   TradeoffOption,
 } from './model.ts'
 import { refreshed, SaveIndex } from './saves.ts'
-import { pruneCompanyFiles, SAVE_PREFIX } from './storage.ts'
+import {
+  BROKEN_SAVE_KEY,
+  FOUNDER_KEY,
+  PREFS_KEY,
+  SANDBOX_KEY,
+  SAVE_INDEX_KEY,
+  pruneCompanyFiles,
+  readStored,
+  removeStored,
+  saveKeyOf,
+  writeStored,
+} from './storage.ts'
 import { History } from './history.ts'
 import { SavedInbox } from './inbox.ts'
 import { saveJson } from './save-file.ts'
@@ -39,14 +50,6 @@ import { Sample } from '@quorum/simulation/state'
 import { ApiRpc } from '@/platform/rpc.ts'
 import { annotateSpan, reportSurveyFailure, setSentryConsent, traced } from '../platform/sentry.ts'
 import { send as sendRoom } from '../platform/room-socket.ts'
-
-/** The list of Companies: their names, logos, and the figures the title lists. */
-export const SAVE_INDEX_KEY = 'quorum.saves.v1'
-export const SANDBOX_KEY = 'quorum.sandbox.v1'
-export const PREFS_KEY = 'quorum.prefs.v1'
-export const FOUNDER_KEY = 'quorum.founder.v1'
-
-export const saveKeyOf = (id: string): string => `${SAVE_PREFIX}${id}`
 
 /** A Playbook following the pointer on the board. */
 const StampArg = Schema.NullOr(
@@ -250,16 +253,7 @@ export const LoadSaves = Command.define('LoadSaves', {
   args: {},
   messages: [Message.SavesLoaded],
   execute: () =>
-    Effect.sync(() => {
-      try {
-        return Message.SavesLoaded({
-          index: window.localStorage.getItem(SAVE_INDEX_KEY),
-          now: Date.now(),
-        })
-      } catch {
-        return Message.SavesLoaded({ index: null, now: Date.now() })
-      }
-    }),
+    Effect.sync(() => Message.SavesLoaded({ index: readStored(SAVE_INDEX_KEY), now: Date.now() })),
 })
 
 /** Removes Company files the list does not name, after a failed index write or a crashed save. */
@@ -278,17 +272,7 @@ export const LoadCompany = Command.define('LoadCompany', {
   args: { id: Schema.String, open: Schema.Boolean },
   messages: [Message.CompanyLoaded],
   execute: ({ id, open }) =>
-    Effect.sync(() => {
-      try {
-        return Message.CompanyLoaded({
-          id,
-          open,
-          json: window.localStorage.getItem(saveKeyOf(id)),
-        })
-      } catch {
-        return Message.CompanyLoaded({ id, open, json: null })
-      }
-    }),
+    Effect.sync(() => Message.CompanyLoaded({ id, open, json: readStored(saveKeyOf(id)) })),
 })
 
 export const WriteCompany = Command.define('WriteCompany', {
@@ -305,30 +289,25 @@ export const WriteCompany = Command.define('WriteCompany', {
   messages: [Message.Saved, Message.SaveFailed],
   execute: ({ id, index, game, revealed, pending, dashboard, inbox }) =>
     Effect.sync(() => {
-      let saved = false
-      try {
-        const now = Date.now()
-        const file = index.companies.find((entry) => entry.id === id)
-        if (file) {
-          const stamped = refreshed(file, game, now)
-          traced('save.write', {}, () => {
-            const json = JSON.stringify(saveJson({ game, revealed, pending, dashboard, inbox }))
-            annotateSpan({ 'save.bytes': json.length })
-            window.localStorage.setItem(saveKeyOf(id), json)
-          })
-          window.localStorage.setItem(
-            SAVE_INDEX_KEY,
-            JSON.stringify({
-              ...index,
-              companies: index.companies.map((entry) => (entry.id === id ? stamped : entry)),
-            }),
-          )
-          saved = true
-        }
-      } catch {
-        // A full or blocked storage loses the save, not the game. The player hears about it.
-      }
-      return saved ? Message.Saved() : Message.SaveFailed()
+      const file = index.companies.find((entry) => entry.id === id)
+      if (!file) return Message.SaveFailed()
+      const stamped = refreshed(file, game, Date.now())
+      const json = JSON.stringify(saveJson({ game, revealed, pending, dashboard, inbox }))
+      const wrote = traced('save.write', {}, () => {
+        annotateSpan({ 'save.bytes': json.length })
+        return writeStored(saveKeyOf(id), json)
+      })
+      // A full or blocked storage loses the save, not the game. The player hears about it.
+      return wrote &&
+        writeStored(
+          SAVE_INDEX_KEY,
+          JSON.stringify({
+            ...index,
+            companies: index.companies.map((entry) => (entry.id === id ? stamped : entry)),
+          }),
+        )
+        ? Message.Saved()
+        : Message.SaveFailed()
     }),
 })
 
@@ -338,17 +317,11 @@ export const DeleteCompany = Command.define('DeleteCompany', {
   messages: [Message.CompanyDeleted],
   execute: ({ id, index }) =>
     Effect.sync(() => {
-      try {
-        window.localStorage.removeItem(saveKeyOf(id))
-        window.localStorage.setItem(SAVE_INDEX_KEY, JSON.stringify(index))
-      } catch {
-        // Storage blocked: the Company stays where it was.
-      }
+      removeStored(saveKeyOf(id))
+      writeStored(SAVE_INDEX_KEY, JSON.stringify(index))
       return Message.CompanyDeleted({ id })
     }),
 })
-
-export const BROKEN_SAVE_KEY = 'quorum.save.broken.v1'
 
 /** Sets a save this version cannot read aside, so the next Company does not overwrite it. */
 export const KeepBrokenSave = Command.define('KeepBrokenSave', {
@@ -357,11 +330,18 @@ export const KeepBrokenSave = Command.define('KeepBrokenSave', {
   execute: ({ json, reason }) =>
     Effect.sync(() => {
       console.error('The save could not be read:', reason)
-      try {
-        window.localStorage.setItem(BROKEN_SAVE_KEY, json)
-      } catch {
-        // Storage is full or blocked: the save stays only where it was.
-      }
+      writeStored(BROKEN_SAVE_KEY, json)
+      return Message.Synced()
+    }),
+})
+
+/** Drops the kept copy once an import has put a save of this build in the Company. */
+export const ClearBrokenSave = Command.define('ClearBrokenSave', {
+  args: {},
+  messages: [Message.Synced],
+  execute: () =>
+    Effect.sync(() => {
+      removeStored(BROKEN_SAVE_KEY)
       return Message.Synced()
     }),
 })
@@ -369,14 +349,7 @@ export const KeepBrokenSave = Command.define('KeepBrokenSave', {
 export const LoadSandboxStore = Command.define('LoadSandboxStore', {
   args: {},
   messages: [Message.SandboxStoreLoaded],
-  execute: () =>
-    Effect.sync(() => {
-      try {
-        return Message.SandboxStoreLoaded({ json: window.localStorage.getItem(SANDBOX_KEY) })
-      } catch {
-        return Message.SandboxStoreLoaded({ json: null })
-      }
-    }),
+  execute: () => Effect.sync(() => Message.SandboxStoreLoaded({ json: readStored(SANDBOX_KEY) })),
 })
 
 export const WriteSandboxStore = Command.define('WriteSandboxStore', {
@@ -384,11 +357,8 @@ export const WriteSandboxStore = Command.define('WriteSandboxStore', {
   messages: [Message.Synced],
   execute: ({ store }) =>
     Effect.sync(() => {
-      try {
-        window.localStorage.setItem(SANDBOX_KEY, JSON.stringify(store))
-      } catch {
-        // A full or blocked storage loses Sandbox progress, not the game.
-      }
+      // A full or blocked storage loses Sandbox progress, not the game.
+      writeStored(SANDBOX_KEY, JSON.stringify(store))
       return Message.Synced()
     }),
 })
@@ -396,14 +366,7 @@ export const WriteSandboxStore = Command.define('WriteSandboxStore', {
 export const LoadPrefs = Command.define('LoadPrefs', {
   args: {},
   messages: [Message.PrefsLoaded],
-  execute: () =>
-    Effect.sync(() => {
-      try {
-        return Message.PrefsLoaded({ json: window.localStorage.getItem(PREFS_KEY) })
-      } catch {
-        return Message.PrefsLoaded({ json: null })
-      }
-    }),
+  execute: () => Effect.sync(() => Message.PrefsLoaded({ json: readStored(PREFS_KEY) })),
 })
 
 export const WritePrefs = Command.define('WritePrefs', {
@@ -411,11 +374,8 @@ export const WritePrefs = Command.define('WritePrefs', {
   messages: [Message.Synced],
   execute: ({ prefs }) =>
     Effect.sync(() => {
-      try {
-        window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs))
-      } catch {
-        // Blocked storage only means the cards stay full size.
-      }
+      // Blocked storage only means the cards stay full size.
+      writeStored(PREFS_KEY, JSON.stringify(prefs))
       return Message.Synced()
     }),
 })
@@ -594,11 +554,7 @@ export const LoadFounder = Command.define('LoadFounder', {
         byte.toString(16).padStart(2, '0'),
       ).join('')
       const fresh = { deviceId, today: new Date().toISOString().slice(0, 10) }
-      try {
-        return Message.FounderLoaded({ json: window.localStorage.getItem(FOUNDER_KEY), ...fresh })
-      } catch {
-        return Message.FounderLoaded({ json: null, ...fresh })
-      }
+      return Message.FounderLoaded({ json: readStored(FOUNDER_KEY), ...fresh })
     }),
 })
 
@@ -607,11 +563,8 @@ export const WriteFounder = Command.define('WriteFounder', {
   messages: [Message.Synced],
   execute: ({ founder }) =>
     Effect.sync(() => {
-      try {
-        window.localStorage.setItem(FOUNDER_KEY, JSON.stringify(founder))
-      } catch {
-        // A full or blocked storage loses the record, not the Company.
-      }
+      // A full or blocked storage loses the record, not the Company.
+      writeStored(FOUNDER_KEY, JSON.stringify(founder))
       return Message.Synced()
     }),
 })
@@ -636,6 +589,52 @@ export const AskSaveImport = Command.define('AskSaveImport', {
   messages: [Message.SaveImported],
   execute: () =>
     Effect.sync(() => Message.SaveImported({ text: window.prompt('Paste a save (QSV1:…)') })),
+})
+
+/** Downloads the save as a file the player can keep or move to another browser. */
+export const DownloadSave = Command.define('DownloadSave', {
+  args: { text: Schema.String, name: Schema.String },
+  messages: [Message.Synced],
+  execute: ({ text, name }) =>
+    Effect.sync(() => {
+      const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = name
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      return Message.Synced()
+    }),
+})
+
+/** The text of the save file the player picks, or null when the picker closes with nothing. */
+const pickSaveText = (): Promise<string | null> =>
+  new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.hidden = true
+    input.accept = '.txt,.json,text/plain,application/json'
+    const done = (text: string | null): void => {
+      input.remove()
+      resolve(text)
+    }
+    input.addEventListener('cancel', () => done(null))
+    input.addEventListener('change', () => {
+      const file = input.files?.[0]
+      if (!file) return done(null)
+      void file.text().then(done, () => done(null))
+    })
+    document.body.append(input)
+    input.click()
+  })
+
+/** Opens the browser's file picker and hands back the save file it reads. */
+export const PickSaveFile = Command.define('PickSaveFile', {
+  args: {},
+  messages: [Message.SaveImported],
+  execute: () => Effect.promise(async () => Message.SaveImported({ text: await pickSaveText() })),
 })
 
 export const AskPlaybook = Command.define('AskPlaybook', {

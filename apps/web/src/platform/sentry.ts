@@ -7,6 +7,7 @@ import { SIM_VERSION } from '@quorum/simulation/version'
 import { crashTagsOf } from '../game/crash-context.ts'
 import type { Message } from '../game/message.ts'
 import type { Model } from '../game/model.ts'
+import { PREFS_KEY, readStored } from '../game/storage.ts'
 
 /* ==========================================================================
    Errors, traces, and profiles (ADR 0013). PostHog keeps the product events.
@@ -30,13 +31,12 @@ const TICK_SAMPLE_EVERY = 16
  * Settings are read before the SDK starts, so an opted-out player never sends the page-load trace
  * or a session. Turning the toggle off later closes the client; turning it on takes a reload.
  */
-const optedOut = (prefsKey: string): boolean => {
+const optedOut = (): boolean => {
+  if (navigator.doNotTrack === '1') return true
+  const raw = readStored(PREFS_KEY)
+  if (raw === null) return false
   try {
-    return (
-      navigator.doNotTrack === '1' ||
-      (JSON.parse(window.localStorage.getItem(prefsKey) ?? '{}') as { analytics?: unknown })
-        .analytics === false
-    )
+    return (JSON.parse(raw) as { analytics?: unknown }).analytics === false
   } catch {
     return false
   }
@@ -46,8 +46,8 @@ export const setSentryConsent = (next: boolean): void => {
   if (!next) void Sentry.close()
 }
 
-export const startSentry = (prefsKey: string): void => {
-  if (!DSN || !import.meta.env.PROD || optedOut(prefsKey)) return
+export const startSentry = (): void => {
+  if (!DSN || !import.meta.env.PROD || optedOut()) return
   Sentry.init({
     dsn: DSN,
     release: RELEASE,

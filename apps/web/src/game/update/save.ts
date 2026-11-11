@@ -1,12 +1,21 @@
 import { Actions } from '../board-actions.ts'
-import { AskSaveImport, CopyText, WriteFounder, ClearLog, ExportLog } from '../commands.ts'
+import {
+  AskSaveImport,
+  ClearBrokenSave,
+  CopyText,
+  DownloadSave,
+  PickSaveFile,
+  WriteFounder,
+  ClearLog,
+  ExportLog,
+} from '../commands.ts'
 import { Game } from '@quorum/simulation/state'
 import { IPO_BURN_SECONDS, PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { Message } from '../message.ts'
-import { Model, hasCompany, offCompany, playingId } from '../model.ts'
+import { Model, currentFile, hasCompany, offCompany, playingId } from '../model.ts'
 import { Result } from 'effect'
 import { cheatCash, cheatInsight } from '../cheats.ts'
-import { decodeSave, encodeSave } from '../save-file.ts'
+import { decodeSave, encodeSave, saveFileName } from '../save-file.ts'
 import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { firstQuarter } from '@quorum/simulation/quarters'
 import { forceIncident } from '@quorum/simulation/director'
@@ -30,7 +39,9 @@ import { solveFlow } from '@quorum/simulation/solve'
 
 type SaveTag =
   | 'SaveExported'
+  | 'SaveDownloaded'
   | 'SaveImportAsked'
+  | 'SaveFileAsked'
   | 'SaveImported'
   | 'CheatCash'
   | 'CheatInsight'
@@ -61,10 +72,29 @@ export const saveHandlers = (
     }
   },
 
+  SaveDownloaded: () => {
+    if (offCompany(model)) return withToast(model, say(model).toasts.noSaveHere, 'warn')
+    if (!hasCompany(model)) return withToast(model, say(model).toasts.noCompanyToExport, 'warn')
+    return {
+      model,
+      commands: [
+        DownloadSave({
+          text: encodeSave(savePayloadOf(model)),
+          name: saveFileName(currentFile(model)?.name ?? ''),
+        }),
+      ],
+    }
+  },
+
   SaveImportAsked: () =>
     offCompany(model)
       ? withToast(model, say(model).toasts.noSaveHere, 'warn')
       : { model, commands: [AskSaveImport({})] },
+
+  SaveFileAsked: () =>
+    offCompany(model)
+      ? withToast(model, say(model).toasts.noSaveHere, 'warn')
+      : { model, commands: [PickSaveFile({})] },
 
   SaveImported: ({ text }) => {
     if (text === null) return { model }
@@ -92,7 +122,12 @@ export const saveHandlers = (
       say(model).toasts.saveImported,
       'ok',
     )
-    return { ...loaded, model: next, commands: [...(loaded.commands ?? []), clear] }
+    // The import is the save now, so the copy kept for the last unreadable file is dead weight.
+    return {
+      ...loaded,
+      model: next,
+      commands: [...(loaded.commands ?? []), ClearBrokenSave({}), clear],
+    }
   },
 
   CheatCash: () => {

@@ -5,6 +5,7 @@ import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUpRight,
+  ClipboardPaste,
   Copy,
   DoorOpen,
   Download,
@@ -1021,7 +1022,9 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
     t.panels.save,
     [
       settingAction(t.panels.copySaveAsText, Message.SaveExported(), Copy, h, 'start'),
-      settingAction(t.panels.importASave, Message.SaveImportAsked(), Upload, h, 'start'),
+      settingAction(t.panels.downloadSaveFile, Message.SaveDownloaded(), Download, h, 'start'),
+      settingAction(t.panels.importSaveFile, Message.SaveFileAsked(), Upload, h, 'start'),
+      settingAction(t.panels.pasteASave, Message.SaveImportAsked(), ClipboardPaste, h, 'start'),
       settingAction(t.panels.copyStateAsJSON, Message.StateCopied(), Copy, h, 'start'),
     ],
     h,

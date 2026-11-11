@@ -5,6 +5,7 @@ import { newWriteKey, roomIdOf } from '@quorum/agent/room-id'
 import { uploadOf, type SyncState } from '@quorum/agent/sync'
 import { snapshotOfModel } from './agent-tools.ts'
 import { playingId, type Model } from './model.ts'
+import { AGENT_ROOMS_KEY, readStored, writeStored } from './storage.ts'
 
 /* ==========================================================================
    The browser's side of the agent Room. While Agent access is on, it sends the
@@ -13,7 +14,6 @@ import { playingId, type Model } from './model.ts'
    the player hands to an agent.
    ========================================================================== */
 
-const STORAGE_KEY = 'quorum.agent.rooms'
 const INTERVAL_MS = 5_000
 
 type RoomRecord = Readonly<{ writeKey: string; roomId: string; epoch: string }>
@@ -37,22 +37,14 @@ let sync: SyncState | null = null
 let busy = false
 
 const readRooms = (): Record<string, RoomRecord> => {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-    if (stored === null) return memory
-    return Option.getOrElse(decodeRooms(stored), () => memory)
-  } catch {
-    return memory
-  }
+  const stored = readStored(AGENT_ROOMS_KEY)
+  return stored === null ? memory : Option.getOrElse(decodeRooms(stored), () => memory)
 }
 
 const writeRooms = (rooms: Record<string, RoomRecord>): void => {
   memory = rooms
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rooms))
-  } catch {
-    // Blocked storage keeps the Room for this page only.
-  }
+  // Blocked storage keeps the Room for this page only.
+  writeStored(AGENT_ROOMS_KEY, JSON.stringify(rooms))
 }
 
 /** The id shown in Settings, or null before this Company has one. */

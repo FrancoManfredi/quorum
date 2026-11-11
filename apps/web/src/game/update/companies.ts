@@ -115,6 +115,35 @@ const titleIfBoard = (model: Model): UpdateResult =>
       }
     : { model }
 
+/**
+ * A Company that cannot open leaves the list: a row that stays warns on every load and never
+ * opens. An unreadable file keeps its copy aside first.
+ */
+const dropped = (
+  model: Model,
+  id: string,
+  kept: Readonly<{ json: string; reason: string }> | null,
+  warn: boolean,
+): UpdateResult => {
+  const saves = withoutFile(model.saves, id)
+  const back = titleIfBoard({
+    ...model,
+    saves,
+    saveFocus: null,
+    saveConfirm: { _tag: 'List' },
+    companyPhase: step(model.companyPhase, { _tag: 'Failed', id }),
+  })
+  const commands: ReadonlyArray<AnyCommand> = [
+    ...(kept === null ? [] : [KeepBrokenSave(kept)]),
+    DeleteCompany({ id, index: saves }),
+    ...(back.commands ?? []),
+  ]
+  if (!warn) return { model: back.model, commands }
+  const said =
+    kept === null ? say(model).toasts.companyMissing : say(model).toasts.unreadableCompany
+  return withToast(back.model, said, 'warn', commands)
+}
+
 /** A decoded Company Game goes onto the board, where it resumes at its saved Step.
  *  Opening it also leaves the title. */
 export const applyCompany = (
@@ -273,26 +302,12 @@ export const companiesHandlers = (model: Model): MessageCases<UpdateResult, Comp
       : { ...result, model: { ...result.model, savesReady: true } }
   },
   CompanyLoaded: ({ id, open, json }) => {
-    // A file that does not answer leaves nothing opening.
-    const failed = (): Model => ({
-      ...model,
-      companyPhase: step(model.companyPhase, { _tag: 'Failed', id }),
-    })
-    if (json === null) {
-      const back = titleIfBoard(failed())
-      return open
-        ? withToast(back.model, say(model).toasts.companyMissing, 'warn', back.commands)
-        : { model: back.model }
-    }
+    // A file that does not answer leaves nothing opening, and a row whose file is gone can never
+    // open: both leave the list.
+    if (json === null) return dropped(model, id, null, open)
     const read = readSaveFile(json)
     // A save this version cannot read is set aside, not overwritten by the next autosave.
-    if (Result.isFailure(read)) {
-      const back = titleIfBoard(failed())
-      return withToast(back.model, say(model).toasts.unreadableCompany, 'warn', [
-        KeepBrokenSave({ json, reason: read.failure }),
-        ...(back.commands ?? []),
-      ])
-    }
+    if (Result.isFailure(read)) return dropped(model, id, { json, reason: read.failure }, true)
     return applyCompany(model, id, read.success.game, read.success.file, open)
   },
 

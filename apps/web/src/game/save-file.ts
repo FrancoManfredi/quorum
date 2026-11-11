@@ -46,16 +46,19 @@ const objectOf = (value: unknown): Record<string, unknown> | null =>
     ? (value as Record<string, unknown>)
     : null
 
+const NOT_JSON = 'The save is not JSON.'
+const NOT_COMPANY = 'The save is not a Company file.'
+
 /** The save's JSON, or why this build cannot open it. */
 export const readSaveFile = (json: string): Result.Result<ReadSave, string> => {
   let parsed: unknown
   try {
     parsed = JSON.parse(json)
   } catch {
-    return Result.fail('The save is not JSON.')
+    return Result.fail(NOT_JSON)
   }
   const file = objectOf(parsed)
-  if (file === null) return Result.fail('The save is not a Company file.')
+  if (file === null) return Result.fail(NOT_COMPANY)
   if (file['format'] !== SAVE_FORMAT)
     return Result.fail(
       `That save is version ${String(file['format'])}; this build reads version ${SAVE_FORMAT}.`,
@@ -69,12 +72,34 @@ export const readSaveFile = (json: string): Result.Result<ReadSave, string> => {
 export const encodeSave = (save: SaveFile): string =>
   encodeText(PREFIX, { format: SAVE_FORMAT, save: saveJson(save) })
 
+/** The file a downloaded save takes: the Company's name, safe on every file system. */
+export const saveFileName = (name: string): string => {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-|-$/g, '')
+  return `quorum-${slug || 'company'}.txt`
+}
+
 /**
  * The save's JSON, or why the text is not a save this build can open: another
- * prefix or no JSON, another format, or a Game this build cannot read.
+ * prefix or no JSON, another format, or a Game this build cannot read. A stored
+ * Company file is a save too, so a player can move one by hand.
  */
 export const decodeSave = (text: string): Result.Result<string, string> => {
-  const parsed = decodeSaveText(decodeText(PREFIX, text))
+  const trimmed = text.trim()
+  if (!trimmed.startsWith(PREFIX)) {
+    const file = readSaveFile(trimmed)
+    if (Result.isFailure(file))
+      return Result.fail(
+        file.failure === NOT_JSON || file.failure === NOT_COMPANY
+          ? 'That is not a save.'
+          : file.failure,
+      )
+    return Result.succeed(JSON.stringify(file.success.file))
+  }
+  const parsed = decodeSaveText(decodeText(PREFIX, trimmed))
   if (Option.isNone(parsed)) return Result.fail('That is not a save.')
   const { format, save } = parsed.value
   if (format !== SAVE_FORMAT)

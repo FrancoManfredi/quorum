@@ -3,10 +3,9 @@ import { Runtime } from 'foldkit'
 import { setSeatActivity } from '@quorum/ui/board/board'
 import { init, Message, Model, subscriptions, update, view } from './app/main.ts'
 import { startMotion } from './game/motion.ts'
-import { PREFS_KEY } from './game/commands.ts'
 import { loadLocale, preloadLocales } from './i18n/messages.ts'
 import { supportedLocales, type Locale } from './i18n/index.ts'
-import { sweepLegacyStorage } from './game/storage.ts'
+import { PREFS_KEY, readStored, sweepLegacyStorage } from './game/storage.ts'
 import { activityChange } from './game/presence.ts'
 import { publish } from './game/agent-tools.ts'
 import { syncAgent } from './game/agent-room.ts'
@@ -22,7 +21,7 @@ import {
 import './styles.css'
 
 // First, so errors while the app boots are caught too.
-startSentry(PREFS_KEY)
+startSentry()
 
 const application = Runtime.makeApplication({
   Model,
@@ -65,9 +64,9 @@ if (navigator.storage?.persist) void navigator.storage.persist().catch(() => und
 
 /** The saved interface language, so a player who picked one does not see English first. */
 const savedLocale = (): Locale => {
+  const raw = readStored(PREFS_KEY)
+  if (raw === null) return 'en'
   try {
-    const raw = window.localStorage.getItem(PREFS_KEY)
-    if (raw === null) return 'en'
     const value = (JSON.parse(raw) as { locale?: unknown }).locale
     return supportedLocales.some((entry) => entry.value === value) ? (value as Locale) : 'en'
   } catch {

@@ -74,9 +74,9 @@ The tagged state is what the save stores. The live schemas describe that state o
 stored schema with a `decodeTo` transform.
 
 A Company file carries `format`, the save format version, beside the Game. This build reads format
-1 only. A file without that format is kept aside and the board says the Company could not be read.
-The format changes only with one migration, and the build's git hash is not the format
-([ADR 0023](../adr/0023-a-company-save-has-a-format.md)).
+1 only. A file without that format is kept aside, the board says the Company could not be read, and
+the Company leaves the list. The format changes only with one migration, and the build's git hash is
+not the format ([ADR 0023](../adr/0023-a-company-save-has-a-format.md)).
 
 A field that only the solver integrates stays a number inside its phase. The phase is the only
 place a caller can read it, so a phase that does not have the field cannot answer for it.

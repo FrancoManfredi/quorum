@@ -822,7 +822,12 @@ const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html
       h,
     ),
     row({ key: 'save-export', label: t.title.copySaveAsText, message: Message.SaveExported() }, h),
-    row({ key: 'save-import', label: t.title.importASave, message: Message.SaveImportAsked() }, h),
+    row(
+      { key: 'save-download', label: t.title.downloadSaveFile, message: Message.SaveDownloaded() },
+      h,
+    ),
+    row({ key: 'save-import', label: t.title.importSaveFile, message: Message.SaveFileAsked() }, h),
+    row({ key: 'save-paste', label: t.title.pasteASave, message: Message.SaveImportAsked() }, h),
     row({ key: 'copy', label: t.title.copyStateAsJSON, message: Message.StateCopied() }, h),
   ]
 }

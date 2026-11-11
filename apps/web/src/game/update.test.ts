@@ -1,5 +1,5 @@
 import { EMPTY_SAVE_INDEX, fileFor, withFile } from './saves.ts'
-import { SAVE_FORMAT } from './save-file.ts'
+import { SAVE_FORMAT, saveFileName } from './save-file.ts'
 import { ResearchMessage, STUDY_QUEUE } from './research.ts'
 import { TeamMessage } from './team.ts'
 import { DashboardMessage } from './dashboard.ts'
@@ -1732,7 +1732,7 @@ test('pointer-rate Messages stay out of the playtest log, and gestures go in', (
   expect(names(opened)).toContain('AppendLog')
 })
 
-test('a save this build cannot read is kept aside instead of dropped', () => {
+test('a save this build cannot read is kept aside and leaves the list', () => {
   const game = newGame()
   const { index, id } = storedWith(game)
   const opened = (json: string) => {
@@ -1754,10 +1754,31 @@ test('a save this build cannot read is kept aside instead of dropped', () => {
     expect(broken.model.companyPhase).toEqual({ _tag: 'None' })
     expect(broken.model.toast?.tone).toBe('warn')
     expect(hasCompany(broken.model)).toBe(false)
+    // The row would warn on every load and never open, so it leaves the list with its copy.
+    expect(broken.model.saves).toEqual({ current: null, companies: [] })
     expect(broken.commands).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'KeepBrokenSave' })]),
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'KeepBrokenSave' }),
+        expect.objectContaining({ name: 'DeleteCompany' }),
+      ]),
     )
   }
+})
+
+test('a Company whose file is gone leaves the list, and says so only when opened', () => {
+  const game = newGame()
+  const { index, id } = storedWith(game)
+  const waiting = update(initialModel(), Message.SavesLoaded({ index, now: 0 })).model
+  const quiet = update(waiting, Message.CompanyLoaded({ id, open: false, json: null }))
+  expect(quiet.model.saves).toEqual({ current: null, companies: [] })
+  expect(quiet.model.toast).toBeNull()
+
+  const opened = update(waiting, Message.CompanyLoaded({ id, open: true, json: null }))
+  expect(opened.model.saves).toEqual({ current: null, companies: [] })
+  expect(opened.model.toast?.tone).toBe('warn')
+  expect(opened.commands).toEqual(
+    expect.arrayContaining([expect.objectContaining({ name: 'DeleteCompany' })]),
+  )
 })
 
 test('a save travels as one line of text, and only a save of this format opens it', () => {
@@ -1785,6 +1806,14 @@ test('a save travels as one line of text, and only a save of this format opens i
   const text = String(copied?.args['text'] ?? '')
   expect(text.startsWith('QSV1:')).toBe(true)
 
+  // The same save downloads as a file the player can keep.
+  const downloaded = update(playable, Message.SaveDownloaded())
+  expect(downloaded.commands).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ name: 'DownloadSave', args: { text, name: 'quorum-acme.txt' } }),
+    ]),
+  )
+
   // Pasting it back opens the same Company, on a fresh board to work on.
   const opened = update(playable, Message.SaveImported({ text }))
   expect(hasCompany(opened.model)).toBe(true)
@@ -1792,6 +1821,17 @@ test('a save travels as one line of text, and only a save of this format opens i
   expect(opened.model.board.game.cash).toBe(playable.board.game.cash)
   expect(opened.model.board.game.nodes).toEqual(playable.board.game.nodes)
   expect(opened.model.board.undo).toEqual([])
+  // The import is the save now, so the copy kept for an unreadable file is dropped.
+  expect((opened.commands ?? []).map((command) => command.name)).toContain('ClearBrokenSave')
+
+  // A stored Company file imports as it is, so a player can move one by hand.
+  const stored = JSON.stringify({ format: SAVE_FORMAT, ...playable.board.game })
+  expect(update(playable, Message.SaveImported({ text: stored })).model.toast?.tone).toBe('ok')
+  // A file without the format is refused, and the open Company stays.
+  const preFormat = JSON.stringify(playable.board.game)
+  const refusedFile = update(playable, Message.SaveImported({ text: preFormat }))
+  expect(refusedFile.model.toast?.tone).toBe('warn')
+  expect(refusedFile.model.board.game).toBe(playable.board.game)
 
   // Anything that is not a save of this format is refused, and the open Company stays.
   const other = encodeText('QSV1:', {
@@ -1808,8 +1848,22 @@ test('a save travels as one line of text, and only a save of this format opens i
     expect(refused.model.board.game).toBe(playable.board.game)
   }
 
+  // The file picker is one command, and the picker answers with nothing when it closes.
+  expect(update(playable, Message.SaveFileAsked()).commands).toEqual(
+    expect.arrayContaining([expect.objectContaining({ name: 'PickSaveFile' })]),
+  )
+  expect(update(playable, Message.SaveImported({ text: null })).model).toBe(playable)
+
   // There is nothing to export before a Company exists.
   expect(update(initialModel(), Message.SaveExported()).model.toast?.tone).toBe('warn')
+  expect(update(initialModel(), Message.SaveDownloaded()).model.toast?.tone).toBe('warn')
+})
+
+test('a downloaded save takes the Company name, safe for a file system', () => {
+  expect(saveFileName('Acme')).toBe('quorum-acme.txt')
+  expect(saveFileName('  Two  Words! ')).toBe('quorum-two-words.txt')
+  expect(saveFileName('***')).toBe('quorum-company.txt')
+  expect(saveFileName('東京')).toBe('quorum-東京.txt')
 })
 
 test('the board redraws after any Message that changes what it shows, and fits after the redraw', () => {

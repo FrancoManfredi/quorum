@@ -6,18 +6,22 @@ save format are a compatibility surface: rename a key or change the format only 
 
 ## Browser keys
 
-| Key                     | Holds                                                     | Read by                       | Lifecycle                            |
-| ----------------------- | --------------------------------------------------------- | ----------------------------- | ------------------------------------ |
-| `quorum.saves.v1`       | The Company list: `current` and one file per Company      | `LoadSaves`                   | Written with every autosave          |
-| `quorum.save.v3.<id>`   | One Company file: the Game, disclosure, Dashboard, Inbox  | `LoadCompany`, `SaveImported` | Written with that Company's autosave |
-| `quorum.prefs.v1`       | Settings: sound, motion, language, text, theme, consent   | `LoadPrefs`, Sentry           | Written on every Settings change     |
-| `quorum.founder.v1`     | Founder record: Legacy, Perks, Playbooks, achievements    | `LoadFounder`                 | Written on every Founder change      |
-| `quorum.sandbox.v1`     | Passed guided Sandboxes and the free Sandbox board        | `LoadSandboxStore`            | Written on Sandbox progress          |
-| `quorum.agent.rooms`    | A write key and Room id per Company, with Agent access on | `agent-room.ts`               | Written when a Room is first needed  |
-| `quorum.room.name`      | The display name other Seats see                          | `room-socket.ts`              | Written when the player sets it      |
-| `quorum.analytics.v1`   | The monthly and session event budget                      | `analytics-budget.ts`         | Written per captured event           |
-| `quorum.playlog.v1`     | The last 2,000 support log lines                          | `playlog.ts`, developer panel | Capped, written after a batch        |
-| `quorum.save.broken.v1` | The last Company file this build could not read           | `KeepBrokenSave`              | Replaced when another file fails     |
+`apps/web/src/game/storage.ts` names every key below and is the only module that reads and writes
+them. A blocked or full browser gets `null` from a read and `false` from a write, so each caller
+decides what a lost value costs.
+
+| Key                     | Holds                                                     | Read by                       | Lifecycle                                   |
+| ----------------------- | --------------------------------------------------------- | ----------------------------- | ------------------------------------------- |
+| `quorum.saves.v1`       | The Company list: `current` and one file per Company      | `LoadSaves`                   | Written with every autosave                 |
+| `quorum.save.v3.<id>`   | One Company file: the Game, disclosure, Dashboard, Inbox  | `LoadCompany`, `SaveImported` | Written with that Company's autosave        |
+| `quorum.prefs.v1`       | Settings: sound, motion, language, text, theme, consent   | `LoadPrefs`, Sentry           | Written on every Settings change            |
+| `quorum.founder.v1`     | Founder record: Legacy, Perks, Playbooks, achievements    | `LoadFounder`                 | Written on every Founder change             |
+| `quorum.sandbox.v1`     | Passed guided Sandboxes and the free Sandbox board        | `LoadSandboxStore`            | Written on Sandbox progress                 |
+| `quorum.agent.rooms`    | A write key and Room id per Company, with Agent access on | `agent-room.ts`               | Written when a Room is first needed         |
+| `quorum.room.name`      | The display name other Seats see                          | `room-socket.ts`              | Written when the player sets it             |
+| `quorum.analytics.v1`   | The monthly and session event budget                      | `analytics-budget.ts`         | Written per captured event                  |
+| `quorum.playlog.v1`     | The last 2,000 support log lines                          | `playlog.ts`, developer panel | Capped, written after a batch               |
+| `quorum.save.broken.v1` | The last Company file this build could not read           | Nothing; a support copy       | Replaced by a failure, cleared by an import |
 
 `quorum.room.seat` lives in `sessionStorage`: it names this tab's Seat and dies with the tab.
 
@@ -29,6 +33,8 @@ The keys above are the only localStorage keys Quorum writes. `quorum.save.v1` an
   page does not prune Company files when the list cannot be read.
 - A Company file must carry `format`. `SAVE_FORMAT` is 1, and a file with another format is kept
   aside with a warning. The format is not the build's git hash.
+- A Company that cannot open leaves the list, and its file is removed. An unreadable file is copied
+  to `quorum.save.broken.v1` first, so the warning shows once instead of on every load.
 - Settings, the Founder, Sandbox progress, the agent Rooms, and the analytics budget decode with
   their schemas or guards. A bad value falls back to the default rather than throwing.
 - The support log is filtered to well-formed lines and capped at 2,000. It shares the quota with
@@ -37,8 +43,11 @@ The keys above are the only localStorage keys Quorum writes. `quorum.save.v1` an
 ## Save format
 
 `apps/web/src/game/save-file.ts` owns `SAVE_FORMAT` and the stored shape. The text export wraps the
-same JSON in `QSV1:` with base64url encoding, and carries the same format. Import checks the format
-before decoding the Game; a mismatch leaves the open Company untouched.
+same JSON in `QSV1:` with base64url encoding, and carries the same format. **Download save file**
+writes that line to a file, and **Import a save file** reads one back. Import also takes a stored
+Company file as it is, so a player can move one by hand. It checks the format before decoding the
+Game; a mismatch leaves the open Company untouched, and a successful import clears the copy under
+`quorum.save.broken.v1`.
 
 A later format change bumps `SAVE_FORMAT` and adds one migration from the previous format. No other
 module learns about an old shape ([ADR 0023](adr/0023-a-company-save-has-a-format.md)).
