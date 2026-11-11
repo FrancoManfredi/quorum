@@ -4,7 +4,6 @@ import { Message } from '../message.ts'
 import { Model, Prefs, clockAway, halted, roomLive } from '../model.ts'
 import { isExited } from '../company-machine.ts'
 import { clockStep } from '../clock-machine.ts'
-import { step as holdStep } from '../hold-machine.ts'
 import { Option, Schema } from 'effect'
 import { PrefsMessage, updatePrefs, volumeIn } from '../prefs.ts'
 import { updateSurvey } from '../survey.ts'
@@ -305,27 +304,16 @@ export const panelsHandlers = (
   SurveyChanged: ({ message }) => foldSurvey(model, message),
 
   WindowBlurred: () => {
-    // The pointer is not followed outside the window, so a hold ends with the focus.
-    const held: Model =
-      model.board.hold._tag === 'Held'
-        ? {
-            ...model,
-            board: {
-              ...model.board,
-              hold: holdStep(model.board.hold, { _tag: 'HoldLifted' }),
-            },
-          }
-        : model
     // A live Room runs on its own clock: a hidden tab must not freeze it for the others.
-    if (!held.prefs.blurPause || halted(held) || roomLive(held) || !onBoard(held.route))
-      return { model: held }
+    if (!model.prefs.blurPause || halted(model) || roomLive(model) || !onBoard(model.route))
+      return { model }
     const next: Model = {
-      ...held,
+      ...model,
       board: {
-        ...held.board,
+        ...model.board,
         clock: {
-          ...held.board.clock,
-          mode: clockStep(held.board.clock.mode, { _tag: 'Blurred' }),
+          ...model.board.clock,
+          mode: clockStep(model.board.clock.mode, { _tag: 'Blurred' }),
         },
       },
     }

@@ -85,7 +85,6 @@ import {
   sizeLabelIn,
   caption,
   choice,
-  holdListeners,
   nodeLink,
   outbound,
   percent,
@@ -867,7 +866,6 @@ const instance = (game: Game, node: GameNode, h: HtmlBuilder<Message>): Html => 
             Message.ResizeChosen({ nodeId: node.id, direction: 1 }),
             price !== null && game.cash >= price,
             h,
-            node.id,
           ),
         ],
       ),
@@ -1711,7 +1709,7 @@ export const inspector = (model: Model, ledger: Ledger, h: HtmlBuilder<Message>)
                   isDisabled: game.cash < price,
                   size: 'lg',
                   className: 'min-w-0 flex-1 justify-between px-3',
-                  attributes: [h.Title('U'), ...holdListeners(node.id, h)],
+                  attributes: [h.Title('U')],
                 },
                 [
                   h.span(

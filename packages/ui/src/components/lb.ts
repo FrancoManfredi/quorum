@@ -4,7 +4,7 @@ import { type ComponentView } from './shared.ts'
 
 export const lb: ComponentView = {
   icon: Split,
-  layout: { rows: 4, inRow: 0, outRow: 3, footer: false },
+  layout: { rows: 4, inRow: 0, outRow: 3, footer: true },
   rows: ({ node, inbound, capacity, out }) => {
     return [
       inbound,

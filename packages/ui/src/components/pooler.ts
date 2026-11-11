@@ -11,7 +11,7 @@ export const POOLER_MODES: Readonly<Record<GameNode['mode'], string>> = {
 
 export const pooler: ComponentView = {
   icon: Combine,
-  layout: { rows: 4, inRow: 0, outRow: 3, footer: false },
+  layout: { rows: 4, inRow: 0, outRow: 3, footer: true },
   rows: ({ node, inbound, capacity, latency, out }) => {
     return [
       inbound,

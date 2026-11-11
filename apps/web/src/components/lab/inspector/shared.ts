@@ -1,5 +1,4 @@
 import { copy, localized, nodeLabelIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
-import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { ChevronRight, Minus, Plus } from 'lucide'
 import {
@@ -162,21 +161,12 @@ export const picker = <T extends string | number | boolean>(
     h,
   )
 
-/** A control that buys one size at a time while its pointer stays down (15 "Bulk actions"). */
-export const holdListeners = (nodeId: string, h: HtmlBuilder<Message>) => [
-  h.OnPointerDown(() => Option.some(Message.HoldStarted({ nodeId, now: Date.now() }))),
-  h.OnPointerUp(() => Option.some(Message.HoldEnded({ nodeId }))),
-  h.OnPointerLeave(() => Option.some(Message.HoldEnded({ nodeId }))),
-]
-
 export const smallButton = (
   label: string,
   glyph: Parameters<typeof icon>[1],
   message: Message,
   enabled: boolean,
   h: HtmlBuilder<Message>,
-  /** The Node it buys for, when holding it repeats the buy. */
-  holdFor?: string,
 ) =>
   button(
     {
@@ -184,11 +174,7 @@ export const smallButton = (
       isDisabled: !enabled,
       variant: 'outline',
       size: 'icon-sm',
-      attributes: [
-        h.AriaLabel(label),
-        h.Title(label),
-        ...(holdFor ? holdListeners(holdFor, h) : []),
-      ],
+      attributes: [h.AriaLabel(label), h.Title(label)],
     },
     icon(h, glyph, 'size-3.5'),
     h,

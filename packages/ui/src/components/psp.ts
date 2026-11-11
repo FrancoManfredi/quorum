@@ -4,7 +4,7 @@ import { type ComponentView } from './shared.ts'
 
 export const psp: ComponentView = {
   icon: Landmark,
-  layout: { rows: 3, inRow: 0, outRow: null, footer: false },
+  layout: { rows: 3, inRow: 0, outRow: null, footer: true },
   rows: ({ inbound, ledger, latency }) => {
     return [
       { ...inbound, name: 'Checkouts' },

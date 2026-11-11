@@ -10,10 +10,6 @@ export type BoardEvents = Readonly<{
   onNodeTap: (nodeId: string) => void
   onNodeMove: (nodeId: string, x: number, y: number) => void
   onFooter: (nodeId: string) => void
-  /** A held footer bought once and is still down, so the host repeats it (15 "Bulk actions"). */
-  onHoldStart?: (nodeId: string) => void
-  /** The pointer lifted, so the host stops repeating. */
-  onHoldEnd?: (nodeId: string) => void
   onLink: (from: string, to: string) => void
   onUnlink: (from: string, to: string) => void
   onPlace: (x: number, y: number) => void

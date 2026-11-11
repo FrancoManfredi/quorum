@@ -17,8 +17,6 @@ type BoardMessage =
   | ReturnType<typeof Message.NodePlaced>
   | ReturnType<typeof Message.EmptyTapped>
   | ReturnType<typeof Message.FooterPressed>
-  | ReturnType<typeof Message.HoldStarted>
-  | ReturnType<typeof Message.HoldEnded>
   | ReturnType<typeof Message.NodeToggled>
   | ReturnType<typeof Message.SelectionBoxed>
 
@@ -32,8 +30,6 @@ const BoardMounted = Mount.defineStream('BoardMounted', {
     Message.NodePlaced,
     Message.EmptyTapped,
     Message.FooterPressed,
-    Message.HoldStarted,
-    Message.HoldEnded,
     Message.NodeToggled,
     Message.SelectionBoxed,
   ],
@@ -47,8 +43,6 @@ const BoardMounted = Mount.defineStream('BoardMounted', {
               onNodeTap: (nodeId) => offer(Message.NodeTapped({ nodeId })),
               onNodeMove: (nodeId, x, y) => offer(Message.NodeMoved({ nodeId, x, y })),
               onFooter: (nodeId) => offer(Message.FooterPressed({ nodeId })),
-              onHoldStart: (nodeId) => offer(Message.HoldStarted({ nodeId, now: Date.now() })),
-              onHoldEnd: (nodeId) => offer(Message.HoldEnded({ nodeId })),
               onLink: (from, to) => offer(Message.LinkRequested({ from, to })),
               onUnlink: (from, to) => offer(Message.LinkCut({ from, to })),
               onPlace: (x, y) => offer(Message.NodePlaced({ x, y })),

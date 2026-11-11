@@ -44,7 +44,6 @@ debugging shape with completion and history metadata, and a `Game` is saved, has
 | Board interaction | `apps/web/src/game/board-machine.ts`              | `Idle`, `Placing`, `Stamping`, `Linking`, `ConfirmingSell`      | `Board.flow`                                          |
 | Tradeoff          | `apps/web/src/game/tradeoff-machine.ts`           | `Closed`, `Hovering`, `Pinned`                                  | `Board.tradeoff`                                      |
 | Change            | `apps/web/src/game/change-machine.ts`             | `Idle`, `Settling`, `Settled`, `Lasting`                        | `Board.change`                                        |
-| Hold              | `apps/web/src/game/hold-machine.ts`               | `Idle`, `Held`                                                  | `Board.hold`                                          |
 | Delete confirm    | `apps/web/src/game/confirm-delete-machine.ts`     | `List`, `Confirming`                                            | `Model.saveConfirm`                                   |
 | Disclosure        | `apps/web/src/game/disclosure-machine.ts`         | `Idle`, `Queued`, `Cueing`                                      | `Board.disclosure`                                    |
 | Mail              | `apps/web/src/game/mail-machine.ts`               | `Active`, `Answered`, `Resolved`                                | `Mail.phase`                                          |

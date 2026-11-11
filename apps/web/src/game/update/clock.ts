@@ -833,7 +833,6 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
           selection: [],
           buildGroup: null,
           flow: { _tag: 'Idle' },
-          hold: { _tag: 'Idle' },
           tradeoff: { _tag: 'Closed' },
           insightHelp: false,
         },

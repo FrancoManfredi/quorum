@@ -1987,64 +1987,6 @@ test('buying ten sizes grows a Node once, and Max reaches the largest size', () 
   expect(sizeOf(max)).toBe(SIZES.length - 1)
 })
 
-test('a held buy repeats once a tick, and stops on release', () => {
-  const base: Model = {
-    ...inLab(),
-    board: { ...inLab().board, game: { ...newGame(), cash: 1e9 } },
-  }
-  const sizeOf = (model: Model) =>
-    model.board.game.nodes.find((node) => node.id === 'server')?.size ?? -1
-  const held = update(base, Message.HoldStarted({ nodeId: 'server', now: 1_000 })).model
-  expect(held.board.hold).toEqual({ _tag: 'Held', nodeId: 'server', at: 1_000 })
-  // Inside the repeat the hold buys nothing.
-  expect(sizeOf(update(held, Message.HoldRepeated({ nodeId: 'server', now: 1_100 })).model)).toBe(1)
-  const one = update(held, Message.HoldRepeated({ nodeId: 'server', now: 1_250 })).model
-  expect(sizeOf(one)).toBe(2)
-  // A stalled frame delivers stale repeats: the third buys once, and the rest wait.
-  const stale = [1_260, 1_270, 1_280].reduce(
-    (model, now) => update(model, Message.HoldRepeated({ nodeId: 'server', now })).model,
-    one,
-  )
-  expect(sizeOf(stale)).toBe(2)
-  // The next tick counts from when that buy landed, not from the stale ones.
-  expect(sizeOf(update(stale, Message.HoldRepeated({ nodeId: 'server', now: 1_510 })).model)).toBe(
-    3,
-  )
-  // Release ends the hold, and a late repeat buys nothing.
-  const released = update(one, Message.HoldEnded({ nodeId: 'server' })).model
-  expect(released.board.hold).toEqual({ _tag: 'Idle' })
-  expect(
-    sizeOf(update(released, Message.HoldRepeated({ nodeId: 'server', now: 9_000 })).model),
-  ).toBe(2)
-  // A pointer lift anywhere ends it too, so a button that unmounted cannot keep buying.
-  expect(update(held, Message.HoldLifted()).model.board.hold).toEqual({ _tag: 'Idle' })
-})
-
-test('a held buy stops at the size cap or when Cash runs out, and says why once', () => {
-  const base = (cash: number): Model => ({
-    ...inLab(),
-    board: { ...inLab().board, game: { ...newGame(), cash } },
-  })
-  const sizeOf = (model: Model) =>
-    model.board.game.nodes.find((node) => node.id === 'server')?.size ?? -1
-  let rising = update(base(1e9), Message.HoldStarted({ nodeId: 'server', now: 0 })).model
-  for (let tick = 1; tick <= 12; tick += 1)
-    rising = update(rising, Message.HoldRepeated({ nodeId: 'server', now: tick * 250 })).model
-  expect(sizeOf(rising)).toBe(SIZES.length - 1)
-  expect(rising.board.hold).toEqual({ _tag: 'Idle' })
-  expect(rising.toast?.tone).toBe('warn')
-  expect(rising.toast?.message).toContain('largest size')
-  expect(sizeOf(update(rising, Message.HoldRepeated({ nodeId: 'server', now: 9_000 })).model)).toBe(
-    SIZES.length - 1,
-  )
-
-  let broke = update(base(10), Message.HoldStarted({ nodeId: 'server', now: 0 })).model
-  broke = update(broke, Message.HoldRepeated({ nodeId: 'server', now: 250 })).model
-  expect(sizeOf(broke)).toBe(1)
-  expect(broke.board.hold).toEqual({ _tag: 'Idle' })
-  expect(broke.toast?.tone).toBe('warn')
-})
-
 test('upgrade all of a kind is one action with one undo entry and one toast that says what happened', () => {
   const start = (cash: number): Model => {
     let model: Model = { ...inLab(), board: { ...inLab().board, game: { ...newGame(), cash } } }

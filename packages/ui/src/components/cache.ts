@@ -4,7 +4,7 @@ import { pct, type ComponentView } from './shared.ts'
 
 export const cache: ComponentView = {
   icon: Zap,
-  layout: { rows: 4, inRow: 0, outRow: 3, footer: false },
+  layout: { rows: 4, inRow: 0, outRow: 3, footer: true },
   rows: ({ node, own, inbound, latency, out }) => {
     return [
       inbound,

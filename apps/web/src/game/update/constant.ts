@@ -6,13 +6,6 @@ import { perkLevel } from '@quorum/simulation/founding'
 export const TICK_MS = 250
 
 /**
- * How often a held buy or upgrade control buys again (15 "Bulk actions"). It is
- * the UI tick: the only cadence the game owns, and the rate the board already
- * re-reads the Game at, so a hold buys once per tick and never catches up.
- */
-export const REPEAT_MS = TICK_MS
-
-/**
  * The most Steps one tick may run: ten sim seconds, and never fewer than two ticks at the chosen
  * speed, so a fast clock still catches up. The cap stops a Design too heavy to run from spiralling.
  */

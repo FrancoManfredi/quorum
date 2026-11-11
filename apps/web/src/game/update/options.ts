@@ -33,15 +33,12 @@ import { FitBoard } from '../commands.ts'
 import { intent } from '@quorum/simulation/room'
 import { Game } from '@quorum/simulation/state'
 import { Message } from '../message.ts'
-import { Model, boardChallenge, type TradeoffOption } from '../model.ts'
-import { REPEAT_MS } from './constant.ts'
+import { Model, type TradeoffOption } from '../model.ts'
 import { Result } from 'effect'
 import { UNDO_SECONDS } from '../feedback.ts'
-import { step as holdStep } from '../hold-machine.ts'
 import { alertText, duration, money } from '@quorum/ui/game/format'
 import { isOne } from '../../i18n/plural.ts'
 import { logRunAction, logResponse } from './session.ts'
-import { onBoard } from '../route.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { say, withToast, act, nodeName, type MessageCases, type UpdateResult } from './shared.ts'
 import { serviceOf } from '@quorum/simulation/team'
@@ -82,10 +79,6 @@ export const sizeText = (t: Messages, size: number): string =>
 type OptionsTag =
   | 'BulkResizeChosen'
   | 'UpgradeAllChosen'
-  | 'HoldStarted'
-  | 'HoldRepeated'
-  | 'HoldEnded'
-  | 'HoldLifted'
   | 'ResizeChosen'
   | 'FamilyChosen'
   | 'PricingChosen'
@@ -236,84 +229,6 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
       },
     )
   },
-
-  HoldStarted: ({ nodeId, now }) => {
-    // A Challenge run replays a fixed list of actions: a hold would flood it.
-    if (boardChallenge(model.board)?._tag === 'Running') return { model }
-    if (!model.board.game.nodes.some((entry) => entry.id === nodeId)) return { model }
-    return {
-      model: {
-        ...model,
-        board: {
-          ...model.board,
-          hold: holdStep(model.board.hold, { _tag: 'HoldStarted', nodeId, at: now }),
-        },
-      },
-    }
-  },
-
-  HoldRepeated: ({ nodeId, now }) => {
-    const hold = model.board.hold
-    if (hold._tag !== 'Held' || hold.nodeId !== nodeId) return { model }
-    // The board left the screen with the pointer down: nothing is held any more.
-    if (!onBoard(model.route))
-      return {
-        model: {
-          ...model,
-          board: { ...model.board, hold: holdStep(hold, { _tag: 'HoldLifted' }) },
-        },
-      }
-    // A stalled frame or a refocused tab delivers stale repeats: one buy per
-    // REPEAT_MS, and the next one counts from now instead of catching up.
-    if (now - hold.at < REPEAT_MS) return { model }
-    const node = model.board.game.nodes.find((entry) => entry.id === nodeId)
-    if (!node)
-      return {
-        model: {
-          ...model,
-          board: { ...model.board, hold: holdStep(hold, { _tag: 'HoldLifted' }) },
-        },
-      }
-    const next = {
-      ...model,
-      board: {
-        ...model.board,
-        hold: holdStep(hold, { _tag: 'HoldRepeated', nodeId, at: now }),
-      },
-    }
-    const bought = Actions.resize(next.board.game, nodeId, 1)
-    // Cash or the size cap ends the hold where it stands: one refusal, then silence.
-    if (Result.isFailure(bought))
-      return withToast(
-        {
-          ...next,
-          board: { ...next.board, hold: holdStep(next.board.hold, { _tag: 'HoldLifted' }) },
-        },
-        refusalIn(say(model), bought.failure),
-        'warn',
-      )
-    return act(next, `Resized ${nodeName(next.board.game, nodeId)}`, bought, { undoable: true })
-  },
-
-  HoldEnded: ({ nodeId }) =>
-    model.board.hold._tag === 'Held' && model.board.hold.nodeId === nodeId
-      ? {
-          model: {
-            ...model,
-            board: {
-              ...model.board,
-              hold: holdStep(model.board.hold, { _tag: 'HoldLifted' }),
-            },
-          },
-        }
-      : { model },
-
-  HoldLifted: () => ({
-    model: {
-      ...model,
-      board: { ...model.board, hold: holdStep(model.board.hold, { _tag: 'HoldLifted' }) },
-    },
-  }),
 
   ResizeChosen: ({ nodeId, direction }) => {
     const logged = logRunAction(model, { _tag: 'Resize', node: nodeId, direction })

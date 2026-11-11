@@ -22,7 +22,6 @@ export { TradeoffState } from './tradeoff-machine.ts'
 import { ClockMode, away as clockAwayOf, paused as clockPausedOf } from './clock-machine.ts'
 import { RoomPhase, inRoom } from './room-machine.ts'
 import { Seat, Vote } from '@quorum/simulation/room'
-import { HoldFlow } from './hold-machine.ts'
 import { ChangeState } from './change-machine.ts'
 import { ConfirmDelete } from './confirm-delete-machine.ts'
 import { DisclosureFlow } from './disclosure-machine.ts'
@@ -346,8 +345,6 @@ export const Board = Schema.Struct({
   clipboard: Schema.NullOr(Playbook),
   /** The open build tray, or null when the dock shows only its group icons. */
   buildGroup: Schema.NullOr(BuildGroupKey),
-  /** The buy or upgrade control held down, which repeats while it stays down. */
-  hold: HoldFlow,
   team: Team,
   research: Research,
   /** The Insight card's help section is open. */

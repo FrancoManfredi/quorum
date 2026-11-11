@@ -75,7 +75,6 @@ export const freshBoard = (game: Game): Board => ({
   flow: { _tag: 'Idle' },
   clipboard: null,
   buildGroup: null,
-  hold: { _tag: 'Idle' },
   team: initTeam(),
   research: EMPTY_RESEARCH,
   insightHelp: false,

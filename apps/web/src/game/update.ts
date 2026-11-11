@@ -51,7 +51,7 @@ import { roomHandlers } from './update/room.ts'
 
 /** Every Message. Handlers live in ./update, grouped by what they touch; this file routes them. */
 
-export { TICK_MS, REPEAT_MS, SPEEDS, speedsOf } from './update/constant.ts'
+export { TICK_MS, SPEEDS, speedsOf } from './update/constant.ts'
 
 export const initialModel = (): Model => {
   const seatName = nameOf()
@@ -146,7 +146,6 @@ export const QUIET = new Set([
   // Sent by the compute worker several times a second.
   'BottleneckFound',
   'PreviewComputed',
-  'HoldLifted',
   // The answers are the player's words; only sending them is a gesture.
   'SurveyChanged',
 ])

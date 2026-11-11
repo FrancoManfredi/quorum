@@ -39,14 +39,6 @@ export const optionsCases = {
   BulkResizeChosen: { nodeId: Schema.String, mode: Schema.Literals(['ten', 'max']) },
   /** Buy every Node of a kind once, as one action that skips the ones at their cap. */
   UpgradeAllChosen: { nodeId: Schema.String },
-  /** A buy or upgrade control went down: it buys again every REPEAT_MS until it lifts. */
-  HoldStarted: { nodeId: Schema.String, now: Schema.Finite },
-  /** The held control's clock: `now` one repeat later, ignored while another is in hand. */
-  HoldRepeated: { nodeId: Schema.String, now: Schema.Finite },
-  /** The held control lifted, so it buys no more. */
-  HoldEnded: { nodeId: Schema.String },
-  /** Any pointer lift ends the hold: the button under it may have unmounted first. */
-  HoldLifted: {},
   ResizeChosen: { nodeId: Schema.String, direction: Schema.Literals([1, -1]) },
   /** Buy several sizes at once: `ten` stops after ten steps or the first refusal, `max` at the top size. */
   FamilyChosen: { nodeId: Schema.String, family: FamilyId },

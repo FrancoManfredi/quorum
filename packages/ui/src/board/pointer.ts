@@ -236,7 +236,6 @@ export const bindPointer = (c: BoardController): void => {
   )
 
   const finish = (event: PointerEvent, cancelled: boolean) => {
-    c.endHold()
     c.touches.delete(event.pointerId)
     if (c.pinch) {
       // The pinch ends with its first finger; the other one does nothing until it lifts.

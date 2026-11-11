@@ -124,8 +124,6 @@ export class BoardController {
   pressed: string | null = null
   /** When the held footer button went down, in ms. */
   holdSince = 0
-  /** The Node whose footer bought once and stays down, so the host repeats it. */
-  holding: string | null = null
   state: BoardState | null = null
   gesture: Gesture = null
   hoverLink: Readonly<{ from: string; to: string }> | null = null
@@ -364,8 +362,6 @@ export class BoardController {
 
   destroy(): void {
     if (this.destroyed) return
-    // Leaving the screen with the pointer down still ends the hold.
-    this.endHold()
     this.destroyed = true
     this.abort.abort()
     this.resize.disconnect()
@@ -858,18 +854,8 @@ export class BoardController {
     this.letGo()
     this.syncCards()
     this.views.get(id)?.celebrate()
+    // One hold buys one size, even if the pointer stays down.
     this.events.onFooter(id)
-    // The pointer is still down: the host buys again every repeat until it lifts.
-    this.holding = id
-    this.events.onHoldStart?.(id)
-  }
-
-  /** The pointer lifted: the host stops repeating the held footer button. */
-  endHold(): void {
-    const id = this.holding
-    if (!id) return
-    this.holding = null
-    this.events.onHoldEnd?.(id)
   }
 
   letGo(): void {
