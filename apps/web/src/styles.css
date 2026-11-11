@@ -280,12 +280,12 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: calc(var(--s) * 4.4) calc(var(--s) * 4) 0 calc(var(--s) * 5);
+  padding: calc(var(--s) * 4.2) calc(var(--s) * 4) 0 calc(var(--s) * 5);
 }
 .booth-wordmark {
   flex: none;
   width: calc(var(--s) * 16);
-  margin-bottom: calc(var(--s) * 2.4);
+  margin-bottom: calc(var(--s) * 2);
   overflow: visible;
 }
 .booth-wordmark path {
@@ -336,13 +336,15 @@
   padding-bottom: calc(var(--s) * 0.6);
   display: flex;
   flex-direction: column;
-  gap: calc(var(--s) * 0.3);
+  gap: calc(var(--s) * 0.1);
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: oklch(1 0 0 / 0.15) transparent;
   /* A keyboard focus never comes to rest under the founding screen's sticky Found action. */
   scroll-padding-bottom: calc(var(--s) * 7);
+  /* A row half past the edge fades out, so the list says it goes on. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--s) * 3.4), transparent);
 }
 .booth-list > * {
   flex: none;
@@ -353,7 +355,7 @@
   gap: calc(var(--s) * 1);
   width: 100%;
   min-height: calc(var(--s) * 3.6);
-  padding: calc(var(--s) * 0.4) calc(var(--s) * 1.4);
+  padding: calc(var(--s) * 0.3) calc(var(--s) * 1.4);
   border-radius: calc(var(--s) * 0.8);
   color: var(--muted-foreground);
   font-size: max(calc(12px * var(--type-scale)), calc(var(--s) * 1.6 * var(--type-scale)));
@@ -384,6 +386,53 @@
 .booth-row.is-danger:focus {
   color: oklch(0.86 0.14 25);
   background: oklch(0.45 0.16 25 / 0.22);
+}
+/* The sections of a page, as a line of labels: a caret marks the one you are in. */
+.booth-tabs {
+  display: flex;
+  flex: none;
+  gap: calc(var(--s) * 1);
+  margin: calc(var(--s) * 0.6) 0 calc(var(--s) * 0.9);
+  padding: 0 0 calc(var(--s) * 1.1) calc(var(--s) * 0.7);
+  border-bottom: 1px solid oklch(1 0 0 / 0.09);
+}
+.booth-tab {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding: calc(var(--s) * 0.5) calc(var(--s) * 0.7);
+  border-radius: calc(var(--s) * 0.5);
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: max(calc(10px * var(--type-scale)), calc(var(--s) * 1.3 * var(--type-scale)));
+  letter-spacing: 0.1em;
+  text-align: left;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  outline: none;
+}
+/* Every label keeps room for the caret, so the line never shifts when it moves. */
+.booth-tab::before {
+  content: '>';
+  margin-right: 0.5em;
+  color: transparent;
+}
+.booth-tab:hover {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 0.06);
+}
+/* The current section reads as the chosen row it is: a soft block and the caret. */
+.booth-tab.is-on {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 0.07);
+}
+.booth-tab.is-on::before {
+  color: var(--signal);
+}
+.booth-tab:focus-visible {
+  background: oklch(1 0 0 / 0.07);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.2);
 }
 .booth-footer {
   flex: none;
@@ -551,12 +600,56 @@
   height: max(calc(14px * var(--type-scale)), calc(var(--s) * 1.9 * var(--type-scale)));
 }
 .booth-group {
-  padding: calc(var(--s) * 1.2) calc(var(--s) * 2) calc(var(--s) * 0.3);
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(var(--s) * 1.2);
+  margin: 0;
+  padding: calc(var(--s) * 1) calc(var(--s) * 1.4) calc(var(--s) * 0.2);
   font-family: var(--font-mono);
   font-size: max(calc(9px * var(--type-scale)), calc(var(--s) * 1.15 * var(--type-scale)));
-  letter-spacing: 0.12em;
+  font-weight: 400;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted-foreground);
+}
+.booth-group::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: oklch(1 0 0 / 0.1);
+}
+.booth-list > .booth-group:first-child {
+  padding-top: 0;
+}
+.booth-rule {
+  flex: none;
+  height: 1px;
+  margin: calc(var(--s) * 1.4) calc(var(--s) * 1.4) calc(var(--s) * 0.6);
+  background: oklch(1 0 0 / 0.1);
+}
+/* A setting whose value a slider sets: the track takes the width the label leaves. */
+.booth-row.is-range {
+  gap: calc(var(--s) * 1.6);
+  cursor: default;
+}
+.booth-row.is-range:focus-within {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 0.08);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+}
+.booth-range {
+  flex: 1;
+  min-width: 0;
+  height: calc(var(--s) * 1.6);
+  margin: 0;
+  accent-color: var(--signal);
+  background: transparent;
+  cursor: pointer;
+}
+.booth-range:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: calc(var(--s) * 0.4);
 }
 .booth-hint {
   flex: none;
@@ -652,7 +745,7 @@
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: calc(var(--s) * 0.4);
+  gap: calc(var(--s) * 0.8);
   height: calc(var(--s) * 5.2);
   padding: 0 calc(var(--s) * 1.6);
   background: oklch(0 0 0 / 0.35);
@@ -683,6 +776,11 @@
 }
 .booth-taskbar .booth-figure {
   color: var(--signal);
+}
+.booth-taskbar-label {
+  font-size: max(calc(9px * var(--type-scale)), calc(var(--s) * 1.2 * var(--type-scale)));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .booth-clock {
   margin-left: auto;
@@ -818,6 +916,25 @@
   }
   .booth-strip-label {
     display: none;
+  }
+  /* A phone keeps the icons: the labels would not fit across the bar. */
+  .booth-taskbar-label {
+    display: none;
+  }
+  /* A phone fits a page's sections in two lines rather than cutting the labels. */
+  .booth-tabs {
+    flex-wrap: wrap;
+    row-gap: calc(var(--s) * 0.3);
+  }
+  .booth-taskbar {
+    gap: calc(var(--s) * 0.4);
+    justify-content: space-between;
+    padding: 0 calc(var(--s) * 1.2);
+  }
+  .booth-taskbar button,
+  .booth-taskbar a {
+    min-width: calc(var(--s) * 2.6);
+    padding: 0 calc(var(--s) * 0.4);
   }
 }
 

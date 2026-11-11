@@ -28,6 +28,7 @@ type ShellTag =
   | 'ClockedIn'
   | 'TitleRevealed'
   | 'MenuChosen'
+  | 'SettingsSectionChosen'
   | 'ClickedLink'
   | 'ChangedUrl'
   | 'Navigated'
@@ -55,6 +56,8 @@ export const shellHandlers = (model: Model): MessageCases<UpdateResult, ShellTag
             ...(menu === 'companies' ? {} : { saveFocus: null, saveConfirm: { _tag: 'List' } }),
           },
         },
+
+  SettingsSectionChosen: ({ section }) => ({ model: { ...model, settingsSection: section } }),
 
   ClickedLink: ({ request }) =>
     UrlRequest.match<UpdateResult>(request, {

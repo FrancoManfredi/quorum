@@ -1,4 +1,4 @@
-import { Menu } from '../model.ts'
+import { Menu, SettingsSection } from '../model.ts'
 import { Url } from 'foldkit/url'
 import { UrlRequest } from 'foldkit/navigation'
 
@@ -11,6 +11,8 @@ export const shellCases = {
   ClockedIn: {},
   TitleRevealed: {},
   MenuChosen: { menu: Menu },
+  /** The Settings section the title's page shows. */
+  SettingsSectionChosen: { section: SettingsSection },
   /** URL routing: a link click, a new URL from any source, and a finished navigation. */
   ClickedLink: { request: UrlRequest },
   ChangedUrl: { url: Url },

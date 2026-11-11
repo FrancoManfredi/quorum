@@ -436,6 +436,10 @@ export const roomCode = (model: Model): string | null =>
 export const roomOwner = (model: Model): boolean =>
   RoomPhase.guards.Online(model.room.phase) && model.room.phase.owner
 
+/** A section of Settings. `settings.ts` holds their labels, order, and rows. */
+export const SettingsSection = Schema.Literals(['sound', 'play', 'display', 'privacy', 'save'])
+export type SettingsSection = typeof SettingsSection.Type
+
 export const Model = Schema.Struct({
   route: AppRoute,
   /** Where the app is in its boot sequence: the clock-in splash, the title, or a board opening. */
@@ -471,6 +475,8 @@ export const Model = Schema.Struct({
   today: Schema.String,
   /** The player's settings, kept in the browser apart from saves. */
   prefs: Prefs,
+  /** The Settings section the title's page shows. The board's panel shows them all. */
+  settingsSection: SettingsSection,
   languagePicker: Listbox.Model,
   /** The Settings panel's sound level, whose value lives in `prefs.volume`. */
   volumeSlider: VolumeSlider.Model,

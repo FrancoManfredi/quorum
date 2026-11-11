@@ -1,11 +1,9 @@
 import { Effect, Option } from 'effect'
 import { Mount } from 'foldkit'
 import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
-import { PrefsMessage } from '@/game/prefs.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUpRight,
-  ClipboardPaste,
   Copy,
   DoorOpen,
   Download,
@@ -14,14 +12,9 @@ import {
   Play,
   Settings,
   Trash2,
-  Upload,
   Users,
-  Volume2,
-  VolumeX,
   X,
 } from 'lucide'
-import { UrlRequest } from 'foldkit/navigation'
-import { PRIVACY_URL } from '@/platform/analytics.ts'
 import { offer } from '@quorum/simulation/actions'
 import { PRE_IPO_STAGE } from '@quorum/simulation/ipo'
 import { INCIDENT_IDS } from '@quorum/simulation/catalog'
@@ -29,7 +22,15 @@ import { eraOf, isFinalEra, nextEra } from '@quorum/simulation/lookups'
 import { cheatCash, cheatInsight } from '@/game/cheats.ts'
 import { clock, compact, money } from '@quorum/ui/game/format'
 import { Message } from '@/game/message.ts'
-import { currentFile, exitLegacy, playingId, roomCode, roomLive, type Model } from '@/game/model.ts'
+import {
+  currentFile,
+  exitLegacy,
+  playingId,
+  roomCode,
+  roomLive,
+  type Model,
+  type SettingsSection,
+} from '@/game/model.ts'
 import { seatColour } from '@/game/seat-colour.ts'
 import type { Vote } from '@quorum/simulation/room'
 import { companyMark } from '@/components/company-mark.ts'
@@ -39,12 +40,14 @@ import { ROOM_NAME_LENGTH } from '@/game/names.ts'
 import { RoomPhase } from '@/game/room-machine.ts'
 import { seatOf } from '@/platform/room-socket.ts'
 import { agentRoomId } from '@/game/agent-room.ts'
+import type { IconNode } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
 import { button } from '@quorum/ui/primitives/button'
 import { Kbd } from '@quorum/ui/primitives/kbd'
 import { switch_ } from '@quorum/ui/primitives/switch'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { cn } from '@/lib/utils'
+import { settingsSections, type Setting } from '@/game/settings.ts'
 import { languagePicker } from '@/i18n/picker.ts'
 import { EYEBROW, FIGURE, FLOAT, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
 
@@ -832,10 +835,9 @@ const settingSwitch = (
     h,
   )
 
-/** The sound level, with the mute control beside its value. The slider rests while muted. */
+/** The sound level. The slider rests while muted, and the row below it turns sound back on. */
 const volumeRow = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
-  const muted = model.prefs.muted
   return h.div(
     [h.Class('px-4 py-2.5')],
     [
@@ -849,23 +851,8 @@ const volumeRow = (model: Model, h: HtmlBuilder<Message>): Html => {
             value: model.prefs.volume,
             label: t.panels.volume,
             formatValue: (value) => `${value}%`,
-            isDisabled: muted,
+            isDisabled: model.prefs.muted,
             rowClass: 'gap-2',
-            headerTrailing: button(
-              {
-                onClick: Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
-                variant: 'ghost',
-                size: 'icon-xs',
-                className: 'text-muted-foreground',
-                attributes: [
-                  h.Title(t.panels.muteSoundM),
-                  h.AriaLabel(t.panels.muteSoundM),
-                  h.AriaPressed(muted ? 'true' : 'false'),
-                ],
-              },
-              icon(h, muted ? VolumeX : Volume2, 'size-3.5'),
-              h,
-            ),
           },
           h,
         ),
@@ -889,146 +876,59 @@ const languageRow = (model: Model, h: HtmlBuilder<Message>): Html => {
 const settingAction = (
   label: string,
   message: Message,
-  glyph: Parameters<typeof icon>[1],
+  glyph: IconNode,
   h: HtmlBuilder<Message>,
-  glyphSide: 'start' | 'end',
 ): Html =>
   button(
     {
       onClick: message,
       variant: 'ghost',
       size: 'lg',
-      className: cn(
-        'h-auto w-full gap-2.5 rounded-none px-4 py-2.5',
-        glyphSide === 'end' ? 'justify-between' : 'justify-start',
-      ),
+      className: 'h-auto w-full justify-between gap-2.5 rounded-none px-4 py-2.5',
     },
     [
-      ...(glyphSide === 'start' ? [icon(h, glyph, 'size-4 shrink-0 text-muted-foreground')] : []),
       h.span([h.Class(settingLabelClass)], [label]),
-      ...(glyphSide === 'end' ? [icon(h, glyph, 'size-4 shrink-0 text-muted-foreground')] : []),
+      icon(h, glyph, 'size-4 shrink-0 text-muted-foreground'),
     ],
     h,
   )
+
+/** One setting with the control this panel has for it: a switch, a slider, a picker, or a button. */
+const settingRow = (setting: Setting, model: Model, h: HtmlBuilder<Message>): Html => {
+  switch (setting.kind) {
+    case 'volume':
+      return volumeRow(model, h)
+    case 'toggle':
+      return settingSwitch(
+        {
+          id: setting.id,
+          label: setting.label,
+          isChecked: setting.isOn,
+          onToggle: () => setting.message,
+        },
+        h,
+      )
+    case 'language':
+      return languageRow(model, h)
+    case 'action':
+      return settingAction(setting.label, setting.message, setting.glyph, h)
+  }
+}
 
 export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const sound = settingSection(t.panels.sound, [volumeRow(model, h)], h)
-  const play = settingSection(
-    t.panels.play,
-    [
-      settingSwitch(
-        {
-          id: 'setting-easy-mode',
-          label: t.panels.easyMode,
-          isChecked: model.prefs.easyMode,
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }),
-        },
-        h,
-      ),
-      ...(model.prefs.easyMode
-        ? [
-            settingSwitch(
-              {
-                id: 'setting-auto-pause',
-                label: t.panels.pauseOnSEV1AndSEV2,
-                isChecked: model.prefs.autoPause,
-                onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
-              },
-              h,
-            ),
-          ]
-        : []),
-      settingSwitch(
-        {
-          id: 'setting-blur-pause',
-          label: t.panels.pauseOnBlur,
-          isChecked: model.prefs.blurPause,
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
-        },
-        h,
-      ),
-    ],
-    h,
-  )
-  const display = settingSection(
-    t.panels.display,
-    [
-      settingSwitch(
-        {
-          id: 'setting-motion',
-          label: t.panels.reduceMotion,
-          isChecked: model.prefs.motion === 'reduce',
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
-        },
-        h,
-      ),
-      settingSwitch(
-        {
-          id: 'setting-text',
-          label: t.panels.textAt150,
-          isChecked: model.prefs.text === 'large',
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
-        },
-        h,
-      ),
-      settingSwitch(
-        {
-          id: 'setting-theme',
-          label: t.panels.darkMode,
-          isChecked: model.prefs.theme === 'dark',
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
-        },
-        h,
-      ),
-      languageRow(model, h),
-    ],
-    h,
-  )
-  const privacy = settingSection(
-    t.panels.privacy,
-    [
-      settingSwitch(
-        {
-          id: 'setting-agent-access',
-          label: t.panels.agentAccess,
-          isChecked: model.prefs.agentAccess,
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AgentAccessToggled() }),
-        },
-        h,
-      ),
-      ...(model.prefs.agentAccess ? [agentRoomRow(model, h)] : []),
-      settingSwitch(
-        {
-          id: 'setting-analytics',
-          label: t.panels.shareAnonymousUsageData,
-          isChecked: model.prefs.analytics,
-          onToggle: () => Message.PrefsChanged({ message: PrefsMessage.AnalyticsToggled() }),
-        },
-        h,
-      ),
-      settingAction(
-        t.panels.privacyPolicy,
-        Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
-        ArrowUpRight,
-        h,
-        'end',
-      ),
-    ],
-    h,
-  )
-  const save = settingSection(
-    t.panels.save,
-    [
-      settingAction(t.panels.copySaveAsText, Message.SaveExported(), Copy, h, 'start'),
-      settingAction(t.panels.downloadSaveFile, Message.SaveDownloaded(), Download, h, 'start'),
-      settingAction(t.panels.importSaveFile, Message.SaveFileAsked(), Upload, h, 'start'),
-      settingAction(t.panels.pasteASave, Message.SaveImportAsked(), ClipboardPaste, h, 'start'),
-      settingAction(t.panels.copyStateAsJSON, Message.StateCopied(), Copy, h, 'start'),
-    ],
-    h,
-  )
+  const sections = settingsSections(model.prefs, t)
+  const section = (id: SettingsSection): Html => {
+    const found = sections.find((entry) => entry.id === id)!
+    // The Agent room id belongs beside the switch that opens the relay, and only on the board.
+    const rows = found.rows.flatMap((row) =>
+      row.kind === 'toggle' && row.id === 'agent-access' && model.prefs.agentAccess
+        ? [settingRow(row, model, h), agentRoomRow(model, h)]
+        : [settingRow(row, model, h)],
+    )
+    return settingSection(found.label, rows, h)
+  }
 
   return shell(
     t.panels.settings,
@@ -1037,14 +937,20 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.div(
         [h.Class(`flex min-h-0 flex-col gap-4 px-5 pt-1 pb-5 ${SCROLL}`)],
         [
-          // The slider takes the full width; the rows below split into two balanced columns.
+          // The slider takes the full width; the sections below split into two balanced columns.
           // A phone folds both columns back into one.
-          sound,
+          section('sound'),
           h.div(
             [h.Class('grid grid-cols-2 items-start gap-x-5 gap-y-4 compact:grid-cols-1')],
             [
-              h.div([h.Class('flex flex-col gap-4 compact:contents')], [play, display]),
-              h.div([h.Class('flex flex-col gap-4 compact:contents')], [privacy, save]),
+              h.div(
+                [h.Class('flex flex-col gap-4 compact:contents')],
+                [section('play'), section('display')],
+              ),
+              h.div(
+                [h.Class('flex flex-col gap-4 compact:contents')],
+                [section('privacy'), section('save')],
+              ),
             ],
           ),
         ],

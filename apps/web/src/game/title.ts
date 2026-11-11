@@ -2,8 +2,7 @@ import { copyIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { copy, localized, eraWords } from '@/i18n/messages.ts'
 import * as Effect from 'effect/Effect'
 import { Mount } from 'foldkit'
-import { UrlRequest } from 'foldkit/navigation'
-import { DISCLAIMER_URL, PRIVACY_URL, SOURCE_URL, WIKI_URL } from '@/platform/analytics.ts'
+import { DISCLAIMER_URL, SOURCE_URL, WIKI_URL } from '@/platform/analytics.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUpRight,
@@ -38,10 +37,11 @@ import { legacyMultiplier, startEra } from '@quorum/simulation/founding'
 import { solveFlow } from '@quorum/simulation/solve'
 import type { Game } from '@quorum/simulation/state'
 import { CHALLENGES, challengeById, dailyDrill } from '@quorum/simulation/challenges'
-import { TRACKS, sandboxOpen } from '@quorum/simulation/sandbox'
+import { SANDBOX_IDS, TRACKS, sandboxOpen } from '@quorum/simulation/sandbox'
 import { clock, compact } from '@quorum/ui/game/format'
 import { Message } from './message.ts'
 import { PrefsMessage } from './prefs.ts'
+import { settingsSections, type Setting } from './settings.ts'
 import { boardChallenge, boardSandbox, currentFile, hasCompany, type Model } from './model.ts'
 import { LOGOS } from './logos.ts'
 import { MAX_COMPANY_NAME, nameOr, recent, type CompanyFile } from './saves.ts'
@@ -58,6 +58,19 @@ const rowsOf = (root: ParentNode) =>
   [
     ...root.querySelectorAll<HTMLElement>('.booth-list [data-row], .booth-footer [data-row]'),
   ].filter((row) => !(row instanceof HTMLButtonElement && row.disabled))
+
+/**
+ * The rows the arrow keys walk. A section strip is one stop, at the tab it has chosen, so Down
+ * leaves it for the section and Up returns to it instead of visiting its neighbours.
+ */
+const walkOf = (root: ParentNode): ReadonlyArray<HTMLElement> => {
+  const rows = rowsOf(root)
+  const chosen = rows.find(
+    (row) => row.dataset.tab !== undefined && row.getAttribute('aria-pressed') === 'true',
+  )
+  if (!chosen) return rows
+  return rows.filter((row) => row.dataset.tab === undefined || row === chosen)
+}
 
 /** The title's Mounts. A Scene test resolves them by hand. */
 export const BoothDriver = Mount.define('BoothDriver', {
@@ -83,17 +96,24 @@ export const BoothDriver = Mount.define('BoothDriver', {
           if (target instanceof Element && target !== document.body && !element.contains(target))
             return
           if (element.querySelector('.booth-term')) return
-          // A name is typed, not navigated: Enter and the vertical arrows step out of the field.
+          // A field is typed in, not navigated: Enter and the vertical arrows step out of it. A
+          // slider is the same, and its own Left and Right change the value.
           if (target instanceof HTMLInputElement) {
             if (event.key === 'Escape') {
               event.preventDefault()
-              target.blur()
+              if (target.type !== 'range') {
+                target.blur()
+                return
+              }
+              const rows = walkOf(element)
+              const at = rows.indexOf(target)
+              rows[(at + 1) % rows.length]?.focus()
               return
             }
             if (event.key !== 'Enter' && event.key !== 'ArrowDown' && event.key !== 'ArrowUp')
               return
             event.preventDefault()
-            const rows = rowsOf(element)
+            const rows = walkOf(element)
             const at = rows.indexOf(target)
             const step = event.key === 'ArrowUp' ? -1 : 1
             const next = rows[at < 0 ? 0 : (at + step + rows.length) % rows.length]
@@ -102,8 +122,38 @@ export const BoothDriver = Mount.define('BoothDriver', {
           }
           light(event.key === ' ' ? 'Space' : event.key)
           play('tick')
-          const rows = rowsOf(element)
-          const at = rows.indexOf(document.activeElement as HTMLElement)
+          // The Settings sections run sideways: Left and Right step them, where they walk the rows.
+          const tab = target instanceof Element ? target.closest('[data-tab]') : null
+          if (
+            tab instanceof HTMLElement &&
+            (event.key === 'ArrowLeft' || event.key === 'ArrowRight')
+          ) {
+            event.preventDefault()
+            const tabs = [...element.querySelectorAll<HTMLElement>('.booth-tabs [data-tab]')]
+            const step = event.key === 'ArrowLeft' ? -1 : 1
+            const next = tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length]
+            if (next && next !== tab) {
+              next.focus()
+              next.click()
+              play('hover')
+            }
+            return
+          }
+          const rows = walkOf(element)
+          const active =
+            document.activeElement instanceof HTMLElement ? document.activeElement : null
+          const chosen = element.querySelector<HTMLElement>(
+            '.booth-tabs [data-tab][aria-pressed="true"]',
+          )
+          // A hovered tab stands where the chosen one does: the strip is a single stop.
+          const at =
+            active?.dataset.tab !== undefined
+              ? chosen
+                ? rows.indexOf(chosen)
+                : -1
+              : active
+                ? rows.indexOf(active)
+                : -1
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault()
             const step = event.key === 'ArrowDown' ? 1 : -1
@@ -172,7 +222,7 @@ export const PageMounted = Mount.define('PageMounted', {
   execute: ({ element }) =>
     Effect.sync(() => {
       const page = (element.getAttribute('data-page') ?? 'main') as Page
-      const rows = rowsOf(element.parentElement ?? element)
+      const rows = walkOf(element.parentElement ?? element)
       const from = page === 'main' ? rows.find((row) => row.dataset.to === lastPage) : undefined
       lastPage = page
       ;(from ?? rows.find((row) => !('back' in row.dataset)) ?? rows[0])?.focus({
@@ -233,6 +283,30 @@ type Row = Readonly<{
   danger?: boolean
 }>
 
+/** A row a range input sets, 0 to 100 in steps of five: the arrows change it, and Escape moves on. */
+const percentRow = (
+  r: Readonly<{ key: string; label: string; value: number; onInput: (value: number) => Message }>,
+  h: HtmlBuilder<Message>,
+): Html =>
+  h.div(
+    [h.Key(r.key), h.Class('booth-row is-range')],
+    [
+      h.span([h.Class('booth-label')], [h.span([], [r.label])]),
+      h.input([
+        h.Type('range'),
+        h.Class('booth-range'),
+        h.DataAttribute('row', ''),
+        h.Min('0'),
+        h.Max('100'),
+        h.Step('5'),
+        h.Value(`${r.value}`),
+        h.AriaLabel(r.label),
+        h.OnInput((value) => r.onInput(Number(value))),
+      ]),
+      h.span([h.Class('booth-side')], [`${Math.round(r.value)}%`]),
+    ],
+  )
+
 const row = (r: Row, h: HtmlBuilder<Message>): Html => {
   const body = [
     r.back ? h.span([h.Class('booth-mark'), h.AriaHidden(true)], ['‹']) : h.empty,
@@ -280,8 +354,21 @@ const backRow = (h: HtmlBuilder<Message>): Html => {
   )
 }
 
+/** A section's label over the rows it groups. A screen reader can jump between them. */
 const group = (text: string, h: HtmlBuilder<Message>): Html =>
-  h.span([h.Key(`group-${text}`), h.Class('booth-group')], [text])
+  h.h2([h.Key(`group-${text}`), h.Class('booth-group')], [text])
+
+/** What a page says when it has nothing to list. */
+const note = (text: string, h: HtmlBuilder<Message>): Html =>
+  h.p([h.Key(`note-${text}`), h.Class('booth-note')], [text])
+
+/** The hairline between sections that have no name. */
+const divider = (h: HtmlBuilder<Message>): Html =>
+  h.div([h.Key('divider'), h.Class('booth-rule'), h.AriaHidden(true)], [])
+
+/** The rows of one menu section, in the order the player sees them. */
+const section = (label: string, rows: ReadonlyArray<Html>, h: HtmlBuilder<Message>) =>
+  rows.length === 0 ? [] : [group(label, h), ...rows]
 
 const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
@@ -290,72 +377,92 @@ const mainRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> =>
   const file = currentFile(model)
   const current = hasCompany(model) ? file : null
   const count = model.saves.companies.length
+  // A figure appears once there is progress behind it, never as a row of zeroes.
+  const passed = SANDBOX_IDS.filter((id) => model.passed.includes(id)).length
+  const solved = CHALLENGES.filter((entry) => model.founder.completed.includes(entry.id)).length
   return [
-    ...(current
-      ? [
-          row(
-            {
-              key: 'continue',
-              mark: companyMark(current.logo, 'booth-logo-mini', h),
-              label: t.title.continueText,
-              detail: `${current.name} · ${t.title.eraUsersTime(eraWords(t, game).name, compact(game.users), clock(game.time))}`,
-              message: Message.Continued(),
-              big: true,
-            },
-            h,
-          ),
-        ]
-      : []),
-    row(
-      {
-        key: 'new',
-        label: current ? t.title.newCompany : t.title.startACompany,
-        message: Message.MenuChosen({ menu: 'found' }),
-        big: !current,
-        to: 'found',
-      },
+    ...section(
+      t.title.company,
+      [
+        ...(current
+          ? [
+              row(
+                {
+                  key: 'continue',
+                  mark: companyMark(current.logo, 'booth-logo-mini', h),
+                  label: t.title.continueText,
+                  detail: `${current.name} · ${t.title.eraUsersTime(eraWords(t, game).name, compact(game.users), clock(game.time))}`,
+                  message: Message.Continued(),
+                  big: true,
+                },
+                h,
+              ),
+            ]
+          : []),
+        row(
+          {
+            key: 'new',
+            label: current ? t.title.newCompany : t.title.startACompany,
+            message: Message.MenuChosen({ menu: 'found' }),
+            big: !current,
+            to: 'found',
+          },
+          h,
+        ),
+        row(
+          {
+            key: 'preseed',
+            label: t.title.startInPreSeed,
+            detail: t.title.skipsGarage,
+            message: Message.PreseedStarted(),
+          },
+          h,
+        ),
+        row(
+          { key: 'import', label: t.title.importACompany, message: Message.CompanyFileAsked() },
+          h,
+        ),
+        ...(count > 0
+          ? [
+              row(
+                {
+                  key: 'companies',
+                  label: t.title.companies,
+                  detail: t.title.savedCount(count),
+                  message: Message.MenuChosen({ menu: 'companies' }),
+                  to: 'companies',
+                },
+                h,
+              ),
+            ]
+          : []),
+      ],
       h,
     ),
-    row({ key: 'import', label: t.title.importACompany, message: Message.CompanyFileAsked() }, h),
-    ...(count > 0
-      ? [
-          row(
-            {
-              key: 'companies',
-              label: t.title.companies,
-              detail: t.title.savedCount(count),
-              message: Message.MenuChosen({ menu: 'companies' }),
-              to: 'companies',
-            },
-            h,
-          ),
-        ]
-      : []),
-    row(
-      {
-        key: 'preseed',
-        label: t.title.startInPreSeed,
-        detail: t.title.skipsGarage,
-        message: Message.PreseedStarted(),
-      },
-      h,
-    ),
-    row(
-      {
-        key: 'sandbox',
-        label: t.title.sandbox,
-        message: Message.MenuChosen({ menu: 'sandbox' }),
-        to: 'sandbox',
-      },
-      h,
-    ),
-    row(
-      {
-        key: 'challenges',
-        label: t.title.challenges,
-        message: Message.MenuChosen({ menu: 'challenges' }),
-        to: 'challenges',
-      },
+    ...section(
+      t.title.practice,
+      [
+        row(
+          {
+            key: 'sandbox',
+            label: t.title.sandbox,
+            side: passed > 0 ? `${passed}/${SANDBOX_IDS.length}` : undefined,
+            message: Message.MenuChosen({ menu: 'sandbox' }),
+            to: 'sandbox',
+          },
+          h,
+        ),
+        row(
+          {
+            key: 'challenges',
+            label: t.title.challenges,
+            side: solved > 0 ? `${solved}/${CHALLENGES.length}` : undefined,
+            message: Message.MenuChosen({ menu: 'challenges' }),
+            to: 'challenges',
+          },
+          h,
+        ),
+      ],
       h,
     ),
   ]
@@ -380,7 +487,7 @@ const sandboxRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
         )
       }),
     ]),
-    group('', h),
+    divider(h),
     row({ key: 'free', label: t.title.freeSandbox, message: Message.FreeSandboxStarted() }, h),
   ]
 }
@@ -527,7 +634,7 @@ const companyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
         h,
       ),
     ),
-    ...(model.saves.companies.length === 0 ? [group(t.title.noCompaniesSavedYet, h)] : []),
+    ...(model.saves.companies.length === 0 ? [note(t.title.noCompaniesSavedYet, h)] : []),
   ]
 }
 
@@ -687,7 +794,7 @@ const historyRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html>
   return [
     backRow(h),
     ...(model.founder.history.length === 0
-      ? [group(t.title.noExitsYet, h)]
+      ? [note(t.title.noExitsYet, h)]
       : model.founder.history
           .map((entry, index) =>
             row(
@@ -735,101 +842,97 @@ const achievementRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<H
   ]
 }
 
-/** Settings as rows: each switch shows On or Off, and Language steps to the next one. */
-const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+/** One Settings row in the booth's own idiom: a switch says On or Off, and a link says where it goes. */
+const settingRow = (setting: Setting, model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const at = supportedLocales.findIndex(({ value }) => value === model.prefs.locale)
-  const next = supportedLocales[(at + 1) % supportedLocales.length]!
-  const toggle = (key: string, label: string, on: boolean, message: Message) =>
-    row({ key, label, side: on ? t.title.on : t.title.off, message, pressed: on }, h)
+  switch (setting.kind) {
+    case 'volume':
+      return percentRow(
+        {
+          key: 'volume',
+          label: setting.label,
+          value: setting.value,
+          onInput: (volume) =>
+            Message.PrefsChanged({ message: PrefsMessage.VolumeChanged({ volume }) }),
+        },
+        h,
+      )
+    case 'toggle':
+      return row(
+        {
+          key: setting.id,
+          label: setting.label,
+          side: setting.isOn ? t.title.on : t.title.off,
+          message: setting.message,
+          pressed: setting.isOn,
+        },
+        h,
+      )
+    case 'language': {
+      const at = supportedLocales.findIndex(({ value }) => value === model.prefs.locale)
+      const next = supportedLocales[(at + 1) % supportedLocales.length]!
+      return row(
+        {
+          key: 'language',
+          label: setting.label,
+          side: supportedLocales[at]?.label ?? '',
+          message: Message.PrefsChanged({
+            message: PrefsMessage.LocaleChosen({ locale: next.value }),
+          }),
+        },
+        h,
+      )
+    }
+    case 'action':
+      return row(
+        {
+          key: setting.id,
+          label: setting.label,
+          side: icon(h, setting.glyph, 'booth-icon'),
+          message: setting.message,
+        },
+        h,
+      )
+  }
+}
+
+/** The settings sections as a strip: the chosen one is underlined, and Left and Right step it. */
+const settingsTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  return h.div(
+    [
+      h.Key('settings-tabs'),
+      h.Class('booth-tabs'),
+      h.Role('group'),
+      h.AriaLabel(t.panels.settings),
+    ],
+    settingsSections(model.prefs, t).map((part) =>
+      h.button(
+        [
+          h.Key(`tab-${part.id}`),
+          h.Type('button'),
+          h.DataAttribute('row', ''),
+          h.DataAttribute('tab', part.id),
+          h.Class(`booth-tab ${part.id === model.settingsSection ? 'is-on' : ''}`),
+          h.AriaPressed(part.id === model.settingsSection ? 'true' : 'false'),
+          h.OnClick(Message.SettingsSectionChosen({ section: part.id })),
+        ],
+        [part.label],
+      ),
+    ),
+  )
+}
+
+/** Settings as sections. One section's rows show at a time, so nothing scrolls. */
+const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
+  const t = copy(h)
+  const sections = settingsSections(model.prefs, t)
+  const active = sections.find((part) => part.id === model.settingsSection) ?? sections[0]!
   return [
     backRow(h),
-    toggle(
-      'muted',
-      t.title.muteSoundM,
-      model.prefs.muted,
-      Message.PrefsChanged({ message: PrefsMessage.MuteToggled() }),
-    ),
-    toggle(
-      'easy-mode',
-      t.title.easyMode,
-      model.prefs.easyMode,
-      Message.PrefsChanged({ message: PrefsMessage.EasyModeToggled() }),
-    ),
-    ...(model.prefs.easyMode
-      ? [
-          toggle(
-            'auto-pause',
-            t.title.pauseOnSEV1AndSEV2,
-            model.prefs.autoPause,
-            Message.PrefsChanged({ message: PrefsMessage.AutoPauseToggled() }),
-          ),
-        ]
-      : []),
-    toggle(
-      'blur-pause',
-      t.title.pauseWhenTheWindowLosesFocus,
-      model.prefs.blurPause,
-      Message.PrefsChanged({ message: PrefsMessage.BlurPauseToggled() }),
-    ),
-    toggle(
-      'motion',
-      t.title.reduceMotion,
-      model.prefs.motion === 'reduce',
-      Message.PrefsChanged({ message: PrefsMessage.MotionToggled() }),
-    ),
-    toggle(
-      'text',
-      t.title.textAt150,
-      model.prefs.text === 'large',
-      Message.PrefsChanged({ message: PrefsMessage.TextToggled() }),
-    ),
-    toggle(
-      'theme',
-      t.title.darkMode,
-      model.prefs.theme === 'dark',
-      Message.PrefsChanged({ message: PrefsMessage.ThemeToggled() }),
-    ),
-    toggle(
-      'agent',
-      t.title.agentAccess,
-      model.prefs.agentAccess,
-      Message.PrefsChanged({ message: PrefsMessage.AgentAccessToggled() }),
-    ),
-    toggle(
-      'analytics',
-      t.title.shareAnonymousUsageData,
-      model.prefs.analytics,
-      Message.PrefsChanged({ message: PrefsMessage.AnalyticsToggled() }),
-    ),
-    row(
-      {
-        key: 'privacy',
-        label: t.title.privacyPolicy,
-        message: Message.ClickedLink({ request: UrlRequest.External({ href: PRIVACY_URL }) }),
-      },
-      h,
-    ),
-    row(
-      {
-        key: 'language',
-        label: t.title.language,
-        side: supportedLocales[at]?.label ?? '',
-        message: Message.PrefsChanged({
-          message: PrefsMessage.LocaleChosen({ locale: next.value }),
-        }),
-      },
-      h,
-    ),
-    row({ key: 'save-export', label: t.title.copySaveAsText, message: Message.SaveExported() }, h),
-    row(
-      { key: 'save-download', label: t.title.downloadSaveFile, message: Message.SaveDownloaded() },
-      h,
-    ),
-    row({ key: 'save-import', label: t.title.importSaveFile, message: Message.SaveFileAsked() }, h),
-    row({ key: 'save-paste', label: t.title.pasteASave, message: Message.SaveImportAsked() }, h),
-    row({ key: 'copy', label: t.title.copyStateAsJSON, message: Message.StateCopied() }, h),
+    settingsTabs(model, h),
+    ...active.rows.map((setting) => settingRow(setting, model, h)),
   ]
 }
 
@@ -861,6 +964,8 @@ const pageOf = (model: Model): Page => {
 const crumb = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
+  // The main menu is the place itself, so it has no trail to it.
+  if (page === 'main') return h.empty
   const figure =
     page === 'found' || page === 'challenges' || page === 'legacy'
       ? t.title.legacy(model.founder.legacy)
@@ -871,14 +976,12 @@ const crumb = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
           : ''
   return h.div(
     [h.Class('booth-crumb')],
-    page === 'main'
-      ? []
-      : [
-          h.span([], [t.title.mainMenu]),
-          h.span([h.AriaHidden(true)], [' › ']),
-          h.b([], [pagesOf(t)[page].title]),
-          figure ? h.span([h.Class('booth-figure')], [figure]) : h.empty,
-        ],
+    [
+      h.span([], [t.title.mainMenu]),
+      h.span([h.AriaHidden(true)], [' › ']),
+      h.b([], [pagesOf(t)[page].title]),
+      figure ? h.span([h.Class('booth-figure')], [figure]) : h.empty,
+    ],
   )
 }
 
@@ -1001,7 +1104,11 @@ const taskbar = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
         h.AriaPressed(page === menu ? 'true' : 'false'),
         h.OnClick(Message.MenuChosen({ menu: page === menu ? 'main' : menu })),
       ],
-      [icon(h, glyph, 'booth-icon'), extra ? h.span([h.Class('booth-figure')], [extra]) : h.empty],
+      [
+        icon(h, glyph, 'booth-icon'),
+        h.span([h.Class('booth-taskbar-label')], [label]),
+        extra ? h.span([h.Class('booth-figure')], [extra]) : h.empty,
+      ],
     )
   const veteran = model.founder.history.length > 0
   const hasLegacy = model.founder.earned > 0
@@ -1020,7 +1127,7 @@ const taskbar = (model: Model, page: Page, h: HtmlBuilder<Message>): Html => {
           h.Title(t.title.wiki),
           h.AriaLabel(t.title.wiki),
         ],
-        [icon(h, BookOpen, 'booth-icon')],
+        [icon(h, BookOpen, 'booth-icon'), h.span([h.Class('booth-taskbar-label')], [t.title.wiki])],
       ),
       h.span([h.Class('booth-clock'), h.OnMount(ReaderClock())], ['--:--']),
     ],

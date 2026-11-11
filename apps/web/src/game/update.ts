@@ -89,6 +89,7 @@ export const initialModel = (): Model => {
       agentAccess: false,
       analytics: true,
     },
+    settingsSection: 'sound',
     languagePicker: Listbox.init({ id: 'interface-language' }),
     volumeSlider: VolumeSlider.init({ id: 'volume', min: 0, max: 100, step: 5 }),
     runtimePicker: initStackPicker(),
