@@ -96,9 +96,9 @@ The rules:
 3. The added requests are marginal. They earn the value of the traffic they displace, so revenue per
    user stays flat. Their load is the kind's own cost profile, so a `login` or `upload` lever lands
    on the App Servers.
-4. A step costs 24, 80, or 240 Dev Hours and lowers user growth by 1%, 2%, or 4%. It lands on the
-   next deploy for every user, not over adoption. Removing a step refunds half its Dev Hours and
-   ends its growth cost.
+4. A step costs 24, 80, or 240 Dev Hours and lowers user growth by 1%, 2%, or 4%. Each step's cost
+   adds to the one before, so three steps leave growth 7% lower. A step lands on the next deploy for
+   every user, not over adoption. Removing a step refunds half its Dev Hours and ends its growth cost.
 5. Era gates the steps: the first in the kind's Era, the second one Era later, and the third two Eras
    later.
 6. A Venture can cap a lever at its first step when the product change contradicts the Venture
