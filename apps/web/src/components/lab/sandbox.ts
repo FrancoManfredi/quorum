@@ -161,11 +161,11 @@ const header = (title: string, aside: Html, h: HtmlBuilder<Message>): Html => {
     [
       button(
         {
-          onClick: Message.TitleOpened(),
+          onClick: Message.PanelOpened({ panel: 'menu' }),
           variant: 'ghost',
           size: 'icon-sm',
           className: '-ml-1.5 text-muted-foreground',
-          attributes: [h.AriaLabel(t.sandbox.sandboxMenu), h.Title(t.sandbox.sandboxMenu)],
+          attributes: [h.AriaLabel(t.hud.menuEsc), h.Title(t.hud.menuEsc)],
         },
         icon(h, Menu, 'size-4'),
         h,
