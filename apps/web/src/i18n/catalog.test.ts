@@ -5,6 +5,7 @@ import { GLOSSARY, RESEARCH } from '@quorum/simulation/catalog'
 import { glossaryUrl } from '../platform/analytics.ts'
 import { localizeBuilder } from './builder.ts'
 import { copy, copyIn, loadLocale } from './messages.ts'
+import { changeIn } from './refusal.ts'
 import { supportedLocales } from './index.ts'
 
 // English ships in the main chunk; the other catalogs are dynamic imports. Load them like a player
@@ -44,6 +45,45 @@ describe('typed copy', () => {
     expect(copyIn('fr').hud.roundAtUsers('Seed', '5.00k')).toContain('5.00k')
     expect(copyIn('zh-CN').hud.roundAtUsers('Seed', '5.00k')).toContain('5.00k')
   })
+})
+
+describe('Design change labels', () => {
+  const english = copyIn('en').changes
+
+  test('a stored English label reads in Spanish and French, with its names translated', () => {
+    const lever = english.leverRaised(copyIn('en').catalog.kinds.search.label)
+    expect(changeIn(copyIn('es'), lever)).toBe(
+      `Subiste la palanca ${copyIn('es').catalog.kinds.search.label}`,
+    )
+    expect(changeIn(copyIn('fr'), lever)).toBe(
+      `Levier ${copyIn('fr').catalog.kinds.search.label} augmenté`,
+    )
+    expect(changeIn(copyIn('es'), english.policyCleared(english.policies.hire))).toBe(
+      'Desactivaste la política contratación',
+    )
+    expect(
+      changeIn(copyIn('es'), english.topology(copyIn('en').inspectorDatabase.singlePrimary)),
+    ).toBe('Topología: Primario único')
+    expect(changeIn(copyIn('es'), english.toggles.stickyOn)).toBe('Sesiones sticky activadas')
+    expect(changeIn(copyIn('fr'), english.toggles.stickyOn)).toBe('Sessions persistantes activées')
+  })
+
+  test('English, and a label the table does not know, stay as written', () => {
+    expect(changeIn(copyIn('en'), english.toggles.gzipOn)).toBe('Gzip on')
+    expect(changeIn(copyIn('es'), 'Reordered the backlog')).toBe('Reordered the backlog')
+  })
+
+  test.each(supportedLocales.map(({ value }) => value))(
+    'every toggle label has %s copy',
+    (locale) => {
+      const t = copyIn(locale)
+      for (const [id, text] of Object.entries(english.toggles)) {
+        const shown = changeIn(t, text)
+        expect(shown, id).toBe((t.changes.toggles as Record<string, string>)[id])
+        if (locale !== 'en') expect(shown, id).not.toBe(text)
+      }
+    },
+  )
 })
 
 describe('wiki links', () => {

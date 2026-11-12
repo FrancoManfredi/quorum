@@ -1,5 +1,6 @@
 import { serviceName, teamName } from './team.ts'
 import { formats } from '@/i18n/format.ts'
+import { changeIn } from '@/i18n/refusal.ts'
 import { copyIn, localized, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { copy, eraWords } from '@/i18n/messages.ts'
 import { DashboardMessage } from '@/game/dashboard.ts'
@@ -649,7 +650,7 @@ const annotationsOf = (model: Model): ReadonlyArray<Annotation> => {
   const design: ReadonlyArray<Annotation> = model.board.undo.map((entry) => ({
     group: 'design',
     at: entry.at,
-    label: entry.label,
+    label: changeIn(t, entry.label),
   }))
   // The open Incident has its own Thread: it is one mark, with the SEV the Game holds.
   const marked = new Set(open.map((mark) => `${mark.group}:${Math.floor(mark.at)}`))

@@ -50,6 +50,7 @@ import { nodeList } from './nodeList.ts'
 import { palette } from './palette.ts'
 import { panels } from './panels.ts'
 import { presence } from './presence.ts'
+import { changes } from './changes.ts'
 import { levers } from './levers.ts'
 import { pools } from './pools.ts'
 import { research } from './research.ts'
@@ -108,6 +109,7 @@ export const es = {
   palette,
   panels,
   presence,
+  changes,
   levers,
   pools,
   research,

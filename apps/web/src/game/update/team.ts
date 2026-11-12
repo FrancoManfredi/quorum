@@ -14,7 +14,7 @@ import { Option, Result } from 'effect'
 import { ResearchMessage, ResearchOutMessage, updateResearch } from '../research.ts'
 import { TeamOutMessage, updateTeam, type TeamMessage } from '../team.ts'
 import { Update } from 'foldkit'
-import { insightName } from '../../i18n/messages.ts'
+import { copyIn, insightName } from '../../i18n/messages.ts'
 import { isOne } from '../../i18n/plural.ts'
 import { boardChallenge, ledgerOf, Model, roomLive } from '../model.ts'
 import { recipeOf } from '@quorum/ui/game/pools'
@@ -298,7 +298,9 @@ export const teamHandlers = (model: Model): MessageCases<UpdateResult, TeamTag> 
   PolicyToggled: ({ policy, on }) =>
     act(
       model,
-      `${on ? 'Set' : 'Cleared'} the ${policy} policy`,
+      (on ? copyIn('en').changes.policySet : copyIn('en').changes.policyCleared)(
+        copyIn('en').changes.policies[policy],
+      ),
       Actions.setPolicyOn(model.board.game, policy, on),
     ),
 

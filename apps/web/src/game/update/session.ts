@@ -52,6 +52,7 @@ import { line } from '../telemetry.ts'
 import { newGame } from '@quorum/simulation/company'
 import { normalizeOrdinals } from '@quorum/simulation/labels'
 import { reasonIn } from '../../i18n/refusal.ts'
+import { copyIn } from '../../i18n/messages.ts'
 import { savedIndex } from '../saves.ts'
 import { sessionStep } from '../session-machine.ts'
 import { isExited } from '../company-machine.ts'
@@ -546,7 +547,9 @@ export const sessionHandlers = (model: Model): MessageCases<UpdateResult, Sessio
   LeverStepped: ({ kind, direction }) =>
     act(
       model,
-      `${direction > 0 ? 'Raised' : 'Lowered'} the ${KINDS[kind].label} lever`,
+      (direction > 0 ? copyIn('en').changes.leverRaised : copyIn('en').changes.leverLowered)(
+        KINDS[kind].label,
+      ),
       direction > 0
         ? Work.queueLever(model.board.game, kind)
         : Work.removeLever(model.board.game, kind),

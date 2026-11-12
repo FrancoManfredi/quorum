@@ -42,8 +42,11 @@ import { logRunAction, logResponse } from './session.ts'
 import { refusalIn } from '../../i18n/refusal.ts'
 import { say, withToast, act, nodeName, type MessageCases, type UpdateResult } from './shared.ts'
 import { serviceOf } from '@quorum/simulation/team'
-import { type Messages } from '../../i18n/messages.ts'
+import { copyIn, type Messages } from '../../i18n/messages.ts'
 import { type Note } from './clock.ts'
+
+const english = copyIn('en')
+const said = english.changes
 
 /** A Stack choice on this Node starts a migration rather than swapping at once. */
 export const migrates = (game: Game, nodeId: string): boolean =>
@@ -339,7 +342,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   CompressionChosen: ({ nodeId, compress }) =>
     act(
       model,
-      compress ? 'Gzip on' : 'Gzip off',
+      compress ? said.toggles.gzipOn : said.toggles.gzipOff,
       Actions.setCompression(model.board.game, nodeId, compress),
       { undoable: true },
     ),
@@ -347,7 +350,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   RecycleChosen: ({ nodeId, recycle }) =>
     act(
       model,
-      recycle ? 'Recycle workers' : 'Keep workers',
+      recycle ? said.toggles.recycleOn : said.toggles.recycleOff,
       Actions.setRecycle(model.board.game, nodeId, recycle),
       { undoable: true },
     ),
@@ -537,7 +540,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   StickyChosen: ({ nodeId, sticky }) =>
     act(
       model,
-      sticky ? 'Sticky sessions on' : 'Sticky sessions off',
+      sticky ? said.toggles.stickyOn : said.toggles.stickyOff,
       Actions.setSticky(model.board.game, nodeId, sticky),
       { undoable: true },
     ),
@@ -545,7 +548,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   SlowStartChosen: ({ nodeId, slowStart }) =>
     act(
       model,
-      slowStart ? 'Slow start on' : 'Slow start off',
+      slowStart ? said.toggles.slowStartOn : said.toggles.slowStartOff,
       Actions.setSlowStart(model.board.game, nodeId, slowStart),
       { undoable: true },
     ),
@@ -584,7 +587,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   SyncChosen: ({ nodeId, sync }) =>
     act(
       model,
-      sync ? 'Synchronous replica' : 'Asynchronous replica',
+      sync ? said.toggles.syncOn : said.toggles.syncOff,
       Actions.setSync(model.board.game, nodeId, sync),
       { undoable: true },
     ),
@@ -598,7 +601,15 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
     model.board.game.sandbox
       ? act(
           model,
-          `Topology: ${topology === 'single' ? 'Single primary' : topology === 'sharded' ? 'Sharded' : 'Multi-leader'}`,
+          said.topology(
+            english.inspectorDatabase[
+              topology === 'single'
+                ? 'singlePrimary'
+                : topology === 'sharded'
+                  ? 'sharded'
+                  : 'multiLeader'
+            ],
+          ),
           Actions.setTopology(model.board.game, nodeId, topology),
           { undoable: true },
         )
@@ -668,7 +679,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   UnderAttackChosen: ({ nodeId, underAttack }) =>
     act(
       model,
-      underAttack ? 'Under attack mode on' : 'Under attack mode off',
+      underAttack ? said.toggles.underAttackOn : said.toggles.underAttackOff,
       Actions.setUnderAttack(model.board.game, nodeId, underAttack),
       { undoable: true },
     ),
@@ -684,7 +695,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   GatewayBucketChosen: ({ nodeId, bucket }) =>
     act(
       model,
-      bucket ? 'Token bucket on' : 'Token bucket off',
+      bucket ? said.toggles.bucketOn : said.toggles.bucketOff,
       Actions.setGatewayBucket(model.board.game, nodeId, bucket),
       { undoable: true },
     ),
@@ -776,7 +787,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   MaterializedChosen: ({ nodeId, materialized }) =>
     act(
       model,
-      materialized ? 'Materialized view on' : 'Materialized view off',
+      materialized ? said.toggles.materializedOn : said.toggles.materializedOff,
       Actions.setMaterialized(model.board.game, nodeId, materialized),
       { undoable: true },
     ),
@@ -784,7 +795,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   ChaosChosen: ({ chaos }) =>
     act(
       model,
-      chaos ? 'Chaos experiments on' : 'Chaos experiments off',
+      chaos ? said.toggles.chaosOn : said.toggles.chaosOff,
       Actions.setChaos(model.board.game, chaos),
       { undoable: true },
     ),
@@ -987,7 +998,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   ShedChosen: ({ nodeId, shed }) =>
     act(
       model,
-      shed ? 'Load shedding on' : 'Load shedding off',
+      shed ? said.toggles.shedOn : said.toggles.shedOff,
       Actions.setShed(model.board.game, nodeId, shed),
       { undoable: true },
     ),
@@ -995,7 +1006,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   DegradeChosen: ({ nodeId, degrade }) =>
     act(
       model,
-      degrade ? 'Graceful degradation on' : 'Graceful degradation off',
+      degrade ? said.toggles.degradeOn : said.toggles.degradeOff,
       Actions.setDegrade(model.board.game, nodeId, degrade),
       { undoable: true },
     ),
@@ -1039,7 +1050,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   SpreadChosen: ({ nodeId, spread }) =>
     act(
       model,
-      spread ? 'Spread across regions' : 'One region',
+      spread ? said.toggles.spreadOn : said.toggles.spreadOff,
       Actions.setSpread(model.board.game, nodeId, spread),
       { undoable: true },
     ),
@@ -1065,7 +1076,7 @@ export const optionsHandlers = (model: Model): MessageCases<UpdateResult, Option
   SplitChosen: ({ nodeId, split }) =>
     act(
       model,
-      split ? 'Hot keys split' : 'Hot keys not split',
+      split ? said.toggles.splitOn : said.toggles.splitOff,
       Actions.setSplit(model.board.game, nodeId, split),
       { undoable: true },
     ),

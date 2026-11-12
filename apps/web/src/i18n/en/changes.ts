@@ -1,0 +1,47 @@
+/**
+ * The labels of Design changes the Model stores in English: the Dashboard marks them and the undo
+ * history keeps them. `game/update` writes them from this English copy, and `changeIn` reads them
+ * back into the player's language on display, so a change made before a language switch follows it.
+ */
+export const changes = {
+  leverRaised: (lever: string) => `Raised the ${lever} lever`,
+  leverLowered: (lever: string) => `Lowered the ${lever} lever`,
+  policySet: (policy: string) => `Set the ${policy} policy`,
+  policyCleared: (policy: string) => `Cleared the ${policy} policy`,
+  topology: (topology: string) => `Topology: ${topology}`,
+  policies: { research: 'research', hire: 'hire', upgrade: 'upgrade' },
+  spamFilterOn: 'Spam filter on',
+  spamFilterOff: 'Spam filter off',
+  toggles: {
+    gzipOn: 'Gzip on',
+    gzipOff: 'Gzip off',
+    recycleOn: 'Recycle workers',
+    recycleOff: 'Keep workers',
+    stickyOn: 'Sticky sessions on',
+    stickyOff: 'Sticky sessions off',
+    slowStartOn: 'Slow start on',
+    slowStartOff: 'Slow start off',
+    syncOn: 'Synchronous replica',
+    syncOff: 'Asynchronous replica',
+    underAttackOn: 'Under attack mode on',
+    underAttackOff: 'Under attack mode off',
+    bucketOn: 'Token bucket on',
+    bucketOff: 'Token bucket off',
+    materializedOn: 'Materialized view on',
+    materializedOff: 'Materialized view off',
+    chaosOn: 'Chaos experiments on',
+    chaosOff: 'Chaos experiments off',
+    shedOn: 'Load shedding on',
+    shedOff: 'Load shedding off',
+    degradeOn: 'Graceful degradation on',
+    degradeOff: 'Graceful degradation off',
+    spreadOn: 'Spread across regions',
+    spreadOff: 'One region',
+    splitOn: 'Hot keys split',
+    splitOff: 'Hot keys not split',
+    overrideKept: 'Kept as override',
+    overrideRemoved: 'Override removed',
+    computedOn: 'Computed sizes on',
+    computedOff: 'Computed sizes off',
+  },
+}

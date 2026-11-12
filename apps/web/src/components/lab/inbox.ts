@@ -1089,7 +1089,7 @@ export const inboxPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
                     ),
                   ),
                 ],
-                [model.board.inbox.filter ? 'Spam filter on' : 'Spam filter off'],
+                [model.board.inbox.filter ? t.changes.spamFilterOn : t.changes.spamFilterOff],
               )
             : h.empty,
           h.span(

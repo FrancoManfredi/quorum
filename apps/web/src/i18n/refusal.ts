@@ -108,3 +108,49 @@ export const refusalIn = (t: Messages, refusal: Refusal): string =>
     NotAllowed: ({ reason }) => reasonIn(t, reason),
     Missing: () => t.toasts.missing,
   })
+
+/** The English labels `game/update` stores for Design changes, from their text to their key. */
+const toggleIds = new Map(
+  Object.entries(copyIn('en').changes.toggles).map(([id, text]) => [text, id] as const),
+)
+const policyIds = new Map(
+  Object.entries(copyIn('en').changes.policies).map(([id, text]) => [text, id] as const),
+)
+
+type Topology = 'singlePrimary' | 'sharded' | 'multiLeader'
+const topologyIds = new Map<string, Topology>(
+  (['singlePrimary', 'sharded', 'multiLeader'] as const).map(
+    (id) => [copyIn('en').inspectorDatabase[id], id] as const,
+  ),
+)
+
+/**
+ * The label of a Design change in the language of `t`. The Model keeps these in English, written
+ * from `en.changes`, so the Dashboard translates them on display and an older change follows a
+ * language switch; unknown text stays.
+ */
+export const changeIn = (t: Messages, text: string): string => {
+  const toggle = toggleIds.get(text)
+  if (toggle !== undefined)
+    return (t.changes.toggles as Readonly<Record<string, string>>)[toggle] ?? text
+  const lever = /^(Raised|Lowered) the (.+) lever$/.exec(text)
+  if (lever)
+    return (lever[1] === 'Raised' ? t.changes.leverRaised : t.changes.leverLowered)(
+      nameIn(t, lever[2]!),
+    )
+  const policy = /^(Set|Cleared) the (.+) policy$/.exec(text)
+  if (policy) {
+    const id = policyIds.get(policy[2]!)
+    const name =
+      id === undefined
+        ? policy[2]!
+        : ((t.changes.policies as Readonly<Record<string, string>>)[id] ?? policy[2]!)
+    return (policy[1] === 'Set' ? t.changes.policySet : t.changes.policyCleared)(name)
+  }
+  const topology = /^Topology: (.+)$/.exec(text)
+  if (topology) {
+    const id = topologyIds.get(topology[1]!)
+    return t.changes.topology(id === undefined ? topology[1]! : t.inspectorDatabase[id])
+  }
+  return text
+}

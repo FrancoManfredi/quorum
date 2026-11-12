@@ -2,6 +2,9 @@ import { Mirrors } from '../board-actions.ts'
 import { Model } from '../model.ts'
 import { REGION_INFO, IAC_TOOL_INFO } from '@quorum/simulation/catalog'
 import { act, type MessageCases, type UpdateResult } from './shared.ts'
+import { copyIn } from '../../i18n/messages.ts'
+
+const said = copyIn('en').changes
 
 type MirrorsTag =
   | 'IacToolPicked'
@@ -53,7 +56,7 @@ export const mirrorsHandlers = (model: Model): MessageCases<UpdateResult, Mirror
   MirrorOverrideSet: ({ region, nodeId, field, keep }) =>
     act(
       model,
-      keep ? 'Kept as override' : 'Override removed',
+      keep ? said.toggles.overrideKept : said.toggles.overrideRemoved,
       Mirrors.setOverride(model.board.game, region, nodeId, field, keep),
       { undoable: true },
     ),
@@ -61,7 +64,7 @@ export const mirrorsHandlers = (model: Model): MessageCases<UpdateResult, Mirror
   MirrorComputedSet: ({ region, computed }) =>
     act(
       model,
-      computed ? 'Computed sizes on' : 'Computed sizes off',
+      computed ? said.toggles.computedOn : said.toggles.computedOff,
       Mirrors.setComputed(model.board.game, region, computed),
       { undoable: true },
     ),
