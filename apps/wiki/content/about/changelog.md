@@ -9,6 +9,31 @@ toc: top
 
 Quorum has no versions. It changes all the time, and this page lists the latest days, newest first, so you can see what moved since you last played. A page on this wiki can lag behind the game by a few days. Older days are in the [full changelog](/about/changelog/all).
 
+## Wednesday, 11 November 2026
+
+### Changed
+
+- Show the sectioned menu and settings in the wiki ([67f1e40](https://github.com/elianiva/quorum/commit/67f1e408a1d704176e0f8fa6bba3900ecfea3dfd))
+- Rework the home menu and settings into sections ([41cd1e9](https://github.com/elianiva/quorum/commit/41cd1e955f1156c27e9ee10288d8a10ae512329a))
+- Keep a panel above the scrim that blurs the board ([1bb68ca](https://github.com/elianiva/quorum/commit/1bb68ca3842024d2ebb90e66d772536a2d5672cf))
+- Open the pause menu from the Sandbox HUD button ([21e4e55](https://github.com/elianiva/quorum/commit/21e4e55d59c7fc94280596968991ad5720e86285))
+- Add the changelog entry for 2026-11-10 (#48) ([6bb6fcc](https://github.com/elianiva/quorum/commit/6bb6fcc4e06339918392a3eec648cf0b07d4f1ea))
+- Remove the press page ([b835409](https://github.com/elianiva/quorum/commit/b835409bcf86774e4ee179e1944dd0d83fc59fa4))
+- Give every Venture its own traffic profile ([dd286ff](https://github.com/elianiva/quorum/commit/dd286ff572fbc686cb86c2ba5ab4ed823b709824))
+- Report board start failures to Sentry ([61c70f8](https://github.com/elianiva/quorum/commit/61c70f832ebf65355b1213413f75c29edac40761))
+- Fix board start under a CSP without unsafe-eval ([05f269d](https://github.com/elianiva/quorum/commit/05f269d4454af1e30da8de9154ea3f22ca454d78))
+- feat(web): import a Company from a save file on the title screen ([f2293dd](https://github.com/elianiva/quorum/commit/f2293dd2b4a83a4f82046c6c0966d3d0847a4a96))
+- feat(web): move Company saves as files and prune unreadable ones ([8aec25e](https://github.com/elianiva/quorum/commit/8aec25ea8c2e201916918190ba1c6f72d71f08b6))
+- Describe the reason first lever card in the wiki ([e289326](https://github.com/elianiva/quorum/commit/e289326240e3f3ac3fe620bd01dd7b381098ad88))
+- Rework the Product lever card into a reason first hint ([047afe9](https://github.com/elianiva/quorum/commit/047afe9014307694af53ba1be5a77567a721a77d))
+- Teach players to raise a pool with a product lever ([bfdae3c](https://github.com/elianiva/quorum/commit/bfdae3cf7ddeeab29eb5e5e6a738347f9f173c17))
+- Record the product levers as built in the design record ([6769c39](https://github.com/elianiva/quorum/commit/6769c396496d1f90c8b2d01ab4d3a3252fd20b6e))
+- Put product levers in the Research screen and the free Sandbox ([6f29014](https://github.com/elianiva/quorum/commit/6f2901477d2237376cb1344b567a0916bc0d7ac0))
+- Build product levers into the Simulation ([8dd7b00](https://github.com/elianiva/quorum/commit/8dd7b00d0f654f592398418b22e6fff8d2319982))
+- Trace product levers to real products and mark the baseline ([7299ef0](https://github.com/elianiva/quorum/commit/7299ef06d61f39a7c53c072c9a191afaaa3f3a74))
+- Set the lever constants and put the mechanic on the roadmap ([52a19cf](https://github.com/elianiva/quorum/commit/52a19cf8e1921eeddc715a035c21766b2e58a7dc))
+- Cap product levers by Venture and turn them off in Challenges ([c5a38b6](https://github.com/elianiva/quorum/commit/c5a38b6c4f4e6b9e850a2e7608a090b9b7116fb8))
+
 ## Tuesday, 10 November 2026
 
 ### Changed
@@ -120,19 +145,3 @@ Quorum has no versions. It changes all the time, and this page lists the latest 
 ### Fixed
 
 - A Spot reclaim now warns you before the Node is downsized, and switching the Node to on-demand during the warning cancels it. ([5c0c0e7](https://github.com/elianiva/quorum/commit/5c0c0e7cea16c9a2f192682a414467e39c755c31))
-
-## Tuesday, 3 November 2026
-
-### Added
-
-- The title screen shows a notice panel warning that saves may break between builds, alerting you before you start a playtest. ([e2ee305](https://github.com/elianiva/quorum/commit/e2ee305a36467dd7868d8b5890b9291585110909))
-- The Inbox panel splits into Action, FYI, Spam, and Trash folders; CVE entries appear as patch tickets whose deadlines turn red when overdue, giving you a clear backlog view. ([3f31ad7](https://github.com/elianiva/quorum/commit/3f31ad7ba59657d9c08118315c83669d0b0fa026))
-- The board lets you use Ctrl+A/C/X/V/D to select, copy, cut, paste, and duplicate; Shift + Arrow nudges; you can add or subtract with box selection; a selection frame appears; a confirmation dialog asks before selling. ([d463763](https://github.com/elianiva/quorum/commit/d4637631f4fdea6834a9ad945615a1271e9d2963))
-
-### Changed
-
-- Press the top-left button to open a pause menu with Resume, Settings, Export log, Exit Company, and Title options; press Escape to open the same menu; the clock pauses while the menu is open. ([715f1fb](https://github.com/elianiva/quorum/commit/715f1fb0fbbdb35b147f4ba0dd7964ef401f83cf))
-- Tap the Payments card to select the node and open the Inspector; the Collect footer moves revenue into Cash without opening the Inspector. ([28de320](https://github.com/elianiva/quorum/commit/28de320c27c2dca75524938a67c0a7b82743a3e3))
-- The Sandbox HUD displays Apdex and Burn targets with coloured bars and adds a row showing the measured metric; the Inspector lists mean latency alongside percentiles. ([2760ec4](https://github.com/elianiva/quorum/commit/2760ec47881c8d235683b98ff9e3774e3f6a8c08))
-- The Dashboard panel keeps its history and board state when you enter a Sandbox or Challenge, so your Company’s charts stay intact across board switches. ([c2fd5ea](https://github.com/elianiva/quorum/commit/c2fd5ea75da2349ac93655f3be563ac05347c55a))
-- After any action that changes the board view, the board automatically fits to the new design once drawn, so zoom and layout remain correct after opening panels like the Glossary. ([5cb0161](https://github.com/elianiva/quorum/commit/5cb01617fbcfa8a514747d48d1b177efbaf6a4d2))

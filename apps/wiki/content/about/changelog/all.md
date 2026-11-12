@@ -9,6 +9,31 @@ toc: top
 
 Every day that changed Quorum, newest first. The [changelog](/about/changelog) shows only the latest days.
 
+## Wednesday, 11 November 2026
+
+### Changed
+
+- Show the sectioned menu and settings in the wiki ([67f1e40](https://github.com/elianiva/quorum/commit/67f1e408a1d704176e0f8fa6bba3900ecfea3dfd))
+- Rework the home menu and settings into sections ([41cd1e9](https://github.com/elianiva/quorum/commit/41cd1e955f1156c27e9ee10288d8a10ae512329a))
+- Keep a panel above the scrim that blurs the board ([1bb68ca](https://github.com/elianiva/quorum/commit/1bb68ca3842024d2ebb90e66d772536a2d5672cf))
+- Open the pause menu from the Sandbox HUD button ([21e4e55](https://github.com/elianiva/quorum/commit/21e4e55d59c7fc94280596968991ad5720e86285))
+- Add the changelog entry for 2026-11-10 (#48) ([6bb6fcc](https://github.com/elianiva/quorum/commit/6bb6fcc4e06339918392a3eec648cf0b07d4f1ea))
+- Remove the press page ([b835409](https://github.com/elianiva/quorum/commit/b835409bcf86774e4ee179e1944dd0d83fc59fa4))
+- Give every Venture its own traffic profile ([dd286ff](https://github.com/elianiva/quorum/commit/dd286ff572fbc686cb86c2ba5ab4ed823b709824))
+- Report board start failures to Sentry ([61c70f8](https://github.com/elianiva/quorum/commit/61c70f832ebf65355b1213413f75c29edac40761))
+- Fix board start under a CSP without unsafe-eval ([05f269d](https://github.com/elianiva/quorum/commit/05f269d4454af1e30da8de9154ea3f22ca454d78))
+- feat(web): import a Company from a save file on the title screen ([f2293dd](https://github.com/elianiva/quorum/commit/f2293dd2b4a83a4f82046c6c0966d3d0847a4a96))
+- feat(web): move Company saves as files and prune unreadable ones ([8aec25e](https://github.com/elianiva/quorum/commit/8aec25ea8c2e201916918190ba1c6f72d71f08b6))
+- Describe the reason first lever card in the wiki ([e289326](https://github.com/elianiva/quorum/commit/e289326240e3f3ac3fe620bd01dd7b381098ad88))
+- Rework the Product lever card into a reason first hint ([047afe9](https://github.com/elianiva/quorum/commit/047afe9014307694af53ba1be5a77567a721a77d))
+- Teach players to raise a pool with a product lever ([bfdae3c](https://github.com/elianiva/quorum/commit/bfdae3cf7ddeeab29eb5e5e6a738347f9f173c17))
+- Record the product levers as built in the design record ([6769c39](https://github.com/elianiva/quorum/commit/6769c396496d1f90c8b2d01ab4d3a3252fd20b6e))
+- Put product levers in the Research screen and the free Sandbox ([6f29014](https://github.com/elianiva/quorum/commit/6f2901477d2237376cb1344b567a0916bc0d7ac0))
+- Build product levers into the Simulation ([8dd7b00](https://github.com/elianiva/quorum/commit/8dd7b00d0f654f592398418b22e6fff8d2319982))
+- Trace product levers to real products and mark the baseline ([7299ef0](https://github.com/elianiva/quorum/commit/7299ef06d61f39a7c53c072c9a191afaaa3f3a74))
+- Set the lever constants and put the mechanic on the roadmap ([52a19cf](https://github.com/elianiva/quorum/commit/52a19cf8e1921eeddc715a035c21766b2e58a7dc))
+- Cap product levers by Venture and turn them off in Challenges ([c5a38b6](https://github.com/elianiva/quorum/commit/c5a38b6c4f4e6b9e850a2e7608a090b9b7116fb8))
+
 ## Tuesday, 10 November 2026
 
 ### Changed
