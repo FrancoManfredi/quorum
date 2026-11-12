@@ -49,6 +49,19 @@ never enters a snapshot, so a Seat that joins late sees no one else's stale curs
 carry the panel its Seat opened: the pointer stays where it was, and its label says what the Seat is
 doing until the pointer moves again.
 
+## Feature keys
+
+Online Rooms sit behind a feature key, because the game has no accounts yet and a Room costs a
+Durable Object and a socket. Settings takes the key, `AccessRpc.featureKeyCheck` answers what it
+unlocks, and the browser keeps the answer beside its settings. The API Worker checks the key again on
+every gated call: `FeatureGate` in `apps/backend/src/contexts/access` is the one place that decides
+whether a key works, and `roomPublish` requires `multiplayer` before it decodes a Game.
+
+D1 keeps the keys it accepts as SHA-256 hashes, with the features each one unlocks and an optional
+end date, so a copy of the table opens nothing. `apps/backend/scripts/feature-key.ts` prints a key
+and the row to insert; nothing in the game creates one
+([ADR 0024](./adr/0024-feature-keys-unlock-server-features.md)).
+
 ## Telemetry
 
 Sentry records errors, traces, and profiles ([ADR 0013](./adr/0013-sentry-for-errors-traces-and-profiles.md)). Cloudflare Workers Observability keeps logs only: `alchemy.run.ts` turns its traces off, so a request is traced once. Observability is configured on the host resources in `alchemy.run.ts`, never in contexts.
@@ -99,7 +112,7 @@ The web app must not import backend implementation modules. The wiki must not im
 
 ## Cloudflare scope
 
-The stack provisions the website Worker, the API Worker, one D1 database, `Results`, bound to the API Worker as `FEEDBACK` for the Exit survey, and two Durable Object namespaces the API Worker hosts: `RoomObject` for an online Company, and `AgentRoom` for a Company exposed to agents. The D1 database keeps its first name because renaming it would create a new, empty database. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). Challenges are scored in the browser and send nothing ([ADR 0016](./adr/0016-challenges-stay-in-the-browser-until-accounts.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
+The stack provisions the website Worker, the API Worker, one D1 database, `Results`, bound to the API Worker twice: as `FEEDBACK` for the Exit survey and as `ACCESS` for the feature keys, and two Durable Object namespaces the API Worker hosts: `RoomObject` for an online Company, and `AgentRoom` for a Company exposed to agents. The D1 database keeps its first name because renaming it would create a new, empty database. The Exit survey needs a durable row the Worker validates, not an analytics event ([ADR 0015](./adr/0015-the-exit-survey-is-a-d1-row.md)). A feature key needs a list the deployment can change without a deploy ([ADR 0024](./adr/0024-feature-keys-unlock-server-features.md)). Challenges are scored in the browser and send nothing ([ADR 0016](./adr/0016-challenges-stay-in-the-browser-until-accounts.md)). The schema is in `apps/backend/migrations`, which Alchemy applies on deploy.
 
 The survey context sees only its store service, `SurveyStore` (`apps/backend/src/contexts/survey/store.ts`). Its D1 implementation uses the structural `SqlRunner` in `apps/backend/src/platform/sql.ts`, which a `D1Database` satisfies; tests run the same SQL on `node:sqlite`. A Room and an Agent room are that requirement for the two Durable Object namespaces. Add R2, Access, or other Cloudflare
 services only when a product feature requires them.

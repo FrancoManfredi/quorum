@@ -38,6 +38,8 @@ When you play, the game sends events to PostHog, our analytics processor:
 - On the wiki, the page you read and the site that referred you.
 - While a Company is online, a nickname you choose, shown to the other players in the Room. It is
   stored by Cloudflare only while the Room lives, deleted with it, and never sent to PostHog.
+- A feature key you enter in Settings, so the server can check it. The server keeps a hash of each
+  accepted key, never the key itself, and the key never reaches PostHog.
 
 PostHog derives an approximate country from your IP address and discards the address. The game does
 not send your IP address itself.
@@ -48,7 +50,7 @@ not send your IP address itself.
   whatever you type, and it disappears with the Room.
 - The name you give a Company.
 - Session recordings, keystrokes, or clipboard contents. The only text you type that leaves the
-  browser is an Exit survey you choose to send.
+  browser is an Exit survey you choose to send, and a feature key you enter to unlock a feature.
 - Advertising identifiers. Nothing is sold to anyone.
 
 ## Why

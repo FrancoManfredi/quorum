@@ -506,6 +506,20 @@ _Avoid_: daily challenge, daily quest, streak
 The distribution of every player's best result on one axis of one Challenge, per Simulation version. Players would see their percentile, never a rank. Not built: it waits for accounts ([ADR 0016](https://github.com/elianiva/quorum/blob/main/docs/adr/0016-challenges-stay-in-the-browser-until-accounts.md)).
 _Avoid_: leaderboard, ranking, high score
 
+### Access
+
+**Feature key**:
+A code a player enters in Settings that unlocks a feature that runs on the server, such as Online
+Rooms. The API Worker keeps the keys it accepts in D1, each with a hash of the key, the features it
+unlocks, and an optional end date. There are no accounts yet, so a key is what ties a player to what
+they can use ([ADR 0024](https://github.com/elianiva/quorum/blob/main/docs/adr/0024-feature-keys-unlock-server-features.md)).
+_Avoid_: license key, activation code, whitelist entry, token (that is the Room owner's)
+
+**Keyed feature**:
+A feature a key unlocks, named in code such as `multiplayer`. It is not a Feature, the product change
+a Team builds with Dev Hours.
+_Avoid_: capability, entitlement, gated feature
+
 ### Multiplayer
 
 **Online**:
@@ -570,5 +584,6 @@ _Avoid_: save, state dump
 - A **Sandbox track** holds guided **Sandboxes** for one **Era**. **Challenges** form a separate list across Eras, and every one is open.
 - A **Challenge** run is a **Replay** that stays in the browser. A server that re-runs it and keeps **Histograms** waits for accounts.
 - A **Company** is offline, played by the browser, or **Online**, run by one **Room**. The owner takes it offline, which ends the Room with the Company's latest Game.
+- A **Feature key** unlocks a **Keyed feature** for one browser. Turned off or expired, it stops unlocking it at the next check.
 - A **Room** has one owner **Seat** and up to three guest **Seats**. A **Vote** passes with more than half of the connected Seats.
 - A **Company** may have one **Agent room** while Agent access is on. Turning it off clears the Agent room.

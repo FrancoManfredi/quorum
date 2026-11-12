@@ -15,6 +15,7 @@ decides what a lost value costs.
 | `quorum.saves.v1`       | The Company list: `current` and one file per Company      | `LoadSaves`                   | Written with every autosave                 |
 | `quorum.save.v3.<id>`   | One Company file: the Game, disclosure, Dashboard, Inbox  | `LoadCompany`, `SaveImported` | Written with that Company's autosave        |
 | `quorum.prefs.v1`       | Settings: sound, motion, language, text, theme, consent   | `LoadPrefs`, Sentry           | Written on every Settings change            |
+| `quorum.access.v1`      | The feature key this browser holds, and what it unlocks   | `LoadAccess`                  | Written when a key is activated or removed  |
 | `quorum.founder.v1`     | Founder record: Legacy, Perks, Playbooks, achievements    | `LoadFounder`                 | Written on every Founder change             |
 | `quorum.sandbox.v1`     | Passed guided Sandboxes and the free Sandbox board        | `LoadSandboxStore`            | Written on Sandbox progress                 |
 | `quorum.agent.rooms`    | A write key and Room id per Company, with Agent access on | `agent-room.ts`               | Written when a Room is first needed         |
@@ -35,8 +36,8 @@ The keys above are the only localStorage keys Quorum writes. `quorum.save.v1` an
   aside with a warning. The format is not the build's git hash.
 - A Company that cannot open leaves the list, and its file is removed. An unreadable file is copied
   to `quorum.save.broken.v1` first, so the warning shows once instead of on every load.
-- Settings, the Founder, Sandbox progress, the agent Rooms, and the analytics budget decode with
-  their schemas or guards. A bad value falls back to the default rather than throwing.
+- Settings, the feature key, the Founder, Sandbox progress, the agent Rooms, and the analytics budget
+  decode with their schemas or guards. A bad value falls back to the default rather than throwing.
 - The support log is filtered to well-formed lines and capped at 2,000. It shares the quota with
   the saves, so it does not grow without bound.
 
@@ -61,4 +62,6 @@ module learns about an old shape ([ADR 0023](adr/0023-a-company-save-has-a-forma
   chunks, and per-node samples, deletes all of it when the write key is cleared, and expires after
   24 hours without a write.
 - **D1.** The `survey_responses` table holds one Exit survey row per device and Exit. The
-  `results` table was dropped when Challenges moved to local scoring.
+  `feature_keys` table holds one row per accepted feature key: its SHA-256 hash, the features it
+  unlocks, a note, and an optional end or revocation time. The `results` table was dropped when
+  Challenges moved to local scoring.
