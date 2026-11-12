@@ -3,7 +3,7 @@ title: Ajustes y referencia de teclas
 summary: Cada Ajuste y lo que cambia, y cada tecla del tablero.
 section: play
 order: 11
-aliases: settings, keys, keyboard, shortcuts, hotkeys, key reference, reduce motion, mute, pause on focus loss, agent access, import save, ajustes, configuración, teclas, teclado, atajos, reducir movimiento, silenciar, acceso para agentes, importar partida
+aliases: settings, keys, keyboard, shortcuts, hotkeys, key reference, command palette, commands, reduce motion, mute, pause on focus loss, agent access, import save, ajustes, configuración, teclas, teclado, atajos, reducir movimiento, silenciar, acceso para agentes, importar partida, paleta de comandos, comandos
 gdd: /design/15-ui-ux
 ---
 
@@ -35,7 +35,9 @@ Pulsa `Esc` sin nada abierto para ver el Menú y luego elige **Ajustes**. En la 
 
 Los Ajustes pertenecen al navegador, no a una Empresa. Lee [Mover una Empresa a otro navegador](/guides/move-a-company) antes de usar **Importar partida desde un archivo**, y la [página de privacidad](/about/privacy) para saber qué contienen los datos de uso.
 
-El Menú también contiene **Reanudar**, **Ajustes**, **Sala**, **Salir de la empresa** cuando puedes hacer Exit, y **Pantalla de título**. **Reanudar** y `Esc` vuelven al tablero. Lee [Juega en una Sala](/play/rooms) antes de llevar una Empresa a la red.
+El Menú también contiene **Reanudar**, **Comandos**, **Ajustes**, **Sala**, **Salir de la empresa** cuando puedes hacer Exit, y **Pantalla de título**. **Reanudar** y `Esc` vuelven al tablero. Lee [Juega en una Sala](/play/rooms) antes de llevar una Empresa a la red.
+
+**Comandos** es la paleta sobre el tablero. Pulsa `Cmd+K` en macOS o `Ctrl+K` en los demás sistemas para abrirla, escribe para filtrar y pulsa `Enter` para ejecutar la fila resaltada. Lista cada acción con la tecla que la ejecuta: piezas para colocar, cambios en los Nodos, Investigación, paneles, la vista del tablero, la selección, las regiones y los Ajustes. Detiene el reloj mientras está abierta, y `Esc` la cierra.
 
 ## Teclas
 
@@ -45,16 +47,17 @@ Las teclas funcionan cuando estás en el tablero y no escribes en un campo. No f
 
 ### Paneles
 
-| Tecla     | Acción                                                          |
-| --------- | --------------------------------------------------------------- |
-| `R`       | Investigación, cuando se muestra                                |
-| `T`       | Equipo, cuando se muestra                                       |
-| `D`       | Cuadro de mando, tras `metrics`                                 |
-| `P`       | Playbooks, tras tu primer Exit                                  |
-| `I`       | Bandeja de entrada                                              |
-| `$`       | La factura de la nube: Gasto, Ingresos, margen. No tiene botón. |
-| `H` o `?` | Cómo jugar                                                      |
-| `Esc`     | Cierra la capa superior; sin nada abierto, abre el Menú         |
+| Tecla              | Acción                                                          |
+| ------------------ | --------------------------------------------------------------- |
+| `R`                | Investigación, cuando se muestra                                |
+| `T`                | Equipo, cuando se muestra                                       |
+| `D`                | Cuadro de mando, tras `metrics`                                 |
+| `P`                | Playbooks, tras tu primer Exit                                  |
+| `I`                | Bandeja de entrada                                              |
+| `$`                | La factura de la nube: Gasto, Ingresos, margen. No tiene botón. |
+| `H` o `?`          | Cómo jugar                                                      |
+| `Esc`              | Cierra la capa superior; sin nada abierto, abre el Menú         |
+| `Cmd+K` / `Ctrl+K` | Comandos: cada acción, agrupada por área                        |
 
 ### Reloj y vista
 
