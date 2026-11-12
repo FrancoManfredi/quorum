@@ -385,10 +385,14 @@ export const tidy = <K extends string | number>(
     })
     columnX += subColumns.length * pitch
   }
+  // A strip Node, and a Node that is gone, has no place to align to, so its
+  // Links stay out of the alignment.
+  const placed = nodes.filter((node) => spots.has(node.id))
+  const placedIds = new Set(placed.map((node) => node.id))
   const aligned = new Map(
     alignColumns(
-      nodes.filter((node) => spots.has(node.id)),
-      links,
+      placed,
+      links.filter((link) => placedIds.has(link.from) && placedIds.has(link.to)),
       spots,
       clearance,
     ),

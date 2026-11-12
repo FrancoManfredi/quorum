@@ -56,6 +56,19 @@ test('tidy puts a Node with no place in the flow in a strip below', () => {
   expect(spots.get('ci')!.y).toBeGreaterThan(spots.get('s')!.y + heightOf('server'))
 })
 
+test('tidy lays out a Link into the strip, or to a Node that is gone, as if it is gone', () => {
+  const nodes = [card('s', 'server', 0), card('w', 'worker', 0), card('ci', 'ci', 0)]
+  const links = [
+    { from: 's', to: 'w' },
+    { from: 'ci', to: 's' },
+    { from: 'gone', to: 'w' },
+  ]
+  const spots = tidy(nodes, links, ['all'])
+  expect(spots.get('ci')!.y).toBeGreaterThan(spots.get('s')!.y + heightOf('server'))
+  // Neither Link has a column to align to, so the board ignores them.
+  expect(spots).toEqual(tidy(nodes, [{ from: 's', to: 'w' }], ['all']))
+})
+
 test('tidy keeps Nodes from different zones in the same role column', () => {
   const nodes = [card('a', 'server', 0, 'a'), card('b', 'server', 300, 'b')]
   const spots = tidy(nodes, [], ORDER)
