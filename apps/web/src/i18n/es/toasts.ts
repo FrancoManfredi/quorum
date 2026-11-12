@@ -103,7 +103,7 @@ export const toasts: Messages['toasts'] = {
   paidInvoice: (amount: Value) => `Pagaste ${amount} a un proveedor que no usas.`,
   paidDomain: (amount: Value) => `Pagaste ${amount} por mantener un dominio que ya es tuyo.`,
   patcherBackdoor:
-    'Era phishing. El patcher dejó una puerta trasera; parchea tus dependencias antes de que se use.',
+    'Era phishing. El parcheador dejó una puerta trasera; parchea tus dependencias antes de que se use.',
   phishing: 'Era phishing. Revisa primero la dirección del remitente.',
   offerAccepted: 'Oferta aceptada. Empiezan pronto.',
   laidOff: 'Despedido. El equipo queda conmocionado una semana.',

@@ -8,7 +8,7 @@ export const cost: Messages['cost'] = {
   compute: 'Cómputo',
   data: 'Datos',
   storage: 'Almacenamiento',
-  egress: 'Egress',
+  egress: 'Tráfico saliente',
   requests: 'Peticiones',
   observability: 'Observabilidad',
   salaries: 'Salarios',

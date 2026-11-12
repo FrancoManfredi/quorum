@@ -38,7 +38,7 @@ export const inspectorShared: Messages['inspectorShared'] = {
     bid: 'Puja',
     read: 'Lectura',
     write: 'Escritura',
-    login: 'Login',
+    login: 'Inicio de sesión',
     search: 'Búsqueda',
     upload: 'Subida',
     bot: 'Bot',

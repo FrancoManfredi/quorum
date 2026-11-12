@@ -104,7 +104,7 @@ export const panels: Messages['panels'] = {
   atTheUserTargetTakeOr:
     'Al llegar al objetivo de usuarios, acepta o rechaza la ronda. La ronda pre-seed trae escrituras, inicios de sesión e incidentes.',
   buildGroup: 'Grupo de construcción',
-  enter: 'Enter',
+  enter: 'Intro',
   inspectorPlaceConfirm: 'Inspector · colocar · confirmar',
   linkTheSelectedNode: 'Enlazar el nodo seleccionado',
   tidyByRole: 'Ordenar por rol',
@@ -126,7 +126,7 @@ export const panels: Messages['panels'] = {
   undo: 'Deshacer',
   shiftZ: 'Mayús+Z',
   redo: 'Rehacer',
-  del: 'Del',
+  del: 'Supr',
   sellSelected: 'Vender la selección',
   dashboard: 'Cuadro de mando',
   mute: 'Silenciar',

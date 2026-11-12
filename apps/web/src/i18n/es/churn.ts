@@ -19,7 +19,7 @@ export const churn: Messages['churn'] = {
     down: 'caído',
     stale: 'obsoleto',
     oom: 'sin memoria',
-    timeout: 'timeout',
+    timeout: 'tiempo agotado',
     crash: 'caída',
     blocked: 'bloqueado',
     upstream: 'proveedor',

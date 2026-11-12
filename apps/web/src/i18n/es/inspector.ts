@@ -62,7 +62,7 @@ export const inspector: Messages['inspector'] = {
   dropped: 'Descartadas',
   hitRatio: 'Tasa de aciertos',
   evictions: 'Expulsiones',
-  lag: 'Lag',
+  lag: 'Retraso',
   certificate: 'Certificado',
   expired: 'vencido',
   dLeft: (p0) => `${p0} d restantes`,
