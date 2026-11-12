@@ -699,9 +699,12 @@ const clipCurve = (() => {
 
 /** Builds the shared bus on a context: the room and a soft clipper, into `output`. */
 export const busOf = (context: BaseAudioContext, output: AudioNode): Bus => {
-  const clipper = new WaveShaperNode(context, { curve: clipCurve, oversample: '2x' })
+  const clipper = context.createWaveShaper()
+  clipper.curve = clipCurve
+  clipper.oversample = '2x'
   clipper.connect(output)
-  const room = new ConvolverNode(context, { buffer: hallOf(context) })
+  const room = context.createConvolver()
+  room.buffer = hallOf(context)
   room.connect(clipper)
   return { dry: clipper, room }
 }
@@ -730,8 +733,9 @@ const schedule = (
         // Gaver: partial n decays as e^(-δn t) with δn = fn · δ0, capped so nothing rings past its moment.
         const tau = Math.min(frequency < 600 ? 0.35 : 0.15, 1 / (frequency * layer.damping))
         const stop = at + 0.001 + tau * Math.log(amplitude / SILENT)
-        const oscillator = new OscillatorNode(context, { frequency })
-        const gain = new GainNode(context, { gain: 0 })
+        const oscillator = context.createOscillator()
+        oscillator.frequency.value = frequency
+        const gain = context.createGain()
         gain.gain.setValueAtTime(0, at)
         gain.gain.linearRampToValueAtTime(amplitude, at + 0.001)
         gain.gain.setTargetAtTime(0, at + 0.001, tau)
@@ -745,12 +749,16 @@ const schedule = (
     case 'noise': {
       const attack = layer.attack / 1000
       const stop = at + attack + layer.decay / 1000
-      const source = new AudioBufferSourceNode(context, { buffer: noiseOf(context), loop: true })
-      const filter = new BiquadFilterNode(context, { type: layer.filter, Q: layer.q })
+      const source = context.createBufferSource()
+      source.buffer = noiseOf(context)
+      source.loop = true
+      const filter = context.createBiquadFilter()
+      filter.type = layer.filter
+      filter.Q.value = layer.q
       const from = Math.min(layer.frequency * pitch, nyquist * 0.9)
       filter.frequency.setValueAtTime(from, at)
       filter.frequency.exponentialRampToValueAtTime(Math.min(layer.to * pitch, nyquist * 0.9), stop)
-      const gain = new GainNode(context, { gain: 0 })
+      const gain = context.createGain()
       gain.gain.setValueAtTime(0, at)
       gain.gain.linearRampToValueAtTime(layer.gain, at + attack)
       gain.gain.exponentialRampToValueAtTime(SILENT, stop)
@@ -763,15 +771,15 @@ const schedule = (
       const attack = layer.attack / 1000
       const hold = layer.hold / 1000
       const stop = at + attack + hold + layer.decay / 1000
-      const oscillator = new OscillatorNode(context, { type: layer.wave })
+      const oscillator = context.createOscillator()
+      oscillator.type = layer.wave
       oscillator.frequency.setValueAtTime(layer.frequency * pitch, at)
       oscillator.frequency.exponentialRampToValueAtTime(layer.to * pitch, stop)
-      const filter = new BiquadFilterNode(context, {
-        type: 'lowpass',
-        frequency: layer.cutoff,
-        Q: 0.7,
-      })
-      const gain = new GainNode(context, { gain: 0 })
+      const filter = context.createBiquadFilter()
+      filter.type = 'lowpass'
+      filter.frequency.value = layer.cutoff
+      filter.Q.value = 0.7
+      const gain = context.createGain()
       gain.gain.setValueAtTime(0, at)
       gain.gain.linearRampToValueAtTime(layer.gain, at + attack)
       gain.gain.setValueAtTime(layer.gain, at + attack + hold)
@@ -795,17 +803,23 @@ export const render = (
 ): number => {
   const spec: Spec = SOUNDS[sound]
   const jitter = () => (spec.vary > 0 ? random() * 2 - 1 : 0)
-  const level = new GainNode(context, {
-    gain: TIER[spec.tier] * 10 ** (spec.trim / 20) * (1 + jitter() * spec.vary * 2),
-  })
-  const panner = new StereoPannerNode(context, { pan })
-  const send = new GainNode(context, { gain: spec.room })
+  const level = context.createGain()
+  level.gain.value = TIER[spec.tier] * 10 ** (spec.trim / 20) * (1 + jitter() * spec.vary * 2)
+  const panner = context.createStereoPanner()
+  panner.pan.value = pan
+  const send = context.createGain()
+  send.gain.value = spec.room
   let input: AudioNode = level
   if (spec.drive > 0) {
-    input = new GainNode(context, { gain: 0.25 })
-    const shaper = new WaveShaperNode(context, { curve: driveCurve(spec.drive), oversample: '4x' })
-    const restore = new GainNode(context, { gain: 4 })
-    input.connect(shaper).connect(restore).connect(level)
+    const quarter = context.createGain()
+    quarter.gain.value = 0.25
+    const shaper = context.createWaveShaper()
+    shaper.curve = driveCurve(spec.drive)
+    shaper.oversample = '4x'
+    const restore = context.createGain()
+    restore.gain.value = 4
+    input = quarter
+    quarter.connect(shaper).connect(restore).connect(level)
   }
   level.connect(panner)
   panner.connect(bus.dry)
@@ -842,6 +856,10 @@ if (typeof window !== 'undefined') {
 
 let muted = false
 
+/** Sound starts once. A browser that refuses the context or a node keeps it off for the
+ *  session, so a partial Web Audio implementation costs the sound, never the game. */
+let broken = false
+
 /** The player's mute setting; every sound checks it. */
 export const setMuted = (value: boolean): void => {
   muted = value
@@ -854,12 +872,9 @@ export const setVolume = (percent: number): void => {
   if (live) live.master.gain.setTargetAtTime(MASTER * volume, live.context.currentTime, 0.02)
 }
 
-/** A browser without the full Web Audio graph stays silent; it must not crash the screen. */
-const canPlay = (): boolean =>
-  typeof AudioContext !== 'undefined' &&
-  typeof GainNode !== 'undefined' &&
-  typeof WaveShaperNode !== 'undefined' &&
-  typeof ConvolverNode !== 'undefined'
+/** A browser without Web Audio stays silent; it must not crash the screen. Every node comes from
+ *  the context, so a constructor missing from this realm cannot matter. */
+const canPlay = (): boolean => !broken && typeof AudioContext !== 'undefined'
 
 /** Plays a sound, `pitch` times its usual frequency. With `spatial`, it pans
  *  a little toward where the pointer last went down. */
@@ -872,10 +887,14 @@ export const play = (sound: Sound, pitch = 1, spatial = false): void => {
   if (!live) {
     try {
       const context = new AudioContext({ latencyHint: 'interactive' })
-      const master = new GainNode(context, { gain: MASTER * volume })
+      const master = context.createGain()
+      master.gain.value = MASTER * volume
       master.connect(context.destination)
       live = { context, master, bus: busOf(context, master) }
     } catch {
+      // Sound is optional: a context or node this browser cannot build turns sound off for the
+      // session, and the game carries on without it.
+      broken = true
       return
     }
   }
