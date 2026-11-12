@@ -6,17 +6,19 @@ import { defineMessageUnion } from 'foldkit/message'
 import { cn } from 'cn'
 import { Search as SearchIcon } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
-import { QUADRANTS } from '../components/quadrant.ts'
-import { loadIndex, search, type Hit, type Index } from '../search.ts'
+import { langOf } from '../i18n/lang.ts'
+import { Locale, withLocale } from '../i18n/locale.ts'
+import { indexUrl, loadIndex, search, type Hit, type Index } from '../search.ts'
 
 /* The search box in the header: the query, whether its results are open, and the index it loads
-   on first use. The index is not a schema value, so it lives beside the model rather than in it. */
+   on first use. Each language has its own index, built from its own titles and text. The index is
+   not a schema value, so it lives beside the model rather than in it. */
 
-const INDEX_URL = '/search-index.json'
-
-let index: Index | null = null
+const indexes: Partial<Record<Locale, Index>> = {}
 
 export const Model = Schema.Struct({
+  /** The language of the page, which picks the index and the words around the results. */
+  locale: Locale,
   query: Schema.String,
   open: Schema.Boolean,
   /** The result the arrow keys have reached; Enter opens it. */
@@ -38,7 +40,13 @@ export const Message = defineMessageUnion({
 })
 export type Message = typeof Message.Type
 
-export const init: Model = { query: '', open: false, active: 0, status: 'idle' }
+export const init = (locale: Locale): Model => ({
+  locale,
+  query: '',
+  open: false,
+  active: 0,
+  status: 'idle',
+})
 
 const GoTo = Command.define('GoTo', {
   args: { href: Schema.String },
@@ -57,18 +65,20 @@ const FocusSearch = Command.define('FocusSearch', {
 /** One fetch of the whole index, kept for the rest of the session. A failure leaves search
     unavailable rather than breaking the page. */
 const LoadIndex = Command.define('LoadIndex', {
+  args: { locale: Locale },
   messages: [Message.IndexLoaded, Message.IndexFailed],
-  execute: Effect.promise(async () => {
-    if (index !== null) return Message.IndexLoaded()
-    try {
-      const response = await fetch(INDEX_URL)
-      if (!response.ok) throw new Error(`Search index: HTTP ${response.status}`)
-      index = loadIndex(await response.text())
-      return Message.IndexLoaded()
-    } catch {
-      return Message.IndexFailed()
-    }
-  }),
+  execute: ({ locale }) =>
+    Effect.promise(async () => {
+      if (indexes[locale] !== undefined) return Message.IndexLoaded()
+      try {
+        const response = await fetch(indexUrl(locale))
+        if (!response.ok) throw new Error(`Search index: HTTP ${response.status}`)
+        indexes[locale] = loadIndex(await response.text(), locale)
+        return Message.IndexLoaded()
+      } catch {
+        return Message.IndexFailed()
+      }
+    }),
 })
 
 export const update = (model: Model, message: Message): Update.Return<Model, Message> =>
@@ -77,12 +87,13 @@ export const update = (model: Model, message: Message): Update.Return<Model, Mes
       const loading = query.trim() !== '' && model.status === 'idle'
       return {
         model: {
+          ...model,
           query,
           open: query.trim() !== '',
           active: 0,
           status: loading ? 'loading' : model.status,
         },
-        commands: loading ? [LoadIndex()] : [],
+        commands: loading ? [LoadIndex({ locale: model.locale })] : [],
       }
     },
     Moved: ({ delta, count }) => ({
@@ -94,7 +105,7 @@ export const update = (model: Model, message: Message): Update.Return<Model, Mes
       const loading = model.status === 'idle' || model.status === 'failed'
       return {
         model: loading ? { ...model, status: 'loading' } : model,
-        commands: loading ? [FocusSearch(), LoadIndex()] : [FocusSearch()],
+        commands: loading ? [FocusSearch(), LoadIndex({ locale: model.locale })] : [FocusSearch()],
       }
     },
     IndexLoaded: () => ({ model: { ...model, status: 'ready' } }),
@@ -103,15 +114,18 @@ export const update = (model: Model, message: Message): Update.Return<Model, Mes
   })
 
 export const view = defineView<Model, Message>((model, h) => {
-  const hits = model.open && index !== null ? search(index, model.query) : []
-  const hrefOf = (hit: Hit): string => (hit.heading ? `${hit.path}#${hit.heading}` : hit.path)
+  const t = langOf(model.locale).t
+  const index = indexes[model.locale] ?? null
+  const hits = model.open && index !== null ? search(index, model.query, model.locale) : []
+  const hrefOf = (hit: Hit): string =>
+    withLocale(model.locale, hit.heading ? `${hit.path}#${hit.heading}` : hit.path)
   const active = hits[model.active]
   const emptiness =
     model.status === 'loading'
-      ? 'Searching…'
+      ? t.search.searching
       : model.status === 'failed'
-        ? 'Search is unavailable.'
-        : 'No page matches.'
+        ? t.search.unavailable
+        : t.search.none
   return h.div(
     [h.Class('relative min-w-0 flex-1 sm:max-w-sm')],
     [
@@ -127,8 +141,8 @@ export const view = defineView<Model, Message>((model, h) => {
             h.Id('search'),
             h.Type('search'),
             h.Value(model.query),
-            h.Placeholder('Search'),
-            h.AriaLabel('Search the wiki'),
+            h.Placeholder(t.search.placeholder),
+            h.AriaLabel(t.search.label),
             h.Autocomplete('off'),
             h.Spellcheck(false),
             h.Class(
@@ -166,7 +180,7 @@ export const view = defineView<Model, Message>((model, h) => {
             [
               h.Id('search-results'),
               h.Role('listbox'),
-              h.AriaLabel('Search results'),
+              h.AriaLabel(t.search.results),
               h.AriaBusy(model.status === 'loading'),
               h.Class(
                 'fixed top-[52px] right-3 left-3 z-50 max-h-[70dvh] overflow-y-auto rounded-lg border border-border bg-card p-1 shadow-lg sm:absolute sm:top-10 sm:right-0 sm:left-0 sm:max-h-none sm:overflow-hidden',
@@ -196,7 +210,7 @@ export const view = defineView<Model, Message>((model, h) => {
                           h.span([h.Class('text-[14px] font-medium text-foreground')], [hit.title]),
                           h.span(
                             [h.Class('text-[12px] text-muted-foreground')],
-                            [QUADRANTS[hit.section].label],
+                            [t.quadrants[hit.section].label],
                           ),
                         ],
                       ),

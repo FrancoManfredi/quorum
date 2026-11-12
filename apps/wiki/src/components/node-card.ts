@@ -2,7 +2,9 @@ import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Mount } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { COMPONENTS, COMPONENT_IDS, type ComponentId } from '@quorum/simulation/catalog'
+import { localeOf } from '../i18n/builder.ts'
+import { langOf } from '../i18n/lang.ts'
+import { COMPONENT_IDS, type ComponentId } from '@quorum/simulation/catalog'
 import { heightOf } from '@quorum/ui/board/geometry'
 import { Message } from '../main.ts'
 
@@ -30,12 +32,13 @@ const defineCardMounted = () =>
 
 let cardMounted: ReturnType<typeof defineCardMounted> | null = null
 
-export const nodeCard = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
-  h.div(
+export const nodeCard = (type: ComponentId, h: HtmlBuilder<Message>): Html => {
+  const l = langOf(localeOf(h))
+  return h.div(
     [
       h.Key(`card-${type}`),
       h.Role('img'),
-      h.AriaLabel(`${COMPONENTS[type].name} Node card`),
+      h.AriaLabel(l.t.islands.nodeCard(l.cat.COMPONENTS[type].name)),
       // The card is a picture here: the page scrolls, the board does not pan.
       h.Class('pointer-events-none relative w-full'),
       h.Style({ height: `${Math.round((heightOf(type) + 2 * PAD) * SCALE) + 2 * INSET}px` }),
@@ -43,3 +46,4 @@ export const nodeCard = (type: ComponentId, h: HtmlBuilder<Message>): Html =>
     ],
     [],
   )
+}

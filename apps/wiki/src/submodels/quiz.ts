@@ -5,6 +5,8 @@ import { defineMessageUnion } from 'foldkit/message'
 import { cn } from 'cn'
 import { Check, RotateCcw, X } from 'lucide'
 import { icon } from '@quorum/ui/primitives/icon'
+import { langOf } from '../i18n/lang.ts'
+import type { Locale } from '../i18n/locale.ts'
 
 /* The quizzes on a page: the option the reader chose for each, by `<page path>#<occurrence>`,
    counting from 1. A check, not a score: answers last until the page reloads. */
@@ -35,9 +37,12 @@ export type Question = Readonly<{
   options: string
   answer: string
   explain: string
+  /** The page's language, for the words around the question. */
+  locale: Locale
 }>
 
 export const view = defineView<Model, Message, Question>((model, quiz, h) => {
+  const t = langOf(quiz.locale).t.quiz
   const options = quiz.options.split('|').map((option) => option.trim())
   const right = Number(quiz.answer)
   const chosen = model.answers[quiz.key] ?? null
@@ -46,7 +51,7 @@ export const view = defineView<Model, Message, Question>((model, quiz, h) => {
   return h.section(
     [h.Class('not-prose my-8 border-y border-border py-5')],
     [
-      h.div([h.Class('text-[12px] font-medium text-muted-foreground')], ['Check yourself']),
+      h.div([h.Class('text-[12px] font-medium text-muted-foreground')], [t.title]),
       h.p(
         [h.Id(id), h.Class('mt-1 text-[16px] leading-snug font-medium text-balance')],
         [quiz.question],
@@ -112,7 +117,7 @@ export const view = defineView<Model, Message, Question>((model, quiz, h) => {
                 [
                   h.strong(
                     [h.Class(correct ? 'text-ok' : 'text-danger')],
-                    [correct ? 'Right. ' : 'Not quite. '],
+                    [correct ? t.right : t.wrong],
                   ),
                   quiz.explain,
                 ],
@@ -127,7 +132,7 @@ export const view = defineView<Model, Message, Question>((model, quiz, h) => {
                         'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 text-[12px] font-medium hover:bg-muted',
                       ),
                     ],
-                    [icon(h, RotateCcw, 'size-3.5'), 'Try again'],
+                    [icon(h, RotateCcw, 'size-3.5'), t.retry],
                   ),
             ],
           ),

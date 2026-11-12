@@ -1,7 +1,7 @@
 import type { ChurnCause } from '@quorum/simulation/churn'
 import { CVES } from '../../game/copy/world.ts'
 import { TEAMMATES } from '../../game/copy/senders.ts'
-import { copyOfList } from '../catalog-copy.ts'
+import { copyOfList } from '@quorum/ui/i18n/catalog-copy'
 
 /** The words a Mail's values and buttons are made of, which the letters quote. */
 export const mailWords = {

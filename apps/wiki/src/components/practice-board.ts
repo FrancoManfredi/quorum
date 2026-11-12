@@ -1,13 +1,15 @@
 import { Check, Circle, RotateCcw, X, createElement, type IconNode } from 'lucide'
-import { COMPONENTS, DOCK_GROUPS, DOCK_OF } from '@quorum/simulation/catalog'
+import { DOCK_OF } from '@quorum/simulation/catalog'
 import { priceOf } from '@quorum/simulation/lookups'
 import { attachBoard, fitBoard, setBoard } from '@quorum/ui/board/board'
 import { money } from '@quorum/ui/game/format'
 import { COMPONENT_ICONS, GROUP_ICONS } from '@quorum/ui/game/icons'
 import { GROUP_TEXT } from '@quorum/ui/game/bits'
+import { en } from '../i18n/en/index.ts'
+import { langOf, type Lang } from '../i18n/lang.ts'
+import type { Locale } from '../i18n/locale.ts'
 import {
   DOCK,
-  TITLES,
   boardState,
   complete,
   dockGroups,
@@ -19,11 +21,13 @@ import {
   type PracticeId,
 } from './practice.ts'
 
-const GOAL_TEXT: Record<PracticeId, string> = {
-  place: 'Place an App Server and a Database. Pick a part in the dock, then click the board.',
-  wire: 'Link Users to App Server, App Server to Database, and App Server to Analytics. Drag from the output port on the right edge of a card to another card. Then link one Load Balancer to the other, and link the second back to the first to read the loop refusal.',
-  rearrange:
-    'Hold Shift and drag on empty space to box-select Nodes, then drag one of them to move the group. Then click a Link and press Delete, or click its x badge, to cut it.',
+/** A goal's label in the page's language. The practice logic names goals in English, which is also the key. */
+const goalLabel = (l: Lang, label: string): string => {
+  const english = en.islands.practice.goals
+  const key = (Object.keys(english) as Array<keyof typeof english>).find(
+    (entry) => english[entry] === label,
+  )
+  return key ? l.t.islands.practice.goals[key] : label
 }
 
 const svg = (node: IconNode, size = 16): SVGElement =>
@@ -45,21 +49,23 @@ const el = <K extends keyof HTMLElementTagNameMap>(
 const BUTTON =
   'inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-[13px] hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring'
 
-export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) => {
+export const mountPractice = (id: PracticeId, locale: Locale, root: HTMLElement): (() => void) => {
+  const l = langOf(locale)
+  const t = l.t.islands.practice
   const key = `practice-${id}`
   let state: Practice = start(id)
   let openGroup: string | null = null
   const events = new AbortController()
 
-  const title = el('h3', 'm-0 text-[14px] font-semibold tracking-tight', [TITLES[id]])
-  const reset = el('button', BUTTON, [svg(RotateCcw, 14), 'Reset'], { type: 'button' })
+  const title = el('h3', 'm-0 text-[14px] font-semibold tracking-tight', [t.titles[id]])
+  const reset = el('button', BUTTON, [svg(RotateCcw, 14), t.reset], { type: 'button' })
   const head = el(
     'div',
     'flex items-center justify-between gap-3 border-b border-border px-4 py-2.5',
     [title, reset],
   )
   const intro = el('p', 'm-0 px-4 pt-3 text-[14px] leading-snug text-muted-foreground', [
-    GOAL_TEXT[id],
+    t.intro[id],
   ])
   const host = el(
     'div',
@@ -67,7 +73,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
     [],
     {
       role: 'application',
-      'aria-label': `${TITLES[id]}: a practice board. The goals are listed below the board.`,
+      'aria-label': t.area(t.titles[id]),
     },
   )
   // A board on a page lets the page scroll: only Ctrl or Cmd zooms it.
@@ -82,12 +88,12 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
   const cash = el('span', 'text-[12px] text-muted-foreground tabular-nums')
   const checklist = el('ul', 'm-0 flex list-none flex-col gap-1 p-0', [], {
     'aria-live': 'polite',
-    'aria-label': 'Goals',
+    'aria-label': t.goalsLabel,
   })
   const note = el('p', 'm-0 min-h-5 text-[13px]', [], { role: 'status', 'aria-live': 'polite' })
   const foot = el('div', 'flex flex-col gap-2 px-4 pt-3 pb-4', [
     el('div', 'flex items-center justify-between', [
-      el('span', 'text-[12px] font-medium', ['Goals']),
+      el('span', 'text-[12px] font-medium', [t.goalsLabel]),
       cash,
     ]),
     checklist,
@@ -98,7 +104,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
   const renderDock = () => {
     const groups = dockGroups(id)
     if (groups.length === 0) return dockHost.replaceChildren()
-    const tabs = DOCK_GROUPS.filter((group) => groups.includes(group.key)).map((group) => {
+    const tabs = l.cat.DOCK_GROUPS.filter((group) => groups.includes(group.key)).map((group) => {
       const open = openGroup === group.key
       const button = el(
         'button',
@@ -122,14 +128,14 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
           `${BUTTON} ${armed ? 'bg-muted' : ''}`,
           [
             svg(COMPONENT_ICONS[type]),
-            el('span', 'font-medium', [COMPONENTS[type].name]),
+            el('span', 'font-medium', [l.cat.COMPONENTS[type].name]),
             el(
               'span',
               `tabular-nums ${state.game.cash < price ? 'text-danger' : 'text-muted-foreground'}`,
               [money(price)],
             ),
           ],
-          { type: 'button', 'aria-pressed': String(armed), title: COMPONENTS[type].blurb },
+          { type: 'button', 'aria-pressed': String(armed), title: l.cat.COMPONENTS[type].blurb },
         )
         button.addEventListener('click', () => {
           openGroup = null
@@ -139,19 +145,19 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
       })
     const armed = state.placing
     const stop = armed
-      ? el('button', BUTTON, [svg(X, 14), `Stop placing ${COMPONENTS[armed].name} (Esc)`], {
+      ? el('button', BUTTON, [svg(X, 14), t.stopPlacing(l.cat.COMPONENTS[armed].name)], {
           type: 'button',
         })
       : null
     stop?.addEventListener('click', () => send(PracticeEvent.Arm({ type: null })))
     dockHost.replaceChildren(
       el('div', 'flex flex-wrap items-center gap-2', [
-        el('div', 'flex gap-1.5', tabs, { role: 'group', 'aria-label': 'Build' }),
+        el('div', 'flex gap-1.5', tabs, { role: 'group', 'aria-label': t.build }),
         ...rows,
         ...(armed
           ? [
               el('span', 'text-[12px] text-muted-foreground', [
-                `Click the board to place the ${COMPONENTS[armed].name}, or press Enter.`,
+                t.clickToPlace(l.cat.COMPONENTS[armed].name),
               ]),
               ...(stop ? [stop] : []),
             ]
@@ -163,7 +169,7 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
   const render = () => {
     setBoard(key, boardState(state))
     renderDock()
-    cash.textContent = id === 'place' ? `Cash ${money(state.game.cash)}` : ''
+    cash.textContent = id === 'place' ? t.cash(money(state.game.cash)) : ''
     checklist.replaceChildren(
       ...goals(state).map((goal) =>
         el(
@@ -171,8 +177,8 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
           `flex items-center gap-2 text-[14px] ${goal.done ? 'text-ok' : 'text-foreground'}`,
           [
             svg(goal.done ? Check : Circle, 14),
-            goal.label,
-            el('span', 'sr-only', [goal.done ? ' (done)' : ' (not yet)']),
+            goalLabel(l, goal.label),
+            el('span', 'sr-only', [goal.done ? t.done : t.notYet]),
           ],
         ),
       ),
@@ -180,8 +186,14 @@ export const mountPractice = (id: PracticeId, root: HTMLElement): (() => void) =
     const finished = complete(state)
     title.dataset['done'] = String(finished)
     note.className = `m-0 min-h-5 text-[13px] ${state.note?.tone === 'warn' ? 'text-warn' : 'text-ok'}`
-    note.textContent =
-      state.note?.text ?? (finished ? 'All goals done. Reset to practice again.' : '')
+    // The refusals are the game's English sentences; the one note the board writes itself is translated.
+    note.textContent = state.note
+      ? state.note.text === en.islands.practice.databaseMoved
+        ? t.databaseMoved
+        : state.note.text
+      : finished
+        ? t.allDone
+        : ''
     if (finished && !state.note) note.className = 'm-0 min-h-5 text-[13px] text-ok'
   }
 

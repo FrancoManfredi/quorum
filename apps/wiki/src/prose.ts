@@ -1,6 +1,8 @@
 import * as Markdown from '@foldkit/markdown'
 import { Option } from 'effect'
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import { localeOf } from './i18n/builder.ts'
+import { langOf } from './i18n/lang.ts'
 import type { Message, Model } from './main.ts'
 import { diagramView } from './components/diagram.ts'
 import { mathView } from './components/math.ts'
@@ -28,12 +30,70 @@ export const plain = (content: ReadonlyArray<Inline>): string =>
     })
     .join('')
 
-/** The second- and third-level headings of a document, in order. */
-export const headingsOf = (document: Markdown.MarkdownDocument): ReadonlyArray<Heading> =>
+type HeadingBlock = Extract<Markdown.Block, { _tag: 'Heading' }>
+
+/** Every heading of a document, in reading order, including those inside lists, quotes and islands. */
+const headingBlocks = (blocks: ReadonlyArray<Markdown.Block>): ReadonlyArray<HeadingBlock> =>
+  blocks.flatMap((block): ReadonlyArray<HeadingBlock> => {
+    switch (block._tag) {
+      case 'Heading':
+        return [block]
+      case 'List':
+        return block.items.flatMap((item) => headingBlocks(item.blocks))
+      case 'Blockquote':
+      case 'Island':
+        return headingBlocks(block.blocks)
+      default:
+        return []
+    }
+  })
+
+/** The anchors of a heading, by heading, so each section keeps one anchor in every language. */
+export type Anchors = ReadonlyMap<HeadingBlock, string>
+
+/** A heading's anchor within a document: the slug of its text, and a count after a repeat. */
+const anchorsOfTexts = (
+  headings: ReadonlyArray<HeadingBlock>,
+  texts: ReadonlyArray<string>,
+): Anchors => {
+  const seen = new Map<string, number>()
+  return new Map(
+    headings.map((heading, index) => {
+      const base = slug(texts[index] ?? plain(heading.content))
+      const count = (seen.get(base) ?? 0) + 1
+      seen.set(base, count)
+      return [heading, count === 1 ? base : `${base}-${count}`]
+    }),
+  )
+}
+
+/** The anchors of a translated document: the English document's, paired by position, since a
+    translation keeps the English headings in the same order and at the same levels. A translation
+    whose headings do not line up with the English falls back to slugging its own text. */
+export const anchorsFor = (
+  document: Markdown.MarkdownDocument,
+  english: Markdown.MarkdownDocument,
+): Anchors => {
+  const own = headingBlocks(document.blocks)
+  const source = headingBlocks(english.blocks)
+  const aligned =
+    own.length === source.length && own.every((heading, at) => heading.level === source[at]?.level)
+  return anchorsOfTexts(
+    own,
+    aligned ? source.map((heading) => plain(heading.content)) : own.map((h) => plain(h.content)),
+  )
+}
+
+/** The second- and third-level headings of a document, in order. Pass a translation's `anchors`
+    to keep the English ids. */
+export const headingsOf = (
+  document: Markdown.MarkdownDocument,
+  anchors?: Anchors,
+): ReadonlyArray<Heading> =>
   document.blocks.flatMap((block): ReadonlyArray<Heading> => {
     if (block._tag !== 'Heading' || (block.level !== 2 && block.level !== 3)) return []
     const text = plain(block.content)
-    return [{ id: slug(text), text, level: block.level }]
+    return [{ id: anchors?.get(block) ?? slug(text), text, level: block.level }]
   })
 
 /** The text of a document, for the search index. */
@@ -98,11 +158,14 @@ export const prose = (
   document: Markdown.MarkdownDocument,
   model: Model,
   h: HtmlBuilder<Message>,
+  anchors?: Anchors,
 ): Html => {
   // A page can repeat a heading, such as the changelog's "Added" on every day. Suffix the later
   // copies so ids stay unique and each anchor link reaches its own section.
   const seen = new Map<string, number>()
-  const idOf = (text: string): string => {
+  const idOf = (text: string, heading: HeadingBlock): string => {
+    const given = anchors?.get(heading)
+    if (given !== undefined) return given
     const base = slug(text)
     const count = (seen.get(base) ?? 0) + 1
     seen.set(base, count)
@@ -114,9 +177,13 @@ export const prose = (
       islands: islandViews(model, h),
       views: {
         Heading: (heading, content) => {
-          const id = idOf(plain(heading.content))
+          const id = idOf(plain(heading.content), heading)
           const anchor = h.a(
-            [h.Href(`#${id}`), h.AriaLabel('Link to this section'), h.Class('anchor')],
+            [
+              h.Href(`#${id}`),
+              h.AriaLabel(langOf(localeOf(h)).t.prose.linkToSection),
+              h.Class('anchor'),
+            ],
             ['#'],
           )
           return heading.level === 2

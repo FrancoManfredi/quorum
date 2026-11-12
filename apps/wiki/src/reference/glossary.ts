@@ -1,11 +1,5 @@
 import { cn } from 'cn'
-import {
-  CVE_TERMS,
-  GLOSSARY,
-  GLOSSARY_CATEGORIES,
-  type GlossaryCategory,
-  type GlossaryEntry,
-} from '@quorum/simulation/catalog'
+import { CVE_TERMS, GLOSSARY_CATEGORIES, type GlossaryEntry } from '@quorum/simulation/catalog'
 import { EYEBROW } from '@quorum/ui/game/bits'
 import type { Page } from '../page.ts'
 import {
@@ -18,11 +12,14 @@ import {
   section,
   termName,
   termPath,
+  titleOf,
+  type Lang,
 } from './shared.ts'
 
 /* One page per engineering term, and a hub grouped by category. The game links its terms here. */
 
-const CATEGORY_LABELS: Record<GlossaryCategory, string> = {
+/** The English heading of each category, which anchors it in every language. */
+const CATEGORY_NAMES: Readonly<Record<(typeof GLOSSARY_CATEGORIES)[number], string>> = {
   performance: 'Performance',
   reliability: 'Reliability',
   observability: 'Observability',
@@ -35,26 +32,25 @@ const CATEGORY_LABELS: Record<GlossaryCategory, string> = {
   business: 'Business',
 }
 
-/** Every page the glossary lists: the engineering terms, then the CVEs the Simulation can disclose. */
-const ALL_TERMS: ReadonlyArray<GlossaryEntry> = [...GLOSSARY, ...CVE_TERMS]
-
-const entity = (entry: GlossaryEntry): Page => {
+const entity = (l: Lang, entry: GlossaryEntry, order: number): Page => {
   const path = termPath(entry.id)
-  const text = authored(path)
-  return page({
+  const text = authored(l, path)
+  const category = l.t.reference.categories[entry.category]
+  return page(l, {
     path,
     title: entry.term,
     summary: entry.definition,
     parent: '/glossary',
-    order: ALL_TERMS.indexOf(entry),
-    aliases: [entry.id, CATEGORY_LABELS[entry.category]],
+    order,
+    aliases: [...new Set([entry.id, category, CATEGORY_NAMES[entry.category]])],
     source: text.source,
+    fallback: text.fallback,
     headings: [
-      ...headingsFor(['In Quorum', entry.design?.length ? 'Design' : null]),
+      ...headingsFor([l.title('inQuorum'), entry.design?.length ? l.title('design') : null]),
       ...text.headings,
       ...headingsFor([
-        entry.related.length ? 'Read next' : null,
-        entry.links.length ? 'Learn more' : null,
+        entry.related.length ? l.title('readNext') : null,
+        entry.links.length ? l.title('learnMore') : null,
       ]),
     ],
     text: `${entry.definition} ${entry.inGame} ${text.text}`,
@@ -62,11 +58,11 @@ const entity = (entry: GlossaryEntry): Page => {
       h.div(
         [h.Class('prose')],
         [
-          h.p([], [h.span([h.Class(cn(EYEBROW, 'mr-2'))], [CATEGORY_LABELS[entry.category]])]),
-          section('In Quorum', [paragraph(entry.inGame, h)], h),
+          h.p([], [h.span([h.Class(cn(EYEBROW, 'mr-2'))], [category])]),
+          section(l.title('inQuorum'), [paragraph(entry.inGame, h)], h),
           entry.design?.length
             ? section(
-                'Design',
+                l.title('design'),
                 [
                   h.p(
                     [],
@@ -84,13 +80,13 @@ const entity = (entry: GlossaryEntry): Page => {
           ...(text.view ? [text.view(model, h)] : []),
           entry.related.length
             ? section(
-                'Read next',
+                l.title('readNext'),
                 [
                   h.p(
                     [],
                     [
                       linkList(
-                        entry.related.map((id) => link(termPath(id), termName(id), h)),
+                        entry.related.map((id) => link(termPath(id), termName(l, id), h)),
                         h,
                       ),
                     ],
@@ -101,7 +97,7 @@ const entity = (entry: GlossaryEntry): Page => {
             : h.empty,
           entry.links.length
             ? section(
-                'Learn more',
+                l.title('learnMore'),
                 [
                   h.ul(
                     [],
@@ -127,47 +123,50 @@ const entity = (entry: GlossaryEntry): Page => {
   })
 }
 
-const sorted = [...ALL_TERMS].sort((a, b) => a.term.localeCompare(b.term))
-const entities = ALL_TERMS.map(entity)
-
-const hub = page({
-  path: '/glossary',
-  title: 'Glossary',
-  summary:
-    'The real engineering terms behind the game: what each means at work, and what it does in Quorum.',
-  order: 6,
-  aliases: ['terms', 'definitions', 'dictionary'],
-  headings: headingsFor(GLOSSARY_CATEGORIES.map((category) => CATEGORY_LABELS[category])),
-  text: ALL_TERMS.map((entry) => entry.term).join(' '),
-  body: (_model, h) =>
-    h.div(
-      [h.Class('prose')],
-      [
-        paragraph(
-          'Quorum models real systems, so its words are real words. Each term has the meaning you would use at work, and what it does in the game. Security also lists the advisories the Simulation can disclose.',
-          h,
-        ),
-        ...GLOSSARY_CATEGORIES.map((category) =>
-          section(
-            CATEGORY_LABELS[category],
-            [
-              h.ul(
-                [h.Class('not-prose grid gap-x-6 gap-y-1.5 sm:grid-cols-2')],
-                sorted
-                  .filter((entry) => entry.category === category)
-                  .map((entry) =>
-                    h.li(
-                      [h.Key(entry.id), h.Class('text-[14px]')],
-                      [link(termPath(entry.id), entry.term, h)],
+export const glossaryPages = (l: Lang): ReadonlyArray<Page> => {
+  const t = l.t.reference.glossary
+  // Every page the glossary lists: the engineering terms, then the CVEs the Simulation can disclose.
+  const terms: ReadonlyArray<GlossaryEntry> = [...l.cat.GLOSSARY, ...CVE_TERMS]
+  const sorted = [...terms].sort((a, b) => a.term.localeCompare(b.term, l.locale))
+  const entities = terms.map((entry, index) => entity(l, entry, index))
+  // A category's heading is anchored by its English name.
+  const categories = GLOSSARY_CATEGORIES.map((category) =>
+    titleOf(CATEGORY_NAMES[category], l.t.reference.categories[category]),
+  )
+  const hub = page(l, {
+    path: '/glossary',
+    title: t.title,
+    summary: t.summary,
+    order: 6,
+    aliases: t.aliases,
+    headings: headingsFor(categories),
+    text: terms.map((entry) => entry.term).join(' '),
+    body: (_model, h) =>
+      h.div(
+        [h.Class('prose')],
+        [
+          paragraph(t.intro, h),
+          ...GLOSSARY_CATEGORIES.map((category, index) =>
+            section(
+              categories[index] ?? titleOf(category, category),
+              [
+                h.ul(
+                  [h.Class('not-prose grid gap-x-6 gap-y-1.5 sm:grid-cols-2')],
+                  sorted
+                    .filter((entry) => entry.category === category)
+                    .map((entry) =>
+                      h.li(
+                        [h.Key(entry.id), h.Class('text-[14px]')],
+                        [link(termPath(entry.id), entry.term, h)],
+                      ),
                     ),
-                  ),
-              ),
-            ],
-            h,
+                ),
+              ],
+              h,
+            ),
           ),
-        ),
-      ],
-    ),
-})
-
-export const glossaryPages: ReadonlyArray<Page> = [hub, ...entities]
+        ],
+      ),
+  })
+  return [hub, ...entities]
+}

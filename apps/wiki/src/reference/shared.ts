@@ -1,30 +1,32 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { cn } from 'cn'
-import {
-  ERAS,
-  GLOSSARY,
-  RESEARCH,
-  type BuildGroup,
-  type ResearchId,
-} from '@quorum/simulation/catalog'
+import { ERAS, type BuildGroup, type ResearchId } from '@quorum/simulation/catalog'
 import { FIGURE } from '@quorum/ui/game/bits'
+import type { Lang, Title } from '../i18n/lang.ts'
 import type { Message } from '../main.ts'
 import { proseAt } from '../content.ts'
 import { headingsOf, prose } from '../prose.ts'
 import { slug, type Heading, type Page, type View } from '../page.ts'
 
+export type { Lang, Title }
+
 export type H = HtmlBuilder<Message>
 
-export const eraName = (era: number): string => ERAS[era]?.name ?? `Era ${era}`
+export const eraName = (l: Lang, era: number): string =>
+  l.cat.ERAS[era]?.name ?? l.t.reference.eraN(era)
 
-export const eraPath = (era: number): string => `/eras/${slug(eraName(era))}`
+/** An Era's page path uses its English name in every language, so the slugs are the same. */
+export const eraPath = (era: number): string => `/eras/${slug(ERAS[era]?.name ?? `Era ${era}`)}`
 
 export const researchPath = (id: ResearchId): string => `/research/${id}`
 
 export const termPath = (id: string): string => `/glossary/${id}`
 
-export const termName = (id: string): string =>
-  GLOSSARY.find((entry) => entry.id === id)?.term ?? id
+export const termName = (l: Lang, id: string): string =>
+  l.cat.GLOSSARY.find((entry) => entry.id === id)?.term ?? id
+
+/** A heading whose anchor is the slug of its English text, whatever language its text is in. */
+export const titleOf = (english: string, text: string): Title => ({ id: slug(english), text })
 
 export const link = (path: string, text: string, h: H): Html =>
   h.a(
@@ -37,8 +39,8 @@ export const link = (path: string, text: string, h: H): Html =>
     [text],
   )
 
-export const researchLink = (id: ResearchId, h: H): Html =>
-  link(researchPath(id), RESEARCH[id].name, h)
+export const researchLink = (l: Lang, id: ResearchId, h: H): Html =>
+  link(researchPath(id), l.cat.RESEARCH[id].name, h)
 
 /** Links separated by commas, or a dash when there are none. */
 export const linkList = (items: ReadonlyArray<Html>, h: H): Html =>
@@ -53,6 +55,7 @@ export type Fact = Readonly<{ name: string; value: Html | string }>
 
 /** The facts box beside a page: the name with its mark, then one fact per row. */
 export const factsBox = (
+  l: Lang,
   title: string,
   badge: Html | null,
   _group: BuildGroup | null,
@@ -60,7 +63,7 @@ export const factsBox = (
   h: H,
 ): Html =>
   h.aside(
-    [h.AriaLabel(`${title} facts`), h.Class('rounded-lg border border-border')],
+    [h.AriaLabel(l.t.reference.factsLabel(title)), h.Class('rounded-lg border border-border')],
     [
       h.div(
         [h.Class('flex items-center gap-2.5 border-b border-border px-4 py-3')],
@@ -85,32 +88,32 @@ export const factsBox = (
   )
 
 /** A titled section of a catalog page, with an anchor the contents list links to. */
-export const section = (title: string, content: ReadonlyArray<Html>, h: H): Html =>
+export const section = (title: Title, content: ReadonlyArray<Html>, h: H): Html =>
   h.section(
-    [h.Key(title)],
+    [h.Key(title.id)],
     [
       h.h2(
-        [h.Id(slug(title)), h.Class('group')],
-        [title, h.a([h.Href(`#${slug(title)}`), h.Class('anchor')], ['#'])],
+        [h.Id(title.id), h.Class('group')],
+        [title.text, h.a([h.Href(`#${title.id}`), h.Class('anchor')], ['#'])],
       ),
       ...content,
     ],
   )
 
-export const headingsFor = (titles: ReadonlyArray<string | null>): ReadonlyArray<Heading> =>
-  titles.flatMap((title) => (title ? [{ id: slug(title), text: title, level: 2 as const }] : []))
+export const headingsFor = (titles: ReadonlyArray<Title | null>): ReadonlyArray<Heading> =>
+  titles.flatMap((title) => (title ? [{ id: title.id, text: title.text, level: 2 as const }] : []))
 
 export const paragraph = (text: string, h: H): Html => h.p([], [text])
 
 /** Engineering terms a page teaches, as links into the glossary. */
-export const termsSection = (ids: ReadonlyArray<string> | undefined, h: H): Html =>
+export const termsSection = (l: Lang, ids: ReadonlyArray<string> | undefined, h: H): Html =>
   ids && ids.length
     ? section(
-        'Engineering terms',
+        l.title('engineeringTerms'),
         [
           h.ul(
             [],
-            ids.map((id) => h.li([h.Key(id)], [link(termPath(id), termName(id), h)])),
+            ids.map((id) => h.li([h.Key(id)], [link(termPath(id), termName(l, id), h)])),
           ),
         ],
         h,
@@ -119,20 +122,24 @@ export const termsSection = (ids: ReadonlyArray<string> | undefined, h: H): Html
 
 /** The hand-written prose for a catalog page, if any, and its source file for editing. */
 export const authored = (
+  l: Lang,
   path: string,
 ): Readonly<{
   view: View | null
   source: string | null
   text: string
   headings: ReadonlyArray<Heading>
+  fallback: boolean
 }> => {
-  const found = proseAt(path)
-  if (!found) return { view: null, source: null, text: '', headings: [] }
+  const found = proseAt(l.locale, path)
+  if (!found) return { view: null, source: null, text: '', headings: [], fallback: false }
+  const anchors = found.anchors ?? undefined
   return {
-    view: (model, h) => prose(found.document, model, h),
+    view: (model, h) => prose(found.document, model, h, anchors),
     source: found.source,
     text: found.text,
-    headings: headingsOf(found.document),
+    headings: headingsOf(found.document, anchors),
+    fallback: found.fallback,
   }
 }
 
@@ -244,8 +251,11 @@ export const cardGrid = (cards: ReadonlyArray<Html>, h: H): Html =>
 
 /** A page's defaults, so each generator states only what differs. */
 export const page = (
+  l: Lang,
   fields: Partial<Page> & Pick<Page, 'path' | 'title' | 'summary' | 'body'>,
 ): Page => ({
+  locale: l.locale,
+  fallback: false,
   section: 'reference',
   parent: null,
   group: null,

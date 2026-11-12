@@ -4,11 +4,12 @@ import { ChevronDown, ChevronRight } from 'lucide'
 import { FIGURE } from '@quorum/ui/game/bits'
 import { icon } from '@quorum/ui/primitives/icon'
 import { SCROLL } from '@quorum/ui/game/bits'
+import { langOf, type Lang } from '../i18n/lang.ts'
 import { Message, type Model } from '../main.ts'
 import type { Page } from '../page.ts'
-import { childrenOf, navOf, pageAt } from '../pages.ts'
+import { childrenOf, navOf, pageIn } from '../pages.ts'
 import * as Spoilers from '../submodels/spoilers.ts'
-import { QUADRANTS, quadrantBadge, quadrantColor } from './quadrant.ts'
+import { quadrantBadge, quadrantColor } from './quadrant.ts'
 
 /* The navigation rail: the current section's pages, and the open hub's pages beneath it. */
 
@@ -75,8 +76,14 @@ const navLink = (
   )
 }
 
+/** A group's name in the page's language. A group the copy does not know keeps the name the frontmatter gives. */
+const groupLabel = (l: Lang, name: string): string =>
+  (l.t.groups as Readonly<Record<string, Readonly<{ name: string }> | undefined>>)[name]?.name ??
+  name
+
 /** A group of pages under one heading: a button with the page count and a chevron, and the pages beneath it when open. */
 const groupBlock = (
+  l: Lang,
   name: string,
   pages: ReadonlyArray<Page>,
   current: string,
@@ -85,6 +92,7 @@ const groupBlock = (
   h: H,
 ): Html => {
   const numbered = name === 'Scaling steps'
+  const label = groupLabel(l, name)
   return h.div(
     [h.Key(`group-${name}`), h.Class('mt-2')],
     [
@@ -92,7 +100,7 @@ const groupBlock = (
         [
           h.Type('button'),
           h.AriaExpanded(isOpen),
-          h.AriaLabel(`${isOpen ? 'Collapse' : 'Expand'} ${name}`),
+          h.AriaLabel(isOpen ? l.t.sidebar.collapse(label) : l.t.sidebar.expand(label)),
           h.OnClick(Message.NavToggled({ path: `group:${name}` })),
           h.Class(
             cn(
@@ -110,7 +118,7 @@ const groupBlock = (
             ],
             [],
           ),
-          h.span([h.Class('min-w-0 flex-1 truncate text-[13px] font-semibold')], [name]),
+          h.span([h.Class('min-w-0 flex-1 truncate text-[13px] font-semibold')], [label]),
           h.span(
             [h.Class(cn(FIGURE, 'text-[11px] text-muted-foreground'))],
             [String(pages.length)],
@@ -131,8 +139,15 @@ const groupBlock = (
 }
 
 /** A hub: its row, how many pages sit under it, and a chevron that turns when it is open. */
-const hubLink = (hub: Page, current: string, isOpen: boolean, color: string, h: H): Html => {
-  const count = childrenOf(hub.path).length
+const hubLink = (
+  l: Lang,
+  hub: Page,
+  current: string,
+  isOpen: boolean,
+  color: string,
+  h: H,
+): Html => {
+  const count = childrenOf(l.locale, hub.path).length
   return h.div(
     [h.Key(`${hub.path}-row`), h.Class('relative flex items-center')],
     [
@@ -141,7 +156,7 @@ const hubLink = (hub: Page, current: string, isOpen: boolean, color: string, h: 
         ? h.button(
             [
               h.Type('button'),
-              h.AriaLabel(`${isOpen ? 'Collapse' : 'Expand'} ${hub.title}`),
+              h.AriaLabel(isOpen ? l.t.sidebar.collapse(hub.title) : l.t.sidebar.expand(hub.title)),
               h.AriaExpanded(isOpen),
               h.OnClick(Message.NavToggled({ path: hub.path })),
               h.Class(
@@ -173,7 +188,8 @@ const segmentsOf = (
   }, [])
 
 export const sidebar = (model: Model, h: H): Html => {
-  const page = pageAt(model.path)
+  const l = langOf(model.locale)
+  const page = pageIn(model.locale, model.path)
   const open = page?.parent ?? page?.path ?? null
   // Home has no section of its own; it lists the play pages, where a new player starts.
   const section = model.path === '/' ? 'play' : (page?.section ?? 'play')
@@ -181,7 +197,7 @@ export const sidebar = (model: Model, h: H): Html => {
   const isOpen = (path: string): boolean => (path === open) !== model.navToggled.includes(path)
   return h.nav(
     [
-      h.AriaLabel(QUADRANTS[section].label),
+      h.AriaLabel(l.t.quadrants[section].label),
       h.Class(
         cn(
           SCROLL,
@@ -203,16 +219,17 @@ export const sidebar = (model: Model, h: H): Html => {
               quadrantBadge(section, 'size-5', h),
               h.span(
                 [h.Class('text-[13px] font-semibold text-foreground')],
-                [QUADRANTS[section].label],
+                [l.t.quadrants[section].label],
               ),
             ],
           ),
           h.div(
             [h.Class('flex flex-col gap-0.5')],
-            segmentsOf(navOf(section)).flatMap((segment) =>
+            segmentsOf(navOf(model.locale, section)).flatMap((segment) =>
               segment.group !== null
                 ? [
                     groupBlock(
+                      l,
                       segment.group,
                       segment.pages,
                       model.path,
@@ -224,8 +241,8 @@ export const sidebar = (model: Model, h: H): Html => {
                     ),
                   ]
                 : segment.pages.flatMap((hub) => [
-                    hubLink(hub, model.path, isOpen(hub.path), color, h),
-                    ...(isOpen(hub.path) && childrenOf(hub.path).length > 0
+                    hubLink(l, hub, model.path, isOpen(hub.path), color, h),
+                    ...(isOpen(hub.path) && childrenOf(model.locale, hub.path).length > 0
                       ? [
                           h.div(
                             [
@@ -234,7 +251,7 @@ export const sidebar = (model: Model, h: H): Html => {
                                 'mt-0.5 mb-1.5 ml-3 flex flex-col gap-0.5 border-l border-border pl-1',
                               ),
                             ],
-                            childrenOf(hub.path).map((child) =>
+                            childrenOf(model.locale, hub.path).map((child) =>
                               navLink(child, model.path, color, h, true),
                             ),
                           ),
@@ -253,6 +270,7 @@ export const sidebar = (model: Model, h: H): Html => {
             slotId: 'spoilers',
             model: model.spoilers,
             view: Spoilers.view,
+            viewInputs: { locale: model.locale },
             toParentMessage: (message) => Message.SpoilersChanged({ message }),
           }),
         ],

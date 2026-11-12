@@ -40,7 +40,7 @@ test('every page has one path, without a trailing slash', () => {
 
 /* The build prerenders every path, so this renders the home page and each section's first page and
    reads their links: the layouts and the navigation stay reachable without compiling the corpus. */
-const sample = ['/', ...SECTION_ORDER.map((section) => navOf(section)[0]?.path ?? '')]
+const sample = ['/', ...SECTION_ORDER.map((section) => navOf('en', section)[0]?.path ?? '')]
 
 test('the home page and every section render their own page, and every link in them reaches a page', async () => {
   const broken: Array<string> = []
@@ -109,7 +109,7 @@ test('the built search index loads the way the browser loads it', () => {
 
 test('the play section comes first and its pages follow their order', () => {
   expect(SECTION_ORDER[0]).toBe('play')
-  const orders = navOf('play').map((page) => page.order)
+  const orders = navOf('en', 'play').map((page) => page.order)
   expect(orders).toEqual([...orders].sort((a, b) => a - b))
   expect(PAGES.filter((page) => page.section === 'play' && page.era !== null)).toEqual([])
 })
@@ -122,7 +122,7 @@ test('an incident page names the Components that teach it and the Sandboxes that
 test('the arrow keys wrap around the search results', () => {
   const at = (active: number, delta: number) =>
     Search.update(
-      { query: 'cache', open: true, active, status: 'ready' },
+      { locale: 'en', query: 'cache', open: true, active, status: 'ready' },
       Search.Message.Moved({ delta, count: 3 }),
     ).model.active
   expect([at(2, 1), at(0, -1), at(0, 1)]).toEqual([0, 2, 1])
@@ -212,7 +212,7 @@ test('a heading link keeps the drawer, the hubs and the search; a page link rese
     ...init(urlOf('/play/move-and-select')).model,
     menu: true,
     navToggled: ['/eras'],
-    search: { ...Search.init, query: 'retry', open: true },
+    search: { ...Search.init('en'), query: 'retry', open: true },
   }
   const scrolled = update(
     model,

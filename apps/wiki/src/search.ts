@@ -1,10 +1,17 @@
 import MiniSearch, { type Options } from 'minisearch'
 import type { Section } from './frontmatter.ts'
+import { langOf } from './i18n/lang.ts'
+import { DEFAULT_LOCALE, withLocale, type Locale } from './i18n/locale.ts'
 import type { Page } from './page.ts'
 
 /* Full-text search over every page, in the browser. The index is built at build time
    (vite.config.ts) and fetched when a reader first opens the search, so a reader who never
-   searches downloads none of it. Why MiniSearch: docs/research/full-text-search.md. */
+   searches downloads none of it. Each language has its own index, built from its own titles,
+   summaries, aliases, headings and text, and queried with its own stop words and stemmer. Why
+   MiniSearch: docs/research/full-text-search.md. */
+
+/** Where a language's index is served: English at the root, Spanish under `/es`. */
+export const indexUrl = (locale: Locale): string => withLocale(locale, '/search-index.json')
 
 export type Hit = Readonly<{
   path: string
@@ -34,7 +41,7 @@ type Stored = Readonly<
   Pick<Document, 'path' | 'title' | 'aliases' | 'summary' | 'section' | 'anchors'>
 >
 
-const STOPWORDS = new Set([
+const ENGLISH_STOPWORDS = new Set([
   'a',
   'an',
   'and',
@@ -74,6 +81,70 @@ const STOPWORDS = new Set([
   'with',
 ])
 
+/** Spanish stop words, accent-folded because the text is folded before it is split. */
+const SPANISH_STOPWORDS = new Set([
+  'a',
+  'al',
+  'ante',
+  'como',
+  'con',
+  'cual',
+  'cuando',
+  'de',
+  'del',
+  'donde',
+  'e',
+  'el',
+  'ella',
+  'en',
+  'entre',
+  'es',
+  'esta',
+  'este',
+  'hay',
+  'la',
+  'las',
+  'le',
+  'les',
+  'lo',
+  'los',
+  'me',
+  'mi',
+  'mis',
+  'muy',
+  'no',
+  'o',
+  'para',
+  'por',
+  'porque',
+  'que',
+  'quien',
+  'se',
+  'ser',
+  'si',
+  'sin',
+  'sobre',
+  'son',
+  'su',
+  'sus',
+  'te',
+  'tu',
+  'tus',
+  'u',
+  'un',
+  'una',
+  'uno',
+  'unos',
+  'unas',
+  'y',
+  'ya',
+])
+
+const STOPWORDS: Readonly<Record<Locale, ReadonlySet<string>>> = {
+  en: ENGLISH_STOPWORDS,
+  es: SPANISH_STOPWORDS,
+}
+
 /** A light English stemmer, so "caching" finds "cache", "retries" finds "retry", and
     "contributing" finds "contribute". Index and query stem the same way, so a stem need not be a
     word. Short words ("lb", "cdc", "dns") and terms with a digit ("p99") stay as typed. */
@@ -94,36 +165,51 @@ export const stem = (word: string): string => {
   return out.length > 3 && out.endsWith('e') ? out.slice(0, -1) : out
 }
 
-const words = (text: string): ReadonlyArray<string> =>
+/** A light Spanish stemmer: plurals, the `-ciones` and `-mente` endings, and a final vowel, so
+    "servidores" finds "servidor" and "consultas" finds "consulta". Like the English one, index
+    and query stem alike, so a stem need not be a word. Short words and terms with a digit stay. */
+export const stemEs = (word: string): string => {
+  if (word.length <= 3 || /\d/.test(word)) return word
+  let out = word
+  if (out.endsWith('ciones')) out = `${out.slice(0, -6)}cion`
+  else if (out.endsWith('mente') && out.length > 7) out = out.slice(0, -5)
+  else if (out.endsWith('ces') && out.length > 4) out = `${out.slice(0, -3)}z`
+  else if (/[^aeiou]es$/.test(out) && out.length > 4) out = out.slice(0, -2)
+  else if (out.endsWith('s') && !out.endsWith('ss') && !out.endsWith('us') && !out.endsWith('is'))
+    out = out.slice(0, -1)
+  return out.length > 4 && /[aeo]$/.test(out) ? out.slice(0, -1) : out
+}
+
+const stemmers: Readonly<Record<Locale, (word: string) => string>> = { en: stem, es: stemEs }
+
+/** Lower case with accents folded, so "Cómo" and "como" are one word in both languages. */
+const fold = (text: string): string =>
   text
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+
+const words = (text: string): ReadonlyArray<string> =>
+  fold(text)
     .replace(/['\u2019]s\b/g, '')
     .split(/[^a-z0-9]+/)
     .filter(Boolean)
 
 /** The terms a text is searched by: stop words dropped, the rest stemmed. */
-const termsOf = (text: string): ReadonlyArray<string> =>
+const termsOf = (text: string, locale: Locale): ReadonlyArray<string> =>
   words(text)
-    .filter((word) => !STOPWORDS.has(word))
-    .map(stem)
-
-/** What a page's section is called, so "tutorial" and "guide" find those pages. */
-const KINDS: Readonly<Partial<Record<Section, string>>> = {
-  tutorials: 'tutorial',
-  guides: 'guide',
-  patterns: 'pattern',
-  explanation: 'explanation',
-}
+    .filter((word) => !STOPWORDS[locale].has(word))
+    .map(stemmers[locale])
 
 /** A title or alias match beats a heading, which beats the summary and the body. A one-letter
     prefix matches half the index, and a fuzzy match on a short word is a different word. */
-const OPTIONS: Options<Document> = {
+const optionsFor = (locale: Locale): Options<Document> => ({
   fields: ['title', 'aliases', 'headings', 'summary', 'text', 'kind'],
   storeFields: ['path', 'title', 'aliases', 'summary', 'section', 'anchors'],
   tokenize: (text) => [...words(text)],
   processTerm: (term) => {
-    if (STOPWORDS.has(term)) return null
-    return stem(term)
+    if (STOPWORDS[locale].has(term)) return null
+    return stemmers[locale](term)
   },
   searchOptions: {
     boost: { title: 6, aliases: 5, headings: 3, summary: 2, kind: 2 },
@@ -131,7 +217,7 @@ const OPTIONS: Options<Document> = {
     fuzzy: (term) => (term.length >= 5 ? 0.2 : false),
     prefix: (term) => term.length >= 3,
   },
-}
+})
 
 export type Index = MiniSearch<Document>
 
@@ -140,7 +226,11 @@ const documentOf = (page: Page): Document => ({
   path: page.path,
   title: page.title,
   aliases: [...new Set(page.aliases)].join(' | '),
-  kind: KINDS[page.section] ?? '',
+  // What a page's section is called, so "tutorial" and "guide" find those pages.
+  kind:
+    (langOf(page.locale).t.search.kinds as Readonly<Partial<Record<Section, string>>>)[
+      page.section
+    ] ?? '',
   headings: page.headings.map((heading) => heading.text).join(' '),
   summary: page.summary,
   text: page.text,
@@ -148,25 +238,31 @@ const documentOf = (page: Page): Document => ({
   anchors: page.headings.map(({ id, text }) => ({ id, text })),
 })
 
-export const buildIndex = (pages: ReadonlyArray<Page>): Index => {
-  const index = new MiniSearch<Document>(OPTIONS)
+export const buildIndex = (pages: ReadonlyArray<Page>, locale: Locale = DEFAULT_LOCALE): Index => {
+  const index = new MiniSearch<Document>(optionsFor(locale))
   index.addAll(pages.map(documentOf))
   return index
 }
 
-/** The index as the one file the build writes beside the pages. */
-export const indexJson = (pages: ReadonlyArray<Page>): string => JSON.stringify(buildIndex(pages))
+/** A language's index as the one file the build writes beside its pages. */
+export const indexJson = (pages: ReadonlyArray<Page>, locale: Locale = DEFAULT_LOCALE): string =>
+  JSON.stringify(buildIndex(pages, locale))
 
-export const loadIndex = (json: string): Index => MiniSearch.loadJSON<Document>(json, OPTIONS)
+export const loadIndex = (json: string, locale: Locale = DEFAULT_LOCALE): Index =>
+  MiniSearch.loadJSON<Document>(json, optionsFor(locale))
 
 /** The heading a query names, so a result opens at that section rather than the page top. Terms
     shorter than four letters, such as "the" and "of", name every heading, so only terms of four
     letters or more, and terms with a digit such as "p99", count. */
-const headingOf = (anchors: ReadonlyArray<Anchor>, terms: ReadonlyArray<string>): string | null => {
+const headingOf = (
+  anchors: ReadonlyArray<Anchor>,
+  terms: ReadonlyArray<string>,
+  locale: Locale,
+): string | null => {
   const candidates = terms.filter((term) => term.length >= 3 || /\d/.test(term))
   let best: Readonly<{ id: string; score: number }> | null = null
   for (const anchor of anchors) {
-    const heading = termsOf(anchor.text)
+    const heading = termsOf(anchor.text, locale)
     const score = candidates.reduce(
       (total, term) =>
         heading.some((word) => word.startsWith(term)) ? total + term.length : total,
@@ -178,8 +274,8 @@ const headingOf = (anchors: ReadonlyArray<Anchor>, terms: ReadonlyArray<string>)
 }
 
 /** The title already names every term, so the page top is the answer, not one of its sections. */
-const hasAll = (title: string, terms: ReadonlyArray<string>): boolean => {
-  const own = termsOf(title)
+const hasAll = (title: string, terms: ReadonlyArray<string>, locale: Locale): boolean => {
+  const own = termsOf(title, locale)
   return terms.every((term) => own.includes(term))
 }
 
@@ -199,8 +295,13 @@ const NAMED_BY_TITLE = 4
 const NAMED_BY_ALIAS = 2
 const NAMED_IN_TITLE = 1.5
 
-export const search = (index: Index, query: string, limit = 8): ReadonlyArray<Hit> => {
-  const terms = termsOf(query)
+export const search = (
+  index: Index,
+  query: string,
+  locale: Locale = DEFAULT_LOCALE,
+  limit = 8,
+): ReadonlyArray<Hit> => {
+  const terms = termsOf(query, locale)
   if (terms.length === 0) return []
   const wanted = terms.join(' ')
   return index
@@ -208,13 +309,13 @@ export const search = (index: Index, query: string, limit = 8): ReadonlyArray<Hi
     .map((result) => {
       // MiniSearch types stored fields as `any`; this is the shape `storeFields` writes.
       const stored = result as unknown as Stored
-      const titleTerms = termsOf(stored.title)
+      const titleTerms = termsOf(stored.title, locale)
       const named =
         titleTerms.join(' ') === wanted
           ? NAMED_BY_TITLE
-          : stored.aliases.split(' | ').some((alias) => termsOf(alias).join(' ') === wanted)
+          : stored.aliases.split(' | ').some((alias) => termsOf(alias, locale).join(' ') === wanted)
             ? NAMED_BY_ALIAS
-            : hasAll(stored.title, terms)
+            : hasAll(stored.title, terms, locale)
               ? NAMED_IN_TITLE
               : 1
       const prior = PRIORS.find(([prefix]) => stored.path.startsWith(prefix))?.[1] ?? 1
@@ -227,6 +328,8 @@ export const search = (index: Index, query: string, limit = 8): ReadonlyArray<Hi
       title: stored.title,
       summary: stored.summary,
       section: stored.section,
-      heading: hasAll(stored.title, terms) ? null : headingOf(stored.anchors, terms),
+      heading: hasAll(stored.title, terms, locale)
+        ? null
+        : headingOf(stored.anchors, terms, locale),
     }))
 }

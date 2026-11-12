@@ -15,22 +15,23 @@ import { FIGURE } from '@quorum/ui/game/bits'
 import { githubMark } from '@quorum/ui/primitives/github'
 import { icon } from '@quorum/ui/primitives/icon'
 import type { Section } from '../frontmatter.ts'
+import { langOf, type Lang } from '../i18n/lang.ts'
 import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
-import { navOf, pageAt } from '../pages.ts'
+import { navOf, pageIn } from '../pages.ts'
 import { PATHS, stepsOf } from '../paths.ts'
 import { KOFI, REPOSITORY } from '../site.ts'
 import { componentBadge } from '../reference/components.ts'
 import { pathCard } from './path-nav.ts'
 import { projectCard } from './project.ts'
-import { QUADRANTS, quadrantBadge } from './quadrant.ts'
+import { quadrantBadge } from './quadrant.ts'
 
 /* The home page: what the wiki is, the guided paths, then the four kinds of page and the catalog. */
 
 type H = HtmlBuilder<Message>
 
 /** One kind of page: its badge, what it is for, and its first pages. */
-const kind = (section: Section, h: H): Html =>
+const kind = (l: Lang, section: Section, h: H): Html =>
   h.section(
     [h.Key(section), h.Class('flex flex-col bg-background p-5')],
     [
@@ -38,13 +39,13 @@ const kind = (section: Section, h: H): Html =>
         [h.Class('flex items-center gap-2')],
         [
           quadrantBadge(section, 'size-5', h),
-          h.h3([h.Class('text-[15px] font-semibold')], [QUADRANTS[section].label]),
+          h.h3([h.Class('text-[15px] font-semibold')], [l.t.quadrants[section].label]),
         ],
       ),
-      h.p([h.Class('mt-1 text-[13px] text-muted-foreground')], [QUADRANTS[section].purpose]),
+      h.p([h.Class('mt-1 text-[13px] text-muted-foreground')], [l.t.quadrants[section].purpose]),
       h.ul(
         [h.Class('mt-3 flex flex-col')],
-        navOf(section)
+        navOf(l.locale, section)
           .slice(0, 6)
           .map((target) =>
             h.li(
@@ -61,24 +62,31 @@ const kind = (section: Section, h: H): Html =>
     ],
   )
 
-const COUNTS: ReadonlyArray<Readonly<{ path: string; value: number; label: string }>> = [
-  { path: '/components', value: COMPONENT_IDS.length, label: 'Components' },
-  { path: '/research', value: researchList.length, label: 'Research items' },
-  { path: '/eras', value: ERAS.length, label: 'Eras' },
-  { path: '/incidents', value: INCIDENT_IDS.length, label: 'Incidents' },
-  { path: '/sandboxes', value: SANDBOX_IDS.length, label: 'Sandboxes' },
-  { path: '/glossary', value: GLOSSARY.length, label: 'Engineering terms' },
-]
+const counts = (l: Lang, h: H): Html => {
+  const t = l.t.home.counts
+  const entries: ReadonlyArray<Readonly<{ path: string; value: number; label: string }>> = [
+    { path: '/components', value: COMPONENT_IDS.length, label: t.components },
+    { path: '/research', value: researchList.length, label: t.research },
+    { path: '/eras', value: ERAS.length, label: t.eras },
+    { path: '/incidents', value: INCIDENT_IDS.length, label: t.incidents },
+    { path: '/sandboxes', value: SANDBOX_IDS.length, label: t.sandboxes },
+    { path: '/glossary', value: GLOSSARY.length, label: t.terms },
+  ]
+  return countList(entries, h)
+}
 
 /** The catalog as six lookups: a number and where it leads. */
-const counts = (h: H): Html =>
+const countList = (
+  entries: ReadonlyArray<Readonly<{ path: string; value: number; label: string }>>,
+  h: H,
+): Html =>
   h.dl(
     [
       h.Class(
         'grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 lg:grid-cols-6',
       ),
     ],
-    COUNTS.map((entry) =>
+    entries.map((entry) =>
       h.a(
         [
           h.Key(entry.path),
@@ -188,8 +196,10 @@ const flow = (h: H): Html =>
   )
 
 export const homeView = (page: Page, model: Model, h: H): Html => {
+  const l = langOf(model.locale)
+  const t = l.t.home
   const trouble = TROUBLE.flatMap((path) => {
-    const target = pageAt(path)
+    const target = pageIn(model.locale, path)
     return target ? [target] : []
   })
   return h.div(
@@ -212,7 +222,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                     'text-[44px] leading-[1.05] font-semibold tracking-[-0.035em] text-balance',
                   ),
                 ],
-                ['Quorum Wiki'],
+                [t.heroTitle],
               ),
               h.p(
                 [h.Class('mt-4 text-[16px] leading-relaxed text-pretty text-muted-foreground')],
@@ -221,7 +231,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
               h.div(
                 [h.Class('mt-7 flex flex-wrap items-center gap-3')],
                 [
-                  pageAt(FIRST_TUTORIAL)
+                  pageIn(model.locale, FIRST_TUTORIAL)
                     ? h.a(
                         [
                           h.Href(FIRST_TUTORIAL),
@@ -229,7 +239,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                             'inline-flex h-10 items-center gap-2 rounded-md bg-foreground px-4 text-[14px] font-medium text-background hover:opacity-90',
                           ),
                         ],
-                        ['Start your first Company', icon(h, ArrowRight, 'size-4')],
+                        [t.start, icon(h, ArrowRight, 'size-4')],
                       )
                     : h.empty,
                   h.a(
@@ -239,7 +249,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                         'inline-flex h-10 items-center gap-2 rounded-md border border-border bg-background px-4 text-[14px] font-medium hover:border-foreground/30',
                       ),
                     ],
-                    [icon(h, BookOpen, 'size-4'), 'Browse the Components'],
+                    [icon(h, BookOpen, 'size-4'), t.browse],
                   ),
                   h.a(
                     [
@@ -249,7 +259,7 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
                         'inline-flex items-center gap-1.5 text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground',
                       ),
                     ],
-                    [githubMark(h, 'size-3.5'), 'Open source on GitHub'],
+                    [githubMark(h, 'size-3.5'), t.openSource],
                   ),
                 ],
               ),
@@ -258,10 +268,10 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
           flow(h),
         ],
       ),
-      h.div([h.Class('mt-8')], [counts(h)]),
+      h.div([h.Class('mt-8')], [counts(l, h)]),
       block(
-        'Something is going wrong',
-        'Start from the symptom you see in the game.',
+        t.trouble.title,
+        t.trouble.lead,
         grid(
           'sm:grid-cols-2 lg:grid-cols-3',
           trouble.map((target) => troubleLink(target, h)),
@@ -270,57 +280,54 @@ export const homeView = (page: Page, model: Model, h: H): Html => {
         h,
       ),
       block(
-        'Guided paths',
-        'A reading order from lesson to idea to recipe.',
+        t.guided.title,
+        t.guided.lead,
         grid(
           'md:grid-cols-2 md:[&>:last-child:nth-child(odd)]:col-span-2',
-          PATHS.filter((path) => stepsOf(path).length > 0).map((path) => pathCard(path, model, h)),
+          PATHS.filter((path) => stepsOf(model.locale, path).length > 0).map((path) =>
+            pathCard(path, model, h),
+          ),
           h,
         ),
         h,
       ),
       block(
-        'Browse by kind',
-        'Six kinds of page, each for a different need.',
+        t.kinds.title,
+        t.kinds.lead,
         grid(
           'sm:grid-cols-2 xl:grid-cols-3',
           (['play', 'tutorials', 'guides', 'explanation', 'patterns', 'reference'] as const).map(
-            (section) => kind(section, h),
+            (section) => kind(l, section, h),
           ),
           h,
         ),
         h,
       ),
-      block(
-        'Open source',
-        'The game, the Simulation, and this wiki share one repository.',
-        projectCard(model.project, h),
-        h,
-      ),
+      block(t.open.title, t.open.lead, projectCard(model.project, h), h),
       h.p(
         [h.Class('mt-8 max-w-3xl text-[13px] leading-relaxed text-muted-foreground')],
         [
-          'Want the rules, formulas, and open questions behind the game? Read the ',
+          t.footer.before,
           h.a(
             [h.Href('/design'), h.Class('text-foreground underline underline-offset-4')],
-            ['Design'],
+            [t.footer.design],
           ),
-          ' document, or see ',
+          t.footer.afterDesign,
           h.a(
             [h.Href('/about/changelog'), h.Class('text-foreground underline underline-offset-4')],
-            ['what changed this week'],
+            [t.footer.changelog],
           ),
-          '. Quorum is a game, and it simplifies real systems on purpose. ',
+          t.footer.afterChangelog,
           h.a(
             [h.Href('/about/disclaimer'), h.Class('text-foreground underline underline-offset-4')],
-            ['Read what that means'],
+            [t.footer.disclaimer],
           ),
-          ' before you act on what you learn here. If the game helps you, ',
+          t.footer.afterDisclaimer,
           h.a(
             [h.Href(KOFI), h.Class('text-foreground underline underline-offset-4')],
-            ['support it on Ko-fi'],
+            [t.footer.kofi],
           ),
-          '.',
+          t.footer.end,
         ],
       ),
     ],

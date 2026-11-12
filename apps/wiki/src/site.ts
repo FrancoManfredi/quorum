@@ -7,8 +7,5 @@ export const REPOSITORY = 'https://github.com/elianiva/quorum'
 export const REPOSITORY_API = 'https://api.github.com/repos/elianiva/quorum'
 export const KOFI = 'https://ko-fi.com/elianiva'
 
-export const OG_IMAGE_ALT =
-  'The Quorum Wiki card: how every Component works, and why your Design breaks.'
-
 /** A link to a file in the repository, for "Edit on GitHub" and GDD sources. */
 export const editUrl = (file: string): string => `${REPOSITORY}/edit/main/${file}`

@@ -3,8 +3,9 @@ import { Command, type Update } from 'foldkit'
 import { defineView } from 'foldkit/submodel'
 import { defineMessageUnion } from 'foldkit/message'
 import { cn } from 'cn'
-import { ERAS } from '@quorum/simulation/catalog'
 import { FIGURE } from '@quorum/ui/game/bits'
+import { langOf } from '../i18n/lang.ts'
+import type { Locale } from '../i18n/locale.ts'
 
 /* The spoiler filter: the last Era the reader reached. Pages about later Eras fold. Kept in the browser. */
 
@@ -55,74 +56,75 @@ export const hides = (model: Model, era: number | null): boolean =>
   era !== null && model.era !== ALL_ERAS && era > model.era
 
 /** The control at the foot of the sidebar: "All", then one step per Era, filled up to the Era reached. */
-export const view = defineView<Model, Message>((model, h) => {
-  const all = model.era === ALL_ERAS
-  const reached = all ? 'All Eras show' : `Hiding after ${ERAS[model.era]?.name ?? ''}`
-  const step = 'h-7 min-w-0 flex-1 cursor-pointer rounded-md text-[12px] transition-colors'
-  return h.div(
-    [h.Class('border-t border-border pt-3')],
-    [
-      h.div(
-        [h.Class('flex items-baseline justify-between gap-2')],
-        [
-          h.span([h.Class('text-[12px] font-semibold text-foreground')], ['Spoilers']),
-          h.span([h.Class('truncate text-[12px] text-muted-foreground')], [reached]),
-        ],
-      ),
-      h.div(
-        [
-          h.Role('group'),
-          h.AriaLabel('Hide content after the Era you reached'),
-          h.Class('mt-2 flex gap-1'),
-        ],
-        [
-          h.button(
-            [
-              h.Type('button'),
-              h.AriaPressed(all ? 'true' : 'false'),
-              h.Title('Show every Era'),
-              h.OnClick(Message.Chosen({ era: ALL_ERAS })),
-              h.Class(
-                cn(
-                  step,
-                  'max-w-9 flex-[1.4]',
-                  all
-                    ? 'bg-foreground font-medium text-background'
-                    : 'border border-border text-muted-foreground hover:bg-muted hover:text-foreground',
-                ),
-              ),
-            ],
-            ['All'],
-          ),
-          ...ERAS.map((era, index) =>
+export const view = defineView<Model, Message, Readonly<{ locale: Locale }>>(
+  (model, { locale }, h) => {
+    const l = langOf(locale)
+    const t = l.t.spoilers
+    const ERAS = l.cat.ERAS
+    const all = model.era === ALL_ERAS
+    const reached = all ? t.allShow : t.hidingAfter(ERAS[model.era]?.name ?? '')
+    const step = 'h-7 min-w-0 flex-1 cursor-pointer rounded-md text-[12px] transition-colors'
+    return h.div(
+      [h.Class('border-t border-border pt-3')],
+      [
+        h.div(
+          [h.Class('flex items-baseline justify-between gap-2')],
+          [
+            h.span([h.Class('text-[12px] font-semibold text-foreground')], [t.title]),
+            h.span([h.Class('truncate text-[12px] text-muted-foreground')], [reached]),
+          ],
+        ),
+        h.div(
+          [h.Role('group'), h.AriaLabel(t.groupLabel), h.Class('mt-2 flex gap-1')],
+          [
             h.button(
               [
-                h.Key(era.name),
                 h.Type('button'),
-                h.AriaPressed(model.era === index ? 'true' : 'false'),
-                h.AriaLabel(`Hide after ${era.name}`),
-                h.Title(`Up to ${era.name}`),
-                h.OnClick(Message.Chosen({ era: index })),
+                h.AriaPressed(all ? 'true' : 'false'),
+                h.Title(t.showEvery),
+                h.OnClick(Message.Chosen({ era: ALL_ERAS })),
                 h.Class(
                   cn(
                     step,
-                    FIGURE,
-                    all || index <= model.era
-                      ? cn(
-                          'text-foreground',
-                          model.era === index
-                            ? 'bg-foreground text-background'
-                            : 'bg-muted hover:bg-muted/70',
-                        )
-                      : 'border border-dashed border-border text-muted-foreground hover:bg-muted',
+                    'max-w-9 flex-[1.4]',
+                    all
+                      ? 'bg-foreground font-medium text-background'
+                      : 'border border-border text-muted-foreground hover:bg-muted hover:text-foreground',
                   ),
                 ),
               ],
-              [String(index)],
+              [t.all],
             ),
-          ),
-        ],
-      ),
-    ],
-  )
-})
+            ...ERAS.map((era, index) =>
+              h.button(
+                [
+                  h.Key(era.name),
+                  h.Type('button'),
+                  h.AriaPressed(model.era === index ? 'true' : 'false'),
+                  h.AriaLabel(t.hideAfter(era.name)),
+                  h.Title(t.upTo(era.name)),
+                  h.OnClick(Message.Chosen({ era: index })),
+                  h.Class(
+                    cn(
+                      step,
+                      FIGURE,
+                      all || index <= model.era
+                        ? cn(
+                            'text-foreground',
+                            model.era === index
+                              ? 'bg-foreground text-background'
+                              : 'bg-muted hover:bg-muted/70',
+                          )
+                        : 'border border-dashed border-border text-muted-foreground hover:bg-muted',
+                    ),
+                  ),
+                ],
+                [String(index)],
+              ),
+            ),
+          ],
+        ),
+      ],
+    )
+  },
+)

@@ -2,10 +2,12 @@ import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Mount } from 'foldkit'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { COMPONENTS, INCIDENTS, RESEARCH, SIZES } from '@quorum/simulation/catalog'
+import { SIZES } from '@quorum/simulation/catalog'
 import { solveFlow } from '@quorum/simulation/solve'
 import { heightOf } from '@quorum/ui/board/geometry'
 import { compact, money, ms } from '@quorum/ui/game/format'
+import { localeOf } from '../i18n/builder.ts'
+import { langOf, type Lang } from '../i18n/lang.ts'
 import { Message } from '../main.ts'
 import { DESIGNS, DESIGN_IDS } from '../patterns/designs/index.ts'
 import type { Setting } from '../patterns/design.ts'
@@ -29,11 +31,11 @@ const defineDesignMounted = () =>
 
 let designMounted: ReturnType<typeof defineDesignMounted> | null = null
 
-const valueOf = (setting: Setting): string => {
+const valueOf = (l: Lang, setting: Setting): string => {
   const { field, value } = setting
   if (field === 'size' && typeof value === 'number') return SIZES[value]?.name ?? String(value)
-  if (value === true) return 'On'
-  if (value === false) return 'Off'
+  if (value === true) return l.t.islands.design.on
+  if (value === false) return l.t.islands.design.off
   if (field === 'timeout' && typeof value === 'number') return `${value} s`
   return String(value)
 }
@@ -50,6 +52,9 @@ const heightFor = (id: string): string => {
 export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
   const design = DESIGNS[id]
   if (!design) return h.empty
+  const l = langOf(localeOf(h))
+  const t = l.t.islands.design
+  const { COMPONENTS, INCIDENTS, RESEARCH } = l.cat
   const ledger = solveFlow(design.game)
   const rows = [
     ...design.nodes.flatMap((node) =>
@@ -69,7 +74,10 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
         where: h.span(
           [],
           [
-            `Link ${COMPONENTS[design.nodes.find((n) => n.id === link.from)?.type ?? 'users'].name} → ${COMPONENTS[design.nodes.find((n) => n.id === link.to)?.type ?? 'users'].name}`,
+            t.link(
+              COMPONENTS[design.nodes.find((n) => n.id === link.from)?.type ?? 'users'].name,
+              COMPONENTS[design.nodes.find((n) => n.id === link.to)?.type ?? 'users'].name,
+            ),
           ],
         ),
         unlock: undefined,
@@ -92,23 +100,27 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
       h.div(
         [
           h.Role('img'),
-          h.AriaLabel(
-            `The Design: ${design.nodes.map((node) => COMPONENTS[node.type].name).join(', ')}`,
-          ),
+          h.AriaLabel(t.aria(design.nodes.map((node) => COMPONENTS[node.type].name).join(', '))),
           h.Class('relative w-full cursor-grab overflow-hidden rounded-lg border border-border'),
           h.Style({ height: heightFor(id) }),
           h.OnMount((designMounted ??= defineDesignMounted())({ id })),
         ],
         [],
       ),
-      h.p(
-        [h.Class('mt-1.5 text-[12px] text-muted-foreground/80')],
-        ['Drag to pan. Hold Ctrl or Cmd and scroll to zoom.'],
-      ),
+      h.p([h.Class('mt-1.5 text-[12px] text-muted-foreground/80')], [t.hint]),
       h.figcaption(
         [h.Class('mt-2 text-[12px] text-muted-foreground')],
         [
-          `At ${compact(design.users)} Users${design.incident ? ` and a running ${INCIDENTS[design.incident.kind].name} incident` : ''} the Simulation solves this Design to Apdex ${ledger.apdex.toFixed(2)}, p99 ${ms(ledger.p99)}, ${(ledger.errorShare * 100).toFixed(1)}% errors and ${money(ledger.burn)}/s Burn${ledger.egress >= 0.005 ? `, of which ${money(ledger.egress)}/s is egress` : ''}.${design.note ? ` ${design.note}` : ''}`,
+          t.caption(
+            compact(design.users),
+            design.incident ? INCIDENTS[design.incident.kind].name : null,
+            ledger.apdex.toFixed(2),
+            ms(ledger.p99),
+            (ledger.errorShare * 100).toFixed(1),
+            money(ledger.burn),
+            ledger.egress >= 0.005 ? money(ledger.egress) : null,
+            design.note ?? null,
+          ),
         ],
       ),
       rows.length > 0
@@ -123,7 +135,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
                     [
                       h.tr(
                         [],
-                        ['Where', 'Setting', 'Value', 'Why'].map((name) =>
+                        [t.where, t.setting, t.value, t.why].map((name) =>
                           h.th(
                             [
                               h.Class(
@@ -146,7 +158,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
                           h.td([h.Class('px-3 py-2 align-top')], [row.setting.label]),
                           h.td(
                             [h.Class('px-3 py-2 align-top whitespace-nowrap font-mono')],
-                            [valueOf(row.setting)],
+                            [valueOf(l, row.setting)],
                           ),
                           h.td(
                             [h.Class('px-3 py-2 align-top text-muted-foreground')],
@@ -165,7 +177,7 @@ export const designView = (id: string, h: HtmlBuilder<Message>): Html => {
         ? h.p(
             [h.Class('mt-2 text-[12px] text-muted-foreground')],
             [
-              'Research this Design needs: ',
+              t.needs,
               ...needs.flatMap((research, index) => [
                 ...(index > 0 ? [', '] : []),
                 h.a(

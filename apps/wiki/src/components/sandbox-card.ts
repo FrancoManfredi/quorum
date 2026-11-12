@@ -1,9 +1,11 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 
 import { ArrowRight } from 'lucide'
-import { GUIDED, type SandboxId } from '@quorum/simulation/sandbox'
+import type { SandboxId } from '@quorum/simulation/sandbox'
 
 import { icon } from '@quorum/ui/primitives/icon'
+import { localeOf } from '../i18n/builder.ts'
+import { langOf } from '../i18n/lang.ts'
 import type { Message, Model } from '../main.ts'
 
 /* A guided Sandbox placed in a page. */
@@ -14,7 +16,8 @@ export const sandboxView = (
   _index: number,
   h: HtmlBuilder<Message>,
 ): Html => {
-  const def = GUIDED[id]
+  const l = langOf(localeOf(h))
+  const def = l.cat.GUIDED[id]
   return h.a(
     [
       h.Href(`/sandboxes/${id}`),
@@ -26,7 +29,7 @@ export const sandboxView = (
       h.span(
         [h.Class('min-w-0 flex-1')],
         [
-          h.span([h.Class('text-[12px] text-muted-foreground')], ['Sandbox']),
+          h.span([h.Class('text-[12px] text-muted-foreground')], [l.t.islands.sandbox]),
           h.span([h.Class('mt-1 block text-[16px] font-semibold tracking-tight')], [def.name]),
           h.span(
             [h.Class('block text-[13px] text-muted-foreground')],

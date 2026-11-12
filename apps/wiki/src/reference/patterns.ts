@@ -1,117 +1,100 @@
 import { quadrantBadge } from '../components/quadrant.ts'
+import type { Messages } from '../i18n/messages.ts'
 import type { Page } from '../page.ts'
 import { navOf } from '../pages.ts'
-import { cardGrid, headingsFor, hubCard, link, page, paragraph, section } from './shared.ts'
+import {
+  cardGrid,
+  headingsFor,
+  hubCard,
+  link,
+  page,
+  paragraph,
+  section,
+  titleOf,
+  type Lang,
+} from './shared.ts'
 
 /* The Patterns hub: every page of the section, under its group, as cards. The pages themselves
    are authored (content/patterns); this page only lists them, so a new page appears here by its
    `group` and `order`. */
 
-/** The groups in reading order, with what a reader comes to each for. */
-export const PATTERN_GROUPS: ReadonlyArray<Readonly<{ name: string; blurb: string }>> = [
-  {
-    name: 'Foundations',
-    blurb: 'The vocabulary the rest leans on: latency, availability, CAP and the tail.',
-  },
-  {
-    name: 'Scaling steps',
-    blurb: 'Build a system one step at a time, from a single box to several regions.',
-  },
-  { name: 'Scaling reads and compute', blurb: 'Caches, replicas, load balancers and autoscaling.' },
-  {
-    name: 'Scaling data',
-    blurb: 'Sharding, replication, quorums and the stores that fit each shape.',
-  },
-  { name: 'Messaging and async', blurb: 'Queues, streams and the guarantees between them.' },
-  { name: 'Resilience', blurb: 'Timeouts, retries, breakers and the other ways to fail small.' },
-  { name: 'Deploys and change', blurb: 'Ship and migrate without taking the system down.' },
-  {
-    name: 'Operate and observe',
-    blurb: 'See the system, set targets, and plan for the day it breaks.',
-  },
-  {
-    name: 'Security and edge',
-    blurb: 'The front door, encryption, secrets and where data may live.',
-  },
-  { name: 'Cost', blurb: 'Pay for what you use and know what each user costs.' },
-  {
-    name: 'Ran in production',
-    blurb: 'Shapes that real systems carried at scale, with the board that shows why.',
-  },
-  {
-    name: 'When it broke',
-    blurb: 'Outages that changed the design, and the board that shows the dependency.',
-  },
-  {
-    name: 'Outside the game',
-    blurb: 'Patterns Quorum cannot build, with references worth reading.',
-  },
+export type GroupName = keyof Messages['groups']
+
+/** The groups in reading order. A page names its group in English in its frontmatter, and the
+    name and the blurb of each, in the page's language, are interface copy (`t.groups`). */
+export const PATTERN_GROUPS: ReadonlyArray<GroupName> = [
+  'Foundations',
+  'Scaling steps',
+  'Scaling reads and compute',
+  'Scaling data',
+  'Messaging and async',
+  'Resilience',
+  'Deploys and change',
+  'Operate and observe',
+  'Security and edge',
+  'Cost',
+  'Ran in production',
+  'When it broke',
+  'Outside the game',
 ]
 
-const hub = page({
-  path: '/patterns',
-  title: 'Patterns',
-  summary:
-    'System design in small pieces: build a Design one step at a time, then look up the pattern behind each step.',
-  section: 'patterns',
-  order: 0,
-  aliases: ['system design', 'cheatsheet', 'architecture', 'design patterns', 'scaling'],
-  headings: headingsFor(PATTERN_GROUPS.map((group) => group.name)),
-  text: PATTERN_GROUPS.map((group) => `${group.name} ${group.blurb}`).join(' '),
-  body: (_model, h) => {
-    const pages: ReadonlyArray<Page> = navOf('patterns')
-    return h.div(
-      [h.Class('prose')],
-      [
-        paragraph(
-          'A cheatsheet for designing systems, in four parts that point at each other. The scaling steps add one piece at a time and say when to move. The patterns explain the idea behind each step, what it costs, and how to set it in the game. The production pages show a shape a real company ran at scale, and the failure pages show one that broke, with the incident running on the board. Both name the parts Quorum cannot model.',
-          h,
-        ),
-        h.p(
-          [],
+export const patternsPages = (l: Lang): ReadonlyArray<Page> => {
+  const t = l.t.reference.patterns
+  const groups = PATTERN_GROUPS.map((key) => ({ key, ...l.t.groups[key] }))
+  return [
+    page(l, {
+      path: '/patterns',
+      title: t.title,
+      summary: t.summary,
+      section: 'patterns',
+      order: 0,
+      aliases: t.aliases,
+      headings: headingsFor(groups.map((group) => titleOf(group.key, group.name))),
+      text: groups.map((group) => `${group.name} ${group.blurb}`).join(' '),
+      body: (_model, h) => {
+        const pages: ReadonlyArray<Page> = navOf(l.locale, 'patterns')
+        return h.div(
+          [h.Class('prose')],
           [
-            'New here? Start at ',
-            link('/patterns/one-box', 'One box', h),
-            ' and work up, or jump to a pattern when a gauge on your Board turns red. Most pages draw a real Design on the game’s own board and explain every setting it uses.',
-          ],
-        ),
-        ...PATTERN_GROUPS.flatMap((group) => {
-          const members = pages.filter((entry) => entry.group === group.name)
-          return members.length === 0
-            ? []
-            : [
-                section(
-                  group.name,
-                  [
-                    paragraph(group.blurb, h),
-                    cardGrid(
-                      members.map((entry) =>
-                        hubCard(
-                          entry,
-                          group.name === 'Scaling steps'
-                            ? h.span(
-                                [
-                                  h.Class(
-                                    'flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[13px] font-semibold tabular-nums text-muted-foreground',
-                                  ),
-                                ],
-                                [String(entry.order - 100)],
-                              )
-                            : quadrantBadge('patterns', 'size-9 shrink-0', h),
-                          '',
+            paragraph(t.intro, h),
+            h.p([], [t.newHere, link('/patterns/one-box', t.oneBox, h), t.newHereAfter]),
+            ...groups.flatMap((group) => {
+              const members = pages.filter((entry) => entry.group === group.key)
+              return members.length === 0
+                ? []
+                : [
+                    section(
+                      titleOf(group.key, group.name),
+                      [
+                        paragraph(group.blurb, h),
+                        cardGrid(
+                          members.map((entry) =>
+                            hubCard(
+                              entry,
+                              group.key === 'Scaling steps'
+                                ? h.span(
+                                    [
+                                      h.Class(
+                                        'flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-[13px] font-semibold tabular-nums text-muted-foreground',
+                                      ),
+                                    ],
+                                    [String(entry.order - 100)],
+                                  )
+                                : quadrantBadge('patterns', 'size-9 shrink-0', h),
+                              '',
+                              h,
+                            ),
+                          ),
                           h,
                         ),
-                      ),
+                      ],
                       h,
                     ),
-                  ],
-                  h,
-                ),
-              ]
-        }),
-      ],
-    )
-  },
-})
-
-export const patternsPages: ReadonlyArray<Page> = [hub]
+                  ]
+            }),
+          ],
+        )
+      },
+    }),
+  ]
+}

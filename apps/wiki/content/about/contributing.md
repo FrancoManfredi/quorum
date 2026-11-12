@@ -15,6 +15,8 @@ The wiki has two sources:
   see the [changelog](/about/changelog) for what moved.
 - **Text** is written by hand in Markdown, in `apps/wiki/content` in the
   [Quorum repository](https://github.com/elianiva/quorum).
+  Spanish text lives in `apps/wiki/content-es`, with the same file paths. A Spanish file keeps the
+  headings, links and directives of the English one and translates only the words.
 
 ## Send a fix
 

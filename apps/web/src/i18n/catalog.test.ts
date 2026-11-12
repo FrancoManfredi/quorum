@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, test } from 'vitest'
 import { inertHtml } from 'foldkit/html'
 import { CHALLENGES } from '@quorum/simulation/challenges'
 import { GLOSSARY, RESEARCH } from '@quorum/simulation/catalog'
+import { glossaryUrl } from '../platform/analytics.ts'
 import { localizeBuilder } from './builder.ts'
 import { copy, copyIn, loadLocale } from './messages.ts'
 import { supportedLocales } from './index.ts'
@@ -42,5 +43,14 @@ describe('typed copy', () => {
     expect(copyIn('en').hud.roundAtUsers('Seed', '5.00k')).toBe('Seed round at 5.00k users')
     expect(copyIn('fr').hud.roundAtUsers('Seed', '5.00k')).toContain('5.00k')
     expect(copyIn('zh-CN').hud.roundAtUsers('Seed', '5.00k')).toContain('5.00k')
+  })
+})
+
+describe('wiki links', () => {
+  test('a Spanish game opens the Spanish glossary page, and every other language the English one', () => {
+    expect(glossaryUrl('apdex', 'es')).toBe('https://wiki.playquorum.dev/es/glossary/apdex')
+    expect(glossaryUrl('apdex', 'en')).toBe('https://wiki.playquorum.dev/glossary/apdex')
+    expect(glossaryUrl('apdex', 'fr')).toBe('https://wiki.playquorum.dev/glossary/apdex')
+    expect(glossaryUrl('apdex')).toBe('https://wiki.playquorum.dev/glossary/apdex')
   })
 })

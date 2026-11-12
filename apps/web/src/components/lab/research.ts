@@ -1,4 +1,4 @@
-import { copy, insightName, localized, type Messages } from '@/i18n/messages.ts'
+import { copy, insightName, localeOf, localized, type Messages } from '@/i18n/messages.ts'
 import {
   ResearchMessage,
   SHEET_DEFAULT,
@@ -962,7 +962,7 @@ const terms = (entry: ResearchDef, h: HtmlBuilder<Message>): Html => {
           h.a(
             [
               h.Key(term.id),
-              h.Href(glossaryUrl(term.id)),
+              h.Href(glossaryUrl(term.id, localeOf(h))),
               h.Target('_blank'),
               h.Rel('noreferrer noopener'),
               h.Title(t.research.glossary(t.catalog.glossary[term.id]?.term ?? term.term)),

@@ -1,10 +1,6 @@
 import type { Html } from 'foldkit/html'
 import {
   ERAS,
-  INCIDENTS,
-  KINDS,
-  RUNTIMES,
-  VENTURES,
   VENTURE_IDS,
   type RequestKind,
   type VentureDef,
@@ -26,6 +22,7 @@ import {
   section,
   table,
   type H,
+  type Lang,
 } from './shared.ts'
 
 /* The Ventures (13 "Ventures"): the traffic each one runs, when it is busy, and what it starts with. */
@@ -42,135 +39,29 @@ const trafficOf = (def: VentureDef): Partial<Record<RequestKind, number>> => {
 }
 
 /** The kinds a reader should know first: the three largest shares. */
-const busiest = (def: VentureDef): string =>
+const busiest = (l: Lang, def: VentureDef): string =>
   (Object.entries(trafficOf(def)) as Array<[RequestKind, number]>)
     .slice(0, 3)
-    .map(([kind, share]) => `${KINDS[kind].label} ${percent(share)}`)
+    .map(([kind, share]) => `${l.cat.KINDS[kind].label} ${percent(share)}`)
     .join(' · ')
 
 const hour = (value: number): string => `${String(value).padStart(2, '0')}:00`
 
 const venturePath = (id: VentureId): string => `/ventures#${id}`
 
-const ventureName = (id: VentureId, h: H): Html => link(venturePath(id), VENTURES[id].name, h)
+const ventureName = (l: Lang, id: VentureId, h: H): Html =>
+  link(venturePath(id), l.cat.VENTURES[id].name, h)
 
-const startsWith = (def: VentureDef, h: H): ReadonlyArray<Html> => [
+const startsWith = (l: Lang, def: VentureDef, h: H): ReadonlyArray<Html> => [
   ...(def.start.runtime === null
     ? []
-    : [link(runtimePath(def.start.runtime), RUNTIMES[def.start.runtime].name, h)]),
-  ...def.start.researched.map((research) => researchLink(research, h)),
+    : [link(runtimePath(def.start.runtime), l.cat.RUNTIMES[def.start.runtime].name, h)]),
+  ...def.start.researched.map((research) => researchLink(l, research, h)),
 ]
 
-const ventures = page({
-  path: '/ventures',
-  title: 'Ventures',
-  summary:
-    'The kind of company you found: the traffic it runs, when it is busy, and the rule that makes it hard.',
-  order: 10,
-  aliases: ['venture', 'startup', 'industry', 'founding', 'traffic mix', 'b2b saas', 'fintech'],
-  headings: [
-    ...headingsFor(['Traffic', 'When it is busy', 'Starting out', 'Every Venture']),
-    ...VENTURE_IDS.map((id) => ({ id, text: VENTURES[id].name, level: 3 as const })),
-  ],
-  text: VENTURE_IDS.map((id) => `${VENTURES[id].name} ${VENTURES[id].summary}`).join(' '),
-  body: (_model, h) =>
-    h.div(
-      [h.Class('prose')],
-      [
-        paragraph(
-          'Every Venture is open at founding, and each one changes what your users ask for, when they ask for it, and the rule the Company cannot break. B2B SaaS is the default.',
-          h,
-        ),
-        section(
-          'Traffic',
-          [
-            paragraph(
-              'A Venture sets the share of every request kind its users send. The share is its own, not a nudge to the Era’s: a media company sends mostly video, and a payments company sends mostly checkouts and writes. An Era masks the profile to the kinds it serves, so every Venture still opens on pages and reads in the Garage.',
-              h,
-            ),
-            table(
-              ['Venture', 'Where its traffic goes', 'Busiest kinds', 'Legacy ×'],
-              VENTURE_IDS.map((id) => ({
-                key: id,
-                cells: [
-                  ventureName(id, h),
-                  mixBar(trafficOf(VENTURES[id]), h, false),
-                  busiest(VENTURES[id]),
-                  `×${VENTURES[id].legacy}`,
-                ],
-              })),
-              h,
-              [3],
-            ),
-          ],
-          h,
-        ),
-        section(
-          'When it is busy',
-          [
-            paragraph(
-              'A Venture sets the hour demand peaks, how far it swings around the mean, and what a weekend does to it. Business-hours products go quiet at the weekend; consumer products do not.',
-              h,
-            ),
-            table(
-              ['Venture', 'Peak', 'Swing', 'Weekend'],
-              VENTURE_IDS.map((id) => {
-                const def = VENTURES[id]
-                return {
-                  key: id,
-                  cells: [
-                    ventureName(id, h),
-                    hour(def.peak),
-                    `±${Math.round(def.amplitude * 100)}%`,
-                    `×${def.weekend}`,
-                  ],
-                }
-              }),
-              h,
-              [1, 2, 3],
-            ),
-          ],
-          h,
-        ),
-        section(
-          'Starting out',
-          [
-            paragraph(
-              'Every Venture starts in the Garage, but not with the same Cash, and a few bring a Stack or Research of its own.',
-              h,
-            ),
-            table(
-              ['Venture', 'Cash', 'Market ×', 'Stack and Research'],
-              VENTURE_IDS.map((id) => {
-                const def = VENTURES[id]
-                return {
-                  key: id,
-                  cells: [
-                    ventureName(id, h),
-                    money(def.start.cash),
-                    `×${def.market}`,
-                    linkList(startsWith(def, h), h),
-                  ],
-                }
-              }),
-              h,
-              [1, 2],
-            ),
-          ],
-          h,
-        ),
-        section(
-          'Every Venture',
-          VENTURE_IDS.map((id) => ventureBlock(id, h)),
-          h,
-        ),
-      ],
-    ),
-  related: ['/prestige', '/eras'],
-})
-
-const ventureBlock = (id: VentureId, h: H): Html => {
-  const def = VENTURES[id]
+const ventureBlock = (l: Lang, id: VentureId, h: H): Html => {
+  const t = l.t.reference.ventures
+  const def = l.cat.VENTURES[id]
   return h.section(
     [h.Key(id)],
     [
@@ -186,18 +77,15 @@ const ventureBlock = (id: VentureId, h: H): Html => {
           ...(def.signature === null
             ? []
             : [
-                h.dt(
-                  [h.Key('incident-t'), h.Class('text-muted-foreground')],
-                  ['Signature incident'],
-                ),
+                h.dt([h.Key('incident-t'), h.Class('text-muted-foreground')], [t.signature]),
                 h.dd(
                   [h.Key('incident-d'), h.Class('m-0')],
-                  [link(incidentPath(def.signature), INCIDENTS[def.signature].name, h)],
+                  [link(incidentPath(def.signature), l.cat.INCIDENTS[def.signature].name, h)],
                 ),
               ]),
-          h.dt([h.Key('market-t'), h.Class('text-muted-foreground')], ['Market ×']),
+          h.dt([h.Key('market-t'), h.Class('text-muted-foreground')], [t.market]),
           h.dd([h.Key('market-d'), h.Class('m-0')], [`×${def.market}`]),
-          h.dt([h.Key('legacy-t'), h.Class('text-muted-foreground')], ['Legacy']),
+          h.dt([h.Key('legacy-t'), h.Class('text-muted-foreground')], [t.legacy]),
           h.dd([h.Key('legacy-d'), h.Class('m-0')], [`×${def.legacy}`]),
         ],
       ),
@@ -205,4 +93,108 @@ const ventureBlock = (id: VentureId, h: H): Html => {
   )
 }
 
-export const venturePages: ReadonlyArray<Page> = [ventures]
+export const venturePages = (l: Lang): ReadonlyArray<Page> => {
+  const t = l.t.reference.ventures
+  const VENTURES = l.cat.VENTURES
+  return [
+    page(l, {
+      path: '/ventures',
+      title: t.title,
+      summary: t.summary,
+      order: 10,
+      aliases: t.aliases,
+      headings: [
+        ...headingsFor([
+          l.title('traffic'),
+          l.title('whenBusy'),
+          l.title('startingOut'),
+          l.title('everyVenture'),
+        ]),
+        ...VENTURE_IDS.map((id) => ({ id, text: VENTURES[id].name, level: 3 as const })),
+      ],
+      text: VENTURE_IDS.map((id) => `${VENTURES[id].name} ${VENTURES[id].summary}`).join(' '),
+      body: (_model, h) =>
+        h.div(
+          [h.Class('prose')],
+          [
+            paragraph(t.intro, h),
+            section(
+              l.title('traffic'),
+              [
+                paragraph(t.trafficIntro, h),
+                table(
+                  t.trafficColumns,
+                  VENTURE_IDS.map((id) => ({
+                    key: id,
+                    cells: [
+                      ventureName(l, id, h),
+                      mixBar(trafficOf(VENTURES[id]), h, false),
+                      busiest(l, VENTURES[id]),
+                      `×${VENTURES[id].legacy}`,
+                    ],
+                  })),
+                  h,
+                  [3],
+                ),
+              ],
+              h,
+            ),
+            section(
+              l.title('whenBusy'),
+              [
+                paragraph(t.busyIntro, h),
+                table(
+                  t.busyColumns,
+                  VENTURE_IDS.map((id) => {
+                    const def = VENTURES[id]
+                    return {
+                      key: id,
+                      cells: [
+                        ventureName(l, id, h),
+                        hour(def.peak),
+                        `±${Math.round(def.amplitude * 100)}%`,
+                        `×${def.weekend}`,
+                      ],
+                    }
+                  }),
+                  h,
+                  [1, 2, 3],
+                ),
+              ],
+              h,
+            ),
+            section(
+              l.title('startingOut'),
+              [
+                paragraph(t.startIntro, h),
+                table(
+                  t.startColumns,
+                  VENTURE_IDS.map((id) => {
+                    const def = VENTURES[id]
+                    return {
+                      key: id,
+                      cells: [
+                        ventureName(l, id, h),
+                        money(def.start.cash),
+                        `×${def.market}`,
+                        linkList(startsWith(l, def, h), h),
+                      ],
+                    }
+                  }),
+                  h,
+                  [1, 2],
+                ),
+              ],
+              h,
+            ),
+            section(
+              l.title('everyVenture'),
+              VENTURE_IDS.map((id) => ventureBlock(l, id, h)),
+              h,
+            ),
+          ],
+        ),
+      related: ['/prestige', '/eras'],
+    }),
+  ]
+}

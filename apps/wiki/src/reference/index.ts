@@ -1,3 +1,4 @@
+import type { Lang } from '../i18n/lang.ts'
 import type { Page } from '../page.ts'
 import { componentPages } from './components.ts'
 import { eraPages } from './eras.ts'
@@ -11,14 +12,14 @@ import { venturePages } from './ventures.ts'
 
 /* Reference pages, generated from the catalog. */
 
-export const referencePages: ReadonlyArray<Page> = [
-  ...componentPages,
-  ...researchPages,
-  ...eraPages,
-  ...stackPages,
-  ...incidentPages,
-  ...glossaryPages,
-  ...patternsPages,
-  ...systemPages,
-  ...venturePages,
+export const referencePages = (l: Lang): ReadonlyArray<Page> => [
+  ...componentPages(l),
+  ...researchPages(l),
+  ...eraPages(l),
+  ...stackPages(l),
+  ...incidentPages(l),
+  ...glossaryPages(l),
+  ...patternsPages(l),
+  ...systemPages(l),
+  ...venturePages(l),
 ]

@@ -1,15 +1,18 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { cn } from 'cn'
-import { ArrowUpRight, Menu, X } from 'lucide'
+import { ArrowUpRight, Languages, Menu, X } from 'lucide'
 import { githubMark } from '@quorum/ui/primitives/github'
 import { icon } from '@quorum/ui/primitives/icon'
+import { rootBuilder } from '../i18n/builder.ts'
+import { langOf, type Lang } from '../i18n/lang.ts'
+import { LOCALES, LOCALE_NAMES, LOCALE_TAGS, withLocale } from '../i18n/locale.ts'
 import { Message, type Model } from '../main.ts'
-import { SECTION_ORDER, navOf, pageAt } from '../pages.ts'
+import { SECTION_ORDER, navOf, pageIn } from '../pages.ts'
 import { QUADRANTS } from './quadrant.ts'
 import { GAME_ORIGIN, REPOSITORY } from '../site.ts'
 import * as Search from '../submodels/search.ts'
 
-/* The header bar: the wordmark, the search, the spoiler filter, the game version, and Play. */
+/* The header bar: the wordmark, the search, the language switcher, and Play. */
 
 type H = HtmlBuilder<Message>
 
@@ -37,8 +40,31 @@ export const mark = (h: H): Html =>
     ],
   )
 
-export const header = (model: Model, h: H): Html =>
-  h.header(
+/** The same page in the other language: a link, so the page loads whole in its language. */
+const switcher = (model: Model, l: Lang, h: H): Html => {
+  const other = LOCALES.find((locale) => locale !== model.locale) ?? model.locale
+  const name = LOCALE_NAMES[other]
+  const tag = LOCALE_TAGS[other].lang
+  return h.a(
+    [
+      h.Key('language'),
+      // The builder that points links into the page's language would point this one back.
+      rootBuilder(h).Href(withLocale(other, model.path)),
+      h.Attribute('hreflang', tag),
+      h.Attribute('lang', tag),
+      h.Title(l.t.header.switchTo(name)),
+      h.AriaLabel(l.t.header.switchTo(name)),
+      h.Class(
+        'flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-border px-2 text-[12px] font-medium text-muted-foreground hover:border-foreground/30 hover:text-foreground',
+      ),
+    ],
+    [icon(h, Languages, 'size-3.5'), h.span([], [tag.toUpperCase()])],
+  )
+}
+
+export const header = (model: Model, h: H): Html => {
+  const l = langOf(model.locale)
+  return h.header(
     [h.Class('sticky top-0 z-40 border-b border-border bg-background')],
     [
       h.div(
@@ -47,7 +73,7 @@ export const header = (model: Model, h: H): Html =>
           h.button(
             [
               h.Type('button'),
-              h.AriaLabel(model.menu ? 'Close the menu' : 'Open the menu'),
+              h.AriaLabel(model.menu ? l.t.header.closeMenu : l.t.header.openMenu),
               h.AriaExpanded(model.menu),
               h.Class(
                 '-ml-1 grid size-9 place-items-center rounded-md text-muted-foreground hover:text-foreground lg:hidden',
@@ -64,7 +90,10 @@ export const header = (model: Model, h: H): Html =>
                 [h.Class('hidden text-[15px] font-semibold tracking-tight min-[430px]:inline')],
                 ['Quorum'],
               ),
-              h.span([h.Class('hidden text-[15px] text-muted-foreground sm:inline')], ['Wiki']),
+              h.span(
+                [h.Class('hidden text-[15px] text-muted-foreground sm:inline')],
+                [l.t.header.wordmarkWiki],
+              ),
             ],
           ),
           h.submodel({
@@ -74,11 +103,12 @@ export const header = (model: Model, h: H): Html =>
             toParentMessage: (message) => Message.SearchChanged({ message }),
           }),
           h.div([h.Class('hidden flex-1 sm:block')], []),
+          switcher(model, l, h),
           h.a(
             [
               h.Href(REPOSITORY),
-              h.Title('Quorum on GitHub'),
-              h.AriaLabel('Quorum on GitHub'),
+              h.Title(l.t.header.github),
+              h.AriaLabel(l.t.header.github),
               h.Class(
                 'hidden h-8 w-8 shrink-0 place-items-center rounded-md border border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground sm:grid',
               ),
@@ -92,19 +122,20 @@ export const header = (model: Model, h: H): Html =>
                 'flex h-8 shrink-0 items-center gap-1 rounded-md bg-foreground px-3 text-[13px] font-medium text-background hover:opacity-90',
               ),
             ],
-            ['Play', icon(h, ArrowUpRight, 'size-3.5')],
+            [l.t.header.play, icon(h, ArrowUpRight, 'size-3.5')],
           ),
         ],
       ),
-      sections(model, h),
+      sections(model, l, h),
     ],
   )
+}
 
 /** The section bar: each kind of page links to its first page. The sidebar lists only the current one. */
-const sections = (model: Model, h: H): Html => {
-  const current = model.path === '/' ? null : (pageAt(model.path)?.section ?? null)
+const sections = (model: Model, l: Lang, h: H): Html => {
+  const current = model.path === '/' ? null : (pageIn(model.locale, model.path)?.section ?? null)
   return h.nav(
-    [h.AriaLabel('Sections')],
+    [h.AriaLabel(l.t.header.sections)],
     [
       h.div(
         [
@@ -113,7 +144,7 @@ const sections = (model: Model, h: H): Html => {
           ),
         ],
         SECTION_ORDER.flatMap((section) => {
-          const first = navOf(section)[0]
+          const first = navOf(model.locale, section)[0]
           if (!first) return []
           return [
             h.a(
@@ -130,7 +161,7 @@ const sections = (model: Model, h: H): Html => {
                   ),
                 ),
               ],
-              [icon(h, QUADRANTS[section].icon, 'size-4'), QUADRANTS[section].label],
+              [icon(h, QUADRANTS[section].icon, 'size-4'), l.t.quadrants[section].label],
             ),
           ]
         }),

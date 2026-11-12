@@ -5,6 +5,8 @@ import { FIGURE } from '@quorum/ui/game/bits'
 import { compact } from '@quorum/ui/game/format'
 import { githubMark } from '@quorum/ui/primitives/github'
 import { icon } from '@quorum/ui/primitives/icon'
+import { localeOf } from '../i18n/builder.ts'
+import { langOf } from '../i18n/lang.ts'
 import type { Message } from '../main.ts'
 import { REPOSITORY } from '../site.ts'
 import type * as Project from '../submodels/project.ts'
@@ -27,13 +29,14 @@ const cell = (value: string, label: string, h: H): Html =>
   )
 
 export const projectCard = (project: Project.Model, h: H): Html => {
+  const t = langOf(localeOf(h)).t.project
   const stats = project.stats
   const cells = stats
     ? [
-        { label: 'Stars', value: compact(stats.stars) },
-        { label: 'Forks', value: compact(stats.forks) },
-        { label: 'Contributors', value: compact(stats.contributors) },
-        { label: 'Open issues', value: compact(stats.issues) },
+        { label: t.stars, value: compact(stats.stars) },
+        { label: t.forks, value: compact(stats.forks) },
+        { label: t.contributors, value: compact(stats.contributors) },
+        { label: t.issues, value: compact(stats.issues) },
       ]
     : []
   return h.div(
@@ -63,7 +66,7 @@ export const projectCard = (project: Project.Model, h: H): Html => {
                   ),
                   h.p(
                     [h.Class('mt-1 max-w-sm text-[13px] leading-snug text-muted-foreground')],
-                    ['Read the code, report a bug, or send a fix.'],
+                    [t.blurb],
                   ),
                 ],
               ),
@@ -79,7 +82,7 @@ export const projectCard = (project: Project.Model, h: H): Html => {
                     'inline-flex h-9 items-center gap-2 rounded-md bg-foreground px-3 text-[13px] font-medium text-background hover:opacity-90',
                   ),
                 ],
-                [icon(h, Star, 'size-3.5'), 'Star on GitHub'],
+                [icon(h, Star, 'size-3.5'), t.star],
               ),
               h.a(
                 [
@@ -88,7 +91,7 @@ export const projectCard = (project: Project.Model, h: H): Html => {
                     'text-[13px] text-muted-foreground underline underline-offset-4 hover:text-foreground',
                   ),
                 ],
-                ['How to contribute'],
+                [t.contribute],
               ),
             ],
           ),
@@ -112,7 +115,7 @@ export const projectCard = (project: Project.Model, h: H): Html => {
             [stats?.license ?? 'GPL-3.0'],
           ),
           h.span([h.AriaHidden(true)], ['·']),
-          h.span([], [`${stats?.language ?? 'TypeScript'} source`]),
+          h.span([], [t.source(stats?.language ?? 'TypeScript')]),
         ],
       ),
     ],

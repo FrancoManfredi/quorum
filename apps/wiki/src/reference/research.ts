@@ -2,22 +2,15 @@ import type { Html } from 'foldkit/html'
 import { Maximize2, Minimize2, type IconNode } from 'lucide'
 import { cn } from 'cn'
 import {
-  COMPONENTS,
   COMPONENT_IDS,
-  FEATURES,
   INSIGHT_POOLS,
-  INCIDENTS,
-  POOLS,
-  RESEARCH_TRACKS,
-  RUNTIMES,
-  TASKS,
   researchList,
   type ResearchDef,
 } from '@quorum/simulation/catalog'
 import { BY_RESEARCH } from '@quorum/simulation/term-links'
 import { EYEBROW, FIGURE, SCROLL, insightChip } from '@quorum/ui/game/bits'
 import { compact } from '@quorum/ui/game/format'
-import { POOL_ICONS, poolColor, poolName, recipeOf } from '@quorum/ui/game/pools'
+import { POOL_ICONS, poolColor, recipeOf } from '@quorum/ui/game/pools'
 import { NODE_SIZE, researchLayout } from '@quorum/ui/game/research-layouts'
 import { TRACK_ICONS, researchMark } from '@quorum/ui/game/research-marks'
 import { icon } from '@quorum/ui/primitives/icon'
@@ -37,76 +30,93 @@ import {
   section,
   termsSection,
   type H,
+  type Lang,
 } from './shared.ts'
 import { componentPath } from './components.ts'
 
 /* One page per Research item, and the Research tree as the hub. Layout and marks are the game's. */
 
-const trackLabel = (track: ResearchDef['track']): string =>
-  RESEARCH_TRACKS.find((entry) => entry.key === track)?.label ?? track
+const trackLabel = (l: Lang, track: ResearchDef['track']): string =>
+  l.cat.RESEARCH_TRACKS.find((entry) => entry.key === track)?.label ?? track
 
-const recipe = (entry: ResearchDef, h: H): Html =>
+/** An Insight pool's name in the page's language, such as "Checkout Insight". */
+const poolLabel = (l: Lang, pool: (typeof INSIGHT_POOLS)[number]): string =>
+  l.t.reference.research.insightName(l.cat.POOLS[pool].label)
+
+const chip = (l: Lang, pool: (typeof INSIGHT_POOLS)[number], figure: string, h: H): Html =>
+  insightChip(pool, figure, h, false, 'plain', poolLabel(l, pool))
+
+const recipe = (l: Lang, entry: ResearchDef, h: H): Html =>
   h.span(
     [h.Class('inline-flex flex-wrap items-center justify-end gap-2')],
-    recipeOf(entry.id).map(([pool, cost]) => insightChip(pool, compact(cost), h)),
+    recipeOf(entry.id).map(([pool, cost]) => chip(l, pool, compact(cost), h)),
   )
 
-const unlocksOf = (entry: ResearchDef): ReadonlyArray<Readonly<{ path: string; text: string }>> => [
-  ...COMPONENT_IDS.filter((id) => COMPONENTS[id].unlock === entry.id).map((id) => ({
+const unlocksOf = (
+  l: Lang,
+  entry: ResearchDef,
+): ReadonlyArray<Readonly<{ path: string; text: string }>> => [
+  ...COMPONENT_IDS.filter((id) => l.cat.COMPONENTS[id].unlock === entry.id).map((id) => ({
     path: componentPath(id),
-    text: COMPONENTS[id].name,
+    text: l.cat.COMPONENTS[id].name,
   })),
-  ...Object.values(RUNTIMES)
+  ...Object.values(l.cat.RUNTIMES)
     .filter((runtime) => runtime.research === entry.id)
     .map((runtime) => ({ path: `/runtimes/${runtime.id}`, text: runtime.name })),
-  ...Object.values(TASKS)
+  ...Object.values(l.cat.TASKS)
     .filter((task) => task.research === entry.id)
-    .map((task) => ({ path: '/team#tasks', text: `${task.name} (task)` })),
-  ...Object.values(FEATURES)
+    .map((task) => ({ path: '/team#tasks', text: l.t.reference.research.task(task.name) })),
+  ...Object.values(l.cat.FEATURES)
     .filter((feature) => feature.research === entry.id)
-    .map((feature) => ({ path: '/team#features', text: `${feature.name} (feature)` })),
+    .map((feature) => ({
+      path: '/team#features',
+      text: l.t.reference.research.feature(feature.name),
+    })),
 ]
 
-const entity = (entry: ResearchDef): Page => {
+const entity = (l: Lang, entry: ResearchDef): Page => {
+  const t = l.t.reference.research
   const path = researchPath(entry.id)
-  const text = authored(path)
+  const text = authored(l, path)
   const followUps = researchList.filter((candidate) => candidate.requires.includes(entry.id))
-  const unlocks = unlocksOf(entry)
-  const prevents = Object.values(INCIDENTS).filter((incident) =>
+  const unlocks = unlocksOf(l, entry)
+  const prevents = Object.values(l.cat.INCIDENTS).filter((incident) =>
     incident.actions.includes(entry.id),
   )
-  return page({
+  return page(l, {
     path,
     title: entry.name,
     summary: entry.blurb,
     parent: '/research',
-    order: researchList.indexOf(entry),
+    order: researchList.findIndex((candidate) => candidate.id === entry.id),
     era: entry.era,
-    aliases: [entry.id, trackLabel(entry.track)],
+    aliases: [entry.id, trackLabel(l, entry.track)],
     source: text.source,
+    fallback: text.fallback,
     headings: [
       ...text.headings,
       ...headingsFor([
-        unlocks.length ? 'What it unlocks' : null,
-        'Prerequisites',
-        prevents.length ? 'Incidents it prevents' : null,
-        BY_RESEARCH[entry.id]?.length ? 'Engineering terms' : null,
+        unlocks.length ? l.title('whatItUnlocks') : null,
+        l.title('prerequisites'),
+        prevents.length ? l.title('incidentsItPrevents') : null,
+        BY_RESEARCH[entry.id]?.length ? l.title('engineeringTerms') : null,
       ]),
     ],
     text: `${entry.blurb} ${text.text}`,
     aside: (_model, h) =>
       factsBox(
+        l,
         entry.name,
         researchMark(entry, 'sm', false, h),
         null,
         [
-          { name: 'Track', value: trackLabel(entry.track) },
-          { name: 'Era', value: link(eraPath(entry.era), eraName(entry.era), h) },
-          { name: 'Cost', value: recipe(entry, h) },
+          { name: t.track, value: trackLabel(l, entry.track) },
+          { name: t.era, value: link(eraPath(entry.era), eraName(l, entry.era), h) },
+          { name: t.cost, value: recipe(l, entry, h) },
           {
-            name: 'Requires',
+            name: t.requires,
             value: linkList(
-              entry.requires.map((id) => researchLink(id, h)),
+              entry.requires.map((id) => researchLink(l, id, h)),
               h,
             ),
           },
@@ -120,7 +130,7 @@ const entity = (entry: ResearchDef): Page => {
           ...(text.view ? [text.view(model, h)] : []),
           unlocks.length
             ? section(
-                'What it unlocks',
+                l.title('whatItUnlocks'),
                 [
                   h.p(
                     [],
@@ -136,31 +146,29 @@ const entity = (entry: ResearchDef): Page => {
               )
             : h.empty,
           section(
-            'Prerequisites',
+            l.title('prerequisites'),
             [
               h.p(
                 [],
                 entry.requires.length
                   ? [
-                      'Research these first: ',
+                      t.prerequisitesIntro,
                       linkList(
-                        entry.requires.map((id) => researchLink(id, h)),
+                        entry.requires.map((id) => researchLink(l, id, h)),
                         h,
                       ),
                       '.',
                     ]
-                  : [
-                      `It is a root of the ${trackLabel(entry.track)} track. Nothing comes before it.`,
-                    ],
+                  : [t.root(trackLabel(l, entry.track))],
               ),
               ...(followUps.length
                 ? [
                     h.p(
                       [],
                       [
-                        'It leads to ',
+                        t.leadsTo,
                         linkList(
-                          followUps.map((next) => researchLink(next.id, h)),
+                          followUps.map((next) => researchLink(l, next.id, h)),
                           h,
                         ),
                         '.',
@@ -173,7 +181,7 @@ const entity = (entry: ResearchDef): Page => {
           ),
           prevents.length
             ? section(
-                'Incidents it prevents',
+                l.title('incidentsItPrevents'),
                 [
                   h.ul(
                     [],
@@ -188,18 +196,17 @@ const entity = (entry: ResearchDef): Page => {
                 h,
               )
             : h.empty,
-          termsSection(BY_RESEARCH[entry.id], h),
+          termsSection(l, BY_RESEARCH[entry.id], h),
         ],
       ),
     related: ['/research'],
   })
 }
 
-const entities = researchList.map(entity)
-
 /** The game's Research tree, read-only: each item links to its page. */
-const tree = (h: H, full = false): Html => {
+const tree = (l: Lang, h: H, full = false): Html => {
   const layout = researchLayout()
+  const research = l.cat.RESEARCH
   return h.div(
     [
       // column-reverse opens the box scrolled to the bottom, where the Garage Era and the roots are.
@@ -210,7 +217,7 @@ const tree = (h: H, full = false): Html => {
           full ? 'h-[calc(100dvh-210px)]' : 'max-h-[72vh]',
         ),
       ),
-      h.AriaLabel('Research tree'),
+      h.AriaLabel(l.t.reference.research.treeLabel),
     ],
     [
       h.div(
@@ -237,7 +244,7 @@ const tree = (h: H, full = false): Html => {
                     h.Href(eraPath(band.era)),
                     h.Class(cn(EYEBROW, 'absolute top-3 left-5 hover:text-foreground')),
                   ],
-                  [eraName(band.era)],
+                  [eraName(l, band.era)],
                 ),
               ],
             ),
@@ -260,7 +267,7 @@ const tree = (h: H, full = false): Html => {
                   ],
                   [icon(h, TRACK_ICONS[track.track], 'size-6')],
                 ),
-                h.span([h.Class('text-[14px] font-semibold')], [track.label]),
+                h.span([h.Class('text-[14px] font-semibold')], [trackLabel(l, track.track)]),
               ],
             ),
           ),
@@ -308,11 +315,11 @@ const tree = (h: H, full = false): Html => {
                   [
                     h.span(
                       [h.Class('line-clamp-2 text-[12px] leading-tight font-semibold')],
-                      [entry.name],
+                      [research[entry.id].name],
                     ),
                     h.span(
                       [h.Class('flex w-fit items-center gap-2 text-[11px]')],
-                      recipeOf(entry.id).map(([pool, cost]) => insightChip(pool, compact(cost), h)),
+                      recipeOf(entry.id).map(([pool, cost]) => chip(l, pool, compact(cost), h)),
                     ),
                   ],
                 ),
@@ -326,14 +333,14 @@ const tree = (h: H, full = false): Html => {
 }
 
 /** Every track side by side, its items grouped under the Era they open in. */
-const byTrack = (h: H): Html =>
+const byTrack = (l: Lang, h: H): Html =>
   h.div(
     [
       h.Class(
         'not-prose my-6 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-2 md:[&>:last-child:nth-child(odd)]:col-span-2',
       ),
     ],
-    RESEARCH_TRACKS.map((track) => {
+    l.cat.RESEARCH_TRACKS.map((track) => {
       const items = researchList.filter((entry) => entry.track === track.key)
       const eras = [...new Set(items.map((entry) => entry.era))].sort((a, b) => a - b)
       return h.section(
@@ -358,7 +365,7 @@ const byTrack = (h: H): Html =>
                   h.Key(`${era}-t`),
                   h.Class('text-[12px] font-medium tracking-wide text-muted-foreground uppercase'),
                 ],
-                [h.a([h.Href(eraPath(era)), h.Class('hover:text-foreground')], [eraName(era)])],
+                [h.a([h.Href(eraPath(era)), h.Class('hover:text-foreground')], [eraName(l, era)])],
               ),
               h.dd(
                 [h.Key(`${era}-d`), h.Class('mt-1 flex flex-col gap-1')],
@@ -371,7 +378,7 @@ const byTrack = (h: H): Html =>
                         h.Href(researchPath(entry.id)),
                         h.Class('flex items-center gap-2 text-[14px] leading-snug hover:underline'),
                       ],
-                      [researchMark(entry, 'sm', false, h), entry.name],
+                      [researchMark(entry, 'sm', false, h), l.cat.RESEARCH[entry.id].name],
                     ),
                   ),
               ),
@@ -381,28 +388,6 @@ const byTrack = (h: H): Html =>
       )
     }),
   )
-
-/** The tree on a page of its own, as wide as the screen, like the game's Research panel. */
-const fullTree = page({
-  path: '/research/tree',
-  title: 'Research tree, full screen',
-  summary: 'The whole Research tree at the width of the screen.',
-  parent: '/research',
-  order: -1,
-  wide: true,
-  aliases: ['tech tree', 'full screen'],
-  body: (_model, h) =>
-    h.div(
-      [],
-      [
-        h.div(
-          [h.Class('mb-4 flex justify-end')],
-          [treeButton('/research', 'Back to the page', Minimize2, h)],
-        ),
-        tree(h, true),
-      ],
-    ),
-})
 
 const treeButton = (href: string, label: string, mark: IconNode, h: H): Html =>
   h.a(
@@ -421,8 +406,9 @@ const usedPools = INSIGHT_POOLS.filter((pool) =>
 )
 
 /** How to read the cost on an item: what its icon names and what its number counts. */
-const costLegend = (h: H): Html =>
-  h.div(
+const costLegend = (l: Lang, h: H): Html => {
+  const t = l.t.reference.research
+  return h.div(
     [h.Class('not-prose my-5')],
     [
       h.ul(
@@ -447,14 +433,10 @@ const costLegend = (h: H): Html =>
                 h.span(
                   [h.Class('min-w-0')],
                   [
-                    h.span([h.Class('block text-[14px] font-medium')], [poolName(pool)]),
+                    h.span([h.Class('block text-[14px] font-medium')], [poolLabel(l, pool)]),
                     h.span(
                       [h.Class('block text-[12px] leading-snug text-muted-foreground')],
-                      [
-                        pool === 'failure'
-                          ? 'Earned from failed requests'
-                          : `Earned from sampled ${POOLS[pool].label} requests`,
-                      ],
+                      [pool === 'failure' ? t.failureEarned : t.sampled(l.cat.POOLS[pool].label)],
                     ),
                   ],
                 ),
@@ -475,69 +457,83 @@ const costLegend = (h: H): Html =>
       ),
     ],
   )
+}
 
-const hub = page({
-  path: '/research',
-  title: 'Research tree',
-  summary:
-    'Every Research item by track and Era: what it costs in Insight, what it needs first, and what it unlocks.',
-  order: 3,
-  aliases: ['tech tree', 'insight', 'unlocks'],
-  headings: headingsFor(['Reading a cost', 'The tree', 'By track']),
-  text: entities.map((entry) => entry.title).join(' '),
-  body: (_model, h) =>
-    h.div(
-      [h.Class('prose')],
-      [
-        paragraph(
-          'Research turns Insight into new Components, runtimes, and practices. Each item costs Insight from the pools its subject earns, and some need other items first. The tree grows up from each track’s root and to the right through the Eras.',
-          h,
-        ),
-        section(
-          'Reading a cost',
-          [
-            h.p(
-              [],
-              [
-                'Every item costs Insight, and Insight comes in pools: one for each kind of request your ',
-                link('/components/analytics', 'Analytics', h),
-                ' Nodes sample, and one for failures. A cost is a list of icons, each with a number. The icon names the pool, and the number is how much of it the item takes. ',
-                insightChip('write', '5k', h),
-                ' is 5,000 ',
-                poolName('write'),
-                ', and ',
-                insightChip('failure', '2k', h),
-                ' is 2,000 ',
-                poolName('failure'),
-                '. An icon wears the colour of its request kind on the board.',
-              ],
-            ),
-            costLegend(h),
-            h.p(
-              [],
-              [
-                'To earn a pool, sample that kind of traffic. ',
-                link('/explanation/observability', 'Insight and observability', h),
-                ' explains how.',
-              ],
-            ),
-          ],
-          h,
-        ),
-        section(
-          'The tree',
-          [
-            h.div(
-              [h.Class('not-prose mb-3 flex justify-end')],
-              [treeButton('/research/tree', 'Open in full', Maximize2, h)],
-            ),
-            tree(h),
-          ],
-          h,
-        ),
-        section('By track', [byTrack(h)], h),
-      ],
-    ),
-})
-
-export const researchPages: ReadonlyArray<Page> = [hub, fullTree, ...entities]
+export const researchPages = (l: Lang): ReadonlyArray<Page> => {
+  const t = l.t.reference.research
+  const entities = researchList.map((entry) => entity(l, l.cat.RESEARCH[entry.id] as ResearchDef))
+  /** The tree on a page of its own, as wide as the screen, like the game's Research panel. */
+  const fullTree = page(l, {
+    path: '/research/tree',
+    title: t.fullTitle,
+    summary: t.fullSummary,
+    parent: '/research',
+    order: -1,
+    wide: true,
+    aliases: t.fullAliases,
+    body: (_model, h) =>
+      h.div(
+        [],
+        [
+          h.div(
+            [h.Class('mb-4 flex justify-end')],
+            [treeButton('/research', t.backToPage, Minimize2, h)],
+          ),
+          tree(l, h, true),
+        ],
+      ),
+  })
+  const hub = page(l, {
+    path: '/research',
+    title: t.title,
+    summary: t.summary,
+    order: 3,
+    aliases: t.aliases,
+    headings: headingsFor([l.title('readingACost'), l.title('theTree'), l.title('byTrack')]),
+    text: entities.map((entry) => entry.title).join(' '),
+    body: (_model, h) =>
+      h.div(
+        [h.Class('prose')],
+        [
+          paragraph(t.intro, h),
+          section(
+            l.title('readingACost'),
+            [
+              h.p(
+                [],
+                [
+                  t.cost1,
+                  link('/components/analytics', t.cost1Link, h),
+                  t.cost2,
+                  chip(l, 'write', '5k', h),
+                  t.cost3,
+                  poolLabel(l, 'write'),
+                  t.cost4,
+                  chip(l, 'failure', '2k', h),
+                  t.cost5,
+                  poolLabel(l, 'failure'),
+                  t.cost6,
+                ],
+              ),
+              costLegend(l, h),
+              h.p([], [t.earn, link('/explanation/observability', t.earnLink, h), t.earnAfter]),
+            ],
+            h,
+          ),
+          section(
+            l.title('theTree'),
+            [
+              h.div(
+                [h.Class('not-prose mb-3 flex justify-end')],
+                [treeButton('/research/tree', t.openInFull, Maximize2, h)],
+              ),
+              tree(l, h),
+            ],
+            h,
+          ),
+          section(l.title('byTrack'), [byTrack(l, h)], h),
+        ],
+      ),
+  })
+  return [hub, fullTree, ...entities]
+}

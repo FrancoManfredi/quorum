@@ -3,6 +3,7 @@ import { cn } from 'cn'
 import { ArrowRight, Check } from 'lucide'
 import { FIGURE } from '@quorum/ui/game/bits'
 import { icon } from '@quorum/ui/primitives/icon'
+import { langOf, type Lang } from '../i18n/lang.ts'
 import type { Message, Model } from '../main.ts'
 import type { Page } from '../page.ts'
 import { PATHS, placeOf, resumeOf, stepsOf, type Path } from '../paths.ts'
@@ -13,7 +14,13 @@ import { quadrantColor } from './quadrant.ts'
 type H = HtmlBuilder<Message>
 
 /** One segment per step: read steps fill, the current one takes its kind's colour. */
-const segments = (steps: ReadonlyArray<Page>, current: string | null, model: Model, h: H): Html =>
+const segments = (
+  l: Lang,
+  steps: ReadonlyArray<Page>,
+  current: string | null,
+  model: Model,
+  h: H,
+): Html =>
   h.ol(
     [h.Class('flex gap-1')],
     steps.map((step, index) =>
@@ -23,8 +30,8 @@ const segments = (steps: ReadonlyArray<Page>, current: string | null, model: Mod
           h.a(
             [
               h.Href(step.path),
-              h.Title(`${index + 1}. ${step.title}`),
-              h.AriaLabel(`Step ${index + 1}: ${step.title}`),
+              h.Title(l.t.pathNav.stepTitle(index + 1, step.title)),
+              h.AriaLabel(l.t.pathNav.stepLabel(index + 1, step.title)),
               ...(step.path === current ? [h.AriaCurrent('step')] : []),
               h.Class(
                 cn(
@@ -49,23 +56,25 @@ const segments = (steps: ReadonlyArray<Page>, current: string | null, model: Mod
 
 /** Under a page's title: the path it belongs to and the reader's place in it. */
 export const pathBar = (page: Page, model: Model, h: H): Html => {
-  const place = placeOf(page.path)
+  const l = langOf(page.locale)
+  const place = placeOf(page.locale, page.path)
   if (!place) return h.empty
-  const steps = stepsOf(place.path)
+  const steps = stepsOf(page.locale, place.path)
+  const title = l.t.paths[place.path.id].title
   return h.nav(
-    [h.AriaLabel(`Guided path: ${place.path.title}`), h.Class('mt-6')],
+    [h.AriaLabel(l.t.pathNav.guidedPath(title)), h.Class('mt-6')],
     [
       h.div(
         [h.Class('mb-2 flex items-baseline justify-between gap-3')],
         [
-          h.span([h.Class('text-[12px] text-muted-foreground')], [`Path: ${place.path.title}`]),
+          h.span([h.Class('text-[12px] text-muted-foreground')], [l.t.pathNav.path(title)]),
           h.span(
             [h.Class(cn(FIGURE, 'text-[12px] text-muted-foreground'))],
-            [`${place.index + 1} of ${steps.length}`],
+            [l.t.pathNav.place(place.index + 1, steps.length)],
           ),
         ],
       ),
-      segments(steps, page.path, model, h),
+      segments(l, steps, page.path, model, h),
     ],
   )
 }
@@ -98,30 +107,35 @@ const nextCard = (label: string, target: Page, h: H): Html =>
 
 /** At a page's end: the next step of its path, or the next path when this one is done. */
 export const pathNext = (page: Page, h: H): Html => {
-  const place = placeOf(page.path)
+  const l = langOf(page.locale)
+  const place = placeOf(page.locale, page.path)
   if (!place) return h.empty
-  const steps = stepsOf(place.path)
+  const steps = stepsOf(page.locale, place.path)
   const next = steps[place.index + 1]
-  if (next) return nextCard('Next', next, h)
+  if (next) return nextCard(l.t.pathNav.next, next, h)
   const following = PATHS[PATHS.indexOf(place.path) + 1]
-  const first = following ? stepsOf(following)[0] : undefined
-  return following && first ? nextCard(`Next path: ${following.title}`, first, h) : h.empty
+  const first = following ? stepsOf(page.locale, following)[0] : undefined
+  return following && first
+    ? nextCard(l.t.pathNav.nextPath(l.t.paths[following.id].title), first, h)
+    : h.empty
 }
 
 /** A path on the home page: its progress, the step to take next, and where it goes. */
 export const pathCard = (path: Path, model: Model, h: H): Html => {
-  const steps = stepsOf(path)
+  const l = langOf(model.locale)
+  const copy = l.t.paths[path.id]
+  const steps = stepsOf(model.locale, path)
   const read = steps.filter((step) => model.progress.visited.includes(step.path)).length
-  const resume = resumeOf(path, model.progress.visited)
+  const resume = resumeOf(model.locale, path, model.progress.visited)
   const target = resume ?? steps[0]
-  const label = read === 0 ? 'Start' : resume ? 'Continue' : 'Read again'
+  const label = read === 0 ? l.t.pathNav.start : resume ? l.t.pathNav.continue : l.t.pathNav.again
   return h.article(
     [h.Key(path.id), h.Class('flex flex-col gap-4 bg-background p-5')],
     [
       h.div(
         [h.Class('flex items-baseline justify-between gap-3')],
         [
-          h.h3([h.Class('text-[16px] font-semibold tracking-tight')], [path.title]),
+          h.h3([h.Class('text-[16px] font-semibold tracking-tight')], [copy.title]),
           read === steps.length && steps.length > 0
             ? h.span(
                 [h.Class('grid size-5 shrink-0 place-items-center rounded-full bg-ok text-white')],
@@ -133,8 +147,8 @@ export const pathCard = (path: Path, model: Model, h: H): Html => {
               ),
         ],
       ),
-      h.p([h.Class('text-[14px] leading-snug text-pretty text-muted-foreground')], [path.summary]),
-      segments(steps, null, model, h),
+      h.p([h.Class('text-[14px] leading-snug text-pretty text-muted-foreground')], [copy.summary]),
+      segments(l, steps, null, model, h),
       target
         ? h.a(
             [
@@ -148,7 +162,7 @@ export const pathCard = (path: Path, model: Model, h: H): Html => {
                 [h.Class('min-w-0 truncate')],
                 [
                   h.span([h.Class('font-medium')], [label]),
-                  ...(label === 'Read again'
+                  ...(label === l.t.pathNav.again
                     ? []
                     : [h.span([h.Class('text-muted-foreground')], [` · ${target.title}`])]),
                 ],

@@ -1,35 +1,31 @@
-import { navOf, pageAt } from './pages.ts'
+import type { Locale } from './i18n/locale.ts'
+import type { Messages } from './i18n/messages.ts'
+import { navOf, pageIn } from './pages.ts'
 import type { Page } from './page.ts'
 
+/* The guided paths: an ordered list of logical page paths, the same in every language. A path's
+   title and summary are interface copy (`t.paths`). */
+
+export type PathId = keyof Messages['paths']
+
 export type Path = Readonly<{
-  id: string
-  title: string
-  summary: string
+  id: PathId
   steps: ReadonlyArray<string>
 }>
 
 export const PATHS: ReadonlyArray<Path> = [
   {
     id: 'play',
-    title: 'Play the game',
-    summary:
-      'Learn the controls and screens of Quorum, from your first Company to your first minutes.',
-    steps: navOf('play').map((page) => page.path),
+    steps: navOf('en', 'play').map((page) => page.path),
   },
   {
     id: 'scaling-steps',
-    title: 'Scale a system step by step',
-    summary:
-      'Build a system one step at a time, from a single box to several regions, with every setting explained.',
-    steps: navOf('patterns')
+    steps: navOf('en', 'patterns')
       .filter((page) => page.group === 'Scaling steps')
       .map((page) => page.path),
   },
   {
     id: 'first-steps',
-    title: 'First steps',
-    summary:
-      'Play your first Company from the Garage to its first incident and its first Research.',
     steps: [
       '/tutorials/first-company',
       '/tutorials/first-bottleneck',
@@ -41,8 +37,6 @@ export const PATHS: ReadonlyArray<Path> = [
   },
   {
     id: 'read-the-numbers',
-    title: 'Read the numbers',
-    summary: 'What latency, queues, Apdex, and Insight tell you, and how to act on them.',
     steps: [
       '/explanation/latency',
       '/explanation/queues',
@@ -53,8 +47,6 @@ export const PATHS: ReadonlyArray<Path> = [
   },
   {
     id: 'scale-up',
-    title: 'Scale up',
-    summary: 'Grow past one box: the data tier, spikes, retries, and more regions.',
     steps: [
       '/explanation/the-data-tier',
       '/guides/scale-the-database',
@@ -67,8 +59,6 @@ export const PATHS: ReadonlyArray<Path> = [
   },
   {
     id: 'run-the-company',
-    title: 'Run the Company',
-    summary: 'Money, the team, the Eras, and how a Company ends well.',
     steps: [
       '/explanation/money',
       '/guides/cut-the-cloud-bill',
@@ -81,23 +71,30 @@ export const PATHS: ReadonlyArray<Path> = [
   },
 ]
 
-export const stepsOf = (path: Path): ReadonlyArray<Page> =>
+export const stepsOf = (locale: Locale, path: Path): ReadonlyArray<Page> =>
   path.steps.flatMap((step) => {
-    const page = pageAt(step)
+    const page = pageIn(locale, step)
     return page ? [page] : []
   })
 
 /** The first path that holds a page, and the page's index in it. */
-export const placeOf = (pagePath: string): Readonly<{ path: Path; index: number }> | null => {
+export const placeOf = (
+  locale: Locale,
+  pagePath: string,
+): Readonly<{ path: Path; index: number }> | null => {
   for (const path of PATHS) {
-    const index = stepsOf(path).findIndex((page) => page.path === pagePath)
+    const index = stepsOf(locale, path).findIndex((page) => page.path === pagePath)
     if (index !== -1) return { path, index }
   }
   return null
 }
 
 /** The step a reader resumes from: the first one they have not opened. */
-export const resumeOf = (path: Path, visited: ReadonlyArray<string>): Page | null => {
-  const steps = stepsOf(path)
+export const resumeOf = (
+  locale: Locale,
+  path: Path,
+  visited: ReadonlyArray<string>,
+): Page | null => {
+  const steps = stepsOf(locale, path)
   return steps.find((page) => !visited.includes(page.path)) ?? null
 }

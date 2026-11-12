@@ -1,4 +1,4 @@
-import { copy, type Messages } from '@/i18n/messages.ts'
+import { copy, localeOf, type Messages } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { Check, Sparkles } from 'lucide'
 import {
@@ -350,7 +350,7 @@ export const tradeoffCard = (model: Model, h: HtmlBuilder<Message>): Html => {
               h.a(
                 [
                   h.Key(anchor),
-                  h.Href(glossaryUrl(anchor)),
+                  h.Href(glossaryUrl(anchor, localeOf(h))),
                   h.Target('_blank'),
                   h.Rel('noreferrer noopener'),
                   h.Class(

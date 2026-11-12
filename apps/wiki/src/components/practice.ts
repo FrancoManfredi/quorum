@@ -46,12 +46,6 @@ export type PracticeEvent = typeof PracticeEvent.Type
 
 export type Goal = Readonly<{ label: string; done: boolean }>
 
-export const TITLES: Record<PracticeId, string> = {
-  place: 'Place Components',
-  wire: 'Wire Nodes with Links',
-  rearrange: 'Select, move and cut',
-}
-
 /** The Components a Practice dock offers: only what the board needs. */
 export const DOCK: Record<PracticeId, ReadonlyArray<ComponentId>> = {
   place: ['server', 'database'],

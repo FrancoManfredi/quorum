@@ -1,4 +1,6 @@
 import type { Html, HtmlBuilder } from 'foldkit/html'
+import { localeOf } from '../i18n/builder.ts'
+import { langOf } from '../i18n/lang.ts'
 import { cn } from 'cn'
 import { KINDS, type EraDef, type RequestKind } from '@quorum/simulation/catalog'
 import { FIGURE } from '@quorum/ui/game/bits'
@@ -12,6 +14,7 @@ const colorOf = (kind: RequestKind): string => `#${KINDS[kind].color.toString(16
 /** The Era's request mix as one bar; with `legend`, each kind's share beneath it. */
 export const mixBar = <M>(mix: EraDef['mix'], h: HtmlBuilder<M>, legend = true): Html => {
   const entries = Object.entries(mix) as ReadonlyArray<[RequestKind, number]>
+  const names = langOf(localeOf(h)).cat.KINDS
   return h.div(
     [h.Class(cn('not-prose flex flex-col gap-3', legend && 'my-5'))],
     [
@@ -24,7 +27,7 @@ export const mixBar = <M>(mix: EraDef['mix'], h: HtmlBuilder<M>, legend = true):
                 h.Role('img'),
                 h.AriaLabel(
                   entries
-                    .map(([kind, share]) => `${KINDS[kind].label} ${percent(share)}`)
+                    .map(([kind, share]) => `${names[kind].label} ${percent(share)}`)
                     .join(', '),
                 ),
               ]),
@@ -33,7 +36,7 @@ export const mixBar = <M>(mix: EraDef['mix'], h: HtmlBuilder<M>, legend = true):
           h.span(
             [
               h.Key(kind),
-              h.Title(`${KINDS[kind].label} ${percent(share)}`),
+              h.Title(`${names[kind].label} ${percent(share)}`),
               h.Style({ width: percent(share), background: colorOf(kind) }),
             ],
             [],
@@ -51,7 +54,7 @@ export const mixBar = <M>(mix: EraDef['mix'], h: HtmlBuilder<M>, legend = true):
                     [h.Class('size-2.5 rounded-sm'), h.Style({ background: colorOf(kind) })],
                     [],
                   ),
-                  KINDS[kind].label,
+                  names[kind].label,
                   h.span([h.Class(cn(FIGURE, 'text-muted-foreground'))], [percent(share)]),
                 ],
               ),

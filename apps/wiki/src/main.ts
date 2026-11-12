@@ -3,6 +3,7 @@ import { Command, Runtime, Update } from 'foldkit'
 import { defineMessageUnion } from 'foldkit/message'
 import { UrlRequest, load, pushUrl } from 'foldkit/navigation'
 import { Url, toString as urlToString } from 'foldkit/url'
+import { Locale, localeOfPath, stripLocale } from './i18n/locale.ts'
 import * as Progress from './submodels/progress.ts'
 import * as Project from './submodels/project.ts'
 import * as Quiz from './submodels/quiz.ts'
@@ -10,7 +11,9 @@ import * as Search from './submodels/search.ts'
 import * as Spoilers from './submodels/spoilers.ts'
 
 export const Model = Schema.Struct({
-  /** The page path, without a trailing slash. */
+  /** The language of the page, from the prefix of its URL. */
+  locale: Locale,
+  /** The page's logical path, without its language prefix or a trailing slash. */
   path: Schema.String,
   /** The navigation drawer is open on a phone. */
   menu: Schema.Boolean,
@@ -42,6 +45,12 @@ export type Message = typeof Message.Type
 export const normalize = (pathname: string): string => {
   const trimmed = pathname.replace(/\/+$/, '')
   return trimmed === '' ? '/' : trimmed
+}
+
+/** The language and the logical path a URL path names: `/es/glossary/latency` is Spanish at `/glossary/latency`. */
+export const routeOf = (pathname: string): Readonly<{ locale: Locale; path: string }> => {
+  const trimmed = normalize(pathname)
+  return { locale: localeOfPath(trimmed), path: normalize(stripLocale(trimmed)) }
 }
 
 const Navigate = Command.define('Navigate', {
@@ -133,13 +142,14 @@ const loadProject = () =>
   Command.mapMessages([Project.Load()], (message) => Message.ProjectChanged({ message }))
 
 export const init: Runtime.RoutingApplicationInit<Model, Message> = (url) => {
-  const path = normalize(url.pathname)
+  const { locale, path } = routeOf(url.pathname)
   return {
     model: {
+      locale,
       path,
       menu: false,
       navToggled: [],
-      search: Search.init,
+      search: Search.init(locale),
       spoilers: Spoilers.init,
       progress: Progress.init,
       quiz: Quiz.init,
@@ -163,11 +173,17 @@ export const update = (model: Model, message: Message): Return =>
   Message.match<Return>(message, {
     ClickedLink: ({ request }) =>
       UrlRequest.match<Return>(request, {
-        Internal: ({ url }) => ({ model, commands: [Navigate({ url: urlToString(url) })] }),
+        // A page in the other language is a whole page: its copy and prose load with it.
+        Internal: ({ url }) =>
+          localeOfPath(url.pathname) === model.locale
+            ? { model, commands: [Navigate({ url: urlToString(url) })] }
+            : { model, commands: [LoadExternal({ href: urlToString(url) })] },
         External: ({ href }) => ({ model, commands: [LoadExternal({ href })] }),
       }),
     ChangedUrl: ({ url }) => {
-      const path = normalize(url.pathname)
+      if (localeOfPath(url.pathname) !== model.locale)
+        return { model, commands: [LoadExternal({ href: urlToString(url) })] }
+      const { path } = routeOf(url.pathname)
       const hash = Option.match(url.hash, {
         onNone: () => '',
         onSome: (value) => value.replace(/^#/, ''),
@@ -176,7 +192,7 @@ export const update = (model: Model, message: Message): Return =>
       // search, the drawer and the open hubs belong to the page, not to the scroll position.
       if (path === model.path) return hash ? { model, commands: [ScrollTo({ hash })] } : { model }
       const visited = foldProgress(
-        { ...model, path, menu: false, navToggled: [], search: Search.init },
+        { ...model, path, menu: false, navToggled: [], search: Search.init(model.locale) },
         Progress.Message.Visited({ path }),
       )
       const wantProject = path === '/' && model.project.status === 'idle'

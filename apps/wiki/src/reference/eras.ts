@@ -3,13 +3,12 @@ import { cn } from 'cn'
 import {
   COMPONENTS,
   COMPONENT_IDS,
-  ERAS,
   EXITS,
   EXIT_IDS,
   FEATURES,
   FEATURE_IDS,
-  INCIDENTS,
   INCIDENT_IDS,
+  INCIDENTS,
   researchList,
   type EraDef,
 } from '@quorum/simulation/catalog'
@@ -32,35 +31,44 @@ import {
   researchLink,
   section,
   type H,
+  type Lang,
 } from './shared.ts'
 
 /* One page per Era, and a hub that runs them left to right as a timeline. */
 
-const entity = (def: EraDef, index: number): Page => {
+const entity = (l: Lang, def: EraDef, index: number): Page => {
+  const t = l.t.reference.eras
+  const eras = l.cat.ERAS
   const path = eraPath(index)
-  const text = authored(path)
-  const next = ERAS[index + 1]
+  const text = authored(l, path)
+  const next = eras[index + 1]
   const components = COMPONENT_IDS.filter((id) => componentEra(COMPONENTS[id]) === index)
   const research = researchList.filter((entry) => entry.era === index)
   const incidents = INCIDENT_IDS.filter((id) => INCIDENTS[id].era === index)
   const features = FEATURE_IDS.filter((id) => FEATURES[id].era === index)
   const exits = EXIT_IDS.filter((id) => EXITS[id].stage === index)
-  return page({
+  return page(l, {
     path,
     title: def.name,
     summary: def.question,
     parent: '/eras',
     order: index,
     era: index,
-    aliases: [`Era ${index}`, 'funding round', 'stage'],
+    aliases: [t.aliasEra(index), ...t.entityAliases],
     source: text.source,
+    fallback: text.fallback,
     headings: [
       ...text.headings,
-      ...headingsFor(['Traffic', next ? 'Raising the next round' : null, 'What arrives']),
+      ...headingsFor([
+        l.title('traffic'),
+        next ? l.title('raisingNext') : null,
+        l.title('whatArrives'),
+      ]),
     ],
     text: `${def.question} ${def.arrivals} ${text.text}`,
     aside: (_model, h) =>
       factsBox(
+        l,
         def.name,
         h.span(
           [
@@ -75,17 +83,17 @@ const entity = (def: EraDef, index: number): Page => {
         ),
         null,
         [
-          { name: 'Market', value: `${compact(def.market)} users` },
-          { name: 'Apdex target', value: def.apdexTarget.toFixed(2) },
-          { name: 'Weekly SLO', value: percent(def.slo) },
-          { name: 'Worst start', value: `SEV${def.maxSeverity}` },
-          { name: 'Cost index', value: `×${def.costIndex}` },
-          { name: 'Salary index', value: `×${def.salaryIndex}` },
+          { name: t.market, value: t.users(compact(def.market)) },
+          { name: t.apdexTarget, value: def.apdexTarget.toFixed(2) },
+          { name: t.weeklySlo, value: percent(def.slo) },
+          { name: t.worstStart, value: `SEV${def.maxSeverity}` },
+          { name: t.costIndex, value: `×${def.costIndex}` },
+          { name: t.salaryIndex, value: `×${def.salaryIndex}` },
           ...(next
             ? [
-                { name: 'Raise at', value: `${compact(def.raiseAt)} users` },
-                { name: 'Round pays', value: money(def.grant) },
-                { name: 'Dilution', value: percent(def.dilution) },
+                { name: t.raiseAt, value: t.users(compact(def.raiseAt)) },
+                { name: t.roundPays, value: money(def.grant) },
+                { name: t.dilution, value: percent(def.dilution) },
               ]
             : []),
         ],
@@ -97,20 +105,17 @@ const entity = (def: EraDef, index: number): Page => {
         [
           ...(text.view ? [text.view(model, h)] : []),
           section(
-            'Traffic',
+            l.title('traffic'),
             [
               paragraph(def.arrivals, h),
-              paragraph(
-                'These are the default Venture’s shares. Each Venture sets its own, so the same Era sends different traffic.',
-                h,
-              ),
+              paragraph(t.defaultShares, h),
               mixBar(def.mix, h),
               h.p(
                 [],
                 [
-                  'The profile of every Venture is on the ',
-                  link('/ventures', 'Ventures', h),
-                  ' page.',
+                  t.profileBefore,
+                  link('/ventures', l.t.reference.ventures.title, h),
+                  t.profileAfter,
                 ],
               ),
             ],
@@ -118,14 +123,19 @@ const entity = (def: EraDef, index: number): Page => {
           ),
           next
             ? section(
-                'Raising the next round',
+                l.title('raisingNext'),
                 [
                   h.p(
                     [],
                     [
-                      `Reach ${compact(def.raiseAt)} users to raise ${next.name}. The round pays ${money(def.grant)} and costs ${percent(def.dilution)} of the Company. Then the `,
+                      t.raise(
+                        compact(def.raiseAt),
+                        next.name,
+                        money(def.grant),
+                        percent(def.dilution),
+                      ),
                       link(eraPath(index + 1), next.name, h),
-                      ' Era starts.',
+                      t.raiseAfter,
                     ],
                   ),
                 ],
@@ -133,22 +143,28 @@ const entity = (def: EraDef, index: number): Page => {
               )
             : h.empty,
           section(
-            'What arrives',
+            l.title('whatArrives'),
             [
               h.dl(
                 [h.Class('grid gap-x-6 gap-y-3 sm:grid-cols-[10rem_1fr]')],
                 [
                   [
-                    'Components',
-                    components.map((id) => link(componentPath(id), COMPONENTS[id].name, h)),
+                    t.arrives.components,
+                    components.map((id) => link(componentPath(id), l.cat.COMPONENTS[id].name, h)),
                   ],
-                  ['Research', research.map((entry) => researchLink(entry.id, h))],
+                  [t.arrives.research, research.map((entry) => researchLink(l, entry.id, h))],
                   [
-                    'Incidents',
-                    incidents.map((id) => link(incidentPath(id), INCIDENTS[id].name, h)),
+                    t.arrives.incidents,
+                    incidents.map((id) => link(incidentPath(id), l.cat.INCIDENTS[id].name, h)),
                   ],
-                  ['Features', features.map((id) => link('/team#features', FEATURES[id].name, h))],
-                  ['Exits', exits.map((id) => link('/prestige#exits', EXITS[id].name, h))],
+                  [
+                    t.arrives.features,
+                    features.map((id) => link('/team#features', l.cat.FEATURES[id].name, h)),
+                  ],
+                  [
+                    t.arrives.exits,
+                    exits.map((id) => link('/prestige#exits', l.cat.EXITS[id].name, h)),
+                  ],
                 ].flatMap(([label, items]) =>
                   (items as ReadonlyArray<Html>).length
                     ? [
@@ -173,13 +189,12 @@ const entity = (def: EraDef, index: number): Page => {
   })
 }
 
-const entities = ERAS.map(entity)
-
-const arrivals = (index: number): string => {
+const arrivals = (l: Lang, index: number): string => {
+  const t = l.t.reference.eras.count
   const parts = [
-    [COMPONENT_IDS.filter((id) => componentEra(COMPONENTS[id]) === index).length, 'Components'],
-    [researchList.filter((entry) => entry.era === index).length, 'Research items'],
-    [INCIDENT_IDS.filter((id) => INCIDENTS[id].era === index).length, 'incidents'],
+    [COMPONENT_IDS.filter((id) => componentEra(COMPONENTS[id]) === index).length, t.components],
+    [researchList.filter((entry) => entry.era === index).length, t.research],
+    [INCIDENT_IDS.filter((id) => INCIDENTS[id].era === index).length, t.incidents],
   ] as const
   return parts
     .filter(([count]) => count > 0)
@@ -188,18 +203,20 @@ const arrivals = (index: number): string => {
 }
 
 /** The Eras top to bottom, on one line: each with its question, its numbers, and its traffic. */
-const timeline = (h: H): Html =>
-  h.ol(
+const timeline = (l: Lang, h: H): Html => {
+  const t = l.t.reference.eras
+  const eras = l.cat.ERAS
+  return h.ol(
     [h.Class('not-prose relative my-8 border-l border-border')],
-    ERAS.map((def, index) => {
-      const next = ERAS[index + 1]
+    eras.map((def, index) => {
+      const next = eras[index + 1]
       const figures: ReadonlyArray<readonly [string, string]> = [
-        ['Market', `${compact(def.market)} users`],
-        ['Apdex target', def.apdexTarget.toFixed(2)],
+        [t.market, t.users(compact(def.market))],
+        [t.apdexTarget, def.apdexTarget.toFixed(2)],
         ...(next
           ? ([
-              ['Raise at', `${compact(def.raiseAt)} users`],
-              ['Round pays', money(def.grant)],
+              [t.raiseAt, t.users(compact(def.raiseAt))],
+              [t.roundPays, money(def.grant)],
             ] as const)
           : []),
       ]
@@ -244,32 +261,29 @@ const timeline = (h: H): Html =>
             ),
           ),
           h.div([h.Class('mt-3 max-w-md')], [mixBar(def.mix, h, false)]),
-          h.p([h.Class('mt-2 text-[13px] text-muted-foreground')], [arrivals(index)]),
+          h.p([h.Class('mt-2 text-[13px] text-muted-foreground')], [arrivals(l, index)]),
         ],
       )
     }),
   )
+}
 
-const hub = page({
-  path: '/eras',
-  title: 'Eras',
-  summary:
-    'The funding rounds a Company climbs through, from Garage to Public, and what each one asks of your system.',
-  order: 2,
-  aliases: ['stages', 'funding', 'rounds', 'progression'],
-  headings: headingsFor(['The climb']),
-  text: ERAS.map((def) => `${def.name} ${def.question}`).join(' '),
-  body: (_model, h) =>
-    h.div(
-      [h.Class('prose')],
-      [
-        paragraph(
-          'Each Era ends when you raise the next round. A new Era brings a bigger market, new kinds of traffic, worse incidents, and new Research. To hide what comes after the Era you play in, pick it in the header.',
-          h,
-        ),
-        section('The climb', [timeline(h)], h),
-      ],
-    ),
-})
-
-export const eraPages: ReadonlyArray<Page> = [hub, ...entities]
+export const eraPages = (l: Lang): ReadonlyArray<Page> => {
+  const t = l.t.reference.eras
+  const entities = l.cat.ERAS.map((def, index) => entity(l, def, index))
+  const hub = page(l, {
+    path: '/eras',
+    title: t.title,
+    summary: t.summary,
+    order: 2,
+    aliases: t.aliases,
+    headings: headingsFor([l.title('theClimb')]),
+    text: l.cat.ERAS.map((def) => `${def.name} ${def.question}`).join(' '),
+    body: (_model, h) =>
+      h.div(
+        [h.Class('prose')],
+        [paragraph(t.intro, h), section(l.title('theClimb'), [timeline(l, h)], h)],
+      ),
+  })
+  return [hub, ...entities]
+}

@@ -1,4 +1,5 @@
 import type { CaptureResult } from 'posthog-js'
+import type { Locale } from '../i18n/index.ts'
 import { eraOf } from '@quorum/simulation/lookups'
 import { SIM_VERSION } from '@quorum/simulation/version'
 import { eventsOf } from '../game/analytics-bridge.ts'
@@ -23,8 +24,11 @@ export const PRIVACY_URL = `${WIKI_URL}/about/privacy`
 export const DISCLAIMER_URL = `${WIKI_URL}/about/disclaimer`
 export const SOURCE_URL = 'https://github.com/elianiva/quorum'
 
-/** The wiki's page for an engineering term. The game links its terms here. */
-export const glossaryUrl = (id: string): string => `${WIKI_URL}/glossary/${id}`
+/** The wiki's page for an engineering term. The game links its terms here. The wiki is in English
+ *  and Spanish, with Spanish under `/es`, so a player who plays in Spanish opens the Spanish page
+ *  and every other language opens the English one. */
+export const glossaryUrl = (id: string, locale: Locale = 'en'): string =>
+  `${WIKI_URL}${locale === 'es' ? '/es' : ''}/glossary/${id}`
 
 let client: Client | null = null
 let starting = false

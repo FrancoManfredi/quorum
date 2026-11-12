@@ -6,6 +6,7 @@
     "./primitives/*": "./src/primitives/*.ts",
     "./game/*": "./src/game/*.ts",
     "./board/*": "./src/board/*.ts",
+    "./i18n/*": "./src/i18n/*.ts",
     "./theme.css": "./src/theme.css"
   },
   "scripts": {

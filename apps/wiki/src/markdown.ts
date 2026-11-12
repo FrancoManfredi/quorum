@@ -6,16 +6,23 @@ import { inertHtml } from 'foldkit/html'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import { documentOf } from './content.ts'
 import type { Section } from './frontmatter.ts'
+import { langOf } from './i18n/lang.ts'
 import { islandAttributes } from './islands.ts'
 import { init, type Message, type Model } from './main.ts'
 import { leverOf, leverRows } from './reference/levers.ts'
 import type { Page } from './page.ts'
-import { PAGES, SECTION_ORDER, childrenOf, navOf, pageAt } from './pages.ts'
-import { OPTION_CONTROLS } from './reference/options.ts'
+import { PAGES, SECTION_ORDER, childrenOf, navOf, pageIn } from './pages.ts'
+import { optionControls } from './reference/options.ts'
 import { WIKI_ORIGIN } from './site.ts'
 
 type Inline = Markdown.Inline
 type Block = Markdown.MarkdownDocument['blocks'][number]
+
+/* The Markdown export is English. Its pages come from `PAGES`, the English pages, so a Spanish
+   page has no twin: the files stay as agents already read them, and the `/es` pages are the
+   readers' (src/entry.server.ts links a twin only from an English page). */
+
+const ENGLISH = langOf('en')
 
 /** The Markdown twin of a page's URL: `/a/b` → `/a/b.md`, `/` → `/index.md`. */
 export const markdownPath = (path: string): string => (path === '/' ? '/index.md' : `${path}.md`)
@@ -105,7 +112,7 @@ const island = (block: Extract<Block, { _tag: 'Island' }>): string => {
     }
     case 'Options': {
       const { id } = decode.Options(block.attributes)
-      const controls = OPTION_CONTROLS[id] ?? []
+      const controls = optionControls(ENGLISH)[id] ?? []
       if (controls.length === 0) return ''
       return [
         '| Control | Settings | When |',
@@ -132,7 +139,7 @@ const island = (block: Extract<Block, { _tag: 'Island' }>): string => {
     }
     case 'Lever': {
       const { kind } = decode.Lever(block.attributes)
-      const def = leverOf(kind)
+      const def = leverOf(ENGLISH, kind)
       const rows = leverRows(kind)
       return [
         `The ${def.name} lever arrives at ${percent(def.base)} of the mix in the ${def.era} Era.`,
@@ -338,7 +345,7 @@ const renderMarkdown = (page: Page): string => {
         .replace(/\n{2,}/g, '\n')
     : ''
   const related = page.related.flatMap((path) => {
-    const twin = pageAt(path)
+    const twin = pageIn('en', path)
     return twin ? [`- [${twin.title}](${markdownUrl(twin.path)})`] : []
   })
   return [
@@ -370,13 +377,13 @@ const entry = (page: Page): string =>
 
 /** `/llms.txt`: the pages by section, then the pages under each generated hub. */
 export const llmsTxt = (): string => {
-  const home = pageAt('/')
+  const home = pageIn('en', '/')
   const sections = SECTION_ORDER.map((section) => ({
     title: SECTION_LABELS[section],
-    pages: navOf(section),
+    pages: navOf('en', section),
   }))
-  const hubs = SECTION_ORDER.flatMap((section) => navOf(section)).flatMap((hub) => {
-    const children = childrenOf(hub.path)
+  const hubs = SECTION_ORDER.flatMap((section) => navOf('en', section)).flatMap((hub) => {
+    const children = childrenOf('en', hub.path)
     return children.length ? [{ title: hub.title, pages: children }] : []
   })
   return [

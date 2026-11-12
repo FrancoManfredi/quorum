@@ -58,7 +58,7 @@ import { survey } from './survey.ts'
 import { team } from './team.ts'
 import { title } from './title.ts'
 import { tradeoff } from './tradeoff.ts'
-import { catalog } from './catalog.ts'
+import { catalog } from '@quorum/ui/i18n/catalog/zh-CN'
 
 import type { Messages } from '../messages.ts'
 
