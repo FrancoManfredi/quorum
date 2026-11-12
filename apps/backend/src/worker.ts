@@ -17,6 +17,7 @@ export type { Env }
 let built:
   | Readonly<{
       feedback: Env['FEEDBACK']
+      access: Env['ACCESS']
       rooms: Env['ROOMS']
       handler: ReturnType<typeof handlerFor>
     }>
@@ -48,12 +49,18 @@ export default Sentry.withSentry(
       if (path === ROOM_SOCKET_PATH) return roomSocket(request, env)
       if (path === MCP_PATH || path === AGENT_ROOM_PATH)
         return agentHttp(request, env.AGENT_ROOMS as unknown as AgentRooms)
-      if (built?.feedback !== env.FEEDBACK || built.rooms !== env.ROOMS)
+      if (
+        built?.feedback !== env.FEEDBACK ||
+        built.access !== env.ACCESS ||
+        built.rooms !== env.ROOMS
+      )
         built = {
           feedback: env.FEEDBACK,
+          access: env.ACCESS,
           rooms: env.ROOMS,
           handler: handlerFor({
             feedback: env.FEEDBACK,
+            access: env.ACCESS,
             directory: roomDirectory((code) => env.ROOMS.getByName(code) as unknown as RoomStub),
           }),
         }

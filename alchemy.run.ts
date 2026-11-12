@@ -137,6 +137,9 @@ export default Alchemy.Stack(
       main: './apps/backend/src/worker.ts',
       env: {
         FEEDBACK: Results,
+        // The same database under a second name: `ACCESS` holds the feature keys that
+        // unlock server features, and each context reads its own table.
+        ACCESS: Results,
         // The one stateful object in the stack: an online Company's Room.
         ROOMS: Cloudflare.DurableObject<RoomInstance>('RoomObject'),
         // A Company exposed to agents: one object per agent room id.

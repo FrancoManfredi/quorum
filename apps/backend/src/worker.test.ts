@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import * as Scope from 'effect/Scope'
@@ -12,16 +13,24 @@ import { handlerFor } from './handler.ts'
 
 const url = `http://api.test${RPC_PATH}`
 
+/** How many Companies reached the Room layer, so a refused publish can prove it stopped there. */
+let publishes = 0
+
 const directory = (): RoomDirectory['Service'] => ({
-  publish: () => Effect.succeed({ code: 'AAAAAA', token: 'token' }),
+  publish: () =>
+    Effect.sync(() => {
+      publishes += 1
+    }).pipe(Effect.as({ code: 'AAAAAA', token: 'token' })),
   info: () => Effect.succeed({ exists: false, seats: 0 }),
 })
 
-let feedback: SqlRunner = sqliteRunner()
-let handler = handlerFor({ feedback, directory: directory() })
+// `FEEDBACK` and `ACCESS` are one database under two names, so the tests give both one runner.
+let db: SqlRunner = sqliteRunner()
+let handler = handlerFor({ feedback: db, access: db, directory: directory() })
 beforeEach(() => {
-  feedback = sqliteRunner()
-  handler = handlerFor({ feedback, directory: directory() })
+  publishes = 0
+  db = sqliteRunner()
+  handler = handlerFor({ feedback: db, access: db, directory: directory() })
 })
 
 /**
@@ -105,7 +114,7 @@ test('an Exit survey is stored, and a retry keeps the first answer', async () =>
   expect(await run(survey({ issues: 'A second answer.', likes: '' }))).toEqual({
     received: true,
   })
-  const rows = await feedback
+  const rows = await db
     .prepare('SELECT exit_id, issues, likes FROM survey_responses')
     .all<{ exit_id: string; issues: string; likes: string }>()
   expect(rows.results).toEqual([
@@ -150,7 +159,7 @@ test('a survey that is not a real Exit fails with ApiError and stores nothing', 
     tag: 'ApiError',
     message: 'The device id is not valid.',
   })
-  const rows = await feedback.prepare('SELECT COUNT(*) AS n FROM survey_responses').all<{
+  const rows = await db.prepare('SELECT COUNT(*) AS n FROM survey_responses').all<{
     n: number
   }>()
   expect(rows.results[0]?.n).toBe(0)
@@ -158,12 +167,12 @@ test('a survey that is not a real Exit fails with ApiError and stores nothing', 
 
 test('a failing survey store reaches the client as unavailable and logs its cause', async () => {
   const cause = new Error('D1_ERROR: no such table: survey_responses')
-  feedback = {
+  const broken = {
     prepare: () => {
       throw cause
     },
   } as unknown as SqlRunner
-  handler = handlerFor({ feedback, directory: directory() })
+  handler = handlerFor({ feedback: broken, access: db, directory: directory() })
   const logged: Array<unknown> = []
   const spies = (['log', 'error', 'warn'] as const).map((level) =>
     vi.spyOn(console, level).mockImplementation((...args) => void logged.push(...args)),
@@ -173,6 +182,93 @@ test('a failing survey store reaches the client as unavailable and logs its caus
     expect(error).toMatchObject({
       _tag: 'ApiError',
       message: 'Feedback is unavailable. Try again later.',
+    })
+  } finally {
+    for (const spy of spies) spy.mockRestore()
+  }
+  expect(
+    JSON.stringify(logged, (_, value) => (value instanceof Error ? value.message : value)),
+  ).toContain('no such table')
+})
+
+/** A row as `scripts/feature-key.ts` writes it: the key hashed, and what it unlocks. */
+const addKey = (
+  key: string,
+  row: Readonly<{ features?: string; expiresAt?: number | null; revokedAt?: number | null }> = {},
+) =>
+  db
+    .prepare(
+      `INSERT INTO feature_keys (key_hash, features, note, created_at, expires_at, revoked_at)
+        VALUES (?, ?, '', 0, ?, ?)`,
+    )
+    .bind(
+      createHash('sha256').update(key).digest('hex'),
+      row.features ?? 'multiplayer',
+      row.expiresAt ?? null,
+      row.revokedAt ?? null,
+    )
+    .all()
+
+const keyStatus = (key: string) =>
+  Effect.gen(function* () {
+    const api = yield* client
+    return yield* api.featureKeyCheck({ key })
+  })
+
+const keyFailure = (key: string) =>
+  run(Effect.flip(keyStatus(key))).then((error) => ({
+    tag: error._tag,
+    message: error.message,
+  }))
+
+test('a feature key answers with the features this build knows', async () => {
+  // A row may name a feature a later build adds, so this one names one a future build might.
+  await addKey('K7QM-3XPA-9RTF-2WHD', { features: 'multiplayer,future-feature' })
+
+  expect(await run(keyStatus(' k7qm-3xpa-9rtf-2whd '))).toEqual({
+    key: 'K7QM-3XPA-9RTF-2WHD',
+    features: ['multiplayer'],
+    expiresAt: null,
+  })
+  expect(await keyFailure('QQQQ-QQQQ-QQQQ-QQQQ')).toEqual({
+    tag: 'ApiError',
+    message: 'That feature key is not valid.',
+  })
+  expect(await keyFailure('not-a-key')).toEqual({
+    tag: 'ApiError',
+    message: 'That feature key is not valid.',
+  })
+})
+
+test('a revoked or expired key is no longer active', async () => {
+  await addKey('AAAA-BBBB-CCCC-DDDD', { revokedAt: 1 })
+  await addKey('EEEE-2222-3333-4444', { expiresAt: 1 })
+  await addKey('GGGG-5555-6666-7777', { expiresAt: Date.now() + 60_000 })
+
+  for (const key of ['AAAA-BBBB-CCCC-DDDD', 'EEEE-2222-3333-4444'])
+    expect(await keyFailure(key)).toEqual({
+      tag: 'ApiError',
+      message: 'That feature key is no longer active.',
+    })
+  expect(await run(keyStatus('GGGG-5555-6666-7777'))).toMatchObject({ features: ['multiplayer'] })
+})
+
+test('a failing key store answers that features are unavailable and logs its cause', async () => {
+  const cause = new Error('D1_ERROR: no such table: feature_keys')
+  const broken = {
+    prepare: () => {
+      throw cause
+    },
+  } as unknown as SqlRunner
+  handler = handlerFor({ feedback: db, access: broken, directory: directory() })
+  const logged: Array<unknown> = []
+  const spies = (['log', 'error', 'warn'] as const).map((level) =>
+    vi.spyOn(console, level).mockImplementation((...args) => void logged.push(...args)),
+  )
+  try {
+    expect(await keyFailure('K7QM-3XPA-9RTF-2WHD')).toEqual({
+      tag: 'ApiError',
+      message: 'Features are unavailable. Try again later.',
     })
   } finally {
     for (const spy of spies) spy.mockRestore()

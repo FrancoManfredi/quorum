@@ -7,11 +7,15 @@ import * as Logger from 'effect/Logger'
 import * as Tracer from 'effect/Tracer'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
 import { Api, ApiError, RPC_PATH } from '@quorum/rpc'
+import { FeatureGate } from './contexts/access/gate.ts'
+import { AccessHandlers } from './contexts/access/handlers.ts'
+import { AccessStore } from './contexts/access/store.ts'
 import { RoomDirectory } from './contexts/room/directory.ts'
 import { RoomHandlers } from './contexts/room/handlers.ts'
 import { SurveyHandlers } from './contexts/survey/handlers.ts'
 import { SurveyStore } from './contexts/survey/store.ts'
 import { SystemHandlers } from './contexts/system/handlers.ts'
+import { d1AccessStore } from './platform/d1-access-store.ts'
 import { d1SurveyStore } from './platform/d1-survey-store.ts'
 import type { AgentRoomInstance } from './platform/agent-room.ts'
 import type { RoomInstance } from './platform/room-object.ts'
@@ -19,10 +23,13 @@ import type { SqlRunner } from './platform/sql.ts'
 
 /**
  * The bindings the stack gives the API Worker. A `D1Database` is a `SqlRunner`.
- * `FEEDBACK` holds the Exit survey; `ROOMS` hosts an online Company.
+ * `FEEDBACK` holds the Exit survey, `ACCESS` the feature keys, and `ROOMS` hosts an
+ * online Company. `FEEDBACK` and `ACCESS` are one database under two names, so each
+ * context reads its own table without a second resource.
  */
 export type Env = Readonly<{
   FEEDBACK: SqlRunner
+  ACCESS: SqlRunner
   ROOMS: DurableObjectNamespace<RoomInstance>
   AGENT_ROOMS: DurableObjectNamespace<AgentRoomInstance>
   SENTRY_DSN?: string
@@ -53,6 +60,7 @@ const SentryLive = Layer.mergeAll(
 /** What the RPC path needs, so a test can drive it without the Worker runtime. */
 export type HandlerInput = Readonly<{
   feedback: SqlRunner
+  access: SqlRunner
   directory: RoomDirectory['Service']
 }>
 
@@ -63,7 +71,9 @@ export const handlerFor = (input: HandlerInput) =>
       path: RPC_PATH,
       protocol: 'http',
     }).pipe(
-      Layer.provide(Layer.mergeAll(SystemHandlers, SurveyHandlers, RoomHandlers)),
+      Layer.provide(Layer.mergeAll(SystemHandlers, SurveyHandlers, RoomHandlers, AccessHandlers)),
+      Layer.provide(FeatureGate.layer),
+      Layer.provide(Layer.succeed(AccessStore, d1AccessStore(input.access))),
       Layer.provide(Layer.succeed(SurveyStore, d1SurveyStore(input.feedback))),
       Layer.provide(Layer.succeed(RoomDirectory, input.directory)),
       Layer.provideMerge(RpcSerialization.layerJson),
