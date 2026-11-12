@@ -1,5 +1,6 @@
 import { Effect, Option, Schema } from 'effect'
 import { ApiError, RoomRpc } from '@quorum/rpc'
+import { FeatureGate } from '../access/gate.ts'
 import { SIM_VERSION } from '@quorum/simulation/version'
 import { Game, Sample } from '@quorum/simulation/state'
 import { RoomDirectory, RoomError } from './directory.ts'
@@ -23,8 +24,11 @@ const unavailable = (error: RoomError) =>
 export const RoomHandlers = RoomRpc.toLayer(
   Effect.gen(function* () {
     const directory = yield* RoomDirectory
+    const gate = yield* FeatureGate
     return RoomRpc.of({
       roomPublish: Effect.fn('room.publish')(function* (payload) {
+        // A Room costs a Durable Object and a socket, so it is behind a feature key.
+        yield* gate.require('multiplayer', payload.key)
         const game = decodeGame(payload.game)
         if (Option.isNone(game)) return yield* fail('The Company could not be read.')
         if (payload.samples.length > MAX_SAMPLES)

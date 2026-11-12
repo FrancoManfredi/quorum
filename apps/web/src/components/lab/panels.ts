@@ -8,6 +8,8 @@ import {
   DoorOpen,
   Download,
   House,
+  KeyRound,
+  Lock,
   LogOut,
   Play,
   Settings,
@@ -30,6 +32,7 @@ import {
   roomLive,
   type Model,
   type SettingsSection,
+  type Tone,
 } from '@/game/model.ts'
 import { seatColour } from '@/game/seat-colour.ts'
 import type { Vote } from '@quorum/simulation/room'
@@ -48,6 +51,8 @@ import { switch_ } from '@quorum/ui/primitives/switch'
 import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { cn } from '@/lib/utils'
 import { settingsSections, type Setting } from '@/game/settings.ts'
+import { KEY_FIELD_MAX, canPlayOnline, keyNote } from '@/game/access.ts'
+import { KeyPhase } from '@/game/key-machine.ts'
 import { languagePicker } from '@/i18n/picker.ts'
 import { EYEBROW, FIGURE, FLOAT, NESTED, SCROLL, WELL } from '@quorum/ui/game/bits'
 
@@ -742,8 +747,32 @@ export const roomPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const body: Array<Html> = []
 
   if (RoomPhase.isAnyOf(['Idle', 'Closed'])(phase)) {
+    // A key that was turned off stops a Room here as well as at the API Worker.
+    const allowed = canPlayOnline(model)
     body.push(h.p([h.Class('px-5 pt-4 text-sm text-muted-foreground')], [t.room.onlineHint]))
-    if (file !== null)
+    if (file !== null && !allowed)
+      body.push(
+        h.div(
+          [h.Class('flex flex-col gap-2 px-5 pt-4')],
+          [
+            h.p(
+              [h.Class('flex items-start gap-2 text-sm text-muted-foreground')],
+              [icon(h, Lock, 'mt-0.5 size-4 shrink-0'), t.room.needsKey],
+            ),
+            button(
+              {
+                onClick: Message.FeatureKeyAsked(),
+                variant: 'outline',
+                size: 'lg',
+                className: 'w-full justify-start gap-2.5',
+              },
+              [icon(h, KeyRound, 'size-4'), t.panels.featureKey],
+              h,
+            ),
+          ],
+        ),
+      )
+    if (file !== null && allowed)
       body.push(
         h.div(
           [h.Class('px-5 pt-4')],
@@ -893,11 +922,98 @@ const settingAction = (
     h,
   )
 
+/** A status line reads its tone from what it says: a refusal warns, an active key confirms. */
+const toneClass = (tone: Tone): string =>
+  tone === 'ok'
+    ? 'text-ok'
+    : tone === 'warn'
+      ? 'text-warn'
+      : tone === 'danger'
+        ? 'text-danger'
+        : 'text-muted-foreground'
+
+/**
+ * The feature key: the field, the check, and what the key unlocks. The player keeps
+ * the key, so removing it here only clears this browser.
+ */
+const featureKeyRow = (label: string, model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const note = keyNote(model, t)
+  const checking = KeyPhase.guards.Checking(model.keyPhase)
+  const canSubmit = !checking && model.keyDraft.trim() !== ''
+  return h.div(
+    [h.Class('flex flex-col gap-2 px-4 py-3')],
+    [
+      h.label([h.For('feature-key'), h.Class(settingLabelClass)], [label]),
+      h.div(
+        [h.Class('flex items-center gap-2')],
+        [
+          h.label(
+            [h.Class(cn(WELL, 'flex h-9 min-w-0 flex-1 items-center px-2.5'))],
+            [
+              h.input([
+                h.Id('feature-key'),
+                h.Type('text'),
+                h.Value(model.keyDraft),
+                h.Maxlength(KEY_FIELD_MAX),
+                h.Placeholder('XXXX-XXXX-XXXX-XXXX'),
+                h.Autocomplete('off'),
+                h.Autocapitalize('characters'),
+                h.Spellcheck(false),
+                h.AriaLabel(label),
+                h.OnInput((value) => Message.KeyTyped({ value })),
+                h.OnKeyDownPreventDefault((key) =>
+                  key === 'Enter' && canSubmit
+                    ? Option.some(Message.KeySubmitted())
+                    : Option.none(),
+                ),
+                h.Class(
+                  'w-full min-w-0 bg-transparent font-mono text-sm uppercase outline-none placeholder:text-muted-foreground/60 placeholder:normal-case',
+                ),
+              ]),
+            ],
+          ),
+          button(
+            {
+              onClick: Message.KeySubmitted(),
+              size: 'lg',
+              isDisabled: !canSubmit,
+              className: 'shrink-0',
+            },
+            checking ? t.panels.featureKeyChecking : t.panels.activateFeatureKey,
+            h,
+          ),
+        ],
+      ),
+      h.div(
+        [h.Class('flex flex-wrap items-center justify-between gap-2')],
+        [
+          h.p([h.Class(`text-xs leading-snug ${toneClass(note.tone)}`)], [note.text]),
+          model.access.key === null
+            ? h.empty
+            : button(
+                {
+                  onClick: Message.KeyCleared(),
+                  variant: 'ghost',
+                  size: 'xs',
+                  className: 'text-muted-foreground',
+                },
+                t.panels.removeFeatureKey,
+                h,
+              ),
+        ],
+      ),
+    ],
+  )
+}
+
 /** One setting with the control this panel has for it: a switch, a slider, a picker, or a button. */
 const settingRow = (setting: Setting, model: Model, h: HtmlBuilder<Message>): Html => {
   switch (setting.kind) {
     case 'volume':
       return volumeRow(model, h)
+    case 'key':
+      return featureKeyRow(setting.label, model, h)
     case 'toggle':
       return settingSwitch(
         {
@@ -918,7 +1034,7 @@ const settingRow = (setting: Setting, model: Model, h: HtmlBuilder<Message>): Ht
 export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
-  const sections = settingsSections(model.prefs, t)
+  const sections = settingsSections(model, t)
   const section = (id: SettingsSection): Html => {
     const found = sections.find((entry) => entry.id === id)!
     // The Agent room id belongs beside the switch that opens the relay, and only on the board.
@@ -949,7 +1065,7 @@ export const settingsPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
               ),
               h.div(
                 [h.Class('flex flex-col gap-4 compact:contents')],
-                [section('privacy'), section('save')],
+                [section('access'), section('privacy'), section('save')],
               ),
             ],
           ),

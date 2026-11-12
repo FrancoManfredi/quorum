@@ -3,6 +3,7 @@ export const room = {
   online: '在线游玩',
   onlineHint: '让别人和你一起建设这家公司。你随时可以把它收回来。',
   joinHint: '拿到链接的人都能加入，不需要账号。',
+  needsKey: '在线房间需要功能密钥。',
   code: '房间代码',
   connecting: '连接中…',
   joining: '正在加入公司…',

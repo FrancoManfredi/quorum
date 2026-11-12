@@ -6,6 +6,7 @@ import * as VolumeSlider from '@quorum/ui/primitives/slider'
 import { initStackPicker } from './stack-picker.ts'
 import {
   CheckRoom,
+  LoadAccess,
   LoadFounder,
   LoadSaves,
   AppendLog,
@@ -26,7 +27,7 @@ import { freshBoard, milestones, sync, type UpdateResult } from './update/shared
 import { isExited } from './company-machine.ts'
 import { isSending, isSent } from './survey-machine.ts'
 import { has } from '@quorum/simulation/lookups'
-import { ledgerOf, Model, halted, EMPTY_ROOM, EMPTY_SURVEY } from './model.ts'
+import { ledgerOf, Model, halted, EMPTY_ACCESS, EMPTY_ROOM, EMPTY_SURVEY } from './model.ts'
 import { nameOf } from '../platform/room-socket.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
@@ -48,6 +49,7 @@ import { teamHandlers } from './update/team.ts'
 import { panelsHandlers } from './update/panels.ts'
 import { saveHandlers } from './update/save.ts'
 import { roomHandlers } from './update/room.ts'
+import { accessHandlers } from './update/access.ts'
 
 /** Every Message. Handlers live in ./update, grouped by what they touch; this file routes them. */
 
@@ -89,6 +91,9 @@ export const initialModel = (): Model => {
       agentAccess: false,
       analytics: true,
     },
+    access: EMPTY_ACCESS,
+    keyDraft: '',
+    keyPhase: { _tag: 'Idle' },
     settingsSection: 'sound',
     languagePicker: Listbox.init({ id: 'interface-language' }),
     volumeSlider: VolumeSlider.init({ id: 'volume', min: 0, max: 100, step: 5 }),
@@ -123,6 +128,7 @@ export const init: Runtime.RoutingApplicationInit<Model, Message, void, ApiRpc> 
       LoadSaves({}),
       LoadSandboxStore({}),
       LoadPrefs({}),
+      LoadAccess({}),
       LoadFounder({}),
       ...(AppRoute.guards.Room(route) ? [CheckRoom({ code: route.room })] : []),
       ...(url.pathname === urlOf(route) ? [] : [ReplaceUrl({ url: urlOf(route) })]),
@@ -149,6 +155,9 @@ export const QUIET = new Set([
   'PreviewComputed',
   // The answers are the player's words; only sending them is a gesture.
   'SurveyChanged',
+  // The key field changes on every keystroke; only submitting it is a gesture.
+  'KeyTyped',
+  'AccessLoaded',
 ])
 
 /** A team drag sends a Message per pointer move; only the drop that moves someone is a gesture. */
@@ -294,6 +303,7 @@ function handle(model: Model, message: Message): UpdateResult {
     ...panelsHandlers(model, route),
     ...saveHandlers(model, route),
     ...roomHandlers(model),
+    ...accessHandlers(model),
   })
 }
 

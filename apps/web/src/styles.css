@@ -412,23 +412,14 @@
   white-space: nowrap;
   outline: none;
 }
-/* Every label keeps room for the caret, so the line never shifts when it moves. */
-.booth-tab::before {
-  content: '>';
-  margin-right: 0.5em;
-  color: transparent;
-}
 .booth-tab:hover {
   color: var(--foreground);
   background: oklch(1 0 0 / 0.06);
 }
-/* The current section reads as the chosen row it is: a soft block and the caret. */
+/* The current section reads as the chosen row it is: a soft block. */
 .booth-tab.is-on {
   color: var(--foreground);
   background: oklch(1 0 0 / 0.07);
-}
-.booth-tab.is-on::before {
-  color: var(--signal);
 }
 .booth-tab:focus-visible {
   background: oklch(1 0 0 / 0.07);
@@ -650,6 +641,51 @@
 .booth-range:focus-visible {
   outline: 2px solid var(--signal);
   outline-offset: calc(var(--s) * 0.4);
+}
+/* A setting typed into rather than stepped: the feature key, which a player pastes. */
+.booth-row.is-text {
+  gap: calc(var(--s) * 1.6);
+  cursor: default;
+}
+.booth-row.is-text:focus-within {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 0.08);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.06);
+}
+/* The field sits in the row the way a slider does, so the row keeps the focus ring. */
+.booth-row.is-text input {
+  flex: 1;
+  min-width: 0;
+  padding: calc(var(--s) * 0.45) calc(var(--s) * 0.9);
+  border-radius: calc(var(--s) * 0.6);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: max(calc(11px * var(--type-scale)), calc(var(--s) * 1.45 * var(--type-scale)));
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: oklch(0 0 0 / 0.28);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12);
+  outline: none;
+}
+.booth-row.is-text input:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px var(--signal),
+    0 0 0 2px oklch(1 0 0 / 0.06);
+}
+.booth-row.is-text input::placeholder {
+  color: var(--muted-foreground);
+  letter-spacing: 0.12em;
+  opacity: 0.5;
+}
+/* A note under a setting: the state, or why a check failed. `.booth-note` styles the rest. */
+.booth-note.is-ok {
+  color: var(--ok);
+}
+.booth-note.is-warn {
+  color: var(--warn);
+}
+.booth-note.is-danger {
+  color: var(--danger);
 }
 .booth-hint {
   flex: none;

@@ -4,6 +4,7 @@ export const room = {
   onlineHint:
     'Laissez d’autres personnes construire cette entreprise avec vous. Vous pouvez la reprendre à tout moment.',
   joinHint: 'Toute personne avec le lien peut entrer. Aucun compte n’est nécessaire.',
+  needsKey: 'Les salons en ligne demandent une clé de fonctionnalité.',
   code: 'Code du salon',
   connecting: 'Connexion…',
   joining: 'Entrée dans l’entreprise…',

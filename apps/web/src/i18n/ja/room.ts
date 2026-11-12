@@ -3,6 +3,7 @@ export const room = {
   online: 'オンラインで遊ぶ',
   onlineHint: '他の人とこの会社を一緒に育てられます。いつでも手元に戻せます。',
   joinHint: 'リンクを知っている人は誰でも参加できます。アカウントは不要です。',
+  needsKey: 'オンラインルームには機能キーが必要です。',
   code: 'ルームコード',
   connecting: '接続中…',
   joining: '会社に参加中…',

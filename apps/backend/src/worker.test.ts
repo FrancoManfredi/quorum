@@ -6,6 +6,7 @@ import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { Api, RPC_PATH, type SurveyExit, type SurveySubmission } from '@quorum/rpc'
+import { newGame } from '@quorum/simulation/company'
 import { RoomDirectory } from './contexts/room/directory.ts'
 import { sqliteRunner } from './platform/sqlite-runner.ts'
 import type { SqlRunner } from './platform/sql.ts'
@@ -221,6 +222,24 @@ const keyFailure = (key: string) =>
     message: error.message,
   }))
 
+const roomPublish = (key: string | null) =>
+  Effect.gen(function* () {
+    const api = yield* client
+    return yield* api.roomPublish({
+      name: 'Quorum',
+      game: newGame(),
+      samples: [],
+      wall: 1,
+      key,
+    })
+  })
+
+const publishFailure = (key: string | null) =>
+  run(Effect.flip(roomPublish(key))).then((error) => ({
+    tag: error._tag,
+    message: error.message,
+  }))
+
 test('a feature key answers with the features this build knows', async () => {
   // A row may name a feature a later build adds, so this one names one a future build might.
   await addKey('K7QM-3XPA-9RTF-2WHD', { features: 'multiplayer,future-feature' })
@@ -251,6 +270,30 @@ test('a revoked or expired key is no longer active', async () => {
       message: 'That feature key is no longer active.',
     })
   expect(await run(keyStatus('GGGG-5555-6666-7777'))).toMatchObject({ features: ['multiplayer'] })
+})
+
+test('an Online Room opens with an active key and never without one', async () => {
+  await addKey('K7QM-3XPA-9RTF-2WHD')
+  await addKey('AAAA-BBBB-CCCC-DDDD', { revokedAt: 1 })
+
+  expect(await run(roomPublish(' k7qm-3xpa-9rtf-2whd '))).toEqual({
+    code: 'AAAAAA',
+    token: 'token',
+  })
+  expect(await publishFailure(null)).toEqual({
+    tag: 'ApiError',
+    message: 'A feature key is needed for that.',
+  })
+  expect(await publishFailure('AAAA-BBBB-CCCC-DDDD')).toEqual({
+    tag: 'ApiError',
+    message: 'That feature key is no longer active.',
+  })
+  expect(await publishFailure('QQQQ-QQQQ-QQQQ-QQQQ')).toEqual({
+    tag: 'ApiError',
+    message: 'That feature key is not valid.',
+  })
+  // Only the accepted publish reached the Room layer.
+  expect(publishes).toBe(1)
 })
 
 test('a failing key store answers that features are unavailable and logs its cause', async () => {

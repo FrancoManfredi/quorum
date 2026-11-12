@@ -1,5 +1,6 @@
 import { defineMessageUnion } from 'foldkit/message'
 
+import { accessCases } from './message/access.ts'
 import { canvasCases } from './message/canvas.ts'
 import { clockCases } from './message/clock.ts'
 import { companiesCases } from './message/companies.ts'
@@ -17,6 +18,7 @@ import { teamCases } from './message/team.ts'
 import { tradeoffCases } from './message/tradeoff.ts'
 
 export const Message = defineMessageUnion({
+  ...accessCases,
   ...canvasCases,
   ...clockCases,
   ...companiesCases,

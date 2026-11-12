@@ -16,6 +16,11 @@ export const RoomPublish = Schema.Struct({
   samples: Schema.Array(Schema.Unknown),
   /** The browser's wall clock when the Company went online. */
   wall: Schema.Finite,
+  /**
+   * The feature key that unlocks Online Rooms. The API Worker checks it on every
+   * publish, so a key that was turned off stops working even in a loaded tab.
+   */
+  key: Schema.NullOr(Schema.String),
 })
 export type RoomPublish = typeof RoomPublish.Type
 

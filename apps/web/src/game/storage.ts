@@ -12,6 +12,8 @@ export const SAVE_PREFIX = 'quorum.save.v3.'
 /** The last Company file this build could not read. */
 export const BROKEN_SAVE_KEY = 'quorum.save.broken.v1'
 export const PREFS_KEY = 'quorum.prefs.v1'
+/** The feature key this browser holds, and what the API Worker said it unlocks. */
+export const ACCESS_KEY = 'quorum.access.v1'
 export const FOUNDER_KEY = 'quorum.founder.v1'
 export const SANDBOX_KEY = 'quorum.sandbox.v1'
 export const AGENT_ROOMS_KEY = 'quorum.agent.rooms'

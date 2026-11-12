@@ -3,14 +3,19 @@ import { ArrowUpRight, ClipboardPaste, Copy, Download, Upload, type IconNode } f
 import type { Messages } from '@/i18n/messages.ts'
 import { PRIVACY_URL } from '@/platform/analytics.ts'
 import { Message } from './message.ts'
-import type { Prefs, SettingsSection } from './model.ts'
+import type { Model, Prefs, SettingsSection } from './model.ts'
 import { PrefsMessage } from './prefs.ts'
 
-/** One Settings row. The title screen's page and the board's panel render the same list. */
+/**
+ * One Settings row. The title screen's page and the board's panel render the same
+ * list. A `key` row reads the key field from the Model, so the two surfaces cannot
+ * show a different key.
+ */
 export type Setting =
   | Readonly<{ kind: 'volume'; label: string; value: number }>
   | Readonly<{ kind: 'toggle'; id: string; label: string; isOn: boolean; message: Message }>
   | Readonly<{ kind: 'language'; label: string }>
+  | Readonly<{ kind: 'key'; id: string; label: string }>
   | Readonly<{ kind: 'action'; id: string; label: string; glyph: IconNode; message: Message }>
 
 export type SettingSection = Readonly<{
@@ -24,7 +29,8 @@ export type SettingSection = Readonly<{
  * surface renders the rows with its own control: a booth row on the title, a switch
  * in the panel.
  */
-export const settingsSections = (prefs: Prefs, t: Messages): ReadonlyArray<SettingSection> => {
+export const settingsSections = (model: Model, t: Messages): ReadonlyArray<SettingSection> => {
+  const prefs: Prefs = model.prefs
   const changed = (message: PrefsMessage): Message => Message.PrefsChanged({ message })
   const toggle = (id: string, label: string, isOn: boolean, message: PrefsMessage): Setting => ({
     kind: 'toggle',
@@ -79,6 +85,13 @@ export const settingsSections = (prefs: Prefs, t: Messages): ReadonlyArray<Setti
         toggle('theme', t.panels.darkMode, prefs.theme === 'dark', PrefsMessage.ThemeToggled()),
         { kind: 'language', label: t.panels.language },
       ],
+    },
+    {
+      // A feature key unlocks what runs on the server, so it sits apart from the switches
+      // that only change this browser.
+      id: 'access',
+      label: t.panels.featureKeys,
+      rows: [{ kind: 'key', id: 'feature-key', label: t.panels.featureKey }],
     },
     {
       id: 'privacy',

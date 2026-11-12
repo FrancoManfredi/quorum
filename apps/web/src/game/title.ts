@@ -1,6 +1,7 @@
 import { copyIn, nodeTitle, type Messages } from '@/i18n/messages.ts'
 import { copy, localized, eraWords } from '@/i18n/messages.ts'
 import * as Effect from 'effect/Effect'
+import { Option } from 'effect'
 import { Mount } from 'foldkit'
 import { DISCLAIMER_URL, SOURCE_URL, WIKI_URL } from '@/platform/analytics.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
@@ -42,7 +43,16 @@ import { clock, compact } from '@quorum/ui/game/format'
 import { Message } from './message.ts'
 import { PrefsMessage } from './prefs.ts'
 import { settingsSections, type Setting } from './settings.ts'
-import { boardChallenge, boardSandbox, currentFile, hasCompany, type Model } from './model.ts'
+import { KEY_FIELD_MAX, keyNote } from './access.ts'
+import { KeyPhase } from './key-machine.ts'
+import {
+  boardChallenge,
+  boardSandbox,
+  currentFile,
+  hasCompany,
+  type Model,
+  type Tone,
+} from './model.ts'
 import { LOGOS } from './logos.ts'
 import { MAX_COMPANY_NAME, nameOr, recent, type CompanyFile } from './saves.ts'
 import { menuOf, type MenuPage } from './route.ts'
@@ -842,11 +852,73 @@ const achievementRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<H
   ]
 }
 
+/** The booth's own note colours, which sit on its dark panel rather than the board's theme. */
+const noteClass = (tone: Tone): string =>
+  tone === 'ok' ? 'is-ok' : tone === 'warn' ? 'is-warn' : tone === 'danger' ? 'is-danger' : ''
+
+/**
+ * The feature key in the booth's idiom. The field is typed in, not navigated: Enter
+ * and the arrows step out of it, so the check is the row below.
+ */
+const featureKeyBlock = (label: string, model: Model, h: HtmlBuilder<Message>): Html => {
+  const t = copy(h)
+  const note = keyNote(model, t)
+  const checking = KeyPhase.guards.Checking(model.keyPhase)
+  const canSubmit = !checking && model.keyDraft.trim() !== ''
+  return h.div(
+    [h.Class('flex flex-col')],
+    [
+      h.div(
+        [h.Class('booth-row is-text')],
+        [
+          h.span([h.Class('booth-label')], [h.span([], [label])]),
+          h.input([
+            h.Type('text'),
+            h.Value(model.keyDraft),
+            h.Maxlength(KEY_FIELD_MAX),
+            h.Placeholder('XXXX-XXXX-XXXX-XXXX'),
+            h.Autocomplete('off'),
+            h.Autocapitalize('characters'),
+            h.Spellcheck(false),
+            h.AriaLabel(label),
+            h.DataAttribute('row', ''),
+            h.OnInput((value) => Message.KeyTyped({ value })),
+            h.OnKeyDownPreventDefault((key) =>
+              key === 'Enter' && canSubmit ? Option.some(Message.KeySubmitted()) : Option.none(),
+            ),
+          ]),
+        ],
+      ),
+      row(
+        {
+          key: 'feature-key-check',
+          label: checking ? t.panels.featureKeyChecking : t.panels.activateFeatureKey,
+          message: canSubmit ? Message.KeySubmitted() : null,
+        },
+        h,
+      ),
+      h.p([h.Class(`booth-note ${noteClass(note.tone)}`)], [note.text]),
+      model.access.key === null
+        ? h.empty
+        : row(
+            {
+              key: 'feature-key-remove',
+              label: t.panels.removeFeatureKey,
+              message: Message.KeyCleared(),
+            },
+            h,
+          ),
+    ],
+  )
+}
+
 /** One Settings row in the booth's own idiom: a switch says On or Off, and a link says where it goes. */
 const settingRow = (setting: Setting, model: Model, h: HtmlBuilder<Message>): Html => {
   const t = copy(h)
 
   switch (setting.kind) {
+    case 'key':
+      return featureKeyBlock(setting.label, model, h)
     case 'volume':
       return percentRow(
         {
@@ -907,7 +979,7 @@ const settingsTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
       h.Role('group'),
       h.AriaLabel(t.panels.settings),
     ],
-    settingsSections(model.prefs, t).map((part) =>
+    settingsSections(model, t).map((part) =>
       h.button(
         [
           h.Key(`tab-${part.id}`),
@@ -927,7 +999,7 @@ const settingsTabs = (model: Model, h: HtmlBuilder<Message>): Html => {
 /** Settings as sections. One section's rows show at a time, so nothing scrolls. */
 const settingsRows = (model: Model, h: HtmlBuilder<Message>): ReadonlyArray<Html> => {
   const t = copy(h)
-  const sections = settingsSections(model.prefs, t)
+  const sections = settingsSections(model, t)
   const active = sections.find((part) => part.id === model.settingsSection) ?? sections[0]!
   return [
     backRow(h),
