@@ -68,6 +68,12 @@ export const keysHandlers = (
       return key === 'Escape' || key === 'Shift+s'
         ? route(model, Message.ScreenshotToggled())
         : { model }
+    // The palette is a surface of its own: Cmd+K or Ctrl+K opens and closes it, and while it is
+    // open the search field owns every other key.
+    if (key === 'Mod+k')
+      return route(model, model.palette.open ? Message.PaletteClosed() : Message.PaletteOpened())
+    if (model.palette.open)
+      return key === 'Escape' ? route(model, Message.PaletteClosed()) : { model }
     if (model.panel === 'inbox') {
       const mail = mailKey(model, key, route)
       if (mail) return mail

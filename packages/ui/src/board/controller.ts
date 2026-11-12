@@ -419,6 +419,26 @@ export class BoardController {
     this.fittedWidth = w
   }
 
+  /**
+   * Zooms by a factor about the middle of the room the HUD, dock and Inspector
+   * leave free, so the view keeps the same cards in the same place.
+   */
+  zoomBy(factor: number): void {
+    const { clientWidth: w, clientHeight: h } = this.host
+    if (w === 0 || h === 0 || factor <= 0) return
+    const phone = isPhone()
+    const top = phone ? 160 : 120
+    const bottom = phone ? 90 : 210
+    const left = phone ? 0 : 380
+    const across = Math.max(1, w - left - (phone ? 0 : 380))
+    const room = Math.max(1, h - top - bottom)
+    const center = { x: left + across / 2, y: top + room / 2 }
+    const before = this.world.toLocal(new Point(center.x, center.y))
+    const scale = Math.min(1.6, Math.max(0.25, this.world.scale.x * factor))
+    this.world.scale.set(scale)
+    this.world.position.set(center.x - before.x * scale, center.y - before.y * scale)
+  }
+
   /** Centers a Node in the room the HUD, dock, and Inspector leave free. */
   focus(nodeId: string): void {
     const node = this.state?.game.nodes.find((entry) => entry.id === nodeId)

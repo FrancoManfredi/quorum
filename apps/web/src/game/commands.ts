@@ -6,7 +6,7 @@ import * as Effect from 'effect/Effect'
 import { Schema } from 'effect'
 import { Command } from 'foldkit'
 import { load, pushUrl, replaceUrl } from 'foldkit/navigation'
-import { fitBoard, focusBoard, repaintBoards, setBoard } from '@quorum/ui/board/board'
+import { fitBoard, focusBoard, repaintBoards, setBoard, zoomBoard } from '@quorum/ui/board/board'
 import { solveFlow } from '@quorum/simulation/solve'
 import { compute } from '@quorum/ui/board/compute'
 import { nodeOrdinals } from '@quorum/simulation/labels'
@@ -202,6 +202,14 @@ export const FitBoard = Command.define('FitBoard', {
   args: {},
   messages: [Message.Synced],
   execute: () => Effect.sync(() => fitBoard('board')).pipe(Effect.as(Message.Synced())),
+})
+
+/** Zooms about the middle of the room the HUD and dock leave free, so the view keeps its framing. */
+export const ZoomBoard = Command.define('ZoomBoard', {
+  args: { direction: Schema.Literals([1, -1]) },
+  messages: [Message.Synced],
+  execute: ({ direction }) =>
+    Effect.sync(() => zoomBoard('board', direction)).pipe(Effect.as(Message.Synced())),
 })
 
 /** Reads the Company index, and the single save of the build before Company files. */

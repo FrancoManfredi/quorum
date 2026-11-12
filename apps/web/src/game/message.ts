@@ -9,6 +9,7 @@ import { incidentsCases } from './message/incidents.ts'
 import { keysCases } from './message/keys.ts'
 import { mirrorsCases } from './message/mirrors.ts'
 import { optionsCases } from './message/options.ts'
+import { paletteCases } from './message/palette.ts'
 import { panelsCases } from './message/panels.ts'
 import { roomCases } from './message/room.ts'
 import { saveCases } from './message/save.ts'
@@ -27,6 +28,7 @@ export const Message = defineMessageUnion({
   ...keysCases,
   ...mirrorsCases,
   ...optionsCases,
+  ...paletteCases,
   ...panelsCases,
   ...roomCases,
   ...saveCases,

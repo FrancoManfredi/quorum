@@ -27,7 +27,15 @@ import { freshBoard, milestones, sync, type UpdateResult } from './update/shared
 import { isExited } from './company-machine.ts'
 import { isSending, isSent } from './survey-machine.ts'
 import { has } from '@quorum/simulation/lookups'
-import { ledgerOf, Model, halted, EMPTY_ACCESS, EMPTY_ROOM, EMPTY_SURVEY } from './model.ts'
+import {
+  ledgerOf,
+  Model,
+  halted,
+  EMPTY_ACCESS,
+  EMPTY_PALETTE,
+  EMPTY_ROOM,
+  EMPTY_SURVEY,
+} from './model.ts'
 import { nameOf } from '../platform/room-socket.ts'
 import { newGame } from '@quorum/simulation/company'
 import { type ApiRpc } from '@/platform/rpc.ts'
@@ -46,6 +54,7 @@ import { incidentsHandlers } from './update/incidents.ts'
 import { mirrorsHandlers } from './update/mirrors.ts'
 import { exitHandlers } from './update/exit.ts'
 import { teamHandlers } from './update/team.ts'
+import { paletteHandlers } from './update/palette.ts'
 import { panelsHandlers } from './update/panels.ts'
 import { saveHandlers } from './update/save.ts'
 import { roomHandlers } from './update/room.ts'
@@ -61,6 +70,7 @@ export const initialModel = (): Model => {
     route: AppRoute.Title(),
     boot: { _tag: 'Ready' },
     panel: 'none',
+    palette: EMPTY_PALETTE,
     toast: null,
     toastSeq: 0,
     board: freshBoard(newGame()),
@@ -158,6 +168,10 @@ export const QUIET = new Set([
   // The key field changes on every keystroke; only submitting it is a gesture.
   'KeyTyped',
   'AccessLoaded',
+  // The palette's query and highlight are UI state; the row the player runs is logged.
+  'PaletteQueryChanged',
+  'PaletteMoved',
+  'PaletteHighlighted',
 ])
 
 /** A team drag sends a Message per pointer move; only the drop that moves someone is a gesture. */
@@ -301,6 +315,7 @@ function handle(model: Model, message: Message): UpdateResult {
     ...exitHandlers(model),
     ...teamHandlers(model),
     ...panelsHandlers(model, route),
+    ...paletteHandlers(model, route),
     ...saveHandlers(model, route),
     ...roomHandlers(model),
     ...accessHandlers(model),

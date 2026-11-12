@@ -47,6 +47,7 @@ import {
   FitBoard,
   ToggleFullscreen,
   WriteSandboxStore,
+  ZoomBoard,
 } from '../commands.ts'
 import { advanceReveals } from '../reveal.ts'
 import { advanceSandbox, GUIDED, passedAll } from '@quorum/simulation/sandbox'
@@ -779,6 +780,7 @@ type ClockTag =
   | 'ScreenshotToggled'
   | 'BoardFitted'
   | 'BoardTidied'
+  | 'ZoomChosen'
 
 export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag> => ({
   Ticked: ({ elapsedMs }) => tick(model, elapsedMs),
@@ -841,6 +843,8 @@ export const clockHandlers = (model: Model): MessageCases<UpdateResult, ClockTag
   },
 
   BoardFitted: () => ({ model, commands: [FitBoard({})] }),
+
+  ZoomChosen: ({ direction }) => ({ model, commands: [ZoomBoard({ direction })] }),
 
   BoardTidied: () => {
     const view = regionView(model.board.game, model.board.region)

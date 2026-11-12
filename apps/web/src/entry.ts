@@ -48,7 +48,16 @@ const application = Runtime.makeApplication({
   crash: { report: reportCrash },
   // Over a phase's budget, Foldkit tells Sentry which Message was slow. Under it, nothing is sent.
   slow: { show: 'Always', onSlow: reportSlow },
-  devTools: { Message, excludeFromHistory: ['Ticked', 'Synced', 'DashboardChanged'] },
+  devTools: {
+    Message,
+    excludeFromHistory: [
+      'Ticked',
+      'Synced',
+      'DashboardChanged',
+      'PaletteQueryChanged',
+      'PaletteMoved',
+    ],
+  },
 })
 
 // Surfaces opened from the keyboard skip their entrance (see styles.css): shortcuts must feel instant.

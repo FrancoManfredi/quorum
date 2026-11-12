@@ -40,6 +40,7 @@ import { objectiveBar, passedPanel, sandboxHud } from '@/components/lab/sandbox.
 import { challengeBar, challengeHud, challengePanel } from '@/components/lab/challenge.ts'
 import { nodeList } from '@/components/lab/node-list.ts'
 import { tradeoffCard } from '@/components/lab/tradeoff.ts'
+import { commandPalette } from '@/components/lab/palette.ts'
 import { boardHost } from './board-mount.ts'
 import { Message } from './message.ts'
 import {
@@ -161,6 +162,8 @@ export const labScreen = (model: Model, h: HtmlBuilder<Message>): Html => {
       model.panel === 'dev' ? devPanel(model, h) : h.empty,
       model.panel === 'passed' ? passedPanel(model, h) : h.empty,
       model.panel === 'challenge' ? challengePanel(model, h) : h.empty,
+      // The palette floats over whatever is open: it can reach any action from any panel.
+      commandPalette(model, h),
     ],
   )
 }

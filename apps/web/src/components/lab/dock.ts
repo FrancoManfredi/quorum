@@ -1,14 +1,12 @@
-import { copy, localized } from '@/i18n/messages.ts'
+import { copy } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
-import { ChartLine, Lock, Mail, MessagesSquare, Plug, Wrench, X, type IconNode } from 'lucide'
+import { ChartLine, Mail, MessagesSquare, Plug, Wrench, X, type IconNode } from 'lucide'
 import {
   DOCK_GROUPS,
   COMPONENTS,
   type DockGroup,
   type ComponentId,
 } from '@quorum/simulation/catalog'
-import { isUnlocked, priceOf } from '@quorum/simulation/lookups'
-import { money } from '@quorum/ui/game/format'
 import { COMPONENT_ICONS, GROUP_ICONS } from '@quorum/ui/game/icons'
 import { Message } from '@/game/message.ts'
 import { placingOf, type Model } from '@/game/model.ts'
@@ -17,6 +15,8 @@ import { icon } from '@quorum/ui/primitives/icon'
 import { Kbd } from '@quorum/ui/primitives/kbd'
 import { cn } from '@/lib/utils'
 import { FIGURE, GROUP_TEXT, PANEL, groupBadge, tool } from '@quorum/ui/game/bits'
+import { partOf } from '@/game/parts.ts'
+import { partCells } from './part-row.ts'
 import { unreadCount, waitingMail } from './inbox.ts'
 
 /** The highlight's offset under the open tab, by the tab's place in the dock. */
@@ -41,11 +41,7 @@ const DOCK_ICONS: Record<DockGroup, IconNode> = {
 }
 
 const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Message>): Html => {
-  const t = copy(h)
-
-  const def = localized(COMPONENTS[type], t.catalog.components[type])
-  const unlocked = isUnlocked(model.board.game, type)
-  const price = priceOf(model.board.game, type)
+  const part = partOf(copy(h), model.board.game, type)
   return h.button(
     [
       h.Key(type),
@@ -54,59 +50,11 @@ const row = (model: Model, type: ComponentId, index: number, h: HtmlBuilder<Mess
       h.Class(
         cn(
           'press flex h-12 w-full shrink-0 items-center gap-3 rounded-xl px-2.5 text-left hover:bg-well',
-          unlocked ? '' : 'opacity-70',
+          part.locked === null ? '' : 'opacity-70',
         ),
       ),
     ],
-    [
-      groupBadge(def.group, COMPONENT_ICONS[type], 'size-8 shrink-0', h, !unlocked),
-      h.span(
-        [h.Class('flex min-w-0 flex-1 flex-col gap-0.5')],
-        [
-          h.span(
-            [h.Class('text-[calc(13px*var(--type-scale))] leading-none font-medium')],
-            [def.name],
-          ),
-          h.span(
-            [
-              h.Class(
-                'truncate text-[calc(11.5px*var(--type-scale))] leading-tight text-muted-foreground',
-              ),
-            ],
-            [def.blurb],
-          ),
-        ],
-      ),
-      unlocked
-        ? h.span(
-            [
-              h.Class(
-                cn(
-                  FIGURE,
-                  'text-[calc(12.5px*var(--type-scale))]',
-                  model.board.game.cash >= price ? '' : 'text-danger',
-                ),
-              ),
-            ],
-            [model.board.game.sandbox ? '' : money(price)],
-          )
-        : h.span(
-            [
-              h.Title(t.catalog.research[def.unlock ?? 'stripe'].name),
-              h.Class(
-                'flex shrink-0 items-center gap-1 text-[calc(11px*var(--type-scale))] text-muted-foreground',
-              ),
-            ],
-            [
-              icon(h, Lock, 'size-3.5'),
-              h.span(
-                [h.Class('compact:hidden')],
-                [t.catalog.research[def.unlock ?? 'stripe'].name],
-              ),
-            ],
-          ),
-      h.span([h.Class('compact:hidden')], [Kbd({}, [String(index + 1)], h)]),
-    ],
+    [...partCells(part, h), h.span([h.Class('compact:hidden')], [Kbd({}, [String(index + 1)], h)])],
   )
 }
 

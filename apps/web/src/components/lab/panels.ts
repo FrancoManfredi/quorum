@@ -4,6 +4,7 @@ import { type Messages, copy, eraWords, localized } from '@/i18n/messages.ts'
 import type { Html, HtmlBuilder } from 'foldkit/html'
 import {
   ArrowUpRight,
+  Command,
   Copy,
   DoorOpen,
   Download,
@@ -38,6 +39,7 @@ import { seatColour } from '@/game/seat-colour.ts'
 import type { Vote } from '@quorum/simulation/room'
 import { companyMark } from '@/components/company-mark.ts'
 import { speedsOf } from '@/game/update.ts'
+import { modShortcut } from '@/game/palette.ts'
 import { roomOwner } from '@/game/model.ts'
 import { ROOM_NAME_LENGTH } from '@/game/names.ts'
 import { RoomPhase } from '@/game/room-machine.ts'
@@ -273,6 +275,7 @@ const keyGroupsOf = (t: Messages, easyMode: boolean): ReadonlyArray<KeyGroup> =>
       ['I', t.panels.inbox],
       ['$', t.panels.cost],
       ['`', t.panels.developerPanel],
+      [modShortcut('K'), t.palette.title],
       [t.panels.esc, t.panels.backOutThenMenu],
     ],
   ],
@@ -483,6 +486,14 @@ export const menuPanel = (model: Model, h: HtmlBuilder<Message>): Html => {
             Kbd({ className: 'shrink-0' }, [t.panels.esc], h),
           ),
           rule,
+          menuItem(
+            t.palette.title,
+            Command,
+            Message.PaletteOpened(),
+            h,
+            'outline',
+            Kbd({ className: 'shrink-0' }, [modShortcut('K')], h),
+          ),
           menuItem(t.panels.settings, Settings, Message.PanelOpened({ panel: 'settings' }), h),
           menuItem(
             roomCode(model) === null ? t.room.title : `${t.room.title} · ${roomCode(model)}`,

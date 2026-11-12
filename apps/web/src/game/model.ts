@@ -183,6 +183,20 @@ export type TextSize = typeof TextSize.Type
 export const Theme = Schema.Literals(['light', 'dark'])
 export type Theme = typeof Theme.Type
 
+/**
+ * The command palette over the board: whether it is open, what the player
+ * typed, and the row they highlighted. A closed palette holds no query; a
+ * query highlights its first match, and a blank one highlights nothing.
+ */
+export const Palette = Schema.Struct({
+  open: Schema.Boolean,
+  query: Schema.String,
+  active: Schema.NullOr(Schema.String),
+})
+export type Palette = typeof Palette.Type
+
+export const EMPTY_PALETTE: Palette = { open: false, query: '', active: null }
+
 /** What the player's browser remembers apart from saves: settings, and the option sets confirmed once. */
 export const Prefs = Schema.Struct({
   locale: Locale.pipe(Schema.withDecodingDefaultKey(Effect.succeed('en' as const))),
@@ -470,6 +484,8 @@ export const Model = Schema.Struct({
   /** Where the app is in its boot sequence: the clock-in splash, the title, or a board opening. */
   boot: Boot,
   panel: Panel,
+  /** The command palette over the board (Cmd+K, Ctrl+K elsewhere). */
+  palette: Palette,
   toast: Schema.NullOr(Toast),
   toastSeq: Schema.Finite,
   board: Board,
@@ -549,11 +565,13 @@ export const exitLegacy = (model: Model): number | null => {
 export const inMenu = (model: Model): boolean =>
   model.panel === 'menu' || model.panel === 'settings'
 
-/** The clock holds still: the player paused it, or the game menu is open. */
-/** The clock holds still: paused for any reason, or the game menu is open. */
+/** The clock holds still: the player paused it, the game menu is open, or the command palette is. */
 export const halted = (model: Model): boolean =>
   !roomLive(model) &&
-  (clockPausedOf(model.board.clock.mode) || inMenu(model) || model.boot._tag === 'Connecting')
+  (clockPausedOf(model.board.clock.mode) ||
+    inMenu(model) ||
+    model.palette.open ||
+    model.boot._tag === 'Connecting')
 
 /** The clock is paused, whatever the reason. A live Room never pauses: the server owns it. */
 export const clockPaused = (model: Model): boolean =>

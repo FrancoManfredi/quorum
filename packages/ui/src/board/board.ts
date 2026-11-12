@@ -6,6 +6,9 @@ import type { BoardEvents, BoardState } from './types.ts'
 
 export type { BoardEvents, BoardSound, BoardState, Stamp } from './types.ts'
 
+/** One zoom step from the palette: far enough to notice, close to a wheel notch. */
+export const ZOOM_STEP = 1.2
+
 /** Latest state per board, written by update and read on mount. */
 const desired = new Map<string, BoardState>()
 const controllers = new Map<string, BoardController>()
@@ -16,6 +19,10 @@ export const setBoard = (key: string, state: BoardState): void => {
 }
 
 export const fitBoard = (key: string): void => controllers.get(key)?.fit()
+
+/** Zooms by one step in the given direction, about the middle of the room the chrome leaves free. */
+export const zoomBoard = (key: string, direction: 1 | -1): void =>
+  controllers.get(key)?.zoomBy(direction === 1 ? ZOOM_STEP : 1 / ZOOM_STEP)
 
 /** Centers the view on a Node after a reveal, zooming in if the Board was far out. */
 export const focusBoard = (key: string, nodeId: string): void => controllers.get(key)?.focus(nodeId)

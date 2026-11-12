@@ -3,7 +3,7 @@ title: Settings and key reference
 summary: Every Setting and what it changes, and every key on the board.
 section: play
 order: 11
-aliases: settings, keys, keyboard, shortcuts, hotkeys, key reference, reduce motion, mute, pause on focus loss, agent access, import save
+aliases: settings, keys, keyboard, shortcuts, hotkeys, key reference, command palette, commands, reduce motion, mute, pause on focus loss, agent access, import save
 gdd: /design/15-ui-ux
 ---
 
@@ -35,7 +35,9 @@ Press `Esc` with nothing open to get the Menu, then choose **Settings**. On the 
 
 Settings belong to the browser, not to a Company. Read [Move a Company to another browser](/guides/move-a-company) before you use **Import a save file**, and the [privacy page](/about/privacy) for what the usage data holds.
 
-The Menu also holds **Resume**, **Settings**, **Room**, **Exit company** when you can exit, and **Title screen**. **Resume** and `Esc` return to the board. Read [Play in a Room](/play/rooms) before you take a Company online.
+The Menu also holds **Resume**, **Commands**, **Settings**, **Room**, **Exit company** when you can exit, and **Title screen**. **Resume** and `Esc` return to the board. Read [Play in a Room](/play/rooms) before you take a Company online.
+
+**Commands** is the palette over the board. Press `Cmd+K` on macOS or `Ctrl+K` elsewhere to open it, type to filter, and press `Enter` to run the highlighted row. It lists every action with the key that runs it: parts to place, Node changes, Research, panels, the board view, the selection, the regions, and Settings. It holds the clock while it is open, and `Esc` closes it.
 
 ## Keys
 
@@ -45,16 +47,17 @@ Keys work when you are on the board and not typing in a field. They do not work 
 
 ### Panels
 
-| Key        | Action                                                   |
-| ---------- | -------------------------------------------------------- |
-| `R`        | Research, once it shows                                  |
-| `T`        | Team, once it shows                                      |
-| `D`        | Dashboard, after `metrics`                               |
-| `P`        | Playbooks, after your first Exit                         |
-| `I`        | Inbox                                                    |
-| `$`        | The cloud bill: Burn, Revenue, margin. It has no button. |
-| `H` or `?` | How to play                                              |
-| `Esc`      | Close the top layer; with nothing open, open the Menu    |
+| Key                | Action                                                   |
+| ------------------ | -------------------------------------------------------- |
+| `R`                | Research, once it shows                                  |
+| `T`                | Team, once it shows                                      |
+| `D`                | Dashboard, after `metrics`                               |
+| `P`                | Playbooks, after your first Exit                         |
+| `I`                | Inbox                                                    |
+| `$`                | The cloud bill: Burn, Revenue, margin. It has no button. |
+| `H` or `?`         | How to play                                              |
+| `Esc`              | Close the top layer; with nothing open, open the Menu    |
+| `Cmd+K` / `Ctrl+K` | Commands: every action, grouped by area                  |
 
 ### Clock and view
 

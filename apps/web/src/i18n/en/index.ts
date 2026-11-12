@@ -47,6 +47,7 @@ import { legacy } from './legacy.ts'
 import { logos } from './logos.ts'
 import { mirror } from './mirror.ts'
 import { nodeList } from './nodeList.ts'
+import { palette } from './palette.ts'
 import { panels } from './panels.ts'
 import { presence } from './presence.ts'
 import { levers } from './levers.ts'
@@ -104,6 +105,7 @@ export const en = {
   logos,
   mirror,
   nodeList,
+  palette,
   panels,
   presence,
   levers,

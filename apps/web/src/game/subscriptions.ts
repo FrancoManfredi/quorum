@@ -66,13 +66,21 @@ const keys = Stream.callback<KeyMessage>((queue) =>
             // Ctrl or Cmd: edit the Nodes, or leave copy alone while text is selected.
             const edit = ['a', 'c', 'x', 'v', 'd'].includes(lower)
             const history = lower === 'z' || lower === 'y'
-            if (!edit && !history) return
-            if (lower !== 'v' && window.getSelection()?.toString()) return
+            // Cmd+K or Ctrl+K opens the command palette.
+            const command = lower === 'k'
+            if (!edit && !history && !command) return
+            if (lower !== 'v' && !command && window.getSelection()?.toString()) return
             event.preventDefault()
             Queue.offerUnsafe(
               queue,
               Message.KeyPressed({
-                key: edit ? `Mod+${lower}` : lower === 'z' && event.shiftKey ? 'Z' : lower,
+                key: command
+                  ? 'Mod+k'
+                  : edit
+                    ? `Mod+${lower}`
+                    : lower === 'z' && event.shiftKey
+                      ? 'Z'
+                      : lower,
               }),
             )
             return

@@ -11,4 +11,6 @@ export const clockCases = {
   ScreenshotToggled: {},
   BoardFitted: {},
   BoardTidied: {},
+  /** Zooms the board in or out, about the middle of the room the chrome leaves free. */
+  ZoomChosen: { direction: Schema.Literals([1, -1]) },
 }
