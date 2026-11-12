@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/cloudflare'
 import { SentryEffectLogger, SentryEffectTracer } from '@sentry/effect'
-import { ErrorReporter, Schema } from 'effect'
+import { Cause, ErrorReporter, Schema } from 'effect'
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as Layer from 'effect/Layer'
 import * as Logger from 'effect/Logger'
@@ -38,12 +38,20 @@ export type Env = Readonly<{
 
 /**
  * Sentry gets every failure Effect reports except `ApiError`: it is the declared answer to a bad
- * request, not a fault, so it stays out of the issue list.
+ * request, not a fault, so it stays out of the issue list. The reporter hands a pretty-printed
+ * copy to its callback, so the decision reads the original cause instead.
  */
+const declaredAnswer = (cause: Cause.Cause<unknown>): boolean =>
+  cause.reasons.every(
+    (reason) =>
+      Cause.isInterruptReason(reason) ||
+      (Cause.isFailReason(reason) && Schema.is(ApiError)(reason.error)),
+  )
+
 const SentryErrors = ErrorReporter.layer(
   [
-    ErrorReporter.make(({ error }) => {
-      if (Schema.is(ApiError)(error)) return
+    ErrorReporter.make(({ cause, error }) => {
+      if (declaredAnswer(cause)) return
       Sentry.captureException(error)
     }),
   ],

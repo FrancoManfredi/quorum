@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import * as Sentry from '@sentry/cloudflare'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import * as Scope from 'effect/Scope'
@@ -11,6 +12,9 @@ import { RoomDirectory } from './contexts/room/directory.ts'
 import { sqliteRunner } from './platform/sqlite-runner.ts'
 import type { SqlRunner } from './platform/sql.ts'
 import { handlerFor } from './handler.ts'
+
+// Sentry is at the edge of the Worker, so the test spies on it instead of sending anything.
+vi.mock('@sentry/cloudflare', { spy: true })
 
 const url = `http://api.test${RPC_PATH}`
 
@@ -175,6 +179,8 @@ test('a failing survey store reaches the client as unavailable and logs its caus
   } as unknown as SqlRunner
   handler = handlerFor({ feedback: broken, access: db, directory: directory() })
   const logged: Array<unknown> = []
+  const capture = vi.mocked(Sentry.captureException)
+  capture.mockClear()
   const spies = (['log', 'error', 'warn'] as const).map((level) =>
     vi.spyOn(console, level).mockImplementation((...args) => void logged.push(...args)),
   )
@@ -190,6 +196,9 @@ test('a failing survey store reaches the client as unavailable and logs its caus
   expect(
     JSON.stringify(logged, (_, value) => (value instanceof Error ? value.message : value)),
   ).toContain('no such table')
+  // The store fault is a real one, so it still reaches Sentry; the ApiError that answers the
+  // client is declared, so it does not.
+  expect(capture).toHaveBeenCalledTimes(1)
 })
 
 /** A row as `scripts/feature-key.ts` writes it: the key hashed, and what it unlocks. */
@@ -257,6 +266,17 @@ test('a feature key answers with the features this build knows', async () => {
     tag: 'ApiError',
     message: 'That feature key is not valid.',
   })
+})
+
+test('a refused key stays out of Sentry', async () => {
+  const capture = vi.mocked(Sentry.captureException)
+  capture.mockClear()
+
+  expect(await keyFailure('QQQQ-QQQQ-QQQQ-QQQQ')).toEqual({
+    tag: 'ApiError',
+    message: 'That feature key is not valid.',
+  })
+  expect(capture).not.toHaveBeenCalled()
 })
 
 test('a revoked or expired key is no longer active', async () => {
